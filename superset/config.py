@@ -342,7 +342,7 @@ FLASH_CREATION = {
                                 "pattern": "^(@)[A-Za-z0-9_-\\s]+$",
                             },
                             "scheduleType": {
-                                "title": "Schedule Type",
+                                "title": "Schedule Frequency",
                                 "type": "string",
                                 "enum": ["", "Hourly", "Daily", "Weekly", "Monthly"],
                                 "enumNames": [
@@ -371,7 +371,7 @@ FLASH_CREATION = {
                         "properties": {
                             "flashType": {"enum": ["Short Term"]},
                             "scheduleType": {
-                                "title": "Schedule Type",
+                                "title": "Schedule Frequency",
                                 "type": "string",
                                 "enum": ["", "Hourly", "Daily", "Weekly", "Monthly"],
                                 "enumNames": [
@@ -422,7 +422,7 @@ FLASH_CREATION = {
             "ui:help": "Slack handle for notification",
         },
         "ttl": {"ui:help": "Flash object validity"},
-        "scheduleType": {"ui:help": "Schedule type for the Flash object"},
+        "scheduleType": {"ui:help": "Schedule Frequency for the Flash object"},
         "scheduleStartTime": {
             "ui:help": "Start time from which the flash object is to be scheduled."
         },
@@ -585,7 +585,7 @@ FLASH_TYPE = {
                                 "pattern": "^(@)[A-Za-z0-9_-\\s]+$",
                             },
                              "scheduleType": {
-                                "title": "Schedule Type",
+                                "title": "Schedule Frequency",
                                 "type": "string",
                                 "enum": ["", "Hourly", "Daily", "Weekly", "Monthly"],
                                 "enumNames": [
@@ -614,7 +614,7 @@ FLASH_TYPE = {
                         "properties": {
                             "flashType": {"enum": ["Short Term"]},
                             "scheduleType": {
-                                "title": "Schedule Type",
+                                "title": "Schedule Frequency",
                                 "type": "string",
                                 "enum": ["", "Hourly", "Daily", "Weekly", "Monthly"],
                                 "enumNames": [
@@ -651,7 +651,7 @@ FLASH_TYPE = {
             "ui:placeholder": "@slack_handle_name",
             "ui:help": "Slack handle for notification",
         },
-        "scheduleType": {"ui:help": "Schedule type for the Flash object"},
+        "scheduleType": {"ui:help": "Schedule Frequency for the Flash object"},
         "scheduleStartTime": {
             "ui:help": "Start time from which the flash object is to be scheduled."
         },
@@ -668,7 +668,7 @@ FLASH_SCHEDULE = {
         "type": "object",
         "properties": {
             "scheduleType": {
-                "title": "Schedule Type",
+                "title": "Schedule Frequency",
                 "type": "string",
                 "enum": ["", "Hourly", "Daily", "Weekly", "Monthly"],
                 "enumNames": [
@@ -696,7 +696,7 @@ FLASH_SCHEDULE = {
             "scheduleType",
             "scheduleStartTime",
         ],
-        "scheduleType": {"ui:help": "Schedule type for the Flash object"},
+        "scheduleType": {"ui:help": "Schedule Frequency for the Flash object"},
         "scheduleStartTime": {
             "ui:help": "Start time from which the flash object is to be scheduled"
         },

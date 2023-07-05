@@ -137,7 +137,7 @@ const FlashView: FunctionComponent<FlashViewButtonProps> = ({
           <Value>{flash?.ttl ? convertTollDate(flash?.ttl) : 'N/A'}</Value>
         </StyledCol>
         <StyledCol xs={5}>
-          <Label>Schedule Type:</Label>
+          <Label>Schedule Frequency:</Label>
         </StyledCol>
         <StyledCol xs={7}>
           <Value>{flash?.scheduleType ? flash?.scheduleType : 'N/A'}</Value>

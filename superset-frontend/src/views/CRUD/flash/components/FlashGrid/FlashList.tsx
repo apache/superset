@@ -256,6 +256,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         },
         Header: t('Database Name'),
         accessor: 'datastoreId',
+        size: 'xs',
       },
       {
         Header: t('Flash Type: Flash Name (Schedule Frequency)'),
@@ -361,12 +362,20 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         }: any) => (
           <span
             css={(theme: Theme) => css`
-              color: ${theme.colors.grayscale.light5};
-              padding: 4px 6px 4px 6px;
+              display: inline-block;
+              padding: 8px 12px;
+              font-size: 12px;
               font-weight: 700;
-              border: block;
-              opacity: 0.8;
-              background: ${getFlashStatusColor(status, theme)};
+              width: 100%;
+              text-align: center;
+              color: ${theme.colors.grayscale.light5};
+              background-color: ${getFlashStatusColor(status, theme).light};
+              border-radius: 4px;
+              transition: opacity 0.2s ease-in-out;
+              &:hover {
+                opacity: 1;
+                background-color: ${getFlashStatusColor(status, theme).dark};
+              }
             `}
           >
             {status}
@@ -374,6 +383,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         ),
         Header: t('Status'),
         accessor: 'status',
+        size: 'sm',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -505,7 +515,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         input: 'date',
       },
       {
-        Header: t('Schedule Type'),
+        Header: t('Schedule Frequency'),
         id: 'scheduleType',
         input: 'select',
         operator: FilterOperator.equals,
