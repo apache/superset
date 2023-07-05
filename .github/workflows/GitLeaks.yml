@@ -1,0 +1,158 @@
+name: Gitleaks Scan
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  gitleaks:
+    runs-on: basic-k8s-runner
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          path: featureBranchFolder
+        continue-on-error: true
+
+      - name: Get Default Branch Name
+        id: default_branch
+        run: |
+          cd featureBranchFolder
+          DEFAULT_BRANCH=$(git remote show origin | awk '/HEAD branch/ {print $NF}')
+          echo "Default branch: $DEFAULT_BRANCH"
+          echo "defaultBranch=${DEFAULT_BRANCH}" >> $GITHUB_OUTPUT
+
+
+      - name: Checkout GitLeaks-Integration repository
+        uses: actions/checkout@v3
+        with:
+          repository: careemsecurity/GitLeaks-Integration
+          ref: master
+          path: GitLeaks-Integration
+          token: ${{ secrets.GITLEAKS_TOKEN }}
+        continue-on-error: true
+
+      - name: Moving the GitLeaks-Integration folder out of target repository 
+        run: |
+          pwd
+          if [ -d "../GitLeaks-Integration" ]; then
+            rm -r "../GitLeaks-Integration"
+            echo "Existing Directory Cleaned"
+          else
+            echo "Directory does not exist, can be moved"
+          fi
+          cd GitLeaks-Integration
+          ls
+          cd ..
+          mv GitLeaks-Integration ../GitLeaks-Integration
+          echo "Directory moved"
+          cd ../GitLeaks-Integration
+        continue-on-error: true
+
+#      - name: Check if baseline file exists
+#        id: check-baseline
+#        run: |
+#          cd ../GitLeaks-Integration
+#          if [ ! -f "Baselines/$(basename ${{ github.repository }})-base.json" ]; then
+#            echo "Baseline file does not exist"
+#            echo "generate-baseline=true" >> $GITHUB_OUTPUT
+#          else
+#            echo "Baseline file exists"
+#            echo "generate-baseline=false" >> $GITHUB_OUTPUT
+#          fi
+#        continue-on-error: true
+
+
+      - name: Pull Gitleaks Docker image
+        run: sudo docker pull zricethezav/gitleaks:v8.16.4
+        continue-on-error: true
+
+      - name: Checkout target repository from master branch
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: ${{ steps.default_branch.outputs.defaultBranch }}
+          path: masterBranchFolder
+        continue-on-error: true
+
+
+      - name: Run gitleaks detect (generate baseline)
+        run: |
+          if [ ! -f "../GitLeaks-Integration/Config/gitleaks.toml" ]; then
+            echo "Error: Config file not found"
+            exit 1
+          else 
+            echo "Generating Baseline file.."
+            pwd
+            cd masterBranchFolder
+            sudo docker run --rm -u $(id -u):$(id -g) -v "$(pwd)/../../GitLeaks-Integration:/integration" -v "$(pwd):/source" zricethezav/gitleaks:v8.16.4 --verbose detect \
+            --no-git \
+            -s /source \
+            -r integration/Baselines/$(basename ${{ github.repository }})-base.json \
+            -c integration/Config/gitleaks.toml
+          fi
+        continue-on-error: true
+
+
+      - name: Run gitleaks detect (new findings)
+        id: delta-scan
+        run: |
+          cd featureBranchFolder
+          sudo docker run --rm -u $(id -u):$(id -g) -v "$(pwd)/../../GitLeaks-Integration:/integration" -v "$(pwd):/source" zricethezav/gitleaks:v8.16.4 --verbose detect \
+          --no-git \
+          -s /source \
+          -b integration/Baselines/$(basename ${{ github.repository }})-base.json \
+          -r integration/Diffs/$(basename ${{ github.repository }})-diff.json \
+          -c integration/Config/gitleaks.toml
+        continue-on-error: true
+
+
+#      - name: Check output and set conditional variables
+#        id: check-output
+#        run: |
+#          if [[ ${{ steps.delta-scan.outputs.delta-scan-output }} == "" ]]; then
+#            echo "no-new-findings=true" >> $GITHUB_OUTPUT
+#          else
+#            echo "no-new-findings=false" >> $GITHUB_OUTPUT
+#          fi
+#        continue-on-error: true
+
+
+      - name: Set up environment variables
+        run: |
+          echo "GITHUB_TOKEN=${{ secrets.SERVICE_DIRECTORY_TOKEN }}" >> $GITHUB_ENV
+          echo "JIRA_TOKEN=${{ secrets.JIRA_TOKEN }}" >> $GITHUB_ENV
+        continue-on-error: true
+
+
+      - name: Report findings using JIRA-Integration
+        run: |
+          python3 ../GitLeaks-Integration/JIRA-Integration/TicketCreator.py ../GitLeaks-Integration/Diffs/$(basename ${{ github.repository }})-diff.json
+        continue-on-error: true
+
+
+      # - name: Run gitleaks detect (update baseline)
+      #   run: |
+      #     cd featureBranchFolder
+      #     sudo docker run --rm -u $(id -u):$(id -g) -v "$(pwd)/../../GitLeaks-Integration:/integration" -v "$(pwd):/source" zricethezav/gitleaks:v8.16.4 --verbose detect \
+      #     --no-git \
+      #     -s /source \
+      #     -r integration/Baselines/$(basename ${{ github.repository }})-base.json \
+      #     -c integration/Config/gitleaks.toml
+      #   continue-on-error: true
+
+
+      - name: Push Baseline and Diff files
+        run: |
+          cd ../GitLeaks-Integration
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git pull origin master
+          git add Baselines/$(basename ${{ github.repository }})-base.json
+          git add Diffs/$(basename ${{ github.repository }})-diff.json
+          git commit -m "Update baseline and diff files"
+          git push origin master
+        continue-on-error: true
