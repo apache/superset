@@ -17,11 +17,7 @@
  * under the License.
  */
 import { rgb } from 'd3-color';
-import {
-  getValueFormatter,
-  NumberFormats,
-  NumberFormatter,
-} from '@superset-ui/core';
+import { getValueFormatter } from '@superset-ui/core';
 
 export default function transformProps(chartProps) {
   const {
