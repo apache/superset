@@ -16,7 +16,7 @@
 #
 -r development.in
 -r integration.in
--e file:.[bigquery,hive,presto,trino]
+-e file:.[bigquery,hive,presto,prophet,trino]
 docker
 flask-testing
 freezegun
