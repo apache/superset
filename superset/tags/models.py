@@ -25,6 +25,7 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship, Session, sessionmaker
 from sqlalchemy.orm.mapper import Mapper
 
+from superset import security_manager
 from superset.models.helpers import AuditMixinNullable
 
 if TYPE_CHECKING:
@@ -98,6 +99,17 @@ class TaggedObject(Model, AuditMixinNullable):
     object_type = Column(Enum(ObjectTypes))
 
     tag = relationship("Tag", back_populates="objects", overlaps="tags")
+
+
+# create a `Model` class that create a relationship between `Tag` and `User` tables`
+class UserFavoriteTag(Model, AuditMixinNullable):
+    __tablename__ = "user_favorite_tag"
+    id = Column(Integer, primary_key=True)
+    tag_id = Column(Integer, ForeignKey("tag.id"))
+    user_id = Column(Integer, ForeignKey("ab_user.id"))
+
+    tag = relationship("Tag", overlaps="tags", foreign_keys=[tag_id])
+    user = relationship(security_manager.user_model, foreign_keys=[user_id])
 
 
 def get_tag(name: str, session: Session, type_: TagTypes) -> Tag:

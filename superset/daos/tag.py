@@ -18,6 +18,7 @@ import logging
 from operator import and_
 from typing import Any, Optional
 
+from flask import g
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.daos.base import BaseDAO
@@ -26,14 +27,19 @@ from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
-from superset.tags.models import get_tag, ObjectTypes, Tag, TaggedObject, TagTypes
+from superset.tags.models import (
+    get_tag,
+    ObjectTypes,
+    Tag,
+    TaggedObject,
+    TagTypes,
+    UserFavoriteTag,
+)
 
 logger = logging.getLogger(__name__)
 
 
 class TagDAO(BaseDAO[Tag]):
-    # base_filter = TagAccessFilter
-
     @staticmethod
     def validate_tag_name(tag_name: str) -> bool:
         invalid_characters = [":", ","]
@@ -257,3 +263,64 @@ class TagDAO(BaseDAO[Tag]):
                 for obj in saved_queries
             )
         return results
+
+    @staticmethod
+    def user_favorite_tag(tag_id: int) -> None:
+        """
+        Marks a specific tag as a favorite for the current user.
+
+        This function will find the tag by the provided id, create a new UserFavoriteTag object
+        that represents the user's preference, add that object to the database session, and commit
+        the session. It uses the currently authenticated user from the global 'g' object.
+
+        Args:
+            tag_id: The id of the tag that is to be marked as favorite.
+
+        Raises:
+            Any exceptions raised by the find_by_id function, the UserFavoriteTag constructor, or
+            the database session's add and commit methods will propagate up to the caller.
+
+        Returns:
+            None.
+        """
+        tag = TagDAO.find_by_id(tag_id)
+        current_user_id = g.user.get_id()
+        if current_user_id and tag:
+            user_tag_fav = UserFavoriteTag(user_id=g.user.get_id(), tag_id=tag.id)
+            db.session.add(user_tag_fav)
+            db.session.commit()
+
+    @staticmethod
+    def delete_user_favorite_tag(user_favorite_tag_id: int) -> None:
+        """
+        Deletes the favorite tag relationship for the current user.
+
+        This function queries the database for a UserFavoriteTag object using the provided ID. If
+        the object is found, it deletes it from the session and commits the changes. If the object
+        is not found, or an error occurs while deleting, it raises a DAODeleteFailedError.
+
+        Args:
+            user_favorite_tag_id (int): The ID of the UserFavoriteTag object to be deleted.
+
+        Raises:
+            DAODeleteFailedError: If no UserFavoriteTag object is found with the provided ID, or if
+            an error occurs while deleting the object from the database.
+
+        Returns:
+            None.
+        """
+        user_favorite_tag = (
+            db.session.query(UserFavoriteTag)
+            .filter_by(id=user_favorite_tag_id)
+            .one_or_none()
+        )
+
+        if not user_favorite_tag:
+            raise DAODeleteFailedError("UserFavoriteTag not found")
+
+        try:
+            db.session.delete(user_favorite_tag)
+            db.session.commit()
+        except SQLAlchemyError as ex:  # pragma: no cover
+            db.session.rollback()
+            raise DAODeleteFailedError(exception=ex) from ex
