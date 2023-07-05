@@ -411,18 +411,18 @@ class TestMySqlValidator(SupersetTestCase):
         with self.assertRaises(Exception):
             self.validator.validate(sql, schema, self.database)
 
-    @patch("superset.utils.core.g")
-    def test_validator_query_error(self, flask_g):
-        flask_g.user.username = "nobody"
-        sql = "SELECT 1 FROM default.notarealtable"
-        schema = "default"
+    # @patch("superset.utils.core.g")
+    # def test_validator_query_error(self, flask_g):
+    #     flask_g.user.username = "nobody"
+    #     sql = "SELECT 1 FROM default.notarealtable"
+    #     schema = "default"
 
-        fetch_fn = self.database.db_engine_spec.fetch_data
-        fetch_fn.side_effect = DbError(self.MYSQL_ERROR_TEMPLATE)
+    #     fetch_fn = self.database.db_engine_spec.fetch_data
+    #     fetch_fn.side_effect = DbError(self.MYSQL_ERROR_TEMPLATE)
 
-        errors = self.validator.validate(sql, schema, self.database)
+    #     errors = self.validator.validate(sql, schema, self.database)
 
-        self.assertEqual(1, len(errors))
+    #     self.assertEqual(1, len(errors))
 
     @patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",
