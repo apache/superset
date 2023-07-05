@@ -176,7 +176,7 @@ setup(
         "postgres": ["psycopg2-binary==2.9.6"],
         "presto": ["pyhive[presto]>=0.6.5"],
         "trino": ["trino>=0.324.0"],
-        "prophet": ["prophet>=1.0.1, <1.1", "pystan<3.0"],
+        "prophet": ["prophet>=1.1.0, <2.0.0"],
         "redshift": ["sqlalchemy-redshift>=0.8.1, < 0.9"],
         "rockset": ["rockset>=0.8.10, <0.9"],
         "shillelagh": [
