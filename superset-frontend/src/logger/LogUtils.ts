@@ -61,6 +61,8 @@ export const LOG_ACTIONS_FURTHER_DRILL_BY = 'further_drill_by';
 export const LOG_ACTIONS_DRILL_BY_EDIT_CHART = 'drill_by_edit_chart';
 export const LOG_ACTIONS_DRILL_BY_BREADCRUMB_CLICKED =
   'drill_by_breadcrumb_clicked';
+export const LOG_ACTIONS_SQLLAB_MONITOR_LOCAL_STORAGE_USAGE =
+  'sqllab_monitor_local_storage_usage';
 
 // Log event types --------------------------------------------------------------
 export const LOG_EVENT_TYPE_TIMING = new Set([
