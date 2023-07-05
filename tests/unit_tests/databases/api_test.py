@@ -20,6 +20,7 @@
 import json
 from io import BytesIO
 from typing import Any
+from unittest.mock import Mock
 from uuid import UUID
 
 import pytest
@@ -506,7 +507,7 @@ def test_apply_dynamic_database_filter(
     full_api_access: None,
 ) -> None:
     """
-    Test that we canfilter the list of databases
+    Test that we can filter the list of databases
     """
     with app.app_context():
         from superset.daos.database import DatabaseDAO
@@ -559,6 +560,14 @@ def test_apply_dynamic_database_filter(
             return_value=False,
         )
 
+        def _base_filter(query):
+            from superset.models.core import Database
+
+            return query.filter(Database.database_name.startswith("second"))
+
+        # Create a mock object
+        base_filter_mock = Mock(side_effect=_base_filter)
+
         # Get our recently created Databases
         response_databases = DatabaseDAO.find_all()
         assert response_databases
@@ -566,13 +575,11 @@ def test_apply_dynamic_database_filter(
         actual_db_names = [db.database_name for db in response_databases]
         assert actual_db_names == expected_db_names
 
-        def _base_filter(query):
-            from superset.models.core import Database
-
-            return query.filter(Database.database_name.startswith("second"))
+        # Ensure that the filter has not been called because it's not in our config
+        assert base_filter_mock.call_count == 0
 
         original_config = current_app.config.copy()
-        original_config["EXTRA_DYNAMIC_DATABASE_FILTER"] = _base_filter
+        original_config["EXTRA_DYNAMIC_DATABASE_FILTER"] = base_filter_mock
 
         mocker.patch("superset.views.filters.current_app.config", new=original_config)
         # Get filtered list
@@ -581,3 +588,6 @@ def test_apply_dynamic_database_filter(
         expected_db_names = ["second-database"]
         actual_db_names = [db.database_name for db in response_databases]
         assert actual_db_names == expected_db_names
+
+        # Ensure that the filter has been called once
+        assert base_filter_mock.call_count == 1

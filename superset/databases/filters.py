@@ -41,11 +41,13 @@ class DatabaseFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     # TODO(bogdan): consider caching.
 
     def apply(self, query: Query, value: Any) -> Query:
-        # Dynamic Filters need to be applied to the Query before we filter
-        # databases with anything else. This way you can show/hide databases using
-        # Feature Flags for example in conjuction with the regular role filtering.
-        # If not, if an user has access to all Databases it would skip this dynamic
-        # filtering.
+        """
+        Dynamic Filters need to be applied to the Query before we filter
+        databases with anything else. This way you can show/hide databases using
+        Feature Flags for example in conjuction with the regular role filtering.
+        If not, if an user has access to all Databases it would skip this dynamic
+        filtering.
+        """
 
         if dynamic_filter := current_app.config["EXTRA_DYNAMIC_DATABASE_FILTER"]:
             query = dynamic_filter(query)

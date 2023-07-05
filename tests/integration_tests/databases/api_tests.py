@@ -28,6 +28,8 @@ import prison
 import pytest
 import yaml
 
+from unittest.mock import Mock
+
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.sql import func
@@ -3668,6 +3670,14 @@ class TestDatabaseApi(SupersetTestCase):
         )
         second_response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 201)
+
+        def _base_filter(query):
+            from superset.models.core import Database
+
+            return query.filter(Database.database_name.startswith("dyntest"))
+
+        # Create the Mock
+        base_filter_mock = Mock(side_effect=_base_filter)
         dbs = db.session.query(Database).all()
         expected_names = [db.database_name for db in dbs]
         expected_names.sort()
@@ -3681,15 +3691,11 @@ class TestDatabaseApi(SupersetTestCase):
         # All Databases because we are an admin
         self.assertEqual(database_names, expected_names)
         assert rv.status_code == 200
-
-        def _base_filter(query):
-            from superset.models.core import Database
-
-            return query.filter(Database.database_name.startswith("dyntest"))
+        base_filter_mock.assert_not_called()
 
         with patch.dict(
             "superset.views.filters.current_app.config",
-            {"EXTRA_DYNAMIC_DATABASE_FILTER": _base_filter},
+            {"EXTRA_DYNAMIC_DATABASE_FILTER": base_filter_mock},
         ):
             uri = f"api/v1/database/"
             rv = self.client.get(uri)
@@ -3699,6 +3705,7 @@ class TestDatabaseApi(SupersetTestCase):
             # Only the database that starts with tests, even if we are an admin
             self.assertEqual(database_names, ["dyntest-create-database-1"])
             assert rv.status_code == 200
+            base_filter_mock.assert_called()
 
         # Cleanup
         first_model = db.session.query(Database).get(first_response.get("id"))
