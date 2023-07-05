@@ -374,7 +374,6 @@ class TestMySqlValidator(SupersetTestCase):
         self.logout()
 
     MYSQL_ERROR_TEMPLATE = {
-        "errorLocation": {"lineNumber": 10, "columnNumber": 20},
         "message": "your query isn't how I like it",
     }
 
