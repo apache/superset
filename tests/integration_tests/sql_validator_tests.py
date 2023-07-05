@@ -279,7 +279,7 @@ class TestPostgreSQLValidator(SupersetTestCase):
         assert annotation.end_column is None
         assert annotation.message == 'ERROR: syntax error at or near """'
 class TestTrinoValidator(SupersetTestCase):
-    """Testing for the prestodb sql validator"""
+    """Testing for the trino sql validator"""
 
     def setUp(self):
         self.validator = TrinoSQLValidator
@@ -351,16 +351,13 @@ class TestTrinoValidator(SupersetTestCase):
     )
     def test_validate_sql_endpoint(self):
         self.login("admin")
-        # NB this is effectively an integration test -- when there's a default
-        #    validator for sqlite, this test will fail because the validator
-        #    will no longer error out.
         resp = self.validate_sql(
             "SELECT * FROM birth_names", client_id="1", raise_on_error=False
         )
         self.assertIn("error", resp)
         self.assertIn("no SQL validator is configured", resp["error"])
 class TestMySqlValidator(SupersetTestCase):
-    """Testing for the prestodb sql validator"""
+    """Testing for the mysql sql validator"""
 
     def setUp(self):
         self.validator = MySqlDBSQLValidator
@@ -373,9 +370,7 @@ class TestMySqlValidator(SupersetTestCase):
     def tearDown(self):
         self.logout()
 
-    MYSQL_ERROR_TEMPLATE = {
-        "message": "your query isn't how I like it",
-    }
+    MYSQL_ERROR_TEMPLATE = ["123","your query isn't how I like it"]
 
     @patch("superset.utils.core.g")
     def test_validator_success(self, flask_g):
@@ -431,9 +426,6 @@ class TestMySqlValidator(SupersetTestCase):
     )
     def test_validate_sql_endpoint(self):
         self.login("admin")
-        # NB this is effectively an integration test -- when there's a default
-        #    validator for sqlite, this test will fail because the validator
-        #    will no longer error out.
         resp = self.validate_sql(
             "SELECT * FROM birth_names", client_id="1", raise_on_error=False
         )
