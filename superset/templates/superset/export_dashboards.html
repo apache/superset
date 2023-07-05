@@ -16,7 +16,8 @@
   specific language governing permissions and limitations
   under the License.
 #}
-<script>
+{% import "superset/macros.html" as macros %}
+<script nonce="{{ macros.get_nonce() }}">
     window.onload = function() {
 
         // See issue #7353, window.open fails

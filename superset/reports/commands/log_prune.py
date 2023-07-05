@@ -18,9 +18,9 @@ import logging
 from datetime import datetime, timedelta
 
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAODeleteFailedError
+from superset.daos.exceptions import DAODeleteFailedError
+from superset.daos.report import ReportScheduleDAO
 from superset.reports.commands.exceptions import ReportSchedulePruneLogError
-from superset.reports.dao import ReportScheduleDAO
 from superset.reports.models import ReportSchedule
 from superset.utils.celery import session_scope
 

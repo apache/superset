@@ -25,6 +25,7 @@ class DatasetSchema(Schema):
         }
     )
     column_formats = fields.Dict(metadata={"description": "Column formats."})
+    currency_formats = fields.Dict(metadata={"description": "Currency formats."})
     columns = fields.List(fields.Dict(), metadata={"description": "Columns metadata."})
     database = fields.Dict(
         metadata={"description": "Database associated with the dataset."}
@@ -114,7 +115,7 @@ class SliceSchema(Schema):
     certified_by = fields.String(
         metadata={"description": "Person or group that has certified this dashboard."}
     )
-    changed_on = fields.String(
+    changed_on = fields.DateTime(
         metadata={"description": "Timestamp of the last modification."}
     )
     changed_on_humanized = fields.String(

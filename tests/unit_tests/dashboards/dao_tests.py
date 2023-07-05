@@ -43,7 +43,7 @@ def session_with_data(session: Session) -> Iterator[Session]:
 
 
 def test_add_favorite(session_with_data: Session) -> None:
-    from superset.dashboards.dao import DashboardDAO
+    from superset.daos.dashboard import DashboardDAO
 
     dashboard = DashboardDAO.find_by_id(
         100, session=session_with_data, skip_base_filter=True
@@ -60,7 +60,7 @@ def test_add_favorite(session_with_data: Session) -> None:
 
 
 def test_remove_favorite(session_with_data: Session) -> None:
-    from superset.dashboards.dao import DashboardDAO
+    from superset.daos.dashboard import DashboardDAO
 
     dashboard = DashboardDAO.find_by_id(
         100, session=session_with_data, skip_base_filter=True

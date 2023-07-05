@@ -83,7 +83,7 @@ def test_dataset_macro(mocker: MockFixture) -> None:
         schema_perm=None,
         extra=json.dumps({"warning_markdown": "*WARNING*"}),
     )
-    DatasetDAO = mocker.patch("superset.datasets.dao.DatasetDAO")
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")
     DatasetDAO.find_by_id.return_value = dataset
 
     assert (
@@ -143,7 +143,7 @@ def test_dataset_macro_mutator_with_comments(mocker: MockFixture) -> None:
         """
         return f"-- begin\n{sql}\n-- end"
 
-    DatasetDAO = mocker.patch("superset.datasets.dao.DatasetDAO")
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")
     DatasetDAO.find_by_id().get_query_str_extended().sql = mutator("SELECT 1")
     assert (
         dataset_macro(1)

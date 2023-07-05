@@ -24,16 +24,26 @@ assists people when migrating to a new version.
 
 ## Next
 
+- [24488](https://github.com/apache/superset/pull/24488): Augments the foreign key constraints for the `sql_metrics`, `sqlatable_user`, and `table_columns` tables which reference the `tables` table to include an explicit CASCADE ON DELETE to ensure the relevant records are deleted when a dataset is deleted. Scheduled downtime may be advised.
 - [24335](https://github.com/apache/superset/pull/24335): Removed deprecated API `/superset/filter/<datasource_type>/<int:datasource_id>/<column>/`
 - [24185](https://github.com/apache/superset/pull/24185): `/api/v1/database/test_connection` and `api/v1/database/validate_parameters` permissions changed from `can_read` to `can_write`. Only Admin user's have access.
-- [24256](https://github.com/apache/superset/pull/24256): `Flask-Login` session validation is now set to `strong` by default. Previous setting was `basic`.
 - [24232](https://github.com/apache/superset/pull/24232): Enables ENABLE_TEMPLATE_REMOVE_FILTERS, DRILL_TO_DETAIL, DASHBOARD_CROSS_FILTERS by default, marks VERSIONED_EXPORT and ENABLE_TEMPLATE_REMOVE_FILTERS as deprecated.
 - [23652](https://github.com/apache/superset/pull/23652): Enables GENERIC_CHART_AXES feature flag by default.
 - [23226](https://github.com/apache/superset/pull/23226): Migrated endpoint `/estimate_query_cost/<int:database_id>` to `/api/v1/sqllab/estimate/`. Corresponding permissions are can estimate query cost on SQLLab. Make sure you add/replace the necessary permissions on any custom roles you may have.
 - [23890](https://github.com/apache/superset/pull/23890): Removes Python 3.8 support.
+- [24404](https://github.com/apache/superset/pull/24404): FLASK_ENV is getting
+  deprecated, we recommend using SUPERSET_ENV and reviewing your
+  config for ENVIRONMENT_TAG_CONFIG, which enables adding a tag in the navbar to
+  make it more clear which envrionment your are in.
+  `SUPERSET_ENV=production` and `SUPERSET_ENV=development` are the two
+  supported switches based on the default config.
 
 ### Breaking Changes
 
+- [24262](https://github.com/apache/superset/pull/24262): Enabled `TALISMAN_ENABLED` flag by default and provided stricter default Content Security Policy
+- [24415](https://github.com/apache/superset/pull/24415): Removed the obsolete Druid NoSQL REGEX operator.
+- [24423](https://github.com/apache/superset/pull/24423): Removed deprecated APIs `/superset/slice_json/...`, `/superset/annotation_json/...`
+- [24400](https://github.com/apache/superset/pull/24400): Removed deprecated APIs `/superset/recent_activity/...`, `/superset/fave_dashboards_by_username/...`, `/superset/fave_dashboards/...`, `/superset/created_dashboards/...`, `/superset/user_slices/`, `/superset/created_slices/...`, `/superset/fave_slices/...`, `/superset/favstar/...`,
 - [24401](https://github.com/apache/superset/pull/24401): Removes the deprecated `metrics` column (which was blossomed in [20732](https://github.com/apache/superset/pull/20732)) from the `/api/v1/dataset/` API.
 - [24375](https://github.com/apache/superset/pull/24375): Removed deprecated API `/superset/get_or_create_table/...`, `/superset/sqllab_viz`
 - [24360](https://github.com/apache/superset/pull/24360): Removed deprecated APIs `/superset/stop_query/...`, `/superset/queries/...`, `/superset/search_queries`

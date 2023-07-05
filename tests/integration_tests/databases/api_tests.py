@@ -711,7 +711,11 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.post(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
         assert response == {
-            "message": {"configuration_method": ["Invalid enum value BAD_FORM"]}
+            "message": {
+                "configuration_method": [
+                    "Must be one of: sqlalchemy_form, dynamic_form."
+                ]
+            }
         }
         assert rv.status_code == 400
 
@@ -1113,7 +1117,11 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.put(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
         assert response == {
-            "message": {"configuration_method": ["Invalid enum value BAD_FORM"]}
+            "message": {
+                "configuration_method": [
+                    "Must be one of: sqlalchemy_form, dynamic_form."
+                ]
+            }
         }
         assert rv.status_code == 400
 
@@ -2135,7 +2143,6 @@ class TestDatabaseApi(SupersetTestCase):
         assert dataset.table_name == "imported_dataset"
         assert str(dataset.uuid) == dataset_config["uuid"]
 
-        dataset.owners = []
         db.session.delete(dataset)
         db.session.commit()
         db.session.delete(database)
@@ -2206,7 +2213,6 @@ class TestDatabaseApi(SupersetTestCase):
             db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
         )
         dataset = database.tables[0]
-        dataset.owners = []
         db.session.delete(dataset)
         db.session.commit()
         db.session.delete(database)
@@ -2873,7 +2879,6 @@ class TestDatabaseApi(SupersetTestCase):
                             },
                             "port": {
                                 "description": "Database port",
-                                "format": "int32",
                                 "maximum": 65536,
                                 "minimum": 0,
                                 "type": "integer",
@@ -2882,6 +2887,10 @@ class TestDatabaseApi(SupersetTestCase):
                                 "additionalProperties": {},
                                 "description": "Additional parameters",
                                 "type": "object",
+                            },
+                            "ssh": {
+                                "description": "Use an ssh tunnel connection to the database",
+                                "type": "boolean",
                             },
                             "username": {
                                 "description": "Username",
@@ -2948,7 +2957,6 @@ class TestDatabaseApi(SupersetTestCase):
                             },
                             "port": {
                                 "description": "Database port",
-                                "format": "int32",
                                 "maximum": 65536,
                                 "minimum": 0,
                                 "type": "integer",
@@ -2957,6 +2965,10 @@ class TestDatabaseApi(SupersetTestCase):
                                 "additionalProperties": {},
                                 "description": "Additional parameters",
                                 "type": "object",
+                            },
+                            "ssh": {
+                                "description": "Use an ssh tunnel connection to the database",
+                                "type": "boolean",
                             },
                             "username": {
                                 "description": "Username",
@@ -3023,7 +3035,6 @@ class TestDatabaseApi(SupersetTestCase):
                             },
                             "port": {
                                 "description": "Database port",
-                                "format": "int32",
                                 "maximum": 65536,
                                 "minimum": 0,
                                 "type": "integer",
@@ -3032,6 +3043,10 @@ class TestDatabaseApi(SupersetTestCase):
                                 "additionalProperties": {},
                                 "description": "Additional parameters",
                                 "type": "object",
+                            },
+                            "ssh": {
+                                "description": "Use an ssh tunnel connection to the database",
+                                "type": "boolean",
                             },
                             "username": {
                                 "description": "Username",

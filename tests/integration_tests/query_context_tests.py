@@ -30,7 +30,7 @@ from superset.common.query_context import QueryContext
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlMetric
-from superset.datasource.dao import DatasourceDAO
+from superset.daos.datasource import DatasourceDAO
 from superset.extensions import cache_manager
 from superset.superset_typing import AdhocColumn
 from superset.utils.core import (

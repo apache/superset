@@ -15,23 +15,21 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import cast, Optional
+from typing import Optional
 
 from flask_appbuilder.models.sqla import Model
-from sqlalchemy.exc import SQLAlchemyError
 
 from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import SqlaTable
-from superset.dao.exceptions import DAODeleteFailedError
+from superset.daos.dataset import DatasetDAO
+from superset.daos.exceptions import DAODeleteFailedError
 from superset.datasets.commands.exceptions import (
     DatasetDeleteFailedError,
     DatasetForbiddenError,
     DatasetNotFoundError,
 )
-from superset.datasets.dao import DatasetDAO
 from superset.exceptions import SupersetSecurityException
-from superset.extensions import db
 
 logger = logging.getLogger(__name__)
 
@@ -43,19 +41,13 @@ class DeleteDatasetCommand(BaseCommand):
 
     def run(self) -> Model:
         self.validate()
-        self._model = cast(SqlaTable, self._model)
+        assert self._model
+
         try:
-            # Even though SQLAlchemy should in theory delete rows from the association
-            # table, sporadically Superset will error because the rows are not deleted.
-            # Let's do it manually here to prevent the error.
-            self._model.owners = []
-            dataset = DatasetDAO.delete(self._model, commit=False)
-            db.session.commit()
-        except (SQLAlchemyError, DAODeleteFailedError) as ex:
+            return DatasetDAO.delete(self._model)
+        except DAODeleteFailedError as ex:
             logger.exception(ex)
-            db.session.rollback()
             raise DatasetDeleteFailedError() from ex
-        return dataset
 
     def validate(self) -> None:
         # Validate/populate model exists

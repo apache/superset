@@ -1955,7 +1955,7 @@ def test_grace_period_error_flap(
 @pytest.mark.usefixtures(
     "load_birth_names_dashboard_with_slices", "create_report_email_dashboard"
 )
-@patch("superset.reports.dao.ReportScheduleDAO.bulk_delete_logs")
+@patch("superset.daos.report.ReportScheduleDAO.bulk_delete_logs")
 def test_prune_log_soft_time_out(bulk_delete_logs, create_report_email_dashboard):
     from celery.exceptions import SoftTimeLimitExceeded
 

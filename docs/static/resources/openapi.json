@@ -1238,7 +1238,7 @@
             "type": "array"
           },
           "granularity": {
-            "description": "Name of temporal column used for time filtering.
+            "description": "Name of temporal column used for time filtering.",
             "nullable": true,
             "type": "string"
           },

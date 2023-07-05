@@ -23,7 +23,7 @@ import {
   getNumberFormatter,
   getTimeFormatter,
   NumberFormats,
-  NumberFormatter,
+  ValueFormatter,
 } from '@superset-ui/core';
 import { TreemapSeriesNodeItemOption } from 'echarts/types/src/chart/treemap/TreemapSeries';
 import { EChartsCoreOption, TreemapSeriesOption } from 'echarts';
@@ -48,6 +48,7 @@ import { OpacityEnum } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 import { treeBuilder, TreeNode } from '../utils/treeBuilder';
+import { getValueFormatter } from '../utils/valueFormatter';
 
 export function formatLabel({
   params,
@@ -56,7 +57,7 @@ export function formatLabel({
 }: {
   params: TreemapSeriesCallbackDataParams;
   labelType: EchartsTreemapLabelType;
-  numberFormatter: NumberFormatter;
+  numberFormatter: ValueFormatter;
 }): string {
   const { name = '', value } = params;
   const formattedValue = numberFormatter(value as number);
@@ -78,7 +79,7 @@ export function formatTooltip({
   numberFormatter,
 }: {
   params: TreemapSeriesCallbackDataParams;
-  numberFormatter: NumberFormatter;
+  numberFormatter: ValueFormatter;
 }): string {
   const { value, treePathInfo = [] } = params;
   const formattedValue = numberFormatter(value as number);
@@ -118,8 +119,10 @@ export default function transformProps(
     theme,
     inContextMenu,
     emitCrossFilters,
+    datasource,
   } = chartProps;
   const { data = [] } = queriesData[0];
+  const { columnFormats = {}, currencyFormats = {} } = datasource;
   const { setDataMask = () => {}, onContextMenu } = hooks;
   const coltypeMapping = getColtypesMapping(queriesData[0]);
 
@@ -141,7 +144,13 @@ export default function transformProps(
   };
   const refs: Refs = {};
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
-  const numberFormatter = getNumberFormatter(numberFormat);
+  const numberFormatter = getValueFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    numberFormat,
+  );
+
   const formatter = (params: TreemapSeriesCallbackDataParams) =>
     formatLabel({
       params,

@@ -18,9 +18,11 @@ from __future__ import annotations
 
 import builtins
 import json
+import logging
 from collections.abc import Hashable
 from datetime import datetime
 from enum import Enum
+from json.decoder import JSONDecodeError
 from typing import Any, TYPE_CHECKING
 
 from flask_appbuilder.security.sqla.models import User
@@ -35,12 +37,19 @@ from superset.constants import EMPTY_STRING, NULL_STRING
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin, QueryResult
 from superset.models.slice import Slice
-from superset.superset_typing import FilterValue, FilterValues, QueryObjectDict
+from superset.superset_typing import (
+    FilterValue,
+    FilterValues,
+    QueryObjectDict,
+    ResultSetColumnType,
+)
 from superset.utils import core as utils
 from superset.utils.core import GenericDataType, MediumText
 
 if TYPE_CHECKING:
     from superset.db_engine_specs.base import BaseEngineSpec
+
+logger = logging.getLogger(__name__)
 
 METRIC_FORM_DATA_PARAMS = [
     "metric",
@@ -152,6 +161,7 @@ class BaseDatasource(
     def slices(self) -> RelationshipProperty:
         return relationship(
             "Slice",
+            overlaps="table",
             primaryjoin=lambda: and_(
                 foreign(Slice.datasource_id) == self.id,
                 foreign(Slice.datasource_type) == self.type,
@@ -218,6 +228,10 @@ class BaseDatasource(
     def column_formats(self) -> dict[str, str | None]:
         return {m.metric_name: m.d3format for m in self.metrics if m.d3format}
 
+    @property
+    def currency_formats(self) -> dict[str, dict[str, str | None] | None]:
+        return {m.metric_name: m.currency_json for m in self.metrics if m.currency_json}
+
     def add_missing_metrics(self, metrics: list[BaseMetric]) -> None:
         existing_metrics = {m.metric_name for m in self.metrics}
         for metric in metrics:
@@ -276,6 +290,7 @@ class BaseDatasource(
             "id": self.id,
             "uid": self.uid,
             "column_formats": self.column_formats,
+            "currency_formats": self.currency_formats,
             "description": self.description,
             "database": self.database.data,  # pylint: disable=no-member
             "default_endpoint": self.default_endpoint,
@@ -433,7 +448,14 @@ class BaseDatasource(
             if isinstance(value, str):
                 value = value.strip("\t\n")
 
-                if target_generic_type == utils.GenericDataType.NUMERIC:
+                if (
+                    target_generic_type == utils.GenericDataType.NUMERIC
+                    and operator
+                    not in {
+                        utils.FilterOperator.ILIKE,
+                        utils.FilterOperator.LIKE,
+                    }
+                ):
                     # For backwards compatibility and edge cases
                     # where a column data type might have changed
                     return utils.cast_to_num(value)
@@ -455,7 +477,7 @@ class BaseDatasource(
             values = values[0] if values else None
         return values
 
-    def external_metadata(self) -> list[dict[str, str]]:
+    def external_metadata(self) -> list[ResultSetColumnType]:
         """Returns column information from the external system"""
         raise NotImplementedError()
 
@@ -704,6 +726,7 @@ class BaseMetric(AuditMixinNullable, ImportExportMixin):
     metric_type = Column(String(32))
     description = Column(MediumText())
     d3format = Column(String(128))
+    currency = Column(String(128))
     warning_text = Column(Text)
 
     """
@@ -719,6 +742,16 @@ class BaseMetric(AuditMixinNullable, ImportExportMixin):
         backref=backref('metrics', cascade='all, delete-orphan'),
         enable_typechecks=False)
     """
+
+    @property
+    def currency_json(self) -> dict[str, str | None] | None:
+        try:
+            return json.loads(self.currency or "{}") or None
+        except (TypeError, JSONDecodeError) as exc:
+            logger.error(
+                "Unable to load currency json: %r. Leaving empty.", exc, exc_info=True
+            )
+            return None
 
     @property
     def perm(self) -> str | None:
@@ -738,5 +771,6 @@ class BaseMetric(AuditMixinNullable, ImportExportMixin):
             "expression",
             "warning_text",
             "d3format",
+            "currency",
         )
         return {s: getattr(self, s) for s in attrs}

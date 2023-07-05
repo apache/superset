@@ -21,13 +21,13 @@ from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAOCreateFailedError
+from superset.daos.database import SSHTunnelDAO
+from superset.daos.exceptions import DAOCreateFailedError
 from superset.databases.ssh_tunnel.commands.exceptions import (
     SSHTunnelCreateFailedError,
     SSHTunnelInvalidError,
     SSHTunnelRequiredFieldValidationError,
 )
-from superset.databases.ssh_tunnel.dao import SSHTunnelDAO
 from superset.extensions import db, event_logger
 
 logger = logging.getLogger(__name__)

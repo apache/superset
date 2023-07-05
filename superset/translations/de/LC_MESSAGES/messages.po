@@ -15720,11 +15720,11 @@ msgstr ""
 #, python-format
 msgid ""
 "The number of results displayed is limited to %(rows)d by the "
-"configuration DISPLAY_MAX_ROWS. Please add additional limits/filters or "
+"configuration DISPLAY_MAX_ROW. Please add additional limits/filters or "
 "download to csv to see more rows up to the %(limit)d limit."
 msgstr ""
 "Die Anzahl der angezeigten Ergebnisse ist durch die Konfiguration "
-"DISPLAY_MAX_ROWS auf %(rows)d begrenzt. Bitte fügen Sie zusätzliche "
+"DISPLAY_MAX_ROW auf %(rows)d begrenzt. Bitte fügen Sie zusätzliche "
 "Limits/Filter hinzu oder laden Sie sie als CSDV-Datei herunter, um "
 "weitere Zeilen bis zum %(limit)d-Limit anzuzeigen."
 

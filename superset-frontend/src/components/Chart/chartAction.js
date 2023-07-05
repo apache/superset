@@ -27,7 +27,7 @@ import {
   getExploreUrl,
   getLegacyEndpointType,
   buildV1ChartDataPayload,
-  shouldUseLegacyApi,
+  getQuerySettings,
   getChartDataUri,
 } from 'src/explore/exploreUtils';
 import { requiresQuery } from 'src/modules/AnnotationTypes';
@@ -117,6 +117,7 @@ const legacyChartDataRequest = async (
   force,
   method = 'POST',
   requestParams = {},
+  parseMethod,
 ) => {
   const endpointType = getLegacyEndpointType({ resultFormat, resultType });
   const allowDomainSharding =
@@ -136,7 +137,7 @@ const legacyChartDataRequest = async (
     ...requestParams,
     url,
     postPayload: { form_data: formData },
-    parseMethod: 'json-bigint',
+    parseMethod,
   };
 
   const clientMethod =
@@ -161,6 +162,7 @@ const v1ChartDataRequest = async (
   requestParams,
   setDataMask,
   ownState,
+  parseMethod,
 ) => {
   const payload = buildV1ChartDataPayload({
     formData,
@@ -194,7 +196,7 @@ const v1ChartDataRequest = async (
     url,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
-    parseMethod: 'json-bigint',
+    parseMethod,
   };
 
   return SupersetClient.post(querySettings);
@@ -222,7 +224,8 @@ export async function getChartDataRequest({
     };
   }
 
-  if (shouldUseLegacyApi(formData)) {
+  const [useLegacyApi, parseMethod] = getQuerySettings(formData);
+  if (useLegacyApi) {
     return legacyChartDataRequest(
       formData,
       resultFormat,
@@ -230,6 +233,7 @@ export async function getChartDataRequest({
       force,
       method,
       querySettings,
+      parseMethod,
     );
   }
   return v1ChartDataRequest(
@@ -240,6 +244,7 @@ export async function getChartDataRequest({
     querySettings,
     setDataMask,
     ownState,
+    parseMethod,
   );
 }
 
@@ -404,13 +409,14 @@ export function exploreJSON(
         if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
           // deal with getChartDataRequest transforming the response data
           const result = 'result' in json ? json.result : json;
+          const [useLegacyApi] = getQuerySettings(formData);
           switch (response.status) {
             case 200:
               // Query results returned synchronously, meaning query was already cached.
               return Promise.resolve(result);
             case 202:
               // Query is running asynchronously and we must await the results
-              if (shouldUseLegacyApi(formData)) {
+              if (useLegacyApi) {
                 return waitForAsyncData(result[0]);
               }
               return waitForAsyncData(result);
@@ -481,7 +487,8 @@ export function exploreJSON(
       });
 
     // only retrieve annotations when calling the legacy API
-    const annotationLayers = shouldUseLegacyApi(formData)
+    const [useLegacyApi] = getQuerySettings(formData);
+    const annotationLayers = useLegacyApi
       ? formData.annotation_layers || []
       : [];
     const isDashboardRequest = dashboardId > 0;

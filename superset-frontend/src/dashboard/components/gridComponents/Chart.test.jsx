@@ -63,6 +63,7 @@ describe('Chart', () => {
     exportCSV() {},
     exportFullCSV() {},
     exportXLSX() {},
+    exportFullXLSX() {},
     componentId: 'test',
     dashboardId: 111,
     editMode: false,
@@ -159,6 +160,16 @@ describe('Chart', () => {
         resultFormat: 'xlsx',
       }),
     );
+    exploreUtils.exportChart.restore();
+  });
+  it('should call exportChart with row_limit props.maxRows when exportFullXLSX is clicked', () => {
+    const stubbedExportXLSX = sinon
+      .stub(exploreUtils, 'exportChart')
+      .returns(() => {});
+    const wrapper = setup();
+    wrapper.instance().exportFullXLSX(props.slice.sliceId);
+    expect(stubbedExportXLSX.calledOnce).toBe(true);
+    expect(stubbedExportXLSX.lastCall.args[0].formData.row_limit).toEqual(666);
     exploreUtils.exportChart.restore();
   });
 });

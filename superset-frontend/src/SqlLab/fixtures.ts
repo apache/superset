@@ -19,7 +19,12 @@
 import sinon from 'sinon';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import { ColumnKeyTypeType } from 'src/SqlLab/components/ColumnElement';
-import { DatasourceType, QueryResponse, QueryState } from '@superset-ui/core';
+import {
+  DatasourceType,
+  denormalizeTimestamp,
+  QueryResponse,
+  QueryState,
+} from '@superset-ui/core';
 import { ISaveableDatasource } from 'src/SqlLab/components/SaveDatasetModal';
 
 export const mockedActions = sinon.stub({ ...actions });
@@ -217,7 +222,6 @@ export const queries = [
     progress: 100,
     startDttm: 1476910566092.96,
     state: QueryState.SUCCESS,
-    changedOn: 1476910566000,
     tempTable: null,
     userId: 1,
     executedSql: null,
@@ -237,24 +241,24 @@ export const queries = [
       columns: [
         {
           is_dttm: true,
-          name: 'ds',
+          column_name: 'ds',
           type: 'STRING',
         },
         {
           is_dttm: false,
-          name: 'gender',
+          column_name: 'gender',
           type: 'STRING',
         },
       ],
       selected_columns: [
         {
           is_dttm: true,
-          name: 'ds',
+          column_name: 'ds',
           type: 'STRING',
         },
         {
           is_dttm: false,
-          name: 'gender',
+          column_name: 'gender',
           type: 'STRING',
         },
       ],
@@ -276,7 +280,6 @@ export const queries = [
     progress: 100,
     startDttm: 1476910570802.2,
     state: QueryState.SUCCESS,
-    changedOn: 1476910572000,
     tempTable: null,
     userId: 1,
     executedSql:
@@ -310,7 +313,6 @@ export const queryWithNoQueryLimit = {
   progress: 100,
   startDttm: 1476910566092.96,
   state: QueryState.SUCCESS,
-  changedOn: 1476910566000,
   tempTable: null,
   userId: 1,
   executedSql: null,
@@ -329,7 +331,7 @@ export const queryWithNoQueryLimit = {
     columns: [
       {
         is_dttm: true,
-        name: 'ds',
+        column_name: 'ds',
         type: 'STRING',
       },
       {
@@ -341,12 +343,12 @@ export const queryWithNoQueryLimit = {
     selected_columns: [
       {
         is_dttm: true,
-        name: 'ds',
+        column_name: 'ds',
         type: 'STRING',
       },
       {
         is_dttm: false,
-        name: 'gender',
+        column_name: 'gender',
         type: 'STRING',
       },
     ],
@@ -367,57 +369,57 @@ export const queryWithBadColumns = {
     selected_columns: [
       {
         is_dttm: true,
-        name: 'COUNT(*)',
+        column_name: 'COUNT(*)',
         type: 'STRING',
       },
       {
         is_dttm: false,
-        name: 'this_col_is_ok',
+        column_name: 'this_col_is_ok',
         type: 'STRING',
       },
       {
         is_dttm: false,
-        name: 'a',
+        column_name: 'a',
         type: 'STRING',
       },
       {
         is_dttm: false,
-        name: '1',
+        column_name: '1',
         type: 'STRING',
       },
       {
         is_dttm: false,
-        name: '123',
+        column_name: '123',
         type: 'STRING',
       },
       {
         is_dttm: false,
-        name: 'CASE WHEN 1=1 THEN 1 ELSE 0 END',
+        column_name: 'CASE WHEN 1=1 THEN 1 ELSE 0 END',
         type: 'STRING',
       },
       {
         is_dttm: true,
-        name: '_TIMESTAMP',
+        column_name: '_TIMESTAMP',
         type: 'TIMESTAMP',
       },
       {
         is_dttm: true,
-        name: '__TIME',
+        column_name: '__TIME',
         type: 'TIMESTAMP',
       },
       {
         is_dttm: false,
-        name: 'my_dupe_col__2',
+        column_name: 'my_dupe_col__2',
         type: 'STRING',
       },
       {
         is_dttm: true,
-        name: '__timestamp',
+        column_name: '__timestamp',
         type: 'TIMESTAMP',
       },
       {
         is_dttm: true,
-        name: '__TIMESTAMP',
+        column_name: '__TIMESTAMP',
         type: 'TIMESTAMP',
       },
     ],
@@ -575,31 +577,31 @@ const baseQuery: QueryResponse = {
     columns: [
       {
         is_dttm: true,
-        name: 'ds',
+        column_name: 'ds',
         type: 'STRING',
       },
       {
         is_dttm: false,
-        name: 'gender',
+        column_name: 'gender',
         type: 'STRING',
       },
     ],
     selected_columns: [
       {
         is_dttm: true,
-        name: 'ds',
+        column_name: 'ds',
         type: 'STRING',
       },
       {
         is_dttm: false,
-        name: 'gender',
+        column_name: 'gender',
         type: 'STRING',
       },
     ],
     expanded_columns: [
       {
         is_dttm: true,
-        name: 'ds',
+        column_name: 'ds',
         type: 'STRING',
       },
     ],
@@ -710,9 +712,8 @@ export const testQuery: ISaveableDatasource = {
 export const mockdatasets = [...new Array(3)].map((_, i) => ({
   changed_by_name: 'user',
   kind: i === 0 ? 'virtual' : 'physical', // ensure there is 1 virtual
-  changed_by_url: 'changed_by_url',
   changed_by: 'user',
-  changed_on: new Date().toISOString(),
+  changed_on: denormalizeTimestamp(new Date().toISOString()),
   database_name: `db ${i}`,
   explore_url: `/explore/?datasource_type=table&datasource_id=${i}`,
   id: i,
