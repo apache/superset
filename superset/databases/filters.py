@@ -49,8 +49,9 @@ class DatabaseFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         filtering.
         """
 
-        if dynamic_filter := current_app.config["EXTRA_DYNAMIC_DATABASE_FILTER"]:
-            query = dynamic_filter(query)
+        if dynamic_filters := current_app.config["EXTRA_DYNAMIC_QUERY_FILTERS"]:
+            if dynamic_databases_filter := dynamic_filters.get("databases"):
+                query = dynamic_databases_filter(query)
 
         # We can proceed with default filtering now
         if security_manager.can_access_all_databases():

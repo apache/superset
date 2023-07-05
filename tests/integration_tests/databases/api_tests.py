@@ -3695,7 +3695,7 @@ class TestDatabaseApi(SupersetTestCase):
 
         with patch.dict(
             "superset.views.filters.current_app.config",
-            {"EXTRA_DYNAMIC_DATABASE_FILTER": base_filter_mock},
+            {"EXTRA_DYNAMIC_QUERY_FILTERS": {"databases": base_filter_mock}},
         ):
             uri = f"api/v1/database/"
             rv = self.client.get(uri)

@@ -579,7 +579,7 @@ def test_apply_dynamic_database_filter(
         assert base_filter_mock.call_count == 0
 
         original_config = current_app.config.copy()
-        original_config["EXTRA_DYNAMIC_DATABASE_FILTER"] = base_filter_mock
+        original_config["EXTRA_DYNAMIC_QUERY_FILTERS"] = {"databases": base_filter_mock}
 
         mocker.patch("superset.views.filters.current_app.config", new=original_config)
         # Get filtered list
