@@ -197,9 +197,40 @@ const NEW_FEATURES_JUNE_2023_RU = {
   ],
 };
 
+const NEW_FEATURES_JULY_2023_RU = {
+  title: 'Обновления [Июль 2023]',
+  date: '06.07.2023',
+  subTitle: RELEASE_IN_TESTING,
+  extra: IF_QUESTIONS_RU,
+  listTitle: 'Новая функциональность / исправлены проблемы',
+  releases: [
+    {
+      date: `${TESTING_EMOJI} 06.07.2023`,
+      status: RELEASE_IN_TESTING,
+      messages: [
+        'Добавить условное форматирование без градиента в Table и Pivot Table V2',
+        'Обновили недостающие переводы в разных частях системы',
+      ],
+    },
+  ],
+  listTitleExtra: 'Что планируем брать в работу?',
+  messagesExtra: [
+    `${IN_PROGRESS_EMOJI} Добавить условное форматирование без градиента в Table и Pivot Table V2`,
+    `${IN_PROGRESS_EMOJI} Расширить палитру цветового условного форматирования`,
+    'В time grain фильтре сделать выбор по умолчанию "Точная дата"',
+    'Добавить экспорт таблицы в xls',
+    'Добавить фильтр в таблице "где используется этот чарт"',
+    'Big Number: Цветовая индикация в зависимости от попадания значения в цель',
+    'В выборе даты сделать start, end date Включительно',
+    'Убрать ненужное в фильтре времени',
+    'Грумминг папок с дашборадами в Superset',
+  ],
+};
+
 export {
   UPGRADE_2_0_RU,
   NEW_FEATURES_APRIL_2023_RU,
   NEW_FEATURES_MAY_2023_RU,
   NEW_FEATURES_JUNE_2023_RU,
+  NEW_FEATURES_JULY_2023_RU,
 };

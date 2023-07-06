@@ -207,11 +207,10 @@ export const FormattingPopoverContent = ({
         </Col>
       </Row>
       <Row gutter={12}>
-        <Col span={12}>
+        <Col span={18}>
           <FormItem
             name="isFixedColor"
             label={t('Fixed color')}
-            rules={rulesRequired}
             initialValue={control}
           >
             <Switch
