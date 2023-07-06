@@ -1875,28 +1875,28 @@ else
 
   # say "${e}==>${x} Uploading to Codecov"
 
-#   # shellcheck disable=SC2086,2090
-#   res=$(curl -X POST $cacert \
-#         --data-binary @"$upload_file.gz" \
-#         --retry 5 --retry-delay 2 --connect-timeout 2 \
-#         -H 'Content-Type: text/plain' \
-#         -H 'Content-Encoding: gzip' \
-#         -H 'X-Content-Encoding: gzip' \
-#         -H 'Accept: text/plain' \
-#         $curlargs \
-#         "$url/upload/v2?$query&attempt=$i" || echo 'HTTP 500')
-#   # HTTP 200
-#   # http://....
-#   status=$(echo "$res" | head -1 | cut -d' ' -f2)
-#   if [ "$status" = "" ] || [ "$status" = "200" ];
-#   then
-#     say "    Reports have been successfully queued for processing at ${b}$(echo "$res" | head -2 | tail -1)${x}"
-#     exit 0
-#   else
-#     say "    ${g}${res}${x}"
-#     exit ${exit_with}
-#   fi
+  # # shellcheck disable=SC2086,2090
+  # res=$(curl -X POST $cacert \
+  #       --data-binary @"$upload_file.gz" \
+  #       --retry 5 --retry-delay 2 --connect-timeout 2 \
+  #       -H 'Content-Type: text/plain' \
+  #       -H 'Content-Encoding: gzip' \
+  #       -H 'X-Content-Encoding: gzip' \
+  #       -H 'Accept: text/plain' \
+  #       $curlargs \
+  #       "$url/upload/v2?$query&attempt=$i" || echo 'HTTP 500')
+  # # HTTP 200
+  # # http://....
+  # status=$(echo "$res" | head -1 | cut -d' ' -f2)
+  # if [ "$status" = "" ] || [ "$status" = "200" ];
+  # then
+  #   say "    Reports have been successfully queued for processing at ${b}$(echo "$res" | head -2 | tail -1)${x}"
+  #   exit 0
+  # else
+  #   say "    ${g}${res}${x}"
+  #   exit ${exit_with}
+  # fi
 
-#   say "    ${r}X> Failed to upload coverage reports${x}"
-# fi
-# exit ${exit_with}
+  # say "    ${r}X> Failed to upload coverage reports${x}"
+fi
+exit ${exit_with}
