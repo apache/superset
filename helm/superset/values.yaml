@@ -695,7 +695,7 @@ init:
   topologySpreadConstraints: []
 
 # -- Configuration values for the postgresql dependency.
-# ref: https://github.com/kubernetes/charts/blob/master/stable/postgresql/README.md
+# ref: https://github.com/bitnami/charts/tree/main/bitnami/postgresql
 # @default -- see `values.yaml`
 postgresql:
   ##
