@@ -36,9 +36,10 @@ class BulkDeleteCssTemplateCommand(BaseCommand):
 
     def run(self) -> None:
         self.validate()
+        assert self._models
+
         try:
-            CssTemplateDAO.bulk_delete(self._models)
-            return None
+            CssTemplateDAO.delete(self._models)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
             raise CssTemplateBulkDeleteFailedError() from ex

@@ -37,9 +37,10 @@ class BulkDeleteAnnotationLayerCommand(BaseCommand):
 
     def run(self) -> None:
         self.validate()
+        assert self._models
+
         try:
-            AnnotationLayerDAO.bulk_delete(self._models)
-            return None
+            AnnotationLayerDAO.delete(self._models)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
             raise AnnotationLayerBulkDeleteFailedError() from ex
