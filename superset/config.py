@@ -1652,8 +1652,8 @@ DEFAULT_RELATIVE_END_TIME = "today"
 SQL_VALIDATORS_BY_ENGINE = {
     "presto": "PrestoDBSQLValidator",
     "postgresql": "PostgreSQLValidator",
-    "trino": "PrestoDBSQLValidator",
-    "mysql": "PrestoDBSQLValidator",
+    "trino": "TrinoSQLValidator",
+    "mysql": "MySqlDBSQLValidator",
     "druid" : "PrestoDBSQLValidator"
 }
 

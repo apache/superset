@@ -17,11 +17,14 @@
 from typing import Optional, Type
 
 from .base import SQLValidationAnnotation
-from . import base, postgres, presto_db
+from . import base, postgres, presto_db, trino_db, my_sql_db
 
 
 def get_validator_by_name(name: str) -> Optional[Type[base.BaseSQLValidator]]:
     return {
         "PrestoDBSQLValidator": presto_db.PrestoDBSQLValidator,
         "PostgreSQLValidator": postgres.PostgreSQLValidator,
+        "TrinoSQLValidator": trino_db.TrinoSQLValidator,
+        "MySqlDBSQLValidator" : my_sql_db.MySqlDBSQLValidator
+
     }.get(name)

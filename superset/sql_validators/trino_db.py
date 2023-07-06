@@ -16,7 +16,6 @@
 # under the License.
 
 import logging
-import time
 from contextlib import closing
 from typing import Any, Dict, List, Optional
 
@@ -31,14 +30,13 @@ MAX_ERROR_ROWS = 10
 config = app.config
 logger = logging.getLogger(__name__)
 
+class TrinoSQLValidationError(Exception):
+    """Error in the process of asking Trino to validate SQL querytext"""
 
-class PrestoSQLValidationError(Exception):
-    """Error in the process of asking Presto to validate SQL querytext"""
+class TrinoSQLValidator(BaseSQLValidator):
+    """Validate SQL queries using Trino's built-in EXPLAIN subtype"""
 
-class PrestoDBSQLValidator(BaseSQLValidator):
-    """Validate SQL queries using Presto's built-in EXPLAIN subtype"""
-
-    name = "PrestoDBSQLValidator"
+    name = "TrinoSQLValidator"
 
     @classmethod
     def validate_statement(
@@ -47,12 +45,11 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         database: Database,
         cursor: Any,
     ) -> Optional[SQLValidationAnnotation]:
+        logger.info("COMMING IN TRINO VALIDATOR CLASS")
         # pylint: disable=too-many-locals
         db_engine_spec = database.db_engine_spec
         parsed_query = ParsedQuery(statement)
         sql = parsed_query.strip_comments()
-
-        # Hook to allow environment-specific mutation (usually comments) to the SQL
         sql_query_mutator = config["SQL_QUERY_MUTATOR"]
         if sql_query_mutator:
             sql = sql_query_mutator(
@@ -63,86 +60,30 @@ class PrestoDBSQLValidator(BaseSQLValidator):
                 query_source = "Validator",
                 query_id = None
             )
-
-        # Transform the final statement to an explain call before sending it on
-        # to presto to validate
-        sql = f"EXPLAIN (TYPE VALIDATE) {sql}"
-
-        # Invoke the query against presto. NB this deliberately doesn't use the
-        # engine spec's handle_cursor implementation since we don't record
-        # these EXPLAIN queries done in validation as proper Query objects
-        # in the superset ORM.
-        # pylint: disable=import-outside-toplevel
-        from pyhive.exc import DatabaseError
-
+        sql = f"EXPLAIN {sql}"
+        from trino.exceptions import TrinoUserError
         try:
             db_engine_spec.execute(cursor, sql)
-            polled = cursor.poll()
-            while polled:
-                logger.info("polling presto for validation progress")
-                stats = polled.get("stats", {})
-                if stats:
-                    state = stats.get("state")
-                    if state == "FINISHED":
-                        break
-                time.sleep(0.2)
-                polled = cursor.poll()
             db_engine_spec.fetch_data(cursor, MAX_ERROR_ROWS)
             return None
-        except DatabaseError as db_error:
-            # The pyhive presto client yields EXPLAIN (TYPE VALIDATE) responses
-            # as though they were normal queries. In other words, it doesn't
-            # know that errors here are not exceptional. To map this back to
-            # ordinary control flow, we have to trap the category of exception
-            # raised by the underlying client, match the exception arguments
-            # pyhive provides against the shape of dictionary for a presto query
-            # invalid error, and restructure that error as an annotation we can
-            # return up.
-
-            # If the first element in the DatabaseError is not a dictionary, but
-            # is a string, return that message.
+        except TrinoUserError as db_error:
             if db_error.args and isinstance(db_error.args[0], str):
-                raise PrestoSQLValidationError(db_error.args[0]) from db_error
-
-            # Confirm the first element in the DatabaseError constructor is a
-            # dictionary with error information. This is currently provided by
-            # the pyhive client, but may break if their interface changes when
-            # we update at some point in the future.
+                raise TrinoSQLValidationError(db_error.args[0]) from db_error
             if not db_error.args or not isinstance(db_error.args[0], dict):
-                raise PrestoSQLValidationError(
-                    "The pyhive presto client returned an unhandled " "database error."
+                raise TrinoSQLValidationError(
+                    "The trino client returned an unhandled " "database error."
                 ) from db_error
             error_args: Dict[str, Any] = db_error.args[0]
-
-            # Confirm the two fields we need to be able to present an annotation
-            # are present in the error response -- a message, and a location.
             if "message" not in error_args:
-                raise PrestoSQLValidationError(
-                    "The pyhive presto client did not report an error message"
+                raise TrinoSQLValidationError(
+                    "The trino client did not report an error message"
                 ) from db_error
             if "errorLocation" not in error_args:
-                # Pylint is confused about the type of error_args, despite the hints
-                # and checks above.
-                # pylint: disable=invalid-sequence-index
                 message = error_args["message"] + "\n(Error location unknown)"
-                # If we have a message but no error location, return the message and
-                # set the location as the beginning.
                 return SQLValidationAnnotation(
                     message=message, line_number=1, start_column=1, end_column=1
                 )
-            # pylint: disable=invalid-sequence-index
-            message = error_args["message"]
-            err_loc = error_args["errorLocation"]
-            line_number = err_loc.get("lineNumber", None)
-            start_column = err_loc.get("columnNumber", None)
-            end_column = err_loc.get("columnNumber", None)
-
-            return SQLValidationAnnotation(
-                message=message,
-                line_number=line_number,
-                start_column=start_column,
-                end_column=end_column,
-            )
+            return cls.construct_annotations(error_args)
         except Exception as ex:
             logger.exception("Unexpected error running validation query: %s", str(ex))
             raise ex
@@ -152,7 +93,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         cls, sql: str, schema: Optional[str], database: Database
     ) -> List[SQLValidationAnnotation]:
         """
-        Presto supports query-validation queries by running them with a
+        Trino supports query-validation queries by running them with a
         prepended explain.
 
         For example, "SELECT 1 FROM default.mytable" becomes "EXPLAIN (TYPE
@@ -175,3 +116,18 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         logger.debug("Validation found %i error(s)", len(annotations))
 
         return annotations
+
+    def construct_annotations(error_args: Any) -> SQLValidationAnnotation:
+            # pylint: disable=invalid-sequence-index
+            message = error_args["message"]
+            err_loc = error_args["errorLocation"]
+            line_number = err_loc.get("lineNumber", None)
+            start_column = err_loc.get("columnNumber", None)
+            end_column = err_loc.get("columnNumber", None)
+
+            return SQLValidationAnnotation(
+                message=message,
+                line_number=line_number,
+                start_column=start_column,
+                end_column=end_column,
+            )
