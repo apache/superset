@@ -167,7 +167,7 @@ setup(
         "mysql": ["mysqlclient>=2.1.0, <3"],
         "ocient": [
             "sqlalchemy-ocient>=1.0.0",
-            "pyocient>=1.0.15",
+            "pyocient>=1.0.15, <2",
             "shapely",
             "geojson",
         ],
