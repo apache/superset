@@ -507,7 +507,10 @@ def test_apply_dynamic_database_filter(
     full_api_access: None,
 ) -> None:
     """
-    Test that we can filter the list of databases
+    Test that we can filter the list of databases.
+    First test the default behavior without a filter and then
+    defining a filter function and patching the config to get
+    the filtered results.
     """
     with app.app_context():
         from superset.daos.database import DatabaseDAO
