@@ -32,8 +32,8 @@ from superset.connectors.sqla.models import RowLevelSecurityFilter
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.exceptions import DAOCreateFailedError, DAOUpdateFailedError
 from superset.extensions import event_logger
-from superset.row_level_security.commands.bulk_delete import BulkDeleteRLSRuleCommand
 from superset.row_level_security.commands.create import CreateRLSRuleCommand
+from superset.row_level_security.commands.delete import DeleteRLSRuleCommand
 from superset.row_level_security.commands.exceptions import RLSRuleNotFoundError
 from superset.row_level_security.commands.update import UpdateRLSRuleCommand
 from superset.row_level_security.schemas import (
@@ -340,7 +340,7 @@ class RLSRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteRLSRuleCommand(item_ids).run()
+            DeleteRLSRuleCommand(item_ids).run()
             return self.response(
                 200,
                 message=ngettext(

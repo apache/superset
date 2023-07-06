@@ -17,35 +17,35 @@
 import logging
 from typing import Optional
 
-from superset.annotation_layers.annotations.commands.exceptions import (
-    AnnotationBulkDeleteFailedError,
-    AnnotationNotFoundError,
-)
 from superset.commands.base import BaseCommand
-from superset.daos.annotation import AnnotationDAO
+from superset.css_templates.commands.exceptions import (
+    CssTemplateDeleteFailedError,
+    CssTemplateNotFoundError,
+)
+from superset.daos.css import CssTemplateDAO
 from superset.daos.exceptions import DAODeleteFailedError
-from superset.models.annotations import Annotation
+from superset.models.core import CssTemplate
 
 logger = logging.getLogger(__name__)
 
 
-class BulkDeleteAnnotationCommand(BaseCommand):
+class DeleteCssTemplateCommand(BaseCommand):
     def __init__(self, model_ids: list[int]):
         self._model_ids = model_ids
-        self._models: Optional[list[Annotation]] = None
+        self._models: Optional[list[CssTemplate]] = None
 
     def run(self) -> None:
         self.validate()
         assert self._models
 
         try:
-            AnnotationDAO.delete(self._models)
+            CssTemplateDAO.delete(self._models)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
-            raise AnnotationBulkDeleteFailedError() from ex
+            raise CssTemplateDeleteFailedError() from ex
 
     def validate(self) -> None:
         # Validate/populate model exists
-        self._models = AnnotationDAO.find_by_ids(self._model_ids)
+        self._models = CssTemplateDAO.find_by_ids(self._model_ids)
         if not self._models or len(self._models) != len(self._model_ids):
-            raise AnnotationNotFoundError()
+            raise CssTemplateNotFoundError()
