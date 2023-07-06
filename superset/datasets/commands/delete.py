@@ -17,8 +17,6 @@
 import logging
 from typing import Optional
 
-from flask_appbuilder.models.sqla import Model
-
 from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import SqlaTable
@@ -39,7 +37,7 @@ class DeleteDatasetCommand(BaseCommand):
         self._model_id = model_id
         self._model: Optional[SqlaTable] = None
 
-    def run(self) -> Model:
+    def run(self) -> None:
         self.validate()
         assert self._model
 

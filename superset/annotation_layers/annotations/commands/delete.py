@@ -17,8 +17,6 @@
 import logging
 from typing import Optional
 
-from flask_appbuilder.models.sqla import Model
-
 from superset.annotation_layers.annotations.commands.exceptions import (
     AnnotationDeleteFailedError,
     AnnotationNotFoundError,
@@ -36,16 +34,15 @@ class DeleteAnnotationCommand(BaseCommand):
         self._model_id = model_id
         self._model: Optional[Annotation] = None
 
-    def run(self) -> Model:
+    def run(self) -> None:
         self.validate()
         assert self._model
 
         try:
-            annotation = AnnotationDAO.delete(self._model)
+            AnnotationDAO.delete(self._model)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
             raise AnnotationDeleteFailedError() from ex
-        return annotation
 
     def validate(self) -> None:
         # Validate/populate model exists

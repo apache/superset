@@ -14,8 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -26,7 +28,7 @@ from superset.extensions import db
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.core import DatasourceType
+from superset.utils.core import DatasourceType, get_iterable
 from superset.views.base import DatasourceFilter
 
 logger = logging.getLogger(__name__)
@@ -36,7 +38,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):  # pylint: disable=too-many-public-methods
     base_filter = DatasourceFilter
 
     @staticmethod
-    def get_database_by_id(database_id: int) -> Optional[Database]:
+    def get_database_by_id(database_id: int) -> Database | None:
         try:
             return db.session.query(Database).filter_by(id=database_id).one_or_none()
         except SQLAlchemyError as ex:  # pragma: no cover
@@ -68,7 +70,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):  # pylint: disable=too-many-public-methods
 
     @staticmethod
     def validate_table_exists(
-        database: Database, table_name: str, schema: Optional[str]
+        database: Database, table_name: str, schema: str | None
     ) -> bool:
         try:
             database.get_table(table_name, schema=schema)
@@ -80,9 +82,9 @@ class DatasetDAO(BaseDAO[SqlaTable]):  # pylint: disable=too-many-public-methods
     @staticmethod
     def validate_uniqueness(
         database_id: int,
-        schema: Optional[str],
+        schema: str | None,
         name: str,
-        dataset_id: Optional[int] = None,
+        dataset_id: int | None = None,
     ) -> bool:
         dataset_query = db.session.query(SqlaTable).filter(
             SqlaTable.table_name == name,
@@ -287,9 +289,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):  # pylint: disable=too-many-public-methods
             db.session.commit()
 
     @classmethod
-    def find_dataset_column(
-        cls, dataset_id: int, column_id: int
-    ) -> Optional[TableColumn]:
+    def find_dataset_column(cls, dataset_id: int, column_id: int) -> TableColumn | None:
         # We want to apply base dataset filters
         dataset = DatasetDAO.find_by_id(dataset_id)
         if not dataset:
@@ -319,16 +319,14 @@ class DatasetDAO(BaseDAO[SqlaTable]):  # pylint: disable=too-many-public-methods
         return DatasetColumnDAO.create(properties, commit=commit)
 
     @classmethod
-    def delete_column(cls, model: TableColumn, commit: bool = True) -> TableColumn:
+    def delete_column(cls, model: TableColumn, commit: bool = True) -> None:
         """
         Deletes a Dataset column
         """
-        return cls.delete(model, commit=commit)
+        DatasetColumnDAO.delete(model, commit=commit)
 
     @classmethod
-    def find_dataset_metric(
-        cls, dataset_id: int, metric_id: int
-    ) -> Optional[SqlMetric]:
+    def find_dataset_metric(cls, dataset_id: int, metric_id: int) -> SqlMetric | None:
         # We want to apply base dataset filters
         dataset = DatasetDAO.find_by_id(dataset_id)
         if not dataset:
@@ -336,11 +334,11 @@ class DatasetDAO(BaseDAO[SqlaTable]):  # pylint: disable=too-many-public-methods
         return db.session.query(SqlMetric).get(metric_id)
 
     @classmethod
-    def delete_metric(cls, model: SqlMetric, commit: bool = True) -> SqlMetric:
+    def delete_metric(cls, model: SqlMetric, commit: bool = True) -> None:
         """
         Deletes a Dataset metric
         """
-        return cls.delete(model, commit=commit)
+        DatasetMetricDAO.delete(model, commit=commit)
 
     @classmethod
     def update_metric(
@@ -363,22 +361,33 @@ class DatasetDAO(BaseDAO[SqlaTable]):  # pylint: disable=too-many-public-methods
         return DatasetMetricDAO.create(properties, commit=commit)
 
     @classmethod
-    def bulk_delete(
-        cls, models: Optional[list[SqlaTable]], commit: bool = True
+    def delete(
+        cls,
+        items: SqlaTable | list[SqlaTable],
+        commit: bool = True,
     ) -> None:
-        item_ids = [model.id for model in models] if models else []
-        # bulk delete itself
+        """
+        Delete the specified items(s) including their associated relationships.
+
+        Note that bulk deletion via `delete` does not dispatch the `after_delete` event
+        and thus the ORM event listener callback needs to be invoked manually.
+
+        :param items: The item(s) to delete
+        :param commit: Whether to commit the transaction
+        :raises DAODeleteFailedError: If the deletion failed
+        :see: https://docs.sqlalchemy.org/en/latest/orm/queryguide/dml.html
+        """
+
         try:
-            db.session.query(SqlaTable).filter(SqlaTable.id.in_(item_ids)).delete(
-                synchronize_session="fetch"
-            )
+            db.session.query(SqlaTable).filter(
+                SqlaTable.id.in_(item.id for item in get_iterable(items))
+            ).delete(synchronize_session="fetch")
 
-            if models:
-                connection = db.session.connection()
-                mapper = next(iter(cls.model_cls.registry.mappers))  # type: ignore
+            connection = db.session.connection()
+            mapper = next(iter(cls.model_cls.registry.mappers))  # type: ignore
 
-                for model in models:
-                    security_manager.dataset_after_delete(mapper, connection, model)
+            for item in get_iterable(items):
+                security_manager.dataset_after_delete(mapper, connection, item)
 
             if commit:
                 db.session.commit()
@@ -388,7 +397,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):  # pylint: disable=too-many-public-methods
             raise ex
 
     @staticmethod
-    def get_table_by_name(database_id: int, table_name: str) -> Optional[SqlaTable]:
+    def get_table_by_name(database_id: int, table_name: str) -> SqlaTable | None:
         return (
             db.session.query(SqlaTable)
             .filter_by(database_id=database_id, table_name=table_name)
