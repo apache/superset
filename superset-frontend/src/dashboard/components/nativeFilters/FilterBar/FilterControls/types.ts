@@ -42,4 +42,5 @@ export interface FilterControlProps extends BaseFilterProps {
   showOverflow?: boolean;
   parentRef?: RefObject<any>;
   setFilterActive?: (isActive: boolean) => void;
+  validateStatus?: string;
 }

@@ -51,6 +51,7 @@ import { createFilterKey, updateFilterKey } from './keyValue';
 import ActionButtons from './ActionButtons';
 import Horizontal from './Horizontal';
 import Vertical from './Vertical';
+import { useSelectFiltersInScope } from '../state';
 
 // FilterBar is just being hidden as it must still
 // render fully due to encapsulated logics
@@ -141,6 +142,8 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
 
+  const [filtersInScope] = useSelectFiltersInScope(nativeFilterValues);
+
   const handleFilterSelectionChange = useCallback(
     (
       filter: Pick<Filter, 'id'> & Partial<Filter>,
@@ -222,24 +225,24 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   }, [dataMaskSelected, dispatch]);
 
   const handleClearAll = useCallback(() => {
-    const filterIds = Object.keys(dataMaskSelected);
-    filterIds.forEach(filterId => {
-      if (dataMaskSelected[filterId]) {
-        dispatch(clearDataMask(filterId));
+    filtersInScope.filter(isNativeFilter).forEach(filter => {
+      const { id } = filter;
+      if (dataMaskSelected[id]) {
+        dispatch(clearDataMask(id));
         setDataMaskSelected(draft => {
-          if (draft[filterId].filterState?.value !== undefined) {
-            draft[filterId].filterState!.value = undefined;
+          if (draft[id].filterState?.value !== undefined) {
+            draft[id].filterState!.value = undefined;
           }
         });
       }
     });
-  }, [dataMaskSelected, dispatch, setDataMaskSelected]);
+  }, [dataMaskSelected, dispatch, filtersInScope, setDataMaskSelected]);
 
   useFilterUpdates(dataMaskSelected, setDataMaskSelected);
   const isApplyDisabled = checkIsApplyDisabled(
     dataMaskSelected,
     dataMaskApplied,
-    nativeFilterValues,
+    filtersInScope.filter(isNativeFilter),
   );
   const isInitialized = useInitialization();
 
