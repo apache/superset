@@ -36,9 +36,10 @@ class BulkDeleteSavedQueryCommand(BaseCommand):
 
     def run(self) -> None:
         self.validate()
+        assert self._models
+
         try:
-            SavedQueryDAO.bulk_delete(self._models)
-            return None
+            SavedQueryDAO.delete(self._models)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
             raise SavedQueryBulkDeleteFailedError() from ex
