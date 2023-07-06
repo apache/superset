@@ -89,27 +89,28 @@ function configFromFile(): Partial<ConfigType> {
 
 function applyEnvOverrides(config: ConfigType): ConfigType {
   const envVarConfigMapping: { [envVar: string]: keyof ConfigType } = {
-    PORT: 'port',
+    GC_CHANNELS_INTERVAL_MS: 'gcChannelsIntervalMs',
+    JWT_COOKIE_NAME: 'jwtCookieName',
+    JWT_SECRET: 'jwtSecret',
+    LOG_FILENAME: 'logFilename',
     LOG_LEVEL: 'logLevel',
     LOG_TO_FILE: 'logToFile',
-    LOG_FILENAME: 'logFilename',
-    REDIS_STREAM_PREFIX: 'redisStreamPrefix',
-    REDIS_STREAM_READ_COUNT: 'redisStreamReadCount',
-    REDIS_STREAM_READ_BLOCK_MS: 'redisStreamReadBlockMs',
-    JWT_SECRET: 'jwtSecret',
-    JWT_COOKIE_NAME: 'jwtCookieName',
-    SOCKET_RESPONSE_TIMEOUT_MS: 'socketResponseTimeoutMs',
     PING_SOCKETS_INTERVAL_MS: 'pingSocketsIntervalMs',
-    GC_CHANNELS_INTERVAL_MS: 'gcChannelsIntervalMs',
-    REDIS_HOST: 'redis.host',
-    REDIS_PORT: 'redis.port',
-    REDIS_PASSWORD: 'redis.password',
+    PORT: 'port',
     REDIS_DB: 'redis.db',
+    REDIS_HOST: 'redis.host',
+    REDIS_PASSWORD: 'redis.password',
+    REDIS_PORT: 'redis.port',
     REDIS_SSL: 'redis.ssl',
+    REDIS_STREAM_PREFIX: 'redisStreamPrefix',
+    REDIS_STREAM_READ_BLOCK_MS: 'redisStreamReadBlockMs',
+    REDIS_STREAM_READ_COUNT: 'redisStreamReadCount',
+    SOCKET_RESPONSE_TIMEOUT_MS: 'socketResponseTimeoutMs',
+    STATSD_GLOBAL_TAGS: 'statsd.globalTags',
     STATSD_HOST: 'statsd.host',
     STATSD_PORT: 'statsd.port',
-    STATSD_GLOBAL_TAGS: 'statsd.globalTags',
   };
+  
 
   Object.entries(envVarConfigMapping).forEach(([envVar, configKey]) => {
     const envValue = process.env[envVar];
