@@ -185,7 +185,7 @@ class BaseDAO(Generic[T]):
     @classmethod
     def delete(cls, items: T | list[T], commit: bool = True) -> None:
         """
-        Delete the specified items(s) including their associated relationships.
+        Delete the specified item(s) including their associated relationships.
 
         Note that bulk deletion via `delete` is not invoked in the base class as this
         does not dispatch the ORM `after_delete` event which may be required to augment
