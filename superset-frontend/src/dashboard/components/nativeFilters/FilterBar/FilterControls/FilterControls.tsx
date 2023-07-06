@@ -120,6 +120,7 @@ const FilterControls: FC<FilterControlsProps> = ({
                   padding-bottom: ${theme.gridUnit * 2}px;
                   /* DODO changed */
                   padding-right: ${theme.gridUnit * 2}px;
+                  font-size: 13px;
 
                   & > .ant-collapse-arrow {
                     right: ${theme.gridUnit}px;

@@ -1743,8 +1743,8 @@ const ru = {
       'One ore more annotation layers failed loading.': [
         'Один или несколько слоев аннотации не удалось загрузить.',
       ],
-      'Cached %s': [''],
-      'Fetched %s': [''],
+      'Cached %s': ['Кэш %s'],
+      'Fetched %s': ['Получен %s'],
       'Minimize chart': ['Свернуть график'],
       'Maximize chart': ['Развернуть график'],
       'Force refresh': ['Принудительное обновление'],
@@ -2852,6 +2852,12 @@ const ru = {
       'table.previous_page': ['Предыдущая'],
       'table.next_page': ['Следующая'],
       'search.num_records': ['%s запись', '%s записей...'],
+      '%s option': ['%s значений'],
+      '%s options': ['%s значений'],
+      Cached: ['Кэш'],
+      Fetched: ['Получен'],
+      'Edit chart': ['Редактировать график'],
+      'View as table': ['Открыть как таблицу'],
     },
   },
 };

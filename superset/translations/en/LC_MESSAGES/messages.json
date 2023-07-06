@@ -2057,7 +2057,13 @@
       "Week_ending sunday": [""],
       "Week starting Sunday": [""],
       "Week starting Monday": [""],
-      "Week ending Saturday": [""]
+      "Week ending Saturday": [""],
+      "%s option": [""],
+      "%s options": [""],
+      "Cached": [""],
+      "Fetched": [""],
+      "Edit chart": [""],
+      "View as table": [""]
     }
   }
 }

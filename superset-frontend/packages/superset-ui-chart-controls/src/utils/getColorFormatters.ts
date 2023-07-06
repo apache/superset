@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import memoizeOne from 'memoize-one';
 import { addAlpha, DataRecord } from '@superset-ui/core';
 import {
@@ -60,10 +43,10 @@ export const getColorFunction = (
     targetValueLeft,
     targetValueRight,
     colorScheme,
+    // DODO changed
+    isFixedColor,
   }: ConditionalFormattingConfig,
   columnValues: number[],
-  // we either do a gradient or 1 color
-  // isFixedColor: boolean,
 ) => {
   let minOpacity = MIN_OPACITY_BOUNDED;
   const maxOpacity = MAX_OPACITY;
@@ -183,8 +166,8 @@ export const getColorFunction = (
       getOpacity(value, cutoffValue, extremeValue, minOpacity, maxOpacity),
     );
 
-    // return isFixedColor ? colorScheme : gradientedColor;
-    return gradientedColor;
+    // DODO changed
+    return isFixedColor ? colorScheme : gradientedColor;
   };
 };
 
@@ -192,7 +175,6 @@ export const getColorFormatters = memoizeOne(
   (
     columnConfig: ConditionalFormattingConfig[] | undefined,
     data: DataRecord[],
-    // isFixedColor,
   ) =>
     columnConfig?.reduce(
       (acc: ColorFormatters, config: ConditionalFormattingConfig) => {
@@ -210,7 +192,6 @@ export const getColorFormatters = memoizeOne(
             getColorFromValue: getColorFunction(
               config,
               data.map(row => row[config.column!] as number),
-              // isFixedColor,
             ),
           });
         }

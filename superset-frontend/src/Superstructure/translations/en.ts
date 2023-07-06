@@ -1896,6 +1896,12 @@ const en = {
       'Raw Records': [''],
       'Emit Filter Events': [''],
       'Show Cell Bars': [''],
+      '%s option': [''],
+      '%s options': [''],
+      Cached: [''],
+      Fetched: [''],
+      'Edit chart': [''],
+      'View as table': [''],
     },
   },
 };
