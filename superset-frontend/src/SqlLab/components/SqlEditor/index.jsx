@@ -364,7 +364,12 @@ const SqlEditor = ({
             skipCurrent: true,
             start: cursorPosition,
           })?.end?.row;
-          if (!currentLine || currentLine > cursorPosition.row) {
+          if (
+            !currentLine ||
+            currentLine > cursorPosition.row ||
+            (currentLine === cursorPosition.row &&
+              start?.column > cursorPosition.column)
+          ) {
             currentLine = 0;
           }
           let content =
@@ -383,6 +388,8 @@ const SqlEditor = ({
             end,
           });
           startQuery();
+          editor.selection.clearSelection();
+          editor.moveCursorToPosition(cursorPosition);
         },
       },
       {
