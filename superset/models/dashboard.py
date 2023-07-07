@@ -373,11 +373,12 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
 
     @classmethod
     def export_dashboards(  # pylint: disable=too-many-locals
-        cls, dashboard_ids: list[int]
+        cls,
+        dashboard_ids: set[int],
     ) -> str:
         copied_dashboards = []
         datasource_ids = set()
-        for dashboard_id in set(dashboard_ids):
+        for dashboard_id in dashboard_ids:
             # make sure that dashboard_id is an integer
             dashboard_id = int(dashboard_id)
             dashboard = (
