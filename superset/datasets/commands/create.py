@@ -48,7 +48,7 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
             dataset = DatasetDAO.create(self._properties, commit=False)
 
             # Updates columns and metrics from the dataset
-            dataset.metrics = [SqlMetric(metric_name="count", expression="COUNT(*)")]
+            dataset.metrics = [SqlMetric(metric_name="COUNT(*)", expression="COUNT(*)")]
 
             dataset.fetch_metadata(commit=False)
             db.session.commit()
