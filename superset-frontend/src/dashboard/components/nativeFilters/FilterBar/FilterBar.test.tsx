@@ -76,6 +76,12 @@ const getModalTestId = testWithId<string>(FILTERS_CONFIG_MODAL_TEST_ID, true);
 const FILTER_NAME = 'Time filter 1';
 const FILTER_SET_NAME = 'New filter set';
 
+// @ts-ignore
+global.featureFlags = {
+  [FeatureFlag.DASHBOARD_NATIVE_FILTERS]: true,
+  [FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET]: true,
+};
+
 const addFilterFlow = async () => {
   // open filter config modal
   userEvent.click(screen.getByTestId(getTestId('collapsable')));
