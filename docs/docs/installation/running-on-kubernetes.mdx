@@ -121,6 +121,10 @@ init:
       . {{ .Values.configMountPath }}/superset_init.sh
 ```
 
+:::note
+Superset uses [Scarf Gateway](https://about.scarf.sh/scarf-gateway) to collect telmetry data to better understand and support the need for patch versions of Sueprset. Scarf purges PII and provides aggregated statistics. Superset users can easily opt out of analytics in various ways documented [here](https://docs.scarf.sh/gateway/#do-not-track). However, if you wish to opt-out of this in your Helm-based installation, you can simply edit your `helm/superset/values.yaml` file and remove `apachesuperset.docker.scarf.sh/` from the `repository` field, so that it's simply pulling `apache/superset`
+:::
+
 #### Dependencies
 
 Install additional packages and do any other bootstrap configuration in the bootstrap script.
