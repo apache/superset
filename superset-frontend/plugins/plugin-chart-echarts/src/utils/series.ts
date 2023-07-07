@@ -518,7 +518,7 @@ export function getAxisType(dataType?: GenericDataType): AxisType {
 export function getOverMaxHiddenFormatter(
   config: {
     max?: number;
-    formatter?: NumberFormatter;
+    formatter?: ValueFormatter;
   } = {},
 ) {
   const { max, formatter } = config;
