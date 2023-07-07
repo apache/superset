@@ -34,6 +34,14 @@ import {
   isPhysicalColumn,
   isDefined,
   ensureIsArray,
+  buildCustomFormatters,
+  ValueFormatter,
+  NumberFormatter,
+  QueryFormMetric,
+  getCustomFormatter,
+  NumberFormats,
+  isSavedMetric,
+  CurrencyFormatter,
 } from '@superset-ui/core';
 import { getOriginalSeries } from '@superset-ui/chart-controls';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
@@ -84,6 +92,48 @@ import {
 import { TIMESERIES_CONSTANTS, TIMEGRAIN_TO_TIMESTAMP } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 
+const getFormatter = (
+  customFormatters: Record<string, ValueFormatter>,
+  defaultFormatter: NumberFormatter,
+  metrics: QueryFormMetric[],
+  formatterKey: string,
+  forcePercentFormat: boolean,
+) => {
+  if (forcePercentFormat) {
+    return getNumberFormatter(',.0%');
+  }
+  return (
+    getCustomFormatter(customFormatters, metrics, formatterKey) ??
+    defaultFormatter
+  );
+};
+
+const getYAxisFormatter = (
+  metrics: QueryFormMetric[],
+  forcePercentFormatter: boolean,
+  customFormatters: Record<string, ValueFormatter>,
+  yAxisFormat: string = NumberFormats.SMART_NUMBER,
+) => {
+  if (forcePercentFormatter) {
+    return getNumberFormatter(',.0%');
+  }
+  const metricsArray = ensureIsArray(metrics);
+  if (
+    metricsArray.every(isSavedMetric) &&
+    metricsArray
+      .map(metric => customFormatters[metric])
+      .every(
+        (formatter, _, formatters) =>
+          formatter instanceof CurrencyFormatter &&
+          (formatter as CurrencyFormatter)?.currency?.symbol ===
+            (formatters[0] as CurrencyFormatter)?.currency?.symbol,
+      )
+  ) {
+    return customFormatters[metricsArray[0]];
+  }
+  return getNumberFormatter(yAxisFormat);
+};
+
 export default function transformProps(
   chartProps: EchartsMixedTimeseriesProps,
 ): EchartsMixedTimeseriesChartTransformedProps {
@@ -99,7 +149,11 @@ export default function transformProps(
     inContextMenu,
     emitCrossFilters,
   } = chartProps;
-  const { verboseMap = {} } = datasource;
+  const {
+    verboseMap = {},
+    currencyFormats = {},
+    columnFormats = {},
+  } = datasource;
   const { label_map: labelMap } =
     queriesData[0] as TimeseriesChartDataResponseResult;
   const { label_map: labelMapB } =
@@ -160,6 +214,8 @@ export default function transformProps(
     sliceId,
     timeGrainSqla,
     percentageThreshold,
+    metrics = [],
+    metricsB = [],
   }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
   const refs: Refs = {};
@@ -193,6 +249,18 @@ export default function transformProps(
   const formatter = getNumberFormatter(contributionMode ? ',.0%' : yAxisFormat);
   const formatterSecondary = getNumberFormatter(
     contributionMode ? ',.0%' : yAxisFormatSecondary,
+  );
+  const customFormatters = buildCustomFormatters(
+    [...metrics, ...metricsB],
+    currencyFormats,
+    columnFormats,
+    yAxisFormat,
+  );
+  const customFormattersSecondary = buildCustomFormatters(
+    [...metrics, ...metricsB],
+    currencyFormats,
+    columnFormats,
+    yAxisFormatSecondary,
   );
 
   const primarySeries = new Set<string>();
@@ -292,12 +360,6 @@ export default function transformProps(
     parseYAxisBound,
   );
 
-  const maxLabelFormatter = getOverMaxHiddenFormatter({ max, formatter });
-  const maxLabelFormatterSecondary = getOverMaxHiddenFormatter({
-    max: maxSecondary,
-    formatter: formatterSecondary,
-  });
-
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
 
@@ -305,6 +367,14 @@ export default function transformProps(
     const entryName = String(entry.name || '');
     const seriesName = inverted[entryName] || entryName;
     const colorScaleKey = getOriginalSeries(seriesName, array);
+
+    const seriesFormatter = getFormatter(
+      customFormatters,
+      formatter,
+      metrics,
+      labelMap[seriesName]?.[0],
+      !!contributionMode,
+    );
 
     const transformedSeries = transformSeries(
       entry,
@@ -325,8 +395,11 @@ export default function transformProps(
         queryIndex: 0,
         formatter:
           seriesType === EchartsTimeseriesSeriesType.Bar
-            ? maxLabelFormatter
-            : formatter,
+            ? getOverMaxHiddenFormatter({
+                max,
+                formatter: seriesFormatter,
+              })
+            : seriesFormatter,
         showValueIndexes: showValueIndexesA,
         totalStackedValues,
         thresholdValues,
@@ -339,6 +412,14 @@ export default function transformProps(
     const entryName = String(entry.name || '');
     const seriesName = `${inverted[entryName] || entryName} (1)`;
     const colorScaleKey = getOriginalSeries(seriesName, array);
+
+    const seriesFormatter = getFormatter(
+      customFormattersSecondary,
+      formatterSecondary,
+      metricsB,
+      labelMapB[seriesName]?.[0],
+      !!contributionMode,
+    );
 
     const transformedSeries = transformSeries(
       entry,
@@ -361,8 +442,11 @@ export default function transformProps(
         queryIndex: 1,
         formatter:
           seriesTypeB === EchartsTimeseriesSeriesType.Bar
-            ? maxLabelFormatterSecondary
-            : formatterSecondary,
+            ? getOverMaxHiddenFormatter({
+                max: maxSecondary,
+                formatter: seriesFormatter,
+              })
+            : seriesFormatter,
         showValueIndexes: showValueIndexesB,
         totalStackedValues: totalStackedValuesB,
         thresholdValues: thresholdValuesB,
@@ -434,7 +518,14 @@ export default function transformProps(
         max,
         minorTick: { show: true },
         minorSplitLine: { show: minorSplitLine },
-        axisLabel: { formatter },
+        axisLabel: {
+          formatter: getYAxisFormatter(
+            metrics,
+            !!contributionMode,
+            customFormatters,
+            yAxisFormat,
+          ),
+        },
         scale: truncateYAxis,
         name: yAxisTitle,
         nameGap: convertInteger(yAxisTitleMargin),
@@ -449,7 +540,14 @@ export default function transformProps(
         minorTick: { show: true },
         splitLine: { show: false },
         minorSplitLine: { show: minorSplitLine },
-        axisLabel: { formatter: formatterSecondary },
+        axisLabel: {
+          formatter: getYAxisFormatter(
+            metricsB,
+            !!contributionMode,
+            customFormattersSecondary,
+            yAxisFormatSecondary,
+          ),
+        },
         scale: truncateYAxis,
         name: yAxisTitleSecondary,
         alignTicks,
@@ -475,10 +573,36 @@ export default function transformProps(
 
         Object.keys(forecastValues).forEach(key => {
           const value = forecastValues[key];
+          // if there are no dimensions, key is a verbose name of a metric,
+          // otherwise it is a comma separated string where the first part is metric name
+          let formatterKey;
+          if (primarySeries.has(key)) {
+            formatterKey =
+              groupby.length === 0 ? inverted[key] : labelMap[key]?.[0];
+          } else {
+            formatterKey =
+              groupbyB.length === 0 ? inverted[key] : labelMapB[key]?.[0];
+          }
+          const tooltipFormatter = getFormatter(
+            customFormatters,
+            formatter,
+            metrics,
+            formatterKey,
+            !!contributionMode,
+          );
+          const tooltipFormatterSecondary = getFormatter(
+            customFormattersSecondary,
+            formatterSecondary,
+            metricsB,
+            formatterKey,
+            !!contributionMode,
+          );
           const content = formatForecastTooltipSeries({
             ...value,
             seriesName: key,
-            formatter: primarySeries.has(key) ? formatter : formatterSecondary,
+            formatter: primarySeries.has(key)
+              ? tooltipFormatter
+              : tooltipFormatterSecondary,
           });
           rows.push(`<span style="opacity: 0.7">${content}</span>`);
         });
