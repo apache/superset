@@ -24,10 +24,11 @@ import {
   getNumberFormatter,
   getSequentialSchemeRegistry,
   getTimeFormatter,
+  getValueFormatter,
   NumberFormats,
-  NumberFormatter,
   SupersetTheme,
   t,
+  ValueFormatter,
 } from '@superset-ui/core';
 import { EChartsCoreOption } from 'echarts';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
@@ -74,7 +75,7 @@ export function formatLabel({
 }: {
   params: CallbackDataParams;
   labelType: EchartsSunburstLabelType;
-  numberFormatter: NumberFormatter;
+  numberFormatter: ValueFormatter;
 }): string {
   const { name = '', value } = params;
   const formattedValue = numberFormatter(value as number);
@@ -93,7 +94,8 @@ export function formatLabel({
 
 export function formatTooltip({
   params,
-  numberFormatter,
+  primaryValueFormatter,
+  secondaryValueFormatter,
   colorByCategory,
   totalValue,
   metricLabel,
@@ -107,7 +109,8 @@ export function formatTooltip({
       value: number;
     }[];
   };
-  numberFormatter: NumberFormatter;
+  primaryValueFormatter: ValueFormatter;
+  secondaryValueFormatter: ValueFormatter | undefined;
   colorByCategory: boolean;
   totalValue: number;
   metricLabel: string;
@@ -116,8 +119,10 @@ export function formatTooltip({
 }): string {
   const { data, treePathInfo = [] } = params;
   const node = data as TreeNode;
-  const formattedValue = numberFormatter(node.value);
-  const formattedSecondaryValue = numberFormatter(node.secondaryValue);
+  const formattedValue = primaryValueFormatter(node.value);
+  const formattedSecondaryValue = secondaryValueFormatter?.(
+    node.secondaryValue,
+  );
 
   const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
   const compareValuePercentage = percentFormatter(
@@ -177,6 +182,7 @@ export default function transformProps(
     theme,
     inContextMenu,
     emitCrossFilters,
+    datasource,
   } = chartProps;
   const { data = [] } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
@@ -195,12 +201,28 @@ export default function transformProps(
     showTotal,
     sliceId,
   } = formData;
+  const { currencyFormats = {}, columnFormats = {} } = datasource;
   const refs: Refs = {};
+  const primaryValueFormatter = getValueFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    numberFormat,
+  );
+  const secondaryValueFormatter = secondaryMetric
+    ? getValueFormatter(
+        secondaryMetric,
+        currencyFormats,
+        columnFormats,
+        numberFormat,
+      )
+    : undefined;
+
   const numberFormatter = getNumberFormatter(numberFormat);
   const formatter = (params: CallbackDataParams) =>
     formatLabel({
       params,
-      numberFormatter,
+      numberFormatter: primaryValueFormatter,
       labelType,
     });
   const minShowLabelAngle = (showLabelsThreshold || 0) * 3.6;
@@ -319,7 +341,8 @@ export default function transformProps(
       formatter: (params: any) =>
         formatTooltip({
           params,
-          numberFormatter,
+          primaryValueFormatter,
+          secondaryValueFormatter,
           colorByCategory,
           totalValue,
           metricLabel,
@@ -356,7 +379,7 @@ export default function transformProps(
           top: 'center',
           left: 'center',
           style: {
-            text: t('Total: %s', numberFormatter(totalValue)),
+            text: t('Total: %s', primaryValueFormatter(totalValue)),
             fontSize: 16,
             fontWeight: 'bold',
           },
