@@ -106,7 +106,7 @@ builtin_time_grains: dict[str | None, str] = {
     TimeGrainConstants.WEEK_STARTING_SUNDAY: __("Week starting Sunday"),
     TimeGrainConstants.WEEK_STARTING_MONDAY: __("Week starting Monday"),
     TimeGrainConstants.WEEK_ENDING_SATURDAY: __("Week ending Saturday"),
-    TimeGrainConstants.WEEK_ENDING_SUNDAY: __("Week_ending Sunday"),
+    TimeGrainConstants.WEEK_ENDING_SUNDAY: __("Week ending Sunday"),
 }
 
 
