@@ -70,7 +70,7 @@ helm install my-superset superset/superset
 | fullnameOverride | string | `nil` | Provide a name to override the full names of resources |
 | hostAliases | list | `[]` | Custom hostAliases for all superset pods # https://kubernetes.io/docs/tasks/network/customize-hosts-file-for-pods/ |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
-| image.repository | string | `"apache/superset"` |  |
+| image.repository | string | `"apachesuperset.docker.scarf.sh/apache/superset"` |  |
 | image.tag | string | `""` |  |
 | imagePullSecrets | list | `[]` |  |
 | ingress.annotations | object | `{}` |  |
