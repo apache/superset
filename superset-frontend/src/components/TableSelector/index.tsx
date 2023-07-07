@@ -104,6 +104,7 @@ interface TableSelectorProps {
   tableValue?: string | string[];
   onTableSelectChange?: (value?: string | string[], schema?: string) => void;
   tableSelectMode?: 'single' | 'multiple';
+  customTableOptionLabelRenderer?: (table: Table) => JSX.Element;
 }
 
 export interface TableOption {
@@ -164,6 +165,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   tableSelectMode = 'single',
   tableValue = undefined,
   onTableSelectChange,
+  customTableOptionLabelRenderer,
 }) => {
   const { addSuccessToast } = useToasts();
   const [currentSchema, setCurrentSchema] = useState<string | undefined>(
@@ -203,9 +205,12 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
             value: table.value,
             label: <TableOption table={table} />,
             text: table.value,
+            ...(customTableOptionLabelRenderer && {
+              customLabel: customTableOptionLabelRenderer(table),
+            }),
           }))
         : [],
-    [data],
+    [data, customTableOptionLabelRenderer],
   );
 
   useEffect(() => {

@@ -17,8 +17,8 @@
  * under the License.
  */
 import React, { useEffect, SetStateAction, Dispatch, useCallback } from 'react';
-import { styled } from '@superset-ui/core';
-import TableSelector from 'src/components/TableSelector';
+import { styled, t } from '@superset-ui/core';
+import TableSelector, { TableOption } from 'src/components/TableSelector';
 import { DatabaseObject } from 'src/components/DatabaseSelector';
 import { emptyStateComponent } from 'src/components/EmptyState';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -27,6 +27,7 @@ import {
   DatasetActionType,
   DatasetObject,
 } from 'src/features/datasets/AddDataset/types';
+import { Table } from 'src/hooks/apiResources';
 
 interface LeftPanelProps {
   setDataset: Dispatch<SetStateAction<object>>;
@@ -116,7 +117,13 @@ const LeftPanelStyle = styled.div`
 `}
 `;
 
-export default function LeftPanel({ setDataset, dataset }: LeftPanelProps) {
+const divider = ':@:';
+
+export default function LeftPanel({
+  setDataset,
+  dataset,
+  datasetNames,
+}: LeftPanelProps) {
   const { addDangerToast } = useToasts();
 
   const setDatabase = useCallback(
@@ -149,6 +156,26 @@ export default function LeftPanel({ setDataset, dataset }: LeftPanelProps) {
     }
   }, [setDatabase]);
 
+  const datasetNamesSet = datasetNames?.join(divider);
+
+  const customTableOptionLabelRenderer = useCallback(
+    (table: Table) => (
+      <TableOption
+        table={
+          datasetNamesSet?.split(divider)?.includes(table.value)
+            ? {
+                ...table,
+                extra: {
+                  warning_markdown: t('This table already has a dataset'),
+                },
+              }
+            : table
+        }
+      />
+    ),
+    [datasetNamesSet],
+  );
+
   return (
     <LeftPanelStyle>
       <TableSelector
@@ -159,6 +186,7 @@ export default function LeftPanel({ setDataset, dataset }: LeftPanelProps) {
         onSchemaChange={setSchema}
         onTableSelectChange={setTable}
         sqlLabMode={false}
+        customTableOptionLabelRenderer={customTableOptionLabelRenderer}
         {...(dataset?.schema && { schema: dataset.schema })}
       />
     </LeftPanelStyle>
