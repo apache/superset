@@ -26,11 +26,11 @@ import {
   getMetricLabel,
   extractTimegrain,
   QueryFormData,
+  getValueFormatter,
 } from '@superset-ui/core';
 import { BigNumberTotalChartProps, BigNumberVizProps } from '../types';
 import { getDateFormatter, parseMetricValue } from '../utils';
 import { Refs } from '../../types';
-import { getValueFormatter } from '../../utils/valueFormatter';
 
 export default function transformProps(
   chartProps: BigNumberTotalChartProps,

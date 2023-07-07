@@ -25,6 +25,7 @@ import {
   NumberFormats,
   t,
   ValueFormatter,
+  getValueFormatter,
 } from '@superset-ui/core';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
 import { EChartsCoreOption, PieSeriesOption } from 'echarts';
@@ -47,7 +48,6 @@ import { defaultGrid } from '../defaults';
 import { convertInteger } from '../utils/convertInteger';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
-import { getValueFormatter } from '../utils/valueFormatter';
 
 const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
 

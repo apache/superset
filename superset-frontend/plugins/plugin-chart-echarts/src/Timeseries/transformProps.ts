@@ -22,7 +22,6 @@ import {
   AnnotationLayer,
   AxisType,
   CategoricalColorNamespace,
-  CurrencyFormatter,
   ensureIsArray,
   GenericDataType,
   getMetricLabel,
@@ -33,13 +32,11 @@ import {
   isFormulaAnnotationLayer,
   isIntervalAnnotationLayer,
   isPhysicalColumn,
-  isSavedMetric,
   isTimeseriesAnnotationLayer,
-  NumberFormats,
-  QueryFormMetric,
   t,
   TimeseriesChartDataResponseResult,
-  ValueFormatter,
+  buildCustomFormatters,
+  getCustomFormatter,
 } from '@superset-ui/core';
 import {
   extractExtraMetrics,
@@ -97,36 +94,7 @@ import {
   TIMEGRAIN_TO_TIMESTAMP,
 } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
-import {
-  buildCustomFormatters,
-  getCustomFormatter,
-} from '../utils/valueFormatter';
-
-const getYAxisFormatter = (
-  metrics: QueryFormMetric[],
-  forcePercentFormatter: boolean,
-  customFormatters: Record<string, ValueFormatter>,
-  yAxisFormat: string = NumberFormats.SMART_NUMBER,
-) => {
-  if (forcePercentFormatter) {
-    return getNumberFormatter(',.0%');
-  }
-  const metricsArray = ensureIsArray(metrics);
-  if (
-    metricsArray.every(isSavedMetric) &&
-    metricsArray
-      .map(metric => customFormatters[metric])
-      .every(
-        (formatter, _, formatters) =>
-          formatter instanceof CurrencyFormatter &&
-          (formatter as CurrencyFormatter)?.currency?.symbol ===
-            (formatters[0] as CurrencyFormatter)?.currency?.symbol,
-      )
-  ) {
-    return customFormatters[metricsArray[0]];
-  }
-  return getNumberFormatter(yAxisFormat);
-};
+import { getYAxisFormatter } from '../utils/getYAxisFormatter';
 
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
