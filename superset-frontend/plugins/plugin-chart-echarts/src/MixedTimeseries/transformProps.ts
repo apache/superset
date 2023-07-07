@@ -39,9 +39,6 @@ import {
   NumberFormatter,
   QueryFormMetric,
   getCustomFormatter,
-  NumberFormats,
-  isSavedMetric,
-  CurrencyFormatter,
 } from '@superset-ui/core';
 import { getOriginalSeries } from '@superset-ui/chart-controls';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
@@ -91,6 +88,7 @@ import {
 } from '../Timeseries/transformers';
 import { TIMESERIES_CONSTANTS, TIMEGRAIN_TO_TIMESTAMP } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
+import { getYAxisFormatter } from '../utils/getYAxisFormatter';
 
 const getFormatter = (
   customFormatters: Record<string, ValueFormatter>,
@@ -106,32 +104,6 @@ const getFormatter = (
     getCustomFormatter(customFormatters, metrics, formatterKey) ??
     defaultFormatter
   );
-};
-
-const getYAxisFormatter = (
-  metrics: QueryFormMetric[],
-  forcePercentFormatter: boolean,
-  customFormatters: Record<string, ValueFormatter>,
-  yAxisFormat: string = NumberFormats.SMART_NUMBER,
-) => {
-  if (forcePercentFormatter) {
-    return getNumberFormatter(',.0%');
-  }
-  const metricsArray = ensureIsArray(metrics);
-  if (
-    metricsArray.every(isSavedMetric) &&
-    metricsArray
-      .map(metric => customFormatters[metric])
-      .every(
-        (formatter, _, formatters) =>
-          formatter instanceof CurrencyFormatter &&
-          (formatter as CurrencyFormatter)?.currency?.symbol ===
-            (formatters[0] as CurrencyFormatter)?.currency?.symbol,
-      )
-  ) {
-    return customFormatters[metricsArray[0]];
-  }
-  return getNumberFormatter(yAxisFormat);
 };
 
 export default function transformProps(
