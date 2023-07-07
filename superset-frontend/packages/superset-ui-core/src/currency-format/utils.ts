@@ -34,10 +34,8 @@ export const buildCustomFormatters = (
 ) => {
   const metricsArray = ensureIsArray(metrics);
   return metricsArray.reduce((acc, metric) => {
-    const actualD3Format = isSavedMetric(metric)
-      ? columnFormats[metric] ?? d3Format
-      : d3Format;
     if (isSavedMetric(metric)) {
+      const actualD3Format = columnFormats[metric] ?? d3Format;
       return currencyFormats[metric]
         ? {
             ...acc,
