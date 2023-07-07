@@ -251,16 +251,71 @@ test('searches for a table name', async () => {
     ).toBeInTheDocument();
   });
 
-  userEvent.type(tableSelect, 'Sheet2');
+  userEvent.type(tableSelect, 'Sheet3');
 
   await waitFor(() => {
     expect(
       screen.queryByRole('option', { name: /Sheet1/i }),
     ).not.toBeInTheDocument();
     expect(
+      screen.queryByRole('option', { name: /Sheet2/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', {
+        name: /Sheet3/i,
+      }),
+    ).toBeInTheDocument();
+  });
+});
+
+test('renders a warning icon when a table name has a pre-existing dataset', async () => {
+  render(
+    <LeftPanel
+      setDataset={mockFun}
+      dataset={exampleDataset[0]}
+      datasetNames={['Sheet2']}
+    />,
+    {
+      useRedux: true,
+    },
+  );
+
+  // Click 'test-postgres' database to access schemas
+  const databaseSelect = screen.getByRole('combobox', {
+    name: /select database or type to search databases/i,
+  });
+  userEvent.click(databaseSelect);
+  userEvent.click(await screen.findByText('test-postgres'));
+
+  const schemaSelect = screen.getByRole('combobox', {
+    name: /select schema or type to search schemas/i,
+  });
+  const tableSelect = screen.getByRole('combobox', {
+    name: /select table or type to search tables/i,
+  });
+
+  await waitFor(() => expect(schemaSelect).toBeEnabled());
+
+  // Warning icon should not show yet
+  expect(
+    screen.queryByRole('img', { name: 'warning' }),
+  ).not.toBeInTheDocument();
+
+  // Click 'public' schema to access tables
+  userEvent.click(schemaSelect);
+  userEvent.click(screen.getAllByText('public')[1]);
+  userEvent.click(tableSelect);
+
+  await waitFor(() => {
+    expect(
       screen.queryByRole('option', {
         name: /Sheet2/i,
       }),
     ).toBeInTheDocument();
   });
+
+  userEvent.type(tableSelect, 'Sheet2');
+
+  // Sheet2 should now show the warning icon
+  expect(screen.getByRole('img', { name: 'alert-solid' })).toBeInTheDocument();
 });
