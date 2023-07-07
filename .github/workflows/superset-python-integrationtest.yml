@@ -70,10 +70,6 @@ jobs:
         if: steps.check.outcome == 'failure'
         run: |
           ./scripts/python_tests.sh
-      - name: Upload code coverage
-        if: steps.check.outcome == 'failure'
-        run: |
-          bash .github/workflows/codecov.sh -c -F python -F mysql
 
   test-postgres:
     if: github.event.pull_request.draft == false
@@ -137,10 +133,6 @@ jobs:
         if: steps.check.outcome == 'failure'
         run: |
           ./scripts/python_tests.sh
-      - name: Upload code coverage
-        if: steps.check.outcome == 'failure'
-        run: |
-          bash .github/workflows/codecov.sh -c -F python -F postgres
 
   test-sqlite:
     if: github.event.pull_request.draft == false
@@ -196,7 +188,3 @@ jobs:
         if: steps.check.outcome == 'failure'
         run: |
           ./scripts/python_tests.sh
-      - name: Upload code coverage
-        if: steps.check.outcome == 'failure'
-        run: |
-          bash .github/workflows/codecov.sh -c -F python -F sqlite
