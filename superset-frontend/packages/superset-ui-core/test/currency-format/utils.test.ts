@@ -72,7 +72,7 @@ it('buildCustomFormatters with saved metrics returns custom formatters object', 
       {
         sum__num: { symbol: 'USD', symbolPosition: 'prefix' },
       },
-      {},
+      { sum__num: ',.2' },
       ',.1f',
     );
 
@@ -83,6 +83,33 @@ it('buildCustomFormatters with saved metrics returns custom formatters object', 
 
   expect(customFormatters.sum__num).toBeInstanceOf(CurrencyFormatter);
   expect(customFormatters.count).toBeInstanceOf(NumberFormatter);
+  expect((customFormatters.sum__num as CurrencyFormatter).d3Format).toEqual(
+    ',.1f',
+  );
+});
+
+it('buildCustomFormatters uses dataset d3 format if not provided in control panel', () => {
+  const customFormatters: Record<string, ValueFormatter> =
+    buildCustomFormatters(
+      [
+        {
+          expressionType: 'SIMPLE',
+          aggregate: 'COUNT',
+          column: { column_name: 'test' },
+        },
+        'sum__num',
+        'count',
+      ],
+      {
+        sum__num: { symbol: 'USD', symbolPosition: 'prefix' },
+      },
+      { sum__num: ',.2' },
+      undefined,
+    );
+
+  expect((customFormatters.sum__num as CurrencyFormatter).d3Format).toEqual(
+    ',.2',
+  );
 });
 
 it('getCustomFormatter', () => {
