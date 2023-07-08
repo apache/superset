@@ -18,13 +18,13 @@
 import logging
 
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAODeleteFailedError
+from superset.daos.exceptions import DAODeleteFailedError
+from superset.daos.security import RLSDAO
 from superset.reports.models import ReportSchedule
 from superset.row_level_security.commands.exceptions import (
     RLSRuleNotFoundError,
     RuleBulkDeleteFailedError,
 )
-from superset.row_level_security.dao import RLSDAO
 
 logger = logging.getLogger(__name__)
 
@@ -37,9 +37,7 @@ class BulkDeleteRLSRuleCommand(BaseCommand):
     def run(self) -> None:
         self.validate()
         try:
-            RLSDAO.bulk_delete(self._models)
-
-            return None
+            RLSDAO.delete(self._models)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
             raise RuleBulkDeleteFailedError() from ex

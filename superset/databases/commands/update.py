@@ -22,7 +22,8 @@ from marshmallow import ValidationError
 
 from superset import is_feature_enabled
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAOCreateFailedError, DAOUpdateFailedError
+from superset.daos.database import DatabaseDAO
+from superset.daos.exceptions import DAOCreateFailedError, DAOUpdateFailedError
 from superset.databases.commands.exceptions import (
     DatabaseConnectionFailedError,
     DatabaseExistsValidationError,
@@ -30,7 +31,6 @@ from superset.databases.commands.exceptions import (
     DatabaseNotFoundError,
     DatabaseUpdateFailedError,
 )
-from superset.databases.dao import DatabaseDAO
 from superset.databases.ssh_tunnel.commands.create import CreateSSHTunnelCommand
 from superset.databases.ssh_tunnel.commands.exceptions import (
     SSHTunnelCreateFailedError,
@@ -69,10 +69,38 @@ class UpdateDatabaseCommand(BaseCommand):
         try:
             database = DatabaseDAO.update(self._model, self._properties, commit=False)
             database.set_sqlalchemy_uri(database.sqlalchemy_uri)
+
+            if ssh_tunnel_properties := self._properties.get("ssh_tunnel"):
+                if not is_feature_enabled("SSH_TUNNELING"):
+                    db.session.rollback()
+                    raise SSHTunnelingNotEnabledError()
+                existing_ssh_tunnel_model = DatabaseDAO.get_ssh_tunnel(database.id)
+                if existing_ssh_tunnel_model is None:
+                    # We couldn't found an existing tunnel so we need to create one
+                    try:
+                        CreateSSHTunnelCommand(database.id, ssh_tunnel_properties).run()
+                    except (SSHTunnelInvalidError, SSHTunnelCreateFailedError) as ex:
+                        # So we can show the original message
+                        raise ex
+                    except Exception as ex:
+                        raise DatabaseUpdateFailedError() from ex
+                else:
+                    # We found an existing tunnel so we need to update it
+                    try:
+                        UpdateSSHTunnelCommand(
+                            existing_ssh_tunnel_model.id, ssh_tunnel_properties
+                        ).run()
+                    except (SSHTunnelInvalidError, SSHTunnelUpdateFailedError) as ex:
+                        # So we can show the original message
+                        raise ex
+                    except Exception as ex:
+                        raise DatabaseUpdateFailedError() from ex
+
             # adding a new database we always want to force refresh schema list
             # TODO Improve this simplistic implementation for catching DB conn fails
             try:
-                schemas = database.get_all_schema_names()
+                ssh_tunnel = DatabaseDAO.get_ssh_tunnel(database.id)
+                schemas = database.get_all_schema_names(ssh_tunnel=ssh_tunnel)
             except Exception as ex:
                 db.session.rollback()
                 raise DatabaseConnectionFailedError() from ex
@@ -103,32 +131,6 @@ class UpdateDatabaseCommand(BaseCommand):
                 security_manager.add_permission_view_menu(
                     "schema_access", security_manager.get_schema_perm(database, schema)
                 )
-
-            if ssh_tunnel_properties := self._properties.get("ssh_tunnel"):
-                if not is_feature_enabled("SSH_TUNNELING"):
-                    db.session.rollback()
-                    raise SSHTunnelingNotEnabledError()
-                existing_ssh_tunnel_model = DatabaseDAO.get_ssh_tunnel(database.id)
-                if existing_ssh_tunnel_model is None:
-                    # We couldn't found an existing tunnel so we need to create one
-                    try:
-                        CreateSSHTunnelCommand(database.id, ssh_tunnel_properties).run()
-                    except (SSHTunnelInvalidError, SSHTunnelCreateFailedError) as ex:
-                        # So we can show the original message
-                        raise ex
-                    except Exception as ex:
-                        raise DatabaseUpdateFailedError() from ex
-                else:
-                    # We found an existing tunnel so we need to update it
-                    try:
-                        UpdateSSHTunnelCommand(
-                            existing_ssh_tunnel_model.id, ssh_tunnel_properties
-                        ).run()
-                    except (SSHTunnelInvalidError, SSHTunnelUpdateFailedError) as ex:
-                        # So we can show the original message
-                        raise ex
-                    except Exception as ex:
-                        raise DatabaseUpdateFailedError() from ex
 
             db.session.commit()
 

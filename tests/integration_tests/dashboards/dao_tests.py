@@ -23,7 +23,7 @@ import pytest
 
 import tests.integration_tests.test_app  # pylint: disable=unused-import
 from superset import db, security_manager
-from superset.dashboards.dao import DashboardDAO
+from superset.daos.dashboard import DashboardDAO
 from superset.models.dashboard import Dashboard
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.world_bank_dashboard import (
@@ -129,7 +129,7 @@ class TestDashboardDAO(SupersetTestCase):
             db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    @patch("superset.dashboards.dao.g")
+    @patch("superset.daos.dashboard.g")
     def test_copy_dashboard(self, mock_g):
         mock_g.user = security_manager.find_user("admin")
         original_dash = (
@@ -155,7 +155,7 @@ class TestDashboardDAO(SupersetTestCase):
         db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    @patch("superset.dashboards.dao.g")
+    @patch("superset.daos.dashboard.g")
     def test_copy_dashboard_copies_native_filters(self, mock_g):
         mock_g.user = security_manager.find_user("admin")
         original_dash = (
@@ -183,7 +183,7 @@ class TestDashboardDAO(SupersetTestCase):
         db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    @patch("superset.dashboards.dao.g")
+    @patch("superset.daos.dashboard.g")
     def test_copy_dashboard_duplicate_slices(self, mock_g):
         mock_g.user = security_manager.find_user("admin")
         original_dash = (

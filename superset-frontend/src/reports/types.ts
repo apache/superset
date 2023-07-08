@@ -56,5 +56,6 @@ export interface ReportObject {
   working_timeout: number;
   creation_method: string;
   force_screenshot: boolean;
+  custom_width?: number | null;
   error?: string;
 }

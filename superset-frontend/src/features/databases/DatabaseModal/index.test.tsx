@@ -124,6 +124,10 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
             description: 'Additional parameters',
             type: 'object',
           },
+          ssh: {
+            description: 'Create SSH Tunnel',
+            type: 'boolean',
+          },
           username: {
             description: 'Username',
             nullable: true,

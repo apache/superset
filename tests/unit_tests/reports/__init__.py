@@ -14,10 +14,3 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-from superset.connectors.sqla.models import RowLevelSecurityFilter
-from superset.dao.base import BaseDAO
-
-
-class RLSDAO(BaseDAO):
-    model_cls = RowLevelSecurityFilter

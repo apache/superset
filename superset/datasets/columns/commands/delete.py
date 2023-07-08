@@ -17,18 +17,16 @@
 import logging
 from typing import Optional
 
-from flask_appbuilder.models.sqla import Model
-
 from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import TableColumn
-from superset.dao.exceptions import DAODeleteFailedError
+from superset.daos.dataset import DatasetDAO
+from superset.daos.exceptions import DAODeleteFailedError
 from superset.datasets.columns.commands.exceptions import (
     DatasetColumnDeleteFailedError,
     DatasetColumnForbiddenError,
     DatasetColumnNotFoundError,
 )
-from superset.datasets.dao import DatasetDAO
 from superset.exceptions import SupersetSecurityException
 
 logger = logging.getLogger(__name__)
@@ -40,13 +38,12 @@ class DeleteDatasetColumnCommand(BaseCommand):
         self._model_id = model_id
         self._model: Optional[TableColumn] = None
 
-    def run(self) -> Model:
+    def run(self) -> None:
         self.validate()
+        assert self._model
+
         try:
-            if not self._model:
-                raise DatasetColumnNotFoundError()
-            column = DatasetDAO.delete_column(self._model)
-            return column
+            DatasetDAO.delete_column(self._model)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
             raise DatasetColumnDeleteFailedError() from ex

@@ -21,8 +21,8 @@ from typing import Union
 from sqlalchemy.orm import Session
 
 from superset.connectors.sqla.models import SqlaTable
-from superset.dao.base import BaseDAO
-from superset.dao.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
+from superset.daos.base import BaseDAO
+from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.datasets.models import Dataset
 from superset.models.sql_lab import Query, SavedQuery
 from superset.tables.models import Table
@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 Datasource = Union[Dataset, SqlaTable, Table, Query, SavedQuery]
 
 
-class DatasourceDAO(BaseDAO):
+class DatasourceDAO(BaseDAO[Datasource]):
     sources: dict[Union[DatasourceType, str], type[Datasource]] = {
         DatasourceType.TABLE: SqlaTable,
         DatasourceType.QUERY: Query,

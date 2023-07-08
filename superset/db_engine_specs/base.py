@@ -23,7 +23,7 @@ import logging
 import re
 from datetime import datetime
 from re import Match, Pattern
-from typing import Any, Callable, ContextManager, NamedTuple, TYPE_CHECKING, Union
+from typing import Any, Callable, cast, ContextManager, NamedTuple, TYPE_CHECKING, Union
 
 import pandas as pd
 import sqlparse
@@ -53,7 +53,7 @@ from superset.constants import TimeGrain as TimeGrainConstants
 from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.sql_parse import ParsedQuery, Table
-from superset.superset_typing import ResultSetColumnType
+from superset.superset_typing import ResultSetColumnType, SQLAColumnType
 from superset.utils import core as utils
 from superset.utils.core import ColumnSpec, GenericDataType
 from superset.utils.hashing import md5_sha_from_str
@@ -71,6 +71,13 @@ ColumnTypeMapping = tuple[
 ]
 
 logger = logging.getLogger()
+
+
+def convert_inspector_columns(cols: list[SQLAColumnType]) -> list[ResultSetColumnType]:
+    result_set_columns: list[ResultSetColumnType] = []
+    for col in cols:
+        result_set_columns.append({"column_name": col.get("name"), **col})  # type: ignore
+    return result_set_columns
 
 
 class TimeGrain(NamedTuple):
@@ -99,7 +106,7 @@ builtin_time_grains: dict[str | None, str] = {
     TimeGrainConstants.WEEK_STARTING_SUNDAY: __("Week starting Sunday"),
     TimeGrainConstants.WEEK_STARTING_MONDAY: __("Week starting Monday"),
     TimeGrainConstants.WEEK_ENDING_SATURDAY: __("Week ending Saturday"),
-    TimeGrainConstants.WEEK_ENDING_SUNDAY: __("Week_ending Sunday"),
+    TimeGrainConstants.WEEK_ENDING_SUNDAY: __("Week ending Sunday"),
 }
 
 
@@ -151,6 +158,7 @@ class MetricType(TypedDict, total=False):
     metric_type: str | None
     description: str | None
     d3format: str | None
+    currency: str | None
     warning_text: str | None
     extra: str | None
 
@@ -1223,7 +1231,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def get_columns(
         cls, inspector: Inspector, table_name: str, schema: str | None
-    ) -> list[dict[str, Any]]:
+    ) -> list[ResultSetColumnType]:
         """
         Get all columns from a given schema and table
 
@@ -1232,7 +1240,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param schema: Schema name. If omitted, uses default schema for database
         :return: All columns in table
         """
-        return inspector.get_columns(table_name, schema)
+        return convert_inspector_columns(
+            cast(list[SQLAColumnType], inspector.get_columns(table_name, schema))
+        )
 
     @classmethod
     def get_metrics(  # pylint: disable=unused-argument
@@ -1261,7 +1271,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         schema: str | None,
         database: Database,
         query: Select,
-        columns: list[dict[str, Any]] | None = None,
+        columns: list[ResultSetColumnType] | None = None,
     ) -> Select | None:
         """
         Add a where clause to a query to reference only the most recent partition
@@ -1278,8 +1288,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @classmethod
-    def _get_fields(cls, cols: list[dict[str, Any]]) -> list[Any]:
-        return [column(c["name"]) for c in cols]
+    def _get_fields(cls, cols: list[ResultSetColumnType]) -> list[Any]:
+        return [column(c["column_name"]) for c in cols]
 
     @classmethod
     def select_star(  # pylint: disable=too-many-arguments,too-many-locals
@@ -1292,7 +1302,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         show_cols: bool = False,
         indent: bool = True,
         latest_partition: bool = True,
-        cols: list[dict[str, Any]] | None = None,
+        cols: list[ResultSetColumnType] | None = None,
     ) -> str:
         """
         Generate a "SELECT * from [schema.]table_name" query with appropriate limit.
@@ -1843,6 +1853,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ).intersection(sqlalchemy_uri.query):
             raise ValueError(f"Forbidden query parameter(s): {existing_disallowed}")
 
+    @classmethod
+    def denormalize_name(cls, dialect: Dialect, name: str) -> str:
+        if (
+            hasattr(dialect, "requires_name_normalize")
+            and dialect.requires_name_normalize
+        ):
+            return dialect.denormalize_name(name)
+
+        return name
+
 
 # schema for adding a database by providing parameters instead of the
 # full SQLAlchemy URI
@@ -1870,6 +1890,10 @@ class BasicParametersSchema(Schema):
     encryption = fields.Boolean(
         required=False,
         metadata={"description": __("Use an encrypted connection to the database")},
+    )
+    ssh = fields.Boolean(
+        required=False,
+        metadata={"description": __("Use an ssh tunnel connection to the database")},
     )
 
 

@@ -17,34 +17,36 @@
 import logging
 from typing import Optional, Union
 
-from sqlalchemy.exc import SQLAlchemyError
-
-from superset.dao.base import BaseDAO
-from superset.dao.exceptions import DAODeleteFailedError
+from superset.daos.base import BaseDAO
 from superset.extensions import db
 from superset.models.annotations import Annotation, AnnotationLayer
 
 logger = logging.getLogger(__name__)
 
 
-class AnnotationLayerDAO(BaseDAO):
-    model_cls = AnnotationLayer
-
+class AnnotationDAO(BaseDAO[Annotation]):
     @staticmethod
-    def bulk_delete(
-        models: Optional[list[AnnotationLayer]], commit: bool = True
-    ) -> None:
-        item_ids = [model.id for model in models] if models else []
-        try:
-            db.session.query(AnnotationLayer).filter(
-                AnnotationLayer.id.in_(item_ids)
-            ).delete(synchronize_session="fetch")
-            if commit:
-                db.session.commit()
-        except SQLAlchemyError as ex:
-            db.session.rollback()
-            raise DAODeleteFailedError() from ex
+    def validate_update_uniqueness(
+        layer_id: int, short_descr: str, annotation_id: Optional[int] = None
+    ) -> bool:
+        """
+        Validate if this annotation short description is unique. `id` is optional
+        and serves for validating on updates
 
+        :param short_descr: The annotation short description
+        :param layer_id: The annotation layer current id
+        :param annotation_id: This annotation is (only for validating on updates)
+        :return: bool
+        """
+        query = db.session.query(Annotation).filter(
+            Annotation.short_descr == short_descr, Annotation.layer_id == layer_id
+        )
+        if annotation_id:
+            query = query.filter(Annotation.id != annotation_id)
+        return not db.session.query(query.exists()).scalar()
+
+
+class AnnotationLayerDAO(BaseDAO[AnnotationLayer]):
     @staticmethod
     def has_annotations(model_id: Union[int, list[int]]) -> bool:
         if isinstance(model_id, list):

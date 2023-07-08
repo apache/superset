@@ -14,35 +14,48 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import json
 import logging
 from datetime import datetime
-from typing import Any, Optional, Union
+from typing import Any
 
 from flask import g
+from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset import security_manager
-from superset.dao.base import BaseDAO
+from superset.daos.base import BaseDAO
+from superset.daos.exceptions import DAOConfigError, DAOCreateFailedError
 from superset.dashboards.commands.exceptions import DashboardNotFoundError
+from superset.dashboards.filter_sets.consts import (
+    DASHBOARD_ID_FIELD,
+    DESCRIPTION_FIELD,
+    JSON_METADATA_FIELD,
+    NAME_FIELD,
+    OWNER_ID_FIELD,
+    OWNER_TYPE_FIELD,
+)
 from superset.dashboards.filters import DashboardAccessFilter, is_uuid
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard, id_or_slug_filter
+from superset.models.embedded_dashboard import EmbeddedDashboard
+from superset.models.filter_set import FilterSet
 from superset.models.slice import Slice
-from superset.utils.core import get_user_id
+from superset.utils.core import get_iterable, get_user_id
 from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
 
 logger = logging.getLogger(__name__)
 
 
-class DashboardDAO(BaseDAO):
-    model_cls = Dashboard
+class DashboardDAO(BaseDAO[Dashboard]):
     base_filter = DashboardAccessFilter
 
     @classmethod
-    def get_by_id_or_slug(cls, id_or_slug: Union[int, str]) -> Dashboard:
+    def get_by_id_or_slug(cls, id_or_slug: int | str) -> Dashboard:
         if is_uuid(id_or_slug):
             # just get dashboard if it's uuid
             dashboard = Dashboard.get(id_or_slug)
@@ -77,9 +90,7 @@ class DashboardDAO(BaseDAO):
         return DashboardDAO.get_by_id_or_slug(id_or_slug).slices
 
     @staticmethod
-    def get_dashboard_changed_on(
-        id_or_slug_or_dashboard: Union[str, Dashboard]
-    ) -> datetime:
+    def get_dashboard_changed_on(id_or_slug_or_dashboard: str | Dashboard) -> datetime:
         """
         Get latest changed datetime for a dashboard.
 
@@ -97,7 +108,7 @@ class DashboardDAO(BaseDAO):
 
     @staticmethod
     def get_dashboard_and_slices_changed_on(  # pylint: disable=invalid-name
-        id_or_slug_or_dashboard: Union[str, Dashboard]
+        id_or_slug_or_dashboard: str | Dashboard,
     ) -> datetime:
         """
         Get latest changed datetime for a dashboard. The change could be a dashboard
@@ -123,7 +134,7 @@ class DashboardDAO(BaseDAO):
 
     @staticmethod
     def get_dashboard_and_datasets_changed_on(  # pylint: disable=invalid-name
-        id_or_slug_or_dashboard: Union[str, Dashboard]
+        id_or_slug_or_dashboard: str | Dashboard,
     ) -> datetime:
         """
         Get latest changed datetime for a dashboard. The change could be a dashboard
@@ -155,7 +166,7 @@ class DashboardDAO(BaseDAO):
         return not db.session.query(dashboard_query.exists()).scalar()
 
     @staticmethod
-    def validate_update_slug_uniqueness(dashboard_id: int, slug: Optional[str]) -> bool:
+    def validate_update_slug_uniqueness(dashboard_id: int, slug: str | None) -> bool:
         if slug is not None:
             dashboard_query = db.session.query(Dashboard).filter(
                 Dashboard.slug == slug, Dashboard.id != dashboard_id
@@ -172,16 +183,15 @@ class DashboardDAO(BaseDAO):
             db.session.commit()
         return model
 
-    @staticmethod
-    def bulk_delete(models: Optional[list[Dashboard]], commit: bool = True) -> None:
-        item_ids = [model.id for model in models] if models else []
+    @classmethod
+    def delete(cls, items: Dashboard | list[Dashboard], commit: bool = True) -> None:
+        item_ids = [item.id for item in get_iterable(items)]
         # bulk delete, first delete related data
-        if models:
-            for model in models:
-                model.slices = []
-                model.owners = []
-                model.embedded = []
-                db.session.merge(model)
+        for item in get_iterable(items):
+            item.slices = []
+            item.owners = []
+            item.embedded = []
+            db.session.merge(item)
         # bulk delete itself
         try:
             db.session.query(Dashboard).filter(Dashboard.id.in_(item_ids)).delete(
@@ -197,7 +207,7 @@ class DashboardDAO(BaseDAO):
     def set_dash_metadata(  # pylint: disable=too-many-locals
         dashboard: Dashboard,
         data: dict[Any, Any],
-        old_to_new_slice_ids: Optional[dict[int, int]] = None,
+        old_to_new_slice_ids: dict[int, int] | None = None,
         commit: bool = False,
     ) -> Dashboard:
         new_filter_scopes = {}
@@ -365,3 +375,56 @@ class DashboardDAO(BaseDAO):
         if fav:
             db.session.delete(fav)
             db.session.commit()
+
+
+class EmbeddedDashboardDAO(BaseDAO[EmbeddedDashboard]):
+    # There isn't really a regular scenario where we would rather get Embedded by id
+    id_column_name = "uuid"
+
+    @staticmethod
+    def upsert(dashboard: Dashboard, allowed_domains: list[str]) -> EmbeddedDashboard:
+        """
+        Sets up a dashboard to be embeddable.
+        Upsert is used to preserve the embedded_dashboard uuid across updates.
+        """
+        embedded: EmbeddedDashboard = (
+            dashboard.embedded[0] if dashboard.embedded else EmbeddedDashboard()
+        )
+        embedded.allow_domain_list = ",".join(allowed_domains)
+        dashboard.embedded = [embedded]
+        db.session.commit()
+        return embedded
+
+    @classmethod
+    def create(cls, properties: dict[str, Any], commit: bool = True) -> Any:
+        """
+        Use EmbeddedDashboardDAO.upsert() instead.
+        At least, until we are ok with more than one embedded instance per dashboard.
+        """
+        raise NotImplementedError("Use EmbeddedDashboardDAO.upsert() instead.")
+
+
+class FilterSetDAO(BaseDAO[FilterSet]):
+    @classmethod
+    def create(cls, properties: dict[str, Any], commit: bool = True) -> Model:
+        if cls.model_cls is None:
+            raise DAOConfigError()
+        model = FilterSet()
+        setattr(model, NAME_FIELD, properties[NAME_FIELD])
+        setattr(model, JSON_METADATA_FIELD, properties[JSON_METADATA_FIELD])
+        setattr(model, DESCRIPTION_FIELD, properties.get(DESCRIPTION_FIELD, None))
+        setattr(
+            model,
+            OWNER_ID_FIELD,
+            properties.get(OWNER_ID_FIELD, properties[DASHBOARD_ID_FIELD]),
+        )
+        setattr(model, OWNER_TYPE_FIELD, properties[OWNER_TYPE_FIELD])
+        setattr(model, DASHBOARD_ID_FIELD, properties[DASHBOARD_ID_FIELD])
+        try:
+            db.session.add(model)
+            if commit:
+                db.session.commit()
+        except SQLAlchemyError as ex:  # pragma: no cover
+            db.session.rollback()
+            raise DAOCreateFailedError() from ex
+        return model

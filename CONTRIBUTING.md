@@ -453,7 +453,7 @@ superset load-examples
 # Start the Flask dev web server from inside your virtualenv.
 # Note that your page may not have CSS at this point.
 # See instructions below how to build the front-end assets.
-FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
+superset run -p 8088 --with-threads --reload --debugger --debug
 ```
 
 Or you can install via our Makefile
@@ -477,7 +477,7 @@ $ make pre-commit
 via `.flaskenv`, however if needed, it should be set to `superset.app:create_app()`**
 
 If you have made changes to the FAB-managed templates, which are not built the same way as the newer, React-powered front-end assets, you need to start the app without the `--with-threads` argument like so:
-`FLASK_ENV=development superset run -p 8088 --reload --debugger`
+`superset run -p 8088 --reload --debugger --debug`
 
 #### Dependencies
 
@@ -518,7 +518,7 @@ def FLASK_APP_MUTATOR(app):
 Then make sure you run your WSGI server using the right worker type:
 
 ```bash
-FLASK_ENV=development gunicorn "superset.app:create_app()" -k "geventwebsocket.gunicorn.workers.GeventWebSocketWorker" -b 127.0.0.1:8088 --reload
+gunicorn "superset.app:create_app()" -k "geventwebsocket.gunicorn.workers.GeventWebSocketWorker" -b 127.0.0.1:8088 --reload
 ```
 
 You can log anything to the browser console, including objects:
@@ -603,7 +603,7 @@ So a typical development workflow is the following:
 1. [run Superset locally](#flask-server) using Flask, on port `8088` — but don't access it directly,<br/>
    ```bash
    # Install Superset and dependencies, plus load your virtual environment first, as detailed above.
-   FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
+   superset run -p 8088 --with-threads --reload --debugger --debug
    ```
 2. in parallel, run the Webpack dev server locally on port `9000`,<br/>
    ```bash
@@ -922,7 +922,7 @@ For debugging locally using VSCode, you can configure a launch configuration fil
             "module": "flask",
             "env": {
                 "FLASK_APP": "superset",
-                "FLASK_ENV": "development"
+                "SUPERSET_ENV": "development"
             },
             "args": [
                 "run",

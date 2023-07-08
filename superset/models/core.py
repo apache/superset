@@ -69,6 +69,7 @@ from superset.extensions import (
 )
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.result_set import SupersetResultSet
+from superset.superset_typing import ResultSetColumnType
 from superset.utils import cache as cache_util, core as utils
 from superset.utils.core import get_username
 
@@ -387,7 +388,7 @@ class Database(
         source: Optional[utils.QuerySource] = None,
         override_ssh_tunnel: Optional["SSHTunnel"] = None,
     ) -> Engine:
-        from superset.databases.dao import (  # pylint: disable=import-outside-toplevel
+        from superset.daos.database import (  # pylint: disable=import-outside-toplevel
             DatabaseDAO,
         )
 
@@ -632,7 +633,7 @@ class Database(
         show_cols: bool = False,
         indent: bool = True,
         latest_partition: bool = False,
-        cols: Optional[list[dict[str, Any]]] = None,
+        cols: Optional[list[ResultSetColumnType]] = None,
     ) -> str:
         """Generates a ``select *`` statement in the proper dialect"""
         eng = self._get_sqla_engine(schema=schema, source=utils.QuerySource.SQL_LAB)
@@ -837,7 +838,7 @@ class Database(
 
     def get_columns(
         self, table_name: str, schema: Optional[str] = None
-    ) -> list[dict[str, Any]]:
+    ) -> list[ResultSetColumnType]:
         with self.get_inspector_with_context() as inspector:
             return self.db_engine_spec.get_columns(inspector, table_name, schema)
 

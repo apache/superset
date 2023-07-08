@@ -25,6 +25,9 @@ import Alert from 'src/components/Alert';
 import Badge from 'src/components/Badge';
 import shortid from 'shortid';
 import {
+  css,
+  getCurrencySymbol,
+  ensureIsArray,
   FeatureFlag,
   styled,
   SupersetClient,
@@ -144,6 +147,11 @@ const DATA_TYPES = [
   { value: 'NUMERIC', label: t('NUMERIC') },
   { value: 'DATETIME', label: t('DATETIME') },
   { value: 'BOOLEAN', label: t('BOOLEAN') },
+];
+
+const CURRENCY_SYMBOL_POSITION = [
+  { value: 'prefix', label: t('Prefix') },
+  { value: 'suffix', label: t('Suffix') },
 ];
 
 const DATASOURCE_TYPES_ARR = [
@@ -572,6 +580,43 @@ function OwnersSelector({ datasource, onChange }) {
   );
 }
 
+const CurrencyControlContainer = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    align-items: center;
+
+    & > :first-child {
+      width: 25%;
+      margin-right: ${theme.gridUnit * 4}px;
+    }
+  `}
+`;
+const CurrencyControl = ({ onChange, value: currency = {}, currencies }) => (
+  <CurrencyControlContainer>
+    <Select
+      ariaLabel={t('Currency prefix or suffix')}
+      options={CURRENCY_SYMBOL_POSITION}
+      placeholder={t('Prefix or suffix')}
+      onChange={symbolPosition => {
+        onChange({ ...currency, symbolPosition });
+      }}
+      value={currency?.symbolPosition}
+      allowClear
+    />
+    <Select
+      ariaLabel={t('Currency symbol')}
+      options={currencies}
+      placeholder={t('Select or type currency symbol')}
+      onChange={symbol => {
+        onChange({ ...currency, symbol });
+      }}
+      value={currency?.symbol}
+      allowClear
+      allowNewOptions
+    />
+  </CurrencyControlContainer>
+);
+
 class DatasourceEditor extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -628,6 +673,12 @@ class DatasourceEditor extends React.PureComponent {
     this.allowEditSource = !isFeatureEnabled(
       FeatureFlag.DISABLE_DATASET_SOURCE_EDIT,
     );
+    this.currencies = ensureIsArray(props.currencies).map(currencyCode => ({
+      value: currencyCode,
+      label: `${getCurrencySymbol({
+        symbol: currencyCode,
+      })} (${currencyCode})`,
+    }));
   }
 
   onChange() {
@@ -688,8 +739,9 @@ class DatasourceEditor extends React.PureComponent {
   }
 
   updateColumns(cols) {
+    // cols: Array<{column_name: string; is_dttm: boolean; type: string;}>
     const { databaseColumns } = this.state;
-    const databaseColumnNames = cols.map(col => col.name);
+    const databaseColumnNames = cols.map(col => col.column_name);
     const currentCols = databaseColumns.reduce(
       (agg, col) => ({
         ...agg,
@@ -706,18 +758,18 @@ class DatasourceEditor extends React.PureComponent {
         .filter(col => !databaseColumnNames.includes(col)),
     };
     cols.forEach(col => {
-      const currentCol = currentCols[col.name];
+      const currentCol = currentCols[col.column_name];
       if (!currentCol) {
         // new column
         finalColumns.push({
           id: shortid.generate(),
-          column_name: col.name,
+          column_name: col.column_name,
           type: col.type,
           groupby: true,
           filterable: true,
           is_dttm: col.is_dttm,
         });
-        results.added.push(col.name);
+        results.added.push(col.column_name);
       } else if (
         currentCol.type !== col.type ||
         (!currentCol.is_dttm && col.is_dttm)
@@ -728,7 +780,7 @@ class DatasourceEditor extends React.PureComponent {
           type: col.type,
           is_dttm: currentCol.is_dttm || col.is_dttm,
         });
-        results.modified.push(col.name);
+        results.modified.push(col.column_name);
       } else {
         // unchanged
         finalColumns.push(currentCol);
@@ -837,6 +889,20 @@ class DatasourceEditor extends React.PureComponent {
         t('Calculated column [%s] requires an expression', col.column_name),
       ),
     );
+
+    // validate currency code
+    try {
+      this.state.datasource.metrics?.forEach(
+        metric =>
+          metric.currency?.symbol &&
+          new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: metric.currency.symbol,
+          }),
+      );
+    } catch {
+      errors = errors.concat([t('Invalid currency code in saved metrics')]);
+    }
 
     this.setState({ errors }, callback);
   }
@@ -1226,6 +1292,11 @@ class DatasourceEditor extends React.PureComponent {
                 control={
                   <TextControl controlId="d3format" placeholder="%y/%m/%d" />
                 }
+              />
+              <Field
+                fieldKey="currency"
+                label={t('Metric currency')}
+                control={<CurrencyControl currencies={this.currencies} />}
               />
               <Field
                 label={t('Certified by')}

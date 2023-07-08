@@ -646,7 +646,7 @@
       "Cell content": ["Contenido de la celda"],
       "Certification details": [""],
       "Certified by": ["Certificado por"],
-      "Certified by %s": ["Certidicado por %s"],
+      "Certified by %s": ["Certificado por %s"],
       "Change order of columns.": [""],
       "Change order of rows.": [""],
       "Changed By": ["Cambiado por"],
@@ -2927,7 +2927,7 @@
       "The number of hours, negative or positive, to shift the time column. This can be used to move UTC time to local time.": [
         ""
       ],
-      "The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROWS. Please add additional limits/filters or download to csv to see more rows up to the %(limit)d limit.": [
+      "The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROW. Please add additional limits/filters or download to csv to see more rows up to the %(limit)d limit.": [
         ""
       ],
       "The number of results displayed is limited to %(rows)d. Please add additional limits/filters, download to csv, or contact an admin to see more rows up to the %(limit)d limit.": [

@@ -22,9 +22,9 @@ from superset.annotation_layers.commands.exceptions import (
     AnnotationLayerBulkDeleteIntegrityError,
     AnnotationLayerNotFoundError,
 )
-from superset.annotation_layers.dao import AnnotationLayerDAO
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAODeleteFailedError
+from superset.daos.annotation import AnnotationLayerDAO
+from superset.daos.exceptions import DAODeleteFailedError
 from superset.models.annotations import AnnotationLayer
 
 logger = logging.getLogger(__name__)
@@ -37,9 +37,10 @@ class BulkDeleteAnnotationLayerCommand(BaseCommand):
 
     def run(self) -> None:
         self.validate()
+        assert self._models
+
         try:
-            AnnotationLayerDAO.bulk_delete(self._models)
-            return None
+            AnnotationLayerDAO.delete(self._models)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
             raise AnnotationLayerBulkDeleteFailedError() from ex

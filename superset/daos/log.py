@@ -22,7 +22,7 @@ from sqlalchemy import and_, or_
 from sqlalchemy.sql import functions as func
 
 from superset import db
-from superset.dao.base import BaseDAO
+from superset.daos.base import BaseDAO
 from superset.models.core import Log
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -30,9 +30,7 @@ from superset.utils.core import get_user_id
 from superset.utils.dates import datetime_to_epoch
 
 
-class LogDAO(BaseDAO):
-    model_cls = Log
-
+class LogDAO(BaseDAO[Log]):
     @staticmethod
     def get_recent_activity(
         actions: list[str],

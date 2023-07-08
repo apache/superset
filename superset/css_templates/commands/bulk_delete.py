@@ -22,8 +22,8 @@ from superset.css_templates.commands.exceptions import (
     CssTemplateBulkDeleteFailedError,
     CssTemplateNotFoundError,
 )
-from superset.css_templates.dao import CssTemplateDAO
-from superset.dao.exceptions import DAODeleteFailedError
+from superset.daos.css import CssTemplateDAO
+from superset.daos.exceptions import DAODeleteFailedError
 from superset.models.core import CssTemplate
 
 logger = logging.getLogger(__name__)
@@ -36,9 +36,10 @@ class BulkDeleteCssTemplateCommand(BaseCommand):
 
     def run(self) -> None:
         self.validate()
+        assert self._models
+
         try:
-            CssTemplateDAO.bulk_delete(self._models)
-            return None
+            CssTemplateDAO.delete(self._models)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
             raise CssTemplateBulkDeleteFailedError() from ex

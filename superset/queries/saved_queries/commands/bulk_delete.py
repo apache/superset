@@ -18,13 +18,13 @@ import logging
 from typing import Optional
 
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAODeleteFailedError
+from superset.daos.exceptions import DAODeleteFailedError
+from superset.daos.query import SavedQueryDAO
 from superset.models.dashboard import Dashboard
 from superset.queries.saved_queries.commands.exceptions import (
     SavedQueryBulkDeleteFailedError,
     SavedQueryNotFoundError,
 )
-from superset.queries.saved_queries.dao import SavedQueryDAO
 
 logger = logging.getLogger(__name__)
 
@@ -36,9 +36,10 @@ class BulkDeleteSavedQueryCommand(BaseCommand):
 
     def run(self) -> None:
         self.validate()
+        assert self._models
+
         try:
-            SavedQueryDAO.bulk_delete(self._models)
-            return None
+            SavedQueryDAO.delete(self._models)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
             raise SavedQueryBulkDeleteFailedError() from ex

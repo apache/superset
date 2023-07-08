@@ -102,7 +102,6 @@ def test_parameters_json_schema() -> None:
             "http_path": {"type": "string"},
             "port": {
                 "description": "Database port",
-                "format": "int32",
                 "maximum": 65536,
                 "minimum": 0,
                 "type": "integer",

@@ -37,7 +37,7 @@ from superset.utils.core import get_username
 from superset.utils.dates import now_as_float
 
 if TYPE_CHECKING:
-    from superset.queries.dao import QueryDAO
+    from superset.daos.query import QueryDAO
     from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 
 QueryStatus = utils.QueryStatus

@@ -17,7 +17,6 @@
 import logging
 from typing import cast, Optional
 
-from flask_appbuilder.models.sqla import Model
 from flask_babel import lazy_gettext as _
 
 from superset import security_manager
@@ -27,13 +26,13 @@ from superset.charts.commands.exceptions import (
     ChartForbiddenError,
     ChartNotFoundError,
 )
-from superset.charts.dao import ChartDAO
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAODeleteFailedError
+from superset.daos.chart import ChartDAO
+from superset.daos.exceptions import DAODeleteFailedError
+from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.reports.dao import ReportScheduleDAO
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +42,7 @@ class DeleteChartCommand(BaseCommand):
         self._model_id = model_id
         self._model: Optional[Slice] = None
 
-    def run(self) -> Model:
+    def run(self) -> None:
         self.validate()
         self._model = cast(Slice, self._model)
         try:
@@ -52,11 +51,10 @@ class DeleteChartCommand(BaseCommand):
             # table, sporadically Superset will error because the rows are not deleted.
             # Let's do it manually here to prevent the error.
             self._model.owners = []
-            chart = ChartDAO.delete(self._model)
+            ChartDAO.delete(self._model)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
             raise ChartDeleteFailedError() from ex
-        return chart
 
     def validate(self) -> None:
         # Validate/populate model exists

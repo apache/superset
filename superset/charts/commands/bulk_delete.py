@@ -26,12 +26,12 @@ from superset.charts.commands.exceptions import (
     ChartForbiddenError,
     ChartNotFoundError,
 )
-from superset.charts.dao import ChartDAO
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import DeleteFailedError
+from superset.daos.chart import ChartDAO
+from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.slice import Slice
-from superset.reports.dao import ReportScheduleDAO
 
 logger = logging.getLogger(__name__)
 
@@ -43,8 +43,10 @@ class BulkDeleteChartCommand(BaseCommand):
 
     def run(self) -> None:
         self.validate()
+        assert self._models
+
         try:
-            ChartDAO.bulk_delete(self._models)
+            ChartDAO.delete(self._models)
         except DeleteFailedError as ex:
             logger.exception(ex.exception)
             raise ChartBulkDeleteFailedError() from ex

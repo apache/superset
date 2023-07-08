@@ -158,5 +158,30 @@ describe('BigNumberWithTrendline', () => {
         '1.23',
       );
     });
+
+    it('should format with datasource currency', () => {
+      const propsWithDatasource = {
+        ...props,
+        datasource: {
+          ...props.datasource,
+          currencyFormats: {
+            value: { symbol: 'USD', symbolPosition: 'prefix' },
+          },
+          metrics: [
+            {
+              label: 'value',
+              metric_name: 'value',
+              d3format: '.2f',
+              currency: `{symbol: 'USD', symbolPosition: 'prefix' }`,
+            },
+          ],
+        },
+      };
+      const transformed = transformProps(propsWithDatasource);
+      // @ts-ignore
+      expect(transformed.headerFormatter(transformed.bigNumber)).toStrictEqual(
+        '$ 1.23',
+      );
+    });
   });
 });

@@ -217,6 +217,7 @@ class SqlMetricInlineView(  # pylint: disable=too-many-ancestors
         "expression",
         "table",
         "d3format",
+        "currency",
         "extra",
         "warning_text",
     ]
