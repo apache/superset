@@ -19,7 +19,7 @@ under the License.
 
 ## Change Log
 
-- [2.1.1](#211-sun-apr-23-154421-2023--0100)
+- [2.1.1](#211-sun-apr-23-154421-2023-0100)
 - [2.1.0](#210-thu-mar-16-211305-2023--0700)
 - [2.0.1](#201-fri-nov-4-103402-2022--0400)
 - [2.0.0](#200-tue-jun-28-085302-2022--0400)
@@ -34,14 +34,22 @@ under the License.
 ### 2.1.1 (Sun Apr 23 15:44:21 2023 +0100)
 
 **Database Migrations**
-- [##23980](https://github.com/apache/superset/pull/23980) fix(migration): handle permalink edge cases correctly (@villebro)
-- [23888](https://github.com/apache/superset/pull/23888) chore(key-value): use json serialization for main resources (@villebro)
+- [#23980](https://github.com/apache/superset/pull/23980) fix(migration): handle permalink edge cases correctly (@villebro)
+- [#23888](https://github.com/apache/superset/pull/23888) chore(key-value): use json serialization for main resources (@villebro)
 
 **Fixes**
+- [#23723](https://github.com/apache/superset/pull/23723) fix: add enforce URI query params with a specific for MySQL (@dpgaspar)
+- [#24482](https://github.com/apache/superset/pull/24482) fix(permalink): Incorrect component schema reference (@Nisden)
+- [#24166](https://github.com/apache/superset/pull/24166) fix(permalink): migrate to marshmallow codec (@villebro)
+- [#24697](https://github.com/apache/superset/pull/24697) fix: import database engine validation (@dpgaspar)
+- [#24390](https://github.com/apache/superset/pull/24390) fix: FAB CSS on Superset (@dpgaspar)
+- [#24249](https://github.com/apache/superset/pull/24249) fix: dashboard ownership check (@betodealmeida)
+- [#23801](https://github.com/apache/superset/pull/23801) fix(plugin-chart-handlebars): Fix TypeError when using handlebars columns raw mode (@fmannhardt)
+- [#23566](https://github.com/apache/superset/pull/23566) fix: Filter values are not updating when dependencies are set (@michael-s-molina)
+- [#23400](https://github.com/apache/superset/pull/23400) fix: Select all issue with "Dynamically search all filter values" in FilterBar (@geido)
 - [#23865](https://github.com/apache/superset/pull/23865) fix: Native time range filter in legacy charts (@kgabryje)
 - [#24054](https://github.com/apache/superset/pull/24054) fix: handle temporal columns in presto partitions (@giftig)
 - [#23882](https://github.com/apache/superset/pull/23882) fix: handle comments in `has_table_query` (@betodealmeida)
-- [#24256](https://github.com/apache/superset/pull/24256) fix: enable strong session protection by default (@dpgaspar)
 - [#24137](https://github.com/apache/superset/pull/24137) fix: disable SHOW_STACKTRACE by default (@dpgaspar)
 - [#24185](https://github.com/apache/superset/pull/24185) fix: db validate parameters permission (@dpgaspar)
 - [#23769](https://github.com/apache/superset/pull/23769) fix: allow db driver distinction on enforced URI params (@dpgaspar)
@@ -58,7 +66,8 @@ under the License.
 - [#22851](https://github.com/apache/superset/pull/22851) fix: Validate jinja rendered query (@geido)
 
 **Others**
-- [#23723](https://github.com/apache/superset/pull/23723) chore: add enforce URI query params with a specific for MySQL (@dpgaspar)
+- [#24586](https://github.com/apache/superset/pull/24586) chore(metastore-cache): add codec support (@villebro)
+- [#23113](https://github.com/apache/superset/pull/23113) chore(sqla): Address performance tradeoff with eager loading (@john-bodley)
 - [#24294](https://github.com/apache/superset/pull/24294) chore: update UPDATING for 2.1.0 (@eschutho)
 - [#24056](https://github.com/apache/superset/pull/24056) chore: Remove unnecessary information from response (@geido)
 
