@@ -126,8 +126,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       try {
         const result = await this.loadDashboard(dashboardId);
         if (
-          result &&
-          result.owners.some((owner: any) => owner.id === this.props.userId)
+          result?.owners.some((owner: any) => owner.id === this.props.userId)
         ) {
           this.setState({
             dashboard: { label: result.dashboard_title, value: result.id },
