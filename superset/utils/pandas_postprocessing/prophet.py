@@ -52,7 +52,7 @@ def _prophet_fit_and_predict(  # pylint: disable=too-many-arguments
     Fit a prophet model and return a DataFrame with predicted results.
     """
     try:
-        # pylint: disable=import-error,import-outside-toplevel
+        # pylint: disable=import-outside-toplevel
         from prophet import Prophet
 
         prophet_logger = logging.getLogger("prophet.plot")
