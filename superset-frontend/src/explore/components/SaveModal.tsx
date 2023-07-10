@@ -501,7 +501,7 @@ function mapStateToProps({
   return {
     datasource: explore.datasource,
     slice: explore.slice,
-    user: user,
+    user,
     dashboards: saveModal.dashboards,
     alert: saveModal.saveModalAlert,
     isVisible: saveModal.isVisible,
