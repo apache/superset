@@ -225,10 +225,15 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   }, [dataMaskSelected, dispatch]);
 
   const handleClearAll = useCallback(() => {
+    const clearDataMaskIds: string[] = [];
+    let dispatchAllowed = false;
     filtersInScope.filter(isNativeFilter).forEach(filter => {
       const { id } = filter;
       if (dataMaskSelected[id]) {
-        dispatch(clearDataMask(id));
+        if (filter.controlValues?.enableEmptyFilter) {
+          dispatchAllowed = false;
+        }
+        clearDataMaskIds.push(id);
         setDataMaskSelected(draft => {
           if (draft[id].filterState?.value !== undefined) {
             draft[id].filterState!.value = undefined;
@@ -236,6 +241,9 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         });
       }
     });
+    if (dispatchAllowed) {
+      clearDataMaskIds.forEach(id => dispatch(clearDataMask(id)));
+    }
   }, [dataMaskSelected, dispatch, filtersInScope, setDataMaskSelected]);
 
   useFilterUpdates(dataMaskSelected, setDataMaskSelected);
