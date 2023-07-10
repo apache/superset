@@ -22,7 +22,6 @@ from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand, CreateMixin
-from superset.connectors.sqla.models import SqlMetric
 from superset.daos.dataset import DatasetDAO
 from superset.daos.exceptions import DAOCreateFailedError
 from superset.datasets.commands.exceptions import (
@@ -47,9 +46,7 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
             # Creates SqlaTable (Dataset)
             dataset = DatasetDAO.create(self._properties, commit=False)
 
-            # Updates columns and metrics from the dataset
-            dataset.metrics = [SqlMetric(metric_name="COUNT(*)", expression="COUNT(*)")]
-
+            # Updates columns and metrics from the datase
             dataset.fetch_metadata(commit=False)
             db.session.commit()
         except (SQLAlchemyError, DAOCreateFailedError) as ex:
