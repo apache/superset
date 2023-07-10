@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - master
+      - main
 
 jobs:
   gitleaks:
@@ -13,7 +14,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0
           path: featureBranchFolder
         continue-on-error: true
 
@@ -21,10 +21,9 @@ jobs:
         id: default_branch
         run: |
           cd featureBranchFolder
-          DEFAULT_BRANCH=$(git remote show origin | awk '/HEAD branch/ {print $NF}')
+          DEFAULT_BRANCH=${{ github.event.repository.default_branch }}
           echo "Default branch: $DEFAULT_BRANCH"
           echo "defaultBranch=${DEFAULT_BRANCH}" >> $GITHUB_OUTPUT
-
 
       - name: Checkout GitLeaks-Integration repository
         uses: actions/checkout@v3
@@ -44,27 +43,22 @@ jobs:
           else
             echo "Directory does not exist, can be moved"
           fi
-          cd GitLeaks-Integration
-          ls
-          cd ..
           mv GitLeaks-Integration ../GitLeaks-Integration
           echo "Directory moved"
-          cd ../GitLeaks-Integration
         continue-on-error: true
 
-#      - name: Check if baseline file exists
-#        id: check-baseline
-#        run: |
-#          cd ../GitLeaks-Integration
-#          if [ ! -f "Baselines/$(basename ${{ github.repository }})-base.json" ]; then
-#            echo "Baseline file does not exist"
-#            echo "generate-baseline=true" >> $GITHUB_OUTPUT
-#          else
-#            echo "Baseline file exists"
-#            echo "generate-baseline=false" >> $GITHUB_OUTPUT
-#          fi
-#        continue-on-error: true
-
+      - name: Check if baseline file exists
+        id: check-baseline
+        run: |
+          cd ../GitLeaks-Integration
+          if [ ! -f "Baselines/$(basename ${{ github.repository }})-base.json" ]; then
+            echo "Baseline file does not exist"
+            echo "generate-baseline=true" >> $GITHUB_OUTPUT
+          else
+            echo "Baseline file exists"
+            echo "generate-baseline=false" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: true
 
       - name: Pull Gitleaks Docker image
         run: sudo docker pull zricethezav/gitleaks:v8.16.4
@@ -73,18 +67,16 @@ jobs:
       - name: Checkout target repository from master branch
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0
           ref: ${{ steps.default_branch.outputs.defaultBranch }}
           path: masterBranchFolder
         continue-on-error: true
-
 
       - name: Run gitleaks detect (generate baseline)
         run: |
           if [ ! -f "../GitLeaks-Integration/Config/gitleaks.toml" ]; then
             echo "Error: Config file not found"
             exit 1
-          else 
+          elif [[ "${{ steps.check-baseline.outputs.generate-baseline }}" == 'true' ]]; then 
             echo "Generating Baseline file.."
             pwd
             cd masterBranchFolder
@@ -93,9 +85,10 @@ jobs:
             -s /source \
             -r integration/Baselines/$(basename ${{ github.repository }})-base.json \
             -c integration/Config/gitleaks.toml
+          else
+            echo "Baseline file exists, skipping this step.."
           fi
         continue-on-error: true
-
 
       - name: Run gitleaks detect (new findings)
         id: delta-scan
@@ -109,41 +102,32 @@ jobs:
           -c integration/Config/gitleaks.toml
         continue-on-error: true
 
+      - name: Set up python environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
 
-#      - name: Check output and set conditional variables
-#        id: check-output
-#        run: |
-#          if [[ ${{ steps.delta-scan.outputs.delta-scan-output }} == "" ]]; then
-#            echo "no-new-findings=true" >> $GITHUB_OUTPUT
-#          else
-#            echo "no-new-findings=false" >> $GITHUB_OUTPUT
-#          fi
-#        continue-on-error: true
-
-
-      - name: Set up environment variables
-        run: |
-          echo "GITHUB_TOKEN=${{ secrets.SERVICE_DIRECTORY_TOKEN }}" >> $GITHUB_ENV
-          echo "JIRA_TOKEN=${{ secrets.JIRA_TOKEN }}" >> $GITHUB_ENV
-        continue-on-error: true
-
+      - name: Install dependencies
+        run: pip install -r ../GitLeaks-Integration/JIRA-Integration/requirements.txt
 
       - name: Report findings using JIRA-Integration
-        run: |
-          python3 ../GitLeaks-Integration/JIRA-Integration/TicketCreator.py ../GitLeaks-Integration/Diffs/$(basename ${{ github.repository }})-diff.json
+        run: python3 ../GitLeaks-Integration/JIRA-Integration/TicketCreator.py ../GitLeaks-Integration/Diffs/$(basename ${{ github.repository }})-diff.json
+        env:
+          SERVICE_DIRECTORY_TOKEN: ${{ secrets.SERVICE_DIRECTORY_TOKEN }}
+          JIRA_TOKEN: ${{ secrets.JIRA_TOKEN }}
         continue-on-error: true
 
-
-      # - name: Run gitleaks detect (update baseline)
-      #   run: |
-      #     cd featureBranchFolder
-      #     sudo docker run --rm -u $(id -u):$(id -g) -v "$(pwd)/../../GitLeaks-Integration:/integration" -v "$(pwd):/source" zricethezav/gitleaks:v8.16.4 --verbose detect \
-      #     --no-git \
-      #     -s /source \
-      #     -r integration/Baselines/$(basename ${{ github.repository }})-base.json \
-      #     -c integration/Config/gitleaks.toml
-      #   continue-on-error: true
-
+      - name: Run gitleaks detect (update the baseline from feature branch)
+        run: |
+          echo "Generating Baseline file.."
+          pwd
+          cd featureBranchFolder
+          sudo docker run --rm -u $(id -u):$(id -g) -v "$(pwd)/../../GitLeaks-Integration:/integration" -v "$(pwd):/source" zricethezav/gitleaks:v8.16.4 --verbose detect \
+          --no-git \
+          -s /source \
+          -r integration/Baselines/$(basename ${{ github.repository }})-base.json \
+          -c integration/Config/gitleaks.toml
+        continue-on-error: true
 
       - name: Push Baseline and Diff files
         run: |
