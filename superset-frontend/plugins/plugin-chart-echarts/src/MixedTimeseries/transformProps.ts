@@ -223,13 +223,13 @@ export default function transformProps(
     contributionMode ? ',.0%' : yAxisFormatSecondary,
   );
   const customFormatters = buildCustomFormatters(
-    [...metrics, ...metricsB],
+    [...ensureIsArray(metrics), ...ensureIsArray(metricsB)],
     currencyFormats,
     columnFormats,
     yAxisFormat,
   );
   const customFormattersSecondary = buildCustomFormatters(
-    [...metrics, ...metricsB],
+    [...ensureIsArray(metrics), ...ensureIsArray(metricsB)],
     currencyFormats,
     columnFormats,
     yAxisFormatSecondary,
