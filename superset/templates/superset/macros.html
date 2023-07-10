@@ -16,8 +16,8 @@
   specific language governing permissions and limitations
   under the License.
 #}
-{% macro get_nonce() %}
-    {% if csp_nonce is defined %}
-        {{ csp_nonce() }}
-    {% endif %}
-{% endmacro %}
+{% macro get_nonce() -%}
+  {%- if csp_nonce is defined -%}
+    {{- csp_nonce() -}}
+  {%- endif %}
+{%- endmacro %}
