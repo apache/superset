@@ -1591,7 +1591,7 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 403
 
     @pytest.mark.usefixtures("create_datasets")
-    @patch("superset.daos.dataset.DatasetDAO.delete")
+    @patch("superset.daos.dataset.DatasetColumnDAO.delete")
     def test_delete_dataset_column_fail(self, mock_dao_delete):
         """
         Dataset API: Test delete dataset column
@@ -1671,7 +1671,7 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 403
 
     @pytest.mark.usefixtures("create_datasets")
-    @patch("superset.daos.dataset.DatasetDAO.delete")
+    @patch("superset.daos.dataset.DatasetMetricDAO.delete")
     def test_delete_dataset_metric_fail(self, mock_dao_delete):
         """
         Dataset API: Test delete dataset metric

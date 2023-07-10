@@ -14,10 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import json
 import logging
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from flask_appbuilder import Model
 from sqlalchemy.exc import SQLAlchemyError
@@ -34,7 +36,7 @@ from superset.reports.models import (
     ReportScheduleType,
     ReportState,
 )
-from superset.utils.core import get_user_id
+from superset.utils.core import get_iterable, get_user_id
 
 logger = logging.getLogger(__name__)
 
@@ -93,11 +95,13 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
             .all()
         )
 
-    @staticmethod
-    def bulk_delete(
-        models: Optional[list[ReportSchedule]], commit: bool = True
+    @classmethod
+    def delete(
+        cls,
+        items: ReportSchedule | list[ReportSchedule],
+        commit: bool = True,
     ) -> None:
-        item_ids = [model.id for model in models] if models else []
+        item_ids = [item.id for item in get_iterable(items)]
         try:
             # Clean owners secondary table
             report_schedules = (
@@ -117,7 +121,7 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
 
     @staticmethod
     def validate_unique_creation_method(
-        dashboard_id: Optional[int] = None, chart_id: Optional[int] = None
+        dashboard_id: int | None = None, chart_id: int | None = None
     ) -> bool:
         """
         Validate if the user already has a chart or dashboard
@@ -135,7 +139,7 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
 
     @staticmethod
     def validate_update_uniqueness(
-        name: str, report_type: ReportScheduleType, expect_id: Optional[int] = None
+        name: str, report_type: ReportScheduleType, expect_id: int | None = None
     ) -> bool:
         """
         Validate if this name and type is unique.
@@ -218,7 +222,7 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
             raise DAOCreateFailedError(str(ex)) from ex
 
     @staticmethod
-    def find_active(session: Optional[Session] = None) -> list[ReportSchedule]:
+    def find_active(session: Session | None = None) -> list[ReportSchedule]:
         """
         Find all active reports. If session is passed it will be used instead of the
         default `db.session`, this is useful when on a celery worker session context
@@ -231,8 +235,8 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
     @staticmethod
     def find_last_success_log(
         report_schedule: ReportSchedule,
-        session: Optional[Session] = None,
-    ) -> Optional[ReportExecutionLog]:
+        session: Session | None = None,
+    ) -> ReportExecutionLog | None:
         """
         Finds last success execution log for a given report
         """
@@ -250,8 +254,8 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
     @staticmethod
     def find_last_entered_working_log(
         report_schedule: ReportSchedule,
-        session: Optional[Session] = None,
-    ) -> Optional[ReportExecutionLog]:
+        session: Session | None = None,
+    ) -> ReportExecutionLog | None:
         """
         Finds last success execution log for a given report
         """
@@ -270,8 +274,8 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
     @staticmethod
     def find_last_error_notification(
         report_schedule: ReportSchedule,
-        session: Optional[Session] = None,
-    ) -> Optional[ReportExecutionLog]:
+        session: Session | None = None,
+    ) -> ReportExecutionLog | None:
         """
         Finds last error email sent
         """
@@ -307,9 +311,9 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
     def bulk_delete_logs(
         model: ReportSchedule,
         from_date: datetime,
-        session: Optional[Session] = None,
+        session: Session | None = None,
         commit: bool = True,
-    ) -> Optional[int]:
+    ) -> int | None:
         session = session or db.session
         try:
             row_count = (

@@ -14,26 +14,37 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
+import logging
 from datetime import datetime, timedelta
 from typing import Any, Optional
 from uuid import UUID, uuid3
 
-from flask import Flask
+from flask import current_app, Flask, has_app_context
 from flask_caching import BaseCache
 
 from superset.key_value.exceptions import KeyValueCreateFailedError
-from superset.key_value.types import KeyValueResource, PickleKeyValueCodec
+from superset.key_value.types import (
+    KeyValueCodec,
+    KeyValueResource,
+    PickleKeyValueCodec,
+)
 from superset.key_value.utils import get_uuid_namespace
 
 RESOURCE = KeyValueResource.METASTORE_CACHE
-CODEC = PickleKeyValueCodec()
+
+logger = logging.getLogger(__name__)
 
 
 class SupersetMetastoreCache(BaseCache):
-    def __init__(self, namespace: UUID, default_timeout: int = 300) -> None:
+    def __init__(
+        self,
+        namespace: UUID,
+        codec: KeyValueCodec,
+        default_timeout: int = 300,
+    ) -> None:
         super().__init__(default_timeout)
         self.namespace = namespace
+        self.codec = codec
 
     @classmethod
     def factory(
@@ -41,6 +52,17 @@ class SupersetMetastoreCache(BaseCache):
     ) -> BaseCache:
         seed = config.get("CACHE_KEY_PREFIX", "")
         kwargs["namespace"] = get_uuid_namespace(seed)
+        codec = config.get("CODEC") or PickleKeyValueCodec()
+        if (
+            has_app_context()
+            and not current_app.debug
+            and isinstance(codec, PickleKeyValueCodec)
+        ):
+            logger.warning(
+                "Using PickleKeyValueCodec with SupersetMetastoreCache may be unsafe, "
+                "use at your own risk."
+            )
+        kwargs["codec"] = codec
         return cls(*args, **kwargs)
 
     def get_key(self, key: str) -> UUID:
@@ -69,7 +91,7 @@ class SupersetMetastoreCache(BaseCache):
             resource=RESOURCE,
             key=self.get_key(key),
             value=value,
-            codec=CODEC,
+            codec=self.codec,
             expires_on=self._get_expiry(timeout),
         ).run()
         return True
@@ -82,7 +104,7 @@ class SupersetMetastoreCache(BaseCache):
             CreateKeyValueCommand(
                 resource=RESOURCE,
                 value=value,
-                codec=CODEC,
+                codec=self.codec,
                 key=self.get_key(key),
                 expires_on=self._get_expiry(timeout),
             ).run()
@@ -98,7 +120,7 @@ class SupersetMetastoreCache(BaseCache):
         return GetKeyValueCommand(
             resource=RESOURCE,
             key=self.get_key(key),
-            codec=CODEC,
+            codec=self.codec,
         ).run()
 
     def has(self, key: str) -> bool:

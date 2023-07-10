@@ -17,7 +17,6 @@
 import logging
 from typing import Optional
 
-from flask_appbuilder.models.sqla import Model
 from flask_babel import lazy_gettext as _
 
 from superset import security_manager
@@ -42,16 +41,15 @@ class DeleteDashboardCommand(BaseCommand):
         self._model_id = model_id
         self._model: Optional[Dashboard] = None
 
-    def run(self) -> Model:
+    def run(self) -> None:
         self.validate()
         assert self._model
 
         try:
-            dashboard = DashboardDAO.delete(self._model)
+            DashboardDAO.delete(self._model)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
             raise DashboardDeleteFailedError() from ex
-        return dashboard
 
     def validate(self) -> None:
         # Validate/populate model exists

@@ -28,6 +28,7 @@ import {
   getXAxisLabel,
   Metric,
   ValueFormatter,
+  getValueFormatter,
 } from '@superset-ui/core';
 import { EChartsCoreOption, graphic } from 'echarts';
 import {
@@ -39,7 +40,6 @@ import {
 import { getDateFormatter, parseMetricValue } from '../utils';
 import { getDefaultTooltip } from '../../utils/tooltip';
 import { Refs } from '../../types';
-import { getValueFormatter } from '../../utils/valueFormatter';
 
 const defaultNumberFormatter = getNumberFormatter();
 export function renderTooltipFactory(

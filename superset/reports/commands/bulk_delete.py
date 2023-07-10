@@ -39,9 +39,10 @@ class BulkDeleteReportScheduleCommand(BaseCommand):
 
     def run(self) -> None:
         self.validate()
+        assert self._models
+
         try:
-            ReportScheduleDAO.bulk_delete(self._models)
-            return None
+            ReportScheduleDAO.delete(self._models)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
             raise ReportScheduleBulkDeleteFailedError() from ex

@@ -14,7 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Generic, get_args, Optional, TypeVar, Union
+from __future__ import annotations
+
+from typing import Any, Generic, get_args, TypeVar
 
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
@@ -29,6 +31,7 @@ from superset.daos.exceptions import (
     DAOUpdateFailedError,
 )
 from superset.extensions import db
+from superset.utils.core import get_iterable
 
 T = TypeVar("T", bound=Model)  # pylint: disable=invalid-name
 
@@ -38,12 +41,12 @@ class BaseDAO(Generic[T]):
     Base DAO, implement base CRUD sqlalchemy operations
     """
 
-    model_cls: Optional[type[Model]] = None
+    model_cls: type[Model] | None = None
     """
     Child classes need to state the Model class so they don't need to implement basic
     create, update and delete methods
     """
-    base_filter: Optional[BaseFilter] = None
+    base_filter: BaseFilter | None = None
     """
     Child classes can register base filtering to be applied to all filter methods
     """
@@ -57,10 +60,10 @@ class BaseDAO(Generic[T]):
     @classmethod
     def find_by_id(
         cls,
-        model_id: Union[str, int],
+        model_id: str | int,
         session: Session = None,
         skip_base_filter: bool = False,
-    ) -> Optional[Model]:
+    ) -> Model | None:
         """
         Find a model by id, if defined applies `base_filter`
         """
@@ -81,7 +84,7 @@ class BaseDAO(Generic[T]):
     @classmethod
     def find_by_ids(
         cls,
-        model_ids: Union[list[str], list[int]],
+        model_ids: list[str] | list[int],
         session: Session = None,
         skip_base_filter: bool = False,
     ) -> list[T]:
@@ -114,7 +117,7 @@ class BaseDAO(Generic[T]):
         return query.all()
 
     @classmethod
-    def find_one_or_none(cls, **filter_by: Any) -> Optional[T]:
+    def find_one_or_none(cls, **filter_by: Any) -> T | None:
         """
         Get the first that fit the `base_filter`
         """
@@ -180,25 +183,28 @@ class BaseDAO(Generic[T]):
         return model
 
     @classmethod
-    def delete(cls, model: T, commit: bool = True) -> T:
+    def delete(cls, items: T | list[T], commit: bool = True) -> None:
         """
-        Generic delete a model
-        :raises: DAODeleteFailedError
-        """
-        try:
-            db.session.delete(model)
-            if commit:
-                db.session.commit()
-        except SQLAlchemyError as ex:  # pragma: no cover
-            db.session.rollback()
-            raise DAODeleteFailedError(exception=ex) from ex
-        return model
+        Delete the specified item(s) including their associated relationships.
 
-    @classmethod
-    def bulk_delete(cls, models: list[T], commit: bool = True) -> None:
+        Note that bulk deletion via `delete` is not invoked in the base class as this
+        does not dispatch the ORM `after_delete` event which may be required to augment
+        additional records loosely defined via implicit relationships. Instead ORM
+        objects are deleted one-by-one via `Session.delete`.
+
+        Subclasses may invoke bulk deletion but are responsible for instrumenting any
+        post-deletion logic.
+
+        :param items: The item(s) to delete
+        :param commit: Whether to commit the transaction
+        :raises DAODeleteFailedError: If the deletion failed
+        :see: https://docs.sqlalchemy.org/en/latest/orm/queryguide/dml.html
+        """
+
         try:
-            for model in models:
-                cls.delete(model, False)
+            for item in get_iterable(items):
+                db.session.delete(item)
+
             if commit:
                 db.session.commit()
         except SQLAlchemyError as ex:

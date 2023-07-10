@@ -33,6 +33,7 @@ import sys
 from collections import OrderedDict
 from datetime import timedelta
 from email.mime.multipart import MIMEMultipart
+from importlib.resources import files
 from typing import Any, Callable, Literal, TYPE_CHECKING, TypedDict
 
 import pkg_resources
@@ -49,6 +50,7 @@ from superset.advanced_data_type.plugins.internet_port import internet_port
 from superset.advanced_data_type.types import AdvancedDataType
 from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.jinja_context import BaseTemplateProcessor
+from superset.key_value.types import JsonKeyValueCodec
 from superset.stats_logger import DummyStatsLogger
 from superset.superset_typing import CacheConfig
 from superset.tasks.types import ExecutorType
@@ -82,12 +84,9 @@ else:
 # ---------------------------------------------------------
 # Superset specific config
 # ---------------------------------------------------------
-VERSION_INFO_FILE = pkg_resources.resource_filename(
-    "superset", "static/version_info.json"
-)
-PACKAGE_JSON_FILE = pkg_resources.resource_filename(
-    "superset", "static/assets/package.json"
-)
+VERSION_INFO_FILE = str(files("superset") / "static/version_info.json")
+PACKAGE_JSON_FILE = str(files("superset") / "static/assets/package.json")
+
 
 # Multiple favicons can be specified here. The "href" property
 # is mandatory, but "sizes," "type," and "rel" are optional.
@@ -681,20 +680,32 @@ CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
 # Cache for datasource metadata and query results
 DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
 
-# Cache for dashboard filter state (`CACHE_TYPE` defaults to `SimpleCache` when
-#  running in debug mode unless overridden)
+# Cache for dashboard filter state. `CACHE_TYPE` defaults to `SupersetMetastoreCache`
+# that stores the values in the key-value table in the Superset metastore, as it's
+# required for Superset to operate correctly, but can be replaced by any
+# `Flask-Caching` backend.
 FILTER_STATE_CACHE_CONFIG: CacheConfig = {
+    "CACHE_TYPE": "SupersetMetastoreCache",
     "CACHE_DEFAULT_TIMEOUT": int(timedelta(days=90).total_seconds()),
-    # should the timeout be reset when retrieving a cached value
+    # Should the timeout be reset when retrieving a cached value?
     "REFRESH_TIMEOUT_ON_RETRIEVAL": True,
+    # The following parameter only applies to `MetastoreCache`:
+    # How should entries be serialized/deserialized?
+    "CODEC": JsonKeyValueCodec(),
 }
 
-# Cache for explore form data state (`CACHE_TYPE` defaults to `SimpleCache` when
-#  running in debug mode unless overridden)
+# Cache for explore form data state. `CACHE_TYPE` defaults to `SupersetMetastoreCache`
+# that stores the values in the key-value table in the Superset metastore, as it's
+# required for Superset to operate correctly, but can be replaced by any
+# `Flask-Caching` backend.
 EXPLORE_FORM_DATA_CACHE_CONFIG: CacheConfig = {
+    "CACHE_TYPE": "SupersetMetastoreCache",
     "CACHE_DEFAULT_TIMEOUT": int(timedelta(days=7).total_seconds()),
-    # should the timeout be reset when retrieving a cached value
+    # Should the timeout be reset when retrieving a cached value?
     "REFRESH_TIMEOUT_ON_RETRIEVAL": True,
+    # The following parameter only applies to `MetastoreCache`:
+    # How should entries be serialized/deserialized?
+    "CODEC": JsonKeyValueCodec(),
 }
 
 # store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
@@ -1581,6 +1592,26 @@ class ExtraRelatedQueryFilters(TypedDict, total=False):
 
 
 EXTRA_RELATED_QUERY_FILTERS: ExtraRelatedQueryFilters = {}
+
+
+# Extra dynamic query filters make it possible to limit which objects are shown
+# in the UI before any other filtering is applied. Useful for example when
+# considering to filter using Feature Flags along with regular role filters
+# that get applied by default in our base_filters.
+# For example, to only show a database starting with the letter "b"
+# in the "Database Connections" list, you could add the following in your config:
+# def initial_database_filter(query: Query, *args, *kwargs):
+#     from superset.models.core import Database
+#
+#     filter = Database.database_name.startswith('b')
+#     return query.filter(filter)
+#
+#  EXTRA_DYNAMIC_QUERY_FILTERS = {"database": initial_database_filter}
+class ExtraDynamicQueryFilters(TypedDict, total=False):
+    databases: Callable[[Query], Query]
+
+
+EXTRA_DYNAMIC_QUERY_FILTERS: ExtraDynamicQueryFilters = {}
 
 
 # -------------------------------------------------------------------

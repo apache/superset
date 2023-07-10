@@ -42,7 +42,7 @@ class BulkDeleteDatasetCommand(BaseCommand):
         assert self._models
 
         try:
-            DatasetDAO.bulk_delete(self._models)
+            DatasetDAO.delete(self._models)
         except DeleteFailedError as ex:
             logger.exception(ex.exception)
             raise DatasetBulkDeleteFailedError() from ex

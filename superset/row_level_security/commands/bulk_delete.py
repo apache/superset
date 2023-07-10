@@ -37,9 +37,7 @@ class BulkDeleteRLSRuleCommand(BaseCommand):
     def run(self) -> None:
         self.validate()
         try:
-            RLSDAO.bulk_delete(self._models)
-
-            return None
+            RLSDAO.delete(self._models)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
             raise RuleBulkDeleteFailedError() from ex

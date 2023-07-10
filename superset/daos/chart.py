@@ -15,9 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=arguments-renamed
+from __future__ import annotations
+
 import logging
 from datetime import datetime
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -26,7 +28,7 @@ from superset.daos.base import BaseDAO
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
 from superset.models.slice import Slice
-from superset.utils.core import get_user_id
+from superset.utils.core import get_iterable, get_user_id
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
@@ -37,15 +39,14 @@ logger = logging.getLogger(__name__)
 class ChartDAO(BaseDAO[Slice]):
     base_filter = ChartFilter
 
-    @staticmethod
-    def bulk_delete(models: Optional[list[Slice]], commit: bool = True) -> None:
-        item_ids = [model.id for model in models] if models else []
+    @classmethod
+    def delete(cls, items: Slice | list[Slice], commit: bool = True) -> None:
+        item_ids = [item.id for item in get_iterable(items)]
         # bulk delete, first delete related data
-        if models:
-            for model in models:
-                model.owners = []
-                model.dashboards = []
-                db.session.merge(model)
+        for item in get_iterable(items):
+            item.owners = []
+            item.dashboards = []
+            db.session.merge(item)
         # bulk delete itself
         try:
             db.session.query(Slice).filter(Slice.id.in_(item_ids)).delete(

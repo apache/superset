@@ -146,6 +146,9 @@ for production use._
 If you're not using Gunicorn, you may want to disable the use of `flask-compress` by setting
 `COMPRESS_REGISTER = False` in your `superset_config.py`.
 
+Currently, Google BigQuery python sdk is not compatible with `gevent`, due to some dynamic monkeypatching on python core library by `gevent`.
+So, when you use `BigQuery` datasource on Superset, you have to use `gunicorn` worker type except `gevent`.
+
 ### Configuration Behind a Load Balancer
 
 If you are running superset behind a load balancer or reverse proxy (e.g. NGINX or ELB on AWS), you

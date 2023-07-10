@@ -204,6 +204,7 @@ const DescriptionToolTip = ({ description }: { description: string }) => (
         WebkitBoxOrient: 'vertical',
         textOverflow: 'ellipsis',
       }}
+      getPopupContainer={trigger => trigger.parentElement as HTMLElement}
     >
       <i
         className="fa fa-info-circle text-muted"
