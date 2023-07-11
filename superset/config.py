@@ -375,8 +375,6 @@ class D3Format(TypedDict, total=False):
 
 D3_FORMAT: D3Format = {}
 
-<<<<<<< HEAD
-
 # Override the default d3 locale for time format
 # Default values are equivalent to
 # D3_TIME_FORMAT = {
