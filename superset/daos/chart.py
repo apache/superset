@@ -44,7 +44,6 @@ class ChartDAO(BaseDAO[Slice]):
         item_ids = [item.id for item in get_iterable(items)]
         # bulk delete, first delete related data
         for item in get_iterable(items):
-            item.owners = []
             item.dashboards = []
             db.session.merge(item)
         # bulk delete itself

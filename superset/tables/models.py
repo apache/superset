@@ -53,12 +53,12 @@ table_column_association_table = sa.Table(
     Model.metadata,  # pylint: disable=no-member
     sa.Column(
         "table_id",
-        sa.ForeignKey("sl_tables.id", ondelete="cascade"),
+        sa.ForeignKey("sl_tables.id", ondelete="CASCADE"),
         primary_key=True,
     ),
     sa.Column(
         "column_id",
-        sa.ForeignKey("sl_columns.id", ondelete="cascade"),
+        sa.ForeignKey("sl_columns.id", ondelete="CASCADE"),
         primary_key=True,
     ),
 )
