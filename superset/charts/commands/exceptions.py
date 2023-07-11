@@ -153,3 +153,7 @@ class ChartBulkDeleteFailedReportsExistError(ChartBulkDeleteFailedError):
 
 class ChartImportError(ImportFailedError):
     message = _("Import chart failed for an unknown reason")
+
+
+class ChartDataToDataFrameFailedError(CommandException):
+    message = "Chart cant write to pd.DataFrame"

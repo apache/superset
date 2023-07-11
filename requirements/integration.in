@@ -17,3 +17,5 @@
 pip-compile-multi
 pre-commit
 tox
+Flask-Excel
+openpyxl

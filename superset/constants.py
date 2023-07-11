@@ -57,6 +57,7 @@ class RouteMethod:  # pylint: disable=too-few-public-methods
     INFO = "info"
 
     # RestModelView specific
+    EXPORT_XLS = "export_xls"
     EXPORT = "export"
     IMPORT = "import_"
     GET = "get"
