@@ -58,7 +58,7 @@ const processDataRecords = memoizeOne(function processDataRecords(
   data: DataRecord[] | undefined,
   columns: DataColumnMeta[],
 ) {
-  if (!data || !data[0]) {
+  if (!data?.[0]) {
     return data || [];
   }
   const timeColumns = columns.filter(
