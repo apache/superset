@@ -1,5 +1,6 @@
+/* eslint-disable theme-colors/no-literal-colors */
 // DODO was here
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { styled, SupersetTheme, t, useTheme } from '@superset-ui/core';
 import { Form, FormItem, FormProps } from 'src/components/Form';
 import Select from 'src/components/Select/Select';
@@ -7,6 +8,7 @@ import { Col, Row } from 'src/components';
 import { InputNumber } from 'src/components/Input';
 import Button from 'src/components/Button';
 import { Switch } from 'src/components/Switch';
+import ColorPickerControl from 'src/explore/components/controls/ColorPickerControl';
 
 import {
   COMPARATOR,
@@ -173,67 +175,146 @@ export const FormattingPopoverContent = ({
   onChange: (config: ConditionalFormattingConfig) => void;
   columns: { label: string; value: string }[];
 }) => {
-  const [control, setControl] = useState(config?.isFixedColor);
-
   const theme = useTheme();
   const colorScheme = colorSchemeOptions(theme);
+
+  const alteredColorScheme = colorScheme.concat({
+    value: 'custom',
+    label: 'Custom',
+  });
+
+  const [control, setControl] = useState(config?.isFixedColor);
+  const [loaded, setLoaded] = useState(false);
+  const [isPickerVisible, setPickerVisible] = useState(false);
+  const [chosenColor, setChosenColor] = useState<string>(
+    config?.colorScheme || '#000',
+  );
+  const [colorsValues, setColorsValues] = useState<
+    { value: string; label: string }[]
+  >([]);
+
+  const parseColorValue = (value: string | 'custom') => {
+    if (value === 'custom') {
+      setPickerVisible(true);
+      setChosenColor(colorsValues[0].value);
+    } else {
+      setPickerVisible(false);
+      setChosenColor(value || '#000');
+    }
+  };
+
+  const parseInitialColor = (
+    value: string,
+    values: { value: string; label: string }[],
+  ) => {
+    const filteredColorScheme = values.filter(val => val.value === value);
+
+    if (filteredColorScheme.length) {
+      return filteredColorScheme[0].value;
+    }
+    return value;
+  };
+
+  useEffect(() => {
+    const chosenColorValue = parseInitialColor(
+      config?.colorScheme || '#000',
+      colorScheme,
+    );
+    if (chosenColorValue) {
+      setChosenColor(chosenColorValue);
+    }
+    setColorsValues(alteredColorScheme);
+    setLoaded(true);
+  }, [config]);
+
   return (
-    <Form
-      onFinish={onChange}
-      initialValues={config}
-      requiredMark="optional"
-      layout="vertical"
-    >
-      <Row gutter={12}>
-        <Col span={12}>
-          <FormItem
-            name="column"
-            label={t('Column')}
-            rules={rulesRequired}
-            initialValue={columns[0]?.value}
-          >
-            <Select ariaLabel={t('Select column')} options={columns} />
+    <>
+      {loaded ? (
+        <Form
+          onFinish={onChange}
+          initialValues={config}
+          requiredMark="optional"
+          layout="vertical"
+        >
+          <Row gutter={12}>
+            <Col span={12}>
+              <FormItem
+                name="column"
+                label={t('Column')}
+                rules={rulesRequired}
+                initialValue={columns[0].value}
+              >
+                <Select ariaLabel={t('Select column')} options={columns} />
+              </FormItem>
+            </Col>
+            <Col span={12}>
+              <FormItem
+                name="colorScheme"
+                label={t('Color scheme')}
+                rules={rulesRequired}
+                initialValue={colorsValues[0].value}
+              >
+                <Select
+                  ariaLabel={t('Color scheme')}
+                  options={colorsValues}
+                  onChange={value => {
+                    // @ts-ignore
+                    parseColorValue(value);
+                  }}
+                />
+              </FormItem>
+            </Col>
+          </Row>
+          <Row gutter={12}>
+            <Col span={12}>
+              <FormItem
+                name="isFixedColor"
+                label={t('Fixed color')}
+                initialValue={control}
+              >
+                <Switch
+                  data-test="toggle-active"
+                  checked={control}
+                  onClick={(checked: boolean) => {
+                    setControl(checked);
+                  }}
+                  size="default"
+                />
+              </FormItem>
+            </Col>
+
+            {isPickerVisible && (
+              <Col span={12}>
+                <FormItem
+                  name="colorScheme"
+                  label={t('Color')}
+                  initialValue={chosenColor}
+                >
+                  <ColorPickerControl
+                    onChange={(picked: string) => {
+                      setChosenColor(picked);
+                    }}
+                    value={chosenColor}
+                    isHex
+                  />
+                </FormItem>
+              </Col>
+            )}
+          </Row>
+          <FormItem noStyle shouldUpdate={shouldFormItemUpdate}>
+            {renderOperatorFields}
           </FormItem>
-        </Col>
-        <Col span={12}>
-          <FormItem
-            name="colorScheme"
-            label={t('Color scheme')}
-            rules={rulesRequired}
-            initialValue={colorScheme[0].value}
-          >
-            <Select ariaLabel={t('Color scheme')} options={colorScheme} />
+          <FormItem>
+            <JustifyEnd>
+              <Button htmlType="submit" buttonStyle="primary">
+                {t('Apply')}
+              </Button>
+            </JustifyEnd>
           </FormItem>
-        </Col>
-      </Row>
-      <Row gutter={12}>
-        <Col span={18}>
-          <FormItem
-            name="isFixedColor"
-            label={t('Fixed color')}
-            initialValue={control}
-          >
-            <Switch
-              data-test="toggle-active"
-              checked={control}
-              onClick={(checked: boolean) => {
-                setControl(checked);
-              }}
-              size="default"
-            />
-          </FormItem>
-        </Col>
-      </Row>
-      <FormItem noStyle shouldUpdate={shouldFormItemUpdate}>
-        {renderOperatorFields}
-      </FormItem>
-      <FormItem>
-        <JustifyEnd>
-          <Button htmlType="submit" buttonStyle="primary">
-            {t('Apply')}
-          </Button>
-        </JustifyEnd>
-      </FormItem>
-    </Form>
+        </Form>
+      ) : (
+        'Loading...'
+      )}
+    </>
   );
 };
