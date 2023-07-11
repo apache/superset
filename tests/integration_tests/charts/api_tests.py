@@ -466,7 +466,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "certification_details": "Sample certification",
         }
         self.login(username="admin")
-        uri = f"api/v1/chart/"
+        uri = "api/v1/chart/"
         rv = self.post_assert_metric(uri, chart_data, "post")
         self.assertEqual(rv.status_code, 201)
         data = json.loads(rv.data.decode("utf-8"))
@@ -484,7 +484,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "datasource_type": "table",
         }
         self.login(username="admin")
-        uri = f"api/v1/chart/"
+        uri = "api/v1/chart/"
         rv = self.post_assert_metric(uri, chart_data, "post")
         self.assertEqual(rv.status_code, 201)
         data = json.loads(rv.data.decode("utf-8"))
@@ -503,7 +503,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "owners": [1000],
         }
         self.login(username="admin")
-        uri = f"api/v1/chart/"
+        uri = "api/v1/chart/"
         rv = self.post_assert_metric(uri, chart_data, "post")
         self.assertEqual(rv.status_code, 422)
         response = json.loads(rv.data.decode("utf-8"))
@@ -521,7 +521,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "params": '{"A:"a"}',
         }
         self.login(username="admin")
-        uri = f"api/v1/chart/"
+        uri = "api/v1/chart/"
         rv = self.post_assert_metric(uri, chart_data, "post")
         self.assertEqual(rv.status_code, 400)
 
@@ -558,6 +558,31 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
             response, {"message": {"datasource_id": ["Datasource does not exist"]}}
+        )
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_create_chart_validate_user_is_dashboard_owner(self):
+        """
+        Chart API: Test create validate user is dashboard owner
+        """
+        dash = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        # Must be published so that alpha user has read access to dash
+        dash.published = True
+        db.session.commit()
+        chart_data = {
+            "slice_name": "title1",
+            "datasource_id": 1,
+            "datasource_type": "table",
+            "dashboards": [dash.id],
+        }
+        self.login(username="alpha")
+        uri = "api/v1/chart/"
+        rv = self.post_assert_metric(uri, chart_data, "post")
+        self.assertEqual(rv.status_code, 403)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            response,
+            {"message": "Changing one or more of these dashboards is forbidden"},
         )
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
