@@ -213,7 +213,6 @@ class TestDashboard(SupersetTestCase):
         hidden_dash.dashboard_title = "Not My Dashboard"
         hidden_dash.slug = not_my_dash_slug
         hidden_dash.slices = []
-        hidden_dash.owners = []
 
         db.session.add(dash)
         db.session.add(hidden_dash)

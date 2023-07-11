@@ -14,43 +14,55 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""add on delete cascade for tables references
+"""add on delete cascade for owners references
 
-Revision ID: 6fbe660cac39
-Revises: 90139bf715e4
-Create Date: 2023-06-22 13:39:47.989373
+Revision ID: 6d05b0a70c89
+Revises: f92a3124dd66
+Create Date: 2023-07-11 15:51:57.964635
 
 """
 
 # revision identifiers, used by Alembic.
-revision = "6fbe660cac39"
-down_revision = "90139bf715e4"
+revision = "6d05b0a70c89"
+down_revision = "f92a3124dd66"
 
 from superset.migrations.shared.constraints import ForeignKey, redefine
 
 foreign_keys = [
     ForeignKey(
-        table="sql_metrics",
-        referent_table="tables",
-        local_cols=["table_id"],
-        remote_cols=["id"],
-    ),
-    ForeignKey(
-        table="table_columns",
-        referent_table="tables",
-        local_cols=["table_id"],
-        remote_cols=["id"],
-    ),
-    ForeignKey(
-        table="sqlatable_user",
+        table="dashboard_user",
         referent_table="ab_user",
         local_cols=["user_id"],
         remote_cols=["id"],
     ),
     ForeignKey(
-        table="sqlatable_user",
-        referent_table="tables",
-        local_cols=["table_id"],
+        table="dashboard_user",
+        referent_table="dashboards",
+        local_cols=["dashboard_id"],
+        remote_cols=["id"],
+    ),
+    ForeignKey(
+        table="report_schedule_user",
+        referent_table="ab_user",
+        local_cols=["user_id"],
+        remote_cols=["id"],
+    ),
+    ForeignKey(
+        table="report_schedule_user",
+        referent_table="report_schedule",
+        local_cols=["report_schedule_id"],
+        remote_cols=["id"],
+    ),
+    ForeignKey(
+        table="slice_user",
+        referent_table="ab_user",
+        local_cols=["user_id"],
+        remote_cols=["id"],
+    ),
+    ForeignKey(
+        table="slice_user",
+        referent_table="slices",
+        local_cols=["slice_id"],
         remote_cols=["id"],
     ),
 ]
