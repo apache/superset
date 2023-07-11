@@ -41,8 +41,11 @@ import { Radio } from 'src/components/Radio';
 import Button from 'src/components/Button';
 import { AsyncSelect } from 'src/components';
 import Loading from 'src/components/Loading';
+import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { SaveActionType } from 'src/explore/types';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { Dashboard } from 'src/types/Dashboard';
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
@@ -51,7 +54,7 @@ interface SaveModalProps extends RouteComponentProps {
   addDangerToast: (msg: string) => void;
   actions: Record<string, any>;
   form_data?: Record<string, any>;
-  userId: number;
+  user: UserWithPermissionsAndRoles;
   alert?: string;
   sliceName?: string;
   slice?: Record<string, any>;
@@ -111,7 +114,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
 
   canOverwriteSlice(): boolean {
     return (
-      this.props.slice?.owners?.includes(this.props.userId) &&
+      this.props.slice?.owners?.includes(this.props.user.userId) &&
       !this.props.slice?.is_managed_externally
     );
   }
@@ -124,8 +127,8 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     }
     if (dashboardId) {
       try {
-        const result = await this.loadDashboard(dashboardId);
-        if (result) {
+        const result = (await this.loadDashboard(dashboardId)) as Dashboard;
+        if (canUserEditDashboard(result, this.props.user)) {
           this.setState({
             dashboard: { label: result.dashboard_title, value: result.id },
           });
@@ -298,7 +301,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
         {
           col: 'owners',
           opr: 'rel_m_m',
-          value: this.props.userId,
+          value: this.props.user.userId,
         },
       ],
       page,
@@ -484,7 +487,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
 interface StateProps {
   datasource: any;
   slice: any;
-  userId: any;
+  user: UserWithPermissionsAndRoles;
   dashboards: any;
   alert: any;
   isVisible: boolean;
@@ -498,7 +501,7 @@ function mapStateToProps({
   return {
     datasource: explore.datasource,
     slice: explore.slice,
-    userId: user?.userId,
+    user,
     dashboards: saveModal.dashboards,
     alert: saveModal.saveModalAlert,
     isVisible: saveModal.isVisible,
