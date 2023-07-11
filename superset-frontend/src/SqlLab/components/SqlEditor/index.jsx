@@ -333,6 +333,66 @@ const SqlEditor = ({
         },
       },
       {
+        name: 'runQuery3',
+        key: 'ctrl+shift+enter',
+        descr: t('Run current query'),
+        func: editor => {
+          if (!editor.getValue().trim()) {
+            return;
+          }
+          const session = editor.getSession();
+          const cursorPosition = editor.getCursorPosition();
+          const totalLine = session.getLength();
+          let end = editor.find(';', {
+            backwards: false,
+            skipCurrent: true,
+            start: cursorPosition,
+          })?.end;
+          if (!end || end.row < cursorPosition.row) {
+            end = {
+              row: totalLine + 1,
+              column: 0,
+            };
+          }
+          let start = editor.find(';', {
+            backwards: true,
+            skipCurrent: true,
+            start: cursorPosition,
+          })?.end;
+          let currentLine = editor.find(';', {
+            backwards: true,
+            skipCurrent: true,
+            start: cursorPosition,
+          })?.end?.row;
+          if (
+            !currentLine ||
+            currentLine > cursorPosition.row ||
+            (currentLine === cursorPosition.row &&
+              start?.column > cursorPosition.column)
+          ) {
+            currentLine = 0;
+          }
+          let content =
+            currentLine === start?.row
+              ? session.getLine(currentLine).slice(start.column).trim()
+              : session.getLine(currentLine).trim();
+          while (!content && currentLine < totalLine) {
+            currentLine += 1;
+            content = session.getLine(currentLine).trim();
+          }
+          if (currentLine !== start?.row) {
+            start = { row: currentLine, column: 0 };
+          }
+          editor.selection.setRange({
+            start: start ?? { row: 0, column: 0 },
+            end,
+          });
+          startQuery();
+          editor.selection.clearSelection();
+          editor.moveCursorToPosition(cursorPosition);
+        },
+      },
+      {
         name: 'newTab',
         key: userOS === 'Windows' ? 'ctrl+q' : 'ctrl+t',
         descr: t('New tab'),
