@@ -20,7 +20,7 @@
     "ioredis": "^4.28.0",
     "jsonwebtoken": "^9.0.1",
     "uuid": "^9.0.0",
-    "winston": "^3.9.0",
+    "winston": "^3.10.0",
     "ws": "^8.13.0"
   },
   "devDependencies": {
