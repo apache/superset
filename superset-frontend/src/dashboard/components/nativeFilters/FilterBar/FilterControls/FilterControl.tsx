@@ -32,6 +32,7 @@ import { FilterCard } from '../../FilterCard';
 import { FilterBarScrollContext } from '../Vertical';
 import { FilterControlProps } from './types';
 import { FilterCardPlacement } from '../../FilterCard/types';
+import { useIsFilterInScope } from '../../state';
 
 const StyledIcon = styled.div`
   position: absolute;
@@ -233,10 +234,11 @@ const FilterControl = ({
 
   const { name = '<undefined>' } = filter;
 
-  const isMissingRequiredValue = checkIsMissingRequiredValue(
-    filter,
-    filter.dataMask?.filterState,
-  );
+  const isFilterInScope = useIsFilterInScope();
+  const isMissingRequiredValue =
+    isFilterInScope(filter) &&
+    checkIsMissingRequiredValue(filter, filter.dataMask?.filterState);
+  const validateStatus = isMissingRequiredValue ? 'error' : undefined;
   const isRequired = !!filter.controlValues?.enableEmptyFilter;
 
   const {
@@ -293,6 +295,7 @@ const FilterControl = ({
           setFilterActive={setIsFilterActive}
           orientation={orientation}
           overflow={overflow}
+          validateStatus={validateStatus}
         />
       </InPortal>
       <FilterControlContainer
@@ -311,7 +314,7 @@ const FilterControl = ({
             <FormItem
               label={label}
               required={filter?.controlValues?.enableEmptyFilter}
-              validateStatus={isMissingRequiredValue ? 'error' : undefined}
+              validateStatus={validateStatus}
             >
               <OutPortal node={portalNode} />
             </FormItem>
