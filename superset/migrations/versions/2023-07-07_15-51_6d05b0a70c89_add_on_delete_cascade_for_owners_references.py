@@ -17,14 +17,14 @@
 """add on delete cascade for owners references
 
 Revision ID: 6d05b0a70c89
-Revises: 240d23c7f86f
+Revises: f92a3124dd66
 Create Date: 2023-07-07 15:51:57.964635
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "6d05b0a70c89"
-down_revision = "240d23c7f86f"
+down_revision = "f92a3124dd66"
 
 from superset.migrations.shared.constraints import ForeignKey, redefine
 
