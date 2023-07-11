@@ -101,7 +101,6 @@ class TaggedObject(Model, AuditMixinNullable):
     tag = relationship("Tag", back_populates="objects", overlaps="tags")
 
 
-# create a `Model` class that create a relationship between `Tag` and `User` tables`
 class UserFavoriteTag(Model, AuditMixinNullable):
     __tablename__ = "user_favorite_tag"
     id = Column(Integer, primary_key=True)

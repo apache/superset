@@ -269,16 +269,20 @@ class TagDAO(BaseDAO[Tag]):
         """
         Marks a specific tag as a favorite for the current user.
 
-        This function will find the tag by the provided id, create a new UserFavoriteTag object
-        that represents the user's preference, add that object to the database session, and commit
-        the session. It uses the currently authenticated user from the global 'g' object.
+        This function will find the tag by the provided id,
+        create a new UserFavoriteTag object that represents
+        the user's preference, add that object to the database
+        session, and commit the session. It uses the currently
+        authenticated user from the global 'g' object.
 
         Args:
-            tag_id: The id of the tag that is to be marked as favorite.
+            tag_id: The id of the tag that is to be marked as
+                    favorite.
 
         Raises:
-            Any exceptions raised by the find_by_id function, the UserFavoriteTag constructor, or
-            the database session's add and commit methods will propagate up to the caller.
+            Any exceptions raised by the find_by_id function,
+            the UserFavoriteTag constructor, or the database session's
+            add and commit methods will propagate up to the caller.
 
         Returns:
             None.
@@ -295,16 +299,19 @@ class TagDAO(BaseDAO[Tag]):
         """
         Deletes the favorite tag relationship for the current user.
 
-        This function queries the database for a UserFavoriteTag object using the provided ID. If
-        the object is found, it deletes it from the session and commits the changes. If the object
-        is not found, or an error occurs while deleting, it raises a DAODeleteFailedError.
+        This function queries the database for a UserFavoriteTag object
+        using the provided ID. If the object is found, it deletes it from
+        the session and commits the changes. If the object is not found,
+        or an error occurs while deleting, it raises a DAODeleteFailedError.
 
         Args:
-            user_favorite_tag_id (int): The ID of the UserFavoriteTag object to be deleted.
+            user_favorite_tag_id (int): The ID of the UserFavoriteTag object
+            to be deleted.
 
         Raises:
-            DAODeleteFailedError: If no UserFavoriteTag object is found with the provided ID, or if
-            an error occurs while deleting the object from the database.
+            DAODeleteFailedError: If no UserFavoriteTag object is found with
+            the provided ID, or if an error occurs while deleting the object from
+            the database.
 
         Returns:
             None.
