@@ -223,10 +223,14 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
           </small>
         </div>
       ));
+      if (!metadata?.length) {
+        // hide metadata card view
+        return null;
+      }
     }
 
-    if (!partitions && (!metadata || !metadata.length)) {
-      // hide partition and metadata card view
+    if (!partitions) {
+      // hide partition card view
       return null;
     }
 
