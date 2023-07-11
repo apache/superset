@@ -282,8 +282,6 @@ class TestImportChartsCommand(SupersetTestCase):
 
         assert chart.owners == [admin]
 
-        chart.owners = []
-        database.owners = []
         db.session.delete(chart)
         db.session.delete(dataset)
         db.session.delete(database)

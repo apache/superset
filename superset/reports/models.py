@@ -91,9 +91,17 @@ report_schedule_user = Table(
     "report_schedule_user",
     metadata,
     Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("ab_user.id"), nullable=False),
     Column(
-        "report_schedule_id", Integer, ForeignKey("report_schedule.id"), nullable=False
+        "user_id",
+        Integer,
+        ForeignKey("ab_user.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    Column(
+        "report_schedule_id",
+        Integer,
+        ForeignKey("report_schedule.id", ondelete="CASCADE"),
+        nullable=False,
     ),
     UniqueConstraint("user_id", "report_schedule_id"),
 )
@@ -132,7 +140,11 @@ class ReportSchedule(Model, AuditMixinNullable, ExtraJSONMixin):
     # (Alerts) M-O to database
     database_id = Column(Integer, ForeignKey("dbs.id"), nullable=True)
     database = relationship(Database, foreign_keys=[database_id])
-    owners = relationship(security_manager.user_model, secondary=report_schedule_user)
+    owners = relationship(
+        security_manager.user_model,
+        secondary=report_schedule_user,
+        passive_deletes=True,
+    )
 
     # (Alerts) Stamped last observations
     last_eval_dttm = Column(DateTime)
