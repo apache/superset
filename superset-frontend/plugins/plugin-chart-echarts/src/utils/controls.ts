@@ -30,7 +30,7 @@ export function parseYAxisBound(
 }
 
 export function parseNumbersList(value: string, delim = ';') {
-  if (!value || !value.trim()) return [];
+  if (!value?.trim()) return [];
   return value.split(delim).map(num => {
     if (validateNumber(num)) throw new Error('All values must be numeric');
     return Number(num);

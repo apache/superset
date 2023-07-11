@@ -105,9 +105,9 @@ const RunQueryActionButton = ({
     : Button;
 
   const sqlContent = selectedText || sql || '';
-  const isDisabled =
-    !sqlContent ||
-    !sqlContent.replace(/(\/\*[^*]*\*\/)|(\/\/[^*]*)|(--[^.].*)/gm, '').trim();
+  const isDisabled = !sqlContent
+    ?.replace(/(\/\*[^*]*\*\/)|(\/\/[^*]*)|(--[^.].*)/gm, '')
+    .trim();
 
   const stopButtonTooltipText = useMemo(
     () =>
