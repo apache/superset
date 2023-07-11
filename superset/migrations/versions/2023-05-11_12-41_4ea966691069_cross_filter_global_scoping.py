@@ -62,6 +62,8 @@ def upgrade():
             json_metadata = json.loads(dashboard.json_metadata or "{}")
             new_chart_configuration = {}
             for config in json_metadata.get("chart_configuration", {}).values():
+                if not isinstance(config, dict):
+                    continue
                 chart_id = int(config.get("id", 0))
                 scope = config.get("crossFilters", {}).get("scope", {})
 
@@ -105,6 +107,8 @@ def downgrade():
             json_metadata = json.loads(dashboard.json_metadata)
             new_chart_configuration = {}
             for config in json_metadata.get("chart_configuration", {}).values():
+                if not isinstance(config, dict):
+                    continue
                 chart_id = config.get("id")
                 if chart_id is None:
                     continue
