@@ -666,7 +666,6 @@ const SqlEditor = ({
             onBlur={setQueryEditorAndSaveSql}
             onChange={onSqlChanged}
             queryEditorId={queryEditor.id}
-            extendedTables={tables}
             height={`${aceEditorHeight}px`}
             hotkeys={hotkeys}
           />
