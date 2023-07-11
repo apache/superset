@@ -1528,7 +1528,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         chart = db.session.query(Slice).filter_by(uuid=chart_config["uuid"]).one()
         assert chart.table == dataset
 
-        chart.owners = []
         db.session.delete(chart)
         db.session.commit()
         db.session.delete(dataset)
@@ -1600,7 +1599,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         dataset = database.tables[0]
         chart = db.session.query(Slice).filter_by(uuid=chart_config["uuid"]).one()
 
-        chart.owners = []
         db.session.delete(chart)
         db.session.commit()
         db.session.delete(dataset)

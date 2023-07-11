@@ -537,7 +537,6 @@ def create_dashboard(slices: list[Slice]) -> Dashboard:
     dash = db.session.query(Dashboard).filter_by(slug="births").first()
     if not dash:
         dash = Dashboard()
-        dash.owners = []
         db.session.add(dash)
 
     dash.published = True
