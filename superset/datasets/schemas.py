@@ -204,8 +204,13 @@ class ImportV1DatasetSchema(Schema):
         """
         Fix for extra initially being exported as a string.
         """
-        if isinstance(data.get("extra"), str):
-            data["extra"] = json.loads(data["extra"])
+        if "extra" in data:
+            extra = data["extra"]
+            if isinstance(extra, str):
+                if extra.strip():
+                    data["extra"] = json.loads(extra)
+                else:
+                    data["extra"] = {}
 
         return data
 
