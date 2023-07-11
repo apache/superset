@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useDispatch } from 'react-redux';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { css, styled, usePrevious, t } from '@superset-ui/core';
 
 import { areArraysShallowEqual } from 'src/reduxUtils';
@@ -39,8 +39,14 @@ import {
   FullSQLEditor as AceEditor,
 } from 'src/components/AsyncAceEditor';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
-import { useSchemas, useTables } from 'src/hooks/apiResources';
+import {
+  useSchemas,
+  useTables,
+  tableEndpoints,
+  skipToken,
+} from 'src/hooks/apiResources';
 import { useDatabaseFunctionsQuery } from 'src/hooks/apiResources/databaseFunctions';
+import { RootState } from 'src/views/store';
 import { useAnnotations } from './useAnnotations';
 
 type HotKey = {
@@ -55,7 +61,6 @@ type AceEditorWrapperProps = {
   onBlur: (sql: string) => void;
   onChange: (sql: string) => void;
   queryEditorId: string;
-  extendedTables?: Array<{ name: string; columns: any[] }>;
   height: string;
   hotkeys: HotKey[];
 };
@@ -85,12 +90,10 @@ const AceEditorWrapper = ({
   onBlur = () => {},
   onChange = () => {},
   queryEditorId,
-  extendedTables = [],
   height,
   hotkeys,
 }: AceEditorWrapperProps) => {
   const dispatch = useDispatch();
-
   const queryEditor = useQueryEditor(queryEditorId, [
     'id',
     'dbId',
@@ -138,6 +141,26 @@ const AceEditorWrapper = ({
   );
   const tables = tableData?.options ?? [];
 
+  const columns = useSelector<RootState, string[]>(state => {
+    const columns = new Set<string>();
+    tables.forEach(({ value }) => {
+      tableEndpoints.tableMetadata
+        .select(
+          queryEditor.dbId && queryEditor.schema
+            ? {
+                dbId: queryEditor.dbId,
+                schema: queryEditor.schema,
+                table: value,
+              }
+            : skipToken,
+        )(state)
+        .data?.columns?.forEach(({ name }) => {
+          columns.add(name);
+        });
+    });
+    return [...columns];
+  }, shallowEqual);
+
   const [sql, setSql] = useState(currentSql);
   const [words, setWords] = useState<AceCompleterKeyword[]>([]);
 
@@ -155,18 +178,18 @@ const AceEditorWrapper = ({
 
   const prevTables = usePrevious(tables) ?? [];
   const prevSchemas = usePrevious(schemas) ?? [];
-  const prevExtendedTables = usePrevious(extendedTables) ?? [];
+  const prevColumns = usePrevious(columns) ?? [];
   const prevSql = usePrevious(currentSql);
 
   useEffect(() => {
     if (
       !areArraysShallowEqual(tables, prevTables) ||
       !areArraysShallowEqual(schemas, prevSchemas) ||
-      !areArraysShallowEqual(extendedTables, prevExtendedTables)
+      !areArraysShallowEqual(columns, prevColumns)
     ) {
       setAutoCompleter();
     }
-  }, [tables, schemas, extendedTables]);
+  }, [tables, schemas, columns]);
 
   useEffect(() => {
     if (currentSql !== prevSql) {
@@ -221,15 +244,8 @@ const AceEditorWrapper = ({
   };
 
   function setAutoCompleter() {
-    const columns = {};
-
     const tableWords = tables.map(t => {
       const tableName = t.value;
-      const extendedTable = extendedTables.find(et => et.name === tableName);
-      const cols = extendedTable?.columns || [];
-      cols.forEach(col => {
-        columns[col.name] = null; // using an object as a unique set
-      });
 
       return {
         name: t.label,
@@ -239,7 +255,7 @@ const AceEditorWrapper = ({
       };
     });
 
-    const columnWords = Object.keys(columns).map(col => ({
+    const columnWords = columns.map(col => ({
       name: col,
       value: col,
       score: COLUMN_AUTOCOMPLETE_SCORE,
