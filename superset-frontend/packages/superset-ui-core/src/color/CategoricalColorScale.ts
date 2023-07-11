@@ -86,6 +86,12 @@ class CategoricalColorScale extends ExtensibleFunction {
         updatedRange.splice(index, 1);
       }
     });
+    Object.entries(this.parentForcedColors).forEach(([key, value]) => {
+      if (key !== cleanedValue) {
+        const index = updatedRange.indexOf(value);
+        updatedRange.splice(index, 1);
+      }
+    }); // remove the color option from forced colors
     this.range(updatedRange.length > 0 ? updatedRange : this.originColors);
   }
 
