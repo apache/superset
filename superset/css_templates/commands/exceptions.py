@@ -20,7 +20,7 @@ from superset.commands.exceptions import CommandException, DeleteFailedError
 
 
 class CssTemplateDeleteFailedError(DeleteFailedError):
-    message = _("CSS template(s) could not be deleted.")
+    message = _("CSS templates could not be deleted.")
 
 
 class CssTemplateNotFoundError(CommandException):
