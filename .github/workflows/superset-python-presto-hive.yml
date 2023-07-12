@@ -81,10 +81,6 @@ jobs:
         if: steps.check.outcome == 'failure'
         run: |
           ./scripts/python_tests.sh -m 'chart_data_flow or sql_json_flow'
-      - name: Upload code coverage
-        if: steps.check.outcome == 'failure'
-        run: |
-          bash .github/workflows/codecov.sh -c -F python -F presto
 
   test-postgres-hive:
     if: github.event.pull_request.draft == false
@@ -159,7 +155,3 @@ jobs:
         if: steps.check.outcome == 'failure'
         run: |
           ./scripts/python_tests.sh -m 'chart_data_flow or sql_json_flow'
-      - name: Upload code coverage
-        if: steps.check.outcome == 'failure'
-        run: |
-          bash .github/workflows/codecov.sh -c -F python -F hive
