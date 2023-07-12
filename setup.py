@@ -178,7 +178,7 @@ setup(
         "trino": ["trino>=0.324.0"],
         "prophet": ["prophet>=1.1.0, <2.0.0"],
         "redshift": ["sqlalchemy-redshift>=0.8.1, < 0.9"],
-        "rockset": ["rockset>=0.8.10, <0.9"],
+        "rockset": ["rockset-sqlalchemy>=0.0.1, <1.0.0"],
         "shillelagh": [
             "shillelagh[datasetteapi,gsheetsapi,socrata,weatherapi]>=1.1.1, <2"
         ],
