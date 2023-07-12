@@ -115,16 +115,12 @@ protobuf==4.23.0
     #   googleapis-common-protos
     #   grpcio-status
     #   proto-plus
-pyasn1==0.5.0
-    # via
-    #   pyasn1-modules
-    #   rsa
-pyasn1-modules==0.3.0
-    # via google-auth
 pydata-google-auth==1.7.0
     # via pandas-gbq
 pyfakefs==5.2.2
     # via -r requirements/testing.in
+pyhive[presto]==0.6.5
+    # via apache-superset
 pytest==7.3.1
     # via
     #   -r requirements/testing.in
