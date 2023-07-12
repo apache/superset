@@ -62,17 +62,29 @@ import {
 } from './utils';
 import DividerConfigForm from './DividerConfigForm';
 
+const MODAL_MARGIN = 16;
+
 const StyledModalWrapper = styled(StyledModal)<{ expanded: boolean }>`
-  min-width: 700px;
-  width: ${({ expanded }) => (expanded ? '100% !important' : '70%')};
+  min-width: 880px;
+  width: ${({ expanded }) => (expanded ? '100%' : '70%')} !important;
+
+  @media (max-width: ${880 + MODAL_MARGIN * 2}px) {
+    width: 100% !important;
+    min-width: auto;
+  }
 
   .ant-modal-body {
     padding: 0px;
   }
+
   ${({ expanded }) =>
     expanded &&
     css`
       height: 100%;
+
+      .ant-modal-body {
+        flex: 1 1 auto;
+      }
       .ant-modal-content {
         height: 100%;
       }
@@ -92,6 +104,10 @@ export const StyledModalBody = styled.div<{ expanded: boolean }>`
 
 export const StyledForm = styled(AntdForm)`
   width: 100%;
+`;
+
+export const StyledExpandButtonWrapper = styled.div`
+  margin-left: ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
 export const FILTERS_CONFIG_MODAL_TEST_ID = 'filters-config-modal';
@@ -604,23 +620,7 @@ function FiltersConfigModal({
     <StyledModalWrapper
       visible={isOpen}
       maskClosable={false}
-      title={
-        <div
-          css={css`
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            margin-right: 50px;
-          `}
-        >
-          <div>{t('Add and edit filters')}</div>
-          <ToggleIcon
-            iconSize="l"
-            iconColor={theme.colors.grayscale.base}
-            onClick={toggleExpand}
-          />
-        </div>
-      }
+      title={t('Add and edit filters')}
       expanded={expanded}
       destroyOnClose
       onCancel={handleCancel}
@@ -628,14 +628,29 @@ function FiltersConfigModal({
       centered
       data-test="filter-modal"
       footer={
-        <Footer
-          onDismiss={() => setSaveAlertVisible(false)}
-          onCancel={handleCancel}
-          handleSave={handleSave}
-          canSave={!erroredFilters.length}
-          saveAlertVisible={saveAlertVisible}
-          onConfirmCancel={handleConfirmCancel}
-        />
+        <div
+          css={css`
+            display: flex;
+            justify-content: flex-end;
+            align-items: flex-end;
+          `}
+        >
+          <Footer
+            onDismiss={() => setSaveAlertVisible(false)}
+            onCancel={handleCancel}
+            handleSave={handleSave}
+            canSave={!erroredFilters.length}
+            saveAlertVisible={saveAlertVisible}
+            onConfirmCancel={handleConfirmCancel}
+          />
+          <StyledExpandButtonWrapper>
+            <ToggleIcon
+              iconSize="l"
+              iconColor={theme.colors.grayscale.dark2}
+              onClick={toggleExpand}
+            />
+          </StyledExpandButtonWrapper>
+        </div>
       }
     >
       <ErrorBoundary>
