@@ -17,45 +17,35 @@
 import logging
 from typing import Optional
 
-from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.daos.exceptions import DAODeleteFailedError
-from superset.daos.report import ReportScheduleDAO
-from superset.exceptions import SupersetSecurityException
-from superset.reports.commands.exceptions import (
-    ReportScheduleBulkDeleteFailedError,
-    ReportScheduleForbiddenError,
-    ReportScheduleNotFoundError,
+from superset.daos.query import SavedQueryDAO
+from superset.models.dashboard import Dashboard
+from superset.queries.saved_queries.commands.exceptions import (
+    SavedQueryDeleteFailedError,
+    SavedQueryNotFoundError,
 )
-from superset.reports.models import ReportSchedule
 
 logger = logging.getLogger(__name__)
 
 
-class BulkDeleteReportScheduleCommand(BaseCommand):
+class DeleteSavedQueryCommand(BaseCommand):
     def __init__(self, model_ids: list[int]):
         self._model_ids = model_ids
-        self._models: Optional[list[ReportSchedule]] = None
+        self._models: Optional[list[Dashboard]] = None
 
     def run(self) -> None:
         self.validate()
         assert self._models
 
         try:
-            ReportScheduleDAO.delete(self._models)
+            SavedQueryDAO.delete(self._models)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
-            raise ReportScheduleBulkDeleteFailedError() from ex
+            raise SavedQueryDeleteFailedError() from ex
 
     def validate(self) -> None:
         # Validate/populate model exists
-        self._models = ReportScheduleDAO.find_by_ids(self._model_ids)
+        self._models = SavedQueryDAO.find_by_ids(self._model_ids)
         if not self._models or len(self._models) != len(self._model_ids):
-            raise ReportScheduleNotFoundError()
-
-        # Check ownership
-        for model in self._models:
-            try:
-                security_manager.raise_for_ownership(model)
-            except SupersetSecurityException as ex:
-                raise ReportScheduleForbiddenError() from ex
+            raise SavedQueryNotFoundError()

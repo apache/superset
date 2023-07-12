@@ -51,15 +51,7 @@ class DashboardNotFoundError(ObjectNotFoundError):
 
 
 class DashboardCreateFailedError(CreateFailedError):
-    message = _("Dashboard could not be created.")
-
-
-class DashboardBulkDeleteFailedError(CreateFailedError):
-    message = _("Dashboards could not be deleted.")
-
-
-class DashboardBulkDeleteFailedReportsExistError(DashboardBulkDeleteFailedError):
-    message = _("There are associated alerts or reports")
+    message = _("Dashboards could not be created.")
 
 
 class DashboardUpdateFailedError(UpdateFailedError):

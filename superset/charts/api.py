@@ -32,11 +32,9 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
 from superset import app, is_feature_enabled, thumbnail_cache
-from superset.charts.commands.bulk_delete import BulkDeleteChartCommand
 from superset.charts.commands.create import CreateChartCommand
 from superset.charts.commands.delete import DeleteChartCommand
 from superset.charts.commands.exceptions import (
-    ChartBulkDeleteFailedError,
     ChartCreateFailedError,
     ChartDeleteFailedError,
     ChartForbiddenError,
@@ -461,7 +459,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            DeleteChartCommand(pk).run()
+            DeleteChartCommand([pk]).run()
             return self.response(200, message="OK")
         except ChartNotFoundError:
             return self.response_404()
@@ -521,7 +519,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteChartCommand(item_ids).run()
+            DeleteChartCommand(item_ids).run()
             return self.response(
                 200,
                 message=ngettext(
@@ -532,7 +530,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except ChartForbiddenError:
             return self.response_403()
-        except ChartBulkDeleteFailedError as ex:
+        except ChartDeleteFailedError as ex:
             return self.response_422(message=str(ex))
 
     @expose("/<pk>/cache_screenshot/", methods=("GET",))

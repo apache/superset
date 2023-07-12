@@ -39,12 +39,10 @@ from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
-from superset.dashboards.commands.bulk_delete import BulkDeleteDashboardCommand
 from superset.dashboards.commands.create import CreateDashboardCommand
 from superset.dashboards.commands.delete import DeleteDashboardCommand
 from superset.dashboards.commands.exceptions import (
     DashboardAccessDeniedError,
-    DashboardBulkDeleteFailedError,
     DashboardCreateFailedError,
     DashboardDeleteFailedError,
     DashboardForbiddenError,
@@ -674,7 +672,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            DeleteDashboardCommand(pk).run()
+            DeleteDashboardCommand([pk]).run()
             return self.response(200, message="OK")
         except DashboardNotFoundError:
             return self.response_404()
@@ -734,7 +732,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteDashboardCommand(item_ids).run()
+            DeleteDashboardCommand(item_ids).run()
             return self.response(
                 200,
                 message=ngettext(
@@ -747,7 +745,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except DashboardForbiddenError:
             return self.response_403()
-        except DashboardBulkDeleteFailedError as ex:
+        except DashboardDeleteFailedError as ex:
             return self.response_422(message=str(ex))
 
     @expose("/export/", methods=("GET",))
