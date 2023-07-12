@@ -51,7 +51,7 @@ class DashboardNotFoundError(ObjectNotFoundError):
 
 
 class DashboardCreateFailedError(CreateFailedError):
-    message = _("Dashboard(s) could not be created.")
+    message = _("Dashboards could not be created.")
 
 
 class DashboardUpdateFailedError(UpdateFailedError):
