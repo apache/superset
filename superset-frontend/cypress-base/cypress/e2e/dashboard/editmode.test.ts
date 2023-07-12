@@ -230,7 +230,7 @@ describe('Dashboard edit', () => {
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
         .first()
-        .should('have.css', 'fill', 'rgb(51, 61, 71)');
+        .should('have.css', 'fill', 'rgb(234, 11, 140)');
 
       // open 2nd main tab
       openTab(0, 1);
@@ -463,7 +463,7 @@ describe('Dashboard edit', () => {
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
         .eq(1)
-        .should('have.css', 'fill', 'rgb(51, 61, 71)');
+        .should('have.css', 'fill', 'rgb(108, 131, 142)');
 
       openExplore('Top 10 California Names Timeseries');
 
@@ -495,7 +495,7 @@ describe('Dashboard edit', () => {
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
         .first()
-        .should('have.css', 'fill', 'rgb(51, 61, 71)');
+        .should('have.css', 'fill', 'rgb(234, 11, 140)');
 
       // open 2nd main tab
       openTab(0, 1);
@@ -541,7 +541,7 @@ describe('Dashboard edit', () => {
 
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
         .first()
-        .should('have.css', 'fill', 'rgb(51, 61, 71)');
+        .should('have.css', 'fill', 'rgb(234, 11, 140)');
     });
 
     it('should apply the color scheme across main tabs for rendered charts', () => {
@@ -587,7 +587,7 @@ describe('Dashboard edit', () => {
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
         .first()
-        .should('have.css', 'fill', 'rgb(51, 61, 71)');
+        .should('have.css', 'fill', 'rgb(234, 11, 140)');
 
       // open another nested tab
       openTab(2, 1);
