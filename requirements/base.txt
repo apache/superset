@@ -57,8 +57,6 @@ colorama==0.4.6
     # via
     #   apache-superset
     #   flask-appbuilder
-convertdate==2.4.0
-    # via holidays
 cron-descriptor==1.2.24
     # via apache-superset
 croniter==1.0.15
@@ -126,9 +124,7 @@ gunicorn==20.1.0
     # via apache-superset
 hashids==1.3.1
     # via apache-superset
-hijri-converter==2.2.4
-    # via holidays
-holidays==0.23
+holidays==0.28
     # via apache-superset
 humanize==3.11.0
     # via apache-superset
@@ -154,8 +150,6 @@ jsonschema==4.17.3
     # via flask-appbuilder
 kombu==5.2.4
     # via celery
-korean-lunar-calendar==0.2.1
-    # via holidays
 limits==3.4.0
     # via flask-limiter
 mako==1.2.4
@@ -223,8 +217,6 @@ pyjwt==2.4.0
     #   apache-superset
     #   flask-appbuilder
     #   flask-jwt-extended
-pymeeus==0.5.11
-    # via convertdate
 pynacl==1.5.0
     # via paramiko
 pyparsing==3.0.6
