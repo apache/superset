@@ -16,24 +16,21 @@
 # under the License.
 from __future__ import annotations
 
-import datetime
 import json
 import logging
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
 import simplejson
-from flask import current_app, g, make_response, request, Response, send_file
+from flask import current_app, g, make_response, request, Response
 from flask_appbuilder.api import expose, protect
 from flask_babel import gettext as _
 from marshmallow import ValidationError
-import pandas as pd
-from io import BytesIO
 
 from superset import is_feature_enabled, security_manager
 from superset.charts.api import ChartRestApi
 from superset.charts.commands.exceptions import (
     ChartDataCacheLoadError,
-    ChartDataQueryFailedError, ChartNotFoundError, ChartDataToDataFrameFailedError
+    ChartDataQueryFailedError,
 )
 from superset.charts.data.commands.create_async_job_command import (
     CreateAsyncChartDataJobCommand,
@@ -58,7 +55,7 @@ logger = logging.getLogger(__name__)
 
 
 class ChartDataRestApi(ChartRestApi):
-    include_route_methods = {"get_data", "data", "data_from_cache", "export_xls"}
+    include_route_methods = {"get_data", "data", "data_from_cache"}
 
     @expose("/<int:pk>/data/", methods=["GET"])
     @protect()
@@ -301,54 +298,6 @@ class ChartDataRestApi(ChartRestApi):
             )
 
         return self._get_data_response(command, True)
-
-    @expose("/export_xls/<int:chart_id>", methods=["GET"])
-    # @protect()
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export_xls",
-        log_to_statsd=False,
-    )
-    def export_xls(self, chart_id) -> Response:
-        """Export chart xls file format
-        ---
-        get:
-          description: >-
-            Exports chart xlsx file format
-          parameters:
-          - in: query
-            name: chart_id
-          responses:
-            200:
-              description: A xlsx file with chart
-              content:
-                application/xlsx:
-                  schema:
-                    type: string
-                    format: binary
-            404:
-              $ref: '#/components/responses/404'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        timestamp = datetime.datetime.now().strftime("%Y%m%dT%H%M%S")
-        try:
-            response = self.get_data(chart_id).get_data()
-            result = json.loads(response)
-            data = result.get('result')[0].get('data')
-        except ChartNotFoundError:
-            return self.response_404()
-
-        to_write = BytesIO()
-
-        try:
-            df = pd.DataFrame(data)
-            df.to_excel(to_write, index=False)
-            to_write.seek(0)
-        except ChartDataToDataFrameFailedError:
-            self.response_500()
-        return send_file(to_write, download_name=f'file_from_superset_{timestamp}.xlsx',
-                         mimetype='application/xlsx')
 
     def _run_async(
         self, form_data: Dict[str, Any], command: ChartDataCommand
