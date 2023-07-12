@@ -89,7 +89,7 @@ function useSelectChartTabParents() {
   };
 }
 
-function useIsFilterInScope() {
+export function useIsFilterInScope() {
   const activeTabs = useActiveDashboardTabs();
   const selectChartTabParents = useSelectChartTabParents();
 

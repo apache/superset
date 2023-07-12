@@ -147,6 +147,10 @@ class ChartImportError(ImportFailedError):
     message = _("Import chart failed for an unknown reason")
 
 
+class DashboardsForbiddenError(ForbiddenError):
+    message = _("Changing one or more of these dashboards is forbidden")
+
+
 class WarmUpCacheChartNotFoundError(CommandException):
     status = 404
     message = _("Chart not found")

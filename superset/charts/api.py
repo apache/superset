@@ -41,6 +41,7 @@ from superset.charts.commands.exceptions import (
     ChartInvalidError,
     ChartNotFoundError,
     ChartUpdateFailedError,
+    DashboardsForbiddenError,
 )
 from superset.charts.commands.export import ExportChartsCommand
 from superset.charts.commands.importers.dispatcher import ImportChartsCommand
@@ -312,6 +313,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             422:
               $ref: '#/components/responses/422'
             500:
@@ -325,6 +328,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         try:
             new_model = CreateChartCommand(item).run()
             return self.response(201, id=new_model.id, result=item)
+        except DashboardsForbiddenError as ex:
+            return self.response(ex.status, message=ex.message)
         except ChartInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except ChartCreateFailedError as ex:

@@ -46,7 +46,8 @@ class DeleteChartCommand(BaseCommand):
         assert self._models
 
         try:
-            ChartDAO.delete(self._models)
+            Dashboard.clear_cache_for_slice(slice_id=self._model_id)
+            ChartDAO.delete(self._model)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
             raise ChartDeleteFailedError() from ex

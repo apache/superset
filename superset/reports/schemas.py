@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 from croniter import croniter
 from flask import current_app
@@ -220,7 +220,13 @@ class ReportSchedulePostSchema(Schema):
     )
 
     @validates("custom_width")
-    def validate_custom_width(self, value: int) -> None:  # pylint: disable=no-self-use
+    def validate_custom_width(  # pylint: disable=no-self-use
+        self,
+        value: Optional[int],
+    ) -> None:
+        if value is None:
+            return
+
         min_width = current_app.config["ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH"]
         max_width = current_app.config["ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH"]
         if not min_width <= value <= max_width:
@@ -344,7 +350,13 @@ class ReportSchedulePutSchema(Schema):
     )
 
     @validates("custom_width")
-    def validate_custom_width(self, value: int) -> None:  # pylint: disable=no-self-use
+    def validate_custom_width(  # pylint: disable=no-self-use
+        self,
+        value: Optional[int],
+    ) -> None:
+        if value is None:
+            return
+
         min_width = current_app.config["ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH"]
         max_width = current_app.config["ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH"]
         if not min_width <= value <= max_width:

@@ -123,9 +123,8 @@ export default function isValidChild(child: IsValidChildProps): boolean {
     return false;
   }
 
-  const maxParentDepth: number | undefined = (parentMaxDepthLookup[
-    parentType
-  ] || {})[childType];
+  const maxParentDepth: number | undefined =
+    parentMaxDepthLookup[parentType]?.[childType];
 
   return typeof maxParentDepth === 'number' && parentDepth <= maxParentDepth;
 }

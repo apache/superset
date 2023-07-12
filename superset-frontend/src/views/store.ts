@@ -161,3 +161,4 @@ export function setupStore({
 }
 
 export const store: Store = setupStore();
+export type RootState = ReturnType<typeof store.getState>;

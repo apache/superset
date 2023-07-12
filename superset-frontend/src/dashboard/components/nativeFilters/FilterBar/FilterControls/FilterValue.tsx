@@ -57,7 +57,6 @@ import { dispatchHoverAction, dispatchFocusAction } from './utils';
 import { FilterControlProps } from './types';
 import { getFormData } from '../../utils';
 import { useFilterDependencies } from './state';
-import { checkIsMissingRequiredValue } from '../utils';
 import { useFilterOutlined } from '../useFilterOutlined';
 
 const HEIGHT = 32;
@@ -95,6 +94,7 @@ const FilterValue: React.FC<FilterControlProps> = ({
   setFilterActive,
   orientation = FilterBarOrientation.VERTICAL,
   overflow = false,
+  validateStatus,
 }) => {
   const { id, targets, filterType, adhoc_filters, time_range } = filter;
   const metadata = getChartMetadataRegistry().get(filterType);
@@ -281,17 +281,12 @@ const FilterValue: React.FC<FilterControlProps> = ({
     ],
   );
 
-  const isMissingRequiredValue = checkIsMissingRequiredValue(
-    filter,
-    filter.dataMask?.filterState,
-  );
-
   const filterState = useMemo(
     () => ({
       ...filter.dataMask?.filterState,
-      validateStatus: isMissingRequiredValue && 'error',
+      validateStatus,
     }),
-    [filter.dataMask?.filterState, isMissingRequiredValue],
+    [filter.dataMask?.filterState, validateStatus],
   );
 
   const displaySettings = useMemo(

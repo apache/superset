@@ -24,6 +24,7 @@ import {
   NumberFormats,
   ValueFormatter,
   getColumnLabel,
+  getValueFormatter,
 } from '@superset-ui/core';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
 import { EChartsCoreOption, FunnelSeriesOption } from 'echarts';
@@ -45,7 +46,6 @@ import { defaultGrid } from '../defaults';
 import { OpacityEnum, DEFAULT_LEGEND_FORM_DATA } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
-import { getValueFormatter } from '../utils/valueFormatter';
 
 const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
 
