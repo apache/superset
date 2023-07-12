@@ -21,12 +21,17 @@ from typing import Any, Optional, Union
 import simplejson as json
 from flask import g
 
-from superset.charts.commands.exceptions import WarmUpCacheChartNotFoundError
+from superset.charts.commands.exceptions import (
+    ChartInvalidError,
+    WarmUpCacheChartNotFoundError,
+)
+from superset.charts.data.commands.get_data_command import ChartDataCommand
 from superset.commands.base import BaseCommand
 from superset.extensions import db
 from superset.models.slice import Slice
 from superset.utils.core import error_msg_from_exception
 from superset.views.utils import get_dashboard_extra_filters, get_form_data, get_viz
+from superset.viz import viz_types
 
 
 class ChartWarmUpCacheCommand(BaseCommand):
@@ -43,31 +48,51 @@ class ChartWarmUpCacheCommand(BaseCommand):
     def run(self) -> dict[str, Any]:
         self.validate()
         chart: Slice = self._chart_or_id  # type: ignore
+
         try:
             form_data = get_form_data(chart.id, use_slice_data=True)[0]
-            if self._dashboard_id:
-                form_data["extra_filters"] = (
-                    json.loads(self._extra_filters)
-                    if self._extra_filters
-                    else get_dashboard_extra_filters(chart.id, self._dashboard_id)
-                )
 
-            if not chart.datasource:
-                raise Exception("Chart's datasource does not exist")
+            if form_data.get("viz_type") in viz_types:
+                # Legacy visualizations.
+                if not chart.datasource:
+                    raise ChartInvalidError("Chart's datasource does not exist")
 
-            obj = get_viz(
-                datasource_type=chart.datasource.type,
-                datasource_id=chart.datasource.id,
-                form_data=form_data,
-                force=True,
-            )
+                if self._dashboard_id:
+                    form_data["extra_filters"] = (
+                        json.loads(self._extra_filters)
+                        if self._extra_filters
+                        else get_dashboard_extra_filters(chart.id, self._dashboard_id)
+                    )
 
-            # pylint: disable=assigning-non-slot
-            g.form_data = form_data
-            payload = obj.get_payload()
-            delattr(g, "form_data")
-            error = payload["errors"] or None
-            status = payload["status"]
+                g.form_data = form_data  # pylint: disable=assigning-non-slot
+                payload = get_viz(
+                    datasource_type=chart.datasource.type,
+                    datasource_id=chart.datasource.id,
+                    form_data=form_data,
+                    force=True,
+                ).get_payload()
+                delattr(g, "form_data")
+                error = payload["errors"] or None
+                status = payload["status"]
+            else:
+                # Non-legacy visualizations.
+                query_context = chart.get_query_context()
+
+                if not query_context:
+                    raise ChartInvalidError("Chart's query context does not exist")
+
+                query_context.force = True
+                command = ChartDataCommand(query_context)
+                command.validate()
+                payload = command.run()
+
+                # Report the first error.
+                for query in payload["queries"]:
+                    error = query["error"]
+                    status = query["status"]
+
+                    if error is not None:
+                        break
         except Exception as ex:  # pylint: disable=broad-except
             error = error_msg_from_exception(ex)
             status = None
