@@ -24,7 +24,7 @@ from superset.commands.exceptions import (
 )
 
 
-class SavedQueryBulkDeleteFailedError(DeleteFailedError):
+class SavedQueryDeleteFailedError(DeleteFailedError):
     message = _("Saved queries could not be deleted.")
 
 
