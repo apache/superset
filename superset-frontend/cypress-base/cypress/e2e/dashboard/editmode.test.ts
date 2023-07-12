@@ -239,7 +239,7 @@ describe('Dashboard edit', () => {
       // label Anthony
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
         .eq(2)
-        .should('have.css', 'fill', 'rgb(51, 61, 71)');
+        .should('have.css', 'fill', 'rgb(234, 11, 140)');
     });
 
     it('should apply same color to same labels with no color scheme set', () => {
@@ -474,7 +474,7 @@ describe('Dashboard edit', () => {
       // label Christopher
       cy.get('[data-test="chart-container"] .line .nv-legend-symbol')
         .eq(1)
-        .should('have.css', 'fill', 'rgb(108, 131, 142)');
+        .should('have.css', 'fill', 'rgb(51, 61, 71)');
     });
 
     it('should change color scheme multiple times', () => {
@@ -504,7 +504,7 @@ describe('Dashboard edit', () => {
       // label Anthony
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
         .eq(2)
-        .should('have.css', 'fill', 'rgb(51, 61, 71)');
+        .should('have.css', 'fill', 'rgb(234, 11, 140)');
 
       editDashboard();
       openProperties();
