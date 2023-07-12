@@ -140,6 +140,7 @@ from superset.views.base import (
     common_bootstrap_payload,
     create_table_permissions,
     CsvResponse,
+    XlsxResponse,
     data_payload_response,
     generate_download_headers,
     get_error_msg,
@@ -492,6 +493,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if response_type == ChartDataResultFormat.CSV:
             return CsvResponse(
                 viz_obj.get_csv(), headers=generate_download_headers("csv")
+            )
+
+        if response_type == ChartDataResultFormat.XLSX:
+            return XlsxResponse(
+                viz_obj.get_xlsx(), headers=generate_download_headers("xlsx")
             )
 
         if response_type == ChartDataResultType.QUERY:

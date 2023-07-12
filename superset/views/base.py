@@ -656,6 +656,15 @@ class CsvResponse(Response):
     default_mimetype = "text/csv"
 
 
+class XlsxResponse(Response):
+    """
+    Override Response to take into account csv encoding from config.py
+    """
+
+    charset = conf["XLSX_EXPORT"].get("encoding", "utf-8")
+    default_mimetype = "text/xlsx"
+
+
 def check_ownership(obj: Any, raise_if_false: bool = True) -> bool:
     """Meant to be used in `pre_update` hooks on models to enforce ownership
 

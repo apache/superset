@@ -48,7 +48,7 @@ from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.core import create_zip, json_int_dttm_ser
-from superset.views.base import CsvResponse, generate_download_headers
+from superset.views.base import CsvResponse, generate_download_headers, XlsxResponse
 from superset.views.base_api import statsd_metrics
 
 if TYPE_CHECKING:
@@ -392,6 +392,31 @@ class ChartDataRestApi(ChartRestApi):
         # post-processing of data, eg, the pivot table.
         if result_type == ChartDataResultType.POST_PROCESSED:
             result = apply_post_process(result, form_data, datasource)
+
+        if result_format == ChartDataResultFormat.XLSX:
+            # Verify user has permission to export XLSX file
+            if not security_manager.can_access("can_xlsx", "Superset"):
+                return self.response_403()
+
+            if not result["queries"]:
+                return self.response_400(_("Empty query result"))
+
+            if len(result["queries"]) == 1:
+                # return single query results xlsx format
+                data = result["queries"][0]["data"]
+                return XlsxResponse(data, headers=generate_download_headers("xlsx"))
+
+            # return multi-query csv results bundled as a zip file
+            encoding = current_app.config["XLSX_EXPORT"].get("encoding", "utf-8")
+            files = {
+                f"query_{idx + 1}.xlsx": result["data"].encode(encoding)
+                for idx, result in enumerate(result["queries"])
+            }
+            return Response(
+                create_zip(files),
+                headers=generate_download_headers("zip"),
+                mimetype="application/zip",
+            )
 
         if result_format == ChartDataResultFormat.CSV:
             # Verify user has permission to export CSV file
