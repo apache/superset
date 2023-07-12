@@ -10,6 +10,8 @@
     # via
     #   -r requirements/base.in
     #   -r requirements/development.in
+appnope==0.1.3
+    # via ipython
 astroid==2.6.6
     # via pylint
 asttokens==2.2.1
