@@ -173,7 +173,7 @@ class TestCore(SupersetTestCase, InsertChartMixin):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_viz_cache_key(self):
         self.login(username="admin")
-        slc = self.get_slice("Girls", db.session)
+        slc = self.get_slice("Top 10 Girl Name Share", db.session)
 
         viz = slc.viz
         qobj = viz.query_obj()
@@ -279,7 +279,9 @@ class TestCore(SupersetTestCase, InsertChartMixin):
         # slice data should have some required attributes
         self.login(username="admin")
         slc = self.get_slice(
-            slice_name="Girls", session=db.session, expunge_from_session=False
+            slice_name="Top 10 Girl Name Share",
+            session=db.session,
+            expunge_from_session=False,
         )
         slc_data_attributes = slc.data.keys()
         assert "changed_on" in slc_data_attributes
@@ -391,7 +393,7 @@ class TestCore(SupersetTestCase, InsertChartMixin):
     )
     def test_warm_up_cache(self):
         self.login()
-        slc = self.get_slice("Girls", db.session)
+        slc = self.get_slice("Top 10 Girl Name Share", db.session)
         data = self.get_json_resp(f"/superset/warm_up_cache?slice_id={slc.id}")
         self.assertEqual(
             data, [{"slice_id": slc.id, "viz_error": None, "viz_status": "success"}]
@@ -418,10 +420,10 @@ class TestCore(SupersetTestCase, InsertChartMixin):
         self.login("admin")
         store_cache_keys = app.config["STORE_CACHE_KEYS_IN_METADATA_DB"]
         app.config["STORE_CACHE_KEYS_IN_METADATA_DB"] = True
-        girls_slice = self.get_slice("Girls", db.session)
-        self.get_json_resp(f"/superset/warm_up_cache?slice_id={girls_slice.id}")
+        slc = self.get_slice("Top 10 Girl Name Share", db.session)
+        self.get_json_resp(f"/superset/warm_up_cache?slice_id={slc.id}")
         ck = db.session.query(CacheKey).order_by(CacheKey.id.desc()).first()
-        assert ck.datasource_uid == f"{girls_slice.table.id}__table"
+        assert ck.datasource_uid == f"{slc.table.id}__table"
         app.config["STORE_CACHE_KEYS_IN_METADATA_DB"] = store_cache_keys
 
     def test_redirect_invalid(self):
