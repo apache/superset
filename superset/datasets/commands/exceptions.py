@@ -179,11 +179,7 @@ class DatasetUpdateFailedError(UpdateFailedError):
 
 
 class DatasetDeleteFailedError(DeleteFailedError):
-    message = _("Dataset could not be deleted.")
-
-
-class DatasetBulkDeleteFailedError(DeleteFailedError):
-    message = _("Dataset(s) could not be bulk deleted.")
+    message = _("Datasets could not be deleted.")
 
 
 class DatasetRefreshFailedError(UpdateFailedError):

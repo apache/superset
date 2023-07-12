@@ -23,14 +23,9 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
 
-from superset.annotation_layers.commands.bulk_delete import (
-    BulkDeleteAnnotationLayerCommand,
-)
 from superset.annotation_layers.commands.create import CreateAnnotationLayerCommand
 from superset.annotation_layers.commands.delete import DeleteAnnotationLayerCommand
 from superset.annotation_layers.commands.exceptions import (
-    AnnotationLayerBulkDeleteFailedError,
-    AnnotationLayerBulkDeleteIntegrityError,
     AnnotationLayerCreateFailedError,
     AnnotationLayerDeleteFailedError,
     AnnotationLayerDeleteIntegrityError,
@@ -151,7 +146,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            DeleteAnnotationLayerCommand(pk).run()
+            DeleteAnnotationLayerCommand([pk]).run()
             return self.response(200, message="OK")
         except AnnotationLayerNotFoundError:
             return self.response_404()
@@ -346,7 +341,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteAnnotationLayerCommand(item_ids).run()
+            DeleteAnnotationLayerCommand(item_ids).run()
             return self.response(
                 200,
                 message=ngettext(
@@ -357,7 +352,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
             )
         except AnnotationLayerNotFoundError:
             return self.response_404()
-        except AnnotationLayerBulkDeleteIntegrityError as ex:
+        except AnnotationLayerDeleteIntegrityError as ex:
             return self.response_422(message=str(ex))
-        except AnnotationLayerBulkDeleteFailedError as ex:
+        except AnnotationLayerDeleteFailedError as ex:
             return self.response_422(message=str(ex))

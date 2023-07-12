@@ -21,7 +21,6 @@ from superset.commands.exceptions import (
     CommandException,
     CommandInvalidError,
     CreateFailedError,
-    DeleteFailedError,
     ForbiddenError,
     ValidationError,
 )
@@ -123,10 +122,6 @@ class DashboardNotSavedValidationError(ValidationError):
 class ReportScheduleInvalidError(CommandInvalidError):
     status = 422
     message = _("Report Schedule parameters are invalid.")
-
-
-class ReportScheduleBulkDeleteFailedError(DeleteFailedError):
-    message = _("Report Schedule could not be deleted.")
 
 
 class ReportScheduleCreateFailedError(CreateFailedError):

@@ -25,5 +25,5 @@ class RLSRuleNotFoundError(CommandException):
     message = _("RLS Rule not found.")
 
 
-class RuleBulkDeleteFailedError(DeleteFailedError):
-    message = _("RLS Rule could not be deleted.")
+class RuleDeleteFailedError(DeleteFailedError):
+    message = _("RLS rules could not be deleted.")

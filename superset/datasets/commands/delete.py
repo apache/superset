@@ -33,27 +33,28 @@ logger = logging.getLogger(__name__)
 
 
 class DeleteDatasetCommand(BaseCommand):
-    def __init__(self, model_id: int):
-        self._model_id = model_id
-        self._model: Optional[SqlaTable] = None
+    def __init__(self, model_ids: list[int]):
+        self._model_ids = model_ids
+        self._models: Optional[list[SqlaTable]] = None
 
     def run(self) -> None:
         self.validate()
-        assert self._model
+        assert self._models
 
         try:
-            return DatasetDAO.delete(self._model)
+            DatasetDAO.delete(self._models)
         except DAODeleteFailedError as ex:
-            logger.exception(ex)
+            logger.exception(ex.exception)
             raise DatasetDeleteFailedError() from ex
 
     def validate(self) -> None:
         # Validate/populate model exists
-        self._model = DatasetDAO.find_by_id(self._model_id)
-        if not self._model:
+        self._models = DatasetDAO.find_by_ids(self._model_ids)
+        if not self._models or len(self._models) != len(self._model_ids):
             raise DatasetNotFoundError()
         # Check ownership
-        try:
-            security_manager.raise_for_ownership(self._model)
-        except SupersetSecurityException as ex:
-            raise DatasetForbiddenError() from ex
+        for model in self._models:
+            try:
+                security_manager.raise_for_ownership(model)
+            except SupersetSecurityException as ex:
+                raise DatasetForbiddenError() from ex
