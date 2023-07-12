@@ -1530,7 +1530,7 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.delete_assert_metric(uri, "delete")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 422
-        assert data == {"message": "Dataset could not be deleted."}
+        assert data == {"message": "Datasets could not be deleted."}
         db.session.delete(dataset)
         db.session.commit()
 

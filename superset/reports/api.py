@@ -30,11 +30,9 @@ from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.dashboards.filters import DashboardAccessFilter
 from superset.databases.filters import DatabaseFilter
 from superset.extensions import event_logger
-from superset.reports.commands.bulk_delete import BulkDeleteReportScheduleCommand
 from superset.reports.commands.create import CreateReportScheduleCommand
 from superset.reports.commands.delete import DeleteReportScheduleCommand
 from superset.reports.commands.exceptions import (
-    ReportScheduleBulkDeleteFailedError,
     ReportScheduleCreateFailedError,
     ReportScheduleDeleteFailedError,
     ReportScheduleForbiddenError,
@@ -278,7 +276,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            DeleteReportScheduleCommand(pk).run()
+            DeleteReportScheduleCommand([pk]).run()
             return self.response(200, message="OK")
         except ReportScheduleNotFoundError:
             return self.response_404()
@@ -495,7 +493,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteReportScheduleCommand(item_ids).run()
+            DeleteReportScheduleCommand(item_ids).run()
             return self.response(
                 200,
                 message=ngettext(
@@ -508,5 +506,5 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except ReportScheduleForbiddenError:
             return self.response_403()
-        except ReportScheduleBulkDeleteFailedError as ex:
+        except ReportScheduleDeleteFailedError as ex:
             return self.response_422(message=str(ex))

@@ -14,47 +14,36 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import logging
-from typing import Optional
 
-from superset import security_manager
+import logging
+
 from superset.commands.base import BaseCommand
-from superset.commands.exceptions import DeleteFailedError
-from superset.connectors.sqla.models import SqlaTable
-from superset.daos.dataset import DatasetDAO
-from superset.datasets.commands.exceptions import (
-    DatasetBulkDeleteFailedError,
-    DatasetForbiddenError,
-    DatasetNotFoundError,
+from superset.daos.exceptions import DAODeleteFailedError
+from superset.daos.security import RLSDAO
+from superset.reports.models import ReportSchedule
+from superset.row_level_security.commands.exceptions import (
+    RLSRuleNotFoundError,
+    RuleDeleteFailedError,
 )
-from superset.exceptions import SupersetSecurityException
 
 logger = logging.getLogger(__name__)
 
 
-class BulkDeleteDatasetCommand(BaseCommand):
+class DeleteRLSRuleCommand(BaseCommand):
     def __init__(self, model_ids: list[int]):
         self._model_ids = model_ids
-        self._models: Optional[list[SqlaTable]] = None
+        self._models: list[ReportSchedule] = []
 
     def run(self) -> None:
         self.validate()
-        assert self._models
-
         try:
-            DatasetDAO.delete(self._models)
-        except DeleteFailedError as ex:
+            RLSDAO.delete(self._models)
+        except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
-            raise DatasetBulkDeleteFailedError() from ex
+            raise RuleDeleteFailedError() from ex
 
     def validate(self) -> None:
         # Validate/populate model exists
-        self._models = DatasetDAO.find_by_ids(self._model_ids)
+        self._models = RLSDAO.find_by_ids(self._model_ids)
         if not self._models or len(self._models) != len(self._model_ids):
-            raise DatasetNotFoundError()
-        # Check ownership
-        for model in self._models:
-            try:
-                security_manager.raise_for_ownership(model)
-            except SupersetSecurityException as ex:
-                raise DatasetForbiddenError() from ex
+            raise RLSRuleNotFoundError()
