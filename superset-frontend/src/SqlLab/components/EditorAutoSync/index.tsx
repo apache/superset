@@ -106,7 +106,7 @@ const EditorAutoSync: React.FC = () => {
       dispatch(
         addDangerToast(
           t(
-            'An error occurred while storing your query in the backend. ' +
+            'An error occurred while saving your editor state. ' +
               'Please contact your administrator if this problem persists.',
           ),
         ),
