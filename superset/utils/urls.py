@@ -14,12 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import unicodedata
 import urllib
 from typing import Any
-from urllib.parse import urlparse
 
-from flask import current_app, request, url_for
+from flask import current_app, url_for
 
 
 def get_url_host(user_friendly: bool = False) -> str:

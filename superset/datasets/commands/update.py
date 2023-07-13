@@ -18,7 +18,6 @@ import logging
 from collections import Counter
 from typing import Any, Optional
 
-from flask import current_app
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
@@ -102,9 +101,6 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             self._properties["owners"] = owners
         except ValidationError as ex:
             exceptions.append(ex)
-        # Validate default URL safety
-        default_endpoint = self._properties.get("default_endpoint")
-
         # Validate columns
         if columns := self._properties.get("columns"):
             self._validate_columns(columns, exceptions)

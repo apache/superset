@@ -18,7 +18,7 @@ import json
 from collections import Counter
 from typing import Any
 
-from flask import current_app, redirect, request
+from flask import redirect, request
 from flask_appbuilder import expose, permission_name
 from flask_appbuilder.api import rison
 from flask_appbuilder.security.decorators import has_access, has_access_api
