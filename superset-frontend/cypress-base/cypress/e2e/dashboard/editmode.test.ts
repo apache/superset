@@ -379,6 +379,7 @@ describe('Dashboard edit', () => {
         name: 'Top 10 California Names Timeseries',
         viz: 'line',
       });
+      cy.wait(5000);
       cy.get(
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
