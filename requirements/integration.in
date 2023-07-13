@@ -17,3 +17,4 @@
 pip-compile-multi
 pre-commit
 tox
+XlsxWriter
