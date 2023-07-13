@@ -61,6 +61,9 @@ class TagRestApi(BaseSupersetModelRestApi):
         "get_all_objects",
         "add_objects",
         "delete_object",
+        "add_favorite",
+        "remove_favorite",
+        "favorite_status",
     }
 
     resource_name = "tag"
@@ -384,3 +387,140 @@ class TagRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
+
+    @expose("/favorite_status/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @rison({"type": "array", "items": {"type": "integer"}})
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".favorite_status",
+        log_to_statsd=False,
+    )
+    def favorite_status(self, **kwargs: Any) -> Response:
+        """Favorite Stars for Dashboards
+        ---
+        get:
+          description: >-
+            Check favorited dashboards for current user
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/get_fav_star_ids_schema'
+          responses:
+            200:
+              description:
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/GetFavStarIdsSchema"
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        requested_ids = kwargs["rison"]
+        tags = TagDAO.find_by_ids(requested_ids)
+        if not tags:
+            return self.response_404()
+
+        users_favorited_tags = TagDAO.favorited_ids(tags)
+        res = [
+            {"id": request_id, "value": request_id in users_favorited_tags}
+            for request_id in requested_ids
+        ]
+        return self.response(200, result=res)
+
+    @expose("/<pk>/favorites/", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".add_favorite",
+        log_to_statsd=False,
+    )
+    def add_favorite(self, pk: int) -> Response:
+        """Marks the tag as favorite
+        ---
+        post:
+          description: >-
+            Marks the tag as favorite for the current user
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          responses:
+            200:
+              description: Tag added to favorites
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if not TagDAO.find_by_id(pk):
+            return self.response_404()
+
+        TagDAO.user_favorite_tag(pk)
+        return self.response(200, result="OK")
+
+    @expose("/<pk>/favorites/", methods=("DELETE",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".remove_favorite",
+        log_to_statsd=False,
+    )
+    def remove_favorite(self, pk: int) -> Response:
+        """Remove the tag from the user favorite list
+        ---
+        delete:
+          description: >-
+            Remove the tag from the user favorite list
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          responses:
+            200:
+              description: Tag removed from favorites
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if not TagDAO.find_by_id(pk):
+            return self.response_404()
+
+        TagDAO.remove_user_favorite_tag(pk)
+        return self.response(200, result="OK")
