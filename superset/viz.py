@@ -1076,65 +1076,6 @@ class BulletViz(NVD3Viz):
         }
 
 
-class BigNumberViz(BaseViz):
-
-    """Put emphasis on a single metric with this big number viz"""
-
-    viz_type = "big_number"
-    verbose_name = _("Big Number with Trendline")
-    credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
-    is_timeseries = True
-
-    @deprecated(deprecated_in="3.0")
-    def query_obj(self) -> QueryObjectDict:
-        query_obj = super().query_obj()
-        metric = self.form_data.get("metric")
-        if not metric:
-            raise QueryObjectValidationError(_("Pick a metric!"))
-        query_obj["metrics"] = [self.form_data.get("metric")]
-        self.form_data["metric"] = metric
-        return query_obj
-
-    @deprecated(deprecated_in="3.0")
-    def get_data(self, df: pd.DataFrame) -> VizData:
-        if df.empty:
-            return None
-
-        df = df.pivot_table(
-            index=DTTM_ALIAS,
-            columns=[],
-            values=self.metric_labels,
-            dropna=False,
-            aggfunc=np.min,  # looking for any (only) value, preserving `None`
-        )
-        df = self.apply_rolling(df)
-        df[DTTM_ALIAS] = df.index
-        return super().get_data(df)
-
-
-class BigNumberTotalViz(BaseViz):
-
-    """Put emphasis on a single metric with this big number viz"""
-
-    viz_type = "big_number_total"
-    verbose_name = _("Big Number")
-    credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
-    is_timeseries = False
-
-    @deprecated(deprecated_in="3.0")
-    def query_obj(self) -> QueryObjectDict:
-        query_obj = super().query_obj()
-        metric = self.form_data.get("metric")
-        if not metric:
-            raise QueryObjectValidationError(_("Pick a metric!"))
-        query_obj["metrics"] = [self.form_data.get("metric")]
-        self.form_data["metric"] = metric
-
-        # Limiting rows is not required as only one cell is returned
-        query_obj["row_limit"] = None
-        return query_obj
-
-
 class NVD3TimeSeriesViz(NVD3Viz):
 
     """A rich line chart component with tons of options"""

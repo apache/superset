@@ -1311,7 +1311,7 @@ class TestTimeSeriesViz(SupersetTestCase):
             data={"y": [1.0, 2.0, 3.0, 4.0]},
         )
         self.assertEqual(
-            viz.BigNumberViz(
+            viz.NVD3TimeSeriesViz(
                 datasource,
                 {
                     "metrics": ["y"],
@@ -1325,7 +1325,7 @@ class TestTimeSeriesViz(SupersetTestCase):
             [1.0, 3.0, 6.0, 10.0],
         )
         self.assertEqual(
-            viz.BigNumberViz(
+            viz.NVD3TimeSeriesViz(
                 datasource,
                 {
                     "metrics": ["y"],
@@ -1339,7 +1339,7 @@ class TestTimeSeriesViz(SupersetTestCase):
             [1.0, 3.0, 5.0, 7.0],
         )
         self.assertEqual(
-            viz.BigNumberViz(
+            viz.NVD3TimeSeriesViz(
                 datasource,
                 {
                     "metrics": ["y"],
@@ -1361,7 +1361,7 @@ class TestTimeSeriesViz(SupersetTestCase):
             ),
             data={"y": [1.0, 2.0, 3.0, 4.0]},
         )
-        test_viz = viz.BigNumberViz(
+        test_viz = viz.NVD3TimeSeriesViz(
             datasource,
             {
                 "metrics": ["y"],
@@ -1372,34 +1372,6 @@ class TestTimeSeriesViz(SupersetTestCase):
         )
         with pytest.raises(QueryObjectValidationError):
             test_viz.apply_rolling(df)
-
-
-class TestBigNumberViz(SupersetTestCase):
-    def test_get_data(self):
-        datasource = self.get_datasource_mock()
-        df = pd.DataFrame(
-            data={
-                DTTM_ALIAS: pd.to_datetime(
-                    ["2019-01-01", "2019-01-02", "2019-01-05", "2019-01-07"]
-                ),
-                "y": [1.0, 2.0, 3.0, 4.0],
-            }
-        )
-        data = viz.BigNumberViz(datasource, {"metrics": ["y"]}).get_data(df)
-        self.assertEqual(data[2], {DTTM_ALIAS: pd.Timestamp("2019-01-05"), "y": 3})
-
-    def test_get_data_with_none(self):
-        datasource = self.get_datasource_mock()
-        df = pd.DataFrame(
-            data={
-                DTTM_ALIAS: pd.to_datetime(
-                    ["2019-01-01", "2019-01-02", "2019-01-05", "2019-01-07"]
-                ),
-                "y": [1.0, 2.0, None, 4.0],
-            }
-        )
-        data = viz.BigNumberViz(datasource, {"metrics": ["y"]}).get_data(df)
-        assert np.isnan(data[2]["y"])
 
 
 class TestFilterBoxViz(SupersetTestCase):
