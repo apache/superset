@@ -419,7 +419,7 @@ def test_import_dataset_extra_empty_string(
     dataset_config["database_id"] = database.id
     sqla_table = import_dataset(session, dataset_config)
 
-    assert sqla_table.extra == "{}"
+    assert sqla_table.extra == None
 
 
 @patch("superset.datasets.commands.importers.v1.utils.request")
