@@ -35,13 +35,15 @@ const CLEAR_ENTITY_HELPERS_MAP = {
   unsavedQueryEditor: qe => clearQueryEditors([qe])[0],
 };
 
+const PERSISTENCE_LOCAL_STORAGE_PATH = 'sqlLab.unsavedQueryEditor';
+
 const sqlLabPersistStateConfig = {
   paths: ['sqlLab'],
   config: {
     slicer: paths => state => {
       const subset = {};
       paths.forEach(path => {
-        if (path === 'sqlLab.unsavedQueryEditor') {
+        if (path === PERSISTENCE_LOCAL_STORAGE_PATH) {
           const {
             queryEditors,
             editorTabLastUpdatedAt,
@@ -55,9 +57,11 @@ const sqlLabPersistStateConfig = {
             unsavedQueryEditor,
             editorTabLastUpdatedAt,
           );
-          const hasFinishedMigrationFromLocalStorage =
-            unsavedQueryEditors.every(({ inLocalStorage }) => !inLocalStorage);
           if (unsavedQueryEditors.length > 0) {
+            const hasFinishedMigrationFromLocalStorage =
+              unsavedQueryEditors.every(
+                ({ inLocalStorage }) => !inLocalStorage,
+              );
             subset.sqlLab = {
               queryEditors: unsavedQueryEditors,
               ...(!hasFinishedMigrationFromLocalStorage && {
@@ -115,7 +119,7 @@ const sqlLabPersistStateConfig = {
 
 export const persistSqlLabStateEnhancer = persistState(
   isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
-    ? ['sqlLab.unsavedQueryEditor']
+    ? [PERSISTENCE_LOCAL_STORAGE_PATH]
     : sqlLabPersistStateConfig.paths,
   sqlLabPersistStateConfig.config,
 );
