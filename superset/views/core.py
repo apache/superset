@@ -28,7 +28,7 @@ import backoff
 import humanize
 import pandas as pd
 import simplejson as json
-from flask import abort, flash, g, redirect, render_template, request, Response
+from flask import abort, flash, g, redirect, render_template, request, Response, send_file
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.api import protect
@@ -496,9 +496,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
 
         if response_type == ChartDataResultFormat.XLSX:
-            return XlsxResponse(
-                viz_obj.get_xlsx(), headers=generate_download_headers("xlsx")
-            )
+            # return XlsxResponse(
+            return viz_obj.get_xlsx()
+            # )
 
         if response_type == ChartDataResultType.QUERY:
             return self.get_query_string_response(viz_obj)
@@ -711,6 +711,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 force=force,
             )
 
+            if response_type == ChartDataResultFormat.XLSX:
+                return send_file(self.generate_json(viz_obj, response_type),
+                                 download_name='file_from_superset.xlsx',
+                                 mimetype='application/xlsx')
             return self.generate_json(viz_obj, response_type)
         except SupersetException as ex:
             return json_error_response(utils.error_msg_from_exception(ex), 400)

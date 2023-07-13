@@ -16,12 +16,14 @@
 # under the License.
 from __future__ import annotations
 
+import io
 import json
 import logging
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
+import pandas as pd
 import simplejson
-from flask import current_app, g, make_response, request, Response
+from flask import current_app, g, make_response, request, Response, send_file
 from flask_appbuilder.api import expose, protect
 from flask_babel import gettext as _
 from marshmallow import ValidationError
@@ -47,11 +49,13 @@ from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.core import create_zip, json_int_dttm_ser
 from superset.views.base import CsvResponse, generate_download_headers, XlsxResponse
 from superset.views.base_api import statsd_metrics
+from superset import app
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
 
 logger = logging.getLogger(__name__)
+config = app.config
 
 
 class ChartDataRestApi(ChartRestApi):
@@ -239,8 +243,13 @@ class ChartDataRestApi(ChartRestApi):
             and query_context.result_type == ChartDataResultType.FULL
         ):
             return self._run_async(json_body, command)
-
         form_data = json_body.get("form_data")
+
+        if query_context.result_format == ChartDataResultFormat.XLSX:
+            return send_file(self._get_data_response(
+                command, form_data=form_data, datasource=query_context.datasource
+            ), download_name='file_from_superset.xlsx', mimetype='application/xlsx')
+
         return self._get_data_response(
             command, form_data=form_data, datasource=query_context.datasource
         )
@@ -250,7 +259,7 @@ class ChartDataRestApi(ChartRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".data_from_cache",
+                                             f".data_from_cache",
         log_to_statsd=False,
     )
     def data_from_cache(self, cache_key: str) -> Response:
@@ -332,7 +341,7 @@ class ChartDataRestApi(ChartRestApi):
         result: Dict[Any, Any],
         form_data: Optional[Dict[str, Any]] = None,
         datasource: Optional[BaseDatasource] = None,
-    ) -> Response:
+    ) -> Optional[Response, io.BytesIO]:
         result_type = result["query_context"].result_type
         result_format = result["query_context"].result_format
 
@@ -353,7 +362,11 @@ class ChartDataRestApi(ChartRestApi):
             if len(result["queries"]) == 1:
                 # return single query results xlsx format
                 data = result["queries"][0]["data"]
-                return XlsxResponse(data, headers=generate_download_headers("xlsx"))
+                df = pd.DataFrame(data)
+                excel_writer = io.BytesIO()
+                df.to_excel(excel_writer, **config["XLSX_EXPORT"])
+                excel_writer.seek(0)
+                return excel_writer
 
             # return multi-query csv results bundled as a zip file
             encoding = current_app.config["XLSX_EXPORT"].get("encoding", "utf-8")
@@ -410,7 +423,7 @@ class ChartDataRestApi(ChartRestApi):
         force_cached: bool = False,
         form_data: Optional[Dict[str, Any]] = None,
         datasource: Optional[BaseDatasource] = None,
-    ) -> Response:
+    ) -> Optional[Response, io.BytesIO]:
         try:
             result = command.run(force_cached=force_cached)
         except ChartDataCacheLoadError as exc:
