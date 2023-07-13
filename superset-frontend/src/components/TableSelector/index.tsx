@@ -133,6 +133,7 @@ export const TableOption = ({ table }: { table: Table }) => {
         <WarningIconWithTooltip
           warningMarkdown={extra.warning_markdown}
           size="l"
+          indentSize={0.5}
         />
       )}
       {value}
