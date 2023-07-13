@@ -224,6 +224,7 @@ const generateFileName = (filename, extension) =>
 
 // DODO-changed (added)
 export const getCSV = async (url, payload, isLegacy) => {
+  console.log('getCSVXX', url, payload, isLegacy);
   if (isLegacy) {
     const response = await API_HANDLER.SupersetClientNoApi({
       method: 'post',
@@ -323,20 +324,44 @@ export const exportChart = ({
     slice?.form_data?.time_range ||
     'time_grain_sqla';
 
+  // TODO: xlsx
   return exportResultPromise
     .then(csvExportResult => {
+      console.log('csvExportResultXX', csvExportResult);
       if (csvExportResult) {
-        const universalBOM = '\uFEFF';
-        const alteredResult = universalBOM + csvExportResult;
-        const csvFile = new Blob([alteredResult], {
-          type: 'text/csv;charset=utf-8;',
+        // const universalBOM = '\uFEFF';
+        // const alteredResult = universalBOM + csvExportResult;
+        // const csvFile = new Blob([alteredResult], {
+        //   type: 'text/csv;charset=utf-8;',
+        // });
+
+        // const csvFile = new Blob([alteredResult], {
+        //   type: 'application/vnd.ms-excel;charset=utf-8;',
+        // });
+
+        const csvFile = new Blob([csvExportResult], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         });
+
+        // const url = window.URL.createObjectURL(
+        //   new Blob([csvExportResult], {
+        //     type: 'application/vnd.ms-excel;charset=utf-8;',
+        //   }),
+        // );
+
+        // FileSaver.saveAs(
+        //   csvFile,
+        //   generateFileName(
+        //     `${sliceName}__${timeGrain}__${vizType}-chart`,
+        //     'csv',
+        //   ),
+        // );
 
         FileSaver.saveAs(
           csvFile,
           generateFileName(
             `${sliceName}__${timeGrain}__${vizType}-chart`,
-            'csv',
+            'xls',
           ),
         );
       } else {
