@@ -372,3 +372,76 @@ class TestTagApi(SupersetTestCase):
         # check that tags are all gone
         tags = db.session.query(Tag).filter(Tag.name.in_(example_tag_names))
         self.assertEqual(tags.count(), 0)
+
+    @pytest.mark.usefixtures("create_tags")
+    def test_add_delete_favorite_tag(self):
+        self.login(username="admin")
+        user_id = self.get_user(username="admin").get_id()
+        tag = db.session.query(Tag).first()
+        uri = f"api/v1/tag/{tag.id}/favorites/"
+        tag = db.session.query(Tag).first()
+        rv = self.client.post(uri, follow_redirects=True)
+
+        self.assertEqual(rv.status_code, 200)
+        from sqlalchemy import and_
+        from superset.tags.models import user_favorite_tag_table
+        from flask import g
+
+        association_row = (
+            db.session.query(user_favorite_tag_table)
+            .filter(
+                and_(
+                    user_favorite_tag_table.c.tag_id == tag.id,
+                    user_favorite_tag_table.c.user_id == user_id,
+                )
+            )
+            .one_or_none()
+        )
+
+        assert association_row is not None
+
+        uri = f"api/v1/tag/{tag.id}/favorites/"
+        rv = self.client.delete(uri, follow_redirects=True)
+
+        self.assertEqual(rv.status_code, 200)
+        association_row = (
+            db.session.query(user_favorite_tag_table)
+            .filter(
+                and_(
+                    user_favorite_tag_table.c.tag_id == tag.id,
+                    user_favorite_tag_table.c.user_id == user_id,
+                )
+            )
+            .one_or_none()
+        )
+
+        assert association_row is None
+
+    # @pytest.mark.usefixtures("create_tags")
+    # def test_get_current_user_favorite_status(self):
+    #     """
+    #     Dataset API: Test get current user favorite stars
+    #     """
+    #     admin = self.get_user("admin")
+    #     users_favorite_ids = [
+    #         star.obj_id
+    #         for star in db.session.query(FavStar.obj_id)
+    #         .filter(
+    #             and_(
+    #                 FavStar.user_id == admin.id,
+    #                 FavStar.class_name == FavStarClassName.CHART,
+    #             )
+    #         )
+    #         .all()
+    #     ]
+
+    #     assert users_favorite_ids
+    #     arguments = [s.id for s in db.session.query(Slice.id).all()]
+    #     self.login(username="admin")
+    #     uri = f"api/v1/chart/favorite_status/?q={prison.dumps(arguments)}"
+    #     rv = self.client.get(uri)
+    #     data = json.loads(rv.data.decode("utf-8"))
+    #     assert rv.status_code == 200
+    #     for res in data["result"]:
+    #         if res["id"] in users_favorite_ids:
+    #             assert res["value"]
