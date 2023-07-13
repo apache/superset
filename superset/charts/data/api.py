@@ -249,9 +249,7 @@ class ChartDataRestApi(ChartRestApi):
             return send_file(self._get_data_response(command, form_data=form_data,
                                                      datasource=query_context.datasource
                                                      ), download_name="data.xlsx",
-                             mimetype="application/vnd.openxmlformats"
-                                      "-officedocument.spreadsheetml.sheet",
-                             as_attachment=True
+                             mimetype="application/xlsx"
                              )
 
         return self._get_data_response(
@@ -366,12 +364,12 @@ class ChartDataRestApi(ChartRestApi):
             if len(result["queries"]) == 1:
                 # return single query results xlsx format
                 data = result["queries"][0]["data"]
+
                 df = pd.DataFrame(data)
                 excel_writer = io.BytesIO()
-                writer = pd.ExcelWriter(excel_writer, mode="w", engine="xlsxwriter")
+                # writer = pd.ExcelWriter(excel_writer, mode="w", engine="xlsxwriter")
 
-                df.to_excel(writer, startrow=0, merge_cells=False,
-                            sheet_name="Sheet_1", index_label=None, index=False)
+                df.to_excel(excel_writer)
                 excel_writer.seek(0)
                 return excel_writer
 
