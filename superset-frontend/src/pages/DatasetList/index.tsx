@@ -29,7 +29,7 @@ import React, {
   useMemo,
   useCallback,
 } from 'react';
-import {Link, useHistory} from 'react-router-dom';
+import { Link, useHistory } from 'react-router-dom';
 import rison from 'rison';
 import {
   createFetchRelated,
