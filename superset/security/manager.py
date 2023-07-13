@@ -2006,28 +2006,37 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset import is_feature_enabled
         from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 
-        if self.is_guest_user() and dashboard.embedded:
+        if self.is_guest_user():
+            # Guest user is currently used for embedded dashboards only. If the guest user
+            # doesn't have access to the dashboard, ignore all other checks.
             if self.has_guest_access(dashboard):
                 return
-        else:
-            if self.is_admin() or self.is_owner(dashboard):
-                return
+            raise DashboardAccessDeniedError()
 
-            # RBAC and legacy (datasource inferred) access controls.
-            if is_feature_enabled("DASHBOARD_RBAC") and dashboard.roles:
-                if dashboard.published and {role.id for role in dashboard.roles} & {
-                    role.id for role in self.get_user_roles()
-                }:
-                    return
-            elif (
-                not dashboard.published
-                or not dashboard.datasources
-                or any(
-                    self.can_access_datasource(datasource)
-                    for datasource in dashboard.datasources
-                )
-            ):
+        if self.is_admin() or self.is_owner(dashboard):
+            return
+
+        # RBAC and legacy (datasource inferred) access controls.
+        if is_feature_enabled("DASHBOARD_RBAC") and dashboard.roles:
+            if dashboard.published and {role.id for role in dashboard.roles} & {
+                role.id for role in self.get_user_roles()
+            }:
                 return
+        elif (
+            # To understand why we rely on status and give access to draft dashboards
+            # without roles take a look at:
+            #
+            #   - https://github.com/apache/superset/pull/24350#discussion_r1225061550
+            #   - https://github.com/apache/superset/pull/17511#issuecomment-975870169
+            #
+            not dashboard.published
+            or not dashboard.datasources
+            or any(
+                self.can_access_datasource(datasource)
+                for datasource in dashboard.datasources
+            )
+        ):
+            return
 
         raise DashboardAccessDeniedError()
 
