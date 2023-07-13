@@ -364,7 +364,7 @@ class ChartDataRestApi(ChartRestApi):
                 data = result["queries"][0]["data"]
                 df = pd.DataFrame(data)
                 excel_writer = io.BytesIO()
-                df.to_excel(excel_writer, **config["XLSX_EXPORT"])
+                df.to_excel(excel_writer)
                 excel_writer.seek(0)
                 return excel_writer
 
