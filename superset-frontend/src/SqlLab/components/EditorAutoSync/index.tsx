@@ -37,25 +37,25 @@ const INTERVAL = 5000;
 
 function hasUnsavedChanges(
   queryEditor: QueryEditor,
-  lastSavedDateTime: number,
+  lastSavedTimestamp: number,
 ) {
   return (
     queryEditor.inLocalStorage ||
-    (queryEditor.updatedAt && queryEditor.updatedAt > lastSavedDateTime)
+    (queryEditor.updatedAt && queryEditor.updatedAt > lastSavedTimestamp)
   );
 }
 
 export function filterUnsavedQueryEditorList(
   queryEditors: QueryEditor[],
   unsavedQueryEditor: UnsavedQueryEditor,
-  lastSavedDateTime: number,
+  lastSavedTimestamp: number,
 ) {
   return queryEditors
     .map(queryEditor => ({
       ...queryEditor,
       ...(unsavedQueryEditor.id === queryEditor.id && unsavedQueryEditor),
     }))
-    .filter(queryEditor => hasUnsavedChanges(queryEditor, lastSavedDateTime));
+    .filter(queryEditor => hasUnsavedChanges(queryEditor, lastSavedTimestamp));
 }
 
 const EditorAutoSync: React.FC = () => {
@@ -69,7 +69,7 @@ const EditorAutoSync: React.FC = () => {
     state => state.sqlLab.editorTabLastUpdatedAt,
   );
   const dispatch = useDispatch();
-  const lastSavedDateTimeRef = useRef<number>(editorTabLastUpdatedAt);
+  const lastSavedTimestampRef = useRef<number>(editorTabLastUpdatedAt);
   const [updateSqlEditor, { isError }] = useUpdateSqlEditorTabMutation();
 
   const debouncedUnsavedQueryEditor = useDebounceValue(
@@ -84,7 +84,7 @@ const EditorAutoSync: React.FC = () => {
     const unsaved = filterUnsavedQueryEditorList(
       queryEditors,
       debouncedUnsavedQueryEditor,
-      lastSavedDateTimeRef.current,
+      lastSavedTimestampRef.current,
     );
 
     Promise.all(
@@ -95,8 +95,8 @@ const EditorAutoSync: React.FC = () => {
         .map(queryEditor => updateSqlEditor({ queryEditor })),
     ).then(resolvers => {
       if (!resolvers.some(result => 'error' in result)) {
-        lastSavedDateTimeRef.current = Date.now();
-        dispatch(setEditorTabLastUpdate(lastSavedDateTimeRef.current));
+        lastSavedTimestampRef.current = Date.now();
+        dispatch(setEditorTabLastUpdate(lastSavedTimestampRef.current));
       }
     });
   }, [debouncedUnsavedQueryEditor, dispatch, queryEditors, updateSqlEditor]);
