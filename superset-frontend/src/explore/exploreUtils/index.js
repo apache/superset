@@ -276,9 +276,10 @@ export const exportChartPlugin = ({
     console.log('url', url);
     console.log('fixedUrl', fixedUrl);
     console.log('payload', payload);
+    console.log('resultFormat', resultFormat);
     console.groupEnd();
 
-    return getCSV(fixedUrl, payload, true);
+    return getCSV(`${fixedUrl}&xlsx=true`, payload, true);
   }
 
   url = '/api/v1/chart/data';

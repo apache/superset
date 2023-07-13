@@ -649,7 +649,7 @@ ALLOWED_EXTENSIONS = {*EXCEL_EXTENSIONS, *CSV_EXTENSIONS, *COLUMNAR_EXTENSIONS}
 CSV_EXPORT = {"encoding": "utf-8"}
 
 
-XLSX_EXPORT = {"encoding": "utf-8", "index": False}
+XLSX_EXPORT = {"encoding": "utf-8"}
 
 # ---------------------------------------------------
 # Time grain configurations

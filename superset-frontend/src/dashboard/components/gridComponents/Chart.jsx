@@ -133,6 +133,7 @@ export default class Chart extends React.Component {
     this.handleFilterMenuOpen = this.handleFilterMenuOpen.bind(this);
     this.handleFilterMenuClose = this.handleFilterMenuClose.bind(this);
     this.exportCSV = this.exportCSV.bind(this);
+    this.exportXLSX = this.exportXLSX.bind(this);
     this.exportFullCSV = this.exportFullCSV.bind(this);
     this.forceRefresh = this.forceRefresh.bind(this);
     this.resize = this.resize.bind(this);
@@ -311,6 +312,23 @@ export default class Chart extends React.Component {
     });
   }
 
+  exportXLSX(isFullCSV = false) {
+    // this.props.logEvent(LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART, {
+    //   slice_id: this.props.slice.slice_id,
+    //   is_cached: this.props.isCached,
+    // });
+    exportChart({
+      formData: isFullCSV
+        ? { ...this.props.formData, row_limit: this.props.maxRows }
+        : this.props.formData,
+      resultType: 'full',
+      resultFormat: 'xlsx',
+      force: true,
+      ownState: this.props.ownState,
+      slice: this.props.slice,
+    });
+  }
+
   exportFullCSV() {
     this.exportCSV(true);
   }
@@ -410,6 +428,7 @@ export default class Chart extends React.Component {
           logExploreChart={this.logExploreChart}
           onExploreChart={this.onExploreChart}
           exportCSV={this.exportCSV}
+          exportXLSX={this.exportXLSX}
           exportFullCSV={this.exportFullCSV}
           updateSliceName={updateSliceName}
           sliceName={sliceName}
