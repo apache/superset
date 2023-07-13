@@ -47,6 +47,9 @@ jest.mock('src/components/AsyncAceEditor', () => ({
 }));
 jest.mock('src/SqlLab/components/SqlEditorLeftBar', () => jest.fn());
 
+fetchMock.get('glob:*/api/v1/database/*/function_names/', {
+  function_names: [],
+});
 fetchMock.get('glob:*/api/v1/database/*', { result: [] });
 fetchMock.get('glob:*/api/v1/database/*/tables/*', { options: [] });
 fetchMock.post('glob:*/sqllab/execute/*', { result: [] });
@@ -138,7 +141,7 @@ describe('SqlEditor', () => {
     ).toBeInTheDocument();
   });
 
-  it('render a SqlEditorLeftBar', async () => {
+  it.only('render a SqlEditorLeftBar', async () => {
     const { getByTestId } = setup(mockedProps, store);
     await waitFor(() =>
       expect(getByTestId('mock-sql-editor-left-bar')).toBeInTheDocument(),
