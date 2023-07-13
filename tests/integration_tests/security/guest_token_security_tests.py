@@ -204,3 +204,32 @@ class TestGuestUserDashboardAccess(SupersetTestCase):
 
         with self.assertRaises(DashboardAccessDeniedError):
             security_manager.raise_for_dashboard_access(self.dash)
+
+    def test_raise_for_dashboard_access_as_guest_no_rbac(self):
+        """
+        Test that guest account has no access to other dashboards.
+
+        A bug in the ``raise_for_dashboard_access`` logic allowed the guest user to
+        fetch data from other dashboards, as long as the other dashboard:
+
+          - was not embedded AND
+            - was not published OR
+            - had at least 1 datasource that the user had access to.
+
+        """
+        g.user = self.unauthorized_guest
+
+        # Create a draft dashboard that is not embedded
+        dash = Dashboard()
+        dash.dashboard_title = "My Dashboard"
+        dash.owners = []
+        dash.slices = []
+        dash.published = False
+        db.session.add(dash)
+        db.session.commit()
+
+        with self.assertRaises(DashboardAccessDeniedError):
+            security_manager.raise_for_dashboard_access(dash)
+
+        db.session.delete(dash)
+        db.session.commit()
