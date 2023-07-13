@@ -124,10 +124,6 @@ type Dataset = {
   table_name: string;
 };
 
-interface DatasetListConfig {
-  PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET: boolean;
-}
-
 interface VirtualDataset extends Dataset {
   extra: Record<string, any>;
   sql: string;
@@ -186,10 +182,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
 
-  const PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = useSelector<
+  const PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET: boolean = useSelector<
     any,
-    DatasetListConfig
-  >(state => state.common?.conf?.PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET);
+    boolean
+  >(
+    state =>
+      state.common?.conf?.PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET || false,
+  );
 
   const openDatasetImportModal = () => {
     showImportModal(true);
