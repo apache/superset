@@ -713,8 +713,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
             if response_type == ChartDataResultFormat.XLSX:
                 return send_file(self.generate_json(viz_obj, response_type),
-                                 download_name='file_from_superset.xlsx',
-                                 mimetype='application/xlsx')
+                                 download_name='file_from_superset.xlsx')
             return self.generate_json(viz_obj, response_type)
         except SupersetException as ex:
             return json_error_response(utils.error_msg_from_exception(ex), 400)

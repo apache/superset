@@ -248,7 +248,7 @@ class ChartDataRestApi(ChartRestApi):
         if query_context.result_format == ChartDataResultFormat.XLSX:
             return send_file(self._get_data_response(
                 command, form_data=form_data, datasource=query_context.datasource
-            ), download_name='file_from_superset.xlsx', mimetype='application/xlsx')
+            ), download_name='file_from_superset.xlsx')
 
         return self._get_data_response(
             command, form_data=form_data, datasource=query_context.datasource
