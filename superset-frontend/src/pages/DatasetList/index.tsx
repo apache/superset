@@ -182,7 +182,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
 
-  const PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET: boolean = useSelector<
+  const PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = useSelector<
     any,
     boolean
   >(
