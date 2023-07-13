@@ -246,9 +246,13 @@ class ChartDataRestApi(ChartRestApi):
         form_data = json_body.get("form_data")
 
         if query_context.result_format == ChartDataResultFormat.XLSX:
-            return send_file(self._get_data_response(
-                command, form_data=form_data, datasource=query_context.datasource
-            ), download_name='file_from_superset.xlsx')
+            return send_file(self._get_data_response(command, form_data=form_data,
+                                                     datasource=query_context.datasource
+                                                     ), download_name="data.xlsx",
+                             mimetype="application/vnd.openxmlformats"
+                                      "-officedocument.spreadsheetml.sheet",
+                             as_attachment=True
+                             )
 
         return self._get_data_response(
             command, form_data=form_data, datasource=query_context.datasource
@@ -364,7 +368,10 @@ class ChartDataRestApi(ChartRestApi):
                 data = result["queries"][0]["data"]
                 df = pd.DataFrame(data)
                 excel_writer = io.BytesIO()
-                df.to_excel(excel_writer)
+                writer = pd.ExcelWriter(excel_writer, mode="w", engine="xlsxwriter")
+
+                df.to_excel(writer, startrow=0, merge_cells=False,
+                            sheet_name="Sheet_1", index_label=None, index=False)
                 excel_writer.seek(0)
                 return excel_writer
 
