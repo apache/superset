@@ -9,7 +9,6 @@ on:
 
 jobs:
   app-checks:
-    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"

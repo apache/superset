@@ -15308,10 +15308,10 @@ msgstr "用于移动时间列的小时数（负数或正数）。这可用于将
 #, python-format
 msgid ""
 "The number of results displayed is limited to %(rows)d by the "
-"configuration DISPLAY_MAX_ROWS. Please add additional limits/filters or "
+"configuration DISPLAY_MAX_ROW. Please add additional limits/filters or "
 "download to csv to see more rows up to the %(limit)d limit."
 msgstr ""
-"显示的结果数由配置DISPLAY_MAX_rows限制为 %(rows)d 。请添加其他限制/筛选器或下载到csv以查看更多行数，限制为 "
+"显示的结果数由配置DISPLAY_MAX_ROW限制为 %(rows)d 。请添加其他限制/筛选器或下载到csv以查看更多行数，限制为 "
 "%(limit)d "
 
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:307

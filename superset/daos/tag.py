@@ -31,8 +31,7 @@ from superset.tags.models import get_tag, ObjectTypes, Tag, TaggedObject, TagTyp
 logger = logging.getLogger(__name__)
 
 
-class TagDAO(BaseDAO):
-    model_cls = Tag
+class TagDAO(BaseDAO[Tag]):
     # base_filter = TagAccessFilter
 
     @staticmethod

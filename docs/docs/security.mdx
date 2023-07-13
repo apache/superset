@@ -157,11 +157,6 @@ HTTPS if the cookie is marked “secure”. The application must be served over 
 
 `PERMANENT_SESSION_LIFETIME`: (default: "31 days") The lifetime of a permanent session as a `datetime.timedelta` object.
 
-- Relevant Flask-Login settings:
-
-`SESSION_PROTECTION`: The method used to protect the session from being stolen. [Documentation](https://flask-login.readthedocs.io/en/latest/#session-protection)
-Default: "strong"
-
 ### Content Security Policy (CSP)
 
 Superset uses the [Talisman](https://pypi.org/project/flask-talisman/) extension to enable implementation of a
@@ -186,7 +181,7 @@ prevent many types of attacks. Superset provides two variables in `config.py` fo
 other arguments to be passed to Talisman.
 
 When running in production mode, Superset will check at startup for the presence
-of a CSP.  If one is not found, it will issue a warning with the security risks. For environments
+of a CSP. If one is not found, it will issue a warning with the security risks. For environments
 where CSP policies are defined outside of Superset using other software, administrators can disable
 this warning using the `CONTENT_SECURITY_POLICY_WARNING` key in `config.py`.
 
@@ -208,13 +203,13 @@ You can get current nonce value by calling jinja macro `csp_nonce()`.
   </script>
   ```
 
-* Some dashboards load images using data URIs and require `data:` in their `img-src`
+- Some dashboards load images using data URIs and require `data:` in their `img-src`
 
   ```
   img-src 'self' data:
   ```
 
-* MapBox charts use workers and need to connect to MapBox servers in addition to the Superset origin
+- MapBox charts use workers and need to connect to MapBox servers in addition to the Superset origin
 
   ```
   worker-src 'self' blob:
@@ -231,7 +226,7 @@ In order to adjust provided CSP configuration to your needs, follow the instruct
 
 Setting `TALISMAN_ENABLED = True` will invoke Talisman's protection with its default arguments,
 of which `content_security_policy` is only one. Those can be found in the
-[Talisman documentation](https://pypi.org/project/flask-talisman/) under *Options*.
+[Talisman documentation](https://pypi.org/project/flask-talisman/) under _Options_.
 These generally improve security, but administrators should be aware of their existence.
 
 In particular, the option of `force_https = True` (`False` by default) may break Superset's Alerts & Reports

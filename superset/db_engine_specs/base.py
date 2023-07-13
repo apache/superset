@@ -106,7 +106,7 @@ builtin_time_grains: dict[str | None, str] = {
     TimeGrainConstants.WEEK_STARTING_SUNDAY: __("Week starting Sunday"),
     TimeGrainConstants.WEEK_STARTING_MONDAY: __("Week starting Monday"),
     TimeGrainConstants.WEEK_ENDING_SATURDAY: __("Week ending Saturday"),
-    TimeGrainConstants.WEEK_ENDING_SUNDAY: __("Week_ending Sunday"),
+    TimeGrainConstants.WEEK_ENDING_SUNDAY: __("Week ending Sunday"),
 }
 
 
@@ -158,6 +158,7 @@ class MetricType(TypedDict, total=False):
     metric_type: str | None
     description: str | None
     d3format: str | None
+    currency: str | None
     warning_text: str | None
     extra: str | None
 
@@ -1852,6 +1853,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ).intersection(sqlalchemy_uri.query):
             raise ValueError(f"Forbidden query parameter(s): {existing_disallowed}")
 
+    @classmethod
+    def denormalize_name(cls, dialect: Dialect, name: str) -> str:
+        if (
+            hasattr(dialect, "requires_name_normalize")
+            and dialect.requires_name_normalize
+        ):
+            return dialect.denormalize_name(name)
+
+        return name
+
 
 # schema for adding a database by providing parameters instead of the
 # full SQLAlchemy URI
@@ -1879,6 +1890,10 @@ class BasicParametersSchema(Schema):
     encryption = fields.Boolean(
         required=False,
         metadata={"description": __("Use an encrypted connection to the database")},
+    )
+    ssh = fields.Boolean(
+        required=False,
+        metadata={"description": __("Use an ssh tunnel connection to the database")},
     )
 
 

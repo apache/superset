@@ -31,6 +31,7 @@ import {
   QueryFormData,
   SetDataMaskHook,
   ContextMenuFilters,
+  CurrencyFormatter,
 } from '@superset-ui/core';
 import { ColorFormatters, ColumnConfig } from '@superset-ui/chart-controls';
 
@@ -42,7 +43,11 @@ export interface DataColumnMeta {
   // `label` is verbose column name used for rendering
   label: string;
   dataType: GenericDataType;
-  formatter?: TimeFormatter | NumberFormatter | CustomFormatter;
+  formatter?:
+    | TimeFormatter
+    | NumberFormatter
+    | CustomFormatter
+    | CurrencyFormatter;
   isMetric?: boolean;
   isPercentMetric?: boolean;
   isNumeric?: boolean;

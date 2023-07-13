@@ -3303,8 +3303,8 @@
       "The number of hours, negative or positive, to shift the time column. This can be used to move UTC time to local time.": [
         "用于移动时间列的小时数（负数或正数）。这可用于将UTC时间移动到本地时间"
       ],
-      "The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROWS. Please add additional limits/filters or download to csv to see more rows up to the %(limit)d limit.": [
-        "显示的结果数由配置DISPLAY_MAX_rows限制为 %(rows)d 。请添加其他限制/筛选器或下载到csv以查看更多行数，限制为 %(limit)d "
+      "The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROW. Please add additional limits/filters or download to csv to see more rows up to the %(limit)d limit.": [
+        "显示的结果数由配置DISPLAY_MAX_ROW限制为 %(rows)d 。请添加其他限制/筛选器或下载到csv以查看更多行数，限制为 %(limit)d "
       ],
       "The number of results displayed is limited to %(rows)d. Please add additional limits/filters, download to csv, or contact an admin to see more rows up to the %(limit)d limit.": [
         "显示的结果数限制为 %(rows)d。请添加其他筛选器，下载到csv，或与管理员联系以查看 %(limit)d 的更多行”"

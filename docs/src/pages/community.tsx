@@ -159,6 +159,26 @@ const StyledNewsletterIframe = styled('iframe')`
   }
 `;
 
+const StyledLink = styled('a')`
+  display: inline-flex;
+  align-items: center;
+  font-size: 20px;
+  font-weight: bold;
+  line-height: 1.4;
+  margin-top: 12px;
+  ${mq[1]} {
+    font-size: 18px;
+  }
+  img {
+    width: 24px;
+    height: 24px;
+    margin-right: 12px;
+    ${mq[1]} {
+      display: none;
+    }
+  }
+`;
+
 const Community = () => {
   return (
     <Layout
@@ -208,7 +228,19 @@ const Community = () => {
           <SectionHeader
             level="h2"
             title="Superset Community Calendar"
-            subtitle="Join us for live demos, meetups, discussions, and more!"
+            subtitle={
+              <>
+                Join us for live demos, meetups, discussions, and more!
+                <br />
+                <StyledLink
+                  href="https://calendar.google.com/calendar/u/0/r?cid=superset.committers@gmail.com"
+                  target="_blank"
+                >
+                  <img src="/img/calendar-icon.svg" alt="calendar-icon" />
+                  Subscribe to the Superset Community Calendar
+                </StyledLink>
+              </>
+            }
           />
           <StyledCalendarIframe
             src="https://calendar.google.com/calendar/embed?src=superset.committers%40gmail.com&ctz=America%2FLos_Angeles"

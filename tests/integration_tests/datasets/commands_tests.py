@@ -148,6 +148,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
             "main_dttm_col": None,
             "metrics": [
                 {
+                    "currency": None,
                     "d3format": None,
                     "description": None,
                     "expression": "COUNT(*)",
@@ -158,6 +159,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
                     "warning_text": None,
                 },
                 {
+                    "currency": None,
                     "d3format": None,
                     "description": None,
                     "expression": "SUM(value)",
@@ -381,6 +383,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         assert metric.expression == "count(1)"
         assert metric.description is None
         assert metric.d3format is None
+        assert metric.currency is None
         assert metric.extra == "{}"
         assert metric.warning_text is None
 
@@ -397,8 +400,6 @@ class TestImportDatasetsCommand(SupersetTestCase):
         assert column.description is None
         assert column.python_date_format is None
 
-        dataset.owners = []
-        dataset.database.owners = []
         db.session.delete(dataset)
         db.session.delete(dataset.database)
         db.session.commit()
@@ -526,8 +527,6 @@ class TestImportDatasetsCommand(SupersetTestCase):
         )
         assert len(database.tables) == 1
 
-        database.tables[0].owners = []
-        database.owners = []
         db.session.delete(database.tables[0])
         db.session.delete(database)
         db.session.commit()

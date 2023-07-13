@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import pick from 'lodash/pick';
 import {
   BYTES_PER_CHAR,
   KB_STORAGE,
@@ -48,6 +49,21 @@ function shouldEmptyQueryResults(query) {
     ((JSON.stringify(results)?.length || 0) * BYTES_PER_CHAR) / KB_STORAGE >
       LOCALSTORAGE_MAX_QUERY_RESULTS_KB
   );
+}
+
+export function emptyTablePersistData(tables) {
+  return tables
+    .map(table =>
+      pick(table, [
+        'id',
+        'name',
+        'dbId',
+        'schema',
+        'dataPreviewQueryId',
+        'queryEditorId',
+      ]),
+    )
+    .filter(({ queryEditorId }) => Boolean(queryEditorId));
 }
 
 export function emptyQueryResults(queries) {

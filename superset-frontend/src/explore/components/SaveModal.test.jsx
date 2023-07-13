@@ -164,7 +164,7 @@ test('disables overwrite option for new slice', () => {
 
 test('disables overwrite option for non-owner', () => {
   const wrapperForNonOwner = getWrapper();
-  wrapperForNonOwner.setProps({ userId: 2 });
+  wrapperForNonOwner.setProps({ user: { userId: 2 } });
   const overwriteRadio = wrapperForNonOwner.find('#overwrite-radio');
   expect(overwriteRadio).toHaveLength(1);
   expect(overwriteRadio.prop('disabled')).toBe(true);

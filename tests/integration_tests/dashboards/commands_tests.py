@@ -573,10 +573,6 @@ class TestImportDashboardsCommand(SupersetTestCase):
 
         assert dashboard.owners == [admin]
 
-        dashboard.owners = []
-        chart.owners = []
-        dataset.owners = []
-        database.owners = []
         db.session.delete(dashboard)
         db.session.delete(chart)
         db.session.delete(dataset)

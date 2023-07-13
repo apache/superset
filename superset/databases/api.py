@@ -383,9 +383,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
             # Return SSH Tunnel and hide passwords if any
             if item.get("ssh_tunnel"):
-                item["ssh_tunnel"] = mask_password_info(
-                    new_model.ssh_tunnel  # pylint: disable=no-member
-                )
+                item["ssh_tunnel"] = mask_password_info(new_model.ssh_tunnel)
 
             return self.response(201, id=new_model.id, result=item)
         except DatabaseInvalidError as ex:

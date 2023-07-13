@@ -30,6 +30,8 @@ import {
   TimeFormatter,
   SupersetTheme,
   normalizeTimestamp,
+  LegendState,
+  ValueFormatter,
 } from '@superset-ui/core';
 import { SortSeriesType } from '@superset-ui/chart-controls';
 import { format, LegendComponentOption, SeriesOption } from 'echarts';
@@ -52,6 +54,7 @@ export function extractDataTotalValues(
     stack: StackType;
     percentageThreshold: number;
     xAxisCol: string;
+    legendState?: LegendState;
   },
 ): {
   totalStackedValues: number[];
@@ -59,11 +62,14 @@ export function extractDataTotalValues(
 } {
   const totalStackedValues: number[] = [];
   const thresholdValues: number[] = [];
-  const { stack, percentageThreshold, xAxisCol } = opts;
+  const { stack, percentageThreshold, xAxisCol, legendState } = opts;
   if (stack) {
     data.forEach(datum => {
       const values = Object.keys(datum).reduce((prev, curr) => {
         if (curr === xAxisCol) {
+          return prev;
+        }
+        if (legendState && !legendState[curr]) {
           return prev;
         }
         const value = datum[curr] || 0;
@@ -85,23 +91,28 @@ export function extractShowValueIndexes(
     stack: StackType;
     onlyTotal?: boolean;
     isHorizontal?: boolean;
+    legendState?: LegendState;
   },
 ): number[] {
   const showValueIndexes: number[] = [];
-  if (opts.stack) {
+  const { legendState, stack, isHorizontal, onlyTotal } = opts;
+  if (stack) {
     series.forEach((entry, seriesIndex) => {
       const { data = [] } = entry;
       (data as [any, number][]).forEach((datum, dataIndex) => {
-        if (!opts.onlyTotal && datum[opts.isHorizontal ? 0 : 1] !== null) {
+        if (entry.id && legendState && !legendState[entry.id]) {
+          return;
+        }
+        if (!onlyTotal && datum[isHorizontal ? 0 : 1] !== null) {
           showValueIndexes[dataIndex] = seriesIndex;
         }
-        if (opts.onlyTotal) {
-          if (datum[opts.isHorizontal ? 0 : 1] > 0) {
+        if (onlyTotal) {
+          if (datum[isHorizontal ? 0 : 1] > 0) {
             showValueIndexes[dataIndex] = seriesIndex;
           }
           if (
             !showValueIndexes[dataIndex] &&
-            datum[opts.isHorizontal ? 0 : 1] !== null
+            datum[isHorizontal ? 0 : 1] !== null
           ) {
             showValueIndexes[dataIndex] = seriesIndex;
           }
@@ -335,7 +346,7 @@ export function formatSeriesName(
     timeFormatter,
     coltype,
   }: {
-    numberFormatter?: NumberFormatter;
+    numberFormatter?: ValueFormatter;
     timeFormatter?: TimeFormatter;
     coltype?: GenericDataType;
   } = {},
@@ -404,6 +415,7 @@ export function getLegendProps(
   show: boolean,
   theme: SupersetTheme,
   zoomable = false,
+  legendState?: LegendState,
 ): LegendComponentOption | LegendComponentOption[] {
   const legend: LegendComponentOption | LegendComponentOption[] = {
     orient: [LegendOrientation.Top, LegendOrientation.Bottom].includes(
@@ -413,6 +425,7 @@ export function getLegendProps(
       : 'vertical',
     show,
     type,
+    selected: legendState,
     selector: ['all', 'inverse'],
     selectorLabel: {
       fontFamily: theme.typography.families.sansSerif,
@@ -495,12 +508,6 @@ export function sanitizeHtml(text: string): string {
   return format.encodeHTML(text);
 }
 
-// TODO: Better use other method to maintain this state
-export const currentSeries = {
-  name: '',
-  legend: '',
-};
-
 export function getAxisType(dataType?: GenericDataType): AxisType {
   if (dataType === GenericDataType.TEMPORAL) {
     return AxisType.time;
@@ -511,7 +518,7 @@ export function getAxisType(dataType?: GenericDataType): AxisType {
 export function getOverMaxHiddenFormatter(
   config: {
     max?: number;
-    formatter?: NumberFormatter;
+    formatter?: ValueFormatter;
   } = {},
 ) {
   const { max, formatter } = config;

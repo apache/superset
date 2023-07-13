@@ -27,13 +27,14 @@ import {
   getTimeFormatter,
   IntervalAnnotationLayer,
   isTimeseriesAnnotationResult,
-  NumberFormatter,
+  LegendState,
   smartDateDetailedFormatter,
   smartDateFormatter,
   SupersetTheme,
   TimeFormatter,
   TimeseriesAnnotationLayer,
   TimeseriesDataRecord,
+  ValueFormatter,
 } from '@superset-ui/core';
 import { SeriesOption } from 'echarts';
 import {
@@ -65,7 +66,7 @@ import {
   formatAnnotationLabel,
   parseAnnotationOpacity,
 } from '../utils/annotation';
-import { currentSeries, getChartPadding } from '../utils/series';
+import { getChartPadding } from '../utils/series';
 import {
   OpacityEnum,
   StackControlsValue,
@@ -156,7 +157,8 @@ export function transformSeries(
     yAxisIndex?: number;
     showValue?: boolean;
     onlyTotal?: boolean;
-    formatter?: NumberFormatter;
+    legendState?: LegendState;
+    formatter?: ValueFormatter;
     totalStackedValues?: number[];
     showValueIndexes?: number[];
     thresholdValues?: number[];
@@ -182,6 +184,7 @@ export function transformSeries(
     showValue,
     onlyTotal,
     formatter,
+    legendState,
     totalStackedValues = [],
     showValueIndexes = [],
     thresholdValues = [],
@@ -308,10 +311,14 @@ export function transformSeries(
       formatter: (params: any) => {
         const { value, dataIndex, seriesIndex, seriesName } = params;
         const numericValue = isHorizontal ? value[0] : value[1];
-        const isSelectedLegend = currentSeries.legend === seriesName;
+        const isSelectedLegend = !legendState || legendState[seriesName];
         const isAreaExpand = stack === StackControlsValue.Expand;
-        if (!formatter) return numericValue;
-        if (!stack || isSelectedLegend) return formatter(numericValue);
+        if (!formatter) {
+          return numericValue;
+        }
+        if (!stack && isSelectedLegend) {
+          return formatter(numericValue);
+        }
         if (!onlyTotal) {
           if (
             numericValue >=

@@ -44,7 +44,7 @@ EOF
 #
 # Build the "lean" image
 #
-docker build --target lean \
+DOCKER_BUILDKIT=1 docker build --target lean \
   -t "${REPO_NAME}:${LATEST_TAG}" \
   --label "sha=${SHA}" \
   --label "built_at=$(date)" \
@@ -55,9 +55,9 @@ docker build --target lean \
 #
 # Build the "lean310" image
 #
-docker build --target lean \
+DOCKER_BUILDKIT=1 docker build --target lean \
   -t "${REPO_NAME}:${LATEST_TAG}-py310" \
-  --build-arg PY_VER="3.10-slim"\
+  --build-arg PY_VER="3.10-slim-bookworm"\
   --label "sha=${SHA}" \
   --label "built_at=$(date)" \
   --label "target=lean310" \
@@ -67,7 +67,7 @@ docker build --target lean \
 #
 # Build the "websocket" image
 #
-docker build \
+DOCKER_BUILDKIT=1 docker build \
   -t "${REPO_NAME}:${LATEST_TAG}-websocket" \
   --label "sha=${SHA}" \
   --label "built_at=$(date)" \
@@ -78,12 +78,23 @@ docker build \
 #
 # Build the dev image
 #
-docker build --target dev \
+DOCKER_BUILDKIT=1 docker build --target dev \
   -t "${REPO_NAME}:${LATEST_TAG}-dev" \
   --label "sha=${SHA}" \
   --label "built_at=$(date)" \
   --label "target=dev" \
   --label "build_actor=${GITHUB_ACTOR}" \
+  .
+
+#
+# Build the dockerize image
+#
+DOCKER_BUILDKIT=1 docker build \
+  -t "${REPO_NAME}:dockerize" \
+  --label "sha=${SHA}" \
+  --label "built_at=$(date)" \
+  --label "build_actor=${GITHUB_ACTOR}" \
+  -f dockerize.Dockerfile \
   .
 
 if [ -z "${DOCKERHUB_TOKEN}" ]; then

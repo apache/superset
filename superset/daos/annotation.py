@@ -17,32 +17,14 @@
 import logging
 from typing import Optional, Union
 
-from sqlalchemy.exc import SQLAlchemyError
-
 from superset.daos.base import BaseDAO
-from superset.daos.exceptions import DAODeleteFailedError
 from superset.extensions import db
 from superset.models.annotations import Annotation, AnnotationLayer
 
 logger = logging.getLogger(__name__)
 
 
-class AnnotationDAO(BaseDAO):
-    model_cls = Annotation
-
-    @staticmethod
-    def bulk_delete(models: Optional[list[Annotation]], commit: bool = True) -> None:
-        item_ids = [model.id for model in models] if models else []
-        try:
-            db.session.query(Annotation).filter(Annotation.id.in_(item_ids)).delete(
-                synchronize_session="fetch"
-            )
-            if commit:
-                db.session.commit()
-        except SQLAlchemyError as ex:
-            db.session.rollback()
-            raise DAODeleteFailedError() from ex
-
+class AnnotationDAO(BaseDAO[Annotation]):
     @staticmethod
     def validate_update_uniqueness(
         layer_id: int, short_descr: str, annotation_id: Optional[int] = None
@@ -64,24 +46,7 @@ class AnnotationDAO(BaseDAO):
         return not db.session.query(query.exists()).scalar()
 
 
-class AnnotationLayerDAO(BaseDAO):
-    model_cls = AnnotationLayer
-
-    @staticmethod
-    def bulk_delete(
-        models: Optional[list[AnnotationLayer]], commit: bool = True
-    ) -> None:
-        item_ids = [model.id for model in models] if models else []
-        try:
-            db.session.query(AnnotationLayer).filter(
-                AnnotationLayer.id.in_(item_ids)
-            ).delete(synchronize_session="fetch")
-            if commit:
-                db.session.commit()
-        except SQLAlchemyError as ex:
-            db.session.rollback()
-            raise DAODeleteFailedError() from ex
-
+class AnnotationLayerDAO(BaseDAO[AnnotationLayer]):
     @staticmethod
     def has_annotations(model_id: Union[int, list[int]]) -> bool:
         if isinstance(model_id, list):

@@ -6,7 +6,6 @@ on:
 jobs:
   config:
     runs-on: "ubuntu-latest"
-    if: github.event.pull_request.draft == false
     outputs:
       has-secrets: ${{ steps.check.outputs.has-secrets }}
     steps:

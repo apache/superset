@@ -1530,7 +1530,7 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.delete_assert_metric(uri, "delete")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 422
-        assert data == {"message": "Dataset could not be deleted."}
+        assert data == {"message": "Datasets could not be deleted."}
         db.session.delete(dataset)
         db.session.commit()
 
@@ -1591,7 +1591,7 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 403
 
     @pytest.mark.usefixtures("create_datasets")
-    @patch("superset.daos.dataset.DatasetDAO.delete")
+    @patch("superset.daos.dataset.DatasetColumnDAO.delete")
     def test_delete_dataset_column_fail(self, mock_dao_delete):
         """
         Dataset API: Test delete dataset column
@@ -1671,7 +1671,7 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 403
 
     @pytest.mark.usefixtures("create_datasets")
-    @patch("superset.daos.dataset.DatasetDAO.delete")
+    @patch("superset.daos.dataset.DatasetMetricDAO.delete")
     def test_delete_dataset_metric_fail(self, mock_dao_delete):
         """
         Dataset API: Test delete dataset metric
@@ -2099,7 +2099,6 @@ class TestDatasetApi(SupersetTestCase):
         assert dataset.table_name == "imported_dataset"
         assert str(dataset.uuid) == dataset_config["uuid"]
 
-        dataset.owners = []
         db.session.delete(dataset)
         db.session.commit()
         db.session.delete(database)
@@ -2201,7 +2200,6 @@ class TestDatasetApi(SupersetTestCase):
         )
         dataset = database.tables[0]
 
-        dataset.owners = []
         db.session.delete(dataset)
         db.session.commit()
         db.session.delete(database)
