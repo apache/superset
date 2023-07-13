@@ -382,7 +382,7 @@ describe('Dashboard edit', () => {
       cy.get(
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
-        .eq(0)
+        .first()
         .should('have.css', 'fill', 'rgb(69, 78, 124)');
       cy.get(
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',

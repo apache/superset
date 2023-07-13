@@ -78,19 +78,20 @@ class CategoricalColorScale extends ExtensibleFunction {
     cleanedValue: string,
   ) {
     // make sure we don't overwrite the origin colors
-    let updatedRange = [...this.originColors];
+    const updatedRange = new Set(this.originColors);
     // remove the color option from shared color
     sharedColorMap.forEach((value: string, key: string) => {
       if (key !== cleanedValue) {
-        updatedRange = updatedRange.filter(color => color !== value);
+        updatedRange.delete(value);
       }
     });
+    // remove the color option from forced colors
     Object.entries(this.parentForcedColors).forEach(([key, value]) => {
       if (key !== cleanedValue) {
-        updatedRange = updatedRange.filter(color => color !== value);
+        updatedRange.delete(value);
       }
-    }); // remove the color option from forced colors
-    this.range(updatedRange.length > 0 ? updatedRange : this.originColors);
+    });
+    this.range(updatedRange.size > 0 ? [...updatedRange] : this.originColors);
   }
 
   getColor(value?: string, sliceId?: number) {
