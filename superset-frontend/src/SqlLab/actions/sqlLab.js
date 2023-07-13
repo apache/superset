@@ -495,14 +495,15 @@ export function addQueryEditor(queryEditor) {
       ? SupersetClient.post({
           endpoint: '/tabstateview/',
           postPayload: { queryEditor },
-        })
-      : Promise.resolve({ json: { id: shortid.generate() } });
+        }).then(({ json }) => ({ ...json, loaded: true }))
+      : Promise.resolve({ id: shortid.generate() });
 
     return sync
-      .then(({ json }) => {
+      .then(({ id, loaded }) => {
         const newQueryEditor = {
           ...queryEditor,
-          id: json.id.toString(),
+          id: id.toString(),
+          loaded,
         };
         return dispatch({
           type: ADD_QUERY_EDITOR,
