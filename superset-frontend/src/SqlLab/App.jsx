@@ -53,6 +53,8 @@ const bootstrapData = getBootstrapData();
 
 initFeatureFlags(bootstrapData.common.feature_flags);
 
+const PERSISTENCE_LOCAL_STORAGE_PATH = 'sqlLab.unsavedQueryEditor';
+
 const initialState = getInitialState(bootstrapData);
 const sqlLabPersistStateConfig = {
   paths: ['sqlLab'],
@@ -60,7 +62,7 @@ const sqlLabPersistStateConfig = {
     slicer: paths => state => {
       const subset = {};
       paths.forEach(path => {
-        if (path === 'sqlLab.unsavedQueryEditor') {
+        if (path === PERSISTENCE_LOCAL_STORAGE_PATH) {
           const {
             queryEditors,
             editorTabLastUpdatedAt,
@@ -74,9 +76,11 @@ const sqlLabPersistStateConfig = {
             unsavedQueryEditor,
             editorTabLastUpdatedAt,
           );
-          const hasFinishedMigrationFromLocalStorage =
-            unsavedQueryEditors.every(({ inLocalStorage }) => !inLocalStorage);
           if (unsavedQueryEditors.length > 0) {
+            const hasFinishedMigrationFromLocalStorage =
+              unsavedQueryEditors.every(
+                ({ inLocalStorage }) => !inLocalStorage,
+              );
             subset.sqlLab = {
               queryEditors: unsavedQueryEditors,
               ...(!hasFinishedMigrationFromLocalStorage && {
@@ -150,7 +154,7 @@ export const store = setupStore({
   enhancers: [
     persistState(
       isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
-        ? ['sqlLab.unsavedQueryEditor']
+        ? [PERSISTENCE_LOCAL_STORAGE_PATH]
         : sqlLabPersistStateConfig.paths,
       sqlLabPersistStateConfig.config,
     ),
