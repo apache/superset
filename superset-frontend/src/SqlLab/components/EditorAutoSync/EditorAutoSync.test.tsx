@@ -61,7 +61,7 @@ afterAll(() => {
   jest.useRealTimers();
 });
 
-test('sync the unsaved editor tab state with api when unsaved has made since lastest updated', async () => {
+test('sync the unsaved editor tab state when there are new changes since the last update', async () => {
   const updateEditorTabState = `glob:*/tabstateview/${defaultQueryEditor.id}`;
   fetchMock.put(updateEditorTabState, 200);
   const isFeatureEnabledMock = jest
@@ -85,7 +85,7 @@ test('sync the unsaved editor tab state with api when unsaved has made since las
   fetchMock.restore();
 });
 
-test('skip syncing the unsaved editor tab state when the updates already synced', async () => {
+test('skip syncing the unsaved editor tab state when the updates are already synced', async () => {
   const updateEditorTabState = `glob:*/tabstateview/${defaultQueryEditor.id}`;
   fetchMock.put(updateEditorTabState, 200);
   const isFeatureEnabledMock = jest
@@ -117,7 +117,7 @@ test('skip syncing the unsaved editor tab state when the updates already synced'
   fetchMock.restore();
 });
 
-test('renders an error toast when api update failed', async () => {
+test('renders an error toast when the sync failed', async () => {
   const updateEditorTabState = `glob:*/tabstateview/${defaultQueryEditor.id}`;
   fetchMock.put(updateEditorTabState, {
     throws: new Error('errorMessage'),
@@ -153,7 +153,7 @@ test('renders an error toast when api update failed', async () => {
   fetchMock.restore();
 });
 
-test('skip syncing the unsaved editor tab state with api when SQLLAB_BACKEND_PERSISTENCE is off', async () => {
+test('skip syncing the unsaved editor tab stat when SQLLAB_BACKEND_PERSISTENCE is off', async () => {
   const updateEditorTabState = `glob:*/tabstateview/${defaultQueryEditor.id}`;
   fetchMock.put(updateEditorTabState, 200);
   const isFeatureEnabledMock = jest
