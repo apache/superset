@@ -351,6 +351,13 @@ export const useTableColumns = (
                   if (typeof value === 'string' && allowHTML) {
                     return safeHtmlSpan(value);
                   }
+				  if (
+                    colType === GenericDataType.TEMPORAL &&
+                    originalFormattedTimeColumnIndex === -1 &&
+                    typeof value === 'object'
+                    ){
+                    return timeFormatter(parseInt(String(value.toString())));
+                  }
                   return String(value);
                 },
                 ...moreConfigs?.[key],
