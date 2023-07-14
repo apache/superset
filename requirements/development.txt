@@ -12,7 +12,7 @@
     #   -r requirements/development.in
 appnope==0.1.3
     # via ipython
-astroid==2.15.6
+astroid==2.11.7
     # via pylint
 asttokens==2.2.1
     # via stack-data
@@ -102,7 +102,7 @@ pyhive[hive]==0.6.5
     # via apache-superset
 pyinstrument==4.4.0
     # via -r requirements/development.in
-pylint==2.17.4
+pylint==2.13.9
     # via -r requirements/development.in
 python-ldap==3.4.3
     # via -r requirements/development.in
@@ -133,8 +133,6 @@ thrift==0.16.0
 thrift-sasl==0.4.3
     # via pyhive
 tomli==2.0.1
-    # via pylint
-tomlkit==0.11.8
     # via pylint
 traitlets==5.9.0
     # via
