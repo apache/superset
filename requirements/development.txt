@@ -12,7 +12,7 @@
     #   -r requirements/development.in
 appnope==0.1.3
     # via ipython
-astroid==2.6.6
+astroid==2.15.6
     # via pylint
 asttokens==2.2.1
     # via stack-data
