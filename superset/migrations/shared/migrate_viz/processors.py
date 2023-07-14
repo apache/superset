@@ -51,6 +51,9 @@ class MigrateAreaChart(MigrateViz):
             self.data["show_extra_controls"] = True
             self.data["stack"] = stacked_map.get(stacked)
 
+        if x_axis := self.data.get("granularity_sqla"):
+            self.data["x_axis"] = x_axis
+
         if x_axis_label := self.data.get("x_axis_label"):
             self.data["x_axis_title"] = x_axis_label
             self.data["x_axis_title_margin"] = 30
