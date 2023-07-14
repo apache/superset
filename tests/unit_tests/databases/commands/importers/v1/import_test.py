@@ -32,14 +32,14 @@ def test_import_database(mocker: MockFixture, session: Session) -> None:
     from superset import security_manager
     from superset.databases.commands.importers.v1.utils import import_database
     from superset.models.core import Database
-    from tests.integration_tests.fixtures.importexport import database_config_non_sqlite
+    from tests.integration_tests.fixtures.importexport import database_config
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = session.get_bind()
     Database.metadata.create_all(engine)  # pylint: disable=no-member
 
-    config = copy.deepcopy(database_config_non_sqlite)
+    config = copy.deepcopy(database_config)
     database = import_database(session, config)
     assert database.database_name == "imported_database"
     assert database.sqlalchemy_uri == "someengine://user:pass@host1"
@@ -57,7 +57,7 @@ def test_import_database(mocker: MockFixture, session: Session) -> None:
 
     # ``allow_dml`` was initially not exported; the import should work if the field is
     # missing
-    config = copy.deepcopy(database_config_non_sqlite)
+    config = copy.deepcopy(database_config)
     del config["allow_dml"]
     session.delete(database)
     session.flush()
@@ -72,7 +72,7 @@ def test_import_database_sqlite_invalid(mocker: MockFixture, session: Session) -
     from superset import app, security_manager
     from superset.databases.commands.importers.v1.utils import import_database
     from superset.models.core import Database
-    from tests.integration_tests.fixtures.importexport import database_config
+    from tests.integration_tests.fixtures.importexport import database_config_sqlite
 
     app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = True
     mocker.patch.object(security_manager, "can_access", return_value=True)
@@ -80,7 +80,7 @@ def test_import_database_sqlite_invalid(mocker: MockFixture, session: Session) -
     engine = session.get_bind()
     Database.metadata.create_all(engine)  # pylint: disable=no-member
 
-    config = copy.deepcopy(database_config)
+    config = copy.deepcopy(database_config_sqlite)
     with pytest.raises(ImportFailedError) as excinfo:
         _ = import_database(session, config)
     assert (
@@ -101,14 +101,14 @@ def test_import_database_managed_externally(
     from superset import security_manager
     from superset.databases.commands.importers.v1.utils import import_database
     from superset.models.core import Database
-    from tests.integration_tests.fixtures.importexport import database_config_non_sqlite
+    from tests.integration_tests.fixtures.importexport import database_config
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = session.get_bind()
     Database.metadata.create_all(engine)  # pylint: disable=no-member
 
-    config = copy.deepcopy(database_config_non_sqlite)
+    config = copy.deepcopy(database_config)
     config["is_managed_externally"] = True
     config["external_url"] = "https://example.org/my_database"
 
@@ -127,14 +127,14 @@ def test_import_database_without_permission(
     from superset import security_manager
     from superset.databases.commands.importers.v1.utils import import_database
     from superset.models.core import Database
-    from tests.integration_tests.fixtures.importexport import database_config_non_sqlite
+    from tests.integration_tests.fixtures.importexport import database_config
 
     mocker.patch.object(security_manager, "can_access", return_value=False)
 
     engine = session.get_bind()
     Database.metadata.create_all(engine)  # pylint: disable=no-member
 
-    config = copy.deepcopy(database_config_non_sqlite)
+    config = copy.deepcopy(database_config)
 
     with pytest.raises(ImportFailedError) as excinfo:
         import_database(session, config)
