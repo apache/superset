@@ -43,6 +43,21 @@ import { Tag as AntdTag } from 'antd';
 import { Tag } from 'src/views/CRUD/types';
 import TagCard from 'src/features/tags/TagCard';
 
+const emptyState = {
+  title: t('No Tags created'),
+  image: 'dashboard.svg',
+  description:
+    'Create a new tag and assign it to existing entities like charts or dashboards',
+  buttonAction: () => {},
+  // todo(hughhh): Add this back once Tag modal is functional
+  // buttonText: (
+  //   <>
+  //     <i className="fa fa-plus" data-test="add-rule-empty" />{' '}
+  //     {'Create a new Tag'}{' '}
+  //   </>
+  // ),
+};
+
 const PAGE_SIZE = 25;
 
 interface TagListProps {
@@ -303,6 +318,7 @@ function TagList(props: TagListProps) {
                 count={tagCount}
                 data={tags.filter(tag => !tag.name.includes(':'))}
                 disableBulkSelect={toggleBulkSelect}
+                emptyState={emptyState}
                 fetchData={fetchData}
                 filters={filters}
                 initialSort={initialSort}
