@@ -538,7 +538,7 @@ describe('async actions', () => {
         const expectedActions = [
           {
             type: actions.ADD_QUERY_EDITOR,
-            queryEditor: { ...queryEditor, id: '1' },
+            queryEditor: { ...queryEditor, id: '1', loaded: true },
           },
         ];
         return store.dispatch(actions.addQueryEditor(queryEditor)).then(() => {
