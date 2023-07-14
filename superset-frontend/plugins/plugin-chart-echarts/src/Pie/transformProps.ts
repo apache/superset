@@ -165,6 +165,7 @@ export default function transformProps(
     legendType,
     metric = '',
     numberFormat,
+    currencyFormat,
     dateFormat,
     outerRadius,
     showLabels,
@@ -211,7 +212,7 @@ export default function transformProps(
     currencyFormats,
     columnFormats,
     numberFormat,
-    undefined,
+    currencyFormat,
   );
 
   let totalValue = 0;

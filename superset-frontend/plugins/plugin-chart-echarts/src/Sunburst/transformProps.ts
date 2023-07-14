@@ -195,6 +195,7 @@ export default function transformProps(
     linearColorScheme,
     labelType,
     numberFormat,
+    currencyFormat,
     dateFormat,
     showLabels,
     showLabelsThreshold,
@@ -208,7 +209,7 @@ export default function transformProps(
     currencyFormats,
     columnFormats,
     numberFormat,
-    undefined,
+    currencyFormat,
   );
   const secondaryValueFormatter = secondaryMetric
     ? getValueFormatter(
@@ -216,7 +217,7 @@ export default function transformProps(
         currencyFormats,
         columnFormats,
         numberFormat,
-        undefined,
+        currencyFormat,
       )
     : undefined;
 

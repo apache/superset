@@ -112,6 +112,7 @@ export default function transformProps(
     legendType,
     metric = '',
     numberFormat,
+    currencyFormat,
     showLabels,
     showLegend,
     sliceId,
@@ -147,7 +148,7 @@ export default function transformProps(
     currencyFormats,
     columnFormats,
     numberFormat,
-    undefined,
+    currencyFormat,
   );
 
   const transformedData: FunnelSeriesOption[] = data.map(datum => {
