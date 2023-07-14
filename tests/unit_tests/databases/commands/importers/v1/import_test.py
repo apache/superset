@@ -69,11 +69,12 @@ def test_import_database_sqlite_invalid(mocker: MockFixture, session: Session) -
     """
     Test importing a database.
     """
-    from superset import security_manager
+    from superset import app, security_manager
     from superset.databases.commands.importers.v1.utils import import_database
     from superset.models.core import Database
     from tests.integration_tests.fixtures.importexport import database_config
 
+    app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = True
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = session.get_bind()
@@ -86,6 +87,8 @@ def test_import_database_sqlite_invalid(mocker: MockFixture, session: Session) -
         str(excinfo.value)
         == "SQLiteDialect_pysqlite cannot be used as a data source for security reasons."
     )
+    # restore app config
+    app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = True
 
 
 def test_import_database_managed_externally(

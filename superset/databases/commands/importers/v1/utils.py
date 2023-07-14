@@ -18,10 +18,9 @@
 import json
 from typing import Any
 
-from sqlalchemy.engine.url import make_url
 from sqlalchemy.orm import Session
 
-from superset import security_manager
+from superset import app, security_manager
 from superset.commands.exceptions import ImportFailedError
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
@@ -50,10 +49,11 @@ def import_database(
             "Database doesn't exist and user doesn't have permission to create databases"
         )
     # Check if this URI is allowed
-    try:
-        check_sqlalchemy_uri(make_url_safe(config["sqlalchemy_uri"]))
-    except SupersetSecurityException as e:
-        raise ImportFailedError(e.message)
+    if app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]:
+        try:
+            check_sqlalchemy_uri(make_url_safe(config["sqlalchemy_uri"]))
+        except SupersetSecurityException as exc:
+            raise ImportFailedError(exc.message) from exc
     # https://github.com/apache/superset/pull/16756 renamed ``csv`` to ``file``.
     config["allow_file_upload"] = config.pop("allow_csv_upload")
     if "schemas_allowed_for_csv_upload" in config["extra"]:
