@@ -192,7 +192,7 @@ packaging==23.1
     #   deprecation
     #   limits
     #   marshmallow
-pandas==1.5.3
+pandas==2.0.0
     # via apache-superset
 paramiko==2.11.0
     # via sshtunnel

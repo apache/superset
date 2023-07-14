@@ -162,8 +162,8 @@ def test_rolling_after_pivot_with_single_metric():
         pd.DataFrame(
             data={
                 "dttm": pd.to_datetime(["2019-01-01", "2019-01-02"]),
-                FLAT_COLUMN_SEPARATOR.join(["sum_metric", "UK"]): [5.0, 12.0],
-                FLAT_COLUMN_SEPARATOR.join(["sum_metric", "US"]): [6.0, 14.0],
+                FLAT_COLUMN_SEPARATOR.join(["sum_metric", "UK"]): [5, 12],
+                FLAT_COLUMN_SEPARATOR.join(["sum_metric", "US"]): [6, 14],
             }
         )
     )
@@ -213,10 +213,10 @@ def test_rolling_after_pivot_with_multiple_metrics():
         pd.DataFrame(
             data={
                 "dttm": pd.to_datetime(["2019-01-01", "2019-01-02"]),
-                FLAT_COLUMN_SEPARATOR.join(["count_metric", "UK"]): [1.0, 4.0],
-                FLAT_COLUMN_SEPARATOR.join(["count_metric", "US"]): [2.0, 6.0],
-                FLAT_COLUMN_SEPARATOR.join(["sum_metric", "UK"]): [5.0, 12.0],
-                FLAT_COLUMN_SEPARATOR.join(["sum_metric", "US"]): [6.0, 14.0],
+                FLAT_COLUMN_SEPARATOR.join(["count_metric", "UK"]): [1, 4],
+                FLAT_COLUMN_SEPARATOR.join(["count_metric", "US"]): [2, 6],
+                FLAT_COLUMN_SEPARATOR.join(["sum_metric", "UK"]): [5, 12],
+                FLAT_COLUMN_SEPARATOR.join(["sum_metric", "US"]): [6, 14],
             }
         )
     )
