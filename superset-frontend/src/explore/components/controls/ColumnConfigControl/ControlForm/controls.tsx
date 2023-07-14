@@ -16,13 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode } from 'react';
-import { Slider, InputNumber, Input } from 'antd';
-import Checkbox, { CheckboxProps } from 'antd/lib/checkbox';
-import Select, { SelectOption } from '../Select';
-import RadioButtonControl, {
-  RadioButtonOption,
-} from '../../shared-controls/components/RadioButtonControl';
+import { ReactNode } from 'react';
+import { JsonObject } from '@superset-ui/core';
+import { Select } from 'src/components';
+import { SelectOptionsType } from 'src/components/Select/types';
+import { Input, InputNumber } from 'src/components/Input';
+import Slider from 'src/components/Slider';
+import CurrencyControl from '../../CurrencyControl';
+import RadioButtonControl from '../../../../../../packages/superset-ui-chart-controls/src/shared-controls/components/RadioButtonControl';
+import CheckboxControl from '../../CheckboxControl';
 
 export const ControlFormItemComponents = {
   Slider,
@@ -31,10 +33,9 @@ export const ControlFormItemComponents = {
   Select,
   // Directly export Checkbox will result in "using name from external module" error
   // ref: https://stackoverflow.com/questions/43900035/ts4023-exported-variable-x-has-or-is-using-name-y-from-external-module-but
-  Checkbox: Checkbox as React.ForwardRefExoticComponent<
-    CheckboxProps & React.RefAttributes<HTMLInputElement>
-  >,
+  Checkbox: CheckboxControl,
   RadioButtonControl,
+  CurrencyControl,
 };
 
 export type ControlType = keyof typeof ControlFormItemComponents;
@@ -46,7 +47,6 @@ export type ControlFormItemSpec<T extends ControlType = ControlType> = {
   label: ReactNode;
   description: ReactNode;
   placeholder?: string;
-  required?: boolean;
   validators?: ControlFormValueValidator<any>[];
   width?: number | string;
   /**
@@ -55,7 +55,7 @@ export type ControlFormItemSpec<T extends ControlType = ControlType> = {
   debounceDelay?: number;
 } & (T extends 'Select'
   ? {
-      options: SelectOption<any>[];
+      options: any;
       value?: string;
       defaultValue?: string;
       creatable?: boolean;
@@ -64,7 +64,7 @@ export type ControlFormItemSpec<T extends ControlType = ControlType> = {
     }
   : T extends 'RadioButtonControl'
   ? {
-      options: RadioButtonOption[];
+      options: [string, ReactNode][];
       value?: string;
       defaultValue?: string;
     }
@@ -88,5 +88,11 @@ export type ControlFormItemSpec<T extends ControlType = ControlType> = {
       value?: string;
       defaultValue?: string;
       validators?: ControlFormValueValidator<string>[];
+    }
+  : T extends 'CurrencyControl'
+  ? {
+      controlType: 'CurrencyControl';
+      value?: JsonObject;
+      defaultValue?: JsonObject;
     }
   : {});

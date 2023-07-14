@@ -149,6 +149,7 @@ export default function transformProps(
     currencyFormats,
     columnFormats,
     numberFormat,
+    undefined,
   );
 
   const formatter = (params: TreemapSeriesCallbackDataParams) =>

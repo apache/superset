@@ -208,6 +208,7 @@ export default function transformProps(
     currencyFormats,
     columnFormats,
     numberFormat,
+    undefined,
   );
   const secondaryValueFormatter = secondaryMetric
     ? getValueFormatter(
@@ -215,6 +216,7 @@ export default function transformProps(
         currencyFormats,
         columnFormats,
         numberFormat,
+        undefined,
       )
     : undefined;
 

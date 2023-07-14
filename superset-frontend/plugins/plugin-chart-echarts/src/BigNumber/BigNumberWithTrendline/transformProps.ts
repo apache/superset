@@ -180,6 +180,7 @@ export default function transformProps(
     currencyFormats,
     columnFormats,
     yAxisFormat,
+    undefined,
   );
 
   const headerFormatter =

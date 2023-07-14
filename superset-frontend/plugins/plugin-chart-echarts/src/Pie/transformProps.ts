@@ -211,6 +211,7 @@ export default function transformProps(
     currencyFormats,
     columnFormats,
     numberFormat,
+    undefined,
   );
 
   let totalValue = 0;

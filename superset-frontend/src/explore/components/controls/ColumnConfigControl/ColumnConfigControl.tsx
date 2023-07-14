@@ -23,9 +23,11 @@ import {
   t,
   GenericDataType,
 } from '@superset-ui/core';
-import ControlHeader from '../../../components/ControlHeader';
-import { ControlComponentProps } from '../types';
 
+import {
+  COLUMN_NAME_ALIASES,
+  ControlComponentProps,
+} from '@superset-ui/chart-controls';
 import ColumnConfigItem from './ColumnConfigItem';
 import {
   ColumnConfigInfo,
@@ -33,7 +35,7 @@ import {
   ColumnConfigFormLayout,
 } from './types';
 import { DEFAULT_CONFIG_FORM_LAYOUT } from './constants';
-import { COLUMN_NAME_ALIASES } from '../../../constants';
+import ControlHeader from '../../ControlHeader';
 
 export type ColumnConfigControlProps<T extends ColumnConfig> =
   ControlComponentProps<Record<string, T>> & {

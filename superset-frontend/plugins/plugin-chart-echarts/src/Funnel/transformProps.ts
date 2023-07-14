@@ -147,6 +147,7 @@ export default function transformProps(
     currencyFormats,
     columnFormats,
     numberFormat,
+    undefined,
   );
 
   const transformedData: FunnelSeriesOption[] = data.map(datum => {

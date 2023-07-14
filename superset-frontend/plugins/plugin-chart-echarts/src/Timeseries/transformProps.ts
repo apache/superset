@@ -251,6 +251,7 @@ export default function transformProps(
     currencyFormats,
     columnFormats,
     yAxisFormat,
+    undefined,
   );
 
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);

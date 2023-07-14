@@ -167,6 +167,7 @@ export type InternalControlType =
   | 'DndColumnSelect'
   | 'DndFilterSelect'
   | 'DndMetricSelect'
+  | 'CurrencyControl'
   | keyof SharedControlComponents; // expanded in `expandControlConfig`
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

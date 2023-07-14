@@ -21,11 +21,11 @@ import {
   JsonObject,
   StrictJsonValue,
 } from '@superset-ui/core';
-import { ControlFormItemSpec } from '../../../components/ControlForm';
 import {
   SHARED_COLUMN_CONFIG_PROPS,
   SharedColumnConfigProp,
 } from './constants';
+import { ControlFormItemSpec } from './ControlForm';
 
 /**
  * Column formatting configs.
@@ -51,7 +51,8 @@ export type ColumnConfigFormItem =
 
 export type ColumnConfigFormLayout = Record<
   GenericDataType,
-  ColumnConfigFormItem[][]
+  | ColumnConfigFormItem[][]
+  | { tab: string; children: ColumnConfigFormItem[][] }[]
 >;
 
 export default {};

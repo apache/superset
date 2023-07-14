@@ -66,6 +66,21 @@ export const GlobalStyles = () => (
           )};
         }
       }
+      .column-config-popover {
+        & .ant-popover-inner-content {
+          width: ${theme.gridUnit * 100}px;
+        }
+        & .ant-input-number {
+          width: 100%;
+        }
+        & .btn-group svg {
+          line-height: 0;
+          top: 0 !important;
+        }
+        & .btn-group > .btn {
+          padding: 5px 10px 6px;
+        }
+      }
     `}
   />
 );

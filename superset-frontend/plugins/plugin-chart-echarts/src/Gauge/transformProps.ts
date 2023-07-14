@@ -141,6 +141,7 @@ export default function transformProps(
     currencyFormats,
     columnFormats,
     numberFormat,
+    undefined,
   );
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const axisLineWidth = calculateAxisLineWidth(data, fontSize, overlap);

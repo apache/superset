@@ -45,6 +45,7 @@ export default function transformProps(chartProps) {
     currencyFormats,
     columnFormats,
     yAxisFormat,
+    undefined,
   );
   return {
     width,

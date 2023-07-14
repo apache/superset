@@ -52,6 +52,7 @@ export default function transformProps(chartProps) {
     currencyFormats,
     columnFormats,
     undefined,
+    undefined,
   );
 
   return {

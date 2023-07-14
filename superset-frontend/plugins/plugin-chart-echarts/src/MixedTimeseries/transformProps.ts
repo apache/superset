@@ -230,12 +230,14 @@ export default function transformProps(
     currencyFormats,
     columnFormats,
     yAxisFormat,
+    undefined,
   );
   const customFormattersSecondary = buildCustomFormatters(
     [...ensureIsArray(metrics), ...ensureIsArray(metricsB)],
     currencyFormats,
     columnFormats,
     yAxisFormatSecondary,
+    undefined,
   );
 
   const primarySeries = new Set<string>();

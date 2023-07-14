@@ -18,20 +18,22 @@
  */
 import React from 'react';
 import { GenericDataType } from '@superset-ui/core';
-import ControlForm, {
-  ControlFormRow,
-  ControlFormItem,
-  ControlFormItemSpec,
-} from '../../../components/ControlForm';
+import Tabs from 'src/components/Tabs';
 import {
   SHARED_COLUMN_CONFIG_PROPS,
   SharedColumnConfigProp,
 } from './constants';
 import {
   ColumnConfig,
+  ColumnConfigFormItem,
   ColumnConfigFormLayout,
   ColumnConfigInfo,
 } from './types';
+import ControlForm, {
+  ControlFormItem,
+  ControlFormItemSpec,
+  ControlFormRow,
+} from './ControlForm';
 
 export type ColumnConfigPopoverProps = {
   column: ColumnConfigInfo;
@@ -44,30 +46,48 @@ export default function ColumnConfigPopover({
   configFormLayout,
   onChange,
 }: ColumnConfigPopoverProps) {
+  const renderRow = (row: ColumnConfigFormItem[], i: number) => (
+    <ControlFormRow key={i}>
+      {row.map(meta => {
+        const key = typeof meta === 'string' ? meta : meta.name;
+        const override =
+          typeof meta === 'string'
+            ? {}
+            : 'override' in meta
+            ? meta.override
+            : meta.config;
+        const props = {
+          ...(key in SHARED_COLUMN_CONFIG_PROPS
+            ? SHARED_COLUMN_CONFIG_PROPS[key as SharedColumnConfigProp]
+            : undefined),
+          ...override,
+        } as ControlFormItemSpec;
+        return <ControlFormItem key={key} name={key} {...props} />;
+      })}
+    </ControlFormRow>
+  );
+
+  const layout =
+    configFormLayout[
+      column.type === undefined ? GenericDataType.STRING : column.type
+    ];
+
+  if (layout[0]?.tab) {
+    return (
+      <Tabs>
+        {layout.map((item, i) => (
+          <Tabs.TabPane tab={item.tab} key={i}>
+            <ControlForm onChange={onChange} value={column.config}>
+              {item.children.map((row, i) => renderRow(row, i))}
+            </ControlForm>
+          </Tabs.TabPane>
+        ))}
+      </Tabs>
+    );
+  }
   return (
     <ControlForm onChange={onChange} value={column.config}>
-      {configFormLayout[
-        column.type === undefined ? GenericDataType.STRING : column.type
-      ].map((row, i) => (
-        <ControlFormRow key={i}>
-          {row.map(meta => {
-            const key = typeof meta === 'string' ? meta : meta.name;
-            const override =
-              typeof meta === 'string'
-                ? {}
-                : 'override' in meta
-                ? meta.override
-                : meta.config;
-            const props = {
-              ...(key in SHARED_COLUMN_CONFIG_PROPS
-                ? SHARED_COLUMN_CONFIG_PROPS[key as SharedColumnConfigProp]
-                : undefined),
-              ...override,
-            } as ControlFormItemSpec;
-            return <ControlFormItem key={key} name={key} {...props} />;
-          })}
-        </ControlFormRow>
-      ))}
+      {layout.map((row, i) => renderRow(row, i))}
     </ControlForm>
   );
 }

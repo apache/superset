@@ -18,9 +18,8 @@
  */
 import React, { useState, FunctionComponentElement, ChangeEvent } from 'react';
 import { JsonValue, useTheme } from '@superset-ui/core';
-import ControlHeader, { ControlHeaderProps } from '../ControlHeader';
-import InfoTooltipWithTrigger from '../InfoTooltipWithTrigger';
 import { ControlFormItemComponents, ControlFormItemSpec } from './controls';
+import ControlHeader, { ControlHeaderProps } from '../../../ControlHeader';
 
 export * from './controls';
 
@@ -45,7 +44,6 @@ export function ControlFormItem({
   description,
   width,
   validators,
-  required,
   onChange,
   value: initialValue,
   defaultValue,
@@ -70,7 +68,7 @@ export function ControlFormItem({
     const errors =
       (validators
         ?.map(validator =>
-          !required && isEmptyValue(fieldValue) ? false : validator(fieldValue),
+          isEmptyValue(fieldValue) ? false : validator(fieldValue),
         )
         .filter(x => !!x) as string[]) || [];
     setValidationErrors(errors);
@@ -82,25 +80,30 @@ export function ControlFormItem({
 
   const Control = ControlFormItemComponents[controlType];
 
+  if (controlType === 'Checkbox') {
+    console.log(name, value);
+  }
   return (
     <div
       css={{
         margin: 2 * gridUnit,
         width,
+        maxWidth: '100%',
+        flex: 1,
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
       {controlType === 'Checkbox' ? (
         <ControlFormItemComponents.Checkbox
-          checked={value as boolean}
+          value={value as boolean}
           onChange={handleChange}
-        >
-          {label}{' '}
-          {hovered && description && (
-            <InfoTooltipWithTrigger tooltip={description} />
-          )}
-        </ControlFormItemComponents.Checkbox>
+          name={name}
+          label={label}
+          description={description}
+          validationErrors={validationErrors}
+          {...props}
+        />
       ) : (
         <>
           {label && (
@@ -110,7 +113,6 @@ export function ControlFormItem({
               description={description}
               validationErrors={validationErrors}
               hovered={hovered}
-              required={required}
             />
           )}
           {/* @ts-ignore */}
