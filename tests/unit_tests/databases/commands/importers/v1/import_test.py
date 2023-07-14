@@ -32,17 +32,17 @@ def test_import_database(mocker: MockFixture, session: Session) -> None:
     from superset import security_manager
     from superset.databases.commands.importers.v1.utils import import_database
     from superset.models.core import Database
-    from tests.integration_tests.fixtures.importexport import database_config
+    from tests.integration_tests.fixtures.importexport import database_config_non_sqlite
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = session.get_bind()
     Database.metadata.create_all(engine)  # pylint: disable=no-member
 
-    config = copy.deepcopy(database_config)
+    config = copy.deepcopy(database_config_non_sqlite)
     database = import_database(session, config)
     assert database.database_name == "imported_database"
-    assert database.sqlalchemy_uri == "sqlite:///test.db"
+    assert database.sqlalchemy_uri == "someengine://user:pass@host1"
     assert database.cache_timeout is None
     assert database.expose_in_sqllab is True
     assert database.allow_run_async is False
@@ -57,7 +57,7 @@ def test_import_database(mocker: MockFixture, session: Session) -> None:
 
     # ``allow_dml`` was initially not exported; the import should work if the field is
     # missing
-    config = copy.deepcopy(database_config)
+    config = copy.deepcopy(database_config_non_sqlite)
     del config["allow_dml"]
     session.delete(database)
     session.flush()
@@ -65,12 +65,9 @@ def test_import_database(mocker: MockFixture, session: Session) -> None:
     assert database.allow_dml is False
 
 
-def test_import_database_managed_externally(
-    mocker: MockFixture,
-    session: Session,
-) -> None:
+def test_import_database_sqlite_invalid(mocker: MockFixture, session: Session) -> None:
     """
-    Test importing a database that is managed externally.
+    Test importing a database.
     """
     from superset import security_manager
     from superset.databases.commands.importers.v1.utils import import_database
@@ -83,6 +80,32 @@ def test_import_database_managed_externally(
     Database.metadata.create_all(engine)  # pylint: disable=no-member
 
     config = copy.deepcopy(database_config)
+    with pytest.raises(ImportFailedError) as excinfo:
+        _ = import_database(session, config)
+    assert (
+        str(excinfo.value)
+        == "SQLiteDialect_pysqlite cannot be used as a data source for security reasons."
+    )
+
+
+def test_import_database_managed_externally(
+    mocker: MockFixture,
+    session: Session,
+) -> None:
+    """
+    Test importing a database that is managed externally.
+    """
+    from superset import security_manager
+    from superset.databases.commands.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config_non_sqlite
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config_non_sqlite)
     config["is_managed_externally"] = True
     config["external_url"] = "https://example.org/my_database"
 
@@ -101,14 +124,14 @@ def test_import_database_without_permission(
     from superset import security_manager
     from superset.databases.commands.importers.v1.utils import import_database
     from superset.models.core import Database
-    from tests.integration_tests.fixtures.importexport import database_config
+    from tests.integration_tests.fixtures.importexport import database_config_non_sqlite
 
     mocker.patch.object(security_manager, "can_access", return_value=False)
 
     engine = session.get_bind()
     Database.metadata.create_all(engine)  # pylint: disable=no-member
 
-    config = copy.deepcopy(database_config)
+    config = copy.deepcopy(database_config_non_sqlite)
 
     with pytest.raises(ImportFailedError) as excinfo:
         import_database(session, config)

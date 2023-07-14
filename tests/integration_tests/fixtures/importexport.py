@@ -361,6 +361,21 @@ database_config: dict[str, Any] = {
     "version": "1.0.0",
 }
 
+database_config_non_sqlite: dict[str, Any] = {
+    "allow_csv_upload": True,
+    "allow_ctas": True,
+    "allow_cvas": True,
+    "allow_dml": True,
+    "allow_run_async": False,
+    "cache_timeout": None,
+    "database_name": "imported_database",
+    "expose_in_sqllab": True,
+    "extra": {},
+    "sqlalchemy_uri": "someengine://user:pass@host1",
+    "uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89",
+    "version": "1.0.0",
+}
+
 database_with_ssh_tunnel_config_private_key: dict[str, Any] = {
     "allow_csv_upload": True,
     "allow_ctas": True,
