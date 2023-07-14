@@ -145,7 +145,7 @@ test('renders an error toast when the sync failed', async () => {
     jest.runAllTimers();
   });
   const errorToast = await findByText(
-    'An error occurred while storing your query in the backend. ' +
+    'An error occurred while saving your editor state. ' +
       'Please contact your administrator if this problem persists.',
   );
   expect(errorToast).toBeTruthy();
