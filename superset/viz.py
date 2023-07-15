@@ -774,7 +774,7 @@ class TableViz(BaseViz):
         )
         if self.form_data.get("include_time") and not conditions_met:
             raise QueryObjectValidationError(
-                _("Pick a granularity in the Time section or " "uncheck 'Include Time'")
+                _("Pick a granularity in the Time section or uncheck 'Include Time'")
             )
         return bool(self.form_data.get("include_time"))
 

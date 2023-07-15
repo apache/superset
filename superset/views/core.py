@@ -741,7 +741,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
             flash(
                 _(
-                    "Dashboard [{}] just got created and chart [{}] was added " "to it"
+                    "Dashboard [{}] just got created and chart [{}] was added to it"
                 ).format(dash.dashboard_title, slc.slice_name),
                 "success",
             )

@@ -420,7 +420,7 @@ class ChartDataRestApi(ChartRestApi):
 
         return self._send_chart_response(result, form_data, datasource)
 
-    # pylint: disable=invalid-name,
+    # pylint: disable=invalid-name
     def _load_query_context_form_from_cache(self, cache_key: str) -> dict[str, Any]:
         return QueryContextCacheLoader.load(cache_key)
 

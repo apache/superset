@@ -107,7 +107,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
             # we update at some point in the future.
             if not db_error.args or not isinstance(db_error.args[0], dict):
                 raise PrestoSQLValidationError(
-                    "The pyhive presto client returned an unhandled " "database error."
+                    "The pyhive presto client returned an unhandled database error."
                 ) from db_error
             error_args: dict[str, Any] = db_error.args[0]
 
