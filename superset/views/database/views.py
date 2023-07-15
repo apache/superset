@@ -343,7 +343,6 @@ class ExcelToDatabaseView(SimpleFormView):
                 index_col=form.index_col.data,
                 io=form.excel_file.data,
                 keep_default_na=not form.null_values.data,
-                mangle_dupe_cols=form.mangle_dupe_cols.data,
                 na_values=form.null_values.data if form.null_values.data else None,
                 parse_dates=form.parse_dates.data,
                 skiprows=form.skiprows.data,
