@@ -650,7 +650,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
             ),
             entry="explore",
-            title=title.__str__(),
+            title=title,
             standalone_mode=standalone_mode,
         )
 
@@ -1026,7 +1026,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         return self.render_template(
             "superset/basic.html",
-            title=_("%(user)s's profile", user=get_username()).__str__(),
+            title=_("%(user)s's profile", user=get_username()),
             entry="profile",
             bootstrap_data=json.dumps(
                 payload, default=utils.pessimistic_json_iso_dttm_ser

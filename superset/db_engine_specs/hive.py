@@ -485,9 +485,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         latest_partition: bool = True,
         cols: list[ResultSetColumnType] | None = None,
     ) -> str:
-        return super(  # pylint: disable=bad-super-call
-            PrestoEngineSpec, cls
-        ).select_star(
+        return super(PrestoEngineSpec, cls).select_star(
             database,
             table_name,
             engine,
