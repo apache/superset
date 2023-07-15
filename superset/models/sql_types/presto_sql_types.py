@@ -105,6 +105,7 @@ class TimeStamp(TypeDecorator):
     impl = TIMESTAMP
 
     @classmethod
+    # pylint: disable=arguments-differ
     def process_bind_param(cls, value: str, dialect: Dialect) -> str:
         """
         Used for in-line rendering of TIMESTAMP data type
@@ -121,6 +122,7 @@ class Date(TypeDecorator):
     impl = DATE
 
     @classmethod
+    # pylint: disable=arguments-differ
     def process_bind_param(cls, value: str, dialect: Dialect) -> str:
         """
         Used for in-line rendering of DATE data type

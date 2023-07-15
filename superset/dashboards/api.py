@@ -284,10 +284,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
     def __repr__(self) -> str:
         """Deterministic string representation of the API instance for etag_cache."""
-        return "Superset.dashboards.api.DashboardRestApi@v{}{}".format(
-            self.appbuilder.app.config["VERSION_STRING"],
-            self.appbuilder.app.config["VERSION_SHA"],
-        )
+        version_str = self.appbuilder.app.config["VERSION_STRING"]
+        version_sha = self.appbuilder.app.config["VERSION_SHA"]
+        return f"Superset.dashboards.api.DashboardRestApi@v{version_str}{version_sha}"
 
     @expose("/<id_or_slug>", methods=("GET",))
     @protect()
@@ -305,7 +304,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @with_dashboard
     @event_logger.log_this_with_extra_payload
-    # pylint: disable=arguments-differ
+    # pylint: disable=arguments-differ,arguments-renamed
     def get(
         self,
         dash: Dashboard,
@@ -756,8 +755,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
         log_to_statsd=False,
-    )  # pylint: disable=too-many-locals
-    def export(self, **kwargs: Any) -> Response:
+    )
+    def export(self, **kwargs: Any) -> Response:  # pylint: disable=too-many-locals
         """Export dashboards
         ---
         get:

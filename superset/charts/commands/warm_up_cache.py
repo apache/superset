@@ -62,7 +62,6 @@ class ChartWarmUpCacheCommand(BaseCommand):
                 force=True,
             )
 
-            # pylint: disable=assigning-non-slot
             g.form_data = form_data
             payload = obj.get_payload()
             delattr(g, "form_data")

@@ -619,12 +619,13 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
                 raise SupersetTemplateException(msg)
         if len(kwargs.keys()) != len(part_fields) - 1:
             msg = (
-                "A filter needs to be specified for {} out of the " "{} fields."
-            ).format(len(part_fields) - 1, len(part_fields))
+                f"A filter needs to be specified for {len(part_fields) - 1} out of the "
+                f"{len(part_fields)} fields."
+            )
             raise SupersetTemplateException(msg)
 
         for field in part_fields:
-            if field not in kwargs.keys():
+            if field not in kwargs:
                 field_to_return = field
 
         sql = cls._partition_query(
@@ -931,9 +932,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                             )
                         else:  # otherwise this field is a basic data type
                             full_parent_path = cls._get_full_name(stack)
-                            column_name = "{}.{}".format(
-                                full_parent_path, field_info[0]
-                            )
+                            column_name = f"{full_parent_path}.{field_info[0]}"
                             result.append(
                                 cls._create_column_info(column_name, column_type)
                             )
@@ -1319,8 +1318,10 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                 if total_splits and completed_splits:
                     progress = 100 * (completed_splits / total_splits)
                     logger.info(
-                        "Query {} progress: {} / {} "  # pylint: disable=logging-format-interpolation
-                        "splits".format(query_id, completed_splits, total_splits)
+                        "Query %s progress: %s / %s splits",
+                        query_id,
+                        completed_splits,
+                        total_splits,
                     )
                     if progress > query.progress:
                         query.progress = progress
@@ -1337,11 +1338,10 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             and isinstance(ex.orig[0], dict)
         ):
             error_dict = ex.orig[0]
-            return "{} at {}: {}".format(
-                error_dict.get("errorName"),
-                error_dict.get("errorLocation"),
-                error_dict.get("message"),
-            )
+            error_name = error_dict.get("errorName")
+            error_location = error_dict.get("errorLocation")
+            message = error_dict.get("message")
+            return f"{error_name} at {error_location}: {message}"
         if type(ex).__name__ == "DatabaseError" and hasattr(ex, "args") and ex.args:
             error_dict = ex.args[0]
             return error_dict.get("message", _("Unknown Presto Error"))

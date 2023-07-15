@@ -312,9 +312,10 @@ class HiveEngineSpec(PrestoEngineSpec):
                 reduce_progress = int(match.groupdict()["reduce_progress"])
                 stages[stage_number] = (map_progress + reduce_progress) / 2
         logger.info(
-            "Progress detail: {}, "  # pylint: disable=logging-format-interpolation
-            "current job {}, "
-            "total jobs: {}".format(stages, current_job, total_jobs)
+            "Progress detail: %s, current job %s, total jobs: %s",
+            stages,
+            current_job,
+            total_jobs,
         )
 
         stage_progress = sum(stages.values()) / len(stages.values()) if stages else 0

@@ -354,7 +354,6 @@ class BaseViz:  # pylint: disable=too-many-public-methods
 
         is_timeseries = self.is_timeseries
 
-        # pylint: disable=superfluous-parens
         if DTTM_ALIAS in (groupby_labels := get_column_names(groupby)):
             del groupby[groupby_labels.index(DTTM_ALIAS)]
             is_timeseries = True
@@ -2240,7 +2239,7 @@ class BaseDeckGLViz(BaseViz):
             return (point.latitude, point.longitude)
         except Exception as ex:
             raise SpatialException(
-                _("Invalid spatial point encountered: %s" % latlog)
+                _(f"Invalid spatial point encountered: {latlog}")
             ) from ex
 
     @staticmethod

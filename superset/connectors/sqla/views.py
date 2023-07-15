@@ -410,7 +410,7 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         )
     }
 
-    def post_add(  # pylint: disable=arguments-differ
+    def post_add(
         self,
         item: "TableModelView",
         flash_message: bool = True,

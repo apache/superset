@@ -181,7 +181,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/404'
         """
         if not DashboardDAO.find_by_id(cast(int, dashboard_id)):
-            return self.response(404, message="dashboard '%s' not found" % dashboard_id)
+            return self.response(404, message=f"dashboard '{dashboard_id}' not found")
         rison_data = kwargs.setdefault("rison", {})
         rison_data.setdefault("filters", [])
         rison_data["filters"].append(

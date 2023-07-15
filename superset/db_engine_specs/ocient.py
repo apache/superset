@@ -238,7 +238,7 @@ class OcientEngineSpec(BaseEngineSpec):
     # Store mapping of superset Query id -> Ocient ID
     # These are inserted into the cache when executing the query
     # They are then removed, either upon cancellation or query completion
-    query_id_mapping: dict[str, str] = dict()
+    query_id_mapping: dict[str, str] = {}
     query_id_mapping_lock = threading.Lock()
 
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {

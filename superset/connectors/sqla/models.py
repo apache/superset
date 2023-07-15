@@ -300,7 +300,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
             return GenericDataType.TEMPORAL
 
         return (
-            column_spec.generic_type  # pylint: disable=used-before-assignment
+            column_spec.generic_type
             if (
                 column_spec := self.db_engine_spec.get_column_spec(
                     self.type,

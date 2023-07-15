@@ -148,9 +148,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         _, slc = get_form_data(slice_id, use_slice_data=True)
         if not slc:
             abort(404)
-        endpoint = "/explore/?form_data={}".format(
-            parse.quote(json.dumps({"slice_id": slice_id}))
-        )
+        form_data = parse.quote(json.dumps({"slice_id": slice_id}))
+        endpoint = f"/explore/?form_data={form_data}"
 
         is_standalone_mode = ReservedUrlParameters.is_standalone_mode()
         if is_standalone_mode:
@@ -847,7 +846,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     force=True,
                 )
 
-                # pylint: disable=assigning-non-slot
                 g.form_data = form_data
                 payload = obj.get_payload()
                 delattr(g, "form_data")

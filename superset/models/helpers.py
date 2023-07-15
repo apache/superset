@@ -455,7 +455,7 @@ def _user_link(user: User) -> Union[Markup, str]:
     if not user:
         return ""
     url = f"/superset/profile/{user.username}/"
-    return Markup('<a href="{}">{}</a>'.format(url, escape(user) or ""))
+    return Markup(f"<a href=\"{url}\">{escape(user) or ''}</a>")
 
 
 class AuditMixinNullable(AuditMixin):
@@ -470,7 +470,7 @@ class AuditMixinNullable(AuditMixin):
     )
 
     @declared_attr
-    def created_by_fk(self) -> sa.Column:
+    def created_by_fk(self) -> sa.Column:  # pylint: disable=arguments-renamed
         return sa.Column(
             sa.Integer,
             sa.ForeignKey("ab_user.id"),
@@ -479,7 +479,7 @@ class AuditMixinNullable(AuditMixin):
         )
 
     @declared_attr
-    def changed_by_fk(self) -> sa.Column:
+    def changed_by_fk(self) -> sa.Column:  # pylint: disable=arguments-renamed
         return sa.Column(
             sa.Integer,
             sa.ForeignKey("ab_user.id"),

@@ -91,7 +91,7 @@ class ImportExamplesCommand(ImportModelsCommand):
         )
 
     @staticmethod
-    def _import(  # pylint: disable=arguments-differ, too-many-locals, too-many-branches
+    def _import(  # pylint: disable=too-many-locals, too-many-branches
         session: Session,
         configs: dict[str, Any],
         overwrite: bool = False,
