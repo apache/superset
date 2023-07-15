@@ -17,15 +17,15 @@
  * under the License.
  */
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useDispatch } from 'react-redux';
-import { css, styled, usePrevious } from '@superset-ui/core';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { css, styled, usePrevious, t } from '@superset-ui/core';
 
 import { areArraysShallowEqual } from 'src/reduxUtils';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import {
   queryEditorSetSelectedText,
-  queryEditorSetFunctionNames,
   addTable,
+  addDangerToast,
 } from 'src/SqlLab/actions/sqlLab';
 import {
   SCHEMA_AUTOCOMPLETE_SCORE,
@@ -39,7 +39,15 @@ import {
   FullSQLEditor as AceEditor,
 } from 'src/components/AsyncAceEditor';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
-import { useSchemas, useTables } from 'src/hooks/apiResources';
+import {
+  useSchemas,
+  useTables,
+  tableEndpoints,
+  skipToken,
+} from 'src/hooks/apiResources';
+import { useDatabaseFunctionsQuery } from 'src/hooks/apiResources/databaseFunctions';
+import { RootState } from 'src/views/store';
+import { useAnnotations } from './useAnnotations';
 
 type HotKey = {
   key: string;
@@ -53,8 +61,6 @@ type AceEditorWrapperProps = {
   onBlur: (sql: string) => void;
   onChange: (sql: string) => void;
   queryEditorId: string;
-  database: any;
-  extendedTables?: Array<{ name: string; columns: any[] }>;
   height: string;
   hotkeys: HotKey[];
 };
@@ -84,20 +90,16 @@ const AceEditorWrapper = ({
   onBlur = () => {},
   onChange = () => {},
   queryEditorId,
-  database,
-  extendedTables = [],
   height,
   hotkeys,
 }: AceEditorWrapperProps) => {
   const dispatch = useDispatch();
-
   const queryEditor = useQueryEditor(queryEditorId, [
     'id',
     'dbId',
     'sql',
-    'functionNames',
-    'validationResult',
     'schema',
+    'templateParams',
   ]);
   const { data: schemaOptions } = useSchemas({
     ...(autocomplete && { dbId: queryEditor.dbId }),
@@ -109,8 +111,20 @@ const AceEditorWrapper = ({
     }),
   });
 
+  const { data: functionNames, isError } = useDatabaseFunctionsQuery(
+    { dbId: queryEditor.dbId },
+    { skip: !autocomplete || !queryEditor.dbId },
+  );
+
+  useEffect(() => {
+    if (isError) {
+      dispatch(
+        addDangerToast(t('An error occurred while fetching function names.')),
+      );
+    }
+  }, [dispatch, isError]);
+
   const currentSql = queryEditor.sql ?? '';
-  const functionNames = queryEditor.functionNames ?? [];
 
   // Loading schema, table and column names as auto-completable words
   const { schemas, schemaWords } = useMemo(
@@ -127,6 +141,26 @@ const AceEditorWrapper = ({
   );
   const tables = tableData?.options ?? [];
 
+  const columns = useSelector<RootState, string[]>(state => {
+    const columns = new Set<string>();
+    tables.forEach(({ value }) => {
+      tableEndpoints.tableMetadata
+        .select(
+          queryEditor.dbId && queryEditor.schema
+            ? {
+                dbId: queryEditor.dbId,
+                schema: queryEditor.schema,
+                table: value,
+              }
+            : skipToken,
+        )(state)
+        .data?.columns?.forEach(({ name }) => {
+          columns.add(name);
+        });
+    });
+    return [...columns];
+  }, shallowEqual);
+
   const [sql, setSql] = useState(currentSql);
   const [words, setWords] = useState<AceCompleterKeyword[]>([]);
 
@@ -139,26 +173,23 @@ const AceEditorWrapper = ({
   useEffect(() => {
     // Making sure no text is selected from previous mount
     dispatch(queryEditorSetSelectedText(queryEditor, null));
-    if (queryEditor.dbId) {
-      dispatch(queryEditorSetFunctionNames(queryEditor, queryEditor.dbId));
-    }
     setAutoCompleter();
   }, []);
 
   const prevTables = usePrevious(tables) ?? [];
   const prevSchemas = usePrevious(schemas) ?? [];
-  const prevExtendedTables = usePrevious(extendedTables) ?? [];
+  const prevColumns = usePrevious(columns) ?? [];
   const prevSql = usePrevious(currentSql);
 
   useEffect(() => {
     if (
       !areArraysShallowEqual(tables, prevTables) ||
       !areArraysShallowEqual(schemas, prevSchemas) ||
-      !areArraysShallowEqual(extendedTables, prevExtendedTables)
+      !areArraysShallowEqual(columns, prevColumns)
     ) {
       setAutoCompleter();
     }
-  }, [tables, schemas, extendedTables]);
+  }, [tables, schemas, columns]);
 
   useEffect(() => {
     if (currentSql !== prevSql) {
@@ -213,15 +244,8 @@ const AceEditorWrapper = ({
   };
 
   function setAutoCompleter() {
-    const columns = {};
-
     const tableWords = tables.map(t => {
       const tableName = t.value;
-      const extendedTable = extendedTables.find(et => et.name === tableName);
-      const cols = extendedTable?.columns || [];
-      cols.forEach(col => {
-        columns[col.name] = null; // using an object as a unique set
-      });
 
       return {
         name: t.label,
@@ -231,14 +255,14 @@ const AceEditorWrapper = ({
       };
     });
 
-    const columnWords = Object.keys(columns).map(col => ({
+    const columnWords = columns.map(col => ({
       name: col,
       value: col,
       score: COLUMN_AUTOCOMPLETE_SCORE,
       meta: 'column',
     }));
 
-    const functionWords = functionNames.map(func => ({
+    const functionWords = (functionNames ?? []).map(func => ({
       name: func,
       value: func,
       score: SQL_FUNCTIONS_AUTOCOMPLETE_SCORE,
@@ -248,9 +272,7 @@ const AceEditorWrapper = ({
     const completer = {
       insertMatch: (editor: Editor, data: any) => {
         if (data.meta === 'table') {
-          dispatch(
-            addTable(queryEditor, database, data.value, queryEditor.schema),
-          );
+          dispatch(addTable(queryEditor, data.value, queryEditor.schema));
         }
 
         let { caption } = data;
@@ -277,21 +299,12 @@ const AceEditorWrapper = ({
 
     setWords(words);
   }
-
-  const getAceAnnotations = () => {
-    const { validationResult } = queryEditor;
-    const resultIsReady = validationResult?.completed;
-    if (resultIsReady && validationResult?.errors?.length) {
-      const errors = validationResult.errors.map((err: any) => ({
-        type: 'error',
-        row: err.line_number - 1,
-        column: err.start_column - 1,
-        text: err.message,
-      }));
-      return errors;
-    }
-    return [];
-  };
+  const { data: annotations } = useAnnotations({
+    dbId: queryEditor.dbId,
+    schema: queryEditor.schema,
+    sql: currentSql,
+    templateParams: queryEditor.templateParams,
+  });
 
   return (
     <StyledAceEditor
@@ -304,7 +317,7 @@ const AceEditorWrapper = ({
       editorProps={{ $blockScrolling: true }}
       enableLiveAutocompletion={autocomplete}
       value={sql}
-      annotations={getAceAnnotations()}
+      annotations={annotations}
     />
   );
 };

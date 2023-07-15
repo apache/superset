@@ -116,6 +116,8 @@ const plugins = [
   // expose mode variable to other modules
   new webpack.DefinePlugin({
     'process.env.WEBPACK_MODE': JSON.stringify(mode),
+    'process.env.REDUX_DEFAULT_MIDDLEWARE':
+      process.env.REDUX_DEFAULT_MIDDLEWARE,
   }),
 
   new CopyPlugin({
@@ -417,12 +419,13 @@ const config = {
           {
             loader: '@svgr/webpack',
             options: {
+              icon: true,
+              svgo: false,
               svgoConfig: {
-                plugins: {
-                  removeViewBox: false,
-                  icon: true,
-                },
+                plugins: [{ removeViewBox: false }],
               },
+              titleProp: true,
+              ref: true,
             },
           },
         ],

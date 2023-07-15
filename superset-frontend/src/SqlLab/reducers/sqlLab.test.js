@@ -18,7 +18,6 @@
  */
 import sqlLabReducer from 'src/SqlLab/reducers/sqlLab';
 import * as actions from 'src/SqlLab/actions/sqlLab';
-import { now } from 'src/utils/dates';
 import { table, initialState as mockState } from '../fixtures';
 
 const initialState = mockState.sqlLab;
@@ -209,14 +208,15 @@ describe('sqlLabReducer', () => {
       newState = sqlLabReducer(newState, action);
       expect(newState.unsavedQueryEditor.sql).toBe(expectedSql);
       const interceptedAction = {
-        type: actions.QUERY_EDITOR_SET_FUNCTION_NAMES,
+        type: actions.QUERY_EDITOR_PERSIST_HEIGHT,
         queryEditor: newState.queryEditors[0],
-        functionNames: ['func1', 'func2'],
+        northPercent: 46,
+        southPercent: 54,
       };
       newState = sqlLabReducer(newState, interceptedAction);
       expect(newState.unsavedQueryEditor.sql).toBe(expectedSql);
-      expect(newState.queryEditors[0].functionNames).toBe(
-        interceptedAction.functionNames,
+      expect(newState.queryEditors[0].northPercent).toBe(
+        interceptedAction.northPercent,
       );
     });
   });
@@ -272,6 +272,8 @@ describe('sqlLabReducer', () => {
     });
   });
   describe('Run Query', () => {
+    const DENORMALIZED_CHANGED_ON = '2023-06-26T07:53:05.439';
+    const CHANGED_ON_TIMESTAMP = 1687765985439;
     let newState;
     let query;
     beforeEach(() => {
@@ -279,7 +281,8 @@ describe('sqlLabReducer', () => {
       query = {
         id: 'abcd',
         progress: 0,
-        startDttm: now(),
+        changed_on: DENORMALIZED_CHANGED_ON,
+        startDttm: CHANGED_ON_TIMESTAMP,
         state: 'running',
         cached: false,
         sqlEditorId: 'dfsadfs',
@@ -291,7 +294,8 @@ describe('sqlLabReducer', () => {
         query: {
           id: 'abcd',
           progress: 0,
-          startDttm: now(),
+          changed_on: DENORMALIZED_CHANGED_ON,
+          startDttm: CHANGED_ON_TIMESTAMP,
           state: 'running',
           cached: false,
           sqlEditorId: 'dfsadfs',
@@ -326,6 +330,19 @@ describe('sqlLabReducer', () => {
       };
       newState = sqlLabReducer(newState, removeQueryAction);
       expect(Object.keys(newState.queries)).toHaveLength(0);
+    });
+    it('should refresh queries when polling returns new results', () => {
+      newState = sqlLabReducer(
+        {
+          ...newState,
+          queries: { abcd: {} },
+        },
+        actions.refreshQueries({
+          abcd: query,
+        }),
+      );
+      expect(newState.queries.abcd.changed_on).toBe(DENORMALIZED_CHANGED_ON);
+      expect(newState.queriesLastUpdate).toBe(CHANGED_ON_TIMESTAMP);
     });
     it('should refresh queries when polling returns empty', () => {
       newState = sqlLabReducer(newState, actions.refreshQueries({}));

@@ -90,6 +90,7 @@ describe('PivotTableChart transformProps', () => {
       dateFormatters: {},
       emitCrossFilters: false,
       columnFormats: {},
+      currencyFormats: {},
     });
   });
 });

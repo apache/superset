@@ -173,6 +173,16 @@ const advanced: TableChartProps = {
   ],
 };
 
+const advancedWithCurrency = {
+  ...advanced,
+  datasource: {
+    ...advanced.datasource,
+    currencyFormats: {
+      sum__num: { symbol: 'USD', symbolPosition: 'prefix' },
+    },
+  },
+};
+
 const empty = {
   ...advanced,
   queriesData: [
@@ -186,5 +196,6 @@ const empty = {
 export default {
   basic,
   advanced,
+  advancedWithCurrency,
   empty,
 };

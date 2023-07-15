@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import copy
-from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING
 
 from flask_babel import _
 
@@ -49,7 +49,7 @@ def _get_datasource(
 
 def _get_columns(
     query_context: QueryContext, query_obj: QueryObject, _: bool
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     datasource = _get_datasource(query_context, query_obj)
     return {
         "data": [
@@ -65,7 +65,7 @@ def _get_columns(
 
 def _get_timegrains(
     query_context: QueryContext, query_obj: QueryObject, _: bool
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     datasource = _get_datasource(query_context, query_obj)
     return {
         "data": [
@@ -83,7 +83,7 @@ def _get_query(
     query_context: QueryContext,
     query_obj: QueryObject,
     _: bool,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     datasource = _get_datasource(query_context, query_obj)
     result = {"language": datasource.query_language}
     try:
@@ -96,8 +96,8 @@ def _get_query(
 def _get_full(
     query_context: QueryContext,
     query_obj: QueryObject,
-    force_cached: Optional[bool] = False,
-) -> Dict[str, Any]:
+    force_cached: bool | None = False,
+) -> dict[str, Any]:
     datasource = _get_datasource(query_context, query_obj)
     result_type = query_obj.result_type or query_context.result_type
     payload = query_context.get_df_payload(query_obj, force_cached=force_cached)
@@ -141,7 +141,7 @@ def _get_full(
 
 def _get_samples(
     query_context: QueryContext, query_obj: QueryObject, force_cached: bool = False
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     datasource = _get_datasource(query_context, query_obj)
     query_obj = copy.copy(query_obj)
     query_obj.is_timeseries = False
@@ -162,7 +162,7 @@ def _get_samples(
 
 def _get_drill_detail(
     query_context: QueryContext, query_obj: QueryObject, force_cached: bool = False
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     # todo(yongjie): Remove this function,
     #  when determining whether samples should be applied to the time filter.
     datasource = _get_datasource(query_context, query_obj)
@@ -183,13 +183,13 @@ def _get_drill_detail(
 
 def _get_results(
     query_context: QueryContext, query_obj: QueryObject, force_cached: bool = False
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     payload = _get_full(query_context, query_obj, force_cached)
     return payload
 
 
-_result_type_functions: Dict[
-    ChartDataResultType, Callable[[QueryContext, QueryObject, bool], Dict[str, Any]]
+_result_type_functions: dict[
+    ChartDataResultType, Callable[[QueryContext, QueryObject, bool], dict[str, Any]]
 ] = {
     ChartDataResultType.COLUMNS: _get_columns,
     ChartDataResultType.TIMEGRAINS: _get_timegrains,
@@ -210,7 +210,7 @@ def get_query_results(
     query_context: QueryContext,
     query_obj: QueryObject,
     force_cached: bool,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Return result payload for a chart data request.
 
@@ -221,8 +221,7 @@ def get_query_results(
     :raises QueryObjectValidationError: if an unsupported result type is requested
     :return: JSON serializable result payload
     """
-    result_func = _result_type_functions.get(result_type)
-    if result_func:
+    if result_func := _result_type_functions.get(result_type):
         return result_func(query_context, query_obj, force_cached)
     raise QueryObjectValidationError(
         _("Invalid result type: %(result_type)s", result_type=result_type)

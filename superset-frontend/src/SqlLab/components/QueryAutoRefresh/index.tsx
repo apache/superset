@@ -92,7 +92,7 @@ function QueryAutoRefresh({
                 }, {}) ?? {};
               dispatch(refreshQueries(queries));
             } else {
-              dispatch(clearInactiveQueries());
+              dispatch(clearInactiveQueries(QUERY_UPDATE_FREQ));
             }
           }
         })
@@ -102,7 +102,7 @@ function QueryAutoRefresh({
         });
     }
     if (!cleanInactiveRequestRef.current && !shouldRequestChecking) {
-      dispatch(clearInactiveQueries());
+      dispatch(clearInactiveQueries(QUERY_UPDATE_FREQ));
       cleanInactiveRequestRef.current = true;
     }
   };

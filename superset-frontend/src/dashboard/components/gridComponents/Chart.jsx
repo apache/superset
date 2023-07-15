@@ -29,6 +29,7 @@ import {
   LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
   LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
   LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
+  LOG_ACTIONS_EXPORT_XLSX_DASHBOARD_CHART,
   LOG_ACTIONS_FORCE_REFRESH_CHART,
 } from 'src/logger/LogUtils';
 import { areObjectsEqual } from 'src/reduxUtils';
@@ -77,7 +78,6 @@ const propTypes = {
   supersetCanExplore: PropTypes.bool.isRequired,
   supersetCanShare: PropTypes.bool.isRequired,
   supersetCanCSV: PropTypes.bool.isRequired,
-  sliceCanEdit: PropTypes.bool.isRequired,
   addSuccessToast: PropTypes.func.isRequired,
   addDangerToast: PropTypes.func.isRequired,
   ownState: PropTypes.object,
@@ -139,6 +139,8 @@ class Chart extends React.Component {
     this.handleFilterMenuClose = this.handleFilterMenuClose.bind(this);
     this.exportCSV = this.exportCSV.bind(this);
     this.exportFullCSV = this.exportFullCSV.bind(this);
+    this.exportXLSX = this.exportXLSX.bind(this);
+    this.exportFullXLSX = this.exportFullXLSX.bind(this);
     this.forceRefresh = this.forceRefresh.bind(this);
     this.resize = this.resize.bind(this);
     this.setDescriptionRef = this.setDescriptionRef.bind(this);
@@ -324,8 +326,28 @@ class Chart extends React.Component {
     }
   };
 
+  exportFullCSV() {
+    this.exportCSV(true);
+  }
+
   exportCSV(isFullCSV = false) {
-    this.props.logEvent(LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART, {
+    this.exportTable('csv', isFullCSV);
+  }
+
+  exportXLSX() {
+    this.exportTable('xlsx', false);
+  }
+
+  exportFullXLSX() {
+    this.exportTable('xlsx', true);
+  }
+
+  exportTable(format, isFullCSV) {
+    const logAction =
+      format === 'csv'
+        ? LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART
+        : LOG_ACTIONS_EXPORT_XLSX_DASHBOARD_CHART;
+    this.props.logEvent(logAction, {
       slice_id: this.props.slice.slice_id,
       is_cached: this.props.isCached,
     });
@@ -334,14 +356,10 @@ class Chart extends React.Component {
         ? { ...this.props.formData, row_limit: this.props.maxRows }
         : this.props.formData,
       resultType: 'full',
-      resultFormat: 'csv',
+      resultFormat: format,
       force: true,
       ownState: this.props.ownState,
     });
-  }
-
-  exportFullCSV() {
-    this.exportCSV(true);
   }
 
   forceRefresh() {
@@ -377,7 +395,6 @@ class Chart extends React.Component {
       supersetCanExplore,
       supersetCanShare,
       supersetCanCSV,
-      sliceCanEdit,
       addSuccessToast,
       addDangerToast,
       ownState,
@@ -437,13 +454,14 @@ class Chart extends React.Component {
           logEvent={logEvent}
           onExploreChart={this.onExploreChart}
           exportCSV={this.exportCSV}
+          exportXLSX={this.exportXLSX}
           exportFullCSV={this.exportFullCSV}
+          exportFullXLSX={this.exportFullXLSX}
           updateSliceName={updateSliceName}
           sliceName={sliceName}
           supersetCanExplore={supersetCanExplore}
           supersetCanShare={supersetCanShare}
           supersetCanCSV={supersetCanCSV}
-          sliceCanEdit={sliceCanEdit}
           componentId={componentId}
           dashboardId={dashboardId}
           filters={filters}

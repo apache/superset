@@ -17,7 +17,6 @@
 # isort:skip_file
 """Unit tests for Superset"""
 import json
-import logging
 from io import BytesIO
 from zipfile import is_zipfile, ZipFile
 
@@ -34,7 +33,9 @@ from superset.models.dashboard import Dashboard
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
 from superset.utils.core import get_example_default_schema
+from superset.utils.database import get_example_database
 
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -199,7 +200,12 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         rv = self.get_assert_metric(uri, "info")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
-        assert set(data["permissions"]) == {"can_read", "can_write", "can_export"}
+        assert set(data["permissions"]) == {
+            "can_read",
+            "can_write",
+            "can_export",
+            "can_warm_up_cache",
+        }
 
     def create_chart_import(self):
         buf = BytesIO()
@@ -460,7 +466,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "certification_details": "Sample certification",
         }
         self.login(username="admin")
-        uri = f"api/v1/chart/"
+        uri = "api/v1/chart/"
         rv = self.post_assert_metric(uri, chart_data, "post")
         self.assertEqual(rv.status_code, 201)
         data = json.loads(rv.data.decode("utf-8"))
@@ -478,7 +484,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "datasource_type": "table",
         }
         self.login(username="admin")
-        uri = f"api/v1/chart/"
+        uri = "api/v1/chart/"
         rv = self.post_assert_metric(uri, chart_data, "post")
         self.assertEqual(rv.status_code, 201)
         data = json.loads(rv.data.decode("utf-8"))
@@ -497,7 +503,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "owners": [1000],
         }
         self.login(username="admin")
-        uri = f"api/v1/chart/"
+        uri = "api/v1/chart/"
         rv = self.post_assert_metric(uri, chart_data, "post")
         self.assertEqual(rv.status_code, 422)
         response = json.loads(rv.data.decode("utf-8"))
@@ -515,7 +521,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "params": '{"A:"a"}',
         }
         self.login(username="admin")
-        uri = f"api/v1/chart/"
+        uri = "api/v1/chart/"
         rv = self.post_assert_metric(uri, chart_data, "post")
         self.assertEqual(rv.status_code, 400)
 
@@ -552,6 +558,31 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
             response, {"message": {"datasource_id": ["Datasource does not exist"]}}
+        )
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_create_chart_validate_user_is_dashboard_owner(self):
+        """
+        Chart API: Test create validate user is dashboard owner
+        """
+        dash = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        # Must be published so that alpha user has read access to dash
+        dash.published = True
+        db.session.commit()
+        chart_data = {
+            "slice_name": "title1",
+            "datasource_id": 1,
+            "datasource_type": "table",
+            "dashboards": [dash.id],
+        }
+        self.login(username="alpha")
+        uri = "api/v1/chart/"
+        rv = self.post_assert_metric(uri, chart_data, "post")
+        self.assertEqual(rv.status_code, 403)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            response,
+            {"message": "Changing one or more of these dashboards is forbidden"},
         )
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -602,58 +633,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(model.certified_by, "Mario Rossi")
         self.assertEqual(model.certification_details, "Edited certification")
         self.assertIn(model.id, [slice.id for slice in related_dashboard.slices])
-        db.session.delete(model)
-        db.session.commit()
-
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_chart_activity_access_disabled(self):
-        """
-        Chart API: Test ENABLE_BROAD_ACTIVITY_ACCESS = False
-        """
-        access_flag = app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = False
-        admin = self.get_user("admin")
-        birth_names_table_id = SupersetTestCase.get_table(name="birth_names").id
-        chart_id = self.insert_chart("title", [admin.id], birth_names_table_id).id
-        chart_data = {
-            "slice_name": (new_name := "title1_changed"),
-        }
-        self.login(username="admin")
-        uri = f"api/v1/chart/{chart_id}"
-        rv = self.put_assert_metric(uri, chart_data, "put")
-        self.assertEqual(rv.status_code, 200)
-        model = db.session.query(Slice).get(chart_id)
-
-        self.assertEqual(model.slice_name, new_name)
-        self.assertEqual(model.changed_by_url, "")
-
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = access_flag
-        db.session.delete(model)
-        db.session.commit()
-
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_chart_activity_access_enabled(self):
-        """
-        Chart API: Test ENABLE_BROAD_ACTIVITY_ACCESS = True
-        """
-        access_flag = app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = True
-        admin = self.get_user("admin")
-        birth_names_table_id = SupersetTestCase.get_table(name="birth_names").id
-        chart_id = self.insert_chart("title", [admin.id], birth_names_table_id).id
-        chart_data = {
-            "slice_name": (new_name := "title1_changed"),
-        }
-        self.login(username="admin")
-        uri = f"api/v1/chart/{chart_id}"
-        rv = self.put_assert_metric(uri, chart_data, "put")
-        self.assertEqual(rv.status_code, 200)
-        model = db.session.query(Slice).get(chart_id)
-
-        self.assertEqual(model.slice_name, new_name)
-        self.assertEqual(model.changed_by_url, "/superset/profile/admin")
-
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = access_flag
         db.session.delete(model)
         db.session.commit()
 
@@ -1549,8 +1528,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         chart = db.session.query(Slice).filter_by(uuid=chart_config["uuid"]).one()
         assert chart.table == dataset
 
-        chart.owners = []
-        dataset.owners = []
         db.session.delete(chart)
         db.session.commit()
         db.session.delete(dataset)
@@ -1622,8 +1599,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         dataset = database.tables[0]
         chart = db.session.query(Slice).filter_by(uuid=chart_config["uuid"]).one()
 
-        chart.owners = []
-        dataset.owners = []
         db.session.delete(chart)
         db.session.commit()
         db.session.delete(dataset)
@@ -1734,3 +1709,85 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
 
         assert data["result"][0]["slice_name"] == "name0"
         assert data["result"][0]["datasource_id"] == 1
+
+    @pytest.mark.usefixtures(
+        "load_energy_table_with_slice", "load_birth_names_dashboard_with_slices"
+    )
+    def test_warm_up_cache(self):
+        self.login()
+        slc = self.get_slice("Girls", db.session)
+        rv = self.client.put("/api/v1/chart/warm_up_cache", json={"chart_id": slc.id})
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+
+        self.assertEqual(
+            data["result"],
+            [{"chart_id": slc.id, "viz_error": None, "viz_status": "success"}],
+        )
+
+        dashboard = self.get_dash_by_slug("births")
+
+        rv = self.client.put(
+            "/api/v1/chart/warm_up_cache",
+            json={"chart_id": slc.id, "dashboard_id": dashboard.id},
+        )
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            data["result"],
+            [{"chart_id": slc.id, "viz_error": None, "viz_status": "success"}],
+        )
+
+        rv = self.client.put(
+            "/api/v1/chart/warm_up_cache",
+            json={
+                "chart_id": slc.id,
+                "dashboard_id": dashboard.id,
+                "extra_filters": json.dumps(
+                    [{"col": "name", "op": "in", "val": ["Jennifer"]}]
+                ),
+            },
+        )
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            data["result"],
+            [{"chart_id": slc.id, "viz_error": None, "viz_status": "success"}],
+        )
+
+    def test_warm_up_cache_chart_id_required(self):
+        self.login()
+        rv = self.client.put("/api/v1/chart/warm_up_cache", json={"dashboard_id": 1})
+        self.assertEqual(rv.status_code, 400)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            data,
+            {"message": {"chart_id": ["Missing data for required field."]}},
+        )
+
+    def test_warm_up_cache_chart_not_found(self):
+        self.login()
+        rv = self.client.put("/api/v1/chart/warm_up_cache", json={"chart_id": 99999})
+        self.assertEqual(rv.status_code, 404)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data, {"message": "Chart not found"})
+
+    def test_warm_up_cache_payload_validation(self):
+        self.login()
+        rv = self.client.put(
+            "/api/v1/chart/warm_up_cache",
+            json={"chart_id": "id", "dashboard_id": "id", "extra_filters": 4},
+        )
+        self.assertEqual(rv.status_code, 400)
+        data = json.loads(rv.data.decode("utf-8"))
+        print(data)
+        self.assertEqual(
+            data,
+            {
+                "message": {
+                    "chart_id": ["Not a valid integer."],
+                    "dashboard_id": ["Not a valid integer."],
+                    "extra_filters": ["Not a valid string."],
+                }
+            },
+        )

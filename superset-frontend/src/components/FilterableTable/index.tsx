@@ -22,6 +22,7 @@ import { JSONTree } from 'react-json-tree';
 import {
   getMultipleTextDimensions,
   t,
+  safeHtmlSpan,
   styled,
   useTheme,
 } from '@superset-ui/core';
@@ -120,6 +121,7 @@ export interface FilterableTableProps {
   // need antd 5.0 to support striped color pattern
   striped?: boolean;
   expandedColumns?: string[];
+  allowHTML?: boolean;
 }
 
 const FilterableTable = ({
@@ -128,6 +130,7 @@ const FilterableTable = ({
   height,
   filterText = '',
   expandedColumns = [],
+  allowHTML = true,
 }: FilterableTableProps) => {
   const formatTableData = (data: Record<string, unknown>[]): Datum[] =>
     data.map(row => {
@@ -346,13 +349,17 @@ const FilterableTable = ({
 
   const renderTableCell = (cellData: CellDataType, columnKey: string) => {
     const cellNode = getCellContent({ cellData, columnKey });
-    const content =
-      cellData === null ? <i className="text-muted">{cellNode}</i> : cellNode;
+    if (cellData === null) {
+      return <i className="text-muted">{cellNode}</i>;
+    }
     const jsonObject = safeJsonObjectParse(cellData);
     if (jsonObject) {
       return renderJsonModal(cellNode, jsonObject, cellData);
     }
-    return content;
+    if (allowHTML && typeof cellData === 'string') {
+      return safeHtmlSpan(cellNode);
+    }
+    return cellNode;
   };
 
   // exclude the height of the horizontal scroll bar from the height of the table

@@ -61,7 +61,6 @@ const owner: Owner = {
   first_name: 'Test',
   id: ownerUser.userId!,
   last_name: 'User',
-  username: ownerUser.username,
 };
 
 const sqlLabUser: UserWithPermissionsAndRoles = {

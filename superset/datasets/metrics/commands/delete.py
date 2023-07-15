@@ -17,13 +17,11 @@
 import logging
 from typing import Optional
 
-from flask_appbuilder.models.sqla import Model
-
 from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import SqlMetric
-from superset.dao.exceptions import DAODeleteFailedError
-from superset.datasets.dao import DatasetDAO
+from superset.daos.dataset import DatasetDAO
+from superset.daos.exceptions import DAODeleteFailedError
 from superset.datasets.metrics.commands.exceptions import (
     DatasetMetricDeleteFailedError,
     DatasetMetricForbiddenError,
@@ -40,13 +38,12 @@ class DeleteDatasetMetricCommand(BaseCommand):
         self._model_id = model_id
         self._model: Optional[SqlMetric] = None
 
-    def run(self) -> Model:
+    def run(self) -> None:
         self.validate()
+        assert self._model
+
         try:
-            if not self._model:
-                raise DatasetMetricNotFoundError()
-            column = DatasetDAO.delete_metric(self._model)
-            return column
+            DatasetDAO.delete_metric(self._model)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
             raise DatasetMetricDeleteFailedError() from ex

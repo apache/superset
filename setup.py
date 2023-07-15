@@ -14,21 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import io
 import json
 import os
 import subprocess
-import sys
 
 from setuptools import find_packages, setup
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 PACKAGE_JSON = os.path.join(BASE_DIR, "superset-frontend", "package.json")
 
-with open(PACKAGE_JSON, "r") as package_file:
+with open(PACKAGE_JSON) as package_file:
     version_string = json.load(package_file)["version"]
 
-with io.open("README.md", "r", encoding="utf-8") as f:
+with open("README.md", encoding="utf-8") as f:
     long_description = f.read()
 
 
@@ -83,19 +81,20 @@ setup(
         "cryptography>=39.0.1, <40",
         "deprecation>=2.1.0, <2.2.0",
         "flask>=2.2.5, <3.0.0",
-        "flask-appbuilder>=4.3.0, <5.0.0",
-        "flask-caching>=1.10.1, <1.11",
+        "flask-appbuilder>=4.3.4, <5.0.0",
+        "flask-caching>=1.10.1, <2.0",
         "flask-compress>=1.13, <2.0",
         "flask-talisman>=1.0.0, <2.0",
-        "flask-login==0.6.0",
+        "flask-login>=0.6.0, < 1.0",
         "flask-migrate>=3.1.0, <4.0",
-        "flask-wtf>=1.0.1, <1.1",
+        "flask-wtf>=1.1.0, <2.0",
         "func_timeout",
         "geopy",
         "gunicorn>=20.1.0; sys_platform != 'win32'",
         "hashids>=1.3.1, <2",
-        "holidays>=0.23, <0.24",
+        "holidays>=0.28, <1.0",
         "humanize",
+        "importlib_metadata",
         "isodate",
         "Mako>=1.2.2",
         "markdown>=3.0",
@@ -111,18 +110,18 @@ setup(
         "python-dateutil",
         "python-dotenv",
         "python-geohash",
-        "pyarrow>=10.0.1, <11",
+        "pyarrow>=12.0.0, <13",
         "pyyaml>=5.4",
         "PyJWT>=2.4.0, <3.0",
         "redis>=4.5.4, <5.0",
-        "selenium>=3.141.0",
+        "selenium>=3.141.0, <4.10.0",
         "shortid",
         "sshtunnel>=0.4.0, <0.5",
         "simplejson>=3.15.0",
         "slack_sdk>=3.19.0, <4",
         "sqlalchemy>=1.4, <2",
         "sqlalchemy-utils>=0.38.3, <0.39",
-        "sqlparse>=0.4.3, <0.5",
+        "sqlparse>=0.4.4, <0.5",
         "tabulate>=0.8.9, <0.9",
         "typing-extensions>=4, <5",
         "waitress; sys_platform == 'win32'",
@@ -168,7 +167,7 @@ setup(
         "mysql": ["mysqlclient>=2.1.0, <3"],
         "ocient": [
             "sqlalchemy-ocient>=1.0.0",
-            "pyocient>=1.0.15",
+            "pyocient>=1.0.15, <2",
             "shapely",
             "geojson",
         ],
@@ -177,9 +176,9 @@ setup(
         "postgres": ["psycopg2-binary==2.9.6"],
         "presto": ["pyhive[presto]>=0.6.5"],
         "trino": ["trino>=0.324.0"],
-        "prophet": ["prophet>=1.0.1, <1.1", "pystan<3.0"],
+        "prophet": ["prophet>=1.1.0, <2.0.0"],
         "redshift": ["sqlalchemy-redshift>=0.8.1, < 0.9"],
-        "rockset": ["rockset>=0.8.10, <0.9"],
+        "rockset": ["rockset-sqlalchemy>=0.0.1, <1.0.0"],
         "shillelagh": [
             "shillelagh[datasetteapi,gsheetsapi,socrata,weatherapi]>=1.1.1, <2"
         ],
@@ -189,6 +188,7 @@ setup(
         "thumbnails": ["Pillow>=9.5.0, <10.0.0"],
         "vertica": ["sqlalchemy-vertica-python>=0.5.9, < 0.6"],
         "netezza": ["nzalchemy>=11.0.2"],
+        "starrocks": ["starrocks>=1.0.0"],
     },
     python_requires="~=3.10",
     author="Apache Software Foundation",

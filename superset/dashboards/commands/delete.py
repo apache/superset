@@ -17,54 +17,54 @@
 import logging
 from typing import Optional
 
-from flask_appbuilder.models.sqla import Model
 from flask_babel import lazy_gettext as _
 
 from superset import security_manager
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAODeleteFailedError
+from superset.daos.dashboard import DashboardDAO
+from superset.daos.exceptions import DAODeleteFailedError
+from superset.daos.report import ReportScheduleDAO
 from superset.dashboards.commands.exceptions import (
     DashboardDeleteFailedError,
     DashboardDeleteFailedReportsExistError,
     DashboardForbiddenError,
     DashboardNotFoundError,
 )
-from superset.dashboards.dao import DashboardDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
-from superset.reports.dao import ReportScheduleDAO
 
 logger = logging.getLogger(__name__)
 
 
 class DeleteDashboardCommand(BaseCommand):
-    def __init__(self, model_id: int):
-        self._model_id = model_id
-        self._model: Optional[Dashboard] = None
+    def __init__(self, model_ids: list[int]):
+        self._model_ids = model_ids
+        self._models: Optional[list[Dashboard]] = None
 
-    def run(self) -> Model:
+    def run(self) -> None:
         self.validate()
+        assert self._models
+
         try:
-            dashboard = DashboardDAO.delete(self._model)
+            DashboardDAO.delete(self._models)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
             raise DashboardDeleteFailedError() from ex
-        return dashboard
 
     def validate(self) -> None:
         # Validate/populate model exists
-        self._model = DashboardDAO.find_by_id(self._model_id)
-        if not self._model:
+        self._models = DashboardDAO.find_by_ids(self._model_ids)
+        if not self._models or len(self._models) != len(self._model_ids):
             raise DashboardNotFoundError()
         # Check there are no associated ReportSchedules
-        reports = ReportScheduleDAO.find_by_dashboard_id(self._model_id)
-        if reports:
+        if reports := ReportScheduleDAO.find_by_dashboard_ids(self._model_ids):
             report_names = [report.name for report in reports]
             raise DashboardDeleteFailedReportsExistError(
                 _("There are associated alerts or reports: %s" % ",".join(report_names))
             )
         # Check ownership
-        try:
-            security_manager.raise_for_ownership(self._model)
-        except SupersetSecurityException as ex:
-            raise DashboardForbiddenError() from ex
+        for model in self._models:
+            try:
+                security_manager.raise_for_ownership(model)
+            except SupersetSecurityException as ex:
+                raise DashboardForbiddenError() from ex

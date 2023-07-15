@@ -33,13 +33,13 @@ Example:
   ./cancel_github_workflows.py 1024 --include-last
 """
 import os
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Union
+from collections.abc import Iterable, Iterator
+from typing import Any, Literal, Optional, Union
 
 import click
 import requests
 from click.exceptions import ClickException
 from dateutil import parser
-from typing_extensions import Literal
 
 github_token = os.environ.get("GITHUB_TOKEN")
 github_repo = os.environ.get("GITHUB_REPOSITORY", "apache/superset")
@@ -47,7 +47,7 @@ github_repo = os.environ.get("GITHUB_REPOSITORY", "apache/superset")
 
 def request(
     method: Literal["GET", "POST", "DELETE", "PUT"], endpoint: str, **kwargs: Any
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     resp = requests.request(
         method,
         f"https://api.github.com/{endpoint.lstrip('/')}",
@@ -61,8 +61,8 @@ def request(
 
 def list_runs(
     repo: str,
-    params: Optional[Dict[str, str]] = None,
-) -> Iterator[Dict[str, Any]]:
+    params: Optional[dict[str, str]] = None,
+) -> Iterator[dict[str, Any]]:
     """List all github workflow runs.
     Returns:
       An iterator that will iterate through all pages of matching runs."""
@@ -77,16 +77,15 @@ def list_runs(
             params={**params, "per_page": 100, "page": page},
         )
         total_count = result["total_count"]
-        for item in result["workflow_runs"]:
-            yield item
+        yield from result["workflow_runs"]
         page += 1
 
 
-def cancel_run(repo: str, run_id: Union[str, int]) -> Dict[str, Any]:
+def cancel_run(repo: str, run_id: Union[str, int]) -> dict[str, Any]:
     return request("POST", f"/repos/{repo}/actions/runs/{run_id}/cancel")
 
 
-def get_pull_request(repo: str, pull_number: Union[str, int]) -> Dict[str, Any]:
+def get_pull_request(repo: str, pull_number: Union[str, int]) -> dict[str, Any]:
     return request("GET", f"/repos/{repo}/pulls/{pull_number}")
 
 
@@ -96,7 +95,7 @@ def get_runs(
     user: Optional[str] = None,
     statuses: Iterable[str] = ("queued", "in_progress"),
     events: Iterable[str] = ("pull_request", "push"),
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Get workflow runs associated with the given branch"""
     return [
         item
@@ -108,7 +107,7 @@ def get_runs(
     ]
 
 
-def print_commit(commit: Dict[str, Any], branch: str) -> None:
+def print_commit(commit: dict[str, Any], branch: str) -> None:
     """Print out commit message for verification"""
     indented_message = "    \n".join(commit["message"].split("\n"))
     date_str = (
@@ -155,7 +154,7 @@ Date:   {date_str}
 def cancel_github_workflows(
     branch_or_pull: Optional[str],
     repo: str,
-    event: List[str],
+    event: list[str],
     include_last: bool,
     include_running: bool,
 ) -> None:

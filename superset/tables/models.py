@@ -24,7 +24,8 @@ addition to a table, new models for columns, metrics, and datasets were also int
 These models are not fully implemented, and shouldn't be used yet.
 """
 
-from typing import Any, Dict, Iterable, List, Optional, TYPE_CHECKING
+from collections.abc import Iterable
+from typing import Any, Optional, TYPE_CHECKING
 
 import sqlalchemy as sa
 from flask_appbuilder import Model
@@ -42,6 +43,7 @@ from superset.models.helpers import (
     ImportExportMixin,
 )
 from superset.sql_parse import Table as TableName
+from superset.superset_typing import ResultSetColumnType
 
 if TYPE_CHECKING:
     from superset.datasets.models import Dataset
@@ -51,12 +53,12 @@ table_column_association_table = sa.Table(
     Model.metadata,  # pylint: disable=no-member
     sa.Column(
         "table_id",
-        sa.ForeignKey("sl_tables.id", ondelete="cascade"),
+        sa.ForeignKey("sl_tables.id", ondelete="CASCADE"),
         primary_key=True,
     ),
     sa.Column(
         "column_id",
-        sa.ForeignKey("sl_columns.id", ondelete="cascade"),
+        sa.ForeignKey("sl_columns.id", ondelete="CASCADE"),
         primary_key=True,
     ),
 )
@@ -87,7 +89,7 @@ class Table(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     # The relationship between datasets and columns is 1:n, but we use a
     # many-to-many association table to avoid adding two mutually exclusive
     # columns(dataset_id and table_id) to Column
-    columns: List[Column] = relationship(
+    columns: list[Column] = relationship(
         "Column",
         secondary=table_column_association_table,
         cascade="all, delete-orphan",
@@ -96,7 +98,7 @@ class Table(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
         # is loaded.
         backref="tables",
     )
-    datasets: List["Dataset"]  # will be populated by Dataset.tables backref
+    datasets: list["Dataset"]  # will be populated by Dataset.tables backref
 
     # We use ``sa.Text`` for these attributes because (1) in modern databases the
     # performance is the same as ``VARCHAR``[1] and (2) because some table names can be
@@ -130,8 +132,8 @@ class Table(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
         existing_columns = {column.name: column for column in self.columns}
         quote_identifier = self.database.quote_identifier
 
-        def update_or_create_column(column_meta: Dict[str, Any]) -> Column:
-            column_name: str = column_meta["name"]
+        def update_or_create_column(column_meta: ResultSetColumnType) -> Column:
+            column_name: str = column_meta["column_name"]
             if column_name in existing_columns:
                 column = existing_columns[column_name]
             else:
@@ -153,8 +155,8 @@ class Table(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
         table_names: Iterable[TableName],
         default_schema: Optional[str] = None,
         sync_columns: Optional[bool] = False,
-        default_props: Optional[Dict[str, Any]] = None,
-    ) -> List["Table"]:
+        default_props: Optional[dict[str, Any]] = None,
+    ) -> list["Table"]:
         """
         Load or create multiple Table instances.
         """

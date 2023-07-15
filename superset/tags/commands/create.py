@@ -15,20 +15,19 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import List
 
 from superset.commands.base import BaseCommand, CreateMixin
-from superset.dao.exceptions import DAOCreateFailedError
+from superset.daos.exceptions import DAOCreateFailedError
+from superset.daos.tag import TagDAO
 from superset.tags.commands.exceptions import TagCreateFailedError, TagInvalidError
 from superset.tags.commands.utils import to_object_type
-from superset.tags.dao import TagDAO
 from superset.tags.models import ObjectTypes
 
 logger = logging.getLogger(__name__)
 
 
 class CreateCustomTagCommand(CreateMixin, BaseCommand):
-    def __init__(self, object_type: ObjectTypes, object_id: int, tags: List[str]):
+    def __init__(self, object_type: ObjectTypes, object_id: int, tags: list[str]):
         self._object_type = object_type
         self._object_id = object_id
         self._tags = tags
@@ -60,6 +59,4 @@ class CreateCustomTagCommand(CreateMixin, BaseCommand):
                 TagCreateFailedError(f"invalid object type {self._object_type}")
             )
         if exceptions:
-            exception = TagInvalidError()
-            exception.add_list(exceptions)
-            raise exception
+            raise TagInvalidError(exceptions=exceptions)

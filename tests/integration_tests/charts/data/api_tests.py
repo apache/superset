@@ -21,7 +21,7 @@ import unittest
 import copy
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Dict, Optional, List
+from typing import Any, Optional
 from unittest import mock
 from zipfile import ZipFile
 
@@ -444,11 +444,11 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         else:
             raise Exception("ds column not found")
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_prophet(self):
         """
         Chart data API: Ensure prophet post transformation works
         """
-        pytest.importorskip("prophet")
         time_grain = "P1Y"
         self.query_context_payload["queries"][0]["is_timeseries"] = True
         self.query_context_payload["queries"][0]["groupby"] = []
@@ -476,7 +476,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         self.assertIn("sum__num__yhat", row)
         self.assertIn("sum__num__yhat_upper", row)
         self.assertIn("sum__num__yhat_lower", row)
-        self.assertEqual(result["rowcount"], 47)
+        self.assertEqual(result["rowcount"], 103)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_invalid_post_processing(self):
@@ -740,11 +740,11 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
         data = rv.json["result"][0]["data"]
 
-        unique_names = set(row["name"] for row in data)
+        unique_names = {row["name"] for row in data}
         self.maxDiff = None
         self.assertEqual(len(unique_names), SERIES_LIMIT)
         self.assertEqual(
-            set(column for column in data[0].keys()), {"state", "name", "sum__num"}
+            {column for column in data[0].keys()}, {"state", "name", "sum__num"}
         )
 
     @pytest.mark.usefixtures(
@@ -959,7 +959,6 @@ class TestGetChartDataApi(BaseTestChartDataApi):
                         "filters": [],
                         "extras": {
                             "having": "",
-                            "having_druid": [],
                             "where": "",
                         },
                         "applied_time_extras": {},
@@ -1124,7 +1123,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
 
 
 @pytest.fixture()
-def physical_query_context(physical_dataset) -> Dict[str, Any]:
+def physical_query_context(physical_dataset) -> dict[str, Any]:
     return {
         "datasource": {
             "type": physical_dataset.type,
@@ -1218,7 +1217,7 @@ def test_data_cache_default_timeout(
 
 
 def test_chart_cache_timeout(
-    load_energy_table_with_slice: List[Slice],
+    load_energy_table_with_slice: list[Slice],
     test_client,
     login_as_admin,
     physical_query_context,

@@ -17,7 +17,8 @@
 # isort:skip_file
 import re
 from datetime import datetime
-from typing import Any, Dict, List, NamedTuple, Optional, Pattern, Tuple, Union
+from typing import Any, NamedTuple, Optional, Union
+from re import Pattern
 from unittest.mock import patch
 import pytest
 
@@ -50,7 +51,7 @@ from tests.integration_tests.test_app import app
 from .base_tests import SupersetTestCase
 from .conftest import only_postgresql
 
-VIRTUAL_TABLE_INT_TYPES: Dict[str, Pattern[str]] = {
+VIRTUAL_TABLE_INT_TYPES: dict[str, Pattern[str]] = {
     "hive": re.compile(r"^INT_TYPE$"),
     "mysql": re.compile("^LONGLONG$"),
     "postgresql": re.compile(r"^INTEGER$"),
@@ -58,7 +59,7 @@ VIRTUAL_TABLE_INT_TYPES: Dict[str, Pattern[str]] = {
     "sqlite": re.compile(r"^INT$"),
 }
 
-VIRTUAL_TABLE_STRING_TYPES: Dict[str, Pattern[str]] = {
+VIRTUAL_TABLE_STRING_TYPES: dict[str, Pattern[str]] = {
     "hive": re.compile(r"^STRING_TYPE$"),
     "mysql": re.compile(r"^VAR_STRING$"),
     "postgresql": re.compile(r"^STRING$"),
@@ -70,8 +71,8 @@ VIRTUAL_TABLE_STRING_TYPES: Dict[str, Pattern[str]] = {
 class FilterTestCase(NamedTuple):
     column: str
     operator: str
-    value: Union[float, int, List[Any], str]
-    expected: Union[str, List[str]]
+    value: Union[float, int, list[Any], str]
+    expected: Union[str, list[str]]
 
 
 class TestDatabaseModel(SupersetTestCase):
@@ -101,7 +102,7 @@ class TestDatabaseModel(SupersetTestCase):
         assert col.is_temporal is True
 
     def test_db_column_types(self):
-        test_cases: Dict[str, GenericDataType] = {
+        test_cases: dict[str, GenericDataType] = {
             # string
             "CHAR": GenericDataType.STRING,
             "VARCHAR": GenericDataType.STRING,
@@ -187,11 +188,6 @@ class TestDatabaseModel(SupersetTestCase):
         extra_cache_keys = table3.get_extra_cache_keys(query_obj)
         self.assertTrue(table3.has_extra_cache_key_calls(query_obj))
         assert extra_cache_keys == ["abc"]
-
-        # Cleanup
-        for table in [table1, table2, table3]:
-            db.session.delete(table)
-        db.session.commit()
 
     @patch("superset.jinja_context.g")
     def test_jinja_metrics_and_calc_columns(self, flask_g):
@@ -291,7 +287,7 @@ class TestDatabaseModel(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_where_operators(self):
-        filters: Tuple[FilterTestCase, ...] = (
+        filters: tuple[FilterTestCase, ...] = (
             FilterTestCase("num", FilterOperator.IS_NULL, "", "IS NULL"),
             FilterTestCase("num", FilterOperator.IS_NOT_NULL, "", "IS NOT NULL"),
             # Some db backends translate true/false to 1/0
@@ -429,7 +425,7 @@ class TestDatabaseModel(SupersetTestCase):
         }
 
         table = SqlaTable(
-            table_name="test_has_extra_cache_keys_table",
+            table_name="test_multiple_sql_statements",
             sql="SELECT 'foo' as grp, 1 as num; SELECT 'bar' as grp, 2 as num",
             database=get_example_database(),
         )
@@ -450,7 +446,7 @@ class TestDatabaseModel(SupersetTestCase):
         }
 
         table = SqlaTable(
-            table_name="test_has_extra_cache_keys_table",
+            table_name="test_dml_statement",
             sql="DELETE FROM foo",
             database=get_example_database(),
         )
@@ -493,7 +489,7 @@ class TestDatabaseModel(SupersetTestCase):
             "mycase",
             "expr",
         }
-        cols: Dict[str, TableColumn] = {col.column_name: col for col in table.columns}
+        cols: dict[str, TableColumn] = {col.column_name: col for col in table.columns}
         # assert that the type for intcol has been updated (asserting CI types)
         backend = table.database.backend
         assert VIRTUAL_TABLE_INT_TYPES[backend].match(cols["intcol"].type)
@@ -802,7 +798,7 @@ def test__normalize_prequery_result_type(
     result: Any,
 ) -> None:
     def _convert_dttm(
-        target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+        target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
     ) -> Optional[str]:
         if target_type.upper() == "TIMESTAMP":
             return f"""TIME_PARSE('{dttm.isoformat(timespec="seconds")}')"""

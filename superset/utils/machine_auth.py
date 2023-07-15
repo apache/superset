@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import importlib
 import logging
-from typing import Callable, Dict, TYPE_CHECKING
+from typing import Callable, TYPE_CHECKING
 
 from flask import current_app, Flask, request, Response, session
 from flask_login import login_user
@@ -71,7 +71,7 @@ class MachineAuthProvider:
         return driver
 
     @staticmethod
-    def get_auth_cookies(user: User) -> Dict[str, str]:
+    def get_auth_cookies(user: User) -> dict[str, str]:
         # Login with the user specified to get the reports
         with current_app.test_request_context("/login"):
             login_user(user)

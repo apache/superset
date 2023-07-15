@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, cast, List, TypedDict
+from typing import Any, cast, TypedDict
 
 import pandas as pd
 from flask_babel import gettext as __
@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 class SqlExportResult(TypedDict):
     query: Query
     count: int
-    data: List[Any]
+    data: list[Any]
 
 
 class SqlResultExportCommand(BaseCommand):

@@ -36,11 +36,9 @@ from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.filters import DatabaseFilter
 from superset.extensions import event_logger
 from superset.models.sql_lab import SavedQuery
-from superset.queries.saved_queries.commands.bulk_delete import (
-    BulkDeleteSavedQueryCommand,
-)
+from superset.queries.saved_queries.commands.delete import DeleteSavedQueryCommand
 from superset.queries.saved_queries.commands.exceptions import (
-    SavedQueryBulkDeleteFailedError,
+    SavedQueryDeleteFailedError,
     SavedQueryNotFoundError,
 )
 from superset.queries.saved_queries.commands.export import ExportSavedQueriesCommand
@@ -213,7 +211,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteSavedQueryCommand(item_ids).run()
+            DeleteSavedQueryCommand(item_ids).run()
             return self.response(
                 200,
                 message=ngettext(
@@ -224,7 +222,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
             )
         except SavedQueryNotFoundError:
             return self.response_404()
-        except SavedQueryBulkDeleteFailedError as ex:
+        except SavedQueryDeleteFailedError as ex:
             return self.response_422(message=str(ex))
 
     @expose("/export/", methods=("GET",))
@@ -262,7 +260,6 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        token = request.args.get("token")
         requested_ids = kwargs["rison"]
         timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
         root = f"saved_query_export_{timestamp}"
@@ -286,7 +283,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
             as_attachment=True,
             download_name=filename,
         )
-        if token:
+        if token := request.args.get("token"):
             response.set_cookie(token, "done", max_age=600)
         return response
 

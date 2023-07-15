@@ -17,22 +17,22 @@
 
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import DatasourceNotFoundValidationError
 from superset.commands.utils import populate_roles
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
-from superset.dao.exceptions import DAOUpdateFailedError
+from superset.daos.exceptions import DAOUpdateFailedError
+from superset.daos.security import RLSDAO
 from superset.extensions import db
 from superset.row_level_security.commands.exceptions import RLSRuleNotFoundError
-from superset.row_level_security.dao import RLSDAO
 
 logger = logging.getLogger(__name__)
 
 
 class UpdateRLSRuleCommand(BaseCommand):
-    def __init__(self, model_id: int, data: Dict[str, Any]):
+    def __init__(self, model_id: int, data: dict[str, Any]):
         self._model_id = model_id
         self._properties = data.copy()
         self._tables = self._properties.get("tables", [])
@@ -41,6 +41,8 @@ class UpdateRLSRuleCommand(BaseCommand):
 
     def run(self) -> Any:
         self.validate()
+        assert self._model
+
         try:
             rule = RLSDAO.update(self._model, self._properties)
         except DAOUpdateFailedError as ex:

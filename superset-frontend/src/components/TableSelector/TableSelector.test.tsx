@@ -95,7 +95,26 @@ test('renders with default props', async () => {
   });
 });
 
-test('renders table options', async () => {
+test('skips select all options', async () => {
+  fetchMock.get(schemaApiRoute, { result: ['test_schema'] });
+  fetchMock.get(tablesApiRoute, getTableMockFunction());
+
+  const props = createProps();
+  render(<TableSelector {...props} tableSelectMode="multiple" />, {
+    useRedux: true,
+    store,
+  });
+  const tableSelect = screen.getByRole('combobox', {
+    name: 'Select table or type to search tables',
+  });
+  userEvent.click(tableSelect);
+  expect(
+    await screen.findByRole('option', { name: 'table_a' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('option', { name: /Select All/i })).toBeFalsy();
+});
+
+test('renders table options without Select All option', async () => {
   fetchMock.get(schemaApiRoute, { result: ['test_schema'] });
   fetchMock.get(tablesApiRoute, getTableMockFunction());
 

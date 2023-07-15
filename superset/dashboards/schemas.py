@@ -16,12 +16,13 @@
 # under the License.
 import json
 import re
-from typing import Any, Dict, Union
+from typing import Any, Union
 
 from marshmallow import fields, post_load, pre_load, Schema
 from marshmallow.validate import Length, ValidationError
 
 from superset.exceptions import SupersetException
+from superset.tags.models import TagTypes
 from superset.utils import core as utils
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -142,9 +143,9 @@ class DashboardJSONMetadataSchema(Schema):
     @pre_load
     def remove_show_native_filters(  # pylint: disable=unused-argument, no-self-use
         self,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         **kwargs: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Remove ``show_native_filters`` from the JSON metadata.
 
@@ -172,7 +173,7 @@ class RolesSchema(Schema):
 class TagSchema(Schema):
     id = fields.Int()
     name = fields.String()
-    type = fields.String()
+    type = fields.Enum(TagTypes, by_value=True)
 
 
 class DashboardGetResponseSchema(Schema):
@@ -192,7 +193,6 @@ class DashboardGetResponseSchema(Schema):
         metadata={"description": certification_details_description}
     )
     changed_by_name = fields.String()
-    changed_by_url = fields.String()
     changed_by = fields.Nested(UserSchema(exclude=(["username"])))
     changed_on = fields.DateTime()
     charts = fields.List(fields.String(metadata={"description": charts_description}))
@@ -218,6 +218,7 @@ class DashboardDatasetSchema(Schema):
     id = fields.Int()
     uid = fields.Str()
     column_formats = fields.Dict()
+    currency_formats = fields.Dict()
     database = fields.Nested(DatabaseSchema)
     default_endpoint = fields.String()
     filter_select = fields.Bool()
@@ -252,7 +253,7 @@ class DashboardDatasetSchema(Schema):
 class BaseDashboardSchema(Schema):
     # pylint: disable=no-self-use,unused-argument
     @post_load
-    def post_load(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
+    def post_load(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if data.get("slug"):
             data["slug"] = data["slug"].strip()
             data["slug"] = data["slug"].replace(" ", "-")

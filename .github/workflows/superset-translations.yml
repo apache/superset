@@ -9,7 +9,6 @@ on:
 
 jobs:
   frontend-check:
-    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
@@ -31,7 +30,6 @@ jobs:
           npm run check-translation
 
   babel-extract:
-    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       matrix:

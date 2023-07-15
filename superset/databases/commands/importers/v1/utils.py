@@ -16,7 +16,7 @@
 # under the License.
 
 import json
-from typing import Any, Dict
+from typing import Any
 
 from sqlalchemy.orm import Session
 
@@ -28,7 +28,7 @@ from superset.models.core import Database
 
 def import_database(
     session: Session,
-    config: Dict[str, Any],
+    config: dict[str, Any],
     overwrite: bool = False,
     ignore_permissions: bool = False,
 ) -> Database:

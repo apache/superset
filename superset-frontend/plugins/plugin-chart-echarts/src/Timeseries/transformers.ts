@@ -27,13 +27,14 @@ import {
   getTimeFormatter,
   IntervalAnnotationLayer,
   isTimeseriesAnnotationResult,
-  NumberFormatter,
+  LegendState,
   smartDateDetailedFormatter,
   smartDateFormatter,
   SupersetTheme,
   TimeFormatter,
   TimeseriesAnnotationLayer,
   TimeseriesDataRecord,
+  ValueFormatter,
 } from '@superset-ui/core';
 import { SeriesOption } from 'echarts';
 import {
@@ -51,7 +52,6 @@ import {
   MarkArea2DDataItemOption,
 } from 'echarts/types/src/component/marker/MarkAreaModel';
 import { MarkLine1DDataItemOption } from 'echarts/types/src/component/marker/MarkLineModel';
-
 import { extractForecastSeriesContext } from '../utils/forecast';
 import {
   EchartsTimeseriesSeriesType,
@@ -66,7 +66,7 @@ import {
   formatAnnotationLabel,
   parseAnnotationOpacity,
 } from '../utils/annotation';
-import { currentSeries, getChartPadding } from '../utils/series';
+import { getChartPadding } from '../utils/series';
 import {
   OpacityEnum,
   StackControlsValue,
@@ -144,6 +144,7 @@ export const getBaselineSeriesForStream = (
 export function transformSeries(
   series: SeriesOption,
   colorScale: CategoricalColorScale,
+  colorScaleKey: string,
   opts: {
     area?: boolean;
     filterState?: FilterState;
@@ -156,7 +157,8 @@ export function transformSeries(
     yAxisIndex?: number;
     showValue?: boolean;
     onlyTotal?: boolean;
-    formatter?: NumberFormatter;
+    legendState?: LegendState;
+    formatter?: ValueFormatter;
     totalStackedValues?: number[];
     showValueIndexes?: number[];
     thresholdValues?: number[];
@@ -182,11 +184,11 @@ export function transformSeries(
     showValue,
     onlyTotal,
     formatter,
+    legendState,
     totalStackedValues = [],
     showValueIndexes = [],
     thresholdValues = [],
     richTooltip,
-    seriesKey,
     sliceId,
     isHorizontal = false,
     queryIndex = 0,
@@ -236,7 +238,7 @@ export function transformSeries(
   }
   // forcing the colorScale to return a different color for same metrics across different queries
   const itemStyle = {
-    color: colorScale(seriesKey || forecastSeries.name, sliceId),
+    color: colorScale(colorScaleKey, sliceId),
     opacity,
   };
   let emphasis = {};
@@ -309,10 +311,14 @@ export function transformSeries(
       formatter: (params: any) => {
         const { value, dataIndex, seriesIndex, seriesName } = params;
         const numericValue = isHorizontal ? value[0] : value[1];
-        const isSelectedLegend = currentSeries.legend === seriesName;
+        const isSelectedLegend = !legendState || legendState[seriesName];
         const isAreaExpand = stack === StackControlsValue.Expand;
-        if (!formatter) return numericValue;
-        if (!stack || isSelectedLegend) return formatter(numericValue);
+        if (!formatter) {
+          return numericValue;
+        }
+        if (!stack && isSelectedLegend) {
+          return formatter(numericValue);
+        }
         if (!onlyTotal) {
           if (
             numericValue >=

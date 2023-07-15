@@ -16,20 +16,22 @@
 # under the License.
 """Contains the logic to create cohesive forms on the explore view"""
 import json
-from typing import Any, List, Optional
+import os
+from typing import Any, Optional
 
 from flask_appbuilder.fieldwidgets import BS3TextFieldWidget
-from wtforms import Field
+from flask_babel import gettext as _
+from wtforms import Field, ValidationError
 
 
 class JsonListField(Field):
     widget = BS3TextFieldWidget()
-    data: List[str] = []
+    data: list[str] = []
 
     def _value(self) -> str:
         return json.dumps(self.data)
 
-    def process_formdata(self, valuelist: List[str]) -> None:
+    def process_formdata(self, valuelist: list[str]) -> None:
         if valuelist and valuelist[0]:
             self.data = json.loads(valuelist[0])
         else:
@@ -38,7 +40,7 @@ class JsonListField(Field):
 
 class CommaSeparatedListField(Field):
     widget = BS3TextFieldWidget()
-    data: List[str] = []
+    data: list[str] = []
 
     def _value(self) -> str:
         if self.data:
@@ -46,14 +48,35 @@ class CommaSeparatedListField(Field):
 
         return ""
 
-    def process_formdata(self, valuelist: List[str]) -> None:
+    def process_formdata(self, valuelist: list[str]) -> None:
         if valuelist:
             self.data = [x.strip() for x in valuelist[0].split(",")]
         else:
             self.data = []
 
 
-def filter_not_empty_values(values: Optional[List[Any]]) -> Optional[List[Any]]:
+class FileSizeLimit:  # pylint: disable=too-few-public-methods
+    """Imposes an optional maximum filesize limit for uploaded files"""
+
+    def __init__(self, max_size: Optional[int]):
+        self.max_size = max_size
+
+    def __call__(self, form: dict[str, Any], field: Any) -> None:
+        if self.max_size is None:
+            return
+
+        field.data.flush()
+        size = os.fstat(field.data.fileno()).st_size
+        if size > self.max_size:
+            raise ValidationError(
+                _(
+                    "File size must be less than or equal to %(max_size)s bytes",
+                    max_size=self.max_size,
+                )
+            )
+
+
+def filter_not_empty_values(values: Optional[list[Any]]) -> Optional[list[Any]]:
     """Returns a list of non empty values or None"""
     if not values:
         return None

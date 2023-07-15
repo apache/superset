@@ -16,22 +16,22 @@
 # under the License.
 import logging
 from abc import ABC
-from typing import Any, cast, Dict, Optional
+from typing import Any, cast, Optional
 
 import simplejson as json
-from flask import current_app, request
-from flask_babel import gettext as __, lazy_gettext as _
+from flask import request
+from flask_babel import lazy_gettext as _
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset import db, security_manager
+from superset import db
 from superset.commands.base import BaseCommand
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import SqlaTable
-from superset.dao.exceptions import DatasourceNotFound
-from superset.datasource.dao import DatasourceDAO
+from superset.daos.datasource import DatasourceDAO
+from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import SupersetException
 from superset.explore.commands.parameters import CommandParameters
-from superset.explore.exceptions import DatasetAccessDeniedError, WrongEndpointError
+from superset.explore.exceptions import WrongEndpointError
 from superset.explore.form_data.commands.get import GetFormDataCommand
 from superset.explore.form_data.commands.parameters import (
     CommandParameters as FormDataCommandParameters,
@@ -60,7 +60,7 @@ class GetExploreCommand(BaseCommand, ABC):
         self._slice_id = params.slice_id
 
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
-    def run(self) -> Optional[Dict[str, Any]]:
+    def run(self) -> Optional[dict[str, Any]]:
         initial_form_data = {}
 
         if self._permalink_key is not None:
@@ -119,20 +119,6 @@ class GetExploreCommand(BaseCommand, ABC):
             except DatasourceNotFound:
                 pass
         datasource_name = datasource.name if datasource else _("[Missing Dataset]")
-
-        if datasource:
-            if current_app.config["ENABLE_ACCESS_REQUEST"] and (
-                not security_manager.can_access_datasource(datasource)
-            ):
-                message = __(
-                    security_manager.get_datasource_access_error_msg(datasource)
-                )
-                raise DatasetAccessDeniedError(
-                    message=message,
-                    datasource_type=self._datasource_type,
-                    datasource_id=self._datasource_id,
-                )
-
         viz_type = form_data.get("viz_type")
         if not viz_type and datasource and datasource.default_endpoint:
             raise WrongEndpointError(redirect=datasource.default_endpoint)
@@ -147,7 +133,7 @@ class GetExploreCommand(BaseCommand, ABC):
         utils.merge_request_params(form_data, request.args)
 
         # TODO: this is a dummy placeholder - should be refactored to being just `None`
-        datasource_data: Dict[str, Any] = {
+        datasource_data: dict[str, Any] = {
             "type": self._datasource_type,
             "name": datasource_name,
             "columns": [],

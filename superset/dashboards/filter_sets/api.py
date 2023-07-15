@@ -30,8 +30,8 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 
 from superset.commands.exceptions import ObjectNotFoundError
+from superset.daos.dashboard import DashboardDAO
 from superset.dashboards.commands.exceptions import DashboardNotFoundError
-from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.filter_sets.commands.create import CreateFilterSetCommand
 from superset.dashboards.filter_sets.commands.delete import DeleteFilterSetCommand
 from superset.dashboards.filter_sets.commands.exceptions import (
@@ -374,8 +374,8 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            changed_model = DeleteFilterSetCommand(dashboard_id, pk).run()
-            return self.response(200, id=changed_model.id)
+            DeleteFilterSetCommand(dashboard_id, pk).run()
+            return self.response(200, id=dashboard_id)
         except ValidationError as error:
             return self.response_400(message=error.messages)
         except FilterSetNotFoundError:

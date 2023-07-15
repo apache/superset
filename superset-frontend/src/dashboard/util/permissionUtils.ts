@@ -42,7 +42,7 @@ const isUserDashboardOwner = (
   user: UserWithPermissionsAndRoles | UndefinedUser,
 ) =>
   isUserWithPermissionsAndRoles(user) &&
-  dashboard.owners.some(owner => owner.username === user.username);
+  dashboard.owners.some(owner => owner.id === user.userId);
 
 export const canUserEditDashboard = (
   dashboard: Dashboard,
@@ -50,7 +50,7 @@ export const canUserEditDashboard = (
 ) =>
   isUserWithPermissionsAndRoles(user) &&
   (isUserAdmin(user) || isUserDashboardOwner(dashboard, user)) &&
-  findPermission('can_write', 'Dashboard', user.roles);
+  findPermission('can_write', 'Dashboard', user?.roles);
 
 export function canUserAccessSqlLab(
   user?: UserWithPermissionsAndRoles | UndefinedUser,

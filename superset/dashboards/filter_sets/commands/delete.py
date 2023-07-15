@@ -16,16 +16,14 @@
 # under the License.
 import logging
 
-from flask_appbuilder.models.sqla import Model
-
-from superset.dao.exceptions import DAODeleteFailedError
+from superset.daos.dashboard import FilterSetDAO
+from superset.daos.exceptions import DAODeleteFailedError
 from superset.dashboards.filter_sets.commands.base import BaseFilterSetCommand
 from superset.dashboards.filter_sets.commands.exceptions import (
     FilterSetDeleteFailedError,
     FilterSetForbiddenError,
     FilterSetNotFoundError,
 )
-from superset.dashboards.filter_sets.dao import FilterSetDAO
 
 logger = logging.getLogger(__name__)
 
@@ -35,10 +33,12 @@ class DeleteFilterSetCommand(BaseFilterSetCommand):
         super().__init__(dashboard_id)
         self._filter_set_id = filter_set_id
 
-    def run(self) -> Model:
+    def run(self) -> None:
+        self.validate()
+        assert self._filter_set
+
         try:
-            self.validate()
-            return FilterSetDAO.delete(self._filter_set, commit=True)
+            FilterSetDAO.delete(self._filter_set)
         except DAODeleteFailedError as err:
             raise FilterSetDeleteFailedError(str(self._filter_set_id), "") from err
 

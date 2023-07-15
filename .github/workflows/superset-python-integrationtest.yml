@@ -10,7 +10,6 @@ on:
 
 jobs:
   test-mysql:
-    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -76,7 +75,6 @@ jobs:
           bash .github/workflows/codecov.sh -c -F python -F mysql
 
   test-postgres:
-    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -143,7 +141,6 @@ jobs:
           bash .github/workflows/codecov.sh -c -F python -F postgres
 
   test-sqlite:
-    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       matrix:

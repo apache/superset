@@ -15,14 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand, CreateMixin
-from superset.dao.exceptions import DAOCreateFailedError
+from superset.daos.dataset import DatasetDAO
+from superset.daos.exceptions import DAOCreateFailedError
 from superset.datasets.commands.exceptions import (
     DatabaseNotFoundValidationError,
     DatasetCreateFailedError,
@@ -30,14 +31,13 @@ from superset.datasets.commands.exceptions import (
     DatasetInvalidError,
     TableNotFoundValidationError,
 )
-from superset.datasets.dao import DatasetDAO
 from superset.extensions import db
 
 logger = logging.getLogger(__name__)
 
 
 class CreateDatasetCommand(CreateMixin, BaseCommand):
-    def __init__(self, data: Dict[str, Any]):
+    def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
 
     def run(self) -> Model:
@@ -45,7 +45,8 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         try:
             # Creates SqlaTable (Dataset)
             dataset = DatasetDAO.create(self._properties, commit=False)
-            # Updates columns and metrics from the dataset
+
+            # Updates columns and metrics from the datase
             dataset.fetch_metadata(commit=False)
             db.session.commit()
         except (SQLAlchemyError, DAOCreateFailedError) as ex:
@@ -55,12 +56,12 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         return dataset
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = []
+        exceptions: list[ValidationError] = []
         database_id = self._properties["database"]
         table_name = self._properties["table_name"]
         schema = self._properties.get("schema", None)
         sql = self._properties.get("sql", None)
-        owner_ids: Optional[List[int]] = self._properties.get("owners")
+        owner_ids: Optional[list[int]] = self._properties.get("owners")
 
         # Validate uniqueness
         if not DatasetDAO.validate_uniqueness(database_id, schema, table_name):
@@ -87,6 +88,4 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         except ValidationError as ex:
             exceptions.append(ex)
         if exceptions:
-            exception = DatasetInvalidError()
-            exception.add_list(exceptions)
-            raise exception
+            raise DatasetInvalidError(exceptions=exceptions)
