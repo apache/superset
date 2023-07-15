@@ -102,7 +102,7 @@ pyhive[hive]==0.6.5
     # via apache-superset
 pyinstrument==4.4.0
     # via -r requirements/development.in
-pylint==2.13.9
+pylint==2.14.5
     # via -r requirements/development.in
 python-ldap==3.4.3
     # via -r requirements/development.in
@@ -133,6 +133,8 @@ thrift==0.16.0
 thrift-sasl==0.4.3
     # via pyhive
 tomli==2.0.1
+    # via pylint
+tomlkit==0.11.8
     # via pylint
 traitlets==5.9.0
     # via

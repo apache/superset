@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# pylint: disable=no-self-use, unused-argument
+# pylint: disable=unused-argument
 
 import inspect
 import json

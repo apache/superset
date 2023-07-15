@@ -141,7 +141,7 @@ class DashboardJSONMetadataSchema(Schema):
     native_filter_migration = fields.Dict()
 
     @pre_load
-    def remove_show_native_filters(  # pylint: disable=unused-argument, no-self-use
+    def remove_show_native_filters(  # pylint: disable=unused-argument
         self,
         data: dict[str, Any],
         **kwargs: Any,
@@ -251,7 +251,7 @@ class DashboardDatasetSchema(Schema):
 
 
 class BaseDashboardSchema(Schema):
-    # pylint: disable=no-self-use,unused-argument
+    # pylint: disable=unused-argument
     @post_load
     def post_load(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if data.get("slug"):

@@ -144,7 +144,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @event_logger.log_this
     @expose("/slice/<int:slice_id>/")
-    def slice(self, slice_id: int) -> FlaskResponse:  # pylint: disable=no-self-use
+    def slice(self, slice_id: int) -> FlaskResponse:
         _, slc = get_form_data(slice_id, use_slice_data=True)
         if not slc:
             abort(404)
@@ -768,7 +768,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @expose("/warm_up_cache/", methods=("GET",))
-    def warm_up_cache(  # pylint: disable=too-many-locals,no-self-use
+    def warm_up_cache(  # pylint: disable=too-many-locals
         self,
     ) -> FlaskResponse:
         """Warms up the cache for the slice or table.
@@ -918,7 +918,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access
     @expose("/dashboard/p/<key>/", methods=("GET",))
-    def dashboard_permalink(  # pylint: disable=no-self-use
+    def dashboard_permalink(
         self,
         key: str,
     ) -> FlaskResponse:
@@ -943,7 +943,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @event_logger.log_this
     @expose("/log/", methods=("POST",))
-    def log(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def log(self) -> FlaskResponse:
         return Response(status=200)
 
     @expose("/theme/")
@@ -956,7 +956,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/fetch_datasource_metadata")
     @deprecated(new_target="api/v1/database/<int:pk>/table/<table_name>/<schema_name>/")
-    def fetch_datasource_metadata(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def fetch_datasource_metadata(self) -> FlaskResponse:
         """
         Fetch the datasource metadata.
 
@@ -975,7 +975,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return json_success(json.dumps(sanitize_datasource_data(datasource.data)))
 
     @app.errorhandler(500)
-    def show_traceback(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def show_traceback(self) -> FlaskResponse:
         return (
             render_template("superset/traceback.html", error_msg=get_error_msg()),
             500,
