@@ -17,7 +17,7 @@
 import logging
 import re
 import urllib.request
-from typing import Any, Optional
+from typing import Any, Optional, Union
 from urllib.error import URLError
 
 import numpy as np
@@ -65,7 +65,7 @@ def escape_value(value: str) -> str:
 
 
 def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
-    def escape_values(v):
+    def escape_values(v: Any) -> Union[str, Any]:
         return escape_value(v) if isinstance(v, str) else v
 
     # Escape csv headers
