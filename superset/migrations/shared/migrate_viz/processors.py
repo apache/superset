@@ -87,6 +87,12 @@ class MigratePivotTable(MigrateViz):
         if pandas_aggfunc := self.data.get("pandas_aggfunc"):
             self.data["pandas_aggfunc"] = self.aggregation_mapping[pandas_aggfunc]
 
+        # Sometimes visualizations have pieces of the Pivot Table v2 in the form_data
+        # We need to remove them to allow the migration to work properly
+        for key in list(self.rename_keys.values()):
+            if key in self.data:
+                self.data.pop(key)
+
         self.data["rowOrder"] = "value_z_to_a"
 
 
