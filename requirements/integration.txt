@@ -45,7 +45,7 @@ platformdirs==3.8.1
 pluggy==1.2.0
     # via tox
 pre-commit==3.3.3
-    # via -r integration.in
+    # via -r requirements/integration.in
 pyproject-api==1.5.2
     # via tox
 pyproject-hooks==1.0.0
@@ -55,7 +55,7 @@ pyyaml==5.4.1
 toposort==1.10
     # via pip-compile-multi
 tox==4.6.4
-    # via -r integration.in
+    # via -r requirements/integration.in
 virtualenv==20.23.1
     # via
     #   pre-commit
