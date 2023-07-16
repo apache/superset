@@ -23,6 +23,7 @@ from typing import Any
 
 from flask import g
 from flask_appbuilder.models.sqla import Model
+from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset import security_manager
@@ -37,10 +38,10 @@ from superset.dashboards.filter_sets.consts import (
     OWNER_ID_FIELD,
     OWNER_TYPE_FIELD,
 )
-from superset.dashboards.filters import DashboardAccessFilter
+from superset.dashboards.filters import DashboardAccessFilter, is_uuid
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
-from superset.models.dashboard import Dashboard
+from superset.models.dashboard import Dashboard, id_or_slug_filter
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.filter_set import FilterSet
 from superset.models.slice import Slice
@@ -55,8 +56,22 @@ class DashboardDAO(BaseDAO[Dashboard]):
 
     @classmethod
     def get_by_id_or_slug(cls, id_or_slug: int | str) -> Dashboard:
-        dashboard = Dashboard.get(id_or_slug)
-        if dashboard is None:
+        if is_uuid(id_or_slug):
+            # just get dashboard if it's uuid
+            dashboard = Dashboard.get(id_or_slug)
+        else:
+            query = (
+                db.session.query(Dashboard)
+                .filter(id_or_slug_filter(id_or_slug))
+                .outerjoin(Dashboard.owners)
+                .outerjoin(Dashboard.roles)
+            )
+            # Apply dashboard base filters
+            query = DashboardAccessFilter("id", SQLAInterface(Dashboard, db.session)).apply(
+                query, None
+            )
+            dashboard = query.one_or_none()
+        if not dashboard:
             raise DashboardNotFoundError()
 
         # make sure we still have basic access check from security manager
