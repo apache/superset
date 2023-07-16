@@ -23,7 +23,6 @@ from typing import Any
 
 from flask import g
 from flask_appbuilder.models.sqla import Model
-from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset import security_manager
