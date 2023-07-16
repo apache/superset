@@ -41,7 +41,7 @@ from superset.dashboards.filter_sets.consts import (
 from superset.dashboards.filters import DashboardAccessFilter, is_uuid
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
-from superset.models.dashboard import Dashboard, id_or_slug_filter
+from superset.models.dashboard import Dashboard, is_int, is_slug
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.filter_set import FilterSet
 from superset.models.slice import Slice
