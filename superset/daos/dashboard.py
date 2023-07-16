@@ -67,7 +67,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
                 .outerjoin(Dashboard.roles)
             )
             # Apply dashboard base filters
-            query = DashboardAccessFilter("id", SQLAInterface(Dashboard, db.session)).apply(
+            query = cls.base_filter("id", SQLAInterface(Dashboard, db.session)).apply(
                 query, None
             )
             dashboard = query.one_or_none()
