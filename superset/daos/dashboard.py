@@ -38,10 +38,10 @@ from superset.dashboards.filter_sets.consts import (
     OWNER_ID_FIELD,
     OWNER_TYPE_FIELD,
 )
-from superset.dashboards.filters import DashboardAccessFilter, is_uuid
+from superset.dashboards.filters import DashboardAccessFilter
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
-from superset.models.dashboard import Dashboard, is_int, is_slug
+from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.filter_set import FilterSet
 from superset.models.slice import Slice
@@ -56,10 +56,8 @@ class DashboardDAO(BaseDAO[Dashboard]):
 
     @classmethod
     def get_by_id_or_slug(cls, id_or_slug: int | str) -> Dashboard:
-        if is_uuid(id_or_slug) or is_int(id_or_slug) or is_slug(id_or_slug):
-            # just get dashboard if it's uuid
-            dashboard = Dashboard.get(id_or_slug)
-        else:
+        dashboard = Dashboard.get(id_or_slug)
+        if dashboard is None:
             raise DashboardNotFoundError()
 
         # make sure we still have basic access check from security manager

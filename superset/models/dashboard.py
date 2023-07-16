@@ -463,12 +463,6 @@ def is_int(value: str | int) -> bool:
         return False
 
 
-def is_slug(value: str) -> bool:
-    if type(value) == str and not is_uuid(value):
-        return True
-    return False
-
-
 def id_or_slug_filter(id_or_slug: int | str) -> BinaryExpression:
     if is_int(id_or_slug):
         return Dashboard.id == int(id_or_slug)
