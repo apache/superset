@@ -56,24 +56,10 @@ class DashboardDAO(BaseDAO[Dashboard]):
 
     @classmethod
     def get_by_id_or_slug(cls, id_or_slug: int | str) -> Dashboard:
-        if is_uuid(id_or_slug):
+        if is_uuid(id_or_slug) or is_int(id_or_slug) or is_slug(id_or_slug):
             # just get dashboard if it's uuid
             dashboard = Dashboard.get(id_or_slug)
         else:
-            query = (
-                db.session.query(Dashboard)
-                .filter(id_or_slug_filter(id_or_slug))
-                .outerjoin(Slice, Dashboard.slices)
-                .outerjoin(Slice.table)
-                .outerjoin(Dashboard.owners)
-                .outerjoin(Dashboard.roles)
-            )
-            # Apply dashboard base filters
-            query = cls.base_filter("id", SQLAInterface(Dashboard, db.session)).apply(
-                query, None
-            )
-            dashboard = query.one_or_none()
-        if not dashboard:
             raise DashboardNotFoundError()
 
         # make sure we still have basic access check from security manager
