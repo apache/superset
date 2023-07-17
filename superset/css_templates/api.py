@@ -87,7 +87,7 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
     openapi_spec_tag = "CSS Templates"
     openapi_spec_methods = openapi_spec_methods_override
 
-    @expose("/", methods=["DELETE"])
+    @expose("/", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics

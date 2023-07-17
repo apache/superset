@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import List, Optional
+from typing import Optional
 
 from superset import security_manager
 from superset.commands.base import BaseCommand
@@ -34,9 +34,9 @@ logger = logging.getLogger(__name__)
 
 
 class BulkDeleteDatasetCommand(BaseCommand):
-    def __init__(self, model_ids: List[int]):
+    def __init__(self, model_ids: list[int]):
         self._model_ids = model_ids
-        self._models: Optional[List[SqlaTable]] = None
+        self._models: Optional[list[SqlaTable]] = None
 
     def run(self) -> None:
         self.validate()

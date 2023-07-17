@@ -56,7 +56,11 @@ export default class EchartsTimeseriesBarChartPlugin extends ChartPlugin<
       controlPanel,
       loadChart: () => import('../../EchartsTimeseries'),
       metadata: new ChartMetadata({
-        behaviors: [Behavior.INTERACTIVE_CHART, Behavior.DRILL_TO_DETAIL],
+        behaviors: [
+          Behavior.INTERACTIVE_CHART,
+          Behavior.DRILL_TO_DETAIL,
+          Behavior.DRILL_BY,
+        ],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
         description: hasGenericChartAxes
@@ -75,9 +79,7 @@ export default class EchartsTimeseriesBarChartPlugin extends ChartPlugin<
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: hasGenericChartAxes
-          ? t('Bar Chart v2')
-          : t('Time-series Bar Chart v2'),
+        name: hasGenericChartAxes ? t('Bar Chart') : t('Time-series Bar Chart'),
         tags: [
           t('ECharts'),
           t('Predictive'),

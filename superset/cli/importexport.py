@@ -18,7 +18,7 @@ import logging
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 from zipfile import is_zipfile, ZipFile
 
 import click
@@ -66,7 +66,7 @@ if feature_flags.get("VERSIONED_EXPORT"):
     @click.option(
         "--dashboard-file",
         "-f",
-        help="Specify the the file to export to",
+        help="Specify the file to export to",
     )
     def export_dashboards(dashboard_file: Optional[str] = None) -> None:
         """Export dashboards to ZIP file"""
@@ -101,7 +101,7 @@ if feature_flags.get("VERSIONED_EXPORT"):
     @click.option(
         "--datasource-file",
         "-f",
-        help="Specify the the file to export to",
+        help="Specify the file to export to",
     )
     def export_datasources(datasource_file: Optional[str] = None) -> None:
         """Export datasources to ZIP file"""
@@ -206,7 +206,7 @@ else:
         "--dashboard-file",
         "-f",
         default=None,
-        help="Specify the the file to export to",
+        help="Specify the file to export to",
     )
     @click.option(
         "--print_stdout",
@@ -236,7 +236,7 @@ else:
         "--datasource-file",
         "-f",
         default=None,
-        help="Specify the the file to export to",
+        help="Specify the file to export to",
     )
     @click.option(
         "--print_stdout",
@@ -309,7 +309,7 @@ else:
         from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 
         path_object = Path(path)
-        files: List[Path] = []
+        files: list[Path] = []
         if path_object.is_file():
             files.append(path_object)
         elif path_object.exists() and not recursive:
@@ -342,7 +342,7 @@ else:
         "-s",
         "sync",
         default="",
-        help="comma seperated list of element types to synchronize "
+        help="comma separated list of element types to synchronize "
         'e.g. "metrics,columns" deletes metrics and columns in the DB '
         "that are not specified in the YAML file",
     )
@@ -363,7 +363,7 @@ else:
         sync_metrics = "metrics" in sync_array
 
         path_object = Path(path)
-        files: List[Path] = []
+        files: list[Path] = []
         if path_object.is_file():
             files.append(path_object)
         elif path_object.exists() and not recursive:

@@ -22,9 +22,11 @@ import {
   ControlPanelsContainerProps,
   ControlSetItem,
   ControlSetRow,
+  DEFAULT_SORT_SERIES_DATA,
+  SORT_SERIES_CHOICES,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import { DEFAULT_LEGEND_FORM_DATA } from './constants';
+import { DEFAULT_LEGEND_FORM_DATA, StackControlOptions } from './constants';
 import { DEFAULT_FORM_DATA } from './Timeseries/constants';
 
 const { legendMargin, legendOrientation, legendType, showLegend } =
@@ -115,10 +117,11 @@ export const showValueControl: ControlSetItem = {
 export const stackControl: ControlSetItem = {
   name: 'stack',
   config: {
-    type: 'CheckboxControl',
-    label: t('Stack series'),
+    type: 'SelectControl',
+    label: t('Stacked Style'),
     renderTrigger: true,
-    default: false,
+    choices: StackControlOptions,
+    default: null,
     description: t('Stack series on top of each other'),
   },
 };
@@ -138,7 +141,7 @@ export const onlyTotalControl: ControlSetItem = {
   },
 };
 
-const percentageThresholdControl: ControlSetItem = {
+export const percentageThresholdControl: ControlSetItem = {
   name: 'percentage_threshold',
   config: {
     type: 'TextControl',
@@ -211,4 +214,36 @@ export const richTooltipSection: ControlSetRow[] = [
   [richTooltipControl],
   [tooltipSortByMetricControl],
   [tooltipTimeFormatControl],
+];
+
+const sortSeriesType: ControlSetItem = {
+  name: 'sort_series_type',
+  config: {
+    type: 'SelectControl',
+    freeForm: false,
+    label: t('Sort Series By'),
+    choices: SORT_SERIES_CHOICES,
+    default: DEFAULT_SORT_SERIES_DATA.sort_series_type,
+    renderTrigger: true,
+    description: t(
+      'Based on what should series be ordered on the chart and legend',
+    ),
+  },
+};
+
+const sortSeriesAscending: ControlSetItem = {
+  name: 'sort_series_ascending',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Sort Series Ascending'),
+    default: DEFAULT_SORT_SERIES_DATA.sort_series_ascending,
+    renderTrigger: true,
+    description: t('Sort series in ascending order'),
+  },
+};
+
+export const seriesOrderSection: ControlSetRow[] = [
+  [<div className="section-header">{t('Series Order')}</div>],
+  [sortSeriesType],
+  [sortSeriesAscending],
 ];

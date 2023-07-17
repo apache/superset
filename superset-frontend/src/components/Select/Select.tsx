@@ -25,20 +25,29 @@ import React, {
   useState,
   useCallback,
 } from 'react';
-import { ensureIsArray, t } from '@superset-ui/core';
-import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
+import {
+  ensureIsArray,
+  formatNumber,
+  NumberFormats,
+  t,
+} from '@superset-ui/core';
+import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
 import { isEqual } from 'lodash';
 import {
   getValue,
   hasOption,
   isLabeledValue,
   renderSelectOptions,
-  hasCustomLabels,
   sortSelectedFirstHelper,
   sortComparatorWithSearchHelper,
   handleFilterOptionHelper,
   dropDownRenderHelper,
   getSuffixIcon,
+  SELECT_ALL_VALUE,
+  selectAllOption,
+  mapValues,
+  mapOptions,
+  hasCustomLabels,
 } from './utils';
 import { SelectOptionsType, SelectProps } from './types';
 import {
@@ -54,6 +63,7 @@ import {
   TOKEN_SEPARATORS,
   DEFAULT_SORT_COMPARATOR,
 } from './constants';
+import { customTagRender } from './CustomTag';
 
 /**
  * This component is a customized version of the Antdesign 4.X Select component
@@ -74,6 +84,7 @@ const Select = forwardRef(
     {
       allowClear,
       allowNewOptions = false,
+      allowSelectAll = true,
       ariaLabel,
       filterOption = true,
       header = null,
@@ -96,6 +107,8 @@ const Select = forwardRef(
       tokenSeparators,
       value,
       getPopupContainer,
+      oneLine,
+      maxTagCount: propsMaxTagCount,
       ...props
     }: SelectProps,
     ref: RefObject<HTMLInputElement>,
@@ -106,11 +119,23 @@ const Select = forwardRef(
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(loading);
     const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+    const [maxTagCount, setMaxTagCount] = useState(
+      propsMaxTagCount ?? MAX_TAG_COUNT,
+    );
+
+    useEffect(() => {
+      if (oneLine) {
+        setMaxTagCount(isDropdownVisible ? 0 : 1);
+      }
+    }, [isDropdownVisible, oneLine]);
+
     const mappedMode = isSingleMode
       ? undefined
       : allowNewOptions
       ? 'tags'
       : 'multiple';
+
+    const { Option } = AntdSelect;
 
     const sortSelectedFirst = useCallback(
       (a: AntdLabeledValue, b: AntdLabeledValue) =>
@@ -149,10 +174,46 @@ const Select = forwardRef(
         .map(opt =>
           isLabeledValue(opt) ? opt : { value: opt, label: String(opt) },
         );
-      return missingValues.length > 0
-        ? missingValues.concat(selectOptions)
-        : selectOptions;
+      const result =
+        missingValues.length > 0
+          ? missingValues.concat(selectOptions)
+          : selectOptions;
+      return result.filter(opt => opt.value !== SELECT_ALL_VALUE);
     }, [selectOptions, selectValue]);
+
+    const enabledOptions = useMemo(
+      () => fullSelectOptions.filter(option => !option.disabled),
+      [fullSelectOptions],
+    );
+
+    const selectAllEligible = useMemo(
+      () =>
+        fullSelectOptions.filter(
+          option => hasOption(option.value, selectValue) || !option.disabled,
+        ),
+      [fullSelectOptions, selectValue],
+    );
+
+    const selectAllEnabled = useMemo(
+      () =>
+        !isSingleMode &&
+        allowSelectAll &&
+        selectOptions.length > 0 &&
+        enabledOptions.length > 1 &&
+        !inputValue,
+      [
+        isSingleMode,
+        allowSelectAll,
+        selectOptions.length,
+        enabledOptions.length,
+        inputValue,
+      ],
+    );
+
+    const selectAllMode = useMemo(
+      () => ensureIsArray(selectValue).length === selectAllEligible.length + 1,
+      [selectValue, selectAllEligible],
+    );
 
     const handleOnSelect = (
       selectedItem: string | number | AntdLabeledValue | undefined,
@@ -164,11 +225,29 @@ const Select = forwardRef(
           const array = ensureIsArray(previousState);
           const value = getValue(selectedItem);
           // Tokenized values can contain duplicated values
+          if (value === getValue(SELECT_ALL_VALUE)) {
+            if (isLabeledValue(selectedItem)) {
+              return [
+                ...selectAllEligible,
+                selectAllOption,
+              ] as AntdLabeledValue[];
+            }
+            return [
+              SELECT_ALL_VALUE,
+              ...selectAllEligible.map(opt => opt.value),
+            ] as AntdLabeledValue[];
+          }
           if (!hasOption(value, array)) {
             const result = [...array, selectedItem];
-            return isLabeledValue(selectedItem)
-              ? (result as AntdLabeledValue[])
-              : (result as (string | number)[]);
+            if (
+              result.length === selectAllEligible.length &&
+              selectAllEnabled
+            ) {
+              return isLabeledValue(selectedItem)
+                ? ([...result, selectAllOption] as AntdLabeledValue[])
+                : ([...result, SELECT_ALL_VALUE] as (string | number)[]);
+            }
+            return result as AntdLabeledValue[];
           }
           return previousState;
         });
@@ -176,18 +255,41 @@ const Select = forwardRef(
       setInputValue('');
     };
 
+    const clear = () => {
+      setSelectValue(
+        fullSelectOptions
+          .filter(
+            option => option.disabled && hasOption(option.value, selectValue),
+          )
+          .map(option =>
+            labelInValue
+              ? { label: option.label, value: option.value }
+              : option.value,
+          ),
+      );
+    };
+
     const handleOnDeselect = (
       value: string | number | AntdLabeledValue | undefined,
     ) => {
       if (Array.isArray(selectValue)) {
-        if (isLabeledValue(value)) {
-          const array = selectValue as AntdLabeledValue[];
-          setSelectValue(
-            array.filter(element => element.value !== value.value),
-          );
+        if (getValue(value) === getValue(SELECT_ALL_VALUE)) {
+          clear();
         } else {
-          const array = selectValue as (string | number)[];
-          setSelectValue(array.filter(element => element !== value));
+          let array = selectValue as AntdLabeledValue[];
+          array = array.filter(
+            element => getValue(element) !== getValue(value),
+          );
+          // if this was not a new item, deselect select all option
+          if (
+            selectAllMode &&
+            selectOptions.some(opt => opt.value === getValue(value))
+          ) {
+            array = array.filter(
+              element => getValue(element) !== SELECT_ALL_VALUE,
+            );
+          }
+          setSelectValue(array);
         }
       }
       setInputValue('');
@@ -202,7 +304,7 @@ const Select = forwardRef(
             value: searchValue,
             isNewOption: true,
           };
-        const cleanSelectOptions = fullSelectOptions.filter(
+        const cleanSelectOptions = ensureIsArray(fullSelectOptions).filter(
           opt => !opt.isNewOption || hasOption(opt.value, selectValue),
         );
         const newOptions = newOption
@@ -243,7 +345,7 @@ const Select = forwardRef(
       );
 
     const handleClear = () => {
-      setSelectValue(undefined);
+      clear();
       if (onClear) {
         onClear();
       }
@@ -264,6 +366,94 @@ const Select = forwardRef(
       setSelectValue(value);
     }, [value]);
 
+    useEffect(() => {
+      // if all values are selected, add select all to value
+      if (
+        selectAllEnabled &&
+        ensureIsArray(value).length === selectAllEligible.length
+      ) {
+        setSelectValue(
+          labelInValue
+            ? ([...ensureIsArray(value), selectAllOption] as AntdLabeledValue[])
+            : ([
+                ...ensureIsArray(value),
+                SELECT_ALL_VALUE,
+              ] as AntdLabeledValue[]),
+        );
+      }
+    }, [labelInValue, selectAllEligible.length, selectAllEnabled, value]);
+
+    useEffect(() => {
+      const checkSelectAll = ensureIsArray(selectValue).some(
+        v => getValue(v) === SELECT_ALL_VALUE,
+      );
+      if (checkSelectAll && !selectAllMode) {
+        const optionsToSelect = selectAllEligible.map(option =>
+          labelInValue ? option : option.value,
+        );
+        optionsToSelect.push(labelInValue ? selectAllOption : SELECT_ALL_VALUE);
+        setSelectValue(optionsToSelect);
+      }
+    }, [selectValue, selectAllMode, labelInValue, selectAllEligible]);
+
+    const selectAllLabel = useMemo(
+      () => () =>
+        // TODO: localize
+        `${SELECT_ALL_VALUE} (${formatNumber(
+          NumberFormats.INTEGER,
+          selectAllEligible.length,
+        )})`,
+      [selectAllEligible],
+    );
+
+    const handleOnChange = (values: any, options: any) => {
+      // intercept onChange call to handle the select all case
+      // if the "select all" option is selected, we want to send all options to the onChange,
+      // otherwise we want to remove
+      let newValues = values;
+      let newOptions = options;
+      if (!isSingleMode) {
+        if (
+          ensureIsArray(newValues).some(
+            val => getValue(val) === SELECT_ALL_VALUE,
+          )
+        ) {
+          // send all options to onchange if all are not currently there
+          if (!selectAllMode) {
+            newValues = mapValues(selectAllEligible, labelInValue);
+            newOptions = mapOptions(selectAllEligible);
+          } else {
+            newValues = ensureIsArray(values).filter(
+              (val: any) => getValue(val) !== SELECT_ALL_VALUE,
+            );
+          }
+        } else if (
+          ensureIsArray(values).length === selectAllEligible.length &&
+          selectAllMode
+        ) {
+          const array = selectAllEligible.filter(
+            option => hasOption(option.value, selectValue) && option.disabled,
+          );
+          newValues = mapValues(array, labelInValue);
+          newOptions = mapOptions(array);
+        }
+      }
+      onChange?.(newValues, newOptions);
+    };
+
+    const shouldRenderChildrenOptions = useMemo(
+      () => selectAllEnabled || hasCustomLabels(options),
+      [selectAllEnabled, options],
+    );
+
+    const customMaxTagPlaceholder = () => {
+      const num_selected = ensureIsArray(selectValue).length;
+      const num_shown = maxTagCount as number;
+      return selectAllMode
+        ? `+ ${num_selected - num_shown - 1} ...`
+        : `+ ${num_selected - num_shown} ...`;
+    };
+
     return (
       <StyledContainer headerPosition={headerPosition}>
         {header && (
@@ -272,6 +462,7 @@ const Select = forwardRef(
         <StyledSelect
           allowClear={!isLoading && allowClear}
           aria-label={ariaLabel || name}
+          autoClearSearchValue={false}
           dropdownRender={dropdownRender}
           filterOption={handleFilterOption}
           filterSort={sortComparatorWithSearch}
@@ -280,7 +471,8 @@ const Select = forwardRef(
           }
           headerPosition={headerPosition}
           labelInValue={labelInValue}
-          maxTagCount={MAX_TAG_COUNT}
+          maxTagCount={maxTagCount}
+          maxTagPlaceholder={customMaxTagPlaceholder}
           mode={mappedMode}
           notFoundContent={isLoading ? t('Loading...') : notFoundContent}
           onDeselect={handleOnDeselect}
@@ -289,8 +481,7 @@ const Select = forwardRef(
           onSearch={shouldShowSearch ? handleOnSearch : undefined}
           onSelect={handleOnSelect}
           onClear={handleClear}
-          onChange={onChange}
-          options={hasCustomLabels(options) ? undefined : fullSelectOptions}
+          onChange={handleOnChange}
           placeholder={placeholder}
           showSearch={shouldShowSearch}
           showArrow
@@ -303,15 +494,29 @@ const Select = forwardRef(
           )}
           menuItemSelectedIcon={
             invertSelection ? (
-              <StyledStopOutlined iconSize="m" />
+              <StyledStopOutlined iconSize="m" aria-label="stop" />
             ) : (
-              <StyledCheckOutlined iconSize="m" />
+              <StyledCheckOutlined iconSize="m" aria-label="check" />
             )
           }
+          {...(!shouldRenderChildrenOptions && { options: fullSelectOptions })}
+          oneLine={oneLine}
+          tagRender={customTagRender}
           {...props}
           ref={ref}
         >
-          {hasCustomLabels(options) && renderSelectOptions(fullSelectOptions)}
+          {selectAllEnabled && (
+            <Option
+              id="select-all"
+              className="select-all"
+              key={SELECT_ALL_VALUE}
+              value={SELECT_ALL_VALUE}
+            >
+              {selectAllLabel()}
+            </Option>
+          )}
+          {shouldRenderChildrenOptions &&
+            renderSelectOptions(fullSelectOptions)}
         </StyledSelect>
       </StyledContainer>
     );

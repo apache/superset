@@ -16,17 +16,18 @@
 # under the License.
 
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 from uuid import UUID, uuid3
 
 from flask import Flask
 from flask_caching import BaseCache
 
 from superset.key_value.exceptions import KeyValueCreateFailedError
-from superset.key_value.types import KeyValueResource
+from superset.key_value.types import KeyValueResource, PickleKeyValueCodec
 from superset.key_value.utils import get_uuid_namespace
 
 RESOURCE = KeyValueResource.METASTORE_CACHE
+CODEC = PickleKeyValueCodec()
 
 
 class SupersetMetastoreCache(BaseCache):
@@ -36,7 +37,7 @@ class SupersetMetastoreCache(BaseCache):
 
     @classmethod
     def factory(
-        cls, app: Flask, config: Dict[str, Any], args: List[Any], kwargs: Dict[str, Any]
+        cls, app: Flask, config: dict[str, Any], args: list[Any], kwargs: dict[str, Any]
     ) -> BaseCache:
         seed = config.get("CACHE_KEY_PREFIX", "")
         kwargs["namespace"] = get_uuid_namespace(seed)
@@ -68,6 +69,7 @@ class SupersetMetastoreCache(BaseCache):
             resource=RESOURCE,
             key=self.get_key(key),
             value=value,
+            codec=CODEC,
             expires_on=self._get_expiry(timeout),
         ).run()
         return True
@@ -80,6 +82,7 @@ class SupersetMetastoreCache(BaseCache):
             CreateKeyValueCommand(
                 resource=RESOURCE,
                 value=value,
+                codec=CODEC,
                 key=self.get_key(key),
                 expires_on=self._get_expiry(timeout),
             ).run()
@@ -92,7 +95,11 @@ class SupersetMetastoreCache(BaseCache):
         # pylint: disable=import-outside-toplevel
         from superset.key_value.commands.get import GetKeyValueCommand
 
-        return GetKeyValueCommand(resource=RESOURCE, key=self.get_key(key)).run()
+        return GetKeyValueCommand(
+            resource=RESOURCE,
+            key=self.get_key(key),
+            codec=CODEC,
+        ).run()
 
     def has(self, key: str) -> bool:
         entry = self.get(key)

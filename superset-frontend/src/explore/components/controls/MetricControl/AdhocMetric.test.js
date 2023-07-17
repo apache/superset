@@ -39,7 +39,6 @@ describe('AdhocMetric', () => {
       hasCustomLabel: false,
       optionName: adhocMetric.optionName,
       sqlExpression: null,
-      isNew: false,
     });
   });
 
@@ -47,7 +46,6 @@ describe('AdhocMetric', () => {
     const adhocMetric1 = new AdhocMetric({
       column: valueColumn,
       aggregate: AGGREGATES.SUM,
-      isNew: true,
     });
     const adhocMetric2 = adhocMetric1.duplicateWith({
       aggregate: AGGREGATES.AVG,
@@ -58,10 +56,6 @@ describe('AdhocMetric', () => {
 
     expect(adhocMetric1.aggregate).toBe(AGGREGATES.SUM);
     expect(adhocMetric2.aggregate).toBe(AGGREGATES.AVG);
-
-    // duplicated clone should not be new
-    expect(adhocMetric1.isNew).toBe(true);
-    expect(adhocMetric2.isNew).toStrictEqual(false);
   });
 
   it('can verify equality', () => {

@@ -15,11 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import json
 
 import pandas as pd
+import pytest
+from flask_babel import lazy_gettext as _
 from numpy import True_
-from pytest import raises
 from sqlalchemy.orm.session import Session
 
 from superset.charts.post_processing import apply_post_process, pivot_df, table
@@ -57,14 +57,14 @@ def test_pivot_df_no_cols_no_rows_single_metric():
     )
     assert (
         pivoted.to_markdown()
-        == """
+        == f"""
 |                  |   ('SUM(num)',) |
 |:-----------------|----------------:|
-| ('Total (Sum)',) |     8.06797e+07 |
+| ('{_("Total")} (Sum)',) |     8.06797e+07 |
     """.strip()
     )
 
-    # tranpose_pivot and combine_metrics do nothing in this case
+    # transpose_pivot and combine_metrics do nothing in this case
     pivoted = pivot_df(
         df,
         rows=[],
@@ -79,10 +79,10 @@ def test_pivot_df_no_cols_no_rows_single_metric():
     )
     assert (
         pivoted.to_markdown()
-        == """
+        == f"""
 |                  |   ('SUM(num)',) |
 |:-----------------|----------------:|
-| ('Total (Sum)',) |     8.06797e+07 |
+| ('{_("Total")} (Sum)',) |     8.06797e+07 |
     """.strip()
     )
 
@@ -102,8 +102,8 @@ def test_pivot_df_no_cols_no_rows_single_metric():
     )
     assert (
         pivoted.to_markdown()
-        == """
-|               |   ('Total (Sum)',) |
+        == f"""
+|               |   ('{_("Total")} (Sum)',) |
 |:--------------|-------------------:|
 | ('SUM(num)',) |        8.06797e+07 |
     """.strip()
@@ -124,10 +124,10 @@ def test_pivot_df_no_cols_no_rows_single_metric():
     )
     assert (
         pivoted.to_markdown()
-        == """
+        == f"""
 |                  |   ('SUM(num)',) |   ('Total (Sum)',) |
 |:-----------------|----------------:|-------------------:|
-| ('Total (Sum)',) |     8.06797e+07 |        8.06797e+07 |
+| ('{_("Total")} (Sum)',) |     8.06797e+07 |        8.06797e+07 |
     """.strip()
     )
 
@@ -162,14 +162,14 @@ def test_pivot_df_no_cols_no_rows_two_metrics():
     )
     assert (
         pivoted.to_markdown()
-        == """
+        == f"""
 |                  |   ('SUM(num)',) |   ('MAX(num)',) |
 |:-----------------|----------------:|----------------:|
-| ('Total (Sum)',) |     8.06797e+07 |           37296 |
+| ('{_("Total")} (Sum)',) |     8.06797e+07 |           37296 |
     """.strip()
     )
 
-    # tranpose_pivot and combine_metrics do nothing in this case
+    # transpose_pivot and combine_metrics do nothing in this case
     pivoted = pivot_df(
         df,
         rows=[],
@@ -207,8 +207,8 @@ def test_pivot_df_no_cols_no_rows_two_metrics():
     )
     assert (
         pivoted.to_markdown()
-        == """
-|               |   ('Total (Sum)',) |
+        == f"""
+|               |   ('{_("Total")} (Sum)',) |
 |:--------------|-------------------:|
 | ('SUM(num)',) |        8.06797e+07 |
 | ('MAX(num)',) |    37296           |
@@ -231,10 +231,10 @@ def test_pivot_df_no_cols_no_rows_two_metrics():
     )
     assert (
         pivoted.to_markdown()
-        == """
-|                  |   ('SUM(num)',) |   ('MAX(num)',) |   ('Total (Sum)',) |
+        == f"""
+|                  |   ('SUM(num)',) |   ('MAX(num)',) |   ('{_("Total")} (Sum)',) |
 |:-----------------|----------------:|----------------:|-------------------:|
-| ('Total (Sum)',) |     8.06797e+07 |           37296 |         8.0717e+07 |
+| ('{_("Total")} (Sum)',) |     8.06797e+07 |           37296 |         8.0717e+07 |
     """.strip()
     )
 
@@ -297,10 +297,10 @@ def test_pivot_df_single_row_two_metrics():
     )
     assert (
         pivoted.to_markdown()
-        == """
+        == f"""
 |                  |   ('SUM(num)', 'boy') |   ('SUM(num)', 'girl') |   ('MAX(num)', 'boy') |   ('MAX(num)', 'girl') |
 |:-----------------|----------------------:|-----------------------:|----------------------:|-----------------------:|
-| ('Total (Sum)',) |                 47123 |                 118065 |                  1280 |                   2588 |
+| ('{_("Total")} (Sum)',) |                 47123 |                 118065 |                  1280 |                   2588 |
     """.strip()
     )
 
@@ -342,12 +342,12 @@ def test_pivot_df_single_row_two_metrics():
     )
     assert (
         pivoted.to_markdown()
-        == """
-|                  |   ('SUM(num)',) |   ('MAX(num)',) |   ('Total (Sum)',) |
+        == f"""
+|                  |   ('SUM(num)',) |   ('MAX(num)',) |   ('{_("Total")} (Sum)',) |
 |:-----------------|----------------:|----------------:|-------------------:|
 | ('boy',)         |           47123 |            1280 |              48403 |
 | ('girl',)        |          118065 |            2588 |             120653 |
-| ('Total (Sum)',) |          165188 |            3868 |             169056 |
+| ('{_("Total")} (Sum)',) |          165188 |            3868 |             169056 |
     """.strip()
     )
 
@@ -366,8 +366,8 @@ def test_pivot_df_single_row_two_metrics():
     )
     assert (
         pivoted.to_markdown()
-        == """
-|                          |   ('Total (Sum)',) |
+        == f"""
+|                          |   ('{_("Total")} (Sum)',) |
 |:-------------------------|-------------------:|
 | ('SUM(num)', 'boy')      |              47123 |
 | ('SUM(num)', 'girl')     |             118065 |
@@ -375,7 +375,7 @@ def test_pivot_df_single_row_two_metrics():
 | ('MAX(num)', 'boy')      |               1280 |
 | ('MAX(num)', 'girl')     |               2588 |
 | ('MAX(num)', 'Subtotal') |               3868 |
-| ('Total (Sum)', '')      |             169056 |
+| ('{_("Total")} (Sum)', '')      |             169056 |
     """.strip()
     )
 
@@ -394,8 +394,8 @@ def test_pivot_df_single_row_two_metrics():
     )
     assert (
         pivoted.to_markdown()
-        == """
-|                      |   ('Total (Sum)',) |
+        == f"""
+|                      |   ('{_("Total")} (Sum)',) |
 |:---------------------|-------------------:|
 | ('boy', 'SUM(num)')  |              47123 |
 | ('boy', 'MAX(num)')  |               1280 |
@@ -403,7 +403,7 @@ def test_pivot_df_single_row_two_metrics():
 | ('girl', 'SUM(num)') |             118065 |
 | ('girl', 'MAX(num)') |               2588 |
 | ('girl', 'Subtotal') |             120653 |
-| ('Total (Sum)', '')  |             169056 |
+| ('{_("Total")} (Sum)', '')  |             169056 |
     """.strip()
     )
 
@@ -1386,9 +1386,9 @@ def test_apply_post_process_without_result_format():
     A query without result_format should raise an exception
     """
     result = {"queries": [{"result_format": "foo"}]}
-    form_data = {"viz_type": "pivot_table"}
+    form_data = {"viz_type": "pivot_table_v2"}
 
-    with raises(Exception) as ex:
+    with pytest.raises(Exception) as ex:
         apply_post_process(result, form_data)
 
     assert ex.match("Result format foo not supported") == True
@@ -1658,12 +1658,13 @@ def test_apply_post_process_csv_format_empty_string():
     }
 
 
-def test_apply_post_process_csv_format_no_data():
+@pytest.mark.parametrize("data", [None, "", "\n"])
+def test_apply_post_process_csv_format_no_data(data):
     """
     It should be able to process csv results with no data
     """
 
-    result = {"queries": [{"result_format": ChartDataResultFormat.CSV, "data": None}]}
+    result = {"queries": [{"result_format": ChartDataResultFormat.CSV, "data": data}]}
     form_data = {
         "datasource": "19__table",
         "viz_type": "pivot_table_v2",
@@ -1725,7 +1726,7 @@ def test_apply_post_process_csv_format_no_data():
     }
 
     assert apply_post_process(result, form_data) == {
-        "queries": [{"result_format": ChartDataResultFormat.CSV, "data": None}]
+        "queries": [{"result_format": ChartDataResultFormat.CSV, "data": data}]
     }
 
 

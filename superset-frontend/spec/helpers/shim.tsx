@@ -89,4 +89,34 @@ jest.mock('react-markdown', () => (props: any) => <>{props.children}</>);
 jest.mock('rehype-sanitize', () => () => jest.fn());
 jest.mock('rehype-raw', () => () => jest.fn());
 
+// Mocks the Icon component due to its async nature
+// Tests should override this when needed
+jest.mock('src/components/Icons/Icon', () => ({
+  __esModule: true,
+  default: ({
+    fileName,
+    role,
+    'aria-label': ariaLabel,
+    ...rest
+  }: {
+    fileName: string;
+    role: string;
+    'aria-label': React.AriaAttributes['aria-label'];
+  }) => (
+    <span
+      role={role ?? 'img'}
+      aria-label={ariaLabel || fileName.replace('_', '-')}
+      {...rest}
+    />
+  ),
+  StyledIcon: ({
+    role,
+    'aria-label': ariaLabel,
+    ...rest
+  }: {
+    role: string;
+    'aria-label': React.AriaAttributes['aria-label'];
+  }) => <span role={role ?? 'img'} aria-label={ariaLabel} {...rest} />,
+}));
+
 process.env.WEBPACK_MODE = 'test';

@@ -21,3 +21,14 @@ from marshmallow import ValidationError
 
 class CustomTagNameValidationError(ValidationError):
     message = _("Custom tag has invalid name, cannot contain ':'")
+
+
+class InvalidTagNameError(ValidationError):
+    """
+    Marshmallow validation error for invalid Tag name
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            [_("Tag name is invalid (cannot contain ':')")], field_name="name"
+        )

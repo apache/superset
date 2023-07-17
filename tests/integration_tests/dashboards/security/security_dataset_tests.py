@@ -22,6 +22,7 @@ import pytest
 from flask import escape
 
 from superset import app
+from superset.dashboards.dao import DashboardDAO
 from superset.models import core as models
 from tests.integration_tests.dashboards.base_case import DashboardTestCase
 from tests.integration_tests.dashboards.consts import *
@@ -137,8 +138,8 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         regular_dash.dashboard_title = "A Plain Ol Dashboard"
         regular_dash.slug = regular_dash_slug
 
-        db.session.merge(favorite_dash)
-        db.session.merge(regular_dash)
+        db.session.add(favorite_dash)
+        db.session.add(regular_dash)
         db.session.commit()
 
         dash = db.session.query(Dashboard).filter_by(slug=fav_dash_slug).first()
@@ -148,13 +149,19 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         favorites.class_name = "Dashboard"
         favorites.user_id = user.id
 
-        db.session.merge(favorites)
+        db.session.add(favorites)
         db.session.commit()
 
         self.login(user.username)
 
         # act
         get_dashboards_response = self.get_resp(DASHBOARDS_API_URL)
+
+        # cleanup
+        db.session.delete(favorites)
+        db.session.delete(favorite_dash)
+        db.session.delete(regular_dash)
+        db.session.commit()
 
         # assert
         self.assertIn(f"/superset/dashboard/{fav_dash_slug}/", get_dashboards_response)
@@ -217,7 +224,7 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         """
         admin = self.get_user("admin")
         title = f"title{random_str()}"
-        create_dashboard_to_db(title, "slug1", owners=[admin])
+        dashboard = create_dashboard_to_db(title, "slug1", owners=[admin])
 
         self.login(username="gamma")
         arguments = {
@@ -228,3 +235,4 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         self.assert200(rv)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(0, data["count"])
+        DashboardDAO.delete(dashboard)

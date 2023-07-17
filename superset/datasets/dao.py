@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -46,7 +46,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
             return None
 
     @staticmethod
-    def get_related_objects(database_id: int) -> Dict[str, Any]:
+    def get_related_objects(database_id: int) -> dict[str, Any]:
         charts = (
             db.session.query(Slice)
             .filter(
@@ -110,7 +110,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         return not db.session.query(dataset_query.exists()).scalar()
 
     @staticmethod
-    def validate_columns_exist(dataset_id: int, columns_ids: List[int]) -> bool:
+    def validate_columns_exist(dataset_id: int, columns_ids: list[int]) -> bool:
         dataset_query = (
             db.session.query(TableColumn.id).filter(
                 TableColumn.table_id == dataset_id, TableColumn.id.in_(columns_ids)
@@ -119,7 +119,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         return len(columns_ids) == len(dataset_query)
 
     @staticmethod
-    def validate_columns_uniqueness(dataset_id: int, columns_names: List[str]) -> bool:
+    def validate_columns_uniqueness(dataset_id: int, columns_names: list[str]) -> bool:
         dataset_query = (
             db.session.query(TableColumn.id).filter(
                 TableColumn.table_id == dataset_id,
@@ -129,7 +129,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         return len(dataset_query) == 0
 
     @staticmethod
-    def validate_metrics_exist(dataset_id: int, metrics_ids: List[int]) -> bool:
+    def validate_metrics_exist(dataset_id: int, metrics_ids: list[int]) -> bool:
         dataset_query = (
             db.session.query(SqlMetric.id).filter(
                 SqlMetric.table_id == dataset_id, SqlMetric.id.in_(metrics_ids)
@@ -138,7 +138,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         return len(metrics_ids) == len(dataset_query)
 
     @staticmethod
-    def validate_metrics_uniqueness(dataset_id: int, metrics_names: List[str]) -> bool:
+    def validate_metrics_uniqueness(dataset_id: int, metrics_names: list[str]) -> bool:
         dataset_query = (
             db.session.query(SqlMetric.id).filter(
                 SqlMetric.table_id == dataset_id,
@@ -151,7 +151,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
     def update(
         cls,
         model: SqlaTable,
-        properties: Dict[str, Any],
+        properties: dict[str, Any],
         commit: bool = True,
     ) -> Optional[SqlaTable]:
         """
@@ -180,7 +180,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
     def update_columns(
         cls,
         model: SqlaTable,
-        property_columns: List[Dict[str, Any]],
+        property_columns: list[dict[str, Any]],
         commit: bool = True,
         override_columns: bool = False,
     ) -> None:
@@ -194,39 +194,50 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         then we delete.
         """
 
-        column_by_id = {column.id: column for column in model.columns}
-        seen = set()
-        original_cols = {obj.id for obj in model.columns}
-
         if override_columns:
-            for id_ in original_cols:
-                DatasetDAO.delete_column(column_by_id[id_], commit=False)
+            db.session.query(TableColumn).filter(
+                TableColumn.table_id == model.id
+            ).delete(synchronize_session="fetch")
 
-            db.session.flush()
-
-            for properties in property_columns:
-                DatasetDAO.create_column(
-                    {**properties, "table_id": model.id},
-                    commit=False,
-                )
+            db.session.bulk_insert_mappings(
+                TableColumn,
+                [
+                    {**properties, "table_id": model.id}
+                    for properties in property_columns
+                ],
+            )
         else:
-            for properties in property_columns:
-                if "id" in properties:
-                    seen.add(properties["id"])
+            columns_by_id = {column.id: column for column in model.columns}
 
-                    DatasetDAO.update_column(
-                        column_by_id[properties["id"]],
-                        properties,
-                        commit=False,
-                    )
-                else:
-                    DatasetDAO.create_column(
-                        {**properties, "table_id": model.id},
-                        commit=False,
-                    )
+            property_columns_by_id = {
+                properties["id"]: properties
+                for properties in property_columns
+                if "id" in properties
+            }
 
-            for id_ in {obj.id for obj in model.columns} - seen:
-                DatasetDAO.delete_column(column_by_id[id_], commit=False)
+            db.session.bulk_insert_mappings(
+                TableColumn,
+                [
+                    {**properties, "table_id": model.id}
+                    for properties in property_columns
+                    if not "id" in properties
+                ],
+            )
+
+            db.session.bulk_update_mappings(
+                TableColumn,
+                [
+                    {**columns_by_id[properties["id"]].__dict__, **properties}
+                    for properties in property_columns_by_id.values()
+                ],
+            )
+
+            db.session.query(TableColumn).filter(
+                TableColumn.id.in_(
+                    {column.id for column in model.columns}
+                    - property_columns_by_id.keys()
+                )
+            ).delete(synchronize_session="fetch")
 
         if commit:
             db.session.commit()
@@ -235,7 +246,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
     def update_metrics(
         cls,
         model: SqlaTable,
-        property_metrics: List[Dict[str, Any]],
+        property_metrics: list[dict[str, Any]],
         commit: bool = True,
     ) -> None:
         """
@@ -248,26 +259,36 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         then we delete.
         """
 
-        metric_by_id = {metric.id: metric for metric in model.metrics}
-        seen = set()
+        metrics_by_id = {metric.id: metric for metric in model.metrics}
 
-        for properties in property_metrics:
-            if "id" in properties:
-                seen.add(properties["id"])
+        property_metrics_by_id = {
+            properties["id"]: properties
+            for properties in property_metrics
+            if "id" in properties
+        }
 
-                DatasetDAO.update_metric(
-                    metric_by_id[properties["id"]],
-                    properties,
-                    commit=False,
-                )
-            else:
-                DatasetDAO.create_metric(
-                    {**properties, "table_id": model.id},
-                    commit=False,
-                )
+        db.session.bulk_insert_mappings(
+            SqlMetric,
+            [
+                {**properties, "table_id": model.id}
+                for properties in property_metrics
+                if not "id" in properties
+            ],
+        )
 
-        for id_ in {obj.id for obj in model.metrics} - seen:
-            DatasetDAO.delete_column(metric_by_id[id_], commit=False)
+        db.session.bulk_update_mappings(
+            SqlMetric,
+            [
+                {**metrics_by_id[properties["id"]].__dict__, **properties}
+                for properties in property_metrics_by_id.values()
+            ],
+        )
+
+        db.session.query(SqlMetric).filter(
+            SqlMetric.id.in_(
+                {metric.id for metric in model.metrics} - property_metrics_by_id.keys()
+            )
+        ).delete(synchronize_session="fetch")
 
         if commit:
             db.session.commit()
@@ -312,14 +333,14 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
     def update_column(
         cls,
         model: TableColumn,
-        properties: Dict[str, Any],
+        properties: dict[str, Any],
         commit: bool = True,
     ) -> TableColumn:
         return DatasetColumnDAO.update(model, properties, commit=commit)
 
     @classmethod
     def create_column(
-        cls, properties: Dict[str, Any], commit: bool = True
+        cls, properties: dict[str, Any], commit: bool = True
     ) -> TableColumn:
         """
         Creates a Dataset model on the metadata DB
@@ -354,7 +375,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
     def update_metric(
         cls,
         model: SqlMetric,
-        properties: Dict[str, Any],
+        properties: dict[str, Any],
         commit: bool = True,
     ) -> SqlMetric:
         return DatasetMetricDAO.update(model, properties, commit=commit)
@@ -362,7 +383,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
     @classmethod
     def create_metric(
         cls,
-        properties: Dict[str, Any],
+        properties: dict[str, Any],
         commit: bool = True,
     ) -> SqlMetric:
         """
@@ -371,7 +392,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         return DatasetMetricDAO.create(properties, commit=commit)
 
     @staticmethod
-    def bulk_delete(models: Optional[List[SqlaTable]], commit: bool = True) -> None:
+    def bulk_delete(models: Optional[list[SqlaTable]], commit: bool = True) -> None:
         item_ids = [model.id for model in models] if models else []
         # bulk delete, first delete related data
         if models:
@@ -395,6 +416,14 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
             if commit:
                 db.session.rollback()
             raise ex
+
+    @staticmethod
+    def get_table_by_name(database_id: int, table_name: str) -> Optional[SqlaTable]:
+        return (
+            db.session.query(SqlaTable)
+            .filter_by(database_id=database_id, table_name=table_name)
+            .one_or_none()
+        )
 
 
 class DatasetColumnDAO(BaseDAO):

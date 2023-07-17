@@ -16,15 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
-import { usePrevious } from 'src/hooks/usePrevious';
+import { css, styled, usePrevious, t } from '@superset-ui/core';
+
 import { areArraysShallowEqual } from 'src/reduxUtils';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import {
   queryEditorSetSelectedText,
-  queryEditorSetFunctionNames,
   addTable,
+  addDangerToast,
 } from 'src/SqlLab/actions/sqlLab';
 import {
   SCHEMA_AUTOCOMPLETE_SCORE,
@@ -38,6 +39,9 @@ import {
   FullSQLEditor as AceEditor,
 } from 'src/components/AsyncAceEditor';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
+import { useSchemas, useTables } from 'src/hooks/apiResources';
+import { useDatabaseFunctionsQuery } from 'src/hooks/apiResources/databaseFunctions';
+import { useAnnotations } from './useAnnotations';
 
 type HotKey = {
   key: string;
@@ -57,6 +61,26 @@ type AceEditorWrapperProps = {
   hotkeys: HotKey[];
 };
 
+const StyledAceEditor = styled(AceEditor)`
+  ${({ theme }) => css`
+    && {
+      // double class is better than !important
+      border: 1px solid ${theme.colors.grayscale.light2};
+      font-feature-settings: 'liga' off, 'calt' off;
+
+      &.ace_autocomplete {
+        // Use !important because Ace Editor applies extra CSS at the last second
+        // when opening the autocomplete.
+        width: ${theme.gridUnit * 130}px !important;
+      }
+
+      .ace_scroller {
+        background-color: ${theme.colors.grayscale.light4};
+      }
+    }
+  `}
+`;
+
 const AceEditorWrapper = ({
   autocomplete,
   onBlur = () => {},
@@ -73,16 +97,48 @@ const AceEditorWrapper = ({
     'id',
     'dbId',
     'sql',
-    'functionNames',
-    'schemaOptions',
-    'tableOptions',
-    'validationResult',
     'schema',
+    'templateParams',
   ]);
+  const { data: schemaOptions } = useSchemas({
+    ...(autocomplete && { dbId: queryEditor.dbId }),
+  });
+  const { data: tableData } = useTables({
+    ...(autocomplete && {
+      dbId: queryEditor.dbId,
+      schema: queryEditor.schema,
+    }),
+  });
+
+  const { data: functionNames, isError } = useDatabaseFunctionsQuery(
+    { dbId: queryEditor.dbId },
+    { skip: !autocomplete || !queryEditor.dbId },
+  );
+
+  useEffect(() => {
+    if (isError) {
+      dispatch(
+        addDangerToast(t('An error occurred while fetching function names.')),
+      );
+    }
+  }, [dispatch, isError]);
+
   const currentSql = queryEditor.sql ?? '';
-  const functionNames = queryEditor.functionNames ?? [];
-  const schemas = queryEditor.schemaOptions ?? [];
-  const tables = queryEditor.tableOptions ?? [];
+
+  // Loading schema, table and column names as auto-completable words
+  const { schemas, schemaWords } = useMemo(
+    () => ({
+      schemas: schemaOptions ?? [],
+      schemaWords: (schemaOptions ?? []).map(s => ({
+        name: s.label,
+        value: s.value,
+        score: SCHEMA_AUTOCOMPLETE_SCORE,
+        meta: 'schema',
+      })),
+    }),
+    [schemaOptions],
+  );
+  const tables = tableData?.options ?? [];
 
   const [sql, setSql] = useState(currentSql);
   const [words, setWords] = useState<AceCompleterKeyword[]>([]);
@@ -96,9 +152,6 @@ const AceEditorWrapper = ({
   useEffect(() => {
     // Making sure no text is selected from previous mount
     dispatch(queryEditorSetSelectedText(queryEditor, null));
-    if (queryEditor.dbId) {
-      dispatch(queryEditorSetFunctionNames(queryEditor, queryEditor.dbId));
-    }
     setAutoCompleter();
   }, []);
 
@@ -169,14 +222,7 @@ const AceEditorWrapper = ({
     onChange(text);
   };
 
-  const setAutoCompleter = () => {
-    // Loading schema, table and column names as auto-completable words
-    const schemaWords = schemas.map(s => ({
-      name: s.label,
-      value: s.value,
-      score: SCHEMA_AUTOCOMPLETE_SCORE,
-      meta: 'schema',
-    }));
+  function setAutoCompleter() {
     const columns = {};
 
     const tableWords = tables.map(t => {
@@ -202,7 +248,7 @@ const AceEditorWrapper = ({
       meta: 'column',
     }));
 
-    const functionWords = functionNames.map(func => ({
+    const functionWords = (functionNames ?? []).map(func => ({
       name: func,
       value: func,
       score: SQL_FUNCTIONS_AUTOCOMPLETE_SCORE,
@@ -240,25 +286,16 @@ const AceEditorWrapper = ({
       }));
 
     setWords(words);
-  };
-
-  const getAceAnnotations = () => {
-    const { validationResult } = queryEditor;
-    const resultIsReady = validationResult?.completed;
-    if (resultIsReady && validationResult?.errors?.length) {
-      const errors = validationResult.errors.map((err: any) => ({
-        type: 'error',
-        row: err.line_number - 1,
-        column: err.start_column - 1,
-        text: err.message,
-      }));
-      return errors;
-    }
-    return [];
-  };
+  }
+  const { data: annotations } = useAnnotations({
+    dbId: queryEditor.dbId,
+    schema: queryEditor.schema,
+    sql: currentSql,
+    templateParams: queryEditor.templateParams,
+  });
 
   return (
-    <AceEditor
+    <StyledAceEditor
       keywords={words}
       onLoad={onEditorLoad}
       onBlur={onBlurSql}
@@ -268,7 +305,7 @@ const AceEditorWrapper = ({
       editorProps={{ $blockScrolling: true }}
       enableLiveAutocompletion={autocomplete}
       value={sql}
-      annotations={getAceAnnotations()}
+      annotations={annotations}
     />
   );
 };

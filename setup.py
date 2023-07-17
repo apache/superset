@@ -14,21 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import io
 import json
 import os
 import subprocess
-import sys
 
 from setuptools import find_packages, setup
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 PACKAGE_JSON = os.path.join(BASE_DIR, "superset-frontend", "package.json")
 
-with open(PACKAGE_JSON, "r") as package_file:
+with open(PACKAGE_JSON) as package_file:
     version_string = json.load(package_file)["version"]
 
-with io.open("README.md", "r", encoding="utf-8") as f:
+with open("README.md", encoding="utf-8") as f:
     long_description = f.read()
 
 
@@ -73,64 +71,73 @@ setup(
     },
     install_requires=[
         "backoff>=1.8.0",
-        "bleach>=3.0.2, <4.0.0",
         "cachelib>=0.4.1,<0.5",
         "celery>=5.2.2, <6.0.0",
         "click>=8.0.3",
+        "click-option-group",
         "colorama",
         "croniter>=0.3.28",
         "cron-descriptor",
-        "cryptography>=3.3.2",
+        "cryptography>=39.0.1, <40",
         "deprecation>=2.1.0, <2.2.0",
-        "flask>=2.0.0, <3.0.0",
-        "flask-appbuilder>=4.1.6, <5.0.0",
-        "flask-caching>=1.10.0",
-        "flask-compress",
-        "flask-talisman",
-        "flask-migrate",
-        "flask-wtf",
+        "flask>=2.2.5, <3.0.0",
+        "flask-appbuilder>=4.3.2, <5.0.0",
+        "flask-caching>=1.10.1, <1.11",
+        "flask-compress>=1.13, <2.0",
+        "flask-talisman>=1.0.0, <2.0",
+        "flask-login==0.6.0",
+        "flask-migrate>=3.1.0, <4.0",
+        "flask-wtf>=1.0.1, <1.1",
         "func_timeout",
         "geopy",
-        "graphlib-backport",
-        "gunicorn>=20.1.0",
+        "gunicorn>=20.1.0; sys_platform != 'win32'",
         "hashids>=1.3.1, <2",
-        "holidays>=0.16.0, <0.17",
+        "holidays>=0.23, <0.24",
         "humanize",
         "isodate",
+        "Mako>=1.2.2",
         "markdown>=3.0",
         "msgpack>=1.0.0, <1.1",
-        "numpy==1.22.1",
-        "pandas>=1.4.4, <1.5",
+        "nh3>=0.2.11, <0.3",
+        "numpy==1.23.5",
+        "packaging",
+        "pandas>=1.5.3, <1.6",
         "parsedatetime",
         "pgsanity",
-        "polyline",
+        "polyline>=2.0.0, <3.0",
         "pyparsing>=3.0.6, <4",
         "python-dateutil",
         "python-dotenv",
         "python-geohash",
-        "pyarrow>=6.0.1, <7",
+        "pyarrow>=12.0.0, <13",
         "pyyaml>=5.4",
         "PyJWT>=2.4.0, <3.0",
-        "redis",
+        "redis>=4.5.4, <5.0",
         "selenium>=3.141.0",
+        "shortid",
+        "sshtunnel>=0.4.0, <0.5",
         "simplejson>=3.15.0",
-        "slack_sdk>=3.1.1, <4",
+        "slack_sdk>=3.19.0, <4",
         "sqlalchemy>=1.4, <2",
         "sqlalchemy-utils>=0.38.3, <0.39",
-        "sqlparse>=0.4.3, <0.5",
+        "sqlparse>=0.4.4, <0.5",
         "tabulate>=0.8.9, <0.9",
         "typing-extensions>=4, <5",
+        "waitress; sys_platform == 'win32'",
+        "werkzeug>=2.3.3, <3",
+        "wtforms>=2.3.3, <4",
         "wtforms-json",
+        "xlsxwriter>=3.0.7, <3.1",
     ],
     extras_require={
         "athena": ["pyathena[pandas]>=2, <3"],
         "aurora-data-api": ["preset-sqlalchemy-aurora-data-api>=0.2.8,<0.3"],
         "bigquery": [
-            "pandas_gbq>=0.10.0",
-            "pybigquery>=0.4.10",
-            "google-cloud-bigquery>=2.4.0",
+            "pandas-gbq>=0.19.1",
+            "sqlalchemy-bigquery>=1.6.1",
+            "google-cloud-bigquery>=3.10.0",
         ],
-        "clickhouse": ["clickhouse-connect>=0.4.1, <0.5"],
+        "clickhouse": ["clickhouse-connect>=0.5.14, <1.0"],
         "cockroachdb": ["cockroachdb>=0.3.5, <0.4"],
         "cors": ["flask-cors>=2.0.0"],
         "crate": ["crate[sqlalchemy]>=0.26.0, <0.27"],
@@ -157,11 +164,17 @@ setup(
         "kylin": ["kylinpy>=2.8.1, <2.9"],
         "mssql": ["pymssql>=2.1.4, <2.2"],
         "mysql": ["mysqlclient>=2.1.0, <3"],
+        "ocient": [
+            "sqlalchemy-ocient>=1.0.0",
+            "pyocient>=1.0.15",
+            "shapely",
+            "geojson",
+        ],
         "oracle": ["cx-Oracle>8.0.0, <8.1"],
         "pinot": ["pinotdb>=0.3.3, <0.4"],
-        "postgres": ["psycopg2-binary==2.9.1"],
+        "postgres": ["psycopg2-binary==2.9.6"],
         "presto": ["pyhive[presto]>=0.6.5"],
-        "trino": ["trino>=0.319.0"],
+        "trino": ["trino>=0.324.0"],
         "prophet": ["prophet>=1.0.1, <1.1", "pystan<3.0"],
         "redshift": ["sqlalchemy-redshift>=0.8.1, < 0.9"],
         "rockset": ["rockset>=0.8.10, <0.9"],
@@ -171,18 +184,19 @@ setup(
         "snowflake": ["snowflake-sqlalchemy>=1.2.4, <2"],
         "spark": ["pyhive[hive]>=0.6.5", "tableschema", "thrift>=0.14.1, <1.0.0"],
         "teradata": ["teradatasql>=16.20.0.23"],
-        "thumbnails": ["Pillow>=9.1.1, <10.0.0"],
+        "thumbnails": ["Pillow>=9.5.0, <10.0.0"],
         "vertica": ["sqlalchemy-vertica-python>=0.5.9, < 0.6"],
         "netezza": ["nzalchemy>=11.0.2"],
+        "starrocks": ["starrocks>=1.0.0"],
     },
-    python_requires="~=3.8",
+    python_requires="~=3.9",
     author="Apache Software Foundation",
     author_email="dev@superset.apache.org",
     url="https://superset.apache.org/",
     download_url="https://www.apache.org/dist/superset/" + version_string,
     classifiers=[
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
     ],
 )

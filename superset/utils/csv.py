@@ -17,7 +17,7 @@
 import logging
 import re
 import urllib.request
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 from urllib.error import URLError
 
 import numpy as np
@@ -81,7 +81,7 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
 
 
 def get_chart_csv_data(
-    chart_url: str, auth_cookies: Optional[Dict[str, str]] = None
+    chart_url: str, auth_cookies: Optional[dict[str, str]] = None
 ) -> Optional[bytes]:
     content = None
     if auth_cookies:
@@ -98,7 +98,7 @@ def get_chart_csv_data(
 
 
 def get_chart_dataframe(
-    chart_url: str, auth_cookies: Optional[Dict[str, str]] = None
+    chart_url: str, auth_cookies: Optional[dict[str, str]] = None
 ) -> Optional[pd.DataFrame]:
     # Disable all the unnecessary-lambda violations in this function
     # pylint: disable=unnecessary-lambda
@@ -110,6 +110,9 @@ def get_chart_dataframe(
     # need to convert float value to string to show full long number
     pd.set_option("display.float_format", lambda x: str(x))
     df = pd.DataFrame.from_dict(result["result"][0]["data"])
+
+    if df.empty:
+        return None
 
     try:
         # if any column type is equal to 2, need to convert data into

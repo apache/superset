@@ -55,7 +55,11 @@ export default class EchartsTimeseriesLineChartPlugin extends ChartPlugin<
       controlPanel,
       loadChart: () => import('../../EchartsTimeseries'),
       metadata: new ChartMetadata({
-        behaviors: [Behavior.INTERACTIVE_CHART, Behavior.DRILL_TO_DETAIL],
+        behaviors: [
+          Behavior.INTERACTIVE_CHART,
+          Behavior.DRILL_TO_DETAIL,
+          Behavior.DRILL_BY,
+        ],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
         description: hasGenericChartAxes
@@ -73,7 +77,7 @@ export default class EchartsTimeseriesLineChartPlugin extends ChartPlugin<
           AnnotationType.Timeseries,
         ],
         name: hasGenericChartAxes
-          ? t('Line Chart v2')
+          ? t('Line Chart')
           : t('Time-series Line Chart'),
         tags: [
           t('ECharts'),

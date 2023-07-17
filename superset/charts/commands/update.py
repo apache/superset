@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from flask import g
 from flask_appbuilder.models.sqla import Model
@@ -42,14 +42,14 @@ from superset.models.slice import Slice
 logger = logging.getLogger(__name__)
 
 
-def is_query_context_update(properties: Dict[str, Any]) -> bool:
+def is_query_context_update(properties: dict[str, Any]) -> bool:
     return set(properties) == {"query_context", "query_context_generation"} and bool(
         properties.get("query_context_generation")
     )
 
 
 class UpdateChartCommand(UpdateMixin, BaseCommand):
-    def __init__(self, model_id: int, data: Dict[str, Any]):
+    def __init__(self, model_id: int, data: dict[str, Any]):
         self._model_id = model_id
         self._properties = data.copy()
         self._model: Optional[Slice] = None
@@ -67,9 +67,9 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         return chart
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = []
+        exceptions: list[ValidationError] = []
         dashboard_ids = self._properties.get("dashboards")
-        owner_ids: Optional[List[int]] = self._properties.get("owners")
+        owner_ids: Optional[list[int]] = self._properties.get("owners")
 
         # Validate if datasource_id is provided datasource_type is required
         datasource_id = self._properties.get("datasource_id")
@@ -105,12 +105,13 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
 
         # Validate/Populate dashboards only if it's a list
         if dashboard_ids is not None:
-            dashboards = DashboardDAO.find_by_ids(dashboard_ids)
+            dashboards = DashboardDAO.find_by_ids(
+                dashboard_ids,
+                skip_base_filter=True,
+            )
             if len(dashboards) != len(dashboard_ids):
                 exceptions.append(DashboardsNotFoundValidationError())
             self._properties["dashboards"] = dashboards
 
         if exceptions:
-            exception = ChartInvalidError()
-            exception.add_list(exceptions)
-            raise exception
+            raise ChartInvalidError(exceptions=exceptions)

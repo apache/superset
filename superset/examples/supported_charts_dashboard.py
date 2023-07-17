@@ -19,11 +19,10 @@
 
 import json
 import textwrap
-from typing import List
 
 from sqlalchemy import inspect
 
-from superset import db, security_manager
+from superset import db
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -40,14 +39,12 @@ from .helpers import (
 DASH_SLUG = "supported_charts_dash"
 
 
-def create_slices(tbl: SqlaTable) -> List[Slice]:
-    admin = security_manager.find_user("admin")
-    slice_props = dict(
-        datasource_id=tbl.id,
-        datasource_type=DatasourceType.TABLE,
-        owners=[admin],
-        created_by=admin,
-    )
+def create_slices(tbl: SqlaTable) -> list[Slice]:
+    slice_kwargs = {
+        "datasource_id": tbl.id,
+        "datasource_type": DatasourceType.TABLE,
+        "owners": [],
+    }
 
     defaults = {
         "limit": "25",
@@ -62,7 +59,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
         # TIER 1
         # ---------------------
         Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Big Number",
             viz_type="big_number_total",
             params=get_slice_json(
@@ -72,7 +69,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
             ),
         ),
         Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Big Number with Trendline",
             viz_type="big_number",
             params=get_slice_json(
@@ -82,7 +79,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
             ),
         ),
         Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Table",
             viz_type="table",
             params=get_slice_json(
@@ -93,7 +90,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
             ),
         ),
         Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Pivot Table",
             viz_type="pivot_table_v2",
             params=get_slice_json(
@@ -105,7 +102,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
             ),
         ),
         Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Time-Series Line Chart",
             viz_type="echarts_timeseries_line",
             params=get_slice_json(
@@ -116,7 +113,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
             ),
         ),
         Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Time-Series Area Chart",
             viz_type="echarts_area",
             params=get_slice_json(
@@ -127,7 +124,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
             ),
         ),
         Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Time-Series Bar Chart V2",
             viz_type="echarts_timeseries_bar",
             params=get_slice_json(
@@ -138,7 +135,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
             ),
         ),
         Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Time-Series Scatter Chart",
             viz_type="echarts_timeseries_scatter",
             params=get_slice_json(
@@ -149,7 +146,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
             ),
         ),
         Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Pie Chart",
             viz_type="pie",
             params=get_slice_json(
@@ -161,7 +158,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
             ),
         ),
         Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Bar Chart",
             viz_type="dist_bar",
             params=get_slice_json(
@@ -175,7 +172,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
         # TIER 2
         # ---------------------
         Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Box Plot Chart",
             viz_type="box_plot",
             params=get_slice_json(
@@ -187,7 +184,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
             ),
         ),
         Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Bubble Chart",
             viz_type="bubble",
             params=get_slice_json(
@@ -217,7 +214,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
             ),
         ),
         Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Calendar Heatmap",
             viz_type="cal_heatmap",
             params=get_slice_json(
@@ -228,7 +225,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
             ),
         ),
         Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Chord Chart",
             viz_type="chord",
             params=get_slice_json(
@@ -240,7 +237,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
             ),
         ),
         Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Time-Series Percent Change Chart",
             viz_type="compare",
             params=get_slice_json(
@@ -251,7 +248,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
             ),
         ),
         Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Time-Series Generic Chart",
             viz_type="echarts_timeseries",
             params=get_slice_json(
@@ -262,7 +259,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
             ),
         ),
         Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Time-Series Smooth Line Chart",
             viz_type="echarts_timeseries_smooth",
             params=get_slice_json(
@@ -273,7 +270,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
             ),
         ),
         Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Time-Series Step Line Chart",
             viz_type="echarts_timeseries_step",
             params=get_slice_json(
@@ -284,7 +281,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
             ),
         ),
         Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Funnel Chart",
             viz_type="funnel",
             params=get_slice_json(
@@ -295,7 +292,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
             ),
         ),
         Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Gauge Chart",
             viz_type="gauge_chart",
             params=get_slice_json(
@@ -306,7 +303,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
             ),
         ),
         Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Heatmap Chart",
             viz_type="heatmap",
             params=get_slice_json(
@@ -318,7 +315,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
             ),
         ),
         Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Line Chart",
             viz_type="line",
             params=get_slice_json(
@@ -329,7 +326,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
             ),
         ),
         Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Mixed Chart",
             viz_type="mixed_timeseries",
             params=get_slice_json(
@@ -337,12 +334,12 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
                 viz_type="mixed_timeseries",
                 metrics=["sum__num"],
                 groupby=["gender"],
-                metrics_b=["count"],
+                metrics_b=["sum__num"],
                 groupby_b=["state"],
             ),
         ),
         Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Partition Chart",
             viz_type="partition",
             params=get_slice_json(
@@ -353,7 +350,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
             ),
         ),
         Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Radar Chart",
             viz_type="radar",
             params=get_slice_json(
@@ -376,7 +373,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
             ),
         ),
         Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Nightingale Chart",
             viz_type="rose",
             params=get_slice_json(
@@ -387,7 +384,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
             ),
         ),
         Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Sankey Chart",
             viz_type="sankey",
             params=get_slice_json(
@@ -398,7 +395,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
             ),
         ),
         Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Sunburst Chart",
             viz_type="sunburst",
             params=get_slice_json(
@@ -409,18 +406,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
             ),
         ),
         Slice(
-            **slice_props,
-            slice_name="Treemap Chart",
-            viz_type="treemap",
-            params=get_slice_json(
-                defaults,
-                viz_type="treemap",
-                metrics=["sum__num"],
-                groupby=["gender"],
-            ),
-        ),
-        Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Treemap V2 Chart",
             viz_type="treemap_v2",
             params=get_slice_json(
@@ -431,7 +417,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
             ),
         ),
         Slice(
-            **slice_props,
+            **slice_kwargs,
             slice_name="Word Cloud Chart",
             viz_type="word_cloud",
             params=get_slice_json(

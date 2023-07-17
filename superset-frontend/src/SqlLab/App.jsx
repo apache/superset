@@ -17,22 +17,17 @@
  * under the License.
  */
 import React from 'react';
-import { createStore, compose, applyMiddleware } from 'redux';
+import persistState from 'redux-localstorage';
 import { Provider } from 'react-redux';
-import thunkMiddleware from 'redux-thunk';
 import { hot } from 'react-hot-loader/root';
-import { ThemeProvider } from '@superset-ui/core';
+import { FeatureFlag, ThemeProvider } from '@superset-ui/core';
 import { GlobalStyles } from 'src/GlobalStyles';
-import QueryProvider from 'src/views/QueryProvider';
-import {
-  initFeatureFlags,
-  isFeatureEnabled,
-  FeatureFlag,
-} from 'src/featureFlags';
+import { initFeatureFlags, isFeatureEnabled } from 'src/featureFlags';
+import { setupStore } from 'src/views/store';
 import setupExtensions from 'src/setup/setupExtensions';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import getInitialState from './reducers/getInitialState';
-import rootReducer from './reducers/index';
-import { initEnhancer } from '../reduxUtils';
+import { reducers } from './reducers/index';
 import App from './components/App';
 import {
   emptyQueryResults,
@@ -41,15 +36,14 @@ import {
 import { BYTES_PER_CHAR, KB_STORAGE } from './constants';
 import setupApp from '../setup/setupApp';
 
-import './main.less';
 import '../assets/stylesheets/reactable-pagination.less';
 import { theme } from '../preamble';
+import { SqlLabGlobalStyles } from './SqlLabGlobalStyles';
 
 setupApp();
 setupExtensions();
 
-const appContainer = document.getElementById('app');
-const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
+const bootstrapData = getBootstrapData();
 
 initFeatureFlags(bootstrapData.common.feature_flags);
 
@@ -112,17 +106,18 @@ const sqlLabPersistStateConfig = {
   },
 };
 
-const store = createStore(
-  rootReducer,
+export const store = setupStore({
   initialState,
-  compose(
-    applyMiddleware(thunkMiddleware),
-    initEnhancer(
-      !isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE),
-      sqlLabPersistStateConfig,
-    ),
-  ),
-);
+  rootReducers: reducers,
+  ...(!isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) && {
+    enhancers: [
+      persistState(
+        sqlLabPersistStateConfig.paths,
+        sqlLabPersistStateConfig.config,
+      ),
+    ],
+  }),
+});
 
 // Highlight the navbar menu
 const menus = document.querySelectorAll('.nav.navbar-nav li.dropdown');
@@ -137,14 +132,13 @@ if (sqlLabMenu) {
 }
 
 const Application = () => (
-  <QueryProvider>
-    <Provider store={store}>
-      <ThemeProvider theme={theme}>
-        <GlobalStyles />
-        <App />
-      </ThemeProvider>
-    </Provider>
-  </QueryProvider>
+  <Provider store={store}>
+    <ThemeProvider theme={theme}>
+      <GlobalStyles />
+      <SqlLabGlobalStyles />
+      <App />
+    </ThemeProvider>
+  </Provider>
 );
 
 export default hot(Application);

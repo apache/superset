@@ -19,7 +19,7 @@
 import React, { useMemo, useCallback, RefObject, createRef } from 'react';
 import moment from 'moment';
 import { useDispatch } from 'react-redux';
-import ReactDiffViewer from 'react-diff-viewer';
+import ReactDiffViewer from 'react-diff-viewer-continued';
 import { useInView } from 'react-intersection-observer';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';

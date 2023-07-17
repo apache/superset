@@ -17,14 +17,14 @@
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import Any, List, Optional, Union
+from typing import Any, Optional, Union
 from uuid import UUID
 
 import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
 from sqlalchemy.orm import Session
 
-from superset import app
+from superset import app, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import CommandException
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
@@ -69,19 +69,18 @@ from superset.reports.models import (
 from superset.reports.notifications import create_notification
 from superset.reports.notifications.base import NotificationContent
 from superset.reports.notifications.exceptions import NotificationError
-from superset.reports.utils import get_executor
+from superset.tasks.utils import get_executor
 from superset.utils.celery import session_scope
 from superset.utils.core import HeaderDataType, override_user
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
-from superset.utils.webdriver import DashboardStandaloneMode
 
 logger = logging.getLogger(__name__)
 
 
 class BaseReportState:
-    current_states: List[ReportState] = []
+    current_states: list[ReportState] = []
     initial: bool = False
 
     def __init__(
@@ -172,36 +171,41 @@ class BaseReportState:
                 "ExploreView.root",
                 user_friendly=user_friendly,
                 form_data=json.dumps({"slice_id": self._report_schedule.chart_id}),
-                standalone="true",
                 force=force,
                 **kwargs,
             )
 
         # If we need to render dashboard in a specific state, use stateful permalink
-        dashboard_state = self._report_schedule.extra.get("dashboard")
-        if dashboard_state:
+        if dashboard_state := self._report_schedule.extra.get("dashboard"):
             permalink_key = CreateDashboardPermalinkCommand(
-                dashboard_id=str(self._report_schedule.dashboard_id),
+                dashboard_id=str(self._report_schedule.dashboard.uuid),
                 state=dashboard_state,
             ).run()
             return get_url_path("Superset.dashboard_permalink", key=permalink_key)
 
+        dashboard = self._report_schedule.dashboard
+        dashboard_id_or_slug = (
+            dashboard.uuid if dashboard and dashboard.uuid else dashboard.id
+        )
         return get_url_path(
             "Superset.dashboard",
             user_friendly=user_friendly,
-            dashboard_id_or_slug=self._report_schedule.dashboard_id,
-            standalone=DashboardStandaloneMode.REPORT.value,
+            dashboard_id_or_slug=dashboard_id_or_slug,
             force=force,
             **kwargs,
         )
 
-    def _get_screenshots(self) -> List[bytes]:
+    def _get_screenshots(self) -> list[bytes]:
         """
         Get chart or dashboard screenshots
         :raises: ReportScheduleScreenshotFailedError
         """
         url = self._get_url()
-        user = get_executor(self._report_schedule)
+        _, username = get_executor(
+            executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
+            model=self._report_schedule,
+        )
+        user = security_manager.find_user(username)
         if self._report_schedule.chart:
             screenshot: Union[ChartScreenshot, DashboardScreenshot] = ChartScreenshot(
                 url,
@@ -231,7 +235,11 @@ class BaseReportState:
 
     def _get_csv_data(self) -> bytes:
         url = self._get_url(result_format=ChartDataResultFormat.CSV)
-        user = get_executor(self._report_schedule)
+        _, username = get_executor(
+            executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
+            model=self._report_schedule,
+        )
+        user = security_manager.find_user(username)
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
 
         if self._report_schedule.chart.query_context is None:
@@ -240,7 +248,7 @@ class BaseReportState:
 
         try:
             logger.info("Getting chart from %s as user %s", url, user.username)
-            csv_data = get_chart_csv_data(url, auth_cookies)
+            csv_data = get_chart_csv_data(chart_url=url, auth_cookies=auth_cookies)
         except SoftTimeLimitExceeded as ex:
             raise ReportScheduleCsvTimeout() from ex
         except Exception as ex:
@@ -256,7 +264,11 @@ class BaseReportState:
         Return data as a Pandas dataframe, to embed in notifications as a table.
         """
         url = self._get_url(result_format=ChartDataResultFormat.JSON)
-        user = get_executor(self._report_schedule)
+        _, username = get_executor(
+            executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
+            model=self._report_schedule,
+        )
+        user = security_manager.find_user(username)
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
 
         if self._report_schedule.chart.query_context is None:
@@ -382,20 +394,22 @@ class BaseReportState:
     def _send(
         self,
         notification_content: NotificationContent,
-        recipients: List[ReportRecipients],
+        recipients: list[ReportRecipients],
     ) -> None:
         """
         Sends a notification to all recipients
 
         :raises: CommandException
         """
-        notification_errors: List[SupersetError] = []
+        notification_errors: list[SupersetError] = []
         for recipient in recipients:
             notification = create_notification(recipient, notification_content)
             try:
                 if app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"]:
                     logger.info(
-                        "Would send notification for alert %s, to %s",
+                        "Would send notification for alert %s, to %s. "
+                        "ALERT_REPORTS_NOTIFICATION_DRY_RUN is enabled, "
+                        "set it to False to send notifications.",
                         self._report_schedule.name,
                         recipient.recipient_config_json,
                     )
@@ -656,7 +670,6 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
         self._scheduled_dttm = scheduled_dttm
 
     def run(self) -> None:
-        state_found = False
         for state_cls in self.states_cls:
             if (self._report_schedule.last_state is None and state_cls.initial) or (
                 self._report_schedule.last_state in state_cls.current_states
@@ -667,9 +680,8 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
                     self._scheduled_dttm,
                     self._execution_id,
                 ).next()
-                state_found = True
                 break
-        if not state_found:
+        else:
             raise ReportScheduleStateNotFoundError()
 
 
@@ -692,12 +704,16 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 self.validate(session=session)
                 if not self._model:
                     raise ReportScheduleExecuteUnexpectedError()
-                user = get_executor(self._model)
+                _, username = get_executor(
+                    executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
+                    model=self._model,
+                )
+                user = security_manager.find_user(username)
                 with override_user(user):
                     logger.info(
                         "Running report schedule %s as user %s",
                         self._execution_id,
-                        user.username,
+                        username,
                     )
                     ReportScheduleStateMachine(
                         session, self._execution_id, self._model, self._scheduled_dttm

@@ -19,7 +19,7 @@ from __future__ import annotations
 import copy
 import logging
 import re
-from typing import Any, ClassVar, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import Any, ClassVar, TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -37,7 +37,7 @@ from superset.common.utils import dataframe_utils
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.common.utils.time_range_utils import get_since_until_from_query_object
 from superset.connectors.base.models import BaseDatasource
-from superset.constants import CacheRegion
+from superset.constants import CacheRegion, TimeGrain
 from superset.exceptions import (
     InvalidPostProcessingError,
     QueryObjectValidationError,
@@ -46,7 +46,7 @@ from superset.exceptions import (
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
 from superset.models.sql_lab import Query
-from superset.utils import csv
+from superset.utils import csv, excel
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
     DatasourceType,
@@ -74,11 +74,32 @@ config = app.config
 stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
+# Temporary column used for joining aggregated offset results
+AGGREGATED_JOIN_COLUMN = "__aggregated_join_column"
+
+# This only includes time grains that may influence
+# the temporal column used for joining offset results.
+# Given that we don't allow time shifts smaller than a day,
+# we don't need to include smaller time grains aggregations.
+AGGREGATED_JOIN_GRAINS = {
+    TimeGrain.WEEK,
+    TimeGrain.WEEK_STARTING_SUNDAY,
+    TimeGrain.WEEK_STARTING_MONDAY,
+    TimeGrain.WEEK_ENDING_SATURDAY,
+    TimeGrain.WEEK_ENDING_SUNDAY,
+    TimeGrain.MONTH,
+    TimeGrain.QUARTER,
+    TimeGrain.YEAR,
+}
+
+# Right suffix used for joining offset results
+R_SUFFIX = "__right_suffix"
+
 
 class CachedTimeOffset(TypedDict):
     df: pd.DataFrame
-    queries: List[str]
-    cache_keys: List[Optional[str]]
+    queries: list[str]
+    cache_keys: list[str | None]
 
 
 class QueryContextProcessor:
@@ -89,10 +110,6 @@ class QueryContextProcessor:
 
     _query_context: QueryContext
     _qc_datasource: BaseDatasource
-    """
-    The query context contains the query object and additional fields necessary
-    to retrieve the data payload for a given viz.
-    """
 
     def __init__(self, query_context: QueryContext):
         self._query_context = query_context
@@ -102,15 +119,17 @@ class QueryContextProcessor:
     enforce_numerical_metrics: ClassVar[bool] = True
 
     def get_df_payload(
-        self, query_obj: QueryObject, force_cached: Optional[bool] = False
-    ) -> Dict[str, Any]:
+        self, query_obj: QueryObject, force_cached: bool | None = False
+    ) -> dict[str, Any]:
         """Handles caching around the df payload retrieval"""
         cache_key = self.query_cache_key(query_obj)
+        timeout = self.get_cache_timeout()
+        force_query = self._query_context.force or timeout == -1
         cache = QueryCacheManager.get(
-            cache_key,
-            CacheRegion.DATA,
-            self._query_context.force,
-            force_cached,
+            key=cache_key,
+            region=CacheRegion.DATA,
+            force_query=force_query,
+            force_cached=force_cached,
         )
 
         if query_obj and cache_key and not cache.is_loaded:
@@ -139,7 +158,7 @@ class QueryContextProcessor:
                     key=cache_key,
                     query_result=query_result,
                     annotation_data=annotation_data,
-                    force_query=self._query_context.force,
+                    force_query=force_query,
                     timeout=self.get_cache_timeout(),
                     datasource_uid=self._qc_datasource.uid,
                     region=CacheRegion.DATA,
@@ -165,6 +184,8 @@ class QueryContextProcessor:
             "cache_timeout": self.get_cache_timeout(),
             "df": cache.df,
             "applied_template_filters": cache.applied_template_filters,
+            "applied_filter_columns": cache.applied_filter_columns,
+            "rejected_filter_columns": cache.rejected_filter_columns,
             "annotation_data": cache.annotation_data,
             "error": cache.error_message,
             "is_cached": cache.is_cached,
@@ -177,7 +198,7 @@ class QueryContextProcessor:
             "label_map": label_map,
         }
 
-    def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> Optional[str]:
+    def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> str | None:
         """
         Returns a QueryObject cache key for objects in self.queries
         """
@@ -233,7 +254,7 @@ class QueryContextProcessor:
             try:
                 df = query_object.exec_post_processing(df)
             except InvalidPostProcessingError as ex:
-                raise QueryObjectValidationError from ex
+                raise QueryObjectValidationError(ex.message) from ex
 
         result.df = df
         result.query = query
@@ -244,8 +265,8 @@ class QueryContextProcessor:
     def normalize_df(self, df: pd.DataFrame, query_object: QueryObject) -> pd.DataFrame:
         # todo: should support "python_date_format" and "get_column" in each datasource
         def _get_timestamp_format(
-            source: BaseDatasource, column: Optional[str]
-        ) -> Optional[str]:
+            source: BaseDatasource, column: str | None
+        ) -> str | None:
             column_obj = source.get_column(column)
             if (
                 column_obj
@@ -303,6 +324,35 @@ class QueryContextProcessor:
 
         return df
 
+    @staticmethod
+    def get_time_grain(query_object: QueryObject) -> Any | None:
+        if (
+            query_object.columns
+            and len(query_object.columns) > 0
+            and isinstance(query_object.columns[0], dict)
+        ):
+            # If the time grain is in the columns it will be the first one
+            # and it will be of AdhocColumn type
+            return query_object.columns[0].get("timeGrain")
+
+        return query_object.extras.get("time_grain_sqla")
+
+    def add_aggregated_join_column(
+        self,
+        df: pd.DataFrame,
+        time_grain: str,
+        join_column_producer: Any = None,
+    ) -> None:
+        if join_column_producer:
+            df[AGGREGATED_JOIN_COLUMN] = df.apply(
+                lambda row: join_column_producer(row, 0), axis=1
+            )
+        else:
+            df[AGGREGATED_JOIN_COLUMN] = df.apply(
+                lambda row: self.get_aggregated_join_column(row, 0, time_grain),
+                axis=1,
+            )
+
     def processing_time_offsets(  # pylint: disable=too-many-locals,too-many-statements
         self,
         df: pd.DataFrame,
@@ -311,11 +361,10 @@ class QueryContextProcessor:
         query_context = self._query_context
         # ensure query_object is immutable
         query_object_clone = copy.copy(query_object)
-        queries: List[str] = []
-        cache_keys: List[Optional[str]] = []
-        rv_dfs: List[pd.DataFrame] = [df]
+        queries: list[str] = []
+        cache_keys: list[str | None] = []
+        offset_dfs: list[pd.DataFrame] = []
 
-        time_offsets = query_object.time_offsets
         outer_from_dttm, outer_to_dttm = get_since_until_from_query_object(query_object)
         if not outer_from_dttm or not outer_to_dttm:
             raise QueryObjectValidationError(
@@ -324,7 +373,31 @@ class QueryContextProcessor:
                     "when using a Time Comparison."
                 )
             )
-        for offset in time_offsets:
+
+        columns = df.columns
+        time_grain = self.get_time_grain(query_object)
+
+        if not time_grain:
+            raise QueryObjectValidationError(
+                _("Time Grain must be specified when using Time Shift.")
+            )
+
+        join_column_producer = config["TIME_GRAIN_JOIN_COLUMN_PRODUCERS"].get(
+            time_grain
+        )
+        use_aggregated_join_column = (
+            join_column_producer or time_grain in AGGREGATED_JOIN_GRAINS
+        )
+        if use_aggregated_join_column:
+            self.add_aggregated_join_column(df, time_grain, join_column_producer)
+            # skips the first column which is the temporal column
+            # because we'll use the aggregated join columns instead
+            columns = df.columns[1:]
+
+        metric_names = get_metric_names(query_object.metrics)
+        join_keys = [col for col in columns if col not in metric_names]
+
+        for offset in query_object.time_offsets:
             try:
                 # pylint: disable=line-too-long
                 # Since the xaxis is also a column name for the time filter, xaxis_label will be set as granularity
@@ -360,13 +433,15 @@ class QueryContextProcessor:
             ]
 
             # `offset` is added to the hash function
-            cache_key = self.query_cache_key(query_object_clone, time_offset=offset)
+            cache_key = self.query_cache_key(
+                query_object_clone, time_offset=offset, time_grain=time_grain
+            )
             cache = QueryCacheManager.get(
                 cache_key, CacheRegion.DATA, query_context.force
             )
             # whether hit on the cache
             if cache.is_loaded:
-                rv_dfs.append(cache.df)
+                offset_dfs.append(cache.df)
                 queries.append(cache.query)
                 cache_keys.append(cache_key)
                 continue
@@ -375,11 +450,8 @@ class QueryContextProcessor:
             # rename metrics: SUM(value) => SUM(value) 1 year ago
             metrics_mapping = {
                 metric: TIME_COMPARISON.join([metric, offset])
-                for metric in get_metric_names(
-                    query_object_clone_dct.get("metrics", [])
-                )
+                for metric in metric_names
             }
-            join_keys = [col for col in df.columns if col not in metrics_mapping.keys()]
 
             if isinstance(self._qc_datasource, Query):
                 result = self._qc_datasource.exc_query(query_object_clone_dct)
@@ -416,21 +488,19 @@ class QueryContextProcessor:
                         )
                     )
 
+                # modifies temporal column using offset
                 offset_metrics_df[index] = offset_metrics_df[index] - DateOffset(
                     **normalize_time_delta(offset)
                 )
 
-            # df left join `offset_metrics_df`
-            offset_df = dataframe_utils.left_join_df(
-                left_df=df,
-                right_df=offset_metrics_df,
-                join_keys=join_keys,
-            )
-            offset_slice = offset_df[metrics_mapping.values()]
+                if use_aggregated_join_column:
+                    self.add_aggregated_join_column(
+                        offset_metrics_df, time_grain, join_column_producer
+                    )
 
-            # set offset_slice to cache and stack.
+            # cache df and query
             value = {
-                "df": offset_slice,
+                "df": offset_metrics_df,
                 "query": result.query,
             }
             cache.set(
@@ -440,30 +510,76 @@ class QueryContextProcessor:
                 datasource_uid=query_context.datasource.uid,
                 region=CacheRegion.DATA,
             )
-            rv_dfs.append(offset_slice)
+            offset_dfs.append(offset_metrics_df)
 
-        rv_df = pd.concat(rv_dfs, axis=1, copy=False) if time_offsets else df
-        return CachedTimeOffset(df=rv_df, queries=queries, cache_keys=cache_keys)
+        if offset_dfs:
+            # iterate on offset_dfs, left join each with df
+            for offset_df in offset_dfs:
+                df = dataframe_utils.left_join_df(
+                    left_df=df,
+                    right_df=offset_df,
+                    join_keys=join_keys,
+                    rsuffix=R_SUFFIX,
+                )
 
-    def get_data(self, df: pd.DataFrame) -> Union[str, List[Dict[str, Any]]]:
-        if self._query_context.result_format == ChartDataResultFormat.CSV:
+        # removes columns used for join
+        df.drop(
+            list(df.filter(regex=f"{AGGREGATED_JOIN_COLUMN}|{R_SUFFIX}")),
+            axis=1,
+            inplace=True,
+        )
+
+        return CachedTimeOffset(df=df, queries=queries, cache_keys=cache_keys)
+
+    @staticmethod
+    def get_aggregated_join_column(
+        row: pd.Series, column_index: int, time_grain: str
+    ) -> str:
+        if time_grain in (
+            TimeGrain.WEEK_STARTING_SUNDAY,
+            TimeGrain.WEEK_ENDING_SATURDAY,
+        ):
+            return row[column_index].strftime("%Y-W%U")
+
+        if time_grain in (
+            TimeGrain.WEEK,
+            TimeGrain.WEEK_STARTING_MONDAY,
+            TimeGrain.WEEK_ENDING_SUNDAY,
+        ):
+            return row[column_index].strftime("%Y-W%W")
+
+        if time_grain == TimeGrain.MONTH:
+            return row[column_index].strftime("%Y-%m")
+
+        if time_grain == TimeGrain.QUARTER:
+            return row[column_index].strftime("%Y-Q") + str(row[column_index].quarter)
+
+        return row[column_index].strftime("%Y")
+
+    def get_data(self, df: pd.DataFrame) -> str | list[dict[str, Any]]:
+        if self._query_context.result_format in ChartDataResultFormat.table_like():
             include_index = not isinstance(df.index, pd.RangeIndex)
             columns = list(df.columns)
             verbose_map = self._qc_datasource.data.get("verbose_map", {})
             if verbose_map:
                 df.columns = [verbose_map.get(column, column) for column in columns]
-            result = csv.df_to_escaped_csv(
-                df, index=include_index, **config["CSV_EXPORT"]
-            )
+
+            result = None
+            if self._query_context.result_format == ChartDataResultFormat.CSV:
+                result = csv.df_to_escaped_csv(
+                    df, index=include_index, **config["CSV_EXPORT"]
+                )
+            elif self._query_context.result_format == ChartDataResultFormat.XLSX:
+                result = excel.df_to_excel(df, **config["EXCEL_EXPORT"])
             return result or ""
 
         return df.to_dict(orient="records")
 
     def get_payload(
         self,
-        cache_query_context: Optional[bool] = False,
+        cache_query_context: bool | None = False,
         force_cached: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Returns the query results with both metadata and data"""
 
         # Get all the payloads from the QueryObjects
@@ -491,8 +607,7 @@ class QueryContextProcessor:
         return return_value
 
     def get_cache_timeout(self) -> int:
-        cache_timeout_rv = self._query_context.get_cache_timeout()
-        if cache_timeout_rv:
+        if cache_timeout_rv := self._query_context.get_cache_timeout():
             return cache_timeout_rv
         if (
             data_cache_timeout := config["DATA_CACHE_CONFIG"].get(
@@ -514,13 +629,13 @@ class QueryContextProcessor:
 
         return generate_cache_key(cache_dict, key_prefix)
 
-    def get_annotation_data(self, query_obj: QueryObject) -> Dict[str, Any]:
+    def get_annotation_data(self, query_obj: QueryObject) -> dict[str, Any]:
         """
         :param query_context:
         :param query_obj:
         :return:
         """
-        annotation_data: Dict[str, Any] = self.get_native_annotation_data(query_obj)
+        annotation_data: dict[str, Any] = self.get_native_annotation_data(query_obj)
         for annotation_layer in [
             layer
             for layer in query_obj.annotation_layers
@@ -533,7 +648,7 @@ class QueryContextProcessor:
         return annotation_data
 
     @staticmethod
-    def get_native_annotation_data(query_obj: QueryObject) -> Dict[str, Any]:
+    def get_native_annotation_data(query_obj: QueryObject) -> dict[str, Any]:
         annotation_data = {}
         annotation_layers = [
             layer
@@ -568,14 +683,15 @@ class QueryContextProcessor:
 
     @staticmethod
     def get_viz_annotation_data(
-        annotation_layer: Dict[str, Any], force: bool
-    ) -> Dict[str, Any]:
+        annotation_layer: dict[str, Any], force: bool
+    ) -> dict[str, Any]:
         chart = ChartDAO.find_by_id(annotation_layer["value"])
         if not chart:
             raise QueryObjectValidationError(_("The chart does not exist"))
         if not chart.datasource:
             raise QueryObjectValidationError(_("The chart datasource does not exist"))
         form_data = chart.form_data.copy()
+        form_data.update(annotation_layer.get("overrides", {}))
         try:
             viz_obj = get_viz(
                 datasource_type=chart.datasource.type,

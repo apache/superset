@@ -22,9 +22,11 @@ import sqlLab from './sqlLab';
 import localStorageUsageInKilobytes from './localStorageUsage';
 import common from './common';
 
-export default combineReducers({
+export const reducers = {
   sqlLab,
   localStorageUsageInKilobytes,
   messageToasts,
   common,
-});
+};
+
+export default combineReducers(reducers);

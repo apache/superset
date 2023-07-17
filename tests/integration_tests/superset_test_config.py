@@ -61,7 +61,7 @@ PRESTO_POLL_INTERVAL = 0.1
 HIVE_POLL_INTERVAL = 0.1
 
 SQL_MAX_ROW = 10000
-SQLLAB_CTAS_NO_LIMIT = True  # SQL_MAX_ROW will not take affect for the CTA queries
+SQLLAB_CTAS_NO_LIMIT = True  # SQL_MAX_ROW will not take effect for the CTA queries
 FEATURE_FLAGS = {
     **FEATURE_FLAGS,
     "foo": "bar",
@@ -71,6 +71,8 @@ FEATURE_FLAGS = {
     "ALERT_REPORTS": True,
     "DASHBOARD_NATIVE_FILTERS": True,
     "DRILL_TO_DETAIL": True,
+    "DRILL_BY": True,
+    "HORIZONTAL_FILTER_BAR": True,
 }
 
 WEBDRIVER_BASEURL = "http://0.0.0.0:8081/"
@@ -128,7 +130,7 @@ ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 3
 
 
-class CeleryConfig(object):
+class CeleryConfig:
     BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
     CELERY_IMPORTS = ("superset.sql_lab",)
     CELERY_RESULT_BACKEND = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_RESULTS_DB}"

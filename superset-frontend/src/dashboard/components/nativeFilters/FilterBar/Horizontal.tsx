@@ -18,18 +18,30 @@
  */
 
 import React from 'react';
-import { styled, t } from '@superset-ui/core';
+import {
+  DataMaskStateWithId,
+  FeatureFlag,
+  isFeatureEnabled,
+  JsonObject,
+  styled,
+  t,
+} from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import Loading from 'src/components/Loading';
+import { DashboardLayout, RootState } from 'src/dashboard/types';
+import { useSelector } from 'react-redux';
 import FilterControls from './FilterControls/FilterControls';
-import { getFilterBarTestId } from './utils';
+import { useChartsVerboseMaps, getFilterBarTestId } from './utils';
 import { HorizontalBarProps } from './types';
-import FilterBarOrientationSelect from './FilterBarOrientationSelect';
+import FilterBarSettings from './FilterBarSettings';
 import FilterConfigurationLink from './FilterConfigurationLink';
+import crossFiltersSelector from './CrossFilters/selectors';
 
 const HorizontalBar = styled.div`
   ${({ theme }) => `
-    padding: ${theme.gridUnit * 2}px ${theme.gridUnit * 2}px;
+    padding: ${theme.gridUnit * 3}px ${theme.gridUnit * 2}px ${
+    theme.gridUnit * 3
+  }px ${theme.gridUnit * 4}px;
     background: ${theme.colors.grayscale.light5};
     box-shadow: inset 0px -2px 2px -1px ${theme.colors.grayscale.light2};
   `}
@@ -42,7 +54,6 @@ const HorizontalBarContent = styled.div`
     flex-wrap: nowrap;
     align-items: center;
     justify-content: flex-start;
-    padding: 0 ${theme.gridUnit * 2}px;
     line-height: 0;
 
     .loading {
@@ -54,7 +65,6 @@ const HorizontalBarContent = styled.div`
 
 const FilterBarEmptyStateContainer = styled.div`
   ${({ theme }) => `
-    margin: 0 ${theme.gridUnit * 2}px 0 ${theme.gridUnit * 4}px;
     font-weight: ${theme.typography.weights.bold};
     color: ${theme.colors.grayscale.base};
     font-size: ${theme.typography.sizes.s}px;
@@ -93,10 +103,31 @@ const HorizontalFilterBar: React.FC<HorizontalBarProps> = ({
   dataMaskSelected,
   filterValues,
   isInitialized,
-  directPathToChild,
   onSelectionChange,
 }) => {
-  const hasFilters = filterValues.length > 0;
+  const dataMask = useSelector<RootState, DataMaskStateWithId>(
+    state => state.dataMask,
+  );
+  const chartConfiguration = useSelector<RootState, JsonObject>(
+    state => state.dashboardInfo.metadata?.chart_configuration,
+  );
+  const dashboardLayout = useSelector<RootState, DashboardLayout>(
+    state => state.dashboardLayout.present,
+  );
+  const isCrossFiltersEnabled = isFeatureEnabled(
+    FeatureFlag.DASHBOARD_CROSS_FILTERS,
+  );
+  const verboseMaps = useChartsVerboseMaps();
+
+  const selectedCrossFilters = isCrossFiltersEnabled
+    ? crossFiltersSelector({
+        dataMask,
+        chartConfiguration,
+        dashboardLayout,
+        verboseMaps,
+      })
+    : [];
+  const hasFilters = filterValues.length > 0 || selectedCrossFilters.length > 0;
 
   return (
     <HorizontalBar {...getFilterBarTestId()}>
@@ -105,12 +136,7 @@ const HorizontalFilterBar: React.FC<HorizontalBarProps> = ({
           <Loading position="inline-centered" />
         ) : (
           <>
-            {canEdit && <FilterBarOrientationSelect />}
-            {!hasFilters && (
-              <FilterBarEmptyStateContainer>
-                {t('No filters are currently added to this dashboard.')}
-              </FilterBarEmptyStateContainer>
-            )}
+            <FilterBarSettings />
             {canEdit && (
               <FiltersLinkContainer hasFilters={hasFilters}>
                 <FilterConfigurationLink
@@ -121,10 +147,14 @@ const HorizontalFilterBar: React.FC<HorizontalBarProps> = ({
                 </FilterConfigurationLink>
               </FiltersLinkContainer>
             )}
+            {!hasFilters && (
+              <FilterBarEmptyStateContainer data-test="horizontal-filterbar-empty">
+                {t('No filters are currently added to this dashboard.')}
+              </FilterBarEmptyStateContainer>
+            )}
             {hasFilters && (
               <FilterControls
                 dataMaskSelected={dataMaskSelected}
-                directPathToChild={directPathToChild}
                 onFilterSelectionChange={onSelectionChange}
               />
             )}

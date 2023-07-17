@@ -189,10 +189,6 @@ const config = {
                 to: '/docs/intro',
               },
               {
-                label: 'Tutorial',
-                to: '/docs/intro',
-              },
-              {
                 label: 'FAQ',
                 to: '/docs/frequently-asked-questions',
               },
@@ -211,7 +207,7 @@ const config = {
               },
               {
                 label: 'Slack',
-                href: 'https://join.slack.com/t/apache-superset/shared_invite/zt-1jp6hjzrq-H0PlFtToyLWuPiJDuRWCNw',
+                href: 'http://bit.ly/join-superset-slack',
               },
               {
                 label: 'Mailing List',
@@ -251,7 +247,14 @@ const config = {
         darkTheme: darkCodeTheme,
       },
     }),
-  scripts: ['/script/matomo.js'],
+  scripts: [
+    '/script/matomo.js',
+    {
+      src:
+        'https://www.bugherd.com/sidebarv2.js?apikey=enilpiu7bgexxsnoqfjtxa',
+      async: true,
+    },
+  ],
 };
 
 module.exports = config;

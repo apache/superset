@@ -6,7 +6,22 @@ on:
       - 'master'
 
 jobs:
+  config:
+    runs-on: "ubuntu-latest"
+    outputs:
+      has-secrets: ${{ steps.check.outputs.has-secrets }}
+    steps:
+      - name: "Check for secrets"
+        id: check
+        shell: bash
+        run: |
+          if [ -n "${{ (secrets.NPM_TOKEN != '' && secrets.GH_PERSONAL_ACCESS_TOKEN != '') || '' }}" ]; then
+            echo "has-secrets=1" >> "$GITHUB_OUTPUT"
+          fi
+
   build:
+    needs: config
+    if: needs.config.outputs.has-secrets
     name: Bump version and publish package(s)
 
     runs-on: ubuntu-20.04
@@ -16,22 +31,28 @@ jobs:
         node-version: [16]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           # pulls all commits (needed for lerna / semantic release to correctly version)
           fetch-depth: 0
       - name: Get tags and filter trigger tags
         run: |
-          git fetch --depth=1 origin "+refs/tags/*:refs/tags/*"
+          if ! git fetch --depth=1 origin "+refs/tags/*:refs/tags/*"; then
+            echo "::notice title=Workflow skipped::No tags present in repository"
+            exit
+          fi
+          echo "HAS_TAGS=1" >> $GITHUB_ENV"
           git fetch --prune --unshallow
           git tag -d `git tag | grep -E '^trigger-'`
 
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v1
+        if: env.HAS_TAGS
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
 
       - name: Cache npm
+        if: env.HAS_TAGS
         uses: actions/cache@v1
         with:
           path: ~/.npm # npm cache files are stored in `~/.npm` on Linux/macOS
@@ -41,9 +62,11 @@ jobs:
             ${{ runner.OS }}-
 
       - name: Get npm cache directory path
+        if: env.HAS_TAGS
         id: npm-cache-dir-path
         run: echo "::set-output name=dir::$(npm config get cache)"
       - name: Cache npm
+        if: env.HAS_TAGS
         uses: actions/cache@v1
         id: npm-cache # use this to check for `cache-hit` (`steps.npm-cache.outputs.cache-hit != 'true'`)
         with:
@@ -53,16 +76,20 @@ jobs:
             ${{ runner.os }}-npm-
 
       - name: Install dependencies
+        if: env.HAS_TAGS
         working-directory: ./superset-frontend
         run: npm ci
       - name: Run unit tests
+        if: env.HAS_TAGS
         working-directory: ./superset-frontend
         run: npm run test -- plugins packages
       - name: Build packages
+        if: env.HAS_TAGS
         working-directory: ./superset-frontend
         run: npm run plugins:build
 
       - name: Configure npm and git
+        if: env.HAS_TAGS
         run: |
           echo "@superset-ui:registry=https://registry.npmjs.org/" > .npmrc
           echo "registry=https://registry.npmjs.org/" >> .npmrc
@@ -70,17 +97,17 @@ jobs:
           npm whoami
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git remote set-url origin "https://${GITHUB_TOKEN}@github.com/apache-superset/superset-ui.git" > /dev/null 2>&1
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Bump version and publish package(s)
+        if: env.HAS_TAGS
         working-directory: ./superset-frontend
         run: |
           git tag -d `git tag | grep -E '^trigger-'`
           npm run plugins:release-from-tag
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
           GH_TOKEN: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}

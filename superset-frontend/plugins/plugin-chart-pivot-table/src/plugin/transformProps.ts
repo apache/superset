@@ -80,6 +80,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     hooks: { setDataMask = () => {}, onContextMenu },
     filterState,
     datasource: { verboseMap = {}, columnFormats = {} },
+    emitCrossFilters,
   } = chartProps;
   const { data, colnames, coltypes } = queriesData[0];
   const {
@@ -98,7 +99,6 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     rowTotals,
     valueFormat,
     dateFormat,
-    emitFilter,
     metricsLayout,
     conditionalFormatting,
     timeGrainSqla,
@@ -157,7 +157,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     colTotals,
     rowTotals,
     valueFormat,
-    emitFilter,
+    emitCrossFilters,
     setDataMask,
     selectedFilters,
     verboseMap,

@@ -16,7 +16,7 @@
 # under the License.
 import json
 import logging
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Optional
 
 import yaml
 from flask_appbuilder import Model
@@ -139,7 +139,7 @@ def import_datasource(  # pylint: disable=too-many-arguments
 ) -> int:
     """Imports the datasource from the object to the database.
 
-    Metrics and columns and datasource will be overrided if exists.
+    Metrics and columns and datasource will be overridden if exists.
     This function can be used to import/export datasources between multiple
     superset instances. Audit metadata isn't copies over.
     """
@@ -213,7 +213,7 @@ def import_simple_obj(
 
 
 def import_from_dict(
-    session: Session, data: Dict[str, Any], sync: Optional[List[str]] = None
+    session: Session, data: dict[str, Any], sync: Optional[list[str]] = None
 ) -> None:
     """Imports databases from dictionary"""
     if not sync:
@@ -238,12 +238,12 @@ class ImportDatasetsCommand(BaseCommand):
     # pylint: disable=unused-argument
     def __init__(
         self,
-        contents: Dict[str, str],
+        contents: dict[str, str],
         *args: Any,
         **kwargs: Any,
     ):
         self.contents = contents
-        self._configs: Dict[str, Any] = {}
+        self._configs: dict[str, Any] = {}
 
         self.sync = []
         if kwargs.get("sync_columns"):

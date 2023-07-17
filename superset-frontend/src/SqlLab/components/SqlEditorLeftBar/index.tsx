@@ -29,14 +29,11 @@ import querystring from 'query-string';
 
 import {
   queryEditorSetDb,
-  queryEditorSetFunctionNames,
   addTable,
   removeTables,
   collapseTable,
   expandTable,
   queryEditorSetSchema,
-  queryEditorSetTableOptions,
-  queryEditorSetSchemaOptions,
   setDatabases,
   addDangerToast,
   resetState,
@@ -49,7 +46,7 @@ import { TableSelectorMultiple } from 'src/components/TableSelector';
 import { IconTooltip } from 'src/components/IconTooltip';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { DatabaseObject } from 'src/components/DatabaseSelector';
-import { EmptyStateSmall } from 'src/components/EmptyState';
+import { emptyStateComponent } from 'src/components/EmptyState';
 import {
   getItem,
   LocalStorageKeys,
@@ -89,10 +86,23 @@ const collapseStyles = (theme: SupersetTheme) => css`
   .ant-collapse-arrow {
     top: ${theme.gridUnit * 2}px !important;
     color: ${theme.colors.primary.dark1} !important;
-    &: hover {
+    &:hover {
       color: ${theme.colors.primary.dark2} !important;
     }
   }
+`;
+
+const LeftBarStyles = styled.div`
+  ${({ theme }) => css`
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    .divider {
+      border-bottom: 1px solid ${theme.colors.grayscale.light4};
+      margin: ${theme.gridUnit * 4}px 0;
+    }
+  `}
 `;
 
 const SqlEditorLeftBar = ({
@@ -131,7 +141,6 @@ const SqlEditorLeftBar = ({
   const onDbChange = ({ id: dbId }: { id: number }) => {
     setEmptyState(false);
     dispatch(queryEditorSetDb(queryEditor, dbId));
-    dispatch(queryEditorSetFunctionNames(queryEditor, dbId));
   };
 
   const selectedTableNames = useMemo(
@@ -197,66 +206,44 @@ const SqlEditorLeftBar = ({
   const shouldShowReset = window.location.search === '?reset=1';
   const tableMetaDataHeight = height - 130; // 130 is the height of the selects above
 
-  const emptyStateComponent = (
-    <EmptyStateSmall
-      image="empty.svg"
-      title={
-        emptyResultsWithSearch
-          ? t('No databases match your search')
-          : t('There are no databases available')
+  const handleSchemaChange = useCallback(
+    (schema: string) => {
+      if (queryEditor) {
+        dispatch(queryEditorSetSchema(queryEditor, schema));
       }
-      description={
-        <p>
-          {t('Manage your databases')}{' '}
-          <a href="/databaseview/list">{t('here')}</a>
-        </p>
-      }
-    />
+    },
+    [dispatch, queryEditor],
   );
 
-  const handleSchemaChange = useCallback((schema: string) => {
-    if (queryEditor) {
-      dispatch(queryEditorSetSchema(queryEditor, schema));
-    }
-  }, []);
+  const handleDbList = useCallback(
+    (result: DatabaseObject) => {
+      dispatch(setDatabases(result));
+    },
+    [dispatch],
+  );
 
-  const handleTablesLoad = useCallback((options: Array<any>) => {
-    if (queryEditor) {
-      dispatch(queryEditorSetTableOptions(queryEditor, options));
-    }
-  }, []);
-
-  const handleSchemasLoad = useCallback((options: Array<any>) => {
-    if (queryEditor) {
-      dispatch(queryEditorSetSchemaOptions(queryEditor, options));
-    }
-  }, []);
-
-  const handleDbList = useCallback((result: DatabaseObject) => {
-    dispatch(setDatabases(result));
-  }, []);
-
-  const handleError = useCallback((message: string) => {
-    dispatch(addDangerToast(message));
-  }, []);
+  const handleError = useCallback(
+    (message: string) => {
+      dispatch(addDangerToast(message));
+    },
+    [dispatch],
+  );
 
   const handleResetState = useCallback(() => {
     dispatch(resetState());
-  }, []);
+  }, [dispatch]);
 
   return (
-    <div data-test="sql-editor-left-bar" className="SqlEditorLeftBar">
+    <LeftBarStyles data-test="sql-editor-left-bar">
       <TableSelectorMultiple
         onEmptyResults={onEmptyResults}
-        emptyState={emptyStateComponent}
+        emptyState={emptyStateComponent(emptyResultsWithSearch)}
         database={userSelectedDb}
         getDbList={handleDbList}
         handleError={handleError}
         onDbChange={onDbChange}
         onSchemaChange={handleSchemaChange}
-        onSchemasLoad={handleSchemasLoad}
         onTableSelectChange={onTablesChange}
-        onTablesLoad={handleTablesLoad}
         schema={schema}
         tableValue={selectedTableNames}
         sqlLabMode
@@ -293,7 +280,7 @@ const SqlEditorLeftBar = ({
           <i className="fa fa-bomb" /> {t('Reset state')}
         </Button>
       )}
-    </div>
+    </LeftBarStyles>
   );
 };
 

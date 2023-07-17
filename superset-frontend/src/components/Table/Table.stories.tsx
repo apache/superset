@@ -36,6 +36,8 @@ import NumericCell, {
   LocaleCode,
   Style,
 } from './cell-renderers/NumericCell';
+import HeaderWithRadioGroup from './header-renderers/HeaderWithRadioGroup';
+import TimeCell from './cell-renderers/TimeCell';
 
 export default {
   title: 'Design System/Components/Table/Examples',
@@ -308,16 +310,16 @@ export const Basic: ComponentStory<typeof Table> = args => <Table {...args} />;
 function handlers(record: object, rowIndex: number) {
   return {
     onClick: action(
-      `row onClick, row:  ${rowIndex}, record: ${JSON.stringify(record)}`,
+      `row onClick, row: ${rowIndex}, record: ${JSON.stringify(record)}`,
     ), // click row
     onDoubleClick: action(
-      `row onDoubleClick, row:  ${rowIndex}, record: ${JSON.stringify(record)}`,
+      `row onDoubleClick, row: ${rowIndex}, record: ${JSON.stringify(record)}`,
     ), // double click row
     onContextMenu: action(
-      `row onContextMenu, row:  ${rowIndex}, record: ${JSON.stringify(record)}`,
+      `row onContextMenu, row: ${rowIndex}, record: ${JSON.stringify(record)}`,
     ), // right button click row
-    onMouseEnter: action(`Mouse Enter, row:  ${rowIndex}`), // mouse enter row
-    onMouseLeave: action(`Mouse Leave, row:  ${rowIndex}`), // mouse leave row
+    onMouseEnter: action(`Mouse Enter, row: ${rowIndex}`), // mouse enter row
+    onMouseLeave: action(`Mouse Leave, row: ${rowIndex}`), // mouse leave row
   };
 }
 
@@ -402,7 +404,7 @@ export const ServerPagination: ComponentStory<typeof Table> = args => {
   const [data, setData] = useState(generateData(0, 5));
   const [loading, setLoading] = useState(false);
 
-  const handleChange: OnChangeFunction = (
+  const handleChange: OnChangeFunction<BasicData> = (
     pagination,
     filters,
     sorter,
@@ -578,4 +580,103 @@ CellRenderers.args = {
   columns: rendererColumns,
   size: TableSize.SMALL,
   reorderable: true,
+};
+
+export interface ShoppingData {
+  key: number;
+  item: string;
+  orderDate: number;
+  price: number;
+}
+
+const shoppingData: ShoppingData[] = [
+  {
+    key: 1,
+    item: 'Floppy Disk 10 pack',
+    orderDate: Date.now(),
+    price: 9.99,
+  },
+  {
+    key: 2,
+    item: 'DVD 100 pack',
+    orderDate: Date.now(),
+    price: 7.99,
+  },
+  {
+    key: 3,
+    item: '128 GB SSD',
+    orderDate: Date.now(),
+    price: 3.99,
+  },
+];
+
+export const HeaderRenderers: ComponentStory<typeof Table> = () => {
+  const [orderDateFormatting, setOrderDateFormatting] = useState('formatted');
+  const [priceLocale, setPriceLocale] = useState(LocaleCode.en_US);
+  const shoppingColumns: ColumnsType<ShoppingData> = [
+    {
+      title: 'Item',
+      dataIndex: 'item',
+      key: 'item',
+      width: 200,
+    },
+    {
+      title: () => (
+        <HeaderWithRadioGroup
+          headerTitle="Order date"
+          groupTitle="Formatting"
+          groupOptions={[
+            { label: 'Original value', value: 'original' },
+            { label: 'Formatted value', value: 'formatted' },
+          ]}
+          value={orderDateFormatting}
+          onChange={value => setOrderDateFormatting(value)}
+        />
+      ),
+      dataIndex: 'orderDate',
+      key: 'orderDate',
+      width: 200,
+      render: value =>
+        orderDateFormatting === 'original' ? value : <TimeCell value={value} />,
+    },
+    {
+      title: () => (
+        <HeaderWithRadioGroup
+          headerTitle="Price"
+          groupTitle="Currency"
+          groupOptions={[
+            { label: 'US Dollar', value: LocaleCode.en_US },
+            { label: 'Brazilian Real', value: LocaleCode.pt_BR },
+          ]}
+          value={priceLocale}
+          onChange={value => setPriceLocale(value as LocaleCode)}
+        />
+      ),
+      dataIndex: 'price',
+      key: 'price',
+      width: 200,
+      render: value => (
+        <NumericCell
+          value={value}
+          options={{
+            style: Style.CURRENCY,
+            currency:
+              priceLocale === LocaleCode.en_US
+                ? CurrencyCode.USD
+                : CurrencyCode.BRL,
+          }}
+          locale={priceLocale}
+        />
+      ),
+    },
+  ];
+
+  return (
+    <Table<ShoppingData>
+      data={shoppingData}
+      columns={shoppingColumns}
+      size={TableSize.SMALL}
+      resizable
+    />
+  );
 };

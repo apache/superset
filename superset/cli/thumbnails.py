@@ -15,14 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Type, Union
+from typing import Union
 
 import click
 from celery.utils.abstract import CallableTask
 from flask.cli import with_appcontext
 
 from superset.extensions import db
-from superset.utils.urls import get_url_path
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +75,7 @@ def compute_thumbnails(
 
     def compute_generic_thumbnail(
         friendly_type: str,
-        model_cls: Union[Type[Dashboard], Type[Slice]],
+        model_cls: Union[type[Dashboard], type[Slice]],
         model_id: int,
         compute_func: CallableTask,
     ) -> None:
@@ -94,13 +93,7 @@ def compute_thumbnails(
                 action = "Processing"
             msg = f'{action} {friendly_type} "{model}" ({i+1}/{count})'
             click.secho(msg, fg="green")
-            if friendly_type == "chart":
-                url = get_url_path(
-                    "Superset.slice", slice_id=model.id, standalone="true"
-                )
-            else:
-                url = get_url_path("Superset.dashboard", dashboard_id_or_slug=model.id)
-            func(url, model.digest, force=force)
+            func(None, model.id, force=force)
 
     if not charts_only:
         compute_generic_thumbnail(

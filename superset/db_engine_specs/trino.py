@@ -17,14 +17,14 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional, Type, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 import simplejson as json
 from flask import current_app
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import Session
 
-from superset.constants import USER_AGENT
+from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY, USER_AGENT
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
@@ -46,23 +46,44 @@ logger = logging.getLogger(__name__)
 class TrinoEngineSpec(PrestoBaseEngineSpec):
     engine = "trino"
     engine_name = "Trino"
+    allows_alias_to_source_column = False
 
     @classmethod
     def extra_table_metadata(
         cls,
         database: Database,
         table_name: str,
-        schema_name: Optional[str],
-    ) -> Dict[str, Any]:
+        schema_name: str | None,
+    ) -> dict[str, Any]:
         metadata = {}
 
-        indexes = database.get_indexes(table_name, schema_name)
-        if indexes:
-            partitions_columns = []
-            for index in indexes:
-                if index.get("name") == "partition":
-                    partitions_columns += index.get("column_names", [])
-            metadata["partitions"] = {"cols": partitions_columns}
+        if indexes := database.get_indexes(table_name, schema_name):
+            col_names, latest_parts = cls.latest_partition(
+                table_name, schema_name, database, show_first=True
+            )
+
+            if not latest_parts:
+                latest_parts = tuple([None] * len(col_names))
+
+            metadata["partitions"] = {
+                "cols": sorted(
+                    list(
+                        {
+                            column_name
+                            for index in indexes
+                            if index.get("name") == "partition"
+                            for column_name in index.get("column_names", [])
+                        }
+                    )
+                ),
+                "latest": dict(zip(col_names, latest_parts)),
+                "partitionQuery": cls._partition_query(
+                    table_name=table_name,
+                    schema=schema_name,
+                    indexes=indexes,
+                    database=database,
+                ),
+            }
 
         if database.has_view_by_name(table_name, schema_name):
             metadata["view"] = database.inspector.get_view_definition(
@@ -74,9 +95,9 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     @classmethod
     def update_impersonation_config(
         cls,
-        connect_args: Dict[str, Any],
+        connect_args: dict[str, Any],
         uri: str,
-        username: Optional[str],
+        username: str | None,
     ) -> None:
         """
         Update a configuration dictionary
@@ -97,7 +118,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
     @classmethod
     def get_url_for_impersonation(
-        cls, url: URL, impersonate_user: bool, username: Optional[str]
+        cls, url: URL, impersonate_user: bool, username: str | None
     ) -> URL:
         """
         Return a modified URL with the username set.
@@ -110,11 +131,11 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         return url
 
     @classmethod
-    def get_allow_cost_estimate(cls, extra: Dict[str, Any]) -> bool:
+    def get_allow_cost_estimate(cls, extra: dict[str, Any]) -> bool:
         return True
 
     @classmethod
-    def get_tracking_url(cls, cursor: Cursor) -> Optional[str]:
+    def get_tracking_url(cls, cursor: Cursor) -> str | None:
         try:
             return cursor.info_uri
         except AttributeError:
@@ -128,15 +149,33 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
     @classmethod
     def handle_cursor(cls, cursor: Cursor, query: Query, session: Session) -> None:
-        tracking_url = cls.get_tracking_url(cursor)
-        if tracking_url:
+        if tracking_url := cls.get_tracking_url(cursor):
             query.tracking_url = tracking_url
 
         # Adds the executed query id to the extra payload so the query can be cancelled
-        query.set_extra_json_key("cancel_query", cursor.stats["queryId"])
+        query.set_extra_json_key(
+            key=QUERY_CANCEL_KEY,
+            value=(cancel_query_id := cursor.stats["queryId"]),
+        )
 
         session.commit()
+
+        # if query cancelation was requested prior to the handle_cursor call, but
+        # the query was still executed, trigger the actual query cancelation now
+        if query.extra.get(QUERY_EARLY_CANCEL_KEY):
+            cls.cancel_query(
+                cursor=cursor,
+                query=query,
+                cancel_query_id=cancel_query_id,
+            )
+
         super().handle_cursor(cursor=cursor, query=query, session=session)
+
+    @classmethod
+    def prepare_cancel_query(cls, query: Query, session: Session) -> None:
+        if QUERY_CANCEL_KEY not in query.extra:
+            query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
+            session.commit()
 
     @classmethod
     def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
@@ -160,7 +199,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         return True
 
     @staticmethod
-    def get_extra_params(database: Database) -> Dict[str, Any]:
+    def get_extra_params(database: Database) -> dict[str, Any]:
         """
         Some databases require adding elements to connection parameters,
         like passing certificates to `extra`. This can be done here.
@@ -168,9 +207,9 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         :param database: database instance from which to extract extras
         :raises CertificateException: If certificate is not valid/unparseable
         """
-        extra: Dict[str, Any] = BaseEngineSpec.get_extra_params(database)
-        engine_params: Dict[str, Any] = extra.setdefault("engine_params", {})
-        connect_args: Dict[str, Any] = engine_params.setdefault("connect_args", {})
+        extra: dict[str, Any] = BaseEngineSpec.get_extra_params(database)
+        engine_params: dict[str, Any] = extra.setdefault("engine_params", {})
+        connect_args: dict[str, Any] = engine_params.setdefault("connect_args", {})
 
         connect_args.setdefault("source", USER_AGENT)
 
@@ -183,7 +222,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     @staticmethod
     def update_params_from_encrypted_extra(
         database: Database,
-        params: Dict[str, Any],
+        params: dict[str, Any],
     ) -> None:
         if not database.encrypted_extra:
             return
@@ -223,7 +262,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             raise ex
 
     @classmethod
-    def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
+    def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
         # pylint: disable=import-outside-toplevel
         from requests import exceptions as requests_exceptions
 

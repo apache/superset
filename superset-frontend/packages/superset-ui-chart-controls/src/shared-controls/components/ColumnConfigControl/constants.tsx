@@ -35,24 +35,12 @@ export type SharedColumnConfigProp =
   | 'colorPositiveNegative'
   | 'columnWidth'
   | 'fractionDigits'
-  | 'emitTarget'
   | 'd3NumberFormat'
   | 'd3SmallNumberFormat'
   | 'd3TimeFormat'
   | 'horizontalAlign'
   | 'truncateLongCells'
   | 'showCellBars';
-
-const emitTarget: ControlFormItemSpec<'Input'> = {
-  controlType: 'Input',
-  label: t('Emit Target'),
-  description: t(
-    'If you wish to specify a different target column than the original column, it can be entered here',
-  ),
-  defaultValue: '',
-  debounceDelay: 500,
-  validators: undefined,
-};
 
 const d3NumberFormat: ControlFormItemSpec<'Select'> = {
   controlType: 'Select',
@@ -93,7 +81,7 @@ const columnWidth: ControlFormItemSpec<'InputNumber'> = {
     "Default minimal column width in pixels, actual width may still be larger than this if other columns don't need much space",
   ),
   width: 120,
-  placeholder: 'auto',
+  placeholder: t('auto'),
   debounceDelay: 400,
   validators: [validateNumber],
 };
@@ -156,13 +144,12 @@ const truncateLongCells: ControlFormItemSpec<'Checkbox'> = {
  */
 export const SHARED_COLUMN_CONFIG_PROPS = {
   d3NumberFormat,
-  emitTarget,
   d3SmallNumberFormat: {
     ...d3NumberFormat,
     label: t('Small number format'),
     description: t(
       'D3 number format for numbers between -1.0 and 1.0, ' +
-        'useful when you want to have different siginificant digits for small and large numbers',
+        'useful when you want to have different significant digits for small and large numbers',
     ),
   },
   d3TimeFormat,

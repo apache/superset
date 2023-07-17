@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import List
 
 from marshmallow import fields, Schema
 
@@ -31,6 +30,14 @@ openapi_spec_methods_override = {
             " for selecting specific columns and metadata.",
         }
     },
+}
+
+queries_get_updated_since_schema = {
+    "type": "object",
+    "properties": {
+        "last_updated_ms": {"type": "number"},
+    },
+    "required": ["last_updated_ms"],
 }
 
 
@@ -57,7 +64,7 @@ class QuerySchema(Schema):
     tab_name = fields.String()
     tmp_table_name = fields.String()
     tracking_url = fields.String()
-    user = fields.Nested(UserSchema)
+    user = fields.Nested(UserSchema(exclude=["username"]))
 
     class Meta:  # pylint: disable=too-few-public-methods
         model = Query
@@ -65,5 +72,13 @@ class QuerySchema(Schema):
         include_relationships = True
 
     # pylint: disable=no-self-use
-    def get_sql_tables(self, obj: Query) -> List[Table]:
+    def get_sql_tables(self, obj: Query) -> list[Table]:
         return obj.sql_tables
+
+
+class StopQuerySchema(Schema):
+    """
+    Schema for the stop_query API call.
+    """
+
+    client_id = fields.String()

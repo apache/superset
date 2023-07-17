@@ -18,8 +18,8 @@
 import json
 import unittest
 from io import BytesIO
-from typing import List, Optional
-from unittest.mock import patch
+from typing import Optional
+from unittest.mock import ANY, patch
 from zipfile import is_zipfile, ZipFile
 
 import prison
@@ -28,12 +28,14 @@ import yaml
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import func
 
+from superset import app
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.dao.exceptions import (
     DAOCreateFailedError,
     DAODeleteFailedError,
     DAOUpdateFailedError,
 )
+from superset.datasets.commands.exceptions import DatasetCreateFailedError
 from superset.datasets.models import Dataset
 from superset.extensions import db, security_manager
 from superset.models.core import Database
@@ -42,7 +44,7 @@ from superset.utils.core import backend, get_example_default_schema
 from superset.utils.database import get_example_database, get_main_database
 from superset.utils.dict_import_export import export_to_dict
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.conftest import CTAS_SCHEMA_NAME
+from tests.integration_tests.conftest import CTAS_SCHEMA_NAME, with_feature_flags
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -62,14 +64,13 @@ from tests.integration_tests.fixtures.tags import with_tagging_system_feature
 
 
 class TestDatasetApi(SupersetTestCase):
-
     fixture_tables_names = ("ab_permission", "ab_permission_view", "ab_view_menu")
     fixture_virtual_table_names = ("sql_virtual_dataset_1", "sql_virtual_dataset_2")
 
     @staticmethod
     def insert_dataset(
         table_name: str,
-        owners: List[int],
+        owners: list[int],
         database: Database,
         sql: Optional[str] = None,
         schema: Optional[str] = None,
@@ -95,7 +96,7 @@ class TestDatasetApi(SupersetTestCase):
             "ab_permission", [self.get_user("admin").id], get_main_database()
         )
 
-    def get_fixture_datasets(self) -> List[SqlaTable]:
+    def get_fixture_datasets(self) -> list[SqlaTable]:
         return (
             db.session.query(SqlaTable)
             .options(joinedload(SqlaTable.database))
@@ -103,7 +104,7 @@ class TestDatasetApi(SupersetTestCase):
             .all()
         )
 
-    def get_fixture_virtual_datasets(self) -> List[SqlaTable]:
+    def get_fixture_virtual_datasets(self) -> list[SqlaTable]:
         return (
             db.session.query(SqlaTable)
             .filter(SqlaTable.table_name.in_(self.fixture_virtual_table_names))
@@ -240,28 +241,47 @@ class TestDatasetApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         assert response["result"] == []
 
-    def test_get_dataset_list_gamma_owned(self):
+    def test_get_dataset_list_gamma_has_database_access(self):
         """
-        Dataset API: Test get dataset list owned by gamma
+        Dataset API: Test get dataset list with database access
         """
         if backend() == "sqlite":
             return
 
-        main_db = get_main_database()
-        owned_dataset = self.insert_dataset(
-            "ab_user", [self.get_user("gamma").id], main_db
-        )
-
         self.login(username="gamma")
+
+        # create new dataset
+        main_db = get_main_database()
+        dataset = self.insert_dataset("ab_user", [], main_db)
+
+        # make sure dataset is not visible due to missing perms
         uri = "api/v1/dataset/"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
 
-        assert response["count"] == 1
-        assert response["result"][0]["table_name"] == "ab_user"
+        assert response["count"] == 0
 
-        db.session.delete(owned_dataset)
+        # give database access to main db
+        main_db_pvm = security_manager.find_permission_view_menu(
+            "database_access", main_db.perm
+        )
+        gamma_role = security_manager.find_role("Gamma")
+        gamma_role.permissions.append(main_db_pvm)
+        db.session.commit()
+
+        # make sure dataset is now visible
+        uri = "api/v1/dataset/"
+        rv = self.get_assert_metric(uri, "get_list")
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+
+        tables = {tbl["table_name"] for tbl in response["result"]}
+        assert tables == {"ab_user"}
+
+        # revert gamma permission
+        gamma_role.permissions.remove(main_db_pvm)
+        db.session.delete(dataset)
         db.session.commit()
 
     def test_get_dataset_related_database_gamma(self):
@@ -320,7 +340,7 @@ class TestDatasetApi(SupersetTestCase):
             "description": "Energy consumption",
             "extra": None,
             "fetch_values_predicate": None,
-            "filter_select_enabled": False,
+            "filter_select_enabled": True,
             "is_sqllab_view": False,
             "kind": "physical",
             "main_dttm_col": None,
@@ -330,6 +350,28 @@ class TestDatasetApi(SupersetTestCase):
             "sql": None,
             "table_name": "energy_usage",
             "template_params": None,
+            "uid": ANY,
+            "datasource_name": "energy_usage",
+            "name": f"{get_example_default_schema()}.energy_usage",
+            "column_formats": {},
+            "granularity_sqla": [],
+            "time_grain_sqla": ANY,
+            "order_by_choices": [
+                ['["source", true]', "source [asc]"],
+                ['["source", false]', "source [desc]"],
+                ['["target", true]', "target [asc]"],
+                ['["target", false]', "target [desc]"],
+                ['["value", true]', "value [asc]"],
+                ['["value", false]', "value [desc]"],
+            ],
+            "verbose_map": {
+                "__timestamp": "Time",
+                "count": "COUNT(*)",
+                "source": "source",
+                "sum__value": "sum__value",
+                "target": "target",
+                "value": "value",
+            },
         }
         if response["result"]["database"]["backend"] not in ("presto", "hive"):
             assert {
@@ -368,12 +410,16 @@ class TestDatasetApi(SupersetTestCase):
                     schema="information_schema",
                 )
             )
-            schema_values = [
-                "information_schema",
-                "public",
-            ]
+            all_datasets = db.session.query(SqlaTable).all()
+            schema_values = sorted(
+                {
+                    dataset.schema
+                    for dataset in all_datasets
+                    if dataset.schema is not None
+                }
+            )
             expected_response = {
-                "count": 2,
+                "count": len(schema_values),
                 "result": [{"text": val, "value": val} for val in schema_values],
             }
             self.login(username="admin")
@@ -399,10 +445,8 @@ class TestDatasetApi(SupersetTestCase):
             pg_test_query_parameter(
                 query_parameter,
                 {
-                    "count": 2,
-                    "result": [
-                        {"text": "information_schema", "value": "information_schema"}
-                    ],
+                    "count": len(schema_values),
+                    "result": [expected_response["result"][0]],
                 },
             )
 
@@ -472,6 +516,7 @@ class TestDatasetApi(SupersetTestCase):
             "can_write",
             "can_export",
             "can_duplicate",
+            "can_get_or_create_dataset",
         }
 
     def test_create_dataset_item(self):
@@ -485,7 +530,7 @@ class TestDatasetApi(SupersetTestCase):
         self.login(username="admin")
         table_data = {
             "database": main_db.id,
-            "schema": "",
+            "schema": None,
             "table_name": "ab_permission",
         }
         uri = "api/v1/dataset/"
@@ -596,14 +641,13 @@ class TestDatasetApi(SupersetTestCase):
         if backend() == "sqlite":
             return
 
-        schema = get_example_default_schema()
         energy_usage_ds = self.get_energy_usage_dataset()
         self.login(username="admin")
         table_data = {
             "database": energy_usage_ds.database_id,
             "table_name": energy_usage_ds.table_name,
         }
-        if schema:
+        if schema := get_example_default_schema():
             table_data["schema"] = schema
         rv = self.post_assert_metric("/api/v1/dataset/", table_data, "post")
         assert rv.status_code == 422
@@ -620,7 +664,6 @@ class TestDatasetApi(SupersetTestCase):
         if backend() == "sqlite":
             return
 
-        schema = get_example_default_schema()
         energy_usage_ds = self.get_energy_usage_dataset()
         self.login(username="admin")
         table_data = {
@@ -628,7 +671,7 @@ class TestDatasetApi(SupersetTestCase):
             "table_name": energy_usage_ds.table_name,
             "sql": "select * from energy_usage",
         }
-        if schema:
+        if schema := get_example_default_schema():
             table_data["schema"] = schema
         rv = self.post_assert_metric("/api/v1/dataset/", table_data, "post")
         assert rv.status_code == 422
@@ -645,7 +688,6 @@ class TestDatasetApi(SupersetTestCase):
         if backend() == "sqlite":
             return
 
-        schema = get_example_default_schema()
         energy_usage_ds = self.get_energy_usage_dataset()
         self.login(username="alpha")
         admin = self.get_user("admin")
@@ -656,7 +698,7 @@ class TestDatasetApi(SupersetTestCase):
             "sql": "select * from energy_usage",
             "owners": [admin.id],
         }
-        if schema:
+        if schema := get_example_default_schema():
             table_data["schema"] = schema
         rv = self.post_assert_metric("/api/v1/dataset/", table_data, "post")
         assert rv.status_code == 201
@@ -1354,6 +1396,103 @@ class TestDatasetApi(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
+    def test_dataset_get_list_no_username(self):
+        """
+        Dataset API: Tests that no username is returned
+        """
+        if backend() == "sqlite":
+            return
+
+        dataset = self.insert_default_dataset()
+        self.login(username="admin")
+        table_data = {"description": "changed_description"}
+        uri = f"api/v1/dataset/{dataset.id}"
+        rv = self.client.put(uri, json=table_data)
+        self.assertEqual(rv.status_code, 200)
+
+        response = self.get_assert_metric("api/v1/dataset/", "get_list")
+        res = json.loads(response.data.decode("utf-8"))["result"]
+
+        current_dataset = [d for d in res if d["id"] == dataset.id][0]
+        self.assertEqual(current_dataset["description"], "changed_description")
+        self.assertNotIn("username", current_dataset["changed_by"].keys())
+
+        db.session.delete(dataset)
+        db.session.commit()
+
+    def test_dataset_get_no_username(self):
+        """
+        Dataset API: Tests that no username is returned
+        """
+        if backend() == "sqlite":
+            return
+
+        dataset = self.insert_default_dataset()
+        self.login(username="admin")
+        table_data = {"description": "changed_description"}
+        uri = f"api/v1/dataset/{dataset.id}"
+        rv = self.client.put(uri, json=table_data)
+        self.assertEqual(rv.status_code, 200)
+
+        response = self.get_assert_metric(uri, "get")
+        res = json.loads(response.data.decode("utf-8"))["result"]
+
+        self.assertEqual(res["description"], "changed_description")
+        self.assertNotIn("username", res["changed_by"].keys())
+
+        db.session.delete(dataset)
+        db.session.commit()
+
+    @with_feature_flags(ENABLE_BROAD_ACTIVITY_ACCESS=True)
+    def test_dataset_activity_access_enabled(self):
+        """
+        Dataset API: Test ENABLE_BROAD_ACTIVITY_ACCESS = True
+        """
+        if backend() == "sqlite":
+            return
+
+        dataset = self.insert_default_dataset()
+        self.login(username="admin")
+        table_data = {"description": "changed_description"}
+        uri = f"api/v1/dataset/{dataset.id}"
+        rv = self.client.put(uri, json=table_data)
+        self.assertEqual(rv.status_code, 200)
+
+        response = self.get_assert_metric("api/v1/dataset/", "get_list")
+        res = json.loads(response.data.decode("utf-8"))["result"]
+
+        current_dataset = [d for d in res if d["id"] == dataset.id][0]
+        self.assertEqual(current_dataset["description"], "changed_description")
+        self.assertEqual(current_dataset["changed_by_url"], "/superset/profile/admin")
+
+        db.session.delete(dataset)
+        db.session.commit()
+
+    @with_feature_flags(ENABLE_BROAD_ACTIVITY_ACCESS=False)
+    def test_dataset_activity_access_disabled(self):
+        """
+        Dataset API: Test ENABLE_BROAD_ACTIVITY_ACCESS = Fase
+        """
+        if backend() == "sqlite":
+            return
+
+        dataset = self.insert_default_dataset()
+        self.login(username="admin")
+        table_data = {"description": "changed_description"}
+        uri = f"api/v1/dataset/{dataset.id}"
+        rv = self.put_assert_metric(uri, table_data, "put")
+        self.assertEqual(rv.status_code, 200)
+
+        response = self.get_assert_metric("api/v1/dataset/", "get_list")
+        res = json.loads(response.data.decode("utf-8"))["result"]
+
+        current_dataset = [d for d in res if d["id"] == dataset.id][0]
+        self.assertEqual(current_dataset["description"], "changed_description")
+        self.assertEqual(current_dataset["changed_by_url"], "")
+
+        db.session.delete(dataset)
+        db.session.commit()
+
     def test_update_dataset_item_not_owned(self):
         """
         Dataset API: Test update dataset item not owned
@@ -1409,6 +1548,32 @@ class TestDatasetApi(SupersetTestCase):
         assert data == expected_response
         db.session.delete(dataset)
         db.session.delete(ab_user)
+        db.session.commit()
+
+    def test_update_dataset_unsafe_default_endpoint(self):
+        """
+        Dataset API: Test unsafe default endpoint
+        """
+        if backend() == "sqlite":
+            return
+
+        dataset = self.insert_default_dataset()
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{dataset.id}"
+        table_data = {"default_endpoint": "http://www.google.com"}
+        rv = self.client.put(uri, json=table_data)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 422
+        expected_response = {
+            "message": {
+                "default_endpoint": [
+                    "The submitted URL is not considered safe,"
+                    " only use URLs with the same domain as Superset."
+                ]
+            }
+        }
+        assert data == expected_response
+        db.session.delete(dataset)
         db.session.commit()
 
     @patch("superset.datasets.dao.DatasetDAO.update")
@@ -1891,7 +2056,7 @@ class TestDatasetApi(SupersetTestCase):
             "datasource_access", dataset.perm
         )
 
-        # add perissions to allow export + access to query this dataset
+        # add permissions to allow export + access to query this dataset
         gamma_role = security_manager.find_role("Gamma")
         security_manager.add_permission_role(gamma_role, perm1)
         security_manager.add_permission_role(gamma_role, perm2)
@@ -2069,8 +2234,8 @@ class TestDatasetApi(SupersetTestCase):
         assert str(dataset.uuid) == dataset_config["uuid"]
 
         dataset.owners = []
-        database.owners = []
         db.session.delete(dataset)
+        db.session.commit()
         db.session.delete(database)
         db.session.commit()
 
@@ -2171,8 +2336,8 @@ class TestDatasetApi(SupersetTestCase):
         dataset = database.tables[0]
 
         dataset.owners = []
-        database.owners = []
         db.session.delete(dataset)
+        db.session.commit()
         db.session.delete(database)
         db.session.commit()
 
@@ -2476,6 +2641,8 @@ class TestDatasetApi(SupersetTestCase):
         assert len(new_dataset.columns) == 2
         assert new_dataset.columns[0].column_name == "id"
         assert new_dataset.columns[1].column_name == "name"
+        db.session.delete(new_dataset)
+        db.session.commit()
 
     @pytest.mark.usefixtures("create_datasets")
     def test_duplicate_physical_dataset(self):
@@ -2525,3 +2692,90 @@ class TestDatasetApi(SupersetTestCase):
         }
         rv = self.post_assert_metric(uri, table_data, "duplicate")
         assert rv.status_code == 422
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    def test_get_or_create_dataset_already_exists(self):
+        """
+        Dataset API: Test get or create endpoint when table already exists
+        """
+        self.login(username="admin")
+        rv = self.client.post(
+            "api/v1/dataset/get_or_create/",
+            json={
+                "table_name": "virtual_dataset",
+                "database_id": get_example_database().id,
+            },
+        )
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        dataset = (
+            db.session.query(SqlaTable)
+            .filter(SqlaTable.table_name == "virtual_dataset")
+            .one()
+        )
+        self.assertEqual(response["result"], {"table_id": dataset.id})
+
+    def test_get_or_create_dataset_database_not_found(self):
+        """
+        Dataset API: Test get or create endpoint when database doesn't exist
+        """
+        self.login(username="admin")
+        rv = self.client.post(
+            "api/v1/dataset/get_or_create/",
+            json={"table_name": "virtual_dataset", "database_id": 999},
+        )
+        self.assertEqual(rv.status_code, 422)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(response["message"], {"database": ["Database does not exist"]})
+
+    @patch("superset.datasets.commands.create.CreateDatasetCommand.run")
+    def test_get_or_create_dataset_create_fails(self, command_run_mock):
+        """
+        Dataset API: Test get or create endpoint when create fails
+        """
+        command_run_mock.side_effect = DatasetCreateFailedError
+        self.login(username="admin")
+        rv = self.client.post(
+            "api/v1/dataset/get_or_create/",
+            json={
+                "table_name": "virtual_dataset",
+                "database_id": get_example_database().id,
+            },
+        )
+        self.assertEqual(rv.status_code, 422)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(response["message"], "Dataset could not be created.")
+
+    def test_get_or_create_dataset_creates_table(self):
+        """
+        Dataset API: Test get or create endpoint when table is created
+        """
+        self.login(username="admin")
+
+        examples_db = get_example_database()
+        with examples_db.get_sqla_engine_with_context() as engine:
+            engine.execute("DROP TABLE IF EXISTS test_create_sqla_table_api")
+            engine.execute("CREATE TABLE test_create_sqla_table_api AS SELECT 2 as col")
+
+        rv = self.client.post(
+            "api/v1/dataset/get_or_create/",
+            json={
+                "table_name": "test_create_sqla_table_api",
+                "database_id": examples_db.id,
+                "template_params": '{"param": 1}',
+            },
+        )
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        table = (
+            db.session.query(SqlaTable)
+            .filter_by(table_name="test_create_sqla_table_api")
+            .one()
+        )
+        self.assertEqual(response["result"], {"table_id": table.id})
+        self.assertEqual(table.template_params, '{"param": 1}')
+
+        db.session.delete(table)
+        with examples_db.get_sqla_engine_with_context() as engine:
+            engine.execute("DROP TABLE test_create_sqla_table_api")
+        db.session.commit()

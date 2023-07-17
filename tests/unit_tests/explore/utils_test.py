@@ -274,15 +274,18 @@ def test_query_no_access(mocker: MockFixture, client) -> None:
     from superset.models.core import Database
     from superset.models.sql_lab import Query
 
+    database = mocker.MagicMock()
+    database.get_default_schema_for_query.return_value = "public"
+    mocker.patch(
+        query_find_by_id,
+        return_value=Query(database=database, sql="select * from foo"),
+    )
+    mocker.patch(query_datasources_by_name, return_value=[SqlaTable()])
+    mocker.patch(is_admin, return_value=False)
+    mocker.patch(is_owner, return_value=False)
+    mocker.patch(can_access, return_value=False)
+
     with raises(SupersetSecurityException):
-        mocker.patch(
-            query_find_by_id,
-            return_value=Query(database=Database(), sql="select * from foo"),
-        )
-        mocker.patch(query_datasources_by_name, return_value=[SqlaTable()])
-        mocker.patch(is_admin, return_value=False)
-        mocker.patch(is_owner, return_value=False)
-        mocker.patch(can_access, return_value=False)
         check_datasource_access(
             datasource_id=1,
             datasource_type=DatasourceType.QUERY,

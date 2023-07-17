@@ -17,10 +17,10 @@
 import logging
 
 from flask import request, Response
-from flask_appbuilder.api import BaseApi, expose, protect, safe
+from flask_appbuilder.api import expose, protect, safe
 from marshmallow import ValidationError
 
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.explore.form_data.commands.create import CreateFormDataCommand
 from superset.explore.form_data.commands.delete import DeleteFormDataCommand
 from superset.explore.form_data.commands.get import GetFormDataCommand
@@ -32,30 +32,25 @@ from superset.temporary_cache.commands.exceptions import (
     TemporaryCacheAccessDeniedError,
     TemporaryCacheResourceNotFoundError,
 )
-from superset.views.base_api import requires_json
+from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 
 logger = logging.getLogger(__name__)
 
 
-class ExploreFormDataRestApi(BaseApi):
+class ExploreFormDataRestApi(BaseSupersetApi):
     add_model_schema = FormDataPostSchema()
     edit_model_schema = FormDataPutSchema()
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
-    include_route_methods = {
-        RouteMethod.POST,
-        RouteMethod.PUT,
-        RouteMethod.GET,
-        RouteMethod.DELETE,
-    }
     allow_browser_login = True
     class_permission_name = "ExploreFormDataRestApi"
     resource_name = "explore"
     openapi_spec_tag = "Explore Form Data"
     openapi_spec_component_schemas = (FormDataPostSchema, FormDataPutSchema)
 
-    @expose("/form_data", methods=["POST"])
+    @expose("/form_data", methods=("POST",))
     @protect()
     @safe
+    @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
@@ -117,9 +112,10 @@ class ExploreFormDataRestApi(BaseApi):
         except TemporaryCacheResourceNotFoundError as ex:
             return self.response(404, message=str(ex))
 
-    @expose("/form_data/<string:key>", methods=["PUT"])
+    @expose("/form_data/<string:key>", methods=("PUT",))
     @protect()
     @safe
+    @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=True,
@@ -190,9 +186,10 @@ class ExploreFormDataRestApi(BaseApi):
         except TemporaryCacheResourceNotFoundError as ex:
             return self.response(404, message=str(ex))
 
-    @expose("/form_data/<string:key>", methods=["GET"])
+    @expose("/form_data/<string:key>", methods=("GET",))
     @protect()
     @safe
+    @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=True,
@@ -241,9 +238,10 @@ class ExploreFormDataRestApi(BaseApi):
         except TemporaryCacheResourceNotFoundError as ex:
             return self.response(404, message=str(ex))
 
-    @expose("/form_data/<string:key>", methods=["DELETE"])
+    @expose("/form_data/<string:key>", methods=("DELETE",))
     @protect()
     @safe
+    @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
         log_to_statsd=True,

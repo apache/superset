@@ -17,7 +17,8 @@
 # isort:skip_file
 import re
 from datetime import datetime
-from typing import Any, Dict, List, NamedTuple, Optional, Pattern, Tuple, Union
+from typing import Any, NamedTuple, Optional, Union
+from re import Pattern
 from unittest.mock import patch
 import pytest
 
@@ -39,7 +40,6 @@ from superset.utils.core import (
     AdhocMetricExpressionType,
     FilterOperator,
     GenericDataType,
-    TemporalType,
 )
 from superset.utils.database import get_example_database
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -51,7 +51,7 @@ from tests.integration_tests.test_app import app
 from .base_tests import SupersetTestCase
 from .conftest import only_postgresql
 
-VIRTUAL_TABLE_INT_TYPES: Dict[str, Pattern[str]] = {
+VIRTUAL_TABLE_INT_TYPES: dict[str, Pattern[str]] = {
     "hive": re.compile(r"^INT_TYPE$"),
     "mysql": re.compile("^LONGLONG$"),
     "postgresql": re.compile(r"^INTEGER$"),
@@ -59,7 +59,7 @@ VIRTUAL_TABLE_INT_TYPES: Dict[str, Pattern[str]] = {
     "sqlite": re.compile(r"^INT$"),
 }
 
-VIRTUAL_TABLE_STRING_TYPES: Dict[str, Pattern[str]] = {
+VIRTUAL_TABLE_STRING_TYPES: dict[str, Pattern[str]] = {
     "hive": re.compile(r"^STRING_TYPE$"),
     "mysql": re.compile(r"^VAR_STRING$"),
     "postgresql": re.compile(r"^STRING$"),
@@ -71,8 +71,8 @@ VIRTUAL_TABLE_STRING_TYPES: Dict[str, Pattern[str]] = {
 class FilterTestCase(NamedTuple):
     column: str
     operator: str
-    value: Union[float, int, List[Any], str]
-    expected: Union[str, List[str]]
+    value: Union[float, int, list[Any], str]
+    expected: Union[str, list[str]]
 
 
 class TestDatabaseModel(SupersetTestCase):
@@ -102,7 +102,7 @@ class TestDatabaseModel(SupersetTestCase):
         assert col.is_temporal is True
 
     def test_db_column_types(self):
-        test_cases: Dict[str, GenericDataType] = {
+        test_cases: dict[str, GenericDataType] = {
             # string
             "CHAR": GenericDataType.STRING,
             "VARCHAR": GenericDataType.STRING,
@@ -201,22 +201,34 @@ class TestDatabaseModel(SupersetTestCase):
             "granularity": None,
             "from_dttm": None,
             "to_dttm": None,
-            "groupby": ["user", "expr"],
+            "columns": [
+                "user",
+                "expr",
+                {
+                    "hasCustomLabel": True,
+                    "label": "adhoc_column",
+                    "sqlExpression": "'{{ 'foo_' + time_grain }}'",
+                },
+            ],
             "metrics": [
                 {
+                    "hasCustomLabel": True,
+                    "label": "adhoc_metric",
                     "expressionType": AdhocMetricExpressionType.SQL,
-                    "sqlExpression": "SUM(case when user = '{{ current_username() }}' "
-                    "then 1 else 0 end)",
-                    "label": "SUM(userid)",
-                }
+                    "sqlExpression": "SUM(case when user = '{{ 'user_' + "
+                    "current_username() }}' then 1 else 0 end)",
+                },
+                "count_timegrain",
             ],
             "is_timeseries": False,
             "filter": [],
+            "extras": {"time_grain_sqla": "P1D"},
         }
 
         table = SqlaTable(
             table_name="test_has_jinja_metric_and_expr",
-            sql="SELECT '{{ current_username() }}' as user",
+            sql="SELECT '{{ 'user_' + current_username() }}' as user, "
+            "'{{ 'xyz_' + time_grain }}' as time_grain",
             database=get_example_database(),
         )
         TableColumn(
@@ -226,14 +238,25 @@ class TestDatabaseModel(SupersetTestCase):
             type="VARCHAR(100)",
             table=table,
         )
+        SqlMetric(
+            metric_name="count_timegrain",
+            expression="count('{{ 'bar_' + time_grain }}')",
+            table=table,
+        )
         db.session.commit()
 
         sqla_query = table.get_sqla_query(**base_query_obj)
         query = table.database.compile_sqla_query(sqla_query.sqla_query)
-        # assert expression
-        assert "case when 'abc' = 'abc' then 'yes' else 'no' end" in query
-        # assert metric
-        assert "SUM(case when user = 'abc' then 1 else 0 end)" in query
+        # assert virtual dataset
+        assert "SELECT 'user_abc' as user, 'xyz_P1D' as time_grain" in query
+        # assert dataset calculated column
+        assert "case when 'abc' = 'abc' then 'yes' else 'no' end AS expr" in query
+        # assert adhoc column
+        assert "'foo_P1D'" in query
+        # assert dataset saved metric
+        assert "count('bar_P1D')" in query
+        # assert adhoc metric
+        assert "SUM(case when user = 'user_abc' then 1 else 0 end)" in query
         # Cleanup
         db.session.delete(table)
         db.session.commit()
@@ -269,7 +292,7 @@ class TestDatabaseModel(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_where_operators(self):
-        filters: Tuple[FilterTestCase, ...] = (
+        filters: tuple[FilterTestCase, ...] = (
             FilterTestCase("num", FilterOperator.IS_NULL, "", "IS NULL"),
             FilterTestCase("num", FilterOperator.IS_NOT_NULL, "", "IS NOT NULL"),
             # Some db backends translate true/false to 1/0
@@ -471,7 +494,7 @@ class TestDatabaseModel(SupersetTestCase):
             "mycase",
             "expr",
         }
-        cols: Dict[str, TableColumn] = {col.column_name: col for col in table.columns}
+        cols: dict[str, TableColumn] = {col.column_name: col for col in table.columns}
         # assert that the type for intcol has been updated (asserting CI types)
         backend = table.database.backend
         assert VIRTUAL_TABLE_INT_TYPES[backend].match(cols["intcol"].type)
@@ -780,9 +803,9 @@ def test__normalize_prequery_result_type(
     result: Any,
 ) -> None:
     def _convert_dttm(
-        target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+        target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
     ) -> Optional[str]:
-        if target_type.upper() == TemporalType.TIMESTAMP:
+        if target_type.upper() == "TIMESTAMP":
             return f"""TIME_PARSE('{dttm.isoformat(timespec="seconds")}')"""
 
         return None

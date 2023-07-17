@@ -19,7 +19,7 @@ from __future__ import annotations
 import contextlib
 import functools
 import os
-from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
@@ -55,7 +55,7 @@ def test_client(app_context: AppContext):
 
 
 @pytest.fixture
-def login_as(test_client: "FlaskClient[Any]"):
+def login_as(test_client: FlaskClient[Any]):
     """Fixture with app context and logged in admin user."""
 
     def _login_as(username: str, password: str = "general"):
@@ -134,7 +134,7 @@ def setup_sample_data() -> Any:
     yield
 
     with app.app_context():
-        # drop sqlachemy tables
+        # drop sqlalchemy tables
 
         db.session.commit()
         from sqlalchemy.ext import declarative
@@ -160,7 +160,7 @@ def drop_from_schema(engine: Engine, schema_name: str):
 @pytest.fixture(scope="session")
 def example_db_provider() -> Callable[[], Database]:  # type: ignore
     class _example_db_provider:
-        _db: Optional[Database] = None
+        _db: Database | None = None
 
         def __call__(self) -> Database:
             with app.app_context():
@@ -188,7 +188,11 @@ def example_db_provider() -> Callable[[], Database]:  # type: ignore
 
 
 def setup_presto_if_needed():
-    backend = app.config["SQLALCHEMY_EXAMPLES_URI"].split("://")[0]
+    db_uri = (
+        app.config.get("SQLALCHEMY_EXAMPLES_URI")
+        or app.config["SQLALCHEMY_DATABASE_URI"]
+    )
+    backend = db_uri.split("://")[0]
     database = get_example_database()
     extra = database.get_extra()
 
@@ -253,7 +257,7 @@ def with_feature_flags(**mock_feature_flags):
     return decorate
 
 
-def with_config(override_config: Dict[str, Any]):
+def with_config(override_config: dict[str, Any]):
     """
     Use this decorator to mock specific config keys.
 

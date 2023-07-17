@@ -22,13 +22,13 @@ import { t } from '@superset-ui/core';
 
 import TableLoader from 'src/components/TableLoader';
 import {
-  User,
-  DashboardResponse,
+  BootstrapUser,
   ChartResponse,
+  DashboardResponse,
 } from 'src/types/bootstrapTypes';
 
 interface CreatedContentProps {
-  user: User;
+  user: BootstrapUser;
 }
 
 class CreatedContent extends React.PureComponent<CreatedContentProps> {

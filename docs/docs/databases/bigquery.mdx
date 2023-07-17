@@ -8,7 +8,7 @@ version: 1
 ## Google BigQuery
 
 The recommended connector library for BigQuery is
-[pybigquery](https://github.com/mxmzdlv/pybigquery).
+[sqlalchemy-bigquery](https://github.com/googleapis/python-bigquery-sqlalchemy).
 
 ### Install BigQuery Driver
 
@@ -16,7 +16,7 @@ Follow the steps [here](/docs/databases/docker-add-drivers) about how to
 install new database drivers when setting up Superset locally via docker-compose.
 
 ```
-echo "pybigquery" >> ./docker/requirements-local.txt
+echo "sqlalchemy-bigquery" >> ./docker/requirements-local.txt
 ```
 
 ### Connecting to BigQuery

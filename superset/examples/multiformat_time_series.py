@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Dict, Optional, Tuple
+from typing import Optional
 
 import pandas as pd
 from sqlalchemy import BigInteger, Date, DateTime, inspect, String
@@ -85,7 +85,7 @@ def load_multiformat_time_series(  # pylint: disable=too-many-locals
     obj.main_dttm_col = "ds"
     obj.database = database
     obj.filter_select_enabled = True
-    dttm_and_expr_dict: Dict[str, Tuple[Optional[str], None]] = {
+    dttm_and_expr_dict: dict[str, tuple[Optional[str], None]] = {
         "ds": (None, None),
         "ds2": (None, None),
         "epoch_s": ("epoch_s", None),
@@ -98,7 +98,7 @@ def load_multiformat_time_series(  # pylint: disable=too-many-locals
     for col in obj.columns:
         dttm_and_expr = dttm_and_expr_dict[col.column_name]
         col.python_date_format = dttm_and_expr[0]
-        col.dbatabase_expr = dttm_and_expr[1]
+        col.database_expression = dttm_and_expr[1]
         col.is_dttm = True
     db.session.merge(obj)
     db.session.commit()

@@ -17,38 +17,61 @@
  * under the License.
  */
 import React, {
-  useState,
+  ReactElement,
+  useCallback,
   useEffect,
   useMemo,
-  useCallback,
   useRef,
+  useState,
 } from 'react';
 import { useSelector } from 'react-redux';
 import {
   BinaryQueryObjectFilterClause,
   css,
   ensureIsArray,
+  GenericDataType,
+  JsonObject,
+  QueryFormData,
   t,
   useTheme,
-  QueryFormData,
-  JsonObject,
 } from '@superset-ui/core';
+import { useResizeDetector } from 'react-resize-detector';
 import Loading from 'src/components/Loading';
+import BooleanCell from 'src/components/Table/cell-renderers/BooleanCell';
+import NullCell from 'src/components/Table/cell-renderers/NullCell';
+import TimeCell from 'src/components/Table/cell-renderers/TimeCell';
 import { EmptyStateMedium } from 'src/components/EmptyState';
-import TableView, { EmptyWrapperType } from 'src/components/TableView';
-import { useTableColumns } from 'src/explore/components/DataTableControl';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
-import MetadataBar, {
-  ContentType,
-  MetadataType,
-} from 'src/components/MetadataBar';
-import Alert from 'src/components/Alert';
-import { useApiV1Resource } from 'src/hooks/apiResources';
+import Table, { ColumnsType, TableSize } from 'src/components/Table';
+import HeaderWithRadioGroup from 'src/components/Table/header-renderers/HeaderWithRadioGroup';
+import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
+import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
 import TableControls from './DrillDetailTableControls';
 import { getDrillPayload } from './utils';
-import { Dataset, ResultsPage } from './types';
+import { ResultsPage } from './types';
 
 const PAGE_SIZE = 50;
+
+interface DataType {
+  [key: string]: any;
+}
+
+// Must be outside of the main component due to problems in
+// react-resize-detector with conditional rendering
+// https://github.com/maslianok/react-resize-detector/issues/178
+function Resizable({ children }: { children: ReactElement }) {
+  const { ref, height } = useResizeDetector();
+  return (
+    <div ref={ref} css={{ flex: 1 }}>
+      {React.cloneElement(children, { height })}
+    </div>
+  );
+}
+
+enum TimeFormatting {
+  Original,
+  Formatted,
+}
 
 export default function DrillDetailPane({
   formData,
@@ -66,6 +89,7 @@ export default function DrillDetailPane({
   const [resultsPages, setResultsPages] = useState<Map<number, ResultsPage>>(
     new Map(),
   );
+  const [timeFormatting, setTimeFormatting] = useState({});
 
   const SAMPLES_ROW_LIMIT = useSelector(
     (state: { common: { conf: JsonObject } }) =>
@@ -78,6 +102,9 @@ export default function DrillDetailPane({
     [formData.datasource],
   );
 
+  const { metadataBar, status: metadataBarStatus } = useDatasetMetadataBar({
+    datasetId: datasourceId,
+  });
   // Get page of results
   const resultsPage = useMemo(() => {
     const nextResultsPage = resultsPages.get(pageIndex);
@@ -89,29 +116,68 @@ export default function DrillDetailPane({
     return resultsPages.get(lastPageIndex.current);
   }, [pageIndex, resultsPages]);
 
-  // this is to preserve the order of the columns, even if there are integer values,
-  // while also only grabbing the first column's keys
-  const columns = useTableColumns(
-    resultsPage?.colNames,
-    resultsPage?.colTypes,
-    resultsPage?.data,
-    formData.datasource,
-  );
-
-  // Disable sorting on columns
-  const sortDisabledColumns = useMemo(
+  const mappedColumns: ColumnsType<DataType> = useMemo(
     () =>
-      columns.map(column => ({
-        ...column,
-        disableSortBy: true,
-      })),
-    [columns],
+      resultsPage?.colNames.map((column, index) => ({
+        key: column,
+        dataIndex: column,
+        title:
+          resultsPage?.colTypes[index] === GenericDataType.TEMPORAL ? (
+            <HeaderWithRadioGroup
+              headerTitle={column}
+              groupTitle={t('Formatting')}
+              groupOptions={[
+                { label: t('Original value'), value: TimeFormatting.Original },
+                {
+                  label: t('Formatted value'),
+                  value: TimeFormatting.Formatted,
+                },
+              ]}
+              value={
+                timeFormatting[column] === TimeFormatting.Original
+                  ? TimeFormatting.Original
+                  : TimeFormatting.Formatted
+              }
+              onChange={value =>
+                setTimeFormatting(state => ({ ...state, [column]: value }))
+              }
+            />
+          ) : (
+            column
+          ),
+        render: value => {
+          if (value === true || value === false) {
+            return <BooleanCell value={value} />;
+          }
+          if (value === null) {
+            return <NullCell />;
+          }
+          if (
+            resultsPage?.colTypes[index] === GenericDataType.TEMPORAL &&
+            timeFormatting[column] !== TimeFormatting.Original &&
+            (typeof value === 'number' || value instanceof Date)
+          ) {
+            return <TimeCell value={value} />;
+          }
+          return String(value);
+        },
+        width: 150,
+      })) || [],
+    [resultsPage?.colNames, resultsPage?.colTypes, timeFormatting],
   );
 
-  // Update page index on pagination click
-  const onServerPagination = useCallback(({ pageIndex }) => {
-    setPageIndex(pageIndex);
-  }, []);
+  const data: DataType[] = useMemo(
+    () =>
+      resultsPage?.data.map((row, index) =>
+        resultsPage?.colNames.reduce(
+          (acc, curr) => ({ ...acc, [curr]: row[curr] }),
+          {
+            key: index,
+          },
+        ),
+      ) || [],
+    [resultsPage?.colNames, resultsPage?.data],
+  );
 
   // Clear cache on reload button click
   const handleReload = useCallback(() => {
@@ -148,7 +214,7 @@ export default function DrillDetailPane({
   useEffect(() => {
     if (!responseError && !isLoading && !resultsPages.has(pageIndex)) {
       setIsLoading(true);
-      const jsonPayload = getDrillPayload(formData, filters);
+      const jsonPayload = getDrillPayload(formData, filters) ?? {};
       const cachePageLimit = Math.ceil(SAMPLES_ROW_LIMIT / PAGE_SIZE);
       getDatasourceSamples(
         datasourceType,
@@ -194,11 +260,9 @@ export default function DrillDetailPane({
     resultsPages,
   ]);
 
-  // Get datasource metadata
-  const response = useApiV1Resource<Dataset>(`/api/v1/dataset/${datasourceId}`);
-
   const bootstrapping =
-    (!responseError && !resultsPages.size) || response.status === 'loading';
+    (!responseError && !resultsPages.size) ||
+    metadataBarStatus === ResourceStatus.LOADING;
 
   let tableContent = null;
   if (responseError) {
@@ -222,102 +286,28 @@ export default function DrillDetailPane({
   } else {
     // Render table if at least one page has successfully loaded
     tableContent = (
-      <TableView
-        columns={sortDisabledColumns}
-        data={resultsPage?.data || []}
-        pageSize={PAGE_SIZE}
-        totalCount={resultsPage?.total}
-        serverPagination
-        initialPageIndex={pageIndex}
-        onServerPagination={onServerPagination}
-        loading={isLoading}
-        noDataText={t('No results')}
-        emptyWrapperType={EmptyWrapperType.Small}
-        className="table-condensed"
-        isPaginationSticky
-        showRowCount={false}
-        small
-        css={css`
-          overflow: auto;
-          .table {
-            margin-bottom: 0;
+      <Resizable>
+        <Table
+          data={data}
+          columns={mappedColumns}
+          size={TableSize.SMALL}
+          defaultPageSize={PAGE_SIZE}
+          recordCount={resultsPage?.total}
+          usePagination
+          loading={isLoading}
+          onChange={pagination =>
+            setPageIndex(pagination.current ? pagination.current - 1 : 0)
           }
-        `}
-        scrollTopOnPagination
-      />
+          resizable
+          virtualize
+        />
+      </Resizable>
     );
   }
 
-  const metadata = useMemo(() => {
-    const { status, result } = response;
-    const items: ContentType[] = [];
-    if (result) {
-      const {
-        changed_on_humanized,
-        created_on_humanized,
-        description,
-        table_name,
-        changed_by,
-        created_by,
-        owners,
-      } = result;
-      const notAvailable = t('Not available');
-      const createdBy =
-        `${created_by?.first_name ?? ''} ${
-          created_by?.last_name ?? ''
-        }`.trim() || notAvailable;
-      const modifiedBy = changed_by
-        ? `${changed_by.first_name} ${changed_by.last_name}`
-        : notAvailable;
-      const formattedOwners =
-        owners.length > 0
-          ? owners.map(owner => `${owner.first_name} ${owner.last_name}`)
-          : [notAvailable];
-      items.push({
-        type: MetadataType.TABLE,
-        title: table_name,
-      });
-      items.push({
-        type: MetadataType.LAST_MODIFIED,
-        value: changed_on_humanized,
-        modifiedBy,
-      });
-      items.push({
-        type: MetadataType.OWNER,
-        createdBy,
-        owners: formattedOwners,
-        createdOn: created_on_humanized,
-      });
-      if (description) {
-        items.push({
-          type: MetadataType.DESCRIPTION,
-          value: description,
-        });
-      }
-    }
-    return (
-      <div
-        css={css`
-          display: flex;
-          margin-bottom: ${theme.gridUnit * 4}px;
-        `}
-      >
-        {status === 'complete' && (
-          <MetadataBar items={items} tooltipPlacement="bottom" />
-        )}
-        {status === 'error' && (
-          <Alert
-            type="error"
-            message={t('There was an error loading the dataset metadata')}
-          />
-        )}
-      </div>
-    );
-  }, [response, theme.gridUnit]);
-
   return (
     <>
-      {!bootstrapping && metadata}
+      {!bootstrapping && metadataBar}
       {!bootstrapping && (
         <TableControls
           filters={filters}

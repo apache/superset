@@ -69,7 +69,7 @@ def scheduler() -> None:
                         active_schedule.id,
                         schedule,
                     ),
-                    **async_options
+                    **async_options,
                 )
 
 
@@ -97,7 +97,10 @@ def execute(self: Celery.task, report_schedule_id: int, scheduled_dttm: str) -> 
     except CommandException as ex:
         logger_func, level = get_logger_from_status(ex.status)
         logger_func(
-            "A downstream %s occurred while generating a report: %s", level, task_id
+            "A downstream {} occurred while generating a report: {}. {}".format(
+                level, task_id, ex.message
+            ),
+            exc_info=True,
         )
         if level == LoggerLevel.EXCEPTION:
             self.update_state(state="FAILURE")

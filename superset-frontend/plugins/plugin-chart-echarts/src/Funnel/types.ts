@@ -40,7 +40,6 @@ export type EchartsFunnelFormData = QueryFormData &
     gap: number;
     sort: 'descending' | 'ascending' | 'none' | undefined;
     orient: 'vertical' | 'horizontal' | undefined;
-    emitFilter: boolean;
   };
 
 export enum EchartsFunnelLabelTypeType {
@@ -70,7 +69,6 @@ export const DEFAULT_FORM_DATA: EchartsFunnelFormData = {
   sort: 'descending',
   orient: 'vertical',
   gap: 0,
-  emitFilter: false,
 };
 
 export type FunnelChartTransformedProps =

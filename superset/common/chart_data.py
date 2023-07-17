@@ -24,6 +24,11 @@ class ChartDataResultFormat(str, Enum):
 
     CSV = "csv"
     JSON = "json"
+    XLSX = "xlsx"
+
+    @classmethod
+    def table_like(cls) -> set["ChartDataResultFormat"]:
+        return {cls.CSV} | {cls.XLSX}
 
 
 class ChartDataResultType(str, Enum):

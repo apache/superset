@@ -16,30 +16,32 @@
 # under the License.
 # pylint: disable=invalid-name, unused-argument, import-outside-toplevel, redefined-outer-name
 from datetime import datetime
-from unittest import mock
+from typing import Optional
 
 import pytest
 from sqlalchemy.engine import create_engine
 
+from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm
 
 
-def test_convert_dttm(dttm: datetime) -> None:
-    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+@pytest.mark.parametrize(
+    "target_type,expected_result",
+    [
+        ("Text", "'2019-01-02 03:04:05'"),
+        ("DateTime", "'2019-01-02 03:04:05'"),
+        ("TimeStamp", "'2019-01-02 03:04:05'"),
+        ("Other", None),
+    ],
+)
+def test_convert_dttm(
+    target_type: str,
+    expected_result: Optional[str],
+    dttm: datetime,
+) -> None:
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec as spec
 
-    assert SqliteEngineSpec.convert_dttm("TEXT", dttm) == "'2019-01-02 03:04:05'"
-
-
-def test_convert_dttm_lower(dttm: datetime) -> None:
-    from superset.db_engine_specs.sqlite import SqliteEngineSpec
-
-    assert SqliteEngineSpec.convert_dttm("text", dttm) == "'2019-01-02 03:04:05'"
-
-
-def test_convert_dttm_invalid_type(dttm: datetime) -> None:
-    from superset.db_engine_specs.sqlite import SqliteEngineSpec
-
-    assert SqliteEngineSpec.convert_dttm("other", dttm) is None
+    assert_convert_dttm(spec, target_type, expected_result, dttm)
 
 
 @pytest.mark.parametrize(

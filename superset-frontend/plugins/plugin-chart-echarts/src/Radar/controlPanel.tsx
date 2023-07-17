@@ -27,11 +27,11 @@ import {
 import {
   ControlPanelConfig,
   D3_FORMAT_DOCS,
+  D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
   sections,
   sharedControls,
-  emitFilterControl,
   ControlFormItemSpec,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
@@ -51,7 +51,7 @@ const radarMetricMaxValue: { name: string; config: ControlFormItemSpec } = {
       'The maximum value of metrics. It is an optional configuration',
     ),
     width: 120,
-    placeholder: 'auto',
+    placeholder: t('auto'),
     debounceDelay: 400,
     validators: [validateNumber],
   },
@@ -68,7 +68,6 @@ const config: ControlPanelConfig = {
         ['metrics'],
         ['timeseries_limit_metric'],
         ['adhoc_filters'],
-        emitFilterControl,
         [
           {
             name: 'row_limit',
@@ -108,8 +107,8 @@ const config: ControlPanelConfig = {
               default: labelType,
               renderTrigger: true,
               choices: [
-                ['value', 'Value'],
-                ['key_value', 'Category and Value'],
+                ['value', t('Value')],
+                ['key_value', t('Category and Value')],
               ],
               description: t('What should be shown on the label?'),
             },
@@ -139,9 +138,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: numberFormat,
               choices: D3_FORMAT_OPTIONS,
-              description: `${t(
-                'D3 format syntax: https://github.com/d3/d3-format. ',
-              )} ${t('Only applies when "Label Type" is set to show values.')}`,
+              description: `${D3_FORMAT_DOCS} ${D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT}`,
             },
           },
         ],

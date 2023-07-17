@@ -169,13 +169,13 @@ class TestSupersetResultSet(SupersetTestCase):
                     "id": 4,
                     "dict_arr": '[{"table_name": "unicode_test", "database_id": 1}]',
                     "num_arr": "[1, 2, 3]",
-                    "map_col": '{"chart_name": "scatter"}',
+                    "map_col": "{'chart_name': 'scatter'}",
                 },
                 {
                     "id": 3,
                     "dict_arr": '[{"table_name": "birth_names", "database_id": 1}]',
                     "num_arr": "[4, 5, 6]",
-                    "map_col": '{"chart_name": "plot"}',
+                    "map_col": "{'chart_name': 'plot'}",
                 },
             ],
         )

@@ -22,7 +22,15 @@ import Card from 'src/components/Card';
 import ProgressBar from 'src/components/ProgressBar';
 import Label from 'src/components/Label';
 import { t, useTheme, QueryResponse } from '@superset-ui/core';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+
+import {
+  queryEditorSetAndSaveSql,
+  cloneQueryToNewTab,
+  fetchQueryResults,
+  clearQueryResults,
+  removeQuery,
+} from 'src/SqlLab/actions/sqlLab';
 import TableView from 'src/components/TableView';
 import Button from 'src/components/Button';
 import { fDuration } from 'src/utils/dates';
@@ -45,13 +53,6 @@ interface QueryTableQuery
 
 interface QueryTableProps {
   columns?: string[];
-  actions: {
-    queryEditorSetAndSaveSql: Function;
-    cloneQueryToNewTab: Function;
-    fetchQueryResults: Function;
-    clearQueryResults: Function;
-    removeQuery: Function;
-  };
   queries?: QueryResponse[];
   onUserClicked?: Function;
   onDbClicked?: Function;
@@ -66,7 +67,6 @@ const openQuery = (id: number) => {
 
 const QueryTable = ({
   columns = ['started', 'duration', 'rows'],
-  actions,
   queries = [],
   onUserClicked = () => undefined,
   onDbClicked = () => undefined,
@@ -74,6 +74,18 @@ const QueryTable = ({
   latestQueryId,
 }: QueryTableProps) => {
   const theme = useTheme();
+  const dispatch = useDispatch();
+
+  const QUERY_HISTORY_TABLE_HEADERS_LOCALIZED = {
+    state: t('State'),
+    started: t('Started'),
+    duration: t('Duration'),
+    progress: t('Progress'),
+    rows: t('Rows'),
+    sql: t('SQL'),
+    results: t('Results'),
+    actions: t('Actions'),
+  };
 
   const setHeaders = (column: string) => {
     if (column === 'sql') {
@@ -81,11 +93,13 @@ const QueryTable = ({
     }
     return column.charAt(0).toUpperCase().concat(column.slice(1));
   };
+
   const columnsOfTable = useMemo(
     () =>
       columns.map(column => ({
         accessor: column,
-        Header: () => setHeaders(column),
+        Header:
+          QUERY_HISTORY_TABLE_HEADERS_LOCALIZED[column] || setHeaders(column),
         disableSortBy: true,
       })),
     [columns],
@@ -93,25 +107,17 @@ const QueryTable = ({
 
   const user = useSelector<SqlLabRootState, User>(state => state.sqlLab.user);
 
-  const {
-    queryEditorSetAndSaveSql,
-    cloneQueryToNewTab,
-    fetchQueryResults,
-    clearQueryResults,
-    removeQuery,
-  } = actions;
-
   const data = useMemo(() => {
     const restoreSql = (query: QueryResponse) => {
-      queryEditorSetAndSaveSql({ id: query.sqlEditorId }, query.sql);
+      dispatch(queryEditorSetAndSaveSql({ id: query.sqlEditorId }, query.sql));
     };
 
     const openQueryInNewTab = (query: QueryResponse) => {
-      cloneQueryToNewTab(query, true);
+      dispatch(cloneQueryToNewTab(query, true));
     };
 
     const openAsyncResults = (query: QueryResponse, displayLimit: number) => {
-      fetchQueryResults(query, displayLimit);
+      dispatch(fetchQueryResults(query, displayLimit));
     };
 
     const statusAttributes = {
@@ -239,7 +245,7 @@ const QueryTable = ({
               }
               modalTitle={t('Data preview')}
               beforeOpen={() => openAsyncResults(query, displayLimit)}
-              onExit={() => clearQueryResults(query)}
+              onExit={() => dispatch(clearQueryResults(query))}
               modalBody={
                 <ResultSet
                   showSql
@@ -293,7 +299,7 @@ const QueryTable = ({
             {q.id !== latestQueryId && (
               <StyledTooltip
                 tooltip={t('Remove query from log')}
-                onClick={() => removeQuery(query)}
+                onClick={() => dispatch(removeQuery(query))}
               >
                 <Icons.Trash iconSize="xl" />
               </StyledTooltip>
@@ -303,19 +309,7 @@ const QueryTable = ({
         return q;
       })
       .reverse();
-  }, [
-    queries,
-    onUserClicked,
-    onDbClicked,
-    user,
-    displayLimit,
-    actions,
-    clearQueryResults,
-    cloneQueryToNewTab,
-    fetchQueryResults,
-    queryEditorSetAndSaveSql,
-    removeQuery,
-  ]);
+  }, [queries, onUserClicked, onDbClicked, user, displayLimit]);
 
   return (
     <div className="QueryTable">

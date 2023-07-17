@@ -29,7 +29,7 @@ import OverwriteConfirmModal from './OverwriteConfirmModal';
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 
-jest.mock('react-diff-viewer', () => () => (
+jest.mock('react-diff-viewer-continued', () => () => (
   <div data-test="mock-diff-viewer" />
 ));
 

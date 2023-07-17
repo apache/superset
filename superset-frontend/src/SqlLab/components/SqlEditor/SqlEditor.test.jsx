@@ -17,59 +17,48 @@
  * under the License.
  */
 import React from 'react';
-import { mount } from 'enzyme';
+import { act } from 'react-dom/test-utils';
 import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import { Provider } from 'react-redux';
-import thunk from 'redux-thunk';
-import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
-import {
-  SQL_EDITOR_GUTTER_HEIGHT,
-  SQL_EDITOR_GUTTER_MARGIN,
-  SQL_TOOLBAR_HEIGHT,
-} from 'src/SqlLab/constants';
-import AceEditorWrapper from 'src/SqlLab/components/AceEditorWrapper';
-import ConnectedSouthPane from 'src/SqlLab/components/SouthPane/state';
+import { reducers } from 'src/SqlLab/reducers';
 import SqlEditor from 'src/SqlLab/components/SqlEditor';
-import QueryProvider from 'src/views/QueryProvider';
-import {
-  queryEditorSetFunctionNames,
-  queryEditorSetSelectedText,
-  queryEditorSetSchemaOptions,
-} from 'src/SqlLab/actions/sqlLab';
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
+import { setupStore } from 'src/views/store';
 import {
   initialState,
   queries,
   table,
   defaultQueryEditor,
 } from 'src/SqlLab/fixtures';
+import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
+import { api } from 'src/hooks/apiResources/queryApi';
+import { getExtensionsRegistry } from '@superset-ui/core';
+import setupExtensions from 'src/setup/setupExtensions';
 
 jest.mock('src/components/AsyncAceEditor', () => ({
   ...jest.requireActual('src/components/AsyncAceEditor'),
-  FullSQLEditor: props => (
-    <div data-test="react-ace">{JSON.stringify(props)}</div>
+  FullSQLEditor: ({ onChange, onBlur, value }) => (
+    <textarea
+      data-test="react-ace"
+      onChange={evt => onChange(evt.target.value)}
+      onBlur={onBlur}
+      value={value}
+    />
   ),
 }));
-jest.mock('src/SqlLab/components/SqlEditorLeftBar', () => () => (
-  <div data-test="mock-sql-editor-left-bar" />
-));
-
-const MOCKED_SQL_EDITOR_HEIGHT = 500;
+jest.mock('src/SqlLab/components/SqlEditorLeftBar', () => jest.fn());
 
 fetchMock.get('glob:*/api/v1/database/*', { result: [] });
-fetchMock.get('glob:*/superset/tables/*', { options: [] });
-fetchMock.post('glob:*/sql_json/*', { result: [] });
+fetchMock.get('glob:*/api/v1/database/*/tables/*', { options: [] });
+fetchMock.post('glob:*/sqllab/execute/*', { result: [] });
 
-const middlewares = [thunk];
-const mockStore = configureStore(middlewares);
-const store = mockStore({
+let store;
+let actions;
+const mockInitialState = {
   ...initialState,
   sqlLab: {
     ...initialState.sqlLab,
     databases: {
-      dbid1: {
+      1991: {
         allow_ctas: false,
         allow_cvas: false,
         allow_dml: false,
@@ -84,10 +73,10 @@ const store = mockStore({
     },
     unsavedQueryEditor: {
       id: defaultQueryEditor.id,
-      dbId: 'dbid1',
+      dbId: 1991,
     },
   },
-});
+};
 
 const setup = (props = {}, store) =>
   render(<SqlEditor {...props} />, {
@@ -95,15 +84,25 @@ const setup = (props = {}, store) =>
     ...(store && { store }),
   });
 
+const logAction = () => next => action => {
+  if (typeof action === 'function') {
+    return next(action);
+  }
+  actions.push(action);
+  return next(action);
+};
+
+const createStore = initState =>
+  setupStore({
+    disableDegugger: true,
+    initialState: initState,
+    rootReducers: reducers,
+    middleware: getDefaultMiddleware =>
+      getDefaultMiddleware().concat(api.middleware, logAction),
+  });
+
 describe('SqlEditor', () => {
   const mockedProps = {
-    actions: {
-      queryEditorSetFunctionNames,
-      queryEditorSetSelectedText,
-      queryEditorSetSchemaOptions,
-      addDangerToast: jest.fn(),
-      removeDataPreview: jest.fn(),
-    },
     queryEditor: initialState.sqlLab.queryEditors[0],
     latestQuery: queries[0],
     tables: [table],
@@ -115,18 +114,21 @@ describe('SqlEditor', () => {
     displayLimit: 100,
   };
 
-  const buildWrapper = (props = {}) =>
-    mount(
-      <QueryProvider>
-        <Provider store={store}>
-          <SqlEditor {...mockedProps} {...props} />
-        </Provider>
-      </QueryProvider>,
-      {
-        wrappingComponent: ThemeProvider,
-        wrappingComponentProps: { theme: supersetTheme },
-      },
-    );
+  beforeEach(() => {
+    store = createStore(mockInitialState);
+    actions = [];
+
+    SqlEditorLeftBar.mockClear();
+    SqlEditorLeftBar.mockImplementation(() => (
+      <div data-test="mock-sql-editor-left-bar" />
+    ));
+  });
+
+  afterEach(() => {
+    act(() => {
+      store.dispatch(api.util.resetApiState());
+    });
+  });
 
   it('does not render SqlEditor if no db selected', async () => {
     const queryEditor = initialState.sqlLab.queryEditors[1];
@@ -148,40 +150,48 @@ describe('SqlEditor', () => {
     expect(await findByTestId('react-ace')).toBeInTheDocument();
   });
 
+  it('avoids rerendering EditorLeftBar while typing', async () => {
+    const { findByTestId } = setup(mockedProps, store);
+    const editor = await findByTestId('react-ace');
+    const sql = 'select *';
+    const renderCount = SqlEditorLeftBar.mock.calls.length;
+    expect(SqlEditorLeftBar).toHaveBeenCalledTimes(renderCount);
+    fireEvent.change(editor, { target: { value: sql } });
+    // Verify the rendering regression
+    expect(SqlEditorLeftBar).toHaveBeenCalledTimes(renderCount);
+  });
+
   it('renders sql from unsaved change', async () => {
     const expectedSql = 'SELECT updated_column\nFROM updated_table\nWHERE';
-    const { findByTestId } = setup(
-      mockedProps,
-      mockStore({
-        ...initialState,
-        sqlLab: {
-          ...initialState.sqlLab,
-          databases: {
-            dbid1: {
-              allow_ctas: false,
-              allow_cvas: false,
-              allow_dml: false,
-              allow_file_upload: false,
-              allow_run_async: false,
-              backend: 'postgresql',
-              database_name: 'examples',
-              expose_in_sqllab: true,
-              force_ctas_schema: null,
-              id: 1,
-            },
-          },
-          unsavedQueryEditor: {
-            id: defaultQueryEditor.id,
-            dbId: 'dbid1',
-            sql: expectedSql,
+    store = createStore({
+      ...initialState,
+      sqlLab: {
+        ...initialState.sqlLab,
+        databases: {
+          2023: {
+            allow_ctas: false,
+            allow_cvas: false,
+            allow_dml: false,
+            allow_file_upload: false,
+            allow_run_async: false,
+            backend: 'postgresql',
+            database_name: 'examples',
+            expose_in_sqllab: true,
+            force_ctas_schema: null,
+            id: 1,
           },
         },
-      }),
-    );
+        unsavedQueryEditor: {
+          id: defaultQueryEditor.id,
+          dbId: 2023,
+          sql: expectedSql,
+        },
+      },
+    });
+    const { findByTestId } = setup(mockedProps, store);
 
-    expect(await findByTestId('react-ace')).toHaveTextContent(
-      JSON.stringify({ value: expectedSql }).slice(1, -1),
-    );
+    const editor = await findByTestId('react-ace');
+    expect(editor).toHaveValue(expectedSql);
   });
 
   it('render a SouthPane', async () => {
@@ -192,7 +202,7 @@ describe('SqlEditor', () => {
   });
 
   it('runs query action with ctas false', async () => {
-    const expectedStore = mockStore({
+    store = createStore({
       ...initialState,
       sqlLab: {
         ...initialState.sqlLab,
@@ -217,11 +227,11 @@ describe('SqlEditor', () => {
         },
       },
     });
-    const { findByTestId } = setup(mockedProps, expectedStore);
+    const { findByTestId } = setup(mockedProps, store);
     const runButton = await findByTestId('run-query-action');
     fireEvent.click(runButton);
     await waitFor(() =>
-      expect(expectedStore.getActions()).toContainEqual({
+      expect(actions).toContainEqual({
         type: 'START_QUERY',
         query: expect.objectContaining({
           ctas: false,
@@ -231,39 +241,25 @@ describe('SqlEditor', () => {
     );
   });
 
-  // TODO eschutho convert tests to RTL
-  // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('does not overflow the editor window', async () => {
-    const wrapper = buildWrapper();
-    await waitForComponentToPaint(wrapper);
-    const totalSize =
-      parseFloat(wrapper.find(AceEditorWrapper).props().height) +
-      wrapper.find(ConnectedSouthPane).props().height +
-      SQL_TOOLBAR_HEIGHT +
-      SQL_EDITOR_GUTTER_MARGIN * 2 +
-      SQL_EDITOR_GUTTER_HEIGHT;
-    expect(totalSize).toEqual(MOCKED_SQL_EDITOR_HEIGHT);
-  });
-
-  // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('does not overflow the editor window after resizing', async () => {
-    const wrapper = buildWrapper();
-    wrapper.setState({ height: 450 });
-    await waitForComponentToPaint(wrapper);
-    const totalSize =
-      parseFloat(wrapper.find(AceEditorWrapper).props().height) +
-      wrapper.find(ConnectedSouthPane).props().height +
-      SQL_TOOLBAR_HEIGHT +
-      SQL_EDITOR_GUTTER_MARGIN * 2 +
-      SQL_EDITOR_GUTTER_HEIGHT;
-    expect(totalSize).toEqual(450);
-  });
-
   it('render a Limit Dropdown', async () => {
     const defaultQueryLimit = 101;
     const updatedProps = { ...mockedProps, defaultQueryLimit };
     const { findByText } = setup(updatedProps, store);
     fireEvent.click(await findByText('LIMIT:'));
     expect(await findByText('10 000')).toBeInTheDocument();
+  });
+
+  it('renders an Extension if provided', async () => {
+    const extensionsRegistry = getExtensionsRegistry();
+
+    extensionsRegistry.set('sqleditor.extension.form', () => (
+      <>sqleditor.extension.form extension component</>
+    ));
+
+    setupExtensions();
+    const { findByText } = setup(mockedProps, store);
+    expect(
+      await findByText('sqleditor.extension.form extension component'),
+    ).toBeInTheDocument();
   });
 });

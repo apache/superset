@@ -61,7 +61,6 @@ export type QueryObjectFilterClause =
   | UnaryQueryObjectFilterClause;
 
 export type QueryObjectExtras = Partial<{
-  /** HAVING condition for Druid */
   /** HAVING condition for SQLAlchemy */
   having?: string;
   relative_start?: string;
@@ -107,7 +106,7 @@ export interface QueryObject
   /** SIMPLE where filters */
   filters?: QueryObjectFilterClause[];
 
-  /** Time column for SQL, time-grain for Druid (deprecated) */
+  /** Time column for SQL */
   granularity?: string;
 
   /** If set, will group by timestamp */
@@ -118,9 +117,6 @@ export interface QueryObject
 
   /** Free-form HAVING SQL, multiple clauses are concatenated by AND */
   having?: string;
-
-  /** SIMPLE having filters */
-  having_filters?: QueryObjectFilterClause[];
 
   post_processing?: (PostProcessingRule | undefined)[];
 
@@ -135,12 +131,6 @@ export interface QueryObject
 
   /** The size of bucket by which to group timeseries data (forthcoming) */
   time_grain?: string;
-
-  /** Maximum number of timeseries */
-  timeseries_limit?: number;
-
-  /** The metric used to sort the returned result. */
-  timeseries_limit_metric?: Maybe<QueryFormMetric>;
 
   /** Direction to ordered by */
   order_desc?: boolean;
@@ -302,6 +292,7 @@ export type Query = {
   errorMessage: string | null;
   extra: {
     progress: string | null;
+    errors?: SupersetError[];
   };
   id: string;
   isDataPreview: boolean;

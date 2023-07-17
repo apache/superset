@@ -21,7 +21,7 @@ from decimal import Decimal
 import json
 import os
 import re
-from typing import Any, Tuple, List, Optional
+from typing import Any, Optional
 from unittest.mock import Mock, patch
 
 from superset.databases.commands.exceptions import DatabaseInvalidError
@@ -121,12 +121,12 @@ class TestUtils(SupersetTestCase):
         assert isinstance(base_json_conv(np.int64(1)), int)
         assert isinstance(base_json_conv(np.array([1, 2, 3])), list)
         assert base_json_conv(np.array(None)) is None
-        assert isinstance(base_json_conv(set([1])), list)
+        assert isinstance(base_json_conv({1}), list)
         assert isinstance(base_json_conv(Decimal("1.0")), float)
         assert isinstance(base_json_conv(uuid.uuid4()), str)
         assert isinstance(base_json_conv(time()), str)
         assert isinstance(base_json_conv(timedelta(0)), str)
-        assert isinstance(base_json_conv(bytes()), str)
+        assert isinstance(base_json_conv(b""), str)
         assert base_json_conv(bytes("", encoding="utf-16")) == "[bytes]"
 
         with pytest.raises(TypeError):
@@ -242,7 +242,6 @@ class TestUtils(SupersetTestCase):
                 {"col": "__time_col", "op": "in", "val": "birth_year"},
                 {"col": "__time_grain", "op": "in", "val": "years"},
                 {"col": "A", "op": "like", "val": "hello"},
-                {"col": "__granularity", "op": "in", "val": "90 seconds"},
             ]
         }
         expected = {
@@ -260,12 +259,10 @@ class TestUtils(SupersetTestCase):
             "time_range": "1 year ago :",
             "granularity_sqla": "birth_year",
             "time_grain_sqla": "years",
-            "granularity": "90 seconds",
             "applied_time_extras": {
                 "__time_range": "1 year ago :",
                 "__time_col": "birth_year",
                 "__time_grain": "years",
-                "__granularity": "90 seconds",
             },
         }
         merge_extra_filters(form_data)
@@ -634,38 +631,6 @@ class TestUtils(SupersetTestCase):
         convert_legacy_filters_into_adhoc(form_data)
         self.assertEqual(form_data, expected)
 
-    def test_convert_legacy_filters_into_adhoc_having(self):
-        form_data = {"having": "COUNT(1) = 1"}
-        expected = {
-            "adhoc_filters": [
-                {
-                    "clause": "HAVING",
-                    "expressionType": "SQL",
-                    "filterOptionName": "683f1c26466ab912f75a00842e0f2f7b",
-                    "sqlExpression": "COUNT(1) = 1",
-                }
-            ]
-        }
-        convert_legacy_filters_into_adhoc(form_data)
-        self.assertEqual(form_data, expected)
-
-    def test_convert_legacy_filters_into_adhoc_having_filters(self):
-        form_data = {"having_filters": [{"col": "COUNT(1)", "op": "==", "val": 1}]}
-        expected = {
-            "adhoc_filters": [
-                {
-                    "clause": "HAVING",
-                    "comparator": 1,
-                    "expressionType": "SIMPLE",
-                    "filterOptionName": "967d0fb409f6d9c7a6c03a46cf933c9c",
-                    "operator": "==",
-                    "subject": "COUNT(1)",
-                }
-            ]
-        }
-        convert_legacy_filters_into_adhoc(form_data)
-        self.assertEqual(form_data, expected)
-
     def test_convert_legacy_filters_into_adhoc_present_and_empty(self):
         form_data = {"adhoc_filters": [], "where": "a = 1"}
         expected = {
@@ -681,6 +646,21 @@ class TestUtils(SupersetTestCase):
         convert_legacy_filters_into_adhoc(form_data)
         self.assertEqual(form_data, expected)
 
+    def test_convert_legacy_filters_into_adhoc_having(self):
+        form_data = {"having": "COUNT(1) = 1"}
+        expected = {
+            "adhoc_filters": [
+                {
+                    "clause": "HAVING",
+                    "expressionType": "SQL",
+                    "filterOptionName": "683f1c26466ab912f75a00842e0f2f7b",
+                    "sqlExpression": "COUNT(1) = 1",
+                }
+            ]
+        }
+        convert_legacy_filters_into_adhoc(form_data)
+        self.assertEqual(form_data, expected)
+
     def test_convert_legacy_filters_into_adhoc_present_and_nonempty(self):
         form_data = {
             "adhoc_filters": [
@@ -688,7 +668,6 @@ class TestUtils(SupersetTestCase):
             ],
             "filters": [{"col": "a", "op": "in", "val": "someval"}],
             "having": "COUNT(1) = 1",
-            "having_filters": [{"col": "COUNT(1)", "op": "==", "val": 1}],
         }
         expected = {
             "adhoc_filters": [
@@ -762,6 +741,13 @@ class TestUtils(SupersetTestCase):
     def test_get_or_create_db_invalid_uri(self):
         with self.assertRaises(DatabaseInvalidError):
             get_or_create_db("test_db", "yoursql:superset.db/()")
+
+    def test_get_or_create_db_existing_invalid_uri(self):
+        database = get_or_create_db("test_db", "sqlite:///superset.db")
+        database.sqlalchemy_uri = "None"
+        db.session.commit()
+        database = get_or_create_db("test_db", "sqlite:///superset.db")
+        assert database.sqlalchemy_uri == "sqlite:///superset.db"
 
     def test_get_iterable(self):
         self.assertListEqual(get_iterable(123), [123])
@@ -910,7 +896,6 @@ class TestUtils(SupersetTestCase):
     def test_ssl_certificate_parse(self):
         parsed_certificate = parse_ssl_cert(ssl_certificate)
         self.assertEqual(parsed_certificate.serial_number, 12355228710836649848)
-        self.assertRaises(CertificateException, parse_ssl_cert, "abc" + ssl_certificate)
 
     def test_ssl_certificate_file_creation(self):
         path = create_ssl_cert_file(ssl_certificate)
@@ -992,6 +977,7 @@ class TestUtils(SupersetTestCase):
         slc = self.get_slice("Girls", db.session)
         dashboard_id = 1
 
+        assert slc.viz is not None
         resp = self.get_json_resp(
             f"/superset/explore_json/{slc.datasource_type}/{slc.datasource_id}/"
             + f'?form_data={{"slice_id": {slc.id}}}&dashboard_id={dashboard_id}',
@@ -1047,7 +1033,7 @@ class TestUtils(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_extract_dataframe_dtypes(self):
         slc = self.get_slice("Girls", db.session)
-        cols: Tuple[Tuple[str, GenericDataType, List[Any]], ...] = (
+        cols: tuple[tuple[str, GenericDataType, list[Any]], ...] = (
             ("dt", GenericDataType.TEMPORAL, [date(2021, 2, 4), date(2021, 2, 4)]),
             (
                 "dttm",

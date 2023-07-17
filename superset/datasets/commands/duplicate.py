@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from flask_appbuilder.models.sqla import Model
 from flask_babel import gettext as __
@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 
 
 class DuplicateDatasetCommand(CreateMixin, BaseCommand):
-    def __init__(self, data: Dict[str, Any]) -> None:
+    def __init__(self, data: dict[str, Any]) -> None:
         self._base_model: SqlaTable = SqlaTable()
         self._properties = data.copy()
 
@@ -76,10 +76,12 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
                 col = TableColumn(
                     column_name=column_name,
                     verbose_name=config_.verbose_name,
+                    expression=config_.expression,
                     filterable=True,
                     groupby=True,
                     is_dttm=config_.is_dttm,
                     type=config_.type,
+                    description=config_.description,
                 )
                 cols.append(col)
             table.columns = cols
@@ -103,7 +105,7 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
         return table
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = []
+        exceptions: list[ValidationError] = []
         base_model_id = self._properties["base_model_id"]
         duplicate_name = self._properties["table_name"]
 
@@ -126,6 +128,4 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
             exceptions.append(ex)
 
         if exceptions:
-            exception = DatasetInvalidError()
-            exception.add_list(exceptions)
-            raise exception
+            raise DatasetInvalidError(exceptions=exceptions)

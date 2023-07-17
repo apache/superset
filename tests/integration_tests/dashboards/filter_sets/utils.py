@@ -16,7 +16,7 @@
 # under the License.
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Set, TYPE_CHECKING, Union
+from typing import Any, TYPE_CHECKING
 
 from superset.models.filter_set import FilterSet
 from tests.integration_tests.dashboards.filter_sets.consts import FILTER_SET_URI
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 
 
 def call_create_filter_set(
-    client: FlaskClient[Any], dashboard_id: int, data: Dict[str, Any]
+    client: FlaskClient[Any], dashboard_id: int, data: dict[str, Any]
 ) -> Response:
     uri = FILTER_SET_URI.format(dashboard_id=dashboard_id)
     return client.post(uri, json=data)
@@ -41,8 +41,8 @@ def call_get_filter_sets(client: FlaskClient[Any], dashboard_id: int) -> Respons
 
 def call_delete_filter_set(
     client: FlaskClient[Any],
-    filter_set_dict_to_update: Dict[str, Any],
-    dashboard_id: Optional[int] = None,
+    filter_set_dict_to_update: dict[str, Any],
+    dashboard_id: int | None = None,
 ) -> Response:
     dashboard_id = (
         dashboard_id
@@ -58,9 +58,9 @@ def call_delete_filter_set(
 
 def call_update_filter_set(
     client: FlaskClient[Any],
-    filter_set_dict_to_update: Dict[str, Any],
-    data: Dict[str, Any],
-    dashboard_id: Optional[int] = None,
+    filter_set_dict_to_update: dict[str, Any],
+    data: dict[str, Any],
+    dashboard_id: int | None = None,
 ) -> Response:
     dashboard_id = (
         dashboard_id
@@ -90,12 +90,12 @@ def get_filter_set_by_dashboard_id(dashboard_id: int) -> FilterSet:
 
 
 def collect_all_ids(
-    filtersets: Union[Dict[str, List[FilterSet]], List[FilterSet]]
-) -> Set[int]:
+    filtersets: dict[str, list[FilterSet]] | list[FilterSet]
+) -> set[int]:
     if isinstance(filtersets, dict):
-        filtersets_lists: List[List[FilterSet]] = list(filtersets.values())
-        ids: Set[int] = set()
-        lst: List[FilterSet]
+        filtersets_lists: list[list[FilterSet]] = list(filtersets.values())
+        ids: set[int] = set()
+        lst: list[FilterSet]
         for lst in filtersets_lists:
             ids.update(set(map(lambda fs: fs.id, lst)))
         return ids

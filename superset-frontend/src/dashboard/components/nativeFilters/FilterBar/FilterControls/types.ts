@@ -36,7 +36,7 @@ export interface FilterControlProps extends BaseFilterProps {
     dataMask?: DataMask;
   };
   icon?: React.ReactElement;
-  directPathToChild?: string[];
+  focusedFilterId?: string;
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
   inView?: boolean;
   showOverflow?: boolean;

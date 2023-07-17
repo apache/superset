@@ -2,16 +2,22 @@
   "name": "superset-cypress",
   "version": "1.0.0",
   "description": "run cypress against superset",
+  "license": "Apache-2.0",
+  "author": "Apache",
   "scripts": {
     "cypress": "cypress",
-    "cypress-run-chrome": "cypress run --browser chrome --headless",
-    "cypress-debug": "cypress open --config watchForFileChanges=true"
+    "cypress-debug": "cypress open --config watchForFileChanges=true",
+    "cypress-run-chrome": "cypress run --browser chrome --headless"
   },
-  "author": "Apache",
-  "license": "Apache-2.0",
+  "nyc": {
+    "reporter": [
+      "html",
+      "json"
+    ]
+  },
   "dependencies": {
-    "@applitools/eyes-cypress": "^3.25.3",
-    "@cypress/code-coverage": "^3.9.11",
+    "@applitools/eyes-cypress": "^3.29.1",
+    "@cypress/code-coverage": "^3.10.4",
     "@superset-ui/core": "^0.18.8",
     "brace": "^0.11.1",
     "cy-verify-downloads": "^0.1.6",
@@ -22,13 +28,7 @@
   },
   "devDependencies": {
     "@types/querystringify": "^2.0.0",
-    "cypress": "^7.0.0",
+    "cypress": "^10.11.0",
     "eslint-plugin-cypress": "^2.12.1"
-  },
-  "nyc": {
-    "reporter": [
-      "html",
-      "json"
-    ]
   }
 }

@@ -20,7 +20,7 @@ import { css, styled } from '@superset-ui/core';
 
 export const Pill = styled.div`
   ${({ theme }) => css`
-    display: inline-block;
+    display: flex;
     color: ${theme.colors.grayscale.light5};
     background: ${theme.colors.grayscale.base};
     border-radius: 1em;
@@ -36,7 +36,6 @@ export const Pill = styled.div`
 
     svg {
       position: relative;
-      top: -2px;
       color: ${theme.colors.grayscale.light5};
       width: 1em;
       height: 1em;
@@ -55,113 +54,81 @@ export const Pill = styled.div`
         background: ${theme.colors.primary.dark1};
       }
     }
+  `}
+`;
 
-    &.has-incompatible-filters {
-      color: ${theme.colors.grayscale.dark2};
-      background: ${theme.colors.alert.base};
-      &:hover {
-        background: ${theme.colors.alert.dark1};
-      }
-      svg {
-        color: ${theme.colors.grayscale.dark2};
-      }
-    }
-
-    &.filters-inactive {
-      color: ${theme.colors.grayscale.light5};
-      background: ${theme.colors.grayscale.light1};
-      padding: ${theme.gridUnit}px;
-      text-align: center;
-      height: 22px;
-      width: 22px;
-
-      &:hover {
-        background: ${theme.colors.grayscale.base};
-      }
+export const SectionName = styled.span`
+  ${({ theme }) => css`
+    font-weight: ${theme.typography.weights.bold};
+  `}
+`;
+export const FilterName = styled.span`
+  ${({ theme }) => css`
+    padding-right: ${theme.gridUnit}px;
+    font-style: italic;
+    & > * {
+      margin-right: ${theme.gridUnit}px;
     }
   `}
 `;
 
-export interface TitleProps {
-  bold?: boolean;
-  color?: string;
-}
+export const FilterItem = styled.button`
+  ${({ theme }) => css`
+    cursor: pointer;
+    display: flex;
+    text-align: left;
+    padding: 0;
+    border: none;
+    background: none;
+    outline: none;
+    width: 100%;
 
-export const Title = styled.span<TitleProps>`
-  position: relative;
-  margin-right: ${({ theme }) => theme.gridUnit}px;
-  font-weight: ${({ bold, theme }) => {
-    if (bold) return theme.typography.weights.bold;
-    return 'auto';
-  }};
-  color: ${({ color, theme }) => color || theme.colors.grayscale.light5};
-  display: flex;
-  align-items: center;
-  & > * {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
-  }
+    &::-moz-focus-inner {
+      border: 0;
+    }
+
+    & i svg {
+      opacity: ${theme.opacity.mediumLight};
+      margin-right: ${theme.gridUnit}px;
+      transition: opacity ease-in-out ${theme.transitionTiming};
+    }
+
+    &:hover i svg {
+      opacity: 1;
+    }
+  `}
 `;
 
-export const ItemIcon = styled.i`
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  left: -${({ theme }) => theme.gridUnit * 5}px;
+export const FiltersContainer = styled.div`
+  ${({ theme }) => css`
+    margin-top: ${theme.gridUnit}px;
+    &:not(:last-child) {
+      padding-bottom: ${theme.gridUnit * 3}px;
+    }
+  `}
 `;
 
-export const Item = styled.button`
-  cursor: pointer;
-  display: flex;
-  flex-wrap: wrap;
-  text-align: left;
-  padding: 0;
-  border: none;
-  background: none;
-  outline: none;
-  width: 100%;
+export const FiltersDetailsContainer = styled.div`
+  ${({ theme }) => css`
+    min-width: 200px;
+    max-width: 300px;
+    overflow-x: hidden;
 
-  &::-moz-focus-inner {
-    border: 0;
-  }
-
-  & i svg {
-    color: transparent;
-    margin-right: ${({ theme }) => theme.gridUnit}px;
-  }
-
-  &:hover i svg {
-    color: inherit;
-  }
+    color: ${theme.colors.grayscale.light5};
+  `}
 `;
 
-export const Reset = styled.div`
-  margin: 0 -${({ theme }) => theme.gridUnit * 4}px;
-`;
-
-export const Indent = styled.div`
-  padding-left: ${({ theme }) => theme.gridUnit * 6}px;
-  margin: -${({ theme }) => theme.gridUnit * 3}px 0;
-`;
-
-export const Panel = styled.div`
-  min-width: 200px;
-  max-width: 300px;
-  overflow-x: hidden;
-`;
-
-export const FilterValue = styled.div`
+export const FilterValue = styled.span`
   max-width: 100%;
   flex-grow: 1;
   overflow: auto;
-  color: ${({ theme }) => theme.colors.grayscale.light5};
 `;
 
-export const FilterIndicatorText = styled.div`
-  ${({ theme }) => `
-  padding-top: ${theme.gridUnit * 3}px;
-  max-width: 100%;
-  flex-grow: 1;
-  overflow: auto;
-  color: ${theme.colors.grayscale.light5};
+export const Separator = styled.div`
+  ${({ theme }) => css`
+    width: 100%;
+    height: 1px;
+    background-color: ${theme.colors.grayscale.light1};
+    margin: ${theme.gridUnit * 4}px 0;
   `}
 `;

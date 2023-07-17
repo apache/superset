@@ -18,7 +18,7 @@
 
 import json
 import logging
-from typing import Iterator, Tuple
+from collections.abc import Iterator
 
 import yaml
 from werkzeug.utils import secure_filename
@@ -33,14 +33,13 @@ logger = logging.getLogger(__name__)
 
 
 class ExportSavedQueriesCommand(ExportModelsCommand):
-
     dao = SavedQueryDAO
     not_found = SavedQueryNotFoundError
 
     @staticmethod
     def _export(
         model: SavedQuery, export_related: bool = True
-    ) -> Iterator[Tuple[str, str]]:
+    ) -> Iterator[tuple[str, str]]:
         # build filename based on database, optional schema, and label
         database_slug = secure_filename(model.database.database_name)
         schema_slug = secure_filename(model.schema)

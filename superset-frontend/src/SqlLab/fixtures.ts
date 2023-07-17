@@ -185,16 +185,7 @@ export const defaultQueryEditor = {
   name: 'Untitled Query 1',
   schema: 'main',
   remoteId: null,
-  tableOptions: [],
-  functionNames: [],
   hideLeftBar: false,
-  schemaOptions: [
-    {
-      value: 'main',
-      label: 'main',
-      title: 'main',
-    },
-  ],
   templateParams: '{}',
 };
 
@@ -688,6 +679,7 @@ export const query = {
   sql: 'SELECT * FROM something',
   description: 'test description',
   schema: 'test schema',
+  resultsKey: 'test',
 };
 
 export const queryId = 'clientId2353';
@@ -698,17 +690,17 @@ export const testQuery: ISaveableDatasource = {
   sql: 'SELECT *',
   columns: [
     {
-      name: 'Column 1',
+      column_name: 'Column 1',
       type: DatasourceType.Query,
       is_dttm: false,
     },
     {
-      name: 'Column 3',
+      column_name: 'Column 3',
       type: DatasourceType.Query,
       is_dttm: false,
     },
     {
-      name: 'Column 2',
+      column_name: 'Column 2',
       type: DatasourceType.Query,
       is_dttm: true,
     },
@@ -722,7 +714,7 @@ export const mockdatasets = [...new Array(3)].map((_, i) => ({
   changed_by: 'user',
   changed_on: new Date().toISOString(),
   database_name: `db ${i}`,
-  explore_url: `/explore/?dataset_type=table&dataset_id=${i}`,
+  explore_url: `/explore/?datasource_type=table&datasource_id=${i}`,
   id: i,
   schema: `schema ${i}`,
   table_name: `coolest table ${i}`,

@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 """Contains the logic to create cohesive forms on the explore view"""
-from typing import List
 
+from flask_appbuilder.fields import QuerySelectField
 from flask_appbuilder.fieldwidgets import BS3TextFieldWidget
 from flask_appbuilder.forms import DynamicForm
 from flask_babel import lazy_gettext as _
@@ -28,7 +28,6 @@ from wtforms import (
     SelectField,
     StringField,
 )
-from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.validators import DataRequired, Length, NumberRange, Optional, Regexp
 
 from superset import app, db, security_manager
@@ -43,8 +42,8 @@ config = app.config
 
 
 class UploadToDatabaseForm(DynamicForm):
-    # pylint: disable=E0211
-    def file_allowed_dbs() -> List[Database]:  # type: ignore
+    @staticmethod
+    def file_allowed_dbs() -> list[Database]:
         file_enabled_dbs = (
             db.session.query(Database).filter_by(allow_file_upload=True).all()
         )
@@ -136,9 +135,19 @@ class CsvToDatabaseForm(UploadToDatabaseForm):
     database = QuerySelectField(
         _("Database"),
         description=_("Select a database to upload the file to"),
-        query_factory=UploadToDatabaseForm.file_allowed_dbs,
-        get_pk=lambda a: a.id,
+        query_func=UploadToDatabaseForm.file_allowed_dbs,
+        get_pk_func=lambda a: a.id,
         get_label=lambda a: a.database_name,
+    )
+    dtype = StringField(
+        _("Column Data Types"),
+        description=_(
+            "A dictionary with column names and their data types"
+            " if you need to change the defaults."
+            ' Example: {"user_id":"integer"}'
+        ),
+        validators=[Optional()],
+        widget=BS3TextFieldWidget(),
     )
     schema = StringField(
         _("Schema"),
@@ -146,11 +155,19 @@ class CsvToDatabaseForm(UploadToDatabaseForm):
         validators=[Optional()],
         widget=BS3TextFieldWidget(),
     )
-    delimiter = StringField(
+    delimiter = SelectField(
         _("Delimiter"),
         description=_("Enter a delimiter for this data"),
+        choices=[
+            (",", _(",")),
+            (".", _(".")),
+            ("other", _("Other")),
+        ],
         validators=[DataRequired()],
-        widget=BS3TextFieldWidget(),
+        default=[","],
+    )
+    otherInput = StringField(
+        _("Other"),
     )
     if_exists = SelectField(
         _("If Table Already Exists"),
@@ -295,8 +312,8 @@ class ExcelToDatabaseForm(UploadToDatabaseForm):
 
     database = QuerySelectField(
         _("Database"),
-        query_factory=UploadToDatabaseForm.file_allowed_dbs,
-        get_pk=lambda a: a.id,
+        query_func=UploadToDatabaseForm.file_allowed_dbs,
+        get_pk_func=lambda a: a.id,
         get_label=lambda a: a.database_name,
     )
     schema = StringField(
@@ -426,8 +443,8 @@ class ColumnarToDatabaseForm(UploadToDatabaseForm):
 
     database = QuerySelectField(
         _("Database"),
-        query_factory=UploadToDatabaseForm.file_allowed_dbs,
-        get_pk=lambda a: a.id,
+        query_func=UploadToDatabaseForm.file_allowed_dbs,
+        get_pk_func=lambda a: a.id,
         get_label=lambda a: a.database_name,
     )
     schema = StringField(

@@ -115,7 +115,7 @@ class TestDashboard(SupersetTestCase):
     def get_mock_positions(self, dash):
         positions = {"DASHBOARD_VERSION_KEY": "v2"}
         for i, slc in enumerate(dash.slices):
-            id = "DASHBOARD_CHART_TYPE-{}".format(i)
+            id = f"DASHBOARD_CHART_TYPE-{i}"
             d = {
                 "type": "CHART",
                 "id": id,
@@ -143,7 +143,7 @@ class TestDashboard(SupersetTestCase):
         dash_count_after = db.session.query(func.count(Dashboard.id)).first()[0]
         self.assertEqual(dash_count_before + 1, dash_count_after)
         group = re.match(
-            r"http:\/\/localhost\/superset\/dashboard\/([0-9]*)\/\?edit=true",
+            r"\/superset\/dashboard\/([0-9]*)\/\?edit=true",
             response.headers["Location"],
         )
         assert group is not None
@@ -167,7 +167,7 @@ class TestDashboard(SupersetTestCase):
             # set a further modified_time for unit test
             "last_modified_time": datetime.now().timestamp() + 1000,
         }
-        url = "/superset/save_dash/{}/".format(dash.id)
+        url = f"/superset/save_dash/{dash.id}/"
         resp = self.get_resp(url, data=dict(data=json.dumps(data)))
         self.assertIn("SUCCESS", resp)
 
@@ -189,7 +189,7 @@ class TestDashboard(SupersetTestCase):
             "last_modified_time": datetime.now().timestamp() + 1000,
         }
 
-        url = "/superset/save_dash/{}/".format(dash.id)
+        url = f"/superset/save_dash/{dash.id}/"
         resp = self.get_resp(url, data=dict(data=json.dumps(data)))
         self.assertIn("SUCCESS", resp)
 
@@ -217,7 +217,7 @@ class TestDashboard(SupersetTestCase):
             "last_modified_time": datetime.now().timestamp() + 1000,
         }
 
-        url = "/superset/save_dash/{}/".format(dash.id)
+        url = f"/superset/save_dash/{dash.id}/"
         resp = self.get_resp(url, data=dict(data=json.dumps(data)))
         self.assertIn("SUCCESS", resp)
 
@@ -239,7 +239,7 @@ class TestDashboard(SupersetTestCase):
             # set a further modified_time for unit test
             "last_modified_time": datetime.now().timestamp() + 1000,
         }
-        url = "/superset/save_dash/{}/".format(dash.id)
+        url = f"/superset/save_dash/{dash.id}/"
         self.get_resp(url, data=dict(data=json.dumps(data)))
         updatedDash = db.session.query(Dashboard).filter_by(slug="births").first()
         self.assertEqual(updatedDash.dashboard_title, "new title")
@@ -264,7 +264,7 @@ class TestDashboard(SupersetTestCase):
             # set a further modified_time for unit test
             "last_modified_time": datetime.now().timestamp() + 1000,
         }
-        url = "/superset/save_dash/{}/".format(dash.id)
+        url = f"/superset/save_dash/{dash.id}/"
         self.get_resp(url, data=dict(data=json.dumps(data)))
         updatedDash = db.session.query(Dashboard).filter_by(slug="births").first()
         self.assertIn("color_namespace", updatedDash.json_metadata)
@@ -301,13 +301,13 @@ class TestDashboard(SupersetTestCase):
 
         # Save changes to Births dashboard and retrieve updated dash
         dash_id = dash.id
-        url = "/superset/save_dash/{}/".format(dash_id)
+        url = f"/superset/save_dash/{dash_id}/"
         self.client.post(url, data=dict(data=json.dumps(data)))
         dash = db.session.query(Dashboard).filter_by(id=dash_id).first()
         orig_json_data = dash.data
 
         # Verify that copy matches original
-        url = "/superset/copy_dash/{}/".format(dash_id)
+        url = f"/superset/copy_dash/{dash_id}/"
         resp = self.get_json_resp(url, data=dict(data=json.dumps(data)))
         self.assertEqual(resp["dashboard_title"], "Copy Of Births")
         self.assertEqual(resp["position_json"], orig_json_data["position_json"])
@@ -334,7 +334,7 @@ class TestDashboard(SupersetTestCase):
         data = {
             "slice_ids": [new_slice.data["slice_id"], existing_slice.data["slice_id"]]
         }
-        url = "/superset/add_slices/{}/".format(dash.id)
+        url = f"/superset/add_slices/{dash.id}/"
         resp = self.client.post(url, data=dict(data=json.dumps(data)))
         assert "SLICES ADDED" in resp.data.decode("utf-8")
 
@@ -375,7 +375,7 @@ class TestDashboard(SupersetTestCase):
 
         # save dash
         dash_id = dash.id
-        url = "/superset/save_dash/{}/".format(dash_id)
+        url = f"/superset/save_dash/{dash_id}/"
         self.client.post(url, data=dict(data=json.dumps(data)))
         dash = db.session.query(Dashboard).filter_by(id=dash_id).first()
 
@@ -487,13 +487,18 @@ class TestDashboard(SupersetTestCase):
         hidden_dash.slices = []
         hidden_dash.owners = []
 
-        db.session.merge(dash)
-        db.session.merge(hidden_dash)
+        db.session.add(dash)
+        db.session.add(hidden_dash)
         db.session.commit()
 
         self.login(user.username)
 
         resp = self.get_resp("/api/v1/dashboard/")
+
+        db.session.delete(dash)
+        db.session.delete(hidden_dash)
+        db.session.commit()
+
         self.assertIn(f"/superset/dashboard/{my_dash_slug}/", resp)
         self.assertNotIn(f"/superset/dashboard/{not_my_dash_slug}/", resp)
 
@@ -510,8 +515,8 @@ class TestDashboard(SupersetTestCase):
         regular_dash.dashboard_title = "A Plain Ol Dashboard"
         regular_dash.slug = regular_dash_slug
 
-        db.session.merge(favorite_dash)
-        db.session.merge(regular_dash)
+        db.session.add(favorite_dash)
+        db.session.add(regular_dash)
         db.session.commit()
 
         dash = db.session.query(Dashboard).filter_by(slug=fav_dash_slug).first()
@@ -521,12 +526,18 @@ class TestDashboard(SupersetTestCase):
         favorites.class_name = "Dashboard"
         favorites.user_id = user.id
 
-        db.session.merge(favorites)
+        db.session.add(favorites)
         db.session.commit()
 
         self.login(user.username)
 
         resp = self.get_resp("/api/v1/dashboard/")
+
+        db.session.delete(favorites)
+        db.session.delete(regular_dash)
+        db.session.delete(favorite_dash)
+        db.session.commit()
+
         self.assertIn(f"/superset/dashboard/{fav_dash_slug}/", resp)
 
     def test_user_can_not_view_unpublished_dash(self):
@@ -541,12 +552,16 @@ class TestDashboard(SupersetTestCase):
         dash.owners = [admin_user]
         dash.slices = []
         dash.published = False
-        db.session.merge(dash)
+        db.session.add(dash)
         db.session.commit()
 
         # list dashboards as a gamma user
         self.login(gamma_user.username)
         resp = self.get_resp("/api/v1/dashboard/")
+
+        db.session.delete(dash)
+        db.session.commit()
+
         self.assertNotIn(f"/superset/dashboard/{slug}/", resp)
 
 

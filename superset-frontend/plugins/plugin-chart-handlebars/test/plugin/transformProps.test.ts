@@ -20,7 +20,7 @@ import { ChartProps, QueryFormData, supersetTheme } from '@superset-ui/core';
 import { HandlebarsQueryFormData } from '../../src/types';
 import transformProps from '../../src/plugin/transformProps';
 
-describe('Handlebars tranformProps', () => {
+describe('Handlebars transformProps', () => {
   const formData: HandlebarsQueryFormData = {
     colorScheme: 'bnbColors',
     datasource: '3__table',
@@ -40,7 +40,7 @@ describe('Handlebars tranformProps', () => {
     theme: supersetTheme,
   });
 
-  it('should tranform chart props for viz', () => {
+  it('should transform chart props for viz', () => {
     expect(transformProps(chartProps)).toEqual(
       expect.objectContaining({
         width: 800,

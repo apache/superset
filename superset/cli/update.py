@@ -120,7 +120,7 @@ def re_encrypt_secrets(previous_secret_key: Optional[str] = None) -> None:
     except ValueError as exc:
         click.secho(
             f"An error occurred, "
-            f"probably an invalid previoud secret key was provided. Error:[{exc}]",
+            f"probably an invalid previous secret key was provided. Error:[{exc}]",
             err=True,
         )
         sys.exit(1)

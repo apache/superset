@@ -152,5 +152,10 @@ export const Databases = [
     title: 'YugabyteDB',
     href: "www.yugabyte.com",
     imgName: 'yugabyte.png'
+  },
+  {
+    title: 'StarRocks',
+    href: "www.starrocks.io",
+    imgName: 'starrocks.png'
   }
 ];

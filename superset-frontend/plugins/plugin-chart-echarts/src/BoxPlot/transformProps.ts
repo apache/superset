@@ -53,6 +53,7 @@ export default function transformProps(
     filterState,
     queriesData,
     inContextMenu,
+    emitCrossFilters,
   } = chartProps;
   const { data = [] } = queriesData[0];
   const { setDataMask = () => {}, onContextMenu } = hooks;
@@ -64,7 +65,6 @@ export default function transformProps(
     numberFormat,
     dateFormat,
     xTicksLayout,
-    emitFilter,
     legendOrientation = 'top',
     xAxisTitle,
     yAxisTitle,
@@ -291,11 +291,12 @@ export default function transformProps(
     height,
     echartOptions,
     setDataMask,
-    emitFilter,
+    emitCrossFilters,
     labelMap,
     groupby,
     selectedValues,
     onContextMenu,
     refs,
+    coltypeMapping,
   };
 }

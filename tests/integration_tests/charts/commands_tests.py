@@ -72,6 +72,9 @@ class TestExportChartsCommand(SupersetTestCase):
 
         assert metadata == {
             "slice_name": "Energy Sankey",
+            "description": None,
+            "certified_by": None,
+            "certification_details": None,
             "viz_type": "sankey",
             "params": {
                 "collapsed_fieldsets": "",
@@ -110,6 +113,9 @@ class TestExportChartsCommand(SupersetTestCase):
 
         assert metadata == {
             "slice_name": "Heatmap",
+            "description": None,
+            "certified_by": None,
+            "certification_details": None,
             "viz_type": "heatmap",
             "params": {
                 "all_columns_x": "source",
@@ -168,6 +174,9 @@ class TestExportChartsCommand(SupersetTestCase):
         )
         assert list(metadata.keys()) == [
             "slice_name",
+            "description",
+            "certified_by",
+            "certification_details",
             "viz_type",
             "params",
             "cache_timeout",
@@ -199,9 +208,10 @@ class TestExportChartsCommand(SupersetTestCase):
 
 class TestImportChartsCommand(SupersetTestCase):
     @patch("superset.charts.commands.importers.v1.utils.g")
-    def test_import_v1_chart(self, mock_g):
+    @patch("superset.security.manager.g")
+    def test_import_v1_chart(self, sm_g, utils_g):
         """Test that we can import a chart"""
-        mock_g.user = security_manager.find_user("admin")
+        admin = sm_g.user = utils_g.user = security_manager.find_user("admin")
         contents = {
             "metadata.yaml": yaml.safe_dump(chart_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
@@ -262,7 +272,7 @@ class TestImportChartsCommand(SupersetTestCase):
         assert database.database_name == "imported_database"
         assert chart.table.database == database
 
-        assert chart.owners == [mock_g.user]
+        assert chart.owners == [admin]
 
         chart.owners = []
         dataset.owners = []
@@ -272,8 +282,10 @@ class TestImportChartsCommand(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
-    def test_import_v1_chart_multiple(self):
+    @patch("superset.security.manager.g")
+    def test_import_v1_chart_multiple(self, sm_g):
         """Test that a chart can be imported multiple times"""
+        sm_g.user = security_manager.find_user("admin")
         contents = {
             "metadata.yaml": yaml.safe_dump(chart_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
@@ -409,7 +421,7 @@ class TestChartsUpdateCommand(SupersetTestCase):
     def test_query_context_update_command(self, mock_sm_g, mock_g):
         """
         Test that a user can generate the chart query context
-        payloadwithout affecting owners
+        payload without affecting owners
         """
         chart = db.session.query(Slice).all()[0]
         pk = chart.id

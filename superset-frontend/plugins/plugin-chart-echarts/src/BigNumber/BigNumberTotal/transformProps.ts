@@ -17,6 +17,10 @@
  * under the License.
  */
 import {
+  ColorFormatters,
+  getColorFormatters,
+} from '@superset-ui/chart-controls';
+import {
   getNumberFormatter,
   GenericDataType,
   getMetricLabel,
@@ -40,6 +44,7 @@ export default function transformProps(
     forceTimestampFormatting,
     timeFormat,
     yAxisFormat,
+    conditionalFormatting,
   } = formData;
   const refs: Refs = {};
   const { data = [], coltypes = [] } = queriesData[0];
@@ -71,6 +76,12 @@ export default function transformProps(
 
   const { onContextMenu } = hooks;
 
+  const defaultColorFormatters = [] as ColorFormatters;
+
+  const colorThresholdFormatters =
+    getColorFormatters(conditionalFormatting, data, false) ??
+    defaultColorFormatters;
+
   return {
     width,
     height,
@@ -81,5 +92,6 @@ export default function transformProps(
     subheader: formattedSubheader,
     onContextMenu,
     refs,
+    colorThresholdFormatters,
   };
 }

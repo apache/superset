@@ -22,6 +22,7 @@
 /* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
 
 import React from 'react';
+import { t } from '@superset-ui/core';
 import PropTypes from 'prop-types';
 
 import { PolygonLayer } from 'deck.gl';
@@ -39,7 +40,7 @@ import getPointsFromPolygon from '../../utils/getPointsFromPolygon';
 // eslint-disable-next-line import/extensions
 import fitViewport from '../../utils/fitViewport';
 
-const DOUBLE_CLICK_TRESHOLD = 250; // milliseconds
+const DOUBLE_CLICK_THRESHOLD = 250; // milliseconds
 
 function getElevation(d, colorScaler) {
   /* in deck.gl 5.3.4 (used in Superset as of 2018-10-24), if a polygon has
@@ -57,7 +58,11 @@ function setTooltipContent(formData) {
     return (
       <div className="deckgl-tooltip">
         {o.object.name && (
-          <TooltipRow label="name: " value={`${o.object.name}`} />
+          <TooltipRow
+            // eslint-disable-next-line prefer-template
+            label={t('name') + ': '}
+            value={`${o.object.name}`}
+          />
         )}
         {o.object[formData.line_column] && (
           <TooltipRow
@@ -223,7 +228,7 @@ class DeckGLPolygon extends React.Component {
     const { formData, onAddFilter } = this.props;
 
     const now = new Date();
-    const doubleClick = now - this.state.lastClick <= DOUBLE_CLICK_TRESHOLD;
+    const doubleClick = now - this.state.lastClick <= DOUBLE_CLICK_THRESHOLD;
 
     // toggle selected polygons
     const selected = [...this.state.selected];

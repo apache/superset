@@ -18,7 +18,7 @@
  */
 
 import React, { ReactNode, SyntheticEvent } from 'react';
-import { styled, css, SupersetTheme } from '@superset-ui/core';
+import { styled, css, SupersetTheme, t } from '@superset-ui/core';
 import { Empty } from 'src/components';
 import Button from 'src/components/Button';
 
@@ -158,11 +158,9 @@ export const EmptyStateBig = ({
   <EmptyStateContainer className={className}>
     {image && <ImageContainer image={image} size={EmptyStateSize.Big} />}
     <TextContainer
-      css={(theme: SupersetTheme) =>
-        css`
-          max-width: ${theme.gridUnit * 150}px;
-        `
-      }
+      css={(theme: SupersetTheme) => css`
+        max-width: ${theme.gridUnit * 150}px;
+      `}
     >
       <BigTitle>{title}</BigTitle>
       {description && <BigDescription>{description}</BigDescription>}
@@ -189,11 +187,9 @@ export const EmptyStateMedium = ({
   <EmptyStateContainer>
     {image && <ImageContainer image={image} size={EmptyStateSize.Medium} />}
     <TextContainer
-      css={(theme: SupersetTheme) =>
-        css`
-          max-width: ${theme.gridUnit * 100}px;
-        `
-      }
+      css={(theme: SupersetTheme) => css`
+        max-width: ${theme.gridUnit * 100}px;
+      `}
     >
       <Title>{title}</Title>
       {description && <Description>{description}</Description>}
@@ -218,14 +214,36 @@ export const EmptyStateSmall = ({
   <EmptyStateContainer>
     {image && <ImageContainer image={image} size={EmptyStateSize.Small} />}
     <TextContainer
-      css={(theme: SupersetTheme) =>
-        css`
-          max-width: ${theme.gridUnit * 75}px;
-        `
-      }
+      css={(theme: SupersetTheme) => css`
+        max-width: ${theme.gridUnit * 75}px;
+      `}
     >
       <Title>{title}</Title>
       {description && <SmallDescription>{description}</SmallDescription>}
     </TextContainer>
   </EmptyStateContainer>
+);
+
+const TRANSLATIONS = {
+  NO_DATABASES_MATCH_TITLE: t('No databases match your search'),
+  NO_DATABASES_AVAILABLE_TITLE: t('There are no databases available'),
+  MANAGE_YOUR_DATABASES_TEXT: t('Manage your databases'),
+  HERE_TEXT: t('here'),
+};
+
+export const emptyStateComponent = (emptyResultsWithSearch: boolean) => (
+  <EmptyStateSmall
+    image="empty.svg"
+    title={
+      emptyResultsWithSearch
+        ? TRANSLATIONS.NO_DATABASES_MATCH_TITLE
+        : TRANSLATIONS.NO_DATABASES_AVAILABLE_TITLE
+    }
+    description={
+      <p>
+        {TRANSLATIONS.MANAGE_YOUR_DATABASES_TEXT}{' '}
+        <a href="/databaseview/list">{TRANSLATIONS.HERE_TEXT}</a>
+      </p>
+    }
+  />
 );

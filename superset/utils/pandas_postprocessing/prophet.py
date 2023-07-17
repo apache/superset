@@ -120,7 +120,7 @@ def prophet(  # pylint: disable=too-many-arguments
             )
         )
     freq = PROPHET_TIME_GRAIN_MAP[time_grain]
-    # check type at runtime due to marhsmallow schema not being able to handle
+    # check type at runtime due to marshmallow schema not being able to handle
     # union types
     if not isinstance(periods, int) or periods < 0:
         raise InvalidPostProcessingError(_("Periods must be a whole number"))

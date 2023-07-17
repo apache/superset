@@ -24,7 +24,7 @@ def cleanup_permissions() -> None:
     pvms = security_manager.get_session.query(
         security_manager.permissionview_model
     ).all()
-    print("# of permission view menues is: {}".format(len(pvms)))
+    print(f"# of permission view menus is: {len(pvms)}")
     pvms_dict = defaultdict(list)
     for pvm in pvms:
         pvms_dict[(pvm.permission, pvm.view_menu)].append(pvm)
@@ -43,9 +43,9 @@ def cleanup_permissions() -> None:
     pvms = security_manager.get_session.query(
         security_manager.permissionview_model
     ).all()
-    print("Stage 1: # of permission view menues is: {}".format(len(pvms)))
+    print(f"Stage 1: # of permission view menus is: {len(pvms)}")
 
-    # 2. Clean up None permissions or view menues
+    # 2. Clean up None permissions or view menus
     pvms = security_manager.get_session.query(
         security_manager.permissionview_model
     ).all()
@@ -57,15 +57,15 @@ def cleanup_permissions() -> None:
     pvms = security_manager.get_session.query(
         security_manager.permissionview_model
     ).all()
-    print("Stage 2: # of permission view menues is: {}".format(len(pvms)))
+    print(f"Stage 2: # of permission view menus is: {len(pvms)}")
 
-    # 3. Delete empty permission view menues from roles
+    # 3. Delete empty permission view menus from roles
     roles = security_manager.get_session.query(security_manager.role_model).all()
     for role in roles:
         role.permissions = [p for p in role.permissions if p]
     security_manager.get_session.commit()
 
-    # 4. Delete empty roles from permission view menues
+    # 4. Delete empty roles from permission view menus
     pvms = security_manager.get_session.query(
         security_manager.permissionview_model
     ).all()

@@ -42,9 +42,6 @@ jest.mock('src/components/Select/Select', () => () => (
 jest.mock('src/components/Select/AsyncSelect', () => () => (
   <div data-test="mock-deprecated-async-select" />
 ));
-jest.mock('src/components/Icons/Icon', () => () => (
-  <div data-test="mock-icons-icon" />
-));
 
 const defaultQueryLimit = 100;
 

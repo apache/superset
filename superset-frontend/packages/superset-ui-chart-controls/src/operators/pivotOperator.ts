@@ -24,20 +24,25 @@ import {
   getXAxisLabel,
 } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
+import { extractExtraMetrics } from './utils';
 
 export const pivotOperator: PostProcessingFactory<PostProcessingPivot> = (
   formData,
   queryObject,
 ) => {
-  const metricLabels = ensureIsArray(queryObject.metrics).map(getMetricLabel);
+  const metricLabels = [
+    ...ensureIsArray(queryObject.metrics),
+    ...extractExtraMetrics(formData),
+  ].map(getMetricLabel);
   const xAxisLabel = getXAxisLabel(formData);
+  const columns = queryObject.series_columns || queryObject.columns;
 
   if (xAxisLabel && metricLabels.length) {
     return {
       operation: 'pivot',
       options: {
         index: [xAxisLabel],
-        columns: ensureIsArray(queryObject.columns).map(getColumnLabel),
+        columns: ensureIsArray(columns).map(getColumnLabel),
         // Create 'dummy' mean aggregates to assign cell values in pivot table
         // use the 'mean' aggregates to avoid drop NaN. PR: https://github.com/apache-superset/superset-ui/pull/1231
         aggregates: Object.fromEntries(

@@ -57,15 +57,29 @@ docker build --target lean \
   .
 
 #
+# Build the "lean310" image
+#
+docker build --target lean \
+  -t "${REPO_NAME}:${SHA}-py310" \
+  -t "${REPO_NAME}:${REFSPEC}-py310" \
+  -t "${REPO_NAME}:${LATEST_TAG}-py310" \
+  --build-arg PY_VER="3.10-slim"\
+  --label "sha=${SHA}" \
+  --label "built_at=$(date)" \
+  --label "target=lean310" \
+  --label "build_actor=${GITHUB_ACTOR}" \
+  .
+
+#
 # Build the "websocket" image
 #
 docker build \
-  -t "${REPO_NAME}-websocket:${SHA}" \
-  -t "${REPO_NAME}-websocket:${REFSPEC}" \
-  -t "${REPO_NAME}-websocket:${LATEST_TAG}" \
+  -t "${REPO_NAME}:${SHA}-websocket" \
+  -t "${REPO_NAME}:${REFSPEC}-websocket" \
+  -t "${REPO_NAME}:${LATEST_TAG}-websocket" \
   --label "sha=${SHA}" \
   --label "built_at=$(date)" \
-  --label "target=lean" \
+  --label "target=websocket" \
   --label "build_actor=${GITHUB_ACTOR}" \
   superset-websocket
 
@@ -90,5 +104,4 @@ else
   docker logout
   docker login --username "${DOCKERHUB_USER}" --password "${DOCKERHUB_TOKEN}"
   docker push --all-tags "${REPO_NAME}"
-  docker push --all-tags "${REPO_NAME}-websocket"
 fi

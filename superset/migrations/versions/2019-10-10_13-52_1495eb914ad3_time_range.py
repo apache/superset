@@ -69,7 +69,6 @@ def downgrade():
             form_data = json.loads(slc.params)
 
             if "time_range" in form_data:
-
                 # Note defaults and relative dates are not compatible with since/until
                 # and thus the time range is persisted.
                 try:

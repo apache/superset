@@ -24,19 +24,17 @@ import DatasourceEditor from 'src/components/Datasource/DatasourceEditor';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import * as featureFlags from 'src/featureFlags';
 
-jest.mock('src/components/Icons/Icon', () => ({ fileName, role, ...rest }) => (
-  <span
-    role={role ?? 'img'}
-    aria-label={fileName.replace('_', '-')}
-    {...rest}
-  />
-));
-
 const props = {
   datasource: mockDatasource['7__table'],
   addSuccessToast: () => {},
   addDangerToast: () => {},
   onChange: () => {},
+  columnLabels: {
+    state: 'State',
+  },
+  columnLabelTooltips: {
+    state: 'This is a tooltip for `state`',
+  },
 };
 const DATASOURCE_ENDPOINT = 'glob:*/datasource/external_metadata_by_name/*';
 
@@ -115,7 +113,6 @@ describe('DatasourceEditor', () => {
     });
 
     userEvent.click(getToggles[0]);
-    screen.logTestingPlaygroundURL();
     const deleteButtons = screen.getAllByRole('button', {
       name: /delete item/i,
     });

@@ -80,6 +80,7 @@ export default function transformProps(
     width,
     theme,
     inContextMenu,
+    emitCrossFilters,
   } = chartProps;
   const refs: Refs = {};
   const { data = [] } = queriesData[0];
@@ -101,7 +102,6 @@ export default function transformProps(
     isCircle,
     columnConfig,
     sliceId,
-    emitFilter,
   }: EchartsRadarFormData = {
     ...DEFAULT_LEGEND_FORM_DATA,
     ...DEFAULT_RADAR_FORM_DATA,
@@ -237,7 +237,7 @@ export default function transformProps(
       trigger: 'item',
     },
     legend: {
-      ...getLegendProps(legendType, legendOrientation, showLegend),
+      ...getLegendProps(legendType, legendOrientation, showLegend, theme),
       data: Array.from(columnsLabelMap.keys()),
     },
     series,
@@ -252,12 +252,13 @@ export default function transformProps(
     width,
     height,
     echartOptions,
-    emitFilter,
+    emitCrossFilters,
     setDataMask,
     labelMap: Object.fromEntries(columnsLabelMap),
     groupby,
     selectedValues,
     onContextMenu,
     refs,
+    coltypeMapping,
   };
 }

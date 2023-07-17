@@ -48,10 +48,10 @@ while (directories.length) {
   // directory.
   const hasTypescriptFiles =
     getFilesByExtensions("./", [".ts", ".tsx"]).length > 0;
-  const hasJavascriptFiles =
+  const hasJavaScriptFiles =
     getFilesByExtensions("./", [".js", ".jsx"]).length > 0;
 
-  if (hasJavascriptFiles) {
+  if (hasJavaScriptFiles) {
     console.log(
       `${"  ".repeat(
         curDirectory.split("/").length - 1

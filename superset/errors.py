@@ -16,9 +16,9 @@
 # under the License.
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
-from flask_babel import gettext as _
+from flask_babel import lazy_gettext as _
 
 
 class SupersetErrorType(str, Enum):
@@ -204,15 +204,14 @@ class SupersetError:
     message: str
     error_type: SupersetErrorType
     level: ErrorLevel
-    extra: Optional[Dict[str, Any]] = None
+    extra: Optional[dict[str, Any]] = None
 
     def __post_init__(self) -> None:
         """
         Mutates the extra params with user facing error codes that map to backend
         errors.
         """
-        issue_codes = ERROR_TYPES_TO_ISSUE_CODES_MAPPING.get(self.error_type)
-        if issue_codes:
+        if issue_codes := ERROR_TYPES_TO_ISSUE_CODES_MAPPING.get(self.error_type):
             self.extra = self.extra or {}
             self.extra.update(
                 {
@@ -228,7 +227,7 @@ class SupersetError:
                 }
             )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         rv = {"message": self.message, "error_type": self.error_type}
         if self.extra:
             rv["extra"] = self.extra  # type: ignore

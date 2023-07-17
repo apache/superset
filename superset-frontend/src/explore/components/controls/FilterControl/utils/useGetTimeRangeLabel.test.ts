@@ -21,7 +21,8 @@ import { NO_TIME_RANGE } from '@superset-ui/core';
 import { Operators } from 'src/explore/constants';
 import * as FetchTimeRangeModule from 'src/explore/components/controls/DateFilterControl';
 import { useGetTimeRangeLabel } from './useGetTimeRangeLabel';
-import AdhocFilter, { CLAUSES, EXPRESSION_TYPES } from '../AdhocFilter';
+import AdhocFilter from '../AdhocFilter';
+import { CLAUSES, EXPRESSION_TYPES } from '../types';
 
 test('should return empty object if operator is not TEMPORAL_RANGE', () => {
   const adhocFilter = new AdhocFilter({

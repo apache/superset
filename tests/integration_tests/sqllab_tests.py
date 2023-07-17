@@ -56,6 +56,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
 )
+from tests.integration_tests.fixtures.users import create_gamma_sqllab_no_data
 
 QUERY_1 = "SELECT * FROM birth_names LIMIT 1"
 QUERY_2 = "SELECT * FROM NO_TABLE"
@@ -91,7 +92,7 @@ class TestSqlLab(SupersetTestCase):
         data = self.run_sql("SELECT * FROM birth_names LIMIT 10", "1")
         self.assertLess(0, len(data["data"]))
 
-        data = self.run_sql("SELECT * FROM unexistant_table", "2")
+        data = self.run_sql("SELECT * FROM nonexistent_table", "2")
         if backend() == "presto":
             assert (
                 data["errors"][0]["error_type"]
@@ -257,6 +258,22 @@ class TestSqlLab(SupersetTestCase):
         db.session.commit()
         self.assertLess(0, len(data["data"]))
 
+    def test_sqllab_has_access(self):
+        for username in ("admin", "gamma_sqllab"):
+            self.login(username)
+            for endpoint in ("/superset/sqllab/", "/superset/sqllab/history/"):
+                resp = self.client.get(endpoint)
+                self.assertEqual(200, resp.status_code)
+
+            self.logout()
+
+    def test_sqllab_no_access(self):
+        self.login("gamma")
+        for endpoint in ("/superset/sqllab/", "/superset/sqllab/history/"):
+            resp = self.client.get(endpoint)
+            # Redirects to the main page
+            self.assertEqual(302, resp.status_code)
+
     def test_sql_json_schema_access(self):
         examples_db = get_example_database()
         db_backend = examples_db.backend
@@ -342,7 +359,7 @@ class TestSqlLab(SupersetTestCase):
         db.session.commit()
 
         data = self.get_json_resp(
-            "/superset/queries/{}".format(float(datetime_to_epoch(now)) - 1000)
+            f"/superset/queries/{float(datetime_to_epoch(now)) - 1000}"
         )
         self.assertEqual(1, len(data))
 
@@ -374,13 +391,13 @@ class TestSqlLab(SupersetTestCase):
 
         # Test search queries on user Id
         user_id = security_manager.find_user("admin").id
-        data = self.get_json_resp("/superset/search_queries?user_id={}".format(user_id))
+        data = self.get_json_resp(f"/superset/search_queries?user_id={user_id}")
         self.assertEqual(2, len(data))
         user_ids = {k["userId"] for k in data}
-        self.assertEqual(set([user_id]), user_ids)
+        self.assertEqual({user_id}, user_ids)
 
         user_id = security_manager.find_user("gamma_sqllab").id
-        resp = self.get_resp("/superset/search_queries?user_id={}".format(user_id))
+        resp = self.get_resp(f"/superset/search_queries?user_id={user_id}")
         data = json.loads(resp)
         self.assertEqual(1, len(data))
         self.assertEqual(data[0]["userId"], user_id)
@@ -434,7 +451,7 @@ class TestSqlLab(SupersetTestCase):
 
         self.assertEqual(1, len(data))
         user_ids = {k["userId"] for k in data}
-        self.assertEqual(set([user_id]), user_ids)
+        self.assertEqual({user_id}, user_ids)
 
     def test_alias_duplicate(self):
         self.run_sql(
@@ -476,8 +493,16 @@ class TestSqlLab(SupersetTestCase):
             "datasourceName": f"test_viz_flow_table_{random()}",
             "schema": "superset",
             "columns": [
-                {"is_dttm": False, "type": "STRING", "name": f"viz_type_{random()}"},
-                {"is_dttm": False, "type": "OBJECT", "name": f"ccount_{random()}"},
+                {
+                    "is_dttm": False,
+                    "type": "STRING",
+                    "column_name": f"viz_type_{random()}",
+                },
+                {
+                    "is_dttm": False,
+                    "type": "OBJECT",
+                    "column_name": f"ccount_{random()}",
+                },
             ],
             "sql": """\
                 SELECT *
@@ -506,8 +531,16 @@ class TestSqlLab(SupersetTestCase):
             "chartType": "dist_bar",
             "schema": "superset",
             "columns": [
-                {"is_dttm": False, "type": "STRING", "name": f"viz_type_{random()}"},
-                {"is_dttm": False, "type": "OBJECT", "name": f"ccount_{random()}"},
+                {
+                    "is_dttm": False,
+                    "type": "STRING",
+                    "column_name": f"viz_type_{random()}",
+                },
+                {
+                    "is_dttm": False,
+                    "type": "OBJECT",
+                    "column_name": f"ccount_{random()}",
+                },
             ],
             "sql": """\
                 SELECT *
@@ -560,7 +593,7 @@ class TestSqlLab(SupersetTestCase):
         self.assertEqual(len(data["data"]), test_limit)
 
         data = self.run_sql(
-            "SELECT * FROM birth_names LIMIT {}".format(test_limit),
+            f"SELECT * FROM birth_names LIMIT {test_limit}",
             client_id="sql_limit_3",
             query_limit=test_limit + 1,
         )
@@ -568,7 +601,7 @@ class TestSqlLab(SupersetTestCase):
         self.assertEqual(data["query"]["limitingFactor"], LimitingFactor.QUERY)
 
         data = self.run_sql(
-            "SELECT * FROM birth_names LIMIT {}".format(test_limit + 1),
+            f"SELECT * FROM birth_names LIMIT {test_limit + 1}",
             client_id="sql_limit_4",
             query_limit=test_limit,
         )
@@ -576,7 +609,7 @@ class TestSqlLab(SupersetTestCase):
         self.assertEqual(data["query"]["limitingFactor"], LimitingFactor.DROPDOWN)
 
         data = self.run_sql(
-            "SELECT * FROM birth_names LIMIT {}".format(test_limit),
+            f"SELECT * FROM birth_names LIMIT {test_limit}",
             client_id="sql_limit_5",
             query_limit=test_limit,
         )
@@ -614,9 +647,11 @@ class TestSqlLab(SupersetTestCase):
         admin = security_manager.find_user("admin")
         gamma_sqllab = security_manager.find_user("gamma_sqllab")
         self.assertEqual(3, len(data["result"]))
-        user_queries = [result.get("user").get("username") for result in data["result"]]
-        assert admin.username in user_queries
-        assert gamma_sqllab.username in user_queries
+        user_queries = [
+            result.get("user").get("first_name") for result in data["result"]
+        ]
+        assert admin.first_name in user_queries
+        assert gamma_sqllab.first_name in user_queries
 
     def test_query_api_can_access_all_queries(self) -> None:
         """
@@ -720,6 +755,43 @@ class TestSqlLab(SupersetTestCase):
             "undefined_parameters": ["stat"],
         }
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"ENABLE_TEMPLATE_PROCESSING": True},
+        clear=True,
+    )
+    def test_sql_json_parameter_authorized(self):
+        self.login("admin")
+
+        data = self.run_sql(
+            "SELECT name FROM {{ table }} LIMIT 10",
+            "3",
+            template_params=json.dumps({"table": "birth_names"}),
+        )
+        assert data["status"] == "success"
+
+    @pytest.mark.usefixtures("create_gamma_sqllab_no_data")
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"ENABLE_TEMPLATE_PROCESSING": True},
+        clear=True,
+    )
+    def test_sql_json_parameter_forbidden(self):
+        self.login("gamma_sqllab_no_data")
+
+        data = self.run_sql(
+            "SELECT name FROM {{ table }} LIMIT 10",
+            "4",
+            template_params=json.dumps({"table": "birth_names"}),
+        )
+        assert data["errors"][0]["message"] == (
+            "The database referenced in this query was not found."
+            " Please contact an administrator for further assistance or try again."
+        )
+        assert data["errors"][0]["error_type"] == "GENERIC_BACKEND_ERROR"
+
     @mock.patch("superset.sql_lab.get_query")
     @mock.patch("superset.sql_lab.execute_sql_statement")
     def test_execute_sql_statements(self, mock_execute_sql_statement, mock_get_query):
@@ -733,7 +805,7 @@ class TestSqlLab(SupersetTestCase):
         mock_query = mock.MagicMock()
         mock_query.database.allow_run_async = False
         mock_cursor = mock.MagicMock()
-        mock_query.database.get_sqla_engine_with_context().__enter__().raw_connection().cursor.return_value = (
+        mock_query.database.get_raw_connection().__enter__().cursor.return_value = (
             mock_cursor
         )
         mock_query.database.db_engine_spec.run_multiple_statements_as_one = False
@@ -786,7 +858,7 @@ class TestSqlLab(SupersetTestCase):
         mock_query = mock.MagicMock()
         mock_query.database.allow_run_async = True
         mock_cursor = mock.MagicMock()
-        mock_query.database.get_sqla_engine_with_context().__enter__().raw_connection().cursor.return_value = (
+        mock_query.database.get_raw_connection().__enter__().cursor.return_value = (
             mock_cursor
         )
         mock_query.database.db_engine_spec.run_multiple_statements_as_one = False
@@ -836,7 +908,7 @@ class TestSqlLab(SupersetTestCase):
         mock_query = mock.MagicMock()
         mock_query.database.allow_run_async = False
         mock_cursor = mock.MagicMock()
-        mock_query.database.get_sqla_engine_with_context().__enter__().raw_connection().cursor.return_value = (
+        mock_query.database.get_raw_connection().__enter__().cursor.return_value = (
             mock_cursor
         )
         mock_query.database.db_engine_spec.run_multiple_statements_as_one = False

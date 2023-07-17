@@ -25,7 +25,7 @@ const TEST_DATASOURCE = {
   type: DatasourceType.Table,
   columns: [],
   metrics: [],
-  column_format: {},
+  column_formats: {},
   verbose_map: {},
   main_dttm_col: '__timestamp',
   // eg. ['["ds", true]', 'ds [asc]']

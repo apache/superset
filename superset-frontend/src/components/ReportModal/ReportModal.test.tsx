@@ -33,8 +33,6 @@ fetchMock.get(REPORT_ENDPOINT, {});
 
 const NOOP = () => {};
 
-jest.mock('src/components/Icons/Icon', () => () => <span />);
-
 const defaultProps = {
   addDangerToast: NOOP,
   addSuccessToast: NOOP,

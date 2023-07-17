@@ -67,7 +67,7 @@ export interface Dataset {
   type: DatasourceType;
   columns: ColumnMeta[];
   metrics: Metric[];
-  column_format: Record<string, string>;
+  column_formats: Record<string, string>;
   verbose_map: Record<string, string>;
   main_dttm_col: string;
   // eg. ['["ds", true]', 'ds [asc]']
@@ -88,10 +88,11 @@ export interface ControlPanelState {
   datasource: Dataset | QueryResponse | null;
   controls: ControlStateMapping;
   common: JsonObject;
+  metadata?: JsonObject | null;
 }
 
 /**
- * The action dispather will call Redux `dispatch` internally and return what's
+ * The action dispatcher will call Redux `dispatch` internally and return what's
  * returned from `dispatch`, which by default is the original or another action.
  */
 export interface ActionDispatcher<
@@ -199,7 +200,7 @@ export type TabOverride = 'data' | 'customize' | boolean;
      tab, or 'customize' if you want it to show up on that tam. Otherwise sections with ALL
      `renderTrigger: true` components will show up on the `Customize` tab.
  * - visibility: a function that uses control panel props to check whether a control should
- *    be visibile.
+ *    be visible.
  */
 export interface BaseControlConfig<
   T extends ControlType = ControlType,
@@ -333,7 +334,6 @@ export type SharedSectionAlias =
   | 'annotations'
   | 'colorScheme'
   | 'datasourceAndVizType'
-  | 'druidTimeSeries'
   | 'sqlaTimeSeries'
   | 'NVD3TimeSeries';
 
@@ -480,3 +480,16 @@ export function isQueryResponse(
 ): datasource is QueryResponse {
   return !!datasource && 'results' in datasource && 'sql' in datasource;
 }
+
+export enum SortSeriesType {
+  Name = 'name',
+  Max = 'max',
+  Min = 'min',
+  Sum = 'sum',
+  Avg = 'avg',
+}
+
+export type SortSeriesData = {
+  sort_series_type: SortSeriesType;
+  sort_series_ascending: boolean;
+};

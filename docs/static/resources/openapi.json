@@ -61,6 +61,90 @@
         },
         "description": "Not found"
       },
+      "410": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "properties": {
+                "errors": {
+                  "items": {
+                    "properties": {
+                      "error_type": {
+                        "enum": [
+                          "FRONTEND_CSRF_ERROR",
+                          "FRONTEND_NETWORK_ERROR",
+                          "FRONTEND_TIMEOUT_ERROR",
+                          "GENERIC_DB_ENGINE_ERROR",
+                          "COLUMN_DOES_NOT_EXIST_ERROR",
+                          "TABLE_DOES_NOT_EXIST_ERROR",
+                          "SCHEMA_DOES_NOT_EXIST_ERROR",
+                          "CONNECTION_INVALID_USERNAME_ERROR",
+                          "CONNECTION_INVALID_PASSWORD_ERROR",
+                          "CONNECTION_INVALID_HOSTNAME_ERROR",
+                          "CONNECTION_PORT_CLOSED_ERROR",
+                          "CONNECTION_INVALID_PORT_ERROR",
+                          "CONNECTION_HOST_DOWN_ERROR",
+                          "CONNECTION_ACCESS_DENIED_ERROR",
+                          "CONNECTION_UNKNOWN_DATABASE_ERROR",
+                          "CONNECTION_DATABASE_PERMISSIONS_ERROR",
+                          "CONNECTION_MISSING_PARAMETERS_ERROR",
+                          "OBJECT_DOES_NOT_EXIST_ERROR",
+                          "SYNTAX_ERROR",
+                          "CONNECTION_DATABASE_TIMEOUT",
+                          "VIZ_GET_DF_ERROR",
+                          "UNKNOWN_DATASOURCE_TYPE_ERROR",
+                          "FAILED_FETCHING_DATASOURCE_INFO_ERROR",
+                          "TABLE_SECURITY_ACCESS_ERROR",
+                          "DATASOURCE_SECURITY_ACCESS_ERROR",
+                          "DATABASE_SECURITY_ACCESS_ERROR",
+                          "QUERY_SECURITY_ACCESS_ERROR",
+                          "MISSING_OWNERSHIP_ERROR",
+                          "USER_ACTIVITY_SECURITY_ACCESS_ERROR",
+                          "BACKEND_TIMEOUT_ERROR",
+                          "DATABASE_NOT_FOUND_ERROR",
+                          "MISSING_TEMPLATE_PARAMS_ERROR",
+                          "INVALID_TEMPLATE_PARAMS_ERROR",
+                          "RESULTS_BACKEND_NOT_CONFIGURED_ERROR",
+                          "DML_NOT_ALLOWED_ERROR",
+                          "INVALID_CTAS_QUERY_ERROR",
+                          "INVALID_CVAS_QUERY_ERROR",
+                          "SQLLAB_TIMEOUT_ERROR",
+                          "RESULTS_BACKEND_ERROR",
+                          "ASYNC_WORKERS_ERROR",
+                          "ADHOC_SUBQUERY_NOT_ALLOWED_ERROR",
+                          "GENERIC_COMMAND_ERROR",
+                          "GENERIC_BACKEND_ERROR",
+                          "INVALID_PAYLOAD_FORMAT_ERROR",
+                          "INVALID_PAYLOAD_SCHEMA_ERROR",
+                          "REPORT_NOTIFICATION_ERROR"
+                        ],
+                        "type": "string"
+                      },
+                      "extra": {
+                        "type": "object"
+                      },
+                      "level": {
+                        "enum": ["info", "warning", "error"],
+                        "type": "string"
+                      },
+                      "message": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          }
+        },
+        "description": "Gone"
+      },
       "422": {
         "content": {
           "application/json": {
@@ -122,12 +206,7 @@
         "properties": {
           "annotationType": {
             "description": "Type of annotation layer",
-            "enum": [
-              "FORMULA",
-              "INTERVAL",
-              "EVENT",
-              "TIME_SERIES"
-            ],
+            "enum": ["FORMULA", "INTERVAL", "EVENT", "TIME_SERIES"],
             "type": "string"
           },
           "color": {
@@ -158,12 +237,7 @@
           },
           "opacity": {
             "description": "Opacity of layer",
-            "enum": [
-              "",
-              "opacityLow",
-              "opacityMedium",
-              "opacityHigh"
-            ],
+            "enum": ["", "opacityLow", "opacityMedium", "opacityHigh"],
             "nullable": true,
             "type": "string"
           },
@@ -190,22 +264,12 @@
           },
           "sourceType": {
             "description": "Type of source for annotation data",
-            "enum": [
-              "",
-              "line",
-              "NATIVE",
-              "table"
-            ],
+            "enum": ["", "line", "NATIVE", "table"],
             "type": "string"
           },
           "style": {
             "description": "Line style. Only applies to time-series annotations",
-            "enum": [
-              "dashed",
-              "dotted",
-              "solid",
-              "longDashed"
-            ],
+            "enum": ["dashed", "dotted", "solid", "longDashed"],
             "type": "string"
           },
           "timeColumn": {
@@ -228,12 +292,7 @@
             "type": "number"
           }
         },
-        "required": [
-          "name",
-          "show",
-          "showMarkers",
-          "value"
-        ],
+        "required": ["name", "show", "showMarkers", "value"],
         "type": "object"
       },
       "AnnotationLayerRestApi.get": {
@@ -257,7 +316,7 @@
       "AnnotationLayerRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/AnnotationLayerRestApi.get_list.User1"
+            "$ref": "#/components/schemas/AnnotationLayerRestApi.get_list.User"
           },
           "changed_on": {
             "format": "date-time",
@@ -268,7 +327,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/AnnotationLayerRestApi.get_list.User"
+            "$ref": "#/components/schemas/AnnotationLayerRestApi.get_list.User1"
           },
           "created_on": {
             "format": "date-time",
@@ -302,10 +361,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
+        "required": ["first_name", "last_name"],
         "type": "object"
       },
       "AnnotationLayerRestApi.get_list.User1": {
@@ -319,10 +375,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
+        "required": ["first_name", "last_name"],
         "type": "object"
       },
       "AnnotationLayerRestApi.post": {
@@ -339,9 +392,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "name"
-        ],
+        "required": ["name"],
         "type": "object"
       },
       "AnnotationLayerRestApi.put": {
@@ -392,9 +443,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "layer"
-        ],
+        "required": ["layer"],
         "type": "object"
       },
       "AnnotationRestApi.get.AnnotationLayer": {
@@ -414,13 +463,13 @@
       "AnnotationRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/AnnotationRestApi.get_list.User1"
+            "$ref": "#/components/schemas/AnnotationRestApi.get_list.User"
           },
           "changed_on_delta_humanized": {
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/AnnotationRestApi.get_list.User"
+            "$ref": "#/components/schemas/AnnotationRestApi.get_list.User1"
           },
           "end_dttm": {
             "format": "date-time",
@@ -459,9 +508,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "first_name"
-        ],
+        "required": ["first_name"],
         "type": "object"
       },
       "AnnotationRestApi.get_list.User1": {
@@ -475,9 +522,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "first_name"
-        ],
+        "required": ["first_name"],
         "type": "object"
       },
       "AnnotationRestApi.post": {
@@ -509,11 +554,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "end_dttm",
-          "short_descr",
-          "start_dttm"
-        ],
+        "required": ["end_dttm", "short_descr", "start_dttm"],
         "type": "object"
       },
       "AnnotationRestApi.put": {
@@ -543,6 +584,17 @@
             "description": "The annotation start date time",
             "format": "date-time",
             "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AvailableDomainsSchema": {
+        "properties": {
+          "domains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           }
         },
         "type": "object"
@@ -623,14 +675,7 @@
         "properties": {
           "aggregate": {
             "description": "Aggregation operator. Only required for simple expression types.",
-            "enum": [
-              "AVG",
-              "COUNT",
-              "COUNT_DISTINCT",
-              "MAX",
-              "MIN",
-              "SUM"
-            ],
+            "enum": ["AVG", "COUNT", "COUNT_DISTINCT", "MAX", "MIN", "SUM"],
             "type": "string"
           },
           "column": {
@@ -638,10 +683,7 @@
           },
           "expressionType": {
             "description": "Simple or SQL metric",
-            "enum": [
-              "SIMPLE",
-              "SQL"
-            ],
+            "enum": ["SIMPLE", "SQL"],
             "example": "SQL",
             "type": "string"
           },
@@ -675,9 +717,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "expressionType"
-        ],
+        "required": ["expressionType"],
         "type": "object"
       },
       "ChartDataAggregateOptionsSchema": {
@@ -742,25 +782,16 @@
           },
           "percentiles": {
             "description": "Upper and lower percentiles for percentile whisker type.",
-            "example": [
-              1,
-              99
-            ]
+            "example": [1, 99]
           },
           "whisker_type": {
             "description": "Whisker type. Any numpy function will work.",
-            "enum": [
-              "tukey",
-              "min/max",
-              "percentile"
-            ],
+            "enum": ["tukey", "min/max", "percentile"],
             "example": "tukey",
             "type": "string"
           }
         },
-        "required": [
-          "whisker_type"
-        ],
+        "required": ["whisker_type"],
         "type": "object"
       },
       "ChartDataColumn": {
@@ -782,17 +813,12 @@
         "properties": {
           "orientation": {
             "description": "Should cell values be calculated across the row or column.",
-            "enum": [
-              "row",
-              "column"
-            ],
+            "enum": ["row", "column"],
             "example": "row",
             "type": "string"
           }
         },
-        "required": [
-          "orientation"
-        ],
+        "required": ["orientation"],
         "type": "object"
       },
       "ChartDataDatasource": {
@@ -815,43 +841,23 @@
             "type": "string"
           }
         },
-        "required": [
-          "id"
-        ],
+        "required": ["id"],
         "type": "object"
       },
       "ChartDataExtras": {
         "properties": {
-          "druid_time_origin": {
-            "description": "Starting point for time grain counting on legacy Druid datasources. Used to change e.g. Monday/Sunday first-day-of-week.",
-            "nullable": true,
-            "type": "string"
-          },
           "having": {
             "description": "HAVING clause to be added to aggregate queries using AND operator.",
             "type": "string"
           },
-          "having_druid": {
-            "description": "HAVING filters to be added to legacy Druid datasource queries.",
-            "items": {
-              "$ref": "#/components/schemas/ChartDataFilter"
-            },
-            "type": "array"
-          },
           "relative_end": {
             "description": "End time for relative time deltas. Default: `config[\"DEFAULT_RELATIVE_START_TIME\"]`",
-            "enum": [
-              "today",
-              "now"
-            ],
+            "enum": ["today", "now"],
             "type": "string"
           },
           "relative_start": {
             "description": "Start time for relative time deltas. Default: `config[\"DEFAULT_RELATIVE_START_TIME\"]`",
-            "enum": [
-              "today",
-              "now"
-            ],
+            "enum": ["today", "now"],
             "type": "string"
           },
           "time_grain_sqla": {
@@ -920,24 +926,19 @@
               "NOT IN",
               "REGEX",
               "IS TRUE",
-              "IS FALSE"
+              "IS FALSE",
+              "TEMPORAL_RANGE"
             ],
             "example": "IN",
             "type": "string"
           },
           "val": {
-            "description": "The value or values to compare against. Can be a string, integer, decimal or list, depending on the operator.",
-            "example": [
-              "China",
-              "France",
-              "Japan"
-            ]
+            "description": "The value or values to compare against. Can be a string, integer, decimal, None or list, depending on the operator.",
+            "example": ["China", "France", "Japan"],
+            "nullable": true
           }
         },
-        "required": [
-          "col",
-          "op"
-        ],
+        "required": ["col", "op"],
         "type": "object"
       },
       "ChartDataGeodeticParseOptionsSchema": {
@@ -959,11 +960,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "geodetic",
-          "latitude",
-          "longitude"
-        ],
+        "required": ["geodetic", "latitude", "longitude"],
         "type": "object"
       },
       "ChartDataGeohashDecodeOptionsSchema": {
@@ -981,11 +978,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "geohash",
-          "latitude",
-          "longitude"
-        ],
+        "required": ["geohash", "latitude", "longitude"],
         "type": "object"
       },
       "ChartDataGeohashEncodeOptionsSchema": {
@@ -1003,11 +996,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "geohash",
-          "latitude",
-          "longitude"
-        ],
+        "required": ["geohash", "latitude", "longitude"],
         "type": "object"
       },
       "ChartDataPivotOptionsSchema": {
@@ -1060,13 +1049,13 @@
           "operation": {
             "description": "Post processing operation type",
             "enum": [
-              "_flatten_column_after_pivot",
               "aggregate",
               "boxplot",
               "compare",
               "contribution",
               "cum",
               "diff",
+              "escape_separator",
               "flatten",
               "geodetic_parse",
               "geohash_decode",
@@ -1077,7 +1066,8 @@
               "resample",
               "rolling",
               "select",
-              "sort"
+              "sort",
+              "unescape_separator"
             ],
             "example": "aggregate",
             "type": "string"
@@ -1098,17 +1088,12 @@
                   }
                 }
               },
-              "groupby": [
-                "country",
-                "gender"
-              ]
+              "groupby": ["country", "gender"]
             },
             "type": "object"
           }
         },
-        "required": [
-          "operation"
-        ],
+        "required": ["operation"],
         "type": "object"
       },
       "ChartDataProphetOptionsSchema": {
@@ -1126,6 +1111,7 @@
             "example": false
           },
           "periods": {
+            "description": "Time periods (in units of `time_grain`) to predict into the future",
             "example": 7,
             "format": "int32",
             "type": "integer"
@@ -1165,20 +1151,23 @@
             "example": false
           }
         },
-        "required": [
-          "confidence_interval",
-          "periods",
-          "time_grain"
-        ],
+        "required": ["confidence_interval", "periods", "time_grain"],
         "type": "object"
       },
       "ChartDataQueryContextSchema": {
         "properties": {
+          "custom_cache_timeout": {
+            "description": "Override the default cache timeout",
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
           "datasource": {
             "$ref": "#/components/schemas/ChartDataDatasource"
           },
           "force": {
             "description": "Should the queries be forced to load from the source. Default: `false`",
+            "nullable": true,
             "type": "boolean"
           },
           "form_data": {
@@ -1232,11 +1221,6 @@
             ],
             "nullable": true
           },
-          "druid_time_origin": {
-            "description": "Starting point for time grain counting on legacy Druid datasources. Used to change e.g. Monday/Sunday first-day-of-week. This field is deprecated and should be passed to `extras` as `druid_time_origin`.",
-            "nullable": true,
-            "type": "string"
-          },
           "extras": {
             "allOf": [
               {
@@ -1254,7 +1238,7 @@
             "type": "array"
           },
           "granularity": {
-            "description": "Name of temporal column used for time filtering. For legacy Druid datasources this defines the time grain.",
+            "description": "Name of temporal column used for time filtering.
             "nullable": true,
             "type": "string"
           },
@@ -1273,14 +1257,6 @@
             "description": "HAVING clause to be added to aggregate queries using AND operator. This field is deprecated and should be passed to `extras`.",
             "nullable": true,
             "type": "string"
-          },
-          "having_filters": {
-            "description": "HAVING filters to be added to legacy Druid datasource queries. This field is deprecated and should be passed to `extras` as `having_druid`.",
-            "items": {
-              "$ref": "#/components/schemas/ChartDataFilter"
-            },
-            "nullable": true,
-            "type": "array"
           },
           "is_rowcount": {
             "description": "Should the rowcount of the actual query be returned",
@@ -1306,14 +1282,8 @@
           "orderby": {
             "description": "Expects a list of lists where the first element is the column name which to sort by, and the second element is a boolean.",
             "example": [
-              [
-                "my_col_1",
-                false
-              ],
-              [
-                "my_col_2",
-                true
-              ]
+              ["my_col_1", false],
+              ["my_col_2", true]
             ],
             "items": {},
             "nullable": true,
@@ -1436,7 +1406,7 @@
             "type": "string"
           },
           "cache_timeout": {
-            "description": "Cache timeout in following order: custom timeout, datasource timeout, default config timeout.",
+            "description": "Cache timeout in following order: custom timeout, datasource timeout, cache default timeout, config default cache timeout.",
             "format": "int32",
             "nullable": true,
             "type": "integer"
@@ -1474,6 +1444,7 @@
             "type": "string"
           },
           "from_dttm": {
+            "description": "Start timestamp of time range",
             "format": "int32",
             "nullable": true,
             "type": "integer"
@@ -1499,6 +1470,7 @@
             "type": "integer"
           },
           "stacktrace": {
+            "description": "Stacktrace if there was an error",
             "nullable": true,
             "type": "string"
           },
@@ -1516,6 +1488,7 @@
             "type": "string"
           },
           "to_dttm": {
+            "description": "End timestamp of time range",
             "format": "int32",
             "nullable": true,
             "type": "integer"
@@ -1557,12 +1530,19 @@
             "nullable": true,
             "type": "string"
           },
+          "changed_on_delta_humanized": {
+            "readOnly": true
+          },
           "dashboards": {
             "$ref": "#/components/schemas/ChartDataRestApi.get.Dashboard"
           },
           "description": {
             "nullable": true,
             "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
           },
           "is_managed_externally": {
             "type": "boolean"
@@ -1582,6 +1562,12 @@
             "maxLength": 250,
             "nullable": true,
             "type": "string"
+          },
+          "thumbnail_url": {
+            "readOnly": true
+          },
+          "url": {
+            "readOnly": true
           },
           "viz_type": {
             "maxLength": 250,
@@ -1628,11 +1614,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "first_name",
-          "last_name",
-          "username"
-        ],
+        "required": ["first_name", "last_name", "username"],
         "type": "object"
       },
       "ChartDataRestApi.get_list": {
@@ -1662,11 +1644,26 @@
           "changed_on_delta_humanized": {
             "readOnly": true
           },
+          "changed_on_dttm": {
+            "readOnly": true
+          },
           "changed_on_utc": {
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User1"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User2"
+          },
+          "created_by_name": {
+            "readOnly": true
+          },
+          "created_by_url": {
+            "readOnly": true
+          },
+          "created_on_delta_humanized": {
+            "readOnly": true
+          },
+          "dashboards": {
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.Dashboard"
           },
           "datasource_id": {
             "format": "int32",
@@ -1694,6 +1691,9 @@
           "edit_url": {
             "readOnly": true
           },
+          "form_data": {
+            "readOnly": true
+          },
           "id": {
             "format": "int32",
             "type": "integer"
@@ -1707,10 +1707,10 @@
             "type": "string"
           },
           "last_saved_by": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User2"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User1"
           },
           "owners": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User1"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User3"
           },
           "params": {
             "nullable": true,
@@ -1720,6 +1720,9 @@
             "maxLength": 250,
             "nullable": true,
             "type": "string"
+          },
+          "slice_url": {
+            "readOnly": true
           },
           "table": {
             "$ref": "#/components/schemas/ChartDataRestApi.get_list.SqlaTable"
@@ -1738,6 +1741,20 @@
         },
         "type": "object"
       },
+      "ChartDataRestApi.get_list.Dashboard": {
+        "properties": {
+          "dashboard_title": {
+            "maxLength": 500,
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
       "ChartDataRestApi.get_list.SqlaTable": {
         "properties": {
           "default_endpoint": {
@@ -1749,9 +1766,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "table_name"
-        ],
+        "required": ["table_name"],
         "type": "object"
       },
       "ChartDataRestApi.get_list.User": {
@@ -1765,13 +1780,46 @@
             "type": "string"
           }
         },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
+        "required": ["first_name", "last_name"],
         "type": "object"
       },
       "ChartDataRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": ["first_name", "last_name"],
+        "type": "object"
+      },
+      "ChartDataRestApi.get_list.User2": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": ["first_name", "last_name"],
+        "type": "object"
+      },
+      "ChartDataRestApi.get_list.User3": {
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -1790,53 +1838,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "first_name",
-          "last_name",
-          "username"
-        ],
-        "type": "object"
-      },
-      "ChartDataRestApi.get_list.User2": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
-      "ChartDataRestApi.get_list.User3": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
+        "required": ["first_name", "last_name", "username"],
         "type": "object"
       },
       "ChartDataRestApi.post": {
@@ -1931,22 +1933,13 @@
           },
           "viz_type": {
             "description": "The type of chart visualization used.",
-            "example": [
-              "bar",
-              "line_multi",
-              "area",
-              "table"
-            ],
+            "example": ["bar", "area", "table"],
             "maxLength": 250,
             "minLength": 0,
             "type": "string"
           }
         },
-        "required": [
-          "datasource_id",
-          "datasource_type",
-          "slice_name"
-        ],
+        "required": ["datasource_id", "datasource_type", "slice_name"],
         "type": "object"
       },
       "ChartDataRestApi.put": {
@@ -2039,12 +2032,7 @@
           },
           "viz_type": {
             "description": "The type of chart visualization used.",
-            "example": [
-              "bar",
-              "line_multi",
-              "area",
-              "table"
-            ],
+            "example": ["bar", "area", "table"],
             "maxLength": 250,
             "minLength": 0,
             "nullable": true,
@@ -2095,6 +2083,7 @@
             "type": "string"
           },
           "rolling_type_options": {
+            "description": "Optional options to pass to rolling method. Needed for e.g. quantile operation.",
             "example": {},
             "type": "object"
           },
@@ -2126,21 +2115,14 @@
             "type": "integer"
           }
         },
-        "required": [
-          "rolling_type",
-          "window"
-        ],
+        "required": ["rolling_type", "window"],
         "type": "object"
       },
       "ChartDataSelectOptionsSchema": {
         "properties": {
           "columns": {
             "description": "Columns which to select from the input data, in the desired order. If columns are renamed, the original column name should be referenced here.",
-            "example": [
-              "country",
-              "gender",
-              "age"
-            ],
+            "example": ["country", "gender", "age"],
             "items": {
               "type": "string"
             },
@@ -2148,9 +2130,7 @@
           },
           "exclude": {
             "description": "Columns to exclude from selection.",
-            "example": [
-              "my_temp_column"
-            ],
+            "example": ["my_temp_column"],
             "items": {
               "type": "string"
             },
@@ -2195,9 +2175,7 @@
             "type": "object"
           }
         },
-        "required": [
-          "columns"
-        ],
+        "required": ["columns"],
         "type": "object"
       },
       "ChartEntityResponseSchema": {
@@ -2231,7 +2209,8 @@
             "description": "Form data from the Explore controls used to form the chart's data query.",
             "type": "object"
           },
-          "slice_id": {
+          "id": {
+            "description": "The id of the chart.",
             "format": "int32",
             "type": "integer"
           },
@@ -2315,12 +2294,19 @@
             "nullable": true,
             "type": "string"
           },
+          "changed_on_delta_humanized": {
+            "readOnly": true
+          },
           "dashboards": {
             "$ref": "#/components/schemas/ChartRestApi.get.Dashboard"
           },
           "description": {
             "nullable": true,
             "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
           },
           "is_managed_externally": {
             "type": "boolean"
@@ -2340,6 +2326,12 @@
             "maxLength": 250,
             "nullable": true,
             "type": "string"
+          },
+          "thumbnail_url": {
+            "readOnly": true
+          },
+          "url": {
+            "readOnly": true
           },
           "viz_type": {
             "maxLength": 250,
@@ -2386,11 +2378,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "first_name",
-          "last_name",
-          "username"
-        ],
+        "required": ["first_name", "last_name", "username"],
         "type": "object"
       },
       "ChartRestApi.get_list": {
@@ -2420,11 +2408,26 @@
           "changed_on_delta_humanized": {
             "readOnly": true
           },
+          "changed_on_dttm": {
+            "readOnly": true
+          },
           "changed_on_utc": {
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User1"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User2"
+          },
+          "created_by_name": {
+            "readOnly": true
+          },
+          "created_by_url": {
+            "readOnly": true
+          },
+          "created_on_delta_humanized": {
+            "readOnly": true
+          },
+          "dashboards": {
+            "$ref": "#/components/schemas/ChartRestApi.get_list.Dashboard"
           },
           "datasource_id": {
             "format": "int32",
@@ -2452,6 +2455,9 @@
           "edit_url": {
             "readOnly": true
           },
+          "form_data": {
+            "readOnly": true
+          },
           "id": {
             "format": "int32",
             "type": "integer"
@@ -2465,10 +2471,10 @@
             "type": "string"
           },
           "last_saved_by": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User2"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User1"
           },
           "owners": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User1"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User3"
           },
           "params": {
             "nullable": true,
@@ -2478,6 +2484,9 @@
             "maxLength": 250,
             "nullable": true,
             "type": "string"
+          },
+          "slice_url": {
+            "readOnly": true
           },
           "table": {
             "$ref": "#/components/schemas/ChartRestApi.get_list.SqlaTable"
@@ -2496,6 +2505,20 @@
         },
         "type": "object"
       },
+      "ChartRestApi.get_list.Dashboard": {
+        "properties": {
+          "dashboard_title": {
+            "maxLength": 500,
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
       "ChartRestApi.get_list.SqlaTable": {
         "properties": {
           "default_endpoint": {
@@ -2507,9 +2530,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "table_name"
-        ],
+        "required": ["table_name"],
         "type": "object"
       },
       "ChartRestApi.get_list.User": {
@@ -2523,13 +2544,46 @@
             "type": "string"
           }
         },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
+        "required": ["first_name", "last_name"],
         "type": "object"
       },
       "ChartRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": ["first_name", "last_name"],
+        "type": "object"
+      },
+      "ChartRestApi.get_list.User2": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": ["first_name", "last_name"],
+        "type": "object"
+      },
+      "ChartRestApi.get_list.User3": {
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -2548,53 +2602,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "first_name",
-          "last_name",
-          "username"
-        ],
-        "type": "object"
-      },
-      "ChartRestApi.get_list.User2": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
-      "ChartRestApi.get_list.User3": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
+        "required": ["first_name", "last_name", "username"],
         "type": "object"
       },
       "ChartRestApi.post": {
@@ -2689,22 +2697,13 @@
           },
           "viz_type": {
             "description": "The type of chart visualization used.",
-            "example": [
-              "bar",
-              "line_multi",
-              "area",
-              "table"
-            ],
+            "example": ["bar", "area", "table"],
             "maxLength": 250,
             "minLength": 0,
             "type": "string"
           }
         },
-        "required": [
-          "datasource_id",
-          "datasource_type",
-          "slice_name"
-        ],
+        "required": ["datasource_id", "datasource_type", "slice_name"],
         "type": "object"
       },
       "ChartRestApi.put": {
@@ -2797,12 +2796,7 @@
           },
           "viz_type": {
             "description": "The type of chart visualization used.",
-            "example": [
-              "bar",
-              "line_multi",
-              "area",
-              "table"
-            ],
+            "example": ["bar", "area", "table"],
             "maxLength": 250,
             "minLength": 0,
             "nullable": true,
@@ -2847,22 +2841,19 @@
             "type": "string"
           }
         },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
+        "required": ["first_name", "last_name"],
         "type": "object"
       },
       "CssTemplateRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User1"
+            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User"
           },
           "changed_on_delta_humanized": {
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User"
+            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User1"
           },
           "created_on": {
             "format": "date-time",
@@ -2900,10 +2891,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
+        "required": ["first_name", "last_name"],
         "type": "object"
       },
       "CssTemplateRestApi.get_list.User1": {
@@ -2921,10 +2909,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
+        "required": ["first_name", "last_name"],
         "type": "object"
       },
       "CssTemplateRestApi.post": {
@@ -3044,8 +3029,7 @@
           },
           "owners": {
             "items": {
-              "format": "int32",
-              "type": "integer"
+              "type": "object"
             },
             "type": "array"
           },
@@ -3180,15 +3164,23 @@
       },
       "DashboardPermalinkPostSchema": {
         "properties": {
-          "filterState": {
-            "description": "Native filter state",
+          "activeTabs": {
+            "description": "Current active dashboard tabs",
+            "items": {
+              "type": "string"
+            },
             "nullable": true,
-            "type": "object"
+            "type": "array"
           },
-          "hash": {
-            "description": "Optional anchor link",
+          "anchor": {
+            "description": "Optional anchor link added to url hash",
             "nullable": true,
             "type": "string"
+          },
+          "dataMask": {
+            "description": "Data mask used for native filter state",
+            "nullable": true,
+            "type": "object"
           },
           "urlParams": {
             "description": "URL Parameters",
@@ -3237,10 +3229,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/DashboardRestApi.get_list.User2"
-          },
-          "created_on_delta_humanized": {
-            "readOnly": true
+            "$ref": "#/components/schemas/DashboardRestApi.get_list.User1"
           },
           "created_on_delta_humanized": {
             "readOnly": true
@@ -3307,9 +3296,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "name"
-        ],
+        "required": ["name"],
         "type": "object"
       },
       "DashboardRestApi.get_list.User": {
@@ -3331,14 +3318,28 @@
             "type": "string"
           }
         },
-        "required": [
-          "first_name",
-          "last_name",
-          "username"
-        ],
+        "required": ["first_name", "last_name", "username"],
         "type": "object"
       },
       "DashboardRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": ["first_name", "last_name"],
+        "type": "object"
+      },
+      "DashboardRestApi.get_list.User2": {
         "properties": {
           "email": {
             "maxLength": 64,
@@ -3361,33 +3362,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "email",
-          "first_name",
-          "last_name",
-          "username"
-        ],
-        "type": "object"
-      },
-      "DashboardRestApi.get_list.User2": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
+        "required": ["email", "first_name", "last_name", "username"],
         "type": "object"
       },
       "DashboardRestApi.post": {
@@ -3560,17 +3535,6 @@
           },
           "name": {
             "type": "string"
-          },
-          "engine_information": {
-            "type": "object"
-          }
-        },
-        "type": "object"
-      },
-      "Database1": {
-        "properties": {
-          "database_name": {
-            "type": "string"
           }
         },
         "type": "object"
@@ -3711,9 +3675,11 @@
             "maxLength": 250,
             "type": "string"
           },
-          "encrypted_extra": {
-            "nullable": true,
-            "type": "string"
+          "driver": {
+            "readOnly": true
+          },
+          "engine_information": {
+            "readOnly": true
           },
           "expose_in_sqllab": {
             "nullable": true,
@@ -3739,6 +3705,9 @@
           "is_managed_externally": {
             "type": "boolean"
           },
+          "masked_encrypted_extra": {
+            "readOnly": true
+          },
           "parameters": {
             "readOnly": true
           },
@@ -3753,14 +3722,13 @@
             "maxLength": 1024,
             "type": "string"
           },
-          "engine_information": {
-            "readOnly": true
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
           }
         },
-        "required": [
-          "database_name",
-          "sqlalchemy_uri"
-        ],
+        "required": ["database_name", "sqlalchemy_uri"],
         "type": "object"
       },
       "DatabaseRestApi.get_list": {
@@ -3815,6 +3783,9 @@
           "disable_data_preview": {
             "readOnly": true
           },
+          "engine_information": {
+            "readOnly": true
+          },
           "explore_database_id": {
             "readOnly": true
           },
@@ -3835,13 +3806,13 @@
             "format": "int32",
             "type": "integer"
           },
-          "engine_information": {
-            "readOnly": true
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
           }
         },
-        "required": [
-          "database_name"
-        ],
+        "required": ["database_name"],
         "type": "object"
       },
       "DatabaseRestApi.get_list.User": {
@@ -3855,10 +3826,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
+        "required": ["first_name", "last_name"],
         "type": "object"
       },
       "DatabaseRestApi.post": {
@@ -3880,7 +3848,7 @@
             "type": "boolean"
           },
           "allow_run_async": {
-            "description": "Operate the database in asynchronous mode, meaning  that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information.",
+            "description": "Operate the database in asynchronous mode, meaning that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information.",
             "type": "boolean"
           },
           "cache_timeout": {
@@ -3899,8 +3867,8 @@
             "minLength": 1,
             "type": "string"
           },
-          "encrypted_extra": {
-            "description": "<p>JSON string containing additional connection configuration.<br>This is used to provide connection information for systems like Hive, Presto, and BigQuery, which do not conform to the username:password syntax normally used by SQLAlchemy.</p>",
+          "driver": {
+            "description": "SQLAlchemy driver to use",
             "nullable": true,
             "type": "string"
           },
@@ -3936,6 +3904,11 @@
             "nullable": true,
             "type": "boolean"
           },
+          "masked_encrypted_extra": {
+            "description": "<p>JSON string containing additional connection configuration.<br>This is used to provide connection information for systems like Hive, Presto, and BigQuery, which do not conform to the username:password syntax normally used by SQLAlchemy.</p>",
+            "nullable": true,
+            "type": "string"
+          },
           "parameters": {
             "additionalProperties": {},
             "description": "DB-specific parameters for configuration",
@@ -3951,11 +3924,20 @@
             "maxLength": 1024,
             "minLength": 1,
             "type": "string"
+          },
+          "ssh_tunnel": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DatabaseSSHTunnel"
+              }
+            ],
+            "nullable": true
+          },
+          "uuid": {
+            "type": "string"
           }
         },
-        "required": [
-          "database_name"
-        ],
+        "required": ["database_name"],
         "type": "object"
       },
       "DatabaseRestApi.put": {
@@ -3977,7 +3959,7 @@
             "type": "boolean"
           },
           "allow_run_async": {
-            "description": "Operate the database in asynchronous mode, meaning  that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information.",
+            "description": "Operate the database in asynchronous mode, meaning that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information.",
             "type": "boolean"
           },
           "cache_timeout": {
@@ -3997,8 +3979,8 @@
             "nullable": true,
             "type": "string"
           },
-          "encrypted_extra": {
-            "description": "<p>JSON string containing additional connection configuration.<br>This is used to provide connection information for systems like Hive, Presto, and BigQuery, which do not conform to the username:password syntax normally used by SQLAlchemy.</p>",
+          "driver": {
+            "description": "SQLAlchemy driver to use",
             "nullable": true,
             "type": "string"
           },
@@ -4034,6 +4016,11 @@
             "nullable": true,
             "type": "boolean"
           },
+          "masked_encrypted_extra": {
+            "description": "<p>JSON string containing additional connection configuration.<br>This is used to provide connection information for systems like Hive, Presto, and BigQuery, which do not conform to the username:password syntax normally used by SQLAlchemy.</p>",
+            "nullable": true,
+            "type": "string"
+          },
           "parameters": {
             "additionalProperties": {},
             "description": "DB-specific parameters for configuration",
@@ -4048,6 +4035,73 @@
             "description": "<p>Refer to the <a href=\"https://docs.sqlalchemy.org/en/rel_1_2/core/engines.html#database-urls\">SqlAlchemy docs</a> for more information on how to structure your URI.</p>",
             "maxLength": 1024,
             "minLength": 0,
+            "type": "string"
+          },
+          "ssh_tunnel": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DatabaseSSHTunnel"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "type": "object"
+      },
+      "DatabaseSSHTunnel": {
+        "properties": {
+          "id": {
+            "description": "SSH Tunnel ID (for updates)",
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
+          "password": {
+            "type": "string"
+          },
+          "private_key": {
+            "type": "string"
+          },
+          "private_key_password": {
+            "type": "string"
+          },
+          "server_address": {
+            "type": "string"
+          },
+          "server_port": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DatabaseSchemaAccessForFileUploadResponse": {
+        "properties": {
+          "schemas": {
+            "description": "The list of schemas allowed for the database to upload information",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DatabaseTablesResponse": {
+        "properties": {
+          "extra": {
+            "description": "Extra data used to specify column metadata",
+            "type": "object"
+          },
+          "type": {
+            "description": "table or view",
+            "type": "string"
+          },
+          "value": {
+            "description": "The table or view name",
             "type": "string"
           }
         },
@@ -4066,8 +4120,8 @@
             "nullable": true,
             "type": "string"
           },
-          "encrypted_extra": {
-            "description": "<p>JSON string containing additional connection configuration.<br>This is used to provide connection information for systems like Hive, Presto, and BigQuery, which do not conform to the username:password syntax normally used by SQLAlchemy.</p>",
+          "driver": {
+            "description": "SQLAlchemy driver to use",
             "nullable": true,
             "type": "string"
           },
@@ -4083,6 +4137,11 @@
           "impersonate_user": {
             "description": "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.",
             "type": "boolean"
+          },
+          "masked_encrypted_extra": {
+            "description": "<p>JSON string containing additional connection configuration.<br>This is used to provide connection information for systems like Hive, Presto, and BigQuery, which do not conform to the username:password syntax normally used by SQLAlchemy.</p>",
+            "nullable": true,
+            "type": "string"
           },
           "parameters": {
             "additionalProperties": {},
@@ -4099,12 +4158,27 @@
             "maxLength": 1024,
             "minLength": 1,
             "type": "string"
+          },
+          "ssh_tunnel": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DatabaseSSHTunnel"
+              }
+            ],
+            "nullable": true
           }
         },
         "type": "object"
       },
       "DatabaseValidateParametersSchema": {
         "properties": {
+          "catalog": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "description": "Gsheets specific column for managing label to sheet urls",
+            "type": "object"
+          },
           "configuration_method": {
             "description": "Configuration_method is used on the frontend to inform the backend whether to explode parameters or to provide only a sqlalchemy_uri."
           },
@@ -4115,8 +4189,8 @@
             "nullable": true,
             "type": "string"
           },
-          "encrypted_extra": {
-            "description": "<p>JSON string containing additional connection configuration.<br>This is used to provide connection information for systems like Hive, Presto, and BigQuery, which do not conform to the username:password syntax normally used by SQLAlchemy.</p>",
+          "driver": {
+            "description": "SQLAlchemy driver to use",
             "nullable": true,
             "type": "string"
           },
@@ -4128,9 +4202,20 @@
             "description": "<p>JSON string containing extra configuration elements.<br>1. The <code>engine_params</code> object gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine\">sqlalchemy.create_engine</a> call, while the <code>metadata_params</code> gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html#sqlalchemy.schema.MetaData\">sqlalchemy.MetaData</a> call.<br>2. The <code>metadata_cache_timeout</code> is a cache timeout setting in seconds for metadata fetch of this database. Specify it as <strong>\"metadata_cache_timeout\": {\"schema_cache_timeout\": 600, \"table_cache_timeout\": 600}</strong>. If unset, cache will not be enabled for the functionality. A timeout of 0 indicates that the cache never expires.<br>3. The <code>schemas_allowed_for_file_upload</code> is a comma separated list of schemas that CSVs are allowed to upload to. Specify it as <strong>\"schemas_allowed_for_file_upload\": [\"public\", \"csv_upload\"]</strong>. If database flavor does not support schema or any schema is allowed to be accessed, just leave the list empty<br>4. The <code>version</code> field is a string specifying the this db's version. This should be used with Presto DBs so that the syntax is correct<br>5. The <code>allows_virtual_table_explore</code> field is a boolean specifying whether or not the Explore button in SQL Lab results is shown.<br>6. The <code>disable_data_preview</code> field is a boolean specifying whether or not data preview queries will be run when fetching table metadata in SQL Lab.</p>",
             "type": "string"
           },
+          "id": {
+            "description": "Database ID (for updates)",
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
           "impersonate_user": {
             "description": "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.",
             "type": "boolean"
+          },
+          "masked_encrypted_extra": {
+            "description": "<p>JSON string containing additional connection configuration.<br>This is used to provide connection information for systems like Hive, Presto, and BigQuery, which do not conform to the username:password syntax normally used by SQLAlchemy.</p>",
+            "nullable": true,
+            "type": "string"
           },
           "parameters": {
             "additionalProperties": {
@@ -4145,10 +4230,175 @@
             "type": "string"
           }
         },
-        "required": [
-          "configuration_method",
-          "engine"
-        ],
+        "required": ["configuration_method", "engine"],
+        "type": "object"
+      },
+      "Dataset": {
+        "properties": {
+          "cache_timeout": {
+            "description": "Duration (in seconds) of the caching timeout for this dataset.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "column_formats": {
+            "description": "Column formats.",
+            "type": "object"
+          },
+          "columns": {
+            "description": "Columns metadata.",
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "database": {
+            "description": "Database associated with the dataset.",
+            "type": "object"
+          },
+          "datasource_name": {
+            "description": "Dataset name.",
+            "type": "string"
+          },
+          "default_endpoint": {
+            "description": "Default endpoint for the dataset.",
+            "type": "string"
+          },
+          "description": {
+            "description": "Dataset description.",
+            "type": "string"
+          },
+          "edit_url": {
+            "description": "The URL for editing the dataset.",
+            "type": "string"
+          },
+          "extra": {
+            "description": "JSON string containing extra configuration elements.",
+            "type": "object"
+          },
+          "fetch_values_predicate": {
+            "description": "Predicate used when fetching values from the dataset.",
+            "type": "string"
+          },
+          "filter_select": {
+            "description": "SELECT filter applied to the dataset.",
+            "type": "boolean"
+          },
+          "filter_select_enabled": {
+            "description": "If the SELECT filter is enabled.",
+            "type": "boolean"
+          },
+          "granularity_sqla": {
+            "description": "Name of temporal column used for time filtering for SQL datasources. This field is deprecated, use `granularity` instead.",
+            "items": {
+              "items": {
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "health_check_message": {
+            "description": "Health check message.",
+            "type": "string"
+          },
+          "id": {
+            "description": "Dataset ID.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "is_sqllab_view": {
+            "description": "If the dataset is a SQL Lab view.",
+            "type": "boolean"
+          },
+          "main_dttm_col": {
+            "description": "The main temporal column.",
+            "type": "string"
+          },
+          "metrics": {
+            "description": "Dataset metrics.",
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "name": {
+            "description": "Dataset name.",
+            "type": "string"
+          },
+          "offset": {
+            "description": "Dataset offset.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "order_by_choices": {
+            "description": "List of order by columns.",
+            "items": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "owners": {
+            "description": "List of owners identifiers",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "params": {
+            "description": "Extra params for the dataset.",
+            "type": "object"
+          },
+          "perm": {
+            "description": "Permission expression.",
+            "type": "string"
+          },
+          "schema": {
+            "description": "Dataset schema.",
+            "type": "string"
+          },
+          "select_star": {
+            "description": "Select all clause.",
+            "type": "string"
+          },
+          "sql": {
+            "description": "A SQL statement that defines the dataset.",
+            "type": "string"
+          },
+          "table_name": {
+            "description": "The name of the table associated with the dataset.",
+            "type": "string"
+          },
+          "template_params": {
+            "description": "Table template params.",
+            "type": "object"
+          },
+          "time_grain_sqla": {
+            "description": "List of temporal granularities supported by the dataset.",
+            "items": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "type": {
+            "description": "Dataset type.",
+            "type": "string"
+          },
+          "uid": {
+            "description": "Dataset unique identifier.",
+            "type": "string"
+          },
+          "verbose_map": {
+            "description": "Mapping from raw name to verbose name.",
+            "type": "object"
+          }
+        },
         "type": "object"
       },
       "DatasetColumnsPut": {
@@ -4212,9 +4462,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "column_name"
-        ],
+        "required": ["column_name"],
         "type": "object"
       },
       "DatasetColumnsRestApi.get": {
@@ -4265,10 +4513,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "base_model_id",
-          "table_name"
-        ],
+        "required": ["base_model_id", "table_name"],
         "type": "object"
       },
       "DatasetMetricRestApi.get": {
@@ -4355,10 +4600,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "expression",
-          "metric_name"
-        ],
+        "required": ["expression", "metric_name"],
         "type": "object"
       },
       "DatasetRelatedChart": {
@@ -4446,8 +4688,30 @@
             "nullable": true,
             "type": "integer"
           },
+          "changed_by": {
+            "$ref": "#/components/schemas/DatasetRestApi.get.User"
+          },
+          "changed_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "changed_on_humanized": {
+            "readOnly": true
+          },
           "columns": {
             "$ref": "#/components/schemas/DatasetRestApi.get.TableColumn"
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/DatasetRestApi.get.User1"
+          },
+          "created_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "created_on_humanized": {
+            "readOnly": true
           },
           "database": {
             "$ref": "#/components/schemas/DatasetRestApi.get.Database"
@@ -4503,12 +4767,15 @@
             "type": "integer"
           },
           "owners": {
-            "$ref": "#/components/schemas/DatasetRestApi.get.User"
+            "$ref": "#/components/schemas/DatasetRestApi.get.User2"
           },
           "schema": {
             "maxLength": 255,
             "nullable": true,
             "type": "string"
+          },
+          "select_star": {
+            "readOnly": true
           },
           "sql": {
             "nullable": true,
@@ -4526,12 +4793,7 @@
             "readOnly": true
           }
         },
-        "required": [
-          "columns",
-          "database",
-          "metrics",
-          "table_name"
-        ],
+        "required": ["columns", "database", "metrics", "table_name"],
         "type": "object"
       },
       "DatasetRestApi.get.Database": {
@@ -4548,9 +4810,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "database_name"
-        ],
+        "required": ["database_name"],
         "type": "object"
       },
       "DatasetRestApi.get.SqlMetric": {
@@ -4594,11 +4854,6 @@
             "nullable": true,
             "type": "string"
           },
-          "uuid": {
-            "format": "uuid",
-            "nullable": true,
-            "type": "string"
-          },
           "verbose_name": {
             "maxLength": 1024,
             "nullable": true,
@@ -4609,10 +4864,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "expression",
-          "metric_name"
-        ],
+        "required": ["expression", "metric_name"],
         "type": "object"
       },
       "DatasetRestApi.get.TableColumn": {
@@ -4691,12 +4943,38 @@
             "type": "string"
           }
         },
-        "required": [
-          "column_name"
-        ],
+        "required": ["column_name"],
         "type": "object"
       },
       "DatasetRestApi.get.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": ["first_name", "last_name"],
+        "type": "object"
+      },
+      "DatasetRestApi.get.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": ["first_name", "last_name"],
+        "type": "object"
+      },
+      "DatasetRestApi.get.User2": {
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -4715,17 +4993,13 @@
             "type": "string"
           }
         },
-        "required": [
-          "first_name",
-          "last_name",
-          "username"
-        ],
+        "required": ["first_name", "last_name", "username"],
         "type": "object"
       },
       "DatasetRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/DatasetRestApi.get_list.User1"
+            "$ref": "#/components/schemas/DatasetRestApi.get_list.User"
           },
           "changed_by_name": {
             "readOnly": true
@@ -4768,7 +5042,7 @@
             "readOnly": true
           },
           "owners": {
-            "$ref": "#/components/schemas/DatasetRestApi.get_list.User"
+            "$ref": "#/components/schemas/DatasetRestApi.get_list.User1"
           },
           "schema": {
             "maxLength": 255,
@@ -4784,10 +5058,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "database",
-          "table_name"
-        ],
+        "required": ["database", "table_name"],
         "type": "object"
       },
       "DatasetRestApi.get_list.Database": {
@@ -4801,12 +5072,24 @@
             "type": "integer"
           }
         },
-        "required": [
-          "database_name"
-        ],
+        "required": ["database_name"],
         "type": "object"
       },
       "DatasetRestApi.get_list.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": ["first_name", "username"],
+        "type": "object"
+      },
+      "DatasetRestApi.get_list.User1": {
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -4825,28 +5108,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "first_name",
-          "last_name",
-          "username"
-        ],
-        "type": "object"
-      },
-      "DatasetRestApi.get_list.User1": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "username"
-        ],
+        "required": ["first_name", "last_name", "username"],
         "type": "object"
       },
       "DatasetRestApi.post": {
@@ -4875,16 +5137,17 @@
             "minLength": 0,
             "type": "string"
           },
+          "sql": {
+            "nullable": true,
+            "type": "string"
+          },
           "table_name": {
             "maxLength": 250,
             "minLength": 1,
             "type": "string"
           }
         },
-        "required": [
-          "database",
-          "table_name"
-        ],
+        "required": ["database", "table_name"],
         "type": "object"
       },
       "DatasetRestApi.put": {
@@ -5010,9 +5273,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "datasource_type"
-        ],
+        "required": ["datasource_type"],
         "type": "object"
       },
       "DistincResponseSchema": {
@@ -5049,9 +5310,7 @@
             "type": "array"
           }
         },
-        "required": [
-          "allowed_domains"
-        ],
+        "required": ["allowed_domains"],
         "type": "object"
       },
       "EmbeddedDashboardResponseSchema": {
@@ -5114,76 +5373,83 @@
         },
         "type": "object"
       },
-      "ExplorePermalinkPostSchema": {
+      "ExecutePayloadSchema": {
         "properties": {
-          "allowed_domains": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "allowed_domains"
-        ],
-        "type": "object"
-      },
-      "EmbeddedDashboardResponseSchema": {
-        "properties": {
-          "allowed_domains": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "changed_by": {
-            "$ref": "#/components/schemas/User"
-          },
-          "changed_on": {
-            "format": "date-time",
+          "client_id": {
+            "nullable": true,
             "type": "string"
           },
-          "dashboard_id": {
+          "ctas_method": {
+            "nullable": true,
             "type": "string"
           },
-          "uuid": {
+          "database_id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "expand_data": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "json": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "queryLimit": {
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
+          "runAsync": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "schema": {
+            "nullable": true,
+            "type": "string"
+          },
+          "select_as_cta": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "sql": {
+            "type": "string"
+          },
+          "sql_editor_id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "tab": {
+            "nullable": true,
+            "type": "string"
+          },
+          "templateParams": {
+            "nullable": true,
+            "type": "string"
+          },
+          "tmp_table_name": {
+            "nullable": true,
             "type": "string"
           }
         },
+        "required": ["database_id", "sql"],
         "type": "object"
       },
-      "EmbeddedDashboardRestApi.get": {
+      "ExploreContextSchema": {
         "properties": {
-          "uuid": {
-            "format": "uuid",
+          "dataset": {
+            "$ref": "#/components/schemas/Dataset"
+          },
+          "form_data": {
+            "description": "Form data from the Explore controls used to form the chart's data query.",
+            "type": "object"
+          },
+          "message": {
+            "description": "Any message related to the processed request.",
             "type": "string"
-          }
-        },
-        "type": "object"
-      },
-      "EmbeddedDashboardRestApi.get_list": {
-        "properties": {
-          "uuid": {
-            "format": "uuid",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
-      "EmbeddedDashboardRestApi.post": {
-        "properties": {
-          "uuid": {
-            "format": "uuid",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
-      "EmbeddedDashboardRestApi.put": {
-        "properties": {
-          "uuid": {
-            "format": "uuid",
-            "type": "string"
+          },
+          "slice": {
+            "$ref": "#/components/schemas/Slice"
           }
         },
         "type": "object"
@@ -5204,9 +5470,7 @@
             "type": "array"
           }
         },
-        "required": [
-          "formData"
-        ],
+        "required": ["formData"],
         "type": "object"
       },
       "FilterSetRestApi.get": {
@@ -5240,11 +5504,7 @@
             "readOnly": true
           }
         },
-        "required": [
-          "name",
-          "owner_id",
-          "owner_type"
-        ],
+        "required": ["name", "owner_id", "owner_type"],
         "type": "object"
       },
       "FilterSetRestApi.get_list": {
@@ -5298,11 +5558,7 @@
             "readOnly": true
           }
         },
-        "required": [
-          "name",
-          "owner_id",
-          "owner_type"
-        ],
+        "required": ["name", "owner_id", "owner_type"],
         "type": "object"
       },
       "FilterSetRestApi.post": {
@@ -5326,18 +5582,11 @@
             "type": "integer"
           },
           "owner_type": {
-            "enum": [
-              "User",
-              "Dashboard"
-            ],
+            "enum": ["User", "Dashboard"],
             "type": "string"
           }
         },
-        "required": [
-          "json_metadata",
-          "name",
-          "owner_type"
-        ],
+        "required": ["json_metadata", "name", "owner_type"],
         "type": "object"
       },
       "FilterSetRestApi.put": {
@@ -5356,9 +5605,7 @@
             "type": "string"
           },
           "owner_type": {
-            "enum": [
-              "Dashboard"
-            ],
+            "enum": ["Dashboard"],
             "type": "string"
           }
         },
@@ -5393,11 +5640,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "datasource_id",
-          "datasource_type",
-          "form_data"
-        ],
+        "required": ["datasource_id", "datasource_type", "form_data"],
         "type": "object"
       },
       "FormDataPutSchema": {
@@ -5429,11 +5672,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "datasource_id",
-          "datasource_type",
-          "form_data"
-        ],
+        "required": ["datasource_id", "datasource_type", "form_data"],
         "type": "object"
       },
       "GetFavStarIdsSchema": {
@@ -5466,10 +5705,7 @@
             "$ref": "#/components/schemas/User1"
           }
         },
-        "required": [
-          "resources",
-          "rls"
-        ],
+        "required": ["resources", "rls"],
         "type": "object"
       },
       "LogRestApi.get": {
@@ -5526,9 +5762,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "username"
-        ],
+        "required": ["username"],
         "type": "object"
       },
       "LogRestApi.get_list": {
@@ -5585,9 +5819,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "username"
-        ],
+        "required": ["username"],
         "type": "object"
       },
       "LogRestApi.post": {
@@ -5617,6 +5849,45 @@
           },
           "user": {
             "nullable": true
+          }
+        },
+        "type": "object"
+      },
+      "QueryExecutionResponseSchema": {
+        "properties": {
+          "columns": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "data": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "expanded_columns": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "query": {
+            "$ref": "#/components/schemas/QueryResult"
+          },
+          "query_id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "selected_columns": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "status": {
+            "type": "string"
           }
         },
         "type": "object"
@@ -5730,14 +6001,10 @@
             "type": "string"
           },
           "tracking_url": {
-            "nullable": true,
-            "type": "string"
+            "readOnly": true
           }
         },
-        "required": [
-          "client_id",
-          "database"
-        ],
+        "required": ["client_id", "database"],
         "type": "object"
       },
       "QueryRestApi.get.Database": {
@@ -5822,6 +6089,181 @@
         },
         "type": "object"
       },
+      "QueryResult": {
+        "properties": {
+          "changedOn": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "changed_on": {
+            "type": "string"
+          },
+          "ctas": {
+            "type": "boolean"
+          },
+          "db": {
+            "type": "string"
+          },
+          "dbId": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "endDttm": {
+            "format": "float",
+            "type": "number"
+          },
+          "errorMessage": {
+            "nullable": true,
+            "type": "string"
+          },
+          "executedSql": {
+            "type": "string"
+          },
+          "extra": {
+            "type": "object"
+          },
+          "id": {
+            "type": "string"
+          },
+          "limit": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "limitingFactor": {
+            "type": "string"
+          },
+          "progress": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "queryId": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "resultsKey": {
+            "type": "string"
+          },
+          "rows": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "schema": {
+            "type": "string"
+          },
+          "serverId": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "sql": {
+            "type": "string"
+          },
+          "sqlEditorId": {
+            "type": "string"
+          },
+          "startDttm": {
+            "format": "float",
+            "type": "number"
+          },
+          "state": {
+            "type": "string"
+          },
+          "tab": {
+            "type": "string"
+          },
+          "tempSchema": {
+            "nullable": true,
+            "type": "string"
+          },
+          "tempTable": {
+            "nullable": true,
+            "type": "string"
+          },
+          "trackingUrl": {
+            "nullable": true,
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
+          "userId": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "RecentActivity": {
+        "properties": {
+          "action": {
+            "description": "Action taken describing type of activity",
+            "type": "string"
+          },
+          "item_title": {
+            "description": "Title of item",
+            "type": "string"
+          },
+          "item_type": {
+            "description": "Type of item, e.g. slice or dashboard",
+            "type": "string"
+          },
+          "item_url": {
+            "description": "URL to item",
+            "type": "string"
+          },
+          "time": {
+            "description": "Time of activity, in epoch milliseconds",
+            "format": "float",
+            "type": "number"
+          },
+          "time_delta_humanized": {
+            "description": "Human-readable description of how long ago activity took place",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "RecentActivityResponseSchema": {
+        "properties": {
+          "result": {
+            "description": "A list of recent activity objects",
+            "items": {
+              "$ref": "#/components/schemas/RecentActivity"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "RecentActivitySchema": {
+        "properties": {
+          "action": {
+            "description": "Action taken describing type of activity",
+            "type": "string"
+          },
+          "item_title": {
+            "description": "Title of item",
+            "type": "string"
+          },
+          "item_type": {
+            "description": "Type of item, e.g. slice or dashboard",
+            "type": "string"
+          },
+          "item_url": {
+            "description": "URL to item",
+            "type": "string"
+          },
+          "time": {
+            "description": "Time of activity, in epoch milliseconds",
+            "format": "float",
+            "type": "number"
+          },
+          "time_delta_humanized": {
+            "description": "Human-readable description of how long ago activity took place",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "RelatedResponseSchema": {
         "properties": {
           "count": {
@@ -5840,6 +6282,10 @@
       },
       "RelatedResultResponse": {
         "properties": {
+          "extra": {
+            "description": "The extra metadata for related item",
+            "type": "object"
+          },
           "text": {
             "description": "The related item string representation",
             "type": "string"
@@ -5895,10 +6341,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "scheduled_dttm",
-          "state"
-        ],
+        "required": ["scheduled_dttm", "state"],
         "type": "object"
       },
       "ReportExecutionLogRestApi.get_list": {
@@ -5944,10 +6387,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "scheduled_dttm",
-          "state"
-        ],
+        "required": ["scheduled_dttm", "state"],
         "type": "object"
       },
       "ReportExecutionLogRestApi.post": {
@@ -5975,16 +6415,11 @@
           },
           "type": {
             "description": "The recipient type, check spec for valid options",
-            "enum": [
-              "Email",
-              "Slack"
-            ],
+            "enum": ["Email", "Slack"],
             "type": "string"
           }
         },
-        "required": [
-          "type"
-        ],
+        "required": ["type"],
         "type": "object"
       },
       "ReportRecipientConfigJSON": {
@@ -6026,6 +6461,9 @@
           "description": {
             "nullable": true,
             "type": "string"
+          },
+          "extra": {
+            "readOnly": true
           },
           "force_screenshot": {
             "nullable": true,
@@ -6106,12 +6544,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "crontab",
-          "name",
-          "recipients",
-          "type"
-        ],
+        "required": ["crontab", "name", "recipients", "type"],
         "type": "object"
       },
       "ReportScheduleRestApi.get.Dashboard": {
@@ -6139,9 +6572,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "database_name"
-        ],
+        "required": ["database_name"],
         "type": "object"
       },
       "ReportScheduleRestApi.get.ReportRecipients": {
@@ -6159,9 +6590,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "type"
-        ],
+        "required": ["type"],
         "type": "object"
       },
       "ReportScheduleRestApi.get.Slice": {
@@ -6198,10 +6627,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
+        "required": ["first_name", "last_name"],
         "type": "object"
       },
       "ReportScheduleRestApi.get_list": {
@@ -6227,7 +6653,7 @@
             "type": "integer"
           },
           "created_by": {
-            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User2"
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User1"
           },
           "created_on": {
             "format": "date-time",
@@ -6255,6 +6681,9 @@
             "nullable": true,
             "type": "string"
           },
+          "extra": {
+            "readOnly": true
+          },
           "id": {
             "format": "int32",
             "type": "integer"
@@ -6274,7 +6703,7 @@
             "type": "string"
           },
           "owners": {
-            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User1"
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User2"
           },
           "recipients": {
             "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.ReportRecipients"
@@ -6288,12 +6717,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "crontab",
-          "name",
-          "recipients",
-          "type"
-        ],
+        "required": ["crontab", "name", "recipients", "type"],
         "type": "object"
       },
       "ReportScheduleRestApi.get_list.ReportRecipients": {
@@ -6307,9 +6731,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "type"
-        ],
+        "required": ["type"],
         "type": "object"
       },
       "ReportScheduleRestApi.get_list.User": {
@@ -6323,13 +6745,24 @@
             "type": "string"
           }
         },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
+        "required": ["first_name", "last_name"],
         "type": "object"
       },
       "ReportScheduleRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": ["first_name", "last_name"],
+        "type": "object"
+      },
+      "ReportScheduleRestApi.get_list.User2": {
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -6344,27 +6777,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
-      "ReportScheduleRestApi.get_list.User2": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
+        "required": ["first_name", "last_name"],
         "type": "object"
       },
       "ReportScheduleRestApi.post": {
@@ -6449,11 +6862,7 @@
             "type": "array"
           },
           "report_format": {
-            "enum": [
-              "PNG",
-              "CSV",
-              "TEXT"
-            ],
+            "enum": ["PNG", "CSV", "TEXT"],
             "type": "string"
           },
           "selected_tabs": {
@@ -7071,10 +7480,7 @@
           },
           "type": {
             "description": "The report schedule type",
-            "enum": [
-              "Alert",
-              "Report"
-            ],
+            "enum": ["Alert", "Report"],
             "type": "string"
           },
           "validator_config_json": {
@@ -7082,10 +7488,7 @@
           },
           "validator_type": {
             "description": "Determines when to trigger alert based off value from alert query. Alerts will be triggered with these validator types:\n- Not Null - When the return value is Not NULL, Empty, or 0\n- Operator - When `sql_return_value comparison_operator threshold` is True e.g. `50 <= 75`<br>Supports the comparison operators <, <=, >, >=, ==, and !=",
-            "enum": [
-              "not null",
-              "operator"
-            ],
+            "enum": ["not null", "operator"],
             "type": "string"
           },
           "working_timeout": {
@@ -7096,11 +7499,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "crontab",
-          "name",
-          "type"
-        ],
+        "required": ["crontab", "name", "type"],
         "type": "object"
       },
       "ReportScheduleRestApi.put": {
@@ -7143,6 +7542,9 @@
             "nullable": true,
             "type": "string"
           },
+          "extra": {
+            "type": "object"
+          },
           "force_screenshot": {
             "type": "boolean"
           },
@@ -7181,11 +7583,7 @@
             "type": "array"
           },
           "report_format": {
-            "enum": [
-              "PNG",
-              "CSV",
-              "TEXT"
-            ],
+            "enum": ["PNG", "CSV", "TEXT"],
             "type": "string"
           },
           "sql": {
@@ -7796,10 +8194,7 @@
           },
           "type": {
             "description": "The report schedule type",
-            "enum": [
-              "Alert",
-              "Report"
-            ],
+            "enum": ["Alert", "Report"],
             "type": "string"
           },
           "validator_config_json": {
@@ -7807,10 +8202,7 @@
           },
           "validator_type": {
             "description": "Determines when to trigger alert based off value from alert query. Alerts will be triggered with these validator types:\n- Not Null - When the return value is Not NULL, Empty, or 0\n- Operator - When `sql_return_value comparison_operator threshold` is True e.g. `50 <= 75`<br>Supports the comparison operators <, <=, >, >=, ==, and !=",
-            "enum": [
-              "not null",
-              "operator"
-            ],
+            "enum": ["not null", "operator"],
             "nullable": true,
             "type": "string"
           },
@@ -7832,10 +8224,7 @@
           },
           "type": {}
         },
-        "required": [
-          "id",
-          "type"
-        ],
+        "required": ["id", "type"],
         "type": "object"
       },
       "RlsRule": {
@@ -7848,9 +8237,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "clause"
-        ],
+        "required": ["clause"],
         "type": "object"
       },
       "Roles": {
@@ -7867,6 +8254,9 @@
       },
       "SavedQueryRestApi.get": {
         "properties": {
+          "changed_on_delta_humanized": {
+            "readOnly": true
+          },
           "created_by": {
             "$ref": "#/components/schemas/SavedQueryRestApi.get.User"
           },
@@ -7897,6 +8287,10 @@
           },
           "sql_tables": {
             "readOnly": true
+          },
+          "template_parameters": {
+            "nullable": true,
+            "type": "string"
           }
         },
         "type": "object"
@@ -7912,9 +8306,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "database_name"
-        ],
+        "required": ["database_name"],
         "type": "object"
       },
       "SavedQueryRestApi.get.User": {
@@ -7932,10 +8324,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
+        "required": ["first_name", "last_name"],
         "type": "object"
       },
       "SavedQueryRestApi.get_list": {
@@ -8009,9 +8398,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "database_name"
-        ],
+        "required": ["database_name"],
         "type": "object"
       },
       "SavedQueryRestApi.get_list.User": {
@@ -8029,10 +8416,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
+        "required": ["first_name", "last_name"],
         "type": "object"
       },
       "SavedQueryRestApi.post": {
@@ -8057,6 +8441,10 @@
             "type": "string"
           },
           "sql": {
+            "nullable": true,
+            "type": "string"
+          },
+          "template_parameters": {
             "nullable": true,
             "type": "string"
           }
@@ -8087,6 +8475,10 @@
           "sql": {
             "nullable": true,
             "type": "string"
+          },
+          "template_parameters": {
+            "nullable": true,
+            "type": "string"
           }
         },
         "type": "object"
@@ -8107,6 +8499,93 @@
         "properties": {
           "result": {
             "description": "SQL select star",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "Slice": {
+        "properties": {
+          "cache_timeout": {
+            "description": "Duration (in seconds) of the caching timeout for this chart.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "certification_details": {
+            "description": "Details of the certification.",
+            "type": "string"
+          },
+          "certified_by": {
+            "description": "Person or group that has certified this dashboard.",
+            "type": "string"
+          },
+          "changed_on": {
+            "description": "Timestamp of the last modification.",
+            "type": "string"
+          },
+          "changed_on_humanized": {
+            "description": "Timestamp of the last modification in human readable form.",
+            "type": "string"
+          },
+          "datasource": {
+            "description": "Datasource identifier.",
+            "type": "string"
+          },
+          "description": {
+            "description": "Slice description.",
+            "type": "string"
+          },
+          "description_markeddown": {
+            "description": "Sanitized HTML version of the chart description.",
+            "type": "string"
+          },
+          "edit_url": {
+            "description": "The URL for editing the slice.",
+            "type": "string"
+          },
+          "form_data": {
+            "description": "Form data associated with the slice.",
+            "type": "object"
+          },
+          "is_managed_externally": {
+            "description": "If the chart is managed outside externally.",
+            "type": "boolean"
+          },
+          "modified": {
+            "description": "Last modification in human readable form.",
+            "type": "string"
+          },
+          "owners": {
+            "description": "Owners identifiers.",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "query_context": {
+            "description": "The context associated with the query.",
+            "type": "object"
+          },
+          "slice_id": {
+            "description": "The slice ID.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "slice_name": {
+            "description": "The slice name.",
+            "type": "string"
+          },
+          "slice_url": {
+            "description": "The slice URL.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "StopQuerySchema": {
+        "properties": {
+          "client_id": {
             "type": "string"
           }
         },
@@ -8275,9 +8754,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "value"
-        ],
+        "required": ["value"],
         "type": "object"
       },
       "TemporaryCachePutSchema": {
@@ -8287,9 +8764,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "value"
-        ],
+        "required": ["value"],
         "type": "object"
       },
       "User": {
@@ -8366,9 +8841,7 @@
             "type": "object"
           }
         },
-        "required": [
-          "sql"
-        ],
+        "required": ["sql"],
         "type": "object"
       },
       "ValidateSQLResponse": {
@@ -8395,14 +8868,7 @@
         "properties": {
           "op": {
             "description": "The operation to compare with a threshold to apply to the SQL output\n",
-            "enum": [
-              "<",
-              "<=",
-              ">",
-              ">=",
-              "==",
-              "!="
-            ],
+            "enum": ["<", "<=", ">", ">=", "==", "!="],
             "type": "string"
           },
           "threshold": {
@@ -8426,10 +8892,7 @@
             "type": "array"
           }
         },
-        "required": [
-          "type",
-          "values"
-        ],
+        "required": ["type", "values"],
         "type": "object"
       },
       "database_schemas_query_schema": {
@@ -8438,6 +8901,18 @@
             "type": "boolean"
           }
         },
+        "type": "object"
+      },
+      "database_tables_query_schema": {
+        "properties": {
+          "force": {
+            "type": "boolean"
+          },
+          "schema_name": {
+            "type": "string"
+          }
+        },
+        "required": ["schema_name"],
         "type": "object"
       },
       "get_delete_ids_schema": {
@@ -8564,11 +9039,7 @@
                   ]
                 }
               },
-              "required": [
-                "col",
-                "opr",
-                "value"
-              ],
+              "required": ["col", "opr", "value"],
               "type": "object"
             },
             "type": "array"
@@ -8591,10 +9062,7 @@
             "type": "string"
           },
           "order_direction": {
-            "enum": [
-              "asc",
-              "desc"
-            ],
+            "enum": ["asc", "desc"],
             "type": "string"
           },
           "page": {
@@ -8602,6 +9070,26 @@
           },
           "page_size": {
             "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "get_recent_activity_schema": {
+        "properties": {
+          "actions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "distinct": {
+            "type": "boolean"
+          },
+          "page": {
+            "type": "number"
+          },
+          "page_size": {
+            "type": "number"
           }
         },
         "type": "object"
@@ -8626,6 +9114,15 @@
         },
         "type": "object"
       },
+      "queries_get_updated_since_schema": {
+        "properties": {
+          "last_updated_ms": {
+            "type": "number"
+          }
+        },
+        "required": ["last_updated_ms"],
+        "type": "object"
+      },
       "screenshot_query_schema": {
         "properties": {
           "force": {
@@ -8644,6 +9141,15 @@
             "type": "array"
           }
         },
+        "type": "object"
+      },
+      "sql_lab_get_results_schema": {
+        "properties": {
+          "key": {
+            "type": "string"
+          }
+        },
+        "required": ["key"],
         "type": "object"
       },
       "thumbnail_query_schema": {
@@ -8720,9 +9226,7 @@
           }
         ],
         "summary": "Returns a AdvancedDataTypeResponse object populated with the passed in args.",
-        "tags": [
-          "Advanced Data Type"
-        ]
+        "tags": ["Advanced Data Type"]
       }
     },
     "/api/v1/advanced_data_type/types": {
@@ -8762,102 +9266,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Advanced Data Type"
-        ]
-      }
-    },
-    "/api/v1/annotation_layer/": {
-      "delete": {
-        "description": "Deletes multiple annotation layers in a bulk operation.",
-        "parameters": [
-          {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/advanced_data_type_convert_schema"
-                }
-              }
-            },
-            "in": "query",
-            "name": "q"
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AdvancedDataTypeSchema"
-                }
-              }
-            },
-            "description": "AdvancedDataTypeResponse object has been returned."
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "summary": "Returns a AdvancedDataTypeResponse object populated with the passed in args.",
-        "tags": [
-          "Advanced Data Type"
-        ]
-      }
-    },
-    "/api/v1/advanced_data_type/types": {
-      "get": {
-        "description": "Returns a list of available advanced data types.",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "result": {
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "a successful return of the available advanced data types has taken place."
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "tags": [
-          "Advanced Data Type"
-        ]
+        "tags": ["Advanced Data Type"]
       }
     },
     "/api/v1/annotation_layer/": {
@@ -8910,9 +9319,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Annotation Layers"
-        ]
+        "tags": ["Annotation Layers"]
       },
       "get": {
         "description": "Get a list of Annotation layers, use Rison or JSON query parameters for filtering, sorting, pagination and for selecting specific columns and metadata.",
@@ -9017,9 +9424,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Annotation Layers"
-        ]
+        "tags": ["Annotation Layers"]
       },
       "post": {
         "description": "Create an Annotation layer",
@@ -9071,9 +9476,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Annotation Layers"
-        ]
+        "tags": ["Annotation Layers"]
       }
     },
     "/api/v1/annotation_layer/_info": {
@@ -9157,9 +9560,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Annotation Layers"
-        ]
+        "tags": ["Annotation Layers"]
       }
     },
     "/api/v1/annotation_layer/related/{column_name}": {
@@ -9214,9 +9615,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Annotation Layers"
-        ]
+        "tags": ["Annotation Layers"]
       }
     },
     "/api/v1/annotation_layer/{pk}": {
@@ -9264,9 +9663,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Annotation Layers"
-        ]
+        "tags": ["Annotation Layers"]
       },
       "get": {
         "description": "Get an Annotation layer",
@@ -9364,9 +9761,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Annotation Layers"
-        ]
+        "tags": ["Annotation Layers"]
       },
       "put": {
         "description": "Update an Annotation layer",
@@ -9429,9 +9824,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Annotation Layers"
-        ]
+        "tags": ["Annotation Layers"]
       }
     },
     "/api/v1/annotation_layer/{pk}/annotation/": {
@@ -9493,9 +9886,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Annotation Layers"
-        ]
+        "tags": ["Annotation Layers"]
       },
       "get": {
         "description": "Get a list of Annotation layers, use Rison or JSON query parameters for filtering, sorting, pagination and for selecting specific columns and metadata.",
@@ -9570,9 +9961,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Annotation Layers"
-        ]
+        "tags": ["Annotation Layers"]
       },
       "post": {
         "description": "Create an Annotation layer",
@@ -9635,9 +10024,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Annotation Layers"
-        ]
+        "tags": ["Annotation Layers"]
       }
     },
     "/api/v1/annotation_layer/{pk}/annotation/{annotation_id}": {
@@ -9694,9 +10081,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Annotation Layers"
-        ]
+        "tags": ["Annotation Layers"]
       },
       "get": {
         "description": "Get an Annotation layer",
@@ -9772,9 +10157,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Annotation Layers"
-        ]
+        "tags": ["Annotation Layers"]
       },
       "put": {
         "description": "Update an Annotation layer",
@@ -9846,9 +10229,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Annotation Layers"
-        ]
+        "tags": ["Annotation Layers"]
       }
     },
     "/api/v1/assets/export/": {
@@ -9881,9 +10262,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Import/export"
-        ]
+        "tags": ["Import/export"]
       }
     },
     "/api/v1/assets/import/": {
@@ -9900,6 +10279,18 @@
                   },
                   "passwords": {
                     "description": "JSON map of passwords for each featured database in the ZIP file. If the ZIP includes a database config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_passwords": {
+                    "description": "JSON map of passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_private_keys": {
+                    "description": "JSON map of private_keys for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_private_keyspasswords": {
+                    "description": "JSON map of private_key_passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key_password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key_password\"}`.",
                     "type": "string"
                   }
                 },
@@ -9943,9 +10334,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Import/export"
-        ]
+        "tags": ["Import/export"]
       }
     },
     "/api/v1/async_event/": {
@@ -10018,9 +10407,41 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "AsyncEventsRestApi"
-        ]
+        "tags": ["AsyncEventsRestApi"]
+      }
+    },
+    "/api/v1/available_domains/": {
+      "get": {
+        "description": "Get all available domains",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/AvailableDomainsSchema"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "a list of available domains"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": ["Available Domains"]
       }
     },
     "/api/v1/cachekey/invalidate": {
@@ -10053,9 +10474,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "CacheRestApi"
-        ]
+        "tags": ["CacheRestApi"]
       }
     },
     "/api/v1/chart/": {
@@ -10111,9 +10530,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Charts"
-        ]
+        "tags": ["Charts"]
       },
       "get": {
         "description": "Get a list of charts, use Rison or JSON query parameters for filtering, sorting, pagination and  for selecting specific columns and metadata.",
@@ -10218,9 +10635,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Charts"
-        ]
+        "tags": ["Charts"]
       },
       "post": {
         "description": "Create a new Chart.",
@@ -10272,9 +10687,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Charts"
-        ]
+        "tags": ["Charts"]
       }
     },
     "/api/v1/chart/_info": {
@@ -10358,9 +10771,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Charts"
-        ]
+        "tags": ["Charts"]
       }
     },
     "/api/v1/chart/data": {
@@ -10413,9 +10824,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Charts"
-        ]
+        "tags": ["Charts"]
       }
     },
     "/api/v1/chart/data/{cache_key}": {
@@ -10463,9 +10872,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Charts"
-        ]
+        "tags": ["Charts"]
       }
     },
     "/api/v1/chart/export/": {
@@ -10514,9 +10921,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Charts"
-        ]
+        "tags": ["Charts"]
       }
     },
     "/api/v1/chart/favorite_status/": {
@@ -10564,9 +10969,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Charts"
-        ]
+        "tags": ["Charts"]
       }
     },
     "/api/v1/chart/import/": {
@@ -10587,6 +10990,18 @@
                   },
                   "passwords": {
                     "description": "JSON map of passwords for each featured database in the ZIP file. If the ZIP includes a database config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_passwords": {
+                    "description": "JSON map of passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_private_keys": {
+                    "description": "JSON map of private_keys for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_private_keyspasswords": {
+                    "description": "JSON map of private_key_passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key_password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key_password\"}`.",
                     "type": "string"
                   }
                 },
@@ -10630,9 +11045,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Charts"
-        ]
+        "tags": ["Charts"]
       }
     },
     "/api/v1/chart/related/{column_name}": {
@@ -10688,9 +11101,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Charts"
-        ]
+        "tags": ["Charts"]
       }
     },
     "/api/v1/chart/{pk}": {
@@ -10743,9 +11154,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Charts"
-        ]
+        "tags": ["Charts"]
       },
       "get": {
         "description": "Get a chart detail information.",
@@ -10843,9 +11252,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Charts"
-        ]
+        "tags": ["Charts"]
       },
       "put": {
         "description": "Changes a Chart.",
@@ -10913,9 +11320,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Charts"
-        ]
+        "tags": ["Charts"]
       }
     },
     "/api/v1/chart/{pk}/cache_screenshot/": {
@@ -10971,9 +11376,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Charts"
-        ]
+        "tags": ["Charts"]
       }
     },
     "/api/v1/chart/{pk}/data/": {
@@ -11003,6 +11406,14 @@
             "name": "type",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "description": "Should the queries be forced to load from the source",
+            "in": "query",
+            "name": "force",
+            "schema": {
+              "type": "boolean"
             }
           }
         ],
@@ -11042,9 +11453,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Charts"
-        ]
+        "tags": ["Charts"]
       }
     },
     "/api/v1/chart/{pk}/screenshot/{digest}/": {
@@ -11098,9 +11507,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Charts"
-        ]
+        "tags": ["Charts"]
       }
     },
     "/api/v1/chart/{pk}/thumbnail/{digest}/": {
@@ -11157,9 +11564,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Charts"
-        ]
+        "tags": ["Charts"]
       }
     },
     "/api/v1/css_template/": {
@@ -11212,9 +11617,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "CSS Templates"
-        ]
+        "tags": ["CSS Templates"]
       },
       "get": {
         "description": "Get a list of CSS templates, use Rison or JSON query parameters for filtering, sorting, pagination and for selecting specific columns and metadata.",
@@ -11319,9 +11722,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "CSS Templates"
-        ]
+        "tags": ["CSS Templates"]
       },
       "post": {
         "description": "Create a CSS template",
@@ -11373,9 +11774,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "CSS Templates"
-        ]
+        "tags": ["CSS Templates"]
       }
     },
     "/api/v1/css_template/_info": {
@@ -11459,9 +11858,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "CSS Templates"
-        ]
+        "tags": ["CSS Templates"]
       }
     },
     "/api/v1/css_template/related/{column_name}": {
@@ -11516,9 +11913,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "CSS Templates"
-        ]
+        "tags": ["CSS Templates"]
       }
     },
     "/api/v1/css_template/{pk}": {
@@ -11565,9 +11960,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "CSS Templates"
-        ]
+        "tags": ["CSS Templates"]
       },
       "get": {
         "description": "Get a CSS template",
@@ -11665,9 +12058,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "CSS Templates"
-        ]
+        "tags": ["CSS Templates"]
       },
       "put": {
         "description": "Update a CSS template",
@@ -11729,9 +12120,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "CSS Templates"
-        ]
+        "tags": ["CSS Templates"]
       }
     },
     "/api/v1/dashboard/": {
@@ -11787,9 +12176,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Dashboards"
-        ]
+        "tags": ["Dashboards"]
       },
       "get": {
         "description": "Get a list of dashboards, use Rison or JSON query parameters for filtering, sorting, pagination and  for selecting specific columns and metadata.",
@@ -11894,9 +12281,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Dashboards"
-        ]
+        "tags": ["Dashboards"]
       },
       "post": {
         "description": "Create a new Dashboard.",
@@ -11948,9 +12333,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Dashboards"
-        ]
+        "tags": ["Dashboards"]
       }
     },
     "/api/v1/dashboard/_info": {
@@ -12034,9 +12417,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Dashboards"
-        ]
+        "tags": ["Dashboards"]
       }
     },
     "/api/v1/dashboard/export/": {
@@ -12087,9 +12468,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Dashboards"
-        ]
+        "tags": ["Dashboards"]
       }
     },
     "/api/v1/dashboard/favorite_status/": {
@@ -12137,9 +12516,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Dashboards"
-        ]
+        "tags": ["Dashboards"]
       }
     },
     "/api/v1/dashboard/import/": {
@@ -12160,6 +12537,18 @@
                   },
                   "passwords": {
                     "description": "JSON map of passwords for each featured database in the ZIP file. If the ZIP includes a database config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_passwords": {
+                    "description": "JSON map of passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_private_keys": {
+                    "description": "JSON map of private_keys for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_private_keyspasswords": {
+                    "description": "JSON map of private_key_passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key_password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key_password\"}`.",
                     "type": "string"
                   }
                 },
@@ -12203,9 +12592,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Dashboards"
-        ]
+        "tags": ["Dashboards"]
       }
     },
     "/api/v1/dashboard/permalink/{key}": {
@@ -12259,9 +12646,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Dashboard Permanent Link"
-        ]
+        "tags": ["Dashboard Permanent Link"]
       }
     },
     "/api/v1/dashboard/related/{column_name}": {
@@ -12317,9 +12702,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Dashboards"
-        ]
+        "tags": ["Dashboards"]
       }
     },
     "/api/v1/dashboard/{dashboard_id}/filtersets": {
@@ -12393,9 +12776,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "FilterSetRestApi"
-        ]
+        "tags": ["FilterSetRestApi"]
       },
       "post": {
         "description": "Create a new Dashboard's Filter Set.",
@@ -12461,9 +12842,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "FilterSetRestApi"
-        ]
+        "tags": ["FilterSetRestApi"]
       }
     },
     "/api/v1/dashboard/{dashboard_id}/filtersets/{pk}": {
@@ -12524,9 +12903,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "FilterSetRestApi"
-        ]
+        "tags": ["FilterSetRestApi"]
       },
       "put": {
         "description": "Changes a Dashboard's Filter set.",
@@ -12602,9 +12979,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "FilterSetRestApi"
-        ]
+        "tags": ["FilterSetRestApi"]
       }
     },
     "/api/v1/dashboard/{id_or_slug}": {
@@ -12655,9 +13030,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Dashboards"
-        ]
+        "tags": ["Dashboards"]
       }
     },
     "/api/v1/dashboard/{id_or_slug}/charts": {
@@ -12710,9 +13083,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Dashboards"
-        ]
+        "tags": ["Dashboards"]
       }
     },
     "/api/v1/dashboard/{id_or_slug}/datasets": {
@@ -12766,9 +13137,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Dashboards"
-        ]
+        "tags": ["Dashboards"]
       }
     },
     "/api/v1/dashboard/{id_or_slug}/embedded": {
@@ -12813,9 +13182,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Dashboards"
-        ]
+        "tags": ["Dashboards"]
       },
       "get": {
         "description": "Returns the dashboard's embedded configuration",
@@ -12858,9 +13225,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Dashboards"
-        ]
+        "tags": ["Dashboards"]
       },
       "post": {
         "description": "Sets a dashboard's embedded configuration.",
@@ -12914,9 +13279,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Dashboards"
-        ]
+        "tags": ["Dashboards"]
       },
       "put": {
         "description": "Sets a dashboard's embedded configuration.",
@@ -12970,9 +13333,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Dashboards"
-        ]
+        "tags": ["Dashboards"]
       }
     },
     "/api/v1/dashboard/{pk}": {
@@ -13025,9 +13386,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Dashboards"
-        ]
+        "tags": ["Dashboards"]
       },
       "put": {
         "description": "Changes a Dashboard.",
@@ -13098,9 +13457,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Dashboards"
-        ]
+        "tags": ["Dashboards"]
       }
     },
     "/api/v1/dashboard/{pk}/filter_state": {
@@ -13168,9 +13525,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Dashboard Filter State"
-        ]
+        "tags": ["Dashboard Filter State"]
       }
     },
     "/api/v1/dashboard/{pk}/filter_state/{key}": {
@@ -13233,9 +13588,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Dashboard Filter State"
-        ]
+        "tags": ["Dashboard Filter State"]
       },
       "get": {
         "description": "Retrives a value.",
@@ -13295,9 +13648,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Dashboard Filter State"
-        ]
+        "tags": ["Dashboard Filter State"]
       },
       "put": {
         "description": "Updates an existing value.",
@@ -13374,9 +13725,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Dashboard Filter State"
-        ]
+        "tags": ["Dashboard Filter State"]
       }
     },
     "/api/v1/dashboard/{pk}/permalink": {
@@ -13441,9 +13790,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Dashboard Permanent Link"
-        ]
+        "tags": ["Dashboard Permanent Link"]
       }
     },
     "/api/v1/dashboard/{pk}/thumbnail/{digest}/": {
@@ -13527,9 +13874,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Dashboards"
-        ]
+        "tags": ["Dashboards"]
       }
     },
     "/api/v1/database/": {
@@ -13636,9 +13981,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Database"
-        ]
+        "tags": ["Database"]
       },
       "post": {
         "description": "Create a new Database.",
@@ -13690,9 +14033,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Database"
-        ]
+        "tags": ["Database"]
       }
     },
     "/api/v1/database/_info": {
@@ -13776,9 +14117,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Database"
-        ]
+        "tags": ["Database"]
       }
     },
     "/api/v1/database/available/": {
@@ -13806,6 +14145,20 @@
                         "description": "Name of the SQLAlchemy engine",
                         "type": "string"
                       },
+                      "engine_information": {
+                        "description": "Dict with public properties form the DB Engine",
+                        "properties": {
+                          "disable_ssh_tunneling": {
+                            "description": "Whether the engine supports SSH Tunnels",
+                            "type": "boolean"
+                          },
+                          "supports_file_upload": {
+                            "description": "Whether the engine supports file uploads",
+                            "type": "boolean"
+                          }
+                        },
+                        "type": "object"
+                      },
                       "name": {
                         "description": "Name of the database",
                         "type": "string"
@@ -13821,10 +14174,6 @@
                       "sqlalchemy_uri_placeholder": {
                         "description": "Example placeholder for the SQLAlchemy URI",
                         "type": "string"
-                      },
-                      "engine_information": {
-                        "description": "Object with properties we want to expose from our DB engine",
-                        "type": "object"
                       }
                     },
                     "type": "object"
@@ -13847,9 +14196,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Database"
-        ]
+        "tags": ["Database"]
       }
     },
     "/api/v1/database/export/": {
@@ -13895,9 +14242,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Database"
-        ]
+        "tags": ["Database"]
       }
     },
     "/api/v1/database/import/": {
@@ -13918,6 +14263,18 @@
                   },
                   "passwords": {
                     "description": "JSON map of passwords for each featured database in the ZIP file. If the ZIP includes a database config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_passwords": {
+                    "description": "JSON map of passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_private_keys": {
+                    "description": "JSON map of private_keys for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_private_keyspasswords": {
+                    "description": "JSON map of private_key_passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key_password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key_password\"}`.",
                     "type": "string"
                   }
                 },
@@ -13961,9 +14318,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Database"
-        ]
+        "tags": ["Database"]
       }
     },
     "/api/v1/database/test_connection/": {
@@ -14011,9 +14366,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Database"
-        ]
+        "tags": ["Database"]
       }
     },
     "/api/v1/database/validate_parameters/": {
@@ -14061,9 +14414,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Database"
-        ]
+        "tags": ["Database"]
       }
     },
     "/api/v1/database/{pk}": {
@@ -14116,31 +14467,19 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Database"
-        ]
+        "tags": ["Database"]
       },
       "get": {
-        "description": "Get an item model",
+        "description": "Get a database",
         "parameters": [
           {
+            "description": "The database id",
             "in": "path",
             "name": "pk",
             "required": true,
             "schema": {
               "type": "integer"
             }
-          },
-          {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/get_item_schema"
-                }
-              }
-            },
-            "in": "query",
-            "name": "q"
           }
         ],
         "responses": {
@@ -14148,61 +14487,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "description_columns": {
-                      "properties": {
-                        "column_name": {
-                          "description": "The description for the column name. Will be translated by babel",
-                          "example": "A Nice description for the column",
-                          "type": "string"
-                        }
-                      },
-                      "type": "object"
-                    },
-                    "id": {
-                      "description": "The item id",
-                      "type": "string"
-                    },
-                    "label_columns": {
-                      "properties": {
-                        "column_name": {
-                          "description": "The label for the column name. Will be translated by babel",
-                          "example": "A Nice label for the column",
-                          "type": "string"
-                        }
-                      },
-                      "type": "object"
-                    },
-                    "result": {
-                      "$ref": "#/components/schemas/DatabaseRestApi.get"
-                    },
-                    "show_columns": {
-                      "description": "A list of columns",
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    },
-                    "show_title": {
-                      "description": "A title to render. Will be translated by babel",
-                      "example": "Show Item Details",
-                      "type": "string"
-                    }
-                  },
                   "type": "object"
                 }
               }
             },
-            "description": "Item from Model"
+            "description": "Database"
           },
           "400": {
             "$ref": "#/components/responses/400"
           },
           "401": {
             "$ref": "#/components/responses/401"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
           },
           "422": {
             "$ref": "#/components/responses/422"
@@ -14216,9 +14511,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Database"
-        ]
+        "tags": ["Database"]
       },
       "put": {
         "description": "Changes a Database.",
@@ -14286,9 +14579,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Database"
-        ]
+        "tags": ["Database"]
       }
     },
     "/api/v1/database/{pk}/function_names/": {
@@ -14330,9 +14621,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Database"
-        ]
+        "tags": ["Database"]
       }
     },
     "/api/v1/database/{pk}/related_objects/": {
@@ -14374,9 +14663,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Database"
-        ]
+        "tags": ["Database"]
       }
     },
     "/api/v1/database/{pk}/schemas/": {
@@ -14433,9 +14720,49 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Database"
-        ]
+        "tags": ["Database"]
+      }
+    },
+    "/api/v1/database/{pk}/schemas_access_for_file_upload/": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatabaseSchemaAccessForFileUploadResponse"
+                }
+              }
+            },
+            "description": "The list of the database schemas where to upload information"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "The list of the database schemas where to upload information",
+        "tags": ["Database"]
       }
     },
     "/api/v1/database/{pk}/select_star/{table_name}/": {
@@ -14502,9 +14829,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Database"
-        ]
+        "tags": ["Database"]
       }
     },
     "/api/v1/database/{pk}/select_star/{table_name}/{schema_name}/": {
@@ -14571,40 +14896,19 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Database"
-        ]
+        "tags": ["Database"]
       }
     },
-    "/api/v1/database/{pk}/select_star/{table_name}/{schema_name}/": {
-      "get": {
-        "description": "Get database select star for table",
+    "/api/v1/database/{pk}/ssh_tunnel/": {
+      "delete": {
+        "description": "Deletes a SSH Tunnel.",
         "parameters": [
           {
-            "description": "The database id",
             "in": "path",
             "name": "pk",
             "required": true,
             "schema": {
               "type": "integer"
-            }
-          },
-          {
-            "description": "Table name",
-            "in": "path",
-            "name": "table_name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Table schema",
-            "in": "path",
-            "name": "schema_name",
-            "required": true,
-            "schema": {
-              "type": "string"
             }
           }
         ],
@@ -14613,17 +14917,22 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SelectStarResponseSchema"
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
                 }
               }
             },
-            "description": "SQL statement for a select star for table"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
+            "description": "SSH Tunnel deleted"
           },
           "401": {
             "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
           },
           "404": {
             "$ref": "#/components/responses/404"
@@ -14640,9 +14949,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Database"
-        ]
+        "tags": ["Database"]
       }
     },
     "/api/v1/database/{pk}/table/{table_name}/{schema_name}/": {
@@ -14709,9 +15016,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Database"
-        ]
+        "tags": ["Database"]
       }
     },
     "/api/v1/database/{pk}/table_extra/{table_name}/{schema_name}/": {
@@ -14779,12 +15084,82 @@
           }
         ],
         "summary": "Get table extra metadata",
-        "tags": [
-          "Database"
-        ]
+        "tags": ["Database"]
       }
     },
-    "/api/v1/database/{pk}/validate_sql": {
+    "/api/v1/database/{pk}/tables/": {
+      "get": {
+        "parameters": [
+          {
+            "description": "The database id",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/database_tables_query_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "result": {
+                      "description": "A List of tables for given database",
+                      "items": {
+                        "$ref": "#/components/schemas/DatabaseTablesResponse"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Tables list"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Get a list of tables for given database",
+        "tags": ["Database"]
+      }
+    },
+    "/api/v1/database/{pk}/validate_sql/": {
       "post": {
         "description": "Validates arbitrary SQL.",
         "parameters": [
@@ -14847,9 +15222,7 @@
           }
         ],
         "summary": "Validates that arbitrary sql is acceptable for the given database",
-        "tags": [
-          "Database"
-        ]
+        "tags": ["Database"]
       }
     },
     "/api/v1/dataset/": {
@@ -14908,9 +15281,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Datasets"
-        ]
+        "tags": ["Datasets"]
       },
       "get": {
         "description": "Get a list of models",
@@ -15015,9 +15386,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Datasets"
-        ]
+        "tags": ["Datasets"]
       },
       "post": {
         "description": "Create a new Dataset",
@@ -15069,9 +15438,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Datasets"
-        ]
+        "tags": ["Datasets"]
       }
     },
     "/api/v1/dataset/_info": {
@@ -15155,9 +15522,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Datasets"
-        ]
+        "tags": ["Datasets"]
       }
     },
     "/api/v1/dataset/distinct/{column_name}": {
@@ -15212,24 +15577,12 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Datasets"
-        ]
+        "tags": ["Datasets"]
       }
     },
     "/api/v1/dataset/duplicate": {
       "post": {
         "description": "Duplicates a Dataset",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "pk",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -15242,20 +15595,23 @@
           "required": true
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {
                   "properties": {
-                    "message": {
-                      "type": "string"
+                    "id": {
+                      "type": "number"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/DatasetDuplicateSchema"
                     }
                   },
                   "type": "object"
                 }
               }
             },
-            "description": "Dataset duplicate"
+            "description": "Dataset duplicated"
           },
           "400": {
             "$ref": "#/components/responses/400"
@@ -15281,9 +15637,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Datasets"
-        ]
+        "tags": ["Datasets"]
       }
     },
     "/api/v1/dataset/export/": {
@@ -15331,9 +15685,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Datasets"
-        ]
+        "tags": ["Datasets"]
       }
     },
     "/api/v1/dataset/import/": {
@@ -15363,6 +15715,18 @@
                   "sync_metrics": {
                     "description": "sync metrics?",
                     "type": "boolean"
+                  },
+                  "ssh_tunnel_passwords": {
+                    "description": "JSON map of passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_private_keys": {
+                    "description": "JSON map of private_keys for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_private_keyspasswords": {
+                    "description": "JSON map of private_key_passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key_password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key_password\"}`.",
+                    "type": "string"
                   }
                 },
                 "type": "object"
@@ -15405,9 +15769,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Datasets"
-        ]
+        "tags": ["Datasets"]
       }
     },
     "/api/v1/dataset/related/{column_name}": {
@@ -15462,9 +15824,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Datasets"
-        ]
+        "tags": ["Datasets"]
       }
     },
     "/api/v1/dataset/{pk}": {
@@ -15517,9 +15877,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Datasets"
-        ]
+        "tags": ["Datasets"]
       },
       "get": {
         "description": "Get an item model",
@@ -15617,9 +15975,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Datasets"
-        ]
+        "tags": ["Datasets"]
       },
       "put": {
         "description": "Changes a Dataset",
@@ -15694,9 +16050,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Datasets"
-        ]
+        "tags": ["Datasets"]
       }
     },
     "/api/v1/dataset/{pk}/column/{column_id}": {
@@ -15759,9 +16113,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Datasets"
-        ]
+        "tags": ["Datasets"]
       }
     },
     "/api/v1/dataset/{pk}/metric/{metric_id}": {
@@ -15824,9 +16176,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Datasets"
-        ]
+        "tags": ["Datasets"]
       }
     },
     "/api/v1/dataset/{pk}/refresh": {
@@ -15879,9 +16229,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Datasets"
-        ]
+        "tags": ["Datasets"]
       }
     },
     "/api/v1/dataset/{pk}/related_objects": {
@@ -15923,28 +16271,37 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Datasets"
-        ]
+        "tags": ["Datasets"]
       }
     },
-    "/api/v1/dataset/{pk}/samples": {
+    "/api/v1/datasource/{datasource_type}/{datasource_id}/column/{column_name}/values/": {
       "get": {
-        "description": "get samples from a Dataset",
         "parameters": [
           {
+            "description": "The type of datasource",
             "in": "path",
-            "name": "pk",
+            "name": "datasource_type",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The id of the datasource",
+            "in": "path",
+            "name": "datasource_id",
             "required": true,
             "schema": {
               "type": "integer"
             }
           },
           {
-            "in": "query",
-            "name": "force",
+            "description": "The name of the column to get values for",
+            "in": "path",
+            "name": "column_name",
+            "required": true,
             "schema": {
-              "type": "boolean"
+              "type": "string"
             }
           }
         ],
@@ -15955,14 +16312,36 @@
                 "schema": {
                   "properties": {
                     "result": {
-                      "$ref": "#/components/schemas/ChartDataResponseResult"
+                      "items": {
+                        "oneOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "integer"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "boolean"
+                          },
+                          {
+                            "type": "object"
+                          }
+                        ]
+                      },
+                      "type": "array"
                     }
                   },
                   "type": "object"
                 }
               }
             },
-            "description": "Dataset samples"
+            "description": "A List of distinct values for the column"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
           },
           "401": {
             "$ref": "#/components/responses/401"
@@ -15973,9 +16352,6 @@
           "404": {
             "$ref": "#/components/responses/404"
           },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
           "500": {
             "$ref": "#/components/responses/500"
           }
@@ -15985,9 +16361,8 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Datasets"
-        ]
+        "summary": "Get possible values for a datasource column",
+        "tags": ["Datasources"]
       }
     },
     "/api/v1/embedded_dashboard/{uuid}": {
@@ -16035,9 +16410,83 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Embedded Dashboard"
-        ]
+        "tags": ["Embedded Dashboard"]
+      }
+    },
+    "/api/v1/explore/": {
+      "get": {
+        "description": "Assembles Explore related information (form_data, slice, dataset)\\n in a single endpoint.<br/><br/>\\nThe information can be assembled from:<br/> - The cache using a form_data_key<br/> - The metadata database using a permalink_key<br/> - Build from scratch using dataset or slice identifiers.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "form_data_key",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "permalink_key",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "slice_id",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "datasource_id",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "datasource_type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExploreContextSchema"
+                }
+              }
+            },
+            "description": "Returns the initial context."
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Assembles Explore related information (form_data, slice, dataset)\\n in a single endpoint.",
+        "tags": ["Explore"]
       }
     },
     "/api/v1/explore/form_data": {
@@ -16097,9 +16546,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Explore Form Data"
-        ]
+        "tags": ["Explore Form Data"]
       }
     },
     "/api/v1/explore/form_data/{key}": {
@@ -16154,9 +16601,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Explore Form Data"
-        ]
+        "tags": ["Explore Form Data"]
       },
       "get": {
         "description": "Retrives a form_data.",
@@ -16208,9 +16653,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Explore Form Data"
-        ]
+        "tags": ["Explore Form Data"]
       },
       "put": {
         "description": "Updates an existing form_data.",
@@ -16279,9 +16722,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Explore Form Data"
-        ]
+        "tags": ["Explore Form Data"]
       }
     },
     "/api/v1/explore/permalink": {
@@ -16308,7 +16749,7 @@
                       "type": "string"
                     },
                     "url": {
-                      "description": "pemanent link.",
+                      "description": "permanent link.",
                       "type": "string"
                     }
                   },
@@ -16336,9 +16777,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Explore Permanent Link"
-        ]
+        "tags": ["Explore Permanent Link"]
       }
     },
     "/api/v1/explore/permalink/{key}": {
@@ -16392,9 +16831,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Explore Permanent Link"
-        ]
+        "tags": ["Explore Permanent Link"]
       }
     },
     "/api/v1/log/": {
@@ -16501,9 +16938,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "LogRestApi"
-        ]
+        "tags": ["LogRestApi"]
       },
       "post": {
         "requestBody": {
@@ -16554,9 +16989,64 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "LogRestApi"
-        ]
+        "tags": ["LogRestApi"]
+      }
+    },
+    "/api/v1/log/recent_activity/{user_id}/": {
+      "get": {
+        "parameters": [
+          {
+            "description": "The id of the user",
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_recent_activity_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecentActivityResponseSchema"
+                }
+              }
+            },
+            "description": "A List of recent activity objects"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Get recent activity data for a user",
+        "tags": ["LogRestApi"]
       }
     },
     "/api/v1/log/{pk}": {
@@ -16656,9 +17146,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "LogRestApi"
-        ]
+        "tags": ["LogRestApi"]
       }
     },
     "/api/v1/me/": {
@@ -16684,9 +17172,7 @@
             "$ref": "#/components/responses/401"
           }
         },
-        "tags": [
-          "Current User"
-        ]
+        "tags": ["Current User"]
       }
     },
     "/api/v1/me/roles/": {
@@ -16712,9 +17198,7 @@
             "$ref": "#/components/responses/401"
           }
         },
-        "tags": [
-          "Current User"
-        ]
+        "tags": ["Current User"]
       }
     },
     "/api/v1/menu/": {
@@ -16773,9 +17257,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Menu"
-        ]
+        "tags": ["Menu"]
       }
     },
     "/api/v1/query/": {
@@ -16882,9 +17364,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Queries"
-        ]
+        "tags": ["Queries"]
       }
     },
     "/api/v1/query/distinct/{column_name}": {
@@ -16939,9 +17419,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Queries"
-        ]
+        "tags": ["Queries"]
       }
     },
     "/api/v1/query/related/{column_name}": {
@@ -16996,9 +17474,115 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Queries"
-        ]
+        "tags": ["Queries"]
+      }
+    },
+    "/api/v1/query/stop": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StopQuerySchema"
+              }
+            }
+          },
+          "description": "Stop query schema",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Query stopped"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Manually stop a query with client_id",
+        "tags": ["Queries"]
+      }
+    },
+    "/api/v1/query/updated_since": {
+      "get": {
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/queries_get_updated_since_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "description": "A List of queries that changed after last_updated_ms",
+                      "items": {
+                        "$ref": "#/components/schemas/QueryRestApi.get"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Queries list"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Get a list of queries that changed after last_updated_ms",
+        "tags": ["Queries"]
       }
     },
     "/api/v1/query/{pk}": {
@@ -17098,9 +17682,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Queries"
-        ]
+        "tags": ["Queries"]
       }
     },
     "/api/v1/report/": {
@@ -17156,9 +17738,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Report Schedules"
-        ]
+        "tags": ["Report Schedules"]
       },
       "get": {
         "description": "Get a list of report schedules, use Rison or JSON query parameters for filtering, sorting, pagination and for selecting specific columns and metadata.",
@@ -17263,9 +17843,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Report Schedules"
-        ]
+        "tags": ["Report Schedules"]
       },
       "post": {
         "description": "Create a report schedule",
@@ -17320,9 +17898,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Report Schedules"
-        ]
+        "tags": ["Report Schedules"]
       }
     },
     "/api/v1/report/_info": {
@@ -17406,9 +17982,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Report Schedules"
-        ]
+        "tags": ["Report Schedules"]
       }
     },
     "/api/v1/report/related/{column_name}": {
@@ -17463,9 +18037,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Report Schedules"
-        ]
+        "tags": ["Report Schedules"]
       }
     },
     "/api/v1/report/{pk}": {
@@ -17516,9 +18088,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Report Schedules"
-        ]
+        "tags": ["Report Schedules"]
       },
       "get": {
         "description": "Get a report schedule",
@@ -17616,9 +18186,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Report Schedules"
-        ]
+        "tags": ["Report Schedules"]
       },
       "put": {
         "description": "Update a report schedule",
@@ -17687,9 +18255,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Report Schedules"
-        ]
+        "tags": ["Report Schedules"]
       }
     },
     "/api/v1/report/{pk}/log/": {
@@ -17766,9 +18332,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Report Schedules"
-        ]
+        "tags": ["Report Schedules"]
       }
     },
     "/api/v1/report/{pk}/log/{log_id}": {
@@ -17846,9 +18410,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Report Schedules"
-        ]
+        "tags": ["Report Schedules"]
       }
     },
     "/api/v1/saved_query/": {
@@ -17901,9 +18463,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Queries"
-        ]
+        "tags": ["Queries"]
       },
       "get": {
         "description": "Get a list of saved queries, use Rison or JSON query parameters for filtering, sorting, pagination and for selecting specific columns and metadata.",
@@ -18008,9 +18568,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Queries"
-        ]
+        "tags": ["Queries"]
       },
       "post": {
         "description": "Create a saved query",
@@ -18062,9 +18620,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Queries"
-        ]
+        "tags": ["Queries"]
       }
     },
     "/api/v1/saved_query/_info": {
@@ -18148,9 +18704,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Queries"
-        ]
+        "tags": ["Queries"]
       }
     },
     "/api/v1/saved_query/distinct/{column_name}": {
@@ -18205,9 +18759,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Queries"
-        ]
+        "tags": ["Queries"]
       }
     },
     "/api/v1/saved_query/export/": {
@@ -18256,9 +18808,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Queries"
-        ]
+        "tags": ["Queries"]
       }
     },
     "/api/v1/saved_query/import/": {
@@ -18279,6 +18829,18 @@
                   },
                   "passwords": {
                     "description": "JSON map of passwords for each featured database in the ZIP file. If the ZIP includes a database config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_passwords": {
+                    "description": "JSON map of passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_private_keys": {
+                    "description": "JSON map of private_keys for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_private_keyspasswords": {
+                    "description": "JSON map of private_key_passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key_password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key_password\"}`.",
                     "type": "string"
                   }
                 },
@@ -18322,9 +18884,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Queries"
-        ]
+        "tags": ["Queries"]
       }
     },
     "/api/v1/saved_query/related/{column_name}": {
@@ -18379,9 +18939,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Queries"
-        ]
+        "tags": ["Queries"]
       }
     },
     "/api/v1/saved_query/{pk}": {
@@ -18428,9 +18986,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Queries"
-        ]
+        "tags": ["Queries"]
       },
       "get": {
         "description": "Get a saved query",
@@ -18528,9 +19084,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Queries"
-        ]
+        "tags": ["Queries"]
       },
       "put": {
         "description": "Update a saved query",
@@ -18592,9 +19146,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Queries"
-        ]
+        "tags": ["Queries"]
       }
     },
     "/api/v1/security/csrf_token/": {
@@ -18628,9 +19180,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Security"
-        ]
+        "tags": ["Security"]
       }
     },
     "/api/v1/security/guest_token/": {
@@ -18678,9 +19228,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "Security"
-        ]
+        "tags": ["Security"]
       }
     },
     "/api/v1/security/login": {
@@ -18698,10 +19246,7 @@
                   },
                   "provider": {
                     "description": "Choose an authentication provider",
-                    "enum": [
-                      "db",
-                      "ldap"
-                    ],
+                    "enum": ["db", "ldap"],
                     "example": "db",
                     "type": "string"
                   },
@@ -18751,9 +19296,7 @@
             "$ref": "#/components/responses/500"
           }
         },
-        "tags": [
-          "Security"
-        ]
+        "tags": ["Security"]
       }
     },
     "/api/v1/security/refresh": {
@@ -18788,9 +19331,169 @@
             "jwt_refresh": []
           }
         ],
-        "tags": [
-          "Security"
-        ]
+        "tags": ["Security"]
+      }
+    },
+    "/api/v1/sqllab/execute/": {
+      "post": {
+        "description": "Starts the execution of a SQL query",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecutePayloadSchema"
+              }
+            }
+          },
+          "description": "SQL query and params",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryExecutionResponseSchema"
+                }
+              }
+            },
+            "description": "Query execution result"
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryExecutionResponseSchema"
+                }
+              }
+            },
+            "description": "Query execution result, query still running"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": ["SQL Lab"]
+      }
+    },
+    "/api/v1/sqllab/export/{client_id}/": {
+      "get": {
+        "parameters": [
+          {
+            "description": "The SQL query result identifier",
+            "in": "path",
+            "name": "client_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "SQL query results"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Exports the SQL query results to a CSV",
+        "tags": ["SQL Lab"]
+      }
+    },
+    "/api/v1/sqllab/results/": {
+      "get": {
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/sql_lab_get_results_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryExecutionResponseSchema"
+                }
+              }
+            },
+            "description": "SQL query execution result"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "410": {
+            "$ref": "#/components/responses/410"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Gets the result of a SQL query execution",
+        "tags": ["SQL Lab"]
       }
     },
     "/api/{version}/_openapi": {
@@ -18829,9 +19532,7 @@
             "jwt": []
           }
         ],
-        "tags": [
-          "OpenApi"
-        ]
+        "tags": ["OpenApi"]
       }
     }
   },

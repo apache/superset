@@ -78,15 +78,14 @@ const SaveQuery = ({
     'latestQueryId',
     'queryLimit',
     'schema',
-    'schemaOptions',
     'selectedText',
     'sql',
-    'tableOptions',
     'templateParams',
   ]);
   const query = useMemo(
     () => ({
       ...queryEditor,
+      columns,
     }),
     [queryEditor, columns],
   );

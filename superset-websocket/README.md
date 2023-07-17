@@ -57,7 +57,7 @@ In addition to periodic socket connection cleanup, the internal _channels_ regis
 
 Install dependencies:
 ```
-npm install
+npm ci
 ```
 
 ## WebSocket Server Configuration

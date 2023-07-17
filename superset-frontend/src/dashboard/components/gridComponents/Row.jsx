@@ -19,7 +19,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
-import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import {
+  css,
+  FeatureFlag,
+  isFeatureEnabled,
+  styled,
+  t,
+} from '@superset-ui/core';
 
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import DragHandle from 'src/dashboard/components/dnd/DragHandle';
@@ -57,6 +63,36 @@ const propTypes = {
   deleteComponent: PropTypes.func.isRequired,
   updateComponents: PropTypes.func.isRequired,
 };
+
+const GridRow = styled.div`
+  ${({ theme }) => css`
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    width: 100%;
+    height: fit-content;
+
+    & > :not(:last-child):not(.hover-menu) {
+      margin-right: ${theme.gridUnit * 4}px;
+    }
+
+    &.grid-row--empty {
+      min-height: ${theme.gridUnit * 25}px;
+    }
+  `}
+`;
+
+const emptyRowContentStyles = theme => css`
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${theme.colors.text.label};
+`;
 
 class Row extends React.PureComponent {
   constructor(props) {
@@ -201,7 +237,7 @@ class Row extends React.PureComponent {
                 />
               </HoverMenu>
             )}
-            <div
+            <GridRow
               className={cx(
                 'grid-row',
                 rowItems.length === 0 && 'grid-row--empty',
@@ -210,28 +246,32 @@ class Row extends React.PureComponent {
               data-test={`grid-row-${backgroundStyle.className}`}
               ref={this.containerRef}
             >
-              {rowItems.map((componentId, itemIndex) => (
-                <DashboardComponent
-                  key={componentId}
-                  id={componentId}
-                  parentId={rowComponent.id}
-                  depth={depth + 1}
-                  index={itemIndex}
-                  availableColumnCount={
-                    availableColumnCount - occupiedColumnCount
-                  }
-                  columnWidth={columnWidth}
-                  onResizeStart={onResizeStart}
-                  onResize={onResize}
-                  onResizeStop={onResizeStop}
-                  isComponentVisible={isComponentVisible}
-                  onChangeTab={onChangeTab}
-                  isInView={this.state.isInView}
-                />
-              ))}
+              {rowItems.length === 0 ? (
+                <div css={emptyRowContentStyles}>{t('Empty row')}</div>
+              ) : (
+                rowItems.map((componentId, itemIndex) => (
+                  <DashboardComponent
+                    key={componentId}
+                    id={componentId}
+                    parentId={rowComponent.id}
+                    depth={depth + 1}
+                    index={itemIndex}
+                    availableColumnCount={
+                      availableColumnCount - occupiedColumnCount
+                    }
+                    columnWidth={columnWidth}
+                    onResizeStart={onResizeStart}
+                    onResize={onResize}
+                    onResizeStop={onResizeStop}
+                    isComponentVisible={isComponentVisible}
+                    onChangeTab={onChangeTab}
+                    isInView={this.state.isInView}
+                  />
+                ))
+              )}
 
               {dropIndicatorProps && <div {...dropIndicatorProps} />}
-            </div>
+            </GridRow>
           </WithPopoverMenu>
         )}
       </DragDroppable>

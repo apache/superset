@@ -52,7 +52,6 @@ export type EchartsGaugeFormData = QueryFormData & {
   intervals: string;
   intervalColorIndices: string;
   valueFormatter: string;
-  emitFilter: boolean;
 };
 
 export const DEFAULT_FORM_DATA: Partial<EchartsGaugeFormData> = {
@@ -76,7 +75,6 @@ export const DEFAULT_FORM_DATA: Partial<EchartsGaugeFormData> = {
   intervals: '',
   intervalColorIndices: '',
   valueFormatter: '{value}',
-  emitFilter: false,
 };
 
 export interface EchartsGaugeChartProps

@@ -17,8 +17,12 @@
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 import re
 from datetime import datetime
+from typing import Optional
+
+import pytest
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm
 
 SYNTAX_ERROR_REGEX = re.compile(
@@ -26,19 +30,20 @@ SYNTAX_ERROR_REGEX = re.compile(
 )
 
 
-def test_convert_dttm(dttm: datetime) -> None:
-    """
-    Test that date objects are converted correctly.
-    """
+@pytest.mark.parametrize(
+    "target_type,expected_result",
+    [
+        ("Date", "DATE '2019-01-02'"),
+        ("TimeStamp", "TIMESTAMP '2019-01-02 03:04:05.678'"),
+        ("UnknownType", None),
+    ],
+)
+def test_convert_dttm(
+    target_type: str, expected_result: Optional[str], dttm: datetime
+) -> None:
+    from superset.db_engine_specs.athena import AthenaEngineSpec as spec
 
-    from superset.db_engine_specs.athena import AthenaEngineSpec
-
-    assert AthenaEngineSpec.convert_dttm("DATE", dttm) == "DATE '2019-01-02'"
-
-    assert (
-        AthenaEngineSpec.convert_dttm("TIMESTAMP", dttm)
-        == "TIMESTAMP '2019-01-02 03:04:05.678'"
-    )
+    assert_convert_dttm(spec, target_type, expected_result, dttm)
 
 
 def test_extract_errors() -> None:
@@ -76,7 +81,7 @@ def test_get_text_clause_with_colon() -> None:
     from superset.db_engine_specs.athena import AthenaEngineSpec
 
     query = (
-        "SELECT foo FROM tbl WHERE " "abc >= TIMESTAMP '2021-11-26T00\:00\:00.000000'"
+        "SELECT foo FROM tbl WHERE " r"abc >= TIMESTAMP '2021-11-26T00\:00\:00.000000'"
     )
     text_clause = AthenaEngineSpec.get_text_clause(query)
     assert text_clause.text == query

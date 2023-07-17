@@ -15,10 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from superset.dao.base import BaseDAO
 from superset.databases.filters import DatabaseFilter
+from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.extensions import db
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
@@ -37,7 +38,7 @@ class DatabaseDAO(BaseDAO):
     def update(
         cls,
         model: Database,
-        properties: Dict[str, Any],
+        properties: dict[str, Any],
         commit: bool = True,
     ) -> Database:
         """
@@ -92,7 +93,7 @@ class DatabaseDAO(BaseDAO):
         )
 
     @classmethod
-    def get_related_objects(cls, database_id: int) -> Dict[str, Any]:
+    def get_related_objects(cls, database_id: int) -> dict[str, Any]:
         database: Any = cls.find_by_id(database_id)
         datasets = database.tables
         dataset_ids = [dataset.id for dataset in datasets]
@@ -124,3 +125,13 @@ class DatabaseDAO(BaseDAO):
         return dict(
             charts=charts, dashboards=dashboards, sqllab_tab_states=sqllab_tab_states
         )
+
+    @classmethod
+    def get_ssh_tunnel(cls, database_id: int) -> Optional[SSHTunnel]:
+        ssh_tunnel = (
+            db.session.query(SSHTunnel)
+            .filter(SSHTunnel.database_id == database_id)
+            .one_or_none()
+        )
+
+        return ssh_tunnel

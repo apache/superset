@@ -41,7 +41,7 @@ describe('Select buildQuery', () => {
     const queryContext = buildQuery(formData);
     expect(queryContext.queries.length).toEqual(1);
     const [query] = queryContext.queries;
-    expect(query.groupby).toEqual(['my_col']);
+    expect(query.columns).toEqual(['my_col']);
     expect(query.filters).toEqual([]);
     expect(query.metrics).toEqual([]);
     expect(query.orderby).toEqual([]);
@@ -55,7 +55,7 @@ describe('Select buildQuery', () => {
     });
     expect(queryContext.queries.length).toEqual(1);
     const [query] = queryContext.queries;
-    expect(query.groupby).toEqual(['my_col']);
+    expect(query.columns).toEqual(['my_col']);
     expect(query.metrics).toEqual(['my_metric']);
     expect(query.orderby).toEqual([['my_metric', false]]);
   });
@@ -68,7 +68,7 @@ describe('Select buildQuery', () => {
     });
     expect(queryContext.queries.length).toEqual(1);
     const [query] = queryContext.queries;
-    expect(query.groupby).toEqual(['my_col']);
+    expect(query.columns).toEqual(['my_col']);
     expect(query.metrics).toEqual(['my_metric']);
     expect(query.orderby).toEqual([['my_metric', true]]);
   });
@@ -80,7 +80,7 @@ describe('Select buildQuery', () => {
     });
     expect(queryContext.queries.length).toEqual(1);
     const [query] = queryContext.queries;
-    expect(query.groupby).toEqual(['my_col']);
+    expect(query.columns).toEqual(['my_col']);
     expect(query.metrics).toEqual([]);
     expect(query.orderby).toEqual([['my_col', true]]);
   });
@@ -92,7 +92,7 @@ describe('Select buildQuery', () => {
     });
     expect(queryContext.queries.length).toEqual(1);
     const [query] = queryContext.queries;
-    expect(query.groupby).toEqual(['my_col']);
+    expect(query.columns).toEqual(['my_col']);
     expect(query.metrics).toEqual([]);
     expect(query.orderby).toEqual([['my_col', false]]);
   });

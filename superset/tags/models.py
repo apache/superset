@@ -14,16 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from __future__ import (
-    absolute_import,
-    annotations,
-    division,
-    print_function,
-    unicode_literals,
-)
+from __future__ import annotations
 
 import enum
-from typing import List, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 from flask_appbuilder import Model
 from sqlalchemy import Column, Enum, ForeignKey, Integer, String
@@ -91,16 +85,22 @@ class TaggedObject(Model, AuditMixinNullable):
     __tablename__ = "tagged_object"
     id = Column(Integer, primary_key=True)
     tag_id = Column(Integer, ForeignKey("tag.id"))
-    object_id = Column(Integer)
+    object_id = Column(
+        Integer,
+        ForeignKey("dashboards.id"),
+        ForeignKey("slices.id"),
+        ForeignKey("saved_query.id"),
+    )
     object_type = Column(Enum(ObjectTypes))
 
     tag = relationship("Tag", backref="objects")
 
 
 def get_tag(name: str, session: Session, type_: TagTypes) -> Tag:
-    tag = session.query(Tag).filter_by(name=name, type=type_).one_or_none()
+    tag_name = name.strip()
+    tag = session.query(Tag).filter_by(name=tag_name, type=type_).one_or_none()
     if tag is None:
-        tag = Tag(name=name, type=type_)
+        tag = Tag(name=tag_name, type=type_)
         session.add(tag)
         session.commit()
     return tag
@@ -116,27 +116,26 @@ def get_object_type(class_name: str) -> ObjectTypes:
     try:
         return mapping[class_name.lower()]
     except KeyError as ex:
-        raise Exception("No mapping found for {0}".format(class_name)) from ex
+        raise Exception(f"No mapping found for {class_name}") from ex
 
 
 class ObjectUpdater:
-
-    object_type: Optional[str] = None
+    object_type: str | None = None
 
     @classmethod
     def get_owners_ids(
-        cls, target: Union[Dashboard, FavStar, Slice, Query, SqlaTable]
-    ) -> List[int]:
+        cls, target: Dashboard | FavStar | Slice | Query | SqlaTable
+    ) -> list[int]:
         raise NotImplementedError("Subclass should implement `get_owners_ids`")
 
     @classmethod
     def _add_owners(
         cls,
         session: Session,
-        target: Union[Dashboard, FavStar, Slice, Query, SqlaTable],
+        target: Dashboard | FavStar | Slice | Query | SqlaTable,
     ) -> None:
         for owner_id in cls.get_owners_ids(target):
-            name = "owner:{0}".format(owner_id)
+            name = f"owner:{owner_id}"
             tag = get_tag(name, session, TagTypes.owner)
             tagged_object = TaggedObject(
                 tag_id=tag.id, object_id=target.id, object_type=cls.object_type
@@ -148,7 +147,7 @@ class ObjectUpdater:
         cls,
         _mapper: Mapper,
         connection: Connection,
-        target: Union[Dashboard, FavStar, Slice, Query, SqlaTable],
+        target: Dashboard | FavStar | Slice | Query | SqlaTable,
     ) -> None:
         session = Session(bind=connection)
 
@@ -156,7 +155,7 @@ class ObjectUpdater:
         cls._add_owners(session, target)
 
         # add `type:` tags
-        tag = get_tag("type:{0}".format(cls.object_type), session, TagTypes.type)
+        tag = get_tag(f"type:{cls.object_type}", session, TagTypes.type)
         tagged_object = TaggedObject(
             tag_id=tag.id, object_id=target.id, object_type=cls.object_type
         )
@@ -169,7 +168,7 @@ class ObjectUpdater:
         cls,
         _mapper: Mapper,
         connection: Connection,
-        target: Union[Dashboard, FavStar, Slice, Query, SqlaTable],
+        target: Dashboard | FavStar | Slice | Query | SqlaTable,
     ) -> None:
         session = Session(bind=connection)
 
@@ -208,7 +207,7 @@ class ObjectUpdater:
         cls,
         _mapper: Mapper,
         connection: Connection,
-        target: Union[Dashboard, FavStar, Slice, Query, SqlaTable],
+        target: Dashboard | FavStar | Slice | Query | SqlaTable,
     ) -> None:
         session = Session(bind=connection)
 
@@ -233,38 +232,34 @@ class ObjectUpdater:
 
 
 class ChartUpdater(ObjectUpdater):
-
     object_type = "chart"
 
     @classmethod
-    def get_owners_ids(cls, target: Slice) -> List[int]:
+    def get_owners_ids(cls, target: Slice) -> list[int]:
         return [owner.id for owner in target.owners]
 
 
 class DashboardUpdater(ObjectUpdater):
-
     object_type = "dashboard"
 
     @classmethod
-    def get_owners_ids(cls, target: Dashboard) -> List[int]:
+    def get_owners_ids(cls, target: Dashboard) -> list[int]:
         return [owner.id for owner in target.owners]
 
 
 class QueryUpdater(ObjectUpdater):
-
     object_type = "query"
 
     @classmethod
-    def get_owners_ids(cls, target: Query) -> List[int]:
+    def get_owners_ids(cls, target: Query) -> list[int]:
         return [target.user_id]
 
 
 class DatasetUpdater(ObjectUpdater):
-
     object_type = "dataset"
 
     @classmethod
-    def get_owners_ids(cls, target: SqlaTable) -> List[int]:
+    def get_owners_ids(cls, target: SqlaTable) -> list[int]:
         return [owner.id for owner in target.owners]
 
 
@@ -274,7 +269,7 @@ class FavStarUpdater:
         cls, _mapper: Mapper, connection: Connection, target: FavStar
     ) -> None:
         session = Session(bind=connection)
-        name = "favorited_by:{0}".format(target.user_id)
+        name = f"favorited_by:{target.user_id}"
         tag = get_tag(name, session, TagTypes.favorited_by)
         tagged_object = TaggedObject(
             tag_id=tag.id,
@@ -290,7 +285,7 @@ class FavStarUpdater:
         cls, _mapper: Mapper, connection: Connection, target: FavStar
     ) -> None:
         session = Session(bind=connection)
-        name = "favorited_by:{0}".format(target.user_id)
+        name = f"favorited_by:{target.user_id}"
         query = (
             session.query(TaggedObject.id)
             .join(Tag)

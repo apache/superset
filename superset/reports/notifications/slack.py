@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -17,8 +16,9 @@
 # under the License.
 import json
 import logging
+from collections.abc import Sequence
 from io import IOBase
-from typing import Sequence, Union
+from typing import Union
 
 import backoff
 from flask_babel import gettext as __
@@ -39,13 +39,11 @@ from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import (
     NotificationAuthorizationException,
-    NotificationError,
     NotificationMalformedException,
     NotificationParamException,
     NotificationUnprocessableException,
 )
 from superset.utils.decorators import statsd_gauge
-from superset.utils.urls import modify_url_query
 
 logger = logging.getLogger(__name__)
 
@@ -64,11 +62,6 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
         return json.loads(self._recipient.recipient_config_json)["target"]
 
     def _message_template(self, table: str = "") -> str:
-        url = (
-            modify_url_query(self._content.url, standalone="0")
-            if self._content.url is not None
-            else ""
-        )
         return __(
             """*%(name)s*
 
@@ -80,7 +73,7 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
 """,
             name=self._content.name,
             description=self._content.description or "",
-            url=url,
+            url=self._content.url,
             table=table,
         )
 
@@ -193,13 +186,14 @@ Error: %(text)s
             SlackRequestError,
             SlackClientConfigurationError,
         ) as ex:
-            raise NotificationParamException from ex
+            raise NotificationParamException(str(ex)) from ex
         except SlackObjectFormationError as ex:
-            raise NotificationMalformedException from ex
+            raise NotificationMalformedException(str(ex)) from ex
         except SlackTokenRotationError as ex:
-            raise NotificationAuthorizationException from ex
-        except SlackClientNotConnectedError as ex:
-            raise NotificationUnprocessableException from ex
-        except (SlackClientError, SlackApiError) as ex:
-            # any other slack errors not caught above
-            raise NotificationError(ex) from ex
+            raise NotificationAuthorizationException(str(ex)) from ex
+        except (SlackClientNotConnectedError, SlackApiError) as ex:
+            raise NotificationUnprocessableException(str(ex)) from ex
+        except SlackClientError as ex:
+            # this is the base class for all slack client errors
+            # keep it last so that it doesn't interfere with @backoff
+            raise NotificationUnprocessableException(str(ex)) from ex

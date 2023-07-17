@@ -17,6 +17,8 @@
  * under the License.
  */
 
+import { TimeGranularity } from '@superset-ui/core';
+import * as supersetCoreModule from '@superset-ui/core';
 import buildQuery from '../../src/plugin/buildQuery';
 import { PivotTableQueryFormData } from '../../src/types';
 
@@ -54,5 +56,30 @@ describe('PivotTableChart buildQuery', () => {
     const queryContext = buildQuery(formData);
     const [query] = queryContext.queries;
     expect(query.columns).toEqual(['col1', 'col2', 'row1', 'row2']);
+  });
+
+  it('should work with old charts after GENERIC_CHART_AXES is enabled', () => {
+    Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
+      value: true,
+    });
+    const modifiedFormData = {
+      ...formData,
+      time_grain_sqla: TimeGranularity.MONTH,
+      granularity_sqla: 'col1',
+    };
+    const queryContext = buildQuery(modifiedFormData);
+    const [query] = queryContext.queries;
+    expect(query.columns).toEqual([
+      {
+        timeGrain: 'P1M',
+        columnType: 'BASE_AXIS',
+        sqlExpression: 'col1',
+        label: 'col1',
+        expressionType: 'SQL',
+      },
+      'col2',
+      'row1',
+      'row2',
+    ]);
   });
 });

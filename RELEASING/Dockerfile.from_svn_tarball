@@ -24,7 +24,7 @@ ENV LANG=C.UTF-8 \
 
 RUN apt-get update -y
 
-# Install dependencies to fix `curl https support error` and `elaying package configuration warning`
+# Install dependencies to fix `curl https support error` and `delaying package configuration warning`
 RUN apt-get install -y apt-transport-https apt-utils
 
 # Install superset dependencies

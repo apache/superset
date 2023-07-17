@@ -17,6 +17,7 @@
  * under the License.
  */
 /* eslint-disable no-param-reassign */
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AppSection,
   DataMask,
@@ -31,14 +32,15 @@ import {
   tn,
 } from '@superset-ui/core';
 import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
-import React, { useCallback, useEffect, useState, useMemo } from 'react';
-import { Select } from 'src/components';
 import debounce from 'lodash/debounce';
-import { SLOW_DEBOUNCE } from 'src/constants';
 import { useImmerReducer } from 'use-immer';
+import { Select } from 'src/components';
+import { SLOW_DEBOUNCE } from 'src/constants';
 import { propertyComparator } from 'src/components/Select/utils';
+import { FilterBarOrientation } from 'src/dashboard/types';
+import { uniqWith, isEqual } from 'lodash';
 import { PluginFilterSelectProps, SelectValue } from './types';
-import { StyledFormItem, FilterPluginStyle, StatusMessage } from '../common';
+import { FilterPluginStyle, StatusMessage, StyledFormItem } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
 
 type DataMaskAction =
@@ -82,6 +84,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     isRefreshing,
     width,
     setDataMask,
+    setHoveredFilter,
+    unsetHoveredFilter,
     setFocusedFilter,
     unsetFocusedFilter,
     setFilterActive,
@@ -89,6 +93,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     showOverflow,
     parentRef,
     inputRef,
+    filterBarOrientation,
   } = props;
   const {
     enableEmptyFilter,
@@ -123,7 +128,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         enableEmptyFilter && !inverseSelection && !values?.length;
 
       const suffix = inverseSelection && values?.length ? t(' (excluded)') : '';
-
       dispatchDataMask({
         type: 'filterState',
         __cache: filterState,
@@ -160,10 +164,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       labelFormatter,
     ],
   );
-
-  useEffect(() => {
-    updateDataMask(filterState.value);
-  }, [JSON.stringify(filterState.value)]);
 
   const isDisabled =
     appSection === AppSection.FILTER_CONFIG_MODAL && defaultToFirstItem;
@@ -220,6 +220,47 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     [updateDataMask],
   );
 
+  const placeholderText =
+    data.length === 0
+      ? t('No data')
+      : tn('%s option', '%s options', data.length, data.length);
+
+  const formItemExtra = useMemo(() => {
+    if (filterState.validateMessage) {
+      return (
+        <StatusMessage status={filterState.validateStatus}>
+          {filterState.validateMessage}
+        </StatusMessage>
+      );
+    }
+    return undefined;
+  }, [filterState.validateMessage, filterState.validateStatus]);
+
+  const options = useMemo(() => {
+    const allOptions = [...data];
+    const uniqueOptions = uniqWith(allOptions, isEqual);
+    const selectOptions: { label: string; value: DataRecordValue }[] = [];
+    uniqueOptions.forEach(row => {
+      const [value] = groupby.map(col => row[col]);
+      selectOptions.push({
+        label: labelFormatter(value, datatype),
+        value,
+      });
+    });
+    return selectOptions;
+  }, [data, datatype, groupby, labelFormatter]);
+
+  const sortComparator = useCallback(
+    (a: AntdLabeledValue, b: AntdLabeledValue) => {
+      const labelComparator = propertyComparator('label');
+      if (formData.sortAscending) {
+        return labelComparator(a, b);
+      }
+      return labelComparator(b, a);
+    },
+    [formData.sortAscending],
+  );
+
   useEffect(() => {
     if (defaultToFirstItem && filterState.value === undefined) {
       // initialize to first value if set to default to first item
@@ -247,51 +288,12 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     updateDataMask,
     data,
     groupby,
-    JSON.stringify(filterState),
+    JSON.stringify(filterState.value),
   ]);
 
   useEffect(() => {
     setDataMask(dataMask);
   }, [JSON.stringify(dataMask)]);
-
-  const placeholderText =
-    data.length === 0
-      ? t('No data')
-      : tn('%s option', '%s options', data.length, data.length);
-
-  const formItemExtra = useMemo(() => {
-    if (filterState.validateMessage) {
-      return (
-        <StatusMessage status={filterState.validateStatus}>
-          {filterState.validateMessage}
-        </StatusMessage>
-      );
-    }
-    return undefined;
-  }, [filterState.validateMessage, filterState.validateStatus]);
-
-  const options = useMemo(() => {
-    const options: { label: string; value: DataRecordValue }[] = [];
-    data.forEach(row => {
-      const [value] = groupby.map(col => row[col]);
-      options.push({
-        label: labelFormatter(value, datatype),
-        value,
-      });
-    });
-    return options;
-  }, [data, datatype, groupby, labelFormatter]);
-
-  const sortComparator = useCallback(
-    (a: AntdLabeledValue, b: AntdLabeledValue) => {
-      const labelComparator = propertyComparator('label');
-      if (formData.sortAscending) {
-        return labelComparator(a, b);
-      }
-      return labelComparator(b, a);
-    },
-    [formData.sortAscending],
-  );
 
   return (
     <FilterPluginStyle height={height} width={width}>
@@ -302,6 +304,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         <Select
           allowClear
           allowNewOptions
+          allowSelectAll={!searchAllOptions}
           // @ts-ignore
           value={filterState.value || []}
           disabled={isDisabled}
@@ -317,13 +320,14 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           onSearch={searchWrapper}
           onSelect={clearSuggestionSearch}
           onBlur={handleBlur}
-          onMouseEnter={setFocusedFilter}
-          onMouseLeave={unsetFocusedFilter}
+          onFocus={setFocusedFilter}
+          onMouseEnter={setHoveredFilter}
+          onMouseLeave={unsetHoveredFilter}
           // @ts-ignore
           onChange={handleChange}
           ref={inputRef}
           loading={isRefreshing}
-          maxTagCount={5}
+          oneLine={filterBarOrientation === FilterBarOrientation.HORIZONTAL}
           invertSelection={inverseSelection}
           // @ts-ignore
           options={options}

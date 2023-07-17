@@ -50,7 +50,11 @@ export default class EchartsAreaChartPlugin extends ChartPlugin<
       controlPanel,
       loadChart: () => import('../EchartsTimeseries'),
       metadata: new ChartMetadata({
-        behaviors: [Behavior.INTERACTIVE_CHART, Behavior.DRILL_TO_DETAIL],
+        behaviors: [
+          Behavior.INTERACTIVE_CHART,
+          Behavior.DRILL_TO_DETAIL,
+          Behavior.DRILL_BY,
+        ],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
         description: hasGenericChartAxes
@@ -68,7 +72,7 @@ export default class EchartsAreaChartPlugin extends ChartPlugin<
           AnnotationType.Timeseries,
         ],
         name: hasGenericChartAxes
-          ? t('Area Chart v2')
+          ? t('Area Chart')
           : t('Time-series Area Chart'),
         tags: [
           t('ECharts'),

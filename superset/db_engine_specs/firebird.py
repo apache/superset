@@ -15,10 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
+from sqlalchemy import types
+
+from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
-from superset.utils import core as utils
 
 
 class FirebirdEngineSpec(BaseEngineSpec):
@@ -32,7 +34,7 @@ class FirebirdEngineSpec(BaseEngineSpec):
 
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": (
+        TimeGrain.SECOND: (
             "CAST(CAST({col} AS DATE) "
             "|| ' ' "
             "|| EXTRACT(HOUR FROM {col}) "
@@ -41,7 +43,7 @@ class FirebirdEngineSpec(BaseEngineSpec):
             "|| ':' "
             "|| FLOOR(EXTRACT(SECOND FROM {col})) AS TIMESTAMP)"
         ),
-        "PT1M": (
+        TimeGrain.MINUTE: (
             "CAST(CAST({col} AS DATE) "
             "|| ' ' "
             "|| EXTRACT(HOUR FROM {col}) "
@@ -49,20 +51,20 @@ class FirebirdEngineSpec(BaseEngineSpec):
             "|| EXTRACT(MINUTE FROM {col}) "
             "|| ':00' AS TIMESTAMP)"
         ),
-        "PT1H": (
+        TimeGrain.HOUR: (
             "CAST(CAST({col} AS DATE) "
             "|| ' ' "
             "|| EXTRACT(HOUR FROM {col}) "
             "|| ':00:00' AS TIMESTAMP)"
         ),
-        "P1D": "CAST({col} AS DATE)",
-        "P1M": (
+        TimeGrain.DAY: "CAST({col} AS DATE)",
+        TimeGrain.MONTH: (
             "CAST(EXTRACT(YEAR FROM {col}) "
             "|| '-' "
             "|| EXTRACT(MONTH FROM {col}) "
             "|| '-01' AS DATE)"
         ),
-        "P1Y": "CAST(EXTRACT(YEAR FROM {col}) || '-01-01' AS DATE)",
+        TimeGrain.YEAR: "CAST(EXTRACT(YEAR FROM {col}) || '-01-01' AS DATE)",
     }
 
     @classmethod
@@ -71,15 +73,16 @@ class FirebirdEngineSpec(BaseEngineSpec):
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+        cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
     ) -> Optional[str]:
-        tt = target_type.upper()
-        if tt == utils.TemporalType.TIMESTAMP:
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, types.Date):
+            return f"CAST('{dttm.date().isoformat()}' AS DATE)"
+        if isinstance(sqla_type, types.DateTime):
             dttm_formatted = dttm.isoformat(sep=" ")
             dttm_valid_precision = dttm_formatted[: len("YYYY-MM-DD HH:MM:SS.MMMM")]
             return f"CAST('{dttm_valid_precision}' AS TIMESTAMP)"
-        if tt == utils.TemporalType.DATE:
-            return f"CAST('{dttm.date().isoformat()}' AS DATE)"
-        if tt == utils.TemporalType.TIME:
+        if isinstance(sqla_type, types.Time):
             return f"CAST('{dttm.time().isoformat()}' AS TIME)"
         return None

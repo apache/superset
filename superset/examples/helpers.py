@@ -17,7 +17,7 @@
 """Loads datasets, dashboards and slices in a new superset instance"""
 import json
 import os
-from typing import Any, Dict, List, Set
+from typing import Any
 
 from superset import app, db
 from superset.connectors.sqla.models import SqlaTable
@@ -25,7 +25,7 @@ from superset.models.slice import Slice
 
 BASE_URL = "https://github.com/apache-superset/examples-data/blob/master/"
 
-misc_dash_slices: Set[str] = set()  # slices assembled in a 'Misc Chart' dashboard
+misc_dash_slices: set[str] = set()  # slices assembled in a 'Misc Chart' dashboard
 
 
 def get_table_connector_registry() -> Any:
@@ -36,7 +36,7 @@ def get_examples_folder() -> str:
     return os.path.join(app.config["BASE_DIR"], "examples")
 
 
-def update_slice_ids(pos: Dict[Any, Any]) -> List[Slice]:
+def update_slice_ids(pos: dict[Any, Any]) -> list[Slice]:
     """Update slice ids in position_json and return the slices found."""
     slice_components = [
         component
@@ -44,7 +44,7 @@ def update_slice_ids(pos: Dict[Any, Any]) -> List[Slice]:
         if isinstance(component, dict) and component.get("type") == "CHART"
     ]
     slices = {}
-    for name in set(component["meta"]["sliceName"] for component in slice_components):
+    for name in {component["meta"]["sliceName"] for component in slice_components}:
         slc = db.session.query(Slice).filter_by(slice_name=name).first()
         if slc:
             slices[name] = slc
@@ -64,7 +64,7 @@ def merge_slice(slc: Slice) -> None:
     db.session.commit()
 
 
-def get_slice_json(defaults: Dict[Any, Any], **kwargs: Any) -> str:
+def get_slice_json(defaults: dict[Any, Any], **kwargs: Any) -> str:
     defaults_copy = defaults.copy()
     defaults_copy.update(kwargs)
     return json.dumps(defaults_copy, indent=4, sort_keys=True)

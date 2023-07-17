@@ -46,6 +46,7 @@ import {
 import { OpacityEnum } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
+import { getColtypesMapping } from '../utils/series';
 
 const setIntervalBoundsAndColors = (
   intervals: string,
@@ -91,11 +92,20 @@ const calculateMax = (data: GaugeDataItemOption[]) =>
 export default function transformProps(
   chartProps: EchartsGaugeChartProps,
 ): GaugeChartTransformedProps {
-  const { width, height, formData, queriesData, hooks, filterState, theme } =
-    chartProps;
+  const {
+    width,
+    height,
+    formData,
+    queriesData,
+    hooks,
+    filterState,
+    theme,
+    emitCrossFilters,
+    datasource,
+  } = chartProps;
 
   const gaugeSeriesOptions = defaultGaugeSeriesOption(theme);
-
+  const { verboseMap = {} } = datasource;
   const {
     groupby,
     metric,
@@ -117,11 +127,11 @@ export default function transformProps(
     intervals,
     intervalColorIndices,
     valueFormatter,
-    emitFilter,
     sliceId,
   }: EchartsGaugeFormData = { ...DEFAULT_GAUGE_FORM_DATA, ...formData };
   const refs: Refs = {};
   const data = (queriesData[0]?.data || []) as DataRecord[];
+  const coltypeMapping = getColtypesMapping(queriesData[0]);
   const numberFormatter = getNumberFormatter(numberFormat);
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const axisLineWidth = calculateAxisLineWidth(data, fontSize, overlap);
@@ -139,7 +149,7 @@ export default function transformProps(
   const transformedData: GaugeDataItemOption[] = data.map(
     (data_point, index) => {
       const name = groupbyLabels
-        .map(column => `${column}: ${data_point[column]}`)
+        .map(column => `${verboseMap[column] || column}: ${data_point[column]}`)
         .join(', ');
       columnsLabelMap.set(
         name,
@@ -327,11 +337,12 @@ export default function transformProps(
     height,
     echartOptions,
     setDataMask,
-    emitFilter,
+    emitCrossFilters,
     labelMap: Object.fromEntries(columnsLabelMap),
     groupby,
     selectedValues: filterState.selectedValues || [],
     onContextMenu,
     refs,
+    coltypeMapping,
   };
 }

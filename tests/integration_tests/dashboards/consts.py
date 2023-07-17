@@ -25,7 +25,6 @@ EXPORT_DASHBOARDS_API_URL_WITH_QUERY_FORMAT = EXPORT_DASHBOARDS_API_URL + QUERY_
 
 GET_DASHBOARD_VIEW_URL_FORMAT = "/superset/dashboard/{}/"
 SAVE_DASHBOARD_URL_FORMAT = "/superset/save_dash/{}/"
-COPY_DASHBOARD_URL_FORMAT = "/superset/copy_dash/{}/"
 ADD_SLICES_URL_FORMAT = "/superset/add_slices/{}/"
 
 DELETE_DASHBOARD_VIEW_URL_FORMAT = "/dashboard/delete/{}"

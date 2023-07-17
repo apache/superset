@@ -17,10 +17,10 @@
 import logging
 
 from flask import request, Response
-from flask_appbuilder.api import BaseApi, expose, protect, safe
+from flask_appbuilder.api import expose, protect, safe
 from marshmallow import ValidationError
 
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.dashboards.commands.exceptions import (
     DashboardAccessDeniedError,
     DashboardNotFoundError,
@@ -30,30 +30,24 @@ from superset.dashboards.permalink.commands.create import (
 )
 from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
 from superset.dashboards.permalink.exceptions import DashboardPermalinkInvalidStateError
-from superset.dashboards.permalink.schemas import DashboardPermalinkPostSchema
+from superset.dashboards.permalink.schemas import DashboardPermalinkStateSchema
 from superset.extensions import event_logger
 from superset.key_value.exceptions import KeyValueAccessDeniedError
-from superset.views.base_api import requires_json
+from superset.views.base_api import BaseSupersetApi, requires_json
 
 logger = logging.getLogger(__name__)
 
 
-class DashboardPermalinkRestApi(BaseApi):
-    add_model_schema = DashboardPermalinkPostSchema()
+class DashboardPermalinkRestApi(BaseSupersetApi):
+    add_model_schema = DashboardPermalinkStateSchema()
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
-    include_route_methods = {
-        RouteMethod.POST,
-        RouteMethod.PUT,
-        RouteMethod.GET,
-        RouteMethod.DELETE,
-    }
     allow_browser_login = True
     class_permission_name = "DashboardPermalinkRestApi"
     resource_name = "dashboard"
     openapi_spec_tag = "Dashboard Permanent Link"
-    openapi_spec_component_schemas = (DashboardPermalinkPostSchema,)
+    openapi_spec_component_schemas = (DashboardPermalinkStateSchema,)
 
-    @expose("/<pk>/permalink", methods=["POST"])
+    @expose("/<pk>/permalink", methods=("POST",))
     @protect()
     @safe
     @event_logger.log_this_with_context(
@@ -120,7 +114,7 @@ class DashboardPermalinkRestApi(BaseApi):
         except DashboardNotFoundError as ex:
             return self.response(404, message=str(ex))
 
-    @expose("/permalink/<string:key>", methods=["GET"])
+    @expose("/permalink/<string:key>", methods=("GET",))
     @protect()
     @safe
     @event_logger.log_this_with_context(

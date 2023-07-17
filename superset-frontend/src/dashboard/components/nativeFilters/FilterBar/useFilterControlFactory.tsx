@@ -23,7 +23,6 @@ import {
   DataMaskStateWithId,
   Divider,
   Filter,
-  FilterWithDataMask,
   isFilterDivider,
 } from '@superset-ui/core';
 import { FilterBarOrientation } from 'src/dashboard/types';
@@ -33,12 +32,11 @@ import FilterDivider from './FilterControls/FilterDivider';
 
 export const useFilterControlFactory = (
   dataMaskSelected: DataMaskStateWithId,
-  directPathToChild: string[] | undefined,
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void,
 ) => {
   const filters = useFilters();
   const filterValues = useMemo(() => Object.values(filters), [filters]);
-  const filtersWithValues: (FilterWithDataMask | Divider)[] = useMemo(
+  const filtersWithValues: (Filter | Divider)[] = useMemo(
     () =>
       filterValues.map(filter => ({
         ...filter,
@@ -68,7 +66,6 @@ export const useFilterControlFactory = (
         <FilterControl
           dataMaskSelected={dataMaskSelected}
           filter={filter}
-          directPathToChild={directPathToChild}
           onFilterSelectionChange={onFilterSelectionChange}
           inView={false}
           orientation={filterBarOrientation}
@@ -76,12 +73,7 @@ export const useFilterControlFactory = (
         />
       );
     },
-    [
-      filtersWithValues,
-      dataMaskSelected,
-      directPathToChild,
-      onFilterSelectionChange,
-    ],
+    [filtersWithValues, dataMaskSelected, onFilterSelectionChange],
   );
 
   return { filterControlFactory, filtersWithValues };
