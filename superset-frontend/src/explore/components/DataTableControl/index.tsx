@@ -356,7 +356,9 @@ export const useTableColumns = (
                     originalFormattedTimeColumnIndex === -1 &&
                     typeof value === 'object'
                   ) {
-                    return timeFormatter(parseInt(String(value.toString()), 10));
+                    return timeFormatter(
+                      parseInt(String(value.toString()), 10),
+                    );
                   }
                   return String(value);
                 },
