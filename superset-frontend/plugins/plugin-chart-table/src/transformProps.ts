@@ -76,7 +76,7 @@ const processDataRecords = memoizeOne(function processDataRecords(
           {
             formatter: formatter as TimeFormatter,
           },
-		);
+        );
       });
       return datum;
     });
