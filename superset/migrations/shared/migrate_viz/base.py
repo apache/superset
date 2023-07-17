@@ -64,6 +64,12 @@ class MigrateViz:
         if "viz_type" in self.data:
             self.data["viz_type"] = self.target_viz_type
 
+        # Sometimes visualizations have same keys in the source form_data and rename_keys
+        # We need to remove them from data to allow the migration to work properly with rename_keys
+        for key in self.rename_keys.values():
+            if key in self.data:
+                self.data.pop(key)
+
         rv_data = {}
         for key, value in self.data.items():
             if key in self.rename_keys and self.rename_keys[key] in rv_data:
