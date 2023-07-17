@@ -426,7 +426,7 @@ export class TableRenderer extends React.Component {
             ? dateFormatters[attrName](
                 typeof colKey[attrIdx] === 'number'
                   ? colKey[attrIdx]
-                  : parseInt(String(colKey[attrIdx].toString()))
+                  : parseInt(String(colKey[attrIdx].toString()), 10)
               )
             : colKey[attrIdx];
         attrValueCells.push(
@@ -630,7 +630,7 @@ export class TableRenderer extends React.Component {
         const headerCellFormattedValue =
           dateFormatters && dateFormatters[rowAttrs[i]]
             ? dateFormatters[rowAttrs[i]](
-                typeof r === 'number' ? r : parseInt(String(r.toString()))
+                typeof r === 'number' ? r : parseInt(String(r.toString()), 10)
               )
             : r;
         return (
