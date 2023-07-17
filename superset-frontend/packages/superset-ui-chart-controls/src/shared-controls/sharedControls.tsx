@@ -319,7 +319,7 @@ const y_axis_format: SharedControlConfig<'SelectControl', SelectDefaultOption> =
 
 const currency_format: SharedControlConfig<'CurrencyControl'> = {
   type: 'CurrencyControl',
-  label: t('Currency'),
+  label: t('Currency format'),
   renderTrigger: true,
 };
 

@@ -74,7 +74,7 @@ export default function ColumnConfigPopover({
 
   if (layout[0]?.tab) {
     return (
-      <Tabs>
+      <Tabs centered>
         {layout.map((item, i) => (
           <Tabs.TabPane tab={item.tab} key={i}>
             <ControlForm onChange={onChange} value={column.config}>

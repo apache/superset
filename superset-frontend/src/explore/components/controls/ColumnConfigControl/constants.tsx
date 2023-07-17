@@ -149,7 +149,7 @@ const truncateLongCells: ControlFormItemSpec<'Checkbox'> = {
 
 const currencyFormat: ControlFormItemSpec<'CurrencyControl'> = {
   controlType: 'CurrencyControl',
-  label: t('Currency'),
+  label: t('Currency format'),
   description: t('Currency'),
   debounceDelay: 200,
 };
