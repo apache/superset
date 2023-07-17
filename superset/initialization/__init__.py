@@ -176,7 +176,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             DatabaseView,
             ExcelToDatabaseView,
         )
-        from superset.views.datasource.views import DatasetEditor, Datasource
+        from superset.views.datasource.views import DatasetEditor, DatasetSmartEditor, Datasource
         from superset.views.dynamic_plugins import DynamicPluginsView
         from superset.views.explore import ExplorePermalinkView, ExploreView
         from superset.views.key_value import KV
@@ -304,6 +304,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(DashboardModelViewAsync)
         appbuilder.add_view_no_menu(Datasource)
         appbuilder.add_view_no_menu(DatasetEditor)
+        appbuilder.add_view_no_menu(DatasetSmartEditor)
         appbuilder.add_view_no_menu(EmbeddedView)
         appbuilder.add_view_no_menu(ExploreView)
         appbuilder.add_view_no_menu(ExplorePermalinkView)
