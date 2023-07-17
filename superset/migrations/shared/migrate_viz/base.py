@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import copy
 import json
+from enum import Enum
 from typing import Any
 
 from alembic import op
@@ -29,6 +30,12 @@ from superset.constants import TimeGrain
 from superset.migrations.shared.utils import paginated_update, try_load_json
 
 Base = declarative_base()
+
+
+class ChartMigratorStatus(Enum):
+    NOT_IMPLEMENTED = "NOT_IMPLEMENTED"
+    INCOMPLETE = "INCOMPLETE"
+    COMPLETE = "COMPLETE"
 
 
 class Slice(Base):  # type: ignore
@@ -50,6 +57,9 @@ class MigrateViz:
     source_viz_type: str
     target_viz_type: str
     has_x_axis_control: bool = False
+
+    # specific migrations need to override this
+    status = ChartMigratorStatus.NOT_IMPLEMENTED
 
     def __init__(self, form_data: str) -> None:
         self.data = try_load_json(form_data)

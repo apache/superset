@@ -20,9 +20,11 @@ import json
 from superset.charts.commands.importers.v1.utils import migrate_chart
 
 
-def test_migrate_chart() -> None:
+def test_migrate_chart_area() -> None:
     """
-    Test the ``migrate_chart`` command when importing a chart.
+    Test the ``migrate_chart`` command when importing an area chart.
+
+    This is currently a no-op since the migration is not complete.
     """
     chart_config = {
         "slice_name": "Birth names by state",
@@ -32,32 +34,32 @@ def test_migrate_chart() -> None:
         "viz_type": "area",
         "params": json.dumps(
             {
-                "datasource": "21__table",
-                "viz_type": "area",
-                "granularity_sqla": "ds",
-                "time_grain_sqla": "P1D",
-                "time_range": "No filter",
-                "metrics": ["count"],
                 "adhoc_filters": [],
+                "annotation_layers": [],
+                "bottom_margin": "auto",
+                "color_scheme": "supersetColors",
+                "comparison_type": "values",
+                "dashboards": [],
+                "datasource": "21__table",
+                "extra_form_data": {},
+                "granularity_sqla": "ds",
                 "groupby": ["state"],
+                "line_interpolation": "linear",
+                "metrics": ["count"],
                 "order_desc": True,
+                "rich_tooltip": True,
+                "rolling_type": "None",
                 "row_limit": 10000,
                 "show_brush": "auto",
                 "show_legend": True,
-                "line_interpolation": "linear",
                 "stacked_style": "stack",
-                "color_scheme": "supersetColors",
-                "rich_tooltip": True,
-                "bottom_margin": "auto",
-                "x_ticks_layout": "auto",
+                "time_grain_sqla": "P1D",
+                "time_range": "No filter",
+                "viz_type": "area",
                 "x_axis_format": "smart_date",
-                "y_axis_format": "SMART_NUMBER",
+                "x_ticks_layout": "auto",
                 "y_axis_bounds": [None, None],
-                "rolling_type": "None",
-                "comparison_type": "values",
-                "annotation_layers": [],
-                "extra_form_data": {},
-                "dashboards": [],
+                "y_axis_format": "SMART_NUMBER",
             }
         ),
         "cache_timeout": None,
@@ -67,18 +69,84 @@ def test_migrate_chart() -> None:
     }
 
     new_config = migrate_chart(chart_config)
-    assert new_config == {
-        "slice_name": "Birth names by state",
+    assert new_config == chart_config
+
+
+def test_migrate_pivot_table() -> None:
+    """
+    Test the ``migrate_chart`` command when importing an old pivot table.
+    """
+    chart_config = {
+        "slice_name": "Pivot Table",
         "description": None,
         "certified_by": None,
         "certification_details": None,
-        "viz_type": "echarts_area",
+        "viz_type": "pivot_table",
         "params": json.dumps(
             {
-                "datasource": "21__table",
-                "viz_type": "echarts_area",
-                "time_grain_sqla": "P1D",
-                "metrics": ["count"],
+                "columns": ["state"],
+                "compare_lag": "10",
+                "compare_suffix": "o10Y",
+                "granularity_sqla": "ds",
+                "groupby": ["name"],
+                "limit": "25",
+                "markup_type": "markdown",
+                "metrics": [
+                    {
+                        "aggregate": "SUM",
+                        "column": {
+                            "column_name": "num",
+                            "type": "BIGINT",
+                        },
+                        "expressionType": "SIMPLE",
+                        "label": "Births",
+                        "optionName": "metric_11",
+                    },
+                ],
+                "row_limit": 50000,
+                "since": "100 years ago",
+                "time_range": "No filter",
+                "time_range_endpoints": ["inclusive", "exclusive"],
+                "until": "now",
+                "viz_type": "pivot_table",
+            },
+        ),
+        "cache_timeout": None,
+        "uuid": "ffd15af2-2188-425c-b6b4-df28aac45872",
+        "version": "1.0.0",
+        "dataset_uuid": "a18b9cb0-b8d3-42ed-bd33-0f0fadbf0f6d",
+    }
+
+    new_config = migrate_chart(chart_config)
+    assert new_config == {
+        "slice_name": "Pivot Table",
+        "description": None,
+        "certified_by": None,
+        "certification_details": None,
+        "viz_type": "pivot_table_v2",
+        "params": json.dumps(
+            {
+                "groupbyColumns": ["state"],
+                "compare_lag": "10",
+                "compare_suffix": "o10Y",
+                "groupbyRows": ["name"],
+                "limit": "25",
+                "markup_type": "markdown",
+                "metrics": [
+                    {
+                        "aggregate": "SUM",
+                        "column": {"column_name": "num", "type": "BIGINT"},
+                        "expressionType": "SIMPLE",
+                        "label": "Births",
+                        "optionName": "metric_11",
+                    }
+                ],
+                "series_limit": 50000,
+                "since": "100 years ago",
+                "time_range_endpoints": ["inclusive", "exclusive"],
+                "until": "now",
+                "viz_type": "pivot_table_v2",
+                "rowOrder": "value_z_to_a",
                 "adhoc_filters": [
                     {
                         "clause": "WHERE",
@@ -88,27 +156,6 @@ def test_migrate_chart() -> None:
                         "expressionType": "SIMPLE",
                     }
                 ],
-                "groupby": ["state"],
-                "order_desc": True,
-                "row_limit": 10000,
-                "show_brush": "auto",
-                "show_legend": True,
-                "line_interpolation": "linear",
-                "color_scheme": "supersetColors",
-                "rich_tooltip": True,
-                "bottom_margin": "auto",
-                "x_ticks_layout": "auto",
-                "x_axis_format": "smart_date",
-                "y_axis_format": "SMART_NUMBER",
-                "y_axis_bounds": [None, None],
-                "rolling_type": "None",
-                "comparison_type": "values",
-                "annotation_layers": [],
-                "extra_form_data": {},
-                "dashboards": [],
-                "show_extra_controls": True,
-                "stack": "Stack",
-                "x_axis": "ds",
             }
         ),
         "cache_timeout": None,
