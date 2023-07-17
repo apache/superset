@@ -71,9 +71,12 @@ const processDataRecords = memoizeOne(function processDataRecords(
       timeColumns.forEach(({ key, formatter }) => {
         // Convert datetime with a custom date class so we can use `String(...)`
         // formatted value for global search, and `date.getTime()` for sorting.
-        datum[key] = new DateWithFormatter(parseInt(String(x[key]?.toString(), 10)), {
-          formatter: formatter as TimeFormatter,
-        });
+        datum[key] = new DateWithFormatter(
+          parseInt(String(x[key]?.toString()), 10),
+          {
+            formatter: formatter as TimeFormatter,
+          },
+		);
       });
       return datum;
     });
