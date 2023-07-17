@@ -37,12 +37,10 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dataset import DatasetDAO
 from superset.databases.filters import DatabaseFilter
-from superset.datasets.commands.bulk_delete import BulkDeleteDatasetCommand
 from superset.datasets.commands.create import CreateDatasetCommand
 from superset.datasets.commands.delete import DeleteDatasetCommand
 from superset.datasets.commands.duplicate import DuplicateDatasetCommand
 from superset.datasets.commands.exceptions import (
-    DatasetBulkDeleteFailedError,
     DatasetCreateFailedError,
     DatasetDeleteFailedError,
     DatasetForbiddenError,
@@ -453,7 +451,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            DeleteDatasetCommand(pk).run()
+            DeleteDatasetCommand([pk]).run()
             return self.response(200, message="OK")
         except DatasetNotFoundError:
             return self.response_404()
@@ -788,7 +786,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteDatasetCommand(item_ids).run()
+            DeleteDatasetCommand(item_ids).run()
             return self.response(
                 200,
                 message=ngettext(
@@ -801,7 +799,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except DatasetForbiddenError:
             return self.response_403()
-        except DatasetBulkDeleteFailedError as ex:
+        except DatasetDeleteFailedError as ex:
             return self.response_422(message=str(ex))
 
     @expose("/import/", methods=("POST",))

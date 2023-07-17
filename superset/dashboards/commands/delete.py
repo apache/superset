@@ -37,33 +37,34 @@ logger = logging.getLogger(__name__)
 
 
 class DeleteDashboardCommand(BaseCommand):
-    def __init__(self, model_id: int):
-        self._model_id = model_id
-        self._model: Optional[Dashboard] = None
+    def __init__(self, model_ids: list[int]):
+        self._model_ids = model_ids
+        self._models: Optional[list[Dashboard]] = None
 
     def run(self) -> None:
         self.validate()
-        assert self._model
+        assert self._models
 
         try:
-            DashboardDAO.delete(self._model)
+            DashboardDAO.delete(self._models)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
             raise DashboardDeleteFailedError() from ex
 
     def validate(self) -> None:
         # Validate/populate model exists
-        self._model = DashboardDAO.find_by_id(self._model_id)
-        if not self._model:
+        self._models = DashboardDAO.find_by_ids(self._model_ids)
+        if not self._models or len(self._models) != len(self._model_ids):
             raise DashboardNotFoundError()
         # Check there are no associated ReportSchedules
-        if reports := ReportScheduleDAO.find_by_dashboard_id(self._model_id):
+        if reports := ReportScheduleDAO.find_by_dashboard_ids(self._model_ids):
             report_names = [report.name for report in reports]
             raise DashboardDeleteFailedReportsExistError(
                 _("There are associated alerts or reports: %s" % ",".join(report_names))
             )
         # Check ownership
-        try:
-            security_manager.raise_for_ownership(self._model)
-        except SupersetSecurityException as ex:
-            raise DashboardForbiddenError() from ex
+        for model in self._models:
+            try:
+                security_manager.raise_for_ownership(model)
+            except SupersetSecurityException as ex:
+                raise DashboardForbiddenError() from ex
