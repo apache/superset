@@ -479,7 +479,7 @@ class TagRestApi(BaseSupersetModelRestApi):
         if not TagDAO.find_by_id(pk):
             return self.response_404()
 
-        TagDAO.user_favorite_tag(pk)
+        TagDAO.favorite_tag_by_id_for_current_user(pk)
         return self.response(200, result="OK")
 
     @expose("/<pk>/favorites/", methods=("DELETE",))

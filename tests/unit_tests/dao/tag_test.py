@@ -34,7 +34,7 @@ def test_user_favorite_tag(mocker):
     mock_g.user = mocker.MagicMock()
 
     # Call the function with a test tag_id
-    TagDAO.user_favorite_tag(123)
+    TagDAO.favorite_tag_by_id_for_current_user(123)
 
     # Check that find_by_id was called with the right argument
     mock_TagDAO.find_by_id.assert_called_once_with(123)
