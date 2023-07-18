@@ -424,6 +424,16 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 viz_type="table",
                 metrics=metrics,
             ),
+            query_context=get_slice_json(
+                default_query_context,
+                queries=[
+                    {
+                        "columns": ["ds"],
+                        "metrics": metrics,
+                        "time_range": "1983 : 2023",
+                    }
+                ],
+            ),
         ),
         Slice(
             **slice_kwargs,
