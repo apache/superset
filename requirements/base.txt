@@ -131,9 +131,7 @@ humanize==3.11.0
 idna==3.2
     # via email-validator
 importlib-metadata==6.6.0
-    # via
-    #   apache-superset
-    #   flask
+    # via apache-superset
 importlib-resources==5.12.0
     # via limits
 isodate==0.6.0
@@ -243,7 +241,7 @@ pytz==2021.3
     #   celery
     #   flask-babel
     #   pandas
-pyyaml==5.4.1
+pyyaml==6.0.1
     # via
     #   apache-superset
     #   apispec
@@ -318,9 +316,7 @@ wtforms-json==0.3.5
 xlsxwriter==3.0.7
     # via apache-superset
 zipp==3.15.0
-    # via
-    #   importlib-metadata
-    #   importlib-resources
+    # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
