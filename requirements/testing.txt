@@ -16,6 +16,8 @@ cmdstanpy==1.1.0
     # via prophet
 contourpy==1.0.7
     # via matplotlib
+convertdate==2.4.0
+    # via prophet
 coverage[toml]==7.2.5
     # via pytest-cov
 cycler==0.11.0
@@ -121,6 +123,8 @@ pyfakefs==5.2.2
     # via -r requirements/testing.in
 pyhive[presto]==0.6.5
     # via apache-superset
+pymeeus==0.5.12
+    # via convertdate
 pytest==7.3.1
     # via
     #   -r requirements/testing.in
