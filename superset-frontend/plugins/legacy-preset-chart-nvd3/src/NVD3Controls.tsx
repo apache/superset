@@ -28,6 +28,8 @@ import {
   D3_FORMAT_OPTIONS,
 } from '@superset-ui/chart-controls';
 
+import ControlSubSectionHeader from '../components/ControlSubSectionHeader';
+
 /*
   Plugins in question:
 

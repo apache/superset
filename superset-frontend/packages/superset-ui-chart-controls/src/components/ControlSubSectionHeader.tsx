@@ -30,11 +30,11 @@ const StyledSubSectionHeader = styled.div`
     margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
   }
 `;
-const SubSectionHeader = ({ children }) => (
+export const ControlSubSectionHeader = ({ children }) => (
   <StyledSubSectionHeader>
     {children}
     <hr />
   </StyledSubSectionHeader>
 );
 
-export default SubSectionHeader;
+export default ControlSubSectionHeader;

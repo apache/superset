@@ -63,7 +63,7 @@ export const titleControls: ControlPanelSectionConfig = {
         },
       },
     ],
-    [<div className="section-header">{t('Y Axis')}</div>],
+    [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
     [
       {
         name: 'y_axis_title',
