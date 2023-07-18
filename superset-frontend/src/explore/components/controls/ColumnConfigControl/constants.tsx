@@ -19,17 +19,14 @@
 import React from 'react';
 import { GenericDataType, t, validateNumber } from '@superset-ui/core';
 import {
+  ControlFormItemSpec,
   D3_FORMAT_DOCS,
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_DOCS,
   D3_TIME_FORMAT_OPTIONS,
 } from '@superset-ui/chart-controls';
-import { FaAlignLeft } from '@react-icons/all-files/fa/FaAlignLeft';
 import Icons from 'src/components/Icons';
-import { FaAlignRight } from '@react-icons/all-files/fa/FaAlignRight';
-import { FaAlignCenter } from '@react-icons/all-files/fa/FaAlignCenter';
 import { ColumnConfigFormLayout } from './types';
-import { ControlFormItemSpec } from './ControlForm';
 
 export type SharedColumnConfigProp =
   | 'alignPositiveNegative'
@@ -175,10 +172,6 @@ export const SHARED_COLUMN_CONFIG_PROPS = {
   alignPositiveNegative,
   colorPositiveNegative,
   currencyFormat,
-};
-
-export type SharedColumnConfig = {
-  [key in SharedColumnConfigProp]?: typeof SHARED_COLUMN_CONFIG_PROPS[key]['value'];
 };
 
 export const DEFAULT_CONFIG_FORM_LAYOUT: ColumnConfigFormLayout = {

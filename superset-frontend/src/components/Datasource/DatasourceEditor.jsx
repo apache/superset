@@ -25,6 +25,7 @@ import Alert from 'src/components/Alert';
 import Badge from 'src/components/Badge';
 import shortid from 'shortid';
 import {
+  css,
   getCurrencySymbol,
   ensureIsArray,
   FeatureFlag,
@@ -1254,7 +1255,16 @@ class DatasourceEditor extends React.PureComponent {
               <Field
                 fieldKey="currency"
                 label={t('Metric currency')}
-                control={<CurrencyControl />}
+                control={
+                  <CurrencyControl
+                    currencySelectOverrideProps={{
+                      placeholder: t('Select or type currency symbol'),
+                    }}
+                    symbolSelectAdditionalStyles={css`
+                      max-width: 30%;
+                    `}
+                  />
+                }
               />
               <Field
                 label={t('Certified by')}

@@ -94,7 +94,6 @@ const processColumns = memoizeOne(function processColumns(
     },
     queriesData,
   } = props;
-  console.log(columnConfig);
   const granularity = extractTimegrain(props.rawFormData);
   const { data: records, colnames, coltypes } = queriesData[0] || {};
   // convert `metrics` and `percentMetrics` to the key names in `data.records`

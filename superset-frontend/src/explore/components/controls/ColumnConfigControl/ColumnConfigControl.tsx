@@ -42,6 +42,8 @@ export type ColumnConfigControlProps<T extends ColumnConfig> =
     queryResponse?: ChartDataResponseResult;
     configFormLayout?: ColumnConfigFormLayout;
     appliedColumnNames?: string[];
+    width?: number | string;
+    height?: number | string;
   };
 
 /**
@@ -58,6 +60,8 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
   value,
   onChange,
   configFormLayout = DEFAULT_CONFIG_FORM_LAYOUT,
+  width,
+  height,
   ...props
 }: ColumnConfigControlProps<T>) {
   const { colnames: _colnames, coltypes: _coltypes } = queryResponse || {};
@@ -129,6 +133,8 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
             column={getColumnInfo(col)}
             onChange={config => setColumnConfig(col, config as T)}
             configFormLayout={configFormLayout}
+            width={width}
+            height={height}
           />
         ))}
         {needShowMoreButton && (

@@ -18,12 +18,13 @@
  */
 import React, { useState, FunctionComponentElement, ChangeEvent } from 'react';
 import { JsonValue, useTheme } from '@superset-ui/core';
-import { ControlFormItemComponents, ControlFormItemSpec } from './controls';
+import { ControlFormItemComponents } from './controls';
 import ControlHeader, { ControlHeaderProps } from '../../../ControlHeader';
+import { ControlFormItemDefaultSpec } from '../types';
 
 export * from './controls';
 
-export type ControlFormItemProps = ControlFormItemSpec & {
+export type ControlFormItemProps = ControlFormItemDefaultSpec & {
   name: string;
   onChange?: (fieldValue: JsonValue) => void;
 };
@@ -80,9 +81,6 @@ export function ControlFormItem({
 
   const Control = ControlFormItemComponents[controlType];
 
-  if (controlType === 'Checkbox') {
-    console.log(name, value);
-  }
   return (
     <div
       css={{

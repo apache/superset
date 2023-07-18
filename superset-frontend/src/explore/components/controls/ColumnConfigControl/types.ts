@@ -21,11 +21,12 @@ import {
   JsonObject,
   StrictJsonValue,
 } from '@superset-ui/core';
+import { ControlFormItemSpec } from '@superset-ui/chart-controls';
 import {
   SHARED_COLUMN_CONFIG_PROPS,
   SharedColumnConfigProp,
 } from './constants';
-import { ControlFormItemSpec } from './ControlForm';
+import { ControlFormItemComponents } from './ControlForm';
 
 /**
  * Column formatting configs.
@@ -44,15 +45,29 @@ export interface ColumnConfigInfo {
   config: JsonObject;
 }
 
+export type ControlFormItemDefaultSpec = ControlFormItemSpec<
+  keyof typeof ControlFormItemComponents
+>;
+
 export type ColumnConfigFormItem =
   | SharedColumnConfigProp
-  | { name: SharedColumnConfigProp; override: Partial<ControlFormItemSpec> }
-  | { name: string; config: ControlFormItemSpec };
+  | {
+      name: SharedColumnConfigProp;
+      override: Partial<ControlFormItemDefaultSpec>;
+    }
+  | { name: string; config: ControlFormItemDefaultSpec };
+
+export type TabLayoutItem = { tab: string; children: ColumnConfigFormItem[][] };
 
 export type ColumnConfigFormLayout = Record<
   GenericDataType,
-  | ColumnConfigFormItem[][]
-  | { tab: string; children: ColumnConfigFormItem[][] }[]
+  ColumnConfigFormItem[][] | TabLayoutItem[]
 >;
+
+export function isTabLayoutItem(
+  layoutItem: ColumnConfigFormItem[] | TabLayoutItem,
+): layoutItem is TabLayoutItem {
+  return !!(layoutItem as TabLayoutItem)?.tab;
+}
 
 export default {};

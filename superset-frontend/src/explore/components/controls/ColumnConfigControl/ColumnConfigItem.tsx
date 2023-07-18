@@ -30,6 +30,8 @@ export default React.memo(function ColumnConfigItem({
   column,
   onChange,
   configFormLayout,
+  width,
+  height,
 }: ColumnConfigItemProps) {
   const { colors, gridUnit } = useTheme();
   const caretWidth = gridUnit * 6;
@@ -45,7 +47,7 @@ export default React.memo(function ColumnConfigItem({
       )}
       trigger="click"
       placement="right"
-      overlayInnerStyle={{ width: '400' }}
+      overlayInnerStyle={{ width, height }}
       overlayClassName="column-config-popover"
     >
       <div

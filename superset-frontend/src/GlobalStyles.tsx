@@ -67,28 +67,27 @@ export const GlobalStyles = () => (
         }
       }
       .column-config-popover {
-        & .ant-popover-inner-content {
-          width: ${theme.gridUnit * 100}px;
-          height: ${theme.gridUnit * 75}px;
-        }
         & .ant-input-number {
           width: 100%;
         }
-        & .btn-group svg {
+        && .btn-group svg {
           line-height: 0;
-          top: 0 !important;
+          top: 0;
         }
         & .btn-group > .btn {
           padding: 5px 10px 6px;
         }
+        && .ant-tabs {
+          margin-top: ${theme.gridUnit * -3}px;
+        }
         & .ant-tabs-nav {
-          margin-left: -16px;
-          margin-right: -16px;
+          margin-left: ${theme.gridUnit * -4}px;
+          margin-right: ${theme.gridUnit * -4}px;
           margin-bottom: ${theme.gridUnit * 2}px;
         }
-        & .ant-tabs-tab {
-          flex: 1 !important;
-          margin-right: 0 !important;
+        && .ant-tabs-tab {
+          flex: 1;
+          margin-right: 0;
         }
       }
     `}

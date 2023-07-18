@@ -28,17 +28,17 @@ import {
   ColumnConfigFormItem,
   ColumnConfigFormLayout,
   ColumnConfigInfo,
+  ControlFormItemDefaultSpec,
+  isTabLayoutItem,
 } from './types';
-import ControlForm, {
-  ControlFormItem,
-  ControlFormItemSpec,
-  ControlFormRow,
-} from './ControlForm';
+import ControlForm, { ControlFormItem, ControlFormRow } from './ControlForm';
 
 export type ColumnConfigPopoverProps = {
   column: ColumnConfigInfo;
   configFormLayout: ColumnConfigFormLayout;
   onChange: (value: ColumnConfig) => void;
+  width?: number | string;
+  height?: number | string;
 };
 
 export default function ColumnConfigPopover({
@@ -61,7 +61,7 @@ export default function ColumnConfigPopover({
             ? SHARED_COLUMN_CONFIG_PROPS[key as SharedColumnConfigProp]
             : undefined),
           ...override,
-        } as ControlFormItemSpec;
+        } as ControlFormItemDefaultSpec;
         return <ControlFormItem key={key} name={key} {...props} />;
       })}
     </ControlFormRow>
@@ -72,22 +72,24 @@ export default function ColumnConfigPopover({
       column.type === undefined ? GenericDataType.STRING : column.type
     ];
 
-  if (layout[0]?.tab) {
+  if (isTabLayoutItem(layout[0])) {
     return (
       <Tabs centered>
-        {layout.map((item, i) => (
-          <Tabs.TabPane tab={item.tab} key={i}>
-            <ControlForm onChange={onChange} value={column.config}>
-              {item.children.map((row, i) => renderRow(row, i))}
-            </ControlForm>
-          </Tabs.TabPane>
-        ))}
+        {layout.map((item, i) =>
+          isTabLayoutItem(item) ? (
+            <Tabs.TabPane tab={item.tab} key={i}>
+              <ControlForm onChange={onChange} value={column.config}>
+                {item.children.map((row, i) => renderRow(row, i))}
+              </ControlForm>
+            </Tabs.TabPane>
+          ) : null,
+        )}
       </Tabs>
     );
   }
   return (
     <ControlForm onChange={onChange} value={column.config}>
-      {layout.map((row, i) => renderRow(row, i))}
+      {layout.map((row, i) => renderRow(row as ColumnConfigFormItem[], i))}
     </ControlForm>
   );
 }

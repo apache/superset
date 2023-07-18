@@ -26,13 +26,19 @@ import {
   styled,
   t,
 } from '@superset-ui/core';
+import { CSSObject } from '@emotion/react';
 import { Select } from 'src/components';
 import { ViewState } from 'src/views/types';
+import { SelectProps } from 'src/components/Select/types';
 import ControlHeader from '../../ControlHeader';
 
 export interface CurrencyControlProps {
   onChange: (currency: Partial<Currency>) => void;
   value?: Partial<Currency>;
+  symbolSelectOverrideProps?: Partial<SelectProps>;
+  currencySelectOverrideProps?: Partial<SelectProps>;
+  symbolSelectAdditionalStyles?: CSSObject;
+  currencySelectAdditionalStyles?: CSSObject;
 }
 
 const CurrencyControlContainer = styled.div`
@@ -61,6 +67,10 @@ export const CURRENCY_SYMBOL_POSITION_OPTIONS = [
 export const CurrencyControl = ({
   onChange,
   value: currency = {},
+  symbolSelectOverrideProps = {},
+  currencySelectOverrideProps = {},
+  symbolSelectAdditionalStyles,
+  currencySelectAdditionalStyles,
   ...props
 }: CurrencyControlProps) => {
   const currencies = useSelector<ViewState, string[]>(
@@ -77,9 +87,19 @@ export const CurrencyControl = ({
     [currencies],
   );
   return (
-    <div>
+    <>
       <ControlHeader {...props} />
-      <CurrencyControlContainer>
+      <CurrencyControlContainer
+        css={css`
+          & > :first-child {
+            ${symbolSelectAdditionalStyles};
+          }
+          & > :nth-child(2) {
+            ${currencySelectAdditionalStyles};
+          }
+        `}
+        className="currency-control-container"
+      >
         <Select
           ariaLabel={t('Currency prefix or suffix')}
           options={CURRENCY_SYMBOL_POSITION_OPTIONS}
@@ -89,6 +109,7 @@ export const CurrencyControl = ({
           }}
           value={currency?.symbolPosition}
           allowClear
+          {...symbolSelectOverrideProps}
         />
         <Select
           ariaLabel={t('Currency symbol')}
@@ -100,8 +121,9 @@ export const CurrencyControl = ({
           value={currency?.symbol}
           allowClear
           allowNewOptions
+          {...currencySelectOverrideProps}
         />
       </CurrencyControlContainer>
-    </div>
+    </>
   );
 };
