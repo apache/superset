@@ -27,6 +27,7 @@ from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
+from superset.tags.commands.exceptions import TagNotFoundError
 from superset.tags.models import (
     get_tag,
     ObjectTypes,
@@ -268,7 +269,7 @@ class TagDAO(BaseDAO[Tag]):
         return results
 
     @staticmethod
-    def user_favorite_tag(tag_id: int) -> None:
+    def favorite_tag_by_id_for_current_user(tag_id: int) -> None:
         """
         Marks a specific tag as a favorite for the current user.
         This function will find the tag by the provided id,
@@ -313,11 +314,14 @@ class TagDAO(BaseDAO[Tag]):
         Returns:
             None.
         """
-        # Find the tag
         tag = TagDAO.find_by_id(tag_id)
+        if not tag:
+            raise TagNotFoundError()
         user = g.user
 
-        # Remove the tag from the user's favorites
+        if not tag:
+            raise TagNotFoundError()
+
         if tag and user:
             tag.users_favorited.remove(user)
 
