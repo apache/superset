@@ -50,7 +50,7 @@ pyproject-api==1.5.2
     # via tox
 pyproject-hooks==1.0.0
     # via build
-pyyaml==5.4.1
+pyyaml==6.0.1
     # via pre-commit
 tomli==2.0.1
     # via
@@ -59,7 +59,7 @@ tomli==2.0.1
     #   tox
 toposort==1.10
     # via pip-compile-multi
-tox==4.6.3
+tox==4.6.4
     # via -r requirements/integration.in
 virtualenv==20.23.1
     # via
