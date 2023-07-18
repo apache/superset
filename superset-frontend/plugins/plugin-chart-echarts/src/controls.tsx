@@ -211,7 +211,7 @@ const tooltipSortByMetricControl: ControlSetItem = {
 };
 
 export const richTooltipSection: ControlSetRow[] = [
-  [<div className="section-header">{t('Tooltip')}</div>],
+  [<ControlSubSectionHeader>{t('Tooltip')}</ControlSubSectionHeader>],
   [richTooltipControl],
   [tooltipSortByMetricControl],
   [tooltipTimeFormatControl],
@@ -244,7 +244,7 @@ const sortSeriesAscending: ControlSetItem = {
 };
 
 export const seriesOrderSection: ControlSetRow[] = [
-  [<div className="section-header">{t('Series Order')}</div>],
+  [<ControlSubSectionHeader>{t('Series Order')}</ControlSubSectionHeader>],
   [sortSeriesType],
   [sortSeriesAscending],
 ];
