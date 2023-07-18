@@ -1715,7 +1715,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
     )
     def test_warm_up_cache(self):
         self.login()
-        slc = self.get_slice("Girls", db.session)
+        slc = self.get_slice("Top 10 Girl Name Share", db.session)
         rv = self.client.put("/api/v1/chart/warm_up_cache", json={"chart_id": slc.id})
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
