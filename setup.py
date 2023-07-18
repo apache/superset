@@ -111,7 +111,7 @@ setup(
         "python-dotenv",
         "python-geohash",
         "pyarrow>=12.0.0, <13",
-        "pyyaml>=5.4",
+        "pyyaml>=6.0.0, <7.0.0",
         "PyJWT>=2.4.0, <3.0",
         "redis>=4.5.4, <5.0",
         "selenium>=3.141.0, <4.10.0",
