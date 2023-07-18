@@ -20,6 +20,7 @@ import React from 'react';
 import { t, RollingType, ComparisonType } from '@superset-ui/core';
 import { ControlPanelSectionConfig } from '../types';
 import { formatSelectOptions } from '../utils';
+import ControlSubSectionHeader from '../components/ControlSubSectionHeader';
 
 export const advancedAnalyticsControls: ControlPanelSectionConfig = {
   label: t('Advanced analytics'),
@@ -30,7 +31,7 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
       'of query results',
   ),
   controlSetRows: [
-    [<div className="section-header">{t('Rolling window')}</div>],
+    [<ControlSubSectionHeader>{t('Rolling window')}</ControlSubSectionHeader>],
     [
       {
         name: 'rolling_type',
@@ -99,7 +100,7 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
         },
       },
     ],
-    [<div className="section-header">{t('Time comparison')}</div>],
+    [<ControlSubSectionHeader>{t('Time comparison')}</ControlSubSectionHeader>],
     [
       {
         name: 'time_compare',
@@ -150,7 +151,7 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
         },
       },
     ],
-    [<div className="section-header">{t('Resample')}</div>],
+    [<ControlSubSectionHeader>{t('Resample')}</ControlSubSectionHeader>],
     [
       {
         name: 'resample_rule',
