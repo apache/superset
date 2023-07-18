@@ -18,6 +18,8 @@
  */
 import React from 'react';
 import { t } from '@superset-ui/core';
+
+import ControlSubSectionHeader from '../components/ControlSubSectionHeader';
 import { ControlPanelSectionConfig } from '../types';
 import { formatSelectOptions } from '../utils';
 
@@ -33,7 +35,7 @@ export const titleControls: ControlPanelSectionConfig = {
   tabOverride: 'customize',
   expanded: true,
   controlSetRows: [
-    [<div className="section-header">{t('X Axis')}</div>],
+    [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
     [
       {
         name: 'x_axis_title',

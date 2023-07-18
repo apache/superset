@@ -18,6 +18,8 @@
  */
 import React from 'react';
 import { t, RollingType, ComparisonType } from '@superset-ui/core';
+
+import ControlSubSectionHeader from '../components/ControlSubSectionHeader';
 import { ControlPanelSectionConfig } from '../types';
 import { formatSelectOptions } from '../utils';
 import ControlSubSectionHeader from '../components/ControlSubSectionHeader';
