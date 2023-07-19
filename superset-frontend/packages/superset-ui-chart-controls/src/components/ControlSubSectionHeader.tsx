@@ -19,22 +19,10 @@
 import React from 'react';
 import { styled } from '@superset-ui/core';
 
-const StyledSubSectionHeader = styled.div`
+export const ControlSubSectionHeader = styled.div`
   font-weight: ${({ theme }) => theme.typography.weights.bold};
   font-size: ${({ theme }) => theme.typography.sizes.s};
-  margin-top: ${({ theme }) => theme.gridUnit}px;
+  margin-bottom: ${({ theme }) => theme.gridUnit}px;
   font-transform: none;
-
-  hr {
-    margin-top: ${({ theme }) => theme.gridUnit * 2}px;
-    margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
-  }
 `;
-export const ControlSubSectionHeader = ({ children }) => (
-  <StyledSubSectionHeader>
-    {children}
-    <hr />
-  </StyledSubSectionHeader>
-);
-
 export default ControlSubSectionHeader;
