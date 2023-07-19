@@ -353,7 +353,7 @@ test('filters are draggable', async () => {
     adds a new time grain filter type with all fields filled
     collapsible controls opens by default when it is checked
     advanced section opens by default when it has an option checked
-     disables the default value when default to first item is checked
+    disables the default value when default to first item is checked
     changes the default value options when the column changes
     switches to configuration tab when validation fails
     displays cancel message when there are pending operations
