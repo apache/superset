@@ -86,6 +86,7 @@
     "@emotion/styled": "^11.3.0",
     "@fontsource/inter": "^4.0.0",
     "@reduxjs/toolkit": "^1.9.3",
+    "@scarf/scarf": "^1.1.1",
     "@superset-ui/chart-controls": "file:./packages/superset-ui-chart-controls",
     "@superset-ui/core": "file:./packages/superset-ui-core",
     "@superset-ui/legacy-plugin-chart-calendar": "file:./plugins/legacy-plugin-chart-calendar",
@@ -357,5 +358,8 @@
     }
   },
   "readme": "ERROR: No README data found!",
+  "scarfSettings": {
+    "allowTopLevel": true
+  },
   "_id": "superset@0.0.0-dev"
 }
