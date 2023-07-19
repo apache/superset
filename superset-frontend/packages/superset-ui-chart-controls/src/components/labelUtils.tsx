@@ -43,6 +43,11 @@ const TooltipSectionWrapper = styled.div`
 
 const TooltipSectionLabel = styled.span`
   ${({ theme }) => css`
+    font-weight: ${theme.typography.weights.light};
+  `}
+`;
+const TooltipSectionValue = styled.span`
+  ${({ theme }) => css`
     font-weight: ${theme.typography.weights.bold};
   `}
 `;
@@ -55,8 +60,8 @@ const TooltipSection = ({
   text: ReactNode;
 }) => (
   <TooltipSectionWrapper>
-    <TooltipSectionLabel>{label}</TooltipSectionLabel>
-    <span>{text}</span>
+    <TooltipSectionLabel>{label}: </TooltipSectionLabel>
+    <TooltipSectionValue>{text}</TooltipSectionValue>
   </TooltipSectionWrapper>
 );
 
@@ -71,12 +76,7 @@ export const getColumnTypeTooltipNode = (column: ColumnMeta): ReactNode => {
     return null;
   }
 
-  return (
-    <TooltipSection
-      label={t('Column datatype')}
-      text={column.type.toLowerCase()}
-    />
-  );
+  return <TooltipSection label={t('type')} text={column.type.toLowerCase()} />;
 };
 
 export const getColumnTooltipNode = (
