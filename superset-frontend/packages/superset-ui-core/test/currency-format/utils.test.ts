@@ -177,3 +177,31 @@ test('getValueFormatter with currency from control panel', () => {
     symbolPosition: 'suffix',
   });
 });
+
+test('getValueFormatter with currency from control panel when no saved currencies', () => {
+  const formatter = getValueFormatter(
+    ['count', 'sum__num'],
+    {},
+    {},
+    ',.1f',
+    { symbol: 'EUR', symbolPosition: 'suffix' },
+    undefined,
+  );
+  expect(formatter).toBeInstanceOf(CurrencyFormatter);
+  expect((formatter as CurrencyFormatter).currency).toEqual({
+    symbol: 'EUR',
+    symbolPosition: 'suffix',
+  });
+});
+
+test('getValueFormatter return NumberFormatter when no currency formatters', () => {
+  const formatter = getValueFormatter(
+    ['count', 'sum__num'],
+    {},
+    {},
+    ',.1f',
+    undefined,
+    undefined,
+  );
+  expect(formatter).toBeInstanceOf(NumberFormatter);
+});
