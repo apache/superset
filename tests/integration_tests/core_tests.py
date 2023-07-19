@@ -14,72 +14,67 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# isort:skip_file
 """Unit tests for Superset"""
 import datetime
 import doctest
 import html
 import json
 import logging
-from urllib.parse import quote
-
-import prison
-import superset.utils.database
-from superset.utils.core import backend
-from tests.integration_tests.fixtures.public_role import public_role_like_gamma
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
-)
-from sqlalchemy import Table
-
-import pytest
-import pytz
 import random
 import unittest
 from unittest import mock
+from urllib.parse import quote
 
 import pandas as pd
+import prison
+import pytest
+import pytz
 import sqlalchemy as sqla
+from flask_babel import lazy_gettext as _
+from sqlalchemy import Table
 from sqlalchemy.exc import SQLAlchemyError
-from superset.models.cache import CacheKey
-from superset.utils.database import get_example_database
-from tests.integration_tests.conftest import with_feature_flags
-from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_with_slice,
-    load_energy_table_data,
-)
-from tests.integration_tests.insert_chart_mixin import InsertChartMixin
-from tests.integration_tests.test_app import app
+
+import superset.utils.database
 import superset.views.utils
-from superset import (
-    dataframe,
-    db,
-    security_manager,
-    sql_lab,
-)
+from superset import dataframe, db, security_manager, sql_lab
+from superset.charts.commands.exceptions import ChartDataQueryFailedError
+from superset.charts.data.commands.get_data_command import ChartDataCommand
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
-from superset.exceptions import SupersetException
+from superset.exceptions import QueryObjectValidationError, SupersetException
 from superset.extensions import async_query_manager, cache_manager
 from superset.models import core as models
 from superset.models.annotations import Annotation, AnnotationLayer
+from superset.models.cache import CacheKey
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
 from superset.utils import core as utils
+from superset.utils.core import backend
+from superset.utils.database import get_example_database
 from superset.views import core as views
 from superset.views.database.views import DatabaseView
-
-from .base_tests import SupersetTestCase
+from tests.integration_tests.conftest import CTAS_SCHEMA_NAME, with_feature_flags
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
+)
+from tests.integration_tests.fixtures.energy_dashboard import (
+    load_energy_table_data,
+    load_energy_table_with_slice,
+)
+from tests.integration_tests.fixtures.public_role import public_role_like_gamma
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
     load_world_bank_data,
 )
-from tests.integration_tests.conftest import CTAS_SCHEMA_NAME
+from tests.integration_tests.insert_chart_mixin import InsertChartMixin
+from tests.integration_tests.test_app import app
+
+from .base_tests import SupersetTestCase
 
 logger = logging.getLogger(__name__)
 
@@ -389,7 +384,8 @@ class TestCore(SupersetTestCase, InsertChartMixin):
         db.session.commit()
 
     @pytest.mark.usefixtures(
-        "load_energy_table_with_slice", "load_birth_names_dashboard_with_slices"
+        "load_birth_names_dashboard_with_slices",
+        "load_energy_table_with_slice",
     )
     def test_warm_up_cache(self):
         self.login()
@@ -414,6 +410,29 @@ class TestCore(SupersetTestCase, InsertChartMixin):
             f"/superset/warm_up_cache?dashboard_id={dashboard.id}&slice_id={slc.id}&extra_filters="
             + quote(json.dumps([{"col": "name", "op": "in", "val": ["Jennifer"]}]))
         ) == [{"slice_id": slc.id, "viz_error": None, "viz_status": "success"}]
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_warm_up_cache_error(self) -> None:
+        self.login()
+        slc = self.get_slice("Pivot Table v2", db.session)
+
+        with mock.patch.object(
+            ChartDataCommand,
+            "run",
+            side_effect=ChartDataQueryFailedError(
+                _(
+                    "Error: %(error)s",
+                    error=_("Empty query?"),
+                )
+            ),
+        ):
+            assert self.get_json_resp(f"/superset/warm_up_cache?slice_id={slc.id}") == [
+                {
+                    "slice_id": slc.id,
+                    "viz_error": "Error: Empty query?",
+                    "viz_status": None,
+                }
+            ]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_cache_logging(self):
