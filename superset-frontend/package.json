@@ -86,6 +86,7 @@
     "@emotion/styled": "^11.3.0",
     "@fontsource/inter": "^4.0.0",
     "@reduxjs/toolkit": "^1.9.3",
+    "@scarf/scarf": "^1.1.1",
     "@superset-ui/chart-controls": "file:./packages/superset-ui-chart-controls",
     "@superset-ui/core": "file:./packages/superset-ui-core",
     "@superset-ui/legacy-plugin-chart-calendar": "file:./plugins/legacy-plugin-chart-calendar",
@@ -204,7 +205,6 @@
     "regenerator-runtime": "^0.13.5",
     "rimraf": "^3.0.2",
     "rison": "^0.1.1",
-    "@scarf/scarf": "^1.1.1",
     "scroll-into-view-if-needed": "^2.2.28",
     "shortid": "^2.2.6",
     "tinycolor2": "^1.4.2",
@@ -347,9 +347,6 @@
     "webpack-manifest-plugin": "^4.1.1",
     "webpack-sources": "^3.2.3"
   },
-  "scarfSettings": {
-    "allowTopLevel": true
-  },
   "engines": {
     "node": "^16.9.1",
     "npm": "^7.5.4 || ^8.1.2"
@@ -361,5 +358,8 @@
     }
   },
   "readme": "ERROR: No README data found!",
+  "scarfSettings": {
+    "allowTopLevel": true
+  },
   "_id": "superset@0.0.0-dev"
 }
