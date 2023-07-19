@@ -31,16 +31,13 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 # NPM ci first, as to NOT invalidate previous steps except for when package.json changes
 WORKDIR /app/superset-frontend
 
-COPY ./docker/frontend-mem-nag.sh /
-
-RUN /frontend-mem-nag.sh
+RUN --mount=type=bind,target=/frontend-mem-nag.sh,src=./docker/frontend-mem-nag.sh \
+    /frontend-mem-nag.sh
 
 COPY superset-frontend/package*.json ./
-
 RUN npm ci
 
 COPY ./superset-frontend ./
-
 # This seems to be the most expensive step
 RUN npm run ${BUILD_CMD}
 
@@ -72,18 +69,18 @@ RUN mkdir -p ${PYTHONPATH} \
         libldap2-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --chown=superset:superset ./requirements/*.txt  requirements/
-COPY --chown=superset:superset setup.py MANIFEST.in README.md ./
+COPY setup.py MANIFEST.in README.md ./
 # setup.py uses the version information in package.json
-COPY --chown=superset:superset superset-frontend/package.json superset-frontend/
+COPY superset-frontend/package.json superset-frontend/
 
-RUN mkdir -p superset/static \
+RUN --mount=type=bind,target=./requirements,src=./requirements \
+    mkdir -p superset/static \
     && touch superset/static/version_info.json \
     && pip install --no-cache-dir -r requirements/local.txt
 
-COPY --chown=superset:superset --from=superset-node /app/superset/static/assets superset/static/assets
+COPY --from=superset-node /app/superset/static/assets superset/static/assets
 ## Lastly, let's install superset itself
-COPY --chown=superset:superset superset superset
+COPY superset superset
 
 RUN chown -R superset:superset ./* \
     && pip install --no-cache-dir -e . \
@@ -121,12 +118,11 @@ RUN apt-get update -q \
     # Install Firefox
     && wget https://download-installer.cdn.mozilla.net/pub/firefox/releases/${FIREFOX_VERSION}/linux-x86_64/en-US/firefox-${FIREFOX_VERSION}.tar.bz2 -O - | tar xfj - -C /opt \
     && ln -s /opt/firefox/firefox /usr/local/bin/firefox \
-    && apt-get autoremove -yqq --purge wget && rm -rf /var/lib/apt/lists/* && apt-get clean
+    && apt-get autoremove -yqq --purge wget && rm -rf /var/lib/apt/lists/* /var/[log,tmp] /tmp/* && apt-get clean
 
-COPY ./requirements/*.txt ./docker/requirements-*.txt/ /app/requirements/
 # Cache everything for dev purposes...
-RUN pip install --no-cache-dir -r /app/requirements/docker.txt \
-    && pip install --no-cache-dir -r /app/requirements/requirements-local.txt || true
+RUN pip install --no-cache-dir -r requirements/docker.txt \
+    && pip install --no-cache-dir -r requirements/requirements-local.txt || true
 
 USER superset
 ######################################################################
