@@ -176,7 +176,7 @@ configMountPath: "/app/pythonpath"
 extraConfigMountPath: "/app/configs"
 
 image:
-  repository: apache/superset
+  repository: apachesuperset.docker.scarf.sh/apache/superset
   tag: ""
   pullPolicy: IfNotPresent
 
