@@ -758,6 +758,11 @@ CSV_UPLOAD_MAX_SIZE = None
 # note: index option should not be overridden
 CSV_EXPORT = {"encoding": "utf-8"}
 
+# Excel Options: key/value pairs that will be passed as argument to DataFrame.to_excel
+# method.
+# note: index option should not be overridden
+EXCEL_EXPORT: dict[str, Any] = {}
+
 # ---------------------------------------------------
 # Time grain configurations
 # ---------------------------------------------------
