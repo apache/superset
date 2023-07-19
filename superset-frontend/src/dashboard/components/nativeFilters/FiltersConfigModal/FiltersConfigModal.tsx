@@ -306,21 +306,25 @@ function FiltersConfigModal({
   );
 
   const cleanDeletedParents = (values: NativeFiltersForm | null) => {
-    Object.keys(filterConfigMap).forEach(key => {
-      const filter = filterConfigMap[key];
-      if (!('cascadeParentIds' in filter)) {
-        return;
-      }
-      const { cascadeParentIds } = filter;
-      if (cascadeParentIds) {
-        dispatch(
-          updateCascadeParentIds(
-            key,
-            cascadeParentIds.filter(id => canBeUsedAsDependency(id)),
-          ),
+    const updatedFilterConfigMap = Object.keys(filterConfigMap).reduce(
+      (acc, key) => {
+        const filter = filterConfigMap[key];
+        const cascadeParentIds = filter.cascadeParentIds?.filter(id =>
+          canBeUsedAsDependency(id),
         );
-      }
-    });
+        if (cascadeParentIds) {
+          dispatch(updateCascadeParentIds(key, cascadeParentIds));
+        }
+        return {
+          ...acc,
+          [key]: {
+            ...filter,
+            cascadeParentIds,
+          },
+        };
+      },
+      {},
+    );
 
     const filters = values?.filters;
     if (filters) {
@@ -337,6 +341,7 @@ function FiltersConfigModal({
         }
       });
     }
+    return updatedFilterConfigMap;
   };
 
   const handleErroredFilters = useCallback(() => {
@@ -375,9 +380,9 @@ function FiltersConfigModal({
     handleErroredFilters();
 
     if (values) {
-      cleanDeletedParents(values);
+      const updatedFilterConfigMap = cleanDeletedParents(values);
       createHandleSave(
-        filterConfigMap,
+        updatedFilterConfigMap,
         orderedFilters,
         removedFilters,
         onSave,
