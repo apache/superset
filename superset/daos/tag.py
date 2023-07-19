@@ -269,7 +269,9 @@ class TagDAO(BaseDAO[Tag]):
         return results
 
     @staticmethod
-    def favorite_tag_by_id_for_current_user(tag_id: int) -> None:
+    def favorite_tag_by_id_for_current_user(  # pylint: disable=invalid-name
+        tag_id: int,
+    ) -> None:
         """
         Marks a specific tag as a favorite for the current user.
         This function will find the tag by the provided id,
@@ -315,8 +317,6 @@ class TagDAO(BaseDAO[Tag]):
             None.
         """
         tag = TagDAO.find_by_id(tag_id)
-        if not tag:
-            raise TagNotFoundError()
         user = g.user
 
         if not tag:
@@ -341,7 +341,8 @@ class TagDAO(BaseDAO[Tag]):
             tags (list[Tag]): A list of Tag objects.
 
         Returns:
-            list[Any]: A list of IDs corresponding to the tags that are favorited by the current user.
+            list[Any]: A list of IDs corresponding to the tags that are favorited by
+            the current user.
 
         Example:
             favorited_ids([tag1, tag2, tag3])
