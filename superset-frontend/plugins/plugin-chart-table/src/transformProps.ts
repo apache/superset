@@ -18,7 +18,6 @@
  */
 import memoizeOne from 'memoize-one';
 import {
-  CurrencyFormatter,
   DataRecord,
   extractTimegrain,
   GenericDataType,
@@ -58,7 +57,7 @@ const processDataRecords = memoizeOne(function processDataRecords(
   data: DataRecord[] | undefined,
   columns: DataColumnMeta[],
 ) {
-  if (!data?.[0]) {
+  if (!data || !data[0]) {
     return data || [];
   }
   const timeColumns = columns.filter(
@@ -71,12 +70,9 @@ const processDataRecords = memoizeOne(function processDataRecords(
       timeColumns.forEach(({ key, formatter }) => {
         // Convert datetime with a custom date class so we can use `String(...)`
         // formatted value for global search, and `date.getTime()` for sorting.
-        datum[key] = new DateWithFormatter(
-          parseInt(String(x[key]?.toString()), 10),
-          {
-            formatter: formatter as TimeFormatter,
-          },
-        );
+        datum[key] = new DateWithFormatter(x[key], {
+          formatter: formatter as TimeFormatter,
+        });
       });
       return datum;
     });
@@ -88,7 +84,7 @@ const processColumns = memoizeOne(function processColumns(
   props: TableChartProps,
 ) {
   const {
-    datasource: { columnFormats, currencyFormats, verboseMap },
+    datasource: { columnFormats, verboseMap },
     rawFormData: {
       table_timestamp_format: tableTimestampFormat,
       metrics: metrics_,
@@ -127,7 +123,6 @@ const processColumns = memoizeOne(function processColumns(
       const isTime = dataType === GenericDataType.TEMPORAL;
       const isNumber = dataType === GenericDataType.NUMERIC;
       const savedFormat = columnFormats?.[key];
-      const currency = currencyFormats?.[key];
       const numberFormat = config.d3NumberFormat || savedFormat;
 
       let formatter;
@@ -160,9 +155,7 @@ const processColumns = memoizeOne(function processColumns(
         // percent metrics have a default format
         formatter = getNumberFormatter(numberFormat || PERCENT_3_POINT);
       } else if (isMetric || (isNumber && numberFormat)) {
-        formatter = currency
-          ? new CurrencyFormatter({ d3Format: numberFormat, currency })
-          : getNumberFormatter(numberFormat);
+        formatter = getNumberFormatter(numberFormat);
       }
       return {
         key,

@@ -40,6 +40,9 @@ export default class DateWithFormatter extends Date {
     if (typeof value === 'string') {
       value = normalizeTimestamp(value);
     }
+    if (typeof value === 'object') {
+      value = parseInt(String(value?.toString()), 10);
+    }
 
     super(value as string);
 
