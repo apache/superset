@@ -147,7 +147,9 @@ const truncateLongCells: ControlFormItemSpec<'Checkbox'> = {
 const currencyFormat: ControlFormItemSpec<'CurrencyControl'> = {
   controlType: 'CurrencyControl',
   label: t('Currency format'),
-  description: t('Currency'),
+  description: t(
+    'Customize chart metrics or columns with currency symbols as prefixes or suffixes. Choose a symbol from dropdown or type your own.',
+  ),
   debounceDelay: 200,
 };
 /**
