@@ -419,11 +419,6 @@ const config = {
           {
             loader: '@svgr/webpack',
             options: {
-              icon: true,
-              svgo: false,
-              svgoConfig: {
-                plugins: [{ removeViewBox: false }],
-              },
               titleProp: true,
               ref: true,
             },
