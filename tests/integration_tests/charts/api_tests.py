@@ -14,37 +14,41 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# isort:skip_file
 """Unit tests for Superset"""
 import json
 from io import BytesIO
+from unittest import mock
 from zipfile import is_zipfile, ZipFile
 
 import prison
 import pytest
 import yaml
+from flask_babel import lazy_gettext as _
+from parameterized import parameterized
 from sqlalchemy import and_
 from sqlalchemy.sql import func
 
+from superset.charts.commands.exceptions import ChartDataQueryFailedError
+from superset.charts.data.commands.get_data_command import ChartDataCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.extensions import cache_manager, db, security_manager
 from superset.models.core import Database, FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
-from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
+from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.utils.core import get_example_default_schema
 from superset.utils.database import get_example_database
-
-from tests.integration_tests.conftest import with_feature_flags
+from superset.viz import viz_types
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
 )
 from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_with_slice,
     load_energy_table_data,
+    load_energy_table_with_slice,
 )
 from tests.integration_tests.fixtures.importexport import (
     chart_config,
@@ -1710,12 +1714,16 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         assert data["result"][0]["slice_name"] == "name0"
         assert data["result"][0]["datasource_id"] == 1
 
-    @pytest.mark.usefixtures(
-        "load_energy_table_with_slice", "load_birth_names_dashboard_with_slices"
+    @parameterized.expand(
+        [
+            "Top 10 Girl Name Share",  # Legacy chart
+            "Pivot Table v2",  # Non-legacy chart
+        ],
     )
-    def test_warm_up_cache(self):
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_warm_up_cache(self, slice_name):
         self.login()
-        slc = self.get_slice("Top 10 Girl Name Share", db.session)
+        slc = self.get_slice(slice_name, db.session)
         rv = self.client.put("/api/v1/chart/warm_up_cache", json={"chart_id": slc.id})
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
@@ -1780,7 +1788,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         )
         self.assertEqual(rv.status_code, 400)
         data = json.loads(rv.data.decode("utf-8"))
-        print(data)
         self.assertEqual(
             data,
             {
@@ -1791,3 +1798,81 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
                 }
             },
         )
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_warm_up_cache_error(self) -> None:
+        self.login()
+        slc = self.get_slice("Pivot Table v2", db.session)
+
+        with mock.patch.object(ChartDataCommand, "run") as mock_run:
+            mock_run.side_effect = ChartDataQueryFailedError(
+                _(
+                    "Error: %(error)s",
+                    error=_("Empty query?"),
+                )
+            )
+
+            assert json.loads(
+                self.client.put(
+                    "/api/v1/chart/warm_up_cache",
+                    json={"chart_id": slc.id},
+                ).data
+            ) == {
+                "result": [
+                    {
+                        "chart_id": slc.id,
+                        "viz_error": "Error: Empty query?",
+                        "viz_status": None,
+                    },
+                ],
+            }
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_warm_up_cache_no_query_context(self) -> None:
+        self.login()
+        slc = self.get_slice("Pivot Table v2", db.session)
+
+        with mock.patch.object(Slice, "get_query_context") as mock_get_query_context:
+            mock_get_query_context.return_value = None
+
+            assert json.loads(
+                self.client.put(
+                    f"/api/v1/chart/warm_up_cache",
+                    json={"chart_id": slc.id},
+                ).data
+            ) == {
+                "result": [
+                    {
+                        "chart_id": slc.id,
+                        "viz_error": "Chart's query context does not exist",
+                        "viz_status": None,
+                    },
+                ],
+            }
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_warm_up_cache_no_datasource(self) -> None:
+        self.login()
+        slc = self.get_slice("Top 10 Girl Name Share", db.session)
+
+        with mock.patch.object(
+            Slice,
+            "datasource",
+            new_callable=mock.PropertyMock,
+        ) as mock_datasource:
+            mock_datasource.return_value = None
+
+            assert json.loads(
+                self.client.put(
+                    f"/api/v1/chart/warm_up_cache",
+                    json={"chart_id": slc.id},
+                ).data
+            ) == {
+                "result": [
+                    {
+                        "chart_id": slc.id,
+                        "viz_error": "Chart's datasource does not exist",
+                        "viz_status": None,
+                    },
+                ],
+            }
