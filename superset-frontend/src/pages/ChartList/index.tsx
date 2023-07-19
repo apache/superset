@@ -185,7 +185,6 @@ function ChartList(props: ChartListProps) {
     chartIds,
     addDangerToast,
   );
-
   const {
     sliceCurrentlyEditing,
     handleChartUpdated,

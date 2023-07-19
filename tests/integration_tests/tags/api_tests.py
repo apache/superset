@@ -416,32 +416,3 @@ class TestTagApi(SupersetTestCase):
         )
 
         assert association_row is None
-
-    # @pytest.mark.usefixtures("create_tags")
-    # def test_get_current_user_favorite_status(self):
-    #     """
-    #     Dataset API: Test get current user favorite stars
-    #     """
-    #     admin = self.get_user("admin")
-    #     users_favorite_ids = [
-    #         star.obj_id
-    #         for star in db.session.query(FavStar.obj_id)
-    #         .filter(
-    #             and_(
-    #                 FavStar.user_id == admin.id,
-    #                 FavStar.class_name == FavStarClassName.CHART,
-    #             )
-    #         )
-    #         .all()
-    #     ]
-
-    #     assert users_favorite_ids
-    #     arguments = [s.id for s in db.session.query(Slice.id).all()]
-    #     self.login(username="admin")
-    #     uri = f"api/v1/chart/favorite_status/?q={prison.dumps(arguments)}"
-    #     rv = self.client.get(uri)
-    #     data = json.loads(rv.data.decode("utf-8"))
-    #     assert rv.status_code == 200
-    #     for res in data["result"]:
-    #         if res["id"] in users_favorite_ids:
-    #             assert res["value"]
