@@ -414,7 +414,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         assert database.database_name == "imported_database"
         assert database.expose_in_sqllab
         assert database.extra == "{}"
-        assert database.sqlalchemy_uri == "sqlite:///test.db"
+        assert database.sqlalchemy_uri == "someengine://user:pass@host1"
 
         db.session.delete(database)
         db.session.commit()
@@ -453,7 +453,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         assert database.database_name == "imported_database"
         assert database.expose_in_sqllab
         assert database.extra == '{"schemas_allowed_for_file_upload": ["upload"]}'
-        assert database.sqlalchemy_uri == "sqlite:///test.db"
+        assert database.sqlalchemy_uri == "someengine://user:pass@host1"
 
         db.session.delete(database)
         db.session.commit()

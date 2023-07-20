@@ -20,9 +20,12 @@ from typing import Any, Dict
 
 from sqlalchemy.orm import Session
 
-from superset import security_manager
+from superset import app, security_manager
 from superset.commands.exceptions import ImportFailedError
+from superset.databases.utils import make_url_safe
+from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
+from superset.security.analytics_db_safety import check_sqlalchemy_uri
 
 
 def import_database(
@@ -44,7 +47,12 @@ def import_database(
         raise ImportFailedError(
             "Database doesn't exist and user doesn't have permission to create databases"
         )
-
+    # Check if this URI is allowed
+    if app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]:
+        try:
+            check_sqlalchemy_uri(make_url_safe(config["sqlalchemy_uri"]))
+        except SupersetSecurityException as exc:
+            raise ImportFailedError(exc.message) from exc
     # https://github.com/apache/superset/pull/16756 renamed ``csv`` to ``file``.
     config["allow_file_upload"] = config.pop("allow_csv_upload")
     if "schemas_allowed_for_csv_upload" in config["extra"]:
