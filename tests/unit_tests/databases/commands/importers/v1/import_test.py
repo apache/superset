@@ -42,7 +42,7 @@ def test_import_database(mocker: MockFixture, session: Session) -> None:
     config = copy.deepcopy(database_config)
     database = import_database(session, config)
     assert database.database_name == "imported_database"
-    assert database.sqlalchemy_uri == "sqlite:///test.db"
+    assert database.sqlalchemy_uri == "someengine://user:pass@host1"
     assert database.cache_timeout is None
     assert database.expose_in_sqllab is True
     assert database.allow_run_async is False
@@ -63,6 +63,32 @@ def test_import_database(mocker: MockFixture, session: Session) -> None:
     session.flush()
     database = import_database(session, config)
     assert database.allow_dml is False
+
+
+def test_import_database_sqlite_invalid(mocker: MockFixture, session: Session) -> None:
+    """
+    Test importing a database.
+    """
+    from superset import app, security_manager
+    from superset.databases.commands.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config_sqlite
+
+    app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = True
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config_sqlite)
+    with pytest.raises(ImportFailedError) as excinfo:
+        _ = import_database(session, config)
+    assert (
+        str(excinfo.value)
+        == "SQLiteDialect_pysqlite cannot be used as a data source for security reasons."
+    )
+    # restore app config
+    app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = True
 
 
 def test_import_database_managed_externally(
