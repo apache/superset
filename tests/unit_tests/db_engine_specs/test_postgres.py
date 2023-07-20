@@ -19,10 +19,12 @@ from datetime import datetime
 from typing import Any, Optional
 
 import pytest
+from pytest_mock import MockFixture
 from sqlalchemy import types
 from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
 from sqlalchemy.engine.url import make_url
 
+from superset.exceptions import SupersetSecurityException
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
@@ -133,25 +135,41 @@ def test_get_schema_from_engine_params() -> None:
     )
 
 
-def test_adjust_engine_params() -> None:
+def test_get_prequeries() -> None:
     """
-    Test the ``adjust_engine_params`` method.
+    Test the ``get_prequeries`` method.
     """
     from superset.db_engine_specs.postgres import PostgresEngineSpec
 
-    uri = make_url("postgres://user:password@host/catalog")
+    assert PostgresEngineSpec.get_prequeries() == []
+    assert PostgresEngineSpec.get_prequeries(schema="test") == [
+        'set search_path = "test"'
+    ]
 
-    assert PostgresEngineSpec.adjust_engine_params(uri, {}, None, "secret") == (
-        uri,
-        {"options": "-csearch_path=secret"},
-    )
 
-    assert PostgresEngineSpec.adjust_engine_params(
-        uri,
-        {"foo": "bar", "options": "-csearch_path=default -c debug=1"},
-        None,
-        "secret",
-    ) == (
-        uri,
-        {"foo": "bar", "options": "-csearch_path=secret -cdebug=1"},
+def test_get_default_schema_for_query(mocker: MockFixture) -> None:
+    """
+    Test the ``get_default_schema_for_query`` method.
+    """
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    database = mocker.MagicMock()
+    query = mocker.MagicMock()
+
+    query.sql = "SELECT * FROM some_table"
+    query.schema = "foo"
+    assert PostgresEngineSpec.get_default_schema_for_query(database, query) == "foo"
+
+    query.sql = """
+set
+-- this is a tricky comment
+search_path -- another one
+= bar;
+SELECT * FROM some_table;
+    """
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        PostgresEngineSpec.get_default_schema_for_query(database, query)
+    assert (
+        str(excinfo.value)
+        == "Users are not allowed to set a search path for security reasons."
     )
