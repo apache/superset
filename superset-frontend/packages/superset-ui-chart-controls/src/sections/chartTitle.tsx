@@ -19,7 +19,7 @@
 import React from 'react';
 import { t } from '@superset-ui/core';
 
-import ControlSubSectionHeader from '../components/ControlSubSectionHeader';
+import { ControlSubSectionHeader } from '../components/ControlSubSectionHeader';
 import { ControlPanelSectionConfig } from '../types';
 import { formatSelectOptions } from '../utils';
 
