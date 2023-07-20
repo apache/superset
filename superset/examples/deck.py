@@ -387,6 +387,7 @@ def load_deck_dash() -> None:  # pylint: disable=too-many-statements
         "stroked": False,
         "extruded": True,
         "multiplier": 0.1,
+        "line_width": 10,
         "point_radius_fixed": {
             "type": "metric",
             "value": {

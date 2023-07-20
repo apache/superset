@@ -49,7 +49,11 @@ def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
     for slc in session.query(Slice).filter(
-        or_(Slice.viz_type == "deck_path", Slice.viz_type == "deck_geojson")
+        or_(
+            Slice.viz_type == "deck_path",
+            Slice.viz_type == "deck_geojson",
+            Slice.viz_type == "deck_polygon",
+        )
     ):
         params = json.loads(slc.params)
         if not params.get("line_width_unit"):
@@ -61,15 +65,4 @@ def upgrade():
 
 
 def downgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-    for slc in session.query(Slice).filter(
-        or_(Slice.viz_type == "deck_path", Slice.viz_type == "deck_geojson")
-    ):
-        params = json.loads(slc.params)
-        if params.get("line_width_unit"):
-            del params["line_width_unit"]
-        slc.params = json.dumps(params)
-        session.merge(slc)
-        session.commit()
-    session.close()
+    pass
