@@ -205,13 +205,6 @@ jest.mock('@superset-ui/core', () => ({
   }),
 }));
 
-jest.mock(
-  'src/components/Icons/Icon',
-  () =>
-    ({ fileName }: { fileName: string }) =>
-      <span role="img" aria-label={fileName.replace('_', '-')} />,
-);
-
 // extract text from embedded html tags
 // source: https://polvara.me/posts/five-things-you-didnt-know-about-testing-library
 const getTextInHTMLTags =
