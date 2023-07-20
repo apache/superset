@@ -91,18 +91,18 @@ services:
       - REDIS_PORT=6379
       - REDIS_SSL=false
 
-  superset-init:
-    image: *superset-image
-    container_name: superset_init
-    command: ["/app/docker/docker-init.sh"]
-    env_file: docker/.env
-    depends_on: *superset-depends-on
-    user: *superset-user
-    volumes: *superset-volumes
-    environment:
-      CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
-    healthcheck:
-      disable: true
+#  superset-init:
+#    image: *superset-image
+#    container_name: superset_init
+#    command: ["/app/docker/docker-init.sh"]
+#    env_file: docker/.env
+#    depends_on: *superset-depends-on
+#    user: *superset-user
+#    volumes: *superset-volumes
+#    environment:
+#      CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
+#    healthcheck:
+#      disable: true
 
   superset-node:
     image: node:16
