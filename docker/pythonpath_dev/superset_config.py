@@ -120,3 +120,12 @@ try:
     )
 except ImportError:
     logger.info("Using default Docker config...")
+
+# Do you want Talisman enabled?
+TALISMAN_ENABLED = False
+# If you want Talisman, how do you want it configured??
+TALISMAN_CONFIG = {
+    "content_security_policy": None,
+    "force_https": True,
+    "force_https_permanent": False,
+}
