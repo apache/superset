@@ -19,7 +19,10 @@ set -ex
 
 echo "[WARNING] this entrypoint creates an admin/admin user"
 echo "[WARNING] it should only be used for lightweight testing/validation"
-if $SUPERSET_TESTENV then echo "SUPERSET IS RUNNING IN TEST MODE"
+
+if [ -z "${SUPERSET_TESTENV}" ]; then
+  echo "SUPERSET IS RUNNING IN TEST MODE"
+fi
 
 # Create an admin user (you will be prompted to set username, first and last name before setting a password)
 superset fab create-admin \
@@ -38,5 +41,5 @@ superset init
 # Loading examples
 superset load-examples --force
 
-FLASK_ENV=development FLASK_APP="superset.app:create_app()" \
+SUPERSET_ENV=development FLASK_APP="superset.app:create_app()" \
 flask run -p 8088 --with-threads --reload --debugger --host=0.0.0.0

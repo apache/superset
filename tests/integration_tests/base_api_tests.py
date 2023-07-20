@@ -115,7 +115,7 @@ class TestBaseModelRestApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
         expected_mutation_spec = {
-            "properties": {"id": {"format": "int32", "type": "integer"}},
+            "properties": {"id": {"type": "integer"}},
             "type": "object",
         }
         self.assertEqual(

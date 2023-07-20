@@ -33,6 +33,7 @@ import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
 import Icons from 'src/components/Icons';
 import { CronError } from 'src/components/CronPicker';
 import { RadioChangeEvent } from 'src/components';
+import { Input } from 'src/components/Input';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { ChartState } from 'src/explore/types';
 import {
@@ -41,9 +42,14 @@ import {
   NOTIFICATION_FORMATS,
 } from 'src/reports/types';
 import { reportSelector } from 'src/views/CRUD/hooks';
+import {
+  TRANSLATIONS,
+  StyledInputContainer,
+} from 'src/features/alerts/AlertReportModal';
 import { CreationMethod } from './HeaderReportDropdown';
 import {
   antDErrorAlertStyles,
+  CustomWidthHeaderStyle,
   StyledModal,
   StyledTopSection,
   StyledBottomSection,
@@ -170,6 +176,7 @@ function ReportModal({
       type: 'Report',
       active: true,
       force_screenshot: false,
+      custom_width: currentReport.custom_width,
       creation_method: creationMethod,
       dashboard: dashboardId,
       chart: chart?.id,
@@ -257,6 +264,26 @@ function ReportModal({
       </div>
     </>
   );
+  const renderCustomWidthSection = (
+    <StyledInputContainer>
+      <div className="control-label" css={CustomWidthHeaderStyle}>
+        {TRANSLATIONS.CUSTOM_SCREENSHOT_WIDTH_TEXT}
+      </div>
+      <div className="input-container">
+        <Input
+          type="number"
+          name="custom_width"
+          value={currentReport?.custom_width || ''}
+          placeholder={TRANSLATIONS.CUSTOM_SCREENSHOT_WIDTH_PLACEHOLDER_TEXT}
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+            setCurrentReport({
+              custom_width: parseInt(event.target.value, 10) || null,
+            });
+          }}
+        />
+      </div>
+    </StyledInputContainer>
+  );
 
   return (
     <StyledModal
@@ -331,6 +358,7 @@ function ReportModal({
           }}
         />
         {isChart && renderMessageContentSection}
+        {(!isChart || !isTextBasedChart) && renderCustomWidthSection}
       </StyledBottomSection>
       {currentReport.error && (
         <Alert

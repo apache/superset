@@ -4608,8 +4608,8 @@
       "The number of hours, negative or positive, to shift the time column. This can be used to move UTC time to local time.": [
         "O número de horas, negativo ou positivo, para deslocar a coluna da hora. Isto pode ser utilizado para mudar a hora UTC para a hora local."
       ],
-      "The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROWS. Please add additional limits/filters or download to csv to see more rows up to the %(limit)d limit.": [
-        "O número de resultados apresentados é limitado a %(rows)d pela configuração DISPLAY_MAX_ROWS. Adicione limites/filtros adicionais ou descarregue para csv para ver mais linhas até ao limite de %(limit)d."
+      "The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROW. Please add additional limits/filters or download to csv to see more rows up to the %(limit)d limit.": [
+        "O número de resultados apresentados é limitado a %(rows)d pela configuração DISPLAY_MAX_ROW. Adicione limites/filtros adicionais ou descarregue para csv para ver mais linhas até ao limite de %(limit)d."
       ],
       "The number of results displayed is limited to %(rows)d. Please add additional limits/filters, download to csv, or contact an admin to see more rows up to the %(limit)d limit.": [
         "O número de resultados apresentados está limitado a %(rows)d. Adicione limites/filtros adicionais, transfira para csv ou contate um administrador para ver mais linhas até ao limite de %(limit)d."

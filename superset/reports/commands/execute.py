@@ -206,18 +206,29 @@ class BaseReportState:
             model=self._report_schedule,
         )
         user = security_manager.find_user(username)
+
         if self._report_schedule.chart:
+            window_width, window_height = app.config["WEBDRIVER_WINDOW"]["slice"]
+            window_size = (
+                self._report_schedule.custom_width or window_width,
+                self._report_schedule.custom_height or window_height,
+            )
             screenshot: Union[ChartScreenshot, DashboardScreenshot] = ChartScreenshot(
                 url,
                 self._report_schedule.chart.digest,
-                window_size=app.config["WEBDRIVER_WINDOW"]["slice"],
+                window_size=window_size,
                 thumb_size=app.config["WEBDRIVER_WINDOW"]["slice"],
             )
         else:
+            window_width, window_height = app.config["WEBDRIVER_WINDOW"]["dashboard"]
+            window_size = (
+                self._report_schedule.custom_width or window_width,
+                self._report_schedule.custom_height or window_height,
+            )
             screenshot = DashboardScreenshot(
                 url,
                 self._report_schedule.dashboard.digest,
-                window_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
+                window_size=window_size,
                 thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
             )
         try:

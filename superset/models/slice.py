@@ -58,8 +58,8 @@ slice_user = Table(
     "slice_user",
     metadata,
     Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("ab_user.id")),
-    Column("slice_id", Integer, ForeignKey("slices.id")),
+    Column("user_id", Integer, ForeignKey("ab_user.id", ondelete="CASCADE")),
+    Column("slice_id", Integer, ForeignKey("slices.id", ondelete="CASCADE")),
 )
 logger = logging.getLogger(__name__)
 
@@ -95,7 +95,11 @@ class Slice(  # pylint: disable=too-many-public-methods
     last_saved_by = relationship(
         security_manager.user_model, foreign_keys=[last_saved_by_fk]
     )
-    owners = relationship(security_manager.user_model, secondary=slice_user)
+    owners = relationship(
+        security_manager.user_model,
+        secondary=slice_user,
+        passive_deletes=True,
+    )
     tags = relationship(
         "Tag",
         secondary="tagged_object",

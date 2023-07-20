@@ -20,7 +20,6 @@ from typing import Any, Union
 
 from marshmallow import fields, post_load, pre_load, Schema
 from marshmallow.validate import Length, ValidationError
-from marshmallow_enum import EnumField
 
 from superset.exceptions import SupersetException
 from superset.tags.models import TagTypes
@@ -174,7 +173,7 @@ class RolesSchema(Schema):
 class TagSchema(Schema):
     id = fields.Int()
     name = fields.String()
-    type = EnumField(TagTypes, by_value=True)
+    type = fields.Enum(TagTypes, by_value=True)
 
 
 class DashboardGetResponseSchema(Schema):
@@ -219,6 +218,7 @@ class DashboardDatasetSchema(Schema):
     id = fields.Int()
     uid = fields.Str()
     column_formats = fields.Dict()
+    currency_formats = fields.Dict()
     database = fields.Nested(DatabaseSchema)
     default_endpoint = fields.String()
     filter_select = fields.Bool()

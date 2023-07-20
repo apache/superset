@@ -18,6 +18,7 @@
  */
 import memoizeOne from 'memoize-one';
 import {
+  CurrencyFormatter,
   DataRecord,
   extractTimegrain,
   GenericDataType,
@@ -57,7 +58,7 @@ const processDataRecords = memoizeOne(function processDataRecords(
   data: DataRecord[] | undefined,
   columns: DataColumnMeta[],
 ) {
-  if (!data || !data[0]) {
+  if (!data?.[0]) {
     return data || [];
   }
   const timeColumns = columns.filter(
@@ -84,7 +85,7 @@ const processColumns = memoizeOne(function processColumns(
   props: TableChartProps,
 ) {
   const {
-    datasource: { columnFormats, verboseMap },
+    datasource: { columnFormats, currencyFormats, verboseMap },
     rawFormData: {
       table_timestamp_format: tableTimestampFormat,
       metrics: metrics_,
@@ -123,6 +124,7 @@ const processColumns = memoizeOne(function processColumns(
       const isTime = dataType === GenericDataType.TEMPORAL;
       const isNumber = dataType === GenericDataType.NUMERIC;
       const savedFormat = columnFormats?.[key];
+      const currency = currencyFormats?.[key];
       const numberFormat = config.d3NumberFormat || savedFormat;
 
       let formatter;
@@ -155,7 +157,9 @@ const processColumns = memoizeOne(function processColumns(
         // percent metrics have a default format
         formatter = getNumberFormatter(numberFormat || PERCENT_3_POINT);
       } else if (isMetric || (isNumber && numberFormat)) {
-        formatter = getNumberFormatter(numberFormat);
+        formatter = currency
+          ? new CurrencyFormatter({ d3Format: numberFormat, currency })
+          : getNumberFormatter(numberFormat);
       }
       return {
         key,

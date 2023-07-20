@@ -24,9 +24,6 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
 
-from superset.annotation_layers.annotations.commands.bulk_delete import (
-    BulkDeleteAnnotationCommand,
-)
 from superset.annotation_layers.annotations.commands.create import (
     CreateAnnotationCommand,
 )
@@ -34,7 +31,6 @@ from superset.annotation_layers.annotations.commands.delete import (
     DeleteAnnotationCommand,
 )
 from superset.annotation_layers.annotations.commands.exceptions import (
-    AnnotationBulkDeleteFailedError,
     AnnotationCreateFailedError,
     AnnotationDeleteFailedError,
     AnnotationInvalidError,
@@ -438,7 +434,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            DeleteAnnotationCommand(annotation_id).run()
+            DeleteAnnotationCommand([annotation_id]).run()
             return self.response(200, message="OK")
         except AnnotationNotFoundError:
             return self.response_404()
@@ -495,7 +491,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteAnnotationCommand(item_ids).run()
+            DeleteAnnotationCommand(item_ids).run()
             return self.response(
                 200,
                 message=ngettext(
@@ -506,5 +502,5 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
             )
         except AnnotationNotFoundError:
             return self.response_404()
-        except AnnotationBulkDeleteFailedError as ex:
+        except AnnotationDeleteFailedError as ex:
             return self.response_422(message=str(ex))

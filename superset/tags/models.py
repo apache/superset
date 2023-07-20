@@ -20,7 +20,7 @@ import enum
 from typing import TYPE_CHECKING
 
 from flask_appbuilder import Model
-from sqlalchemy import Column, Enum, ForeignKey, Integer, String
+from sqlalchemy import Column, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship, Session, sessionmaker
 from sqlalchemy.orm.mapper import Mapper
@@ -76,6 +76,7 @@ class Tag(Model, AuditMixinNullable):
     id = Column(Integer, primary_key=True)
     name = Column(String(250), unique=True)
     type = Column(Enum(TagTypes))
+    description = Column(Text)
 
     objects = relationship(
         "TaggedObject", back_populates="tag", overlaps="objects,tags"
