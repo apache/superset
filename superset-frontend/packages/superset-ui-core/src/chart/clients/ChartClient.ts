@@ -123,6 +123,9 @@ export default class ChartClient {
             ...options,
           };
 
+      // RENE not used for query
+      console.log('requestConfig', requestConfig);
+
       return this.client
         .post(requestConfig)
         .then(response =>

@@ -183,6 +183,8 @@ export default class SupersetClientClass {
   async post<T extends ParseMethod = 'json'>(
     requestConfig: RequestConfig & { parseMethod?: T },
   ) {
+    // RENE used for query
+    console.log('requestConfig', requestConfig);
     return this.request({ ...requestConfig, method: 'POST' });
   }
 

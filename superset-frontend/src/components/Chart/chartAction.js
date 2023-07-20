@@ -197,6 +197,9 @@ const v1ChartDataRequest = async (
     parseMethod: 'json-bigint',
   };
 
+  // RENE: Used for query
+  console.log('querySettings', querySettings);
+
   return SupersetClient.post(querySettings);
 };
 
@@ -220,6 +223,14 @@ export async function getChartDataRequest({
       mode: 'cors',
       credentials: 'include',
     };
+  }
+
+  console.log('formdata, ', formData);
+  if (formData.cube_query) {
+    console.log('USE CUBE');
+
+    const result = JSON.parse('{"result":[{"cache_key":"03574e203a9ba5e4235940331d5423be","cached_dttm":"2023-07-18T07:05:41","cache_timeout":300,"applied_template_filters":[],"annotation_data":{},"error":null,"is_cached":true,"query":"SELECT name AS name\\nFROM public.users_channels\\nGROUP BY name\\nLIMIT 50000;\\n\\n","status":"success","stacktrace":null,"rowcount":30,"from_dttm":null,"to_dttm":1689638400000,"label_map":{"name":["name"]},"colnames":["name"],"indexnames":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29],"coltypes":[1],"data":[{"name":"newsletter"},{"name":"dashboard-level-access"},{"name":"support"},{"name":"beginners"},{"name":"visualization_plugins"},{"name":"community-feedback"},{"name":"graduation"},{"name":"product_feedback"},{"name":"superset_stage_alerts"},{"name":"dashboard-filters"},{"name":"contributing"},{"name":"superset-champions"},{"name":"introductions"},{"name":"embedd-dashboards"},{"name":"github-notifications"},{"name":"cypress-tests"},{"name":"helm-k8-deployment"},{"name":"superset_prod_reports"},{"name":"globalnav_search"},{"name":"pull-requests"},{"name":"design"},{"name":"feature-requests"},{"name":"dashboards"},{"name":"localization"},{"name":"commits"},{"name":"apache-releases"},{"name":"jobs"},{"name":"developers"},{"name":"general"},{"name":"announcements"}],"result_format":"json","applied_filters":[],"rejected_filters":[]}]}');
+    return Promise.resolve({json: result});
   }
 
   if (shouldUseLegacyApi(formData)) {
