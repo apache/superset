@@ -111,8 +111,10 @@ export default function transformProps(
     theme,
     inContextMenu,
     emitCrossFilters,
-    ownState = {},
   } = chartProps;
+
+  let focusedSeries: string | null = null;
+
   const {
     verboseMap = {},
     columnFormats = {},
@@ -525,7 +527,6 @@ export default function transformProps(
               : getCustomFormatter(customFormatters, metrics, formatterKey) ??
                 defaultFormatter,
           });
-          const { focusedSeries } = ownState;
           const contentStyle =
             key === focusedSeries ? 'font-weight: 700' : 'opacity: 0.7';
           rows.push(`<span style="${contentStyle}">${content}</span>`);
@@ -576,7 +577,7 @@ export default function transformProps(
   };
 
   const onFocusedSeries = (seriesName: string | null) => {
-    ownState.focusedSeries = seriesName;
+    focusedSeries = seriesName;
   };
 
   return {
