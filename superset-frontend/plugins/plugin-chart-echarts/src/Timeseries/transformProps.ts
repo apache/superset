@@ -526,11 +526,9 @@ export default function transformProps(
                 defaultFormatter,
           });
           const { focusedSeries } = ownState;
-          if (key === focusedSeries) {
-            rows.push(`<span style="font-weight: 700">${content}</span>`);
-          } else {
-            rows.push(`<span style="opacity: 0.7">${content}</span>`);
-          }
+          const contentStyle =
+            key === focusedSeries ? 'font-weight: 700' : 'opacity: 0.7';
+          rows.push(`<span style="${contentStyle}">${content}</span>`);
         });
         if (stack) {
           rows.reverse();
