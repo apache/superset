@@ -24,13 +24,13 @@ import { Tooltip } from 'src/components/Tooltip';
 export interface WarningIconWithTooltipProps {
   warningMarkdown: string;
   size?: IconType['iconSize'];
-  indentSize?: number;
+  marginRight?: number;
 }
 
 function WarningIconWithTooltip({
   warningMarkdown,
   size,
-  indentSize = 2,
+  marginRight,
 }: WarningIconWithTooltipProps) {
   const theme = useTheme();
   return (
@@ -41,7 +41,7 @@ function WarningIconWithTooltip({
       <Icons.AlertSolid
         iconColor={theme.colors.alert.base}
         iconSize={size}
-        css={{ marginRight: theme.gridUnit * indentSize }}
+        css={{ marginRight: marginRight ?? theme.gridUnit * 2 }}
       />
     </Tooltip>
   );
