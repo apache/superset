@@ -59,7 +59,7 @@ describe('DatasetLayout', () => {
     );
 
     expect(
-      await screen.findByText(/select database & schema/i),
+      await screen.findByText(/Select database or type to search databases/i),
     ).toBeInTheDocument();
     expect(LeftPanel).toBeTruthy();
   });
