@@ -284,9 +284,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
     def __repr__(self) -> str:
         """Deterministic string representation of the API instance for etag_cache."""
-        version_str = self.appbuilder.app.config["VERSION_STRING"]
-        version_sha = self.appbuilder.app.config["VERSION_SHA"]
-        return f"Superset.dashboards.api.DashboardRestApi@v{version_str}{version_sha}"
+        # pylint: disable=consider-using-f-string
+        return "Superset.dashboards.api.DashboardRestApi@v{}{}".format(
+            self.appbuilder.app.config["VERSION_STRING"],
+            self.appbuilder.app.config["VERSION_SHA"],
+        )
 
     @expose("/<id_or_slug>", methods=("GET",))
     @protect()

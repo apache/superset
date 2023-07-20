@@ -83,10 +83,11 @@ class CreateSSHTunnelCommand(BaseCommand):
         if exceptions:
             exception = SSHTunnelInvalidError()
             exception.extend(exceptions)
-
-            ex_cls_name = exception.__class__.__name__
-            ex_cls_names = ".".join(exception.get_list_classnames())
             event_logger.log_with_context(
-                action=f"ssh_tunnel_creation_failed.{ex_cls_name}.{ex_cls_names}"
+                # pylint: disable=consider-using-f-string
+                action="ssh_tunnel_creation_failed.{}.{}".format(
+                    exception.__class__.__name__,
+                    ".".join(exception.get_list_classnames()),
+                )
             )
             raise exception
