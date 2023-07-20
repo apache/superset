@@ -133,25 +133,13 @@ def test_get_schema_from_engine_params() -> None:
     )
 
 
-def test_adjust_engine_params() -> None:
+def test_get_prequeries() -> None:
     """
-    Test the ``adjust_engine_params`` method.
+    Test the ``get_prequeries`` method.
     """
     from superset.db_engine_specs.postgres import PostgresEngineSpec
 
-    uri = make_url("postgres://user:password@host/catalog")
-
-    assert PostgresEngineSpec.adjust_engine_params(uri, {}, None, "secret") == (
-        uri,
-        {"options": "-csearch_path=secret"},
-    )
-
-    assert PostgresEngineSpec.adjust_engine_params(
-        uri,
-        {"foo": "bar", "options": "-csearch_path=default -c debug=1"},
-        None,
-        "secret",
-    ) == (
-        uri,
-        {"foo": "bar", "options": "-csearch_path=secret -cdebug=1"},
-    )
+    assert PostgresEngineSpec.get_prequeries() == []
+    assert PostgresEngineSpec.get_prequeries(schema="test") == [
+        'set search_path = "test"'
+    ]
