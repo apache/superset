@@ -117,8 +117,6 @@ const LeftPanelStyle = styled.div`
 `}
 `;
 
-const divider = ':@:';
-
 export default function LeftPanel({
   setDataset,
   dataset,
@@ -156,13 +154,11 @@ export default function LeftPanel({
     }
   }, [setDatabase]);
 
-  const datasetNamesSet = datasetNames?.join(divider);
-
   const customTableOptionLabelRenderer = useCallback(
     (table: Table) => (
       <TableOption
         table={
-          datasetNamesSet?.split(divider)?.includes(table.value)
+          datasetNames?.includes(table.value)
             ? {
                 ...table,
                 extra: {
@@ -173,7 +169,7 @@ export default function LeftPanel({
         }
       />
     ),
-    [datasetNamesSet],
+    [datasetNames],
   );
 
   return (
