@@ -19,6 +19,7 @@
 import { hasGenericChartAxes, smartDateFormatter, t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
+  ControlSubSectionHeader,
   D3_FORMAT_DOCS,
   D3_TIME_FORMAT_OPTIONS,
   getStandardizedControls,
@@ -170,7 +171,11 @@ const config: ControlPanelConfig = {
       expanded: false,
       controlSetRows: [
         // eslint-disable-next-line react/jsx-key
-        [<div className="section-header">{t('Rolling Window')}</div>],
+        [
+          <ControlSubSectionHeader>
+            {t('Rolling Window')}
+          </ControlSubSectionHeader>,
+        ],
         [
           {
             name: 'rolling_type',
@@ -223,7 +228,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<div className="section-header">{t('Resample')}</div>],
+        [<ControlSubSectionHeader>{t('Resample')}</ControlSubSectionHeader>],
         [
           {
             name: 'resample_rule',
