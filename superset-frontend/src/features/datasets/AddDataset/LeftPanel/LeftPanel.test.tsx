@@ -27,122 +27,128 @@ const databasesEndpoint = 'glob:*/api/v1/database/?q*';
 const schemasEndpoint = 'glob:*/api/v1/database/*/schemas*';
 const tablesEndpoint = 'glob:*/api/v1/database/*/tables/?q*';
 
-fetchMock.get(databasesEndpoint, {
-  count: 2,
-  description_columns: {},
-  ids: [1, 2],
-  label_columns: {
-    allow_file_upload: 'Allow Csv Upload',
-    allow_ctas: 'Allow Ctas',
-    allow_cvas: 'Allow Cvas',
-    allow_dml: 'Allow Dml',
-    allow_multi_schema_metadata_fetch: 'Allow Multi Schema Metadata Fetch',
-    allow_run_async: 'Allow Run Async',
-    allows_cost_estimate: 'Allows Cost Estimate',
-    allows_subquery: 'Allows Subquery',
-    allows_virtual_table_explore: 'Allows Virtual Table Explore',
-    disable_data_preview: 'Disables SQL Lab Data Preview',
-    backend: 'Backend',
-    changed_on: 'Changed On',
-    changed_on_delta_humanized: 'Changed On Delta Humanized',
-    'created_by.first_name': 'Created By First Name',
-    'created_by.last_name': 'Created By Last Name',
-    database_name: 'Database Name',
-    explore_database_id: 'Explore Database Id',
-    expose_in_sqllab: 'Expose In Sqllab',
-    force_ctas_schema: 'Force Ctas Schema',
-    id: 'Id',
-  },
-  list_columns: [
-    'allow_file_upload',
-    'allow_ctas',
-    'allow_cvas',
-    'allow_dml',
-    'allow_multi_schema_metadata_fetch',
-    'allow_run_async',
-    'allows_cost_estimate',
-    'allows_subquery',
-    'allows_virtual_table_explore',
-    'disable_data_preview',
-    'backend',
-    'changed_on',
-    'changed_on_delta_humanized',
-    'created_by.first_name',
-    'created_by.last_name',
-    'database_name',
-    'explore_database_id',
-    'expose_in_sqllab',
-    'force_ctas_schema',
-    'id',
-  ],
-  list_title: 'List Database',
-  order_columns: [
-    'allow_file_upload',
-    'allow_dml',
-    'allow_run_async',
-    'changed_on',
-    'changed_on_delta_humanized',
-    'created_by.first_name',
-    'database_name',
-    'expose_in_sqllab',
-  ],
-  result: [
-    {
-      allow_file_upload: false,
-      allow_ctas: false,
-      allow_cvas: false,
-      allow_dml: false,
-      allow_multi_schema_metadata_fetch: false,
-      allow_run_async: false,
-      allows_cost_estimate: null,
-      allows_subquery: true,
-      allows_virtual_table_explore: true,
-      disable_data_preview: false,
-      backend: 'postgresql',
-      changed_on: '2021-03-09T19:02:07.141095',
-      changed_on_delta_humanized: 'a day ago',
-      created_by: null,
-      database_name: 'test-postgres',
-      explore_database_id: 1,
-      expose_in_sqllab: true,
-      force_ctas_schema: null,
-      id: 1,
+beforeEach(() => {
+  fetchMock.get(databasesEndpoint, {
+    count: 2,
+    description_columns: {},
+    ids: [1, 2],
+    label_columns: {
+      allow_file_upload: 'Allow Csv Upload',
+      allow_ctas: 'Allow Ctas',
+      allow_cvas: 'Allow Cvas',
+      allow_dml: 'Allow Dml',
+      allow_multi_schema_metadata_fetch: 'Allow Multi Schema Metadata Fetch',
+      allow_run_async: 'Allow Run Async',
+      allows_cost_estimate: 'Allows Cost Estimate',
+      allows_subquery: 'Allows Subquery',
+      allows_virtual_table_explore: 'Allows Virtual Table Explore',
+      disable_data_preview: 'Disables SQL Lab Data Preview',
+      backend: 'Backend',
+      changed_on: 'Changed On',
+      changed_on_delta_humanized: 'Changed On Delta Humanized',
+      'created_by.first_name': 'Created By First Name',
+      'created_by.last_name': 'Created By Last Name',
+      database_name: 'Database Name',
+      explore_database_id: 'Explore Database Id',
+      expose_in_sqllab: 'Expose In Sqllab',
+      force_ctas_schema: 'Force Ctas Schema',
+      id: 'Id',
     },
-    {
-      allow_csv_upload: false,
-      allow_ctas: false,
-      allow_cvas: false,
-      allow_dml: false,
-      allow_multi_schema_metadata_fetch: false,
-      allow_run_async: false,
-      allows_cost_estimate: null,
-      allows_subquery: true,
-      allows_virtual_table_explore: true,
-      disable_data_preview: false,
-      backend: 'mysql',
-      changed_on: '2021-03-09T19:02:07.141095',
-      changed_on_delta_humanized: 'a day ago',
-      created_by: null,
-      database_name: 'test-mysql',
-      explore_database_id: 1,
-      expose_in_sqllab: true,
-      force_ctas_schema: null,
-      id: 2,
-    },
-  ],
+    list_columns: [
+      'allow_file_upload',
+      'allow_ctas',
+      'allow_cvas',
+      'allow_dml',
+      'allow_multi_schema_metadata_fetch',
+      'allow_run_async',
+      'allows_cost_estimate',
+      'allows_subquery',
+      'allows_virtual_table_explore',
+      'disable_data_preview',
+      'backend',
+      'changed_on',
+      'changed_on_delta_humanized',
+      'created_by.first_name',
+      'created_by.last_name',
+      'database_name',
+      'explore_database_id',
+      'expose_in_sqllab',
+      'force_ctas_schema',
+      'id',
+    ],
+    list_title: 'List Database',
+    order_columns: [
+      'allow_file_upload',
+      'allow_dml',
+      'allow_run_async',
+      'changed_on',
+      'changed_on_delta_humanized',
+      'created_by.first_name',
+      'database_name',
+      'expose_in_sqllab',
+    ],
+    result: [
+      {
+        allow_file_upload: false,
+        allow_ctas: false,
+        allow_cvas: false,
+        allow_dml: false,
+        allow_multi_schema_metadata_fetch: false,
+        allow_run_async: false,
+        allows_cost_estimate: null,
+        allows_subquery: true,
+        allows_virtual_table_explore: true,
+        disable_data_preview: false,
+        backend: 'postgresql',
+        changed_on: '2021-03-09T19:02:07.141095',
+        changed_on_delta_humanized: 'a day ago',
+        created_by: null,
+        database_name: 'test-postgres',
+        explore_database_id: 1,
+        expose_in_sqllab: true,
+        force_ctas_schema: null,
+        id: 1,
+      },
+      {
+        allow_csv_upload: false,
+        allow_ctas: false,
+        allow_cvas: false,
+        allow_dml: false,
+        allow_multi_schema_metadata_fetch: false,
+        allow_run_async: false,
+        allows_cost_estimate: null,
+        allows_subquery: true,
+        allows_virtual_table_explore: true,
+        disable_data_preview: false,
+        backend: 'mysql',
+        changed_on: '2021-03-09T19:02:07.141095',
+        changed_on_delta_humanized: 'a day ago',
+        created_by: null,
+        database_name: 'test-mysql',
+        explore_database_id: 1,
+        expose_in_sqllab: true,
+        force_ctas_schema: null,
+        id: 2,
+      },
+    ],
+  });
+
+  fetchMock.get(schemasEndpoint, {
+    result: ['information_schema', 'public'],
+  });
+
+  fetchMock.get(tablesEndpoint, {
+    count: 3,
+    result: [
+      { value: 'Sheet1', type: 'table', extra: null },
+      { value: 'Sheet2', type: 'table', extra: null },
+      { value: 'Sheet3', type: 'table', extra: null },
+    ],
+  });
 });
 
-fetchMock.get(schemasEndpoint, {
-  result: ['information_schema', 'public'],
-});
-
-fetchMock.get(tablesEndpoint, {
-  count: 3,
-  result: [
-    { value: 'Sheet1', type: 'table', extra: null },
-    { value: 'Sheet2', type: 'table', extra: null },
-    { value: 'Sheet3', type: 'table', extra: null },
-  ],
+afterEach(() => {
+  fetchMock.reset();
 });
 
 const mockFun = jest.fn();
@@ -152,14 +158,16 @@ test('should render', async () => {
     useRedux: true,
   });
   expect(
-    await screen.findByText(/select database & schema/i),
+    await screen.findByText(/Select database or type to search databases/i),
   ).toBeInTheDocument();
 });
 
 test('should render schema selector, database selector container, and selects', async () => {
   render(<LeftPanel setDataset={mockFun} />, { useRedux: true });
 
-  expect(await screen.findByText(/select database & schema/i)).toBeVisible();
+  expect(
+    await screen.findByText(/Select database or type to search databases/i),
+  ).toBeVisible();
 
   const databaseSelect = screen.getByRole('combobox', {
     name: 'Select database or type to search databases',
@@ -175,7 +183,7 @@ test('does not render blank state if there is nothing selected', async () => {
   render(<LeftPanel setDataset={mockFun} />, { useRedux: true });
 
   expect(
-    await screen.findByText(/select database & schema/i),
+    await screen.findByText(/Select database or type to search databases/i),
   ).toBeInTheDocument();
   const emptyState = screen.queryByRole('img', { name: /empty/i });
   expect(emptyState).not.toBeInTheDocument();
@@ -218,25 +226,45 @@ test('searches for a table name', async () => {
   const schemaSelect = screen.getByRole('combobox', {
     name: /select schema or type to search schemas/i,
   });
+  const tableSelect = screen.getByRole('combobox', {
+    name: /select table or type to search tables/i,
+  });
 
   await waitFor(() => expect(schemaSelect).toBeEnabled());
 
   // Click 'public' schema to access tables
   userEvent.click(schemaSelect);
   userEvent.click(screen.getAllByText('public')[1]);
+  await waitFor(() => expect(fetchMock.calls(tablesEndpoint).length).toBe(1));
+  userEvent.click(tableSelect);
 
   await waitFor(() => {
-    expect(screen.getByText('Sheet1')).toBeInTheDocument();
-    expect(screen.getByText('Sheet2')).toBeInTheDocument();
-    expect(screen.getByText('Sheet3')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', {
+        name: /Sheet1/i,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', {
+        name: /Sheet2/i,
+      }),
+    ).toBeInTheDocument();
   });
 
-  userEvent.type(screen.getByRole('textbox'), 'Sheet2');
+  userEvent.type(tableSelect, 'Sheet3');
 
   await waitFor(() => {
-    expect(screen.queryByText('Sheet1')).not.toBeInTheDocument();
-    expect(screen.getByText('Sheet2')).toBeInTheDocument();
-    expect(screen.queryByText('Sheet3')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', { name: /Sheet1/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', { name: /Sheet2/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', {
+        name: /Sheet3/i,
+      }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -262,6 +290,9 @@ test('renders a warning icon when a table name has a pre-existing dataset', asyn
   const schemaSelect = screen.getByRole('combobox', {
     name: /select schema or type to search schemas/i,
   });
+  const tableSelect = screen.getByRole('combobox', {
+    name: /select table or type to search tables/i,
+  });
 
   await waitFor(() => expect(schemaSelect).toBeEnabled());
 
@@ -273,11 +304,18 @@ test('renders a warning icon when a table name has a pre-existing dataset', asyn
   // Click 'public' schema to access tables
   userEvent.click(schemaSelect);
   userEvent.click(screen.getAllByText('public')[1]);
+  userEvent.click(tableSelect);
 
   await waitFor(() => {
-    expect(screen.getByText('Sheet2')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', {
+        name: /Sheet2/i,
+      }),
+    ).toBeInTheDocument();
   });
 
+  userEvent.type(tableSelect, 'Sheet2');
+
   // Sheet2 should now show the warning icon
-  expect(screen.getByRole('img', { name: 'warning' })).toBeVisible();
+  expect(screen.getByRole('img', { name: 'alert-solid' })).toBeInTheDocument();
 });
