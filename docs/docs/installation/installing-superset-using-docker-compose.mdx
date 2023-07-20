@@ -67,20 +67,27 @@ docker-compose -f docker-compose-non-dev.yml up
 
 Alternatively, you can also run a specific version of Superset by first checking out
 the branch/tag, and then starting `docker-compose` with the `TAG` variable.
-For example, to run the 1.4.0 version, run the following commands:
+For example, to run the 2.1.0 version, run the following commands:
 
 ```bash
-git checkout 1.4.0
-TAG=1.4.0 docker-compose -f docker-compose-non-dev.yml pull
-TAG=1.4.0 docker-compose -f docker-compose-non-dev.yml up
+git checkout 2.1.0
+TAG=2.1.0 docker-compose -f docker-compose-non-dev.yml pull
+TAG=2.1.0 docker-compose -f docker-compose-non-dev.yml up
 ```
 
 :::tip
 Note that some configuration is mandatory for production instances of Superset. In particular, Superset will not start without a user-specified value of `SECRET_KEY`.  Please see [Configuring Superset](https://superset.apache.org/docs/installation/configuring-superset/).
 :::
-
+:::caution
+All of the content belonging to a Superset instance - charts, dashboards, users, etc. - is stored in its metadata database. In production, this database should be backed up.
+The default installation with docker-compose will store that data in a PostgreSQL database contained in a Docker [volume](https://docs.docker.com/storage/volumes/),
+which is not backed up.  To avoid risking data loss, either use a managed database for your metadata (recommended) or perform your own regular backups by extracting
+and storing the contents of the default PostgreSQL database from its volume (here's an
+[example of how to dump and restore](https://stackoverflow.com/questions/24718706/backup-restore-a-dockerized-postgresql-database).
+:::
 You should see a wall of logging output from the containers being launched on your machine. Once
-this output slows, you should have a running instance of Superset on your local machine!
+this output slows, you should have a running instance of Superset on your local machine!  To
+avoid the wall of text on future runs, add the `-d` option to the end of the `docker-compose up` command.
 
 **Note:** This will bring up superset in a non-dev mode, changes to the codebase will not be reflected.
 If you would like to run superset in dev mode to test local changes, simply replace the previous command with: `docker-compose up`,
@@ -94,7 +101,7 @@ You can install additional python packages and apply config overrides by followi
 
 You can configure the Docker Compose environment varirables for dev and non-dev mode with `docker/.env` and `docker/.env-non-dev` respectively. These environment files set the environment for most containers in the Docker Compose setup, and some variables affect multiple containers and others only single ones.
 
-One important variable is `SUPERSET_LOAD_EXAMPLES` which determines whether the `superset_init` container will load example data and visualizations into the database and Superset. These examples are quite helpful for most people, but probably unnecessary for experienced users. The loading process can sometimes take a few minutes and a good amount of CPU, so you may want to disable it on a resource-constrained device.
+One important variable is `SUPERSET_LOAD_EXAMPLES` which determines whether the `superset_init` container will populate example data and visualizations into the metadata database. These examples are helpful for learning and testing out Superset but unnecessary for experienced users and production deployments. The loading process can sometimes take a few minutes and a good amount of CPU, so you may want to disable it on a resource-constrained device.
 
 
 :::note
