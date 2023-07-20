@@ -67,7 +67,7 @@ class Api(BaseSupersetApi):
         payload_json = result["queries"]
         return self.response(
             200,
-            result=json.dumps(
+            **json.dumps(
                 payload_json, default=utils.json_int_dttm_ser, ignore_nan=True
             ),
         )
@@ -90,7 +90,7 @@ class Api(BaseSupersetApi):
 
         update_time_range(form_data)
 
-        return self.response(200, result=json.dumps(form_data))
+        return self.response(200, **json.dumps(form_data))
 
     @api
     @handle_api_exception
