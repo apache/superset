@@ -493,9 +493,8 @@ const Select = forwardRef(
 
     useEffect(() => {
       if (onChangeCount !== previousChangeCount) {
-        const set = new Set();
         const array = ensureIsArray(selectValue);
-        array.forEach(item => set.add(getValue(item)));
+        const set = new Set(array.map(getValue));
         const options = mapOptions(
           fullSelectOptions.filter(opt => set.has(opt.value)),
         );
