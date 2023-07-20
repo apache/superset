@@ -53,6 +53,17 @@ services:
     depends_on: *superset-depends-on
     volumes: *superset-volumes
 
+  superset-init:
+    image: *superset-image
+    container_name: superset_init
+    command: ["/app/docker/docker-init.sh"]
+    env_file: docker/.env-non-dev
+    depends_on: *superset-depends-on
+    user: "root"
+    volumes: *superset-volumes
+    healthcheck:
+      disable: true
+
   superset-worker:
     image: *superset-image
     container_name: superset_worker
