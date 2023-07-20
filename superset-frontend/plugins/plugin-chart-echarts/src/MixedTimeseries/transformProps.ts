@@ -120,6 +120,7 @@ export default function transformProps(
     theme,
     inContextMenu,
     emitCrossFilters,
+    ownState = {},
   } = chartProps;
   const {
     verboseMap = {},
@@ -576,7 +577,12 @@ export default function transformProps(
               ? tooltipFormatter
               : tooltipFormatterSecondary,
           });
-          rows.push(`<span style="opacity: 0.7">${content}</span>`);
+          const { focusedSeries } = ownState;
+          if (key === focusedSeries) {
+            rows.push(`<span style="font-weight: 700">${content}</span>`);
+          } else {
+            rows.push(`<span style="opacity: 0.7">${content}</span>`);
+          }
         });
         return rows.join('<br />');
       },
@@ -627,6 +633,10 @@ export default function transformProps(
       : [],
   };
 
+  const onFocusedSeries = (seriesName: string | null) => {
+    ownState.focusedSeries = seriesName;
+  };
+
   return {
     formData,
     width,
@@ -641,6 +651,7 @@ export default function transformProps(
     seriesBreakdown: rawSeriesA.length,
     selectedValues: filterState.selectedValues || [],
     onContextMenu,
+    onFocusedSeries,
     xValueFormatter: tooltipFormatter,
     xAxis: {
       label: xAxisLabel,
