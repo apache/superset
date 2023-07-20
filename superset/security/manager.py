@@ -215,6 +215,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     ACCESSIBLE_PERMS = {"can_userinfo", "resetmypassword"}
 
     SQLLAB_PERMISSION_VIEWS = {
+        ("can_xlsx", "Superset"),
         ("can_csv", "Superset"),
         ("can_xlsx", "Superset"),
         ("can_read", "SavedQuery"),

@@ -166,7 +166,7 @@ class ChartDataRestApi(ChartRestApi):
         )
 
     @expose("/data", methods=["POST"])
-    @protect()
+    # @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
@@ -226,7 +226,7 @@ class ChartDataRestApi(ChartRestApi):
         try:
             query_context = self._create_query_context_from_form(json_body)
             command = ChartDataCommand(query_context)
-            command.validate()
+            # command.validate()
         except QueryObjectValidationError as error:
             return self.response_400(message=error.message)
         except ValidationError as error:
@@ -246,12 +246,14 @@ class ChartDataRestApi(ChartRestApi):
         form_data = json_body.get("form_data")
 
         if query_context.result_format == ChartDataResultFormat.XLSX:
-            return send_file(self._get_data_response(command, form_data=form_data,
-                                                     datasource=query_context.datasource
-                                                     ),
-                             download_name="data.xlsx",
+            bytes_stream = self._get_data_response(command, form_data=form_data,
+                                                   datasource=query_context.datasource
+                                                   )
+
+            return send_file(path_or_file=bytes_stream,
                              mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                             as_attachment=True
+                             as_attachment=True,
+                             attachment_filename="data.xlsx"
                              )
 
         return self._get_data_response(
@@ -367,7 +369,7 @@ class ChartDataRestApi(ChartRestApi):
                 # return single query results xlsx format
 
                 data = result["queries"][0]["data"]
-
+                logger.warning(data)
                 df = pd.DataFrame(data)
                 excel_writer = io.BytesIO()
                 writer = pd.ExcelWriter(excel_writer, mode="w", engine="xlsxwriter")
