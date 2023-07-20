@@ -35,7 +35,8 @@ from superset.models.slice import Slice
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.utils.date_parser import get_since_until
-from superset.views.base import api, BaseSupersetView, handle_api_exception
+from superset.views.base import api, handle_api_exception
+from superset.views.base_api import BaseSupersetApi
 
 if TYPE_CHECKING:
     from superset.common.query_context_factory import QueryContextFactory
@@ -43,7 +44,7 @@ if TYPE_CHECKING:
 get_time_range_schema = {"type": "string"}
 
 
-class Api(BaseSupersetView):
+class Api(BaseSupersetApi):
     query_context_factory = None
 
     @event_logger.log_this
@@ -64,8 +65,11 @@ class Api(BaseSupersetView):
         query_context.raise_for_access()
         result = query_context.get_payload()
         payload_json = result["queries"]
-        return json.dumps(
-            payload_json, default=utils.json_int_dttm_ser, ignore_nan=True
+        return self.response(
+            200,
+            result=json.dumps(
+                payload_json, default=utils.json_int_dttm_ser, ignore_nan=True
+            ),
         )
 
     @event_logger.log_this
@@ -86,7 +90,7 @@ class Api(BaseSupersetView):
 
         update_time_range(form_data)
 
-        return json.dumps(form_data)
+        return self.response(200, result=json.dumps(form_data))
 
     @api
     @handle_api_exception
@@ -103,10 +107,9 @@ class Api(BaseSupersetView):
                 "until": until.isoformat() if until else "",
                 "timeRange": time_range,
             }
-            return self.json_response({"result": result})
+            return self.response(200, result=result)
         except (ValueError, TimeRangeParseFailError, TimeRangeAmbiguousError) as error:
-            error_msg = {"message": _("Unexpected time range: %s" % error)}
-            return self.json_response(error_msg, 400)
+            return self.response_400(message=_("Unexpected time range: %s" % error))
 
     def get_query_context_factory(self) -> QueryContextFactory:
         if self.query_context_factory is None:
