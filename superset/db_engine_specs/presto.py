@@ -1338,10 +1338,12 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             and isinstance(ex.orig[0], dict)
         ):
             error_dict = ex.orig[0]
-            error_name = error_dict.get("errorName")
-            error_location = error_dict.get("errorLocation")
-            message = error_dict.get("message")
-            return f"{error_name} at {error_location}: {message}"
+            # pylint: disable=consider-using-f-string
+            return "{} at {}: {}".format(
+                error_dict.get("errorName"),
+                error_dict.get("errorLocation"),
+                error_dict.get("message"),
+            )
         if type(ex).__name__ == "DatabaseError" and hasattr(ex, "args") and ex.args:
             error_dict = ex.args[0]
             return error_dict.get("message", _("Unknown Presto Error"))
