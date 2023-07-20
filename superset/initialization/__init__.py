@@ -271,6 +271,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_icon="",
         )
 
+        appbuilder.add_link(
+            "Dataset Smart Creation",
+            label=__("TODO_LABEL Dataset Smart Creation"),
+            href="/dataset/smart/add",
+            icon="fa-table",
+            category="",
+            category_icon="",
+        )
+
         appbuilder.add_view(
             DynamicPluginsView,
             "Plugins",
