@@ -138,7 +138,7 @@ class QueryContextProcessor:
 
         if query_obj and cache_key and not cache.is_loaded:
             try:
-                invalid_columns = [
+                if invalid_columns := [
                     col
                     for col in get_column_names_from_columns(query_obj.columns)
                     + get_column_names_from_metrics(query_obj.metrics or [])
@@ -146,9 +146,7 @@ class QueryContextProcessor:
                         col not in self._qc_datasource.column_names
                         and col != DTTM_ALIAS
                     )
-                ]
-
-                if invalid_columns:
+                ]:
                     raise QueryObjectValidationError(
                         _(
                             "Columns missing in dataset: %(invalid_columns)s",

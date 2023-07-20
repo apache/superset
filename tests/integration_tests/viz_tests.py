@@ -627,7 +627,7 @@ class TestPartitionViz(SupersetTestCase):
         metrics = ["metric1", "metric2", "metric3"]
         procs = {}
         for i in range(0, 4):
-            df_drop = df.drop(groups[i:], 1)
+            df_drop = df.drop(groups[i:], axis=1)
             pivot = df_drop.pivot_table(
                 index=DTTM_ALIAS, columns=groups[:i], values=metrics
             )
