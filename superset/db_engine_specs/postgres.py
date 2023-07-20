@@ -24,6 +24,7 @@ from datetime import datetime
 from re import Pattern
 from typing import Any, TYPE_CHECKING
 
+import sqlparse
 from flask_babel import gettext as __
 from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
@@ -33,8 +34,8 @@ from sqlalchemy.types import Date, DateTime, String
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
-from superset.errors import SupersetErrorType
-from superset.exceptions import SupersetException
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.sql_lab import Query
 from superset.utils import core as utils
 from superset.utils.core import GenericDataType
@@ -238,6 +239,9 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         in Superset because it breaks schema-level permissions, since it's impossible
         to determine the schema for a non-qualified table in a query. In cases like
         that we raise an exception.
+
+        Note that because the DB engine supports dynamic schema this method is never
+        called. It's left here as an implementation reference.
         """
         options = parse_options(connect_args)
         if search_path := options.get("search_path"):
@@ -251,6 +255,32 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
             return schemas[0]
 
         return None
+
+    @classmethod
+    def get_default_schema_for_query(
+        cls,
+        database: Database,
+        query: Query,
+    ) -> str | None:
+        """
+        Return the default schema for a given query.
+
+        This method simply uses the parent method after checking that there are no
+        malicious path setting in the query.
+        """
+        sql = sqlparse.format(query.sql, strip_comments=True)
+        if re.search(r"set\s+search_path\s*=", sql, re.IGNORECASE):
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+                    message=__(
+                        "Users are not allowed to set a search path for security reasons."
+                    ),
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
+        return super().get_default_schema_for_query(database, query)
 
     @classmethod
     def get_prequeries(
