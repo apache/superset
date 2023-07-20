@@ -1103,8 +1103,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def get_prequeries(
         cls,
-        catalog: str | None = None,
-        schema: str | None = None,
+        catalog: str | None = None,  # pylint: disable=unused-argument
+        schema: str | None = None,  # pylint: disable=unused-argument
     ) -> list[str]:
         """
         Return pre-session queries.
