@@ -190,7 +190,7 @@ packaging==23.1
     #   deprecation
     #   limits
     #   marshmallow
-pandas==1.5.3
+pandas==2.0.3
     # via apache-superset
 paramiko==2.11.0
     # via sshtunnel
@@ -288,6 +288,8 @@ typing-extensions==4.4.0
     #   apache-superset
     #   flask-limiter
     #   limits
+tzdata==2023.3
+    # via pandas
 urllib3==1.26.6
     # via selenium
 vine==5.0.0
