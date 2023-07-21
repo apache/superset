@@ -35,8 +35,7 @@ from superset.models.slice import Slice
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.utils.date_parser import get_since_until
-from superset.views.base import api, handle_api_exception
-from superset.views.base_api import BaseSupersetApi
+from superset.views.base import api, BaseSupersetView, handle_api_exception
 
 if TYPE_CHECKING:
     from superset.common.query_context_factory import QueryContextFactory
@@ -44,7 +43,7 @@ if TYPE_CHECKING:
 get_time_range_schema = {"type": "string"}
 
 
-class Api(BaseSupersetApi):
+class Api(BaseSupersetView):
     query_context_factory = None
 
     @event_logger.log_this
@@ -87,7 +86,7 @@ class Api(BaseSupersetApi):
 
         update_time_range(form_data)
 
-        return self.response(200, **form_data)
+        return self.json_response(form_data)
 
     @api
     @handle_api_exception
@@ -104,9 +103,10 @@ class Api(BaseSupersetApi):
                 "until": until.isoformat() if until else "",
                 "timeRange": time_range,
             }
-            return self.response(200, result=result)
+            return self.json_response({"result": result})
         except (ValueError, TimeRangeParseFailError, TimeRangeAmbiguousError) as error:
-            return self.response_400(message=_("Unexpected time range: %s" % error))
+            error_msg = {"message": _("Unexpected time range: %s" % error)}
+            return self.json_response(error_msg, 400)
 
     def get_query_context_factory(self) -> QueryContextFactory:
         if self.query_context_factory is None:

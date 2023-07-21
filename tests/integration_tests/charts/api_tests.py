@@ -1424,6 +1424,19 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(len(data["result"]), 3)
 
+    def test_query_form_data(self):
+        """
+        Chart API: Test query form data
+        """
+        self.login(username="admin")
+        slice_id = db.session.query(Slice).first().id
+        uri = f"api/v1/form_data/?slice_id={slice_id}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(rv.content_type, "application/json")
+        self.assertEqual(len(data), 12)
+
     @pytest.mark.usefixtures(
         "load_unicode_dashboard_with_slice",
         "load_energy_table_with_slice",
