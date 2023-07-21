@@ -22,11 +22,12 @@ import { DatasetObject } from 'src/features/datasets/AddDataset/types';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import DatasetPanel from './DatasetPanel';
 import { ITableColumn, IDatabaseTable, isIDatabaseTable } from './types';
+import { TableOption } from 'src/components/TableSelector';
 
 /**
  * Interface for the getTableMetadata API call
  */
-interface IColumnProps {
+export interface IColumnProps {
   /**
    * Unique id of the database
    */
@@ -56,6 +57,8 @@ export interface IDatasetPanelWrapperProps {
   schema?: string | null;
   setHasColumns?: Function;
   datasets?: DatasetObject[] | undefined;
+  smart?: boolean | undefined;
+  tablesInSchema?: TableOption[] | undefined;
 }
 
 const DatasetPanelWrapper = ({
@@ -64,6 +67,8 @@ const DatasetPanelWrapper = ({
   schema,
   setHasColumns,
   datasets,
+  smart,
+  tablesInSchema,
 }: IDatasetPanelWrapperProps) => {
   const [columnList, setColumnList] = useState<ITableColumn[]>([]);
   const [loading, setLoading] = useState(false);
@@ -133,6 +138,10 @@ const DatasetPanelWrapper = ({
       loading={loading}
       tableName={tableName}
       datasets={datasets}
+      smart={smart}
+      tablesInSchema={tablesInSchema}
+      dbId={dbId}
+      schema={schema}
     />
   );
 };

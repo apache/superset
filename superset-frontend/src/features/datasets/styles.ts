@@ -93,8 +93,8 @@ export const StyledLayoutLeftPanel = styled.div`
   `}
 `;
 
-export const StyledLayoutDatasetPanel = styled.div`
-  width: 100%;
+export const StyledLayoutDatasetPanel = styled.div<{ entrySize?: number }>`
+  width: ${d => 100 / (d.entrySize ?? 1)}%;
   position: relative;
 `;
 

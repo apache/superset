@@ -57,6 +57,8 @@ interface LeftPanelProps {
   setDataset: Dispatch<SetStateAction<object>>;
   dataset?: Partial<DatasetObject> | null;
   datasetNames?: (string | null | undefined)[] | undefined;
+  tableOptions?: TableOption[] | undefined;
+  setTableOptions?: Dispatch<SetStateAction<TableOption[]>> | undefined;
 }
 
 const SearchIcon = styled(Icons.Search)`
@@ -157,15 +159,20 @@ export default function LeftPanel({
   setDataset,
   dataset,
   datasetNames,
+  tableOptions,
+  setTableOptions,
 }: LeftPanelProps) {
   const theme = useTheme();
 
-  const [tableOptions, setTableOptions] = useState<Array<TableOption>>([]);
   const [resetTables, setResetTables] = useState(false);
   const [loadTables, setLoadTables] = useState(false);
   const [searchVal, setSearchVal] = useState('');
   const [refresh, setRefresh] = useState(false);
   const [selectedTable, setSelectedTable] = useState<number | null>(null);
+
+  if (!tableOptions || !setTableOptions) {
+    [tableOptions, setTableOptions] = useState<Array<TableOption>>([]);
+  }
 
   const { addDangerToast } = useToasts();
 
@@ -200,7 +207,7 @@ export default function LeftPanel({
             return option;
           });
 
-          setTableOptions(options);
+          setTableOptions!(options);
           setLoadTables(false);
           setResetTables(false);
           setRefresh(false);
@@ -253,7 +260,7 @@ export default function LeftPanel({
 
   useEffect(() => {
     if (resetTables) {
-      setTableOptions([]);
+      setTableOptions!([]);
       setResetTables(false);
     }
   }, [resetTables]);
@@ -346,8 +353,8 @@ export default function LeftPanel({
                         ? 'options-highlighted'
                         : 'options-highlighted no-scrollbar'
                       : scrollableOptionsList
-                      ? 'options'
-                      : 'options no-scrollbar'
+                        ? 'options'
+                        : 'options no-scrollbar'
                   }
                   key={i}
                   role="button"

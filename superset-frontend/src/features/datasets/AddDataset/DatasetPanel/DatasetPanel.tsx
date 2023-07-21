@@ -16,17 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { t, styled, useTheme } from '@superset-ui/core';
+import React, { useEffect, useState } from 'react';
+import { t, styled, useTheme, SupersetClient } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import Alert from 'src/components/Alert';
-import Table, { ColumnsType, TableSize } from 'src/components/Table';
+import Modal from 'src/components/Modal';
+import Table, { ColumnsType, SelectionType, TableSize } from 'src/components/Table';
 import { alphabeticalSort } from 'src/components/Table/sorters';
 // @ts-ignore
 import LOADING_GIF from 'src/assets/images/loading.gif';
 import { DatasetObject } from 'src/features/datasets/AddDataset/types';
-import { ITableColumn } from './types';
+import { IDatabaseTable, isIDatabaseTable, ITableColumn } from './types';
 import MessageContent from './MessageContent';
+import { TableOption } from 'src/components/TableSelector';
+import { useTableColumns } from 'src/explore/components/DataTableControl';
+import { useTableMetadataQuery } from 'src/hooks/apiResources';
+import { IColumnProps } from '.';
 
 /**
  * Enum defining CSS position options
@@ -219,6 +224,10 @@ export interface IDatasetPanelProps {
    */
   loading: boolean;
   datasets?: DatasetObject[] | undefined;
+  smart?: boolean | undefined;
+  tablesInSchema?: TableOption[] | undefined;
+  dbId?: number | undefined;
+  schema?: string | null | undefined;
 }
 
 const EXISTING_DATASET_DESCRIPTION = t(
@@ -254,12 +263,27 @@ const renderExistingDatasetAlert = (dataset?: DatasetObject) => (
   />
 );
 
+const StyledAddNewTableBox = styled.div`
+  ${({ theme }) => `
+  cursor: pointer;
+  margin: ${theme.gridUnit * 4}px;
+  color: ${theme.colors.primary.base};
+  &:hover {
+    color: ${theme.colors.primary.dark1};
+  }
+`}
+`;
+
 const DatasetPanel = ({
   tableName,
   columnList,
   loading,
   hasError,
   datasets,
+  smart,
+  dbId,
+  schema,
+  tablesInSchema,
 }: IDatasetPanelProps) => {
   const theme = useTheme();
   const hasColumns = columnList?.length > 0 ?? false;
@@ -267,6 +291,35 @@ const DatasetPanel = ({
   const tableWithDataset = datasets?.find(
     dataset => dataset.table_name === tableName,
   );
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedRow, selectRow] = useState<string[]>(['']);
+  const [selectedJoinTable, selectJoinTable] = useState<TableOption | undefined>(undefined);
+  const [joinTableLoading, setJoinTableLoading] = useState(false);
+  const [selectedJoinTableColumns, setSelectedJoinTableColumns] = useState<ITableColumn[]>([]);
+  const [selectedJoinRow, selectJoinRow] = useState<string[]>(['']);
+
+  const getTableMetadata = async (props: IColumnProps) => {
+    const { dbId, tableName, schema } = props;
+    setJoinTableLoading(true);
+    const path = `/api/v1/database/${dbId}/table/${tableName}/${schema}/`;
+    try {
+      const response = await SupersetClient.get({
+        endpoint: path,
+      });
+
+      const table: IDatabaseTable = response.json as IDatabaseTable;
+      setSelectedJoinTableColumns(table.columns);
+    } finally {
+      setJoinTableLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (dbId && schema && selectedJoinTable) {
+      const todo = getTableMetadata({ dbId, tableName: selectedJoinTable.value, schema });
+      console.log('------tableMetadata-----', todo);
+    }
+  }, [dbId, schema, selectedJoinTable]);
 
   let component;
   let loader;
@@ -280,38 +333,40 @@ const DatasetPanel = ({
       </LoaderContainer>
     );
   }
+
   if (!loading) {
     if (!loading && tableName && hasColumns && !hasError) {
       component = (
         <>
           <StyledTitle>{COLUMN_TITLE}</StyledTitle>
-          {tableWithDataset ? (
-            <TableContainerWithBanner>
-              <TableScrollContainer>
-                <Table
-                  loading={loading}
-                  size={TableSize.SMALL}
-                  columns={tableColumnDefinition}
-                  data={columnList}
-                  pageSizeOptions={pageSizeOptions}
-                  defaultPageSize={DEFAULT_PAGE_SIZE}
-                />
-              </TableScrollContainer>
-            </TableContainerWithBanner>
-          ) : (
-            <TableContainerWithoutBanner>
-              <TableScrollContainer>
-                <Table
-                  loading={loading}
-                  size={TableSize.SMALL}
-                  columns={tableColumnDefinition}
-                  data={columnList}
-                  pageSizeOptions={pageSizeOptions}
-                  defaultPageSize={DEFAULT_PAGE_SIZE}
-                />
-              </TableScrollContainer>
-            </TableContainerWithoutBanner>
-          )}
+          {
+            tableWithDataset ? (
+              <TableContainerWithBanner>
+                <TableScrollContainer>
+                  <Table
+                    loading={loading}
+                    size={TableSize.SMALL}
+                    columns={tableColumnDefinition}
+                    data={columnList}
+                    pageSizeOptions={pageSizeOptions}
+                    defaultPageSize={DEFAULT_PAGE_SIZE}
+                  />
+                </TableScrollContainer>
+              </TableContainerWithBanner>
+            ) : (
+              <TableContainerWithoutBanner>
+                <TableScrollContainer>
+                  <Table
+                    loading={loading}
+                    size={TableSize.SMALL}
+                    columns={tableColumnDefinition}
+                    data={columnList}
+                    pageSizeOptions={pageSizeOptions}
+                    defaultPageSize={DEFAULT_PAGE_SIZE}
+                  />
+                </TableScrollContainer>
+              </TableContainerWithoutBanner>
+            )}
         </>
       );
     } else {
@@ -324,6 +379,18 @@ const DatasetPanel = ({
       );
     }
   }
+
+  const StyledModalContent = styled('div')`
+width: 100%;
+position: relative;
+display: flex;
+flex-direction: row;
+gap: 50px;
+
+.modalSection {
+width: 33%;
+}
+`;
 
   return (
     <>
@@ -341,9 +408,78 @@ const DatasetPanel = ({
               <Icons.Table iconColor={theme.colors.grayscale.base} />
             )}
             {tableName}
+            {smart && (
+              <StyledAddNewTableBox onClick={() => {
+                setModalOpen(true);
+              }
+              }>
+                <div className="fa fa-plus" />{' '}
+                <span>{'TODO_LABEL Join new table'}</span>
+              </StyledAddNewTableBox>)}
           </StyledHeader>
         </>
       )}
+      <Modal
+        width='100%'
+        show={modalOpen}
+        title={'TODO_LABEL Join new table'}
+        onHide={() => setModalOpen(false)}
+        footer={
+          <>{'FOOTER'}
+          </>
+        }
+      >
+        <StyledModalContent>
+          <div className='modalSection'>
+            <div>TODO_LABEL Source columns</div>
+            <Table
+              loading={loading}
+              size={TableSize.SMALL}
+              columns={tableColumnDefinition}
+              selectionType={SelectionType.SINGLE}
+              selectedRows={selectedRow}
+              handleRowSelection={(keys: string[]) => selectRow(keys)}
+              data={columnList.map(column => ({ ...column, key: column.name }))}
+              pageSizeOptions={pageSizeOptions}
+              defaultPageSize={DEFAULT_PAGE_SIZE}
+            />
+          </div>
+
+          <div className='modalSection'>
+            <div>TODO_LABEL Join tables</div>
+            {
+              tablesInSchema && tablesInSchema.map((option, i) => (
+                <div
+                  className={
+                    'options'
+                  }
+                  key={i}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => selectJoinTable(option)}
+                >
+                  {option.label}
+                </div>))
+            }
+          </div>
+
+          {selectedJoinTable &&
+            <div className='modalSection'>
+              <div>TODO_LABEL Join columns</div>
+              <Table
+                loading={joinTableLoading}
+                size={TableSize.SMALL}
+                columns={tableColumnDefinition}
+                selectionType={SelectionType.SINGLE}
+                selectedRows={selectedJoinRow}
+                handleRowSelection={(keys: string[]) => selectJoinRow(keys)}
+                data={selectedJoinTableColumns.map(column => ({ ...column, key: column.name }))}
+                pageSizeOptions={pageSizeOptions}
+                defaultPageSize={DEFAULT_PAGE_SIZE}
+              />
+            </div>}
+        </StyledModalContent>
+      </Modal >
       {component}
       {loader}
     </>

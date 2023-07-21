@@ -34,7 +34,9 @@ import {
 interface DatasetLayoutProps {
   header?: ReactElement<any, string | JSXElementConstructor<any>> | null;
   leftPanel?: ReactElement<any, string | JSXElementConstructor<any>> | null;
-  datasetPanel?: ReactElement<any, string | JSXElementConstructor<any>> | null;
+  datasetPanel?: ReactElement<any, string | JSXElementConstructor<any>>
+  | ReactElement<any, string | JSXElementConstructor<any>>[]
+  | null;
   rightPanel?: ReactElement<any, string | JSXElementConstructor<any>> | null;
   footer?: ReactElement<any, string | JSXElementConstructor<any>> | null;
 }
@@ -57,7 +59,11 @@ export default function DatasetLayout({
         )}
         <RightColumn>
           <PanelRow>
-            {datasetPanel && (
+            {datasetPanel && Array.isArray(datasetPanel) ? (datasetPanel.map(datasetPanelEntry =>
+              <StyledLayoutDatasetPanel entrySize={datasetPanel.length}>
+                {datasetPanelEntry}
+              </StyledLayoutDatasetPanel>
+            )) : (
               <StyledLayoutDatasetPanel>
                 {datasetPanel}
               </StyledLayoutDatasetPanel>
@@ -72,6 +78,6 @@ export default function DatasetLayout({
           </FooterRow>
         </RightColumn>
       </OuterRow>
-    </StyledLayoutWrapper>
+    </StyledLayoutWrapper >
   );
 }

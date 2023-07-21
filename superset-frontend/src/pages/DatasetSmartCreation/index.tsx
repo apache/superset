@@ -30,12 +30,13 @@ import {
   DSReducerActionType,
 } from 'src/features/datasets/AddDataset/types';
 import DatasetLayout from 'src/features/datasets/DatasetLayout';
+import { TableOption } from 'src/components/TableSelector';
 
 type Schema = {
   schema: string;
 };
 
-export function datasetReducer(
+export function datasetSmartReducer(
   state: DatasetObject | null,
   action: DSReducerActionType,
 ): Partial<DatasetObject> | Schema | null {
@@ -78,9 +79,10 @@ const prevUrl =
 export default function AddSmartDataset() {
   const [dataset, setDataset] = useReducer<
     Reducer<Partial<DatasetObject> | null, DSReducerActionType>
-  >(datasetReducer, null);
+  >(datasetSmartReducer, null);
   const [hasColumns, setHasColumns] = useState(false);
   const [editPageIsVisible, setEditPageIsVisible] = useState(false);
+  const [tableOptions, setTableOptions] = useState<Array<TableOption>>([]);
 
   const { datasets, datasetNames } = useDatasetsList(
     dataset?.db,
@@ -103,6 +105,8 @@ export default function AddSmartDataset() {
       setDataset={setDataset}
       dataset={dataset}
       datasetNames={datasetNames}
+      tableOptions={tableOptions}
+      setTableOptions={setTableOptions}
     />
   );
 
@@ -115,8 +119,12 @@ export default function AddSmartDataset() {
       schema={dataset?.schema}
       setHasColumns={setHasColumns}
       datasets={datasets}
+      smart={true}
+      tablesInSchema={tableOptions}
     />
   );
+
+  const datasetPanels = [DatasetPanelComponent()];
 
   const FooterComponent = () => (
     <Footer
@@ -132,7 +140,7 @@ export default function AddSmartDataset() {
       header={HeaderComponent()}
       leftPanel={editPageIsVisible ? null : LeftPanelComponent()}
       datasetPanel={
-        editPageIsVisible ? EditPageComponent() : DatasetPanelComponent()
+        editPageIsVisible ? EditPageComponent() : datasetPanels
       }
       footer={FooterComponent()}
     />
