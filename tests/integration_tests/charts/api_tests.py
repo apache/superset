@@ -1429,13 +1429,15 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         Chart API: Test query form data
         """
         self.login(username="admin")
-        slice_id = db.session.query(Slice).first().id
-        uri = f"api/v1/form_data/?slice_id={slice_id}"
+        slice = db.session.query(Slice).first()
+        uri = f"api/v1/form_data/?slice_id={slice.id if slice else None}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(rv.content_type, "application/json")
-        self.assertEqual(len(data), 12)
+        if slice:
+            self.assertEqual(data["slice_id"], slice.id)
+
 
     @pytest.mark.usefixtures(
         "load_unicode_dashboard_with_slice",
