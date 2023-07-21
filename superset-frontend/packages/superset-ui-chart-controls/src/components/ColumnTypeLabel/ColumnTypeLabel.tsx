@@ -44,6 +44,8 @@ const TypeIconWrapper = styled.div`
     && svg {
       margin-right: 0;
       margin-left: 0;
+      width: 100%;
+      height: 100%;
     }
   `};
 `;
