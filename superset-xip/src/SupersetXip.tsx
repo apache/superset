@@ -47,7 +47,7 @@ export default function SupersetXip(props: SupersetXipProps) {
   const { data, height, width } = props;
   const rootElem = createRef<HTMLDivElement>();
 
-  const initialState = {};
+  const initialState: Record<string, string | boolean> = {};
 
   props.formObject.forEach((field) => {
     if (field.field_type === 'checkbox') {
