@@ -1438,7 +1438,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         if slice:
             self.assertEqual(data["slice_id"], slice.id)
 
-
     @pytest.mark.usefixtures(
         "load_unicode_dashboard_with_slice",
         "load_energy_table_with_slice",
