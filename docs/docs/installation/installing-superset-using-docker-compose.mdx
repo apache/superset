@@ -83,7 +83,7 @@ All of the content belonging to a Superset instance - charts, dashboards, users,
 The default installation with docker-compose will store that data in a PostgreSQL database contained in a Docker [volume](https://docs.docker.com/storage/volumes/),
 which is not backed up.  To avoid risking data loss, either use a managed database for your metadata (recommended) or perform your own regular backups by extracting
 and storing the contents of the default PostgreSQL database from its volume (here's an
-[example of how to dump and restore](https://stackoverflow.com/questions/24718706/backup-restore-a-dockerized-postgresql-database).
+[example of how to dump and restore](https://stackoverflow.com/questions/24718706/backup-restore-a-dockerized-postgresql-database)).
 :::
 You should see a wall of logging output from the containers being launched on your machine. Once
 this output slows, you should have a running instance of Superset on your local machine!  To
