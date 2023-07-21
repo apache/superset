@@ -346,7 +346,7 @@ saved_queries_metadata_config: Dict[str, Any] = {
     "type": "SavedQuery",
     "timestamp": "2021-03-30T20:37:54.791187+00:00",
 }
-database_config_sqlite: dict[str, Any] = {
+database_config_sqlite: Dict[str, Any] = {
     "allow_csv_upload": True,
     "allow_ctas": True,
     "allow_cvas": True,
@@ -361,7 +361,7 @@ database_config_sqlite: dict[str, Any] = {
     "version": "1.0.0",
 }
 
-database_config: dict[str, Any] = {
+database_config: Dict[str, Any] = {
     "allow_csv_upload": True,
     "allow_ctas": True,
     "allow_cvas": True,
@@ -376,7 +376,7 @@ database_config: dict[str, Any] = {
     "version": "1.0.0",
 }
 
-database_with_ssh_tunnel_config_private_key: dict[str, Any] = {
+database_with_ssh_tunnel_config_private_key: Dict[str, Any] = {
     "allow_csv_upload": True,
     "allow_ctas": True,
     "allow_cvas": True,
