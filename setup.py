@@ -102,7 +102,7 @@ setup(
         "nh3>=0.2.11, <0.3",
         "numpy==1.23.5",
         "packaging",
-        "pandas>=2.0.3, <2.1",
+        "pandas[performance]>=2.0.3, <2.1",
         "parsedatetime",
         "pgsanity",
         "polyline>=2.0.0, <3.0",
