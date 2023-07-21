@@ -14,24 +14,29 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset.db_engine_specs.postgres import PostgresEngineSpec
-
+# pylint: disable=unused-argument, import-outside-toplevel, protected-access
 from datetime import datetime
-from typing import Any, Optional
+from typing import Optional
 
-from sqlalchemy import types
+import pytest
 
-class CockroachDbEngineSpec(PostgresEngineSpec):
-    engine = "cockroachdb"
-    engine_name = "CockroachDB"
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
+from tests.unit_tests.fixtures.common import dttm
 
-    @classmethod
-    def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
-    ) -> Optional[str]:
-        sqla_type = cls.get_sqla_column_type(target_type)
-        if isinstance(sqla_type, types.Date):
-            return f"'{dttm.date().isoformat()}'"
-        if isinstance(sqla_type, (types.String, types.DateTime)):
-            return f"""'{dttm.isoformat(sep=" ", timespec="seconds")}'"""
-        return None
+
+@pytest.mark.parametrize(
+    "target_type,expected_result",
+    [
+        ("Date", "'2019-01-02'"),
+        ("TimeStamp", "'2019-01-02 03:04:05'"),
+        ("UnknownType", None),
+    ],
+)
+def test_convert_dttm(
+    target_type: str, expected_result: Optional[str], dttm: datetime
+) -> None:
+    from superset.db_engine_specs.cockroachdb import CockroachDbEngineSpec as spec
+
+    assert_convert_dttm(spec, target_type, expected_result, dttm)
+
