@@ -419,12 +419,11 @@ const config = {
           {
             loader: '@svgr/webpack',
             options: {
-              svgoConfig: {
-                plugins: {
-                  removeViewBox: false,
-                  icon: true,
-                },
-              },
+              titleProp: true,
+              ref: true,
+              // this is the default value for the icon. Using other values
+              // here will replace width and height in svg with 1em
+              icon: false,
             },
           },
         ],
