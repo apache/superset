@@ -87,6 +87,7 @@ const Select = forwardRef(
       allowNewOptions = false,
       allowSelectAll = true,
       ariaLabel,
+      autoClearSearchValue = false,
       filterOption = true,
       header = null,
       headerPosition = 'top',
@@ -328,7 +329,7 @@ const Select = forwardRef(
           : cleanSelectOptions;
         setSelectOptions(newOptions);
       }
-      setInputValue(search);
+      setInputValue(searchValue);
     };
 
     const handleFilterOption = (search: string, option: AntdLabeledValue) =>
@@ -535,7 +536,7 @@ const Select = forwardRef(
         <StyledSelect
           allowClear={!isLoading && allowClear}
           aria-label={ariaLabel || name}
-          autoClearSearchValue={false}
+          autoClearSearchValue={autoClearSearchValue}
           dropdownRender={dropdownRender}
           filterOption={handleFilterOption}
           filterSort={sortComparatorWithSearch}

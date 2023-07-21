@@ -104,6 +104,7 @@ const AsyncSelect = forwardRef(
       allowClear,
       allowNewOptions = false,
       ariaLabel,
+      autoClearSearchValue = false,
       fetchOnlyOnSearch,
       filterOption = true,
       header = null,
@@ -535,7 +536,7 @@ const AsyncSelect = forwardRef(
         <StyledSelect
           allowClear={!isLoading && allowClear}
           aria-label={ariaLabel || name}
-          autoClearSearchValue={false}
+          autoClearSearchValue={autoClearSearchValue}
           dropdownRender={dropdownRender}
           filterOption={handleFilterOption}
           filterSort={sortComparatorWithSearch}
