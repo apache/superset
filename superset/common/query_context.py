@@ -30,7 +30,7 @@ from superset.common.query_object import QueryObject
 from superset.models.slice import Slice
 
 if TYPE_CHECKING:
-    from superset.connectors.base.models import BaseDatasource
+    from superset.connectors.sqla.models import BaseDatasource
     from superset.models.helpers import QueryResult
 
 

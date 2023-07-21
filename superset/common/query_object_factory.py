@@ -35,7 +35,7 @@ from superset.utils.core import (
 if TYPE_CHECKING:
     from sqlalchemy.orm import sessionmaker
 
-    from superset.connectors.base.models import BaseDatasource
+    from superset.connectors.sqla.models import BaseDatasource
     from superset.daos.datasource import DatasourceDAO
 
 

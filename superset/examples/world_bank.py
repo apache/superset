@@ -24,14 +24,8 @@ from sqlalchemy.sql import column
 
 import superset.utils.database
 from superset import app, db
-from superset.connectors.sqla.models import SqlMetric
-from superset.models.dashboard import Dashboard
-from superset.models.slice import Slice
-from superset.utils import core as utils
-from superset.utils.core import DatasourceType
-
-from ..connectors.base.models import BaseDatasource
-from .helpers import (
+from superset.connectors.sqla.models import BaseDatasource, SqlMetric
+from superset.examples.helpers import (
     get_example_url,
     get_examples_folder,
     get_slice_json,
@@ -40,6 +34,10 @@ from .helpers import (
     misc_dash_slices,
     update_slice_ids,
 )
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
+from superset.utils import core as utils
+from superset.utils.core import DatasourceType
 
 
 def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-statements

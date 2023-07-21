@@ -51,7 +51,7 @@ from superset.viz import BaseViz, viz_types
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_context_factory import QueryContextFactory
-    from superset.connectors.base.models import BaseDatasource
+    from superset.connectors.sqla.models import BaseDatasource
 
 metadata = Model.metadata  # pylint: disable=no-member
 slice_user = Table(

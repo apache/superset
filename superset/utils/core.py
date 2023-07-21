@@ -105,7 +105,7 @@ from superset.utils.dates import datetime_to_epoch, EPOCH
 from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
 
 if TYPE_CHECKING:
-    from superset.connectors.base.models import BaseColumn, BaseDatasource
+    from superset.connectors.sqla.models import BaseDatasource, TableColumn
     from superset.models.sql_lab import Query
 
 logging.getLogger("MARKDOWN").setLevel(logging.INFO)
@@ -1628,7 +1628,7 @@ def extract_dataframe_dtypes(
     return generic_types
 
 
-def extract_column_dtype(col: BaseColumn) -> GenericDataType:
+def extract_column_dtype(col: TableColumn) -> GenericDataType:
     if col.is_temporal:
         return GenericDataType.TEMPORAL
     if col.is_numeric:

@@ -49,7 +49,7 @@ from superset.utils.core import (
 from superset.utils.hashing import md5_sha_from_dict
 
 if TYPE_CHECKING:
-    from superset.connectors.base.models import BaseDatasource
+    from superset.connectors.sqla.models import BaseDatasource
 
 logger = logging.getLogger(__name__)
 

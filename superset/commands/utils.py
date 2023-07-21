@@ -33,7 +33,7 @@ from superset.extensions import db
 from superset.utils.core import DatasourceType, get_user_id
 
 if TYPE_CHECKING:
-    from superset.connectors.base.models import BaseDatasource
+    from superset.connectors.sqla.models import BaseDatasource
 
 
 def populate_owners(
