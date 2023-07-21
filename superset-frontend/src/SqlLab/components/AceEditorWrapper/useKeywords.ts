@@ -30,8 +30,7 @@ import {
   SQL_FUNCTIONS_AUTOCOMPLETE_SCORE,
 } from 'src/SqlLab/constants';
 import {
-  useSchemas,
-  useTables,
+  schemaEndpoints,
   tableEndpoints,
   skipToken,
 } from 'src/hooks/apiResources';
@@ -48,6 +47,9 @@ type Params = {
 
 const EMPTY_LIST = [] as typeof sqlKeywords;
 
+const { useQueryState: useSchemasQueryState } = schemaEndpoints.schemas;
+const { useQueryState: useTablesQueryState } = tableEndpoints.tables;
+
 export function useKeywords(
   { queryEditorId, dbId, schema }: Params,
   skip = false,
@@ -57,15 +59,21 @@ export function useKeywords(
   // skipFetch is used to prevent re-evaluating memoized keywords
   // due to updated api results by skip flag
   const skipFetch = hasFetchedKeywords && skip;
-  const { data: schemaOptions } = useSchemas({
-    ...(!skipFetch && { dbId }),
-  });
-  const { data: tableData } = useTables({
-    ...(!skipFetch && {
+  const { data: schemaOptions } = useSchemasQueryState(
+    {
+      dbId,
+      forceRefresh: false,
+    },
+    { skip: skipFetch || !dbId },
+  );
+  const { data: tableData } = useTablesQueryState(
+    {
       dbId,
       schema,
-    }),
-  });
+      forceRefresh: false,
+    },
+    { skip: skipFetch || !dbId || !schema },
+  );
 
   const { data: functionNames, isError } = useDatabaseFunctionsQuery(
     { dbId },

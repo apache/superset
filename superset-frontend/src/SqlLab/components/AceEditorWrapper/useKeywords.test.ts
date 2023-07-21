@@ -24,6 +24,7 @@ import {
   createStore,
 } from 'spec/helpers/testing-library';
 import { api } from 'src/hooks/apiResources/queryApi';
+import { schemaApiUtil } from 'src/hooks/apiResources/schemas';
 import { tableApiUtil } from 'src/hooks/apiResources/tables';
 import { addTable } from 'src/SqlLab/actions/sqlLab';
 import { initialState } from 'src/SqlLab/fixtures';
@@ -44,17 +45,51 @@ const fakeTableApiResult = {
       id: 1,
       value: 'fake api result1',
       label: 'fake api label1',
+      type: 'table',
     },
     {
       id: 2,
       value: 'fake api result2',
       label: 'fake api label2',
+      type: 'table',
     },
   ],
 };
 const fakeFunctionNamesApiResult = {
   function_names: ['abs', 'avg', 'sum'],
 };
+
+const expectDbId = 1;
+const expectSchema = 'schema1';
+
+beforeEach(() => {
+  act(() => {
+    store.dispatch(
+      schemaApiUtil.upsertQueryData(
+        'schemas',
+        {
+          dbId: expectDbId,
+          forceRefresh: false,
+        },
+        fakeSchemaApiResult.map(value => ({
+          value,
+          label: value,
+          title: value,
+        })),
+      ),
+    );
+    store.dispatch(
+      tableApiUtil.upsertQueryData(
+        'tables',
+        { dbId: expectDbId, schema: expectSchema },
+        {
+          options: fakeTableApiResult.result,
+          hasMore: false,
+        },
+      ),
+    );
+  });
+});
 
 afterEach(() => {
   fetchMock.reset();
@@ -63,18 +98,8 @@ afterEach(() => {
   });
 });
 
-test('returns keywords including fetched data', async () => {
-  const expectDbId = 1;
-  const expectSchema = 'schema1';
-
-  const schemaApiRoute = `glob:*/api/v1/database/${expectDbId}/schemas/*`;
-  const tableApiRoute = `glob:*/api/v1/database/${expectDbId}/tables/?q=*`;
+test('returns keywords including fetched function_names data', async () => {
   const dbFunctionNamesApiRoute = `glob:*/api/v1/database/${expectDbId}/function_names/`;
-
-  fetchMock.get(schemaApiRoute, {
-    result: fakeSchemaApiResult,
-  });
-  fetchMock.get(tableApiRoute, fakeTableApiResult);
   fetchMock.get(dbFunctionNamesApiRoute, fakeFunctionNamesApiResult);
 
   const { result, waitFor } = renderHook(
@@ -92,8 +117,6 @@ test('returns keywords including fetched data', async () => {
     },
   );
 
-  await waitFor(() => expect(fetchMock.calls(schemaApiRoute).length).toBe(1));
-  await waitFor(() => expect(fetchMock.calls(tableApiRoute).length).toBe(1));
   await waitFor(() =>
     expect(fetchMock.calls(dbFunctionNamesApiRoute).length).toBe(1),
   );
@@ -128,8 +151,6 @@ test('returns keywords including fetched data', async () => {
 });
 
 test('skip fetching if autocomplete skipped', () => {
-  const expectDbId = 1;
-  const expectSchema = 'schema1';
   const { result } = renderHook(
     () =>
       useKeywords(
@@ -152,8 +173,6 @@ test('skip fetching if autocomplete skipped', () => {
 });
 
 test('returns column keywords among selected tables', async () => {
-  const expectDbId = 1;
-  const expectSchema = 'schema1';
   const expectTable = 'table1';
   const expectColumn = 'column1';
   const expectQueryEditorId = 'testqueryid';
@@ -161,14 +180,8 @@ test('returns column keywords among selected tables', async () => {
   const unexpectedColumn = 'column2';
   const unexpectedTable = 'table2';
 
-  const schemaApiRoute = `glob:*/api/v1/database/${expectDbId}/schemas/*`;
-  const tableApiRoute = `glob:*/api/v1/database/${expectDbId}/tables/?q=*`;
   const dbFunctionNamesApiRoute = `glob:*/api/v1/database/${expectDbId}/function_names/`;
   const storeWithSqlLab = createStore(initialState, reducers);
-  fetchMock.get(schemaApiRoute, {
-    result: fakeSchemaApiResult,
-  });
-  fetchMock.get(tableApiRoute, fakeTableApiResult);
   fetchMock.get(dbFunctionNamesApiRoute, fakeFunctionNamesApiResult);
 
   act(() => {
