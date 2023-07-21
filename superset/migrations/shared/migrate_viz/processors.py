@@ -16,7 +16,7 @@
 # under the License.
 from typing import Any
 
-from .base import ChartMigratorStatus, MigrateViz
+from .base import MigrateViz
 
 
 class MigrateTreeMap(MigrateViz):
@@ -35,11 +35,18 @@ class MigrateTreeMap(MigrateViz):
 
 
 class MigrateAreaChart(MigrateViz):
+    """
+    Migrate area charts.
+
+    This migration is incomplete, see https://github.com/apache/superset/pull/24703#discussion_r1265222611
+    for more details. If you fix this migration, please update the ``migrate_chart``
+    function in ``superset/charts/commands/importers/v1/utils.py`` so that it gets
+    applied in chart imports.
+    """
+
     source_viz_type = "area"
     target_viz_type = "echarts_area"
     remove_keys = {"contribution", "stacked_style", "x_axis_label"}
-
-    status = ChartMigratorStatus.INCOMPLETE
 
     def _pre_action(self) -> None:
         if self.data.get("contribution"):
@@ -85,8 +92,6 @@ class MigratePivotTable(MigrateViz):
         "var": "Sample Variance",
     }
 
-    status = ChartMigratorStatus.COMPLETE
-
     def _pre_action(self) -> None:
         if pivot_margins := self.data.get("pivot_margins"):
             self.data["colTotals"] = pivot_margins
@@ -107,8 +112,6 @@ class MigrateDualLine(MigrateViz):
         "y_axis_2_bounds": "y_axis_bounds_secondary",
     }
     remove_keys = {"metric", "metric_2"}
-
-    status = ChartMigratorStatus.COMPLETE
 
     def _pre_action(self) -> None:
         self.data["yAxisIndex"] = 0

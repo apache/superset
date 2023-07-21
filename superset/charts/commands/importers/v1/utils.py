@@ -26,7 +26,7 @@ from sqlalchemy.orm import Session
 from superset import security_manager
 from superset.commands.exceptions import ImportFailedError
 from superset.migrations.shared.migrate_viz import processors
-from superset.migrations.shared.migrate_viz.base import ChartMigratorStatus, MigrateViz
+from superset.migrations.shared.migrate_viz.base import MigrateViz
 from superset.models.slice import Slice
 
 
@@ -72,7 +72,8 @@ def migrate_chart(config: dict[str, Any]) -> dict[str, Any]:
         for class_ in processors.__dict__.values()
         if isclass(class_)
         and issubclass(class_, MigrateViz)
-        and class_.status == ChartMigratorStatus.COMPLETE
+        and hasattr(class_, "source_viz_type")
+        and class_ != processors.MigrateAreaChart  # incomplete
     }
 
     output = copy.deepcopy(config)
