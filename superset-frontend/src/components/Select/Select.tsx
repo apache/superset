@@ -262,7 +262,6 @@ const Select = forwardRef(
           return previousState;
         });
       }
-      setInputValue('');
       fireOnChange();
       onSelect?.(selectedItem, option);
     };
@@ -307,7 +306,6 @@ const Select = forwardRef(
           setSelectValue(array);
         }
       }
-      setInputValue('');
       fireOnChange();
       onDeselect?.(value, option);
     };
@@ -520,13 +518,25 @@ const Select = forwardRef(
       [selectAllEnabled, options],
     );
 
-    const customMaxTagPlaceholder = () => {
+    const omittedCount = useMemo(() => {
       const num_selected = ensureIsArray(selectValue).length;
       const num_shown = maxTagCount as number;
-      return selectAllMode
-        ? `+ ${num_selected - num_shown - 1} ...`
-        : `+ ${num_selected - num_shown} ...`;
-    };
+      return num_selected - num_shown - (selectAllMode ? 1 : 0);
+    }, [maxTagCount, selectAllMode, selectValue]);
+
+    const customMaxTagPlaceholder = () =>
+      `+ ${omittedCount > 0 ? omittedCount : 1} ...`;
+
+    // We can't remove the + tag so when Select All
+    // is the only item omitted, we subtract one from maxTagCount
+    let actualMaxTagCount = maxTagCount;
+    if (
+      actualMaxTagCount !== 'responsive' &&
+      omittedCount === 0 &&
+      selectAllMode
+    ) {
+      actualMaxTagCount -= 1;
+    }
 
     return (
       <StyledContainer headerPosition={headerPosition}>
@@ -545,7 +555,7 @@ const Select = forwardRef(
           }
           headerPosition={headerPosition}
           labelInValue={labelInValue}
-          maxTagCount={maxTagCount}
+          maxTagCount={actualMaxTagCount}
           maxTagPlaceholder={customMaxTagPlaceholder}
           mode={mappedMode}
           notFoundContent={isLoading ? t('Loading...') : notFoundContent}

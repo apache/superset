@@ -238,7 +238,6 @@ const AsyncSelect = forwardRef(
           return previousState;
         });
       }
-      setInputValue('');
       fireOnChange();
       onSelect?.(selectedItem, option);
     };
@@ -255,7 +254,6 @@ const AsyncSelect = forwardRef(
           setSelectValue(array.filter(element => element !== value));
         }
       }
-      setInputValue('');
       fireOnChange();
       onDeselect?.(value, option);
     };
