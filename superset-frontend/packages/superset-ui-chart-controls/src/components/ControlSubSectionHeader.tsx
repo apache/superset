@@ -16,21 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import * as sectionsModule from './sections';
+import { styled } from '@superset-ui/core';
 
-export * from './utils';
-export * from './constants';
-export * from './operators';
-
-// can't do `export * as sections from './sections'`, babel-transformer will fail
-export const sections = sectionsModule;
-
-export * from './components/InfoTooltipWithTrigger';
-export * from './components/ColumnOption';
-export * from './components/ColumnTypeLabel/ColumnTypeLabel';
-export * from './components/MetricOption';
-export * from './components/ControlSubSectionHeader';
-
-export * from './shared-controls';
-export * from './types';
-export * from './fixtures';
+export const ControlSubSectionHeader = styled.div`
+  font-weight: ${({ theme }) => theme.typography.weights.bold};
+  font-size: ${({ theme }) => theme.typography.sizes.s};
+  margin-bottom: ${({ theme }) => theme.gridUnit}px;
+`;
+export default ControlSubSectionHeader;

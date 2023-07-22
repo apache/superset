@@ -107,4 +107,5 @@ export type TimeseriesChartTransformedProps =
         label: string;
         type: AxisType;
       };
+      onFocusedSeries: (series: string | null) => void;
     };

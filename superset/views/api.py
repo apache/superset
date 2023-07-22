@@ -86,7 +86,7 @@ class Api(BaseSupersetView):
 
         update_time_range(form_data)
 
-        return json.dumps(form_data)
+        return self.json_response(form_data)
 
     @api
     @handle_api_exception
