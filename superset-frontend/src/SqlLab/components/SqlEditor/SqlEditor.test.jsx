@@ -141,7 +141,7 @@ describe('SqlEditor', () => {
     ).toBeInTheDocument();
   });
 
-  it.only('render a SqlEditorLeftBar', async () => {
+  it('render a SqlEditorLeftBar', async () => {
     const { getByTestId } = setup(mockedProps, store);
     await waitFor(() =>
       expect(getByTestId('mock-sql-editor-left-bar')).toBeInTheDocument(),
