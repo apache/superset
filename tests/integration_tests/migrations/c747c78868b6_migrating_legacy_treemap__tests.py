@@ -68,7 +68,7 @@ def test_treemap_migrate(app_context: SupersetApp) -> None:
         query_context=f'{{"form_data": {treemap_form_data}}}',
     )
 
-    slc = MigrateTreeMap.upgrade_slice(slc)
+    MigrateTreeMap.upgrade_slice(slc)
     assert slc.viz_type == MigrateTreeMap.target_viz_type
     # verify form_data
     new_form_data = json.loads(slc.params)
@@ -84,7 +84,7 @@ def test_treemap_migrate(app_context: SupersetApp) -> None:
     assert new_query_context["form_data"]["viz_type"] == "treemap_v2"
 
     # downgrade
-    slc = MigrateTreeMap.downgrade_slice(slc)
+    MigrateTreeMap.downgrade_slice(slc)
     assert slc.viz_type == MigrateTreeMap.source_viz_type
     assert json.dumps(json.loads(slc.params), sort_keys=True) == json.dumps(
         json.loads(treemap_form_data), sort_keys=True

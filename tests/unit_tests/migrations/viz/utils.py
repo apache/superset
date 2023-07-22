@@ -79,7 +79,7 @@ def migrate_and_assert(
     )
 
     # upgrade
-    slc = cls.upgrade_slice(slc)
+    cls.upgrade_slice(slc)
 
     # verify form_data
     new_form_data = json.loads(slc.params)
@@ -91,6 +91,6 @@ def migrate_and_assert(
     assert new_query_context["form_data"]["viz_type"] == cls.target_viz_type
 
     # downgrade
-    slc = cls.downgrade_slice(slc)
+    cls.downgrade_slice(slc)
     assert slc.viz_type == cls.source_viz_type
     assert json.loads(slc.params) == source

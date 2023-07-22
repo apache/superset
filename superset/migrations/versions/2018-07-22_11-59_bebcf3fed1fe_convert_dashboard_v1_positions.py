@@ -647,7 +647,6 @@ def upgrade():
 
             sorted_by_key = collections.OrderedDict(sorted(v2_layout.items()))
             dashboard.position_json = json.dumps(sorted_by_key, indent=2)
-            session.merge(dashboard)
             session.commit()
         else:
             print(f"Skip converted dash_id: {dashboard.id}")

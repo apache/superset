@@ -78,8 +78,8 @@ class TestDashboard(SupersetTestCase):
             hidden_dash.slices = [slice]
             hidden_dash.published = False
 
-            db.session.merge(published_dash)
-            db.session.merge(hidden_dash)
+            db.session.add(published_dash)
+            db.session.add(hidden_dash)
             yield db.session.commit()
 
             self.revoke_public_access_to_table(table)
@@ -137,8 +137,6 @@ class TestDashboard(SupersetTestCase):
         # Make the births dash published so it can be seen
         births_dash = db.session.query(Dashboard).filter_by(slug="births").one()
         births_dash.published = True
-
-        db.session.merge(births_dash)
         db.session.commit()
 
         # Try access before adding appropriate permissions.
@@ -180,7 +178,6 @@ class TestDashboard(SupersetTestCase):
         dash = db.session.query(Dashboard).filter_by(slug="births").first()
         dash.owners = [security_manager.find_user("admin")]
         dash.created_by = security_manager.find_user("admin")
-        db.session.merge(dash)
         db.session.commit()
 
         res: Response = self.client.get("/superset/dashboard/births/")

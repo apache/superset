@@ -59,9 +59,9 @@ def load_sf_population_polygons(
     tbl = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not tbl:
         tbl = table(table_name=tbl_name, schema=schema)
+        db.session.add(tbl)
     tbl.description = "Population density of San Francisco"
     tbl.database = database
     tbl.filter_select_enabled = True
-    db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()

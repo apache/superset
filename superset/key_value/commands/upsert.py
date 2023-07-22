@@ -88,7 +88,6 @@ class UpsertKeyValueCommand(BaseCommand):
             entry.expires_on = self.expires_on
             entry.changed_on = datetime.now()
             entry.changed_by_fk = get_user_id()
-            db.session.merge(entry)
             db.session.commit()
             return Key(entry.id, entry.uuid)
 

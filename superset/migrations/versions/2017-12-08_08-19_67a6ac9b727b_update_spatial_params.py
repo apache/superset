@@ -58,7 +58,6 @@ def upgrade():
             del params["latitude"]
             del params["longitude"]
         slc.params = json.dumps(params)
-        session.merge(slc)
         session.commit()
     session.close()
 

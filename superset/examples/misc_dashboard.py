@@ -34,6 +34,7 @@ def load_misc_dashboard() -> None:
 
     if not dash:
         dash = Dashboard()
+        db.session.add(dash)
     js = textwrap.dedent(
         """\
 {
@@ -215,5 +216,4 @@ def load_misc_dashboard() -> None:
     dash.position_json = json.dumps(pos, indent=4)
     dash.slug = DASH_SLUG
     dash.slices = slices
-    db.session.merge(dash)
     db.session.commit()

@@ -27,6 +27,7 @@ def load_css_templates() -> None:
     obj = db.session.query(CssTemplate).filter_by(template_name="Flat").first()
     if not obj:
         obj = CssTemplate(template_name="Flat")
+        db.session.add(obj)
     css = textwrap.dedent(
         """\
     .navbar {
@@ -51,12 +52,12 @@ def load_css_templates() -> None:
     """
     )
     obj.css = css
-    db.session.merge(obj)
     db.session.commit()
 
     obj = db.session.query(CssTemplate).filter_by(template_name="Courier Black").first()
     if not obj:
         obj = CssTemplate(template_name="Courier Black")
+        db.session.add(obj)
     css = textwrap.dedent(
         """\
     h2 {
@@ -96,5 +97,4 @@ def load_css_templates() -> None:
     """
     )
     obj.css = css
-    db.session.merge(obj)
     db.session.commit()

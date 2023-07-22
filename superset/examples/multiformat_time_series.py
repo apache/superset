@@ -82,6 +82,7 @@ def load_multiformat_time_series(  # pylint: disable=too-many-locals
     obj = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not obj:
         obj = table(table_name=tbl_name, schema=schema)
+        db.session.add(obj)
     obj.main_dttm_col = "ds"
     obj.database = database
     obj.filter_select_enabled = True
@@ -100,7 +101,6 @@ def load_multiformat_time_series(  # pylint: disable=too-many-locals
         col.python_date_format = dttm_and_expr[0]
         col.database_expression = dttm_and_expr[1]
         col.is_dttm = True
-    db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
     tbl = obj

@@ -70,7 +70,6 @@ def upgrade():
 
         slc.params = json.dumps(params)
         slc.viz_type = "graph_chart"
-        session.merge(slc)
         session.commit()
     session.close()
 
@@ -100,6 +99,5 @@ def downgrade():
 
         slc.params = json.dumps(params)
         slc.viz_type = "directed_force"
-        session.merge(slc)
         session.commit()
     session.close()
