@@ -17,7 +17,7 @@
 """json_metadata
 
 Revision ID: bf646a0c1501
-Revises: 83e1abbe777f
+Revises: a23c6f8b1280
 Create Date: 2023-06-28 19:49:59.217255
 
 """
@@ -30,7 +30,7 @@ from superset.utils.core import MediumText
 
 # revision identifiers, used by Alembic.
 revision = "bf646a0c1501"
-down_revision = "83e1abbe777f"
+down_revision = "a23c6f8b1280"
 
 
 def upgrade():
