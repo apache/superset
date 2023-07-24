@@ -890,6 +890,25 @@ test('"Select All" does not affect disabled options', async () => {
   expect(await findSelectValue()).not.toHaveTextContent(options[1].label);
 });
 
+test('does not fire onChange when searching but no selection', async () => {
+  const onChange = jest.fn();
+  render(
+    <div role="main">
+      <Select
+        {...defaultProps}
+        onChange={onChange}
+        mode="multiple"
+        allowNewOptions
+      />
+    </div>,
+  );
+  await open();
+  await type('Joh');
+  userEvent.click(await findSelectOption('John'));
+  userEvent.click(screen.getByRole('main'));
+  expect(onChange).toHaveBeenCalledTimes(1);
+});
+
 /*
  TODO: Add tests that require scroll interaction. Needs further investigation.
  - Fetches more data when scrolling and more data is available

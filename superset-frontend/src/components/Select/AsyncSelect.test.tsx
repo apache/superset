@@ -522,7 +522,7 @@ test('changes the selected item in single mode', async () => {
       label: firstOption.label,
       value: firstOption.value,
     }),
-    firstOption,
+    expect.objectContaining(firstOption),
   );
   expect(await findSelectValue()).toHaveTextContent(firstOption.label);
   userEvent.click(await findSelectOption(secondOption.label));
@@ -531,7 +531,7 @@ test('changes the selected item in single mode', async () => {
       label: secondOption.label,
       value: secondOption.value,
     }),
-    secondOption,
+    expect.objectContaining(secondOption),
   );
   expect(await findSelectValue()).toHaveTextContent(secondOption.label);
 });
@@ -802,6 +802,25 @@ test('Renders only an overflow tag if dropdown is open in oneLine mode', async (
   expect(withinSelector.queryByText(OPTIONS[1].label)).not.toBeInTheDocument();
   expect(withinSelector.queryByText(OPTIONS[2].label)).not.toBeInTheDocument();
   expect(withinSelector.getByText('+ 2 ...')).toBeVisible();
+});
+
+test('does not fire onChange when searching but no selection', async () => {
+  const onChange = jest.fn();
+  render(
+    <div role="main">
+      <AsyncSelect
+        {...defaultProps}
+        onChange={onChange}
+        mode="multiple"
+        allowNewOptions
+      />
+    </div>,
+  );
+  await open();
+  await type('Joh');
+  userEvent.click(await findSelectOption('John'));
+  userEvent.click(screen.getByRole('main'));
+  expect(onChange).toHaveBeenCalledTimes(1);
 });
 
 /*
