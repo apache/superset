@@ -429,9 +429,6 @@ class TagRestApi(BaseSupersetModelRestApi):
         """
         requested_ids = kwargs["rison"]
         tags = TagDAO.find_by_ids(requested_ids)
-        if not tags:
-            return self.response_404()
-
         users_favorited_tags = TagDAO.favorited_ids(tags)
         res = [
             {"id": request_id, "value": request_id in users_favorited_tags}
@@ -476,9 +473,6 @@ class TagRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not TagDAO.find_by_id(pk):
-            return self.response_404()
-
         TagDAO.favorite_tag_by_id_for_current_user(pk)
         return self.response(200, result="OK")
 

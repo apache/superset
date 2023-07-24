@@ -291,6 +291,8 @@ class TagDAO(BaseDAO[Tag]):
         """
         tag = TagDAO.find_by_id(tag_id)
         user = g.user
+        if not tag:
+            raise TagNotFoundError()
 
         if tag and user:
             tag.users_favorited.append(user)
@@ -318,7 +320,6 @@ class TagDAO(BaseDAO[Tag]):
         """
         tag = TagDAO.find_by_id(tag_id)
         user = g.user
-
         if not tag:
             raise TagNotFoundError()
 
