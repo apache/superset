@@ -12,7 +12,7 @@ way to connect to Redshift through SQLAlchemy.
 
 This dialect requires either [redshift_connector](https://pypi.org/project/redshift-connector/) or [psycopg2](https://pypi.org/project/psycopg2/) to work properly.
 
-You'll need to the following setting values to form the connection string:
+You'll need to set the following values to form the connection string:
 
 - **User Name**: userName
 - **Password**: DBPassword
@@ -41,11 +41,11 @@ redshift+redshift_connector://<userName>:<DBPassword>@<AWS End Point>:5439/<Data
 
 #### Using IAM-based credentials with Redshift cluster:
 
-[Amazon redshift cluster](https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html) also supports to generate temporary IAM-based database user credentials.
+[Amazon redshift cluster](https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html) also supports generating temporary IAM-based database user credentials.
 
 Your superset app's [IAM role should have permissions](https://docs.aws.amazon.com/redshift/latest/mgmt/generating-iam-credentials-role-permissions.html) to call the `redshift:GetClusterCredentials` operation.
 
-You have to define following arguments in Superset's redshift database connection UI under ADVANCED --> Others --> ENGINE PARAMETERS.
+You have to define the following arguments in Superset's redshift database connection UI under ADVANCED --> Others --> ENGINE PARAMETERS.
 
 ```
 {"connect_args":{"iam":true,"database":"<database>","cluster_identifier":"<cluster_identifier>","db_user":"<db_user>"}}
@@ -59,7 +59,7 @@ and SQLALCHEMY URI should be set to `redshift+redshift_connector://`
 
 Your superset app's IAM role should have `redshift-serverless:GetCredentials` and `redshift-serverless:GetWorkgroup` permissions on Redshift serverless workgroup.
 
-You have to define following arguments in Superset's redshift database connection UI under ADVANCED --> Others --> ENGINE PARAMETERS.
+You have to define the following arguments in Superset's redshift database connection UI under ADVANCED --> Others --> ENGINE PARAMETERS.
 
 ```
 {"connect_args":{"iam":true,"is_serverless":true,"serverless_acct_id":"<aws account number>","serverless_work_group":"<redshift work group>","database":"<database>","user":"IAMR:<superset iam role name>"}}
