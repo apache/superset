@@ -23,6 +23,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset.daos.base import BaseDAO
 from superset.daos.exceptions import DAOCreateFailedError, DAODeleteFailedError
+from superset.exceptions import UserNotFound
 from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -291,12 +292,14 @@ class TagDAO(BaseDAO[Tag]):
         """
         tag = TagDAO.find_by_id(tag_id)
         user = g.user
+
+        if not user:
+            raise UserNotFound(message="User doesn't exist")
         if not tag:
             raise TagNotFoundError()
 
         if tag and user:
             tag.users_favorited.append(user)
-            db.session.add(tag)
             db.session.commit()
 
     @staticmethod
@@ -320,6 +323,9 @@ class TagDAO(BaseDAO[Tag]):
         """
         tag = TagDAO.find_by_id(tag_id)
         user = g.user
+
+        if not user:
+            raise UserNotFound(message="User doesn't exist")
         if not tag:
             raise TagNotFoundError()
 

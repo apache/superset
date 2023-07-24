@@ -200,6 +200,10 @@ class DatabaseNotFound(SupersetException):
     status = 400
 
 
+class UserNotFound(SupersetException):
+    status = 400
+
+
 class QueryObjectValidationError(SupersetException):
     status = 400
 
