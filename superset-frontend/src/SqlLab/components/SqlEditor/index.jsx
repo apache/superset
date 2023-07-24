@@ -139,7 +139,7 @@ const StyledSidebar = styled.div`
   padding: ${({ theme, hide }) => (hide ? 0 : theme.gridUnit * 2.5)}px;
   border-right: 1px solid
     ${({ theme, hide }) =>
-      hide ? 'transparent' : theme.colors.grayscale.light2};
+    hide ? 'transparent' : theme.colors.grayscale.light2};
 `;
 
 const StyledSqlEditor = styled.div`
@@ -529,9 +529,8 @@ const SqlEditor = ({
   };
 
   const elementStyle = (dimension, elementSize, gutterSize) => ({
-    [dimension]: `calc(${elementSize}% - ${
-      gutterSize + SQL_EDITOR_GUTTER_MARGIN
-    }px)`,
+    [dimension]: `calc(${elementSize}% - ${gutterSize + SQL_EDITOR_GUTTER_MARGIN
+      }px)`,
   });
 
   const createTableAs = () => {

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import React, { Dispatch, SetStateAction, useEffect, useState } from 'react';
 import { t, styled, useTheme, SupersetClient } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import Alert from 'src/components/Alert';
@@ -32,6 +32,8 @@ import { TableOption } from 'src/components/TableSelector';
 import { useTableColumns } from 'src/explore/components/DataTableControl';
 import { useTableMetadataQuery } from 'src/hooks/apiResources';
 import { IColumnProps } from '.';
+import Button from 'src/components/Button';
+import { TableJoin } from 'src/pages/DatasetSmartCreation';
 
 /**
  * Enum defining CSS position options
@@ -228,6 +230,8 @@ export interface IDatasetPanelProps {
   tablesInSchema?: TableOption[] | undefined;
   dbId?: number | undefined;
   schema?: string | null | undefined;
+  joins?: TableJoin[] | undefined;
+  setJoins?: Dispatch<SetStateAction<TableJoin[] | undefined>>;
 }
 
 const EXISTING_DATASET_DESCRIPTION = t(
@@ -284,6 +288,8 @@ const DatasetPanel = ({
   dbId,
   schema,
   tablesInSchema,
+  joins,
+  setJoins
 }: IDatasetPanelProps) => {
   const theme = useTheme();
   const hasColumns = columnList?.length > 0 ?? false;
@@ -291,12 +297,17 @@ const DatasetPanel = ({
   const tableWithDataset = datasets?.find(
     dataset => dataset.table_name === tableName,
   );
+
+  // new states
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedRow, selectRow] = useState<string[]>(['']);
+
+  // modal states
+  const [selectedRow, selectRow] = useState<string[] | undefined>(undefined);
   const [selectedJoinTable, selectJoinTable] = useState<TableOption | undefined>(undefined);
   const [joinTableLoading, setJoinTableLoading] = useState(false);
   const [selectedJoinTableColumns, setSelectedJoinTableColumns] = useState<ITableColumn[]>([]);
-  const [selectedJoinRow, selectJoinRow] = useState<string[]>(['']);
+  const [selectedJoinRow, selectJoinRow] = useState<string[] | undefined>(undefined);
+  const [error, setError] = useState<boolean>(false);
 
   const getTableMetadata = async (props: IColumnProps) => {
     const { dbId, tableName, schema } = props;
@@ -315,9 +326,21 @@ const DatasetPanel = ({
   };
 
   useEffect(() => {
+    setError(false);
+
+    if (selectedRow && selectedJoinRow) {
+      const selectedColumn = columnList.find(column => column.name === selectedRow[0]);
+      const selectedJoinColumn = selectedJoinTableColumns.find(column => column.name === selectedJoinRow[0]);
+
+      if (selectedColumn?.type !== selectedJoinColumn?.type) {
+        setError(true);
+      }
+    }
+  }, [selectedRow, selectedJoinRow]);
+
+  useEffect(() => {
     if (dbId && schema && selectedJoinTable) {
-      const todo = getTableMetadata({ dbId, tableName: selectedJoinTable.value, schema });
-      console.log('------tableMetadata-----', todo);
+      getTableMetadata({ dbId, tableName: selectedJoinTable.value, schema });
     }
   }, [dbId, schema, selectedJoinTable]);
 
@@ -390,7 +413,52 @@ gap: 50px;
 .modalSection {
 width: 33%;
 }
+
+.options {
+cursor: pointer;
+padding: ${theme.gridUnit * 1.75}px;
+border-radius: ${theme.borderRadius}px;
+:hover {
+  background-color: ${theme.colors.grayscale.light4}
+}
+}
+
+.options-highlighted {
+cursor: pointer;
+padding: ${theme.gridUnit * 1.75}px;
+border-radius: ${theme.borderRadius}px;
+background-color: ${theme.colors.primary.dark1};
+color: ${theme.colors.grayscale.light5};
+}
+
+.options, .options-highlighted {
+display: flex;
+align-items: center;
+justify-content: space-between;
+}
+
 `;
+
+  const onHide = () => setModalOpen(false);
+
+  const onSaveJoin = () => {
+    const joinsToSave = [];
+    if (joins) {
+      joinsToSave.push(...joins);
+    }
+
+    joinsToSave.push({
+      sourceTable: tableName!,
+      sourceColumn: selectedRow![0],
+      joinTable: selectedJoinTable!.value,
+      joinColumn: selectedJoinRow![0]
+    });
+
+    setJoins!(joinsToSave);
+
+    onHide();
+  };
+
 
   return (
     <>
@@ -423,9 +491,28 @@ width: 33%;
         width='100%'
         show={modalOpen}
         title={'TODO_LABEL Join new table'}
-        onHide={() => setModalOpen(false)}
+        onHide={onHide}
         footer={
-          <>{'FOOTER'}
+          <>
+            <Button
+              data-test="properties-modal-cancel-button"
+              htmlType="button"
+              buttonSize="small"
+              onClick={onHide}
+              cta
+            >
+              {t('Cancel')}
+            </Button>
+            <Button
+              data-test="properties-modal-save-button"
+              htmlType="submit"
+              buttonSize="small"
+              buttonStyle="primary"
+              onClick={onSaveJoin}
+              disabled={error || !selectedRow || !selectedJoinRow}
+            >
+              {t('Save')}
+            </Button>
           </>
         }
       >
@@ -451,7 +538,8 @@ width: 33%;
               tablesInSchema && tablesInSchema.map((option, i) => (
                 <div
                   className={
-                    'options'
+                    selectedJoinTable?.value === option.value ? 'options-highlighted' :
+                      'options'
                   }
                   key={i}
                   role="button"
@@ -465,7 +553,9 @@ width: 33%;
 
           {selectedJoinTable &&
             <div className='modalSection'>
+              {error && <div> {'TODO_LABEL Source column and join column type must be the same'} </div>}
               <div>TODO_LABEL Join columns</div>
+              <div>{selectedJoinTable.value}</div>
               <Table
                 loading={joinTableLoading}
                 size={TableSize.SMALL}

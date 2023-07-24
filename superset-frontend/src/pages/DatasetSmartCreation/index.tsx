@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useReducer, Reducer, useEffect, useState } from 'react';
+import React, { useReducer, Reducer, useEffect, useState, ReactElement, JSXElementConstructor } from 'react';
 import { useParams } from 'react-router-dom';
 import useDatasetsList from 'src/features/datasets/hooks/useDatasetLists';
 import Header from 'src/features/datasets/AddDataset/Header';
@@ -73,6 +73,13 @@ export function datasetSmartReducer(
   }
 }
 
+export type TableJoin = {
+  sourceTable: string;
+  sourceColumn: string;
+  joinTable: string;
+  joinColumn: string;
+};
+
 const prevUrl =
   '/tablemodelview/list/?pageIndex=0&sortColumn=changed_on_delta_humanized&sortOrder=desc';
 
@@ -83,6 +90,10 @@ export default function AddSmartDataset() {
   const [hasColumns, setHasColumns] = useState(false);
   const [editPageIsVisible, setEditPageIsVisible] = useState(false);
   const [tableOptions, setTableOptions] = useState<Array<TableOption>>([]);
+  const [joins, setJoins] = useState<TableJoin[] | undefined>(undefined);
+
+  // TODO remove logging
+  useEffect(() => console.log('-----joins----', joins), joins);
 
   const { datasets, datasetNames } = useDatasetsList(
     dataset?.db,
@@ -112,20 +123,6 @@ export default function AddSmartDataset() {
 
   const EditPageComponent = () => <EditPage id={id} />;
 
-  const DatasetPanelComponent = () => (
-    <DatasetPanel
-      tableName={dataset?.table_name}
-      dbId={dataset?.db?.id}
-      schema={dataset?.schema}
-      setHasColumns={setHasColumns}
-      datasets={datasets}
-      smart={true}
-      tablesInSchema={tableOptions}
-    />
-  );
-
-  const datasetPanels = [DatasetPanelComponent()];
-
   const FooterComponent = () => (
     <Footer
       url={prevUrl}
@@ -135,12 +132,27 @@ export default function AddSmartDataset() {
     />
   );
 
+  const DatasetPanelComponent = () => (
+    <DatasetPanel
+      tableName={dataset?.table_name}
+      dbId={dataset?.db?.id}
+      schema={dataset?.schema}
+      setHasColumns={setHasColumns}
+      datasets={datasets}
+      smart={true}
+      tablesInSchema={tableOptions}
+      joins={joins}
+      setJoins={setJoins}
+    />
+  );
+
+
   return (
     <DatasetLayout
       header={HeaderComponent()}
       leftPanel={editPageIsVisible ? null : LeftPanelComponent()}
       datasetPanel={
-        editPageIsVisible ? EditPageComponent() : datasetPanels
+        editPageIsVisible ? EditPageComponent() : DatasetPanelComponent()
       }
       footer={FooterComponent()}
     />

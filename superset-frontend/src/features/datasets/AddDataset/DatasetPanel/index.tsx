@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, Dispatch, SetStateAction } from 'react';
 import { SupersetClient, logging, t } from '@superset-ui/core';
 import { DatasetObject } from 'src/features/datasets/AddDataset/types';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import DatasetPanel from './DatasetPanel';
 import { ITableColumn, IDatabaseTable, isIDatabaseTable } from './types';
 import { TableOption } from 'src/components/TableSelector';
+import { TableJoin } from 'src/pages/DatasetSmartCreation';
 
 /**
  * Interface for the getTableMetadata API call
@@ -59,6 +60,8 @@ export interface IDatasetPanelWrapperProps {
   datasets?: DatasetObject[] | undefined;
   smart?: boolean | undefined;
   tablesInSchema?: TableOption[] | undefined;
+  joins?: TableJoin[] | undefined;
+  setJoins?: Dispatch<SetStateAction<TableJoin[] | undefined>>;
 }
 
 const DatasetPanelWrapper = ({
@@ -69,6 +72,8 @@ const DatasetPanelWrapper = ({
   datasets,
   smart,
   tablesInSchema,
+  joins,
+  setJoins
 }: IDatasetPanelWrapperProps) => {
   const [columnList, setColumnList] = useState<ITableColumn[]>([]);
   const [loading, setLoading] = useState(false);
@@ -142,6 +147,8 @@ const DatasetPanelWrapper = ({
       tablesInSchema={tablesInSchema}
       dbId={dbId}
       schema={schema}
+      joins={joins}
+      setJoins={setJoins}
     />
   );
 };
