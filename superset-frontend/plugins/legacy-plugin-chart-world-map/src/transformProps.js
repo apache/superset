@@ -43,6 +43,8 @@ export default function transformProps(chartProps) {
     colorScheme,
     sliceId,
     metric,
+    yAxisFormat,
+    currencyFormat,
   } = formData;
   const { r, g, b } = colorPicker;
   const { currencyFormats = {}, columnFormats = {} } = datasource;
@@ -51,8 +53,8 @@ export default function transformProps(chartProps) {
     metric,
     currencyFormats,
     columnFormats,
-    undefined,
-    undefined,
+    yAxisFormat,
+    currencyFormat,
   );
 
   return {
