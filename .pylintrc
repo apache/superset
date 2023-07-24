@@ -74,11 +74,11 @@ enable=
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
 disable=
+    cyclic-import,  # re-enable once this no longer raises false positives
     missing-docstring,
     duplicate-code,
     unspecified-encoding,
-    # re-enable once this no longer raises false positives
-    too-many-instance-attributes
+    too-many-instance-attributes  # re-enable once this no longer raises false positives
 
 [REPORTS]
 
