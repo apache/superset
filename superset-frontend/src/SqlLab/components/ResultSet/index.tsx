@@ -84,7 +84,7 @@ export interface ResultSetProps {
 const ResultContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${({ theme }) => theme.gridUnit * 2}px;
+  row-gap: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
 const ResultlessStyles = styled.div`
