@@ -76,7 +76,7 @@ def upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
 
     if not bucket_path:
         logger.info("No upload bucket specified")
-        raise Exception(
+        raise Exception(  # pylint: disable=broad-exception-raised
             "No upload bucket specified. You can specify one in the config file."
         )
 
@@ -159,7 +159,9 @@ class HiveEngineSpec(PrestoEngineSpec):
 
         state = cursor.poll()
         if state.operationState == ttypes.TOperationState.ERROR_STATE:
-            raise Exception("Query error", state.errorMessage)
+            raise Exception(  # pylint: disable=broad-exception-raised
+                "Query error", state.errorMessage
+            )
         try:
             return super().fetch_data(cursor, limit)
         except pyhive.exc.ProgrammingError:

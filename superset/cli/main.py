@@ -41,7 +41,7 @@ def superset() -> None:
 
     @app.shell_context_processor
     def make_shell_context() -> dict[str, Any]:
-        return dict(app=app, db=db)
+        return {"app": app, "db": db}
 
 
 # add sub-commands

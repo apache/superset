@@ -2147,8 +2147,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # We don't need to send a special error message.
             logger.warning("Invalid guest token", exc_info=True)
             return None
-        else:
-            return self.get_guest_user_from_token(cast(GuestToken, token))
+
+        return self.get_guest_user_from_token(cast(GuestToken, token))
 
     def get_guest_user_from_token(self, token: GuestToken) -> GuestUser:
         return self.guest_user_cls(

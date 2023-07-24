@@ -1464,7 +1464,9 @@ class SqlaTable(
         if not DatasetDAO.validate_uniqueness(
             target.database_id, target.schema, target.table_name, target.id
         ):
-            raise Exception(get_dataset_exist_error_msg(target.full_name))
+            raise Exception(  # pylint: disable=broad-exception-raised
+                get_dataset_exist_error_msg(target.full_name)
+            )
 
     @staticmethod
     def update_column(  # pylint: disable=unused-argument

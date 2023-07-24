@@ -120,7 +120,9 @@ class ImportExamplesCommand(ImportModelsCommand):
                 # find the ID of the corresponding database
                 if config["database_uuid"] not in database_ids:
                     if examples_db is None:
-                        raise Exception("Cannot find examples database")
+                        raise Exception(  # pylint: disable=broad-exception-raised
+                            "Cannot find examples database"
+                        )
                     config["database_id"] = examples_db.id
                 else:
                     config["database_id"] = database_ids[config["database_uuid"]]

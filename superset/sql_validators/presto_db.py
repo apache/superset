@@ -120,7 +120,6 @@ class PrestoDBSQLValidator(BaseSQLValidator):
             if "errorLocation" not in error_args:
                 # Pylint is confused about the type of error_args, despite the hints
                 # and checks above.
-                # pylint: disable=invalid-sequence-index
                 message = error_args["message"] + "\n(Error location unknown)"
                 # If we have a message but no error location, return the message and
                 # set the location as the beginning.
@@ -128,7 +127,6 @@ class PrestoDBSQLValidator(BaseSQLValidator):
                     message=message, line_number=1, start_column=1, end_column=1
                 )
 
-            # pylint: disable=invalid-sequence-index
             message = error_args["message"]
             err_loc = error_args["errorLocation"]
             line_number = err_loc.get("lineNumber", None)

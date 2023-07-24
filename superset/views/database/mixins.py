@@ -236,7 +236,7 @@ class DatabaseMixin:
         try:
             extra = database.get_extra()
         except Exception as ex:
-            raise Exception(
+            raise Exception(  # pylint: disable=broad-exception-raised
                 _("Extra field cannot be decoded by JSON. %(msg)s", msg=str(ex))
             ) from ex
 
@@ -244,7 +244,7 @@ class DatabaseMixin:
         metadata_signature = inspect.signature(MetaData)
         for key in extra.get("metadata_params", {}):
             if key not in metadata_signature.parameters:
-                raise Exception(
+                raise Exception(  # pylint: disable=broad-exception-raised
                     _(
                         "The metadata_params in Extra field "
                         "is not configured correctly. The key "
@@ -258,6 +258,6 @@ class DatabaseMixin:
         try:
             database.get_encrypted_extra()
         except Exception as ex:
-            raise Exception(
+            raise Exception(  # pylint: disable=broad-exception-raised
                 _("Extra field cannot be decoded by JSON. %(msg)s", msg=str(ex))
             ) from ex

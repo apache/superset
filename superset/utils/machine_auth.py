@@ -66,7 +66,7 @@ class MachineAuthProvider:
             cookies = {}
 
         for cookie_name, cookie_val in cookies.items():
-            driver.add_cookie(dict(name=cookie_name, value=cookie_val))
+            driver.add_cookie({"name": cookie_name, "value": cookie_val})
 
         return driver
 

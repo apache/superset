@@ -391,7 +391,7 @@ def execute_sql_statements(
         stats_logger.timing("sqllab.query.time_pending", now_as_float() - start_time)
 
     query = get_query(query_id, session)
-    payload: dict[str, Any] = dict(query_id=query_id)
+    payload: dict[str, Any] = {"query_id": query_id}
     database = query.database
     db_engine_spec = database.db_engine_spec
     db_engine_spec.patch()

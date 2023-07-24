@@ -120,7 +120,9 @@ def get_children(column: ResultSetColumnType) -> list[ResultSetColumnType]:
         raise ValueError
     match = pattern.match(column["type"])
     if not match:
-        raise Exception(f"Unable to parse column type {column['type']}")
+        raise Exception(  # pylint: disable=broad-exception-raised
+            f"Unable to parse column type {column['type']}"
+        )
 
     group = match.groupdict()
     type_ = group["type"].upper()
@@ -156,7 +158,7 @@ def get_children(column: ResultSetColumnType) -> list[ResultSetColumnType]:
             columns.append(_column)
         return columns
 
-    raise Exception(f"Unknown type {type_}!")
+    raise Exception(f"Unknown type {type_}!")  # pylint: disable=broad-exception-raised
 
 
 class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):

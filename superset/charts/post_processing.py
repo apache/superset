@@ -289,7 +289,9 @@ def apply_post_process(
 
     for query in result["queries"]:
         if query["result_format"] not in (rf.value for rf in ChartDataResultFormat):
-            raise Exception(f"Result format {query['result_format']} not supported")
+            raise Exception(  # pylint: disable=broad-exception-raised
+                f"Result format {query['result_format']} not supported"
+            )
 
         data = query["data"]
 
