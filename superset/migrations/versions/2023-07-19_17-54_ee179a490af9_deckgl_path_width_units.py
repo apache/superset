@@ -22,8 +22,8 @@ Create Date: 2023-07-19 17:54:06.752360
 
 """
 import json
+import logging
 
-import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import Column, Integer, or_, String, Text
 from sqlalchemy.ext.declarative import declarative_base
@@ -55,12 +55,14 @@ def upgrade():
             Slice.viz_type == "deck_polygon",
         )
     ):
-        params = json.loads(slc.params)
-        if not params.get("line_width_unit"):
-            params["line_width_unit"] = "meters"
-        slc.params = json.dumps(params)
-        session.merge(slc)
-        session.commit()
+        try:
+            params = json.loads(slc.params)
+            if not params.get("line_width_unit"):
+                params["line_width_unit"] = "meters"
+                slc.params = json.dumps(params)
+        except Exception:
+            logging.exception(f"Unable to parse params for slice {slc.id}")
+    session.commit()
     session.close()
 
 
