@@ -29,6 +29,7 @@ import {
   t,
   useTheme,
   usePrevious,
+  css,
 } from '@superset-ui/core';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import {
@@ -42,6 +43,7 @@ import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import ProgressBar from 'src/components/ProgressBar';
 import Loading from 'src/components/Loading';
+import Card from 'src/components/Card';
 import FilterableTable from 'src/components/FilterableTable';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
@@ -76,6 +78,7 @@ export interface ResultSetProps {
   query: QueryResponse;
   search?: boolean;
   showSql?: boolean;
+  showSqlInline?: boolean;
   visualize?: boolean;
   user: UserWithPermissionsAndRoles;
   defaultQueryLimit: number;
@@ -138,6 +141,7 @@ const ResultSet = ({
   query,
   search = true,
   showSql = false,
+  showSqlInline = false,
   visualize = true,
   user,
   defaultQueryLimit,
@@ -413,7 +417,12 @@ const ResultSet = ({
   }
 
   if (showSql) {
-    sql = <HighlightedSql sql={query.sql} />;
+    sql = (
+      <HighlightedSql
+        sql={query.sql}
+        {...(showSqlInline && { maxLines: 1, maxWidth: 60 })}
+      />
+    );
   }
 
   if (query.state === QueryState.STOPPED) {
@@ -501,8 +510,33 @@ const ResultSet = ({
       return (
         <ResultContainer>
           {renderControls()}
-          {renderRowsReturned()}
-          {sql}
+          {showSql && showSqlInline ? (
+            <div
+              css={css`
+                display: flex;
+              `}
+            >
+              {renderRowsReturned()}
+              <Card
+                css={[
+                  css`
+                    position: absolute;
+                    width: 300px;
+                    height: 24px;
+                    right: 0px;
+                    overflow: hidden;
+                  `,
+                ]}
+              >
+                {sql}
+              </Card>
+            </div>
+          ) : (
+            <>
+              {renderRowsReturned()}
+              {sql}
+            </>
+          )}
           <FilterableTable
             data={data}
             orderedColumnKeys={results.columns.map(col => col.column_name)}

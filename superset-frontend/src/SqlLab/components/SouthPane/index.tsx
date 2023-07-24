@@ -184,6 +184,8 @@ const SouthPane = ({
             database={databases[latestQuery.dbId]}
             displayLimit={displayLimit}
             defaultQueryLimit={defaultQueryLimit}
+            showSql
+            showSqlInline
           />
         );
       }
