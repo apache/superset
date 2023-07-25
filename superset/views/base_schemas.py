@@ -51,7 +51,7 @@ class BaseSupersetSchema(Schema):
         self.instance: Optional[Model] = None
         super().__init__(**kwargs)
 
-    def load(  # pylint: disable=arguments-differ
+    def load(
         self,
         data: Union[Mapping[str, Any], Iterable[Mapping[str, Any]]],
         many: Optional[bool] = None,

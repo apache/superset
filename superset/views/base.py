@@ -293,14 +293,16 @@ def validate_sqlatable(table: models.SqlaTable) -> None:
             models.SqlaTable.database_id == table.database.id,
         )
         if db.session.query(table_query.exists()).scalar():
-            raise Exception(get_dataset_exist_error_msg(table.full_name))
+            raise Exception(  # pylint: disable=broad-exception-raised
+                get_dataset_exist_error_msg(table.full_name)
+            )
 
     # Fail before adding if the table can't be found
     try:
         table.get_sqla_table_object()
     except Exception as ex:
         logger.exception("Got an error in pre_add for %s", table.name)
-        raise Exception(
+        raise Exception(  # pylint: disable=broad-exception-raised
             _(
                 "Table [%{table}s] could not be found, "
                 "please double check your "
@@ -608,7 +610,9 @@ def validate_json(form: Form, field: Field) -> None:  # pylint: disable=unused-a
         json.loads(field.data)
     except Exception as ex:
         logger.exception(ex)
-        raise Exception(_("json isn't valid")) from ex
+        raise Exception(  # pylint: disable=broad-exception-raised
+            _("json isn't valid")
+        ) from ex
 
 
 class YamlExportMixin:  # pylint: disable=too-few-public-methods
