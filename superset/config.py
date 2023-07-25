@@ -1147,6 +1147,7 @@ BLUEPRINTS: list[Blueprint] = []
 #   TRACKING_URL_TRANSFORMER = (
 #       lambda url, query: url if is_fresh(query) else None
 #   )
+# pylint: disable-next=unnecessary-lambda-assignment
 TRACKING_URL_TRANSFORMER = lambda url: url
 
 
@@ -1466,6 +1467,7 @@ SSL_CERT_PATH: str | None = None
 # This can be used to set any properties of the object based on naming
 # conventions and such. You can find examples in the tests.
 
+# pylint: disable-next=unnecessary-lambda-assignment
 SQLA_TABLE_MUTATOR = lambda table: table
 
 

@@ -539,7 +539,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         custom_sm = self.config["CUSTOM_SECURITY_MANAGER"] or SupersetSecurityManager
         if not issubclass(custom_sm, SupersetSecurityManager):
-            raise Exception(
+            raise Exception(  # pylint: disable=broad-exception-raised
                 """Your CUSTOM_SECURITY_MANAGER must now extend SupersetSecurityManager,
                  not FAB's security manager.
                  See [4565] in UPDATING.md"""

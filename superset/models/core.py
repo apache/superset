@@ -375,7 +375,7 @@ class Database(
         :return: The effective username
         """
 
-        return (  # pylint: disable=used-before-assignment
+        return (
             username
             if (username := get_username())
             else object_url.username

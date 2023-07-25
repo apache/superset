@@ -1381,7 +1381,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param cursor: Cursor instance
         :return: Dictionary with different costs
         """
-        raise Exception("Database does not support cost estimation")
+        raise Exception(  # pylint: disable=broad-exception-raised
+            "Database does not support cost estimation"
+        )
 
     @classmethod
     def query_cost_formatter(
@@ -1393,7 +1395,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param raw_cost: Raw estimate from `estimate_query_cost`
         :return: Human readable cost estimate
         """
-        raise Exception("Database does not support cost estimation")
+        raise Exception(  # pylint: disable=broad-exception-raised
+            "Database does not support cost estimation"
+        )
 
     @classmethod
     def process_statement(cls, statement: str, database: Database) -> str:
@@ -1435,7 +1439,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         extra = database.get_extra() or {}
         if not cls.get_allow_cost_estimate(extra):
-            raise Exception("Database does not support cost estimation")
+            raise Exception(  # pylint: disable=broad-exception-raised
+                "Database does not support cost estimation"
+            )
 
         parsed_query = sql_parse.ParsedQuery(sql)
         statements = parsed_query.get_statements()
@@ -1971,7 +1977,9 @@ class BasicParametersMixin:
         query = parameters.get("query", {}).copy()
         if parameters.get("encryption"):
             if not cls.encryption_parameters:
-                raise Exception("Unable to build a URL with encryption enabled")
+                raise Exception(  # pylint: disable=broad-exception-raised
+                    "Unable to build a URL with encryption enabled"
+                )
             query.update(cls.encryption_parameters)
 
         return str(

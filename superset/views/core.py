@@ -145,13 +145,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @event_logger.log_this
     @expose("/slice/<int:slice_id>/")
-    def slice(self, slice_id: int) -> FlaskResponse:  # pylint: disable=no-self-use
+    def slice(self, slice_id: int) -> FlaskResponse:
         _, slc = get_form_data(slice_id, use_slice_data=True)
         if not slc:
             abort(404)
-        endpoint = "/explore/?form_data={}".format(
-            parse.quote(json.dumps({"slice_id": slice_id}))
-        )
+        form_data = parse.quote(json.dumps({"slice_id": slice_id}))
+        endpoint = f"/explore/?form_data={form_data}"
 
         is_standalone_mode = ReservedUrlParameters.is_standalone_mode()
         if is_standalone_mode:
@@ -652,7 +651,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
             ),
             entry="explore",
-            title=title.__str__(),
+            title=title,
             standalone_mode=standalone_mode,
         )
 
@@ -743,7 +742,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
             flash(
                 _(
-                    "Dashboard [{}] just got created and chart [{}] was added " "to it"
+                    "Dashboard [{}] just got created and chart [{}] was added to it"
                 ).format(dash.dashboard_title, slc.slice_name),
                 "success",
             )
@@ -771,9 +770,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @expose("/warm_up_cache/", methods=("GET",))
     @deprecated(new_target="api/v1/chart/warm_up_cache/")
-    def warm_up_cache(  # pylint: disable=no-self-use
-        self,
-    ) -> FlaskResponse:
+    def warm_up_cache(self) -> FlaskResponse:
         """Warms up the cache for the slice or table.
 
         Note for slices a force refresh occurs.
@@ -901,7 +898,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access
     @expose("/dashboard/p/<key>/", methods=("GET",))
-    def dashboard_permalink(  # pylint: disable=no-self-use
+    def dashboard_permalink(
         self,
         key: str,
     ) -> FlaskResponse:
@@ -926,7 +923,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @event_logger.log_this
     @expose("/log/", methods=("POST",))
-    def log(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def log(self) -> FlaskResponse:
         return Response(status=200)
 
     @expose("/theme/")
@@ -939,7 +936,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/fetch_datasource_metadata")
     @deprecated(new_target="api/v1/database/<int:pk>/table/<table_name>/<schema_name>/")
-    def fetch_datasource_metadata(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def fetch_datasource_metadata(self) -> FlaskResponse:
         """
         Fetch the datasource metadata.
 
@@ -958,7 +955,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return json_success(json.dumps(sanitize_datasource_data(datasource.data)))
 
     @app.errorhandler(500)
-    def show_traceback(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def show_traceback(self) -> FlaskResponse:
         return (
             render_template("superset/traceback.html", error_msg=get_error_msg()),
             500,
@@ -1009,7 +1006,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         return self.render_template(
             "superset/basic.html",
-            title=_("%(user)s's profile", user=get_username()).__str__(),
+            title=_("%(user)s's profile", user=get_username()),
             entry="profile",
             bootstrap_data=json.dumps(
                 payload, default=utils.pessimistic_json_iso_dttm_ser

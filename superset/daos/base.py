@@ -33,7 +33,7 @@ from superset.daos.exceptions import (
 from superset.extensions import db
 from superset.utils.core import get_iterable
 
-T = TypeVar("T", bound=Model)  # pylint: disable=invalid-name
+T = TypeVar("T", bound=Model)
 
 
 class BaseDAO(Generic[T]):

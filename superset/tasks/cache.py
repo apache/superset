@@ -221,7 +221,7 @@ def fetch_url(data: str, headers: dict[str, str]) -> dict[str, str]:
     """
     result = {}
     try:
-        baseurl = "{WEBDRIVER_BASEURL}".format(**app.config)
+        baseurl = app.config["WEBDRIVER_BASEURL"]
         url = f"{baseurl}api/v1/chart/warm_up_cache"
         logger.info("Fetching %s with payload %s", url, data)
         req = request.Request(

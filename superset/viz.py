@@ -221,7 +221,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         min_periods = int(self.form_data.get("min_periods") or 0)
 
         if rolling_type in ("mean", "std", "sum") and rolling_periods:
-            kwargs = dict(window=rolling_periods, min_periods=min_periods)
+            kwargs = {"window": rolling_periods, "min_periods": min_periods}
             if rolling_type == "mean":
                 df = df.rolling(**kwargs).mean()
             elif rolling_type == "std":
@@ -352,7 +352,6 @@ class BaseViz:  # pylint: disable=too-many-public-methods
 
         is_timeseries = self.is_timeseries
 
-        # pylint: disable=superfluous-parens
         if DTTM_ALIAS in (groupby_labels := get_column_names(groupby)):
             del groupby[groupby_labels.index(DTTM_ALIAS)]
             is_timeseries = True
@@ -680,7 +679,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         return csv.df_to_escaped_csv(df, index=include_index, **config["CSV_EXPORT"])
 
     @deprecated(deprecated_in="3.0")
-    def get_data(self, df: pd.DataFrame) -> VizData:  # pylint: disable=no-self-use
+    def get_data(self, df: pd.DataFrame) -> VizData:
         return df.to_dict(orient="records")
 
     @property
@@ -739,11 +738,11 @@ class TimeTableViz(BaseViz):
         pt = df.pivot_table(index=DTTM_ALIAS, columns=columns, values=values)
         pt.index = pt.index.map(str)
         pt = pt.sort_index()
-        return dict(
-            records=pt.to_dict(orient="index"),
-            columns=list(pt.columns),
-            is_group_by=bool(self.form_data.get("groupby")),
-        )
+        return {
+            "records": pt.to_dict(orient="index"),
+            "columns": list(pt.columns),
+            "is_group_by": bool(self.form_data.get("groupby")),
+        }
 
 
 class CalHeatmapViz(BaseViz):
@@ -2027,7 +2026,7 @@ class BaseDeckGLViz(BaseViz):
             return (point.latitude, point.longitude)
         except Exception as ex:
             raise SpatialException(
-                _("Invalid spatial point encountered: %s" % latlog)
+                _(f"Invalid spatial point encountered: {latlog}")
             ) from ex
 
     @staticmethod
