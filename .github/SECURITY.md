@@ -35,3 +35,4 @@ by extending the image itself.
 
  - [Apache Superset documentation](https://superset.apache.org/docs/security)
  - [Common Vulnerabilities and Exposures by release](https://superset.apache.org/docs/security/cves)
+ - [How Security Vulnerabilities are Reported & Handled in Apache Superset (Blog)](https://preset.io/blog/how-security-vulnerabilities-are-reported-and-handled-in-apache-superset/)
