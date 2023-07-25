@@ -15,13 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Any, Type
+from typing import Any, List, Tuple, Type
 
 from superset.constants import TimeGrain
+from superset.db_engine_specs import load_engine_specs
 from superset.db_engine_specs.base import BaseEngineSpec
 
 
-def basic_diagnostics(spec: Type[BaseEngineSpec]) -> dict[str, Any]:
+def diagnose(spec: Type[BaseEngineSpec]) -> dict[str, Any]:
     """
     Run basic diagnostics on a given DB engine spec.
     """
@@ -44,7 +45,8 @@ def basic_diagnostics(spec: Type[BaseEngineSpec]) -> dict[str, Any]:
 
     output.update(
         {
-            "limit_method": spec.limit_method,
+            "module": spec.__module__,
+            "limit_method": spec.limit_method.upper(),
             "joins": spec.allows_joins,
             "subqueries": spec.allows_subqueries,
             "alias_in_select": spec.allows_alias_in_select,
@@ -55,7 +57,7 @@ def basic_diagnostics(spec: Type[BaseEngineSpec]) -> dict[str, Any]:
             "order_by_in_select": spec.allows_hidden_orderby_agg,
             "expression_in_orderby": spec.allows_hidden_cc_in_orderby,
             "cte_in_subquery": spec.allows_cte_in_subquery,
-            "limit_clause": spec.allows_limit_clause,
+            "limit_clause": spec.allow_limit_clause,
             "max_column_name": spec.max_column_name_length,
             "sql_comments": spec.allows_sql_comments,
             "escaped_colons": spec.allows_escaped_colons,
@@ -84,21 +86,140 @@ def basic_diagnostics(spec: Type[BaseEngineSpec]) -> dict[str, Any]:
             "get_metrics": "get_metrics" in spec.__dict__,
             "where_latest_partition": "where_latest_partition" in spec.__dict__,
             "expand_data": "expand_data" in spec.__dict__,
-            "query_cost_estimation": "estimate_query_cost" in spec.__dict__,
+            "query_cost_estimation": "estimate_query_cost" in spec.__dict__
+            or "estimate_statement_cost" in spec.__dict__,
             # SQL validation is implemented in external classes
             "sql_validation": spec.engine in sql_validators,
         },
     )
 
+    # compute score
+    score = 0
+
+    # each time grain is 1 point
+    score += sum(output["time_grains"][time_grain.name] for time_grain in TimeGrain)
+
+    basic = ["masked_encrypted_extra", "column_type_mapping", "function_names"]
+    nice_to_have = [
+        "user_impersonation",
+        "file_upload",
+        "extra_table_metadata",
+        "dbapi_exception_mapping",
+        "custom_errors",
+        "dynamic_schema",
+        "catalog",
+        "dynamic_catalog",
+        "ssh_tunneling",
+        "query_cancelation",
+        "get_metrics",
+        "where_latest_partition",
+    ]
+    advanced = ["expand_data", "query_cost_estimation", "sql_validation"]
+    score += sum(10 * int(output[key]) for key in basic)
+    score += sum(10 * int(output[key]) for key in nice_to_have)
+    score += sum(10 * int(output[key]) for key in advanced)
+    output["score"] = score
+
     return output
 
 
+def get_name(spec: Type[BaseEngineSpec]) -> str:
+    """
+    Return a name for a given DB engine spec.
+    """
+    return spec.engine_name or spec.engine
+
+
+def generate_table() -> List[Tuple[Any, ...]]:
+    """
+    Generate a table showing info for all DB engine specs.
+
+    Data is returned as a list of tuples, appropriate to write to a CSV file.
+    """
+    info = {}
+    for spec in sorted(load_engine_specs(), key=get_name):
+        info[get_name(spec)] = diagnose(spec)
+
+    rows = []
+    rows.append(tuple(info))  # header row
+    rows.append(tuple(db_info["module"] for db_info in info.values()))
+
+    # descriptive
+    keys = [
+        "limit_method",
+        "joins",
+        "subqueries",
+        "alias_in_select",
+        "alias_in_orderby",
+        "secondary_time_columns",
+        "time_groupby_inline",
+        "alias_to_source_column",
+        "order_by_in_select",
+        "expression_in_orderby",
+        "cte_in_subquery",
+        "limit_clause",
+        "max_column_name",
+        "sql_comments",
+        "escaped_colons",
+    ]
+    for key in keys:
+        rows.append(tuple(db_info[key] for db_info in info.values()))
+
+    # basic
+    for time_grain in TimeGrain:
+        rows.append(
+            tuple(db_info["time_grains"][time_grain.name] for db_info in info.values())
+        )
+    keys = [
+        "masked_encrypted_extra",
+        "column_type_mapping",
+        "function_names",
+    ]
+    for key in keys:
+        rows.append(tuple(db_info[key] for db_info in info.values()))
+
+    # nice to have
+    keys = [
+        "user_impersonation",
+        "file_upload",
+        "extra_table_metadata",
+        "dbapi_exception_mapping",
+        "custom_errors",
+        "dynamic_schema",
+        "catalog",
+        "dynamic_catalog",
+        "ssh_tunneling",
+        "query_cancelation",
+        "get_metrics",
+        "where_latest_partition",
+    ]
+    for key in keys:
+        rows.append(tuple(db_info[key] for db_info in info.values()))
+
+    # advanced
+    keys = [
+        "expand_data",
+        "query_cost_estimation",
+        "sql_validation",
+    ]
+    for key in keys:
+        rows.append(tuple(db_info[key] for db_info in info.values()))
+
+    rows.append(tuple(db_info["score"] for db_info in info.values()))
+
+    return rows
+
+
 if __name__ == "__main__":
-    from pprint import pprint
+    import csv
 
     from superset.app import create_app
-    from superset.db_engine_specs.shillelagh import ShillelaghEngineSpec
 
     app = create_app()
     with app.app_context():
-        pprint(basic_diagnostics(ShillelaghEngineSpec))
+        rows = generate_table()
+
+    with open("db_engine_specs.csv", "w", encoding="utf-8") as fp:
+        writer = csv.writer(fp, delimiter="\t")
+        for row in rows:
+            writer.writerow(row)
