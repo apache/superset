@@ -17,14 +17,14 @@
 """create_user_favorite_table
 
 Revision ID: e0f6f91c2055
-Revises: a23c6f8b1280
+Revises: bf646a0c1501
 Create Date: 2023-07-12 20:34:57.553981
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "e0f6f91c2055"
-down_revision = "a23c6f8b1280"
+down_revision = "bf646a0c1501"
 
 import sqlalchemy as sa
 from alembic import op
