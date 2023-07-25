@@ -298,9 +298,8 @@ class TagDAO(BaseDAO[Tag]):
         if not tag:
             raise TagNotFoundError()
 
-        if tag and user:
-            tag.users_favorited.append(user)
-            db.session.commit()
+        tag.users_favorited.append(user)
+        db.session.commit()
 
     @staticmethod
     def remove_user_favorite_tag(tag_id: int) -> None:
@@ -329,8 +328,7 @@ class TagDAO(BaseDAO[Tag]):
         if not tag:
             raise TagNotFoundError()
 
-        if tag and user:
-            tag.users_favorited.remove(user)
+        tag.users_favorited.remove(user)
 
         # Commit to save the changes
         db.session.commit()

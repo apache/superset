@@ -23,6 +23,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.tag import TagDAO
+from superset.exceptions import UserNotFound
 from superset.extensions import event_logger
 from superset.tags.commands.create import CreateCustomTagCommand
 from superset.tags.commands.delete import DeleteTaggedObjectCommand, DeleteTagsCommand
@@ -427,14 +428,19 @@ class TagRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        requested_ids = kwargs["rison"]
-        tags = TagDAO.find_by_ids(requested_ids)
-        users_favorited_tags = TagDAO.favorited_ids(tags)
-        res = [
-            {"id": request_id, "value": request_id in users_favorited_tags}
-            for request_id in requested_ids
-        ]
-        return self.response(200, result=res)
+        try:
+            requested_ids = kwargs["rison"]
+            tags = TagDAO.find_by_ids(requested_ids)
+            users_favorited_tags = TagDAO.favorited_ids(tags)
+            res = [
+                {"id": request_id, "value": request_id in users_favorited_tags}
+                for request_id in requested_ids
+            ]
+            return self.response(200, result=res)
+        except TagNotFoundError:
+            return self.response_404()
+        except UserNotFound as ex:
+            return self.response_422(message=str(ex))
 
     @expose("/<pk>/favorites/", methods=("POST",))
     @protect()
@@ -473,8 +479,13 @@ class TagRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        TagDAO.favorite_tag_by_id_for_current_user(pk)
-        return self.response(200, result="OK")
+        try:
+            TagDAO.favorite_tag_by_id_for_current_user(pk)
+            return self.response(200, result="OK")
+        except TagNotFoundError:
+            return self.response_404()
+        except UserNotFound as ex:
+            return self.response_422(message=str(ex))
 
     @expose("/<pk>/favorites/", methods=("DELETE",))
     @protect()
