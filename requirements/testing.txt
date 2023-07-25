@@ -121,7 +121,7 @@ pydata-google-auth==1.7.0
     # via pandas-gbq
 pyfakefs==5.2.2
     # via -r requirements/testing.in
-pyhive[presto]==0.6.5
+pyhive[presto]==0.7.1.dev0
     # via apache-superset
 pymeeus==0.5.12
     # via convertdate
