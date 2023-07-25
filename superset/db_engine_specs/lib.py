@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from __future__ import annotations
+
 from typing import Any, List, Tuple, Type
 
 from superset.constants import TimeGrain
@@ -22,10 +24,26 @@ from superset.db_engine_specs import load_engine_specs
 from superset.db_engine_specs.base import BaseEngineSpec
 
 
+def has_custom_method(spec: Type[BaseEngineSpec], method: str) -> bool:
+    """
+    Check if a class has a custom implementation of a method.
+
+    Since some classes don't inherit directly from ``BaseEngineSpec`` we need
+    to check the attributes of the spec and the base class.
+    """
+    return bool(
+        getattr(spec, method, False)
+        and getattr(BaseEngineSpec, method, False)
+        and getattr(spec, method).__qualname__
+        != getattr(BaseEngineSpec, method).__qualname__
+    )
+
+
 def diagnose(spec: Type[BaseEngineSpec]) -> dict[str, Any]:
     """
     Run basic diagnostics on a given DB engine spec.
     """
+    # pylint: disable=import-outside-toplevel
     from superset.sql_validators.postgres import PostgreSQLValidator
     from superset.sql_validators.presto_db import PrestoDBSQLValidator
 
@@ -34,14 +52,12 @@ def diagnose(spec: Type[BaseEngineSpec]) -> dict[str, Any]:
         "postgresql": PostgreSQLValidator,
     }
 
-    output = {}
+    output: dict[str, Any] = {}
 
     output["time_grains"] = {}
-    supported_time_grain_expressions = spec.get_time_grain_expressions()
+    supported_time_grains = spec.get_time_grain_expressions()
     for time_grain in TimeGrain:
-        output["time_grains"][time_grain.name] = (
-            time_grain in supported_time_grain_expressions
-        )
+        output["time_grains"][time_grain.name] = time_grain in supported_time_grains
 
     output.update(
         {
@@ -61,33 +77,36 @@ def diagnose(spec: Type[BaseEngineSpec]) -> dict[str, Any]:
             "max_column_name": spec.max_column_name_length,
             "sql_comments": spec.allows_sql_comments,
             "escaped_colons": spec.allows_escaped_colons,
-            "masked_encrypted_extra": "mask_encrypted_extra" in spec.__dict__,
+            "masked_encrypted_extra": has_custom_method(spec, "mask_encrypted_extra"),
             "column_type_mapping": bool(spec.column_type_mappings),
-            "function_names": "get_function_names" in spec.__dict__,
+            "function_names": has_custom_method(spec, "get_function_names"),
             # there are multiple ways of implementing user impersonation
             "user_impersonation": (
-                "update_impersonation_config" in spec.__dict__
-                or "get_url_for_impersonation" in spec.__dict__
+                has_custom_method(spec, "update_impersonation_config")
+                or has_custom_method(spec, "get_url_for_impersonation")
             ),
             "file_upload": spec.supports_file_upload,
-            "extra_table_metadata": "extra_table_metadata" in spec.__dict__,
-            "dbapi_exception_mapping": "get_dbapi_exception_mappin" in spec.__dict__,
+            "extra_table_metadata": has_custom_method(spec, "extra_table_metadata"),
+            "dbapi_exception_mapping": has_custom_method(
+                spec, "get_dbapi_exception_mappin"
+            ),
             "custom_errors": (
-                "extract_errors" in spec.__dict__ or "custom_errors" in spec.__dict__
+                has_custom_method(spec, "extract_errors")
+                or has_custom_method(spec, "custom_errors")
             ),
             "dynamic_schema": spec.supports_dynamic_schema,
             "catalog": spec.supports_catalog,
             "dynamic_catalog": spec.supports_dynamic_catalog,
             "ssh_tunneling": not spec.disable_ssh_tunneling,
             "query_cancelation": (
-                "cancel_query" in spec.__dict__
-                or "has_implicit_cancel" in spec.__dict__
+                has_custom_method(spec, "cancel_query")
+                or has_custom_method(spec, "has_implicit_cancel")
             ),
-            "get_metrics": "get_metrics" in spec.__dict__,
-            "where_latest_partition": "where_latest_partition" in spec.__dict__,
-            "expand_data": "expand_data" in spec.__dict__,
-            "query_cost_estimation": "estimate_query_cost" in spec.__dict__
-            or "estimate_statement_cost" in spec.__dict__,
+            "get_metrics": has_custom_method(spec, "get_metrics"),
+            "where_latest_partition": has_custom_method(spec, "where_latest_partition"),
+            "expand_data": has_custom_method(spec, "expand_data"),
+            "query_cost_estimation": has_custom_method(spec, "estimate_query_cost")
+            or has_custom_method(spec, "estimate_statement_cost"),
             # SQL validation is implemented in external classes
             "sql_validation": spec.engine in sql_validators,
         },
