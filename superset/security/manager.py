@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=too-many-lines
 """A set of constants and methods to manage permissions and security"""
+import json
 import logging
 import re
 import time
@@ -2068,10 +2069,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if not exists:
             dashboards_json = db.session.query(Dashboard.json_metadata).filter(Dashboard.id.in_(dashboard_ids)).all()
             for json_ in dashboards_json:
-                json_metadata = json.loads(json_.json_metadata)
-                filter_dataset_ids = [target['datasetId'] for filter in json_metadata['native_filter_configuration'] for target in filter['targets']]
-                if datasource.id in filter_dataset_ids:
-                    exists = True
+                try:
+                    json_metadata = json.loads(json_.json_metadata)
+                    for filter in json_metadata.get('native_filter_configuration', []):
+                        filter_dataset_ids = [target.get('datasetId') for target in filter.get('targets', [])]
+                        if datasource.id in filter_dataset_ids:
+                            exists = True
+                except ValueError:
+                    pass
 
         return exists
 
