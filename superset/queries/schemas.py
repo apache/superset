@@ -71,7 +71,6 @@ class QuerySchema(Schema):
         load_instance = True
         include_relationships = True
 
-    # pylint: disable=no-self-use
     def get_sql_tables(self, obj: Query) -> list[Table]:
         return obj.sql_tables
 

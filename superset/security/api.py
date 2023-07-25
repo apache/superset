@@ -54,7 +54,7 @@ class ResourceSchema(PermissiveSchema):
     id = fields.String(required=True)
 
     @post_load
-    def convert_enum_to_value(  # pylint: disable=no-self-use
+    def convert_enum_to_value(
         self, data: dict[str, Any], **kwargs: Any  # pylint: disable=unused-argument
     ) -> dict[str, Any]:
         # we don't care about the enum, we want the value inside

@@ -37,7 +37,7 @@ class SSHManager:
         sshtunnel.TUNNEL_TIMEOUT = app.config["SSH_TUNNEL_TIMEOUT_SEC"]
         sshtunnel.SSH_TIMEOUT = app.config["SSH_TUNNEL_PACKET_TIMEOUT_SEC"]
 
-    def build_sqla_url(  # pylint: disable=no-self-use
+    def build_sqla_url(
         self, sqlalchemy_url: str, server: sshtunnel.SSHTunnelForwarder
     ) -> str:
         # override any ssh tunnel configuration object

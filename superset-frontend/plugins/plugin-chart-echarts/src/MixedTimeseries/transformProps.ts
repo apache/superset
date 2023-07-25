@@ -121,6 +121,9 @@ export default function transformProps(
     inContextMenu,
     emitCrossFilters,
   } = chartProps;
+
+  let focusedSeries: string | null = null;
+
   const {
     verboseMap = {},
     currencyFormats = {},
@@ -576,7 +579,9 @@ export default function transformProps(
               ? tooltipFormatter
               : tooltipFormatterSecondary,
           });
-          rows.push(`<span style="opacity: 0.7">${content}</span>`);
+          const contentStyle =
+            key === focusedSeries ? 'font-weight: 700' : 'opacity: 0.7';
+          rows.push(`<span style="${contentStyle}">${content}</span>`);
         });
         return rows.join('<br />');
       },
@@ -627,6 +632,10 @@ export default function transformProps(
       : [],
   };
 
+  const onFocusedSeries = (seriesName: string | null) => {
+    focusedSeries = seriesName;
+  };
+
   return {
     formData,
     width,
@@ -641,6 +650,7 @@ export default function transformProps(
     seriesBreakdown: rawSeriesA.length,
     selectedValues: filterState.selectedValues || [],
     onContextMenu,
+    onFocusedSeries,
     xValueFormatter: tooltipFormatter,
     xAxis: {
       label: xAxisLabel,

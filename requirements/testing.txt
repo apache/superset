@@ -152,8 +152,6 @@ tqdm==4.65.0
     #   prophet
 trino==0.324.0
     # via apache-superset
-tzdata==2023.3
-    # via pytz-deprecation-shim
 tzlocal==4.3
     # via trino
 websocket-client==1.5.1

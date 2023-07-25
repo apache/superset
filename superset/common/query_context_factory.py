@@ -93,7 +93,6 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             cache_values=cache_values,
         )
 
-    # pylint: disable=no-self-use
     def _convert_to_model(self, datasource: DatasourceDict) -> BaseDatasource:
         return DatasourceDAO.get_datasource(
             session=db.session,
