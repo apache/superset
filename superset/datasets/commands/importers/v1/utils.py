@@ -66,7 +66,9 @@ def get_sqla_type(native_type: str) -> VisitableType:
         size = int(match.group(1))
         return String(size)
 
-    raise Exception(f"Unknown type: {native_type}")
+    raise Exception(  # pylint: disable=broad-exception-raised
+        f"Unknown type: {native_type}"
+    )
 
 
 def get_dtype(df: pd.DataFrame, dataset: SqlaTable) -> dict[str, VisitableType]:

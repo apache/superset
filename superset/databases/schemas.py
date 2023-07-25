@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# pylint: disable=no-self-use, unused-argument
+# pylint: disable=unused-argument
 
 import inspect
 import json
@@ -212,20 +212,20 @@ def extra_validator(value: str) -> str:
             raise ValidationError(
                 [_("Field cannot be decoded by JSON. %(msg)s", msg=str(ex))]
             ) from ex
-        else:
-            metadata_signature = inspect.signature(MetaData)
-            for key in extra_.get("metadata_params", {}):
-                if key not in metadata_signature.parameters:
-                    raise ValidationError(
-                        [
-                            _(
-                                "The metadata_params in Extra field "
-                                "is not configured correctly. The key "
-                                "%(key)s is invalid.",
-                                key=key,
-                            )
-                        ]
-                    )
+
+        metadata_signature = inspect.signature(MetaData)
+        for key in extra_.get("metadata_params", {}):
+            if key not in metadata_signature.parameters:
+                raise ValidationError(
+                    [
+                        _(
+                            "The metadata_params in Extra field "
+                            "is not configured correctly. The key "
+                            "%(key)s is invalid.",
+                            key=key,
+                        )
+                    ]
+                )
     return value
 
 

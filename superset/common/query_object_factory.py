@@ -82,7 +82,7 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
             session=self._session_maker(),
         )
 
-    def _process_extras(  # pylint: disable=no-self-use
+    def _process_extras(
         self,
         extras: dict[str, Any] | None,
     ) -> dict[str, Any]:

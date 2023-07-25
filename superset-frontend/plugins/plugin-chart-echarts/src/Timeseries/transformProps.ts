@@ -112,6 +112,9 @@ export default function transformProps(
     inContextMenu,
     emitCrossFilters,
   } = chartProps;
+
+  let focusedSeries: string | null = null;
+
   const {
     verboseMap = {},
     columnFormats = {},
@@ -524,11 +527,9 @@ export default function transformProps(
               : getCustomFormatter(customFormatters, metrics, formatterKey) ??
                 defaultFormatter,
           });
-          if (!legendState || legendState[key]) {
-            rows.push(`<span style="font-weight: 700">${content}</span>`);
-          } else {
-            rows.push(`<span style="opacity: 0.7">${content}</span>`);
-          }
+          const contentStyle =
+            key === focusedSeries ? 'font-weight: 700' : 'opacity: 0.7';
+          rows.push(`<span style="${contentStyle}">${content}</span>`);
         });
         if (stack) {
           rows.reverse();
@@ -575,6 +576,10 @@ export default function transformProps(
       : [],
   };
 
+  const onFocusedSeries = (seriesName: string | null) => {
+    focusedSeries = seriesName;
+  };
+
   return {
     echartOptions,
     emitCrossFilters,
@@ -589,6 +594,7 @@ export default function transformProps(
     legendData,
     onContextMenu,
     onLegendStateChanged,
+    onFocusedSeries,
     xValueFormatter: tooltipFormatter,
     xAxis: {
       label: xAxisLabel,

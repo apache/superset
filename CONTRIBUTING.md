@@ -577,6 +577,18 @@ cd superset-frontend
 npm ci
 ```
 
+Note that Superset uses [Scarf](https://docs.scarf.sh) to capture telemetry/analytics about versions being installed, including the `scarf-js` npm package. As noted elsewhere in this documentation, Scarf gathers aggregated stats for the sake of security/release strategy, and does not capture/retain PII. [You can read here](https://docs.scarf.sh/package-analytics/) about the package, and various means to opt out of it, but one easy way to opt out is to add this setting in `superset-frontent/package.json`:
+```json
+// your-package/package.json
+{
+  // ...
+  "scarfSettings": {
+    "enabled": false
+  }
+  // ...
+}
+```
+
 #### Build assets
 
 There are three types of assets you can build:

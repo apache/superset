@@ -28,7 +28,7 @@ import React, {
   useCallback,
   useImperativeHandle,
 } from 'react';
-import { ensureIsArray, t } from '@superset-ui/core';
+import { ensureIsArray, t, usePrevious } from '@superset-ui/core';
 import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
 import debounce from 'lodash/debounce';
 import { isEqual } from 'lodash';
@@ -47,6 +47,7 @@ import {
   getSuffixIcon,
   dropDownRenderHelper,
   handleFilterOptionHelper,
+  mapOptions,
 } from './utils';
 import {
   AsyncSelectProps,
@@ -54,6 +55,7 @@ import {
   SelectOptionsPagePromise,
   SelectOptionsType,
   SelectOptionsTypePage,
+  SelectProps,
 } from './types';
 import {
   StyledCheckOutlined,
@@ -102,6 +104,7 @@ const AsyncSelect = forwardRef(
       allowClear,
       allowNewOptions = false,
       ariaLabel,
+      autoClearSearchValue = false,
       fetchOnlyOnSearch,
       filterOption = true,
       header = null,
@@ -113,10 +116,13 @@ const AsyncSelect = forwardRef(
       mode = 'single',
       name,
       notFoundContent,
+      onBlur,
       onError,
       onChange,
       onClear,
       onDropdownVisibleChange,
+      onDeselect,
+      onSelect,
       optionFilterProps = ['label', 'value'],
       options,
       pageSize = DEFAULT_PAGE_SIZE,
@@ -150,9 +156,15 @@ const AsyncSelect = forwardRef(
       ? 'tags'
       : 'multiple';
     const allowFetch = !fetchOnlyOnSearch || inputValue;
-
     const [maxTagCount, setMaxTagCount] = useState(
       propsMaxTagCount ?? MAX_TAG_COUNT,
+    );
+    const [onChangeCount, setOnChangeCount] = useState(0);
+    const previousChangeCount = usePrevious(onChangeCount, 0);
+
+    const fireOnChange = useCallback(
+      () => setOnChangeCount(onChangeCount + 1),
+      [onChangeCount],
     );
 
     useEffect(() => {
@@ -209,9 +221,7 @@ const AsyncSelect = forwardRef(
         : selectOptions;
     }, [selectOptions, selectValue]);
 
-    const handleOnSelect = (
-      selectedItem: string | number | AntdLabeledValue | undefined,
-    ) => {
+    const handleOnSelect: SelectProps['onSelect'] = (selectedItem, option) => {
       if (isSingleMode) {
         setSelectValue(selectedItem);
       } else {
@@ -228,12 +238,11 @@ const AsyncSelect = forwardRef(
           return previousState;
         });
       }
-      setInputValue('');
+      fireOnChange();
+      onSelect?.(selectedItem, option);
     };
 
-    const handleOnDeselect = (
-      value: string | number | AntdLabeledValue | undefined,
-    ) => {
+    const handleOnDeselect: SelectProps['onDeselect'] = (value, option) => {
       if (Array.isArray(selectValue)) {
         if (isLabeledValue(value)) {
           const array = selectValue as AntdLabeledValue[];
@@ -245,7 +254,8 @@ const AsyncSelect = forwardRef(
           setSelectValue(array.filter(element => element !== value));
         }
       }
-      setInputValue('');
+      fireOnChange();
+      onDeselect?.(value, option);
     };
 
     const internalOnError = useCallback(
@@ -425,7 +435,49 @@ const AsyncSelect = forwardRef(
       if (onClear) {
         onClear();
       }
+      fireOnChange();
     };
+
+    const handleOnBlur = (event: React.FocusEvent<HTMLElement>) => {
+      const tagsMode = !isSingleMode && allowNewOptions;
+      const searchValue = inputValue.trim();
+      // Searched values will be autoselected during onBlur events when in tags mode.
+      // We want to make sure a value is only selected if the user has actually selected it
+      // by pressing Enter or clicking on it.
+      if (
+        tagsMode &&
+        searchValue &&
+        !hasOption(searchValue, selectValue, true)
+      ) {
+        // The search value will be added so we revert to the previous value
+        setSelectValue(selectValue || []);
+      }
+      onBlur?.(event);
+    };
+
+    useEffect(() => {
+      if (onChangeCount !== previousChangeCount) {
+        const array = ensureIsArray(selectValue);
+        const set = new Set(array.map(getValue));
+        const options = mapOptions(
+          fullSelectOptions.filter(opt => set.has(opt.value)),
+        );
+        if (isSingleMode) {
+          // @ts-ignore
+          onChange?.(selectValue, options[0]);
+        } else {
+          // @ts-ignore
+          onChange?.(array, options);
+        }
+      }
+    }, [
+      fullSelectOptions,
+      isSingleMode,
+      onChange,
+      onChangeCount,
+      previousChangeCount,
+      selectValue,
+    ]);
 
     useEffect(() => {
       // when `options` list is updated from component prop, reset states
@@ -482,7 +534,7 @@ const AsyncSelect = forwardRef(
         <StyledSelect
           allowClear={!isLoading && allowClear}
           aria-label={ariaLabel || name}
-          autoClearSearchValue={false}
+          autoClearSearchValue={autoClearSearchValue}
           dropdownRender={dropdownRender}
           filterOption={handleFilterOption}
           filterSort={sortComparatorWithSearch}
@@ -494,13 +546,13 @@ const AsyncSelect = forwardRef(
           maxTagCount={maxTagCount}
           mode={mappedMode}
           notFoundContent={isLoading ? t('Loading...') : notFoundContent}
+          onBlur={handleOnBlur}
           onDeselect={handleOnDeselect}
           onDropdownVisibleChange={handleOnDropdownVisibleChange}
           onPopupScroll={handlePagination}
           onSearch={showSearch ? handleOnSearch : undefined}
           onSelect={handleOnSelect}
           onClear={handleClear}
-          onChange={onChange}
           options={
             hasCustomLabels(fullSelectOptions) ? undefined : fullSelectOptions
           }

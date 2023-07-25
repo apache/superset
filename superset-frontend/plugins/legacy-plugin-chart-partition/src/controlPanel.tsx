@@ -21,6 +21,7 @@ import { t, validateNonEmpty } from '@superset-ui/core';
 import {
   ColumnMeta,
   ControlPanelConfig,
+  ControlSubSectionHeader,
   D3_FORMAT_DOCS,
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
@@ -241,7 +242,11 @@ const config: ControlPanelConfig = {
       ),
       controlSetRows: [
         // eslint-disable-next-line react/jsx-key
-        [<div className="section-header">{t('Rolling Window')}</div>],
+        [
+          <ControlSubSectionHeader>
+            {t('Rolling Window')}
+          </ControlSubSectionHeader>,
+        ],
         [
           {
             name: 'rolling_type',
@@ -293,7 +298,11 @@ const config: ControlPanelConfig = {
           },
         ],
         // eslint-disable-next-line react/jsx-key
-        [<div className="section-header">{t('Time Comparison')}</div>],
+        [
+          <ControlSubSectionHeader>
+            {t('Time Comparison')}
+          </ControlSubSectionHeader>,
+        ],
         [
           {
             name: 'time_compare',
@@ -342,7 +351,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<div className="section-header">{t('Resample')}</div>],
+        [<ControlSubSectionHeader>{t('Resample')}</ControlSubSectionHeader>],
         [
           {
             name: 'resample_rule',

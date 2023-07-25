@@ -122,9 +122,11 @@ class DatabaseDAO(BaseDAO[Database]):
             db.session.query(TabState).filter(TabState.database_id == database_id).all()
         )
 
-        return dict(
-            charts=charts, dashboards=dashboards, sqllab_tab_states=sqllab_tab_states
-        )
+        return {
+            "charts": charts,
+            "dashboards": dashboards,
+            "sqllab_tab_states": sqllab_tab_states,
+        }
 
     @classmethod
     def get_ssh_tunnel(cls, database_id: int) -> Optional[SSHTunnel]:
