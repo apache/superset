@@ -278,6 +278,9 @@ def test_sqlalchemy_dialect(
 
 
 def test_database_connectivity(console: Console, engine: Engine) -> None:
+    """
+    Tests the DB API 2.0 driver.
+    """
     with console.status("[bold green]Connecting to database..."):
         try:
             conn = engine.raw_connection()
@@ -287,3 +290,15 @@ def test_database_connectivity(console: Console, engine: Engine) -> None:
             console.print(f":thumbs_down: [red]Failed to connect: {ex}")
             console.print("[bold]Exiting...")
             sys.exit(1)
+
+    cursor = conn.cursor()
+
+    console.print("[bold]Checking that we can run queries...")
+    console.print("sql> SELECT 1;")
+    cursor.execute("SELECT 1")
+    result = cursor.fetchone()[0]
+    color = "green" if result == 1 else "red"
+    console.print(f"[{color}]> {result}")
+
+    # TODO(betodealmeida): create tables with different types and test them
+    # TODO(betodealmeida): run DB-specific tests
