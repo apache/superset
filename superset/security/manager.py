@@ -2063,6 +2063,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
 
         exists = db.session.query(query.exists()).scalar()
+        
+        # check for datasets that are only used by filters
+        if not exists:
+            dashboards_json = db.session.query(Dashboard.json_metadata).filter(Dashboard.id.in_(dashboard_ids)).all()
+            for json_ in dashboards_json:
+                json_metadata = json.loads(json_.json_metadata)
+                filter_dataset_ids = [target['datasetId'] for filter in json_metadata['native_filter_configuration'] for target in filter['targets']]
+                if datasource.id in filter_dataset_ids:
+                    exists = True
+
         return exists
 
     @staticmethod
