@@ -284,7 +284,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return self.get_guest_user_from_request(request)
         return None
 
-    def get_schema_perm(  # pylint: disable=no-self-use
+    def get_schema_perm(
         self, database: Union["Database", str], schema: Optional[str] = None
     ) -> Optional[str]:
         """
@@ -308,9 +308,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def get_dataset_perm(dataset_id: int, dataset_name: str, database_name: str) -> str:
         return f"[{database_name}].[{dataset_name}](id:{dataset_id})"
 
-    def unpack_database_and_schema(  # pylint: disable=no-self-use
-        self, schema_permission: str
-    ) -> DatabaseAndSchema:
+    def unpack_database_and_schema(self, schema_permission: str) -> DatabaseAndSchema:
         # [database_name].[schema|table]
 
         schema_name = schema_permission.split(".")[1][1:-1]
@@ -469,9 +467,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             },
         )
 
-    def get_table_access_error_msg(  # pylint: disable=no-self-use
-        self, tables: set["Table"]
-    ) -> str:
+    def get_table_access_error_msg(self, tables: set["Table"]) -> str:
         """
         Return the error message for the denied SQL tables.
 
@@ -500,7 +496,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             },
         )
 
-    def get_table_access_link(  # pylint: disable=unused-argument,no-self-use
+    def get_table_access_link(  # pylint: disable=unused-argument
         self, tables: set["Table"]
     ) -> Optional[str]:
         """
@@ -1871,7 +1867,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .one_or_none()
         )
 
-    def get_anonymous_user(self) -> User:  # pylint: disable=no-self-use
+    def get_anonymous_user(self) -> User:
         return AnonymousUserMixin()
 
     def get_user_roles(self, user: Optional[User] = None) -> list[Role]:
@@ -2151,8 +2147,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # We don't need to send a special error message.
             logger.warning("Invalid guest token", exc_info=True)
             return None
-        else:
-            return self.get_guest_user_from_token(cast(GuestToken, token))
+
+        return self.get_guest_user_from_token(cast(GuestToken, token))
 
     def get_guest_user_from_token(self, token: GuestToken) -> GuestUser:
         return self.guest_user_cls(

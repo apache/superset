@@ -455,9 +455,10 @@ class ColumnarToDatabaseView(SimpleFormView):
         if file_type == {"zip"}:
             zipfile_ob = zipfile.ZipFile(  # pylint: disable=consider-using-with
                 form.columnar_file.data[0]
-            )  # pylint: disable=consider-using-with
+            )
             file_type = {filename.split(".")[-1] for filename in zipfile_ob.namelist()}
             files = [
+                # pylint: disable=consider-using-with
                 io.BytesIO((zipfile_ob.open(filename).read(), filename)[0])
                 for filename in zipfile_ob.namelist()
             ]

@@ -59,7 +59,7 @@ class DeleteDatabaseCommand(BaseCommand):
         if reports := ReportScheduleDAO.find_by_database_id(self._model_id):
             report_names = [report.name for report in reports]
             raise DatabaseDeleteFailedReportsExistError(
-                _("There are associated alerts or reports: %s" % ",".join(report_names))
+                _(f"There are associated alerts or reports: {','.join(report_names)}")
             )
         # Check if there are datasets for this database
         if self._model.tables:

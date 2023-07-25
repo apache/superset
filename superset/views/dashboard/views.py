@@ -64,7 +64,7 @@ class DashboardModelView(
         return super().render_app_template()
 
     @action("mulexport", __("Export"), __("Export dashboards?"), "fa-database")
-    def mulexport(  # pylint: disable=no-self-use
+    def mulexport(
         self,
         items: Union["DashboardModelView", builtins.list["DashboardModelView"]],
     ) -> FlaskResponse:
@@ -114,7 +114,7 @@ class Dashboard(BaseSupersetView):
 
     @has_access
     @expose("/new/")
-    def new(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def new(self) -> FlaskResponse:
         """Creates a new, blank dashboard and redirects to it in edit mode"""
         new_dashboard = DashboardModel(
             dashboard_title="[ untitled dashboard ]",

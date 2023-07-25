@@ -90,9 +90,8 @@ def execute(self: Celery.task, report_schedule_id: int) -> None:
     except CommandException as ex:
         logger_func, level = get_logger_from_status(ex.status)
         logger_func(
-            "A downstream {} occurred while generating a report: {}. {}".format(
-                level, task_id, ex.message
-            ),
+            f"A downstream {level} occurred "
+            f"while generating a report: {task_id}. {ex.message}",
             exc_info=True,
         )
         if level == LoggerLevel.EXCEPTION:
@@ -105,5 +104,5 @@ def prune_log() -> None:
         AsyncPruneReportScheduleLogCommand().run()
     except SoftTimeLimitExceeded as ex:
         logger.warning("A timeout occurred while pruning report schedule logs: %s", ex)
-    except CommandException as ex:
+    except CommandException:
         logger.exception("An exception occurred while pruning report schedule logs")

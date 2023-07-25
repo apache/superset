@@ -687,7 +687,7 @@ class QueryContextProcessor:
     def get_viz_annotation_data(
         annotation_layer: dict[str, Any], force: bool
     ) -> dict[str, Any]:
-        # pylint: disable=import-outside-toplevel,superfluous-parens
+        # pylint: disable=import-outside-toplevel
         from superset.charts.data.commands.get_data_command import ChartDataCommand
 
         if not (chart := ChartDAO.find_by_id(annotation_layer["value"])):
