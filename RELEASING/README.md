@@ -407,6 +407,10 @@ while requesting access to push packages.
 twine upload dist/${SUPERSET_RELEASE_RC}.tar.gz
 ```
 
+Set your username to `__token__`
+Set your password to the token value, including the `pypi-` prefix
+More information on https://pypi.org/help/#apitoken
+
 ## Sending the result email
 To easily send the result email, on the `superset/RELEASING` directory:
 
