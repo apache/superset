@@ -81,6 +81,12 @@ export interface ResultSetProps {
   defaultQueryLimit: number;
 }
 
+const ResultContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  row-gap: ${({ theme }) => theme.gridUnit * 2}px;
+`;
+
 const ResultlessStyles = styled.div`
   position: relative;
   min-height: ${({ theme }) => theme.gridUnit * 25}px;
@@ -110,7 +116,6 @@ const ReturnedRows = styled.div`
 const ResultSetControls = styled.div`
   display: flex;
   justify-content: space-between;
-  padding: ${({ theme }) => 2 * theme.gridUnit}px 0;
 `;
 
 const ResultSetButtons = styled.div`
@@ -494,7 +499,7 @@ const ResultSet = ({
         ? results.expanded_columns.map(col => col.column_name)
         : [];
       return (
-        <>
+        <ResultContainer>
           {renderControls()}
           {renderRowsReturned()}
           {sql}
@@ -505,7 +510,7 @@ const ResultSet = ({
             filterText={searchText}
             expandedColumns={expandedColumns}
           />
-        </>
+        </ResultContainer>
       );
     }
     if (data && data.length === 0) {
