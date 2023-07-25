@@ -9,7 +9,7 @@ ASF [vulnerability handling process](https://apache.org/security/#vulnerability-
 
 
 Apache Software Foundation takes a rigorous standpoint in annihilating the security issues
-in its software projects. Apache Superset is highly sensitive and forthcoming to issues 
+in its software projects. Apache Superset is highly sensitive and forthcoming to issues
 pertaining to its features and functionality.
 If you have any concern or believe you have found a vulnerability in Apache Superset,
 please get in touch with the Apache Security Team privately at
@@ -23,9 +23,9 @@ We kindly ask you to include the following information in your report:
 - A sanitized copy of your `superset_config.py` file or any config overrides
 - Detailed steps to reproduce the vulnerability
 
-Note that Apache Superset is not responsible for any third-party dependencies that may 
-have security issues. Any vulnerabilities found in third-party dependencies should be 
-reported to the maintainers of those projects. Results from security scans of Apache 
+Note that Apache Superset is not responsible for any third-party dependencies that may
+have security issues. Any vulnerabilities found in third-party dependencies should be
+reported to the maintainers of those projects. Results from security scans of Apache
 Superset dependencies found on its official Docker image can be remediated at release time
 by extending the image itself.
 
