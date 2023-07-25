@@ -141,7 +141,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     css = Column(Text)
     certified_by = Column(Text)
     certification_details = Column(Text)
-    json_metadata = Column(Text)
+    json_metadata = Column(utils.MediumText())
     slug = Column(String(255), unique=True)
     slices: list[Slice] = relationship(
         Slice, secondary=dashboard_slices, backref="dashboards"
