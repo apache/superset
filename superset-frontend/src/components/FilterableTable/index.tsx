@@ -77,7 +77,6 @@ const StyledFilterableTable = styled.div`
   ${({ theme }) => `
     height: 100%;
     overflow: hidden;
-    margin-top: ${theme.gridUnit * 2}px;
 
     .ant-table-cell {
       font-weight: ${theme.typography.weights.bold};
