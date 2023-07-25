@@ -54,8 +54,8 @@ def diagnose(spec: Type[BaseEngineSpec]) -> dict[str, Any]:
             "secondary_time_columns": spec.time_secondary_columns,
             "time_groupby_inline": spec.time_groupby_inline,
             "alias_to_source_column": not spec.allows_alias_to_source_column,
-            "order_by_in_select": spec.allows_hidden_orderby_agg,
-            "expression_in_orderby": spec.allows_hidden_cc_in_orderby,
+            "order_by_not_in_select": spec.allows_hidden_orderby_agg,
+            "expressions_in_orderby": spec.allows_hidden_cc_in_orderby,
             "cte_in_subquery": spec.allows_cte_in_subquery,
             "limit_clause": spec.allow_limit_clause,
             "max_column_name": spec.max_column_name_length,
@@ -119,6 +119,9 @@ def diagnose(spec: Type[BaseEngineSpec]) -> dict[str, Any]:
     score += sum(10 * int(output[key]) for key in nice_to_have)
     score += sum(10 * int(output[key]) for key in advanced)
     output["score"] = score
+    output["max_score"] = (
+        len(TimeGrain) + 10 * len(basic) + 10 * len(nice_to_have) + 10 * len(advanced)
+    )
 
     return output
 
@@ -154,8 +157,8 @@ def generate_table() -> List[Tuple[Any, ...]]:
         "secondary_time_columns",
         "time_groupby_inline",
         "alias_to_source_column",
-        "order_by_in_select",
-        "expression_in_orderby",
+        "order_by_not_in_select",
+        "expressions_in_orderby",
         "cte_in_subquery",
         "limit_clause",
         "max_column_name",
