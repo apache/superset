@@ -30,6 +30,8 @@ parameters = {}
 # Regex pattern to match arguments in the form --param=value
 pattern = re.compile(r"^--(\w+)=(.+)$")
 
+non_custom_parameters = []
+
 # Check for custom parameters in sys.argv
 for arg in sys.argv:
     match = pattern.match(arg)
@@ -37,12 +39,13 @@ for arg in sys.argv:
         key = match.group(1)
         value = match.group(2)
         parameters[key] = value
+    else:
+        non_custom_parameters.append(arg)
 
 # Access the passed parameters and their values
 version_string = parameters.get("version")
 
-# Remove custom parameters from sys.argv to allow other commands to be processed
-sys.argv = [arg for arg in sys.argv if not pattern.match(arg)]
+sys.argv = non_custom_parameters
 
 if not version_string:
     with open(PACKAGE_JSON) as package_file:
