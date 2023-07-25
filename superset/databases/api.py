@@ -672,7 +672,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except DatabaseTablesUnexpectedError as ex:
             return self.response_422(ex.message)
 
-    @expose("/<int:pk>/table/<table_name>/<schema_name>/", methods=("GET",))
+    @expose("/<int:pk>/table/<path:table_name>/<schema_name>/", methods=("GET",))
     @protect()
     @check_datasource_access
     @safe
