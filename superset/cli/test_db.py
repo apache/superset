@@ -18,12 +18,25 @@
 from __future__ import annotations
 
 import sys
-from typing import Any, Dict, Type
+from collections import defaultdict
+from datetime import datetime
+from typing import Any, Callable, Dict, Type
 
 import click
 import yaml
 from rich.console import Console
-from sqlalchemy import create_engine
+from sqlalchemy import (
+    Column,
+    create_engine,
+    DateTime,
+    ForeignKey,
+    insert,
+    Integer,
+    MetaData,
+    select,
+    String,
+    Table,
+)
 from sqlalchemy.engine import Engine
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import NoSuchModuleError
@@ -79,6 +92,85 @@ ADVANCED_FEATURES = {
     "Supports query cost estimation": "query_cost_estimation",
     "Supports validating SQL before running query": "sql_validation",
 }
+
+metadata_obj = MetaData()
+
+user = Table(
+    "user",
+    metadata_obj,
+    Column("user_id", Integer, primary_key=True),
+    Column("user_name", String(16), nullable=False),
+    Column("email_address", String(60), key="email"),
+    Column("nickname", String(50), nullable=False),
+)
+
+user_prefs = Table(
+    "user_prefs",
+    metadata_obj,
+    Column("pref_id", Integer, primary_key=True),
+    Column("user_id", Integer, ForeignKey("user.user_id"), nullable=False),
+    Column("pref_name", String(40), nullable=False),
+    Column("pref_value", String(100)),
+)
+
+
+TestType = Callable[[Console, Engine], None]
+
+
+class TestRegistry:
+    def __init__(self) -> None:
+        self.tests: Dict[str, Any] = defaultdict(list)
+
+    def add(self, *dialects: str) -> Callable[[TestType], TestType]:
+        def decorator(func: TestType) -> TestType:
+            for dialect in dialects:
+                self.tests[dialect].append(func)
+
+            return func
+
+        return decorator
+
+    def get_tests(self, dialect: str) -> list[TestType]:
+        return self.tests[dialect]
+
+
+registry = TestRegistry()
+
+
+@registry.add("sqlite", "postgresql")
+def test_datetime(console: Console, engine: Engine) -> None:
+    """
+    Create a table with a timestamp column.
+    """
+    console.print("[bold]Testing datetime support...")
+
+    md = MetaData()
+    table = Table(
+        "test",
+        md,
+        Column("ts", DateTime),
+    )
+
+    try:
+        console.print("Creating a table with a timestamp column...")
+        md.create_all(engine)
+        console.print("[green]Table created!")
+
+        now = datetime.now()
+
+        console.print("Inserting timestamp value...")
+        stmt = insert(table).values(ts=now)
+        engine.execute(stmt)
+
+        console.print("Reading timestamp value...")
+        stmt = select(table)
+        row = engine.execute(stmt).fetchone()
+        assert row[0] == now
+        console.print(":thumbs_up: [green]Succcess!")
+    except Exception as ex:  # pylint: disable=broad-except
+        console.print(f"[red]Test failed: {ex}")
+        console.print("[bold]Exiting...")
+        sys.exit(1)
 
 
 @click.command()
@@ -300,5 +392,64 @@ def test_database_connectivity(console: Console, engine: Engine) -> None:
     color = "green" if result == 1 else "red"
     console.print(f"[{color}]> {result}")
 
-    # TODO(betodealmeida): create tables with different types and test them
-    # TODO(betodealmeida): run DB-specific tests
+    console.print("[bold]Checking that we can create tables...")
+    try:
+        metadata_obj.create_all(engine)
+        console.print("[green]Tables created!")
+    except Exception as ex:  # pylint: disable=broad-except
+        console.print(f"[red]Unable to create tables: {ex}")
+        console.print("[bold]Exiting...")
+        sys.exit(1)
+
+    console.print("[bold]Checking that we can insert data...")
+    stmt = insert(user).values(
+        user_name="beto",
+        email="beto@example.org",
+        nickname="Beto",
+    )
+    try:
+        console.print(
+            "sql>",
+            stmt.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            ),
+        )
+        engine.execute(stmt)
+    except Exception as ex:  # pylint: disable=broad-except
+        console.print(f"[red]Unable to insert data: {ex}")
+        console.print("[bold]Exiting...")
+        sys.exit(1)
+
+    console.print("[bold]Checking that we can read data...")
+    stmt = select(user).where(user.c.user_name == "beto")
+    try:
+        console.print(
+            "sql>",
+            stmt.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            ),
+        )
+        result = engine.execute(stmt).fetchall()
+        console.print(f"[green]> {result}")
+    except Exception as ex:  # pylint: disable=broad-except
+        console.print(f"[red]Unable to read data: {ex}")
+        console.print("[bold]Exiting...")
+        sys.exit(1)
+
+    console.print("[bold]Checking that we can drop tables...")
+    try:
+        metadata_obj.drop_all(engine)
+        console.print("[green]Done!")
+    except Exception as ex:  # pylint: disable=broad-except
+        console.print(f"[red]Unable to drop tables: {ex}")
+        console.print("[bold]Exiting...")
+        sys.exit(1)
+
+    # run engine-specific tests
+    tests = registry.get_tests(engine.dialect.name)
+    if tests:
+        console.print("[bold]Running engine-specific tests...")
+        for test in tests:
+            test(console, engine)
