@@ -18,11 +18,11 @@ import logging
 import re
 from collections.abc import Iterator
 from dataclasses import dataclass
-from enum import Enum
 from typing import Any, cast, Optional
 from urllib import parse
 
 import sqlparse
+from backports.strenum import StrEnum
 from sqlalchemy import and_
 from sqlparse import keywords
 from sqlparse.lexer import Lexer
@@ -71,7 +71,7 @@ sqlparser_sql_regex.insert(25, (r"'(''|\\\\|\\|[^'])*'", sqlparse.tokens.String.
 lex.set_SQL_REGEX(sqlparser_sql_regex)
 
 
-class CtasMethod(str, Enum):
+class CtasMethod(StrEnum):
     TABLE = "TABLE"
     VIEW = "VIEW"
 
@@ -483,7 +483,7 @@ def sanitize_clause(clause: str) -> str:
     return clause
 
 
-class InsertRLSState(str, Enum):
+class InsertRLSState(StrEnum):
     """
     State machine that scans for WHERE and ON clauses referencing tables.
     """

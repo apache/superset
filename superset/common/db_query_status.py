@@ -14,10 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from enum import Enum
+from backports.strenum import StrEnum
 
 
-class QueryStatus(str, Enum):
+class QueryStatus(StrEnum):
     """Enum-type class for query statuses"""
 
     STOPPED: str = "stopped"

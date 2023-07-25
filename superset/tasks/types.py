@@ -15,10 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from enum import Enum
+from backports.strenum import StrEnum
 
 
-class ExecutorType(str, Enum):
+class ExecutorType(StrEnum):
     """
     Which user should scheduled tasks be executed as. Used as follows:
     For Alerts & Reports: the "model" refers to the AlertSchedule object

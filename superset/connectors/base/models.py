@@ -21,10 +21,10 @@ import json
 import logging
 from collections.abc import Hashable
 from datetime import datetime
-from enum import Enum
 from json.decoder import JSONDecodeError
 from typing import Any, TYPE_CHECKING
 
+from backports.strenum import StrEnum
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
 from sqlalchemy import and_, Boolean, Column, Integer, String, Text
@@ -75,7 +75,7 @@ COLUMN_FORM_DATA_PARAMS = [
 ]
 
 
-class DatasourceKind(str, Enum):
+class DatasourceKind(StrEnum):
     VIRTUAL = "virtual"
     PHYSICAL = "physical"
 

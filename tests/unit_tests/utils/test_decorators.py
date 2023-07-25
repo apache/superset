@@ -17,18 +17,18 @@
 
 
 from contextlib import nullcontext
-from enum import Enum
 from inspect import isclass
 from typing import Any, Optional
 from unittest.mock import call, Mock, patch
 
 import pytest
+from backports.strenum import StrEnum
 
 from superset import app
 from superset.utils import decorators
 
 
-class ResponseValues(str, Enum):
+class ResponseValues(StrEnum):
     FAIL = "fail"
     WARN = "warn"
     OK = "ok"
