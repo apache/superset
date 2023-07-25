@@ -18,12 +18,16 @@
 """Unit tests for Superset"""
 import json
 
+from flask import g
 import pytest
 import prison
 from sqlalchemy.sql import func
+from sqlalchemy import and_
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
+from superset.tags.models import user_favorite_tag_table
+
 
 import tests.integration_tests.test_app
 from superset import db, security_manager
@@ -416,3 +420,12 @@ class TestTagApi(SupersetTestCase):
         )
 
         assert association_row is None
+
+    @pytest.mark.usefixtures("create_tags")
+    def test_add_tag_not_found(self):
+        self.login(username="admin")
+        user_id = self.get_user(username="admin").get_id()
+        uri = f"api/v1/tag/123/favorites/"
+        rv = self.client.post(uri, follow_redirects=True)
+
+        self.assertEqual(rv.status_code, 404)
