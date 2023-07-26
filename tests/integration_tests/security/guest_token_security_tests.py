@@ -268,14 +268,12 @@ class TestGuestUserDashboardAccess(SupersetTestCase):
         self.embedded = EmbeddedDashboardDAO.upsert(test_dashboard, [])
 
         # grant access to the dashboad
-        self.authorized_guest.resources = [
-            {"type": "dashboard", "id": str(self.embedded.uuid)}
-        ] + self.authorized_guest.resources
-        self.authorized_guest.roles = [security_manager.get_public_role()]
         g.user = self.authorized_guest
+        g.user.resources = [{"type": "dashboard", "id": str(self.embedded.uuid)}]
+        g.user.roles = [security_manager.get_public_role()]
 
         # The user should have access to the datasource via the dashboard
-        assert security_manager.can_access_based_on_dashboard(test_dataset) == True
+        security_manager.raise_for_access(datasource=test_dataset)
 
         db.session.delete(test_dashboard)
         db.session.delete(test_dataset)
