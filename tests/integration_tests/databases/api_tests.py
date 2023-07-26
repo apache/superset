@@ -690,7 +690,11 @@ class TestDatabaseApi(SupersetTestCase):
         table_name = 'table_with/slash'
         database = get_example_database()
         with database.get_sqla_engine_with_context() as engine:
-            engine.execute(f"CREATE TABLE IF NOT EXISTS \"{table_name}\" (col numeric)")
+            query = f"CREATE TABLE IF NOT EXISTS \"{table_name}\" (col VARCHAR(256))"
+            if database.backend == "mysql":
+                query = query.replace("IF NOT EXISTS", "[IF NOT EXISTS]")
+            engine.execute(query)
+
         self.login(username="admin")
         uri = f"api/v1/database/{database.id}/table/{table_name}/public/"
         rv = self.client.get(uri)
