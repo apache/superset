@@ -35,7 +35,6 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
 )
-from tests.integration_tests.fixtures.public_role import public_role_like_gamma
 
 
 @mock.patch.dict(
@@ -238,7 +237,6 @@ class TestGuestUserDashboardAccess(SupersetTestCase):
         db.session.delete(dash)
         db.session.commit()
 
-    @pytest.mark.usefixtures("public_role_like_gamma")
     def test_can_access_based_on_dashboard_with_filter(self):
         """
         Test that a user can access a datasource used only by a filter in a dashboard.
