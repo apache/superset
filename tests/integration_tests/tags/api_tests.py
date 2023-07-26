@@ -427,4 +427,4 @@ class TestTagApi(SupersetTestCase):
         uri = f"api/v1/tag/123/favorites/"
         rv = self.client.post(uri, follow_redirects=True)
 
-        self.assertEqual(rv.status_code, 404)
+        self.assertEqual(rv.status_code, 422)

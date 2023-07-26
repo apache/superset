@@ -524,8 +524,10 @@ class TagRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not TagDAO.find_by_id(pk):
+        try:
+            TagDAO.remove_user_favorite_tag(pk)
+            return self.response(200, result="OK")
+        except TagNotFoundError:
             return self.response_404()
-
-        TagDAO.remove_user_favorite_tag(pk)
-        return self.response(200, result="OK")
+        except UserNotFound as ex:
+            return self.response_422(message=str(ex))
