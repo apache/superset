@@ -418,3 +418,10 @@ configOverrides:
         "--disable-extensions",
     ]
 ```
+#### Load the Examples data and dashboards
+If you are trying Superset out and want some data and dashboards to explore, you can load some examples by creating a `my_values.yaml` and deploying it as described above in the **Configure your setting overrides** step of the **Running** section.
+To load the examples, add the following to the `my_values.yaml` file:
+```yaml
+init:
+  loadExamples: true
+```
