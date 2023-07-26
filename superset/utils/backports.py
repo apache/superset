@@ -14,33 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset.utils.backports import StrEnum
+import sys
+from enum import Enum
 
+if sys.version_info >= (3, 11):
+    from enum import StrEnum  # nopycln: import
+else:
 
-class ChartDataResultFormat(StrEnum):
-    """
-    Chart data response format
-    """
-
-    CSV = "csv"
-    JSON = "json"
-    XLSX = "xlsx"
-
-    @classmethod
-    def table_like(cls) -> set["ChartDataResultFormat"]:
-        return {cls.CSV} | {cls.XLSX}
-
-
-class ChartDataResultType(StrEnum):
-    """
-    Chart data response type
-    """
-
-    COLUMNS = "columns"
-    FULL = "full"
-    QUERY = "query"
-    RESULTS = "results"
-    SAMPLES = "samples"
-    TIMEGRAINS = "timegrains"
-    POST_PROCESSED = "post_processed"
-    DRILL_DETAIL = "drill_detail"
+    class StrEnum(str, Enum):
+        pass

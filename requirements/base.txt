@@ -21,8 +21,6 @@ babel==2.9.1
     # via flask-babel
 backoff==1.11.1
     # via apache-superset
-backports-strenum==1.2.4
-    # via apache-superset
 bcrypt==4.0.1
     # via paramiko
 billiard==3.6.4.0

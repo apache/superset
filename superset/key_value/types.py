@@ -23,13 +23,13 @@ from dataclasses import dataclass
 from typing import Any, TypedDict
 from uuid import UUID
 
-from backports.strenum import StrEnum
 from marshmallow import Schema, ValidationError
 
 from superset.key_value.exceptions import (
     KeyValueCodecDecodeException,
     KeyValueCodecEncodeException,
 )
+from superset.utils.backports import StrEnum
 
 
 @dataclass

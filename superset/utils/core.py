@@ -58,7 +58,6 @@ import nh3
 import numpy as np
 import pandas as pd
 import sqlalchemy as sa
-from backports.strenum import StrEnum
 from cryptography.hazmat.backends import default_backend
 from cryptography.x509 import Certificate, load_pem_x509_certificate
 from flask import current_app, flash, g, Markup, request
@@ -99,6 +98,7 @@ from superset.superset_typing import (
     FormData,
     Metric,
 )
+from superset.utils.backports import StrEnum
 from superset.utils.database import get_example_database
 from superset.utils.date_parser import parse_human_timedelta
 from superset.utils.dates import datetime_to_epoch, EPOCH

@@ -24,7 +24,6 @@ from datetime import datetime
 from json.decoder import JSONDecodeError
 from typing import Any, TYPE_CHECKING
 
-from backports.strenum import StrEnum
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
 from sqlalchemy import and_, Boolean, Column, Integer, String, Text
@@ -44,6 +43,7 @@ from superset.superset_typing import (
     ResultSetColumnType,
 )
 from superset.utils import core as utils
+from superset.utils.backports import StrEnum
 from superset.utils.core import GenericDataType, MediumText
 
 if TYPE_CHECKING:

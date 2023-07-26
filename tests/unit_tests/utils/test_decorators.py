@@ -22,10 +22,10 @@ from typing import Any, Optional
 from unittest.mock import call, Mock, patch
 
 import pytest
-from backports.strenum import StrEnum
 
 from superset import app
 from superset.utils import decorators
+from superset.utils.backports import StrEnum
 
 
 class ResponseValues(StrEnum):

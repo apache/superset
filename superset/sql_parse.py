@@ -22,7 +22,6 @@ from typing import Any, cast, Optional
 from urllib import parse
 
 import sqlparse
-from backports.strenum import StrEnum
 from sqlalchemy import and_
 from sqlparse import keywords
 from sqlparse.lexer import Lexer
@@ -49,6 +48,7 @@ from sqlparse.tokens import (
 from sqlparse.utils import imt
 
 from superset.exceptions import QueryClauseValidationException
+from superset.utils.backports import StrEnum
 
 try:
     from sqloxide import parse_sql as sqloxide_parse

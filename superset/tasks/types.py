@@ -14,8 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-from backports.strenum import StrEnum
+from superset.utils.backports import StrEnum
 
 
 class ExecutorType(StrEnum):

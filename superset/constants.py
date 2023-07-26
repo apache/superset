@@ -20,7 +20,7 @@
 # string to use when None values *need* to be converted to/from strings
 from enum import Enum
 
-from backports.strenum import StrEnum
+from superset.utils.backports import StrEnum
 
 USER_AGENT = "Apache Superset"
 

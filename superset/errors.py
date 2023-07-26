@@ -17,8 +17,9 @@
 from dataclasses import dataclass
 from typing import Any, Optional
 
-from backports.strenum import StrEnum
 from flask_babel import lazy_gettext as _
+
+from superset.utils.backports import StrEnum
 
 
 class SupersetErrorType(StrEnum):
