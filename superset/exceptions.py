@@ -200,7 +200,7 @@ class DatabaseNotFound(SupersetException):
     status = 400
 
 
-class UserNotFound(SupersetException):
+class MissingUserContextException(SupersetException):
     status = 422
 
 

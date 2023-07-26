@@ -27,6 +27,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
 from superset.tags.models import user_favorite_tag_table
+from unittest.mock import patch
 
 
 import tests.integration_tests.test_app
@@ -378,7 +379,7 @@ class TestTagApi(SupersetTestCase):
         self.assertEqual(tags.count(), 0)
 
     @pytest.mark.usefixtures("create_tags")
-    def test_add_delete_favorite_tag(self):
+    def test_delete_favorite_tag(self):
         self.login(username="admin")
         user_id = self.get_user(username="admin").get_id()
         tag = db.session.query(Tag).first()
@@ -426,5 +427,33 @@ class TestTagApi(SupersetTestCase):
         self.login(username="admin")
         uri = f"api/v1/tag/123/favorites/"
         rv = self.client.post(uri, follow_redirects=True)
+
+        self.assertEqual(rv.status_code, 404)
+
+    @pytest.mark.usefixtures("create_tags")
+    def test_delete_favorite_tag_not_found(self):
+        self.login(username="admin")
+        uri = f"api/v1/tag/123/favorites/"
+        rv = self.client.delete(uri, follow_redirects=True)
+
+        self.assertEqual(rv.status_code, 404)
+
+    @pytest.mark.usefixtures("create_tags")
+    @patch("superset.daos.tag.g")
+    def test_add_tag_user_not_found(self, flask_g):
+        self.login(username="admin")
+        flask_g.user = None
+        uri = f"api/v1/tag/123/favorites/"
+        rv = self.client.post(uri, follow_redirects=True)
+
+        self.assertEqual(rv.status_code, 422)
+
+    @pytest.mark.usefixtures("create_tags")
+    @patch("superset.daos.tag.g")
+    def test_delete_favorite_tag_user_not_found(self, flask_g):
+        self.login(username="admin")
+        flask_g.user = None
+        uri = f"api/v1/tag/123/favorites/"
+        rv = self.client.delete(uri, follow_redirects=True)
 
         self.assertEqual(rv.status_code, 422)

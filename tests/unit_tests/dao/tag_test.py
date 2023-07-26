@@ -76,7 +76,7 @@ def test_remove_user_favorite_tag(mocker):
 
 def test_remove_user_favorite_tag_no_user(mocker):
     from superset.daos.tag import TagDAO
-    from superset.exceptions import UserNotFound
+    from superset.exceptions import MissingUserContextException
 
     # Mock the behavior of TagDAO and g
     mock_session = mocker.patch("superset.daos.tag.db.session")
@@ -88,13 +88,49 @@ def test_remove_user_favorite_tag_no_user(mocker):
 
     # Test with no user
     mock_g.user = None
-    with pytest.raises(UserNotFound):
+    with pytest.raises(MissingUserContextException):
         TagDAO.remove_user_favorite_tag(1)
 
 
 def test_remove_user_favorite_tag_exc_raise(mocker):
     from superset.daos.tag import TagDAO
-    from superset.exceptions import UserNotFound
+    from superset.exceptions import MissingUserContextException
+
+    # Mock the behavior of TagDAO and g
+    mock_session = mocker.patch("superset.daos.tag.db.session")
+    mock_TagDAO = mocker.patch("superset.daos.tag.TagDAO")
+    mock_tag = mocker.MagicMock(users_favorited=[])
+    mock_TagDAO.find_by_id.return_value = mock_tag
+
+    mock_g = mocker.patch("superset.daos.tag.g")  # Replace with the actual path to g
+
+    # Test that exception is raised when commit fails
+    mock_session.commit.side_effect = Exception("DB Error")
+    with pytest.raises(Exception):
+        TagDAO.remove_user_favorite_tag(1)
+
+
+def test_user_favorite_tag_no_user(mocker):
+    from superset.daos.tag import TagDAO
+    from superset.exceptions import MissingUserContextException
+
+    # Mock the behavior of TagDAO and g
+    mock_session = mocker.patch("superset.daos.tag.db.session")
+    mock_TagDAO = mocker.patch("superset.daos.tag.TagDAO")
+    mock_tag = mocker.MagicMock(users_favorited=[])
+    mock_TagDAO.find_by_id.return_value = mock_tag
+
+    mock_g = mocker.patch("superset.daos.tag.g")  # Replace with the actual path to g
+
+    # Test with no user
+    mock_g.user = None
+    with pytest.raises(MissingUserContextException):
+        TagDAO.favorite_tag_by_id_for_current_user(1)
+
+
+def test_user_favorite_tag_exc_raise(mocker):
+    from superset.daos.tag import TagDAO
+    from superset.exceptions import MissingUserContextException
 
     # Mock the behavior of TagDAO and g
     mock_session = mocker.patch("superset.daos.tag.db.session")

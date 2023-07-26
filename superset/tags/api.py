@@ -23,7 +23,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.tag import TagDAO
-from superset.exceptions import UserNotFound
+from superset.exceptions import MissingUserContextException
 from superset.extensions import event_logger
 from superset.tags.commands.create import CreateCustomTagCommand
 from superset.tags.commands.delete import DeleteTaggedObjectCommand, DeleteTagsCommand
@@ -439,7 +439,7 @@ class TagRestApi(BaseSupersetModelRestApi):
             return self.response(200, result=res)
         except TagNotFoundError:
             return self.response_404()
-        except UserNotFound as ex:
+        except MissingUserContextException as ex:
             return self.response_422(message=str(ex))
 
     @expose("/<pk>/favorites/", methods=("POST",))
@@ -476,6 +476,8 @@ class TagRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/401'
             404:
               $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
             500:
               $ref: '#/components/responses/500'
         """
@@ -484,7 +486,7 @@ class TagRestApi(BaseSupersetModelRestApi):
             return self.response(200, result="OK")
         except TagNotFoundError:
             return self.response_404()
-        except UserNotFound as ex:
+        except MissingUserContextException as ex:
             return self.response_422(message=str(ex))
 
     @expose("/<pk>/favorites/", methods=("DELETE",))
@@ -521,6 +523,8 @@ class TagRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/401'
             404:
               $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
             500:
               $ref: '#/components/responses/500'
         """
@@ -529,5 +533,5 @@ class TagRestApi(BaseSupersetModelRestApi):
             return self.response(200, result="OK")
         except TagNotFoundError:
             return self.response_404()
-        except UserNotFound as ex:
+        except MissingUserContextException as ex:
             return self.response_422(message=str(ex))
