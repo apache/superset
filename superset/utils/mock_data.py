@@ -189,7 +189,7 @@ def add_data(
     with database.get_sqla_engine_with_context() as engine:
         if columns is None:
             if not table_exists:
-                raise Exception(
+                raise Exception(  # pylint: disable=broad-exception-raised
                     f"The table {table_name} does not exist. To create it you need to "
                     "pass a list of column names and types."
                 )

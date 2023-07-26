@@ -71,8 +71,6 @@ const StyledPane = styled.div<StyledPaneProps>`
     }
   }
   .ant-tabs-tabpane {
-    display: flex;
-    flex-direction: column;
     .scrollable {
       overflow-y: auto;
     }

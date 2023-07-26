@@ -50,6 +50,7 @@ export default function EchartsTimeseries({
   legendData = [],
   onContextMenu,
   onLegendStateChanged,
+  onFocusedSeries,
   xValueFormatter,
   xAxis,
   refs,
@@ -145,6 +146,12 @@ export default function EchartsTimeseries({
         const { seriesName: name } = props;
         handleChange(name);
       }, TIMER_DURATION);
+    },
+    mouseout: () => {
+      onFocusedSeries(null);
+    },
+    mouseover: params => {
+      onFocusedSeries(params.seriesName);
     },
     legendselectchanged: payload => {
       onLegendStateChanged?.(payload.selected);
