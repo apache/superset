@@ -687,10 +687,10 @@ class TestDatabaseApi(SupersetTestCase):
         assert model is None
 
     def test_get_table_details_with_slash_in_name(self):
-        table_name = 'table_with/slash'
+        table_name = "table_with/slash"
         database = get_example_database()
         with database.get_sqla_engine_with_context() as engine:
-            query = f"CREATE TABLE IF NOT EXISTS \"{table_name}\" (col VARCHAR(256))"
+            query = f'CREATE TABLE IF NOT EXISTS "{table_name}" (col VARCHAR(256))'
             if database.backend == "mysql":
                 query = query.replace("IF NOT EXISTS", "[IF NOT EXISTS]")
             engine.execute(query)
