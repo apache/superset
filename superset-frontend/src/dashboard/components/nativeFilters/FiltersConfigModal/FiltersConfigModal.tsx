@@ -63,7 +63,7 @@ import {
 import DividerConfigForm from './DividerConfigForm';
 
 const MODAL_MARGIN = 16;
-const MIN_WIDTH = 1000;
+const MIN_WIDTH = 880;
 
 const StyledModalWrapper = styled(StyledModal)<{ expanded: boolean }>`
   min-width: ${MIN_WIDTH}px;
