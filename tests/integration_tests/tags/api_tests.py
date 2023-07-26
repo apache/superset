@@ -424,7 +424,6 @@ class TestTagApi(SupersetTestCase):
     @pytest.mark.usefixtures("create_tags")
     def test_add_tag_not_found(self):
         self.login(username="admin")
-        user_id = self.get_user(username="admin").get_id()
         uri = f"api/v1/tag/123/favorites/"
         rv = self.client.post(uri, follow_redirects=True)
 
