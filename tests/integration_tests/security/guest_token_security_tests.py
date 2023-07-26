@@ -245,7 +245,7 @@ class TestGuestUserDashboardAccess(SupersetTestCase):
         test_dataset = SqlaTable(
             database_id=get_example_database().id,
             schema="main",
-            table_name="test_table",
+            table_name="test_table_embedded_filter",
         )
         db.session.add(test_dataset)
         db.session.commit()

@@ -2075,10 +2075,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             for json_ in dashboards_json:
                 try:
                     json_metadata = json.loads(json_.json_metadata)
-                    for filter in json_metadata.get("native_filter_configuration", []):
+                    for filter_ in json_metadata.get("native_filter_configuration", []):
                         filter_dataset_ids = [
                             target.get("datasetId")
-                            for target in filter.get("targets", [])
+                            for target in filter_.get("targets", [])
                         ]
                         if datasource.id in filter_dataset_ids:
                             exists = True
