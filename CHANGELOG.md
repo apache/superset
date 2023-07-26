@@ -19,7 +19,7 @@ under the License.
 
 ## Change Log
 
-- [3.0.0](#300-fri-jun-30-081847-2023--0300)
+- [3.0.0](#300-wed-jul-12-103627-2023--0600)
 - [2.1.1](#211-sun-apr-23-154421-2023-0100)
 - [2.1.0](#210-thu-mar-16-211305-2023--0700)
 - [2.0.1](#201-fri-nov-4-103402-2022--0400)
@@ -31,10 +31,16 @@ under the License.
 - [1.4.2](#142-sat-mar-19-000806-2022-0200)
 - [1.4.1](#141)
 
-### 3.0.0 (Fri Jun 30 08:18:47 2023 -0300)
+### 3.0.0 (Wed Jul 12 10:36:27 2023 -0600)
 
 **Database Migrations**
 
+- [#24510](https://github.com/apache/superset/pull/24510) fix(dashboard): increase json_metadata field (@cnabro)
+- [#24749](https://github.com/apache/superset/pull/24749) fix(native filter): clean deleted parent filter ids (@justinpark)
+- [#24737](https://github.com/apache/superset/pull/24737) fix(druid): Delete obsolete Druid NoSQL slice parameters (@john-bodley)
+- [#24628](https://github.com/apache/superset/pull/24628) chore(dao): Add explicit ON DELETE CASCADE for ownership (@john-bodley)
+- [#24661](https://github.com/apache/superset/pull/24661) fix: Ensure config is a dict in cross filters scope migration (@kgabryje)
+- [#24629](https://github.com/apache/superset/pull/24629) chore: Drop rouge constraints and tables (@john-bodley)
 - [#24558](https://github.com/apache/superset/pull/24558) chore: better styling alerts/reports modal (@betodealmeida)
 - [#24547](https://github.com/apache/superset/pull/24547) feat: customize screenshot width for alerts/reports (@betodealmeida)
 - [#24553](https://github.com/apache/superset/pull/24553) feat: add description column to Tags (@hughhhh)
@@ -64,6 +70,11 @@ under the License.
 
 **Features**
 
+- [#24703](https://github.com/apache/superset/pull/24703) feat: migrate charts on import (@betodealmeida)
+- [#24433](https://github.com/apache/superset/pull/24433) feat: use Scarf Gateway for Superset npm downloads (@arjundevarajan)
+- [#24432](https://github.com/apache/superset/pull/24432) feat: use Scarf Gateway for Superset helm charts/Docker compose downloads (@arjundevarajan)
+- [#24329](https://github.com/apache/superset/pull/24329) feat(sqllab): add shortcut for run current sql (@justinpark)
+- [#24594](https://github.com/apache/superset/pull/24594) feat: Implement support for currencies in more charts (@kgabryje)
 - [#24549](https://github.com/apache/superset/pull/24549) feat: screenshot reports with custom width (@betodealmeida)
 - [#24518](https://github.com/apache/superset/pull/24518) feat(tags): move tags from navbar to settings (@hughhhh)
 - [#24277](https://github.com/apache/superset/pull/24277) feat(docker): Add support LDAP/AD authorization (@alekseyolg)
@@ -153,6 +164,45 @@ under the License.
 
 **Fixes**
 
+- [#24801](https://github.com/apache/superset/pull/24801) fix: Filters alert width (@michael-s-molina)
+- [#24677](https://github.com/apache/superset/pull/24677) fix(sqllab): Replace autocomplete logic by a hook (@justinpark)
+- [#24816](https://github.com/apache/superset/pull/24816) fix: docs invalid client redirect (@dpgaspar)
+- [#23988](https://github.com/apache/superset/pull/23988) fix: Department names fixed for CountryMap of France (@xavier-GitHub76)
+- [#24798](https://github.com/apache/superset/pull/24798) fix(chore): switching between languages should be without timeout 60 seconds (@Always-prog)
+- [#24772](https://github.com/apache/superset/pull/24772) fix(sqllab): Replace margin style by gap on query results (@justinpark)
+- [#24698](https://github.com/apache/superset/pull/24698) fix: Select onChange is being fired without explicit selection (@michael-s-molina)
+- [#24747](https://github.com/apache/superset/pull/24747) fix: update svgr webpack config to use svg dimensions (@eschutho)
+- [#23816](https://github.com/apache/superset/pull/23816) fix(docs): respect no_proxy environment variable (@karsten-wagner)
+- [#24756](https://github.com/apache/superset/pull/24756) fix: Tooltip no longer highlights hovered data series (@michael-s-molina)
+- [#24740](https://github.com/apache/superset/pull/24740) fix: column/metric type icons look too small (@mistercrunch)
+- [#24739](https://github.com/apache/superset/pull/24739) fix: `search_path` in RDS (@betodealmeida)
+- [#24599](https://github.com/apache/superset/pull/24599) fix(datasets): Replace left panel layout by TableSelector (@justinpark)
+- [#24710](https://github.com/apache/superset/pull/24710) fix(pvt2): migrations from legacy pivot table error when form_data have pieces of pvt2 (@Always-prog)
+- [#24746](https://github.com/apache/superset/pull/24746) fix: Dashboard time grain in Table (@michael-s-molina)
+- [#24716](https://github.com/apache/superset/pull/24716) fix(range-slider): removed localization of metric key (@Always-prog)
+- [#24671](https://github.com/apache/superset/pull/24671) fix(cache): Add cache warmup for non-legacy charts (@john-bodley)
+- [#24670](https://github.com/apache/superset/pull/24670) fix: color collision in dashboard with tabs (@lilykuang)
+- [#24663](https://github.com/apache/superset/pull/24663) fix(dataset-import): support empty strings for extra fields (@Vitor-Avila)
+- [#24690](https://github.com/apache/superset/pull/24690) fix: embedded dashboard check (@betodealmeida)
+- [#24665](https://github.com/apache/superset/pull/24665) fix: Dashboard time grain in Pivot Table (@michael-s-molina)
+- [#24611](https://github.com/apache/superset/pull/24611) fix(sqllab): missing column meta on autocomplete (@justinpark)
+- [#24630](https://github.com/apache/superset/pull/24630) fix: Chart can be added to dashboard by non-owner via save as option (@jfrag1)
+- [#24642](https://github.com/apache/superset/pull/24642) fix: Incorrect initial global scoping of cross filters (@kgabryje)
+- [#24610](https://github.com/apache/superset/pull/24610) fix: Validation of out of scope filters and interaction with Clear All (@michael-s-molina)
+- [#24646](https://github.com/apache/superset/pull/24646) fix: CSP, bump FAB to 4.3.4 (@dpgaspar)
+- [#24625](https://github.com/apache/superset/pull/24625) fix: fix extra insert for count on dataset creation (@hughhhh)
+- [#24643](https://github.com/apache/superset/pull/24643) fix: Ensure metrics is an array in Mixed Chart (@kgabryje)
+- [#24644](https://github.com/apache/superset/pull/24644) fix: remove spaces and EOL from nonce attr (@dpgaspar)
+- [#24617](https://github.com/apache/superset/pull/24617) fix: Wrong positioning of filter tooltips on scroll (@michael-s-molina)
+- [#24609](https://github.com/apache/superset/pull/24609) fix: change naming convention for count metric on Dataset creation (@hughhhh)
+- [#24567](https://github.com/apache/superset/pull/24567) fix: remove underscore from builtin_time_grains label (@cnabro)
+- [#24608](https://github.com/apache/superset/pull/24608) fix: Incorrect dependency between filters related feature flags (@michael-s-molina)
+- [#24612](https://github.com/apache/superset/pull/24612) fix(report): edit without custom width (@betodealmeida)
+- [#24552](https://github.com/apache/superset/pull/24552) fix(ssh): Editting Database w/ SSH Tunneling (@hughhhh)
+- [#24556](https://github.com/apache/superset/pull/24556) fix: set max version for pyocient (@jwilliams-ocient)
+- [#24129](https://github.com/apache/superset/pull/24129) fix: Bump prophet, re-enable tests, and remedy column eligibility logic (@john-bodley)
+- [#24593](https://github.com/apache/superset/pull/24593) fix: Clicking on a tag in the dashboard and charts lists does not work (@michael-s-molina)
+- [#24196](https://github.com/apache/superset/pull/24196) fix: SSH Tunnel creation with dynamic form (@hughhhh)
 - [#24555](https://github.com/apache/superset/pull/24555) fix: Metric is truncated in tooltip (@michael-s-molina)
 - [#24565](https://github.com/apache/superset/pull/24565) fix: docker compose refusing to start (@dpgaspar)
 - [#24536](https://github.com/apache/superset/pull/24536) fix(sqllab): Add threshold for checking inactive queries (@justinpark)
@@ -185,7 +235,6 @@ under the License.
 - [#24428](https://github.com/apache/superset/pull/24428) fix: deck.gl Geojson path not visible (@kgabryje)
 - [#24392](https://github.com/apache/superset/pull/24392) fix: Fixes #24391 (Problems with celery beat running with docker when the machine is rebooted suddenly) (@alvarolmedo)
 - [#24221](https://github.com/apache/superset/pull/24221) fix(helm): Add fullname prefix to init job (@NickLarsenNZ)
-- [#24390](https://github.com/apache/superset/pull/24390) fix: FAB CSS on Superset (@dpgaspar)
 - [#24121](https://github.com/apache/superset/pull/24121) fix: Address regression introduced in #22853 (@john-bodley)
 - [#24143](https://github.com/apache/superset/pull/24143) fix: Ensure "Import Dashboard" menu item adheres to PVM (@john-bodley)
 - [#24350](https://github.com/apache/superset/pull/24350) fix: Address dashboard permission regression in #23586 (@john-bodley)
@@ -206,7 +255,6 @@ under the License.
 - [#24256](https://github.com/apache/superset/pull/24256) fix: enable strong session protection by default (@dpgaspar)
 - [#23562](https://github.com/apache/superset/pull/23562) fix(docs): Update databricks.mdx with correct pip package name (@amosdoublec)
 - [#24217](https://github.com/apache/superset/pull/24217) fix: Typescript warnings when importing types (@michael-s-molina)
-- [#24249](https://github.com/apache/superset/pull/24249) fix: dashboard ownership check (@betodealmeida)
 - [#24222](https://github.com/apache/superset/pull/24222) fix(helm): Use correct default hostnames for postgres and redis (@NickLarsenNZ)
 - [#24242](https://github.com/apache/superset/pull/24242) fix(dataset-api): allow undefined schema in post (@villebro)
 - [#24207](https://github.com/apache/superset/pull/24207) fix: removing problematic "formattable" tag (@rusackas)
@@ -367,6 +415,24 @@ under the License.
 
 **Others**
 
+- [#24613](https://github.com/apache/superset/pull/24613) build(deps): bump tox from 4.6.3 to 4.6.4 in /requirements (@dependabot[bot])
+- [#24769](https://github.com/apache/superset/pull/24769) docs: update security policy and add CVE info (@dpgaspar)
+- [#24758](https://github.com/apache/superset/pull/24758) chore(view_api): return application/json as content-type for api/v1/form_data endpoint (@zephyring)
+- [#24759](https://github.com/apache/superset/pull/24759) chore(docs): Adding link to additional visualization content (@rusackas)
+- [#24766](https://github.com/apache/superset/pull/24766) docs: Fix STANDARD_ROLES.md for Gamma role permissions on tableschemaview (@mattitoo)
+- [#24736](https://github.com/apache/superset/pull/24736) chore: make control panel sub sections look better (@mistercrunch)
+- [#24559](https://github.com/apache/superset/pull/24559) chore(native filters): Expandable filter config modal (@justinpark)
+- [#24741](https://github.com/apache/superset/pull/24741) chore: make antd table font size same as data table (@mistercrunch)
+- [#24627](https://github.com/apache/superset/pull/24627) chore: turn off talisman for ephemeral environments in ci (@eschutho)
+- [#24731](https://github.com/apache/superset/pull/24731) chore: Bump PyYAML bounds (@john-bodley)
+- [#24694](https://github.com/apache/superset/pull/24694) chore: Remove obsolete legacy visualizations (@john-bodley)
+- [#24689](https://github.com/apache/superset/pull/24689) chore: move deprecated default version to 4.0.0 (@dpgaspar)
+- [#24607](https://github.com/apache/superset/pull/24607) chore(command): Condense delete/bulk-delete operations (@john-bodley)
+- [#24647](https://github.com/apache/superset/pull/24647) chore: Bump holidays to 0.28 (@arkid15r)
+- [#24652](https://github.com/apache/superset/pull/24652) chore: Bump/relax Flask libs (@john-bodley)
+- [#24466](https://github.com/apache/superset/pull/24466) chore(dao): Condense delete/bulk-delete operations (@john-bodley)
+- [#24554](https://github.com/apache/superset/pull/24554) chore(sqllab): Log current local storage usage (@justinpark)
+- [#24586](https://github.com/apache/superset/pull/24586) chore(metastore-cache): add codec support (@villebro)
 - [#24452](https://github.com/apache/superset/pull/24452) build(deps): bump tox from 4.6.1 to 4.6.3 in /requirements (@dependabot[bot])
 - [#24524](https://github.com/apache/superset/pull/24524) build(deps-dev): bump @types/node from 20.3.1 to 20.3.2 in /superset-websocket (@dependabot[bot])
 - [#24522](https://github.com/apache/superset/pull/24522) build(deps-dev): bump @typescript-eslint/parser from 5.60.0 to 5.60.1 in /superset-websocket (@dependabot[bot])
@@ -645,7 +711,6 @@ under the License.
 - [#23160](https://github.com/apache/superset/pull/23160) build: Add helm chart option to deploy sidecars with node and worker (@mkramer5454)
 - [#23144](https://github.com/apache/superset/pull/23144) chore: revert "feat(native_filter_migration): add transition mode (#16992)" (@john-bodley)
 - [#23158](https://github.com/apache/superset/pull/23158) chore: Bump cryptography to 39.0.1 (@EugeneTorap)
-- [#23113](https://github.com/apache/superset/pull/23113) chore(sqla): Address performance tradeoff with eager loading (@john-bodley)
 - [#23108](https://github.com/apache/superset/pull/23108) chore: Remove yarn.lock from the root folder (@EugeneTorap)
 
 ### 2.1.1 (Sun Apr 23 15:44:21 2023 +0100)
@@ -657,6 +722,9 @@ under the License.
 
 **Fixes**
 
+- [#24697](https://github.com/apache/superset/pull/24697) fix: import database engine validation (@dpgaspar)
+- [#24390](https://github.com/apache/superset/pull/24390) fix: FAB CSS on Superset (@dpgaspar)
+- [#24249](https://github.com/apache/superset/pull/24249) fix: dashboard ownership check (@betodealmeida)
 - [#23865](https://github.com/apache/superset/pull/23865) fix: Native time range filter in legacy charts (@kgabryje)
 - [#24054](https://github.com/apache/superset/pull/24054) fix: handle temporal columns in presto partitions (@giftig)
 - [#23882](https://github.com/apache/superset/pull/23882) fix: handle comments in `has_table_query` (@betodealmeida)
@@ -677,6 +745,7 @@ under the License.
 
 **Others**
 
+- [#23113](https://github.com/apache/superset/pull/23113) chore(sqla): Address performance tradeoff with eager loading (@john-bodley)
 - [#23723](https://github.com/apache/superset/pull/23723) chore: add enforce URI query params with a specific for MySQL (@dpgaspar)
 - [#24294](https://github.com/apache/superset/pull/24294) chore: update UPDATING for 2.1.0 (@eschutho)
 - [#24056](https://github.com/apache/superset/pull/24056) chore: Remove unnecessary information from response (@geido)
