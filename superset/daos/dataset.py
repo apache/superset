@@ -66,7 +66,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):  # pylint: disable=too-many-public-methods
             .distinct()
             .all()
         )
-        return dict(charts=charts, dashboards=dashboards)
+        return {"charts": charts, "dashboards": dashboards}
 
     @staticmethod
     def validate_table_exists(

@@ -164,7 +164,9 @@ class Table(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
             return []
 
         if not database.id:
-            raise Exception("Database must be already saved to metastore")
+            raise Exception(  # pylint: disable=broad-exception-raised
+                "Database must be already saved to metastore"
+            )
 
         default_props = default_props or {}
         session: Session = inspect(database).session

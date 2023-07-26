@@ -143,7 +143,7 @@ class ChartDataRestApi(ChartRestApi):
             query_context = self._create_query_context_from_form(json_body)
             command = ChartDataCommand(query_context)
             command.validate()
-        except DatasourceNotFound as error:
+        except DatasourceNotFound:
             return self.response_404()
         except QueryObjectValidationError as error:
             return self.response_400(message=error.message)
@@ -233,7 +233,7 @@ class ChartDataRestApi(ChartRestApi):
             query_context = self._create_query_context_from_form(json_body)
             command = ChartDataCommand(query_context)
             command.validate()
-        except DatasourceNotFound as error:
+        except DatasourceNotFound:
             return self.response_404()
         except QueryObjectValidationError as error:
             return self.response_400(message=error.message)
@@ -420,11 +420,10 @@ class ChartDataRestApi(ChartRestApi):
 
         return self._send_chart_response(result, form_data, datasource)
 
-    # pylint: disable=invalid-name, no-self-use
+    # pylint: disable=invalid-name
     def _load_query_context_form_from_cache(self, cache_key: str) -> dict[str, Any]:
         return QueryContextCacheLoader.load(cache_key)
 
-    # pylint: disable=no-self-use
     def _create_query_context_from_form(
         self, form_data: dict[str, Any]
     ) -> QueryContext:

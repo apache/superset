@@ -299,14 +299,13 @@ class Query(
     def default_endpoint(self) -> str:
         return ""
 
-    @staticmethod
-    def get_extra_cache_keys(query_obj: dict[str, Any]) -> list[Hashable]:
+    def get_extra_cache_keys(self, query_obj: dict[str, Any]) -> list[Hashable]:
         return []
 
     @property
     def tracking_url(self) -> Optional[str]:
         """
-        Transfrom tracking url at run time because the exact URL may depends
+        Transform tracking url at run time because the exact URL may depend
         on query properties such as execution and finish time.
         """
         transform = current_app.config.get("TRACKING_URL_TRANSFORMER")

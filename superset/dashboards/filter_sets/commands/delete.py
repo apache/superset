@@ -49,7 +49,6 @@ class DeleteFilterSetCommand(BaseFilterSetCommand):
         except FilterSetNotFoundError as err:
             if FilterSetDAO.find_by_id(self._filter_set_id):  # type: ignore
                 raise FilterSetForbiddenError(
-                    'the filter-set does not related to dashboard "%s"'
-                    % str(self._dashboard_id)
+                    f"the filter-set does not related to dashboard {self._dashboard_id}"
                 ) from err
             raise err

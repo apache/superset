@@ -589,7 +589,7 @@ class BaseDatasource(
             else []
         )
 
-    def get_extra_cache_keys(  # pylint: disable=no-self-use
+    def get_extra_cache_keys(
         self, query_obj: QueryObjectDict  # pylint: disable=unused-argument
     ) -> list[Hashable]:
         """If a datasource needs to provide additional keys for calculation of
