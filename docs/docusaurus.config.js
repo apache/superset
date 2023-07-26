@@ -68,10 +68,6 @@ const config = {
             from: '/usertutorial.html',
           },
           {
-            to: '/docs/security',
-            from: '/security.html',
-          },
-          {
             to: '/docs/installation/sql-templating',
             from: '/sqllab.html',
           },
