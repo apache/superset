@@ -689,6 +689,7 @@ export const queryId = 'clientId2353';
 export const testQuery: ISaveableDatasource = {
   name: 'unimportant',
   dbId: 1,
+  schema: 'main',
   sql: 'SELECT *',
   columns: [
     {
