@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import {t, validateNonEmpty} from '@superset-ui/core';
 import {
   ControlPanelConfig,
-  sections,
+  sharedControls,
 } from '@superset-ui/chart-controls';
 import { handlebarsDataTemplateControlSetItem, handlebarsEmptyTemplateControlSetItem } from './controls/handlebarTemplate';
 import { styleControlSetItem } from './controls/style';
@@ -27,36 +27,30 @@ import { styleControlSetItem } from './controls/style';
 const config: ControlPanelConfig = {
   controlPanelSections: [
     {
+      label: t('Data'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'all_columns',
+            config: {
+              ...sharedControls.groupby,
+              label: t('Columns'),
+              description: t('Required Columns in the datafields'),
+              validators: [validateNonEmpty],
+            },
+          },
+        ],
+        ['adhoc_filters'],
+      ],
+    },
+    {
       label: t('Setup display!'),
       expanded: true,
       controlSetRows: [
         [handlebarsDataTemplateControlSetItem],
         [handlebarsEmptyTemplateControlSetItem],
         [styleControlSetItem],
-        [
-          {
-            name: 'dataset',
-            config: {
-              type: 'TextControl',
-              default: '',
-              renderTrigger: true,
-              label: t('dataset'),
-              description: t('The dataset to display'),
-            },
-          },
-        ],
-        [
-          {
-            name: 'dimensions',
-            config: {
-              type: 'TextControl',
-              default: '',
-              renderTrigger: true,
-              label: t('dimensions'),
-              description: t('The dimensions to display'),
-            },
-          },
-        ],
         [
           {
             name: 'cube_query',

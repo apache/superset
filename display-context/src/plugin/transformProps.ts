@@ -16,12 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps } from '@superset-ui/core';
+import { ChartProps, DatasourceType } from '@superset-ui/core';
 
 export default function transformProps(chartProps: ChartProps) {
-  const { width, height, formData } = chartProps;
-  const { dataset, extraFormData, handlebarsDataTemplate, handlebarsEmptyTemplate, styleTemplate, dimensions } = formData;
+  console.log('transformProps', chartProps);
+  const { width, height, formData , datasource} = chartProps;
+  const { extraFormData, handlebarsDataTemplate, handlebarsEmptyTemplate, styleTemplate, allColumns } = formData;
   const filters = extraFormData.filters || [];
+
+  // @ts-ignore
+  const dataset = datasource.tableName;
+
+  const dimensions = allColumns;
 
   return {
     width,

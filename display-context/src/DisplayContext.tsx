@@ -42,7 +42,7 @@ export default function DisplayContext(props: DisplayContextProps) {
   const cubejsApi = cubejs(options.apiToken, options);
   const appliedFilters = filters.find((filter) => filter.dataset === dataset);
 
-  const queryDimensions = dimensions.split(',').map((dimension: string) => dataset + "." + dimension);
+  const queryDimensions = dimensions.map((dimension: string) => dataset + "." + dimension);
 
   useEffect(() => {
     if (appliedFilters) {
@@ -91,7 +91,8 @@ function replaceKeyDotsToUnderscores(data: object): object {
   const newData = {};
 
   Object.keys(data).forEach(key => {
-    newData[key.replace(/\./g, '_')] = data[key];
+    const keyArray = key.split('.');
+    newData[keyArray[keyArray.length - 1]] = data[key];
   });
 
   return newData;

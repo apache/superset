@@ -29,6 +29,7 @@ export interface DisplayContextStylesProps {
 
 interface DisplayContextCustomizeProps {
   dataset: string;
+  dimensions: Array<string>;
   filters: Array<any>;
   handlebarsDataTemplate?: string;
   handlebarsEmptyTemplate?: string;
