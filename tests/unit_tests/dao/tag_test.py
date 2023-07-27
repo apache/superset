@@ -15,9 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 from collections.abc import Iterator
+from unittest.mock import Mock, patch
 
 import pytest
-from unittest.mock import Mock, patch
 from sqlalchemy.orm.session import Session
 
 
@@ -149,7 +149,10 @@ def test_user_favorite_tag_exc_raise(mocker):
 
 def test_create_tag_relationship(mocker):
     from superset.daos.tag import TagDAO
-    from superset.tags.models import ObjectTypes, TaggedObject  # Assuming these are defined in the same module
+    from superset.tags.models import (  # Assuming these are defined in the same module
+        ObjectTypes,
+        TaggedObject,
+    )
     
     mock_session = mocker.patch("superset.daos.tag.db.session")
 

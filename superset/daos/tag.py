@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from operator import and_
-from typing import Any, Optional, Tuple, List
+from typing import Any, Optional
 
 from flask import g
 from sqlalchemy.exc import SQLAlchemyError
@@ -73,7 +73,7 @@ class TagDAO(BaseDAO[Tag]):
         db.session.commit()
 
     @staticmethod
-    def create_tag_relationship(objects_to_tag: List[Tuple[ObjectTypes, int]], tag_name: str) -> None:
+    def create_tag_relationship(objects_to_tag: list[tuple[ObjectTypes, int]], tag_name: str) -> None:
         """
         Creates a tag relationship between the given objects and the specified tag.
 

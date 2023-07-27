@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import List, Tuple
 
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.daos.exceptions import DAOCreateFailedError
@@ -63,7 +62,7 @@ class CreateCustomTagCommand(CreateMixin, BaseCommand):
             raise TagInvalidError(exceptions=exceptions)
 
 class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
-    def __init__(self, objects_to_tag: List[Tuple[ObjectTypes, int]], tag: str):
+    def __init__(self, objects_to_tag: list[tuple[ObjectTypes, int]], tag: str):
         self._objects_to_tag = objects_to_tag
         self._tag = tag
 

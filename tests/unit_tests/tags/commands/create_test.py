@@ -3,10 +3,11 @@ from sqlalchemy.orm.session import Session
 
 from superset.utils.core import DatasourceType
 
+
 @pytest.fixture
 def session_with_data(session: Session):
-    from superset.models.core import Database
     from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
     from superset.models.sql_lab import Query, SavedQuery
     db = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
 
@@ -30,10 +31,10 @@ def session_with_data(session: Session):
     yield session
 
 def test_create_command_success(session_with_data: Session):
-    from superset.tags.commands.create import CreateCustomTagWithRelationshipsCommand
-    from superset.models.sql_lab import Query, SavedQuery
     from superset.models.slice import Slice
-    
+    from superset.models.sql_lab import Query, SavedQuery
+    from superset.tags.commands.create import CreateCustomTagWithRelationshipsCommand
+
     # Define a list of objects to tag
     query = session_with_data.query(SavedQuery).first()
     chart = session_with_data.query(Slice).first()
