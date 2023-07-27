@@ -232,6 +232,7 @@ export interface IDatasetPanelProps {
   schema?: string | null | undefined;
   joins?: TableJoin[] | undefined;
   setJoins?: Dispatch<SetStateAction<TableJoin[] | undefined>>;
+  removeTable?: (tableName: string) => void;
 }
 
 const EXISTING_DATASET_DESCRIPTION = t(
@@ -289,7 +290,8 @@ const DatasetPanel = ({
   schema,
   tablesInSchema,
   joins,
-  setJoins
+  setJoins,
+  removeTable
 }: IDatasetPanelProps) => {
   const theme = useTheme();
   const hasColumns = columnList?.length > 0 ?? false;
@@ -357,6 +359,27 @@ const DatasetPanel = ({
     );
   }
 
+  const getRowColor = (record: ITableColumn) => {
+    if (!joins) {
+      return '';
+    }
+
+
+    const sourceIndex = joins.map(join => join.sourceColumn).indexOf(record.name);
+    const joinIndex = joins.map(join => join.joinColumn).indexOf(record.name);
+
+    if (sourceIndex > -1) {
+      return 'selected-column' + sourceIndex;
+    }
+
+    if (joinIndex > -1) {
+      return 'selected-column' + joinIndex;
+    }
+
+    return '';
+  }
+
+
   if (!loading) {
     if (!loading && tableName && hasColumns && !hasError) {
       component = (
@@ -373,6 +396,7 @@ const DatasetPanel = ({
                     data={columnList}
                     pageSizeOptions={pageSizeOptions}
                     defaultPageSize={DEFAULT_PAGE_SIZE}
+                    rowClassName={getRowColor}
                   />
                 </TableScrollContainer>
               </TableContainerWithBanner>
@@ -386,6 +410,7 @@ const DatasetPanel = ({
                     data={columnList}
                     pageSizeOptions={pageSizeOptions}
                     defaultPageSize={DEFAULT_PAGE_SIZE}
+                    rowClassName={getRowColor}
                   />
                 </TableScrollContainer>
               </TableContainerWithoutBanner>
@@ -459,12 +484,18 @@ justify-content: space-between;
     onHide();
   };
 
+  const openModal = () => {
+    selectRow(undefined);
+    selectJoinTable(undefined);
+    setSelectedJoinTableColumns([]);
+    setModalOpen(true);
+  };
 
   return (
     <>
       {tableName && (
         <>
-          {datasetNames?.includes(tableName) &&
+          {!smart && datasetNames?.includes(tableName) &&
             renderExistingDatasetAlert(tableWithDataset)}
           <StyledHeader
             position={
@@ -477,13 +508,19 @@ justify-content: space-between;
             )}
             {tableName}
             {smart && (
-              <StyledAddNewTableBox onClick={() => {
-                setModalOpen(true);
-              }
-              }>
-                <div className="fa fa-plus" />{' '}
-                <span>{'TODO_LABEL Join new table'}</span>
-              </StyledAddNewTableBox>)}
+              <>
+                <StyledAddNewTableBox onClick={openModal}>
+                  <div className="fa fa-plus" />{' '}
+                  <span>{'TODO_LABEL Join new table'}</span>
+                </StyledAddNewTableBox>
+                <Icons.CancelX
+                  iconColor={
+                    theme.colors.grayscale.light5
+                  }
+                  name="cancel-x"
+                  onClick={() => removeTable ? removeTable(tableName) : null}
+                />
+              </>)}
           </StyledHeader>
         </>
       )}

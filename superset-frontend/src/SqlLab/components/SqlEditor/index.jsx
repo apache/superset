@@ -98,6 +98,7 @@ import SqlEditorLeftBar from '../SqlEditorLeftBar';
 import AceEditorWrapper from '../AceEditorWrapper';
 import RunQueryActionButton from '../RunQueryActionButton';
 import QueryLimitSelect from '../QueryLimitSelect';
+import AddSmartDataset from 'src/pages/DatasetSmartCreation';
 
 const bootstrapData = getBootstrapData();
 const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
@@ -254,6 +255,22 @@ const SqlEditor = ({
   const [showCreateAsModal, setShowCreateAsModal] = useState(false);
   const [createAs, setCreateAs] = useState('');
   const [showEmptyState, setShowEmptyState] = useState(false);
+  const [showSmartModal, setShowSmartModal] = useState(false);
+  const [smartSql, setSmartSql] = useState(undefined);
+
+  // TODO REMOVE ME
+  useEffect(() => console.log('------showSmartModal-----', showSmartModal), [showSmartModal]);
+  const openSmartModal = () => {
+    setShowSmartModal(true);
+  };
+  const closeSmartModal = () => {
+    setShowSmartModal(false);
+  };
+  const saveSmartSql = () => {
+    setShowSmartModal(false);
+    onSqlChanged(smartSql);
+    startQuery();
+  };
 
   const sqlEditorRef = useRef(null);
   const northPaneRef = useRef(null);
@@ -600,6 +617,10 @@ const SqlEditor = ({
     dispatch(addSavedQueryToTabState(queryEditor, savedQuery));
   };
 
+  const onSmartSqlChanged = (sql) => {
+    setSmartSql(sql);
+  };
+
   const renderEditorBottomBar = () => {
     const { allow_ctas: allowCTAS, allow_cvas: allowCVAS } = database || {};
 
@@ -644,6 +665,28 @@ const SqlEditor = ({
               overlayCreateAsMenu={showMenu ? runMenuBtn : null}
             />
           </span>
+          <Button onClick={openSmartModal}>{'TODO_LABEL SMART MODE'}</Button>
+          <Modal show={showSmartModal}
+            title={'TODO_LABEL CREATE QUERY WITH SMART MODE'}
+            onHide={closeSmartModal}
+            height={'95%'}
+            maxHeight={'95%'}
+            width={'95%'}
+            maxWidth={'95%'}
+            footer={
+              <>
+                <Button onClick={closeSmartModal}>{t('Cancel')}</Button>
+                <Button
+                  buttonStyle="primary"
+                  disabled={!smartSql}
+                  onClick={saveSmartSql}
+                >
+                  {'TODO_LABEL SAVE SMART SQL'}
+                </Button>
+              </>
+            }>
+            <AddSmartDataset onSqlChange={onSmartSqlChanged} />
+          </Modal>
           {isFeatureEnabled(FeatureFlag.ESTIMATE_QUERY_COST) &&
             database?.allows_cost_estimate && (
               <span>
@@ -690,7 +733,7 @@ const SqlEditor = ({
             <Icons.MoreHoriz iconColor={theme.colors.grayscale.base} />
           </AntdDropdown>
         </div>
-      </StyledToolbar>
+      </StyledToolbar >
     );
   };
 

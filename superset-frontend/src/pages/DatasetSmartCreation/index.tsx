@@ -17,13 +17,10 @@
  * under the License.
  */
 import React, { useReducer, Reducer, useEffect, useState, ReactElement, JSXElementConstructor } from 'react';
-import { useParams } from 'react-router-dom';
 import useDatasetsList from 'src/features/datasets/hooks/useDatasetLists';
 import Header from 'src/features/datasets/AddDataset/Header';
-import EditPage from 'src/features/datasets/AddDataset/EditDataset';
 import DatasetPanel from 'src/features/datasets/AddDataset/DatasetPanel';
 import LeftPanel from 'src/features/datasets/AddDataset/LeftPanel';
-import Footer from 'src/features/datasets/AddDataset/Footer';
 import {
   DatasetActionType,
   DatasetObject,
@@ -80,32 +77,70 @@ export type TableJoin = {
   joinColumn: string;
 };
 
-const prevUrl =
-  '/tablemodelview/list/?pageIndex=0&sortColumn=changed_on_delta_humanized&sortOrder=desc';
+type AddSmartDatasetProps = {
+  onSqlChange: (sql: string) => void;
+}
 
-export default function AddSmartDataset() {
+export default function AddSmartDataset({ onSqlChange }: AddSmartDatasetProps) {
   const [dataset, setDataset] = useReducer<
     Reducer<Partial<DatasetObject> | null, DSReducerActionType>
   >(datasetSmartReducer, null);
-  const [hasColumns, setHasColumns] = useState(false);
-  const [editPageIsVisible, setEditPageIsVisible] = useState(false);
   const [tableOptions, setTableOptions] = useState<Array<TableOption>>([]);
-  const [joins, setJoins] = useState<TableJoin[] | undefined>(undefined);
+  const [joins, setJoins] = useState<TableJoin[]>([]);
+  const [joinDatasetPanels, setJoinDatasetPanels] =
+    useState<ReactElement<any, string | JSXElementConstructor<any>>[] | undefined>(undefined);
 
-  // TODO remove logging
-  useEffect(() => console.log('-----joins----', joins), joins);
+  const getTableName = (tableName: string) => `${dataset!.schema}.${tableName}`;
+
+  useEffect(() => {
+    const tableName = dataset?.table_name;
+    if (!joins.length) {
+      if (tableName) {
+        onSqlChange(`select * from ${getTableName(tableName)}`);
+      }
+      return;
+    }
+
+    const joinDatasetPanelsToAdd = joins.map(join => getDatasetPanelComponent(join.joinTable));
+    setJoinDatasetPanels(joinDatasetPanelsToAdd);
+
+    if (!tableName) {
+      return;
+    }
+
+    let sqlToSet = `select * from ${getTableName(tableName)}`;
+
+    // TODO use reduce
+    joins.forEach(join => {
+      sqlToSet += ` join ${getTableName(join.joinTable)} on ${getTableName(join.sourceTable)}.${join.sourceColumn} = ${getTableName(join.joinTable)}.${join.joinColumn}`;
+    });
+
+    onSqlChange(sqlToSet);
+  }, [joins]);
 
   const { datasets, datasetNames } = useDatasetsList(
     dataset?.db,
     dataset?.schema,
   );
 
-  const { datasetId: id } = useParams<{ datasetId: string }>();
-  useEffect(() => {
-    if (!Number.isNaN(parseInt(id, 10))) {
-      setEditPageIsVisible(true);
-    }
-  }, [id]);
+  const removeTable = (tableName: string) => {
+    // TODO impl
+    console.log(joinDatasetPanels);
+  };
+
+  const getDatasetPanelComponent = (tableName: string | undefined | null) => (
+    <DatasetPanel
+      tableName={tableName}
+      dbId={dataset?.db?.id}
+      schema={dataset?.schema}
+      datasets={datasets}
+      smart={true}
+      tablesInSchema={tableOptions}
+      joins={joins}
+      setJoins={setJoins}
+      removeTable={removeTable}
+    />
+  );
 
   const HeaderComponent = () => (
     <Header setDataset={setDataset} title={dataset?.table_name} />
@@ -121,40 +156,28 @@ export default function AddSmartDataset() {
     />
   );
 
-  const EditPageComponent = () => <EditPage id={id} />;
+  const getInitialDatasetPanelComponent = () => getDatasetPanelComponent(dataset?.table_name);
 
-  const FooterComponent = () => (
-    <Footer
-      url={prevUrl}
-      datasetObject={dataset}
-      hasColumns={hasColumns}
-      datasets={datasetNames}
-    />
-  );
+  const getDatasetPanelComponents = () => {
+    const panelComponents = [getInitialDatasetPanelComponent()];
 
-  const DatasetPanelComponent = () => (
-    <DatasetPanel
-      tableName={dataset?.table_name}
-      dbId={dataset?.db?.id}
-      schema={dataset?.schema}
-      setHasColumns={setHasColumns}
-      datasets={datasets}
-      smart={true}
-      tablesInSchema={tableOptions}
-      joins={joins}
-      setJoins={setJoins}
-    />
-  );
+    if (joinDatasetPanels) {
+      panelComponents.push(...joinDatasetPanels)
+    } else {
 
+      setJoinDatasetPanels(panelComponents);
 
-  return (
-    <DatasetLayout
-      header={HeaderComponent()}
-      leftPanel={editPageIsVisible ? null : LeftPanelComponent()}
-      datasetPanel={
-        editPageIsVisible ? EditPageComponent() : DatasetPanelComponent()
-      }
-      footer={FooterComponent()}
-    />
-  );
-}
+      return panelComponents;
+    };
+
+    return (
+      <DatasetLayout
+        header={HeaderComponent()}
+        leftPanel={LeftPanelComponent()}
+        datasetPanel={
+          getDatasetPanelComponents()
+        }
+      />
+    );
+  }
+

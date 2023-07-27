@@ -24,6 +24,7 @@ import DatasetPanel from './DatasetPanel';
 import { ITableColumn, IDatabaseTable, isIDatabaseTable } from './types';
 import { TableOption } from 'src/components/TableSelector';
 import { TableJoin } from 'src/pages/DatasetSmartCreation';
+import { removeTables } from 'src/SqlLab/actions/sqlLab';
 
 /**
  * Interface for the getTableMetadata API call
@@ -62,6 +63,7 @@ export interface IDatasetPanelWrapperProps {
   tablesInSchema?: TableOption[] | undefined;
   joins?: TableJoin[] | undefined;
   setJoins?: Dispatch<SetStateAction<TableJoin[] | undefined>>;
+  removeTable?: (tableName: string) => void;
 }
 
 const DatasetPanelWrapper = ({
@@ -73,7 +75,8 @@ const DatasetPanelWrapper = ({
   smart,
   tablesInSchema,
   joins,
-  setJoins
+  setJoins,
+  removeTable
 }: IDatasetPanelWrapperProps) => {
   const [columnList, setColumnList] = useState<ITableColumn[]>([]);
   const [loading, setLoading] = useState(false);
@@ -149,6 +152,7 @@ const DatasetPanelWrapper = ({
       schema={schema}
       joins={joins}
       setJoins={setJoins}
+      removeTable={removeTable}
     />
   );
 };

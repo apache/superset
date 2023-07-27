@@ -150,6 +150,7 @@ export interface TableProps<RecordType> {
    * only supported for virtualize == true
    */
   allowHTML?: boolean;
+  rowClassName?: AntTableProps<RecordType>['rowClassName'];
 }
 
 const defaultRowSelection: React.Key[] = [];
@@ -179,6 +180,22 @@ const StyledTable = styled(AntTable)<{ height?: number }>(
       overflow: hidden;
       text-overflow: ellipsis;
       border-bottom: 1px solid ${theme.colors.grayscale.light3};
+    }
+
+    .ant-table-tbody > .selected-column0 {
+      background: lightgreen;
+    }
+
+    .ant-table-tbody > .selected-column1 {
+      background: palevioletred;
+    }
+
+    .ant-table-tbody > .selected-column2 {
+      background: lightblue;
+    }
+
+    .ant-table-tbody > .selected-column3 {
+      background: lightgoldenrodyellow;
     }
 
     .ant-pagination-item-active {
@@ -223,7 +240,7 @@ const defaultLocale = {
 };
 
 const selectionMap = {};
-const noop = () => {};
+const noop = () => { };
 selectionMap[SelectionType.MULTI] = 'checkbox';
 selectionMap[SelectionType.SINGLE] = 'radio';
 selectionMap[SelectionType.DISABLED] = null;
@@ -255,6 +272,7 @@ export function Table<RecordType extends object>(
     recordCount,
     onRow,
     allowHTML = false,
+    rowClassName,
   } = props;
 
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -347,11 +365,11 @@ export function Table<RecordType extends object>(
 
   const paginationSettings: PaginationProps | false = usePagination
     ? {
-        hideOnSinglePage: true,
-        pageSize,
-        pageSizeOptions,
-        onShowSizeChange: (page: number, size: number) => setPageSize(size),
-      }
+      hideOnSinglePage: true,
+      pageSize,
+      pageSizeOptions,
+      onShowSizeChange: (page: number, size: number) => setPageSize(size),
+    }
     : false;
 
   /**
@@ -388,6 +406,7 @@ export function Table<RecordType extends object>(
     theme,
     height: bodyHeight,
     bordered,
+    rowClassName,
   };
 
   return (
