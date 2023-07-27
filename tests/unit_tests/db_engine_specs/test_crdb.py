@@ -33,7 +33,7 @@ from tests.unit_tests.fixtures.common import dttm
     ],
 )
 def test_convert_dttm(
-    target_type: str, expected_result: Optional[str]
+    target_type: str, expected_result: Optional[str], dttm: datetime
 ) -> None:
     from superset.db_engine_specs.cockroachdb import CockroachDbEngineSpec as spec
 
