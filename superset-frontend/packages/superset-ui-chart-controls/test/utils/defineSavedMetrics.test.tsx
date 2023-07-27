@@ -36,7 +36,7 @@ describe('defineSavedMetrics', () => {
       ],
       type: DatasourceType.Table,
       main_dttm_col: 'test',
-      time_grain_sqla: 'P1D',
+      time_grain_sqla: [],
       columns: [],
       verbose_map: {},
       column_formats: {},

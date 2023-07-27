@@ -52,5 +52,9 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "devDependencies": {
+    "@types/underscore": "^1.11.6",
+    "@types/urijs": "^1.19.19"
   }
 }

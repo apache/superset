@@ -16,14 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { rgb } from 'd3-color';
+import React from 'react';
 
-// eslint-disable-next-line import/prefer-default-export
-export function hexToRGB(hex, alpha = 255) {
-  if (!hex) {
-    return [0, 0, 0, alpha];
+type TooltipRowProps = {
+  label: string;
+  value: string;
+};
+
+export default class TooltipRow extends React.PureComponent<TooltipRowProps> {
+  render() {
+    const { label, value } = this.props;
+
+    return (
+      <div>
+        {label}
+        <strong>{value}</strong>
+      </div>
+    );
   }
-  const { r, g, b } = rgb(hex);
-
-  return [r, g, b, alpha];
 }

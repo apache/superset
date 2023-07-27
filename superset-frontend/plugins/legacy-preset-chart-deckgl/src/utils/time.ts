@@ -17,7 +17,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import moment from 'moment';
+import moment, { Moment, Duration } from 'moment';
 
 // array with the minimum values of each part of a timestamp -- note that
 // months are zero-indexed in JavaScript
@@ -31,12 +31,12 @@ const truncatePartTo = [
   0, // millisecond
 ];
 
-export function truncate(timestamp, step) {
+export function truncate(timestamp: Moment, step: Duration) {
   /*
    * Truncate timestamp down to duration resolution.
    */
   const lowerBound = moment(timestamp).subtract(step);
-  const explodedTimestamp = timestamp.toArray();
+  const explodedTimestamp = timestamp?.toArray();
   const explodedLowerBound = lowerBound.toArray();
 
   const firstDiffIndex = explodedTimestamp
@@ -59,7 +59,7 @@ export function truncate(timestamp, step) {
   return moment(dateParts);
 }
 
-function getStepSeconds(step, start) {
+function getStepSeconds(step: Duration, start: number) {
   /* Return number of seconds in a step.
    *
    * The step might be ambiguous, eg, "1 month" has a variable number of
@@ -71,14 +71,14 @@ function getStepSeconds(step, start) {
   return endMilliseconds - startMilliseconds;
 }
 
-export function getPlaySliderParams(timestamps, timeGrain) {
+export function getPlaySliderParams(timestamps: number[], timeGrain: string) {
   const minTimestamp = moment(
     Number(timestamps.reduce((a, b) => (a < b ? a : b))),
   );
   const maxTimestamp = moment(
     Number(timestamps.reduce((a, b) => (a > b ? a : b))),
   );
-  let step;
+  let step: Duration;
   let reference;
 
   if (timeGrain.includes('/')) {
@@ -128,7 +128,7 @@ export function getPlaySliderParams(timestamps, timeGrain) {
   return {
     start: parseInt(start.format('x'), 10),
     end: parseInt(end.format('x'), 10),
-    getStep: getStepSeconds.bind(this, step),
+    getStep: (start: number) => getStepSeconds(step, start),
     values: values.map(v => parseInt(v.format('x'), 10)),
     disabled,
   };
