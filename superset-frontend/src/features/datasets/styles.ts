@@ -25,22 +25,22 @@ export const StyledLayoutWrapper = styled.div`
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
 `;
 
-const Column = styled.div`
+const Column = styled.div<{ width?: number }>`
   width: 100%;
   height: 100%;
   flex-direction: column;
 `;
 
 export const LeftColumn = styled(Column)`
-  width: ${({ theme }) => theme.gridUnit * 80}px;
+  width: ${({ theme, width }) => width ?? theme.gridUnit * 80}px;
   height: auto;
 `;
 
 export const RightColumn = styled(Column)`
+  width: auto;
   height: auto;
   display: flex;
-  flex: 1 0 auto;
-  width: calc(100% - ${({ theme }) => theme.gridUnit * 80}px);
+  flex: 1 1 auto;
 `;
 
 const Row = styled.div`
@@ -52,6 +52,7 @@ const Row = styled.div`
 
 export const OuterRow = styled(Row)`
   flex: 1 0 auto;
+  position: relative;
 `;
 
 export const PanelRow = styled(Row)`
@@ -87,7 +88,6 @@ export const StyledCreateDatasetTitle = styled.div`
 
 export const StyledLayoutLeftPanel = styled.div`
   ${({ theme }) => `
-  width: ${theme.gridUnit * 80}px;
   height: 100%;
   border-right: 1px solid ${theme.colors.grayscale.light2};
   `}
