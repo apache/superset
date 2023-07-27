@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from operator import and_
-from typing import Any, Optional
+from typing import Any, Optional, Tuple, List
 
 from flask import g
 from sqlalchemy.exc import SQLAlchemyError
@@ -43,7 +43,6 @@ logger = logging.getLogger(__name__)
 
 
 class TagDAO(BaseDAO[Tag]):
-    # base_filter = TagAccessFilter
 
     @staticmethod
     def validate_tag_name(tag_name: str) -> bool:
@@ -70,6 +69,39 @@ class TagDAO(BaseDAO[Tag]):
                 TaggedObject(object_id=object_id, object_type=object_type, tag=tag)
             )
 
+        db.session.add_all(tagged_objects)
+        db.session.commit()
+
+    @staticmethod
+    def create_tag_relationship(objects_to_tag: List[Tuple[ObjectTypes, int]], tag_name: str) -> None:
+        """
+        Creates a tag relationship between the given objects and the specified tag.
+
+        This function iterates over a list of objects, each specified by a type 
+        and an id, and creates a TaggedObject for each one, associating it with 
+        the provided tag. All created TaggedObjects are collected in a list.
+
+        Args:
+            objects_to_tag (List[Tuple[ObjectTypes, int]]): A list of tuples, each 
+            containing an ObjectType and an id, representing the objects to be tagged.
+            
+            tag (str): The tag to be associated with the specified objects.
+
+        Returns:
+            None.
+        """
+        tagged_objects = []
+        tag = TagDAO.get_by_name(tag_name.strip(), TagTypes.custom)
+        
+        if not tag:
+            raise TagNotFoundError()
+        
+        for obj in objects_to_tag:
+            object_type, object_id = obj
+            tagged_objects.append(
+                TaggedObject(object_id=object_id, object_type=object_type, tag=tag)
+            )
+        
         db.session.add_all(tagged_objects)
         db.session.commit()
 
