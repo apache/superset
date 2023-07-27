@@ -79,6 +79,7 @@ import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable';
 import { SupersetXip } from 'superset-xip';
+import { DisplayContext } from 'display-context';
 
 export default class MainPreset extends Preset {
   constructor() {
@@ -163,6 +164,7 @@ export default class MainPreset extends Preset {
         new HandlebarsChartPlugin().configure({ key: 'handlebars' }),
         ...experimentalplugins,
         new SupersetXip().configure({ key: 'superset-xip-1' }),
+        new DisplayContext().configure({ key: 'display-context' }),
       ],
     });
   }

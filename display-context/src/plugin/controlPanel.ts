@@ -1,0 +1,79 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { t } from '@superset-ui/core';
+import {
+  ControlPanelConfig,
+  sections,
+} from '@superset-ui/chart-controls';
+import { handlebarsDataTemplateControlSetItem, handlebarsEmptyTemplateControlSetItem } from './controls/handlebarTemplate';
+import { styleControlSetItem } from './controls/style';
+
+const config: ControlPanelConfig = {
+  controlPanelSections: [
+    {
+      label: t('Setup display!'),
+      expanded: true,
+      controlSetRows: [
+        [handlebarsDataTemplateControlSetItem],
+        [handlebarsEmptyTemplateControlSetItem],
+        [styleControlSetItem],
+        [
+          {
+            name: 'dataset',
+            config: {
+              type: 'TextControl',
+              default: '',
+              renderTrigger: true,
+              label: t('dataset'),
+              description: t('The dataset to display'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'dimensions',
+            config: {
+              type: 'TextControl',
+              default: '',
+              renderTrigger: true,
+              label: t('dimensions'),
+              description: t('The dimensions to display'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'cube_query',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Cube Query'),
+              renderTrigger: true,
+              default: true,
+              description: t(
+                'Uses the native cube query instead of the regular query'
+              ),
+            },
+          },
+        ],
+      ],
+    },
+  ],
+};
+
+export default config;

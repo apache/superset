@@ -92,8 +92,10 @@ export type QueryFieldAliases = {
  * Filter value for adhoc filters from dashboard FilterBox.
  * Currently only Binary and Set filters are supported.
  */
+// TODO: RENE add datasource to filter
 export type QueryFormExtraFilter = {
   col: string;
+  dataset?: string;
 } & (
   | {
       op: BinaryOperator;

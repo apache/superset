@@ -199,9 +199,6 @@ const v1ChartDataRequest = async (
     parseMethod,
   };
 
-  // RENE: Used for query
-  console.log('querySettings', querySettings);
-
   return SupersetClient.post(querySettings);
 };
 
@@ -227,7 +224,6 @@ export async function getChartDataRequest({
     };
   }
 
-  console.log('formdata, ', formData);
   if (formData.cube_query) {
     console.log('USE CUBE');
 
