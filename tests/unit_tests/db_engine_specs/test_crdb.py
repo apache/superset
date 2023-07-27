@@ -20,7 +20,6 @@ from typing import Optional
 
 import pytest
 
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm
 
@@ -39,4 +38,3 @@ def test_convert_dttm(
     from superset.db_engine_specs.cockroachdb import CockroachDbEngineSpec as spec
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
-
