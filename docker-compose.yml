@@ -28,6 +28,7 @@ x-superset-volumes: &superset-volumes
   - ./tests:/app/tests
   - ./superset-xip:/app/superset-xip
   - ./display-context:/app/display-context
+  - ./cube-table:/app/cube-table
 
 version: "3.7"
 services:

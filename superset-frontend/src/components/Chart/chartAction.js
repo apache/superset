@@ -231,6 +231,21 @@ export async function getChartDataRequest({
     return Promise.resolve({json: result});
   }
 
+  if (formData?.extra_form_data?.filters != undefined && formData.extra_form_data.filters.length !== 0) {
+
+    const filtersWithoutDataset = [];
+
+    formData.extra_form_data.filters.forEach((filter) => {
+      filtersWithoutDataset.push({
+            col: filter.col,
+            op: filter.op,
+            val: filter.val,
+          });
+    });
+
+    formData.extra_form_data.filters = filtersWithoutDataset;
+  }
+
   const [useLegacyApi, parseMethod] = getQuerySettings(formData);
   if (useLegacyApi) {
     return legacyChartDataRequest(

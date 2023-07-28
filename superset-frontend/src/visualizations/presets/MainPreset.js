@@ -80,6 +80,7 @@ import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable';
 import { SupersetXip } from 'superset-xip';
 import { DisplayContext } from 'display-context';
+import { CubeTable } from 'cube-table';
 
 export default class MainPreset extends Preset {
   constructor() {
@@ -165,6 +166,7 @@ export default class MainPreset extends Preset {
         ...experimentalplugins,
         new SupersetXip().configure({ key: 'superset-xip-1' }),
         new DisplayContext().configure({ key: 'display-context' }),
+        new CubeTable().configure({ key: 'cube-table' }),
       ],
     });
   }
