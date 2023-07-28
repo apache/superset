@@ -237,9 +237,10 @@ class TestGuestUserDashboardAccess(SupersetTestCase):
         db.session.delete(dash)
         db.session.commit()
 
-    def test_can_access_based_on_dashboard_with_filter(self):
+    def test_can_access_datasource_used_in_dashboard_filter(self):
         """
-        Test that a user can access a datasource used only by a filter in a dashboard.
+        Test that a user can access a datasource used only by a filter in a dashboard
+        they have access to.
         """
         # Create a test dataset
         test_dataset = SqlaTable(
