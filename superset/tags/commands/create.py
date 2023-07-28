@@ -60,3 +60,37 @@ class CreateCustomTagCommand(CreateMixin, BaseCommand):
             )
         if exceptions:
             raise TagInvalidError(exceptions=exceptions)
+
+
+class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
+    def __init__(self, objects_to_tag: list[tuple[ObjectTypes, int]], tag: str):
+        self._objects_to_tag = objects_to_tag
+        self._tag = tag
+
+    def run(self) -> None:
+        self.validate()
+        try:
+            TagDAO.create_tag_relationship(
+                objects_to_tag=self._objects_to_tag,
+                tag_name=self._tag,
+            )
+        except DAOCreateFailedError as ex:
+            logger.exception(ex.exception)
+            raise TagCreateFailedError() from ex
+
+    def validate(self) -> None:
+        exceptions = []
+        # Validate object_id
+        if any([obj_id == 0 for obj_type, obj_id in self._objects_to_tag]):
+            exceptions.append(TagCreateFailedError())
+
+        # Validate object type
+        for obj_type, obj_id in self._objects_to_tag:
+            object_type = to_object_type(obj_type)
+            if not object_type:
+                exceptions.append(
+                    TagCreateFailedError(f"invalid object type {object_type}")
+                )
+
+        if exceptions:
+            raise TagInvalidError(exceptions=exceptions)
