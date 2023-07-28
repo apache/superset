@@ -2063,10 +2063,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .filter(Dashboard.id.in_(dashboard_ids))
         )
 
-        exists = db.session.query(query.exists()).scalar()
+        if db.session.query(query.exists()).scalar():
+            return True
 
         # check for datasets that are only used by filters
-        if not exists:
+        else:
             dashboards_json = (
                 db.session.query(Dashboard.json_metadata)
                 .filter(Dashboard.id.in_(dashboard_ids))
@@ -2081,11 +2082,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                             for target in filter_.get("targets", [])
                         ]
                         if datasource.id in filter_dataset_ids:
-                            exists = True
+                            return True
                 except ValueError:
                     pass
 
-        return exists
+        return False
 
     @staticmethod
     def _get_current_epoch_time() -> float:
