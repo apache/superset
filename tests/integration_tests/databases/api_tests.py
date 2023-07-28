@@ -686,7 +686,7 @@ class TestDatabaseApi(SupersetTestCase):
         # the DB should not be created
         assert model is None
 
-    def test_get_table_details_with_slash_in_name(self):
+    def test_get_table_details_with_slash_in_table_name(self):
         table_name = "table_with/slash"
         database = get_example_database()
         query = f'CREATE TABLE IF NOT EXISTS "{table_name}" (col VARCHAR(256))'
