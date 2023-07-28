@@ -75,6 +75,7 @@ enable=
 # --disable=W"
 disable=
     cyclic-import,  # re-enable once this no longer raises false positives
+    no-member,  # re-enable once this no longer raises false positives
     missing-docstring,
     duplicate-code,
     unspecified-encoding,
