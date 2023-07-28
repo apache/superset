@@ -20,7 +20,7 @@ from __future__ import annotations
 import sys
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Callable, Dict, Type
+from typing import Any, Callable
 
 import click
 import yaml
@@ -38,60 +38,19 @@ from sqlalchemy import (
     Table,
 )
 from sqlalchemy.engine import Engine
-from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import NoSuchModuleError
 
+from superset.database.utils import make_url_safe
 from superset.db_engine_specs import load_engine_specs
 from superset.db_engine_specs.base import BaseEngineSpec
-from superset.db_engine_specs.lib import diagnose
-
-LIMIT_METHODS = {
-    "FORCE_LIMIT": "modifies the query, replacing an existing LIMIT or adding a new one",
-    "WRAP_SQL": "wraps the original query in a SELECT * with a LIMIT",
-    "FETCH_MANY": "runs the query unmodified but fetchs only LIMIT rows from the cursor",
-}
-
-DATABASE_DETAILS = {
-    "Supports JOINs": "joins",
-    "Supports subqueries": "subqueries",
-    "Allows aliases in the SELECT statement": "alias_in_select",
-    "Allows referencing aliases in the ORDER BY statement": "alias_in_orderby",
-    "Supports secondary time columns": "secondary_time_columns",
-    "Allows ommiting time filters from inline GROUP BYs": "time_groupby_inline",
-    "Able to use source column when an alias overshadows it": "alias_to_source_column",
-    "Allows aggregations in ORDER BY not present in the SELECT": "order_by_not_in_select",
-    "Allows expressions in ORDER BY": "expressions_in_orderby",
-    "Allows CTE as a subquery": "cte_in_subquery",
-    "Allows LIMIT clause (instead of TOP)": "limit_clause",
-    "Maximum column name": "max_column_name",
-    "Allows comments": "sql_comments",
-    "Colons must be escaped": "escaped_colons",
-}
-
-BASIC_FEATURES = {
-    "Masks/unmasks encrypted_extra": "masked_encrypted_extra",
-    "Has column type mappings": "column_type_mapping",
-    "Returns a list of function names": "function_names",
-}
-NICE_TO_HAVE_FEATURES = {
-    "Supports user impersonation": "user_impersonation",
-    "Support file upload": "file_upload",
-    "Returns extra table metadata": "extra_table_metadata",
-    "Maps driver exceptions to Superset exceptions": "dbapi_exception_mapping",
-    "Parses error messages and returns Superset errors": "custom_errors",
-    "Supports changing the schema per-query": "dynamic_schema",
-    "Supports catalogs": "catalog",
-    "Supports changing the catalog per-query": "dynamic_catalog",
-    "Can be connected thru an SSH tunnel": "ssh_tunneling",
-    "Allows query to be canceled": "query_cancelation",
-    "Returns additional metrics on dataset creation": "get_metrics",
-    "Supports querying the latest partition only": "where_latest_partition",
-}
-ADVANCED_FEATURES = {
-    "Expands complex types (arrays, structs) into rows/columns": "expand_data",
-    "Supports query cost estimation": "query_cost_estimation",
-    "Supports validating SQL before running query": "sql_validation",
-}
+from superset.db_engine_specs.lib import (
+    ADVANCED_FEATURES,
+    BASIC_FEATURES,
+    DATABASE_DETAILS,
+    diagnose,
+    LIMIT_METHODS,
+    NICE_TO_HAVE_FEATURES,
+)
 
 metadata_obj = MetaData()
 
@@ -119,7 +78,7 @@ TestType = Callable[[Console, Engine], None]
 
 class TestRegistry:
     def __init__(self) -> None:
-        self.tests: Dict[str, Any] = defaultdict(list)
+        self.tests: dict[str, Any] = defaultdict(list)
 
     def add(self, *dialects: str) -> Callable[[TestType], TestType]:
         def decorator(func: TestType) -> TestType:
@@ -220,7 +179,7 @@ def collect_connection_info(
     console: Console,
     sqlalchemy_uri: str,
     raw_connect_args: str | None = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Collect ``connect_args`` if needed.
     """
@@ -244,14 +203,14 @@ def collect_connection_info(
 def test_db_engine_spec(
     console: Console,
     sqlalchemy_uri: str,
-) -> Type[BaseEngineSpec] | None:
+) -> type[BaseEngineSpec] | None:
     """
     Test the DB engine spec, if available.
     """
-    spec: Type[BaseEngineSpec] | None = None
+    spec: type[BaseEngineSpec] | None = None
     for spec in load_engine_specs():
         try:
-            supported = spec.supports_url(make_url(sqlalchemy_uri))
+            supported = spec.supports_url(make_url_safe(sqlalchemy_uri))
         except NoSuchModuleError:
             console.print("[red]No SQLAlchemy dialect found for the URI!")
             console.print("[bold]Exiting...")
@@ -284,7 +243,7 @@ def test_db_engine_spec(
     console.print("  - Method used to apply LIMIT to queries:", info["limit_method"])
     for k, v in LIMIT_METHODS.items():
         console.print(f"    - {k}: {v}")
-    for feature, key in DATABASE_DETAILS.items():
+    for key, feature in DATABASE_DETAILS.items():
         console.print(f"  - {feature}:", info[key])
 
     console.print("[bold]Checking for basic features...")
@@ -293,26 +252,28 @@ def test_db_engine_spec(
         score = " (+1)" if v else ""
         console.print(f"  - {k}: {v}{score}")
     for k, v in BASIC_FEATURES.items():
-        score = " (+10)" if info[v] else ""
-        console.print(f"{k}: {info[v]}{score}")
+        score = " (+10)" if info[k] else ""
+        console.print(f"{v}: {info[k]}{score}")
 
     console.print("[bold]Checking for nice-to-have features...")
     for k, v in NICE_TO_HAVE_FEATURES.items():
-        score = " (+10)" if info[v] else ""
-        console.print(f"{k}: {info[v]}{score}")
+        score = " (+10)" if info[k] else ""
+        console.print(f"{v}: {info[k]}{score}")
 
     console.print("[bold]Checking for advanced features...")
     for k, v in ADVANCED_FEATURES.items():
-        score = " (+10)" if info[v] else ""
-        console.print(f"{k}: {info[v]}{score}")
+        score = " (+10)" if info[k] else ""
+        console.print(f"{v}: {info[k]}{score}")
 
     console.print("[bold]Overall score: {score}/{max_score}".format(**info))
+
+    return spec
 
 
 def test_sqlalchemy_dialect(
     console: Console,
     sqlalchemy_uri: str,
-    connect_args: Dict[str, Any],
+    connect_args: dict[str, Any],
 ) -> Engine:
     """
     Test the SQLAlchemy dialect, making sure it supports everything Superset needs.
@@ -448,8 +409,7 @@ def test_database_connectivity(console: Console, engine: Engine) -> None:
         sys.exit(1)
 
     # run engine-specific tests
-    tests = registry.get_tests(engine.dialect.name)
-    if tests:
+    if tests := registry.get_tests(engine.dialect.name):
         console.print("[bold]Running engine-specific tests...")
         for test in tests:
             test(console, engine)

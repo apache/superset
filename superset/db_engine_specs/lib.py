@@ -17,14 +17,62 @@
 
 from __future__ import annotations
 
-from typing import Any, List, Tuple, Type
+from typing import Any
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs import load_engine_specs
 from superset.db_engine_specs.base import BaseEngineSpec
 
+LIMIT_METHODS = {
+    "FORCE_LIMIT": "modifies the query, replacing an existing LIMIT or adding a new one",  # E: line too long (89 > 79 characters)
+    "WRAP_SQL": "wraps the original query in a SELECT * with a LIMIT",
+    "FETCH_MANY": "runs the query unmodified but fetchs only LIMIT rows from the cursor",  # E: line too long (89 > 79 characters)
+}
 
-def has_custom_method(spec: Type[BaseEngineSpec], method: str) -> bool:
+DATABASE_DETAILS = {
+    "limit_method": "Method used to limit the rows in the subquery",
+    "joins": "Supports JOINs",
+    "subqueries": "Supports subqueries",
+    "alias_in_select": "Allows aliases in the SELECT statement",
+    "alias_in_orderby": "Allows referencing aliases in the ORDER BY statement",
+    "secondary_time_columns": "Supports secondary time columns",
+    "time_groupby_inline": "Allows ommiting time filters from inline GROUP BYs",  # E: line too long (80 > 79 characters)
+    "alias_to_source_column": "Able to use source column when an alias overshadows it",  # E: line too long (87 > 79 characters)
+    "order_by_not_in_select": "Allows aggregations in ORDER BY not present in the SELECT",  # E: line too long (90 > 79 characters)
+    "expressions_in_orderby": "Allows expressions in ORDER BY",
+    "cte_in_subquery": "Allows CTE as a subquery",
+    "limit_clause": "Allows LIMIT clause (instead of TOP)",
+    "max_column_name": "Maximum column name",
+    "sql_comments": "Allows comments",
+    "escaped_colons": "Colons must be escaped",
+}
+BASIC_FEATURES = {
+    "masked_encrypted_extra": "Masks/unmasks encrypted_extra",
+    "column_type_mapping": "Has column type mappings",
+    "function_names": "Returns a list of function names",
+}
+NICE_TO_HAVE_FEATURES = {
+    "user_impersonation": "Supports user impersonation",
+    "file_upload": "Support file upload",
+    "extra_table_metadata": "Returns extra table metadata",
+    "dbapi_exception_mapping": "Maps driver exceptions to Superset exceptions",
+    "custom_errors": "Parses error messages and returns Superset errors",
+    "dynamic_schema": "Supports changing the schema per-query",
+    "catalog": "Supports catalogs",
+    "dynamic_catalog": "Supports changing the catalog per-query",
+    "ssh_tunneling": "Can be connected thru an SSH tunnel",
+    "query_cancelation": "Allows query to be canceled",
+    "get_metrics": "Returns additional metrics on dataset creation",
+    "where_latest_partition": "Supports querying the latest partition only",
+}
+ADVANCED_FEATURES = {
+    "expand_data": "Expands complex types (arrays, structs) into rows/columns",
+    "query_cost_estimation": "Supports query cost estimation",
+    "sql_validation": "Supports validating SQL before running query",
+}
+
+
+def has_custom_method(spec: type[BaseEngineSpec], method: str) -> bool:
     """
     Check if a class has a custom implementation of a method.
 
@@ -39,7 +87,7 @@ def has_custom_method(spec: Type[BaseEngineSpec], method: str) -> bool:
     )
 
 
-def diagnose(spec: Type[BaseEngineSpec]) -> dict[str, Any]:
+def diagnose(spec: type[BaseEngineSpec]) -> dict[str, Any]:
     """
     Run basic diagnostics on a given DB engine spec.
     """
@@ -145,26 +193,27 @@ def diagnose(spec: Type[BaseEngineSpec]) -> dict[str, Any]:
     return output
 
 
-def get_name(spec: Type[BaseEngineSpec]) -> str:
+def get_name(spec: type[BaseEngineSpec]) -> str:
     """
     Return a name for a given DB engine spec.
     """
     return spec.engine_name or spec.engine
 
 
-def generate_table() -> List[Tuple[Any, ...]]:
+def generate_table() -> list[list[Any]]:
     """
     Generate a table showing info for all DB engine specs.
-
-    Data is returned as a list of tuples, appropriate to write to a CSV file.
     """
     info = {}
     for spec in sorted(load_engine_specs(), key=get_name):
         info[get_name(spec)] = diagnose(spec)
 
+    # remove 3rd party DB engine specs
+    info = {k: v for k, v in info.items() if v["module"].startswith("superset")}
+
     rows = []
-    rows.append(tuple(info))  # header row
-    rows.append(tuple(db_info["module"] for db_info in info.values()))
+    rows.append(["Feature"] + list(info))  # header row
+    rows.append(["Module"] + list(db_info["module"] for db_info in info.values()))
 
     # descriptive
     keys = [
@@ -185,12 +234,15 @@ def generate_table() -> List[Tuple[Any, ...]]:
         "escaped_colons",
     ]
     for key in keys:
-        rows.append(tuple(db_info[key] for db_info in info.values()))
+        rows.append(
+            [DATABASE_DETAILS[key]] + list(db_info[key] for db_info in info.values())
+        )
 
     # basic
     for time_grain in TimeGrain:
         rows.append(
-            tuple(db_info["time_grains"][time_grain.name] for db_info in info.values())
+            [f"Has time grain {time_grain.name}"]
+            + list(db_info["time_grains"][time_grain.name] for db_info in info.values())
         )
     keys = [
         "masked_encrypted_extra",
@@ -198,7 +250,9 @@ def generate_table() -> List[Tuple[Any, ...]]:
         "function_names",
     ]
     for key in keys:
-        rows.append(tuple(db_info[key] for db_info in info.values()))
+        rows.append(
+            [BASIC_FEATURES[key]] + list(db_info[key] for db_info in info.values())
+        )
 
     # nice to have
     keys = [
@@ -216,7 +270,10 @@ def generate_table() -> List[Tuple[Any, ...]]:
         "where_latest_partition",
     ]
     for key in keys:
-        rows.append(tuple(db_info[key] for db_info in info.values()))
+        rows.append(
+            [NICE_TO_HAVE_FEATURES[key]]
+            + list(db_info[key] for db_info in info.values())
+        )
 
     # advanced
     keys = [
@@ -225,23 +282,24 @@ def generate_table() -> List[Tuple[Any, ...]]:
         "sql_validation",
     ]
     for key in keys:
-        rows.append(tuple(db_info[key] for db_info in info.values()))
+        rows.append(
+            [ADVANCED_FEATURES[key]] + list(db_info[key] for db_info in info.values())
+        )
 
-    rows.append(tuple(db_info["score"] for db_info in info.values()))
+    rows.append(["Score"] + list(db_info["score"] for db_info in info.values()))
 
     return rows
 
 
 if __name__ == "__main__":
-    import csv
-
     from superset.app import create_app
 
     app = create_app()
     with app.app_context():
         rows = generate_table()
 
-    with open("db_engine_specs.csv", "w", encoding="utf-8") as fp:
-        writer = csv.writer(fp, delimiter="\t")
-        for row in rows:
-            writer.writerow(row)
+    headers = rows.pop(0)
+    print("| " + " | ".join(headers) + " |")
+    print("| " + " ---| " * len(headers))
+    for row in rows:
+        print("| " + " | ".join(str(col) for col in row) + " |")

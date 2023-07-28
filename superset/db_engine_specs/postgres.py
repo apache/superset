@@ -101,6 +101,8 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     engine = ""
     engine_name = "PostgreSQL"
 
+    time_groupby_inline = True
+
     supports_catalog = True
 
     _time_grain_expressions = {
