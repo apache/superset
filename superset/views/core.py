@@ -938,7 +938,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @event_logger.log_this
     @expose("/fetch_datasource_metadata")
-    @deprecated(new_target="api/v1/database/<int:pk>/table/<table_name>/<schema_name>/")
+    @deprecated(
+        new_target="api/v1/database/<int:pk>/table/<path:table_name>/<schema_name>/"
+    )
     def fetch_datasource_metadata(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """
         Fetch the datasource metadata.
