@@ -53,7 +53,9 @@ def import_chart(
     # migrate old viz types to new ones
     config = migrate_chart(config)
 
-    chart = Slice.import_from_dict(session, config, recursive=False)
+    chart = Slice.import_from_dict(
+        session, config, recursive=False, allow_reparenting=True
+    )
     if chart.id is None:
         session.flush()
 
