@@ -28,14 +28,11 @@ export const StyledLayoutWrapper = styled.div`
 export const LeftColumn = styled.div<{ width?: number }>`
   width: ${({ theme, width }) => width ?? theme.gridUnit * 80}px;
   max-width: ${({ theme, width }) => width ?? theme.gridUnit * 80}px;
-  height: auto;
   flex-direction: column;
   flex: 1 0 auto;
 `;
 
 export const RightColumn = styled.div`
-  width: auto;
-  height: auto;
   display: flex;
   flex-direction: column;
   flex-grow: 1;
