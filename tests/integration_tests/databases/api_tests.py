@@ -686,6 +686,22 @@ class TestDatabaseApi(SupersetTestCase):
         # the DB should not be created
         assert model is None
 
+    def test_get_table_details_with_slash_in_table_name(self):
+        table_name = "table_with/slash"
+        database = get_example_database()
+        query = f'CREATE TABLE IF NOT EXISTS "{table_name}" (col VARCHAR(256))'
+        if database.backend == "mysql":
+            query = query.replace('"', "`")
+
+        with database.get_sqla_engine_with_context() as engine:
+            engine.execute(query)
+
+        self.login(username="admin")
+        uri = f"api/v1/database/{database.id}/table/{table_name}/null/"
+        rv = self.client.get(uri)
+
+        self.assertEqual(rv.status_code, 200)
+
     def test_create_database_invalid_configuration_method(self):
         """
         Database API: Test create with an invalid configuration method.

@@ -672,7 +672,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except DatabaseTablesUnexpectedError as ex:
             return self.response_422(ex.message)
 
-    @expose("/<int:pk>/table/<table_name>/<schema_name>/", methods=("GET",))
+    @expose("/<int:pk>/table/<path:table_name>/<schema_name>/", methods=("GET",))
     @protect()
     @check_datasource_access
     @safe
@@ -735,7 +735,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         self.incr_stats("success", self.table_metadata.__name__)
         return self.response(200, **table_info)
 
-    @expose("/<int:pk>/table_extra/<table_name>/<schema_name>/", methods=("GET",))
+    @expose("/<int:pk>/table_extra/<path:table_name>/<schema_name>/", methods=("GET",))
     @protect()
     @check_datasource_access
     @safe
@@ -798,8 +798,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         )
         return self.response(200, **payload)
 
-    @expose("/<int:pk>/select_star/<table_name>/", methods=("GET",))
-    @expose("/<int:pk>/select_star/<table_name>/<schema_name>/", methods=("GET",))
+    @expose("/<int:pk>/select_star/<path:table_name>/", methods=("GET",))
+    @expose("/<int:pk>/select_star/<path:table_name>/<schema_name>/", methods=("GET",))
     @protect()
     @check_datasource_access
     @safe
