@@ -141,7 +141,7 @@ class DashboardJSONMetadataSchema(Schema):
     native_filter_migration = fields.Dict()
 
     @pre_load
-    def remove_show_native_filters(  # pylint: disable=unused-argument, no-self-use
+    def remove_show_native_filters(  # pylint: disable=unused-argument
         self,
         data: dict[str, Any],
         **kwargs: Any,
@@ -193,10 +193,10 @@ class DashboardGetResponseSchema(Schema):
         metadata={"description": certification_details_description}
     )
     changed_by_name = fields.String()
-    changed_by = fields.Nested(UserSchema(exclude=(["username"])))
+    changed_by = fields.Nested(UserSchema(exclude=["username"]))
     changed_on = fields.DateTime()
     charts = fields.List(fields.String(metadata={"description": charts_description}))
-    owners = fields.List(fields.Nested(UserSchema(exclude=(["username"]))))
+    owners = fields.List(fields.Nested(UserSchema(exclude=["username"])))
     roles = fields.List(fields.Nested(RolesSchema))
     tags = fields.Nested(TagSchema, many=True)
     changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")
@@ -251,7 +251,7 @@ class DashboardDatasetSchema(Schema):
 
 
 class BaseDashboardSchema(Schema):
-    # pylint: disable=no-self-use,unused-argument
+    # pylint: disable=unused-argument
     @post_load
     def post_load(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if data.get("slug"):

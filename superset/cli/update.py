@@ -81,7 +81,7 @@ def update_api_docs() -> None:
         title=current_app.appbuilder.app_name,
         version=api_version,
         openapi_version="3.0.2",
-        info=dict(description=current_app.appbuilder.app_name),
+        info={"description": current_app.appbuilder.app_name},
         plugins=[MarshmallowPlugin(schema_name_resolver=resolver)],
         servers=[{"url": "http://localhost:8088"}],
     )

@@ -284,7 +284,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return self.get_guest_user_from_request(request)
         return None
 
-    def get_schema_perm(  # pylint: disable=no-self-use
+    def get_schema_perm(
         self, database: Union["Database", str], schema: Optional[str] = None
     ) -> Optional[str]:
         """
@@ -308,9 +308,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def get_dataset_perm(dataset_id: int, dataset_name: str, database_name: str) -> str:
         return f"[{database_name}].[{dataset_name}](id:{dataset_id})"
 
-    def unpack_database_and_schema(  # pylint: disable=no-self-use
-        self, schema_permission: str
-    ) -> DatabaseAndSchema:
+    def unpack_database_and_schema(self, schema_permission: str) -> DatabaseAndSchema:
         # [database_name].[schema|table]
 
         schema_name = schema_permission.split(".")[1][1:-1]
@@ -469,9 +467,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             },
         )
 
-    def get_table_access_error_msg(  # pylint: disable=no-self-use
-        self, tables: set["Table"]
-    ) -> str:
+    def get_table_access_error_msg(self, tables: set["Table"]) -> str:
         """
         Return the error message for the denied SQL tables.
 
@@ -500,7 +496,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             },
         )
 
-    def get_table_access_link(  # pylint: disable=unused-argument,no-self-use
+    def get_table_access_link(  # pylint: disable=unused-argument
         self, tables: set["Table"]
     ) -> Optional[str]:
         """
@@ -1871,7 +1867,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .one_or_none()
         )
 
-    def get_anonymous_user(self) -> User:  # pylint: disable=no-self-use
+    def get_anonymous_user(self) -> User:
         return AnonymousUserMixin()
 
     def get_user_roles(self, user: Optional[User] = None) -> list[Role]:
@@ -2006,28 +2002,37 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset import is_feature_enabled
         from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 
-        if self.is_guest_user() and dashboard.embedded:
+        if self.is_guest_user():
+            # Guest user is currently used for embedded dashboards only. If the guest user
+            # doesn't have access to the dashboard, ignore all other checks.
             if self.has_guest_access(dashboard):
                 return
-        else:
-            if self.is_admin() or self.is_owner(dashboard):
-                return
+            raise DashboardAccessDeniedError()
 
-            # RBAC and legacy (datasource inferred) access controls.
-            if is_feature_enabled("DASHBOARD_RBAC") and dashboard.roles:
-                if dashboard.published and {role.id for role in dashboard.roles} & {
-                    role.id for role in self.get_user_roles()
-                }:
-                    return
-            elif (
-                not dashboard.published
-                or not dashboard.datasources
-                or any(
-                    self.can_access_datasource(datasource)
-                    for datasource in dashboard.datasources
-                )
-            ):
+        if self.is_admin() or self.is_owner(dashboard):
+            return
+
+        # RBAC and legacy (datasource inferred) access controls.
+        if is_feature_enabled("DASHBOARD_RBAC") and dashboard.roles:
+            if dashboard.published and {role.id for role in dashboard.roles} & {
+                role.id for role in self.get_user_roles()
+            }:
                 return
+        elif (
+            # To understand why we rely on status and give access to draft dashboards
+            # without roles take a look at:
+            #
+            #   - https://github.com/apache/superset/pull/24350#discussion_r1225061550
+            #   - https://github.com/apache/superset/pull/17511#issuecomment-975870169
+            #
+            not dashboard.published
+            or not dashboard.datasources
+            or any(
+                self.can_access_datasource(datasource)
+                for datasource in dashboard.datasources
+            )
+        ):
+            return
 
         raise DashboardAccessDeniedError()
 
@@ -2142,8 +2147,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # We don't need to send a special error message.
             logger.warning("Invalid guest token", exc_info=True)
             return None
-        else:
-            return self.get_guest_user_from_token(cast(GuestToken, token))
+
+        return self.get_guest_user_from_token(cast(GuestToken, token))
 
     def get_guest_user_from_token(self, token: GuestToken) -> GuestUser:
         return self.guest_user_cls(

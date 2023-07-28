@@ -113,8 +113,8 @@ def extract_top_from_query(
     token = str_statement.rstrip().split(" ")
     token = [part for part in token if part]
     top = None
-    for i, _ in enumerate(token):
-        if token[i].upper() in top_keywords and len(token) - 1 > i:
+    for i, part in enumerate(token):
+        if part.upper() in top_keywords and len(token) - 1 > i:
             try:
                 top = int(token[i + 1])
             except ValueError:

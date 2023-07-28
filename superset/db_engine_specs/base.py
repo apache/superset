@@ -1082,21 +1082,44 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         For some databases (like MySQL, Presto, Snowflake) this requires modifying the
         SQLAlchemy URI before creating the connection. For others (like Postgres), it
-        requires additional parameters in ``connect_args``.
+        requires additional parameters in ``connect_args`` or running pre-session
+        queries with ``set`` parameters.
 
-        When a DB engine spec implements this method it should also have the attribute
-        ``supports_dynamic_schema`` set to true, so that Superset knows in which schema a
-        given query is running in order to enforce permissions (see #23385 and #23401).
+        When a DB engine spec implements this method or ``get_prequeries`` (see below) it
+        should also have the attribute ``supports_dynamic_schema`` set to true, so that
+        Superset knows in which schema a given query is running in order to enforce
+        permissions (see #23385 and #23401).
 
         Currently, changing the catalog is not supported. The method accepts a catalog so
         that when catalog support is added to Superset the interface remains the same.
         This is important because DB engine specs can be installed from 3rd party
-        packages.
+        packages, so we want to keep these methods as stable as possible.
         """
         return uri, {
             **connect_args,
             **cls.enforce_uri_query_params.get(uri.get_driver_name(), {}),
         }
+
+    @classmethod
+    def get_prequeries(
+        cls,
+        catalog: str | None = None,  # pylint: disable=unused-argument
+        schema: str | None = None,  # pylint: disable=unused-argument
+    ) -> list[str]:
+        """
+        Return pre-session queries.
+
+        These are currently used as an alternative to ``adjust_engine_params`` for
+        databases where the selected schema cannot be specified in the SQLAlchemy URI or
+        connection arguments.
+
+        For example, in order to specify a default schema in RDS we need to run a query
+        at the beggining of the session:
+
+            sql> set search_path = my_schema;
+
+        """
+        return []
 
     @classmethod
     def patch(cls) -> None:
@@ -1358,7 +1381,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param cursor: Cursor instance
         :return: Dictionary with different costs
         """
-        raise Exception("Database does not support cost estimation")
+        raise Exception(  # pylint: disable=broad-exception-raised
+            "Database does not support cost estimation"
+        )
 
     @classmethod
     def query_cost_formatter(
@@ -1370,7 +1395,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param raw_cost: Raw estimate from `estimate_query_cost`
         :return: Human readable cost estimate
         """
-        raise Exception("Database does not support cost estimation")
+        raise Exception(  # pylint: disable=broad-exception-raised
+            "Database does not support cost estimation"
+        )
 
     @classmethod
     def process_statement(cls, statement: str, database: Database) -> str:
@@ -1412,7 +1439,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         extra = database.get_extra() or {}
         if not cls.get_allow_cost_estimate(extra):
-            raise Exception("Database does not support cost estimation")
+            raise Exception(  # pylint: disable=broad-exception-raised
+                "Database does not support cost estimation"
+            )
 
         parsed_query = sql_parse.ParsedQuery(sql)
         statements = parsed_query.get_statements()
@@ -1948,7 +1977,9 @@ class BasicParametersMixin:
         query = parameters.get("query", {}).copy()
         if parameters.get("encryption"):
             if not cls.encryption_parameters:
-                raise Exception("Unable to build a URL with encryption enabled")
+                raise Exception(  # pylint: disable=broad-exception-raised
+                    "Unable to build a URL with encryption enabled"
+                )
             query.update(cls.encryption_parameters)
 
         return str(

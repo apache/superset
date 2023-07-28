@@ -18,6 +18,8 @@
  */
 import React from 'react';
 import { t } from '@superset-ui/core';
+
+import { ControlSubSectionHeader } from '../components/ControlSubSectionHeader';
 import { ControlPanelSectionConfig } from '../types';
 import { formatSelectOptions } from '../utils';
 
@@ -33,7 +35,7 @@ export const titleControls: ControlPanelSectionConfig = {
   tabOverride: 'customize',
   expanded: true,
   controlSetRows: [
-    [<div className="section-header">{t('X Axis')}</div>],
+    [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
     [
       {
         name: 'x_axis_title',
@@ -61,7 +63,7 @@ export const titleControls: ControlPanelSectionConfig = {
         },
       },
     ],
-    [<div className="section-header">{t('Y Axis')}</div>],
+    [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
     [
       {
         name: 'y_axis_title',
@@ -81,7 +83,7 @@ export const titleControls: ControlPanelSectionConfig = {
           type: 'SelectControl',
           freeForm: true,
           clearable: true,
-          label: t('Y AXIS TITLE MARGIN'),
+          label: t('Y Axis Title Margin'),
           renderTrigger: true,
           default: TITLE_MARGIN_OPTIONS[0],
           choices: formatSelectOptions(TITLE_MARGIN_OPTIONS),
@@ -96,7 +98,7 @@ export const titleControls: ControlPanelSectionConfig = {
           type: 'SelectControl',
           freeForm: true,
           clearable: false,
-          label: t('Y AXIS TITLE POSITION'),
+          label: t('Y Axis Title Position'),
           renderTrigger: true,
           default: TITLE_POSITION_OPTIONS[0][0],
           choices: TITLE_POSITION_OPTIONS,

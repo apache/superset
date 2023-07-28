@@ -43,6 +43,7 @@ from superset import (
     security_manager,
 )
 from superset.charts.commands.exceptions import ChartNotFoundError
+from superset.charts.commands.warm_up_cache import ChartWarmUpCacheCommand
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import SqlaTable
@@ -72,6 +73,7 @@ from superset.utils import core as utils
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
 from superset.utils.core import (
+    base_json_conv,
     DatasourceType,
     get_user_id,
     get_username,
@@ -95,7 +97,6 @@ from superset.views.utils import (
     check_datasource_perms,
     check_explore_cache_perms,
     check_resource_permissions,
-    get_dashboard_extra_filters,
     get_datasource_info,
     get_form_data,
     get_viz,
@@ -144,13 +145,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @event_logger.log_this
     @expose("/slice/<int:slice_id>/")
-    def slice(self, slice_id: int) -> FlaskResponse:  # pylint: disable=no-self-use
+    def slice(self, slice_id: int) -> FlaskResponse:
         _, slc = get_form_data(slice_id, use_slice_data=True)
         if not slc:
             abort(404)
-        endpoint = "/explore/?form_data={}".format(
-            parse.quote(json.dumps({"slice_id": slice_id}))
-        )
+        form_data = parse.quote(json.dumps({"slice_id": slice_id}))
+        endpoint = f"/explore/?form_data={form_data}"
 
         is_standalone_mode = ReservedUrlParameters.is_standalone_mode()
         if is_standalone_mode:
@@ -221,7 +221,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @permission_name("explore_json")
     @expose("/explore_json/data/<cache_key>", methods=("GET",))
     @check_resource_permissions(check_explore_cache_perms)
-    @deprecated(eol_version="3.0")
+    @deprecated(eol_version="4.0.0")
     def explore_json_data(self, cache_key: str) -> FlaskResponse:
         """Serves cached result data for async explore_json calls
 
@@ -269,7 +269,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/explore_json/", methods=EXPLORE_JSON_METHODS)
     @etag_cache()
     @check_resource_permissions(check_datasource_perms)
-    @deprecated(eol_version="3.0")
+    @deprecated(eol_version="4.0.0")
     def explore_json(
         self, datasource_type: str | None = None, datasource_id: int | None = None
     ) -> FlaskResponse:
@@ -651,7 +651,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
             ),
             entry="explore",
-            title=title.__str__(),
+            title=title,
             standalone_mode=standalone_mode,
         )
 
@@ -742,7 +742,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
             flash(
                 _(
-                    "Dashboard [{}] just got created and chart [{}] was added " "to it"
+                    "Dashboard [{}] just got created and chart [{}] was added to it"
                 ).format(dash.dashboard_title, slc.slice_name),
                 "success",
             )
@@ -769,9 +769,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @expose("/warm_up_cache/", methods=("GET",))
-    def warm_up_cache(  # pylint: disable=too-many-locals,no-self-use
-        self,
-    ) -> FlaskResponse:
+    @deprecated(new_target="api/v1/chart/warm_up_cache/")
+    def warm_up_cache(self) -> FlaskResponse:
         """Warms up the cache for the slice or table.
 
         Note for slices a force refresh occurs.
@@ -825,43 +824,22 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 .all()
             )
 
-        result = []
-
-        for slc in slices:
-            try:
-                form_data = get_form_data(slc.id, use_slice_data=True)[0]
-                if dashboard_id:
-                    form_data["extra_filters"] = (
-                        json.loads(extra_filters)
-                        if extra_filters
-                        else get_dashboard_extra_filters(slc.id, dashboard_id)
-                    )
-
-                if not slc.datasource:
-                    raise Exception("Slice's datasource does not exist")
-
-                obj = get_viz(
-                    datasource_type=slc.datasource.type,
-                    datasource_id=slc.datasource.id,
-                    form_data=form_data,
-                    force=True,
-                )
-
-                # pylint: disable=assigning-non-slot
-                g.form_data = form_data
-                payload = obj.get_payload()
-                delattr(g, "form_data")
-                error = payload["errors"] or None
-                status = payload["status"]
-            except Exception as ex:  # pylint: disable=broad-except
-                error = utils.error_msg_from_exception(ex)
-                status = None
-
-            result.append(
-                {"slice_id": slc.id, "viz_error": error, "viz_status": status}
-            )
-
-        return json_success(json.dumps(result))
+        return json_success(
+            json.dumps(
+                [
+                    {
+                        "slice_id" if key == "chart_id" else key: value
+                        for key, value in ChartWarmUpCacheCommand(
+                            slc, dashboard_id, extra_filters
+                        )
+                        .run()
+                        .items()
+                    }
+                    for slc in slices
+                ],
+                default=base_json_conv,
+            ),
+        )
 
     @has_access
     @expose("/dashboard/<dashboard_id_or_slug>/")
@@ -920,7 +898,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access
     @expose("/dashboard/p/<key>/", methods=("GET",))
-    def dashboard_permalink(  # pylint: disable=no-self-use
+    def dashboard_permalink(
         self,
         key: str,
     ) -> FlaskResponse:
@@ -945,7 +923,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @event_logger.log_this
     @expose("/log/", methods=("POST",))
-    def log(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def log(self) -> FlaskResponse:
         return Response(status=200)
 
     @expose("/theme/")
@@ -958,7 +936,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/fetch_datasource_metadata")
     @deprecated(new_target="api/v1/database/<int:pk>/table/<table_name>/<schema_name>/")
-    def fetch_datasource_metadata(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def fetch_datasource_metadata(self) -> FlaskResponse:
         """
         Fetch the datasource metadata.
 
@@ -977,7 +955,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return json_success(json.dumps(sanitize_datasource_data(datasource.data)))
 
     @app.errorhandler(500)
-    def show_traceback(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def show_traceback(self) -> FlaskResponse:
         return (
             render_template("superset/traceback.html", error_msg=get_error_msg()),
             500,
@@ -1028,7 +1006,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         return self.render_template(
             "superset/basic.html",
-            title=_("%(user)s's profile", user=get_username()).__str__(),
+            title=_("%(user)s's profile", user=get_username()),
             entry="profile",
             bootstrap_data=json.dumps(
                 payload, default=utils.pessimistic_json_iso_dttm_ser

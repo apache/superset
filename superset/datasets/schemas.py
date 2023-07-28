@@ -149,7 +149,7 @@ class DatasetRelatedObjectsResponse(Schema):
 
 
 class ImportV1ColumnSchema(Schema):
-    # pylint: disable=no-self-use, unused-argument
+    # pylint: disable=unused-argument
     @pre_load
     def fix_extra(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         """
@@ -175,7 +175,7 @@ class ImportV1ColumnSchema(Schema):
 
 
 class ImportV1MetricSchema(Schema):
-    # pylint: disable=no-self-use, unused-argument
+    # pylint: disable=unused-argument
     @pre_load
     def fix_extra(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         """
@@ -198,14 +198,18 @@ class ImportV1MetricSchema(Schema):
 
 
 class ImportV1DatasetSchema(Schema):
-    # pylint: disable=no-self-use, unused-argument
+    # pylint: disable=unused-argument
     @pre_load
     def fix_extra(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         """
         Fix for extra initially being exported as a string.
         """
         if isinstance(data.get("extra"), str):
-            data["extra"] = json.loads(data["extra"])
+            try:
+                extra = data["extra"]
+                data["extra"] = json.loads(extra) if extra.strip() else None
+            except ValueError:
+                data["extra"] = None
 
         return data
 

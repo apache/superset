@@ -300,7 +300,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
             return GenericDataType.TEMPORAL
 
         return (
-            column_spec.generic_type  # pylint: disable=used-before-assignment
+            column_spec.generic_type
             if (
                 column_spec := self.db_engine_spec.get_column_spec(
                     self.type,
@@ -1003,7 +1003,7 @@ class SqlaTable(
                     tbl, _ = self.get_from_clause(template_processor)
                     qry = sa.select([sqla_column]).limit(1).select_from(tbl)
                     sql = self.database.compile_sqla_query(qry)
-                    col_desc = get_columns_description(self.database, sql)
+                    col_desc = get_columns_description(self.database, self.schema, sql)
                     is_dttm = col_desc[0]["is_dttm"]  # type: ignore
                 except SupersetGenericDBErrorException as ex:
                     raise ColumnNotFoundException(message=str(ex)) from ex
@@ -1464,7 +1464,9 @@ class SqlaTable(
         if not DatasetDAO.validate_uniqueness(
             target.database_id, target.schema, target.table_name, target.id
         ):
-            raise Exception(get_dataset_exist_error_msg(target.full_name))
+            raise Exception(  # pylint: disable=broad-exception-raised
+                get_dataset_exist_error_msg(target.full_name)
+            )
 
     @staticmethod
     def update_column(  # pylint: disable=unused-argument

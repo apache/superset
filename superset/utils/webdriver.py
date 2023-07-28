@@ -124,15 +124,17 @@ class WebDriverProxy:
             options = firefox.options.Options()
             profile = FirefoxProfile()
             profile.set_preference("layout.css.devPixelsPerPx", str(pixel_density))
-            kwargs: dict[Any, Any] = dict(options=options, firefox_profile=profile)
+            kwargs: dict[Any, Any] = {"options": options, "firefox_profile": profile}
         elif self._driver_type == "chrome":
             driver_class = chrome.webdriver.WebDriver
             options = chrome.options.Options()
             options.add_argument(f"--force-device-scale-factor={pixel_density}")
             options.add_argument(f"--window-size={self._window[0]},{self._window[1]}")
-            kwargs = dict(options=options)
+            kwargs = {"options": options}
         else:
-            raise Exception(f"Webdriver name ({self._driver_type}) not supported")
+            raise Exception(  # pylint: disable=broad-exception-raised
+                f"Webdriver name ({self._driver_type}) not supported"
+            )
         # Prepare args for the webdriver init
 
         # Add additional configured options

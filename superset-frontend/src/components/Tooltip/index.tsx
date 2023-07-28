@@ -41,6 +41,9 @@ export const Tooltip = (props: TooltipProps) => {
               display: block;
             }
           }
+          .ant-tooltip-inner > p {
+            margin: 0;
+          }
         `}
       />
       <AntdTooltip
