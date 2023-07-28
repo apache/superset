@@ -163,21 +163,19 @@ export default function AddSmartDataset({ onSqlChange }: AddSmartDatasetProps) {
 
     if (joinDatasetPanels) {
       panelComponents.push(...joinDatasetPanels)
-    } else {
+    }
 
-      setJoinDatasetPanels(panelComponents);
+    return panelComponents;
+  };
 
-      return panelComponents;
-    };
-
-    return (
-      <DatasetLayout
-        header={HeaderComponent()}
-        leftPanel={LeftPanelComponent()}
-        datasetPanel={
-          getDatasetPanelComponents()
-        }
-      />
-    );
-  }
+  return (
+    <DatasetLayout
+      header={HeaderComponent()}
+      leftPanel={LeftPanelComponent()}
+      datasetPanel={
+        getDatasetPanelComponents()
+      }
+    />
+  );
+}
 
