@@ -18,12 +18,17 @@
 """Unit tests for Superset"""
 import json
 
+from flask import g
 import pytest
 import prison
 from sqlalchemy.sql import func
+from sqlalchemy import and_
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
+from superset.tags.models import user_favorite_tag_table
+from unittest.mock import patch
+
 
 import tests.integration_tests.test_app
 from superset import db, security_manager
@@ -372,3 +377,83 @@ class TestTagApi(SupersetTestCase):
         # check that tags are all gone
         tags = db.session.query(Tag).filter(Tag.name.in_(example_tag_names))
         self.assertEqual(tags.count(), 0)
+
+    @pytest.mark.usefixtures("create_tags")
+    def test_delete_favorite_tag(self):
+        self.login(username="admin")
+        user_id = self.get_user(username="admin").get_id()
+        tag = db.session.query(Tag).first()
+        uri = f"api/v1/tag/{tag.id}/favorites/"
+        tag = db.session.query(Tag).first()
+        rv = self.client.post(uri, follow_redirects=True)
+
+        self.assertEqual(rv.status_code, 200)
+        from sqlalchemy import and_
+        from superset.tags.models import user_favorite_tag_table
+        from flask import g
+
+        association_row = (
+            db.session.query(user_favorite_tag_table)
+            .filter(
+                and_(
+                    user_favorite_tag_table.c.tag_id == tag.id,
+                    user_favorite_tag_table.c.user_id == user_id,
+                )
+            )
+            .one_or_none()
+        )
+
+        assert association_row is not None
+
+        uri = f"api/v1/tag/{tag.id}/favorites/"
+        rv = self.client.delete(uri, follow_redirects=True)
+
+        self.assertEqual(rv.status_code, 200)
+        association_row = (
+            db.session.query(user_favorite_tag_table)
+            .filter(
+                and_(
+                    user_favorite_tag_table.c.tag_id == tag.id,
+                    user_favorite_tag_table.c.user_id == user_id,
+                )
+            )
+            .one_or_none()
+        )
+
+        assert association_row is None
+
+    @pytest.mark.usefixtures("create_tags")
+    def test_add_tag_not_found(self):
+        self.login(username="admin")
+        uri = f"api/v1/tag/123/favorites/"
+        rv = self.client.post(uri, follow_redirects=True)
+
+        self.assertEqual(rv.status_code, 404)
+
+    @pytest.mark.usefixtures("create_tags")
+    def test_delete_favorite_tag_not_found(self):
+        self.login(username="admin")
+        uri = f"api/v1/tag/123/favorites/"
+        rv = self.client.delete(uri, follow_redirects=True)
+
+        self.assertEqual(rv.status_code, 404)
+
+    @pytest.mark.usefixtures("create_tags")
+    @patch("superset.daos.tag.g")
+    def test_add_tag_user_not_found(self, flask_g):
+        self.login(username="admin")
+        flask_g.user = None
+        uri = f"api/v1/tag/123/favorites/"
+        rv = self.client.post(uri, follow_redirects=True)
+
+        self.assertEqual(rv.status_code, 422)
+
+    @pytest.mark.usefixtures("create_tags")
+    @patch("superset.daos.tag.g")
+    def test_delete_favorite_tag_user_not_found(self, flask_g):
+        self.login(username="admin")
+        flask_g.user = None
+        uri = f"api/v1/tag/123/favorites/"
+        rv = self.client.delete(uri, follow_redirects=True)
+
+        self.assertEqual(rv.status_code, 422)
