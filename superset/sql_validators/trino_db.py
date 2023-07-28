@@ -60,7 +60,7 @@ class TrinoSQLValidator(BaseSQLValidator):
                 query_source = "Validator",
                 query_id = None
             )
-        sql = f"EXPLAIN {sql}"
+        sql = f"EXPLAIN (TYPE VALIDATE) {sql}"
         from trino.exceptions import TrinoUserError
         try:
             db_engine_spec.execute(cursor, sql)
