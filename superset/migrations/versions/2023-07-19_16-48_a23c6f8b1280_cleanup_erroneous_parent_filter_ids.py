@@ -61,14 +61,13 @@ def upgrade():
                     filter_ids = {fltr["id"] for fltr in filters}
 
                     for fltr in filters:
-                        for parent_id in fltr["cascadeParentIds"][:]:
+                        for parent_id in fltr.get("cascadeParentIds", [])[:]:
                             if parent_id not in filter_ids:
                                 fltr["cascadeParentIds"].remove(parent_id)
                                 updated = True
 
                 if updated:
                     dashboard.json_metadata = json.dumps(json_metadata)
-
             except Exception:
                 logging.exception(
                     f"Unable to parse JSON metadata for dashboard {dashboard.id}"
