@@ -46,7 +46,10 @@ def import_chart(
     # TODO (betodealmeida): move this logic to import_from_dict
     config["params"] = json.dumps(config["params"])
 
-    chart = Slice.import_from_dict(session, config, recursive=False)
+    chart = Slice.import_from_dict(
+        session, config, recursive=False, allow_reparenting=True
+    )
+
     if chart.id is None:
         session.flush()
 
