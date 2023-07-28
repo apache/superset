@@ -320,3 +320,5 @@ FROM some_table
 SQLAlchemy recommends escaping colons to prevent them from being interpreted as bindings to parameters. Because of this, when building queries from virtual datasets Superset will escape all colons with `\:`.
 
 This works for most databases except Athena. The `allows_escaped_colons` attribute specifies if the database supports the escape colon.
+
+## Basic features

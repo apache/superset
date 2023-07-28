@@ -40,7 +40,7 @@ from sqlalchemy import (
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import NoSuchModuleError
 
-from superset.database.utils import make_url_safe
+from superset.databases.utils import make_url_safe
 from superset.db_engine_specs import load_engine_specs
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.lib import (
