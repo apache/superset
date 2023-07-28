@@ -81,13 +81,6 @@ const DatasetCreation = lazy(
     ),
 );
 
-const DatasetSmartCreation = lazy(
-  () =>
-    import(
-      /* webpackChunkName: "DatasetCreation" */ 'src/pages/DatasetSmartCreation'
-    ),
-);
-
 const ExecutionLogList = lazy(
   () =>
     import(
@@ -215,10 +208,6 @@ export const routes: Routes = [
   {
     path: '/dataset/add/',
     Component: DatasetCreation,
-  },
-  {
-    path: '/dataset/smart/add/',
-    Component: DatasetSmartCreation,
   },
   {
     path: '/dataset/:datasetId',

@@ -51,5 +51,4 @@ export enum GlobalMenuDataOptions {
   GOOGLE_SHEETS = 'gsheets',
   DB_CONNECTION = 'dbconnection',
   DATASET_CREATION = 'datasetCreation',
-  DATASET_SMART_CREATION = 'datasetSmartCreation',
 }
