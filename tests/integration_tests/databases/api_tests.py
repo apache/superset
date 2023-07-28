@@ -689,14 +689,15 @@ class TestDatabaseApi(SupersetTestCase):
     def test_get_table_details_with_slash_in_name(self):
         table_name = "table_with/slash"
         database = get_example_database()
-        if database.backend in ("mysql", "sqlite"):
-            return
+        query = f'CREATE TABLE IF NOT EXISTS "{table_name}" (col VARCHAR(256))'
+        if database.backend == "mysql":
+            query = query.replace('"', "`")
+
         with database.get_sqla_engine_with_context() as engine:
-            query = f'CREATE TABLE IF NOT EXISTS "{table_name}" (col VARCHAR(256))'
             engine.execute(query)
 
         self.login(username="admin")
-        uri = f"api/v1/database/{database.id}/table/{table_name}/public/"
+        uri = f"api/v1/database/{database.id}/table/{table_name}/null/"
         rv = self.client.get(uri)
 
         self.assertEqual(rv.status_code, 200)
