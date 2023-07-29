@@ -32,18 +32,20 @@ from superset.reports.models import (
 )
 
 openapi_spec_methods_override = {
-    "get": {"get": {"description": "Get a report schedule"}},
+    "get": {"get": {"summary": "Get a report schedule"}},
     "get_list": {
         "get": {
-            "description": "Get a list of report schedules, use Rison or JSON "
+            "summary": "Get a list of report schedules",
+            "description": "Gets a list of report schedules, use Rison or JSON "
             "query parameters for filtering, sorting,"
             " pagination and for selecting specific"
             " columns and metadata.",
         }
     },
-    "post": {"post": {"description": "Create a report schedule"}},
-    "put": {"put": {"description": "Update a report schedule"}},
-    "delete": {"delete": {"description": "Delete a report schedule"}},
+    "post": {"post": {"summary": "Create a report schedule"}},
+    "put": {"put": {"summary": "Update a report schedule"}},
+    "delete": {"delete": {"summary": "Delete a report schedule"}},
+    "info": {"get": {"summary": "Get metadata information about this API resource"}},
 }
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}

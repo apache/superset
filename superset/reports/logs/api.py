@@ -99,11 +99,10 @@ class ReportExecutionLogRestApi(BaseSupersetModelRestApi):
     def get_list(  # pylint: disable=arguments-differ
         self, pk: int, **kwargs: Any
     ) -> Response:
-        """Get a list of report schedule logs
+        """Get a list of report schedule logs.
         ---
         get:
-          description: >-
-            Get a list of report schedule logs
+          summary: Get a list of report schedule logs
           parameters:
           - in: path
             schema:
@@ -160,11 +159,10 @@ class ReportExecutionLogRestApi(BaseSupersetModelRestApi):
     def get(  # pylint: disable=arguments-differ
         self, pk: int, log_id: int, **kwargs: Any
     ) -> Response:
-        """Get a report schedule log
+        """Get a report schedule log.
         ---
         get:
-          description: >-
-            Get a report schedule log
+          summary: Get a report schedule log
           parameters:
           - in: path
             schema:

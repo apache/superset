@@ -68,10 +68,11 @@ class ChartDataRestApi(ChartRestApi):
     )
     def get_data(self, pk: int) -> Response:
         """
-        Takes a chart ID and uses the query context stored when the chart was saved
+        Take a chart ID and uses the query context stored when the chart was saved
         to return payload data response.
         ---
         get:
+          summary: Return payload data response for a chart
           description: >-
             Takes a chart ID and uses the query context stored when the chart was saved
             to return payload data response.
@@ -180,10 +181,11 @@ class ChartDataRestApi(ChartRestApi):
     )
     def data(self) -> Response:
         """
-        Takes a query context constructed in the client and returns payload
-        data response for the given query.
+        Take a query context constructed in the client and return payload
+        data response for the given query
         ---
         post:
+          summary: Return payload data response for the given query
           description: >-
             Takes a query context constructed in the client and returns payload data
             response for the given query.
@@ -267,10 +269,11 @@ class ChartDataRestApi(ChartRestApi):
     )
     def data_from_cache(self, cache_key: str) -> Response:
         """
-        Takes a query context cache key and returns payload
+        Take a query context cache key and return payload
         data response for the given query.
         ---
         get:
+          summary: Return payload data response for the given query
           description: >-
             Takes a query context cache key and returns payload data
             response for the given query.

@@ -178,11 +178,10 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @rison(get_delete_ids_schema)
     def bulk_delete(self, **kwargs: Any) -> Response:
-        """Delete bulk Saved Queries
+        """Bulk delete saved queries.
         ---
         delete:
-          description: >-
-            Deletes multiple saved queries in a bulk operation.
+          summary: Bulk delete saved queries
           parameters:
           - in: query
             name: q
@@ -231,11 +230,10 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @rison(get_export_ids_schema)
     def export(self, **kwargs: Any) -> Response:
-        """Export saved queries
+        """Download multiple saved queries as YAML files.
         ---
         get:
-          description: >-
-            Exports multiple saved queries and downloads them as YAML files
+          summary: Download multiple saved queries as YAML files
           parameters:
           - in: query
             name: q
@@ -296,9 +294,10 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     )
     @requires_form_data
     def import_(self) -> Response:
-        """Import Saved Queries with associated databases
+        """Import saved queries with associated databases.
         ---
         post:
+          summary: Import saved queries with associated databases
           requestBody:
             required: true
             content:

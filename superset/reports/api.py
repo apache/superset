@@ -245,11 +245,10 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def delete(self, pk: int) -> Response:
-        """Delete a Report Schedule
+        """Delete a report schedule.
         ---
         delete:
-          description: >-
-            Delete a Report Schedule
+          summary: Delete a report schedule
           parameters:
           - in: path
             schema:
@@ -299,11 +298,10 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     def post(
         self,
     ) -> Response:
-        """Creates a new Report Schedule
+        """Create a new report schedule.
         ---
         post:
-          description: >-
-            Create a new Report Schedule
+          summary: Create a new report schedule
           requestBody:
             description: Report Schedule schema
             required: true
@@ -372,11 +370,10 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @permission_name("put")
     @requires_json
     def put(self, pk: int) -> Response:
-        """Updates an Report Schedule
+        """Update a report schedule.
         ---
         put:
-          description: >-
-            Updates a Report Schedule
+          summary: Update a report schedule
           parameters:
           - in: path
             schema:
@@ -458,11 +455,10 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
-        """Delete bulk Report Schedule layers
+        """Bulk delete report schedules.
         ---
         delete:
-          description: >-
-            Deletes multiple report schedules in a bulk operation.
+          summary: Bulk delete report schedules
           parameters:
           - in: query
             name: q
