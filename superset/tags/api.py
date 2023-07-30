@@ -20,12 +20,16 @@ from typing import Any
 from flask import request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from marshmallow import ValidationError
 
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.tag import TagDAO
 from superset.exceptions import MissingUserContextException
 from superset.extensions import event_logger
-from superset.tags.commands.create import CreateCustomTagCommand
+from superset.tags.commands.create import (
+    CreateCustomTagCommand,
+    CreateCustomTagWithRelationshipsCommand,
+)
 from superset.tags.commands.delete import DeleteTaggedObjectCommand, DeleteTagsCommand
 from superset.tags.commands.exceptions import (
     TagCreateFailedError,
@@ -130,6 +134,66 @@ class TagRestApi(BaseSupersetModelRestApi):
             f'{self.appbuilder.app.config["VERSION_STRING"]}'
             f'{self.appbuilder.app.config["VERSION_SHA"]}'
         )
+
+    @expose("/", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
+        log_to_statsd=False,
+    )
+    def post(self) -> Response:
+        """Creates a new Tags and tag items
+        ---
+        post:
+          description: >-
+            Create a new Tag
+          requestBody:
+            description: Tag schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
+          responses:
+            201:
+              description: Tag added
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      id:
+                        type: number
+                      result:
+                        $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            item = self.add_model_schema.load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        try:
+            CreateCustomTagWithRelationshipsCommand(item).run()
+            return self.response(201)
+        except TagInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
+        except TaggedObjectDeleteFailedError as ex:
+            logger.error(
+                "Error creating model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
 
     @expose("/<int:object_type>/<int:object_id>/", methods=("POST",))
     @protect()

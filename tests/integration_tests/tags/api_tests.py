@@ -457,3 +457,25 @@ class TestTagApi(SupersetTestCase):
         rv = self.client.delete(uri, follow_redirects=True)
 
         self.assertEqual(rv.status_code, 422)
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_post_tag(self):
+        self.login(username="admin")
+        uri = f"api/v1/tag/"
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "World Bank's Data")
+            .first()
+        )
+        rv = self.client.post(
+            uri, json={"tag": "my_tag", "objects_to_tag": [["dashboard", dashboard.id]]}
+        )
+
+        self.assertEqual(rv.status_code, 201)
+        user_id = self.get_user(username="admin").get_id()
+        tag = (
+            db.session.query(Tag)
+            .filter(Tag.name == "my_tag", Tag.type == TagTypes.custom)
+            .one_or_none()
+        )
+        assert tag is not None
