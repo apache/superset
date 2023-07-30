@@ -47,6 +47,7 @@ services:
     command: ["/app/docker/docker-bootstrap.sh", "app-gunicorn"]
     user: "root"
     restart: unless-stopped
+    network_mode: "host"
     ports:
       - 8088:8088
     depends_on: *superset-depends-on
@@ -59,6 +60,7 @@ services:
     env_file: docker/.env-non-dev
     depends_on: *superset-depends-on
     user: "root"
+    network_mode: "host"
     volumes: *superset-volumes
     healthcheck:
       disable: true
@@ -71,6 +73,7 @@ services:
     restart: unless-stopped
     depends_on: *superset-depends-on
     user: "root"
+    network_mode: "host"
     volumes: *superset-volumes
     healthcheck:
       test: ["CMD-SHELL", "celery -A superset.tasks.celery_app:app inspect ping -d celery@$$HOSTNAME"]
@@ -83,6 +86,7 @@ services:
     restart: unless-stopped
     depends_on: *superset-depends-on
     user: "root"
+    network_mode: "host"
     volumes: *superset-volumes
     healthcheck:
       disable: true
@@ -94,3 +98,4 @@ volumes:
     external: false
   redis:
     external: false
+
