@@ -17,7 +17,7 @@
  * under the License.
  */
 import { FeatureFlag, t } from '@superset-ui/core';
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import { isFeatureEnabled } from 'src/featureFlags';
 import {
   createFetchRelated,
@@ -42,22 +42,8 @@ import { deleteTags } from 'src/features/tags/tags';
 import { Tag as AntdTag } from 'antd';
 import { Tag } from 'src/views/CRUD/types';
 import TagCard from 'src/features/tags/TagCard';
+import TagModal from 'src/features/tags/TagModal';
 import FaveStar from 'src/components/FaveStar';
-
-const emptyState = {
-  title: t('No Tags created'),
-  image: 'dashboard.svg',
-  description:
-    'Create a new tag and assign it to existing entities like charts or dashboards',
-  buttonAction: () => {},
-  // todo(hughhh): Add this back once Tag modal is functional
-  // buttonText: (
-  //   <>
-  //     <i className="fa fa-plus" data-test="add-rule-empty" />{' '}
-  //     {'Create a new Tag'}{' '}
-  //   </>
-  // ),
-};
 
 const PAGE_SIZE = 25;
 
@@ -91,6 +77,7 @@ function TagList(props: TagListProps) {
     refreshData,
   } = useListViewResource<Tag>('tag', t('tag'), addDangerToast);
 
+  const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
   const tagIds = useMemo(() => tags.map(c => c.id), [tags]);
   const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
     'tag',
@@ -114,6 +101,20 @@ function TagList(props: TagListProps) {
     deleteTags(tags, callback, error);
     refreshData();
   }
+
+  const emptyState = {
+    title: t('No Tags created'),
+    image: 'dashboard.svg',
+    description:
+      'Create a new tag and assign it to existing entities like charts or dashboards',
+    buttonAction: () => setShowCreateModal(true),
+    buttonText: (
+      <>
+        <i className="fa fa-plus" data-test="add-rule-empty" />{' '}
+        {'Create a new Tag'}{' '}
+      </>
+    ),
+  };
 
   const columns = useMemo(
     () => [
@@ -304,6 +305,7 @@ function TagList(props: TagListProps) {
   );
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
+
   if (canDelete) {
     subMenuButtons.push({
       name: t('Bulk select'),
@@ -313,11 +315,23 @@ function TagList(props: TagListProps) {
     });
   }
 
+  // render new 'New Tag' btn
+  subMenuButtons.push({
+    name: t('New Tag'),
+    buttonStyle: 'primary',
+    'data-test': 'bulk-select',
+    onClick: () => setShowCreateModal(true),
+  });
+
   const handleBulkDelete = (tagsToDelete: Tag[]) =>
     handleTagsDelete(tagsToDelete, addSuccessToast, addDangerToast);
 
   return (
     <>
+      <TagModal
+        show={showCreateModal}
+        onHide={() => setShowCreateModal(false)}
+      />
       <SubMenu name={t('Tags')} buttons={subMenuButtons} />
       <ConfirmStatusChange
         title={t('Please confirm')}
