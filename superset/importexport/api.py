@@ -50,12 +50,12 @@ class ImportExportRestApi(BaseSupersetApi):
         log_to_statsd=False,
     )
     def export(self) -> Response:
-        """
-        Export all assets.
+        """Export all assets.
         ---
         get:
+          summary: Export all assets
           description: >-
-            Returns a ZIP file with all the Superset assets (databases, datasets, charts,
+            Gets a ZIP file with all the Superset assets (databases, datasets, charts,
             dashboards, saved queries) as YAML files.
           responses:
             200:
@@ -100,9 +100,10 @@ class ImportExportRestApi(BaseSupersetApi):
     )
     @requires_form_data
     def import_(self) -> Response:
-        """Import multiple assets
+        """Import multiple assets.
         ---
         post:
+          summary: Import multiple assets
           requestBody:
             required: true
             content:

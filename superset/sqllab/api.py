@@ -95,11 +95,10 @@ class SqlLabRestApi(BaseSupersetApi):
         log_to_statsd=False,
     )
     def estimate_query_cost(self) -> Response:
-        """Estimates the SQL query execution cost
+        """Estimate the SQL query execution cost.
         ---
         post:
-          summary: >-
-            Estimates the SQL query execution cost
+          summary: Estimate the SQL query execution cost
           requestBody:
             description: SQL query and params
             required: true
@@ -144,11 +143,10 @@ class SqlLabRestApi(BaseSupersetApi):
         log_to_statsd=False,
     )
     def export_csv(self, client_id: str) -> CsvResponse:
-        """Exports the SQL query results to a CSV
+        """Export the SQL query results to a CSV.
         ---
         get:
-          summary: >-
-            Exports the SQL query results to a CSV
+          summary: Export the SQL query results to a CSV
           parameters:
           - in: path
             schema:
@@ -206,11 +204,10 @@ class SqlLabRestApi(BaseSupersetApi):
         log_to_statsd=False,
     )
     def get_results(self, **kwargs: Any) -> FlaskResponse:
-        """Gets the result of a SQL query execution
+        """Get the result of a SQL query execution.
         ---
         get:
-          summary: >-
-            Gets the result of a SQL query execution
+          summary: Get the result of a SQL query execution
           parameters:
           - in: query
             name: q
@@ -260,11 +257,10 @@ class SqlLabRestApi(BaseSupersetApi):
         log_to_statsd=False,
     )
     def execute_sql_query(self) -> FlaskResponse:
-        """Executes a SQL query
+        """Execute a SQL query.
         ---
         post:
-          description: >-
-            Starts the execution of a SQL query
+          summary: Execute a SQL query
           requestBody:
             description: SQL query and params
             required: true

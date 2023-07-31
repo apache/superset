@@ -37,6 +37,21 @@ clause_description = "This is the condition that will be added to the WHERE clau
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 
+openapi_spec_methods_override = {
+    "get": {"get": {"summary": "Get an RLS"}},
+    "get_list": {
+        "get": {
+            "summary": "Get a list of RLS",
+            "description": "Gets a list of RLS, use Rison or JSON "
+            "query parameters for filtering, sorting,"
+            " pagination and for selecting specific"
+            " columns and metadata.",
+        }
+    },
+    "delete": {"delete": {"summary": "Delete an RLS"}},
+    "info": {"get": {"summary": "Get metadata information about this API resource"}},
+}
+
 
 class RolesSchema(Schema):
     name = fields.String()
