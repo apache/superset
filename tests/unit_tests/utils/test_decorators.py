@@ -17,7 +17,6 @@
 
 
 from contextlib import nullcontext
-from enum import Enum
 from inspect import isclass
 from typing import Any, Optional
 from unittest.mock import call, Mock, patch
@@ -26,9 +25,10 @@ import pytest
 
 from superset import app
 from superset.utils import decorators
+from superset.utils.backports import StrEnum
 
 
-class ResponseValues(str, Enum):
+class ResponseValues(StrEnum):
     FAIL = "fail"
     WARN = "warn"
     OK = "ok"
