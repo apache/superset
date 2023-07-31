@@ -20,7 +20,6 @@
 from __future__ import annotations
 
 import builtins
-import enum
 import json
 import logging
 import textwrap
@@ -74,6 +73,7 @@ from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.result_set import SupersetResultSet
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import cache as cache_util, core as utils
+from superset.utils.backports import StrEnum
 from superset.utils.core import get_username
 
 config = app.config
@@ -116,7 +116,7 @@ class CssTemplate(Model, AuditMixinNullable):
     css = Column(Text, default="")
 
 
-class ConfigurationMethod(str, enum.Enum):
+class ConfigurationMethod(StrEnum):
     SQLALCHEMY_FORM = "sqlalchemy_form"
     DYNAMIC_FORM = "dynamic_form"
 
@@ -1007,7 +1007,7 @@ class Log(Model):  # pylint: disable=too-few-public-methods
     referrer = Column(String(1024))
 
 
-class FavStarClassName(str, enum.Enum):
+class FavStarClassName(StrEnum):
     CHART = "slice"
     DASHBOARD = "Dashboard"
 
