@@ -140,11 +140,12 @@ class TagRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def add_objects(self, object_type: ObjectTypes, object_id: int) -> Response:
-        """Adds tags to an object. Creates new tags if they do not already exist
+        """Add tags to an object. Create new tags if they do not already exist.
         ---
         post:
+          summary: Add tags to an object
           description: >-
-            Add tags to an object..
+            Adds tags to an object. Creates new tags if they do not already exist.
           requestBody:
             description: Tag schema
             required: true
@@ -213,11 +214,10 @@ class TagRestApi(BaseSupersetModelRestApi):
     def delete_object(
         self, object_type: ObjectTypes, object_id: int, tag: str
     ) -> Response:
-        """Deletes a Tagged Object
+        """Delete a tagged object.
         ---
         delete:
-          description: >-
-            Deletes a Tagged Object.
+          summary: Delete a tagged object
           parameters:
           - in: path
             schema:
@@ -280,11 +280,12 @@ class TagRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
-        """Delete Tags
+        """Bulk delete tags. This will remove all tagged objects with this tag.
         ---
         delete:
+          summary: Bulk delete tags
           description: >-
-            Deletes multiple Tags. This will remove all tagged objects with this tag
+            Bulk deletes tags. This will remove all tagged objects with this tag.
           parameters:
           - in: query
             name: q
@@ -334,11 +335,10 @@ class TagRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def get_objects(self) -> Response:
-        """Gets all objects associated with a Tag
+        """Get all objects associated with a tag.
         ---
         get:
-          description: >-
-            Gets all objects associated with a Tag.
+          summary: Get all objects associated with a tag
           parameters:
           - in: path
             schema:

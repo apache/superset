@@ -131,12 +131,10 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
     @permission_name("get")
     @rison(get_list_schema)
     def get_list(self, dashboard_id: int, **kwargs: Any) -> Response:
-        """
-            Gets a dashboard's Filter sets
-         ---
+        """Get a dashboard's list of filter sets.
+        ---
         get:
-          description: >-
-            Get a dashboard's list of filter sets
+          summary: Get a dashboard's list of filter sets
           parameters:
           - in: path
             schema:
@@ -198,12 +196,10 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
     )
     @requires_json
     def post(self, dashboard_id: int) -> Response:
-        """
-            Creates a new Dashboard's Filter Set
+        """Create a new dashboard's filter set.
         ---
         post:
-          description: >-
-            Create a new Dashboard's Filter Set.
+          summary: Create a new dashboard's filter set
           parameters:
           - in: path
             schema:
@@ -265,11 +261,10 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
     )
     @requires_json
     def put(self, dashboard_id: int, pk: int) -> Response:
-        """Changes a Dashboard's Filter set
+        """Update a dashboard's filter set.
         ---
         put:
-          description: >-
-            Changes a Dashboard's Filter set.
+          summary: Update a dashboard's filter set
           parameters:
           - in: path
             schema:
@@ -336,12 +331,10 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def delete(self, dashboard_id: int, pk: int) -> Response:
-        """
-            Deletes a Dashboard's FilterSet
+        """Delete a dashboard's filter set.
         ---
         delete:
-          description: >-
-            Deletes a Dashboard.
+          summary: Delete a dashboard's filter set
           parameters:
           - in: path
             schema:

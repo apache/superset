@@ -53,7 +53,7 @@ class Api(BaseSupersetView):
     @expose("/v1/query/", methods=("POST",))
     def query(self) -> FlaskResponse:
         """
-        Takes a query_obj constructed in the client and returns payload data response
+        Take a query_obj constructed in the client and returns payload data response
         for the given query_obj.
 
         raises SupersetSecurityException: If the user cannot access the resource
@@ -75,7 +75,7 @@ class Api(BaseSupersetView):
     @expose("/v1/form_data/", methods=("GET",))
     def query_form_data(self) -> FlaskResponse:
         """
-        Get the formdata stored in the database for existing slice.
+        Get the form_data stored in the database for existing slice.
         params: slice_id: integer
         """
         form_data = {}
@@ -94,7 +94,7 @@ class Api(BaseSupersetView):
     @rison(get_time_range_schema)
     @expose("/v1/time_range/", methods=("GET",))
     def time_range(self, **kwargs: Any) -> FlaskResponse:
-        """Get actually time range from human readable string or datetime expression"""
+        """Get actually time range from human-readable string or datetime expression."""
         time_range = kwargs["rison"]
         try:
             since, until = get_since_until(time_range)

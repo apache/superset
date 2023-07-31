@@ -69,20 +69,16 @@ certified_by_description = "Person or group that has certified this dashboard"
 certification_details_description = "Details of the certification"
 
 openapi_spec_methods_override = {
-    "get": {"get": {"description": "Get a dashboard detail information."}},
+    "get": {"get": {"summary": "Get a dashboard detail information"}},
     "get_list": {
         "get": {
-            "description": "Get a list of dashboards, use Rison or JSON query "
+            "summary": "Get a list of dashboards",
+            "description": "Gets a list of dashboards, use Rison or JSON query "
             "parameters for filtering, sorting, pagination and "
             " for selecting specific columns and metadata.",
         }
     },
-    "info": {
-        "get": {
-            "description": "Several metadata information about dashboard API "
-            "endpoints.",
-        }
-    },
+    "info": {"get": {"summary": "Get metadata information about this API resource"}},
     "related": {
         "get": {"description": "Get a list of all possible owners for a dashboard."}
     },

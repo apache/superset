@@ -50,7 +50,7 @@ class DatasourceRestApi(BaseSupersetApi):
     def get_column_values(
         self, datasource_type: str, datasource_id: int, column_name: str
     ) -> FlaskResponse:
-        """Get possible values for a datasource column
+        """Get possible values for a datasource column.
         ---
         get:
           summary: Get possible values for a datasource column
