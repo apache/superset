@@ -98,6 +98,7 @@ from superset.superset_typing import (
     FormData,
     Metric,
 )
+from superset.utils.backports import StrEnum
 from superset.utils.database import get_example_database
 from superset.utils.date_parser import parse_human_timedelta
 from superset.utils.dates import datetime_to_epoch, EPOCH
@@ -133,12 +134,12 @@ class LenientEnum(Enum):
             return None
 
 
-class AdhocMetricExpressionType(str, Enum):
+class AdhocMetricExpressionType(StrEnum):
     SIMPLE = "SIMPLE"
     SQL = "SQL"
 
 
-class AnnotationType(str, Enum):
+class AnnotationType(StrEnum):
     FORMULA = "FORMULA"
     INTERVAL = "INTERVAL"
     EVENT = "EVENT"
@@ -160,7 +161,7 @@ class GenericDataType(IntEnum):
     # ROW = 7
 
 
-class DatasourceType(str, Enum):
+class DatasourceType(StrEnum):
     SLTABLE = "sl_table"
     TABLE = "table"
     DATASET = "dataset"
@@ -169,7 +170,7 @@ class DatasourceType(str, Enum):
     VIEW = "view"
 
 
-class LoggerLevel(str, Enum):
+class LoggerLevel(StrEnum):
     INFO = "info"
     WARNING = "warning"
     EXCEPTION = "exception"
@@ -208,19 +209,19 @@ class QueryObjectFilterClause(TypedDict, total=False):
     isExtra: bool | None
 
 
-class ExtraFiltersTimeColumnType(str, Enum):
+class ExtraFiltersTimeColumnType(StrEnum):
     TIME_COL = "__time_col"
     TIME_GRAIN = "__time_grain"
     TIME_ORIGIN = "__time_origin"
     TIME_RANGE = "__time_range"
 
 
-class ExtraFiltersReasonType(str, Enum):
+class ExtraFiltersReasonType(StrEnum):
     NO_TEMPORAL_COLUMN = "no_temporal_column"
     COL_NOT_IN_DATASOURCE = "not_in_datasource"
 
 
-class FilterOperator(str, Enum):
+class FilterOperator(StrEnum):
     """
     Operators used filter controls
     """
@@ -242,7 +243,7 @@ class FilterOperator(str, Enum):
     TEMPORAL_RANGE = "TEMPORAL_RANGE"
 
 
-class FilterStringOperators(str, Enum):
+class FilterStringOperators(StrEnum):
     EQUALS = ("EQUALS",)
     NOT_EQUALS = ("NOT_EQUALS",)
     LESS_THAN = ("LESS_THAN",)
@@ -260,7 +261,7 @@ class FilterStringOperators(str, Enum):
     IS_FALSE = ("IS_FALSE",)
 
 
-class PostProcessingBoxplotWhiskerType(str, Enum):
+class PostProcessingBoxplotWhiskerType(StrEnum):
     """
     Calculate cell contribution to row/column total
     """
@@ -270,7 +271,7 @@ class PostProcessingBoxplotWhiskerType(str, Enum):
     PERCENTILE = "percentile"
 
 
-class PostProcessingContributionOrientation(str, Enum):
+class PostProcessingContributionOrientation(StrEnum):
     """
     Calculate cell contribution to row/column total
     """
@@ -298,7 +299,7 @@ class QuerySource(Enum):
     SQL_LAB = 2
 
 
-class QueryStatus(str, Enum):
+class QueryStatus(StrEnum):
     """Enum-type class for query statuses"""
 
     STOPPED: str = "stopped"
@@ -311,14 +312,14 @@ class QueryStatus(str, Enum):
     TIMED_OUT: str = "timed_out"
 
 
-class DashboardStatus(str, Enum):
+class DashboardStatus(StrEnum):
     """Dashboard status used for frontend filters"""
 
     PUBLISHED = "published"
     DRAFT = "draft"
 
 
-class ReservedUrlParameters(str, Enum):
+class ReservedUrlParameters(StrEnum):
     """
     Reserved URL parameters that are used internally by Superset. These will not be
     passed to chart queries, as they control the behavior of the UI.
@@ -336,7 +337,7 @@ class ReservedUrlParameters(str, Enum):
         return standalone
 
 
-class RowLevelSecurityFilterType(str, Enum):
+class RowLevelSecurityFilterType(StrEnum):
     REGULAR = "Regular"
     BASE = "Base"
 

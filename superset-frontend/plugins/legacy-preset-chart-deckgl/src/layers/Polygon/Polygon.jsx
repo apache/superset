@@ -143,6 +143,7 @@ export function getLayer(
     getLineColor: [sc.r, sc.g, sc.b, 255 * sc.a],
     getLineWidth: fd.line_width,
     extruded: fd.extruded,
+    lineWidthUnits: fd.line_width_unit,
     getElevation: d => getElevation(d, colorScaler),
     elevationScale: fd.multiplier,
     fp64: true,

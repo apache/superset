@@ -77,7 +77,7 @@ const config: ControlPanelConfig = {
             config: {
               type: 'SelectControl',
               label: t('Line width unit'),
-              default: 'meters',
+              default: 'pixels',
               choices: [
                 ['meters', t('meters')],
                 ['pixels', t('pixels')],

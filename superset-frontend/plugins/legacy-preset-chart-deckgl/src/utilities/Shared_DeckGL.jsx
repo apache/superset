@@ -210,7 +210,7 @@ export const lineWidth = {
     label: t('Line width'),
     renderTrigger: true,
     isInt: true,
-    default: 10,
+    default: 1,
     description: t('The width of the lines'),
   },
 };

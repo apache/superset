@@ -59,11 +59,10 @@ class ExplorePermalinkRestApi(BaseSupersetApi):
     )
     @requires_json
     def post(self) -> Response:
-        """Stores a new permanent link.
+        """Create a new permanent link.
         ---
         post:
-          description: >-
-            Stores a new permanent link.
+          summary: Create a new permanent link
           requestBody:
             required: true
             content:
@@ -119,11 +118,10 @@ class ExplorePermalinkRestApi(BaseSupersetApi):
         log_to_statsd=False,
     )
     def get(self, key: str) -> Response:
-        """Retrives permanent link state for chart.
+        """Get chart's permanent link state.
         ---
         get:
-          description: >-
-            Retrives chart state associated with a permanent link.
+          summary: Get chart's permanent link state
           parameters:
           - in: path
             schema:
