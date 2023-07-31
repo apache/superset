@@ -159,7 +159,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def get_updated_since(self, **kwargs: Any) -> FlaskResponse:
-        """Get a list of queries that changed after last_updated_ms
+        """Get a list of queries that changed after last_updated_ms.
         ---
         get:
           summary: Get a list of queries that changed after last_updated_ms
@@ -220,7 +220,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
     )
     @requires_json
     def stop_query(self) -> FlaskResponse:
-        """Manually stop a query with client_id
+        """Manually stop a query with client_id.
         ---
         post:
           summary: Manually stop a query with client_id

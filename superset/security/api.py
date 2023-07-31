@@ -88,12 +88,10 @@ class SecurityRestApi(BaseSupersetApi):
     @statsd_metrics
     @permission_name("read")
     def csrf_token(self) -> Response:
-        """
-        Return the csrf token
+        """Get the CSRF token.
         ---
         get:
-          description: >-
-            Fetch the CSRF token
+          summary: Get the CSRF token
           responses:
             200:
               description: Result contains the CSRF token
@@ -118,12 +116,10 @@ class SecurityRestApi(BaseSupersetApi):
     @statsd_metrics
     @permission_name("grant_guest_token")
     def guest_token(self) -> Response:
-        """Response
-        Returns a guest token that can be used for auth in embedded Superset
+        """Get a guest token that can be used for auth in embedded Superset.
         ---
         post:
-          description: >-
-            Fetches a guest token
+          summary: Get a guest token
           requestBody:
             description: Parameters for the guest token
             required: true
