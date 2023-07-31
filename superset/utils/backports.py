@@ -14,12 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset.utils.backports import StrEnum
+import sys
+from enum import Enum
 
+if sys.version_info >= (3, 11):
+    # pylint: disable=unused-import
+    from enum import StrEnum  # nopycln: import
+else:
 
-class LimitingFactor(StrEnum):
-    QUERY = "QUERY"
-    DROPDOWN = "DROPDOWN"
-    QUERY_AND_DROPDOWN = "QUERY_AND_DROPDOWN"
-    NOT_LIMITED = "NOT_LIMITED"
-    UNKNOWN = "UNKNOWN"
+    class StrEnum(str, Enum):
+        pass

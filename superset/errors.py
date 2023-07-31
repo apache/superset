@@ -15,13 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 from dataclasses import dataclass
-from enum import Enum
 from typing import Any, Optional
 
 from flask_babel import lazy_gettext as _
 
+from superset.utils.backports import StrEnum
 
-class SupersetErrorType(str, Enum):
+
+class SupersetErrorType(StrEnum):
     """
     Types of errors that can exist within Superset.
 
@@ -183,7 +184,7 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
 }
 
 
-class ErrorLevel(str, Enum):
+class ErrorLevel(StrEnum):
     """
     Levels of errors that can exist within Superset.
 
