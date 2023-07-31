@@ -31,27 +31,24 @@ export const hostField = ({
   getValidation,
   validationErrors,
   db,
-}: FieldPropTypes) => {
-  debugger;
-  return (
-    <ValidatedInput
-      id="host"
-      name="host"
-      value={db?.parameters?.host}
-      required={required}
-      hasTooltip
-      tooltipText={t(
-        'This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com).',
-      )}
-      validationMethods={{ onBlur: getValidation }}
-      errorMessage={validationErrors?.host}
-      placeholder={t('e.g. 127.0.0.1')}
-      className="form-group-w-50"
-      label={t('Host')}
-      onChange={changeMethods.onParametersChange}
-    />
-  );
-};
+}: FieldPropTypes) => (
+  <ValidatedInput
+    id="host"
+    name="host"
+    value={db?.parameters?.host}
+    required={required}
+    hasTooltip
+    tooltipText={t(
+      'This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com).',
+    )}
+    validationMethods={{ onBlur: getValidation }}
+    errorMessage={validationErrors?.host}
+    placeholder={t('e.g. 127.0.0.1')}
+    className="form-group-w-50"
+    label={t('Host')}
+    onChange={changeMethods.onParametersChange}
+  />
+);
 
 export const portField = ({
   required,

@@ -249,8 +249,6 @@ export function dbReducer(
   let actionPayloadJson;
   const extraJson: ExtraJson = JSON.parse(trimmedState.extra || '{}');
 
-  console.log(action.type);
-
   switch (action.type) {
     case ActionType.extraEditorChange:
       // "extra" payload in state is a string
