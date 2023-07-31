@@ -249,6 +249,8 @@ export function dbReducer(
   let actionPayloadJson;
   const extraJson: ExtraJson = JSON.parse(trimmedState.extra || '{}');
 
+  console.log(action.type);
+
   switch (action.type) {
     case ActionType.extraEditorChange:
       // "extra" payload in state is a string
@@ -267,7 +269,6 @@ export function dbReducer(
       };
     case ActionType.extraInputChange:
       // "extra" payload in state is a string
-
       if (
         action.payload.name === 'schema_cache_timeout' ||
         action.payload.name === 'table_cache_timeout'
@@ -1635,6 +1636,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         getValidation={() => getValidation(db)}
         validationErrors={validationErrors}
         getPlaceholder={getPlaceholder}
+        clearValidationErrors={() => setValidationErrors(null)}
       />
       {db?.parameters?.ssh && (
         <SSHTunnelContainer>{renderSSHTunnelForm()}</SSHTunnelContainer>
