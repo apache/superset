@@ -24,7 +24,7 @@ assists people when migrating to a new version.
 
 ## Next
 
-- [24657](https://github.com/apache/superset/pull/24657): Bumps the cryptography package to augment the OpenSSL security vulnerability. 
+- [24657](https://github.com/apache/superset/pull/24657): Bumps the cryptography package to augment the OpenSSL security vulnerability.
 - [24628](https://github.com/apache/superset/pull/24628): Augments the foreign key constraints for the `dashboard_owner`, `report_schedule_owner`, and `slice_owner` tables to include an explicit CASCADE ON DELETE to ensure the relevant ownership records are deleted when a dataset is deleted. Scheduled downtime may be advised.
 - [24488](https://github.com/apache/superset/pull/24488): Augments the foreign key constraints for the `sql_metrics`, `sqlatable_user`, and `table_columns` tables to include an explicit CASCADE ON DELETE to ensure the relevant records are deleted when a dataset is deleted. Scheduled downtime may be advised.
 - [24335](https://github.com/apache/superset/pull/24335): Removed deprecated API `/superset/filter/<datasource_type>/<int:datasource_id>/<column>/`
