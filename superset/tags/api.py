@@ -38,7 +38,9 @@ from superset.tags.commands.exceptions import (
     TaggedObjectNotFoundError,
     TagInvalidError,
     TagNotFoundError,
+    TagUpdateFailedError,
 )
+from superset.tags.commands.update import UpdateTagCommand
 from superset.tags.models import ObjectTypes, Tag
 from superset.tags.schemas import (
     delete_tags_schema,
@@ -46,6 +48,7 @@ from superset.tags.schemas import (
     TaggedObjectEntityResponseSchema,
     TagGetResponseSchema,
     TagPostSchema,
+    TagPutSchema,
 )
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -81,6 +84,7 @@ class TagRestApi(BaseSupersetModelRestApi):
         "id",
         "name",
         "type",
+        "description",
         "changed_by.first_name",
         "changed_by.last_name",
         "changed_on_delta_humanized",
@@ -94,6 +98,7 @@ class TagRestApi(BaseSupersetModelRestApi):
         "id",
         "name",
         "type",
+        "description",
         "changed_by.first_name",
         "changed_by.last_name",
         "changed_on_delta_humanized",
@@ -112,6 +117,7 @@ class TagRestApi(BaseSupersetModelRestApi):
     allowed_rel_fields = {"created_by"}
 
     add_model_schema = TagPostSchema()
+    edit_model_schema = TagPutSchema()
     tag_get_response_schema = TagGetResponseSchema()
     object_entity_response_schema = TaggedObjectEntityResponseSchema()
 
@@ -194,6 +200,71 @@ class TagRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
+
+    @expose("/<pk>", methods=("PUT",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
+        log_to_statsd=False,
+    )
+    def put(self, pk: int) -> Response:
+        """Changes a Tag
+        ---
+        put:
+          description: >-
+            Changes a Tag.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          requestBody:
+            description: Chart schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
+          responses:
+            200:
+              description: Tag changed
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      id:
+                        type: number
+                      result:
+                        $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            item = self.edit_model_schema.load(request.json)
+        # This validates custom Schema with custom validations
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        item = request.json
+        try:
+            changed_model = UpdateTagCommand(pk, item).run()
+            response = self.response(200, id=changed_model.id, result=item)
+        except TagUpdateFailedError as ex:
+            response = self.response_422(message=str(ex))
+
+        return response
 
     @expose("/<int:object_type>/<int:object_id>/", methods=("POST",))
     @protect()

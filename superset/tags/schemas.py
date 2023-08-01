@@ -56,7 +56,16 @@ class TagGetResponseSchema(Schema):
 
 
 class TagPostSchema(Schema):
-    tag = fields.String()
+    name = fields.String()
+    description = fields.String(required=False)
+    # resource id's to tag with tag
+    objects_to_tag = fields.List(
+        fields.Tuple((fields.String(), fields.Int())), required=False
+    )
+
+
+class TagPutSchema(Schema):
+    name = fields.String()
     description = fields.String(required=False)
     # resource id's to tag with tag
     objects_to_tag = fields.List(

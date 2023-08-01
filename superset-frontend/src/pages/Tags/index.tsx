@@ -18,6 +18,7 @@
  */
 import { FeatureFlag, t } from '@superset-ui/core';
 import React, { useMemo, useCallback, useState } from 'react';
+import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import { isFeatureEnabled } from 'src/featureFlags';
 import {
   createFetchRelated,
@@ -44,6 +45,7 @@ import { Tag } from 'src/views/CRUD/types';
 import TagCard from 'src/features/tags/TagCard';
 import TagModal from 'src/features/tags/TagModal';
 import FaveStar from 'src/components/FaveStar';
+import { fetchObjects } from 'src/features/tags/tags';
 
 const PAGE_SIZE = 25;
 
@@ -77,7 +79,8 @@ function TagList(props: TagListProps) {
     refreshData,
   } = useListViewResource<Tag>('tag', t('tag'), addDangerToast);
 
-  const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
+  const [showTagModal, setShowTagModal] = useState<boolean>(false);
+  const [tagToEdit, setTagToEdit] = useState<Tag | null>(null);
   const tagIds = useMemo(() => tags.map(c => c.id), [tags]);
   const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
     'tag',
@@ -89,6 +92,7 @@ function TagList(props: TagListProps) {
   const userKey = dangerouslyGetItemDoNotUse(userId?.toString(), null);
 
   const canDelete = hasPerm('can_write');
+  const canEdit = hasPerm('can_write');
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
@@ -102,12 +106,17 @@ function TagList(props: TagListProps) {
     refreshData();
   }
 
+  const handleTagEdit = (tag: Tag) => {
+    setShowTagModal(true);
+    setTagToEdit(tag);
+  };
+
   const emptyState = {
     title: t('No Tags created'),
     image: 'dashboard.svg',
     description:
       'Create a new tag and assign it to existing entities like charts or dashboards',
-    buttonAction: () => setShowCreateModal(true),
+    buttonAction: () => setShowTagModal(true),
     buttonText: (
       <>
         <i className="fa fa-plus" data-test="add-rule-empty" />{' '}
@@ -177,6 +186,7 @@ function TagList(props: TagListProps) {
         Cell: ({ row: { original } }: any) => {
           const handleDelete = () =>
             handleTagsDelete([original], addSuccessToast, addDangerToast);
+          const handleEdit = () => handleTagEdit(original);
           return (
             <Actions className="actions">
               {canDelete && (
@@ -207,6 +217,22 @@ function TagList(props: TagListProps) {
                     </Tooltip>
                   )}
                 </ConfirmStatusChange>
+              )}
+              {canEdit && (
+                <Tooltip
+                  id="edit-action-tooltip"
+                  title={t('Edit')}
+                  placement="bottom"
+                >
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={handleEdit}
+                  >
+                    <Icons.EditAlt data-test="edit-alt" />
+                  </span>
+                </Tooltip>
               )}
             </Actions>
           );
@@ -320,7 +346,7 @@ function TagList(props: TagListProps) {
     name: t('New Tag'),
     buttonStyle: 'primary',
     'data-test': 'bulk-select',
-    onClick: () => setShowCreateModal(true),
+    onClick: () => setShowTagModal(true),
   });
 
   const handleBulkDelete = (tagsToDelete: Tag[]) =>
@@ -329,8 +355,12 @@ function TagList(props: TagListProps) {
   return (
     <>
       <TagModal
-        show={showCreateModal}
-        onHide={() => setShowCreateModal(false)}
+        show={showTagModal}
+        onHide={() => {
+          setShowTagModal(false);
+          setTagToEdit(null);
+        }}
+        editTag={tagToEdit}
       />
       <SubMenu name={t('Tags')} buttons={subMenuButtons} />
       <ConfirmStatusChange

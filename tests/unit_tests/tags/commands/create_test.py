@@ -8,6 +8,7 @@ from superset.utils.core import DatasourceType
 def session_with_data(session: Session):
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.models.core import Database
+    from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
     from superset.models.sql_lab import Query, SavedQuery
 
@@ -28,19 +29,20 @@ def session_with_data(session: Session):
         TableColumn(column_name="a", type="INTEGER"),
     ]
 
-    sqla_table = SqlaTable(
-        table_name="my_sqla_table",
-        columns=columns,
-        metrics=[],
-        database=db,
-    )
-
     saved_query = SavedQuery(label="test_query", database=db, sql="select * from foo")
+
+    dashboard_obj = Dashboard(
+        id=100,
+        dashboard_title="test_dashboard",
+        slug="test_slug",
+        slices=[],
+        published=True,
+    )
 
     session.add(slice_obj)
     session.add(db)
     session.add(saved_query)
-    session.add(sqla_table)
+    session.add(dashboard_obj)
     session.commit()
     yield session
 
@@ -48,6 +50,7 @@ def session_with_data(session: Session):
 def test_create_command_success(session_with_data: Session):
     from superset.connectors.sqla.models import SqlaTable
     from superset.daos.tag import TagDAO
+    from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
     from superset.models.sql_lab import Query, SavedQuery
     from superset.tags.commands.create import CreateCustomTagWithRelationshipsCommand
@@ -56,12 +59,12 @@ def test_create_command_success(session_with_data: Session):
     # Define a list of objects to tag
     query = session_with_data.query(SavedQuery).first()
     chart = session_with_data.query(Slice).first()
-    dataset = session_with_data.query(SqlaTable).first()
+    dashboard = session_with_data.query(Dashboard).first()
 
     objects_to_tag = [
         (ObjectTypes.query, query.id),
         (ObjectTypes.chart, chart.id),
-        (ObjectTypes.dashboard, dataset.id),
+        (ObjectTypes.dashboard, dashboard.id),
     ]
 
     CreateCustomTagWithRelationshipsCommand(
@@ -84,6 +87,7 @@ def test_create_command_success(session_with_data: Session):
 def test_create_command_failed_validate(session_with_data: Session):
     from superset.connectors.sqla.models import SqlaTable
     from superset.daos.tag import TagDAO
+    from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
     from superset.models.sql_lab import Query, SavedQuery
     from superset.tags.commands.create import CreateCustomTagWithRelationshipsCommand
@@ -92,12 +96,12 @@ def test_create_command_failed_validate(session_with_data: Session):
 
     query = session_with_data.query(SavedQuery).first()
     chart = session_with_data.query(Slice).first()
-    dataset = session_with_data.query(SqlaTable).first()
+    dashboard = session_with_data.query(Dashboard).first()
 
     objects_to_tag = [
         (ObjectTypes.query, query.id),
-        (ObjectTypes.chart, 0),
-        (ObjectTypes.dashboard, dataset.id),
+        (ObjectTypes.chart, chart.id),
+        (ObjectTypes.dashboard, dashboard.id),
     ]
 
     with pytest.raises(TagInvalidError):

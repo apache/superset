@@ -479,3 +479,23 @@ class TestTagApi(SupersetTestCase):
             .one_or_none()
         )
         assert tag is not None
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @pytest.mark.usefixtures("create_tags")
+    def test_put_tag(self):
+        self.login(username="admin")
+
+        tag_to_update = db.session.query(Tag).first()
+        uri = f"api/v1/tag/{tag_to_update.id}"
+        rv = self.client.put(
+            uri, json={"name": "new_name", "description": "new description"}
+        )
+
+        self.assertEqual(rv.status_code, 200)
+
+        tag = (
+            db.session.query(Tag)
+            .filter(Tag.name == "new_name", Tag.description == "new description")
+            .one_or_none()
+        )
+        assert tag is not None

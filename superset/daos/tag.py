@@ -366,7 +366,7 @@ class TagDAO(BaseDAO[Tag]):
 
     @staticmethod
     def create_tag_relationship(
-        objects_to_tag: list[tuple[ObjectTypes, int]], tag_name: str
+        objects_to_tag: list[tuple[ObjectTypes, int]], tag: Tag
     ) -> None:
         """
         Creates a tag relationship between the given objects and the specified tag.
@@ -377,21 +377,30 @@ class TagDAO(BaseDAO[Tag]):
             objects_to_tag (List[Tuple[ObjectTypes, int]]): A list of tuples, each
             containing an ObjectType and an id, representing the objects to be tagged.
 
-            tag (str): The tag to be associated with the specified objects.
+            tag (Tag): The tag to be associated with the specified objects.
         Returns:
             None.
         """
         tagged_objects = []
-        tag = TagDAO.get_by_name(tag_name.strip(), TagTypes.custom)
-
         if not tag:
             raise TagNotFoundError()
 
+        current_tagged_objects = {
+            (obj.object_type, obj.object_id) for obj in tag.objects
+        }
+        tagged_objects_to_delete = current_tagged_objects.difference(objects_to_tag)
+
         for obj in objects_to_tag:
+            # create rows for new objects, and skip tags that already exist
             object_type, object_id = obj
-            tagged_objects.append(
-                TaggedObject(object_id=object_id, object_type=object_type, tag=tag)
-            )
+            if obj not in current_tagged_objects:
+                tagged_objects.append(
+                    TaggedObject(object_id=object_id, object_type=object_type, tag=tag)
+                )
+
+        for object_type, object_id in tagged_objects_to_delete:
+            # delete objects that were removed
+            TagDAO.delete_tagged_object(object_type, object_id, tag.name)
 
         db.session.add_all(tagged_objects)
         db.session.commit()

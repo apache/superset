@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ChangeEvent, useState } from 'react';
+import React, { ChangeEvent, useState, useEffect } from 'react';
 import rison from 'rison';
 import Modal from 'src/components/Modal';
 import AsyncSelect from 'src/components/Select/AsyncSelect';
@@ -25,6 +25,8 @@ import { t, SupersetClient } from '@superset-ui/core';
 import { Input } from 'antd';
 import { Divider } from 'src/components';
 import Button from 'src/components/Button';
+import { Tag } from 'src/views/CRUD/types';
+import { fetchObjects } from 'src/features/tags/tags';
 
 interface Props {
   title: string;
@@ -33,6 +35,7 @@ interface Props {
 interface TaggableResourceOption {
   label: string;
   value: number;
+  key: number;
 }
 
 enum TaggableResources {
@@ -44,9 +47,10 @@ enum TaggableResources {
 interface TagModalProps {
   onHide: () => void;
   show: boolean;
+  editTag: Tag;
 }
 
-const TagModal: React.FC<TagModalProps> = ({ show, onHide }) => {
+const TagModal: React.FC<TagModalProps> = ({ show, onHide, editTag }) => {
   const [dashboardsToTag, setDashboardsToTag] = useState<
     TaggableResourceOption[]
   >([]);
@@ -56,6 +60,40 @@ const TagModal: React.FC<TagModalProps> = ({ show, onHide }) => {
   >([]);
   const [tagName, setTagName] = useState<string>('');
   const [description, setDescription] = useState<string>('');
+
+  const isEditMode = !!editTag;
+  const modalTitle = isEditMode ? 'Edit Tag' : 'Create Tag';
+
+  useEffect(() => {
+    if (isEditMode) {
+      fetchObjects(
+        { tags: editTag.name, types: null },
+        (data: TaggedObject[]) => {
+          data.forEach(function (object) {
+            if (object.type == TaggableResources.Dashboard)
+              setDashboardsToTag([
+                ...dashboardsToTag,
+                { value: object.id, label: object.name, key: object.id },
+              ]);
+            else if (object.type == TaggableResources.Chart)
+              setChartsToTag([
+                ...chartsToTag,
+                { value: object.id, label: object.name, key: object.id },
+              ]);
+            else if (object.type == TaggableResources.SavedQuery)
+              setSavedQueriesToTag([
+                ...savedQueriesToTag,
+                { value: object.id, label: object.name, key: object.id },
+              ]);
+          });
+        },
+        (error: Response) => {
+          addDangerToast('Error Fetching Tagged Objects');
+          logging.log(error.text);
+        },
+      );
+    }
+  }, []);
 
   const loadData = async (
     search: string,
@@ -137,6 +175,19 @@ const TagModal: React.FC<TagModalProps> = ({ show, onHide }) => {
     );
   };
 
+  const loadEditOptions = async () => {
+    const data = await loadData(
+      editTag.name,
+      page,
+      pageSize,
+      ['id', 'slice_name'],
+      'slice_name',
+      'slice_name',
+      'chart',
+    );
+    return [{ value: 6, label: 'Sales Dashboard', key: 6 }];
+  };
+
   const handleOptionChange = (
     resource: TaggableResources,
     data: { label: string; value: number },
@@ -165,21 +216,35 @@ const TagModal: React.FC<TagModalProps> = ({ show, onHide }) => {
       return ['query', q.value];
     });
 
-    SupersetClient.post({
-      endpoint: `/api/v1/tag/`,
-      jsonPayload: {
-        tag: tagName,
-        description: description,
-        objects_to_tag: [...dashboards, ...charts, ...savedQueries],
-      },
-    }).then(({ json = {} }) => {
-      console.log(json);
-    });
+    if (isEditMode) {
+      SupersetClient.put({
+        endpoint: `/api/v1/tag/${editTag.id}`,
+        jsonPayload: {
+          tag: tagName,
+          description: description,
+          objects_to_tag: [...dashboards, ...charts, ...savedQueries],
+        },
+      }).then(({ json = {} }) => {
+        console.log(json);
+      });
+    } else {
+      SupersetClient.post({
+        endpoint: `/api/v1/tag/`,
+        jsonPayload: {
+          tag: tagName,
+          description: description,
+          objects_to_tag: [...dashboards, ...charts, ...savedQueries],
+        },
+      }).then(({ json = {} }) => {
+        console.log(json);
+      });
+    }
+    onHide();
   };
 
   return (
     <Modal
-      title={'Create Tag'}
+      title={modalTitle}
       onHide={onHide}
       show={show}
       footer={
@@ -206,20 +271,20 @@ const TagModal: React.FC<TagModalProps> = ({ show, onHide }) => {
         <Input
           onChange={handleTagNameChange}
           placeholder={'Name of your tag'}
-          value={tagName}
+          value={editTag?.name || tagName}
         />
         <FormLabel>{'Description'}</FormLabel>
         <Input
           onChange={handleDescriptionChange}
           placeholder={'Add description of your tag'}
-          value={description}
+          value={editTag?.description || description}
         />
         <Divider />
         <AsyncSelect
           ariaLabel={t('Select Dashboards')}
           mode="multiple"
           name="dashboards"
-          value={dashboardsToTag}
+          value={editTag?.dashboardsToTag || dashboardsToTag}
           options={loadDashboards}
           onChange={(value, option) =>
             handleOptionChange(TaggableResources.Dashboard, value)

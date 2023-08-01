@@ -14,26 +14,25 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask_babel import lazy_gettext as _
-from marshmallow.validate import ValidationError
+"""merge e0f6f91c2055 and ee179a490af9
 
-from superset.commands.exceptions import CommandException, UpdateFailedError
+Revision ID: 8a3348062abd
+Revises: ('e0f6f91c2055', 'ee179a490af9')
+Create Date: 2023-07-27 22:46:07.223432
 
+"""
 
-class InvalidTagNameError(ValidationError):
-    """
-    Marshmallow validation error for invalid Tag name
-    """
+# revision identifiers, used by Alembic.
+revision = '8a3348062abd'
+down_revision = ('e0f6f91c2055', 'ee179a490af9')
 
-    def __init__(self) -> None:
-        super().__init__(
-            [_("Tag name is invalid (cannot contain ':')")], field_name="name"
-        )
-
-
-class TagUpdateFailedError(UpdateFailedError):
-    message = _("Tag could not be updated.")
+import sqlalchemy as sa
+from alembic import op
 
 
-class TagNotFoundError(CommandException):
-    message = _("Tag could not be found.")
+def upgrade():
+    pass
+
+
+def downgrade():
+    pass

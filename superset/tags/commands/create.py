@@ -17,12 +17,13 @@
 import logging
 from typing import Any
 
+from superset import db
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.daos.exceptions import DAOCreateFailedError
 from superset.daos.tag import TagDAO
 from superset.tags.commands.exceptions import TagCreateFailedError, TagInvalidError
 from superset.tags.commands.utils import to_object_type
-from superset.tags.models import ObjectTypes
+from superset.tags.models import ObjectTypes, TagTypes
 
 logger = logging.getLogger(__name__)
 
@@ -72,11 +73,16 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
     def run(self) -> None:
         self.validate()
         try:
+            tag = TagDAO.get_by_name(self._tag.strip(), TagTypes.custom)
             if self._objects_to_tag:
                 TagDAO.create_tag_relationship(
-                    objects_to_tag=self._objects_to_tag,
-                    tag_name=self._tag,
+                    objects_to_tag=self._objects_to_tag, tag=tag
                 )
+
+            if self._description:
+                tag.description = self._description
+                db.session.commit()
+
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)
             raise TagCreateFailedError() from ex
@@ -85,7 +91,7 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
         exceptions = []
         # Validate object_id
         if self._objects_to_tag:
-            if any([obj_id == 0 for obj_type, obj_id in self._objects_to_tag]):
+            if any(obj_id == 0 for obj_type, obj_id in self._objects_to_tag):
                 exceptions.append(TagCreateFailedError())
 
             # Validate object type
