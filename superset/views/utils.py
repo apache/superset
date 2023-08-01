@@ -260,7 +260,6 @@ def get_datasource_info(
     :raises SupersetException: If the datasource no longer exists
     """
 
-    # pylint: disable=superfluous-parens
     if "__" in (datasource := form_data.get("datasource", "")):
         datasource_id, datasource_type = datasource.split("__")
         # The case where the datasource has been deleted

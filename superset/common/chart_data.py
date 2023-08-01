@@ -14,10 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from enum import Enum
+from superset.utils.backports import StrEnum
 
 
-class ChartDataResultFormat(str, Enum):
+class ChartDataResultFormat(StrEnum):
     """
     Chart data response format
     """
@@ -31,7 +31,7 @@ class ChartDataResultFormat(str, Enum):
         return {cls.CSV} | {cls.XLSX}
 
 
-class ChartDataResultType(str, Enum):
+class ChartDataResultType(StrEnum):
     """
     Chart data response type
     """

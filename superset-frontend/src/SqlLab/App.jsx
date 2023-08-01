@@ -26,7 +26,7 @@ import { initFeatureFlags, isFeatureEnabled } from 'src/featureFlags';
 import { setupStore } from 'src/views/store';
 import setupExtensions from 'src/setup/setupExtensions';
 import getBootstrapData from 'src/utils/getBootstrapData';
-import { api } from 'src/hooks/apiResources/queryApi';
+import { tableApiUtil } from 'src/hooks/apiResources/tables';
 import getInitialState from './reducers/getInitialState';
 import { reducers } from './reducers/index';
 import App from './components/App';
@@ -127,14 +127,14 @@ initialState.sqlLab.tables.forEach(
   ({ name: table, schema, dbId, persistData }) => {
     if (dbId && schema && table && persistData?.columns) {
       store.dispatch(
-        api.util.upsertQueryData(
+        tableApiUtil.upsertQueryData(
           'tableMetadata',
           { dbId, schema, table },
           persistData,
         ),
       );
       store.dispatch(
-        api.util.upsertQueryData(
+        tableApiUtil.upsertQueryData(
           'tableExtendedMetadata',
           { dbId, schema, table },
           {},

@@ -68,7 +68,7 @@ const config = {
             from: '/usertutorial.html',
           },
           {
-            to: '/docs/security',
+            to: '/docs/security/',
             from: '/security.html',
           },
           {

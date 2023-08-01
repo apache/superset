@@ -734,9 +734,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             except Exception as ex:
                 raise ReportScheduleUnexpectedError(str(ex)) from ex
 
-    def validate(  # pylint: disable=arguments-differ
-        self, session: Session = None
-    ) -> None:
+    def validate(self, session: Session = None) -> None:
         # Validate/populate model exists
         logger.info(
             "session is validated: id %s, executionid: %s",

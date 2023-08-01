@@ -30,22 +30,22 @@ logger = logging.getLogger(__name__)
 
 
 class DeleteAnnotationCommand(BaseCommand):
-    def __init__(self, model_id: int):
-        self._model_id = model_id
-        self._model: Optional[Annotation] = None
+    def __init__(self, model_ids: list[int]):
+        self._model_ids = model_ids
+        self._models: Optional[list[Annotation]] = None
 
     def run(self) -> None:
         self.validate()
-        assert self._model
+        assert self._models
 
         try:
-            AnnotationDAO.delete(self._model)
+            AnnotationDAO.delete(self._models)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
             raise AnnotationDeleteFailedError() from ex
 
     def validate(self) -> None:
         # Validate/populate model exists
-        self._model = AnnotationDAO.find_by_id(self._model_id)
-        if not self._model:
+        self._models = AnnotationDAO.find_by_ids(self._model_ids)
+        if not self._models or len(self._models) != len(self._model_ids):
             raise AnnotationNotFoundError()

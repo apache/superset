@@ -18,18 +18,20 @@ from marshmallow import fields, Schema
 from marshmallow.validate import Length
 
 openapi_spec_methods_override = {
-    "get": {"get": {"description": "Get an Annotation layer"}},
+    "get": {"get": {"summary": "Get an annotation layer"}},
     "get_list": {
         "get": {
-            "description": "Get a list of Annotation layers, use Rison or JSON "
+            "summary": "Get a list of annotation layers",
+            "description": "Gets a list of annotation layers, use Rison or JSON "
             "query parameters for filtering, sorting,"
             " pagination and for selecting specific"
             " columns and metadata.",
         }
     },
-    "post": {"post": {"description": "Create an Annotation layer"}},
-    "put": {"put": {"description": "Update an Annotation layer"}},
-    "delete": {"delete": {"description": "Delete Annotation layer"}},
+    "post": {"post": {"summary": "Create an annotation layer"}},
+    "put": {"put": {"summary": "Update an annotation layer"}},
+    "delete": {"delete": {"summary": "Delete annotation layer"}},
+    "info": {"get": {"summary": "Get metadata information about this API resource"}},
 }
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}

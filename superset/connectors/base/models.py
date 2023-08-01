@@ -21,7 +21,6 @@ import json
 import logging
 from collections.abc import Hashable
 from datetime import datetime
-from enum import Enum
 from json.decoder import JSONDecodeError
 from typing import Any, TYPE_CHECKING
 
@@ -44,6 +43,7 @@ from superset.superset_typing import (
     ResultSetColumnType,
 )
 from superset.utils import core as utils
+from superset.utils.backports import StrEnum
 from superset.utils.core import GenericDataType, MediumText
 
 if TYPE_CHECKING:
@@ -75,7 +75,7 @@ COLUMN_FORM_DATA_PARAMS = [
 ]
 
 
-class DatasourceKind(str, Enum):
+class DatasourceKind(StrEnum):
     VIRTUAL = "virtual"
     PHYSICAL = "physical"
 
@@ -589,7 +589,7 @@ class BaseDatasource(
             else []
         )
 
-    def get_extra_cache_keys(  # pylint: disable=no-self-use
+    def get_extra_cache_keys(
         self, query_obj: QueryObjectDict  # pylint: disable=unused-argument
     ) -> list[Hashable]:
         """If a datasource needs to provide additional keys for calculation of

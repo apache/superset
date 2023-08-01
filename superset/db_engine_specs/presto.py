@@ -120,7 +120,9 @@ def get_children(column: ResultSetColumnType) -> list[ResultSetColumnType]:
         raise ValueError
     match = pattern.match(column["type"])
     if not match:
-        raise Exception(f"Unable to parse column type {column['type']}")
+        raise Exception(  # pylint: disable=broad-exception-raised
+            f"Unable to parse column type {column['type']}"
+        )
 
     group = match.groupdict()
     type_ = group["type"].upper()
@@ -156,7 +158,7 @@ def get_children(column: ResultSetColumnType) -> list[ResultSetColumnType]:
             columns.append(_column)
         return columns
 
-    raise Exception(f"Unknown type {type_}!")
+    raise Exception(f"Unknown type {type_}!")  # pylint: disable=broad-exception-raised
 
 
 class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
@@ -618,13 +620,14 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
                 msg = f"Field [{k}] is not part of the portioning key"
                 raise SupersetTemplateException(msg)
         if len(kwargs.keys()) != len(part_fields) - 1:
+            # pylint: disable=consider-using-f-string
             msg = (
                 "A filter needs to be specified for {} out of the " "{} fields."
             ).format(len(part_fields) - 1, len(part_fields))
             raise SupersetTemplateException(msg)
 
         for field in part_fields:
-            if field not in kwargs.keys():
+            if field not in kwargs:
                 field_to_return = field
 
         sql = cls._partition_query(
@@ -931,9 +934,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                             )
                         else:  # otherwise this field is a basic data type
                             full_parent_path = cls._get_full_name(stack)
-                            column_name = "{}.{}".format(
-                                full_parent_path, field_info[0]
-                            )
+                            column_name = f"{full_parent_path}.{field_info[0]}"
                             result.append(
                                 cls._create_column_info(column_name, column_type)
                             )
@@ -1319,8 +1320,10 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                 if total_splits and completed_splits:
                     progress = 100 * (completed_splits / total_splits)
                     logger.info(
-                        "Query {} progress: {} / {} "  # pylint: disable=logging-format-interpolation
-                        "splits".format(query_id, completed_splits, total_splits)
+                        "Query %s progress: %s / %s splits",
+                        query_id,
+                        completed_splits,
+                        total_splits,
                     )
                     if progress > query.progress:
                         query.progress = progress
@@ -1337,6 +1340,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             and isinstance(ex.orig[0], dict)
         ):
             error_dict = ex.orig[0]
+            # pylint: disable=consider-using-f-string
             return "{} at {}: {}".format(
                 error_dict.get("errorName"),
                 error_dict.get("errorLocation"),

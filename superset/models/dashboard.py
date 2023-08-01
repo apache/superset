@@ -115,8 +115,8 @@ dashboard_user = Table(
     "dashboard_user",
     metadata,
     Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("ab_user.id")),
-    Column("dashboard_id", Integer, ForeignKey("dashboards.id")),
+    Column("user_id", Integer, ForeignKey("ab_user.id", ondelete="CASCADE")),
+    Column("dashboard_id", Integer, ForeignKey("dashboards.id", ondelete="CASCADE")),
 )
 
 
@@ -141,12 +141,16 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     css = Column(Text)
     certified_by = Column(Text)
     certification_details = Column(Text)
-    json_metadata = Column(Text)
+    json_metadata = Column(utils.MediumText())
     slug = Column(String(255), unique=True)
     slices: list[Slice] = relationship(
         Slice, secondary=dashboard_slices, backref="dashboards"
     )
-    owners = relationship(security_manager.user_model, secondary=dashboard_user)
+    owners = relationship(
+        security_manager.user_model,
+        secondary=dashboard_user,
+        passive_deletes=True,
+    )
     tags = relationship(
         "Tag",
         overlaps="objects,tag,tags,tags",

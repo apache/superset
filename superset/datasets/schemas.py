@@ -28,6 +28,19 @@ from superset.datasets.models import Dataset
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
 
+openapi_spec_methods_override = {
+    "get": {"get": {"summary": "Get a dataset detail information"}},
+    "get_list": {
+        "get": {
+            "summary": "Get a list of datasets",
+            "description": "Gets a list of datasets, use Rison or JSON query "
+            "parameters for filtering, sorting, pagination and "
+            " for selecting specific columns and metadata.",
+        }
+    },
+    "info": {"get": {"summary": "Get metadata information about this API resource"}},
+}
+
 
 def validate_python_date_format(value: str) -> None:
     regex = re.compile(
@@ -149,7 +162,7 @@ class DatasetRelatedObjectsResponse(Schema):
 
 
 class ImportV1ColumnSchema(Schema):
-    # pylint: disable=no-self-use, unused-argument
+    # pylint: disable=unused-argument
     @pre_load
     def fix_extra(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         """
@@ -175,7 +188,7 @@ class ImportV1ColumnSchema(Schema):
 
 
 class ImportV1MetricSchema(Schema):
-    # pylint: disable=no-self-use, unused-argument
+    # pylint: disable=unused-argument
     @pre_load
     def fix_extra(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         """
@@ -198,14 +211,18 @@ class ImportV1MetricSchema(Schema):
 
 
 class ImportV1DatasetSchema(Schema):
-    # pylint: disable=no-self-use, unused-argument
+    # pylint: disable=unused-argument
     @pre_load
     def fix_extra(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         """
         Fix for extra initially being exported as a string.
         """
         if isinstance(data.get("extra"), str):
-            data["extra"] = json.loads(data["extra"])
+            try:
+                extra = data["extra"]
+                data["extra"] = json.loads(extra) if extra.strip() else None
+            except ValueError:
+                data["extra"] = None
 
         return data
 

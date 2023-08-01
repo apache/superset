@@ -120,7 +120,7 @@ class ChartUpdateFailedError(UpdateFailedError):
 
 
 class ChartDeleteFailedError(DeleteFailedError):
-    message = _("Chart could not be deleted.")
+    message = _("Charts could not be deleted.")
 
 
 class ChartDeleteFailedReportsExistError(ChartDeleteFailedError):
@@ -135,10 +135,6 @@ class ChartForbiddenError(ForbiddenError):
     message = _("Changing this chart is forbidden")
 
 
-class ChartBulkDeleteFailedError(DeleteFailedError):
-    message = _("Charts could not be deleted.")
-
-
 class ChartDataQueryFailedError(CommandException):
     pass
 
@@ -147,12 +143,12 @@ class ChartDataCacheLoadError(CommandException):
     pass
 
 
-class ChartBulkDeleteFailedReportsExistError(ChartBulkDeleteFailedError):
-    message = _("There are associated alerts or reports")
-
-
 class ChartImportError(ImportFailedError):
     message = _("Import chart failed for an unknown reason")
+
+
+class DashboardsForbiddenError(ForbiddenError):
+    message = _("Changing one or more of these dashboards is forbidden")
 
 
 class WarmUpCacheChartNotFoundError(CommandException):

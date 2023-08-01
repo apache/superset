@@ -35,6 +35,15 @@ class MigrateTreeMap(MigrateViz):
 
 
 class MigrateAreaChart(MigrateViz):
+    """
+    Migrate area charts.
+
+    This migration is incomplete, see https://github.com/apache/superset/pull/24703#discussion_r1265222611
+    for more details. If you fix this migration, please update the ``migrate_chart``
+    function in ``superset/charts/commands/importers/v1/utils.py`` so that it gets
+    applied in chart imports.
+    """
+
     source_viz_type = "area"
     target_viz_type = "echarts_area"
     remove_keys = {"contribution", "stacked_style", "x_axis_label"}
@@ -50,6 +59,9 @@ class MigrateAreaChart(MigrateViz):
             }
             self.data["show_extra_controls"] = True
             self.data["stack"] = stacked_map.get(stacked)
+
+        if x_axis := self.data.get("granularity_sqla"):
+            self.data["x_axis"] = x_axis
 
         if x_axis_label := self.data.get("x_axis_label"):
             self.data["x_axis_title"] = x_axis_label

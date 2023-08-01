@@ -123,23 +123,17 @@ owners_name_description = "Name of an owner of the chart."
 certified_by_description = "Person or group that has certified this chart"
 certification_details_description = "Details of the certification"
 
-#
-# OpenAPI method specification overrides
-#
 openapi_spec_methods_override = {
-    "get": {"get": {"description": "Get a chart detail information."}},
+    "get": {"get": {"summary": "Get a chart detail information"}},
     "get_list": {
         "get": {
-            "description": "Get a list of charts, use Rison or JSON query "
+            "summary": "Get a list of charts",
+            "description": "Gets a list of charts, use Rison or JSON query "
             "parameters for filtering, sorting, pagination and "
             " for selecting specific columns and metadata.",
         }
     },
-    "info": {
-        "get": {
-            "description": "Several metadata information about chart API endpoints.",
-        }
-    },
+    "info": {"get": {"summary": "Get metadata information about this API resource"}},
     "related": {
         "get": {
             "description": "Get a list of all possible owners for a chart. "

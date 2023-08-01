@@ -424,6 +424,16 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 viz_type="table",
                 metrics=metrics,
             ),
+            query_context=get_slice_json(
+                default_query_context,
+                queries=[
+                    {
+                        "columns": ["ds"],
+                        "metrics": metrics,
+                        "time_range": "1983 : 2023",
+                    }
+                ],
+            ),
         ),
         Slice(
             **slice_kwargs,
@@ -537,7 +547,6 @@ def create_dashboard(slices: list[Slice]) -> Dashboard:
     dash = db.session.query(Dashboard).filter_by(slug="births").first()
     if not dash:
         dash = Dashboard()
-        dash.owners = []
         db.session.add(dash)
 
     dash.published = True

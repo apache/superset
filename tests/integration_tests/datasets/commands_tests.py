@@ -400,7 +400,6 @@ class TestImportDatasetsCommand(SupersetTestCase):
         assert column.description is None
         assert column.python_date_format is None
 
-        dataset.database.owners = []
         db.session.delete(dataset)
         db.session.delete(dataset.database)
         db.session.commit()
@@ -528,7 +527,6 @@ class TestImportDatasetsCommand(SupersetTestCase):
         )
         assert len(database.tables) == 1
 
-        database.owners = []
         db.session.delete(database.tables[0])
         db.session.delete(database)
         db.session.commit()

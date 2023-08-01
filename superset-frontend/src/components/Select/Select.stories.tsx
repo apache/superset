@@ -208,6 +208,8 @@ InteractiveSelect.args = {
   autoFocus: true,
   allowNewOptions: false,
   allowClear: false,
+  autoClearSearchValue: false,
+  allowSelectAll: true,
   showSearch: true,
   disabled: false,
   invertSelection: false,

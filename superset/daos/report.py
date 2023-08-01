@@ -36,7 +36,7 @@ from superset.reports.models import (
     ReportScheduleType,
     ReportState,
 )
-from superset.utils.core import get_iterable, get_user_id
+from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
 
@@ -94,30 +94,6 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
             .filter(ReportSchedule.database_id.in_(database_ids))
             .all()
         )
-
-    @classmethod
-    def delete(
-        cls,
-        items: ReportSchedule | list[ReportSchedule],
-        commit: bool = True,
-    ) -> None:
-        item_ids = [item.id for item in get_iterable(items)]
-        try:
-            # Clean owners secondary table
-            report_schedules = (
-                db.session.query(ReportSchedule)
-                .filter(ReportSchedule.id.in_(item_ids))
-                .all()
-            )
-            for report_schedule in report_schedules:
-                report_schedule.owners = []
-            for report_schedule in report_schedules:
-                db.session.delete(report_schedule)
-            if commit:
-                db.session.commit()
-        except SQLAlchemyError as ex:
-            db.session.rollback()
-            raise DAODeleteFailedError(str(ex)) from ex
 
     @staticmethod
     def validate_unique_creation_method(

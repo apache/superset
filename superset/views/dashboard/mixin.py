@@ -88,5 +88,5 @@ class DashboardMixin:  # pylint: disable=too-few-public-methods
         "json_metadata": _("JSON Metadata"),
     }
 
-    def pre_delete(self, item: "DashboardMixin") -> None:  # pylint: disable=no-self-use
+    def pre_delete(self, item: "DashboardMixin") -> None:
         security_manager.raise_for_ownership(item)
