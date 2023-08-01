@@ -100,11 +100,11 @@
       "1H": [""],
       "1M": [""],
       "1T": [""],
-      "2 years ago": ["Il y a 2 ans"],
+      "2 years ago": ["il y a 2 ans"],
       "2/98 percentiles": [""],
       "28 days ago": [""],
       "2D": [""],
-      "3 years ago": ["il y a 3 ans"],
+      "3 years ago": ["Il y a 3 ans"],
       "30 days": ["30 jours"],
       "30 minute": ["30 minutes"],
       "30 minutes": ["30 minutes"],
@@ -232,12 +232,6 @@
       "Add filter clauses to control the filter's source query,\n                    though only in the context of the autocomplete i.e., these conditions\n                    do not impact how the filter is applied to the dashboard. This is useful\n                    when you want to improve the query's performance by only scanning a subset\n                    of the underlying data or limit the available values displayed in the filter.": [
         ""
       ],
-      "The database was deleted.": ["La base de données a été supprimée."],
-      "Custom SQL fields cannot contain sub-queries.": [""],
-      "Invalid certificate": ["Certificat invalide"],
-      "Unsafe return type for function %(func)s: %(value_type)s": [
-        "Type de retour non sécurisé pour la fonction %(func)s: %(value_type)s"
-      ],
       "Add filters and dividers": ["Ajouter un filtre ou un diviseur"],
       "Add item": ["Ajouter un item"],
       "Add metric": ["Ajouter une métrique"],
@@ -328,9 +322,6 @@
       "Allow CREATE VIEW AS": ["Autoriser CREATE VIEW AS"],
       "Allow CREATE VIEW AS option in SQL Lab": [
         "Autorise l'option CREATE VIEW AS dans SQL Lab"
-      ],
-      "Please choose at least one metric": [
-        "Choississez au moins une métrique"
       ],
       "Allow Csv Upload": ["Autoriser le téléversement CSV"],
       "Allow DML": ["Autoriser DML"],
@@ -830,7 +821,6 @@
       "Check to apply filters instantly as they change instead of displaying [Apply] button": [
         "Cocher pour appliquer les filtres instantanément dès qu'ils changent aulieu d'afficher le bouton [Appliquer]"
       ],
-      "Request is not JSON": ["La requête n'est pas JSON"],
       "Check to force date partitions to have the same height": [""],
       "Check to include time column dropdown": [
         "Cocher pour inclure la liste déroulante colonne Temps"
@@ -2008,6 +1998,7 @@
         ""
       ],
       "Least recently modified": ["Dernière modification"],
+      "Left Axis chart(s)": [""],
       "Left Margin": [""],
       "Left margin, in pixels, allowing for more room for axis labels": [""],
       "Left to Right": [""],
@@ -2453,6 +2444,12 @@
       "Pick a granularity in the Time section or uncheck 'Include Time'": [
         "Choississez une granularité dans la section Temps ou décochez 'Inclure le temps'"
       ],
+      "Pick a metric for left axis!": [
+        "Choisissez une métrique pour l'axe de gauche !"
+      ],
+      "Pick a metric for right axis!": [
+        "Choisissez une métrique pour l'axe de droite !"
+      ],
       "Pick a metric for x, y and size": [
         "Choisissez une métrique pour x, y, taille"
       ],
@@ -2498,9 +2495,6 @@
       ],
       "Please check your query for syntax errors at or near \"%(syntax_error)s\". Then, try running your query again.": [
         "Veuillez corriger une erreur de syntaxe dans la requête près de \"%(syntax_error)s\". Puis essayez de relancer la requête."
-      ],
-      "We can't seem to resolve the column \"%(column_name)s\"": [
-        "Nous ne pouvons résoudre  la colonne \"%(column_name)s\""
       ],
       "Please check your query for syntax errors near \"%(server_error)s\". Then, try running your query again.": [
         "Veuillez corriger une erreur de syntaxe dans la requête près de \"%(server_error)s\". Puis essayez de relancer la requête."
@@ -3549,18 +3543,6 @@
       "There is not enough space for this component. Try decreasing its width, or increasing the destination width.": [
         "Espace insuffisant pour ce composant. Diminuez sa largeur ou augmentez la largeur de la destination."
       ],
-      "Image download failed, please refresh and try again.": [""],
-      "Select values in highlighted field(s) in the control panel. Then run the query by clicking on the %s button.": [
-        ""
-      ],
-      "Invalid input": [""],
-      "(no description, click to see stack trace)": [""],
-      "Link Copied!": ["Lien copié !"],
-      "Sorry, your browser does not support copying.": [
-        "Désolé, votre navigateur ne doit pas supporter la copie."
-      ],
-      "Connection looks good!": [""],
-      "ERROR: %s": [""],
       "There was an error fetching your recent activity:": [
         "Une erreur s'est produite lors de lors de la récupération de votre activité récente :"
       ],
@@ -3768,7 +3750,11 @@
       "Thursday": ["Jeudi"],
       "Time": ["Temps"],
       "Time Series - Bar Chart": ["Séries temporelles - histogramme"],
+      "Time Series - Dual Axis Line Chart": ["Séries temporelles - double axe"],
       "Time Series - Line Chart": ["Séries temporelles - ligne"],
+      "Time Series - Multiple Line Charts": [
+        "Séries temporelles - Lignes multiples"
+      ],
       "Time Series - Nightingale Rose Chart": [
         "Séries temporelles - Graphique Nightingale Rose"
       ],
@@ -4546,6 +4532,7 @@
         "le percentile inférieur doit être plus grand que 0 et plus petit que 100 et doit être plus petit que le percentile supérieur."
       ],
       "median": [""],
+      "metric": ["métrique"],
       "minute": ["minute"],
       "minute(s)": ["minute(s)"],
       "month": ["mois"],
@@ -4604,8 +4591,6 @@
       "y: values are normalized within each row": [""],
       "year": ["année"],
       "zoom area": [""],
-      "metrics": ["métrique"],
-      "metrics": ["métriques"],
       "No matching records found": ["Aucun résultat trouvé"],
       "Seconds %s": ["%s secondes"],
       "Minutes %s": ["%s minutes "],
