@@ -279,7 +279,7 @@ describe('RTL', () => {
 
     // Grab and click the "toggle all" checkbox to expose export button
     const selectAllCheckbox = screen.getByRole('checkbox', {
-      name: /toggle all rows selected/i,
+      name: /toggle all/i,
     });
     userEvent.click(selectAllCheckbox);
 
