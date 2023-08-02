@@ -481,6 +481,8 @@ const config: ControlPanelConfig = {
               type: 'ColumnConfigControl',
               label: t('Customize columns'),
               description: t('Further customize how to display each column'),
+              width: 400,
+              height: 320,
               renderTrigger: true,
               shouldMapStateToProps() {
                 return true;

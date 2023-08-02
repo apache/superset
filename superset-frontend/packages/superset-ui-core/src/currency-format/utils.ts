@@ -28,20 +28,24 @@ import {
 
 export const buildCustomFormatters = (
   metrics: QueryFormMetric | QueryFormMetric[] | undefined,
-  currencyFormats: Record<string, Currency>,
-  columnFormats: Record<string, string>,
+  savedCurrencyFormats: Record<string, Currency>,
+  savedColumnFormats: Record<string, string>,
   d3Format: string | undefined,
+  currencyFormat: Currency | undefined,
 ) => {
   const metricsArray = ensureIsArray(metrics);
   return metricsArray.reduce((acc, metric) => {
     if (isSavedMetric(metric)) {
-      const actualD3Format = d3Format ?? columnFormats[metric];
-      return currencyFormats[metric]
+      const actualD3Format = d3Format ?? savedColumnFormats[metric];
+      const actualCurrencyFormat = currencyFormat?.symbol
+        ? currencyFormat
+        : savedCurrencyFormats[metric];
+      return actualCurrencyFormat
         ? {
             ...acc,
             [metric]: new CurrencyFormatter({
               d3Format: actualD3Format,
-              currency: currencyFormats[metric],
+              currency: actualCurrencyFormat,
             }),
           }
         : {
@@ -67,13 +71,29 @@ export const getCustomFormatter = (
 
 export const getValueFormatter = (
   metrics: QueryFormMetric | QueryFormMetric[] | undefined,
-  currencyFormats: Record<string, Currency>,
-  columnFormats: Record<string, string>,
+  savedCurrencyFormats: Record<string, Currency>,
+  savedColumnFormats: Record<string, string>,
   d3Format: string | undefined,
+  currencyFormat: Currency | undefined,
   key?: string,
-) =>
-  getCustomFormatter(
-    buildCustomFormatters(metrics, currencyFormats, columnFormats, d3Format),
+) => {
+  const customFormatter = getCustomFormatter(
+    buildCustomFormatters(
+      metrics,
+      savedCurrencyFormats,
+      savedColumnFormats,
+      d3Format,
+      currencyFormat,
+    ),
     metrics,
     key,
-  ) ?? getNumberFormatter(d3Format);
+  );
+
+  if (customFormatter) {
+    return customFormatter;
+  }
+  if (currencyFormat?.symbol) {
+    return new CurrencyFormatter({ currency: currencyFormat, d3Format });
+  }
+  return getNumberFormatter(d3Format);
+};
