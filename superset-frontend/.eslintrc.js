@@ -211,6 +211,7 @@ module.exports = {
       ],
       rules: {
         'theme-colors/no-literal-colors': 0,
+        'cypress/unsafe-to-chain-command': 0,
         'translation-vars/no-template-vars': 0,
         'no-restricted-imports': 0,
       },
