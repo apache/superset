@@ -47,7 +47,7 @@ export default {
               mutator: (data: {
                 result?: { id: number; slice_name: string }[];
               }) => {
-                if (!data || !data.result) {
+                if (!data?.result) {
                   return [];
                 }
                 return data.result.map(o => ({

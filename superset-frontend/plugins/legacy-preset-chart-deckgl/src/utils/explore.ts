@@ -37,9 +37,9 @@ export function getExploreLongUrl(
   endpointType: string,
   allowOverflow = true,
   extraSearch = {},
-): string | null {
+): string | undefined {
   if (!formData.datasource) {
-    return null;
+    return undefined;
   }
 
   const uri = new URI('/');

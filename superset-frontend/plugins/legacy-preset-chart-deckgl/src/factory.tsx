@@ -18,7 +18,13 @@
  */
 import React from 'react';
 import { isEqual } from 'lodash';
-import { Datasource, QueryFormData, JsonObject } from '@superset-ui/core';
+import { Layer } from 'deck.gl/typed';
+import {
+  Datasource,
+  QueryFormData,
+  JsonObject,
+  HandlerFunction,
+} from '@superset-ui/core';
 
 import {
   DeckGLContainerStyledWrapper,
@@ -27,12 +33,13 @@ import {
 import CategoricalDeckGLContainer from './CategoricalDeckGLContainer';
 import fitViewport, { Viewport } from './utils/fitViewport';
 import { Point } from './types';
+import { TooltipProps } from './components/Tooltip';
 
 type deckGLComponentProps = {
   datasource: Datasource;
   formData: QueryFormData;
   height: number;
-  onAddFilter: () => void;
+  onAddFilter: HandlerFunction;
   payload: JsonObject;
   setControlValue: () => void;
   viewport: Viewport;
@@ -42,8 +49,8 @@ export interface getLayerType<T> {
   (
     formData: QueryFormData,
     payload: JsonObject,
-    onAddFilter: (() => void) | undefined,
-    setTooltip: (tooltip: string) => void,
+    onAddFilter: HandlerFunction | undefined,
+    setTooltip: (tooltip: TooltipProps['tooltip']) => void,
     datasource?: Datasource,
   ): T;
 }
@@ -52,7 +59,7 @@ interface getPointsType {
 }
 type deckGLComponentState = {
   viewport: Viewport;
-  layer: unknown;
+  layer: Layer;
 };
 
 export function createDeckGLComponent(
@@ -105,10 +112,10 @@ export function createDeckGLComponent(
     computeLayer(props: deckGLComponentProps) {
       const { formData, payload, onAddFilter } = props;
 
-      return getLayer(formData, payload, onAddFilter, this.setTooltip);
+      return getLayer(formData, payload, onAddFilter, this.setTooltip) as Layer;
     }
 
-    setTooltip = (tooltip: string) => {
+    setTooltip = (tooltip: TooltipProps['tooltip']) => {
       const { current } = this.containerRef;
       if (current) {
         current?.setTooltip(tooltip);
@@ -138,7 +145,7 @@ export function createDeckGLComponent(
 }
 
 export function createCategoricalDeckGLComponent(
-  getLayer: getLayerType<unknown>,
+  getLayer: getLayerType<Layer>,
   getPoints: getPointsType,
 ) {
   return function Component(props: deckGLComponentProps) {

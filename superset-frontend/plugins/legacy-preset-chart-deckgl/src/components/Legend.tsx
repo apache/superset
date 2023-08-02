@@ -58,8 +58,8 @@ export type LegendProps = {
   forceCategorical?: boolean;
   position?: null | 'tl' | 'tr' | 'bl' | 'br';
   categories: Record<string, { enabled: boolean; color: number[] }>;
-  toggleCategory: (key: string) => void;
-  showSingleCategory: (key: string) => void;
+  toggleCategory?: (key: string) => void;
+  showSingleCategory?: (key: string) => void;
 };
 
 const Legend = ({

@@ -24,22 +24,28 @@
  */
 /* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
 
-import React, { ReactNode } from 'react';
+import React from 'react';
 import {
   CategoricalColorNamespace,
   Datasource,
+  HandlerFunction,
   JsonObject,
   JsonValue,
   QueryFormData,
 } from '@superset-ui/core';
+import { Layer } from 'deck.gl/typed';
 import Legend from './components/Legend';
 import { hexToRGB } from './utils/colors';
 import sandboxedEval from './utils/sandbox';
 // eslint-disable-next-line import/extensions
 import fitViewport, { Viewport } from './utils/fitViewport';
-import { DeckGLContainerStyledWrapper } from './DeckGLContainer';
+import {
+  DeckGLContainer,
+  DeckGLContainerStyledWrapper,
+} from './DeckGLContainer';
 import { Point } from './types';
 import { getLayerType } from './factory';
+import { TooltipProps } from './components/Tooltip';
 
 const { getScale } = CategoricalColorNamespace;
 
@@ -73,7 +79,7 @@ export type CategoricalDeckGLContainerProps = {
   viewport: Viewport;
   getLayer: getLayerType<unknown>;
   payload: JsonObject;
-  onAddFilter?: () => void;
+  onAddFilter?: HandlerFunction;
   setControlValue: (control: string, value: JsonValue) => void;
 };
 
@@ -87,7 +93,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent<
   CategoricalDeckGLContainerProps,
   CategoricalDeckGLContainerState
 > {
-  containerRef = React.createRef();
+  containerRef = React.createRef<DeckGLContainer>();
 
   /*
    * A Deck.gl container that handles categories.
@@ -178,7 +184,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent<
         onAddFilter,
         this.setTooltip,
         this.props.datasource,
-      ),
+      ) as Layer,
     ];
   }
 
@@ -229,7 +235,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent<
     this.setState({ categories });
   }
 
-  setTooltip = (tooltip: ReactNode) => {
+  setTooltip = (tooltip: TooltipProps['tooltip']) => {
     const { current } = this.containerRef;
     if (current) {
       current.setTooltip(tooltip);
@@ -240,6 +246,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent<
     return (
       <div style={{ position: 'relative' }}>
         <DeckGLContainerStyledWrapper
+          ref={this.containerRef}
           viewport={this.state.viewport}
           layers={this.getLayers()}
           setControlValue={this.props.setControlValue}
