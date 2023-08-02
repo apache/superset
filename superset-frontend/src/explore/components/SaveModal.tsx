@@ -67,7 +67,6 @@ interface SaveModalProps extends RouteComponentProps {
 type SaveModalState = {
   newSliceName?: string;
   datasetName: string;
-  alert: string | null;
   action: SaveActionType;
   isLoading: boolean;
   saveStatus?: string | null;
@@ -92,7 +91,6 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     this.state = {
       newSliceName: props.sliceName,
       datasetName: props.datasource?.name,
-      alert: null,
       action: this.canOverwriteSlice() ? 'overwrite' : 'saveas',
       isLoading: false,
       vizType: props.form_data?.viz_type,
@@ -103,7 +101,6 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     this.changeAction = this.changeAction.bind(this);
     this.saveOrOverwrite = this.saveOrOverwrite.bind(this);
     this.isNewDashboard = this.isNewDashboard.bind(this);
-    this.removeAlert = this.removeAlert.bind(this);
     this.onHide = this.onHide.bind(this);
   }
 
@@ -163,8 +160,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
   }
 
   async saveOrOverwrite(gotodash: boolean) {
-    this.setState({ alert: null, isLoading: true });
-    this.props.actions.removeSaveModalAlert();
+    this.setState({ isLoading: true });
 
     //  Create or retrieve dashboard
     type DashboardGetResponse = {
@@ -324,89 +320,115 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     };
   };
 
-  renderSaveChartModal = () => (
-    <Form data-test="save-modal-body" layout="vertical">
-      {(this.state.alert || this.props.alert) && (
-        <Alert
-          type="warning"
-          message={this.state.alert || this.props.alert}
-          onClose={this.removeAlert}
-        />
-      )}
-      <FormItem data-test="radio-group">
-        <Radio
-          id="overwrite-radio"
-          disabled={!this.canOverwriteSlice()}
-          checked={this.state.action === 'overwrite'}
-          onChange={() => this.changeAction('overwrite')}
-          data-test="save-overwrite-radio"
-        >
-          {t('Save (Overwrite)')}
-        </Radio>
-        <Radio
-          id="saveas-radio"
-          data-test="saveas-radio"
-          checked={this.state.action === 'saveas'}
-          onChange={() => this.changeAction('saveas')}
-        >
-          {t('Save as...')}
-        </Radio>
-      </FormItem>
-      <hr />
-      <FormItem label={t('Chart name')} required>
-        <Input
-          name="new_slice_name"
-          type="text"
-          placeholder="Name"
-          value={this.state.newSliceName}
-          onChange={this.onSliceNameChange}
-          data-test="new-chart-name"
-        />
-      </FormItem>
-      {this.props.datasource?.type === 'query' && (
-        <FormItem label={t('Dataset Name')} required>
-          <InfoTooltipWithTrigger
-            tooltip={t('A reusable dataset will be saved with your chart.')}
-            placement="right"
-          />
+  renderSaveChartModal = () => {
+    const info = this.info();
+    return (
+      <Form data-test="save-modal-body" layout="vertical">
+        <FormItem data-test="radio-group">
+          <Radio
+            id="overwrite-radio"
+            disabled={!this.canOverwriteSlice()}
+            checked={this.state.action === 'overwrite'}
+            onChange={() => this.changeAction('overwrite')}
+            data-test="save-overwrite-radio"
+          >
+            {t('Save (Overwrite)')}
+          </Radio>
+          <Radio
+            id="saveas-radio"
+            data-test="saveas-radio"
+            checked={this.state.action === 'saveas'}
+            onChange={() => this.changeAction('saveas')}
+          >
+            {t('Save as...')}
+          </Radio>
+        </FormItem>
+        <hr />
+        <FormItem label={t('Chart name')} required>
           <Input
-            name="dataset_name"
+            name="new_slice_name"
             type="text"
-            placeholder="Dataset Name"
-            value={this.state.datasetName}
-            onChange={this.handleDatasetNameChange}
-            data-test="new-dataset-name"
+            placeholder="Name"
+            value={this.state.newSliceName}
+            onChange={this.onSliceNameChange}
+            data-test="new-chart-name"
           />
         </FormItem>
-      )}
-      {!(
-        isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
-        this.state.vizType === 'filter_box'
-      ) && (
-        <FormItem
-          label={t('Add to dashboard')}
-          data-test="save-chart-modal-select-dashboard-form"
-        >
-          <AsyncSelect
-            allowClear
-            allowNewOptions
-            ariaLabel={t('Select a dashboard')}
-            options={this.loadDashboards}
-            onChange={this.onDashboardChange}
-            value={this.state.dashboard}
-            placeholder={
-              <div>
-                <b>{t('Select')}</b>
-                {t(' a dashboard OR ')}
-                <b>{t('create')}</b>
-                {t(' a new one')}
-              </div>
-            }
+        {this.props.datasource?.type === 'query' && (
+          <FormItem label={t('Dataset Name')} required>
+            <InfoTooltipWithTrigger
+              tooltip={t('A reusable dataset will be saved with your chart.')}
+              placement="right"
+            />
+            <Input
+              name="dataset_name"
+              type="text"
+              placeholder="Dataset Name"
+              value={this.state.datasetName}
+              onChange={this.handleDatasetNameChange}
+              data-test="new-dataset-name"
+            />
+          </FormItem>
+        )}
+        {!(
+          isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
+          this.state.vizType === 'filter_box'
+        ) && (
+          <FormItem
+            label={t('Add to dashboard')}
+            data-test="save-chart-modal-select-dashboard-form"
+          >
+            <AsyncSelect
+              allowClear
+              allowNewOptions
+              ariaLabel={t('Select a dashboard')}
+              options={this.loadDashboards}
+              onChange={this.onDashboardChange}
+              value={this.state.dashboard}
+              placeholder={
+                <div>
+                  <b>{t('Select')}</b>
+                  {t(' a dashboard OR ')}
+                  <b>{t('create')}</b>
+                  {t(' a new one')}
+                </div>
+              }
+            />
+          </FormItem>
+        )}
+        {info && <Alert type="info" message={info} closable={false} />}
+        {this.props.alert && (
+          <Alert
+            css={{ marginTop: info ? 16 : undefined }}
+            type="warning"
+            message={this.props.alert}
+            closable={false}
           />
-        </FormItem>
-      )}
-    </Form>
-  );
+        )}
+      </Form>
+    );
+  };
+
+  info = () => {
+    const isNewDashboard = this.isNewDashboard();
+    let chartWillBeCreated = false;
+    if (
+      this.props.slice &&
+      (this.state.action !== 'overwrite' || !this.canOverwriteSlice())
+    ) {
+      chartWillBeCreated = true;
+    }
+    if (chartWillBeCreated && isNewDashboard) {
+      return t('A new chart and dashboard will be created.');
+    }
+    if (chartWillBeCreated) {
+      return t('A new chart will be created.');
+    }
+    if (isNewDashboard) {
+      return t('A new dashboard will be created.');
+    }
+    return null;
+  };
 
   renderFooter = () => (
     <div data-test="save-modal-footer">
@@ -426,9 +448,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
         }
         onClick={() => this.saveOrOverwrite(true)}
       >
-        {this.isNewDashboard()
-          ? t('Save & go to new dashboard')
-          : t('Save & go to dashboard')}
+        {t('Save & go to dashboard')}
       </Button>
       <Button
         id="btn_modal_save"
@@ -443,21 +463,10 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
         }
         data-test="btn-modal-save"
       >
-        {!this.canOverwriteSlice() && this.props.slice
-          ? t('Save as new chart')
-          : this.isNewDashboard()
-          ? t('Save to new dashboard')
-          : t('Save')}
+        {t('Save')}
       </Button>
     </div>
   );
-
-  removeAlert() {
-    if (this.props.alert) {
-      this.props.actions.removeSaveModalAlert();
-    }
-    this.setState({ alert: null });
-  }
 
   render() {
     return (
