@@ -29,6 +29,8 @@ x-superset-volumes: &superset-volumes
   - ./superset-xip:/app/superset-xip
   - ./display-context:/app/display-context
   - ./cube-table:/app/cube-table
+  - ./logged-in-dashboard-card:/app/logged-in-dashboard-card
+  - ./media-viewer:/app/media-viewer
 
 version: "3.7"
 services:

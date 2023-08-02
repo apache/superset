@@ -81,6 +81,8 @@ import TimeTableChartPlugin from '../TimeTable';
 import { SupersetXip } from 'superset-xip';
 import { DisplayContext } from 'display-context';
 import { CubeTable } from 'cube-table';
+import { LoggedInDashboardCard } from 'logged-in-dashboard-card';
+import { MediaViewer } from 'media-viewer';
 
 export default class MainPreset extends Preset {
   constructor() {
@@ -167,6 +169,8 @@ export default class MainPreset extends Preset {
         new SupersetXip().configure({ key: 'superset-xip-1' }),
         new DisplayContext().configure({ key: 'display-context' }),
         new CubeTable().configure({ key: 'cube-table' }),
+        new LoggedInDashboardCard().configure({ key: 'logged-in-dashboard-card' }),
+        new MediaViewer().configure({ key: 'media-viewer' }),
       ],
     });
   }
