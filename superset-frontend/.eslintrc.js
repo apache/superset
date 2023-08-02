@@ -99,7 +99,6 @@ module.exports = {
         '@typescript-eslint/prefer-optional-chain': 0, // disabled temporarily
         camelcase: 0,
         'class-methods-use-this': 0,
-        'cypress/unsafe-to-chain-command': 0,
         'func-names': 0,
         'guard-for-in': 0,
         'import/no-cycle': 0, // re-enable up for discussion, might require some major refactors
@@ -211,7 +210,6 @@ module.exports = {
       ],
       rules: {
         'theme-colors/no-literal-colors': 0,
-        'cypress/unsafe-to-chain-command': 0,
         'translation-vars/no-template-vars': 0,
         'no-restricted-imports': 0,
       },
