@@ -49,11 +49,6 @@ export function saveSliceSuccess(data) {
   return { type: SAVE_SLICE_SUCCESS, data };
 }
 
-export const REMOVE_SAVE_MODAL_ALERT = 'REMOVE_SAVE_MODAL_ALERT';
-export function removeSaveModalAlert() {
-  return { type: REMOVE_SAVE_MODAL_ALERT };
-}
-
 const extractAddHocFiltersFromFormData = formDataToHandle =>
   Object.entries(formDataToHandle).reduce(
     (acc, [key, value]) =>
