@@ -52,6 +52,10 @@ DATABASE_HOST = get_env_variable("DATABASE_HOST")
 DATABASE_PORT = get_env_variable("DATABASE_PORT")
 DATABASE_DB = get_env_variable("DATABASE_DB")
 
+#App Icon
+
+APP_ICON=/simplex_bi/superset-frontend/src/assets/images/superset-logo-horiz.png
+
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = "%s://%s:%s@%s:%s/%s" % (
     DATABASE_DIALECT,
