@@ -50,6 +50,32 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [
           {
+            name: 'action_config',
+            config: {
+              type: 'TextControl',
+              default: '',
+              renderTrigger: true,
+              label: t('Action Configuration'),
+              description: t('Action Configuration in JSON format'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'blocking_action',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Blocking action'),
+              renderTrigger: true,
+              default: true,
+              description: t(
+                'Makes the dashboard wait for a response from the form'
+              ),
+            },
+          },
+        ],
+        [
+          {
             name: 'cube_query',
             config: {
               type: 'CheckboxControl',

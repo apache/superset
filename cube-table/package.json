@@ -27,7 +27,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@cubejs-client/core": "^0.33.12"
+    "@cubejs-client/core": "^0.33.12",
+    "rxjs": "^7.8.1",
+    "socket.io-client": "^4.7.1",
+    "uuid": "^9.0.0"
   },
   "peerDependencies": {
     "@airbnb/config-babel": "^2.0.1",

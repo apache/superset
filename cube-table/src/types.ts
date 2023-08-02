@@ -30,6 +30,8 @@ interface CubeTableCustomizeProps {
   dataset: string;
   dimensions: Array<string>;
   filters: Array<any>;
+  blockingAction: boolean;
+  actions: Array<any>;
 }
 
 export type CubeTableQueryFormData = QueryFormData &

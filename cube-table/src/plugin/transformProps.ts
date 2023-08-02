@@ -16,17 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, TimeseriesDataRecord } from '@superset-ui/core';
+import { ChartProps } from '@superset-ui/core';
 
 export default function transformProps(chartProps: ChartProps) {
   const { width, height, formData , datasource} = chartProps;
-  const { extraFormData, styleTemplate, allColumns } = formData;
+  const { extraFormData, styleTemplate, allColumns,    blockingAction,
+    actionConfig, } = formData;
   const filters = extraFormData.filters || [];
 
   // @ts-ignore
   const dataset = datasource.tableName;
 
   const dimensions = allColumns;
+  let actions = [];
+
+  try {
+    actions = JSON.parse(actionConfig);
+  } catch (e) {
+    console.log('error parsing actions', e);
+  }
 
   return {
     width,
@@ -36,5 +44,7 @@ export default function transformProps(chartProps: ChartProps) {
     filters,
     styleTemplate,
     dimensions,
+    actions,
+    blockingAction,
   };
 }

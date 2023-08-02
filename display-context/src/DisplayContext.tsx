@@ -58,7 +58,7 @@ export default function DisplayContext(props: DisplayContextProps) {
           filters: [filter],
         })
         .then((result) => {
-          const tempData = replaceKeyDotsToUnderscores(result.loadResponse.results[0].data[0]);
+          const tempData = removeKeyDot(result.loadResponse.results[0].data[0]);
           tempData['all'] = JSON.stringify(tempData);
           setData(tempData);
         });
@@ -87,7 +87,7 @@ export default function DisplayContext(props: DisplayContextProps) {
   );
 }
 
-function replaceKeyDotsToUnderscores(data: object): object {
+function removeKeyDot(data: object): object {
   const newData = {};
 
   Object.keys(data).forEach(key => {
