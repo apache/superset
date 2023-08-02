@@ -35,6 +35,8 @@ export interface AceCompleterKeywordData {
   value: string;
   score: number;
   meta: string;
+  docText?: string;
+  docHTML?: string;
 }
 
 export type TextMode = OrigTextMode & { $id: string };
