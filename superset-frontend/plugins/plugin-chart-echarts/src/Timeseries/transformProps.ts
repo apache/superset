@@ -37,6 +37,7 @@ import {
   TimeseriesChartDataResponseResult,
   buildCustomFormatters,
   getCustomFormatter,
+  CurrencyFormatter,
 } from '@superset-ui/core';
 import {
   extractExtraMetrics,
@@ -168,6 +169,7 @@ export default function transformProps(
     xAxisTitleMargin,
     yAxisBounds,
     yAxisFormat,
+    currencyFormat,
     yAxisTitle,
     yAxisTitleMargin,
     yAxisTitlePosition,
@@ -245,12 +247,15 @@ export default function transformProps(
 
   const forcePercentFormatter = Boolean(contributionMode || isAreaExpand);
   const percentFormatter = getNumberFormatter(',.0%');
-  const defaultFormatter = getNumberFormatter(yAxisFormat);
+  const defaultFormatter = currencyFormat?.symbol
+    ? new CurrencyFormatter({ d3Format: yAxisFormat, currency: currencyFormat })
+    : getNumberFormatter(yAxisFormat);
   const customFormatters = buildCustomFormatters(
     metrics,
     currencyFormats,
     columnFormats,
     yAxisFormat,
+    currencyFormat,
   );
 
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
@@ -468,7 +473,7 @@ export default function transformProps(
         metrics,
         forcePercentFormatter,
         customFormatters,
-        yAxisFormat,
+        defaultFormatter,
       ),
     },
     scale: truncateYAxis,

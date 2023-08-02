@@ -203,6 +203,7 @@ const config: ControlPanelConfig = {
         // eslint-disable-next-line react/jsx-key
         [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
         ['y_axis_format'],
+        ['currency_format'],
         [
           {
             name: 'logAxis',
