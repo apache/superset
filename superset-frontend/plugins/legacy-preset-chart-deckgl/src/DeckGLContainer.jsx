@@ -38,7 +38,6 @@ const propTypes = {
   mapStyle: PropTypes.string,
   mapboxApiAccessToken: PropTypes.string.isRequired,
   children: PropTypes.node,
-  bottomMargin: PropTypes.number,
   width: PropTypes.number.isRequired,
   height: PropTypes.number.isRequired,
   onViewportChange: PropTypes.func,
@@ -47,7 +46,6 @@ const defaultProps = {
   mapStyle: 'light',
   setControlValue: () => {},
   children: null,
-  bottomMargin: 0,
 };
 
 export class DeckGLContainer extends React.Component {
@@ -103,20 +101,19 @@ export class DeckGLContainer extends React.Component {
   };
 
   render() {
-    const { children, bottomMargin, height, width } = this.props;
+    const { children, height, width } = this.props;
     const { viewState, tooltip } = this.state;
-    const adjustedHeight = height - bottomMargin;
 
     const layers = this.layers();
 
     return (
       <>
-        <div style={{ position: 'relative', width, height: adjustedHeight }}>
+        <div style={{ position: 'relative', width, height }}>
           <DeckGL
             initWebGLParameters
             controller
             width={width}
-            height={adjustedHeight}
+            height={height}
             layers={layers}
             viewState={viewState}
             glOptions={{ preserveDrawingBuffer: true }}

@@ -24,13 +24,12 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { ScreenGridLayer } from 'deck.gl';
 import { t } from '@superset-ui/core';
-import AnimatableDeckGLContainer from '../../AnimatableDeckGLContainer';
-import { getPlaySliderParams } from '../../utils/time';
 import sandboxedEval from '../../utils/sandbox';
 import { commonLayerProps } from '../common';
 import TooltipRow from '../../TooltipRow';
 // eslint-disable-next-line import/extensions
 import fitViewport from '../../utils/fitViewport';
+import { DeckGLContainerStyledWrapper } from '../../DeckGLContainer';
 
 function getPoints(data) {
   return data.map(d => d.position);
@@ -118,7 +117,6 @@ class DeckGLScreenGrid extends React.PureComponent {
     this.state = DeckGLScreenGrid.getDerivedStateFromProps(props);
 
     this.getLayers = this.getLayers.bind(this);
-    this.onValuesChange = this.onValuesChange.bind(this);
   }
 
   static getDerivedStateFromProps(props, state) {
@@ -130,19 +128,7 @@ class DeckGLScreenGrid extends React.PureComponent {
     }
 
     const features = props.payload.data.features || [];
-    const timestamps = features.map(f => f.__timestamp);
 
-    // the granularity has to be read from the payload form_data, not the
-    // props formData which comes from the instantaneous controls state
-    const granularity =
-      props.payload.form_data.time_grain_sqla ||
-      props.payload.form_data.granularity ||
-      'P1D';
-
-    const { start, end, getStep, values, disabled } = getPlaySliderParams(
-      timestamps,
-      granularity,
-    );
     const { width, height, formData } = props;
 
     let { viewport } = props;
@@ -155,11 +141,6 @@ class DeckGLScreenGrid extends React.PureComponent {
     }
 
     return {
-      start,
-      end,
-      getStep,
-      values,
-      disabled,
       viewport,
       selected: [],
       lastClick: 0,
@@ -167,28 +148,8 @@ class DeckGLScreenGrid extends React.PureComponent {
     };
   }
 
-  onValuesChange(values) {
-    this.setState({
-      values: Array.isArray(values)
-        ? values
-        : // eslint-disable-next-line react/no-access-state-in-setstate
-          [values, values + this.state.getStep(values)],
-    });
-  }
-
-  getLayers(values) {
+  getLayers() {
     const filters = [];
-
-    // time filter
-    if (values[0] === values[1] || values[1] === this.end) {
-      filters.push(
-        d => d.__timestamp >= values[0] && d.__timestamp <= values[1],
-      );
-    } else {
-      filters.push(
-        d => d.__timestamp >= values[0] && d.__timestamp < values[1],
-      );
-    }
 
     const layer = getLayer(
       this.props.formData,
@@ -213,23 +174,14 @@ class DeckGLScreenGrid extends React.PureComponent {
 
     return (
       <div>
-        <AnimatableDeckGLContainer
-          ref={this.containerRef}
-          aggregation
-          getLayers={this.getLayers}
-          start={this.state.start}
-          end={this.state.end}
-          getStep={this.state.getStep}
-          values={this.state.values}
-          disabled={this.state.disabled}
+        <DeckGLContainerStyledWrapper
           viewport={this.state.viewport}
+          layers={this.getLayers()}
+          setControlValue={setControlValue}
+          mapStyle={formData.mapbox_style}
+          mapboxApiAccessToken={payload.data.mapboxApiKey}
           width={this.props.width}
           height={this.props.height}
-          mapboxApiAccessToken={payload.data.mapboxApiKey}
-          mapStyle={formData.mapbox_style}
-          setControlValue={setControlValue}
-          onValuesChange={this.onValuesChange}
-          onViewportChange={this.onViewportChange}
         />
       </div>
     );

@@ -27,18 +27,17 @@ import PropTypes from 'prop-types';
 
 import { PolygonLayer } from 'deck.gl';
 
-import AnimatableDeckGLContainer from '../../AnimatableDeckGLContainer';
 import Legend from '../../components/Legend';
 import TooltipRow from '../../TooltipRow';
 import { getBuckets, getBreakPointColorScaler } from '../../utils';
 
 import { commonLayerProps } from '../common';
-import { getPlaySliderParams } from '../../utils/time';
 import sandboxedEval from '../../utils/sandbox';
 // eslint-disable-next-line import/extensions
 import getPointsFromPolygon from '../../utils/getPointsFromPolygon';
 // eslint-disable-next-line import/extensions
 import fitViewport from '../../utils/fitViewport';
+import { DeckGLContainerStyledWrapper } from '../../DeckGLContainer';
 
 const DOUBLE_CLICK_THRESHOLD = 250; // milliseconds
 
@@ -175,7 +174,6 @@ class DeckGLPolygon extends React.Component {
 
     this.getLayers = this.getLayers.bind(this);
     this.onSelect = this.onSelect.bind(this);
-    this.onValuesChange = this.onValuesChange.bind(this);
   }
 
   static getDerivedStateFromProps(props, state) {
@@ -189,19 +187,6 @@ class DeckGLPolygon extends React.Component {
     }
 
     const features = payload.data.features || [];
-    const timestamps = features.map(f => f.__timestamp);
-
-    // the granularity has to be read from the payload form_data, not the
-    // props formData which comes from the instantaneous controls state
-    const granularity =
-      payload.form_data.time_grain_sqla ||
-      payload.form_data.granularity ||
-      'P1D';
-
-    const { start, end, getStep, values, disabled } = getPlaySliderParams(
-      timestamps,
-      granularity,
-    );
 
     let { viewport } = props;
     if (formData.autozoom) {
@@ -213,11 +198,6 @@ class DeckGLPolygon extends React.Component {
     }
 
     return {
-      start,
-      end,
-      getStep,
-      values,
-      disabled,
       viewport,
       selected: [],
       lastClick: 0,
@@ -252,31 +232,12 @@ class DeckGLPolygon extends React.Component {
     }
   }
 
-  onValuesChange(values) {
-    this.setState({
-      values: Array.isArray(values)
-        ? values
-        : [values, values + this.state.getStep(values)],
-    });
-  }
-
-  getLayers(values) {
+  getLayers() {
     if (this.props.payload.data.features === undefined) {
       return [];
     }
 
     const filters = [];
-
-    // time filter
-    if (values[0] === values[1] || values[1] === this.end) {
-      filters.push(
-        d => d.__timestamp >= values[0] && d.__timestamp <= values[1],
-      );
-    } else {
-      filters.push(
-        d => d.__timestamp >= values[0] && d.__timestamp < values[1],
-      );
-    }
 
     const layer = getLayer(
       this.props.formData,
@@ -300,7 +261,6 @@ class DeckGLPolygon extends React.Component {
 
   render() {
     const { payload, formData, setControlValue } = this.props;
-    const { start, end, getStep, values, disabled, viewport } = this.state;
 
     const fd = formData;
     const metricLabel = fd.metric ? fd.metric.label || fd.metric : null;
@@ -310,32 +270,23 @@ class DeckGLPolygon extends React.Component {
 
     return (
       <div style={{ position: 'relative' }}>
-        <AnimatableDeckGLContainer
-          ref={this.containerRef}
-          aggregation
-          getLayers={this.getLayers}
-          start={start}
-          end={end}
-          getStep={getStep}
-          values={values}
-          disabled={disabled}
-          viewport={viewport}
+        <DeckGLContainerStyledWrapper
+          viewport={this.state.viewport}
+          layers={this.getLayers()}
+          setControlValue={setControlValue}
+          mapStyle={formData.mapbox_style}
+          mapboxApiAccessToken={payload.data.mapboxApiKey}
           width={this.props.width}
           height={this.props.height}
-          mapboxApiAccessToken={payload.data.mapboxApiKey}
-          mapStyle={formData.mapbox_style}
-          setControlValue={setControlValue}
-          onValuesChange={this.onValuesChange}
-          onViewportChange={this.onViewportChange}
-        >
-          {formData.metric !== null && (
-            <Legend
-              categories={buckets}
-              position={formData.legend_position}
-              format={formData.legend_format}
-            />
-          )}
-        </AnimatableDeckGLContainer>
+        />
+
+        {formData.metric !== null && (
+          <Legend
+            categories={buckets}
+            position={formData.legend_position}
+            format={formData.legend_format}
+          />
+        )}
       </div>
     );
   }
