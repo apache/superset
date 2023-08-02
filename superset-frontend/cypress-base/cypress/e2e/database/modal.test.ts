@@ -18,6 +18,8 @@
  */
 import { DATABASE_LIST } from 'cypress/utils/urls';
 
+/* eslint-disable cypress/unsafe-to-chain-command */
+
 function closeModal() {
   cy.get('body').then($body => {
     if ($body.find('[data-test="database-modal"]').length) {

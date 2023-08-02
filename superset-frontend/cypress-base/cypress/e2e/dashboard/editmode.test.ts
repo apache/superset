@@ -25,8 +25,8 @@ import {
   interceptFiltering as interceptCharts,
 } from '../explore/utils';
 
-// eslint-disable @typescript-eslint/no-explicit-any
-// eslint-disable cypress/unsafe-to-chain-command
+/* eslint-disable cypress/unsafe-to-chain-command */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 function editDashboard() {
   cy.getBySel('edit-dashboard-button').click();
