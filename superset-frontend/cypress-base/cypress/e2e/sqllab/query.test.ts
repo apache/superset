@@ -19,6 +19,8 @@
 import * as shortid from 'shortid';
 import { selectResultsTab, assertSQLLabResultsAreEqual } from './sqllab.helper';
 
+// eslint-disable cypress/unsafe-to-chain-command
+
 function parseClockStr(node: JQuery) {
   return Number.parseFloat(node.text().replace(/:/g, ''));
 }

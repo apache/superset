@@ -24,6 +24,8 @@ import {
 import { TABBED_DASHBOARD } from 'cypress/utils/urls';
 import { expandFilterOnLeftPanel } from './utils';
 
+// eslint-disable cypress/unsafe-to-chain-command
+
 const TREEMAP = { name: 'Treemap', viz: 'treemap_v2' };
 const FILTER_BOX = { name: 'Region Filter', viz: 'filter_box' };
 const LINE_CHART = { name: 'Growth Rate', viz: 'line' };

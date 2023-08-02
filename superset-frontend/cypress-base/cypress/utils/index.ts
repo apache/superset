@@ -18,6 +18,8 @@
  */
 import { getChartAlias, Slice } from 'cypress/utils/vizPlugins';
 
+// eslint-disable cypress/unsafe-to-chain-command
+
 export * from './vizPlugins';
 export { default as parsePostForm } from './parsePostForm';
 export interface ChartSpec {

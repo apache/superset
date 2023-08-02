@@ -205,7 +205,7 @@ module.exports = {
         '*.stories.tsx',
         '*.stories.jsx',
         'fixtures.*',
-        'cypress-base/cypress/**/*',
+        'cypress-base/**/*',
         'Stories.tsx',
         'packages/superset-ui-core/src/style/index.tsx',
       ],

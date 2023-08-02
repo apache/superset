@@ -16,6 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+// eslint-disable cypress/unsafe-to-chain-command
+
 import { DASHBOARD_LIST } from 'cypress/utils/urls';
 import { setGridMode, toggleBulkSelect } from 'cypress/utils';
 import {

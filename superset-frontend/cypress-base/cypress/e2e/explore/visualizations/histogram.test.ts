@@ -18,6 +18,8 @@
  */
 import { QueryFormData } from '@superset-ui/core';
 
+// eslint-disable cypress/unsafe-to-chain-command
+
 describe('Visualization > Histogram', () => {
   beforeEach(() => {
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');

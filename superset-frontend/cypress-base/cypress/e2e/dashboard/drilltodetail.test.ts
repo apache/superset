@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// eslint-disable cypress/unsafe-to-chain-command
+
 import { waitForChartLoad } from 'cypress/utils';
 import { SUPPORTED_CHARTS_DASHBOARD } from 'cypress/utils/urls';
 import {

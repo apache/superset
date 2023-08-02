@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// eslint-disable cypress/unsafe-to-chain-command
+
 describe('Visualization > Bubble', () => {
   beforeEach(() => {
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');

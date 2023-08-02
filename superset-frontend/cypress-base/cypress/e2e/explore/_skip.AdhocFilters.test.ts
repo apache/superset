@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// eslint-disable cypress/unsafe-to-chain-command
+
 describe.skip('AdhocFilters', () => {
   beforeEach(() => {
     cy.intercept('GET', '/api/v1/datasource/table/*/column/name/values').as(

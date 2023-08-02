@@ -18,6 +18,8 @@
  */
 import { FORM_DATA_DEFAULTS, NUM_METRIC } from './shared.helper';
 
+// eslint-disable cypress/unsafe-to-chain-command
+
 describe('Visualization > Distribution bar chart', () => {
   beforeEach(() => {
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');

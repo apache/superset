@@ -20,6 +20,8 @@
 import { dashboardView, nativeFilters } from 'cypress/support/directories';
 import { ChartSpec, waitForChartLoad } from 'cypress/utils';
 
+// eslint-disable cypress/unsafe-to-chain-command
+
 export const WORLD_HEALTH_CHARTS = [
   { name: '% Rural', viz: 'world_map' },
   { name: 'Most Populated Countries', viz: 'table' },

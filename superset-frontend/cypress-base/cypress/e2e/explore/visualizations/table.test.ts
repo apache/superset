@@ -25,6 +25,8 @@ import {
   SIMPLE_FILTER,
 } from './shared.helper';
 
+// eslint-disable cypress/unsafe-to-chain-command
+
 // Table
 describe('Visualization > Table', () => {
   beforeEach(() => {

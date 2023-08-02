@@ -17,6 +17,8 @@
  * under the License.
  */
 
+// eslint-disable cypress/unsafe-to-chain-command
+
 describe('Visualization > Gauge', () => {
   beforeEach(() => {
     cy.intercept('POST', '/api/v1/chart/data*').as('getJson');
