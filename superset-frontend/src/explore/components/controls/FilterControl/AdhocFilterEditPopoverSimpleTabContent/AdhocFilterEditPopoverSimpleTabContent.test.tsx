@@ -553,6 +553,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent Advanced data Type Test', () =>
       userEvent.type(operatorValueField, '{enter}');
     });
 
+    // eslint-disable-next-line jest-dom/prefer-in-document
     expect(screen.getByText('EQUALS')).not.toBeNull();
   });
 });
