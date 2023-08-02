@@ -44,7 +44,9 @@ export default {
                 '/sliceasync/api/read?_flt_0_viz_type=deck_&_flt_7_viz_type=deck_multi',
               placeholder: t('Select charts'),
               onAsyncErrorMessage: t('Error while fetching charts'),
-              mutator: data => {
+              mutator: (data: {
+                result?: { id: number; slice_name: string }[];
+              }) => {
                 if (!data || !data.result) {
                   return [];
                 }

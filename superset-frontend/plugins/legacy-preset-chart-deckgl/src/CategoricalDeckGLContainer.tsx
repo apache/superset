@@ -24,19 +24,26 @@
  */
 /* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
 
-import React from 'react';
-import PropTypes from 'prop-types';
-import { CategoricalColorNamespace } from '@superset-ui/core';
+import React, { ReactNode } from 'react';
+import {
+  CategoricalColorNamespace,
+  Datasource,
+  JsonObject,
+  JsonValue,
+  QueryFormData,
+} from '@superset-ui/core';
 import Legend from './components/Legend';
 import { hexToRGB } from './utils/colors';
 import sandboxedEval from './utils/sandbox';
 // eslint-disable-next-line import/extensions
-import fitViewport from './utils/fitViewport';
+import fitViewport, { Viewport } from './utils/fitViewport';
 import { DeckGLContainerStyledWrapper } from './DeckGLContainer';
+import { Point } from './types';
+import { getLayerType } from './factory';
 
 const { getScale } = CategoricalColorNamespace;
 
-function getCategories(fd, data) {
+function getCategories(fd: QueryFormData, data: JsonObject[]) {
   const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
   const colorFn = getScale(fd.color_scheme);
@@ -56,21 +63,30 @@ function getCategories(fd, data) {
   return categories;
 }
 
-const propTypes = {
-  datasource: PropTypes.object.isRequired,
-  formData: PropTypes.object.isRequired,
-  getLayer: PropTypes.func.isRequired,
-  getPoints: PropTypes.func.isRequired,
-  height: PropTypes.number.isRequired,
-  mapboxApiKey: PropTypes.string.isRequired,
-  onAddFilter: PropTypes.func,
-  payload: PropTypes.object.isRequired,
-  setControlValue: PropTypes.func.isRequired,
-  viewport: PropTypes.object.isRequired,
-  width: PropTypes.number.isRequired,
+export type CategoricalDeckGLContainerProps = {
+  datasource: Datasource;
+  formData: QueryFormData;
+  mapboxApiKey: string;
+  getPoints: (data: JsonObject[]) => Point[];
+  height: number;
+  width: number;
+  viewport: Viewport;
+  getLayer: getLayerType<unknown>;
+  payload: JsonObject;
+  onAddFilter?: () => void;
+  setControlValue: (control: string, value: JsonValue) => void;
 };
 
-export default class CategoricalDeckGLContainer extends React.PureComponent {
+export type CategoricalDeckGLContainerState = {
+  formData?: QueryFormData;
+  viewport: Viewport;
+  categories: JsonObject;
+};
+
+export default class CategoricalDeckGLContainer extends React.PureComponent<
+  CategoricalDeckGLContainerProps,
+  CategoricalDeckGLContainerState
+> {
   containerRef = React.createRef();
 
   /*
@@ -79,7 +95,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
    * The container will have an interactive legend, populated from the
    * categories present in the data.
    */
-  constructor(props) {
+  constructor(props: CategoricalDeckGLContainerProps) {
     super(props);
     this.state = this.getStateFromProps(props);
 
@@ -88,14 +104,17 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     this.showSingleCategory = this.showSingleCategory.bind(this);
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: CategoricalDeckGLContainerProps) {
     if (nextProps.payload.form_data !== this.state.formData) {
       this.setState({ ...this.getStateFromProps(nextProps) });
     }
   }
 
   // eslint-disable-next-line class-methods-use-this
-  getStateFromProps(props, state) {
+  getStateFromProps(
+    props: CategoricalDeckGLContainerProps,
+    state?: CategoricalDeckGLContainerState,
+  ) {
     const features = props.payload.data.features || [];
     const categories = getCategories(props.formData, features);
 
@@ -144,9 +163,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     // Show only categories selected in the legend
     const cats = this.state.categories;
     if (fd.dimension) {
-      features = features.filter(
-        d => cats[d.cat_color] && cats[d.cat_color].enabled,
-      );
+      features = features.filter(d => cats[d.cat_color]?.enabled);
     }
 
     const filteredPayload = {
@@ -166,7 +183,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
   }
 
   // eslint-disable-next-line class-methods-use-this
-  addColor(data, fd) {
+  addColor(data: JsonObject[], fd: QueryFormData) {
     const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
     const colorFn = getScale(fd.color_scheme);
 
@@ -182,7 +199,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     });
   }
 
-  toggleCategory(category) {
+  toggleCategory(category: string) {
     const categoryState = this.state.categories[category];
     const categories = {
       ...this.state.categories,
@@ -202,7 +219,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     this.setState({ categories });
   }
 
-  showSingleCategory(category) {
+  showSingleCategory(category: string) {
     const categories = { ...this.state.categories };
     /* eslint-disable no-param-reassign */
     Object.values(categories).forEach(v => {
@@ -212,7 +229,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     this.setState({ categories });
   }
 
-  setTooltip = tooltip => {
+  setTooltip = (tooltip: ReactNode) => {
     const { current } = this.containerRef;
     if (current) {
       current.setTooltip(tooltip);
@@ -243,5 +260,3 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     );
   }
 }
-
-CategoricalDeckGLContainer.propTypes = propTypes;

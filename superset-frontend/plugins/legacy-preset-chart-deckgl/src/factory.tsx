@@ -42,12 +42,13 @@ export interface getLayerType<T> {
   (
     formData: QueryFormData,
     payload: JsonObject,
-    onAddFilter: () => void,
+    onAddFilter: (() => void) | undefined,
     setTooltip: (tooltip: string) => void,
+    datasource?: Datasource,
   ): T;
 }
-interface getPointsType<T> {
-  (point: number[]): T;
+interface getPointsType {
+  (data: JsonObject[]): Point[];
 }
 type deckGLComponentState = {
   viewport: Viewport;
@@ -56,7 +57,7 @@ type deckGLComponentState = {
 
 export function createDeckGLComponent(
   getLayer: getLayerType<unknown>,
-  getPoints: getPointsType<Point[]>,
+  getPoints: getPointsType,
 ): React.ComponentClass<deckGLComponentProps> {
   // Higher order component
   class Component extends React.PureComponent<
@@ -138,7 +139,7 @@ export function createDeckGLComponent(
 
 export function createCategoricalDeckGLComponent(
   getLayer: getLayerType<unknown>,
-  getPoints: getPointsType<Point[]>,
+  getPoints: getPointsType,
 ) {
   return function Component(props: deckGLComponentProps) {
     const {
