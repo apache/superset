@@ -18,7 +18,7 @@
  */
 import { FORM_DATA_DEFAULTS, NUM_METRIC, SIMPLE_FILTER } from './shared.helper';
 
-// eslint-disable cypress/unsafe-to-chain-command
+/* eslint-disable cypress/unsafe-to-chain-command */
 
 describe('Visualization > Line', () => {
   beforeEach(() => {

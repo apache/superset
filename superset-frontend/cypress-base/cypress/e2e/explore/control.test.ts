@@ -22,7 +22,7 @@
 import { interceptChart } from 'cypress/utils';
 import { FORM_DATA_DEFAULTS, NUM_METRIC } from './visualizations/shared.helper';
 
-// eslint-disable cypress/unsafe-to-chain-command
+/* eslint-disable cypress/unsafe-to-chain-command */
 
 describe('Datasource control', () => {
   const newMetricName = `abc${Date.now()}`;

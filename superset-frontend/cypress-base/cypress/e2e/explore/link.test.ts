@@ -25,7 +25,7 @@ import shortid from 'shortid';
 import { interceptChart } from 'cypress/utils';
 import { HEALTH_POP_FORM_DATA_DEFAULTS } from './visualizations/shared.helper';
 
-// eslint-disable cypress/unsafe-to-chain-command
+/* eslint-disable cypress/unsafe-to-chain-command */
 
 const apiURL = (endpoint: string, queryObject: Record<string, unknown>) =>
   `${endpoint}?q=${rison.encode(queryObject)}`;
