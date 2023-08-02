@@ -43,6 +43,7 @@ export default function transformProps(chartProps) {
     yAxisBounds,
     yAxisFormat,
     timeFormat,
+    currencyFormat,
   } = formData;
   const { data = [], coltypes = [] } = queriesData[0];
   const { columnFormats = {}, currencyFormats = {} } = datasource;
@@ -51,6 +52,7 @@ export default function transformProps(chartProps) {
     currencyFormats,
     columnFormats,
     yAxisFormat,
+    currencyFormat,
   );
   const xAxisFormatter =
     coltypes[0] === GenericDataType.TEMPORAL

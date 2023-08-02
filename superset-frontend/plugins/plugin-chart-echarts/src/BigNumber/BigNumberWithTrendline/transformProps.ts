@@ -91,6 +91,7 @@ export default function transformProps(
     subheaderFontSize,
     forceTimestampFormatting,
     yAxisFormat,
+    currencyFormat,
     timeRangeFixed,
   } = formData;
   const granularity = extractTimegrain(rawFormData);
@@ -180,6 +181,7 @@ export default function transformProps(
     currencyFormats,
     columnFormats,
     yAxisFormat,
+    currencyFormat,
   );
 
   const headerFormatter =

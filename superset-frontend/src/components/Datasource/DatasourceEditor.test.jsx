@@ -39,7 +39,12 @@ const props = {
 const DATASOURCE_ENDPOINT = 'glob:*/datasource/external_metadata_by_name/*';
 
 const asyncRender = props =>
-  waitFor(() => render(<DatasourceEditor {...props} />, { useRedux: true }));
+  waitFor(() =>
+    render(<DatasourceEditor {...props} />, {
+      useRedux: true,
+      initialState: { common: { currencies: ['USD', 'GBP', 'EUR'] } },
+    }),
+  );
 
 describe('DatasourceEditor', () => {
   fetchMock.get(DATASOURCE_ENDPOINT, []);
@@ -220,7 +225,6 @@ describe('DatasourceEditor RTL', () => {
   it('renders currency controls', async () => {
     const propsWithCurrency = {
       ...props,
-      currencies: ['USD', 'GBP', 'EUR'],
       datasource: {
         ...props.datasource,
         metrics: [

@@ -18,16 +18,14 @@
  */
 import React from 'react';
 import { GenericDataType, t, validateNumber } from '@superset-ui/core';
-import { FaAlignLeft } from '@react-icons/all-files/fa/FaAlignLeft';
-import { FaAlignRight } from '@react-icons/all-files/fa/FaAlignRight';
-import { FaAlignCenter } from '@react-icons/all-files/fa/FaAlignCenter';
 import {
+  ControlFormItemSpec,
   D3_FORMAT_DOCS,
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_DOCS,
   D3_TIME_FORMAT_OPTIONS,
-} from '../../../utils';
-import { ControlFormItemSpec } from '../../../components/ControlForm';
+} from '@superset-ui/chart-controls';
+import Icons from 'src/components/Icons';
 import { ColumnConfigFormLayout } from './types';
 
 export type SharedColumnConfigProp =
@@ -40,13 +38,17 @@ export type SharedColumnConfigProp =
   | 'd3TimeFormat'
   | 'horizontalAlign'
   | 'truncateLongCells'
-  | 'showCellBars';
+  | 'showCellBars'
+  | 'currencyFormat';
 
 const d3NumberFormat: ControlFormItemSpec<'Select'> = {
   controlType: 'Select',
   label: t('D3 format'),
   description: D3_FORMAT_DOCS,
-  options: D3_FORMAT_OPTIONS,
+  options: D3_FORMAT_OPTIONS.map(option => ({
+    value: option[0],
+    label: option[1],
+  })),
   defaultValue: D3_FORMAT_OPTIONS[0][0],
   creatable: true,
   minWidth: '14em',
@@ -57,7 +59,10 @@ const d3TimeFormat: ControlFormItemSpec<'Select'> = {
   controlType: 'Select',
   label: t('D3 format'),
   description: D3_TIME_FORMAT_DOCS,
-  options: D3_TIME_FORMAT_OPTIONS,
+  options: D3_TIME_FORMAT_OPTIONS.map(option => ({
+    value: option[0],
+    label: option[1],
+  })),
   defaultValue: D3_TIME_FORMAT_OPTIONS[0][0],
   creatable: true,
   minWidth: '10em',
@@ -97,9 +102,9 @@ const horizontalAlign: ControlFormItemSpec<'RadioButtonControl'> & {
   debounceDelay: 50,
   defaultValue: 'left',
   options: [
-    ['left', <FaAlignLeft title={t('Left')} />],
-    ['center', <FaAlignCenter title={t('Center')} />],
-    ['right', <FaAlignRight title={t('Right')} />],
+    ['left', <Icons.AlignLeftOutlined iconSize="m" />],
+    ['center', <Icons.AlignCenterOutlined iconSize="m" />],
+    ['right', <Icons.AlignRightOutlined iconSize="m" />],
   ],
 };
 
@@ -139,6 +144,14 @@ const truncateLongCells: ControlFormItemSpec<'Checkbox'> = {
   debounceDelay: 400,
 };
 
+const currencyFormat: ControlFormItemSpec<'CurrencyControl'> = {
+  controlType: 'CurrencyControl',
+  label: t('Currency format'),
+  description: t(
+    'Customize chart metrics or columns with currency symbols as prefixes or suffixes. Choose a symbol from dropdown or type your own.',
+  ),
+  debounceDelay: 200,
+};
 /**
  * All configurable column formatting properties.
  */
@@ -160,10 +173,7 @@ export const SHARED_COLUMN_CONFIG_PROPS = {
   showCellBars,
   alignPositiveNegative,
   colorPositiveNegative,
-};
-
-export type SharedColumnConfig = {
-  [key in SharedColumnConfigProp]?: typeof SHARED_COLUMN_CONFIG_PROPS[key]['value'];
+  currencyFormat,
 };
 
 export const DEFAULT_CONFIG_FORM_LAYOUT: ColumnConfigFormLayout = {
@@ -175,14 +185,26 @@ export const DEFAULT_CONFIG_FORM_LAYOUT: ColumnConfigFormLayout = {
     ['truncateLongCells'],
   ],
   [GenericDataType.NUMERIC]: [
-    [
-      'columnWidth',
-      { name: 'horizontalAlign', override: { defaultValue: 'right' } },
-    ],
-    ['d3NumberFormat'],
-    ['d3SmallNumberFormat'],
-    ['alignPositiveNegative', 'colorPositiveNegative'],
-    ['showCellBars'],
+    {
+      tab: t('Display'),
+      children: [
+        [
+          'columnWidth',
+          { name: 'horizontalAlign', override: { defaultValue: 'right' } },
+        ],
+        ['showCellBars'],
+        ['alignPositiveNegative'],
+        ['colorPositiveNegative'],
+      ],
+    },
+    {
+      tab: t('Number formatting'),
+      children: [
+        ['d3NumberFormat'],
+        ['d3SmallNumberFormat'],
+        ['currencyFormat'],
+      ],
+    },
   ],
   [GenericDataType.TEMPORAL]: [
     [
