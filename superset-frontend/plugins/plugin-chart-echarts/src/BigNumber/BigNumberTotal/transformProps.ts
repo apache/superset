@@ -53,6 +53,7 @@ export default function transformProps(
     timeFormat,
     yAxisFormat,
     conditionalFormatting,
+    currencyFormat,
   } = formData;
   const refs: Refs = {};
   const { data = [], coltypes = [] } = queriesData[0];
@@ -80,6 +81,7 @@ export default function transformProps(
     currencyFormats,
     columnFormats,
     yAxisFormat,
+    currencyFormat,
   );
 
   const headerFormatter =

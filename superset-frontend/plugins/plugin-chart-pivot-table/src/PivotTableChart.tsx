@@ -140,6 +140,7 @@ export default function PivotTableChart(props: PivotTableProps) {
     colTotals,
     rowTotals,
     valueFormat,
+    currencyFormat,
     emitCrossFilters,
     setDataMask,
     selectedFilters,
@@ -155,8 +156,14 @@ export default function PivotTableChart(props: PivotTableProps) {
 
   const theme = useTheme();
   const defaultFormatter = useMemo(
-    () => getNumberFormatter(valueFormat),
-    [valueFormat],
+    () =>
+      currencyFormat?.symbol
+        ? new CurrencyFormatter({
+            currency: currencyFormat,
+            d3Format: valueFormat,
+          })
+        : getNumberFormatter(valueFormat),
+    [valueFormat, currencyFormat],
   );
   const customFormatsArray = useMemo(
     () =>
@@ -168,9 +175,9 @@ export default function PivotTableChart(props: PivotTableProps) {
       ).map(metricName => [
         metricName,
         columnFormats[metricName] || valueFormat,
-        currencyFormats[metricName],
+        currencyFormats[metricName] || currencyFormat,
       ]),
-    [columnFormats, currencyFormats, valueFormat],
+    [columnFormats, currencyFormat, currencyFormats, valueFormat],
   );
   const hasCustomMetricFormatters = customFormatsArray.length > 0;
   const metricFormatters = useMemo(

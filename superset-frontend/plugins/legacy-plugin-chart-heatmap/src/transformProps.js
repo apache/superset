@@ -38,6 +38,7 @@ export default function transformProps(chartProps) {
     yscaleInterval,
     yAxisBounds,
     yAxisFormat,
+    currencyFormat,
   } = formData;
   const { columnFormats = {}, currencyFormats = {} } = datasource;
   const valueFormatter = getValueFormatter(
@@ -45,6 +46,7 @@ export default function transformProps(chartProps) {
     currencyFormats,
     columnFormats,
     yAxisFormat,
+    currencyFormat,
   );
   return {
     width,

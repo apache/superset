@@ -147,6 +147,7 @@ const config: ControlPanelConfig = {
         [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
 
         ['y_axis_format'],
+        ['currency_format'],
         [
           {
             name: 'logAxis',
