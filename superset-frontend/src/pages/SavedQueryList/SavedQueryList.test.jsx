@@ -278,9 +278,7 @@ describe('RTL', () => {
     userEvent.click(bulkSelectButton);
 
     // Grab and click the "toggle all" checkbox to expose export button
-    const selectAllCheckbox = screen.getByRole('checkbox', {
-      name: /toggle all/i,
-    });
+    const selectAllCheckbox = document.querySelector('#header-toggle-all');
     userEvent.click(selectAllCheckbox);
 
     // Grab and assert that export button is visible
