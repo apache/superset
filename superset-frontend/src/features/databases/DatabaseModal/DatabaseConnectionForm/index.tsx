@@ -79,6 +79,7 @@ export interface FieldPropTypes {
   };
   validationErrors: JsonObject | null;
   getValidation: () => void;
+  clearValidationErrors: () => void;
   db?: DatabaseObject;
   field: string;
   isEditMode?: boolean;
@@ -132,6 +133,7 @@ interface DatabaseConnectionFormProps {
   onRemoveTableCatalog: (idx: number) => void;
   validationErrors: JsonObject | null;
   getValidation: () => void;
+  clearValidationErrors: () => void;
   getPlaceholder?: (field: string) => string | undefined;
 }
 
@@ -151,6 +153,7 @@ const DatabaseConnectionForm = ({
   onRemoveTableCatalog,
   sslForced,
   validationErrors,
+  clearValidationErrors,
 }: DatabaseConnectionFormProps) => (
   <Form>
     <div
@@ -179,6 +182,7 @@ const DatabaseConnectionForm = ({
             },
             validationErrors,
             getValidation,
+            clearValidationErrors,
             db,
             key: field,
             field,
