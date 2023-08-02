@@ -18,8 +18,11 @@
  */
 import '@cypress/code-coverage/support';
 import '@applitools/eyes-cypress/commands';
+import failOnConsoleError from 'cypress-fail-on-console-error';
 
 require('cy-verify-downloads').addCustomCommand();
+
+failOnConsoleError();
 
 const BASE_EXPLORE_URL = '/explore/?form_data=';
 let DASHBOARD_FIXTURES: Record<string, any>[] = [];
