@@ -18,7 +18,7 @@
  */
 import { FORM_DATA_DEFAULTS, NUM_METRIC } from './shared.helper';
 
-// eslint-disable cypress/unsafe-to-chain-command
+/* eslint-disable cypress/unsafe-to-chain-command */
 
 describe('Visualization > Distribution bar chart', () => {
   beforeEach(() => {

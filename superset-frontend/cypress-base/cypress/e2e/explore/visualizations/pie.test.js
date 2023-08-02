@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// eslint-disable cypress/unsafe-to-chain-command
+/* eslint-disable cypress/unsafe-to-chain-command */
 
 describe('Visualization > Pie', () => {
   beforeEach(() => {

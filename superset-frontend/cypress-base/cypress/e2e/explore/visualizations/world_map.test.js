@@ -17,7 +17,7 @@
  * under the License.
  */
 
-// eslint-disable cypress/unsafe-to-chain-command
+/* eslint-disable cypress/unsafe-to-chain-command */
 
 describe('Visualization > World Map', () => {
   beforeEach(() => {
