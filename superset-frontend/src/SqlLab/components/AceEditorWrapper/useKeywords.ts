@@ -50,6 +50,11 @@ const EMPTY_LIST = [] as typeof sqlKeywords;
 const { useQueryState: useSchemasQueryState } = schemaEndpoints.schemas;
 const { useQueryState: useTablesQueryState } = tableEndpoints.tables;
 
+const getHelperText = (value: string) =>
+  value.length > 30 && {
+    docText: value,
+  };
+
 export function useKeywords(
   { queryEditorId, dbId, schema }: Params,
   skip = false,
@@ -149,6 +154,7 @@ export function useKeywords(
         completer: {
           insertMatch,
         },
+        ...getHelperText(s.value),
       })),
     [schemaOptions, insertMatch],
   );
@@ -163,6 +169,7 @@ export function useKeywords(
         completer: {
           insertMatch,
         },
+        ...getHelperText(value),
       })),
     [tableData?.options, insertMatch],
   );
@@ -174,6 +181,7 @@ export function useKeywords(
         value: col,
         score: COLUMN_AUTOCOMPLETE_SCORE,
         meta: 'column',
+        ...getHelperText(col),
       })),
     [allColumns],
   );
@@ -188,6 +196,7 @@ export function useKeywords(
         completer: {
           insertMatch,
         },
+        ...getHelperText(func),
       })),
     [functionNames, insertMatch],
   );
