@@ -18,11 +18,27 @@
  */
 import '@cypress/code-coverage/support';
 import '@applitools/eyes-cypress/commands';
-import failOnConsoleError from 'cypress-fail-on-console-error';
+import failOnConsoleError, { Config } from 'cypress-fail-on-console-error';
 
 require('cy-verify-downloads').addCustomCommand();
 
-failOnConsoleError();
+// fail on console error, allow config to override individual tests
+// these exceptions are a little pile of tech debt
+const { getConfig, setConfig } = failOnConsoleError({consoleMessages: [
+  /\[webpack-dev-server\]/,
+  'The pseudo class ":first-child" is potentially unsafe when doing server-side rendering. Try changing it to ":first-of-type".',
+  'The pseudo class ":nth-child" is potentially unsafe when doing server-side rendering. Try changing it to ":nth-of-type".',
+  /Warning: /
+]});
+
+// Set infividual tests to allow certain console erros to NOT fail, e.g
+// cy.setConsoleMessages(['foo', /^some bar-regex.*/]);
+// This will be reset between tests.
+Cypress.Commands.addAll({
+  getConsoleMessages: () => cy.wrap(getConfig()?.consoleMessages),
+  setConsoleMessages: (consoleMessages: (string | RegExp)[]) =>
+    setConfig({ ...getConfig(), consoleMessages }),
+});
 
 const BASE_EXPLORE_URL = '/explore/?form_data=';
 let DASHBOARD_FIXTURES: Record<string, any>[] = [];
