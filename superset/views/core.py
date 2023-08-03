@@ -21,6 +21,7 @@ import logging
 import re
 from contextlib import closing
 from datetime import datetime, timedelta
+from io import BytesIO
 from typing import Any, Callable, cast, Dict, List, Optional, Union
 from urllib import parse
 
@@ -140,7 +141,6 @@ from superset.views.base import (
     common_bootstrap_payload,
     create_table_permissions,
     CsvResponse,
-    XlsxResponse,
     data_payload_response,
     generate_download_headers,
     get_error_msg,
@@ -489,7 +489,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     def generate_json(
         self, viz_obj: BaseViz, response_type: Optional[str] = None
-    ) -> FlaskResponse:
+    ) -> Optional[FlaskResponse, BytesIO]:
         if response_type == ChartDataResultFormat.CSV:
             return CsvResponse(
                 viz_obj.get_csv(), headers=generate_download_headers("csv")

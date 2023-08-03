@@ -47,7 +47,7 @@ from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.core import create_zip, json_int_dttm_ser
-from superset.views.base import CsvResponse, generate_download_headers, XlsxResponse
+from superset.views.base import CsvResponse, generate_download_headers
 from superset.views.base_api import statsd_metrics
 from superset import app
 
@@ -359,8 +359,8 @@ class ChartDataRestApi(ChartRestApi):
 
         if result_format == ChartDataResultFormat.XLSX:
             # Verify user has permission to export XLSX file
-            # if not security_manager.can_access("can_xlsx", "Superset"):
-            #     return self.response_403()
+            if not security_manager.can_access("can_csv", "Superset"):
+                return self.response_403()
 
             if not result["queries"]:
                 return self.response_400(_("Empty query result"))

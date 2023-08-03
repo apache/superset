@@ -76,15 +76,15 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
     return df.to_csv(**kwargs)
 
 
-def df_to_escaped_xlsx(df: pd.DataFrame, **kwargs: Any) -> Any:
+def df_to_escaped_xlsx(df: pd.DataFrame, **kwargs: Any) -> io.BytesIO:
     escape_values = lambda v: escape_value(v) if isinstance(v, str) else v
 
-    # Escape csv headers
+    # Escape xslx headers
     df = df.rename(columns=escape_values)
 
     excel_writer = io.BytesIO()
-    # writer = pd.ExcelWriter(excel_writer, mode="w", engine="xlsxwriter")
-    # Escape csv values
+
+    # Escape xlsx values
     for name, column in df.items():
         if column.dtype == np.dtype(object):
             for idx, value in enumerate(column.values):

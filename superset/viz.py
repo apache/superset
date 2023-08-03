@@ -29,6 +29,7 @@ import math
 import re
 from collections import defaultdict, OrderedDict
 from datetime import date, datetime, timedelta
+from io import BytesIO
 from itertools import product
 from typing import (
     Any,
@@ -665,9 +666,8 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         include_index = not isinstance(df.index, pd.RangeIndex)
         return csv.df_to_escaped_csv(df, index=include_index, **config["CSV_EXPORT"])
 
-    def get_xlsx(self) -> Optional[str]:
+    def get_xlsx(self) -> BytesIO:
         df = self.get_df_payload()["df"]
-        include_index = not isinstance(df.index, pd.RangeIndex)
         return csv.df_to_escaped_xlsx(df)
 
     def get_data(self, df: pd.DataFrame) -> VizData:  # pylint: disable=no-self-use
