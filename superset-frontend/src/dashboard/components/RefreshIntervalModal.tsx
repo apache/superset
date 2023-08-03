@@ -97,10 +97,8 @@ class RefreshIntervalModal extends React.PureComponent<
       if (custom_block) {
         custom_block.style.visibility = 'visible';
       }
-    } else {
-      if (custom_block) {
-        custom_block.style.visibility = 'hidden';
-      }
+    } else if (custom_block) {
+      custom_block.style.visibility = 'hidden';
     }
   }
 
@@ -111,13 +109,13 @@ class RefreshIntervalModal extends React.PureComponent<
   }
 
   createIntervalOptions(refreshIntervalOptions: [number, string][]) {
-    var refresh_options = [];
+    const refresh_options = [];
     refresh_options.push({
       value: refreshIntervalOptions[0][0],
       label: t(refreshIntervalOptions[0][1]),
     });
     refresh_options.push({ value: -1, label: 'Custom interval' });
-    for (let i = 1; i < refreshIntervalOptions.length; i++)
+    for (let i = 1; i < refreshIntervalOptions.length; i += 1)
       refresh_options.push({
         value: refreshIntervalOptions[i][0],
         label: t(refreshIntervalOptions[i][1]),
