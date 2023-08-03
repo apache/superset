@@ -44,6 +44,14 @@ class SqlaTable(Base):
     database_id = sa.Column(sa.Integer, sa.ForeignKey("dbs.id"))
 
 
+class Slice(Base):
+    __tablename__ = "slices"
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    schema_perm = sa.Column(sa.String(1000))
+    datasource_id = sa.Column(sa.Integer)
+
+
 class Database(Base):
     __tablename__ = "dbs"
 
@@ -51,10 +59,7 @@ class Database(Base):
     database_name = sa.Column(sa.String(250))
 
 
-def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
+def fix_datasets_schema_perm(session):
     for result in (
         session.query(SqlaTable, Database.database_name)
         .join(Database)
@@ -67,6 +72,30 @@ def upgrade():
         result.SqlaTable.schema_perm = (
             f"[{result.database_name}].[{result.SqlaTable.schema}]"
         )
+
+
+def fix_charts_schema_perm(session):
+    for result in (
+        session.query(Slice, SqlaTable, Database.database_name)
+        .join(SqlaTable, Slice.datasource_id == SqlaTable.id)
+        .join(Database, SqlaTable.database_id == Database.id)
+        .filter(SqlaTable.schema.isnot(None))
+        .filter(
+            Slice.schema_perm
+            != sa.func.concat("[", Database.database_name, "].[", SqlaTable.schema, "]")
+        )
+    ):
+        result.Slice.schema_perm = (
+            f"[{result.database_name}].[{result.SqlaTable.schema}]"
+        )
+
+
+def upgrade():
+    bind = op.get_bind()
+    session = db.Session(bind=bind)
+
+    fix_datasets_schema_perm(session)
+    fix_charts_schema_perm(session)
 
     session.commit()
     session.close()
