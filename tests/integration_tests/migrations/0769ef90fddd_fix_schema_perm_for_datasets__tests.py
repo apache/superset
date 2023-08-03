@@ -17,6 +17,7 @@
 from importlib import import_module
 
 import pytest
+
 from superset import db
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.slice import Slice

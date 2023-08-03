@@ -26,8 +26,8 @@ Create Date: 2023-08-02 15:23:58.242396
 revision = "0769ef90fddd"
 down_revision = "ee179a490af9"
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects.sqlite.base import SQLiteDialect
 from sqlalchemy.ext.declarative import declarative_base
 
