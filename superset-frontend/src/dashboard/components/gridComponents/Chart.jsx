@@ -20,7 +20,7 @@ import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
 import { styled, t, logging } from '@superset-ui/core';
-import { isEqual } from 'lodash';
+import { debounce, isEqual } from 'lodash';
 import { withRouter } from 'react-router-dom';
 
 import { exportChart, mountExploreUrl } from 'src/explore/exploreUtils';
@@ -142,7 +142,7 @@ class Chart extends React.Component {
     this.exportXLSX = this.exportXLSX.bind(this);
     this.exportFullXLSX = this.exportFullXLSX.bind(this);
     this.forceRefresh = this.forceRefresh.bind(this);
-    this.resize = this.resize.bind(this);
+    this.resize = debounce(this.resize, RESIZE_TIMEOUT).bind(this);
     this.setDescriptionRef = this.setDescriptionRef.bind(this);
     this.setHeaderRef = this.setHeaderRef.bind(this);
     this.getChartHeight = this.getChartHeight.bind(this);
