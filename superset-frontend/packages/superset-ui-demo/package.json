@@ -58,7 +58,6 @@
   "devDependencies": {
     "@babel/core": "^7.9.0",
     "babel-loader": "^8.1.0",
-    "chromatic": "^5.4.0",
     "fork-ts-checker-webpack-plugin": "^5.0.7",
     "ts-loader": "^7.0.4",
     "typescript": "^4.5.4"
