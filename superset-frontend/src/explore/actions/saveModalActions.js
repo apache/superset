@@ -21,6 +21,7 @@ import { SupersetClient, t } from '@superset-ui/core';
 import { addSuccessToast } from 'src/components/MessageToasts/actions';
 import { isEmpty } from 'lodash';
 import { buildV1ChartDataPayload } from '../exploreUtils';
+import { Operators } from '../constants';
 
 const ADHOC_FILTER_REGEX = /^adhoc_filters/;
 
@@ -81,7 +82,8 @@ export const getSlicePayload = (
   if (
     isEmpty(adhocFilters?.adhoc_filters) &&
     isEmpty(formDataFromSlice) &&
-    formDataWithNativeFilters?.adhoc_filters?.length > 0
+    formDataWithNativeFilters?.adhoc_filters?.[0]?.operator ===
+      Operators.TEMPORAL_RANGE
   ) {
     adhocFilters.adhoc_filters = [
       {
