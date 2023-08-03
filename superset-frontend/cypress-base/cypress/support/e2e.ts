@@ -30,6 +30,8 @@ const { getConfig, setConfig } = failOnConsoleError({
     'The pseudo class ":first-child" is potentially unsafe when doing server-side rendering. Try changing it to ":first-of-type".',
     'The pseudo class ":nth-child" is potentially unsafe when doing server-side rendering. Try changing it to ":nth-of-type".',
     /Warning: /,
+    'Error: Unknown Error',
+    /Unable to infer path to ace from script src/,
   ],
 });
 
