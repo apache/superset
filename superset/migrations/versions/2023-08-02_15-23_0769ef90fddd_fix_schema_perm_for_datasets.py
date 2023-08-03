@@ -28,6 +28,7 @@ down_revision = "ee179a490af9"
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects.sqlite.base import SQLiteDialect
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
@@ -93,6 +94,8 @@ def fix_charts_schema_perm(session):
 def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
+    if isinstance(bind.dialect, SQLiteDialect):
+        return  # sqlite doesn't have a concat function
 
     fix_datasets_schema_perm(session)
     fix_charts_schema_perm(session)
