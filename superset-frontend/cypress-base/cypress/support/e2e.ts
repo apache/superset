@@ -24,12 +24,14 @@ require('cy-verify-downloads').addCustomCommand();
 
 // fail on console error, allow config to override individual tests
 // these exceptions are a little pile of tech debt
-const { getConfig, setConfig } = failOnConsoleError({consoleMessages: [
-  /\[webpack-dev-server\]/,
-  'The pseudo class ":first-child" is potentially unsafe when doing server-side rendering. Try changing it to ":first-of-type".',
-  'The pseudo class ":nth-child" is potentially unsafe when doing server-side rendering. Try changing it to ":nth-of-type".',
-  /Warning: /
-]});
+const { getConfig, setConfig } = failOnConsoleError({
+  consoleMessages: [
+    /\[webpack-dev-server\]/,
+    'The pseudo class ":first-child" is potentially unsafe when doing server-side rendering. Try changing it to ":first-of-type".',
+    'The pseudo class ":nth-child" is potentially unsafe when doing server-side rendering. Try changing it to ":nth-of-type".',
+    /Warning: /,
+  ],
+});
 
 // Set infividual tests to allow certain console erros to NOT fail, e.g
 // cy.setConsoleMessages(['foo', /^some bar-regex.*/]);
