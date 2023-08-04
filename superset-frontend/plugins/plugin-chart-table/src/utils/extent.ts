@@ -30,10 +30,12 @@ export default function extent<T = number | string | Date | undefined | null>(
           max = value;
         }
       } else {
+        // @ts-ignore
         if (min > value) {
           min = value;
         }
-        if (max !== undefined) {
+        if (max !== undefined && value !== undefined) {
+          // @ts-ignore
           if (max < value) {
             max = value;
           }
