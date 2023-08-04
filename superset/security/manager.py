@@ -16,7 +16,6 @@
 # under the License.
 # pylint: disable=too-many-lines
 """A set of constants and methods to manage permissions and security"""
-import json
 import logging
 import re
 import time
@@ -2059,28 +2058,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .filter(Dashboard.id.in_(dashboard_ids))
         )
 
-        if db.session.query(query.exists()).scalar():
-            return True
-
-        # check for datasets that are only used by filters
-        dashboards_json = (
-            db.session.query(Dashboard.json_metadata)
-            .filter(Dashboard.id.in_(dashboard_ids))
-            .all()
-        )
-        for json_ in dashboards_json:
-            try:
-                json_metadata = json.loads(json_.json_metadata)
-                for filter_ in json_metadata.get("native_filter_configuration", []):
-                    filter_dataset_ids = [
-                        target.get("datasetId") for target in filter_.get("targets", [])
-                    ]
-                    if datasource.id in filter_dataset_ids:
-                        return True
-            except ValueError:
-                pass
-
-        return False
+        exists = db.session.query(query.exists()).scalar()
+        return exists
 
     @staticmethod
     def _get_current_epoch_time() -> float:
