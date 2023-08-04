@@ -110,6 +110,10 @@ class RefreshIntervalModal extends React.PureComponent<
 
   createIntervalOptions(refreshIntervalOptions: [number, string][]) {
     const refresh_options = [];
+    if (refreshIntervalOptions.length === 0) {
+      refresh_options.push({ value: -1, label: 'Custom interval' });
+      return refresh_options;
+    }
     refresh_options.push({
       value: refreshIntervalOptions[0][0],
       label: t(refreshIntervalOptions[0][1]),
