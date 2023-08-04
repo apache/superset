@@ -11,6 +11,7 @@
     "dev-server": "ts-node src/index.ts start",
     "build": "tsc",
     "prettier-check": "prettier --check .",
+    "prettier-write": "prettier --write .",
     "format": "prettier --write ."
   },
   "license": "Apache-2.0",
