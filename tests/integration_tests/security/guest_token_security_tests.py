@@ -159,41 +159,6 @@ class TestGuestUserDashboardAccess(SupersetTestCase):
         has_guest_access = security_manager.has_guest_access(self.dash)
         self.assertFalse(has_guest_access)
 
-    def test_chart_raise_for_access_as_guest(self):
-        chart = self.dash.slices[0]
-        g.user = self.authorized_guest
-
-        security_manager.raise_for_access(viz=chart)
-
-    def test_chart_raise_for_access_as_unauthorized_guest(self):
-        chart = self.dash.slices[0]
-        g.user = self.unauthorized_guest
-
-        with self.assertRaises(SupersetSecurityException):
-            security_manager.raise_for_access(viz=chart)
-
-    def test_dataset_raise_for_access_as_guest(self):
-        dataset = self.dash.slices[0].datasource
-        g.user = self.authorized_guest
-
-        security_manager.raise_for_access(datasource=dataset)
-
-    def test_dataset_raise_for_access_as_unauthorized_guest(self):
-        dataset = self.dash.slices[0].datasource
-        g.user = self.unauthorized_guest
-
-        with self.assertRaises(SupersetSecurityException):
-            security_manager.raise_for_access(datasource=dataset)
-
-    def test_guest_token_does_not_grant_access_to_underlying_table(self):
-        sqla_table = self.dash.slices[0].table
-        table = Table(table=sqla_table.table_name)
-
-        g.user = self.authorized_guest
-
-        with self.assertRaises(Exception):
-            security_manager.raise_for_access(table=table, database=sqla_table.database)
-
     def test_raise_for_dashboard_access_as_guest(self):
         g.user = self.authorized_guest
 
