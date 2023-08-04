@@ -169,7 +169,6 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
             return
 
         # arrange
-
         username = random_str()
         new_role = f"role_{random_str()}"
         self.create_user_with_roles(username, [new_role], should_create_roles=True)
@@ -191,7 +190,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         request_payload = get_query_context("birth_names")
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
-        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(rv.status_code, 403)
 
         # post
         revoke_access_to_dashboard(dashboard_to_access, new_role)
