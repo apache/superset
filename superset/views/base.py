@@ -450,7 +450,6 @@ def cached_common_bootstrap_data(user: User, locale: str) -> dict[str, Any]:
         "extra_categorical_color_schemes": conf["EXTRA_CATEGORICAL_COLOR_SCHEMES"],
         "theme_overrides": conf["THEME_OVERRIDES"],
         "menu_data": menu_data(user),
-        "Talisman": conf.get("TALISMAN_ENABLED", "not set"),
     }
     bootstrap_data.update(conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
     return bootstrap_data
