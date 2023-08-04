@@ -439,6 +439,8 @@ def cast_to_boolean(value: Any) -> bool | None:
     """
     if value is None:
         return None
+    if isinstance(value, bool):
+        return value
     if isinstance(value, (int, float)):
         return value != 0
     if isinstance(value, str):
