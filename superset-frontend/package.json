@@ -135,6 +135,7 @@
     "chrono-node": "^2.2.6",
     "classnames": "^2.2.5",
     "core-js": "^3.6.5",
+    "cube-progress": "file:../cube-progress",
     "cube-table": "file:../cube-table",
     "d3-array": "^1.2.4",
     "d3-color": "^3.1.0",

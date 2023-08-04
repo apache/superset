@@ -31,6 +31,7 @@ x-superset-volumes: &superset-volumes
   - ./cube-table:/app/cube-table
   - ./logged-in-dashboard-card:/app/logged-in-dashboard-card
   - ./media-viewer:/app/media-viewer
+  - ./cube-progress:/app/cube-progress
 
 version: "3.7"
 services:

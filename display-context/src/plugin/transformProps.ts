@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, DatasourceType } from '@superset-ui/core';
+import { ChartProps } from '@superset-ui/core';
 
 export default function transformProps(chartProps: ChartProps) {
-  console.log('transformProps', chartProps);
   const { width, height, formData , datasource} = chartProps;
   const { extraFormData, handlebarsDataTemplate, handlebarsEmptyTemplate, styleTemplate, allColumns } = formData;
   const filters = extraFormData.filters || [];
