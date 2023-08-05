@@ -47,6 +47,7 @@ from superset.utils.database import get_example_database
 from superset.utils.urls import get_url_host
 
 from .base_tests import SupersetTestCase
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.fixtures.public_role import (
     public_role_like_gamma,
     public_role_like_test_role,
@@ -1643,17 +1644,19 @@ class TestSecurityManager(SupersetTestCase):
         with self.assertRaises(SupersetSecurityException):
             security_manager.raise_for_access(query=query)
 
+    @patch("superset.security.manager.g")
     @patch("superset.security.SupersetSecurityManager.is_owner")
     @patch("superset.security.SupersetSecurityManager.can_access")
     @patch("superset.security.SupersetSecurityManager.can_access_schema")
     def test_raise_for_access_query_context(
-        self, mock_can_access_schema, mock_can_access, mock_is_owner
+        self, mock_can_access_schema, mock_can_access, mock_is_owner, mock_g
     ):
         query_context = Mock(datasource=self.get_datasource_mock())
 
         mock_can_access_schema.return_value = True
         security_manager.raise_for_access(query_context=query_context)
 
+        mock_g.user = security_manager.find_user("gamma")
         mock_can_access.return_value = False
         mock_can_access_schema.return_value = False
         mock_is_owner.return_value = False
@@ -1674,23 +1677,63 @@ class TestSecurityManager(SupersetTestCase):
         with self.assertRaises(SupersetSecurityException):
             security_manager.raise_for_access(database=database, table=table)
 
+    @patch("superset.security.manager.g")
     @patch("superset.security.SupersetSecurityManager.is_owner")
     @patch("superset.security.SupersetSecurityManager.can_access")
     @patch("superset.security.SupersetSecurityManager.can_access_schema")
     def test_raise_for_access_viz(
-        self, mock_can_access_schema, mock_can_access, mock_is_owner
+        self, mock_can_access_schema, mock_can_access, mock_is_owner, mock_g
     ):
         test_viz = viz.TimeTableViz(self.get_datasource_mock(), form_data={})
 
         mock_can_access_schema.return_value = True
         security_manager.raise_for_access(viz=test_viz)
 
+        mock_g.user = security_manager.find_user("gamma")
         mock_can_access.return_value = False
         mock_can_access_schema.return_value = False
         mock_is_owner.return_value = False
 
         with self.assertRaises(SupersetSecurityException):
             security_manager.raise_for_access(viz=test_viz)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @with_feature_flags(DASHBOARD_RBAC=True)
+    @patch("superset.security.manager.g")
+    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    @patch("superset.security.SupersetSecurityManager.can_access_schema")
+    def test_raise_for_access_rbac(
+        self,
+        mock_can_access_schema,
+        mock_can_access,
+        mock_is_owner,
+        mock_g,
+    ):
+        dashboard = self.get_dash_by_slug("births")
+
+        obj = Mock(
+            datasource=self.get_datasource_mock(),
+            form_data={"dashboardId": dashboard.id},
+        )
+
+        mock_g.user = security_manager.find_user("gamma")
+        mock_is_owner.return_value = False
+        mock_can_access.return_value = False
+        mock_can_access_schema.return_value = False
+
+        for kwarg in ["query_context", "viz"]:
+            dashboard.roles = []
+            db.session.flush()
+
+            with self.assertRaises(SupersetSecurityException):
+                security_manager.raise_for_access(**{kwarg: obj})
+
+            dashboard.roles = [self.get_role("Gamma")]
+            db.session.flush()
+            security_manager.raise_for_access(**{kwarg: obj})
+
+        db.session.rollback()
 
     @patch("superset.security.manager.g")
     def test_get_user_roles(self, mock_g):

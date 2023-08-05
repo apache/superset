@@ -18,7 +18,6 @@
 """A set of constants and methods to manage permissions and security"""
 
 import contextlib
-import json
 import logging
 import re
 import time
@@ -27,7 +26,6 @@ from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING, Uni
 
 from flask import current_app, Flask, g, Request
 from flask_appbuilder import Model
-from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
     assoc_permissionview_role,
@@ -1780,7 +1778,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         # pylint: disable=import-outside-toplevel
         from superset.connectors.sqla.models import SqlaTable
-        from superset.extensions import feature_flag_manager
+        from superset.daos.dashboard import DashboardDAO
         from superset.sql_parse import Table
 
         if database and table or query:
@@ -1826,25 +1824,26 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 )
 
         if datasource or query_context or viz:
+            form_data = None
+
             if query_context:
                 datasource = query_context.datasource
+                form_data = query_context.form_data
             elif viz:
                 datasource = viz.datasource
+                form_data = viz.form_data
 
             assert datasource
-
-            should_check_dashboard_access = (
-                feature_flag_manager.is_feature_enabled("DASHBOARD_RBAC")
-                or self.is_guest_user()
-            )
 
             if not (
                 self.can_access_schema(datasource)
                 or self.can_access("datasource_access", datasource.perm or "")
                 or self.is_owner(datasource)
                 or (
-                    should_check_dashboard_access
-                    and self.can_access_based_on_dashboard(datasource)
+                    form_data
+                    and (dashboard_id := form_data.get("dashboardId"))
+                    and (dashboard := DashboardDAO.find_by_id(dashboard_id))
+                    and self.can_access_dashboard(dashboard)
                 )
             ):
                 raise SupersetSecurityException(
@@ -2034,48 +2033,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return
 
         raise DashboardAccessDeniedError()
-
-    @staticmethod
-    def can_access_based_on_dashboard(datasource: "BaseDatasource") -> bool:
-        # pylint: disable=import-outside-toplevel
-        from superset import db
-        from superset.dashboards.filters import DashboardAccessFilter
-        from superset.models.dashboard import Dashboard
-        from superset.models.slice import Slice
-
-        dashboard_ids = db.session.query(Dashboard.id)
-        dashboard_ids = DashboardAccessFilter(
-            "id", SQLAInterface(Dashboard, db.session)
-        ).apply(dashboard_ids, None)
-
-        datasource_class = type(datasource)
-        query = (
-            db.session.query(Dashboard.id)
-            .join(Slice, Dashboard.slices)
-            .join(Slice.table)
-            .filter(datasource_class.id == datasource.id)
-            .filter(Dashboard.id.in_(dashboard_ids))
-        )
-
-        if db.session.query(query.exists()).scalar():
-            return True
-
-        # check for datasets that are only used by filters
-        dashboards_json = (
-            db.session.query(Dashboard.json_metadata)
-            .filter(Dashboard.id.in_(dashboard_ids))
-            .all()
-        )
-        for json_ in dashboards_json:
-            with contextlib.suppress(ValueError):
-                json_metadata = json.loads(json_.json_metadata)
-                for filter_ in json_metadata.get("native_filter_configuration", []):
-                    filter_dataset_ids = [
-                        target.get("datasetId") for target in filter_.get("targets", [])
-                    ]
-                    if datasource.id in filter_dataset_ids:
-                        return True
-        return False
 
     @staticmethod
     def _get_current_epoch_time() -> float:
