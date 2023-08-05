@@ -27,7 +27,7 @@ from superset.extensions import db
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.core import DatasourceType, get_iterable
+from superset.utils.core import DatasourceType
 from superset.views.base import DatasourceFilter
 
 logger = logging.getLogger(__name__)
