@@ -21,7 +21,6 @@ from typing import Any
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset import security_manager
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.daos.base import BaseDAO
 from superset.extensions import db
