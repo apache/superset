@@ -17,7 +17,6 @@
 # pylint: disable=too-many-lines
 """A set of constants and methods to manage permissions and security"""
 
-import contextlib
 import logging
 import re
 import time
