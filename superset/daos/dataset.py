@@ -369,9 +369,6 @@ class DatasetDAO(BaseDAO[SqlaTable]):  # pylint: disable=too-many-public-methods
         """
         Delete the specified items(s) including their associated relationships.
 
-        Note that bulk deletion via `delete` does not dispatch the `after_delete` event
-        and thus the ORM event listener callback needs to be invoked manually.
-
         :param items: The item(s) to delete
         :param commit: Whether to commit the transaction
         :raises DAODeleteFailedError: If the deletion failed
@@ -379,16 +376,8 @@ class DatasetDAO(BaseDAO[SqlaTable]):  # pylint: disable=too-many-public-methods
         """
 
         try:
-            db.session.query(SqlaTable).filter(
-                SqlaTable.id.in_(item.id for item in get_iterable(items))
-            ).delete(synchronize_session="fetch")
-
-            connection = db.session.connection()
-            mapper = next(iter(cls.model_cls.registry.mappers))  # type: ignore
-
             for item in get_iterable(items):
-                security_manager.dataset_after_delete(mapper, connection, item)
-
+                db.session.delete(item)
             if commit:
                 db.session.commit()
         except SQLAlchemyError as ex:

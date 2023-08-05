@@ -185,7 +185,6 @@ class DashboardDAO(BaseDAO[Dashboard]):
 
     @classmethod
     def delete(cls, items: Dashboard | list[Dashboard], commit: bool = True) -> None:
-        item_ids = [item.id for item in get_iterable(items)]
         # bulk delete, first delete related data
         for item in get_iterable(items):
             item.slices = []
@@ -193,9 +192,8 @@ class DashboardDAO(BaseDAO[Dashboard]):
             db.session.merge(item)
         # bulk delete itself
         try:
-            db.session.query(Dashboard).filter(Dashboard.id.in_(item_ids)).delete(
-                synchronize_session="fetch"
-            )
+            for item in get_iterable(items):
+                db.session.delete(item)
             if commit:
                 db.session.commit()
         except SQLAlchemyError as ex:
