@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import contextlib
 import json
 import re
 import urllib
@@ -557,11 +558,8 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         except (json.JSONDecodeError, TypeError):
             return encrypted_extra
 
-        try:
+        with contextlib.suppress(KeyError):
             config["credentials_info"]["private_key"] = PASSWORD_MASK
-        except KeyError:
-            pass
-
         return json.dumps(config)
 
     @classmethod

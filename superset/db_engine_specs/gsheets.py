@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import contextlib
 import json
 import re
 from re import Pattern
@@ -37,7 +38,6 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 
 if TYPE_CHECKING:
     from superset.models.core import Database
-
 
 SYNTAX_ERROR_REGEX = re.compile('SQLError: near "(?P<server_error>.*?)": syntax error')
 
@@ -155,11 +155,8 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         except (TypeError, json.JSONDecodeError):
             return encrypted_extra
 
-        try:
+        with contextlib.suppress(KeyError):
             config["service_account_info"]["private_key"] = PASSWORD_MASK
-        except KeyError:
-            pass
-
         return json.dumps(config)
 
     @classmethod
