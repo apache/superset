@@ -359,31 +359,6 @@ class DatasetDAO(BaseDAO[SqlaTable]):  # pylint: disable=too-many-public-methods
         """
         return DatasetMetricDAO.create(properties, commit=commit)
 
-    @classmethod
-    def delete(
-        cls,
-        items: SqlaTable | list[SqlaTable],
-        commit: bool = True,
-    ) -> None:
-        """
-        Delete the specified items(s) including their associated relationships.
-
-        :param items: The item(s) to delete
-        :param commit: Whether to commit the transaction
-        :raises DAODeleteFailedError: If the deletion failed
-        :see: https://docs.sqlalchemy.org/en/latest/orm/queryguide/dml.html
-        """
-
-        try:
-            for item in get_iterable(items):
-                db.session.delete(item)
-            if commit:
-                db.session.commit()
-        except SQLAlchemyError as ex:
-            if commit:
-                db.session.rollback()
-            raise ex
-
     @staticmethod
     def get_table_by_name(database_id: int, table_name: str) -> SqlaTable | None:
         return (
