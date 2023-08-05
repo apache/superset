@@ -1712,14 +1712,15 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 200
         expected_response = {"message": f"Deleted {len(datasets)} datasets"}
         assert data == expected_response
-        for dataset in datasets:
-            setattr(dataset, "_deleted", True)
+        deleted_datasets = datasets
         datasets = (
             db.session.query(SqlaTable)
             .filter(SqlaTable.table_name.in_(self.fixture_tables_names))
             .all()
         )
         assert datasets == []
+        for dataset in deleted_datasets:
+            setattr(dataset, "_deleted", True)
         # Assert permissions get cleaned
         for view_menu_name in view_menu_names:
             assert security_manager.find_view_menu(view_menu_name) is None
