@@ -166,7 +166,7 @@ class ChartDataRestApi(ChartRestApi):
         )
 
     @expose("/data", methods=["POST"])
-    # @protect()
+    @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
@@ -226,7 +226,7 @@ class ChartDataRestApi(ChartRestApi):
         try:
             query_context = self._create_query_context_from_form(json_body)
             command = ChartDataCommand(query_context)
-            # command.validate()
+            command.validate()
         except QueryObjectValidationError as error:
             return self.response_400(message=error.message)
         except ValidationError as error:
