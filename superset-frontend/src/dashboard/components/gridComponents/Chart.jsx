@@ -222,7 +222,7 @@ class Chart extends React.Component {
   }
 
   componentWillUnmount() {
-    this.resize.cancel();
+    this.resize.cancel?.();
   }
 
   componentDidUpdate(prevProps) {
