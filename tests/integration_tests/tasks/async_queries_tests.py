@@ -88,10 +88,12 @@ class TestAsyncQueries(SupersetTestCase):
         errors = [{"message": "Error: foo"}]
         mock_update_job.assert_called_once_with(job_metadata, "error", errors=errors)
 
-    @mock.patch.object(ChartDataCommand, "run")
+    @mock.patch.object(
+        async_queries, "set_form_data", side_effect=SoftTimeLimitExceeded()
+    )
     @mock.patch.object(async_query_manager, "update_job")
     def test_soft_timeout_load_chart_data_into_cache(
-        self, mock_update_job, mock_run_command
+        self, mock_update_job, mock_set_form_data
     ):
         app._got_first_request = False
         async_query_manager.init_app(app)
@@ -104,16 +106,12 @@ class TestAsyncQueries(SupersetTestCase):
             "status": "pending",
             "errors": [],
         }
-        errors = ["A timeout occurred while loading chart data"]
+        errors = [{"message": "A timeout occurred while loading chart data"}]
 
         with pytest.raises(SoftTimeLimitExceeded):
-            with mock.patch.object(
-                async_queries,
-                "set_form_data",
-            ) as set_form_data:
-                set_form_data.side_effect = SoftTimeLimitExceeded()
-                load_chart_data_into_cache(job_metadata, form_data)
-            set_form_data.assert_called_once_with(form_data, "error", errors=errors)
+            load_chart_data_into_cache(job_metadata, form_data)
+
+        mock_update_job.assert_called_once_with(job_metadata, "error", errors=errors)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch.object(async_query_manager, "update_job")
@@ -169,10 +167,12 @@ class TestAsyncQueries(SupersetTestCase):
         errors = ["The dataset associated with this chart no longer exists"]
         mock_update_job.assert_called_once_with(job_metadata, "error", errors=errors)
 
-    @mock.patch.object(ChartDataCommand, "run")
+    @mock.patch.object(
+        async_queries, "set_form_data", side_effect=SoftTimeLimitExceeded()
+    )
     @mock.patch.object(async_query_manager, "update_job")
     def test_soft_timeout_load_explore_json_into_cache(
-        self, mock_update_job, mock_run_command
+        self, mock_update_job, mock_set_form_data
     ):
         app._got_first_request = False
         async_query_manager.init_app(app)
@@ -185,13 +185,9 @@ class TestAsyncQueries(SupersetTestCase):
             "status": "pending",
             "errors": [],
         }
-        errors = ["A timeout occurred while loading explore json, error"]
+        errors = [{"message": "A timeout occurred while loading explore json"}]
 
         with pytest.raises(SoftTimeLimitExceeded):
-            with mock.patch.object(
-                async_queries,
-                "set_form_data",
-            ) as set_form_data:
-                set_form_data.side_effect = SoftTimeLimitExceeded()
-                load_explore_json_into_cache(job_metadata, form_data)
-            set_form_data.assert_called_once_with(form_data, "error", errors=errors)
+            load_explore_json_into_cache(job_metadata, form_data)
+
+        mock_update_job.assert_called_once_with(job_metadata, "error", errors=errors)
