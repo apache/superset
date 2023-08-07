@@ -25,6 +25,7 @@ from zipfile import is_zipfile, ZipFile
 import prison
 import pytest
 import yaml
+from sqlalchemy import inspect
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import func
 
@@ -153,7 +154,8 @@ class TestDatasetApi(SupersetTestCase):
 
             # rollback changes
             for dataset in datasets:
-                if not hasattr(dataset, "_deleted"):
+                state = inspect(dataset)
+                if not state.was_deleted:
                     db.session.delete(dataset)
             db.session.commit()
 
@@ -1712,15 +1714,12 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 200
         expected_response = {"message": f"Deleted {len(datasets)} datasets"}
         assert data == expected_response
-        deleted_datasets = datasets
         datasets = (
             db.session.query(SqlaTable)
             .filter(SqlaTable.table_name.in_(self.fixture_tables_names))
             .all()
         )
         assert datasets == []
-        for dataset in deleted_datasets:
-            setattr(dataset, "_deleted", True)
         # Assert permissions get cleaned
         for view_menu_name in view_menu_names:
             assert security_manager.find_view_menu(view_menu_name) is None
