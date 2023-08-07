@@ -27,14 +27,15 @@ import React, {
   useRef,
   useCallback,
   useImperativeHandle,
+  ClipboardEvent,
 } from 'react';
 import { ensureIsArray, t, usePrevious } from '@superset-ui/core';
 import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
 import debounce from 'lodash/debounce';
-import { isEqual } from 'lodash';
+import { isEqual, uniq } from 'lodash';
 import Icons from 'src/components/Icons';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { SLOW_DEBOUNCE } from 'src/constants';
+import { FAST_DEBOUNCE, SLOW_DEBOUNCE } from 'src/constants';
 import {
   getValue,
   hasOption,
@@ -122,6 +123,7 @@ const AsyncSelect = forwardRef(
       onClear,
       onDropdownVisibleChange,
       onDeselect,
+      onSearch,
       onSelect,
       optionFilterProps = ['label', 'value'],
       options,
@@ -129,7 +131,7 @@ const AsyncSelect = forwardRef(
       placeholder = t('Select ...'),
       showSearch = true,
       sortComparator = DEFAULT_SORT_COMPARATOR,
-      tokenSeparators,
+      tokenSeparators = TOKEN_SEPARATORS,
       value,
       getPopupContainer,
       oneLine,
@@ -150,11 +152,7 @@ const AsyncSelect = forwardRef(
     const [allValuesLoaded, setAllValuesLoaded] = useState(false);
     const selectValueRef = useRef(selectValue);
     const fetchedQueries = useRef(new Map<string, number>());
-    const mappedMode = isSingleMode
-      ? undefined
-      : allowNewOptions
-      ? 'tags'
-      : 'multiple';
+    const mappedMode = isSingleMode ? undefined : 'multiple';
     const allowFetch = !fetchOnlyOnSearch || inputValue;
     const [maxTagCount, setMaxTagCount] = useState(
       propsMaxTagCount ?? MAX_TAG_COUNT,
@@ -253,6 +251,14 @@ const AsyncSelect = forwardRef(
           const array = selectValue as (string | number)[];
           setSelectValue(array.filter(element => element !== value));
         }
+        // removes new option
+        if (option.isNewOption) {
+          setSelectOptions(
+            fullSelectOptions.filter(
+              option => getValue(option.value) !== getValue(value),
+            ),
+          );
+        }
       }
       fireOnChange();
       onDeselect?.(value, option);
@@ -341,9 +347,9 @@ const AsyncSelect = forwardRef(
       [fetchPage],
     );
 
-    const handleOnSearch = (search: string) => {
+    const handleOnSearch = debounce((search: string) => {
       const searchValue = search.trim();
-      if (allowNewOptions && isSingleMode) {
+      if (allowNewOptions) {
         const newOption = searchValue &&
           !hasOption(searchValue, fullSelectOptions, true) && {
             label: searchValue,
@@ -368,7 +374,10 @@ const AsyncSelect = forwardRef(
         setIsLoading(!(fetchOnlyOnSearch && !searchValue));
       }
       setInputValue(search);
-    };
+      onSearch?.(searchValue);
+    }, FAST_DEBOUNCE);
+
+    useEffect(() => () => handleOnSearch.cancel(), [handleOnSearch]);
 
     const handlePagination = (e: UIEvent<HTMLElement>) => {
       const vScroll = e.currentTarget;
@@ -439,19 +448,7 @@ const AsyncSelect = forwardRef(
     };
 
     const handleOnBlur = (event: React.FocusEvent<HTMLElement>) => {
-      const tagsMode = !isSingleMode && allowNewOptions;
-      const searchValue = inputValue.trim();
-      // Searched values will be autoselected during onBlur events when in tags mode.
-      // We want to make sure a value is only selected if the user has actually selected it
-      // by pressing Enter or clicking on it.
-      if (
-        tagsMode &&
-        searchValue &&
-        !hasOption(searchValue, selectValue, true)
-      ) {
-        // The search value will be added so we revert to the previous value
-        setSelectValue(selectValue || []);
-      }
+      setInputValue('');
       onBlur?.(event);
     };
 
@@ -526,6 +523,28 @@ const AsyncSelect = forwardRef(
       [ref],
     );
 
+    const onPaste = (e: ClipboardEvent<HTMLInputElement>) => {
+      const pastedText = e.clipboardData.getData('text');
+      if (isSingleMode) {
+        setSelectValue({ label: pastedText, value: pastedText });
+      } else {
+        const token = tokenSeparators.find(token => pastedText.includes(token));
+        const array = token ? uniq(pastedText.split(token)) : [pastedText];
+        setSelectValue(previous => [
+          ...((previous || []) as AntdLabeledValue[]),
+          ...array.map<AntdLabeledValue>(value => ({
+            label: value,
+            value,
+          })),
+        ]);
+      }
+    };
+
+    const shouldRenderChildrenOptions = useMemo(
+      () => hasCustomLabels(fullSelectOptions),
+      [fullSelectOptions],
+    );
+
     return (
       <StyledContainer headerPosition={headerPosition}>
         {header && (
@@ -549,17 +568,17 @@ const AsyncSelect = forwardRef(
           onBlur={handleOnBlur}
           onDeselect={handleOnDeselect}
           onDropdownVisibleChange={handleOnDropdownVisibleChange}
+          // @ts-ignore
+          onPaste={onPaste}
           onPopupScroll={handlePagination}
           onSearch={showSearch ? handleOnSearch : undefined}
           onSelect={handleOnSelect}
           onClear={handleClear}
-          options={
-            hasCustomLabels(fullSelectOptions) ? undefined : fullSelectOptions
-          }
+          options={shouldRenderChildrenOptions ? undefined : fullSelectOptions}
           placeholder={placeholder}
           showSearch={showSearch}
           showArrow
-          tokenSeparators={tokenSeparators || TOKEN_SEPARATORS}
+          tokenSeparators={tokenSeparators}
           value={selectValue}
           suffixIcon={getSuffixIcon(isLoading, showSearch, isDropdownVisible)}
           menuItemSelectedIcon={
