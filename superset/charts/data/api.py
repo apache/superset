@@ -371,12 +371,13 @@ class ChartDataRestApi(ChartRestApi):
 
                 data = result["queries"][0]["data"]
                 logger.warning(data)
-                df = pd.DataFrame(data)
+                ser = pd.Series(data)
+                ser.dt.tz_convert(None)
+                ser.to_excel()
                 excel_writer = io.BytesIO()
 
-                writer = pd.ExcelWriter(excel_writer, mode="w", engine="xlsxwriter",
-                                        options={'remove_timezone': True})
-                df.to_excel(writer, startrow=0, merge_cells=False,
+                writer = pd.ExcelWriter(excel_writer, mode="w", engine="xlsxwriter")
+                ser.to_excel(writer, startrow=0, merge_cells=False,
                             sheet_name="Sheet_1", index_label=None, index=False)
                 writer.save()
                 excel_writer.seek(0)
