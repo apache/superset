@@ -116,6 +116,7 @@ setup(
         # needed to support Literal (3.8) and TypeGuard (3.10)
         "typing-extensions>=3.10, <4",
         "wtforms-json",
+        "xlsxwriter==3.1.2"
     ],
     extras_require={
         "athena": ["pyathena>=1.10.8, <1.11"],
