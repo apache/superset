@@ -11,7 +11,7 @@ import {
 } from '@superset-ui/core';
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
-import { URL_PARAMS } from 'src/constants';
+import { URL_PARAMS, XLSX, CSV } from 'src/constants';
 import {
   MULTI_OPERATORS,
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
@@ -217,31 +217,31 @@ export const buildV1ChartDataPayload = ({
 };
 
 export const getLegacyEndpointType = ({ resultType, resultFormat }) =>
-  resultFormat === 'csv' ? resultFormat : resultType;
+  resultFormat === CSV ? resultFormat : resultType;
 
 const generateFileName = (filename, extension) =>
   `${filename ? filename.split(' ').join('_') : 'data'}.${extension}`;
 
 // DODO-changed (added)
-export const getCSV = async (url, payload, isLegacy) => {
-  console.log('getCSVXX', url, payload, isLegacy);
+export const getCSV = async (url, payload, isLegacy, resultFormat) => {
+  let params = {
+    method: 'post',
+    url,
+    body: payload,
+  };
+
+  if (resultFormat === XLSX) {
+    params = {
+      ...params,
+      responseType: 'blob',
+    };
+  }
+
   if (isLegacy) {
-    const response = await API_HANDLER.SupersetClientNoApi({
-      method: 'post',
-      url,
-      body: payload,
-    });
-
-    if (response && response.result) {
-      return response.result[0];
-    }
+    const response = await API_HANDLER.SupersetClientNoApi({ ...params });
+    if (response && response.result) return response.result[0];
   } else {
-    const response = await API_HANDLER.SupersetClient({
-      method: 'post',
-      url,
-      body: payload,
-    });
-
+    const response = await API_HANDLER.SupersetClient({ ...params });
     if (response) return response;
   }
 
@@ -261,6 +261,7 @@ export const exportChartPlugin = ({
 
   // TODO: DODO check how this workds in plugin
   console.log('shouldUseLegacyApi(formData)', shouldUseLegacyApi(formData));
+
   if (shouldUseLegacyApi(formData)) {
     const endpointType = getLegacyEndpointType({ resultFormat, resultType });
     url = getExploreUrl({
@@ -273,14 +274,18 @@ export const exportChartPlugin = ({
     const fixedUrl =
       url.split(`${window.location.origin}/superset`).filter(x => x)[0] || null;
 
-    console.groupCollapsed('EXPORT CSV legacy');
+    const updatedUrl =
+      resultFormat === XLSX ? `${fixedUrl}&${XLSX}=true` : fixedUrl;
+
+    console.groupCollapsed('EXPORT CSV/XLSX legacy');
     console.log('url', url);
     console.log('fixedUrl', fixedUrl);
     console.log('payload', payload);
     console.log('resultFormat', resultFormat);
+    console.log('updatedUrl', updatedUrl);
     console.groupEnd();
 
-    return getCSV(`${fixedUrl}&xlsx=true`, payload, true);
+    return getCSV(updatedUrl, payload, true, resultFormat);
   }
 
   url = '/api/v1/chart/data';
@@ -297,7 +302,7 @@ export const exportChartPlugin = ({
   console.log('payload', payload);
   console.groupEnd();
 
-  return getCSV(url, payload, false);
+  return getCSV(url, payload, false, resultFormat);
 };
 
 // DODO-changed
@@ -327,43 +332,38 @@ export const exportChart = ({
   // TODO: xlsx
   return exportResultPromise
     .then(csvExportResult => {
-      console.log('csvExportResultXX', csvExportResult);
       if (csvExportResult) {
-        // const universalBOM = '\uFEFF';
-        // const alteredResult = universalBOM + csvExportResult;
-        // const csvFile = new Blob([alteredResult], {
-        //   type: 'text/csv;charset=utf-8;',
-        // });
+        const extension = resultFormat; // csv | xlsx
+        const blobType =
+          extension === XLSX
+            ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            : 'text/csv;charset=utf-8;';
 
-        // const csvFile = new Blob([alteredResult], {
-        //   type: 'application/vnd.ms-excel;charset=utf-8;',
-        // });
-
-        const csvFile = new Blob([csvExportResult], {
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        });
-
-        // const url = window.URL.createObjectURL(
-        //   new Blob([csvExportResult], {
-        //     type: 'application/vnd.ms-excel;charset=utf-8;',
-        //   }),
-        // );
-
-        // FileSaver.saveAs(
-        //   csvFile,
-        //   generateFileName(
-        //     `${sliceName}__${timeGrain}__${vizType}-chart`,
-        //     'csv',
-        //   ),
-        // );
-
-        FileSaver.saveAs(
-          csvFile,
-          generateFileName(
-            `${sliceName}__${timeGrain}__${vizType}-chart`,
-            'xls',
-          ),
+        const outputFilename = generateFileName(
+          `${sliceName}__${timeGrain}__${vizType}-chart`,
+          extension,
         );
+
+        if (extension === XLSX) {
+          const url = URL.createObjectURL(
+            new Blob([csvExportResult], {
+              type: blobType,
+            }),
+          );
+
+          const link = document.createElement('a');
+          link.href = url;
+          link.setAttribute('download', outputFilename);
+          document.body.appendChild(link);
+          link.click();
+        } else {
+          const universalBOM = '\uFEFF';
+          const alteredResult = universalBOM + csvExportResult;
+          const csvFile = new Blob([alteredResult], {
+            type: blobType,
+          });
+          FileSaver.saveAs(csvFile, outputFilename);
+        }
       } else {
         console.log('csvExportResult error', csvExportResult);
       }
