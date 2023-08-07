@@ -142,7 +142,7 @@ class Chart extends React.Component {
     this.exportXLSX = this.exportXLSX.bind(this);
     this.exportFullXLSX = this.exportFullXLSX.bind(this);
     this.forceRefresh = this.forceRefresh.bind(this);
-    this.resize = debounce(this.resize, RESIZE_TIMEOUT).bind(this);
+    this.resize = debounce(this.resize.bind(this), RESIZE_TIMEOUT);
     this.setDescriptionRef = this.setDescriptionRef.bind(this);
     this.setHeaderRef = this.setHeaderRef.bind(this);
     this.getChartHeight = this.getChartHeight.bind(this);
@@ -222,7 +222,7 @@ class Chart extends React.Component {
   }
 
   componentWillUnmount() {
-    this.resize.cancel?.();
+    this.resize.cancel();
   }
 
   componentDidUpdate(prevProps) {
