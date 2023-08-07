@@ -32,7 +32,7 @@ from typing_extensions import TypedDict
 from superset import security_manager
 from superset.constants import PASSWORD_MASK
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
-from superset.db_engine_specs.sqlite import SqliteEngineSpec
+from superset.db_engine_specs.shillelagh import ShillelaghEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 
 if TYPE_CHECKING:
@@ -65,14 +65,13 @@ class GSheetsPropertiesType(TypedDict):
     catalog: dict[str, str]
 
 
-class GSheetsEngineSpec(SqliteEngineSpec):
+class GSheetsEngineSpec(ShillelaghEngineSpec):
     """Engine for Google spreadsheets"""
 
-    engine = "gsheets"
     engine_name = "Google Sheets"
+    engine = "gsheets"
     allows_joins = True
     allows_subqueries = True
-    disable_ssh_tunneling = True
 
     parameters_schema = GSheetsParametersSchema()
     default_driver = "apsw"
