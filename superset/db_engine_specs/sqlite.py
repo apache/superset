@@ -20,7 +20,7 @@ from __future__ import annotations
 import re
 from datetime import datetime
 from re import Pattern
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from flask_babel import gettext as __
 from sqlalchemy import types
@@ -95,7 +95,7 @@ class SqliteEngineSpec(BaseEngineSpec):
             "DATETIME({col}, 'start of day', 'weekday 1', '-7 days')"
         ),
     }
-    # not sure why these are differnet
+    # not sure why these are diffenret
     _time_grain_expressions.update(
         {
             TimeGrain.HALF_HOUR: _time_grain_expressions[TimeGrain.THIRTY_MINUTES],
@@ -117,8 +117,8 @@ class SqliteEngineSpec(BaseEngineSpec):
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
-    ) -> Optional[str]:
+        cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
+    ) -> str | None:
         sqla_type = cls.get_sqla_column_type(target_type)
         if isinstance(sqla_type, (types.String, types.DateTime)):
             return f"""'{dttm.isoformat(sep=" ", timespec="seconds")}'"""
@@ -126,7 +126,10 @@ class SqliteEngineSpec(BaseEngineSpec):
 
     @classmethod
     def get_table_names(
-        cls, database: Database, inspector: Inspector, schema: Optional[str]
+        cls,
+        database: Database,
+        inspector: Inspector,
+        schema: str | None,
     ) -> set[str]:
         """Need to disregard the schema for Sqlite"""
         return set(inspector.get_table_names())
