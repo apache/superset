@@ -112,8 +112,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         table_name: str,
         schema_name: Optional[str],
     ) -> dict[str, Any]:
-        with database.get_raw_connection(schema=schema_name) as conn:
-            cursor = conn.cursor()
+        with database.get_cursor(schema=schema_name) as cursor:
             cursor.execute(f'SELECT GET_METADATA("{table_name}")')
             results = cursor.fetchone()[0]
         try:

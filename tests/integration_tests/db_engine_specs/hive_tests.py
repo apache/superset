@@ -397,8 +397,8 @@ def test__latest_partition_from_df():
 def test_get_view_names_with_schema():
     database = mock.MagicMock()
     mock_execute = mock.MagicMock()
-    database.get_raw_connection().__enter__().cursor().execute = mock_execute
-    database.get_raw_connection().__enter__().cursor().fetchall = mock.MagicMock(
+    database.get_cursor().__enter__().execute = mock_execute
+    database.get_cursor().__enter__().fetchall = mock.MagicMock(
         return_value=[["a", "b,", "c"], ["d", "e"]]
     )
 
@@ -411,8 +411,8 @@ def test_get_view_names_with_schema():
 def test_get_view_names_without_schema():
     database = mock.MagicMock()
     mock_execute = mock.MagicMock()
-    database.get_raw_connection().__enter__().cursor().execute = mock_execute
-    database.get_raw_connection().__enter__().cursor().fetchall = mock.MagicMock(
+    database.get_cursor().__enter__().execute = mock_execute
+    database.get_cursor().__enter__().fetchall = mock.MagicMock(
         return_value=[["a", "b,", "c"], ["d", "e"]]
     )
     result = HiveEngineSpec.get_view_names(database, mock.Mock(), None)

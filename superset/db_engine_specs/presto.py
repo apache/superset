@@ -804,8 +804,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             ).strip()
             params = {}
 
-        with database.get_raw_connection(schema=schema) as conn:
-            cursor = conn.cursor()
+        with database.get_cursor(schema=schema) as cursor:
             cursor.execute(sql, params)
             results = cursor.fetchall()
             return {row[0] for row in results}
@@ -1261,8 +1260,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         # pylint: disable=import-outside-toplevel
         from pyhive.exc import DatabaseError
 
-        with database.get_raw_connection(schema=schema) as conn:
-            cursor = conn.cursor()
+        with database.get_cursor(schema=schema) as cursor:
             sql = f"SHOW CREATE VIEW {schema}.{table}"
             try:
                 cls.execute(cursor, sql)

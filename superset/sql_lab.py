@@ -17,7 +17,6 @@
 import dataclasses
 import logging
 import uuid
-from contextlib import closing
 from datetime import datetime
 from sys import getsizeof
 from typing import Any, cast, Optional, Union
@@ -456,10 +455,11 @@ def execute_sql_statements(
             )
         )
 
-    with database.get_raw_connection(query.schema, source=QuerySource.SQL_LAB) as conn:
-        # Sharing a single connection and cursor across the
-        # execution of all statements (if many)
-        cursor = conn.cursor()
+    # Sharing a single connection and cursor across the
+    # execution of all statements (if many)
+    with database.get_raw_connection(
+        query.schema, source=QuerySource.SQL_LAB
+    ) as conn, database.get_closeable_cursor(conn) as cursor:
         cancel_query_id = db_engine_spec.get_cancel_query_id(cursor, query)
         if cancel_query_id is not None:
             query.set_extra_json_key(QUERY_CANCEL_KEY, cancel_query_id)
@@ -628,11 +628,9 @@ def cancel_query(query: Query) -> bool:
     if cancel_query_id is None:
         return False
 
-    with query.database.get_sqla_engine_with_context(
-        query.schema, source=QuerySource.SQL_LAB
-    ) as engine:
-        with closing(engine.raw_connection()) as conn:
-            with closing(conn.cursor()) as cursor:
-                return query.database.db_engine_spec.cancel_query(
-                    cursor, query, cancel_query_id
-                )
+    with query.database.get_cursor(
+        schema=query.schema, source=QuerySource.SQL_LAB
+    ) as cursor:
+        return query.database.db_engine_spec.cancel_query(
+            cursor, query, cancel_query_id
+        )

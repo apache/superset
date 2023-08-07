@@ -137,8 +137,7 @@ def get_columns_description(
     #  sql_lab.py:execute_sql_statements
     db_engine_spec = database.db_engine_spec
     try:
-        with database.get_raw_connection(schema=schema) as conn:
-            cursor = conn.cursor()
+        with database.get_cursor(schema=schema) as cursor:
             query = database.apply_limit_to_sql(query, limit=1)
             cursor.execute(query)
             db_engine_spec.execute(cursor, query)

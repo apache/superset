@@ -527,8 +527,8 @@ class Database(
                 # pre-session queries are used to set the selected schema and, in the
                 # future, the selected catalog
                 for prequery in self.db_engine_spec.get_prequeries(schema=schema):
-                    cursor = conn.cursor()
-                    cursor.execute(prequery)
+                    with self.get_closeable_cursor(conn) as cursor:
+                        cursor.execute(prequery)
 
                 yield conn
 
@@ -547,6 +547,26 @@ class Database(
         might be determined by the database itself (like `public` for Postgres).
         """
         return self.db_engine_spec.get_default_schema_for_query(self, query)
+
+    @contextmanager
+    def get_cursor(
+        self,
+        schema: str | None = None,
+        nullpool: bool = True,
+        source: utils.QuerySource | None = None,
+    ) -> Any:
+        with self.get_raw_connection(schema, nullpool, source) as conn:
+            with self.get_closeable_cursor(conn) as cursor:
+                yield cursor
+
+    @contextmanager
+    def get_closeable_cursor(self, conn: Connection) -> Any:
+        cursor = conn.cursor()
+        if hasattr(cursor, "close") and callable(cursor.close):
+            with closing(cursor) as closable_cursor:
+                yield closable_cursor
+        else:
+            yield cursor
 
     @property
     def quote_identifier(self) -> Callable[[str], str]:
@@ -584,8 +604,7 @@ class Database(
                     security_manager,
                 )
 
-        with self.get_raw_connection(schema=schema) as conn:
-            cursor = conn.cursor()
+        with self.get_cursor(schema=schema) as cursor:
             for sql_ in sqls[:-1]:
                 if mutate_after_split:
                     sql_ = sql_query_mutator(

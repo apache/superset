@@ -627,8 +627,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         if schema:
             sql += f" IN `{schema}`"
 
-        with database.get_raw_connection(schema=schema) as conn:
-            cursor = conn.cursor()
+        with database.get_cursor(schema=schema) as cursor:
             cursor.execute(sql)
             results = cursor.fetchall()
             return {row[0] for row in results}

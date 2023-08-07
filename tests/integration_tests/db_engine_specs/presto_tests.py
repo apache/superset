@@ -38,8 +38,8 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
     def test_get_view_names_with_schema(self):
         database = mock.MagicMock()
         mock_execute = mock.MagicMock()
-        database.get_raw_connection().__enter__().cursor().execute = mock_execute
-        database.get_raw_connection().__enter__().cursor().fetchall = mock.MagicMock(
+        database.get_cursor().__enter__().execute = mock_execute
+        database.get_cursor().__enter__().fetchall = mock.MagicMock(
             return_value=[["a", "b,", "c"], ["d", "e"]]
         )
 
@@ -60,8 +60,8 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
     def test_get_view_names_without_schema(self):
         database = mock.MagicMock()
         mock_execute = mock.MagicMock()
-        database.get_raw_connection().__enter__().cursor().execute = mock_execute
-        database.get_raw_connection().__enter__().cursor().fetchall = mock.MagicMock(
+        database.get_cursor().__enter__().execute = mock_execute
+        database.get_cursor().__enter__().fetchall = mock.MagicMock(
             return_value=[["a", "b,", "c"], ["d", "e"]]
         )
         result = PrestoEngineSpec.get_view_names(database, mock.Mock(), None)
@@ -904,9 +904,9 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         mock_execute = mock.MagicMock()
         mock_fetchall = mock.MagicMock(return_value=[["a", "b,", "c"], ["d", "e"]])
         database = mock.MagicMock()
-        database.get_raw_connection().__enter__().cursor().execute = mock_execute
-        database.get_raw_connection().__enter__().cursor().fetchall = mock_fetchall
-        database.get_raw_connection().__enter__().cursor().return_value = False
+        database.get_cursor().__enter__().execute = mock_execute
+        database.get_cursor().__enter__().fetchall = mock_fetchall
+        database.get_cursor().__enter__().return_value = False
         schema = "schema"
         table = "table"
         result = PrestoEngineSpec.get_create_view(database, schema=schema, table=table)
@@ -916,7 +916,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
     def test_get_create_view_exception(self):
         mock_execute = mock.MagicMock(side_effect=Exception())
         database = mock.MagicMock()
-        database.get_raw_connection().__enter__().cursor().execute = mock_execute
+        database.get_cursor().__enter__().execute = mock_execute
         schema = "schema"
         table = "table"
         with self.assertRaises(Exception):
@@ -927,7 +927,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
 
         mock_execute = mock.MagicMock(side_effect=DatabaseError())
         database = mock.MagicMock()
-        database.get_raw_connection().__enter__().cursor().execute = mock_execute
+        database.get_cursor().__enter__().execute = mock_execute
         schema = "schema"
         table = "table"
         result = PrestoEngineSpec.get_create_view(database, schema=schema, table=table)

@@ -1447,8 +1447,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         statements = parsed_query.get_statements()
 
         costs = []
-        with database.get_raw_connection(schema=schema, source=source) as conn:
-            cursor = conn.cursor()
+        with database.get_cursor(schema=schema, source=source) as cursor:
             for statement in statements:
                 processed_statement = cls.process_statement(statement, database)
                 costs.append(cls.estimate_statement_cost(processed_statement, cursor))
