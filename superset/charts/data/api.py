@@ -373,7 +373,9 @@ class ChartDataRestApi(ChartRestApi):
                 logger.warning(data)
                 df = pd.DataFrame(data)
                 excel_writer = io.BytesIO()
-                writer = pd.ExcelWriter(excel_writer, mode="w", engine="xlsxwriter")
+
+                writer = pd.ExcelWriter(excel_writer, mode="w", engine="xlsxwriter",
+                                        options={'remove_timezone': True})
                 df.to_excel(writer, startrow=0, merge_cells=False,
                             sheet_name="Sheet_1", index_label=None, index=False)
                 writer.save()
