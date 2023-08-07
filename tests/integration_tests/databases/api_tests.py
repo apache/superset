@@ -2836,7 +2836,7 @@ class TestDatabaseApi(SupersetTestCase):
     )
     def test_function_names(self, mock_get_function_names):
         example_db = get_example_database()
-        if example_db.backend in {"hive", "presto"}:
+        if example_db.backend in {"hive", "presto", "sqlite"}:
             return
 
         mock_get_function_names.return_value = ["AVG", "MAX", "SUM"]
@@ -2849,6 +2849,136 @@ class TestDatabaseApi(SupersetTestCase):
 
         assert rv.status_code == 200
         assert response == {"function_names": ["AVG", "MAX", "SUM"]}
+
+    def test_function_names_sqlite(self):
+        example_db = get_example_database()
+        if example_db.backend != "sqlite":
+            return
+
+        self.login(username="admin")
+        uri = "api/v1/database/1/function_names/"
+
+        rv = self.client.get(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {
+            "function_names": [
+                "abs",
+                "acos",
+                "acosh",
+                "asin",
+                "asinh",
+                "atan",
+                "atan2",
+                "atanh",
+                "avg",
+                "ceil",
+                "ceiling",
+                "changes",
+                "char",
+                "coalesce",
+                "cos",
+                "cosh",
+                "count",
+                "cume_dist",
+                "date",
+                "datetime",
+                "degrees",
+                "dense_rank",
+                "exp",
+                "first_value",
+                "floor",
+                "format",
+                "glob",
+                "group_concat",
+                "hex",
+                "ifnull",
+                "iif",
+                "instr",
+                "json",
+                "json_array",
+                "json_array_length",
+                "json_each",
+                "json_error_position",
+                "json_extract",
+                "json_group_array",
+                "json_group_object",
+                "json_insert",
+                "json_object",
+                "json_patch",
+                "json_quote",
+                "json_remove",
+                "json_replace",
+                "json_set",
+                "json_tree",
+                "json_type",
+                "json_valid",
+                "julianday",
+                "lag",
+                "last_insert_rowid",
+                "last_value",
+                "lead",
+                "length",
+                "like",
+                "likelihood",
+                "likely",
+                "ln",
+                "load_extension",
+                "log",
+                "log10",
+                "log2",
+                "lower",
+                "ltrim",
+                "max",
+                "min",
+                "mod",
+                "nth_value",
+                "ntile",
+                "nullif",
+                "percent_rank",
+                "pi",
+                "pow",
+                "power",
+                "printf",
+                "quote",
+                "radians",
+                "random",
+                "randomblob",
+                "rank",
+                "replace",
+                "round",
+                "row_number",
+                "rtrim",
+                "sign",
+                "sin",
+                "sinh",
+                "soundex",
+                "sqlite_compileoption_get",
+                "sqlite_compileoption_used",
+                "sqlite_offset",
+                "sqlite_source_id",
+                "sqlite_version",
+                "sqrt",
+                "strftime",
+                "substr",
+                "substring",
+                "sum",
+                "tan",
+                "tanh",
+                "time",
+                "total_changes",
+                "trim",
+                "trunc",
+                "typeof",
+                "unhex",
+                "unicode",
+                "unixepoch",
+                "unlikely",
+                "upper",
+                "zeroblob",
+            ]
+        }
 
     @mock.patch("superset.databases.api.get_available_engine_specs")
     @mock.patch("superset.databases.api.app")
