@@ -70,6 +70,7 @@ class AsyncQueryManager:
     STATUS_RUNNING = "running"
     STATUS_ERROR = "error"
     STATUS_DONE = "done"
+    STATUS_STOPPED = "stopped"
 
     def __init__(self) -> None:
         super().__init__()

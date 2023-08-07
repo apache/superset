@@ -47,6 +47,9 @@ from superset.charts.commands.export import ExportChartsCommand
 from superset.charts.commands.importers.dispatcher import ImportChartsCommand
 from superset.charts.commands.update import UpdateChartCommand
 from superset.charts.commands.warm_up_cache import ChartWarmUpCacheCommand
+from superset.charts.data.commands.stop_async_job_command import (
+    StopAsyncChartJobCommand,
+)
 from superset.charts.filters import (
     ChartAllTextFilter,
     ChartCertifiedFilter,
@@ -77,6 +80,7 @@ from superset.commands.importers.exceptions import (
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.chart import ChartDAO
+from superset.exceptions import SupersetException
 from superset.extensions import event_logger
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
@@ -121,6 +125,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "screenshot",
         "cache_screenshot",
         "warm_up_cache",
+        "stop_async_job",
     }
     class_permission_name = "Chart"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -1119,3 +1124,40 @@ class ChartRestApi(BaseSupersetModelRestApi):
         )
         command.run()
         return self.response(200, message="OK")
+
+    @expose("/async_job/<string:job_id>", methods=["DELETE"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.stop_async_job",
+        log_to_statsd=False,
+    )
+    def stop_async_job(self, job_id: str) -> Response:
+        """Stops an async job that runs chart data query
+        ---
+        delete:
+          summary: Stops an async job that runs chart data query
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: job_id
+            description: Job id to stop
+          responses:
+            200:
+              description: Stop async job result
+              content:
+                application/json:
+                  schema:
+                    type: object
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            command = StopAsyncChartJobCommand(job_id=job_id)
+            command.run()
+        except SupersetException as ex:
+            return self.response(ex.status, message=ex.message)
+
+        return self.response(200)

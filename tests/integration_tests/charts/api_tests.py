@@ -18,11 +18,13 @@
 import json
 from io import BytesIO
 from unittest import mock
+from unittest.mock import patch
 from zipfile import is_zipfile, ZipFile
 
 import prison
 import pytest
 import yaml
+from celery.exceptions import CeleryError
 from flask_babel import lazy_gettext as _
 from parameterized import parameterized
 from sqlalchemy import and_
@@ -1687,6 +1689,26 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 8)
+
+    def test_stop_async_job(self):
+        self.login(username="admin")
+        job_id = "015e8f19-0c61-4bad-801c-0eef7295e509"
+        uri = f"api/v1/chart/async_job/{job_id}"
+        rv = self.delete_assert_metric(uri, "stop_async_job")
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(response, {})
+
+    @patch("superset.extensions.celery_app.control")
+    def test_stop_async_job_when_failed(self, mock_celery_app_control):
+        mock_celery_app_control.revoke.side_effect = CeleryError("Test Celery Error")
+        self.login(username="admin")
+        job_id = "015e8f19-0c61-4bad-801c-0eef7295e509"
+        uri = f"api/v1/chart/async_job/{job_id}"
+        rv = self.delete_assert_metric(uri, "stop_async_job")
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 500)
+        self.assertIn(job_id, response.get("message"))
 
     def test_gets_not_created_by_user_charts_filter(self):
         arguments = {

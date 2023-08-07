@@ -22,6 +22,7 @@ from typing import Any, cast, TYPE_CHECKING
 
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app, g
+from flask_babel import gettext as _
 from marshmallow import ValidationError
 
 from superset.charts.schemas import ChartDataQueryContextSchema
@@ -89,7 +90,15 @@ def load_chart_data_into_cache(
             async_query_manager.update_job(
                 job_metadata,
                 async_query_manager.STATUS_ERROR,
-                errors=[{"message": "A timeout occurred while loading chart data"}],
+                errors=[{"message": _("A timeout occurred while loading chart data")}],
+            )
+            raise ex
+        except SystemExit as ex:
+            logger.info("Task was terminated while loading chart data.")
+            async_query_manager.update_job(
+                job_metadata,
+                async_query_manager.STATUS_STOPPED,
+                errors=[{"message": _("Query execution aborted")}],
             )
             raise ex
         except Exception as ex:
@@ -159,7 +168,17 @@ def load_explore_json_into_cache(  # pylint: disable=too-many-locals
             async_query_manager.update_job(
                 job_metadata,
                 async_query_manager.STATUS_ERROR,
-                errors=[{"message": "A timeout occurred while loading explore json"}],
+                errors=[
+                    {"message": _("A timeout occurred while loading explore json")}
+                ],
+            )
+            raise ex
+        except SystemExit as ex:
+            logger.info("Task was terminated while loading explore json.")
+            async_query_manager.update_job(
+                job_metadata,
+                async_query_manager.STATUS_STOPPED,
+                errors=[{"message": _("Query execution aborted")}],
             )
             raise ex
         except Exception as ex:

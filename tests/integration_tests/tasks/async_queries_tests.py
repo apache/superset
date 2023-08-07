@@ -113,6 +113,28 @@ class TestAsyncQueries(SupersetTestCase):
 
         mock_update_job.assert_called_once_with(job_metadata, "error", errors=errors)
 
+    @mock.patch.object(async_queries, "set_form_data", side_effect=SystemExit())
+    @mock.patch.object(async_query_manager, "update_job")
+    def test_terminate_load_chart_data_into_cache(
+        self, mock_update_job, mock_set_form_data
+    ):
+        async_query_manager.init_app(app)
+        user = security_manager.find_user("gamma")
+        form_data = {}
+        job_metadata = {
+            "channel_id": str(uuid4()),
+            "job_id": str(uuid4()),
+            "user_id": user.id,
+            "status": "pending",
+            "errors": [],
+        }
+        errors = [{"message": "Query execution aborted"}]
+
+        with pytest.raises(SystemExit):
+            load_chart_data_into_cache(job_metadata, form_data)
+
+        mock_update_job.assert_called_once_with(job_metadata, "stopped", errors=errors)
+
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch.object(async_query_manager, "update_job")
     def test_load_explore_json_into_cache(self, mock_update_job):
@@ -191,3 +213,25 @@ class TestAsyncQueries(SupersetTestCase):
             load_explore_json_into_cache(job_metadata, form_data)
 
         mock_update_job.assert_called_once_with(job_metadata, "error", errors=errors)
+
+    @mock.patch.object(async_queries, "set_form_data", side_effect=SystemExit())
+    @mock.patch.object(async_query_manager, "update_job")
+    def test_termination_load_explore_json_into_cache(
+        self, mock_update_job, mock_set_form_data
+    ):
+        async_query_manager.init_app(app)
+        user = security_manager.find_user("gamma")
+        form_data = {}
+        job_metadata = {
+            "channel_id": str(uuid4()),
+            "job_id": str(uuid4()),
+            "user_id": user.id,
+            "status": "pending",
+            "errors": [],
+        }
+        errors = [{"message": "Query execution aborted"}]
+
+        with pytest.raises(SystemExit):
+            load_explore_json_into_cache(job_metadata, form_data)
+
+        mock_update_job.assert_called_once_with(job_metadata, "stopped", errors=errors)

@@ -15,28 +15,24 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Optional
 
-from flask import Request
+from celery.exceptions import CeleryError
 
-from superset.extensions import async_query_manager
-from superset.tasks.async_queries import load_chart_data_into_cache
+from superset.exceptions import SupersetGenericErrorException
+from superset.extensions import celery_app
 
 logger = logging.getLogger(__name__)
 
 
-class CreateAsyncChartDataJobCommand:
-    _async_channel_id: str
+class StopAsyncChartJobCommand:  # pylint: disable=too-few-public-methods
+    def __init__(self, job_id: str):
+        self.job_id = job_id
 
-    def validate(self, request: Request) -> None:
-        jwt_data = async_query_manager.parse_jwt_from_request(request)
-        self._async_channel_id = jwt_data["channel"]
-
-    def run(self, form_data: dict[str, Any], user_id: Optional[int]) -> dict[str, Any]:
-        job_metadata = async_query_manager.init_job(self._async_channel_id, user_id)
-        load_chart_data_into_cache.apply_async(
-            task_id=job_metadata["job_id"],
-            kwargs={"job_metadata": job_metadata, "form_data": form_data},
-        )
-
-        return job_metadata
+    def run(self) -> None:
+        logger.info("Revoking and terminating Celery task %s", self.job_id)
+        try:
+            celery_app.control.revoke(self.job_id, terminate=True)
+        except CeleryError as ex:
+            raise SupersetGenericErrorException(
+                f"Failed to terminate task {self.job_id}"
+            ) from ex
