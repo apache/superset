@@ -222,7 +222,7 @@ class Chart extends React.Component {
   }
 
   componentWillUnmount() {
-    this.unmounted = true;
+    this.resize.cancel();
   }
 
   componentDidUpdate(prevProps) {
@@ -267,9 +267,6 @@ class Chart extends React.Component {
   }
 
   resize() {
-    if (this.unmounted) {
-      return;
-    }
     const { width, height } = this.props;
     this.setState(() => ({ width, height }));
   }
