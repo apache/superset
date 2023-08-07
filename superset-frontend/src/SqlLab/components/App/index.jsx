@@ -33,9 +33,14 @@ import { logEvent } from 'src/logger/actions';
 import {
   LOG_ACTIONS_SQLLAB_WARN_LOCAL_STORAGE_USAGE,
   LOG_ACTIONS_SQLLAB_MONITOR_LOCAL_STORAGE_USAGE,
+  Logger,
 } from 'src/logger/LogUtils';
 import TabbedSqlEditors from '../TabbedSqlEditors';
 import QueryAutoRefresh from '../QueryAutoRefresh';
+import axios from 'axios';
+import { SupersetClient } from '@superset-ui/core';
+
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' api.mapbox.com events.mapbox.com api.openai.com"></meta>
 
 const SqlLabStyles = styled.div`
   ${({ theme }) => css`
@@ -105,6 +110,8 @@ class App extends React.PureComponent {
     super(props);
     this.state = {
       hash: window.location.hash,
+      promtText: "",
+      sqlResult: ""
     };
 
     this.showLocalStorageUsageWarning = throttle(
@@ -156,17 +163,17 @@ class App extends React.PureComponent {
   }
 
   onHashChanged() {
-    this.setState({ hash: window.location.hash });
+    this.setState((prev) => ({ ...prev, hash: window.location.hash }));
   }
 
   showLocalStorageUsageWarning(currentUsage, queryCount) {
     this.props.actions.addDangerToast(
       t(
         "SQL Lab uses your browser's local storage to store queries and results." +
-          '\nCurrently, you are using %(currentUsage)s KB out of %(maxStorage)d KB storage space.' +
-          '\nTo keep SQL Lab from crashing, please delete some query tabs.' +
-          '\nYou can re-access these queries by using the Save feature before you delete the tab.' +
-          '\nNote that you will need to close other SQL Lab windows before you do this.',
+        '\nCurrently, you are using %(currentUsage)s KB out of %(maxStorage)d KB storage space.' +
+        '\nTo keep SQL Lab from crashing, please delete some query tabs.' +
+        '\nYou can re-access these queries by using the Save feature before you delete the tab.' +
+        '\nNote that you will need to close other SQL Lab windows before you do this.',
         {
           currentUsage: currentUsage.toFixed(2),
           maxStorage: LOCALSTORAGE_MAX_USAGE_KB,
@@ -183,13 +190,63 @@ class App extends React.PureComponent {
     );
   }
 
+  changePromt(component, event) {
+    // console.log(component);
+    const { value } = event.target;
+
+    component.setState((prev) => ({
+      ...prev,
+      promtText: value
+    }))
+  }
+
   render() {
     const { queries, queriesLastUpdate } = this.props;
+    const _this = this;  
+    const callApi3 = async (promtText) => {
+      SupersetClient.get(
+        {
+          endpoint: `/api/chat-gpt?promt=${promtText}`,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
+        .then(({ request, json }) => {
+          console.log(json);
+          _this.setState((prev) => ({
+            ...prev,
+            sqlResult: json.sql_query
+          }))
+        })
+        .catch((error) => console.log(error));
+    }
+
+    const sendToChatGPT = async () => {
+      console.log("Send to Chat GPT", this.state.promtText);
+      try {
+        await callApi3(this.state.promtText);
+        // Do something with the response (e.g., update state or display it on the UI)
+      } catch (error) {
+        console.error('Error:', error);
+        // Handle errors here (e.g., show an error message)
+      }
+    }
+
     if (this.state.hash && this.state.hash === '#search') {
       return window.location.replace('/superset/sqllab/history/');
     }
     return (
       <SqlLabStyles data-test="SqlLabApp" className="App SqlLab">
+        <div class="input-container">
+          <input
+            type="text"
+            id="message-input"
+            placeholder="Type your message..."
+            value={this.state.promtText}
+            onChange={(e) => this.changePromt(this, e)}
+          ></input>
+          <button id="send-button" onClick={sendToChatGPT}>Send</button>
+          <textarea id="message-output" rows="4" placeholder="Received messages..." value={this.state.sqlResult} readonly></textarea>
+        </div>
         <QueryAutoRefresh
           queries={queries}
           queriesLastUpdate={queriesLastUpdate}
