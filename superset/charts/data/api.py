@@ -21,6 +21,7 @@ import json
 import logging
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
+import xlsxwriter
 import pandas as pd
 import simplejson
 from flask import current_app, g, make_response, request, Response, send_file
