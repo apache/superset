@@ -187,6 +187,7 @@ export const hydrateExplore =
       queriesResponse: null,
       triggerQuery: false,
       lastRendered: 0,
+      asyncQueryJobId: null,
     };
 
     return dispatch({

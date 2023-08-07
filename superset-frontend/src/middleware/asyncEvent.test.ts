@@ -47,6 +47,14 @@ describe('asyncEvent middleware', () => {
     channel_id: '999',
     errors: [{ message: "Error: relation 'foo' does not exist" }],
   };
+  const asyncStoppedEvent = {
+    id: '1518951480107-0',
+    status: 'stopped',
+    result_url: null,
+    job_id: 'foo123',
+    channel_id: '999',
+    errors: [{ message: 'Query execution aborted' }],
+  };
   const chartData = {
     result: [
       {
@@ -130,6 +138,21 @@ describe('asyncEvent middleware', () => {
         body: { result: [asyncErrorEvent] },
       });
       const errorResponse = await parseErrorJson(asyncErrorEvent);
+      await expect(
+        asyncEvent.waitForAsyncData(asyncPendingEvent),
+      ).rejects.toEqual(errorResponse);
+
+      expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(1);
+      expect(fetchMock.calls(CACHED_DATA_ENDPOINT)).toHaveLength(0);
+    });
+
+    it('rejects on event stopped status', async () => {
+      fetchMock.reset();
+      fetchMock.get(EVENTS_ENDPOINT, {
+        status: 200,
+        body: { result: [asyncStoppedEvent] },
+      });
+      const errorResponse = await parseErrorJson(asyncStoppedEvent);
       await expect(
         asyncEvent.waitForAsyncData(asyncPendingEvent),
       ).rejects.toEqual(errorResponse);

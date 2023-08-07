@@ -55,6 +55,7 @@ const JOB_STATUS = {
   RUNNING: 'running',
   ERROR: 'error',
   DONE: 'done',
+  STOPPED: 'stopped',
 };
 const LOCALSTORAGE_KEY = 'last_async_event_id';
 const POLLING_URL = '/api/v1/async_event/';
@@ -111,6 +112,7 @@ export const waitForAsyncData = async (asyncResponse: AsyncEvent) =>
           }
           break;
         }
+        case JOB_STATUS.STOPPED:
         case JOB_STATUS.ERROR: {
           const err = parseErrorJson(asyncEvent);
           reject(err);

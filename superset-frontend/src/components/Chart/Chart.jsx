@@ -140,12 +140,16 @@ class Chart extends React.PureComponent {
     super(props);
     this.handleRenderContainerFailure =
       this.handleRenderContainerFailure.bind(this);
+    this.dispatchAsyncQueryStopAction =
+      this.dispatchAsyncQueryStopAction.bind(this);
   }
 
   componentDidMount() {
     if (this.props.triggerQuery) {
       this.runQuery();
     }
+
+    window.addEventListener('beforeunload', this.dispatchAsyncQueryStopAction);
   }
 
   componentDidUpdate() {
@@ -326,6 +330,18 @@ class Chart extends React.PureComponent {
         </Styles>
       </ErrorBoundary>
     );
+  }
+
+  componentWillUnmount() {
+    this.dispatchAsyncQueryStopAction();
+    window.removeEventListener(
+      'beforeunload',
+      this.dispatchAsyncQueryStopAction,
+    );
+  }
+
+  dispatchAsyncQueryStopAction() {
+    this.props.actions.asyncQueryStop(this.props.chartId);
   }
 }
 

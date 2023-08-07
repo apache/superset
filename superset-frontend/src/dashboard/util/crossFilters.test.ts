@@ -72,6 +72,7 @@ const CHARTS = {
     queryController: null,
     queriesResponse: [{}],
     triggerQuery: false,
+    asyncQueryJobId: null,
   },
   '2': {
     id: 2,
@@ -93,6 +94,7 @@ const CHARTS = {
     queryController: null,
     queriesResponse: [{}],
     triggerQuery: false,
+    asyncQueryJobId: null,
   },
 };
 
@@ -278,6 +280,7 @@ test('Recalculate charts in global filter scope when charts change', () => {
           queryController: null,
           queriesResponse: [{}],
           triggerQuery: false,
+          asyncQueryJobId: null,
         },
       },
     ),

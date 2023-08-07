@@ -40,6 +40,7 @@ export const chart: ChartState = {
   queriesResponse: null,
   triggerQuery: true,
   lastRendered: 0,
+  asyncQueryJobId: null,
 };
 
 type ChartActionHandler = (state: ChartState) => ChartState;
@@ -175,6 +176,27 @@ export default function chartReducer(
         annotationData,
         annotationError,
         annotationQuery,
+      };
+    },
+    [actions.ASYNC_QUERY_STARTED](state) {
+      return {
+        ...state,
+        asyncQueryJobId: action.jobId,
+      };
+    },
+    [actions.ASYNC_QUERY_SUCCESS](state) {
+      return {
+        ...state,
+        asyncQueryJobId: null,
+      };
+    },
+    [actions.ASYNC_QUERY_STOP](state) {
+      if (state.asyncQueryJobId) {
+        actions.stopAsyncJob(state.asyncQueryJobId);
+      }
+      return {
+        ...state,
+        asyncQueryJobId: null,
       };
     },
   };

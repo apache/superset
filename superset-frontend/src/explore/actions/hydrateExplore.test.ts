@@ -62,6 +62,7 @@ test('creates hydrate action from initial data', () => {
             queriesResponse: null,
             triggerQuery: false,
             lastRendered: 0,
+            asyncQueryJobId: null,
           },
         },
         datasources: {
@@ -135,6 +136,7 @@ test('creates hydrate action with existing state', () => {
             queriesResponse: null,
             triggerQuery: false,
             lastRendered: 0,
+            asyncQueryJobId: null,
           },
         },
         datasources: {

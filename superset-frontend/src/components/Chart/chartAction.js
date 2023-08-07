@@ -96,6 +96,21 @@ export function annotationQueryFailed(annotation, queryResponse, key) {
   return { type: ANNOTATION_QUERY_FAILED, annotation, queryResponse, key };
 }
 
+export const ASYNC_QUERY_SUCCESS = 'ASYNC_QUERY_SUCCESS';
+export function asyncQuerySuccess(key) {
+  return { type: ASYNC_QUERY_SUCCESS, key };
+}
+
+export const ASYNC_QUERY_STARTED = 'ASYNC_QUERY_STARTED';
+export function asyncQueryStarted(jobId, key) {
+  return { type: ASYNC_QUERY_STARTED, jobId, key };
+}
+
+export const ASYNC_QUERY_STOP = 'ASYNC_QUERY_STOP';
+export function asyncQueryStop(key) {
+  return { type: ASYNC_QUERY_STOP, key };
+}
+
 export const DYNAMIC_PLUGIN_CONTROLS_READY = 'DYNAMIC_PLUGIN_CONTROLS_READY';
 export const dynamicPluginControlsReady = () => (dispatch, getState) => {
   const state = getState();
@@ -415,6 +430,10 @@ export function exploreJSON(
               // Query results returned synchronously, meaning query was already cached.
               return Promise.resolve(result);
             case 202:
+              dispatch(asyncQueryStarted(result.job_id, key));
+              controller.signal.addEventListener('abort', () =>
+                dispatch(asyncQueryStop(key)),
+              );
               // Query is running asynchronously and we must await the results
               if (useLegacyApi) {
                 return waitForAsyncData(result[0]);
@@ -430,6 +449,9 @@ export function exploreJSON(
         return json.result;
       })
       .then(queriesResponse => {
+        if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
+          dispatch(asyncQuerySuccess(key));
+        }
         queriesResponse.forEach(resultItem =>
           dispatch(
             logEvent(LOG_ACTIONS_LOAD_CHART, {
@@ -455,6 +477,9 @@ export function exploreJSON(
       })
       .catch(response => {
         if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
+          if (response.status === 'stopped') {
+            return dispatch(chartUpdateStopped(key));
+          }
           return dispatch(chartUpdateFailed([response], key));
         }
 
@@ -632,7 +657,6 @@ export const getDatasourceSamples = async (
       searchParams.per_page = perPage;
       searchParams.page = page;
     }
-
     const response = await SupersetClient.post({
       endpoint: '/datasource/samples',
       jsonPayload,
@@ -648,3 +672,9 @@ export const getDatasourceSamples = async (
     );
   }
 };
+
+export function stopAsyncJob(jobId) {
+  return SupersetClient.delete({
+    endpoint: `/api/v1/chart/async_job/${jobId}`,
+  });
+}
