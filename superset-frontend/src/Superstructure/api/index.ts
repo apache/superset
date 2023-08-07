@@ -112,6 +112,7 @@ export const API_HANDLER = {
     method: AxiosRequestConfig['method'],
     data?: AxiosRequestConfig['data'],
     headers?: AxiosRequestHeaders,
+    responseType?: string,
   ): Promise<any> {
     const APIState = APIStore.getState();
     const { FRONTEND_LOGGER } = APIState.configReducer;
@@ -121,6 +122,7 @@ export const API_HANDLER = {
 
     const params = {
       method,
+      responseType,
       data: data || {},
       headers: {
         ...headers,
@@ -131,8 +133,10 @@ export const API_HANDLER = {
       url: FULL_URL,
     };
 
+    // @ts-ignore
     logger(params, FRONTEND_LOGGER);
 
+    // @ts-ignore
     return axios({ ...params })
       .then(({ data }: any) => {
         this.errorObject = null;
@@ -150,11 +154,13 @@ export const API_HANDLER = {
     url,
     body,
     headers,
+    responseType,
   }: {
     method: AxiosRequestConfig['method'];
     url: AxiosRequestConfig['url'];
     body?: Record<string, any> | string;
     headers?: AxiosRequestHeaders;
+    responseType?: string;
   }) {
     const APIState = APIStore.getState();
     const { ORIGIN_URL } = APIState.configReducer;
@@ -167,6 +173,7 @@ export const API_HANDLER = {
           method,
           body,
           headers,
+          responseType,
         );
       }
 
@@ -182,11 +189,13 @@ export const API_HANDLER = {
     url,
     body,
     headers,
+    responseType,
   }: {
     method: AxiosRequestConfig['method'];
     url: AxiosRequestConfig['url'];
     body?: Record<string, any> | string;
     headers?: AxiosRequestHeaders;
+    responseType?: string;
   }) {
     const APIState = APIStore.getState();
     const { ORIGIN_URL } = APIState.configReducer;
@@ -201,6 +210,7 @@ export const API_HANDLER = {
           method,
           body,
           headers,
+          responseType,
         );
 
         return { result: [initialResponse] };

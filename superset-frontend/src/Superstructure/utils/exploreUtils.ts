@@ -2,6 +2,8 @@ import { API_HANDLER } from 'src/Superstructure/api';
 import { getLegacyEndpointType, getExploreUrl } from 'src/explore/exploreUtils';
 
 export const getCSV = async (url: string, payload: Record<string, any>) => {
+  console.log('What is this function getCSV?');
+
   const urlNoProtocol = url.replace(/^https?:\/\//i, '');
 
   console.log('urlNoProtocol', urlNoProtocol);
