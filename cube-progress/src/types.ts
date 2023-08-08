@@ -32,6 +32,8 @@ interface CubeProgressCustomizeProps {
   filters: Array<any>;
   progressType: 'line' | 'circle' | 'dashboard';
   totalColumn: string;
+  totalQuery: string;
+  valueQuery: string;
 }
 
 export type CubeProgressQueryFormData = QueryFormData &

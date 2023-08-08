@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@cubejs-client/core": "^0.33.12",
+    "axios": "^1.4.0",
     "rxjs": "^7.8.1",
     "socket.io-client": "^4.7.1",
     "uuid": "^9.0.0"

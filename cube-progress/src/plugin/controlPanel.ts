@@ -21,6 +21,10 @@ import {
   ControlPanelConfig,
   sharedControls,
 } from '@superset-ui/chart-controls';
+import {
+  cubeTotalQueryControlSetItem,
+  cubeValueQueryControlSetItem
+} from "./controls/cubeQuery";
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -47,6 +51,8 @@ const config: ControlPanelConfig = {
       label: t('Setup display!'),
       expanded: true,
       controlSetRows: [
+        [cubeTotalQueryControlSetItem],
+        [cubeValueQueryControlSetItem],
         [
           {
             name: 'cube_query',

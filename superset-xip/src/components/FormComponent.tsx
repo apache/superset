@@ -5,7 +5,7 @@ import { PredefinedSelect } from './components/PredefinedSelect';
 import { CubeSelect } from "./components/CubeSelect";
 import { Number } from "./components/Number";
 
-export function FormComponent({ field, handleFormInput, formData }) {
+export function FormComponent({ field, handleFormInput, formData, filters }) {
   switch (field.field_type) {
     case 'text':
       return (
@@ -37,6 +37,7 @@ export function FormComponent({ field, handleFormInput, formData }) {
           field={field}
           formData={formData}
           handleFormInput={handleFormInput}
+          filters={filters}
         />
       );
     case 'checkbox':

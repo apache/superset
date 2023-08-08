@@ -17,48 +17,29 @@
  * under the License.
  */
 import { ChartProps, TimeseriesDataRecord } from '@superset-ui/core';
-import cubejs from '@cubejs-client/core';
 
 export default function transformProps(chartProps: ChartProps) {
-  const { width, height, formData, queriesData, datasource } = chartProps;
+  const { width, height, formData, queriesData, hooks } = chartProps;
   const {
     actionIdentifier,
     headerFontSize,
     headerText,
     blockingAction,
-    allColumns,
     formConfig,
     extraFormData,
     buttonText,
   } = formData;
   const data = queriesData[0].data as TimeseriesDataRecord[];
+  const filters = extraFormData.filters || [];
 
-  console.log('chartProps via TransformProps.ts', chartProps);
-
-  // @ts-ignore
-  const datasourceName = datasource.datasourceName;
-  const dimentions = allColumns.map(
-    (item: string) => datasourceName + '.' + item
-  );
   const formObject = JSON.parse(formConfig);
 
-  // const options = {
-  //   apiToken: 'd60cb603dde98ba3037f2de9eda44938',
-  //   apiUrl: 'http://93.119.15.212:4000/cubejs-api/v1',
-  // };
-  //
-  // const cubejsApi = cubejs(options.apiToken, options);
-  // cubejsApi
-  //   .load({
-  //     dimensions: dimentions,
-  //     order: {
-  //       'artikel.gewicht': 'asc',
-  //     },
-  //   })
-  //   .then((result) => {
-  //     console.log('Result: ');
-  //     console.log(result);
-  //   });
+  const {
+    setDataMask = () => {},
+    setControlValue = () => {},
+    onContextMenu,
+    onLegendStateChanged,
+  } = hooks;
 
   return {
     width,
@@ -70,7 +51,8 @@ export default function transformProps(chartProps: ChartProps) {
     headerText,
     blockingAction,
     formObject,
-    extraFormData,
+    filters,
     buttonText,
+    setDataMask,
   };
 }

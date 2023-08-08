@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {useEffect, createRef} from 'react';
+import React, {createRef, useEffect} from 'react';
 import cubejs from "@cubejs-client/core";
 import { styled } from '@superset-ui/core';
 import { CubeProgressProps, CubeProgressStylesProps } from './types';
 import { Progress } from 'antd';
+import Mustache from 'mustache';
 
 const Styles = styled.div<CubeProgressStylesProps>`
   padding: ${({ theme }) => theme.gridUnit * 4}px;
@@ -30,10 +31,11 @@ const Styles = styled.div<CubeProgressStylesProps>`
 `;
 
 export default function CubeProgress(props: CubeProgressProps) {
-  const { height, width, filters, dataset, dimensions, progressType, totalColumn} = props;
-  const [data, setData] = React.useState({});
-  const [percentage, setPercentage] = React.useState(dimensions.map(() => 0));
-  
+  const { height, width, filters, dimensions, progressType, totalQuery, valueQuery} = props;
+  const [total, setTotal] = React.useState(0);
+  const [data, setData] = React.useState(JSON.parse(props.valueQuery).dimensions.map(() => 0));
+  const [percentage, setPercentage] = React.useState(JSON.parse(props.valueQuery).dimensions.map(() => 0));
+
   const rootElem = createRef<HTMLDivElement>();
 
   const options = {
@@ -42,30 +44,80 @@ export default function CubeProgress(props: CubeProgressProps) {
   };
 
   const cubejsApi = cubejs(options.apiToken, options);
-  const appliedFilters = filters.find((filter) => filter.dataset === dataset);
 
-  const queryDimensions = [...dimensions, totalColumn].map((dimension: string) => dataset + "." + dimension);
+  const modifiedFilters = {};
+
+  filters.forEach((filter) => {
+    modifiedFilters['filter_' + filter.col] = filter.val[0];
+  });
 
   useEffect(() => {
-    if (appliedFilters) {
-      const filter = {
-        "member": dataset + "." + appliedFilters.col,
-        "operator": "equals",
-        "values": appliedFilters.val
-      };
-
-      cubejsApi
-        .load({
-          dimensions: queryDimensions,
-          filters: [filter],
-        })
-        .then((result) => {
-          const tempData = result.loadResponse.results[0].data[0];
-          console.log(tempData);
-          setData(tempData);
-        });
+    if (!props.valueQuery) {
+      return;
     }
-  }, [appliedFilters?.val]);
+
+    let parsedValueQuery = Mustache.render(props.valueQuery, modifiedFilters);
+    const valueQuery = JSON.parse(parsedValueQuery);
+
+    if (valueQuery.filters[0]?.values?.length === 0 || valueQuery.filters[0]?.values[0] === "") {
+      return;
+    }
+
+    cubejsApi
+      .load(valueQuery)
+      .then((result) => {
+        const tempData = result.loadResponse.results[0].data;
+        const keys = Object.keys(tempData[0]);
+        const totals: Array<number> = [];
+
+        keys.forEach((key, index) => {
+          totals[index] = 0;
+          tempData.reduce((a: any, b: any) => {
+            const value = parseInt(b[key]);
+
+            if (!isNaN(value)) {
+              totals[index] += value;
+            }
+
+            return totals[index];
+          }, 0);
+        });
+
+        setData(totals);
+      });
+
+  }, [filters[0]?.val]);
+
+  useEffect(() => {
+    if (!props.totalQuery) {
+      return;
+    }
+
+    let parsedTotalQuery = Mustache.render(props.totalQuery, modifiedFilters);
+    const totalQuery = JSON.parse(parsedTotalQuery);
+    console.log(totalQuery);
+
+    if (totalQuery.filters[0]?.values?.length === 0 || totalQuery.filters[0]?.values[0] === "") {
+      return;
+    }
+
+    cubejsApi
+      .load(totalQuery)
+      .then((result) => {
+        const tempData = result.loadResponse.results[0].data[0];
+        const tempTotal = parseInt(tempData[Object.keys(tempData)[0]]);
+        setTotal(tempTotal);
+      });
+
+  }, [filters[0]?.val]);
+
+  useEffect(() => {
+    const tempPercentage = data.map((value: number) => {
+      return Math.round((value / total) * 10000) / 100;
+    });
+
+    setPercentage(tempPercentage);
+  }, [total, data]);
 
   return (
     <Styles

@@ -84,6 +84,7 @@ import { CubeTable } from 'cube-table';
 import { LoggedInDashboardCard } from 'logged-in-dashboard-card';
 import { MediaViewer } from 'media-viewer';
 import { CubeProgress } from 'cube-progress';
+import { CubeBurndownChart } from 'cube-burndown-chart';
 
 export default class MainPreset extends Preset {
   constructor() {
@@ -173,6 +174,7 @@ export default class MainPreset extends Preset {
         new LoggedInDashboardCard().configure({ key: 'logged-in-dashboard-card' }),
         new MediaViewer().configure({ key: 'media-viewer' }),
         new CubeProgress().configure({ key: 'cube-progress' }),
+        new CubeBurndownChart().configure({ key: 'cube-burndown-chart' }),
       ],
     });
   }

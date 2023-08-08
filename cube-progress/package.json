@@ -27,13 +27,20 @@
     "access": "public"
   },
   "dependencies": {
-    "@cubejs-client/core": "^0.33.12"
+    "@cubejs-client/core": "^0.33.12",
+    "@types/mustache": "^4.2.2",
+    "mustache": "^4.2.0"
   },
   "peerDependencies": {
     "@airbnb/config-babel": "^2.0.1",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "react": "^16.13.1"
+    "ace-builds": "^1.4.14",
+    "lodash": "^4.17.11",
+    "moment": "^2.26.0",
+    "react": "^16.13.1",
+    "react-ace": "^10.1.0",
+    "react-dom": "^16.13.1"
   },
   "devDependencies": {
     "@babel/cli": "^7.16.0",

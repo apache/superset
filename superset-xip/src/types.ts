@@ -32,6 +32,8 @@ export interface FormObject {
   field_id: string;
   field_label: string;
   field_mandatory: string;
+  field_filter: string;
+  field_dataset: string;
   field_placeholder: string;
   field_type: string;
   field_value: string;
@@ -44,7 +46,8 @@ interface SupersetXipCustomizeProps {
   actionIdentifier: string;
   blockingAction: boolean;
   formObject: Array<FormObject>;
-  extraFormData: QueryFormData;
+  filters: Array<any>;
+  setDataMask: Function;
 }
 
 export type SupersetXipQueryFormData = QueryFormData &

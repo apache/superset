@@ -25,6 +25,7 @@ import { DownOutlined } from '@ant-design/icons';
 import { socket } from './socket';
 import { v4 as uuidv4 } from 'uuid';
 import {interval} from "rxjs";
+import axios from "axios";
 
 const Styles = styled.div<CubeTableStylesProps>`
   padding: ${({ theme }) => theme.gridUnit * 4}px;
@@ -130,16 +131,26 @@ export default function CubeTable(props: CubeTableProps) {
         data
       }
 
-      const tempId = uuidv4();
-      setActionId(tempId);
       setSubmitted(true);
 
-      socket.emit('postAction', {
-        payload,
+      axios.post('http://localhost:3000/actions', {
         actionType: e.key,
-        actionId: tempId,
-      });
-      console.log('Action triggered! ', payload);
+        payload: payload
+      })
+        .then(function (response) {
+          console.log(response.data);
+
+          setActionId(response.data.actionId);
+          setSubmitted(false);
+
+          if (props.blockingAction) {
+            showAcceptedModal();
+          }
+
+        })
+        .catch(function (error) {
+          console.log(error);
+        });
     };
   };
 
