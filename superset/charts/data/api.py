@@ -21,7 +21,6 @@ import json
 import logging
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
-import xlsxwriter
 import pandas as pd
 import simplejson
 from flask import current_app, g, make_response, request, Response, send_file
@@ -29,6 +28,7 @@ from flask_appbuilder.api import expose, protect
 from flask_babel import gettext as _
 from marshmallow import ValidationError
 
+from superset.common.utils.dataframe_utils import delete_tz_from_df
 from superset import is_feature_enabled, security_manager
 from superset.charts.api import ChartRestApi
 from superset.charts.commands.exceptions import (
@@ -51,6 +51,7 @@ from superset.utils.core import create_zip, json_int_dttm_ser
 from superset.views.base import CsvResponse, generate_download_headers
 from superset.views.base_api import statsd_metrics
 from superset import app
+from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -367,17 +368,13 @@ class ChartDataRestApi(ChartRestApi):
                 return self.response_400(_("Empty query result"))
 
             if len(result["queries"]) == 1:
+                logger.warning(result)
                 # return single query results xlsx format
+                df = delete_tz_from_df(result['queries'][0])
 
-                data = result["queries"][0]["data"]
-                logger.warning(data)
-                ser = pd.Series(data)
-                ser.dt.tz_convert(None)
-                ser.to_excel()
                 excel_writer = io.BytesIO()
-
                 writer = pd.ExcelWriter(excel_writer, mode="w", engine="xlsxwriter")
-                ser.to_excel(writer, startrow=0, merge_cells=False,
+                df.to_excel(writer, startrow=0, merge_cells=False,
                             sheet_name="Sheet_1", index_label=None, index=False)
                 writer.save()
                 excel_writer.seek(0)
