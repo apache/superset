@@ -136,7 +136,7 @@ def diagnose(spec: type[BaseEngineSpec]) -> dict[str, Any]:
             "file_upload": spec.supports_file_upload,
             "extra_table_metadata": has_custom_method(spec, "extra_table_metadata"),
             "dbapi_exception_mapping": has_custom_method(
-                spec, "get_dbapi_exception_mappin"
+                spec, "get_dbapi_exception_mapping"
             ),
             "custom_errors": (
                 has_custom_method(spec, "extract_errors")
@@ -147,8 +147,7 @@ def diagnose(spec: type[BaseEngineSpec]) -> dict[str, Any]:
             "dynamic_catalog": spec.supports_dynamic_catalog,
             "ssh_tunneling": not spec.disable_ssh_tunneling,
             "query_cancelation": (
-                has_custom_method(spec, "cancel_query")
-                or has_custom_method(spec, "has_implicit_cancel")
+                has_custom_method(spec, "cancel_query") or spec.has_implicit_cancel()
             ),
             "get_metrics": has_custom_method(spec, "get_metrics"),
             "where_latest_partition": has_custom_method(spec, "where_latest_partition"),
