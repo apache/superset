@@ -38,6 +38,7 @@ type BigNumberVisProps = {
   headerFontSize: number;
   kickerFontSize: number;
   subheader: string;
+  targetValue: number;
   subheaderFontSize: number;
   showTimestamp?: boolean;
   showTrendLine?: boolean;
@@ -65,6 +66,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
     showTrendLine: false,
     startYAxisAtZero: true,
     subheader: '',
+    targetValue: '',
     subheaderFontSize: PROPORTION.SUBHEADER,
     timeRangeFixed: false,
   };
@@ -134,7 +136,14 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
   }
 
   renderHeader(maxHeight: number) {
-    const { bigNumber, headerFormatter, width } = this.props;
+    const {
+      bigNumber,
+      headerFormatter,
+      width,
+      targetValue,
+      positiveColor,
+      negativeColor,
+    } = this.props;
     const text = bigNumber === null ? t('No data') : headerFormatter(bigNumber);
 
     const container = this.createTemporaryContainer();
@@ -148,12 +157,23 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
     });
     container.remove();
 
+    const calculateTargetColor = (
+      value: number | null | undefined,
+      targetValue: number,
+    ) => {
+      if (!targetValue || !value) return '#000';
+      if (value < targetValue) return negativeColor;
+      if (value >= targetValue) return positiveColor;
+      return '#000';
+    };
+
     return (
       <div
         className="header-line"
         style={{
           fontSize,
           height: maxHeight,
+          color: calculateTargetColor(bigNumber, targetValue),
         }}
       >
         {text}
@@ -168,7 +188,6 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
       width,
       bigNumberFallback,
       className,
-      mainColor,
       positiveColor,
       negativeColor,
     } = this.props;
@@ -197,10 +216,10 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
       container.remove();
 
       const calculateColor = (className: string | undefined) => {
-        if (!className) return mainColor;
+        if (!className) return '#000';
         if (className.includes('positive')) return positiveColor;
         if (className.includes('negative')) return negativeColor;
-        return mainColor;
+        return '#000';
       };
 
       return (

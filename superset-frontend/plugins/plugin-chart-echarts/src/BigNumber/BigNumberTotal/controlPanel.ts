@@ -50,6 +50,15 @@ export default {
               ),
             },
           },
+          {
+            name: 'targetValue',
+            config: {
+              type: 'TextControl',
+              label: t('Target Value'),
+              renderTrigger: true,
+              description: t('Target value that will add color'),
+            },
+          },
         ],
       ],
     },

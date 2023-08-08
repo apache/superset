@@ -36,10 +36,12 @@ export default function transformProps(chartProps: BigNumberTotalChartProps) {
     forceTimestampFormatting,
     timeFormat,
     yAxisFormat,
+    targetValue,
   } = formData;
   const { data = [], coltypes = [] } = queriesData[0];
   const granularity = extractTimegrain(rawFormData as QueryFormData);
   const metricName = getMetricLabel(metric);
+  const formattedTargetValue = Number(targetValue);
   const formattedSubheader = subheader;
   const bigNumber =
     data.length === 0 ? null : parseMetricValue(data[0][metricName]);
@@ -72,5 +74,6 @@ export default function transformProps(chartProps: BigNumberTotalChartProps) {
     headerFontSize,
     subheaderFontSize,
     subheader: formattedSubheader,
+    targetValue: formattedTargetValue,
   };
 }
