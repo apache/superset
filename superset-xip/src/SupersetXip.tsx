@@ -3,9 +3,7 @@ import { styled } from '@superset-ui/core';
 import { SupersetXipProps, SupersetXipStylesProps } from './types';
 import { FormComponent } from './components/FormComponent';
 import { Button, Modal } from 'antd';
-import { ModalComponent } from "./components/modal/ModalComponent";
 import { socket } from './socket';
-import { v4 as uuidv4 } from 'uuid';
 import { interval } from "rxjs";
 import axios from "axios";
 
@@ -209,7 +207,6 @@ export default function SupersetXip(props: SupersetXipProps) {
           loading={submitted}
           type="primary">{props.buttonText}</Button>
       </form>
-      <ModalComponent></ModalComponent>
     </Styles>
   );
 }
