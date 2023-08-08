@@ -24,9 +24,13 @@ from superset.db_engine_specs import load_engine_specs
 from superset.db_engine_specs.base import BaseEngineSpec
 
 LIMIT_METHODS = {
-    "FORCE_LIMIT": "modifies the query, replacing an existing LIMIT or adding a new one",  # E: line too long (89 > 79 characters)
+    "FORCE_LIMIT": (
+        "modifies the query, replacing an existing LIMIT or adding a new one"
+    ),  # E: line too long (89 > 79 characters)
     "WRAP_SQL": "wraps the original query in a SELECT * with a LIMIT",
-    "FETCH_MANY": "runs the query unmodified but fetchs only LIMIT rows from the cursor",  # E: line too long (89 > 79 characters)
+    "FETCH_MANY": (
+        "runs the query unmodified but fetchs only LIMIT rows from the cursor"
+    ),  # E: line too long (89 > 79 characters)
 }
 
 DATABASE_DETAILS = {
@@ -36,9 +40,15 @@ DATABASE_DETAILS = {
     "alias_in_select": "Allows aliases in the SELECT statement",
     "alias_in_orderby": "Allows referencing aliases in the ORDER BY statement",
     "secondary_time_columns": "Supports secondary time columns",
-    "time_groupby_inline": "Allows ommiting time filters from inline GROUP BYs",  # E: line too long (80 > 79 characters)
-    "alias_to_source_column": "Able to use source column when an alias overshadows it",  # E: line too long (87 > 79 characters)
-    "order_by_not_in_select": "Allows aggregations in ORDER BY not present in the SELECT",  # E: line too long (90 > 79 characters)
+    "time_groupby_inline": (
+        "Allows ommiting time filters from inline GROUP BYs"
+    ),  # E: line too long (80 > 79 characters)
+    "alias_to_source_column": (
+        "Able to use source column when an alias overshadows it"
+    ),  # E: line too long (87 > 79 characters)
+    "order_by_not_in_select": (
+        "Allows aggregations in ORDER BY not present in the SELECT"
+    ),  # E: line too long (90 > 79 characters)
     "expressions_in_orderby": "Allows expressions in ORDER BY",
     "cte_in_subquery": "Allows CTE as a subquery",
     "limit_clause": "Allows LIMIT clause (instead of TOP)",
@@ -210,7 +220,7 @@ def generate_table() -> list[list[Any]]:
     # remove 3rd party DB engine specs
     info = {k: v for k, v in info.items() if v["module"].startswith("superset")}
 
-    rows = []
+    rows = []  # pylint: disable=redefined-outer-name
     rows.append(["Feature"] + list(info))  # header row
     rows.append(["Module"] + list(db_info["module"] for db_info in info.values()))
 

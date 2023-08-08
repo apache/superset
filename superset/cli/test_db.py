@@ -265,6 +265,7 @@ def test_db_engine_spec(
         score = " (+10)" if info[k] else ""
         console.print(f"{v}: {info[k]}{score}")
 
+    # pylint: disable=consider-using-f-string
     console.print("[bold]Overall score: {score}/{max_score}".format(**info))
 
     return spec
@@ -330,6 +331,7 @@ def test_sqlalchemy_dialect(
     return engine
 
 
+# pylint: disable=too-many-statements
 def test_database_connectivity(console: Console, engine: Engine) -> None:
     """
     Tests the DB API 2.0 driver.
@@ -337,7 +339,7 @@ def test_database_connectivity(console: Console, engine: Engine) -> None:
     with console.status("[bold green]Connecting to database..."):
         try:
             conn = engine.raw_connection()
-            engine.dialect.do_ping(conn)  # pylint: disable=attr-defined
+            engine.dialect.do_ping(conn)
             console.print(":thumbs_up: [green]Connected successfully!")
         except Exception as ex:  # pylint: disable=broad-except
             console.print(f":thumbs_down: [red]Failed to connect: {ex}")

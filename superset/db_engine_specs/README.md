@@ -613,7 +613,7 @@ COLUMN_DOES_NOT_EXIST_REGEX = re.compile("no such column: (?P<column_name>.+)")
 
 class SqliteEngineSpec(BaseEngineSpec):
 
-    custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = 
+    custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] =
         COLUMN_DOES_NOT_EXIST_REGEX: (
             __('We can\'t seem to resolve the column "%(column_name)s"'),
             SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
