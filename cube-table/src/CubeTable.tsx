@@ -118,7 +118,7 @@ export default function CubeTable(props: CubeTableProps) {
 
   const options = {
     apiToken: 'd60cb603dde98ba3037f2de9eda44938',
-    apiUrl: 'http://93.119.15.212:4000/cubejs-api/v1',
+    apiUrl: 'https://odtest.xip.nl/cubejs-api/v1',
   };
 
   const cubejsApi = cubejs(options.apiToken, options);
