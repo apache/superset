@@ -133,7 +133,7 @@ export default function CubeTable(props: CubeTableProps) {
 
       setSubmitted(true);
 
-      axios.post('http://localhost:3000/actions', {
+      axios.post('https://odtest.xip.nl/actions-api/actions', {
         actionType: e.key,
         payload: payload
       })
