@@ -130,7 +130,7 @@ export default function SupersetXip(props: SupersetXipProps) {
     setSubmitted(true);
     applyFilters();
 
-    axios.post('http://localhost:3000/actions', {
+    axios.post('https://odtest.xip.nl/actions-api/actions', {
       actionType: props.actionIdentifier,
       payload: formData
     })
