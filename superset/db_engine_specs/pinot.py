@@ -78,6 +78,19 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         time_grain: Optional[str],
     ) -> TimestampExpression:
         if not pdf:
+            # If not time_grain => return {col}
+            # Else:
+            """
+                Time granularity is given but there is no time format? Do we fault or do we assume a time format?
+
+                Get the type of the column
+                If type and {func} in the granularity expression then: ...
+                If type and {type} in the granularity expression then: ...
+                granularity = cls.get_time_grain_expressions().get(time_grain)
+                Then do the logic right after the `if time_grain` block
+                if not granularity:
+                    raise NotImplementedError(f"No pinot grain spec for '{time_grain}'")
+            """
             raise NotImplementedError(f"Empty date format for '{col}'")
         is_epoch = pdf in ("epoch_s", "epoch_ms")
 
@@ -99,6 +112,7 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         else:
             seconds_or_ms = "MILLISECONDS" if pdf == "epoch_ms" else "SECONDS"
             tf = f"1:{seconds_or_ms}:EPOCH"
+
         if time_grain:
             granularity = cls.get_time_grain_expressions().get(time_grain)
             if not granularity:
