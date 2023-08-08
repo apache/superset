@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
+from __future__ import annotations
+
 import json
 from datetime import datetime
 from typing import Any, Optional
@@ -32,7 +34,6 @@ from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
     assert_convert_dttm,
 )
-from tests.unit_tests.fixtures.common import dttm
 
 
 @pytest.mark.parametrize(
@@ -338,11 +339,13 @@ def test_prepare_cancel_query(
 
 
 @pytest.mark.parametrize("cancel_early", [True, False])
+@patch("superset.db_engine_specs.trino.TrinoEngineSpec.get_tracking_url")
 @patch("superset.db_engine_specs.trino.TrinoEngineSpec.cancel_query")
 @patch("sqlalchemy.engine.Engine.connect")
 def test_handle_cursor_early_cancel(
     engine_mock: Mock,
     cancel_query_mock: Mock,
+    get_tracking_url_mock: Mock,
     cancel_early: bool,
     mocker: MockerFixture,
 ) -> None:
@@ -366,3 +369,42 @@ def test_handle_cursor_early_cancel(
         assert cancel_query_mock.call_args[1]["cancel_query_id"] == query_id
     else:
         assert cancel_query_mock.call_args is None
+
+
+@pytest.mark.parametrize(
+    "encrypted_extra, info_uri, result",
+    [
+        (None, None, "http://trino.local:8443"),
+        ('{"foo":"bar"}', None, "http://trino.local:8443"),
+        (
+            '{"foo":"bar", "public_endpoint":"https://trino.example.com"}',
+            None,
+            "https://trino.example.com",
+        ),
+        (None, "https://trino.example.internal", "https://trino.example.internal"),
+        (
+            '{"foo":"bar"}',
+            "https://trino.example.internal",
+            "https://trino.example.internal",
+        ),
+        (
+            '{"foo":"bar", "public_endpoint":"https://trino.example.com"}',
+            "https://trino.example.internal",
+            "https://trino.example.com",
+        ),
+    ],
+)
+def test_get_tracking_url(
+    encrypted_extra: str | None, info_uri: str | None, result: str
+):
+    query_id = "abc1234"
+    query = Mock()
+    query.database.encrypted_extra = encrypted_extra
+    cursor = Mock(query_id=query_id)
+    cursor.info_uri = f"{info_uri}/ui/query.html?{query_id}" if info_uri else None
+    cursor.connection = Mock(http_scheme="http", host="trino.local", port="8443")
+
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    url = TrinoEngineSpec.get_tracking_url(query, cursor)
+    assert url == f"{result}/ui/query.html?{query_id}"

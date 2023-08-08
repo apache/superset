@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any, TYPE_CHECKING
+from urllib.parse import urlparse, urlunparse
 
 import simplejson as json
 from flask import current_app
@@ -134,28 +135,58 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     def get_allow_cost_estimate(cls, extra: dict[str, Any]) -> bool:
         return True
 
-    @classmethod
-    def get_tracking_url(cls, cursor: Cursor) -> str | None:
-        try:
-            return cursor.info_uri
-        except AttributeError:
+    @staticmethod
+    def get_tracking_url(query: Query, cursor: Cursor) -> str | None:
+        database = query.database
+        public_endpoint = None
+        if database.encrypted_extra:
             try:
-                conn = cursor.connection
-                # pylint: disable=protected-access, line-too-long
-                return f"{conn.http_scheme}://{conn.host}:{conn.port}/ui/query.html?{cursor._query.query_id}"
-            except AttributeError:
+                encrypted_extra = json.loads(database.encrypted_extra)
+                public_endpoint = encrypted_extra.get("public_endpoint", None)
+            except Exception:  # pylint: disable=broad-except
                 pass
-        return None
+
+        if hasattr(cursor, "info_uri") and cursor.info_uri:
+            url = cursor.info_uri
+            if public_endpoint:
+                pe = urlparse(public_endpoint)
+                url = (
+                    urlparse(url)._replace(scheme=pe.scheme, netloc=pe.netloc).geturl()
+                )
+        else:
+            conn = cursor.connection
+            if public_endpoint:
+                pe = urlparse(public_endpoint)
+                components = (
+                    pe.scheme,
+                    pe.netloc,
+                    "/ui/query.html",
+                    None,
+                    cursor.query_id,
+                    None,
+                )
+            else:
+                components = (
+                    conn.http_scheme,
+                    f"{conn.host}:{conn.port}",
+                    "/ui/query.html",
+                    None,
+                    cursor.query_id,
+                    None,
+                )
+            url = urlunparse(components)
+
+        return url
 
     @classmethod
     def handle_cursor(cls, cursor: Cursor, query: Query, session: Session) -> None:
-        if tracking_url := cls.get_tracking_url(cursor):
+        if tracking_url := cls.get_tracking_url(query, cursor):
             query.tracking_url = tracking_url
 
         # Adds the executed query id to the extra payload so the query can be cancelled
         query.set_extra_json_key(
             key=QUERY_CANCEL_KEY,
-            value=(cancel_query_id := cursor.stats["queryId"]),
+            value=cursor.query_id,
         )
 
         session.commit()
@@ -166,7 +197,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             cls.cancel_query(
                 cursor=cursor,
                 query=query,
-                cancel_query_id=cancel_query_id,
+                cancel_query_id=cursor.query_id,
             )
 
         super().handle_cursor(cursor=cursor, query=query, session=session)
