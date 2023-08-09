@@ -26,10 +26,12 @@ from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError
 
+from superset import is_feature_enabled, security_manager
 from superset.daos.base import BaseDAO
 from superset.daos.exceptions import DAOConfigError, DAOCreateFailedError
 from superset.dashboards.commands.exceptions import (
     DashboardAccessDeniedError,
+    DashboardForbiddenError,
     DashboardNotFoundError,
 )
 from superset.dashboards.filter_sets.consts import (
@@ -321,6 +323,11 @@ class DashboardDAO(BaseDAO[Dashboard]):
     def copy_dashboard(
         cls, original_dash: Dashboard, data: dict[str, Any]
     ) -> Dashboard:
+        if is_feature_enabled("DASHBOARD_RBAC") and not security_manager.is_owner(
+            original_dash
+        ):
+            raise DashboardForbiddenError()
+
         dash = Dashboard()
         dash.owners = [g.user] if g.user else []
         dash.dashboard_title = data["dashboard_title"]

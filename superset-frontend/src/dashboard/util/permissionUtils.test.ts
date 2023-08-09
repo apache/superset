@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { FeatureFlag } from '@superset-ui/core';
+import * as featureFlags from 'src/featureFlags';
 import {
   UndefinedUser,
   UserWithPermissionsAndRoles,
@@ -25,6 +27,7 @@ import Owner from 'src/types/Owner';
 import {
   canUserAccessSqlLab,
   canUserEditDashboard,
+  canUserSaveAsDashboard,
   isUserAdmin,
 } from './permissionUtils';
 
@@ -73,22 +76,24 @@ const sqlLabUser: UserWithPermissionsAndRoles = {
 
 const undefinedUser: UndefinedUser = {};
 
-describe('canUserEditDashboard', () => {
-  const dashboard: Dashboard = {
-    id: 1,
-    dashboard_title: 'Test Dash',
-    url: 'https://dashboard.example.com/1',
-    thumbnail_url: 'https://dashboard.example.com/1/thumbnail.png',
-    published: true,
-    css: null,
-    changed_by_name: 'Test User',
-    changed_by: owner,
-    changed_on: '2021-05-12T16:56:22.116839',
-    charts: [],
-    owners: [owner],
-    roles: [],
-  };
+const dashboard: Dashboard = {
+  id: 1,
+  dashboard_title: 'Test Dash',
+  url: 'https://dashboard.example.com/1',
+  thumbnail_url: 'https://dashboard.example.com/1/thumbnail.png',
+  published: true,
+  css: null,
+  changed_by_name: 'Test User',
+  changed_by: owner,
+  changed_on: '2021-05-12T16:56:22.116839',
+  charts: [],
+  owners: [owner],
+  roles: [],
+};
 
+let isFeatureEnabledMock: jest.MockInstance<boolean, [feature: FeatureFlag]>;
+
+describe('canUserEditDashboard', () => {
   it('allows owners to edit', () => {
     expect(canUserEditDashboard(dashboard, ownerUser)).toEqual(true);
   });
@@ -150,4 +155,60 @@ test('canUserAccessSqlLab returns false for non-sqllab role', () => {
 
 test('canUserAccessSqlLab returns true for sqllab role', () => {
   expect(canUserAccessSqlLab(sqlLabUser)).toEqual(true);
+});
+
+describe('canUserSaveAsDashboard with RBAC feature flag disabled', () => {
+  beforeAll(() => {
+    isFeatureEnabledMock = jest
+      .spyOn(featureFlags, 'isFeatureEnabled')
+      .mockImplementation(
+        (featureFlag: FeatureFlag) =>
+          featureFlag !== FeatureFlag.DASHBOARD_RBAC,
+      );
+  });
+
+  afterAll(() => {
+    // @ts-ignore
+    isFeatureEnabledMock.restore();
+  });
+
+  it('allows owners', () => {
+    expect(canUserSaveAsDashboard(dashboard, ownerUser)).toEqual(true);
+  });
+
+  it('allows admin users', () => {
+    expect(canUserSaveAsDashboard(dashboard, adminUser)).toEqual(true);
+  });
+
+  it('allows non-owners', () => {
+    expect(canUserSaveAsDashboard(dashboard, outsiderUser)).toEqual(true);
+  });
+});
+
+describe('canUserSaveAsDashboard with RBAC feature flag enabled', () => {
+  beforeAll(() => {
+    isFeatureEnabledMock = jest
+      .spyOn(featureFlags, 'isFeatureEnabled')
+      .mockImplementation(
+        (featureFlag: FeatureFlag) =>
+          featureFlag === FeatureFlag.DASHBOARD_RBAC,
+      );
+  });
+
+  afterAll(() => {
+    // @ts-ignore
+    isFeatureEnabledMock.restore();
+  });
+
+  it('allows owners', () => {
+    expect(canUserSaveAsDashboard(dashboard, ownerUser)).toEqual(true);
+  });
+
+  it('allows admin users', () => {
+    expect(canUserSaveAsDashboard(dashboard, adminUser)).toEqual(true);
+  });
+
+  it('reject non-owners', () => {
+    expect(canUserSaveAsDashboard(dashboard, outsiderUser)).toEqual(false);
+  });
 });
