@@ -391,7 +391,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
             range_ = adapter._sheet_name
             url = (
                 "https://sheets.googleapis.com/v4/spreadsheets/"
-                f"{spreadsheet_id}/values/'{range_}':clear"
+                f"{spreadsheet_id}/values/{range_}:clear"
             )
             cls._do_post(session, url, {})
         else:
@@ -412,7 +412,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         }
         url = (
             "https://sheets.googleapis.com/v4/spreadsheets/"
-            f"{spreadsheet_id}/values/'{range_}':append"
+            f"{spreadsheet_id}/values/{range_}:append"
         )
         cls._do_post(
             session,

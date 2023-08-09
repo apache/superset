@@ -383,12 +383,12 @@ def test_upload_existing(mocker: MockFixture) -> None:
         [
             mocker.call(),
             mocker.call(
-                "https://sheets.googleapis.com/v4/spreadsheets/1/values/'sheet0':clear",
+                "https://sheets.googleapis.com/v4/spreadsheets/1/values/sheet0:clear",
                 json={},
             ),
             mocker.call().json(),
             mocker.call(
-                "https://sheets.googleapis.com/v4/spreadsheets/1/values/'sheet0':append",
+                "https://sheets.googleapis.com/v4/spreadsheets/1/values/sheet0:append",
                 json={
                     "range": "sheet0",
                     "majorDimension": "ROWS",
