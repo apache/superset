@@ -410,15 +410,29 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: Whether the user can access the dashboard
         """
 
-        # pylint: disable=import-outside-toplevel
-        from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
-
         try:
-            self.raise_for_dashboard_access(dashboard)
-        except DashboardAccessDeniedError:
+            self.raise_for_access(dashboard=dashboard)
+        except SupersetSecurityException:
             return False
 
         return True
+
+    def get_dashboard_access_error_object(  # pylint: disable=invalid-name
+        self,
+        dashboard: "Dashboard",  # pylint: disable=unused-argument
+    ) -> SupersetError:
+        """
+        Return the error object for the denied Superset dashboard.
+
+        :param dashboard: The denied Superset dashboard
+        :returns: The error object
+        """
+
+        return SupersetError(
+            error_type=SupersetErrorType.DASHBOARD_SECURITY_ACCESS_ERROR,
+            message="You don't have access to this dashboard.",
+            level=ErrorLevel.ERROR,
+        )
 
     @staticmethod
     def get_datasource_access_error_msg(datasource: "BaseDatasource") -> str:
@@ -1757,8 +1771,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return []
 
     def raise_for_access(
-        # pylint: disable=too-many-arguments, too-many-locals
+        # pylint: disable=too-many-arguments,too-many-branches,too-many-locals
         self,
+        dashboard: Optional["Dashboard"] = None,
         database: Optional["Database"] = None,
         datasource: Optional["BaseDatasource"] = None,
         query: Optional["Query"] = None,
@@ -1779,6 +1794,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         # pylint: disable=import-outside-toplevel
+        from superset import is_feature_enabled
         from superset.connectors.sqla.models import SqlaTable
         from superset.daos.dashboard import DashboardDAO
         from superset.sql_parse import Table
@@ -1851,6 +1867,45 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 raise SupersetSecurityException(
                     self.get_datasource_access_error_object(datasource)
                 )
+
+        if dashboard:
+            if self.is_guest_user():
+                # Guest user is currently used for embedded dashboards only. If the guest
+                # user doesn't have access to the dashboard, ignore all other checks.
+                if self.has_guest_access(dashboard):
+                    return
+                raise SupersetSecurityException(
+                    self.get_dashboard_access_error_object(dashboard)
+                )
+
+            if self.is_admin() or self.is_owner(dashboard):
+                return
+
+            # RBAC and legacy (datasource inferred) access controls.
+            if is_feature_enabled("DASHBOARD_RBAC") and dashboard.roles:
+                if dashboard.published and {role.id for role in dashboard.roles} & {
+                    role.id for role in self.get_user_roles()
+                }:
+                    return
+            elif (
+                # To understand why we rely on status and give access to draft dashboards
+                # without roles take a look at:
+                #
+                #   - https://github.com/apache/superset/pull/24350#discussion_r1225061550
+                #   - https://github.com/apache/superset/pull/17511#issuecomment-975870169
+                #
+                not dashboard.published
+                or not dashboard.datasources
+                or any(
+                    self.can_access_datasource(datasource)
+                    for datasource in dashboard.datasources
+                )
+            ):
+                return
+
+            raise SupersetSecurityException(
+                self.get_dashboard_access_error_object(dashboard)
+            )
 
     def get_user_by_username(
         self, username: str, session: Session = None
@@ -1986,55 +2041,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         rls_str = [str(rls_id) for rls_id in rls_ids]
         guest_rls = self.get_guest_rls_filters_str(datasource)
         return guest_rls + rls_str
-
-    def raise_for_dashboard_access(self, dashboard: "Dashboard") -> None:
-        """
-        Raise an exception if the user cannot access the dashboard.
-
-        This does not check for the required role/permission pairs, it only concerns
-        itself with entity relationships.
-
-        :param dashboard: Dashboard the user wants access to
-        :raises DashboardAccessDeniedError: If the user cannot access the resource
-        """
-
-        # pylint: disable=import-outside-toplevel
-        from superset import is_feature_enabled
-        from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
-
-        if self.is_guest_user():
-            # Guest user is currently used for embedded dashboards only. If the guest user
-            # doesn't have access to the dashboard, ignore all other checks.
-            if self.has_guest_access(dashboard):
-                return
-            raise DashboardAccessDeniedError()
-
-        if self.is_admin() or self.is_owner(dashboard):
-            return
-
-        # RBAC and legacy (datasource inferred) access controls.
-        if is_feature_enabled("DASHBOARD_RBAC") and dashboard.roles:
-            if dashboard.published and {role.id for role in dashboard.roles} & {
-                role.id for role in self.get_user_roles()
-            }:
-                return
-        elif (
-            # To understand why we rely on status and give access to draft dashboards
-            # without roles take a look at:
-            #
-            #   - https://github.com/apache/superset/pull/24350#discussion_r1225061550
-            #   - https://github.com/apache/superset/pull/17511#issuecomment-975870169
-            #
-            not dashboard.published
-            or not dashboard.datasources
-            or any(
-                self.can_access_datasource(datasource)
-                for datasource in dashboard.datasources
-            )
-        ):
-            return
-
-        raise DashboardAccessDeniedError()
 
     @staticmethod
     def _get_current_epoch_time() -> float:

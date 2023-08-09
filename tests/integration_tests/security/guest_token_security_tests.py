@@ -22,7 +22,6 @@ from flask import g
 
 from superset import db, security_manager
 from superset.daos.dashboard import EmbeddedDashboardDAO
-from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.security.guest_token import GuestTokenResourceType
@@ -162,19 +161,19 @@ class TestGuestUserDashboardAccess(SupersetTestCase):
     def test_raise_for_dashboard_access_as_guest(self):
         g.user = self.authorized_guest
 
-        security_manager.raise_for_dashboard_access(self.dash)
+        security_manager.raise_for_access(dashboard=self.dash)
 
-    def test_raise_for_dashboard_access_as_unauthorized_guest(self):
+    def test_raise_for_access_dashboard_as_unauthorized_guest(self):
         g.user = self.unauthorized_guest
 
-        with self.assertRaises(DashboardAccessDeniedError):
-            security_manager.raise_for_dashboard_access(self.dash)
+        with self.assertRaises(SupersetSecurityException):
+            security_manager.raise_for_access(dashboard=self.dash)
 
-    def test_raise_for_dashboard_access_as_guest_no_rbac(self):
+    def test_raise_for_access_dashboard_as_guest_no_rbac(self):
         """
         Test that guest account has no access to other dashboards.
 
-        A bug in the ``raise_for_dashboard_access`` logic allowed the guest user to
+        A bug in the ``raise_for_access`` logic allowed the guest user to
         fetch data from other dashboards, as long as the other dashboard:
 
           - was not embedded AND
@@ -193,8 +192,8 @@ class TestGuestUserDashboardAccess(SupersetTestCase):
         db.session.add(dash)
         db.session.commit()
 
-        with self.assertRaises(DashboardAccessDeniedError):
-            security_manager.raise_for_dashboard_access(dash)
+        with self.assertRaises(SupersetSecurityException):
+            security_manager.raise_for_access(dashboard=dash)
 
         db.session.delete(dash)
         db.session.commit()

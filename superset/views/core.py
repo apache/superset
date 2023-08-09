@@ -50,12 +50,16 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.daos.chart import ChartDAO
 from superset.daos.database import DatabaseDAO
 from superset.daos.datasource import DatasourceDAO
-from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
 from superset.datasets.commands.exceptions import DatasetNotFoundError
-from superset.exceptions import CacheLoadError, DatabaseNotFound, SupersetException
+from superset.exceptions import (
+    CacheLoadError,
+    DatabaseNotFound,
+    SupersetException,
+    SupersetSecurityException,
+)
 from superset.explore.form_data.commands.create import CreateFormDataCommand
 from superset.explore.form_data.commands.get import GetFormDataCommand
 from superset.explore.form_data.commands.parameters import CommandParameters
@@ -863,8 +867,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             abort(404)
 
         try:
-            security_manager.raise_for_dashboard_access(dashboard)
-        except DashboardAccessDeniedError as ex:
+            dashboard.raise_for_access()
+        except SupersetSecurityException as ex:
             return redirect_with_flash(
                 url="/dashboard/list/",
                 message=utils.error_msg_from_exception(ex),
