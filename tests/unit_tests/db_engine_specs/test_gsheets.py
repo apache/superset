@@ -321,7 +321,7 @@ def test_upload_new(mocker: MockFixture) -> None:
 
     mocker.patch("superset.db_engine_specs.gsheets.db")
     get_adapter_for_table_name = mocker.patch(
-        "superset.db_engine_specs.gsheets.get_adapter_for_table_name"
+        "shillelagh.backends.apsw.dialects.base.get_adapter_for_table_name"
     )
     session = get_adapter_for_table_name()._get_session()
     session.post().json.return_value = {
@@ -350,7 +350,7 @@ def test_upload_existing(mocker: MockFixture) -> None:
 
     mocker.patch("superset.db_engine_specs.gsheets.db")
     get_adapter_for_table_name = mocker.patch(
-        "superset.db_engine_specs.gsheets.get_adapter_for_table_name"
+        "shillelagh.backends.apsw.dialects.base.get_adapter_for_table_name"
     )
     adapter = get_adapter_for_table_name()
     adapter._spreadsheet_id = 1

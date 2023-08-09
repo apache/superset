@@ -31,7 +31,6 @@ from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.exceptions import ValidationError
 from requests import Session
-from shillelagh.backends.apsw.dialects.base import get_adapter_for_table_name
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import URL
 from typing_extensions import TypedDict
@@ -49,7 +48,10 @@ if TYPE_CHECKING:
 
 _logger = logging.getLogger()
 
-EXAMPLE_GSHEETS_URL = "https://docs.google.com/spreadsheets/d/1LcWZMsdCl92g7nA-D6qGRqg1T5TiHyuKJUY1u9XAnsk/edit#gid=0"
+EXAMPLE_GSHEETS_URL = (
+    "https://docs.google.com/spreadsheets/d/"
+    "1LcWZMsdCl92g7nA-D6qGRqg1T5TiHyuKJUY1u9XAnsk/edit#gid=0"
+)
 
 SYNTAX_ERROR_REGEX = re.compile('SQLError: near "(?P<server_error>.*?)": syntax error')
 
@@ -138,8 +140,8 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
     def build_sqlalchemy_uri(
         cls,
         _: GSheetsParametersType,
-        encrypted_extra: None
-        | (dict[str, Any]) = None,  # pylint: disable=unused-argument
+        encrypted_extra: None  # pylint: disable=unused-argument
+        | (dict[str, Any]) = None,
     ) -> str:
         return "gsheets://"
 
@@ -338,7 +340,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         return payload
 
     @classmethod
-    def df_to_sql(
+    def df_to_sql(  # pylint: disable=too-many-locals
         cls,
         database: Database,
         table: Table,
@@ -358,6 +360,8 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         cells in the existing sheet before uploading the new data. Appending to an
         existing table is not supported because we can't ensure that the schemas match.
         """
+        from shillelagh.backends.apsw.dialects.base import get_adapter_for_table_name
+
         # grab the existing catalog, if any
         extra = database.get_extra()
         engine_params = extra.setdefault("engine_params", {})
@@ -387,8 +391,8 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
 
         # clear existing sheet, or create a new one
         if spreadsheet_url:
-            spreadsheet_id = adapter._spreadsheet_id
-            range_ = adapter._sheet_name
+            spreadsheet_id = adapter._spreadsheet_id  # pylint: disable=protected-access
+            range_ = adapter._sheet_name  # pylint: disable=protected-access
             url = (
                 "https://sheets.googleapis.com/v4/spreadsheets/"
                 f"{spreadsheet_id}/values/{range_}:clear"
