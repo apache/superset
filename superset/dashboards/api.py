@@ -1408,7 +1408,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
 
-        dash = DashboardDAO.copy_dashboard(original_dash, data)
+        try:
+            dash = DashboardDAO.copy_dashboard(original_dash, data)
+        except DashboardForbiddenError:
+            return self.response_403()
+
         return self.response(
             200,
             result={
