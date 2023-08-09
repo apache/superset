@@ -178,6 +178,9 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         "description",
         "css",
         "slug",
+        "certified_by",
+        "certification_details",
+        "published",
     ]
     extra_import_fields = ["is_managed_externally", "external_url"]
 
