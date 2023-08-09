@@ -18,6 +18,35 @@
  */
 import * as uiCore from '@superset-ui/core';
 
+it('initializes feature flags', () => {
+  Object.defineProperty(window, 'featureFlags', {
+    value: undefined,
+  });
+  uiCore.initFeatureFlags();
+  expect(window.featureFlags).toEqual({});
+});
+
+it('initializes feature flags with predefined values', () => {
+  Object.defineProperty(window, 'featureFlags', {
+    value: undefined,
+  });
+  const featureFlags = {
+    CLIENT_CACHE: true,
+    DRILL_BY: false,
+  };
+  uiCore.initFeatureFlags(featureFlags);
+  expect(window.featureFlags).toEqual(featureFlags);
+});
+
+it('does nothing if feature flags are already initialized', () => {
+  const featureFlags = { DRILL_BY: false };
+  Object.defineProperty(window, 'featureFlags', {
+    value: featureFlags,
+  });
+  uiCore.initFeatureFlags({ DRILL_BY: true });
+  expect(window.featureFlags).toEqual(featureFlags);
+});
+
 it('returns false and raises console error if feature flags have not been initialized', () => {
   const logging = jest.spyOn(uiCore.logging, 'error');
   Object.defineProperty(window, 'featureFlags', {
