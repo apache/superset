@@ -18,13 +18,13 @@
  */
 import React, { useState, FunctionComponentElement, ChangeEvent } from 'react';
 import { JsonValue, useTheme } from '@superset-ui/core';
-import ControlHeader, { ControlHeaderProps } from '../ControlHeader';
-import InfoTooltipWithTrigger from '../InfoTooltipWithTrigger';
-import { ControlFormItemComponents, ControlFormItemSpec } from './controls';
+import { ControlFormItemComponents } from './controls';
+import ControlHeader, { ControlHeaderProps } from '../../../ControlHeader';
+import { ControlFormItemDefaultSpec } from '../types';
 
 export * from './controls';
 
-export type ControlFormItemProps = ControlFormItemSpec & {
+export type ControlFormItemProps = ControlFormItemDefaultSpec & {
   name: string;
   onChange?: (fieldValue: JsonValue) => void;
 };
@@ -45,7 +45,6 @@ export function ControlFormItem({
   description,
   width,
   validators,
-  required,
   onChange,
   value: initialValue,
   defaultValue,
@@ -70,7 +69,7 @@ export function ControlFormItem({
     const errors =
       (validators
         ?.map(validator =>
-          !required && isEmptyValue(fieldValue) ? false : validator(fieldValue),
+          isEmptyValue(fieldValue) ? false : validator(fieldValue),
         )
         .filter(x => !!x) as string[]) || [];
     setValidationErrors(errors);
@@ -87,20 +86,22 @@ export function ControlFormItem({
       css={{
         margin: 2 * gridUnit,
         width,
+        maxWidth: '100%',
+        flex: 1,
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
       {controlType === 'Checkbox' ? (
         <ControlFormItemComponents.Checkbox
-          checked={value as boolean}
+          value={value as boolean}
           onChange={handleChange}
-        >
-          {label}{' '}
-          {hovered && description && (
-            <InfoTooltipWithTrigger tooltip={description} />
-          )}
-        </ControlFormItemComponents.Checkbox>
+          name={name}
+          label={label}
+          description={description}
+          validationErrors={validationErrors}
+          {...props}
+        />
       ) : (
         <>
           {label && (
@@ -110,7 +111,6 @@ export function ControlFormItem({
               description={description}
               validationErrors={validationErrors}
               hovered={hovered}
-              required={required}
             />
           )}
           {/* @ts-ignore */}

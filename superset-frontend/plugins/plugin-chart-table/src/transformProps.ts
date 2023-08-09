@@ -124,8 +124,11 @@ const processColumns = memoizeOne(function processColumns(
       const isTime = dataType === GenericDataType.TEMPORAL;
       const isNumber = dataType === GenericDataType.NUMERIC;
       const savedFormat = columnFormats?.[key];
-      const currency = currencyFormats?.[key];
+      const savedCurrency = currencyFormats?.[key];
       const numberFormat = config.d3NumberFormat || savedFormat;
+      const currency = config.currencyFormat?.symbol
+        ? config.currencyFormat
+        : savedCurrency;
 
       let formatter;
 
@@ -158,7 +161,10 @@ const processColumns = memoizeOne(function processColumns(
         formatter = getNumberFormatter(numberFormat || PERCENT_3_POINT);
       } else if (isMetric || (isNumber && numberFormat)) {
         formatter = currency
-          ? new CurrencyFormatter({ d3Format: numberFormat, currency })
+          ? new CurrencyFormatter({
+              d3Format: numberFormat,
+              currency,
+            })
           : getNumberFormatter(numberFormat);
       }
       return {

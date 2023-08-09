@@ -52,6 +52,7 @@ const formData: PivotTableQueryFormData = {
   margin: 0,
   time_grain_sqla: TimeGranularity.MONTH,
   temporal_columns_lookup: { col1: true },
+  currencyFormat: { symbol: 'USD', symbolPosition: 'prefix' },
 };
 
 test('should build groupby with series in form data', () => {

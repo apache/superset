@@ -139,11 +139,10 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     def get_list(  # pylint: disable=arguments-differ
         self, pk: int, **kwargs: Any
     ) -> Response:
-        """Get a list of annotations
+        """Get a list of annotations.
         ---
         get:
-          description: >-
-            Get a list of annotations
+          summary: Get a list of annotations
           parameters:
           - in: path
             schema:
@@ -200,11 +199,10 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     def get(  # pylint: disable=arguments-differ
         self, pk: int, annotation_id: int, **kwargs: Any
     ) -> Response:
-        """Get item from Model
+        """Get item from model.
         ---
         get:
-          description: >-
-            Get an item model
+          summary: Get an item model
           parameters:
           - in: path
             schema:
@@ -256,11 +254,10 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     @permission_name("post")
     @requires_json
     def post(self, pk: int) -> Response:  # pylint: disable=arguments-differ
-        """Creates a new Annotation
+        """Create a new annotation.
         ---
         post:
-          description: >-
-            Create a new Annotation
+          summary: Create a new annotation
           parameters:
           - in: path
             schema:
@@ -326,11 +323,10 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     def put(  # pylint: disable=arguments-differ
         self, pk: int, annotation_id: int
     ) -> Response:
-        """Updates an Annotation
+        """Update an annotation.
         ---
         put:
-          description: >-
-            Update an annotation
+          summary: Update an annotation
           parameters:
           - in: path
             schema:
@@ -400,11 +396,10 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     def delete(  # pylint: disable=arguments-differ
         self, pk: int, annotation_id: int
     ) -> Response:
-        """Deletes an Annotation
+        """Delete an annotation.
         ---
         delete:
-          description: >-
-            Delete an annotation
+          summary: Delete an annotation
           parameters:
           - in: path
             schema:
@@ -453,11 +448,10 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @rison(get_delete_ids_schema)
     def bulk_delete(self, **kwargs: Any) -> Response:
-        """Delete bulk Annotation layers
+        """Bulk delete annotation layers.
         ---
         delete:
-          description: >-
-            Deletes multiple annotation in a bulk operation.
+          summary: Bulk delete annotation layers
           parameters:
           - in: path
             schema:

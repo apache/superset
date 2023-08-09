@@ -53,6 +53,7 @@ import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { isFeatureEnabled } from 'src/featureFlags';
 import Icons from 'src/components/Icons';
+import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
 import Field from './Field';
@@ -147,11 +148,6 @@ const DATA_TYPES = [
   { value: 'NUMERIC', label: t('NUMERIC') },
   { value: 'DATETIME', label: t('DATETIME') },
   { value: 'BOOLEAN', label: t('BOOLEAN') },
-];
-
-const CURRENCY_SYMBOL_POSITION = [
-  { value: 'prefix', label: t('Prefix') },
-  { value: 'suffix', label: t('Suffix') },
 ];
 
 const DATASOURCE_TYPES_ARR = [
@@ -579,43 +575,6 @@ function OwnersSelector({ datasource, onChange }) {
     />
   );
 }
-
-const CurrencyControlContainer = styled.div`
-  ${({ theme }) => css`
-    display: flex;
-    align-items: center;
-
-    & > :first-child {
-      width: 25%;
-      margin-right: ${theme.gridUnit * 4}px;
-    }
-  `}
-`;
-const CurrencyControl = ({ onChange, value: currency = {}, currencies }) => (
-  <CurrencyControlContainer>
-    <Select
-      ariaLabel={t('Currency prefix or suffix')}
-      options={CURRENCY_SYMBOL_POSITION}
-      placeholder={t('Prefix or suffix')}
-      onChange={symbolPosition => {
-        onChange({ ...currency, symbolPosition });
-      }}
-      value={currency?.symbolPosition}
-      allowClear
-    />
-    <Select
-      ariaLabel={t('Currency symbol')}
-      options={currencies}
-      placeholder={t('Select or type currency symbol')}
-      onChange={symbol => {
-        onChange({ ...currency, symbol });
-      }}
-      value={currency?.symbol}
-      allowClear
-      allowNewOptions
-    />
-  </CurrencyControlContainer>
-);
 
 class DatasourceEditor extends React.PureComponent {
   constructor(props) {
@@ -1296,7 +1255,16 @@ class DatasourceEditor extends React.PureComponent {
               <Field
                 fieldKey="currency"
                 label={t('Metric currency')}
-                control={<CurrencyControl currencies={this.currencies} />}
+                control={
+                  <CurrencyControl
+                    currencySelectOverrideProps={{
+                      placeholder: t('Select or type currency symbol'),
+                    }}
+                    symbolSelectAdditionalStyles={css`
+                      max-width: 30%;
+                    `}
+                  />
+                }
               />
               <Field
                 label={t('Certified by')}

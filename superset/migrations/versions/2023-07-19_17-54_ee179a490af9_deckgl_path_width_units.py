@@ -17,7 +17,7 @@
 """deckgl-path-width-units
 
 Revision ID: ee179a490af9
-Revises: a23c6f8b1280
+Revises: e0f6f91c2055
 Create Date: 2023-07-19 17:54:06.752360
 
 """
@@ -32,7 +32,7 @@ from superset import db
 
 # revision identifiers, used by Alembic.
 revision = "ee179a490af9"
-down_revision = "a23c6f8b1280"
+down_revision = "e0f6f91c2055"
 
 
 Base = declarative_base()

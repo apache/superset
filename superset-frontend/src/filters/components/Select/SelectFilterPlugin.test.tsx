@@ -235,34 +235,33 @@ describe('SelectFilterPlugin', () => {
     });
   });
 
-  test('Add ownState with column types when search all options', async () => {
+  test('receives the correct filter when search all options', async () => {
     getWrapper({ searchAllOptions: true, multiSelect: false });
     userEvent.click(screen.getByRole('combobox'));
     expect(await screen.findByRole('combobox')).toBeInTheDocument();
     userEvent.click(screen.getByTitle('girl'));
-    expect(setDataMask).toHaveBeenCalledWith({
-      __cache: {
-        value: ['boy'],
-      },
-      extraFormData: {
-        filters: [
-          {
-            col: 'gender',
-            op: 'IN',
-            val: ['girl'],
-          },
-        ],
-      },
-      filterState: {
-        label: 'girl',
-        value: ['girl'],
-      },
-      ownState: {
-        coltypeMap: {
-          gender: 1,
+    expect(setDataMask).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        extraFormData: {
+          filters: [
+            {
+              col: 'gender',
+              op: 'IN',
+              val: ['girl'],
+            },
+          ],
         },
-        search: null,
-      },
-    });
+      }),
+    );
+  });
+  test('number of fired queries when searching', async () => {
+    getWrapper({ searchAllOptions: true });
+    userEvent.click(screen.getByRole('combobox'));
+    expect(await screen.findByRole('combobox')).toBeInTheDocument();
+    await userEvent.type(screen.getByRole('combobox'), 'a');
+    // Closes the select
+    userEvent.tab();
+    // One call for the search term and other for the empty search
+    expect(setDataMask).toHaveBeenCalledTimes(2);
   });
 });

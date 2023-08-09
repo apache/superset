@@ -267,3 +267,49 @@ test('returns column keywords among selected tables', async () => {
     ),
   );
 });
+
+test('returns long keywords with docText', async () => {
+  const expectLongKeywordDbId = 2;
+  const longKeyword = 'veryveryveryveryverylongtablename';
+  const dbFunctionNamesApiRoute = `glob:*/api/v1/database/${expectLongKeywordDbId}/function_names/`;
+  fetchMock.get(dbFunctionNamesApiRoute, { function_names: [] });
+
+  act(() => {
+    store.dispatch(
+      schemaApiUtil.upsertQueryData(
+        'schemas',
+        {
+          dbId: expectLongKeywordDbId,
+          forceRefresh: false,
+        },
+        ['short', longKeyword].map(value => ({
+          value,
+          label: value,
+          title: value,
+        })),
+      ),
+    );
+  });
+  const { result, waitFor } = renderHook(
+    () =>
+      useKeywords({
+        queryEditorId: 'testqueryid',
+        dbId: expectLongKeywordDbId,
+      }),
+    {
+      wrapper: createWrapper({
+        useRedux: true,
+        store,
+      }),
+    },
+  );
+  await waitFor(() =>
+    expect(result.current).toContainEqual(
+      expect.objectContaining({
+        name: longKeyword,
+        value: longKeyword,
+        docText: longKeyword,
+      }),
+    ),
+  );
+});

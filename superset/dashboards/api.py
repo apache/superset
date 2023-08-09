@@ -312,11 +312,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         dash: Dashboard,
         add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
     ) -> Response:
-        """Gets a dashboard
+        """Get a dashboard.
         ---
         get:
-          description: >-
-            Get a dashboard
+          summary: Get a dashboard
           parameters:
           - in: path
             schema:
@@ -367,9 +366,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def get_datasets(self, id_or_slug: str) -> Response:
-        """Gets a dashboard's datasets
+        """Get dashboard's datasets.
         ---
         get:
+          summary: Get dashboard's datasets
           description: >-
             Returns a list of a dashboard's datasets. Each dataset includes only
             the information necessary to render the dashboard's charts.
@@ -436,11 +436,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def get_charts(self, id_or_slug: str) -> Response:
-        """Gets the chart definitions for a given dashboard
+        """Get a dashboard's chart definitions.
         ---
         get:
-          description: >-
-            Get the chart definitions for a given dashboard
+          summary: Get a dashboard's chart definitions.
           parameters:
           - in: path
             schema:
@@ -494,11 +493,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     )
     @requires_json
     def post(self) -> Response:
-        """Creates a new Dashboard
+        """Create a new dashboard.
         ---
         post:
-          description: >-
-            Create a new Dashboard.
+          summary: Create a new dashboard
           requestBody:
             description: Dashboard schema
             required: true
@@ -556,11 +554,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     )
     @requires_json
     def put(self, pk: int) -> Response:
-        """Changes a Dashboard
+        """Update a dashboard.
         ---
         put:
-          description: >-
-            Changes a Dashboard.
+          summary: Update a dashboard
           parameters:
           - in: path
             schema:
@@ -641,11 +638,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def delete(self, pk: int) -> Response:
-        """Deletes a Dashboard
+        """Delete a dashboard.
         ---
         delete:
-          description: >-
-            Deletes a Dashboard.
+          summary: Delete a dashboard
           parameters:
           - in: path
             schema:
@@ -698,11 +694,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
-        """Delete bulk Dashboards
+        """Bulk delete dashboards.
         ---
         delete:
-          description: >-
-            Deletes multiple Dashboards in a bulk operation.
+          summary: Bulk delete dashboards
           parameters:
           - in: query
             name: q
@@ -759,11 +754,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def export(self, **kwargs: Any) -> Response:  # pylint: disable=too-many-locals
-        """Export dashboards
+        """Download multiple dashboards as YAML files.
         ---
         get:
-          description: >-
-            Exports multiple Dashboards and downloads them as YAML files.
+          summary: Download multiple dashboards as YAML files
           parameters:
           - in: query
             name: q
@@ -844,11 +838,12 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def thumbnail(self, pk: int, digest: str, **kwargs: Any) -> WerkzeugResponse:
-        """Get Dashboard thumbnail
+        """Compute async or get already computed dashboard thumbnail from cache.
         ---
         get:
+          summary: Get dashboard's thumbnail
           description: >-
-            Compute async or get already computed dashboard thumbnail from cache.
+            Computes async or get already computed dashboard thumbnail from cache.
           parameters:
           - in: path
             schema:
@@ -948,11 +943,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def favorite_status(self, **kwargs: Any) -> Response:
-        """Favorite Stars for Dashboards
+        """Check favorited dashboards for current user.
         ---
         get:
-          description: >-
-            Check favorited dashboards for current user
+          summary: Check favorited dashboards for current user
           parameters:
           - in: query
             name: q
@@ -998,11 +992,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def add_favorite(self, pk: int) -> Response:
-        """Marks the dashboard as favorite
+        """Mark the dashboard as favorite for the current user.
         ---
         post:
-          description: >-
-            Marks the dashboard as favorite for the current user
+          summary: Mark the dashboard as favorite for the current user
           parameters:
           - in: path
             schema:
@@ -1042,11 +1035,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def remove_favorite(self, pk: int) -> Response:
-        """Remove the dashboard from the user favorite list
+        """Remove the dashboard from the user favorite list.
         ---
         delete:
-          description: >-
-            Remove the dashboard from the user favorite list
+          summary: Remove the dashboard from the user favorite list
           parameters:
           - in: path
             schema:
@@ -1085,9 +1077,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     )
     @requires_form_data
     def import_(self) -> Response:
-        """Import dashboard(s) with associated charts/datasets/databases
+        """Import dashboard(s) with associated charts/datasets/databases.
         ---
         post:
+          summary: Import dashboard(s) with associated charts/datasets/databases
           requestBody:
             required: true
             content:
@@ -1211,12 +1204,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     )
     @with_dashboard
     def get_embedded(self, dashboard: Dashboard) -> Response:
-        """Response
-        Returns the dashboard's embedded configuration
+        """Get the dashboard's embedded configuration.
         ---
         get:
-          description: >-
-            Returns the dashboard's embedded configuration
+          summary: Get the dashboard's embedded configuration
           parameters:
           - in: path
             schema:
@@ -1254,12 +1245,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     )
     @with_dashboard
     def set_embedded(self, dashboard: Dashboard) -> Response:
-        """Response
-        Sets a dashboard's embedded configuration.
+        """Set a dashboard's embedded configuration.
         ---
         post:
-          description: >-
-            Sets a dashboard's embedded configuration.
+          summary: Set a dashboard's embedded configuration
           parameters:
           - in: path
             schema:
@@ -1335,12 +1324,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     )
     @with_dashboard
     def delete_embedded(self, dashboard: Dashboard) -> Response:
-        """Response
-        Removes a dashboard's embedded configuration.
+        """Delete a dashboard's embedded configuration.
         ---
         delete:
-          description: >-
-            Removes a dashboard's embedded configuration.
+          summary: Delete a dashboard's embedded configuration
           parameters:
           - in: path
             schema:
@@ -1377,10 +1364,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     )
     @with_dashboard
     def copy_dash(self, original_dash: Dashboard) -> Response:
-        """Makes a copy of an existing dashboard
+        """Create a copy of an existing dashboard.
         ---
         post:
-          summary: Makes a copy of an existing dashboard
+          summary: Create a copy of an existing dashboard
           parameters:
           - in: path
             schema:

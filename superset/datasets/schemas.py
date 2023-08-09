@@ -28,6 +28,19 @@ from superset.datasets.models import Dataset
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
 
+openapi_spec_methods_override = {
+    "get": {"get": {"summary": "Get a dataset detail information"}},
+    "get_list": {
+        "get": {
+            "summary": "Get a list of datasets",
+            "description": "Gets a list of datasets, use Rison or JSON query "
+            "parameters for filtering, sorting, pagination and "
+            " for selecting specific columns and metadata.",
+        }
+    },
+    "info": {"get": {"summary": "Get metadata information about this API resource"}},
+}
+
 
 def validate_python_date_format(value: str) -> None:
     regex = re.compile(

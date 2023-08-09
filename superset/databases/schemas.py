@@ -150,6 +150,18 @@ server_cert_description = markdown(
     True,
 )
 
+openapi_spec_methods_override = {
+    "get_list": {
+        "get": {
+            "summary": "Get a list of databases",
+            "description": "Gets a list of databases, use Rison or JSON query "
+            "parameters for filtering, sorting, pagination and "
+            " for selecting specific columns and metadata.",
+        }
+    },
+    "info": {"get": {"summary": "Get metadata information about this API resource"}},
+}
+
 
 def sqlalchemy_uri_validator(value: str) -> str:
     """

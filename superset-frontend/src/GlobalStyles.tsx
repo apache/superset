@@ -66,6 +66,30 @@ export const GlobalStyles = () => (
           )};
         }
       }
+      .column-config-popover {
+        & .ant-input-number {
+          width: 100%;
+        }
+        && .btn-group svg {
+          line-height: 0;
+          top: 0;
+        }
+        & .btn-group > .btn {
+          padding: 5px 10px 6px;
+        }
+        && .ant-tabs {
+          margin-top: ${theme.gridUnit * -3}px;
+        }
+        & .ant-tabs-nav {
+          margin-left: ${theme.gridUnit * -4}px;
+          margin-right: ${theme.gridUnit * -4}px;
+          margin-bottom: ${theme.gridUnit * 2}px;
+        }
+        && .ant-tabs-tab {
+          flex: 1;
+          margin-right: 0;
+        }
+      }
     `}
   />
 );

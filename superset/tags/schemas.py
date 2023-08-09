@@ -19,23 +19,22 @@ from marshmallow import fields, Schema
 from superset.dashboards.schemas import UserSchema
 
 delete_tags_schema = {"type": "array", "items": {"type": "string"}}
-
 object_type_description = "A title for the tag."
 
 openapi_spec_methods_override = {
-    "get": {"get": {"description": "Get a tag detail information."}},
+    "get": {"get": {"summary": "Get a tag detail information"}},
     "get_list": {
         "get": {
+            "summary": "Get a list of tags",
             "description": "Get a list of tags, use Rison or JSON query "
             "parameters for filtering, sorting, pagination and "
             " for selecting specific columns and metadata.",
         }
     },
-    "info": {
-        "get": {
-            "description": "Several metadata information about tag API " "endpoints.",
-        }
-    },
+    "put": {"put": {"summary": "Update a tag"}},
+    "delete": {"delete": {"summary": "Delete a tag"}},
+    "post": {"post": {"summary": "Create a tag"}},
+    "info": {"get": {"summary": "Get metadata information about tag API endpoints"}},
 }
 
 

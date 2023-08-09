@@ -257,6 +257,7 @@ const config: ControlPanelConfig = {
           },
         ],
         ['y_axis_format'],
+        ['currency_format'],
         [
           {
             name: 'sort_x_axis',
