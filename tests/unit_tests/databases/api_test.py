@@ -178,7 +178,7 @@ def test_database_connection(
             "driver": "gsheets",
             "engine_information": {
                 "disable_ssh_tunneling": True,
-                "supports_file_upload": False,
+                "supports_file_upload": True,
             },
             "expose_in_sqllab": True,
             "extra": '{\n    "metadata_params": {},\n    "engine_params": {},\n    "metadata_cache_timeout": {},\n    "schemas_allowed_for_file_upload": []\n}\n',
@@ -249,7 +249,7 @@ def test_database_connection(
             "driver": "gsheets",
             "engine_information": {
                 "disable_ssh_tunneling": True,
-                "supports_file_upload": False,
+                "supports_file_upload": True,
             },
             "expose_in_sqllab": True,
             "force_ctas_schema": None,
