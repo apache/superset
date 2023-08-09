@@ -1137,7 +1137,7 @@ class TestCore(SupersetTestCase, InsertChartMixin):
         # we should have only 1 query returned, since the second one is not
         # associated with any tabs
         # TODO: replaces this spec by api/v1/sqllab spec later
-        payload = bootstrap_sqllab_data(user_id)
+        payload = bootstrap_sqllab_data(int(user_id))
         self.assertEqual(len(payload["queries"]), 1)
 
     @mock.patch.dict(
