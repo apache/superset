@@ -77,6 +77,11 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         pdf: Optional[str],
         time_grain: Optional[str],
     ) -> TimestampExpression:
+        if not pdf:
+            # models.adhoc_column_to_sqla will call this method with `pdf=None`
+            # If there is no pdf then assume that the timestamp is stored in epoch_ms
+            pdf = "epoch_ms"
+
         if time_grain:
             granularity = cls.get_time_grain_expressions().get(time_grain)
             if not granularity:
@@ -84,45 +89,38 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         else:
             return TimestampExpression("{col}", col)
 
-        if not pdf:
-            # models.adhoc_column_to_sqla will call this method with `pdf=None`
-            # If there is no pdf then assume that the timestamp is stored in epoch_ms
-            if granularity:
-                tf = "1:MILLISECONDS:EPOCH"
-                time_expr = f"DATETIMECONVERT({{col}}, '{tf}', '{tf}', '{granularity}')"
+        is_epoch = pdf in ("epoch_s", "epoch_ms")
+
+        # The DATETIMECONVERT pinot udf is documented at
+        # Per https://github.com/apache/incubator-pinot/wiki/dateTimeConvert-UDF
+        # We are not really converting any time units, just bucketing them.
+        tf = ""
+        java_date_format = ""
+        if not is_epoch:
+            java_date_format = pdf
+            for (
+                python_pattern,
+                java_pattern,
+            ) in cls._python_to_java_time_patterns.items():
+                java_date_format = java_date_format.replace(
+                    python_pattern, java_pattern
+                )
+            tf = f"1:SECONDS:SIMPLE_DATE_FORMAT:{java_date_format}"
         else:
-            is_epoch = pdf in ("epoch_s", "epoch_ms")
+            seconds_or_ms = "MILLISECONDS" if pdf == "epoch_ms" else "SECONDS"
+            tf = f"1:{seconds_or_ms}:EPOCH"
 
-            # The DATETIMECONVERT pinot udf is documented at
-            # Per https://github.com/apache/incubator-pinot/wiki/dateTimeConvert-UDF
-            # We are not really converting any time units, just bucketing them.
-            tf = ""
-            java_date_format = ""
-            if not is_epoch:
-                java_date_format = pdf
-                for (
-                    python_pattern,
-                    java_pattern,
-                ) in cls._python_to_java_time_patterns.items():
-                    java_date_format = java_date_format.replace(
-                        python_pattern, java_pattern
-                    )
-                tf = f"1:SECONDS:SIMPLE_DATE_FORMAT:{java_date_format}"
+        # In pinot the output is a string since there is no timestamp column like pg
+        if cls._use_date_trunc_function.get(time_grain):
+            if is_epoch:
+                time_expr = f"DATETRUNC('{granularity}', {{col}}, '{seconds_or_ms}')"
             else:
-                seconds_or_ms = "MILLISECONDS" if pdf == "epoch_ms" else "SECONDS"
-                tf = f"1:{seconds_or_ms}:EPOCH"
-
-            # In pinot the output is a string since there is no timestamp column like pg
-            if cls._use_date_trunc_function.get(time_grain):
-                if is_epoch:
-                    time_expr = f"DATETRUNC('{granularity}', {{col}}, '{seconds_or_ms}')"
-                else:
-                    time_expr = (
-                        f"ToDateTime(DATETRUNC('{granularity}', "
-                        + f"FromDateTime({{col}}, '{java_date_format}'), "
-                        + f"'MILLISECONDS'), '{java_date_format}')"
-                    )
-            else:
-                time_expr = f"DATETIMECONVERT({{col}}, '{tf}', '{tf}', '{granularity}')"
+                time_expr = (
+                    f"ToDateTime(DATETRUNC('{granularity}', "
+                    + f"FromDateTime({{col}}, '{java_date_format}'), "
+                    + f"'MILLISECONDS'), '{java_date_format}')"
+                )
+        else:
+            time_expr = f"DATETIMECONVERT({{col}}, '{tf}', '{tf}', '{granularity}')"
 
         return TimestampExpression(time_expr, col)
