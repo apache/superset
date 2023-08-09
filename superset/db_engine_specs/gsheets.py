@@ -360,6 +360,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         cells in the existing sheet before uploading the new data. Appending to an
         existing table is not supported because we can't ensure that the schemas match.
         """
+        # pylint: disable=import-outside-toplevel
         from shillelagh.backends.apsw.dialects.base import get_adapter_for_table_name
 
         # grab the existing catalog, if any
