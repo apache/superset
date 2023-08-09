@@ -66,7 +66,7 @@ class CreateCustomTagCommand(CreateMixin, BaseCommand):
 
 class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
     def __init__(self, data: dict[str, Any]):
-        self._tag = data["tag"]
+        self._tag = data["name"]
         self._objects_to_tag = data.get("objects_to_tag")
         self._description = data.get("description")
 

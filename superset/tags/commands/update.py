@@ -75,7 +75,7 @@ class UpdateTagCommand(UpdateMixin, BaseCommand):
 
         # Validate object_id
         if objects_to_tag := self._properties.get("objects_to_tag"):
-            if any([obj_id == 0 for obj_type, obj_id in objects_to_tag]):
+            if any(obj_id == 0 for obj_type, obj_id in objects_to_tag):
                 exceptions.append(TagCreateFailedError())
 
             # Validate object type

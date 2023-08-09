@@ -29,6 +29,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
 from superset.tags.commands.exceptions import TagNotFoundError
+from superset.tags.commands.utils import to_object_type
 from superset.tags.models import (
     get_tag,
     ObjectTypes,
@@ -388,19 +389,21 @@ class TagDAO(BaseDAO[Tag]):
         current_tagged_objects = {
             (obj.object_type, obj.object_id) for obj in tag.objects
         }
-        tagged_objects_to_delete = current_tagged_objects.difference(objects_to_tag)
+        updated_tagged_objects = {
+            (to_object_type(obj[0]), obj[1]) for obj in objects_to_tag
+        }
+        tagged_objects_to_delete = current_tagged_objects - updated_tagged_objects
 
-        for obj in objects_to_tag:
+        for object_type, object_id in updated_tagged_objects:
             # create rows for new objects, and skip tags that already exist
-            object_type, object_id = obj
-            if obj not in current_tagged_objects:
+            if (object_type, object_id) not in current_tagged_objects:
                 tagged_objects.append(
                     TaggedObject(object_id=object_id, object_type=object_type, tag=tag)
                 )
 
         for object_type, object_id in tagged_objects_to_delete:
             # delete objects that were removed
-            TagDAO.delete_tagged_object(object_type, object_id, tag.name)
+            TagDAO.delete_tagged_object(object_type, object_id, tag.name)  # type: ignore
 
         db.session.add_all(tagged_objects)
         db.session.commit()

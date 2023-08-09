@@ -18,7 +18,6 @@
  */
 import { FeatureFlag, t } from '@superset-ui/core';
 import React, { useMemo, useCallback, useState } from 'react';
-import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import { isFeatureEnabled } from 'src/featureFlags';
 import {
   createFetchRelated,
@@ -45,7 +44,6 @@ import { Tag } from 'src/views/CRUD/types';
 import TagCard from 'src/features/tags/TagCard';
 import TagModal from 'src/features/tags/TagModal';
 import FaveStar from 'src/components/FaveStar';
-import { fetchObjects } from 'src/features/tags/tags';
 
 const PAGE_SIZE = 25;
 
@@ -361,6 +359,9 @@ function TagList(props: TagListProps) {
           setTagToEdit(null);
         }}
         editTag={tagToEdit}
+        refreshData={refreshData}
+        addSuccessToast={addSuccessToast}
+        addDangerToast={addDangerToast}
       />
       <SubMenu name={t('Tags')} buttons={subMenuButtons} />
       <ConfirmStatusChange

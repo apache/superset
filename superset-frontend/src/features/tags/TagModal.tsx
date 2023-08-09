@@ -28,10 +28,6 @@ import Button from 'src/components/Button';
 import { Tag } from 'src/views/CRUD/types';
 import { fetchObjects } from 'src/features/tags/tags';
 
-interface Props {
-  title: string;
-}
-
 interface TaggableResourceOption {
   label: string;
   value: number;
@@ -46,11 +42,21 @@ enum TaggableResources {
 
 interface TagModalProps {
   onHide: () => void;
+  refreshData: () => void;
+  addSuccessToast: (msg: string) => void;
+  addDangerToast: (msg: string) => void;
   show: boolean;
-  editTag: Tag;
+  editTag: Tag | null;
 }
 
-const TagModal: React.FC<TagModalProps> = ({ show, onHide, editTag }) => {
+const TagModal: React.FC<TagModalProps> = ({
+  show,
+  onHide,
+  editTag,
+  refreshData,
+  addSuccessToast,
+  addDangerToast,
+}) => {
   const [dashboardsToTag, setDashboardsToTag] = useState<
     TaggableResourceOption[]
   >([]);
@@ -58,6 +64,7 @@ const TagModal: React.FC<TagModalProps> = ({ show, onHide, editTag }) => {
   const [savedQueriesToTag, setSavedQueriesToTag] = useState<
     TaggableResourceOption[]
   >([]);
+
   const [tagName, setTagName] = useState<string>('');
   const [description, setDescription] = useState<string>('');
 
@@ -65,35 +72,48 @@ const TagModal: React.FC<TagModalProps> = ({ show, onHide, editTag }) => {
   const modalTitle = isEditMode ? 'Edit Tag' : 'Create Tag';
 
   useEffect(() => {
+    setDashboardsToTag([]);
+    setChartsToTag([]);
+    setSavedQueriesToTag([]);
+    let dashboards: TaggableResourceOption[] = [];
+    let charts: TaggableResourceOption[] = [];
+    let queries: TaggableResourceOption[] = [];
     if (isEditMode) {
       fetchObjects(
         { tags: editTag.name, types: null },
-        (data: TaggedObject[]) => {
+        (data: Tag[]) => {
           data.forEach(function (object) {
-            if (object.type == TaggableResources.Dashboard)
-              setDashboardsToTag([
-                ...dashboardsToTag,
-                { value: object.id, label: object.name, key: object.id },
-              ]);
-            else if (object.type == TaggableResources.Chart)
-              setChartsToTag([
-                ...chartsToTag,
-                { value: object.id, label: object.name, key: object.id },
-              ]);
-            else if (object.type == TaggableResources.SavedQuery)
-              setSavedQueriesToTag([
-                ...savedQueriesToTag,
-                { value: object.id, label: object.name, key: object.id },
-              ]);
+            if (object.type === TaggableResources.Dashboard)
+              dashboards.push({
+                value: object.id,
+                label: object.name,
+                key: object.id,
+              });
+            else if (object.type === TaggableResources.Chart)
+              charts.push({
+                value: object.id,
+                label: object.name,
+                key: object.id,
+              });
+            else if (object.type === TaggableResources.SavedQuery)
+              queries.push({
+                value: object.id,
+                label: object.name,
+                key: object.id,
+              });
           });
+          setDashboardsToTag(dashboards);
+          setChartsToTag(charts);
+          setSavedQueriesToTag(queries);
         },
         (error: Response) => {
           addDangerToast('Error Fetching Tagged Objects');
-          logging.log(error.text);
         },
       );
+      setTagName(editTag.name);
+      setDescription(editTag.description);
     }
-  }, []);
+  }, [editTag]);
 
   const loadData = async (
     search: string,
@@ -131,8 +151,8 @@ const TagModal: React.FC<TagModalProps> = ({ show, onHide, editTag }) => {
     };
   };
 
-  const loadCharts = async (search: string, page: number, pageSize: number) => {
-    return await loadData(
+  const loadCharts = async (search: string, page: number, pageSize: number) =>
+    loadData(
       search,
       page,
       pageSize,
@@ -141,14 +161,13 @@ const TagModal: React.FC<TagModalProps> = ({ show, onHide, editTag }) => {
       'slice_name',
       'chart',
     );
-  };
 
   const loadDashboards = async (
     search: string,
     page: number,
     pageSize: number,
-  ) => {
-    return await loadData(
+  ) =>
+    loadData(
       search,
       page,
       pageSize,
@@ -157,14 +176,9 @@ const TagModal: React.FC<TagModalProps> = ({ show, onHide, editTag }) => {
       'dashboard_title',
       'dashboard',
     );
-  };
 
-  const loadQueries = async (
-    search: string,
-    page: number,
-    pageSize: number,
-  ) => {
-    return await loadData(
+  const loadQueries = async (search: string, page: number, pageSize: number) =>
+    loadData(
       search,
       page,
       pageSize,
@@ -173,28 +187,14 @@ const TagModal: React.FC<TagModalProps> = ({ show, onHide, editTag }) => {
       'label',
       'saved_query',
     );
-  };
-
-  const loadEditOptions = async () => {
-    const data = await loadData(
-      editTag.name,
-      page,
-      pageSize,
-      ['id', 'slice_name'],
-      'slice_name',
-      'slice_name',
-      'chart',
-    );
-    return [{ value: 6, label: 'Sales Dashboard', key: 6 }];
-  };
 
   const handleOptionChange = (
     resource: TaggableResources,
-    data: { label: string; value: number },
+    data: TaggableResourceOption[],
   ) => {
-    if (resource == TaggableResources.Dashboard) setDashboardsToTag(data);
-    else if (resource == TaggableResources.Chart) setChartsToTag(data);
-    else if (resource == TaggableResources.SavedQuery)
+    if (resource === TaggableResources.Dashboard) setDashboardsToTag(data);
+    else if (resource === TaggableResources.Chart) setChartsToTag(data);
+    else if (resource === TaggableResources.SavedQuery)
       setSavedQueriesToTag(data);
   };
 
@@ -204,39 +204,33 @@ const TagModal: React.FC<TagModalProps> = ({ show, onHide, editTag }) => {
     setDescription(ev.target.value);
 
   const onSave = () => {
-    const dashboards = dashboardsToTag.map(dash => {
-      return ['dashboard', dash.value];
-    });
-
-    const charts = chartsToTag.map(chart => {
-      return ['chart', chart.value];
-    });
-
-    const savedQueries = savedQueriesToTag.map(q => {
-      return ['query', q.value];
-    });
+    const dashboards = dashboardsToTag.map(dash => ['dashboard', dash.value]);
+    const charts = chartsToTag.map(chart => ['chart', chart.value]);
+    const savedQueries = savedQueriesToTag.map(q => ['query', q.value]);
 
     if (isEditMode) {
       SupersetClient.put({
         endpoint: `/api/v1/tag/${editTag.id}`,
         jsonPayload: {
-          tag: tagName,
-          description: description,
+          description,
+          name: tagName,
           objects_to_tag: [...dashboards, ...charts, ...savedQueries],
         },
       }).then(({ json = {} }) => {
-        console.log(json);
+        refreshData();
+        addSuccessToast(t('Tag updated'));
       });
     } else {
       SupersetClient.post({
         endpoint: `/api/v1/tag/`,
         jsonPayload: {
-          tag: tagName,
-          description: description,
+          description,
+          name: tagName,
           objects_to_tag: [...dashboards, ...charts, ...savedQueries],
         },
       }).then(({ json = {} }) => {
-        console.log(json);
+        refreshData();
+        addSuccessToast(t('Tag created'));
       });
     }
     onHide();
@@ -245,7 +239,14 @@ const TagModal: React.FC<TagModalProps> = ({ show, onHide, editTag }) => {
   return (
     <Modal
       title={modalTitle}
-      onHide={onHide}
+      onHide={() => {
+        setTagName('');
+        setDescription('');
+        setDashboardsToTag([]);
+        setChartsToTag([]);
+        setSavedQueriesToTag([]);
+        onHide();
+      }}
       show={show}
       footer={
         <div>
@@ -267,17 +268,17 @@ const TagModal: React.FC<TagModalProps> = ({ show, onHide, editTag }) => {
       }
     >
       <>
-        <FormLabel>{'Tag Name'}</FormLabel>
+        <FormLabel>{t('Tag Name')}</FormLabel>
         <Input
           onChange={handleTagNameChange}
-          placeholder={'Name of your tag'}
-          value={editTag?.name || tagName}
+          placeholder={t('Name of your tag')}
+          value={tagName}
         />
-        <FormLabel>{'Description'}</FormLabel>
+        <FormLabel>{t('Description')}</FormLabel>
         <Input
           onChange={handleDescriptionChange}
-          placeholder={'Add description of your tag'}
-          value={editTag?.description || description}
+          placeholder={t('Add description of your tag')}
+          value={description}
         />
         <Divider />
         <AsyncSelect
@@ -286,10 +287,10 @@ const TagModal: React.FC<TagModalProps> = ({ show, onHide, editTag }) => {
           name="dashboards"
           value={editTag?.dashboardsToTag || dashboardsToTag}
           options={loadDashboards}
-          onChange={(value, option) =>
+          onChange={value =>
             handleOptionChange(TaggableResources.Dashboard, value)
           }
-          header={<FormLabel>{'Dashboards'}</FormLabel>}
+          header={<FormLabel>{t('Dashboards')}</FormLabel>}
           allowClear
         />
         <AsyncSelect
@@ -298,10 +299,8 @@ const TagModal: React.FC<TagModalProps> = ({ show, onHide, editTag }) => {
           name="charts"
           value={chartsToTag}
           options={loadCharts}
-          onChange={(value, option) =>
-            handleOptionChange(TaggableResources.Chart, value)
-          }
-          header={<FormLabel>{'Charts'}</FormLabel>}
+          onChange={value => handleOptionChange(TaggableResources.Chart, value)}
+          header={<FormLabel>{t('Charts')}</FormLabel>}
           allowClear
         />
         <AsyncSelect
@@ -310,10 +309,10 @@ const TagModal: React.FC<TagModalProps> = ({ show, onHide, editTag }) => {
           name="savedQueries"
           value={savedQueriesToTag}
           options={loadQueries}
-          onChange={(value, option) =>
+          onChange={value =>
             handleOptionChange(TaggableResources.SavedQuery, value)
           }
-          header={<FormLabel>{'Saved Queries'}</FormLabel>}
+          header={<FormLabel>{t('Saved Queries')}</FormLabel>}
           allowClear
         />
       </>
