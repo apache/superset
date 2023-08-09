@@ -1457,19 +1457,14 @@ class SqlaTable(
         # Check whether the relevant attributes have changed.
         state = db.inspect(target)  # pylint: disable=no-member
 
-        for attr in ["database_id", "schema", "table_name"]:
-            history = state.get_history(attr, True)
-            if history.has_changes():
-                break
-        else:
-            return None
-
         if not DatasetDAO.validate_uniqueness(
             target.database_id, target.schema, target.table_name, target.id
         ):
             raise Exception(  # pylint: disable=broad-exception-raised
                 get_dataset_exist_error_msg(target.full_name)
             )
+
+        security_manager.dataset_before_update(mapper, connection, sqla_table)
 
     @staticmethod
     def update_column(  # pylint: disable=unused-argument
@@ -1527,44 +1522,6 @@ class SqlaTable(
         """
         security_manager.dataset_after_delete(mapper, connection, sqla_table)
 
-    @staticmethod
-    def after_update(
-        mapper: Mapper,
-        connection: Connection,
-        sqla_table: SqlaTable,
-    ) -> None:
-        """
-        Update dataset permissions
-        """
-        # set permissions
-        security_manager.dataset_after_update(mapper, connection, sqla_table)
-
-        # TODO: the shadow writing is deprecated
-        inspector = inspect(sqla_table)
-        session = inspector.session
-
-        # double-check that ``UPDATE``s are actually pending (this method is called even
-        # for instances that have no net changes to their column-based attributes)
-        if not session.is_modified(sqla_table, include_collections=True):
-            return
-
-        # find the dataset from the known instance list first
-        # (it could be either from a previous query or newly created)
-        dataset = next(
-            find_cached_objects_in_session(
-                session, NewDataset, uuids=[sqla_table.uuid]
-            ),
-            None,
-        )
-        # if not found, pull from database
-        if not dataset:
-            dataset = (
-                session.query(NewDataset).filter_by(uuid=sqla_table.uuid).one_or_none()
-            )
-        if not dataset:
-            sqla_table.write_shadow_dataset()
-            return
-
     def write_shadow_dataset(
         self: SqlaTable,
     ) -> None:
@@ -1583,7 +1540,6 @@ class SqlaTable(
 
 
 sa.event.listen(SqlaTable, "before_update", SqlaTable.before_update)
-sa.event.listen(SqlaTable, "after_update", SqlaTable.after_update)
 sa.event.listen(SqlaTable, "after_insert", SqlaTable.after_insert)
 sa.event.listen(SqlaTable, "after_delete", SqlaTable.after_delete)
 sa.event.listen(SqlMetric, "after_update", SqlaTable.update_column)
