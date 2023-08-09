@@ -202,6 +202,7 @@ export type DBReducerActionType =
         configuration_method: CONFIGURATION_METHOD;
         engine_information?: {};
         driver?: string;
+        sqlalchemy_uri_placeholder?: string;
       };
     }
   | {
