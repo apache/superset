@@ -105,8 +105,8 @@ dashboard_slices = Table(
     "dashboard_slices",
     metadata,
     Column("id", Integer, primary_key=True),
-    Column("dashboard_id", Integer, ForeignKey("dashboards.id")),
-    Column("slice_id", Integer, ForeignKey("slices.id")),
+    Column("dashboard_id", Integer, ForeignKey("dashboards.id", ondelete="CASCADE")),
+    Column("slice_id", Integer, ForeignKey("slices.id", ondelete="CASCADE")),
     UniqueConstraint("dashboard_id", "slice_id"),
 )
 

@@ -186,8 +186,6 @@ class TestGuestUserDashboardAccess(SupersetTestCase):
         # Create a draft dashboard that is not embedded
         dash = Dashboard()
         dash.dashboard_title = "My Dashboard"
-        dash.owners = []
-        dash.slices = []
         dash.published = False
         db.session.add(dash)
         db.session.commit()
