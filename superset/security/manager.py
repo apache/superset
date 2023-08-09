@@ -1340,22 +1340,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :return:
         """
         # Check if watched fields have changed
-        from superset.connectors.sqla.models import SqlaTable
-
-        dataset_table = SqlaTable.__tablename__
-        # need to use a raw sql here to make sure it's reading from committed data in
-        # the database instead of sqlalchemy session
-        current_dataset = connection.execute(
-            f"select database_id, schema, table_name "
-            f"from {dataset_table} "
-            f"where id = '{target.id}'"
-        ).one()
-        current_db_id = current_dataset.database_id
-        current_schema = current_dataset.schema
-        current_table_name = current_dataset.table_name
+        state = inspect(target)
+        history_database = state.get_history("database_id", True)
+        history_table_name = state.get_history("table_name", True)
+        history_schema = state.get_history("schema", True)
 
         # When database name changes
-        if current_db_id != target.database_id:
+        if history_database.has_changes() and history_database.deleted:
             logger.info("Updating dataset perm and schema perm due to database change")
             new_dataset_vm_name = self.get_dataset_perm(
                 target.id, target.table_name, target.database.database_name
@@ -1376,9 +1367,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             )
 
         # When table name changes
-        if current_table_name != target.table_name:
+        if history_table_name.has_changes() and history_table_name.deleted:
+            old_dataset_name = history_table_name.deleted[0]
             logger.info("Updating dataset perm due to table name change")
-            old_dataset_name = current_table_name
             new_dataset_vm_name = self.get_dataset_perm(
                 target.id, target.table_name, target.database.database_name
             )
@@ -1390,7 +1381,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             )
 
         # When schema changes
-        if current_schema != target.schema:
+        if history_schema.has_changes() and history_schema.deleted:
             logger.info("Updating dataset schema perm due to schema change")
             new_dataset_schema_name = self.get_schema_perm(
                 target.database.database_name, target.schema
