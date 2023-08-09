@@ -20,7 +20,7 @@
  * under the License.
  */
 import React from 'react';
-import _ from 'lodash';
+import { isEqual } from 'lodash';
 import {
   Datasource,
   HandlerFunction,
@@ -73,7 +73,7 @@ class DeckMulti extends React.PureComponent<DeckMultiProps, DeckMultiState> {
 
   UNSAFE_componentWillReceiveProps(nextProps: DeckMultiProps) {
     const { formData, payload } = nextProps;
-    const hasChanges = !_.isEqual(
+    const hasChanges = !isEqual(
       this.props.formData.deck_slices,
       nextProps.formData.deck_slices,
     );
