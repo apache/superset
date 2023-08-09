@@ -57,6 +57,7 @@ from superset.utils.core import backend
 from superset.utils.database import get_example_database
 from superset.views import core as views
 from superset.views.database.views import DatabaseView
+from superset.sqllab.utils import bootstrap_sqllab_data
 from tests.integration_tests.conftest import CTAS_SCHEMA_NAME, with_feature_flags
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -1135,7 +1136,8 @@ class TestCore(SupersetTestCase, InsertChartMixin):
 
         # we should have only 1 query returned, since the second one is not
         # associated with any tabs
-        payload = views.Superset._get_sqllab_tabs(user_id=user_id)
+        # TODO: replaces this spec by api/v1/sqllab spec later
+        payload = bootstrap_sqllab_data(user_id)
         self.assertEqual(len(payload["queries"]), 1)
 
     @mock.patch.dict(
