@@ -198,6 +198,7 @@ class QueryContextProcessor:
             "from_dttm": query_obj.from_dttm,
             "to_dttm": query_obj.to_dttm,
             "label_map": label_map,
+            "mapboxApiAccessKey": config["MAPBOX_API_KEY"],
         }
 
     def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> str | None:
