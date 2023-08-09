@@ -185,6 +185,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     engine_aliases: set[str] = set()
     drivers: dict[str, str] = {}
     default_driver: str | None = None
+
+    # placeholder with the SQLAlchemy URI template
+    sqlalchemy_uri_placeholder = (
+        "engine+driver://user:password@host:port/dbname[?key=value&key=value...]"
+    )
+
     disable_ssh_tunneling = False
 
     _date_trunc_functions: dict[str, str] = {}
@@ -1957,11 +1963,6 @@ class BasicParametersMixin:
 
     # recommended driver name for the DB engine spec
     default_driver = ""
-
-    # placeholder with the SQLAlchemy URI template
-    sqlalchemy_uri_placeholder = (
-        "engine+driver://user:password@host:port/dbname[?key=value&key=value...]"
-    )
 
     # query parameter to enable encryption in the database connection
     # for Postgres this would be `{"sslmode": "verify-ca"}`, eg.
