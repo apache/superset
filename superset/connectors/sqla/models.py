@@ -1455,8 +1455,6 @@ class SqlaTable(
         from superset.datasets.commands.exceptions import get_dataset_exist_error_msg
 
         # Check whether the relevant attributes have changed.
-        state = db.inspect(target)  # pylint: disable=no-member
-
         if not DatasetDAO.validate_uniqueness(
             target.database_id, target.schema, target.table_name, target.id
         ):
@@ -1464,7 +1462,7 @@ class SqlaTable(
                 get_dataset_exist_error_msg(target.full_name)
             )
 
-        security_manager.dataset_before_update(mapper, connection, sqla_table)
+        security_manager.dataset_before_update(mapper, connection, target)
 
     @staticmethod
     def update_column(  # pylint: disable=unused-argument
