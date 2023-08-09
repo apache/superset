@@ -20,7 +20,6 @@
 import getInitialState, { dedupeTabHistory } from './getInitialState';
 
 const apiData = {
-  defaultDbId: 1,
   common: {
     conf: {
       DEFAULT_SQLLAB_LIMIT: 1,
