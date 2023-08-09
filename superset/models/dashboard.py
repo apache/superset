@@ -446,6 +446,15 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         qry = db.session.query(Dashboard).filter(id_or_slug_filter(id_or_slug))
         return qry.one_or_none()
 
+    def raise_for_access(self) -> None:
+        """
+        Raise an exception if the user cannot access the resource.
+
+        :raises SupersetSecurityException: If the user cannot access the resource
+        """
+
+        security_manager.raise_for_access(dashboard=self)
+
 
 def is_uuid(value: str | int) -> bool:
     try:
