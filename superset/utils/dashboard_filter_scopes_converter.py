@@ -298,13 +298,16 @@ def convert_filter_scopes_to_native_filters(  # pylint: disable=invalid-name,too
 
     for filter_box in filter_boxes:
         for value in position_json.values():
-            if (
-                isinstance(value, dict)
-                and value["type"] == "CHART"
-                and value["meta"]["chartId"] == filter_box.id
-                and value["parents"]  # Misnomer as this the the complete ancestry.
-            ):
-                ancestors_by_id[filter_box.id] = set(value["parents"])
+            try:
+                if (
+                    isinstance(value, dict)
+                    and value["type"] == "CHART"
+                    and value["meta"]["chartId"] == filter_box.id
+                    and value["parents"]  # Misnomer as this the the complete ancestry.
+                ):
+                    ancestors_by_id[filter_box.id] = set(value["parents"])
+            except KeyError:
+                pass
 
     # Wire up the hierarchical filters.
     for this in filter_boxes:
