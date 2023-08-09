@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { FeatureFlag } from '@superset-ui/core';
+import { isFeatureEnabled } from 'src/featureFlags';
 import {
   isUserWithPermissionsAndRoles,
   UndefinedUser,
@@ -63,3 +65,13 @@ export function canUserAccessSqlLab(
       ))
   );
 }
+
+export const canUserSaveAsDashboard = (
+  dashboard: Dashboard,
+  user?: UserWithPermissionsAndRoles | UndefinedUser | null,
+) =>
+  isUserWithPermissionsAndRoles(user) &&
+  findPermission('can_write', 'Dashboard', user?.roles) &&
+  (!isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC) ||
+    isUserAdmin(user) ||
+    isUserDashboardOwner(dashboard, user));
