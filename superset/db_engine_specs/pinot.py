@@ -85,10 +85,10 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             return TimestampExpression("{col}", col)
 
         if not pdf:
+            # models.adhoc_column_to_sqla will call this method with `pdf=None`
             if granularity:
                 tf = "1:MILLISECONDS:EPOCH"
                 time_expr = f"DATETIMECONVERT({{col}}, '{tf}', '{tf}', '{granularity}')"
-                return time_expr
         else:
             is_epoch = pdf in ("epoch_s", "epoch_ms")
 
@@ -124,4 +124,4 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             else:
                 time_expr = f"DATETIMECONVERT({{col}}, '{tf}', '{tf}', '{granularity}')"
 
-            return TimestampExpression(time_expr, col)
+        return TimestampExpression(time_expr, col)
