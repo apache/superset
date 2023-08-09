@@ -196,7 +196,7 @@ test('should show the share actions', async () => {
   expect(screen.getByText('Share')).toBeInTheDocument();
 });
 
-test('should render the "Save Modal" when user can save', async () => {
+test('should render the "Save as" menu item when user can save', async () => {
   const mockedProps = createProps();
   const canSaveProps = {
     ...mockedProps,
@@ -206,7 +206,7 @@ test('should render the "Save Modal" when user can save', async () => {
   expect(screen.getByText('Save as')).toBeInTheDocument();
 });
 
-test('should NOT render the "Save Modal" menu item when user cannot save', async () => {
+test('should NOT render the "Save as" menu item when user cannot save', async () => {
   const mockedProps = createProps();
   setup(mockedProps);
   expect(screen.queryByText('Save as')).not.toBeInTheDocument();
