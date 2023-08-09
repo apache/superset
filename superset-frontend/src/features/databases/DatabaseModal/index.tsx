@@ -946,8 +946,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       const selectedDbModel = availableDbs?.databases.filter(
         (db: DatabaseObject) => db.name === database_name,
       )[0];
-      const { engine, parameters, engine_information, default_driver } =
-        selectedDbModel;
+      const {
+        engine,
+        parameters,
+        engine_information,
+        default_driver,
+        sqlalchemy_uri_placeholder,
+      } = selectedDbModel;
       const isDynamic = parameters !== undefined;
       setDB({
         type: ActionType.dbSelected,
@@ -959,6 +964,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             : CONFIGURATION_METHOD.SQLALCHEMY_URI,
           engine_information,
           driver: default_driver,
+          sqlalchemy_uri_placeholder,
         },
       });
 
