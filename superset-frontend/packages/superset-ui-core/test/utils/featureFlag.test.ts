@@ -16,29 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import mockConsole from 'jest-mock-console';
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import * as uiCore from '@superset-ui/core';
 
 it('returns false and raises console error if feature flags have not been initialized', () => {
-  mockConsole();
+  const logging = jest.spyOn(uiCore.logging, 'error');
   Object.defineProperty(window, 'featureFlags', {
     value: undefined,
   });
-
-  expect(isFeatureEnabled(FeatureFlag.DRILL_BY)).toEqual(false);
-  expect(console.error).toHaveBeenCalled();
-  // @ts-expect-error
-  expect(console.error.mock.calls[0][0]).toEqual(
-    'Failed to query feature flag DRILL_BY',
-  );
+  expect(uiCore.isFeatureEnabled(uiCore.FeatureFlag.DRILL_BY)).toEqual(false);
+  expect(uiCore.logging.error).toHaveBeenCalled();
+  expect(logging).toHaveBeenCalledWith('Failed to query feature flag DRILL_BY');
 });
 
 it('returns false for unset feature flag', () => {
   Object.defineProperty(window, 'featureFlags', {
     value: {},
   });
-
-  expect(isFeatureEnabled(FeatureFlag.DRILL_BY)).toEqual(false);
+  expect(uiCore.isFeatureEnabled(uiCore.FeatureFlag.DRILL_BY)).toEqual(false);
 });
 
 it('returns true for set feature flag', () => {
@@ -47,6 +41,7 @@ it('returns true for set feature flag', () => {
       CLIENT_CACHE: true,
     },
   });
-
-  expect(isFeatureEnabled(FeatureFlag.CLIENT_CACHE)).toEqual(true);
+  expect(uiCore.isFeatureEnabled(uiCore.FeatureFlag.CLIENT_CACHE)).toEqual(
+    true,
+  );
 });

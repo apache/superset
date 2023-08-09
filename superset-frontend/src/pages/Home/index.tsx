@@ -18,6 +18,7 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  isFeatureEnabled,
   FeatureFlag,
   getExtensionsRegistry,
   JsonObject,
@@ -45,7 +46,6 @@ import {
   loadingCardCount,
   mq,
 } from 'src/views/CRUD/utils';
-import { isFeatureEnabled } from 'src/featureFlags';
 import { AntdSwitch } from 'src/components';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { TableTab } from 'src/views/CRUD/types';

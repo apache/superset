@@ -22,7 +22,7 @@ import fetchMock from 'fetch-mock';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import shortid from 'shortid';
-import * as featureFlags from 'src/featureFlags';
+import * as uiCore from '@superset-ui/core';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import { LOG_EVENT } from 'src/logger/actions';
 import {
@@ -492,7 +492,7 @@ describe('async actions', () => {
 
     beforeEach(() => {
       isFeatureEnabledMock = jest
-        .spyOn(featureFlags, 'isFeatureEnabled')
+        .spyOn(uiCore, 'isFeatureEnabled')
         .mockImplementation(
           feature => feature === 'SQLLAB_BACKEND_PERSISTENCE',
         );
@@ -758,7 +758,7 @@ describe('async actions', () => {
       describe('with backend persistence flag off', () => {
         it('does not update the tab state in the backend', () => {
           const backendPersistenceOffMock = jest
-            .spyOn(featureFlags, 'isFeatureEnabled')
+            .spyOn(uiCore, 'isFeatureEnabled')
             .mockImplementation(
               feature => !(feature === 'SQLLAB_BACKEND_PERSISTENCE'),
             );
