@@ -78,16 +78,8 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         time_grain: Optional[str],
     ) -> TimestampExpression:
         if not pdf:
-            # models.adhoc_column_to_sqla will call this method with `pdf=None`
-            # If there is no pdf then assume that the timestamp is stored in epoch_ms
-            pdf = "epoch_ms"
-
-        if time_grain:
-            granularity = cls.get_time_grain_expressions().get(time_grain)
-            if not granularity:
-                raise NotImplementedError(f"No pinot grain spec for '{time_grain}'")
-        else:
-            return TimestampExpression("{col}", col)
+            # If there is no python date format (pdf) given then we cannot determine how to correctly handle the timestamp
+            raise NotImplementedError(f"Empty date format for '{col}'")
 
         is_epoch = pdf in ("epoch_s", "epoch_ms")
 
@@ -109,6 +101,13 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         else:
             seconds_or_ms = "MILLISECONDS" if pdf == "epoch_ms" else "SECONDS"
             tf = f"1:{seconds_or_ms}:EPOCH"
+
+        if time_grain:
+            granularity = cls.get_time_grain_expressions().get(time_grain)
+            if not granularity:
+                raise NotImplementedError(f"No pinot grain spec for '{time_grain}'")
+        else:
+            return TimestampExpression("{col}", col)
 
         # In pinot the output is a string since there is no timestamp column like pg
         if cls._use_date_trunc_function.get(time_grain):
