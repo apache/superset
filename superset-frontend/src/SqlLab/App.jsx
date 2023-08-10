@@ -20,9 +20,13 @@ import React from 'react';
 import persistState from 'redux-localstorage';
 import { Provider } from 'react-redux';
 import { hot } from 'react-hot-loader/root';
-import { FeatureFlag, ThemeProvider } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  ThemeProvider,
+  initFeatureFlags,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import { GlobalStyles } from 'src/GlobalStyles';
-import { initFeatureFlags, isFeatureEnabled } from 'src/featureFlags';
 import { setupStore } from 'src/views/store';
 import setupExtensions from 'src/setup/setupExtensions';
 import getBootstrapData from 'src/utils/getBootstrapData';
