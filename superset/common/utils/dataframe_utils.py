@@ -38,7 +38,7 @@ def delete_tz_from_df(d: dict) -> pd.DataFrame:
             if type_col == GenericDataType.TEMPORAL:
                 name_col = colnames[k]
                 df[name_col] = pd.to_datetime(df[name_col])
-                df = df[name_col].dt.tz_localize(None)
+                df[name_col].dt.tz_localize(None)
 
         return df
     return pd.DataFrame(data)
