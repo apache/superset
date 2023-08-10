@@ -35,7 +35,7 @@ BLOCKLIST = {
 
 
 def check_sqlalchemy_uri(uri: URL) -> None:
-    if not not feature_flag_manager.is_feature_enabled("ENABLE_SUPERSET_META_DB"):
+    if not feature_flag_manager.is_feature_enabled("ENABLE_SUPERSET_META_DB"):
         BLOCKLIST.add(re.compile(r"superset$"))
 
     for blocklist_regex in BLOCKLIST:

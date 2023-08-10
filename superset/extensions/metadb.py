@@ -44,6 +44,7 @@ from collections.abc import Iterator
 from functools import wraps
 from typing import Any, Callable, cast, Optional, TypeVar
 
+from flask import current_app
 from shillelagh.adapters.base import Adapter
 from shillelagh.backends.apsw.dialects.base import APSWDialect
 from shillelagh.exceptions import ProgrammingError
@@ -338,6 +339,9 @@ class SupersetShillelaghAdapter(Adapter):
         """
         Return data for a `SELECT` statement.
         """
+        app_limit = current_app.config["SUPERSET_META_DB_LIMIT"]
+        limit = app_limit if limit is None else min(limit, app_limit)
+
         query = self._build_sql(bounds, order, limit, offset)
 
         with self.engine_context() as engine:
