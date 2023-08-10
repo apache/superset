@@ -371,7 +371,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     >
       <Tooltip placement="top" title={tooltipTitle}>
         <DateLabel
-          label={t(actualTimeRange)}
+          label={actualTimeRange}
           isActive={show}
           isPlaceholder={actualTimeRange === NO_TIME_RANGE}
           data-test={DATE_FILTER_TEST_KEY.popoverOverlay}
