@@ -74,7 +74,7 @@ def write_ipc_buffer(table: pa.Table) -> pa.Buffer:
 
     return sink.getvalue()
 
-def bootstrap_sqllab_data(user_id: int) -> dict[str, Any]:
+def bootstrap_sqllab_data(user_id: int | None) -> dict[str, Any]:
     # send list of tab state ids
     tabs_state = (
         db.session.query(TabState.id, TabState.label)
