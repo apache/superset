@@ -480,6 +480,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # or to disallow users from viewing other users profile page
     # Do not show user info or profile in the menu
     "MENU_HIDE_USER_INFO": False,
+    # Allows users to add a ``superset://`` DB that can query across databases.
+    "ENABLE_SUPERSET_META_DB": False,
 }
 
 # ------------------------------
