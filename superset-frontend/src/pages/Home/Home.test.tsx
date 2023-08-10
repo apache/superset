@@ -109,7 +109,7 @@ const mockedProps = {
     isAnonymous: false,
     permissions: {},
     roles: {
-      sql_lab: [],
+      sql_lab: [['can_read', 'SavedQuery']],
     },
   },
 };
