@@ -14,18 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
 """
 A SQLAlchemy dialect for querying across Superset databases.
 
 The dialect ``superset://`` allows users to query any table in any database that has been
 configured in Superset, eg:
 
-    > SELECT * FROM "superset.examples.birth_names";
+    > SELECT * FROM "examples.birth_names";
 
 The syntax for tables is:
 
-    superset.database[[.catalog].schema].table
+    database[[.catalog].schema].table
 
 The dialect is built on top of Shillelagh, a framework for building DB API 2.0 libraries
 and SQLAlchemy dialects based on SQLite. SQLite will parse the SQL, and pass the filters
@@ -36,13 +35,14 @@ Note that no aggregation is done on the database. Aggregations and other operati
 joins and unions are done in memory, using the SQLite engine.
 """
 
+from __future__ import annotations
 
 import datetime
 import operator
 import urllib.parse
 from collections.abc import Iterator
 from functools import wraps
-from typing import Any, Callable, cast, Optional, TypeVar
+from typing import Any, Callable, cast, TypeVar
 
 from flask import current_app
 from shillelagh.adapters.base import Adapter
@@ -67,7 +67,7 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.sql import Select, select
 
-from superset import db, security_manager, sql_parse
+from superset import db, feature_flag_manager, security_manager, sql_parse
 
 
 # pylint: disable=abstract-method
@@ -82,7 +82,7 @@ class SupersetAPSWDialect(APSWDialect):
 
         >>> engine = create_engine('superset://')
         >>> conn = engine.connect()
-        >>> results = conn.execute('SELECT * FROM "superset.examples.birth_names"')
+        >>> results = conn.execute('SELECT * FROM "examples.birth_names"')
 
     Queries can also join data across different Superset databases.
 
@@ -103,7 +103,7 @@ class SupersetAPSWDialect(APSWDialect):
             {
                 "path": ":memory:",
                 "adapters": ["superset"],
-                "adapter_kwargs": {},
+                "adapter_kwargs": {"superset": {"prefix": None}},
                 "safe": True,
                 "isolation_level": self.isolation_level,
             },
@@ -120,7 +120,7 @@ def check_dml(method: F) -> F:
     """
 
     @wraps(method)
-    def wrapper(self: "SupersetShillelaghAdapter", *args: Any, **kwargs: Any) -> Any:
+    def wrapper(self: SupersetShillelaghAdapter, *args: Any, **kwargs: Any) -> Any:
         # pylint: disable=protected-access
         if not self._allow_dml:
             raise ProgrammingError(f'DML not enabled in database "{self.database}"')
@@ -135,7 +135,7 @@ def has_rowid(method: F) -> F:
     """
 
     @wraps(method)
-    def wrapper(self: "SupersetShillelaghAdapter", *args: Any, **kwargs: Any) -> Any:
+    def wrapper(self: SupersetShillelaghAdapter, *args: Any, **kwargs: Any) -> Any:
         # pylint: disable=protected-access
         if not self._rowid:
             raise ProgrammingError(
@@ -174,53 +174,63 @@ class SupersetShillelaghAdapter(Adapter):
     }
 
     @staticmethod
-    def supports(uri: str, fast: bool = True, **kwargs: Any) -> bool:
+    def supports(
+        uri: str,
+        fast: bool = True,
+        prefix: str | None = "superset",
+        **kwargs: Any,
+    ) -> bool:
         """
         Return if a table is supported by the adapter.
 
-        An URL for a table has the format superset.database[[.catalog].schema].table,
+        An URL for a table has the format [prefix.]database[[.catalog].schema].table,
         eg, `superset.examples.birth_names`.
+
+        When using the Superset SQLAlchemy and DB engine spec the prefix is dropped, so
+        that tables should have the format database[[.catalog].schema].table.
         """
         parts = [urllib.parse.unquote(part) for part in uri.split(".")]
-        return 3 <= len(parts) <= 5 and parts[0] == "superset"
+
+        if prefix is not None:
+            if parts.pop(0) != prefix:
+                return False
+
+        return 2 <= len(parts) <= 4
 
     @staticmethod
-    def parse_uri(uri: str) -> tuple[str, Optional[str], Optional[str], str]:
+    def parse_uri(uri: str) -> tuple[str]:
         """
-        Parse the SQLAlchemy URI into arguments for the class.
-
-        This splits the URI into database, catalog, schema, and table name:
-
-            >>> SupersetShillelaghAdapter.parse_uri('superset.examples.birth_names')
-            ('examples', None, None, 'birth_names')
-
+        Pass URI through unmodified.
         """
-        parts = [urllib.parse.unquote(part) for part in uri.split(".")]
-        if len(parts) == 3:
-            return parts[1], None, None, parts[2]
-        if len(parts) == 4:
-            return parts[1], None, parts[2], parts[3]
-        return tuple(parts[1:])  # type: ignore
+        return (uri,)
 
     def __init__(
         self,
-        database: str,
-        catalog: Optional[str],
-        schema: Optional[str],
-        table: str,
+        uri: str,
+        prefix: str | None = "superset",
         *args: Any,
         **kwargs: Any,
     ):
+        if not feature_flag_manager.is_feature_enabled("ENABLE_SUPERSET_META_DB"):
+            raise ProgrammingError("Superset meta database is disabled")
+
         super().__init__(*args, **kwargs)
 
-        self.database = database
-        self.catalog = catalog
-        self.schema = schema
-        self.table = table
+        parts = [urllib.parse.unquote(part) for part in uri.split(".")]
+
+        if prefix is not None:
+            if prefix != parts.pop(0):
+                raise ProgrammingError("Invalid prefix")
+            self.prefix = prefix
+
+        self.database = parts.pop(0)
+        self.table = parts.pop(-1)
+        self.schema = parts.pop(-1) if parts else None
+        self.catalog = parts.pop(-1) if parts else None
 
         # If the table has a single integer primary key we use that as the row ID in order
         # to perform updates and deletes. Otherwise we can only do inserts and selects.
-        self._rowid: Optional[str] = None
+        self._rowid: str | None = None
 
         # Does the database allow DML?
         self._allow_dml: bool = False
@@ -293,8 +303,8 @@ class SupersetShillelaghAdapter(Adapter):
         self,
         bounds: dict[str, Filter],
         order: list[tuple[str, RequestedOrder]],
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
+        limit: int | None = None,
+        offset: int | None = None,
     ) -> Select:
         """
         Build SQLAlchemy query object.
@@ -332,8 +342,8 @@ class SupersetShillelaghAdapter(Adapter):
         self,
         bounds: dict[str, Filter],
         order: list[tuple[str, RequestedOrder]],
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
+        limit: int | None = None,
+        offset: int | None = None,
         **kwargs: Any,
     ) -> Iterator[Row]:
         """
@@ -357,7 +367,7 @@ class SupersetShillelaghAdapter(Adapter):
         """
         Insert a single row.
         """
-        row_id: Optional[int] = row.pop("rowid")
+        row_id: int | None = row.pop("rowid")
         if row_id and self._rowid:
             if row.get(self._rowid) != row_id:
                 raise ProgrammingError(f"Invalid rowid specified: {row_id}")
@@ -396,7 +406,7 @@ class SupersetShillelaghAdapter(Adapter):
 
         Note that the updated row might have a new row ID.
         """
-        new_row_id: Optional[int] = row.pop("rowid")
+        new_row_id: int | None = row.pop("rowid")
         if new_row_id:
             if row.get(self._rowid) != new_row_id:
                 raise ProgrammingError(f"Invalid rowid specified: {new_row_id}")
