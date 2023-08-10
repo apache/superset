@@ -26,7 +26,7 @@ import { render, screen, cleanup } from 'spec/helpers/testing-library';
 import { FeatureFlag } from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
-import * as featureFlags from 'src/featureFlags';
+import * as uiCore from '@superset-ui/core';
 
 import DatasetList from 'src/pages/DatasetList';
 import ListView from 'src/components/ListView';
@@ -258,7 +258,7 @@ describe('RTL', () => {
   let isFeatureEnabledMock: jest.SpyInstance<boolean, [feature: FeatureFlag]>;
   beforeEach(async () => {
     isFeatureEnabledMock = jest
-      .spyOn(featureFlags, 'isFeatureEnabled')
+      .spyOn(uiCore, 'isFeatureEnabled')
       .mockImplementation(() => true);
     await renderAndWait();
   });
