@@ -52,12 +52,12 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
+from superset.sqllab.utils import bootstrap_sqllab_data
 from superset.utils import core as utils
 from superset.utils.core import backend
 from superset.utils.database import get_example_database
 from superset.views import core as views
 from superset.views.database.views import DatabaseView
-from superset.sqllab.utils import bootstrap_sqllab_data
 from tests.integration_tests.conftest import CTAS_SCHEMA_NAME, with_feature_flags
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,

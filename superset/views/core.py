@@ -70,6 +70,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
+from superset.sqllab.utils import bootstrap_sqllab_data
 from superset.superset_typing import FlaskResponse
 from superset.tasks.async_queries import load_explore_json_into_cache
 from superset.utils import core as utils
@@ -107,7 +108,6 @@ from superset.views.utils import (
     redirect_with_flash,
     sanitize_datasource_data,
 )
-from superset.sqllab.utils import bootstrap_sqllab_data
 from superset.viz import BaseViz
 
 config = app.config
