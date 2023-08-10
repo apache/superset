@@ -17,14 +17,14 @@
 """add on delete cascade for embedded dashboards
 
 Revision ID: 4448fa6deeb1
-Revises: 2e826adca42c
+Revises: 8ace289026f3
 Create Date: 2023-08-09 15:39:58.130228
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "4448fa6deeb1"
-down_revision = "2e826adca42c"
+down_revision = "8ace289026f3"
 
 from superset.migrations.shared.constraints import ForeignKey, redefine
 
