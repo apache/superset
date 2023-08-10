@@ -28,7 +28,6 @@ import { findPermission } from 'src/utils/findPermission';
 // this should really be a config value,
 // but is hardcoded in backend logic already, so...
 const ADMIN_ROLE_NAME = 'admin';
-const SQL_LAB_ROLE = 'sql_lab';
 
 export const isUserAdmin = (
   user?: UserWithPermissionsAndRoles | UndefinedUser,
@@ -53,15 +52,21 @@ export const canUserEditDashboard = (
   (isUserAdmin(user) || isUserDashboardOwner(dashboard, user)) &&
   findPermission('can_write', 'Dashboard', user?.roles);
 
-export function canUserAccessSqlLab(
-  user?: UserWithPermissionsAndRoles | UndefinedUser,
+export function userHasPermission(
+  user: UserWithPermissionsAndRoles | UndefinedUser,
+  viewName: string,
+  permissionName: string,
 ) {
   return (
     isUserAdmin(user) ||
     (isUserWithPermissionsAndRoles(user) &&
-      Object.keys(user.roles || {}).some(
-        role => role.toLowerCase() === SQL_LAB_ROLE,
-      ))
+      Object.values(user.roles || {})
+        .flat()
+        .some(
+          permissionView =>
+            permissionView[0] === permissionName &&
+            permissionView[1] === viewName,
+        ))
   );
 }
 
