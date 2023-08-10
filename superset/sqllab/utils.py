@@ -14,7 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Union
+from __future__ import annotations
+
+from typing import Any
 
 import pyarrow as pa
 
@@ -76,7 +78,7 @@ def write_ipc_buffer(table: pa.Table) -> pa.Buffer:
     return sink.getvalue()
 
 
-def bootstrap_sqllab_data(user_id: Union[int, None]) -> dict[str, Any]:
+def bootstrap_sqllab_data(user_id: int | None) -> dict[str, Any]:
     # send list of tab state ids
     tabs_state = (
         db.session.query(TabState.id, TabState.label).filter_by(user_id=user_id).all()
