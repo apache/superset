@@ -43,9 +43,6 @@ class ChartDAO(BaseDAO[Slice]):
     def delete(cls, items: Slice | list[Slice], commit: bool = True) -> None:
         item_ids = [item.id for item in get_iterable(items)]
         # bulk delete, first delete related data
-        for item in get_iterable(items):
-            item.dashboards = []
-            db.session.merge(item)
         # bulk delete itself
         try:
             db.session.query(Slice).filter(Slice.id.in_(item_ids)).delete(
