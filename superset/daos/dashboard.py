@@ -197,7 +197,6 @@ class DashboardDAO(BaseDAO[Dashboard]):
         item_ids = [item.id for item in get_iterable(items)]
         # bulk delete, first delete related data
         for item in get_iterable(items):
-            item.slices = []
             item.embedded = []
             db.session.merge(item)
         # bulk delete itself
