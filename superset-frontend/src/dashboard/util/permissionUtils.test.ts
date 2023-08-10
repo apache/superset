@@ -24,7 +24,7 @@ import {
 import { Dashboard } from 'src/types/Dashboard';
 import Owner from 'src/types/Owner';
 import {
-  canUserAccessSqlLab,
+  userHasPermission,
   canUserEditDashboard,
   canUserSaveAsDashboard,
   isUserAdmin,
@@ -65,11 +65,18 @@ const owner: Owner = {
   last_name: 'User',
 };
 
+const sqlLabMenuAccessPermission: [string, string] = ['menu_access', 'SQL Lab'];
+
+const arbitraryPermissions: [string, string][] = [
+  ['can_write', 'AnArbitraryView'],
+  sqlLabMenuAccessPermission,
+];
+
 const sqlLabUser: UserWithPermissionsAndRoles = {
   ...ownerUser,
   roles: {
     ...ownerUser.roles,
-    sql_lab: [],
+    sql_lab: [sqlLabMenuAccessPermission],
   },
 };
 
@@ -139,24 +146,40 @@ test('isUserAdmin returns false for non-admin user', () => {
   expect(isUserAdmin(ownerUser)).toEqual(false);
 });
 
-test('canUserAccessSqlLab returns true for admin user', () => {
-  expect(canUserAccessSqlLab(adminUser)).toEqual(true);
+test('userHasPermission always returns true for admin user', () => {
+  arbitraryPermissions.forEach(permissionView => {
+    expect(
+      userHasPermission(adminUser, permissionView[1], permissionView[0]),
+    ).toEqual(true);
+  });
 });
 
-test('canUserAccessSqlLab returns false for undefined', () => {
-  expect(canUserAccessSqlLab(undefined)).toEqual(false);
+test('userHasPermission always returns false for undefined user', () => {
+  arbitraryPermissions.forEach(permissionView => {
+    expect(
+      userHasPermission(undefinedUser, permissionView[1], permissionView[0]),
+    ).toEqual(false);
+  });
 });
 
-test('canUserAccessSqlLab returns false for undefined user', () => {
-  expect(canUserAccessSqlLab(undefinedUser)).toEqual(false);
+test('userHasPermission returns false if user does not have permission', () => {
+  expect(
+    userHasPermission(
+      ownerUser,
+      sqlLabMenuAccessPermission[1],
+      sqlLabMenuAccessPermission[0],
+    ),
+  ).toEqual(false);
 });
 
-test('canUserAccessSqlLab returns false for non-sqllab role', () => {
-  expect(canUserAccessSqlLab(ownerUser)).toEqual(false);
-});
-
-test('canUserAccessSqlLab returns true for sqllab role', () => {
-  expect(canUserAccessSqlLab(sqlLabUser)).toEqual(true);
+test('userHasPermission returns true if user has permission', () => {
+  expect(
+    userHasPermission(
+      sqlLabUser,
+      sqlLabMenuAccessPermission[1],
+      sqlLabMenuAccessPermission[0],
+    ),
+  ).toEqual(true);
 });
 
 describe('canUserSaveAsDashboard with RBAC feature flag disabled', () => {
