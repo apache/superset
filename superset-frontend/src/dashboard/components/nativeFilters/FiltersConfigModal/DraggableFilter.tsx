@@ -130,6 +130,10 @@ export const DraggableFilter: FC<FilterTabTitleProps> = ({
     },
   });
   drag(drop(ref));
+
+  //this is gross... we should pass in the filter/divider type, rather than inferring from the generated ID.
+  const filterIcon = filterIds[0].split('-')[0] == "NATIVE_FILTER" ? <Icons.FilterSmall /> : <Icons.BorderVerticleOutlined />;
+
   return (
     <Container ref={ref} isDragging={isDragging}>
       <DragIcon
@@ -138,6 +142,7 @@ export const DraggableFilter: FC<FilterTabTitleProps> = ({
         className="dragIcon"
         viewBox="4 4 16 16"
       />
+      {filterIcon}
       <div css={{ flex: 1 }}>{children}</div>
     </Container>
   );
