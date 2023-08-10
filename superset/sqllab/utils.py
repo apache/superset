@@ -14,12 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any
+from typing import Any, Union
 
 import pyarrow as pa
 
-from superset.common.db_query_status import QueryStatus
 from superset import db, is_feature_enabled
+from superset.common.db_query_status import QueryStatus
 from superset.daos.database import DatabaseDAO
 from superset.models.sql_lab import Query, TabState
 
@@ -37,6 +37,7 @@ DATABASE_KEYS = [
     "id",
     "disable_data_preview",
 ]
+
 
 def apply_display_max_row_configuration_if_require(  # pylint: disable=invalid-name
     sql_results: dict[str, Any], max_rows_in_result: int
@@ -74,12 +75,11 @@ def write_ipc_buffer(table: pa.Table) -> pa.Buffer:
 
     return sink.getvalue()
 
-def bootstrap_sqllab_data(user_id: int | None) -> dict[str, Any]:
+
+def bootstrap_sqllab_data(user_id: Union[int, None]) -> dict[str, Any]:
     # send list of tab state ids
     tabs_state = (
-        db.session.query(TabState.id, TabState.label)
-        .filter_by(user_id=user_id)
-        .all()
+        db.session.query(TabState.id, TabState.label).filter_by(user_id=user_id).all()
     )
     tab_state_ids = [str(tab_state[0]) for tab_state in tabs_state]
     # return first active tab, or fallback to another one if no tab is active
