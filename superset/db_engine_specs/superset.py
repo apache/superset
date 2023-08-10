@@ -31,7 +31,7 @@ class SupersetEngineSpec(ShillelaghEngineSpec):
     """
 
     engine = "superset"
-    engine_name = "Superset native database"
+    engine_name = "Superset meta database"
     drivers = {"": "Native driver"}
     default_driver = ""
     sqlalchemy_uri_placeholder = "superset://"

@@ -41,7 +41,7 @@ from importlib_metadata import entry_points
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.engine.url import URL
 
-from superset import app
+from superset import app, feature_flag_manager
 from superset.db_engine_specs.base import BaseEngineSpec
 
 logger = logging.getLogger(__name__)
@@ -172,6 +172,8 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:
 
         # do not add denied db engine specs to available list
         dbs_denylist = app.config["DBS_AVAILABLE_DENYLIST"]
+        if not feature_flag_manager.is_feature_enabled("ENABLE_SUPERSET_META_DB"):
+            dbs_denylist["superset"] = {""}
         dbs_denylist_engines = dbs_denylist.keys()
 
         if (

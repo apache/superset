@@ -114,6 +114,22 @@ def test_superset(mocker: MockFixture, app_context: None, table1: None) -> None:
     assert list(results) == [(1, 10), (2, 20)]
 
 
+def test_superset_limit(mocker: MockFixture, app_context: None, table1: None) -> None:
+    """
+    Simple that limit is applied when querying a table.
+    """
+    mocker.patch(
+        "superset.extensions.metadb.current_app.config",
+        {"SUPERSET_META_DB_LIMIT": 1},
+    )
+    mocker.patch("superset.extensions.metadb.security_manager")
+
+    engine = create_engine("superset://")
+    conn = engine.connect()
+    results = conn.execute('SELECT * FROM "superset.database1.table1"')
+    assert list(results) == [(1, 10)]
+
+
 def test_superset_joins(
     mocker: MockFixture,
     app_context: None,
