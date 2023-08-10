@@ -33,6 +33,7 @@ import Split from 'react-split';
 import {
   css,
   FeatureFlag,
+  isFeatureEnabled,
   styled,
   t,
   useTheme,
@@ -84,7 +85,6 @@ import {
   LocalStorageKeys,
   setItem,
 } from 'src/utils/localStorageHelpers';
-import { isFeatureEnabled } from 'src/featureFlags';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { isEmpty } from 'lodash';

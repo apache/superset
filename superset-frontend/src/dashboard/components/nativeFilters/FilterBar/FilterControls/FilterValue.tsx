@@ -27,6 +27,7 @@ import {
   ChartDataResponseResult,
   Behavior,
   DataMask,
+  isFeatureEnabled,
   FeatureFlag,
   getChartMetadataRegistry,
   JsonObject,
@@ -41,7 +42,6 @@ import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import Loading from 'src/components/Loading';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
-import { isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import {
   ClientErrorObject,
