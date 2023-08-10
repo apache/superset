@@ -19,7 +19,6 @@
 /* eslint camelcase: 0 */
 import React from 'react';
 import { Dispatch } from 'redux';
-import { isFeatureEnabled } from 'src/featureFlags';
 import rison from 'rison';
 import { connect } from 'react-redux';
 import { withRouter, RouteComponentProps } from 'react-router-dom';
@@ -27,6 +26,7 @@ import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import {
   css,
   DatasourceType,
+  isFeatureEnabled,
   FeatureFlag,
   isDefined,
   styled,

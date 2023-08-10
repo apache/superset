@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FeatureFlag } from '@superset-ui/core';
-import * as featureFlags from 'src/featureFlags';
+import * as uiCore from '@superset-ui/core';
 import {
   UndefinedUser,
   UserWithPermissionsAndRoles,
@@ -91,7 +90,10 @@ const dashboard: Dashboard = {
   roles: [],
 };
 
-let isFeatureEnabledMock: jest.MockInstance<boolean, [feature: FeatureFlag]>;
+let isFeatureEnabledMock: jest.MockInstance<
+  boolean,
+  [feature: uiCore.FeatureFlag]
+>;
 
 describe('canUserEditDashboard', () => {
   it('allows owners to edit', () => {
@@ -160,10 +162,10 @@ test('canUserAccessSqlLab returns true for sqllab role', () => {
 describe('canUserSaveAsDashboard with RBAC feature flag disabled', () => {
   beforeAll(() => {
     isFeatureEnabledMock = jest
-      .spyOn(featureFlags, 'isFeatureEnabled')
+      .spyOn(uiCore, 'isFeatureEnabled')
       .mockImplementation(
-        (featureFlag: FeatureFlag) =>
-          featureFlag !== FeatureFlag.DASHBOARD_RBAC,
+        (featureFlag: uiCore.FeatureFlag) =>
+          featureFlag !== uiCore.FeatureFlag.DASHBOARD_RBAC,
       );
   });
 
@@ -188,10 +190,10 @@ describe('canUserSaveAsDashboard with RBAC feature flag disabled', () => {
 describe('canUserSaveAsDashboard with RBAC feature flag enabled', () => {
   beforeAll(() => {
     isFeatureEnabledMock = jest
-      .spyOn(featureFlags, 'isFeatureEnabled')
+      .spyOn(uiCore, 'isFeatureEnabled')
       .mockImplementation(
-        (featureFlag: FeatureFlag) =>
-          featureFlag === FeatureFlag.DASHBOARD_RBAC,
+        (featureFlag: uiCore.FeatureFlag) =>
+          featureFlag === uiCore.FeatureFlag.DASHBOARD_RBAC,
       );
   });
 
