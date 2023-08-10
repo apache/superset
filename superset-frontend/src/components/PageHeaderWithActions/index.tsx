@@ -129,6 +129,7 @@ export const PageHeaderWithActions = ({
   rightPanelAdditionalItems,
   additionalActionsMenu,
   menuDropdownProps,
+  hideMenuDropdown,
   tooltipProps,
 }: PageHeaderWithActionsProps) => {
   const theme = useTheme();
@@ -149,25 +150,27 @@ export const PageHeaderWithActions = ({
       <div className="right-button-panel">
         {rightPanelAdditionalItems}
         <div css={additionalActionsContainerStyles}>
-          <AntdDropdown
-            trigger={['click']}
-            overlay={additionalActionsMenu}
-            {...menuDropdownProps}
-          >
-            <Button
-              css={menuTriggerStyles}
-              buttonStyle="tertiary"
-              aria-label={t('Menu actions trigger')}
-              tooltip={tooltipProps?.text}
-              placement={tooltipProps?.placement}
-              data-test="actions-trigger"
+          {hideMenuDropdown && (
+            <AntdDropdown
+              trigger={['click']}
+              overlay={additionalActionsMenu}
+              {...menuDropdownProps}
             >
-              <Icons.MoreHoriz
-                iconColor={theme.colors.primary.dark2}
-                iconSize="l"
-              />
-            </Button>
-          </AntdDropdown>
+              <Button
+                css={menuTriggerStyles}
+                buttonStyle="tertiary"
+                aria-label={t('Menu actions trigger')}
+                tooltip={tooltipProps?.text}
+                placement={tooltipProps?.placement}
+                data-test="actions-trigger"
+              >
+                <Icons.MoreHoriz
+                  iconColor={theme.colors.primary.dark2}
+                  iconSize="l"
+                />
+              </Button>
+            </AntdDropdown>
+          )}
         </div>
       </div>
     </div>
