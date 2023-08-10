@@ -419,6 +419,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return True
 
+    # pylint: disable=no-self-use
     def get_dashboard_access_error_object(  # pylint: disable=invalid-name
         self,
         dashboard: "Dashboard",  # pylint: disable=unused-argument
