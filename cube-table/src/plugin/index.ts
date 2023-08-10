@@ -20,7 +20,7 @@ import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
-import thumbnail from '../images/thumbnail.png';
+import thumbnail from '../images/thumbnail-xip.png';
 
 export default class CubeTable extends ChartPlugin {
   /**
@@ -35,6 +35,7 @@ export default class CubeTable extends ChartPlugin {
    */
   constructor() {
     const metadata = new ChartMetadata({
+      category: t('XIP'),
       description: 'Cube Table',
       name: t('Cube Table'),
       thumbnail,

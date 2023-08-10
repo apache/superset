@@ -20,7 +20,7 @@ import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
-import thumbnail from '../images/thumbnail.png';
+import thumbnail from '../images/thumbnail-xip.png';
 
 export default class CubeBurndownChart extends ChartPlugin {
   /**
@@ -35,8 +35,9 @@ export default class CubeBurndownChart extends ChartPlugin {
    */
   constructor() {
     const metadata = new ChartMetadata({
-      description: 'Cube Burndown Chart',
-      name: t('Cube Burndown Chart'),
+      category: t('XIP'),
+      description: t('Cube Burn down Chart'),
+      name: t('Cube Burn down Chart'),
       thumbnail,
     });
 
