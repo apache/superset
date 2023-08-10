@@ -22,7 +22,7 @@ import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
-import * as featureFlags from 'src/featureFlags';
+import * as uiCore from '@superset-ui/core';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { styledMount as mount } from 'spec/helpers/theming';
 import { render, screen, cleanup } from 'spec/helpers/testing-library';
@@ -101,7 +101,7 @@ fetchMock.get('/thumbnail', { body: new Blob(), sendAsJson: false });
 
 describe('ChartList', () => {
   const isFeatureEnabledMock = jest
-    .spyOn(featureFlags, 'isFeatureEnabled')
+    .spyOn(uiCore, 'isFeatureEnabled')
     .mockImplementation(feature => feature === 'LISTVIEWS_DEFAULT_CARD_VIEW');
 
   afterAll(() => {
@@ -199,7 +199,7 @@ describe('RTL', () => {
   let isFeatureEnabledMock;
   beforeEach(async () => {
     isFeatureEnabledMock = jest
-      .spyOn(featureFlags, 'isFeatureEnabled')
+      .spyOn(uiCore, 'isFeatureEnabled')
       .mockImplementation(() => true);
     await renderAndWait();
   });
