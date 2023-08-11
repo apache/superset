@@ -41,7 +41,7 @@ import datetime
 import operator
 import urllib.parse
 from collections.abc import Iterator
-from functools import wraps
+from functools import partial, wraps
 from typing import Any, Callable, cast, TypeVar
 
 from flask import current_app
@@ -240,6 +240,9 @@ class SupersetShillelaghAdapter(Adapter):
         self.schema = parts.pop(-1) if parts else None
         self.catalog = parts.pop(-1) if parts else None
 
+        if self.catalog:
+            raise NotImplementedError("Catalogs are not currently supported")
+
         # If the table has a single integer primary key we use that as the row ID in order
         # to perform updates and deletes. Otherwise we can only do inserts and selects.
         self._rowid: str | None = None
@@ -278,14 +281,20 @@ class SupersetShillelaghAdapter(Adapter):
         table = sql_parse.Table(self.table, self.schema, self.catalog)
         security_manager.raise_for_access(database=database, table=table)
 
+        # store this callable for later whenever we need an engine
+        self.engine_context = partial(
+            database.get_sqla_engine_with_context,
+            self.schema,
+        )
+
         # fetch column names and types
-        self.engine_context = database.get_sqla_engine_with_context
         metadata = MetaData()
         with self.engine_context() as engine:
             try:
                 self._table = Table(
                     self.table,
                     metadata,
+                    schema=self.schema,
                     autoload=True,
                     autoload_with=engine,
                 )
