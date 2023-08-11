@@ -144,6 +144,7 @@ Join our growing community!
 - [DouroECI](https://www.douroeci.com/) [@nunohelibeires]
 - [Safaricom](https://www.safaricom.co.ke/) [@mmutiso]
 - [Scoot](https://scoot.co/) [@haaspt]
+- [Wattbewerb](https://wattbewerb.de/) [@wattbewerb]
 
 ### Healthcare
 - [Amino](https://amino.com) [@shkr]
