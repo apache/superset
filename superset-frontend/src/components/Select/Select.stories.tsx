@@ -103,6 +103,11 @@ const ARG_TYPES = {
       disable: true,
     },
   },
+  mappedMode: {
+    table: {
+      disable: true,
+    },
+  },
   mode: {
     description: `It defines whether the Select should allow for
       the selection of multiple options or single. Single by default.
