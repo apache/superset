@@ -364,7 +364,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     force_column_alias_quotes = False
     arraysize = 0
-    max_column_name_length = 0
+    max_column_name_length: int | None = None
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
     run_multiple_statements_as_one = False
     custom_errors: dict[
