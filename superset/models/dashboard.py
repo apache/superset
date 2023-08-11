@@ -105,8 +105,8 @@ dashboard_slices = Table(
     "dashboard_slices",
     metadata,
     Column("id", Integer, primary_key=True),
-    Column("dashboard_id", Integer, ForeignKey("dashboards.id")),
-    Column("slice_id", Integer, ForeignKey("slices.id")),
+    Column("dashboard_id", Integer, ForeignKey("dashboards.id", ondelete="CASCADE")),
+    Column("slice_id", Integer, ForeignKey("slices.id", ondelete="CASCADE")),
     UniqueConstraint("dashboard_id", "slice_id"),
 )
 
@@ -373,7 +373,8 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
 
     @classmethod
     def export_dashboards(  # pylint: disable=too-many-locals
-        cls, dashboard_ids: list[int]
+        cls,
+        dashboard_ids: set[int],
     ) -> str:
         copied_dashboards = []
         datasource_ids = set()
@@ -445,6 +446,15 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     def get(cls, id_or_slug: str | int) -> Dashboard:
         qry = db.session.query(Dashboard).filter(id_or_slug_filter(id_or_slug))
         return qry.one_or_none()
+
+    def raise_for_access(self) -> None:
+        """
+        Raise an exception if the user cannot access the resource.
+
+        :raises SupersetSecurityException: If the user cannot access the resource
+        """
+
+        security_manager.raise_for_access(dashboard=self)
 
 
 def is_uuid(value: str | int) -> bool:

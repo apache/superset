@@ -14,21 +14,35 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import logging
+"""add on delete cascade for embedded dashboards
 
-from sqlalchemy.orm import Session
+Revision ID: 4448fa6deeb1
+Revises: 8ace289026f3
+Create Date: 2023-08-09 15:39:58.130228
 
-from superset.models.dashboard import Dashboard
+"""
 
-logger = logging.getLogger(__name__)
+# revision identifiers, used by Alembic.
+revision = "4448fa6deeb1"
+down_revision = "8ace289026f3"
+
+from superset.migrations.shared.constraints import ForeignKey, redefine
+
+foreign_keys = [
+    ForeignKey(
+        table="embedded_dashboards",
+        referent_table="dashboards",
+        local_cols=["dashboard_id"],
+        remote_cols=["id"],
+    ),
+]
 
 
-def export_dashboards(session: Session) -> str:
-    """Returns all dashboards metadata as a json dump"""
-    logger.info("Starting export")
-    dashboards = session.query(Dashboard)
-    dashboard_ids = set()
-    for dashboard in dashboards:
-        dashboard_ids.add(dashboard.id)
-    data = Dashboard.export_dashboards(dashboard_ids)
-    return data
+def upgrade():
+    for foreign_key in foreign_keys:
+        redefine(foreign_key, on_delete="CASCADE")
+
+
+def downgrade():
+    for foreign_key in foreign_keys:
+        redefine(foreign_key)

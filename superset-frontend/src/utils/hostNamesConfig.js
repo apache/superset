@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { initFeatureFlags } from 'src/featureFlags';
+import { initFeatureFlags } from '@superset-ui/core';
 import getBootstrapData from './getBootstrapData';
 
 function getDomainsConfig() {

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { ensureIsArray, styled, t } from '@superset-ui/core';
 import { StringParam, useQueryParam } from 'use-query-params';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -61,6 +61,10 @@ function AllEntities() {
     const tagSearch = tags.join(',');
     setTagsQuery(tagSearch);
   };
+
+  useEffect(() => {
+    fetchSingleTag(tagsQuery[0], (data: Tag) => {});
+  }, []);
 
   const tagsValue = useMemo(
     () =>

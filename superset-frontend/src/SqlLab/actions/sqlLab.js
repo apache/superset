@@ -18,10 +18,14 @@
  */
 import shortid from 'shortid';
 import rison from 'rison';
-import { FeatureFlag, SupersetClient, t } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  SupersetClient,
+  t,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import invert from 'lodash/invert';
 import mapKeys from 'lodash/mapKeys';
-import { isFeatureEnabled } from 'src/featureFlags';
 
 import { now } from 'src/utils/dates';
 import {

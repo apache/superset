@@ -27,7 +27,6 @@ class SupersetErrorType(StrEnum):
     Types of errors that can exist within Superset.
 
     Keep in sync with superset-frontend/src/components/ErrorMessage/types.ts
-    and docs/src/pages/docs/Miscellaneous/issue_codes.mdx
     """
 
     # Frontend errors
@@ -66,6 +65,7 @@ class SupersetErrorType(StrEnum):
     QUERY_SECURITY_ACCESS_ERROR = "QUERY_SECURITY_ACCESS_ERROR"
     MISSING_OWNERSHIP_ERROR = "MISSING_OWNERSHIP_ERROR"
     USER_ACTIVITY_SECURITY_ACCESS_ERROR = "USER_ACTIVITY_SECURITY_ACCESS_ERROR"
+    DASHBOARD_SECURITY_ACCESS_ERROR = "DASHBOARD_SECURITY_ACCESS_ERROR"
 
     # Other errors
     BACKEND_TIMEOUT_ERROR = "BACKEND_TIMEOUT_ERROR"

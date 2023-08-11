@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FeatureFlag, t } from '@superset-ui/core';
 import React, { useMemo, useCallback, useState } from 'react';
-import { isFeatureEnabled } from 'src/featureFlags';
+import { isFeatureEnabled, FeatureFlag, t } from '@superset-ui/core';
 import {
   createFetchRelated,
   createErrorHandler,
