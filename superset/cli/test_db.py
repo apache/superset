@@ -55,7 +55,7 @@ from superset.db_engine_specs.lib import (
 metadata_obj = MetaData()
 
 user = Table(
-    "user",
+    "tmp_superset_test_table_user",
     metadata_obj,
     Column("user_id", Integer, primary_key=True),
     Column("user_name", String(16), nullable=False),
@@ -64,7 +64,7 @@ user = Table(
 )
 
 user_prefs = Table(
-    "user_prefs",
+    "tmp_superset_test_table_user_prefs",
     metadata_obj,
     Column("pref_id", Integer, primary_key=True),
     Column("user_id", Integer, ForeignKey("user.user_id"), nullable=False),
@@ -142,7 +142,7 @@ def test_datetime(console: Console, engine: Engine) -> None:
 )
 def test_db(sqlalchemy_uri: str, raw_connect_args: str | None = None) -> None:
     """
-    Run a series of tests against an analytics database.
+    Run a series of tests against an analytical database.
 
     This command tests:
 
