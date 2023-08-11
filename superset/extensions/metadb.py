@@ -110,7 +110,6 @@ class SupersetAPSWDialect(APSWDialect):
         )
 
 
-# pylint: disable=invalid-name
 F = TypeVar("F", bound=Callable[..., Any])
 
 
@@ -208,13 +207,12 @@ class SupersetShillelaghAdapter(Adapter):
         self,
         uri: str,
         prefix: str | None = "superset",
-        *args: Any,
         **kwargs: Any,
     ):
         if not feature_flag_manager.is_feature_enabled("ENABLE_SUPERSET_META_DB"):
             raise ProgrammingError("Superset meta database is disabled")
 
-        super().__init__(*args, **kwargs)
+        super().__init__(**kwargs)
 
         parts = [urllib.parse.unquote(part) for part in uri.split(".")]
 
@@ -338,7 +336,7 @@ class SupersetShillelaghAdapter(Adapter):
 
         return query
 
-    def get_data(  # pylint: disable=arguments-differ
+    def get_data(
         self,
         bounds: dict[str, Filter],
         order: list[tuple[str, RequestedOrder]],

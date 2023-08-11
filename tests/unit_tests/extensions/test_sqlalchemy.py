@@ -28,6 +28,7 @@ from sqlalchemy.orm.session import Session
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from tests.unit_tests.conftest import with_feature_flags
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -102,6 +103,7 @@ def table2(session: Session, database2: "Database") -> Iterator[None]:
         session.commit()
 
 
+@with_feature_flags(ENABLE_SUPERSET_META_DB=True)
 def test_superset(mocker: MockFixture, app_context: None, table1: None) -> None:
     """
     Simple test querying a table.
@@ -110,10 +112,11 @@ def test_superset(mocker: MockFixture, app_context: None, table1: None) -> None:
 
     engine = create_engine("superset://")
     conn = engine.connect()
-    results = conn.execute('SELECT * FROM "superset.database1.table1"')
+    results = conn.execute('SELECT * FROM "database1.table1"')
     assert list(results) == [(1, 10), (2, 20)]
 
 
+@with_feature_flags(ENABLE_SUPERSET_META_DB=True)
 def test_superset_limit(mocker: MockFixture, app_context: None, table1: None) -> None:
     """
     Simple that limit is applied when querying a table.
@@ -126,10 +129,11 @@ def test_superset_limit(mocker: MockFixture, app_context: None, table1: None) ->
 
     engine = create_engine("superset://")
     conn = engine.connect()
-    results = conn.execute('SELECT * FROM "superset.database1.table1"')
+    results = conn.execute('SELECT * FROM "database1.table1"')
     assert list(results) == [(1, 10)]
 
 
+@with_feature_flags(ENABLE_SUPERSET_META_DB=True)
 def test_superset_joins(
     mocker: MockFixture,
     app_context: None,
@@ -146,14 +150,15 @@ def test_superset_joins(
     results = conn.execute(
         """
         SELECT t1.b, t2.b
-        FROM "superset.database1.table1" AS t1
-        JOIN "superset.database2.table2" AS t2
+        FROM "database1.table1" AS t1
+        JOIN "database2.table2" AS t2
         ON t1.a = t2.a
         """
     )
     assert list(results) == [(10, "ten"), (20, "twenty")]
 
 
+@with_feature_flags(ENABLE_SUPERSET_META_DB=True)
 def test_dml(
     mocker: MockFixture,
     app_context: None,
@@ -170,28 +175,27 @@ def test_dml(
     engine = create_engine("superset://")
     conn = engine.connect()
 
-    conn.execute('INSERT INTO "superset.database1.table1" (a, b) VALUES (3, 30)')
-    results = conn.execute('SELECT * FROM "superset.database1.table1"')
+    conn.execute('INSERT INTO "database1.table1" (a, b) VALUES (3, 30)')
+    results = conn.execute('SELECT * FROM "database1.table1"')
     assert list(results) == [(1, 10), (2, 20), (3, 30)]
-    conn.execute('UPDATE "superset.database1.table1" SET b=35 WHERE a=3')
-    results = conn.execute('SELECT * FROM "superset.database1.table1"')
+    conn.execute('UPDATE "database1.table1" SET b=35 WHERE a=3')
+    results = conn.execute('SELECT * FROM "database1.table1"')
     assert list(results) == [(1, 10), (2, 20), (3, 35)]
-    conn.execute('DELETE FROM "superset.database1.table1" WHERE b>20')
-    results = conn.execute('SELECT * FROM "superset.database1.table1"')
+    conn.execute('DELETE FROM "database1.table1" WHERE b>20')
+    results = conn.execute('SELECT * FROM "database1.table1"')
     assert list(results) == [(1, 10), (2, 20)]
 
     with pytest.raises(ProgrammingError) as excinfo:
-        conn.execute(
-            """INSERT INTO "superset.database2.table2" (a, b) VALUES (3, 'thirty')"""
-        )
+        conn.execute("""INSERT INTO "database2.table2" (a, b) VALUES (3, 'thirty')""")
     assert str(excinfo.value).strip() == (
         "(shillelagh.exceptions.ProgrammingError) DML not enabled in database "
-        '"database2"\n[SQL: INSERT INTO "superset.database2.table2" (a, b) '
+        '"database2"\n[SQL: INSERT INTO "database2.table2" (a, b) '
         "VALUES (3, 'thirty')]\n(Background on this error at: "
         "https://sqlalche.me/e/14/f405)"
     )
 
 
+@with_feature_flags(ENABLE_SUPERSET_META_DB=True)
 def test_security_manager(mocker: MockFixture, app_context: None, table1: None) -> None:
     """
     Test that we use the security manager to check for permissions.
@@ -215,7 +219,7 @@ def test_security_manager(mocker: MockFixture, app_context: None, table1: None) 
     engine = create_engine("superset://")
     conn = engine.connect()
     with pytest.raises(SupersetSecurityException) as excinfo:
-        conn.execute('SELECT * FROM "superset.database1.table1"')
+        conn.execute('SELECT * FROM "database1.table1"')
     assert str(excinfo.value) == (
         "You need access to the following tables: `table1`,\n            "
         "`all_database_access` or `all_datasource_access` permission"

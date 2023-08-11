@@ -120,6 +120,7 @@ backend_replacements = {
 }
 
 
+# pylint: disable=too-many-branches
 def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:
     """
     Return available engine specs and installed drivers for them.
