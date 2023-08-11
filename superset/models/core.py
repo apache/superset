@@ -668,11 +668,6 @@ class Database(
     def safe_sqlalchemy_uri(self) -> str:
         return self.sqlalchemy_uri
 
-    @property
-    def inspector(self) -> Inspector:
-        with self.get_sqla_engine_with_context() as engine:
-            return sqla.inspect(engine)
-
     @cache_util.memoized_func(
         key="db:{self.id}:schema:{schema}:table_list",
         cache=cache_manager.cache,

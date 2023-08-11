@@ -86,9 +86,10 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             }
 
         if database.has_view_by_name(table_name, schema_name):
-            metadata["view"] = database.inspector.get_view_definition(
-                table_name, schema_name
-            )
+            with database.get_inspector_with_context() as inspector:
+                metadata["view"] = inspector.get_view_definition(
+                    table_name, schema_name
+                )
 
         return metadata
 
