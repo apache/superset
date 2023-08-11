@@ -35,11 +35,16 @@ jobs:
         uses: actions/checkout@v3
         with:
           persist-credentials: false
-
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
       - shell: bash
         env:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          DOCKERHUB_PLATFORMS: linux/amd64
+          DOCKER_PUSH: true
         run: |
           .github/workflows/docker_build_push.sh
 
