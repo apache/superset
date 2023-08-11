@@ -28,7 +28,6 @@ export function dedupeTabHistory(tabHistory) {
 }
 
 export default function getInitialState({
-  defaultDbId,
   common,
   active_tab: activeTab,
   tab_state_ids: tabStateIds = [],
@@ -55,7 +54,7 @@ export default function getInitialState({
     latestQueryId: null,
     autorun: false,
     templateParams: null,
-    dbId: defaultDbId,
+    dbId: common.conf.SQLLAB_DEFAULT_DBID,
     queryLimit: common.conf.DEFAULT_SQLLAB_LIMIT,
     validationResult: {
       id: null,
