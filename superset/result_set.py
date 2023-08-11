@@ -168,7 +168,7 @@ class SupersetResultSet:
                             if sample.tzinfo:
                                 tz = sample.tzinfo
                                 series = pd.Series(array[column])
-                                series = pd.to_datetime(series).dt.tz_localize(None)
+                                series = pd.to_datetime(series)
                                 pa_data[i] = pa.Array.from_pandas(
                                     series,
                                     type=pa.timestamp("ns", tz=tz),
