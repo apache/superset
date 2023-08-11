@@ -46,7 +46,7 @@ class CreateSSHTunnelCommand(BaseCommand):
             # test_do_not_create_database_if_ssh_tunnel_creation_fails test will fail
             db.session.begin_nested()
             self.validate()
-            tunnel = SSHTunnelDAO.create(self._properties, commit=False)
+            return SSHTunnelDAO.create(attributes=self._properties, commit=False)
         except DAOCreateFailedError as ex:
             # Rollback nested transaction
             db.session.rollback()
@@ -55,8 +55,6 @@ class CreateSSHTunnelCommand(BaseCommand):
             # Rollback nested transaction
             db.session.rollback()
             raise ex
-
-        return tunnel
 
     def validate(self) -> None:
         # TODO(hughhh): check to make sure the server port is not localhost

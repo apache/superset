@@ -47,11 +47,10 @@ class CreateChartCommand(CreateMixin, BaseCommand):
         try:
             self._properties["last_saved_at"] = datetime.now()
             self._properties["last_saved_by"] = g.user
-            chart = ChartDAO.create(self._properties)
+            return ChartDAO.create(attributes=self._properties)
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)
             raise ChartCreateFailedError() from ex
-        return chart
 
     def validate(self) -> None:
         exceptions = []
