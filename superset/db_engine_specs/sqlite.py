@@ -95,7 +95,7 @@ class SqliteEngineSpec(BaseEngineSpec):
             "DATETIME({col}, 'start of day', 'weekday 1', '-7 days')"
         ),
     }
-    # not sure why these are diffenret
+    # not sure why these are different
     _time_grain_expressions.update(
         {
             TimeGrain.HALF_HOUR: _time_grain_expressions[TimeGrain.THIRTY_MINUTES],
