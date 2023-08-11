@@ -78,7 +78,7 @@ class DashboardModelView(
     @expose("/export_dashboards_form")
     def download_dashboards(self) -> FlaskResponse:
         if request.args.get("action") == "go":
-            ids = request.args.getlist("id")
+            ids = set(request.args.getlist("id"))
             return Response(
                 DashboardModel.export_dashboards(ids),
                 headers=generate_download_headers("json"),
