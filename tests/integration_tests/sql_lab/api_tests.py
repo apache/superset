@@ -42,6 +42,65 @@ QUERIES_FIXTURE_COUNT = 10
 
 
 class TestSqlLabApi(SupersetTestCase):
+    def test_get_from_bootstrap_data(self):
+        self.login(username="admin")
+        resp = self.get_resp("/api/v1/sqllab/")
+        assert resp.status_code == 200
+        data = json.loads(resp.data.decode("utf-8"))
+        result = data.get("result")
+        assert result["active_tab"] == None
+        assert result["queries"] == None
+        assert result["tab_state_ids"] == None
+        self.assertEqual(len(result["databases"]), 1)
+
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"SQLLAB_BACKEND_PERSISTENCE": True},
+        clear=True,
+    )
+    def test_get_from_backend_persistence_payload(self):
+        username = "admin"
+        self.login(username)
+
+        # create a tab
+        data = {
+            "queryEditor": json.dumps(
+                {
+                    "title": "Untitled Query 1",
+                    "dbId": 1,
+                    "schema": None,
+                    "autorun": False,
+                    "sql": "SELECT ...",
+                    "queryLimit": 1000,
+                }
+            )
+        }
+        resp = self.get_json_resp("/tabstateview/", data=data)
+        tab_state_id = resp["id"]
+
+        # run a query in the created tab
+        self.run_sql(
+            "SELECT name FROM birth_names",
+            "client_id_1",
+            username=username,
+            raise_on_error=True,
+            sql_editor_id=str(tab_state_id),
+        )
+        # run an orphan query (no tab)
+        self.run_sql(
+            "SELECT name FROM birth_names",
+            "client_id_2",
+            username=username,
+            raise_on_error=True,
+        )
+
+        # we should have only 1 query returned, since the second one is not
+        # associated with any tabs
+        resp = self.get_resp("/api/v1/sqllab/")
+        data = json.loads(resp.data.decode("utf-8"))
+        result = data.get("result")
+        self.assertEqual(len(result["queries"]), 1)
+
     def test_estimate_required_params(self):
         self.login()
 
