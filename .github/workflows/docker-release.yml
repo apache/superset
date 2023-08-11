@@ -1,8 +1,9 @@
 name: Docker
 
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      - 'arm-build'
 jobs:
   config:
     runs-on: "ubuntu-latest"
@@ -29,6 +30,10 @@ jobs:
           persist-credentials: false
           submodules: recursive
           ref: ${{ github.ref }}
+      - name: Set up Docker Buildx      
+        uses: crazy-max/ghaction-docker-buildx@v1      
+        with:        
+          version: latest
       - shell: bash
         env:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}

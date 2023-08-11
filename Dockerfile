@@ -18,7 +18,8 @@
 ######################################################################
 # Node stage to deal with static asset construction
 ######################################################################
-ARG PY_VER=3.9-slim-bookworm
+ARG PYTHON_VERSION=3.9
+ARG PY_VER=${PYTHON_VERSION}-slim-bookworm
 
 # if BUILDPLATFORM is null, set it to 'amd64' (or leave as is otherwise).
 ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
@@ -27,6 +28,9 @@ FROM --platform=${BUILDPLATFORM} node:16-slim AS superset-node
 ARG NPM_BUILD_CMD="build"
 ENV BUILD_CMD=${NPM_BUILD_CMD}
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
+# Arm packages need
+RUN apt-get update && apt-get install python3 build-essential -y
 
 # NPM ci first, as to NOT invalidate previous steps except for when package.json changes
 WORKDIR /app/superset-frontend
@@ -37,7 +41,7 @@ RUN /frontend-mem-nag.sh
 
 COPY superset-frontend/package*.json ./
 
-RUN npm ci
+RUN PYTHON=/usr/bin/python npm ci
 
 COPY ./superset-frontend ./
 
@@ -47,7 +51,7 @@ RUN npm run ${BUILD_CMD}
 ######################################################################
 # Final lean image...
 ######################################################################
-FROM python:${PY_VER} AS lean
+FROM --platform=${BUILDPLATFORM} python:${PY_VER} AS lean
 
 WORKDIR /app
 ENV LANG=C.UTF-8 \
