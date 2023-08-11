@@ -410,10 +410,12 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
             spreadsheet_url = payload["spreadsheetUrl"]
 
         # insert data
+        data = df.fillna("").values.tolist()
+        data.insert(0, df.columns.values.tolist())
         body = {
             "range": range_,
             "majorDimension": "ROWS",
-            "values": df.fillna("").values.tolist(),
+            "values": data,
         }
         url = (
             "https://sheets.googleapis.com/v4/spreadsheets/"
