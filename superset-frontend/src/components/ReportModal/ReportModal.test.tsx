@@ -21,7 +21,7 @@ import userEvent from '@testing-library/user-event';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import * as featureFlags from 'src/featureFlags';
+import * as uiCore from '@superset-ui/core';
 import * as actions from 'src/reports/actions/reports';
 import { FeatureFlag } from '@superset-ui/core';
 import ReportModal from '.';
@@ -54,7 +54,7 @@ const defaultProps = {
 describe('Email Report Modal', () => {
   beforeAll(() => {
     isFeatureEnabledMock = jest
-      .spyOn(featureFlags, 'isFeatureEnabled')
+      .spyOn(uiCore, 'isFeatureEnabled')
       .mockImplementation(
         (featureFlag: FeatureFlag) => featureFlag === FeatureFlag.ALERT_REPORTS,
       );
@@ -118,7 +118,7 @@ describe('Email Report Modal', () => {
 
     beforeEach(async () => {
       isFeatureEnabledMock = jest
-        .spyOn(featureFlags, 'isFeatureEnabled')
+        .spyOn(uiCore, 'isFeatureEnabled')
         .mockImplementation(() => true);
       dispatch = sinon.spy();
     });
