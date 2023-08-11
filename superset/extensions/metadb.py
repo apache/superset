@@ -94,6 +94,11 @@ class SupersetAPSWDialect(APSWDialect):
 
     name = "superset"
 
+    def __init__(self, allowed_dbs: list[str] | None = None, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+
+        self.allowed_dbs = allowed_dbs
+
     def create_connect_args(self, url: URL) -> tuple[tuple[()], dict[str, Any]]:
         """
         A custom Shillelagh SQLAlchemy dialect with a single adapter configured.
@@ -103,7 +108,12 @@ class SupersetAPSWDialect(APSWDialect):
             {
                 "path": ":memory:",
                 "adapters": ["superset"],
-                "adapter_kwargs": {"superset": {"prefix": None}},
+                "adapter_kwargs": {
+                    "superset": {
+                        "prefix": None,
+                        "allowed_dbs": self.allowed_dbs,
+                    }
+                },
                 "safe": True,
                 "isolation_level": self.isolation_level,
             },
@@ -177,6 +187,7 @@ class SupersetShillelaghAdapter(Adapter):
         uri: str,
         fast: bool = True,
         prefix: str | None = "superset",
+        allowed_dbs: list[str] | None = None,
         **kwargs: Any,
     ) -> bool:
         """
@@ -193,6 +204,9 @@ class SupersetShillelaghAdapter(Adapter):
         if prefix is not None:
             if parts.pop(0) != prefix:
                 return False
+
+        if allowed_dbs is not None and parts[0] not in allowed_dbs:
+            return False
 
         return 2 <= len(parts) <= 4
 

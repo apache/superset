@@ -40,3 +40,9 @@ To enable the Superset meta database, first you need to set the `ENABLE_SUPERSET
 If you enable DML in the meta database users will be able to run DML queries on underlying databases **as long as DML is also enabled in them**. This allows users to run queries that move data across databases.
 
 Second, you might want to change the value of `SUPERSET_META_DB_LIMIT`. The default value is 1000, and defines how many are read from each database before any aggregations and joins are executed. You can also set this value `None` if you only have small tables.
+
+Additionally, you might want to restrict the databases to with the meta database has access to. This can be done in the database configuration, under "Advanced" -> "Other" -> "ENGINE PARAMETERS" and adding:
+
+```json
+{"allowed_dbs":["Google Sheets","examples"]}
+```

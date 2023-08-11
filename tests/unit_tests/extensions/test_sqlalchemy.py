@@ -224,3 +224,27 @@ def test_security_manager(mocker: MockFixture, app_context: None, table1: None) 
         "You need access to the following tables: `table1`,\n            "
         "`all_database_access` or `all_datasource_access` permission"
     )
+
+
+@with_feature_flags(ENABLE_SUPERSET_META_DB=True)
+def test_allowed_dbs(mocker: MockFixture, app_context: None, table1: None) -> None:
+    """
+    Test that DBs can be restricted.
+    """
+    mocker.patch("superset.extensions.metadb.security_manager")
+
+    engine = create_engine("superset://", allowed_dbs=["database1"])
+    conn = engine.connect()
+
+    results = conn.execute('SELECT * FROM "database1.table1"')
+    assert list(results) == [(1, 10), (2, 20)]
+
+    with pytest.raises(ProgrammingError) as excinfo:
+        conn.execute('SELECT * FROM "database2.table2"')
+    assert str(excinfo.value) == (
+        """
+(shillelagh.exceptions.ProgrammingError) Unsupported table: database2.table2
+[SQL: SELECT * FROM "database2.table2"]
+(Background on this error at: https://sqlalche.me/e/14/f405)
+        """.strip()
+    )
