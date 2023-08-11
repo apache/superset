@@ -44,6 +44,7 @@ from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.dashboard import dashboard_slices
 from superset.queries.saved_queries.schemas import ImportV1SavedQuerySchema
+from superset.utils.decorators import transaction
 
 
 class ImportAssetsCommand(BaseCommand):
@@ -154,15 +155,13 @@ class ImportAssetsCommand(BaseCommand):
             if chart.viz_type == "filter_box":
                 db.session.delete(chart)
 
+    @transaction()
     def run(self) -> None:
         self.validate()
 
-        # rollback to prevent partial imports
         try:
             self._import(self._configs)
-            db.session.commit()
         except Exception as ex:
-            db.session.rollback()
             raise ImportFailedError() from ex
 
     def validate(self) -> None:

@@ -35,7 +35,6 @@ def test_create_ssh_tunnel():
             "username": "foo",
             "password": "bar",
         },
-        commit=False,
     )
 
     assert result is not None

@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from functools import partial
 from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
@@ -27,8 +28,8 @@ from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelUpdateFailedError,
 )
 from superset.daos.database import SSHTunnelDAO
-from superset.daos.exceptions import DAOUpdateFailedError
 from superset.databases.ssh_tunnel.models import SSHTunnel
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -39,14 +40,10 @@ class UpdateSSHTunnelCommand(BaseCommand):
         self._model_id = model_id
         self._model: Optional[SSHTunnel] = None
 
+    @transaction(on_error=partial(on_error, reraise=SSHTunnelUpdateFailedError))
     def run(self) -> Model:
         self.validate()
-        try:
-            if self._model is not None:  # So we dont get incompatible types error
-                tunnel = SSHTunnelDAO.update(self._model, self._properties)
-        except DAOUpdateFailedError as ex:
-            raise SSHTunnelUpdateFailedError() from ex
-        return tunnel
+        return SSHTunnelDAO.update(self._model, self._properties)
 
     def validate(self) -> None:
         # Validate/populate model exists

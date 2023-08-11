@@ -18,7 +18,6 @@
 from operator import and_
 from unittest.mock import patch
 import pytest
-from superset.daos.exceptions import DAOCreateFailedError, DAOException
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
 from superset.daos.tag import TagDAO

@@ -14,9 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
 # pylint: disable=too-many-lines
-
 import json
 import textwrap
 
@@ -1273,4 +1271,3 @@ def load_supported_charts_dashboard() -> None:
     dash.dashboard_title = "Supported Charts Dashboard"
     dash.position_json = json.dumps(pos, indent=2)
     dash.slug = DASH_SLUG
-    db.session.commit()

@@ -135,7 +135,4 @@ def tabbed_dashboard(app_context):
         slices=[],
     )
     db.session.add(dash)
-    db.session.commit()
-    yield dash
-    db.session.query(Dashboard).filter_by(id=dash.id).delete()
-    db.session.commit()
+    yield

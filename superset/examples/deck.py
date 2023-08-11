@@ -541,4 +541,3 @@ def load_deck_dash() -> None:  # pylint: disable=too-many-statements
     dash.dashboard_title = title
     dash.slug = slug
     dash.slices = slices
-    db.session.commit()

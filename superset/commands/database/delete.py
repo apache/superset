@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from functools import partial
 from typing import Optional
 
 from flask_babel import lazy_gettext as _
@@ -27,9 +28,9 @@ from superset.commands.database.exceptions import (
     DatabaseNotFoundError,
 )
 from superset.daos.database import DatabaseDAO
-from superset.daos.exceptions import DAODeleteFailedError
 from superset.daos.report import ReportScheduleDAO
 from superset.models.core import Database
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -39,15 +40,11 @@ class DeleteDatabaseCommand(BaseCommand):
         self._model_id = model_id
         self._model: Optional[Database] = None
 
+    @transaction(on_error=partial(on_error, reraise=DatabaseDeleteFailedError))
     def run(self) -> None:
         self.validate()
         assert self._model
-
-        try:
-            DatabaseDAO.delete([self._model])
-        except DAODeleteFailedError as ex:
-            logger.exception(ex.exception)
-            raise DatabaseDeleteFailedError() from ex
+        DatabaseDAO.delete([self._model])
 
     def validate(self) -> None:
         # Validate/populate model exists

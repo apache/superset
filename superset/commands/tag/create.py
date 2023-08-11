@@ -15,16 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from functools import partial
 from typing import Any
 
-from superset import db, security_manager
+from superset import security_manager
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.commands.tag.exceptions import TagCreateFailedError, TagInvalidError
 from superset.commands.tag.utils import to_object_model, to_object_type
-from superset.daos.exceptions import DAOCreateFailedError
 from superset.daos.tag import TagDAO
 from superset.exceptions import SupersetSecurityException
 from superset.tags.models import ObjectType, TagType
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -35,20 +36,18 @@ class CreateCustomTagCommand(CreateMixin, BaseCommand):
         self._object_id = object_id
         self._tags = tags
 
+    @transaction(on_error=partial(on_error, reraise=TagCreateFailedError))
     def run(self) -> None:
         self.validate()
-        try:
-            object_type = to_object_type(self._object_type)
-            if object_type is None:
-                raise TagCreateFailedError(f"invalid object type {self._object_type}")
-            TagDAO.create_custom_tagged_objects(
-                object_type=object_type,
-                object_id=self._object_id,
-                tag_names=self._tags,
-            )
-        except DAOCreateFailedError as ex:
-            logger.exception(ex.exception)
-            raise TagCreateFailedError() from ex
+        object_type = to_object_type(self._object_type)
+        if object_type is None:
+            raise TagCreateFailedError(f"invalid object type {self._object_type}")
+
+        TagDAO.create_custom_tagged_objects(
+            object_type=object_type,
+            object_id=self._object_id,
+            tag_names=self._tags,
+        )
 
     def validate(self) -> None:
         exceptions = []
@@ -71,27 +70,20 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
         self._bulk_create = bulk_create
         self._skipped_tagged_objects: set[tuple[str, int]] = set()
 
+    @transaction(on_error=partial(on_error, reraise=TagCreateFailedError))
     def run(self) -> tuple[set[tuple[str, int]], set[tuple[str, int]]]:
         self.validate()
 
-        try:
-            tag_name = self._properties["name"]
-            tag = TagDAO.get_by_name(tag_name.strip(), TagType.custom)
-            TagDAO.create_tag_relationship(
-                objects_to_tag=self._properties.get("objects_to_tag", []),
-                tag=tag,
-                bulk_create=self._bulk_create,
-            )
+        tag_name = self._properties["name"]
+        tag = TagDAO.get_by_name(tag_name.strip(), TagType.custom)
+        TagDAO.create_tag_relationship(
+            objects_to_tag=self._properties.get("objects_to_tag", []),
+            tag=tag,
+            bulk_create=self._bulk_create,
+        )
 
-            tag.description = self._properties.get("description", "")
-
-            db.session.commit()
-
-            return set(self._properties["objects_to_tag"]), self._skipped_tagged_objects
-
-        except DAOCreateFailedError as ex:
-            logger.exception(ex.exception)
-            raise TagCreateFailedError() from ex
+        tag.description = self._properties.get("description", "")
+        return set(self._properties["objects_to_tag"]), self._skipped_tagged_objects
 
     def validate(self) -> None:
         exceptions = []

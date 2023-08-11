@@ -355,7 +355,6 @@ class DBEventLogger(AbstractEventLogger):
             logs.append(log)
         try:
             db.session.bulk_save_objects(logs)
-            db.session.commit()
         except SQLAlchemyError as ex:
             logging.error("DBEventLogger failed to log event(s)")
             logging.exception(ex)
