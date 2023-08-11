@@ -343,9 +343,9 @@ class SupersetShillelaghAdapter(Adapter):
                 column = column.desc()
             query = query.order_by(column)
 
-        if limit:
+        if limit is not None:
             query = query.limit(limit)
-        if offset:
+        if offset is not None:
             query = query.offset(offset)
 
         return query
@@ -361,8 +361,11 @@ class SupersetShillelaghAdapter(Adapter):
         """
         Return data for a `SELECT` statement.
         """
-        app_limit = current_app.config["SUPERSET_META_DB_LIMIT"]
-        limit = app_limit if limit is None else min(limit, app_limit)
+        app_limit: int | None = current_app.config["SUPERSET_META_DB_LIMIT"]
+        if limit is None:
+            limit = app_limit
+        elif app_limit is not None:
+            limit = min(limit, app_limit)
 
         query = self._build_sql(bounds, order, limit, offset)
 
