@@ -150,26 +150,27 @@ class DatasetDAO(BaseDAO[SqlaTable]):  # pylint: disable=too-many-public-methods
     @classmethod
     def update(
         cls,
-        model: SqlaTable,
-        properties: dict[str, Any],
+        item: SqlaTable | None = None,
+        attributes: dict[str, Any] | None = None,
         commit: bool = True,
     ) -> SqlaTable:
         """
         Updates a Dataset model on the metadata DB
         """
 
-        if "columns" in properties:
-            cls.update_columns(
-                model,
-                properties.pop("columns"),
-                commit=commit,
-                override_columns=bool(properties.get("override_columns")),
-            )
+        if item and attributes:
+            if "columns" in attributes:
+                cls.update_columns(
+                    item,
+                    attributes.pop("columns"),
+                    commit=commit,
+                    override_columns=bool(attributes.get("override_columns")),
+                )
 
-        if "metrics" in properties:
-            cls.update_metrics(model, properties.pop("metrics"), commit=commit)
+            if "metrics" in attributes:
+                cls.update_metrics(item, attributes.pop("metrics"), commit=commit)
 
-        return super().update(model, properties, commit=commit)
+        return super().update(item, attributes, commit=commit)
 
     @classmethod
     def update_columns(
@@ -316,7 +317,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):  # pylint: disable=too-many-public-methods
         """
         Creates a Dataset model on the metadata DB
         """
-        return DatasetColumnDAO.create(properties, commit=commit)
+        return DatasetColumnDAO.create(attributes=properties, commit=commit)
 
     @classmethod
     def delete_column(cls, model: TableColumn, commit: bool = True) -> None:
@@ -358,7 +359,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):  # pylint: disable=too-many-public-methods
         """
         Creates a Dataset model on the metadata DB
         """
-        return DatasetMetricDAO.create(properties, commit=commit)
+        return DatasetMetricDAO.create(attributes=properties, commit=commit)
 
     @classmethod
     def delete(

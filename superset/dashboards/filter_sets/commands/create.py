@@ -47,8 +47,7 @@ class CreateFilterSetCommand(BaseFilterSetCommand):
     def run(self) -> Model:
         self.validate()
         self._properties[DASHBOARD_ID_FIELD] = self._dashboard.id
-        filter_set = FilterSetDAO.create(self._properties, commit=True)
-        return filter_set
+        return FilterSetDAO.create(attributes=self._properties, commit=True)
 
     def validate(self) -> None:
         self._validate_filterset_dashboard_exists()
