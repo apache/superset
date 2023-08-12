@@ -18,10 +18,14 @@
  */
 import shortid from 'shortid';
 import rison from 'rison';
-import { FeatureFlag, SupersetClient, t } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  SupersetClient,
+  t,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import invert from 'lodash/invert';
 import mapKeys from 'lodash/mapKeys';
-import { isFeatureEnabled } from 'src/featureFlags';
 
 import { now } from 'src/utils/dates';
 import {
@@ -566,15 +570,10 @@ export function addQueryEditor(queryEditor) {
 export function addNewQueryEditor() {
   return function (dispatch, getState) {
     const {
-      sqlLab: {
-        queryEditors,
-        tabHistory,
-        unsavedQueryEditor,
-        defaultDbId,
-        databases,
-      },
+      sqlLab: { queryEditors, tabHistory, unsavedQueryEditor, databases },
       common,
     } = getState();
+    const defaultDbId = common.conf.SQLLAB_DEFAULT_DBID;
     const activeQueryEditor = queryEditors.find(
       qe => qe.id === tabHistory[tabHistory.length - 1],
     );

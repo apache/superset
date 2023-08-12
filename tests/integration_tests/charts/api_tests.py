@@ -181,7 +181,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             self.new_dashboard.dashboard_title = "New Dashboard"
             self.new_dashboard.slug = "new_slug"
             self.new_dashboard.owners = [admin]
-            self.new_dashboard.slices = []
             self.new_dashboard.published = False
             db.session.add(self.new_dashboard)
 

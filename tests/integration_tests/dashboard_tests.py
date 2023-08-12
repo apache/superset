@@ -207,12 +207,10 @@ class TestDashboard(SupersetTestCase):
         dash.dashboard_title = "My Dashboard"
         dash.slug = my_dash_slug
         dash.owners = [user]
-        dash.slices = []
 
         hidden_dash = Dashboard()
         hidden_dash.dashboard_title = "Not My Dashboard"
         hidden_dash.slug = not_my_dash_slug
-        hidden_dash.slices = []
 
         db.session.add(dash)
         db.session.add(hidden_dash)
@@ -277,7 +275,6 @@ class TestDashboard(SupersetTestCase):
         dash.dashboard_title = "My Dashboard"
         dash.slug = slug
         dash.owners = [admin_user]
-        dash.slices = []
         dash.published = False
         db.session.add(dash)
         db.session.commit()

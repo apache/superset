@@ -817,7 +817,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             Dashboard.id.in_(requested_ids)
         )
         query = self._base_filters.apply_all(query)
-        ids = [item.id for item in query.all()]
+        ids = {item.id for item in query.all()}
         if not ids:
             return self.response_404()
         export = Dashboard.export_dashboards(ids)
@@ -1408,7 +1408,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
 
-        dash = DashboardDAO.copy_dashboard(original_dash, data)
+        try:
+            dash = DashboardDAO.copy_dashboard(original_dash, data)
+        except DashboardForbiddenError:
+            return self.response_403()
+
         return self.response(
             200,
             result={

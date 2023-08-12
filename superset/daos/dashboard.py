@@ -22,14 +22,16 @@ from datetime import datetime
 from typing import Any
 
 from flask import g
-from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset import security_manager
+from superset import is_feature_enabled, security_manager
 from superset.daos.base import BaseDAO
-from superset.daos.exceptions import DAOConfigError, DAOCreateFailedError
-from superset.dashboards.commands.exceptions import DashboardNotFoundError
+from superset.dashboards.commands.exceptions import (
+    DashboardAccessDeniedError,
+    DashboardForbiddenError,
+    DashboardNotFoundError,
+)
 from superset.dashboards.filter_sets.consts import (
     DASHBOARD_ID_FIELD,
     DESCRIPTION_FIELD,
@@ -39,6 +41,7 @@ from superset.dashboards.filter_sets.consts import (
     OWNER_TYPE_FIELD,
 )
 from superset.dashboards.filters import DashboardAccessFilter, is_uuid
+from superset.exceptions import SupersetSecurityException
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard, id_or_slug_filter
@@ -77,7 +80,11 @@ class DashboardDAO(BaseDAO[Dashboard]):
             raise DashboardNotFoundError()
 
         # make sure we still have basic access check from security manager
-        security_manager.raise_for_dashboard_access(dashboard)
+        try:
+            dashboard.raise_for_access()
+        except SupersetSecurityException as ex:
+            raise DashboardAccessDeniedError() from ex
+
         return dashboard
 
     @staticmethod
@@ -186,12 +193,6 @@ class DashboardDAO(BaseDAO[Dashboard]):
     @classmethod
     def delete(cls, items: Dashboard | list[Dashboard], commit: bool = True) -> None:
         item_ids = [item.id for item in get_iterable(items)]
-        # bulk delete, first delete related data
-        for item in get_iterable(items):
-            item.slices = []
-            item.embedded = []
-            db.session.merge(item)
-        # bulk delete itself
         try:
             db.session.query(Dashboard).filter(Dashboard.id.in_(item_ids)).delete(
                 synchronize_session="fetch"
@@ -314,6 +315,11 @@ class DashboardDAO(BaseDAO[Dashboard]):
     def copy_dashboard(
         cls, original_dash: Dashboard, data: dict[str, Any]
     ) -> Dashboard:
+        if is_feature_enabled("DASHBOARD_RBAC") and not security_manager.is_owner(
+            original_dash
+        ):
+            raise DashboardForbiddenError()
+
         dash = Dashboard()
         dash.owners = [g.user] if g.user else []
         dash.dashboard_title = data["dashboard_title"]
@@ -395,35 +401,40 @@ class EmbeddedDashboardDAO(BaseDAO[EmbeddedDashboard]):
         return embedded
 
     @classmethod
-    def create(cls, properties: dict[str, Any], commit: bool = True) -> Any:
+    def create(
+        cls,
+        item: EmbeddedDashboardDAO | None = None,
+        attributes: dict[str, Any] | None = None,
+        commit: bool = True,
+    ) -> Any:
         """
         Use EmbeddedDashboardDAO.upsert() instead.
-        At least, until we are ok with more than one embedded instance per dashboard.
+        At least, until we are ok with more than one embedded item per dashboard.
         """
         raise NotImplementedError("Use EmbeddedDashboardDAO.upsert() instead.")
 
 
 class FilterSetDAO(BaseDAO[FilterSet]):
     @classmethod
-    def create(cls, properties: dict[str, Any], commit: bool = True) -> Model:
-        if cls.model_cls is None:
-            raise DAOConfigError()
-        model = FilterSet()
-        setattr(model, NAME_FIELD, properties[NAME_FIELD])
-        setattr(model, JSON_METADATA_FIELD, properties[JSON_METADATA_FIELD])
-        setattr(model, DESCRIPTION_FIELD, properties.get(DESCRIPTION_FIELD, None))
-        setattr(
-            model,
-            OWNER_ID_FIELD,
-            properties.get(OWNER_ID_FIELD, properties[DASHBOARD_ID_FIELD]),
-        )
-        setattr(model, OWNER_TYPE_FIELD, properties[OWNER_TYPE_FIELD])
-        setattr(model, DASHBOARD_ID_FIELD, properties[DASHBOARD_ID_FIELD])
-        try:
-            db.session.add(model)
-            if commit:
-                db.session.commit()
-        except SQLAlchemyError as ex:  # pragma: no cover
-            db.session.rollback()
-            raise DAOCreateFailedError() from ex
-        return model
+    def create(
+        cls,
+        item: FilterSet | None = None,
+        attributes: dict[str, Any] | None = None,
+        commit: bool = True,
+    ) -> FilterSet:
+        if not item:
+            item = FilterSet()
+
+        if attributes:
+            setattr(item, NAME_FIELD, attributes[NAME_FIELD])
+            setattr(item, JSON_METADATA_FIELD, attributes[JSON_METADATA_FIELD])
+            setattr(item, DESCRIPTION_FIELD, attributes.get(DESCRIPTION_FIELD, None))
+            setattr(
+                item,
+                OWNER_ID_FIELD,
+                attributes.get(OWNER_ID_FIELD, attributes[DASHBOARD_ID_FIELD]),
+            )
+            setattr(item, OWNER_TYPE_FIELD, attributes[OWNER_TYPE_FIELD])
+            setattr(item, DASHBOARD_ID_FIELD, attributes[DASHBOARD_ID_FIELD])
+
+        return super().create(item, commit=commit)

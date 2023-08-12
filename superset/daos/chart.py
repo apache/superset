@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=arguments-renamed
 from __future__ import annotations
 
 import logging
@@ -43,9 +42,6 @@ class ChartDAO(BaseDAO[Slice]):
     def delete(cls, items: Slice | list[Slice], commit: bool = True) -> None:
         item_ids = [item.id for item in get_iterable(items)]
         # bulk delete, first delete related data
-        for item in get_iterable(items):
-            item.dashboards = []
-            db.session.merge(item)
         # bulk delete itself
         try:
             db.session.query(Slice).filter(Slice.id.in_(item_ids)).delete(
@@ -56,18 +52,6 @@ class ChartDAO(BaseDAO[Slice]):
         except SQLAlchemyError as ex:
             db.session.rollback()
             raise ex
-
-    @staticmethod
-    def save(slc: Slice, commit: bool = True) -> None:
-        db.session.add(slc)
-        if commit:
-            db.session.commit()
-
-    @staticmethod
-    def overwrite(slc: Slice, commit: bool = True) -> None:
-        db.session.merge(slc)
-        if commit:
-            db.session.commit()
 
     @staticmethod
     def favorited_ids(charts: list[Slice]) -> list[FavStar]:

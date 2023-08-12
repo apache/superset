@@ -77,7 +77,7 @@ class CreateDatabaseCommand(BaseCommand):
         )
 
         try:
-            database = DatabaseDAO.create(self._properties, commit=False)
+            database = DatabaseDAO.create(attributes=self._properties, commit=False)
             database.set_sqlalchemy_uri(database.sqlalchemy_uri)
 
             ssh_tunnel = None
