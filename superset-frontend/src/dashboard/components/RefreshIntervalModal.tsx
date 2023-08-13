@@ -127,6 +127,18 @@ class RefreshIntervalModal extends React.PureComponent<
     return refresh_options;
   }
 
+  update_data_list() {
+    const datalist_element = document.getElementById('valid_min_and_sec');
+    if (datalist_element) {
+      for (let i = 0; i < 60; i += 1) {
+        const option = document.createElement('option');
+        option.className = 'value';
+        option.innerHTML = i.toString();
+        datalist_element.appendChild(option);
+      }
+    }
+  }
+
   render() {
     const {
       refreshLimit = 0,
@@ -200,6 +212,7 @@ class RefreshIntervalModal extends React.PureComponent<
                   }}
                   id="custom_refresh_frequency_minute"
                   placeholder="Type a number"
+                  list="valid_min_and_sec"
                 />
               </div>
               <div style={{ minWidth: 0, margin: 'auto' }}>
@@ -218,7 +231,10 @@ class RefreshIntervalModal extends React.PureComponent<
                   }}
                   id="custom_refresh_frequency_second"
                   placeholder="Type a number"
+                  list="valid_min_and_sec"
                 />
+                <datalist id="valid_min_and_sec" />
+                {this.update_data_list()}
               </div>
             </div>
             {showRefreshWarning && (
@@ -276,8 +292,18 @@ class RefreshIntervalModal extends React.PureComponent<
                     (second as HTMLInputElement).value || 0,
                   );
 
-                  if (hour_value < 0 || minute_value < 0 || second_value < 0) {
-                    this.props.addSuccessToast(t('Put positive values'));
+                  if (
+                    hour_value < 0 ||
+                    minute_value < 0 ||
+                    second_value < 0 ||
+                    minute_value >= 60 ||
+                    second_value >= 60
+                  ) {
+                    this.props.addSuccessToast(
+                      t(
+                        'Put positive values and valid minute and second value less than 60',
+                      ),
+                    );
                     if (hour) {
                       (hour as HTMLInputElement).value = '';
                     }
