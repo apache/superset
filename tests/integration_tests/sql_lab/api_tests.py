@@ -44,10 +44,9 @@ QUERIES_FIXTURE_COUNT = 10
 class TestSqlLabApi(SupersetTestCase):
     def test_get_from_bootstrap_data(self):
         self.login(username="admin")
-        resp = self.get_resp("/api/v1/sqllab/")
+        resp = self.get_json_resp("/api/v1/sqllab/")
         assert resp.status_code == 200
-        data = json.loads(resp.data.decode("utf-8"))
-        result = data.get("result")
+        result = resp["result"]
         assert result["active_tab"] == None
         assert result["queries"] == None
         assert result["tab_state_ids"] == None
@@ -96,9 +95,8 @@ class TestSqlLabApi(SupersetTestCase):
 
         # we should have only 1 query returned, since the second one is not
         # associated with any tabs
-        resp = self.get_resp("/api/v1/sqllab/")
-        data = json.loads(resp.data.decode("utf-8"))
-        result = data.get("result")
+        resp = self.get_json_resp("/api/v1/sqllab/")
+        result = resp["result"]
         self.assertEqual(len(result["queries"]), 1)
 
     def test_estimate_required_params(self):
