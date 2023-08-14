@@ -302,64 +302,12 @@ class DatasetDAO(BaseDAO[SqlaTable]):  # pylint: disable=too-many-public-methods
         )
 
     @classmethod
-    def update_column(
-        cls,
-        model: TableColumn,
-        properties: dict[str, Any],
-        commit: bool = True,
-    ) -> TableColumn:
-        return DatasetColumnDAO.update(model, properties, commit=commit)
-
-    @classmethod
-    def create_column(
-        cls, properties: dict[str, Any], commit: bool = True
-    ) -> TableColumn:
-        """
-        Creates a Dataset model on the metadata DB
-        """
-        return DatasetColumnDAO.create(attributes=properties, commit=commit)
-
-    @classmethod
-    def delete_column(cls, model: TableColumn, commit: bool = True) -> None:
-        """
-        Deletes a Dataset column
-        """
-        DatasetColumnDAO.delete(model, commit=commit)
-
-    @classmethod
     def find_dataset_metric(cls, dataset_id: int, metric_id: int) -> SqlMetric | None:
         # We want to apply base dataset filters
         dataset = DatasetDAO.find_by_id(dataset_id)
         if not dataset:
             return None
         return db.session.query(SqlMetric).get(metric_id)
-
-    @classmethod
-    def delete_metric(cls, model: SqlMetric, commit: bool = True) -> None:
-        """
-        Deletes a Dataset metric
-        """
-        DatasetMetricDAO.delete(model, commit=commit)
-
-    @classmethod
-    def update_metric(
-        cls,
-        model: SqlMetric,
-        properties: dict[str, Any],
-        commit: bool = True,
-    ) -> SqlMetric:
-        return DatasetMetricDAO.update(model, properties, commit=commit)
-
-    @classmethod
-    def create_metric(
-        cls,
-        properties: dict[str, Any],
-        commit: bool = True,
-    ) -> SqlMetric:
-        """
-        Creates a Dataset model on the metadata DB
-        """
-        return DatasetMetricDAO.create(attributes=properties, commit=commit)
 
     @classmethod
     def delete(
