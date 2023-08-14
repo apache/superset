@@ -244,6 +244,7 @@ class DashboardDatasetSchema(Schema):
     verbose_map = fields.Dict(fields.Str(), fields.Str())
     time_grain_sqla = fields.List(fields.List(fields.Str()))
     granularity_sqla = fields.List(fields.List(fields.Str()))
+    normalize_columns = fields.Bool()
 
 
 class BaseDashboardSchema(Schema):

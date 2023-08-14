@@ -196,6 +196,7 @@ class Datasource(BaseSupersetView):
                     database=database,
                     table_name=params["table_name"],
                     schema_name=params["schema_name"],
+                    normalize_columns=params.get("normalize_columns", False),
                 )
         except (NoResultFound, NoSuchTableError) as ex:
             raise DatasetNotFoundError() from ex

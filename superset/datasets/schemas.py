@@ -109,6 +109,7 @@ class DatasetPutSchema(Schema):
     schema = fields.String(allow_none=True, validate=Length(0, 255))
     description = fields.String(allow_none=True)
     main_dttm_col = fields.String(allow_none=True)
+    normalize_columns = fields.Boolean(allow_none=True, dump_default=False)
     offset = fields.Integer(allow_none=True)
     default_endpoint = fields.String(allow_none=True)
     cache_timeout = fields.Integer(allow_none=True)
