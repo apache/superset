@@ -42,8 +42,14 @@ QUERIES_FIXTURE_COUNT = 10
 
 
 class TestSqlLabApi(SupersetTestCase):
+    @pytest.mark.usefixtures("create_gamma_sqllab_no_data")
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"SQLLAB_BACKEND_PERSISTENCE": False},
+        clear=True,
+    )
     def test_get_from_bootstrap_data(self):
-        self.login(username="admin")
+        self.login(username="gamma_sqllab_no_data")
         resp = self.client.get("/api/v1/sqllab/")
         assert resp.status_code == 200
         data = json.loads(resp.data.decode("utf-8"))
