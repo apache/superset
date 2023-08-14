@@ -374,6 +374,9 @@ class ImportV1DashboardSchema(Schema):
     version = fields.String(required=True)
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    certified_by = fields.String(allow_none=True)
+    certification_details = fields.String(allow_none=True)
+    published = fields.Boolean(allow_none=True)
 
 
 class EmbeddedDashboardConfigSchema(Schema):
