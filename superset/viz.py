@@ -58,6 +58,7 @@ from pandas.tseries.frequencies import to_offset
 
 from superset import app
 from superset.common.db_query_status import QueryStatus
+from superset.common.utils.dataframe_utils import delete_tz_from_df
 from superset.constants import NULL_STRING
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -667,7 +668,8 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         return csv.df_to_escaped_csv(df, index=include_index, **config["CSV_EXPORT"])
 
     def get_xlsx(self) -> BytesIO:
-        df = self.get_df_payload()["df"]
+        d = self.get_df_payload()
+        df = delete_tz_from_df(d)
         return csv.df_to_escaped_xlsx(df)
 
     def get_data(self, df: pd.DataFrame) -> VizData:  # pylint: disable=no-self-use
