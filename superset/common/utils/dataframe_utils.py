@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 def delete_tz_from_df(d: dict) -> pd.DataFrame:
     coltypes = d.get('coltypes')
     colnames = d.get('colnames')
-    data = d.get('data')
+    data = d.get('data') or d.get('df')
 
     if GenericDataType.TEMPORAL in coltypes:
         df = pd.DataFrame(data)
