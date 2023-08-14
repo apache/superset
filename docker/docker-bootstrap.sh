@@ -31,7 +31,6 @@ fi
 if [ -f "${REQUIREMENTS_LOCAL}" ]; then
   echo "Installing local overrides at ${REQUIREMENTS_LOCAL}"
   pip install -r "${REQUIREMENTS_LOCAL}"
-  pip install xlsxwriter
 else
   echo "Skipping local overrides"
 fi
