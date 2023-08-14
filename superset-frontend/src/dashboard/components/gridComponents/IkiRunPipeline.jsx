@@ -203,18 +203,19 @@ class IkiRunPipeline extends React.PureComponent {
         const messageObject = JSON.parse(event.data);
         if (messageObject.info && messageObject.dataType) {
           const { dataType } = messageObject;
+          const chartsList = [];
+
           let messageData;
           let widgetUrl;
           let widgetUrlQuery;
           let widgetUrlQueryMode;
-          let chartsList = [];
 
           const allChartElements = document.querySelectorAll(
             '[data-test-chart-id]',
           );
           allChartElements.forEach(chartElement => {
-            let tempChartID = chartElement.getAttribute('data-test-chart-id');
-            let tempChartName = chartElement.getAttribute(
+            const tempChartID = chartElement.getAttribute('data-test-chart-id');
+            const tempChartName = chartElement.getAttribute(
               'data-test-chart-name',
             );
             chartsList.push({ id: tempChartID, name: tempChartName });
@@ -245,7 +246,7 @@ class IkiRunPipeline extends React.PureComponent {
             messageObject.info === 'widget-to-superset/sending-pipeline-data'
           ) {
             if (widgetUrlQueryMode === 'edit') {
-              widgetUrlQuery = new URLSearchParams(widgetUrl['search']);
+              widgetUrlQuery = new URLSearchParams(widgetUrl["search"]);
               widgetUrlQuery.set('mode', 'preview');
               widgetUrlQuery.set('pipeline_id', messageData.pipeline.id);
               widgetUrlQuery.set('alias_id', messageData.aliasPipelineId);
@@ -274,7 +275,7 @@ class IkiRunPipeline extends React.PureComponent {
             messageObject.info ===
             'widget-to-superset/sending-charts-to-refresh'
           ) {
-            const selectedCharts = messageData.selectedCharts;
+            const { selectedCharts } = messageData;
             this.refreshCharts(selectedCharts);
           }
         }
@@ -283,9 +284,8 @@ class IkiRunPipeline extends React.PureComponent {
   }
 
   refreshCharts(selectedCharts) {
-    selectedCharts.forEach(selected_chart => {
-      console.log('selected_chart', selected_chart);
-      this.refreshChart(selected_chart.id, selected_chart.id, 15, false);
+    selectedCharts.forEach(selectedChart => {
+      this.refreshChart(selectedChart.id, selectedChart.id, 15, false);
     });
   }
 
@@ -316,13 +316,12 @@ class IkiRunPipeline extends React.PureComponent {
     this.setState(nextState);
 
     let widgetUrl;
-    let chartsList = [];
 
-    const widgetUrlQuery = [];
+    const chartsList = [];
     const allChartElements = document.querySelectorAll('[data-test-chart-id]');
     allChartElements.forEach(chartElement => {
-      let tempChartID = chartElement.getAttribute('data-test-chart-id');
-      let tempChartName = chartElement.getAttribute('data-test-chart-name');
+      const tempChartID = chartElement.getAttribute('data-test-chart-id');
+      const tempChartName = chartElement.getAttribute('data-test-chart-name');
       chartsList.push({ id: tempChartID, name: tempChartName });
     });
 
@@ -339,7 +338,7 @@ class IkiRunPipeline extends React.PureComponent {
     } else {
       widgetUrl = `${this.props.ikigaiOrigin}/widget/pipeline/run?mode=edit&v=1&run_flow_times=${timestamp}`;
     }
-    widgetUrlQuery = new URLSearchParams(widgetUrl['search']);
+    const widgetUrlQuery = new URLSearchParams(widgetUrl["search"]);
     widgetUrlQuery.set('mode', mode);
     widgetUrlQuery.set('charts_list', window.btoa(JSON.stringify(chartsList)));
     widgetUrl.search = widgetUrlQuery.toString();
@@ -469,10 +468,10 @@ class IkiRunPipeline extends React.PureComponent {
       const allChartElements = document.querySelectorAll(
         '[data-test-chart-id]',
       );
-      let chartsList = [];
+      const chartsList = [];
       allChartElements.forEach(chartElement => {
-        let tempChartID = chartElement.getAttribute('data-test-chart-id');
-        let tempChartName = chartElement.getAttribute('data-test-chart-name');
+        const tempChartID = chartElement.getAttribute('data-test-chart-id');
+        const tempChartName = chartElement.getAttribute('data-test-chart-name');
         chartsList.push({ id: tempChartID, name: tempChartName });
       });
 
