@@ -542,11 +542,9 @@ class HiveEngineSpec(PrestoEngineSpec):
             connect_args["configuration"] = configuration
 
     @staticmethod
-    def execute(  # type: ignore
-        cursor, query: str, async_: bool = False
-    ):  # pylint: disable=arguments-differ
-        kwargs = {"async": async_}
-        cursor.execute(query, **kwargs)
+    def execute(cursor, query: str):  
+        # pylint: disable=arguments-differ
+        cursor.execute(query)
 
     @classmethod
     @cache_manager.cache.memoize()
