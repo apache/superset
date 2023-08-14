@@ -106,6 +106,7 @@ export default function AddSmartDataset({ onSqlChange }: AddSmartDatasetProps) {
 
   useEffect(() => {
     const tableName = dataset?.table_name;
+
     if (!joins.length) {
       if (tableName) {
         onSqlChange(
@@ -126,15 +127,24 @@ export default function AddSmartDataset({ onSqlChange }: AddSmartDatasetProps) {
       return;
     }
 
-    let sqlToSet = `select * from ${getTableName(tableName)}`;
+    let sqlToSet = `select t0.* from ${getTableName(tableName)} as t0`;
 
-    // TODO use reduce
-    joins.forEach(join => {
-      sqlToSet += ` join ${getTableName(join.joinTable)} on ${getTableName(
-        join.sourceTable,
-      )}.${join.sourceColumn} = ${getTableName(join.joinTable)}.${
-        join.joinColumn
-      }`;
+    const tableNames: string[] = [
+      tableName,
+      ...joins.map(({ joinTable }) => joinTable),
+    ];
+
+    joins.forEach((join, index) => {
+      const sourceIndex = tableNames.indexOf(join.sourceTable);
+
+      const sourceAlias = `t${sourceIndex}`;
+      const joinAlias = `t${index + 1}`;
+
+      sqlToSet += ` join ${getTableName(
+        join.joinTable,
+      )} as ${joinAlias} on ${sourceAlias}.${
+        join.sourceColumn
+      } = ${joinAlias}.${join.joinColumn}`;
     });
 
     onSqlChange(sqlToSet, dataset?.db?.id, dataset?.schema);

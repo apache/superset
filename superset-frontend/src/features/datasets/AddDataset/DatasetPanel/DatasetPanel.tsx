@@ -21,19 +21,21 @@ import { t, styled, useTheme, SupersetClient } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import Alert from 'src/components/Alert';
 import Modal from 'src/components/Modal';
-import Table, { ColumnsType, SelectionType, TableSize } from 'src/components/Table';
+import Table, {
+  ColumnsType,
+  SelectionType,
+  TableSize,
+} from 'src/components/Table';
 import { alphabeticalSort } from 'src/components/Table/sorters';
 // @ts-ignore
 import LOADING_GIF from 'src/assets/images/loading.gif';
 import { DatasetObject } from 'src/features/datasets/AddDataset/types';
-import { IDatabaseTable, isIDatabaseTable, ITableColumn } from './types';
-import MessageContent from './MessageContent';
 import { TableOption } from 'src/components/TableSelector';
-import { useTableColumns } from 'src/explore/components/DataTableControl';
-import { useTableMetadataQuery } from 'src/hooks/apiResources';
-import { IColumnProps } from '.';
 import Button from 'src/components/Button';
 import { TableJoin } from 'src/pages/DatasetSmartCreation';
+import { IColumnProps } from '.';
+import MessageContent from './MessageContent';
+import { IDatabaseTable, ITableColumn } from './types';
 
 /**
  * Enum defining CSS position options
@@ -291,7 +293,7 @@ const DatasetPanel = ({
   tablesInSchema,
   joins,
   setJoins,
-  removeTable
+  removeTable,
 }: IDatasetPanelProps) => {
   const theme = useTheme();
   const hasColumns = columnList?.length > 0 ?? false;
@@ -305,10 +307,16 @@ const DatasetPanel = ({
 
   // modal states
   const [selectedRow, selectRow] = useState<string[] | undefined>(undefined);
-  const [selectedJoinTable, selectJoinTable] = useState<TableOption | undefined>(undefined);
+  const [selectedJoinTable, selectJoinTable] = useState<
+    TableOption | undefined
+  >(undefined);
   const [joinTableLoading, setJoinTableLoading] = useState(false);
-  const [selectedJoinTableColumns, setSelectedJoinTableColumns] = useState<ITableColumn[]>([]);
-  const [selectedJoinRow, selectJoinRow] = useState<string[] | undefined>(undefined);
+  const [selectedJoinTableColumns, setSelectedJoinTableColumns] = useState<
+    ITableColumn[]
+  >([]);
+  const [selectedJoinRow, selectJoinRow] = useState<string[] | undefined>(
+    undefined,
+  );
   const [error, setError] = useState<boolean>(false);
 
   const getTableMetadata = async (props: IColumnProps) => {
@@ -331,8 +339,12 @@ const DatasetPanel = ({
     setError(false);
 
     if (selectedRow && selectedJoinRow) {
-      const selectedColumn = columnList.find(column => column.name === selectedRow[0]);
-      const selectedJoinColumn = selectedJoinTableColumns.find(column => column.name === selectedJoinRow[0]);
+      const selectedColumn = columnList.find(
+        column => column.name === selectedRow[0],
+      );
+      const selectedJoinColumn = selectedJoinTableColumns.find(
+        column => column.name === selectedJoinRow[0],
+      );
 
       if (selectedColumn?.type !== selectedJoinColumn?.type) {
         setError(true);
@@ -359,62 +371,59 @@ const DatasetPanel = ({
     );
   }
 
-  const getRowColor = (record: ITableColumn) => {
+  const getRowColor = (record: ITableColumn, tableName: string) => {
     if (!joins) {
       return '';
     }
 
+    const matchingJoins = joins.filter(
+      join =>
+        (join.sourceTable === tableName && join.sourceColumn === record.name) ||
+        (join.joinTable === tableName && join.joinColumn === record.name),
+    );
 
-    const sourceIndex = joins.map(join => join.sourceColumn).indexOf(record.name);
-    const joinIndex = joins.map(join => join.joinColumn).indexOf(record.name);
-
-    if (sourceIndex > -1) {
-      return 'selected-column' + sourceIndex;
-    }
-
-    if (joinIndex > -1) {
-      return 'selected-column' + joinIndex;
+    if (matchingJoins.length > 0) {
+      const index = joins.indexOf(matchingJoins[0]);
+      return `selected-column${index}`;
     }
 
     return '';
-  }
-
+  };
 
   if (!loading) {
     if (!loading && tableName && hasColumns && !hasError) {
       component = (
         <>
           <StyledTitle>{COLUMN_TITLE}</StyledTitle>
-          {
-            tableWithDataset ? (
-              <TableContainerWithBanner>
-                <TableScrollContainer>
-                  <Table
-                    loading={loading}
-                    size={TableSize.SMALL}
-                    columns={tableColumnDefinition}
-                    data={columnList}
-                    pageSizeOptions={pageSizeOptions}
-                    defaultPageSize={DEFAULT_PAGE_SIZE}
-                    rowClassName={getRowColor}
-                  />
-                </TableScrollContainer>
-              </TableContainerWithBanner>
-            ) : (
-              <TableContainerWithoutBanner>
-                <TableScrollContainer>
-                  <Table
-                    loading={loading}
-                    size={TableSize.SMALL}
-                    columns={tableColumnDefinition}
-                    data={columnList}
-                    pageSizeOptions={pageSizeOptions}
-                    defaultPageSize={DEFAULT_PAGE_SIZE}
-                    rowClassName={getRowColor}
-                  />
-                </TableScrollContainer>
-              </TableContainerWithoutBanner>
-            )}
+          {tableWithDataset ? (
+            <TableContainerWithBanner>
+              <TableScrollContainer>
+                <Table
+                  loading={loading}
+                  size={TableSize.SMALL}
+                  columns={tableColumnDefinition}
+                  data={columnList}
+                  pageSizeOptions={pageSizeOptions}
+                  defaultPageSize={DEFAULT_PAGE_SIZE}
+                  rowClassName={record => getRowColor(record, tableName)}
+                />
+              </TableScrollContainer>
+            </TableContainerWithBanner>
+          ) : (
+            <TableContainerWithoutBanner>
+              <TableScrollContainer>
+                <Table
+                  loading={loading}
+                  size={TableSize.SMALL}
+                  columns={tableColumnDefinition}
+                  data={columnList}
+                  pageSizeOptions={pageSizeOptions}
+                  defaultPageSize={DEFAULT_PAGE_SIZE}
+                  rowClassName={record => getRowColor(record, tableName)}
+                />
+              </TableScrollContainer>
+            </TableContainerWithoutBanner>
+          )}
         </>
       );
     } else {
@@ -429,40 +438,41 @@ const DatasetPanel = ({
   }
 
   const StyledModalContent = styled('div')`
-width: 100%;
-position: relative;
-display: flex;
-flex-direction: row;
-gap: 50px;
+    width: 100%;
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    gap: 50px;
 
-.modalSection {
-width: 33%;
-}
+    .modalSection {
+      width: 33%;
+    }
 
-.options {
-cursor: pointer;
-padding: ${theme.gridUnit * 1.75}px;
-border-radius: ${theme.borderRadius}px;
-:hover {
-  background-color: ${theme.colors.grayscale.light4}
-}
-}
+    .options {
+      cursor: pointer;
+      padding: ${theme.gridUnit * 1.75}px;
+      border-radius: ${theme.borderRadius}px;
 
-.options-highlighted {
-cursor: pointer;
-padding: ${theme.gridUnit * 1.75}px;
-border-radius: ${theme.borderRadius}px;
-background-color: ${theme.colors.primary.dark1};
-color: ${theme.colors.grayscale.light5};
-}
+      :hover {
+        background-color: ${theme.colors.grayscale.light4};
+      }
+    }
 
-.options, .options-highlighted {
-display: flex;
-align-items: center;
-justify-content: space-between;
-}
+    .options-highlighted {
+      cursor: pointer;
+      padding: ${theme.gridUnit * 1.75}px;
+      border-radius: ${theme.borderRadius}px;
+      background-color: ${theme.colors.primary.dark1};
+      color: ${theme.colors.grayscale.light5};
+    }
 
-`;
+    .options,
+    .options-highlighted {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+  `;
 
   const onHide = () => setModalOpen(false);
 
@@ -476,7 +486,7 @@ justify-content: space-between;
       sourceTable: tableName!,
       sourceColumn: selectedRow![0],
       joinTable: selectedJoinTable!.value,
-      joinColumn: selectedJoinRow![0]
+      joinColumn: selectedJoinRow![0],
     });
 
     setJoins!(joinsToSave);
@@ -495,7 +505,8 @@ justify-content: space-between;
     <>
       {tableName && (
         <>
-          {!smart && datasetNames?.includes(tableName) &&
+          {!smart &&
+            datasetNames?.includes(tableName) &&
             renderExistingDatasetAlert(tableWithDataset)}
           <StyledHeader
             position={
@@ -511,23 +522,22 @@ justify-content: space-between;
               <>
                 <StyledAddNewTableBox onClick={openModal}>
                   <div className="fa fa-plus" />{' '}
-                  <span>{'TODO_LABEL Join new table'}</span>
+                  <span>TODO_LABEL Join new table</span>
                 </StyledAddNewTableBox>
                 <Icons.CancelX
-                  iconColor={
-                    theme.colors.grayscale.light5
-                  }
+                  iconColor={theme.colors.grayscale.light5}
                   name="cancel-x"
-                  onClick={() => removeTable ? removeTable(tableName) : null}
+                  onClick={() => (removeTable ? removeTable(tableName) : null)}
                 />
-              </>)}
+              </>
+            )}
           </StyledHeader>
         </>
       )}
       <Modal
-        width='100%'
+        width="100%"
         show={modalOpen}
-        title={'TODO_LABEL Join new table'}
+        title="TODO_LABEL Join new table"
         onHide={onHide}
         footer={
           <>
@@ -554,7 +564,7 @@ justify-content: space-between;
         }
       >
         <StyledModalContent>
-          <div className='modalSection'>
+          <div className="modalSection">
             <div>TODO_LABEL Source columns</div>
             <Table
               loading={loading}
@@ -569,14 +579,15 @@ justify-content: space-between;
             />
           </div>
 
-          <div className='modalSection'>
+          <div className="modalSection">
             <div>TODO_LABEL Join tables</div>
-            {
-              tablesInSchema && tablesInSchema.map((option, i) => (
+            {tablesInSchema &&
+              tablesInSchema.map((option, i) => (
                 <div
                   className={
-                    selectedJoinTable?.value === option.value ? 'options-highlighted' :
-                      'options'
+                    selectedJoinTable?.value === option.value
+                      ? 'options-highlighted'
+                      : 'options'
                   }
                   key={i}
                   role="button"
@@ -584,13 +595,20 @@ justify-content: space-between;
                   onClick={() => selectJoinTable(option)}
                 >
                   {option.label}
-                </div>))
-            }
+                </div>
+              ))}
           </div>
 
-          {selectedJoinTable &&
-            <div className='modalSection'>
-              {error && <div> {'TODO_LABEL Source column and join column type must be the same'} </div>}
+          {selectedJoinTable && (
+            <div className="modalSection">
+              {error && (
+                <div>
+                  {' '}
+                  {
+                    'TODO_LABEL Source column and join column type must be the same'
+                  }{' '}
+                </div>
+              )}
               <div>TODO_LABEL Join columns</div>
               <div>{selectedJoinTable.value}</div>
               <Table
@@ -600,13 +618,17 @@ justify-content: space-between;
                 selectionType={SelectionType.SINGLE}
                 selectedRows={selectedJoinRow}
                 handleRowSelection={(keys: string[]) => selectJoinRow(keys)}
-                data={selectedJoinTableColumns.map(column => ({ ...column, key: column.name }))}
+                data={selectedJoinTableColumns.map(column => ({
+                  ...column,
+                  key: column.name,
+                }))}
                 pageSizeOptions={pageSizeOptions}
                 defaultPageSize={DEFAULT_PAGE_SIZE}
               />
-            </div>}
+            </div>
+          )}
         </StyledModalContent>
-      </Modal >
+      </Modal>
       {component}
       {loader}
     </>
