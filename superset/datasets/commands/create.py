@@ -62,6 +62,7 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         schema = self._properties.get("schema", None)
         sql = self._properties.get("sql", None)
         owner_ids: Optional[list[int]] = self._properties.get("owners")
+        normalize_columns = self._properties["normalize_columns"]
 
         # Validate uniqueness
         if not DatasetDAO.validate_uniqueness(database_id, schema, table_name):

@@ -23,19 +23,19 @@ Create Date: 2023-08-14 09:38:11.897437
 """
 
 # revision identifiers, used by Alembic.
-revision = '9f4a086c2676'
-down_revision = '4448fa6deeb1'
+revision = "9f4a086c2676"
+down_revision = "4448fa6deeb1"
 
-from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.orm import Session
+from alembic import op
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import Session
 
 from superset import db
 from superset.migrations.shared.utils import paginated_update
 
-
 Base = declarative_base()
+
 
 class SqlaTable(Base):
     __tablename__ = "tables"
@@ -47,7 +47,12 @@ class SqlaTable(Base):
 def upgrade():
     op.add_column(
         "tables",
-        sa.Column("normalize_columns", sa.Boolean(), nullable=True, default=False),
+        sa.Column(
+            "normalize_columns",
+            sa.Boolean(),
+            nullable=False,
+            server_default=sa.false(),
+        ),
     )
 
     bind = op.get_bind()

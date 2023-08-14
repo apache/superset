@@ -170,6 +170,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
                     "warning_text": None,
                 },
             ],
+            "normalize_columns": False,
             "offset": 0,
             "params": None,
             "schema": get_example_default_schema(),

@@ -523,6 +523,7 @@ dataset_config: dict[str, Any] = {
             "python_date_format": None,
         },
     ],
+    "normalize_columns": False,
     "version": "1.0.0",
     "uuid": "10808100-158b-42c4-842e-f32b99d88dfb",
     "database_uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89",

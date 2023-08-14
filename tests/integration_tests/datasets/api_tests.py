@@ -540,6 +540,7 @@ class TestDatasetApi(SupersetTestCase):
         model = db.session.query(SqlaTable).get(table_id)
         assert model.table_name == table_data["table_name"]
         assert model.database_id == table_data["database"]
+        assert model.normalize_columns is False
 
         # Assert that columns were created
         columns = (
@@ -2494,8 +2495,9 @@ class TestDatasetApi(SupersetTestCase):
             .filter_by(table_name="test_create_sqla_table_api")
             .one()
         )
-        self.assertEqual(response["result"], {"table_id": table.id})
-        self.assertEqual(table.template_params, '{"param": 1}')
+        assert response["result"] == {"table_id": table.id}
+        assert table.template_params == '{"param": 1}'
+        assert table.normalize_columns is False
 
         db.session.delete(table)
         with examples_db.get_sqla_engine_with_context() as engine:

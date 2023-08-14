@@ -98,6 +98,7 @@ class DatasetPostSchema(Schema):
     owners = fields.List(fields.Integer())
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    normalize_columns = fields.Boolean(load_default=False)
 
 
 class DatasetPutSchema(Schema):
@@ -263,6 +264,7 @@ class GetOrCreateDatasetSchema(Schema):
     template_params = fields.String(
         metadata={"description": "Template params for the table"}
     )
+    normalize_columns = fields.Boolean(load_default=False)
 
 
 class DatasetSchema(SQLAlchemyAutoSchema):
