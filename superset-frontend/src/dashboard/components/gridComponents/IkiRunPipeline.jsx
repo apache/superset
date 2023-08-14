@@ -246,7 +246,7 @@ class IkiRunPipeline extends React.PureComponent {
             messageObject.info === 'widget-to-superset/sending-pipeline-data'
           ) {
             if (widgetUrlQueryMode === 'edit') {
-              widgetUrlQuery = new URLSearchParams(widgetUrl["search"]);
+              widgetUrlQuery = new URLSearchParams(widgetUrl.search);
               widgetUrlQuery.set('mode', 'preview');
               widgetUrlQuery.set('pipeline_id', messageData.pipeline.id);
               widgetUrlQuery.set('alias_id', messageData.aliasPipelineId);
@@ -338,7 +338,7 @@ class IkiRunPipeline extends React.PureComponent {
     } else {
       widgetUrl = `${this.props.ikigaiOrigin}/widget/pipeline/run?mode=edit&v=1&run_flow_times=${timestamp}`;
     }
-    const widgetUrlQuery = new URLSearchParams(widgetUrl["search"]);
+    const widgetUrlQuery = new URLSearchParams(widgetUrl.search);
     widgetUrlQuery.set('mode', mode);
     widgetUrlQuery.set('charts_list', window.btoa(JSON.stringify(chartsList)));
     widgetUrl.search = widgetUrlQuery.toString();
