@@ -51,6 +51,7 @@ TAGS_FIXTURE_COUNT = 10
 
 TAGS_LIST_COLUMNS = [
     "id",
+    "description",
     "name",
     "type",
     "changed_by.first_name",
