@@ -133,6 +133,7 @@ export default function transformProps(
     labelType,
     labelPosition,
     numberFormat,
+    currencyFormat,
     dateFormat,
     showLabels,
     showUpperLabels,
@@ -149,6 +150,7 @@ export default function transformProps(
     currencyFormats,
     columnFormats,
     numberFormat,
+    currencyFormat,
   );
 
   const formatter = (params: TreemapSeriesCallbackDataParams) =>

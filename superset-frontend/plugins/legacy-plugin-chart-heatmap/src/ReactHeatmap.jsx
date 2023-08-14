@@ -21,7 +21,12 @@ import { reactify, css, styled } from '@superset-ui/core';
 import { Global } from '@emotion/react';
 import Component from './Heatmap';
 
-const ReactComponent = reactify(Component);
+function componentWillUnmount() {
+  // Removes tooltips from the DOM
+  document.querySelectorAll('.d3-tip').forEach(t => t.remove());
+}
+
+const ReactComponent = reactify(Component, { componentWillUnmount });
 
 const Heatmap = ({ className, ...otherProps }) => (
   <div className={className}>

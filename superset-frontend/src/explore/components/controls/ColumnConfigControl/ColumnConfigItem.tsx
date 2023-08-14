@@ -18,8 +18,8 @@
  */
 import React from 'react';
 import { useTheme } from '@superset-ui/core';
-import { Popover } from 'antd';
-import ColumnTypeLabel from '../../../components/ColumnTypeLabel/ColumnTypeLabel';
+import Popover from 'src/components/Popover';
+import { ColumnTypeLabel } from '@superset-ui/chart-controls';
 import ColumnConfigPopover, {
   ColumnConfigPopoverProps,
 } from './ColumnConfigPopover';
@@ -30,6 +30,8 @@ export default React.memo(function ColumnConfigItem({
   column,
   onChange,
   configFormLayout,
+  width,
+  height,
 }: ColumnConfigItemProps) {
   const { colors, gridUnit } = useTheme();
   const caretWidth = gridUnit * 6;
@@ -45,6 +47,8 @@ export default React.memo(function ColumnConfigItem({
       )}
       trigger="click"
       placement="right"
+      overlayInnerStyle={{ width, height }}
+      overlayClassName="column-config-popover"
     >
       <div
         css={{

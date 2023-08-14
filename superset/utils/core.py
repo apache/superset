@@ -439,6 +439,8 @@ def cast_to_boolean(value: Any) -> bool | None:
     """
     if value is None:
         return None
+    if isinstance(value, bool):
+        return value
     if isinstance(value, (int, float)):
         return value != 0
     if isinstance(value, str):
@@ -1832,7 +1834,12 @@ def normalize_dttm_col(
                 # Column is formatted as a numeric value
                 unit = _col.timestamp_format.replace("epoch_", "")
                 df[_col.col_label] = pd.to_datetime(
-                    dttm_series, utc=False, unit=unit, origin="unix", errors="coerce"
+                    dttm_series,
+                    utc=False,
+                    unit=unit,
+                    origin="unix",
+                    errors="raise",
+                    exact=False,
                 )
             else:
                 # Column has already been formatted as a timestamp.
@@ -1842,7 +1849,8 @@ def normalize_dttm_col(
                 df[_col.col_label],
                 utc=False,
                 format=_col.timestamp_format,
-                errors="coerce",
+                errors="raise",
+                exact=False,
             )
         if _col.offset:
             df[_col.col_label] += timedelta(hours=_col.offset)

@@ -27,6 +27,7 @@ import {
   Behavior,
   ChartDataResponseResult,
   Column,
+  isFeatureEnabled,
   FeatureFlag,
   Filter,
   GenericDataType,
@@ -71,7 +72,6 @@ import {
 } from 'src/dashboard/types';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
-import { isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import {
   ClientErrorObject,

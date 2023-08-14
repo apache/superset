@@ -22,6 +22,7 @@ import Button from 'src/components/Button';
 import {
   FeatureFlag,
   isDefined,
+  isFeatureEnabled,
   Metric,
   styled,
   SupersetClient,
@@ -30,8 +31,6 @@ import {
 
 import Modal from 'src/components/Modal';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
-import { isFeatureEnabled } from 'src/featureFlags';
-
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useSelector } from 'react-redux';

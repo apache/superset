@@ -16,22 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FeatureFlag, FeatureFlagMap } from '@superset-ui/core';
+import { sharedControlComponents } from '@superset-ui/chart-controls';
+import { Select } from 'src/components';
+import { Input, InputNumber } from 'src/components/Input';
+import Slider from 'src/components/Slider';
+import CurrencyControl from '../../CurrencyControl';
+import CheckboxControl from '../../CheckboxControl';
 
-export function initFeatureFlags(featureFlags?: FeatureFlagMap) {
-  if (!window.featureFlags) {
-    window.featureFlags = featureFlags || {};
-  }
-}
-
-export function isFeatureEnabled(feature: FeatureFlag) {
-  try {
-    return !!window.featureFlags[feature];
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error(`Failed to query feature flag ${feature} (see error below)`);
-    // eslint-disable-next-line no-console
-    console.error(error);
-    return false;
-  }
-}
+export const ControlFormItemComponents = {
+  Slider,
+  InputNumber,
+  Input,
+  Select,
+  // Directly export Checkbox will result in "using name from external module" error
+  // ref: https://stackoverflow.com/questions/43900035/ts4023-exported-variable-x-has-or-is-using-name-y-from-external-module-but
+  Checkbox: CheckboxControl,
+  RadioButtonControl: sharedControlComponents.RadioButtonControl,
+  CurrencyControl,
+};

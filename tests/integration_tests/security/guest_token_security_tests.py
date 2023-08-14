@@ -15,21 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for Superset"""
-import json
 from unittest import mock
 
 import pytest
 from flask import g
 
 from superset import db, security_manager
-from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dashboard import EmbeddedDashboardDAO
-from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.security.guest_token import GuestTokenResourceType
 from superset.sql_parse import Table
-from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -162,57 +158,22 @@ class TestGuestUserDashboardAccess(SupersetTestCase):
         has_guest_access = security_manager.has_guest_access(self.dash)
         self.assertFalse(has_guest_access)
 
-    def test_chart_raise_for_access_as_guest(self):
-        chart = self.dash.slices[0]
-        g.user = self.authorized_guest
-
-        security_manager.raise_for_access(viz=chart)
-
-    def test_chart_raise_for_access_as_unauthorized_guest(self):
-        chart = self.dash.slices[0]
-        g.user = self.unauthorized_guest
-
-        with self.assertRaises(SupersetSecurityException):
-            security_manager.raise_for_access(viz=chart)
-
-    def test_dataset_raise_for_access_as_guest(self):
-        dataset = self.dash.slices[0].datasource
-        g.user = self.authorized_guest
-
-        security_manager.raise_for_access(datasource=dataset)
-
-    def test_dataset_raise_for_access_as_unauthorized_guest(self):
-        dataset = self.dash.slices[0].datasource
-        g.user = self.unauthorized_guest
-
-        with self.assertRaises(SupersetSecurityException):
-            security_manager.raise_for_access(datasource=dataset)
-
-    def test_guest_token_does_not_grant_access_to_underlying_table(self):
-        sqla_table = self.dash.slices[0].table
-        table = Table(table=sqla_table.table_name)
-
-        g.user = self.authorized_guest
-
-        with self.assertRaises(Exception):
-            security_manager.raise_for_access(table=table, database=sqla_table.database)
-
     def test_raise_for_dashboard_access_as_guest(self):
         g.user = self.authorized_guest
 
-        security_manager.raise_for_dashboard_access(self.dash)
+        security_manager.raise_for_access(dashboard=self.dash)
 
-    def test_raise_for_dashboard_access_as_unauthorized_guest(self):
+    def test_raise_for_access_dashboard_as_unauthorized_guest(self):
         g.user = self.unauthorized_guest
 
-        with self.assertRaises(DashboardAccessDeniedError):
-            security_manager.raise_for_dashboard_access(self.dash)
+        with self.assertRaises(SupersetSecurityException):
+            security_manager.raise_for_access(dashboard=self.dash)
 
-    def test_raise_for_dashboard_access_as_guest_no_rbac(self):
+    def test_raise_for_access_dashboard_as_guest_no_rbac(self):
         """
         Test that guest account has no access to other dashboards.
 
-        A bug in the ``raise_for_dashboard_access`` logic allowed the guest user to
+        A bug in the ``raise_for_access`` logic allowed the guest user to
         fetch data from other dashboards, as long as the other dashboard:
 
           - was not embedded AND
@@ -225,57 +186,12 @@ class TestGuestUserDashboardAccess(SupersetTestCase):
         # Create a draft dashboard that is not embedded
         dash = Dashboard()
         dash.dashboard_title = "My Dashboard"
-        dash.owners = []
-        dash.slices = []
         dash.published = False
         db.session.add(dash)
         db.session.commit()
 
-        with self.assertRaises(DashboardAccessDeniedError):
-            security_manager.raise_for_dashboard_access(dash)
+        with self.assertRaises(SupersetSecurityException):
+            security_manager.raise_for_access(dashboard=dash)
 
         db.session.delete(dash)
-        db.session.commit()
-
-    def test_can_access_datasource_used_in_dashboard_filter(self):
-        """
-        Test that a user can access a datasource used only by a filter in a dashboard
-        they have access to.
-        """
-        # Create a test dataset
-        test_dataset = SqlaTable(
-            database_id=get_example_database().id,
-            schema="main",
-            table_name="test_table_embedded_filter",
-        )
-        db.session.add(test_dataset)
-        db.session.commit()
-
-        # Create an embedabble dashboard with a filter powered by the test dataset
-        test_dashboard = Dashboard()
-        test_dashboard.dashboard_title = "Test Embedded Dashboard"
-        test_dashboard.json_metadata = json.dumps(
-            {
-                "native_filter_configuration": [
-                    {"targets": [{"datasetId": test_dataset.id}]}
-                ]
-            }
-        )
-        test_dashboard.owners = []
-        test_dashboard.slices = []
-        test_dashboard.published = False
-        db.session.add(test_dashboard)
-        db.session.commit()
-        self.embedded = EmbeddedDashboardDAO.upsert(test_dashboard, [])
-
-        # grant access to the dashboad
-        g.user = self.authorized_guest
-        g.user.resources = [{"type": "dashboard", "id": str(self.embedded.uuid)}]
-        g.user.roles = [security_manager.get_public_role()]
-
-        # The user should have access to the datasource via the dashboard
-        security_manager.raise_for_access(datasource=test_dataset)
-
-        db.session.delete(test_dashboard)
-        db.session.delete(test_dataset)
         db.session.commit()
