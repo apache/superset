@@ -992,7 +992,6 @@ class SqlaTable(
         is_dttm = False
         pdf = None
         if col_in_metadata := self.get_column(expression):
-            pdf = col_in_metadata.python_date_format
             sqla_column = col_in_metadata.get_sqla_col(
                 template_processor=template_processor
             )
@@ -1013,7 +1012,7 @@ class SqlaTable(
         if is_dttm and has_timegrain:
             sqla_column = self.db_engine_spec.get_timestamp_expr(
                 col=sqla_column,
-                pdf=pdf,
+                pdf=None,
                 time_grain=time_grain,
             )
         return self.make_sqla_column_compatible(sqla_column, label)
