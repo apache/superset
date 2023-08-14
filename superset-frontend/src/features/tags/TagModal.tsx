@@ -75,9 +75,9 @@ const TagModal: React.FC<TagModalProps> = ({
     setDashboardsToTag([]);
     setChartsToTag([]);
     setSavedQueriesToTag([]);
-    let dashboards: TaggableResourceOption[] = [];
-    let charts: TaggableResourceOption[] = [];
-    let queries: TaggableResourceOption[] = [];
+    const dashboards: TaggableResourceOption[] = [];
+    const charts: TaggableResourceOption[] = [];
+    const queries: TaggableResourceOption[] = [];
     if (isEditMode) {
       fetchObjects(
         { tags: editTag.name, types: null },
@@ -188,10 +188,7 @@ const TagModal: React.FC<TagModalProps> = ({
       'saved_query',
     );
 
-  const handleOptionChange = (
-    resource: TaggableResources,
-    data: TaggableResourceOption[],
-  ) => {
+  const handleOptionChange = (resource: TaggableResources, data: any) => {
     if (resource === TaggableResources.Dashboard) setDashboardsToTag(data);
     else if (resource === TaggableResources.Chart) setChartsToTag(data);
     else if (resource === TaggableResources.SavedQuery)
@@ -285,7 +282,8 @@ const TagModal: React.FC<TagModalProps> = ({
           ariaLabel={t('Select Dashboards')}
           mode="multiple"
           name="dashboards"
-          value={editTag?.dashboardsToTag || dashboardsToTag}
+          // @ts-ignore
+          value={dashboardsToTag}
           options={loadDashboards}
           onChange={value =>
             handleOptionChange(TaggableResources.Dashboard, value)
@@ -297,6 +295,7 @@ const TagModal: React.FC<TagModalProps> = ({
           ariaLabel={t('Select Charts')}
           mode="multiple"
           name="charts"
+          // @ts-ignore
           value={chartsToTag}
           options={loadCharts}
           onChange={value => handleOptionChange(TaggableResources.Chart, value)}
@@ -307,6 +306,7 @@ const TagModal: React.FC<TagModalProps> = ({
           ariaLabel={t('Select Saved Queries')}
           mode="multiple"
           name="savedQueries"
+          // @ts-ignore
           value={savedQueriesToTag}
           options={loadQueries}
           onChange={value =>
