@@ -44,9 +44,10 @@ QUERIES_FIXTURE_COUNT = 10
 class TestSqlLabApi(SupersetTestCase):
     def test_get_from_bootstrap_data(self):
         self.login(username="admin")
-        resp = self.get_json_resp("/api/v1/sqllab/")
+        resp = self.client.get("/api/v1/sqllab/")
         assert resp.status_code == 200
-        result = resp["result"]
+        data = json.loads(resp.data.decode("utf-8"))
+        result = data.get("result")
         assert result["active_tab"] == None
         assert result["queries"] == None
         assert result["tab_state_ids"] == None
