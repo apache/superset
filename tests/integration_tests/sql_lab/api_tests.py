@@ -37,6 +37,7 @@ from superset.utils import core as utils
 from superset.models.sql_lab import Query
 
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.fixtures.users import create_gamma_sqllab_no_data
 
 QUERIES_FIXTURE_COUNT = 10
 
