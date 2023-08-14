@@ -51,9 +51,9 @@ TAGS_FIXTURE_COUNT = 10
 
 TAGS_LIST_COLUMNS = [
     "id",
-    "description",
     "name",
     "type",
+    "description",
     "changed_by.first_name",
     "changed_by.last_name",
     "changed_on_delta_humanized",

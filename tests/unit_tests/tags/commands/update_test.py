@@ -100,7 +100,7 @@ def test_update_command_success_duplicates(session_with_data: Session):
     ]
 
     CreateCustomTagWithRelationshipsCommand(
-        data={"tag": "test_tag", "objects_to_tag": objects_to_tag}
+        data={"name": "test_tag", "objects_to_tag": objects_to_tag}
     ).run()
 
     tag_to_update = TagDAO.find_by_name("test_tag")

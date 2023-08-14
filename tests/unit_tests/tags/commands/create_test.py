@@ -68,7 +68,7 @@ def test_create_command_success(session_with_data: Session):
     ]
 
     CreateCustomTagWithRelationshipsCommand(
-        data={"tag": "test_tag", "objects_to_tag": objects_to_tag}
+        data={"name": "test_tag", "objects_to_tag": objects_to_tag}
     ).run()
 
     assert len(session_with_data.query(TaggedObject).all()) == len(objects_to_tag)
@@ -101,10 +101,10 @@ def test_create_command_failed_validate(session_with_data: Session):
     objects_to_tag = [
         (ObjectTypes.query, query.id),
         (ObjectTypes.chart, chart.id),
-        (ObjectTypes.dashboard, dashboard.id),
+        (ObjectTypes.dashboard, 0),
     ]
 
     with pytest.raises(TagInvalidError):
         CreateCustomTagWithRelationshipsCommand(
-            data={"tag": "test_tag", "objects_to_tag": objects_to_tag}
+            data={"name": "test_tag", "objects_to_tag": objects_to_tag}
         ).run()
