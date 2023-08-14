@@ -63,7 +63,9 @@ interface PivotTableCustomizeProps {
   rowSubtotalPosition: boolean;
   colSubtotalPosition: boolean;
   colTotals: boolean;
+  colSubTotals: boolean;
   rowTotals: boolean;
+  rowSubTotals: boolean;
   valueFormat: string;
   setDataMask: SetDataMaskHook;
   emitCrossFilters?: boolean;
