@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useReducer, Reducer, useEffect, useState, ReactElement, JSXElementConstructor } from 'react';
+import React, {
+  useReducer,
+  Reducer,
+  useEffect,
+  useState,
+  ReactElement,
+  JSXElementConstructor,
+} from 'react';
 import useDatasetsList from 'src/features/datasets/hooks/useDatasetLists';
 import Header from 'src/features/datasets/AddDataset/Header';
 import DatasetPanel from 'src/features/datasets/AddDataset/DatasetPanel';
@@ -78,8 +85,12 @@ export type TableJoin = {
 };
 
 type AddSmartDatasetProps = {
-  onSqlChange: (sql: string) => void;
-}
+  onSqlChange: (
+    sql: string,
+    dbId: number | undefined,
+    newSchema: string | null | undefined,
+  ) => void;
+};
 
 export default function AddSmartDataset({ onSqlChange }: AddSmartDatasetProps) {
   const [dataset, setDataset] = useReducer<
@@ -87,8 +98,9 @@ export default function AddSmartDataset({ onSqlChange }: AddSmartDatasetProps) {
   >(datasetSmartReducer, null);
   const [tableOptions, setTableOptions] = useState<Array<TableOption>>([]);
   const [joins, setJoins] = useState<TableJoin[]>([]);
-  const [joinDatasetPanels, setJoinDatasetPanels] =
-    useState<ReactElement<any, string | JSXElementConstructor<any>>[] | undefined>(undefined);
+  const [joinDatasetPanels, setJoinDatasetPanels] = useState<
+    ReactElement<any, string | JSXElementConstructor<any>>[] | undefined
+  >(undefined);
 
   const getTableName = (tableName: string) => `${dataset!.schema}.${tableName}`;
 
@@ -96,12 +108,18 @@ export default function AddSmartDataset({ onSqlChange }: AddSmartDatasetProps) {
     const tableName = dataset?.table_name;
     if (!joins.length) {
       if (tableName) {
-        onSqlChange(`select * from ${getTableName(tableName)}`);
+        onSqlChange(
+          `select * from ${getTableName(tableName)}`,
+          dataset?.db?.id,
+          dataset?.schema,
+        );
       }
       return;
     }
 
-    const joinDatasetPanelsToAdd = joins.map(join => getDatasetPanelComponent(join.joinTable));
+    const joinDatasetPanelsToAdd = joins.map(join =>
+      getDatasetPanelComponent(join.joinTable),
+    );
     setJoinDatasetPanels(joinDatasetPanelsToAdd);
 
     if (!tableName) {
@@ -112,10 +130,14 @@ export default function AddSmartDataset({ onSqlChange }: AddSmartDatasetProps) {
 
     // TODO use reduce
     joins.forEach(join => {
-      sqlToSet += ` join ${getTableName(join.joinTable)} on ${getTableName(join.sourceTable)}.${join.sourceColumn} = ${getTableName(join.joinTable)}.${join.joinColumn}`;
+      sqlToSet += ` join ${getTableName(join.joinTable)} on ${getTableName(
+        join.sourceTable,
+      )}.${join.sourceColumn} = ${getTableName(join.joinTable)}.${
+        join.joinColumn
+      }`;
     });
 
-    onSqlChange(sqlToSet);
+    onSqlChange(sqlToSet, dataset?.db?.id, dataset?.schema);
   }, [joins]);
 
   const { datasets, datasetNames } = useDatasetsList(
@@ -134,7 +156,7 @@ export default function AddSmartDataset({ onSqlChange }: AddSmartDatasetProps) {
       dbId={dataset?.db?.id}
       schema={dataset?.schema}
       datasets={datasets}
-      smart={true}
+      smart
       tablesInSchema={tableOptions}
       joins={joins}
       setJoins={setJoins}
@@ -156,13 +178,14 @@ export default function AddSmartDataset({ onSqlChange }: AddSmartDatasetProps) {
     />
   );
 
-  const getInitialDatasetPanelComponent = () => getDatasetPanelComponent(dataset?.table_name);
+  const getInitialDatasetPanelComponent = () =>
+    getDatasetPanelComponent(dataset?.table_name);
 
   const getDatasetPanelComponents = () => {
     const panelComponents = [getInitialDatasetPanelComponent()];
 
     if (joinDatasetPanels) {
-      panelComponents.push(...joinDatasetPanels)
+      panelComponents.push(...joinDatasetPanels);
     }
 
     return panelComponents;
@@ -172,10 +195,7 @@ export default function AddSmartDataset({ onSqlChange }: AddSmartDatasetProps) {
     <DatasetLayout
       header={HeaderComponent()}
       leftPanel={LeftPanelComponent()}
-      datasetPanel={
-        getDatasetPanelComponents()
-      }
+      datasetPanel={getDatasetPanelComponents()}
     />
   );
 }
-

@@ -90,6 +90,7 @@ import { isFeatureEnabled } from 'src/featureFlags';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { isEmpty } from 'lodash';
+import AddSmartDataset from 'src/pages/DatasetSmartCreation';
 import TemplateParamsEditor from '../TemplateParamsEditor';
 import SouthPane from '../SouthPane';
 import SaveQuery from '../SaveQuery';
@@ -100,7 +101,6 @@ import SqlEditorLeftBar from '../SqlEditorLeftBar';
 import AceEditorWrapper from '../AceEditorWrapper';
 import RunQueryActionButton from '../RunQueryActionButton';
 import QueryLimitSelect from '../QueryLimitSelect';
-import AddSmartDataset from 'src/pages/DatasetSmartCreation';
 
 const bootstrapData = getBootstrapData();
 const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
@@ -121,6 +121,7 @@ const StyledToolbar = styled.div`
   .rightItems {
     display: flex;
     align-items: center;
+
     & > span {
       margin-right: ${({ theme }) => theme.gridUnit * 2}px;
       display: inline-block;
@@ -142,7 +143,7 @@ const StyledSidebar = styled.div`
   padding: ${({ theme, hide }) => (hide ? 0 : theme.gridUnit * 2.5)}px;
   border-right: 1px solid
     ${({ theme, hide }) =>
-    hide ? 'transparent' : theme.colors.grayscale.light2};
+      hide ? 'transparent' : theme.colors.grayscale.light2};
 `;
 
 const StyledSqlEditor = styled.div`
@@ -623,9 +624,11 @@ const SqlEditor = ({
     dispatch(addSavedQueryToTabState(queryEditor, savedQuery));
   };
 
-  const onSmartSqlChanged = (sql) => {
+  const onSmartSqlChanged = (sql, dbId, newSchema) => {
     setSmartSql(sql);
+
     dispatch(queryEditorSetDb(queryEditor, dbId));
+    // TODO will be changed on refresh
     dispatch(queryEditorSetSchema(queryEditor, newSchema));
   };
 
