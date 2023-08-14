@@ -55,7 +55,7 @@ import {
   GRID_BASE_UNIT,
 } from 'src/dashboard/util/constants';
 import { refreshChart } from 'src/components/Chart/chartAction';
-import { chart } from 'src/components/Chart/chartReducer';
+// import { chart } from 'src/components/Chart/chartReducer';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -207,14 +207,14 @@ class IkiRunPipeline extends React.PureComponent {
           let widgetUrl;
           let widgetUrlQuery;
           let widgetUrlQueryMode;
+          let chartsList = [];
 
           const allChartElements = document.querySelectorAll(
             '[data-test-chart-id]',
           );
-          var chartsList = [];
           allChartElements.forEach(chartElement => {
-            var tempChartID = chartElement.getAttribute('data-test-chart-id');
-            var tempChartName = chartElement.getAttribute(
+            let tempChartID = chartElement.getAttribute('data-test-chart-id');
+            let tempChartName = chartElement.getAttribute(
               'data-test-chart-name',
             );
             chartsList.push({ id: tempChartID, name: tempChartName });
@@ -274,16 +274,16 @@ class IkiRunPipeline extends React.PureComponent {
             messageObject.info ===
             'widget-to-superset/sending-charts-to-refresh'
           ) {
-            const selected_charts = messageData.selectedCharts;
-            this.refreshCharts(selected_charts);
+            const selectedCharts = messageData.selectedCharts;
+            this.refreshCharts(selectedCharts);
           }
         }
       }
     });
   }
 
-  refreshCharts(selected_charts) {
-    selected_charts.forEach(selected_chart => {
+  refreshCharts(selectedCharts) {
+    selectedCharts.forEach(selected_chart => {
       console.log('selected_chart', selected_chart);
       this.refreshChart(selected_chart.id, selected_chart.id, 15, false);
     });
@@ -316,13 +316,13 @@ class IkiRunPipeline extends React.PureComponent {
     this.setState(nextState);
 
     let widgetUrl;
-    let widgetUrlQuery;
+    let chartsList = [];
 
+    const widgetUrlQuery = [];
     const allChartElements = document.querySelectorAll('[data-test-chart-id]');
-    var chartsList = [];
     allChartElements.forEach(chartElement => {
-      var tempChartID = chartElement.getAttribute('data-test-chart-id');
-      var tempChartName = chartElement.getAttribute('data-test-chart-name');
+      let tempChartID = chartElement.getAttribute('data-test-chart-id');
+      let tempChartName = chartElement.getAttribute('data-test-chart-name');
       chartsList.push({ id: tempChartID, name: tempChartName });
     });
 
@@ -469,15 +469,16 @@ class IkiRunPipeline extends React.PureComponent {
       const allChartElements = document.querySelectorAll(
         '[data-test-chart-id]',
       );
-      var chartsList = [];
+      let chartsList = [];
       allChartElements.forEach(chartElement => {
-        var tempChartID = chartElement.getAttribute('data-test-chart-id');
-        var tempChartName = chartElement.getAttribute('data-test-chart-name');
+        let tempChartID = chartElement.getAttribute('data-test-chart-id');
+        let tempChartName = chartElement.getAttribute('data-test-chart-name');
         chartsList.push({ id: tempChartID, name: tempChartName });
       });
 
-      iframeSrc =
-        iframeSrc + '&charts_list=' + window.btoa(JSON.stringify(chartsList));
+      iframeSrc = `${iframeSrc}&charts_list=${window.btoa(
+        JSON.stringify(chartsList),
+      )}`;
 
       iframe = `<iframe
                     id="ikirunpipeline-widget-${this.props.component.id}"
