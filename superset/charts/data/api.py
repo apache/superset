@@ -368,9 +368,13 @@ class ChartDataRestApi(ChartRestApi):
                 return self.response_400(_("Empty query result"))
 
             if len(result["queries"]) == 1:
-                logger.warning(result)
-                # return single query results xlsx format
-                df = delete_tz_from_df(result['queries'][0])
+                try:
+                    # return single query results xlsx format
+                    df = delete_tz_from_df(result['queries'][0])
+                except IndexError:
+                    return self.response_500(
+                        _("Server error occurred while exporting the file")
+                    )
 
                 excel_writer = io.BytesIO()
                 writer = pd.ExcelWriter(excel_writer, mode="w", engine="xlsxwriter")
