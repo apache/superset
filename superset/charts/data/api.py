@@ -382,7 +382,7 @@ class ChartDataRestApi(ChartRestApi):
                 writer.save()
                 excel_writer.seek(0)
                 return excel_writer
-            logger.warning(result)
+
             # return multi-query xlsx results bundled as a zip file
             encoding = current_app.config["XLSX_EXPORT"].get("encoding", "utf-8")
             logger.warning(result["queries"][0] == result["queries"][1])
@@ -390,7 +390,7 @@ class ChartDataRestApi(ChartRestApi):
                 f"query_{idx + 1}.xlsx": str(result["data"]).encode(encoding)
                 for idx, result in enumerate(result["queries"])
             }
-            logger.warning(files)
+
             return send_file(
                 create_zip(files),
                 mimetype="application/zip",
