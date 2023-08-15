@@ -34,7 +34,7 @@ interface TaggableResourceOption {
   key: number;
 }
 
-enum TaggableResources {
+export enum TaggableResources {
   Chart = 'chart',
   Dashboard = 'dashboard',
   SavedQuery = 'query',
@@ -46,7 +46,7 @@ interface TagModalProps {
   addSuccessToast: (msg: string) => void;
   addDangerToast: (msg: string) => void;
   show: boolean;
-  editTag: Tag | null;
+  editTag?: Tag | null;
 }
 
 const TagModal: React.FC<TagModalProps> = ({
@@ -71,40 +71,38 @@ const TagModal: React.FC<TagModalProps> = ({
   const isEditMode = !!editTag;
   const modalTitle = isEditMode ? 'Edit Tag' : 'Create Tag';
 
-  useEffect(() => {
+  const clearResources = () => {
     setDashboardsToTag([]);
     setChartsToTag([]);
     setSavedQueriesToTag([]);
-    const dashboards: TaggableResourceOption[] = [];
-    const charts: TaggableResourceOption[] = [];
-    const queries: TaggableResourceOption[] = [];
+  };
+
+  useEffect(() => {
+    const resourceMap: { [key: string]: TaggableResourceOption[] } = {
+      [TaggableResources.Dashboard]: [],
+      [TaggableResources.Chart]: [],
+      [TaggableResources.SavedQuery]: [],
+    };
+
+    const updateResourceOptions = (object: Tag) => {
+      const resourceOptions = resourceMap[object.type];
+      if (resourceOptions) {
+        resourceOptions.push({
+          value: object.id,
+          label: object.name,
+          key: object.id,
+        });
+      }
+    };
+    clearResources();
     if (isEditMode) {
       fetchObjects(
         { tags: editTag.name, types: null },
         (data: Tag[]) => {
-          data.forEach(function (object) {
-            if (object.type === TaggableResources.Dashboard)
-              dashboards.push({
-                value: object.id,
-                label: object.name,
-                key: object.id,
-              });
-            else if (object.type === TaggableResources.Chart)
-              charts.push({
-                value: object.id,
-                label: object.name,
-                key: object.id,
-              });
-            else if (object.type === TaggableResources.SavedQuery)
-              queries.push({
-                value: object.id,
-                label: object.name,
-                key: object.id,
-              });
-          });
-          setDashboardsToTag(dashboards);
-          setChartsToTag(charts);
-          setSavedQueriesToTag(queries);
+          data.forEach(updateResourceOptions);
+          setDashboardsToTag(resourceMap[TaggableResources.Dashboard]);
+          setChartsToTag(resourceMap[TaggableResources.Chart]);
+          setSavedQueriesToTag(resourceMap[TaggableResources.SavedQuery]);
         },
         (error: Response) => {
           addDangerToast('Error Fetching Tagged Objects');

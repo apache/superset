@@ -746,7 +746,6 @@ export function useDatabaseValidation() {
   );
   const getValidation = useCallback(
     (database: Partial<DatabaseObject> | null, onCreate = false) => {
-      console.log(database?.parameters);
       if (database?.parameters?.ssh) {
         // when ssh tunnel is enabled we don't want to render any validation errors
         setValidationErrors(null);
