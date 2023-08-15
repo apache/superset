@@ -358,7 +358,6 @@ class ChartDataRestApi(ChartRestApi):
         # post-processing of data, eg, the pivot table.
         if result_type == ChartDataResultType.POST_PROCESSED:
             result = apply_post_process(result, form_data, datasource)
-
         if result_format == ChartDataResultFormat.XLSX:
             # Verify user has permission to export XLSX file
             if not security_manager.can_access("can_csv", "Superset"):
@@ -387,7 +386,7 @@ class ChartDataRestApi(ChartRestApi):
             # return multi-query csv results bundled as a zip file
             encoding = current_app.config["XLSX_EXPORT"].get("encoding", "utf-8")
             files = {
-                f"query_{idx + 1}.xlsx": result["data"].encode(encoding)
+                f"query_{idx + 1}.xlsx": str(result["data"]).encode(encoding)
                 for idx, result in enumerate(result["queries"])
             }
             return Response(
@@ -407,6 +406,7 @@ class ChartDataRestApi(ChartRestApi):
             if len(result["queries"]) == 1:
                 # return single query results csv format
                 data = result["queries"][0]["data"]
+                logger.warning(data)
                 return CsvResponse(data, headers=generate_download_headers("csv"))
 
             # return multi-query csv results bundled as a zip file
