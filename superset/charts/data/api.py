@@ -366,14 +366,18 @@ class ChartDataRestApi(ChartRestApi):
             if not result["queries"]:
                 return self.response_400(_("Empty query result"))
 
-            if len(result["queries"]) == 1 or result["queries"][0] == result["queries"][1]:
-                try:
-                    # return single query results xlsx format
-                    df = delete_tz_from_df(result['queries'][0])
-                except IndexError:
-                    return self.response_500(
-                        _("Server error occurred while exporting the file")
-                    )
+            if list_of_data := result["queries"]:
+                df = pd.DataFrame()
+                for data in list_of_data:
+                    logger.warning(data)
+                    try:
+                        # return single query results xlsx format
+                        df = df.join(delete_tz_from_df(data), how='right', rsuffix='2')
+
+                    except IndexError:
+                        return self.response_500(
+                            _("Server error occurred while exporting the file")
+                        )
 
                 excel_writer = io.BytesIO()
                 writer = pd.ExcelWriter(excel_writer, mode="w", engine="xlsxwriter")
@@ -391,7 +395,7 @@ class ChartDataRestApi(ChartRestApi):
                 for idx, result in enumerate(result["queries"])
             }
 
-            return send_file(
+            return Response(
                 create_zip(files),
                 mimetype="application/zip",
             )
@@ -404,7 +408,7 @@ class ChartDataRestApi(ChartRestApi):
             if not result["queries"]:
                 return self.response_400(_("Empty query result"))
 
-            if len(result["queries"]) == 1 or result["queries"][0] == result["queries"][1]:
+            if len(result["queries"]) == 1:
                 # return single query results csv format
                 data = result["queries"][0]["data"]
                 return CsvResponse(data, headers=generate_download_headers("csv"))
