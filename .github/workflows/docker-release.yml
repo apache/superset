@@ -1,9 +1,8 @@
 name: Docker
 
 on:
-  push:
-    branches:
-      - 'arm-build'
+  release:
+     types: [published]
 jobs:
   config:
     runs-on: "ubuntu-latest"
