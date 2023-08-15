@@ -20,14 +20,12 @@ import logging
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy.exc import SQLAlchemyError
-
 from superset.charts.filters import ChartFilter
 from superset.daos.base import BaseDAO
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
 from superset.models.slice import Slice
-from superset.utils.core import get_iterable, get_user_id
+from superset.utils.core import get_user_id
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource

@@ -23,7 +23,6 @@ from typing import Any
 
 from flask import g
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from sqlalchemy.exc import SQLAlchemyError
 
 from superset import is_feature_enabled, security_manager
 from superset.daos.base import BaseDAO
@@ -48,7 +47,7 @@ from superset.models.dashboard import Dashboard, id_or_slug_filter
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.filter_set import FilterSet
 from superset.models.slice import Slice
-from superset.utils.core import get_iterable, get_user_id
+from superset.utils.core import get_user_id
 from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
 
 logger = logging.getLogger(__name__)
