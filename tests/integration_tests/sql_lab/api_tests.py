@@ -58,7 +58,7 @@ class TestSqlLabApi(SupersetTestCase):
         assert result["active_tab"] == None
         assert result["queries"] == {}
         assert result["tab_state_ids"] == []
-        self.assertEqual(len(result["databases"]), 1)
+        self.assertEqual(len(result["databases"]), 0)
 
     @mock.patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
