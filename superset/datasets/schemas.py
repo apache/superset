@@ -249,6 +249,7 @@ class ImportV1DatasetSchema(Schema):
     data = fields.URL()
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    normalize_columns = fields.Boolean(load_default=False)
 
 
 class GetOrCreateDatasetSchema(Schema):

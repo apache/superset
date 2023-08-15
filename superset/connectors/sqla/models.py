@@ -546,7 +546,7 @@ class SqlaTable(
     is_sqllab_view = Column(Boolean, default=False)
     template_params = Column(Text)
     extra = Column(Text)
-    normalize_columns = Column(Boolean)
+    normalize_columns = Column(Boolean, default=False)
 
     baselink = "tablemodelview"
 

@@ -230,6 +230,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
             "filter_select_enabled",
             "fetch_values_predicate",
             "extra",
+            "normalize_columns",
             "uuid",
             "metrics",
             "columns",

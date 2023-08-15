@@ -41,7 +41,7 @@ class SqlaTable(Base):
     __tablename__ = "tables"
 
     id = sa.Column(sa.Integer, primary_key=True)
-    normalize_columns = sa.Column(sa.Boolean)
+    normalize_columns = sa.Column(sa.Boolean())
 
 
 def upgrade():
@@ -50,7 +50,8 @@ def upgrade():
         sa.Column(
             "normalize_columns",
             sa.Boolean(),
-            nullable=False,
+            nullable=True,
+            default=False,
             server_default=sa.false(),
         ),
     )
