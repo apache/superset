@@ -34,7 +34,7 @@ from superset.views.base import DatasourceFilter
 logger = logging.getLogger(__name__)
 
 
-class DatasetDAO(BaseDAO[SqlaTable]):  # pylint: disable=too-many-public-methods
+class DatasetDAO(BaseDAO[SqlaTable]):
     base_filter = DatasourceFilter
 
     @staticmethod
