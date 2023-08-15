@@ -52,6 +52,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
+from superset.sqllab.utils import bootstrap_sqllab_data
 from superset.utils import core as utils
 from superset.utils.core import backend
 from superset.utils.database import get_example_database
@@ -1135,7 +1136,8 @@ class TestCore(SupersetTestCase, InsertChartMixin):
 
         # we should have only 1 query returned, since the second one is not
         # associated with any tabs
-        payload = views.Superset._get_sqllab_tabs(user_id=user_id)
+        # TODO: replaces this spec by api/v1/sqllab spec later
+        payload = bootstrap_sqllab_data(user_id)
         self.assertEqual(len(payload["queries"]), 1)
 
     @mock.patch.dict(

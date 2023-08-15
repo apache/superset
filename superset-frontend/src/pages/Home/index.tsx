@@ -18,6 +18,7 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  isFeatureEnabled,
   FeatureFlag,
   getExtensionsRegistry,
   JsonObject,
@@ -45,12 +46,11 @@ import {
   loadingCardCount,
   mq,
 } from 'src/views/CRUD/utils';
-import { isFeatureEnabled } from 'src/featureFlags';
 import { AntdSwitch } from 'src/components';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { TableTab } from 'src/views/CRUD/types';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import { canUserAccessSqlLab } from 'src/dashboard/util/permissionUtils';
+import { userHasPermission } from 'src/dashboard/util/permissionUtils';
 import { WelcomePageLastTab } from 'src/features/home/types';
 import ActivityTable from 'src/features/home/ActivityTable';
 import ChartTable from 'src/features/home/ChartTable';
@@ -156,7 +156,7 @@ export const LoadingCards = ({ cover }: LoadingProps) => (
 );
 
 function Welcome({ user, addDangerToast }: WelcomeProps) {
-  const canAccessSqlLab = canUserAccessSqlLab(user);
+  const canReadSavedQueries = userHasPermission(user, 'SavedQuery', 'can_read');
   const userid = user.userId;
   const id = userid!.toString(); // confident that user is not a guest user
   const params = rison.encode({ page_size: 6 });
@@ -281,7 +281,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           addDangerToast(t('There was an issue fetching your chart: %s', err));
           return Promise.resolve();
         }),
-      canAccessSqlLab
+      canReadSavedQueries
         ? getUserOwnedObjects(id, 'saved_query', ownSavedQueryFilters)
             .then(r => {
               setQueryData(r);
@@ -410,7 +410,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                   />
                 )}
               </Collapse.Panel>
-              {canAccessSqlLab && (
+              {canReadSavedQueries && (
                 <Collapse.Panel header={t('Saved queries')} key="4">
                   {!queryData ? (
                     <LoadingCards cover={checked} />

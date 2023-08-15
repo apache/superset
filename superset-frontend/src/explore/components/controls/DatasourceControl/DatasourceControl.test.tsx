@@ -149,7 +149,7 @@ test('Should show SQL Lab for sql_lab role', async () => {
       isActive: true,
       lastName: 'sql',
       permissions: {},
-      roles: { Gamma: [], sql_lab: [] },
+      roles: { Gamma: [], sql_lab: [['menu_access', 'SQL Lab']] },
       userId: 2,
       username: 'sql',
     },

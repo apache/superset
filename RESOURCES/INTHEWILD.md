@@ -144,6 +144,7 @@ Join our growing community!
 - [DouroECI](https://www.douroeci.com/) [@nunohelibeires]
 - [Safaricom](https://www.safaricom.co.ke/) [@mmutiso]
 - [Scoot](https://scoot.co/) [@haaspt]
+- [Wattbewerb](https://wattbewerb.de/) [@wattbewerb]
 
 ### Healthcare
 - [Amino](https://amino.com) [@shkr]
@@ -168,6 +169,7 @@ Join our growing community!
 
 ### Others
 - [AI inside](https://inside.ai/en/)
+- [Automattic](https://automattic.com/) [@Khrol, @Usiel]
 - [Dropbox](https://www.dropbox.com/) [@bkyryliuk]
 - [Grassroot](https://www.grassrootinstitute.org/)
 - [komoot](https://www.komoot.com/) [@christophlingg]

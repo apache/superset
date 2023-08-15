@@ -17,12 +17,15 @@
 
 # pylint: disable=import-outside-toplevel, unused-argument
 
+from datetime import datetime, timezone
 
 import numpy as np
 import pandas as pd
 from numpy.core.multiarray import array
+from pytest_mock import MockerFixture
 
-from superset.result_set import stringify_values
+from superset.db_engine_specs.base import BaseEngineSpec
+from superset.result_set import stringify_values, SupersetResultSet
 
 
 def test_column_names_as_bytes() -> None:
@@ -140,3 +143,24 @@ def test_stringify_with_null_timestamps():
     )
 
     assert np.array_equal(result_set, expected)
+
+
+def test_timezone_series(mocker: MockerFixture) -> None:
+    """
+    Test that we can handle timezone-aware datetimes correctly.
+
+    This covers a regression that happened when upgrading from Pandas 1.5.3 to 2.0.3.
+    """
+    logger = mocker.patch("superset.result_set.logger")
+
+    data = [[datetime(2023, 1, 1, tzinfo=timezone.utc)]]
+    description = [(b"__time", "datetime", None, None, None, None, False)]
+    result_set = SupersetResultSet(
+        data,
+        description,  # type: ignore
+        BaseEngineSpec,
+    )
+    assert result_set.to_pandas_df().values.tolist() == [
+        [pd.Timestamp("2023-01-01 00:00:00+0000", tz="UTC")]
+    ]
+    logger.exception.assert_not_called()

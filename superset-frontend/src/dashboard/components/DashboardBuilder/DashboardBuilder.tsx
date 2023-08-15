@@ -29,6 +29,7 @@ import React, {
 import {
   addAlpha,
   css,
+  isFeatureEnabled,
   FeatureFlag,
   JsonObject,
   styled,
@@ -58,7 +59,6 @@ import {
   setDirectPathToChild,
   setEditMode,
 } from 'src/dashboard/actions/dashboardState';
-import { isFeatureEnabled } from 'src/featureFlags';
 import {
   deleteTopLevelTabs,
   handleComponentDrop,

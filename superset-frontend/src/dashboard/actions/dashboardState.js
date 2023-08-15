@@ -21,6 +21,7 @@ import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import rison from 'rison';
 import {
   ensureIsArray,
+  isFeatureEnabled,
   FeatureFlag,
   getSharedLabelColor,
   SupersetClient,
@@ -51,7 +52,6 @@ import serializeActiveFilterValues from 'src/dashboard/util/serializeActiveFilte
 import serializeFilterScopes from 'src/dashboard/util/serializeFilterScopes';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { safeStringify } from 'src/utils/safeStringify';
-import { isFeatureEnabled } from 'src/featureFlags';
 import { logEvent } from 'src/logger/actions';
 import { LOG_ACTIONS_CONFIRM_OVERWRITE_DASHBOARD_METADATA } from 'src/logger/LogUtils';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';

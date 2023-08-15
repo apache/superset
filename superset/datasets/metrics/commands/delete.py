@@ -20,7 +20,7 @@ from typing import Optional
 from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import SqlMetric
-from superset.daos.dataset import DatasetDAO
+from superset.daos.dataset import DatasetDAO, DatasetMetricDAO
 from superset.daos.exceptions import DAODeleteFailedError
 from superset.datasets.metrics.commands.exceptions import (
     DatasetMetricDeleteFailedError,
@@ -43,7 +43,7 @@ class DeleteDatasetMetricCommand(BaseCommand):
         assert self._model
 
         try:
-            DatasetDAO.delete_metric(self._model)
+            DatasetMetricDAO.delete(self._model)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
             raise DatasetMetricDeleteFailedError() from ex

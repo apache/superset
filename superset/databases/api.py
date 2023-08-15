@@ -1293,6 +1293,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                           type: array
                           items:
                             type: string
+                        sqlalchemy_uri_placeholder:
+                          description: Placeholder for the SQLAlchemy URI
+                          type: string
                         default_driver:
                           description: Default driver for the engine
                           type: string
@@ -1330,6 +1333,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "name": engine_spec.engine_name,
                 "engine": engine_spec.engine,
                 "available_drivers": sorted(drivers),
+                "sqlalchemy_uri_placeholder": engine_spec.sqlalchemy_uri_placeholder,
                 "preferred": engine_spec.engine_name in preferred_databases,
                 "engine_information": engine_spec.get_public_information(),
             }

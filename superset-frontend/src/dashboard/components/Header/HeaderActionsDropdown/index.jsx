@@ -19,9 +19,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { isEmpty } from 'lodash';
-
-import { FeatureFlag, SupersetClient, t } from '@superset-ui/core';
-
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  SupersetClient,
+  t,
+} from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { URL_PARAMS } from 'src/constants';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
@@ -37,7 +40,6 @@ import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
-import { isFeatureEnabled } from 'src/featureFlags';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,

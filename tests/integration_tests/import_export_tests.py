@@ -117,6 +117,7 @@ class TestImportExport(SupersetTestCase):
             position_json='{"size_y": 2, "size_x": 2}',
             slug=f"{title.lower()}_imported",
             json_metadata=json.dumps(json_metadata),
+            published=False,
         )
 
     def create_table(self, name, schema=None, id=0, cols_names=[], metric_names=[]):
