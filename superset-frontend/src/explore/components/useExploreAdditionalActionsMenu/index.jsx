@@ -291,13 +291,13 @@ export const useExploreAdditionalActionsMenu = (
               >
                 {t('Export to .CSV')}
               </Menu.Item>
-              <Menu.Item
+              {/* <Menu.Item
                 key={MENU_KEYS.EXPORT_TO_XLSX}
                 icon={<FileOutlined />}
                 disabled={!canDownloadCSV}
               >
                 {t('Export to .XLSX')}
-              </Menu.Item>
+              </Menu.Item> */}
             </>
           )}
           {/* <Menu.Item key={MENU_KEYS.EXPORT_TO_JSON} icon={<FileOutlined />}>
