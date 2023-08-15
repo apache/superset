@@ -233,7 +233,10 @@ class RefreshIntervalModal extends React.PureComponent<
                   placeholder="Type a number"
                   list="valid_min_and_sec"
                 />
-                <datalist id="valid_min_and_sec" />
+                <datalist
+                  id="valid_min_and_sec"
+                  aria-label="List Minute/Seconds"
+                />
                 {this.update_data_list()}
               </div>
             </div>
