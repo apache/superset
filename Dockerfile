@@ -147,7 +147,7 @@ RUN if [ "$TARGETARCH" = "arm" ] && [ "$TARGETVARIANT" = "v7" ]; then \
     echo "*** BUILD ERROR: \$TARGETARCH must be arm64, amd64, or arm with \$TARGETVARIANT set to v7... exiting..." ; \
     exit 1 ; \
     fi ; \
-    if [ "$ARCH" = "arm64" ]; then \ 
+    if [ "$ARCH" = "arm64" ]; then \
     wget --no-verbose -O /tmp/geckodriver.tar.gz https://github.com/mozilla/geckodriver/releases/download/v$GECKODRIVER_VERSION/geckodriver-v$GECKODRIVER_VERSION-linux-aarch64.tar.gz ; \
     elif [ "$ARCH" = "armhf" ]; then \
     wget --no-verbose -O /tmp/geckodriver.tar.gz https://github.com/jamesmortensen/geckodriver-arm-binaries/releases/download/v$GECKODRIVER_VERSION/geckodriver-v$GECKODRIVER_VERSION-linux-armv7l.tar.gz ; \
