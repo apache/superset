@@ -105,6 +105,7 @@ class TestDatasource(SupersetTestCase):
                 "database_name": tbl.database.database_name,
                 "schema_name": tbl.schema,
                 "table_name": tbl.table_name,
+                "normalize_columns": tbl.normalize_columns,
             }
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
@@ -133,6 +134,7 @@ class TestDatasource(SupersetTestCase):
                 "database_name": tbl.database.database_name,
                 "schema_name": tbl.schema,
                 "table_name": tbl.table_name,
+                "normalize_columns": tbl.normalize_columns,
             }
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
@@ -151,6 +153,7 @@ class TestDatasource(SupersetTestCase):
                     "database_name": example_database.database_name,
                     "table_name": "test_table",
                     "schema_name": get_example_default_schema(),
+                    "normalize_columns": False,
                 }
             )
             url = f"/datasource/external_metadata_by_name/?q={params}"
@@ -164,6 +167,7 @@ class TestDatasource(SupersetTestCase):
                 "datasource_type": "table",
                 "database_name": "foo",
                 "table_name": "bar",
+                "normalize_columns": False,
             }
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
@@ -180,6 +184,7 @@ class TestDatasource(SupersetTestCase):
                 "datasource_type": "table",
                 "database_name": example_database.database_name,
                 "table_name": "fooooooooobarrrrrr",
+                "normalize_columns": False,
             }
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"

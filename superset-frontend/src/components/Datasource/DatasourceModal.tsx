@@ -128,6 +128,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         schema,
         description: currentDatasource.description,
         main_dttm_col: currentDatasource.main_dttm_col,
+        normalize_columns: currentDatasource.normalize_columns,
         offset: currentDatasource.offset,
         default_endpoint: currentDatasource.default_endpoint,
         cache_timeout:
