@@ -469,7 +469,8 @@ class TestTagApi(SupersetTestCase):
             .first()
         )
         rv = self.client.post(
-            uri, json={"tag": "my_tag", "objects_to_tag": [["dashboard", dashboard.id]]}
+            uri,
+            json={"name": "my_tag", "objects_to_tag": [["dashboard", dashboard.id]]},
         )
 
         self.assertEqual(rv.status_code, 201)
