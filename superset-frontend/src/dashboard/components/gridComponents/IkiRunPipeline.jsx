@@ -105,11 +105,12 @@ class IkiRunPipeline extends React.PureComponent {
       //                  title="IkiRunPipeline Component"
       //                  className="ikirunpipeline-widget"
       //                  style="min-height: 100%;"
-      //                />`,
+      //  />`,
       editor: null,
       editorMode: 'edit',
       undoLength: props.undoLength,
       redoLength: props.redoLength,
+      dashboardId: null,
     };
     this.renderStartTime = Logger.getTimestamp();
 
@@ -119,10 +120,15 @@ class IkiRunPipeline extends React.PureComponent {
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleResizeStart = this.handleResizeStart.bind(this);
     this.setEditor = this.setEditor.bind(this);
-    this.forceRefresh = this.forceRefresh.bind(this);
   }
 
   componentDidMount() {
+    try {
+      var tempDashID = parseInt(
+        window.location.pathname.split('/dashboard/')[1].split('/')[0],
+      );
+      this.setState({ dashboardId: tempDashID });
+    } catch (error) {}
     this.props.logEvent(LOG_ACTIONS_RENDER_CHART, {
       viz_type: 'markdown',
       start_offset: this.renderStartTime,
@@ -285,7 +291,12 @@ class IkiRunPipeline extends React.PureComponent {
 
   refreshCharts(selectedCharts) {
     selectedCharts.forEach(selectedChart => {
-      this.refreshChart(selectedChart.id, selectedChart.id, 15, false);
+      this.refreshChart(
+        selectedChart.id,
+        selectedChart.id,
+        this.state.dashboardId,
+        false,
+      );
     });
   }
 
@@ -338,6 +349,7 @@ class IkiRunPipeline extends React.PureComponent {
     } else {
       widgetUrl = `${this.props.ikigaiOrigin}/widget/pipeline/run?mode=edit&v=1&run_flow_times=${timestamp}`;
     }
+    console.log('widgetUrl', widgetUrl);
     const widgetUrlQuery = new URLSearchParams(widgetUrl.search);
     widgetUrlQuery.set('mode', mode);
     widgetUrlQuery.set('charts_list', window.btoa(JSON.stringify(chartsList)));
@@ -416,6 +428,7 @@ class IkiRunPipeline extends React.PureComponent {
   renderIframe() {
     const { markdownSource, hasError } = this.state;
     const { ikigaiOrigin } = this.props;
+    // const ikigaiOrigin = 'http://localhost:3000';
     let iframe = '';
     let iframeSrc = '';
     if (ikigaiOrigin) {
@@ -502,6 +515,7 @@ class IkiRunPipeline extends React.PureComponent {
   }
 
   refreshChart(sliceId, chartId, dashboardId, isCached) {
+    console.log('refreshChart', sliceId, chartId, dashboardId, isCached);
     this.props.logEvent(LOG_ACTIONS_FORCE_REFRESH_CHART, {
       slice_id: sliceId,
       is_cached: isCached,
