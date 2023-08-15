@@ -862,7 +862,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # add quotes to tables
         if db_engine_spec.allows_alias_in_select:
             label = db_engine_spec.make_label_compatible(label_expected)
-            sqla_col = sqla_col.label(label)
+            sqla_col = sqla_col.label(db_engine_spec.alias_in_select_mutator(label))
         sqla_col.key = label_expected
         return sqla_col
 
