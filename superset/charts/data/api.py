@@ -366,7 +366,7 @@ class ChartDataRestApi(ChartRestApi):
             if not result["queries"]:
                 return self.response_400(_("Empty query result"))
 
-            if len(result["queries"]) == 1:
+            if len(result["queries"]) == 1 or result["queries"][0] == result["queries"][1]:
                 try:
                     # return single query results xlsx format
                     df = delete_tz_from_df(result['queries'][0])
@@ -382,11 +382,12 @@ class ChartDataRestApi(ChartRestApi):
                 writer.save()
                 excel_writer.seek(0)
                 return excel_writer
-
+            logger.warning(result)
             # return multi-query csv results bundled as a zip file
             encoding = current_app.config["XLSX_EXPORT"].get("encoding", "utf-8")
+            logger.warning(result["queries"][0] == result["queries"][1])
             files = {
-                f"query_{idx + 1}.xlsx": str(result["data"]).encode(encoding)
+                f"query_{idx + 1}.xlsx": str(result["queries"][0]["data"]).encode(encoding)
                 for idx, result in enumerate(result["queries"])
             }
             return Response(
@@ -403,7 +404,7 @@ class ChartDataRestApi(ChartRestApi):
             if not result["queries"]:
                 return self.response_400(_("Empty query result"))
 
-            if len(result["queries"]) == 1:
+            if len(result["queries"]) == 1 or result["queries"][0] == result["queries"][1]:
                 # return single query results csv format
                 data = result["queries"][0]["data"]
                 logger.warning(data)
@@ -412,7 +413,7 @@ class ChartDataRestApi(ChartRestApi):
             # return multi-query csv results bundled as a zip file
             encoding = current_app.config["CSV_EXPORT"].get("encoding", "utf-8")
             files = {
-                f"query_{idx + 1}.csv": result["data"].encode(encoding)
+                f"query_{idx + 1}.csv": result["queries"][0]["data"].encode(encoding)
                 for idx, result in enumerate(result["queries"])
             }
             return Response(
