@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ensureIsArray, styled, t, css } from '@superset-ui/core';
-import { StringParam, useQueryParam } from 'use-query-params';
+import { NumberParam, StringParam, useQueryParam } from 'use-query-params';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import AsyncSelect from 'src/components/Select/AsyncSelect';
 import { SelectValue } from 'antd/lib/select';
@@ -28,6 +28,8 @@ import AllEntitiesTable from 'src/features/allEntities/AllEntitiesTable';
 import Button from 'src/components/Button';
 import MetadataBar, { MetadataType } from 'src/components/MetadataBar';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
+import { fetchSingleTag } from 'src/features/tags/tags';
+import { Tag } from 'src/views/CRUD/types';
 
 const additionalItemsStyles = theme => css`
   display: flex;
@@ -78,6 +80,8 @@ const AllEntitiesNav = styled.div`
 
 function AllEntities() {
   const [tagsQuery, setTagsQuery] = useQueryParam('tags', StringParam);
+  const [tagId, setTagId] = useQueryParam('id', NumberParam);
+  const [tag, setTag] = useState<Tag>(null);
 
   const onTagSearchChange = (value: SelectValue) => {
     const tags = ensureIsArray(value).map(tag => getValue(tag));
@@ -116,6 +120,23 @@ function AllEntities() {
     createdBy: 'hugh miles',
     owners: 'hugh miles',
   });
+
+  useEffect(() => {
+    // fetch single tag met
+    if (tagId) {
+      fetchSingleTag(
+        tagId,
+        (tag: Tag) => {
+          console.log(tag);
+          setTag(tag);
+        },
+        (error: Response) => {
+          addDangerToast('Error Fetching Tagged Objects');
+          logging.log(error.text);
+        },
+      );
+    }
+  }, [tagId]);
 
   return (
     <AllEntitiesContainer>
