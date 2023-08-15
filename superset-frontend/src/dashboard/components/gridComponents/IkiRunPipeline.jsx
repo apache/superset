@@ -126,6 +126,7 @@ class IkiRunPipeline extends React.PureComponent {
     this.setState({
       dashboardId: parseInt(
         window.location.pathname.split('/dashboard/')[1].split('/')[0],
+        10,
       ),
     });
     this.props.logEvent(LOG_ACTIONS_RENDER_CHART, {
