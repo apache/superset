@@ -126,12 +126,6 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
             )
         )
 
-        users_favorite_dash_query = db.session.query(FavStar.obj_id).filter(
-            and_(
-                FavStar.user_id == get_user_id(),
-                FavStar.class_name == "Dashboard",
-            )
-        )
         owner_ids_query = (
             db.session.query(Dashboard.id)
             .join(Dashboard.owners)
@@ -179,7 +173,6 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
             or_(
                 Dashboard.id.in_(owner_ids_query),
                 Dashboard.id.in_(datasource_perm_query),
-                Dashboard.id.in_(users_favorite_dash_query),
                 *feature_flagged_filters,
             )
         )
