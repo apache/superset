@@ -990,7 +990,6 @@ class SqlaTable(
         time_grain = col.get("timeGrain")
         has_timegrain = col.get("columnType") == "BASE_AXIS" and time_grain
         is_dttm = False
-        pdf = None
         if col_in_metadata := self.get_column(expression):
             sqla_column = col_in_metadata.get_sqla_col(
                 template_processor=template_processor

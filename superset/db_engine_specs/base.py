@@ -723,10 +723,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             )
         )
 
-    @staticmethod
-    def alias_in_select_mutator(label: str) -> str:
-        return label
-
     @classmethod
     def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
         """
