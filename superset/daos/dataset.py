@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -28,7 +28,7 @@ from superset.extensions import db
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.core import DatasourceType, get_iterable
+from superset.utils.core import DatasourceType, get_as_list
 from superset.views.base import DatasourceFilter
 
 logger = logging.getLogger(__name__)
@@ -312,7 +312,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):  # pylint: disable=too-many-public-methods
     @classmethod
     def delete(
         cls,
-        items: SqlaTable | list[SqlaTable],
+        item_or_items: SqlaTable | list[SqlaTable],
         commit: bool = True,
     ) -> None:
         """
@@ -326,16 +326,16 @@ class DatasetDAO(BaseDAO[SqlaTable]):  # pylint: disable=too-many-public-methods
         :raises DAODeleteFailedError: If the deletion failed
         :see: https://docs.sqlalchemy.org/en/latest/orm/queryguide/dml.html
         """
-
+        items = cast(list[SqlaTable], get_as_list(item_or_items))
         try:
             db.session.query(SqlaTable).filter(
-                SqlaTable.id.in_(item.id for item in get_iterable(items))
+                SqlaTable.id.in_(item.id for item in items)
             ).delete(synchronize_session="fetch")
 
             connection = db.session.connection()
             mapper = next(iter(cls.model_cls.registry.mappers))  # type: ignore
 
-            for item in get_iterable(items):
+            for item in items:
                 security_manager.dataset_after_delete(mapper, connection, item)
 
             if commit:

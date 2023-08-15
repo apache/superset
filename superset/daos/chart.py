@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import cast, TYPE_CHECKING
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -27,7 +27,7 @@ from superset.daos.base import BaseDAO
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
 from superset.models.slice import Slice
-from superset.utils.core import get_iterable, get_user_id
+from superset.utils.core import get_as_list, get_user_id
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
@@ -39,8 +39,9 @@ class ChartDAO(BaseDAO[Slice]):
     base_filter = ChartFilter
 
     @classmethod
-    def delete(cls, items: Slice | list[Slice], commit: bool = True) -> None:
-        item_ids = [item.id for item in get_iterable(items)]
+    def delete(cls, item_or_items: Slice | list[Slice], commit: bool = True) -> None:
+        items = cast(list[Slice], item_or_items)
+        item_ids = [item.id for item in items]
         # bulk delete, first delete related data
         # bulk delete itself
         try:

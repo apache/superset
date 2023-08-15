@@ -30,7 +30,7 @@ from superset.daos.exceptions import (
     DAOUpdateFailedError,
 )
 from superset.extensions import db
-from superset.utils.core import get_iterable
+from superset.utils.core import get_as_list
 
 T = TypeVar("T", bound=Model)
 
@@ -216,7 +216,7 @@ class BaseDAO(Generic[T]):
         """
 
         try:
-            for item in get_iterable(items):
+            for item in get_as_list(items):
                 db.session.delete(item)
 
             if commit:
