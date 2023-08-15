@@ -313,6 +313,7 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         "is_sqllab_view",
         "template_params",
         "extra",
+        "normalize_columns",
     ]
     base_filters = [["id", DatasourceFilter, lambda: []]]
     show_columns = edit_columns + ["perm", "slices"]
@@ -378,6 +379,10 @@ class TableModelView(  # pylint: disable=too-many-ancestors
             '"Data Platform Team", "details": "This table is the source of truth." '
             '}, "warning_markdown": "This is a warning." }`.',
             True,
+        ),
+        "normalize_columns": _(
+            "Allow column names to be changed to case insensitive format, "
+            "if supported (e.g. Oracle, Snowflake)."
         ),
     }
     label_columns = {

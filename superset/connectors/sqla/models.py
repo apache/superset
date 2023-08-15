@@ -546,6 +546,7 @@ class SqlaTable(
     is_sqllab_view = Column(Boolean, default=False)
     template_params = Column(Text)
     extra = Column(Text)
+    normalize_columns = Column(Boolean, default=False)
 
     baselink = "tablemodelview"
 
@@ -564,6 +565,7 @@ class SqlaTable(
         "filter_select_enabled",
         "fetch_values_predicate",
         "extra",
+        "normalize_columns",
     ]
     update_from_object_fields = [f for f in export_fields if f != "database_id"]
     export_parent = "database"
@@ -717,6 +719,7 @@ class SqlaTable(
             database=self.database,
             table_name=self.table_name,
             schema_name=self.schema,
+            normalize_columns=self.normalize_columns,
         )
 
     @property

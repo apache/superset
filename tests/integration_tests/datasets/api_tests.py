@@ -540,6 +540,8 @@ class TestDatasetApi(SupersetTestCase):
         model = db.session.query(SqlaTable).get(table_id)
         assert model.table_name == table_data["table_name"]
         assert model.database_id == table_data["database"]
+        # normalize_columns should default to False
+        assert model.normalize_columns is False
 
         # Assert that columns were created
         columns = (
@@ -559,6 +561,34 @@ class TestDatasetApi(SupersetTestCase):
             .all()
         )
         assert columns[0].expression == "COUNT(*)"
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_create_dataset_item_normalize(self):
+        """
+        Dataset API: Test create dataset item with column normalization enabled
+        """
+        if backend() == "sqlite":
+            return
+
+        main_db = get_main_database()
+        self.login(username="admin")
+        table_data = {
+            "database": main_db.id,
+            "schema": None,
+            "table_name": "ab_permission",
+            "normalize_columns": True,
+        }
+        uri = "api/v1/dataset/"
+        rv = self.post_assert_metric(uri, table_data, "post")
+        assert rv.status_code == 201
+        data = json.loads(rv.data.decode("utf-8"))
+        table_id = data.get("id")
+        model = db.session.query(SqlaTable).get(table_id)
+        assert model.table_name == table_data["table_name"]
+        assert model.database_id == table_data["database"]
+        assert model.normalize_columns is True
 
         db.session.delete(model)
         db.session.commit()
@@ -2494,8 +2524,9 @@ class TestDatasetApi(SupersetTestCase):
             .filter_by(table_name="test_create_sqla_table_api")
             .one()
         )
-        self.assertEqual(response["result"], {"table_id": table.id})
-        self.assertEqual(table.template_params, '{"param": 1}')
+        assert response["result"] == {"table_id": table.id}
+        assert table.template_params == '{"param": 1}'
+        assert table.normalize_columns is False
 
         db.session.delete(table)
         with examples_db.get_sqla_engine_with_context() as engine:
