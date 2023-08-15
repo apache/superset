@@ -192,8 +192,11 @@ only a few database engines are supported for use as the OLTP backend / metadata
 
 Superset is tested using MySQL, PostgreSQL, and SQLite backends. It’s recommended you install
 Superset on one of these database servers for production.  Installation on other OLTP databases
-may work but isn’t tested. Column-store, non-OLTP databases are not designed for this type of workload.
+may work but isn’t tested (though Microsoft SQL Server has been [reported *not* to
+work](https://github.com/apache/superset/issues/18961) as a Superset backend). Column-store,
+non-OLTP databases are not designed for this type of workload.
 
+Superset has been [reported *not* to work](https://github.com/apache/superset/issues/18961) with Microsoft SQL Server as a backend.
 
 ### How can I configure OAuth authentication and authorization?
 
