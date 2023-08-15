@@ -92,8 +92,8 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
     """
     List dashboards with the following criteria:
         1. Those which the user owns
-        2. Those which the user has favorited
-        3. Those which have been published (if they have access to at least one slice)
+        2. Those which have been published (if they have access to at least one slice)
+        3. Those that they have access to via a role (if `DASHBOARD_RBAC` is enabled)
 
     If the user is an admin then show all dashboards.
     This means they do not get curation but can still sort by "published"
