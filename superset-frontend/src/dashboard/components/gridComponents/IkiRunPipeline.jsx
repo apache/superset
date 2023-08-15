@@ -123,12 +123,11 @@ class IkiRunPipeline extends React.PureComponent {
   }
 
   componentDidMount() {
-    try {
-      var tempDashID = parseInt(
+    this.setState({
+      dashboardId: parseInt(
         window.location.pathname.split('/dashboard/')[1].split('/')[0],
-      );
-      this.setState({ dashboardId: tempDashID });
-    } catch (error) {}
+      ),
+    });
     this.props.logEvent(LOG_ACTIONS_RENDER_CHART, {
       viz_type: 'markdown',
       start_offset: this.renderStartTime,
