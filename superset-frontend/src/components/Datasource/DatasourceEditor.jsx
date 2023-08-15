@@ -999,7 +999,7 @@ class DatasourceEditor extends React.PureComponent {
           fieldKey="normalize_columns"
           label={t('Normalize column names')}
           description={t(
-            'Allow column names to be changed to case insensitive format',
+            'Allow column names to be changed to case insensitive format, if supported (e.g. Oracle, Snowflake).',
           )}
           control={<CheckboxControl controlId="normalize_columns" />}
         />

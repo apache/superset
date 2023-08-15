@@ -381,7 +381,8 @@ class TableModelView(  # pylint: disable=too-many-ancestors
             True,
         ),
         "normalize_columns": _(
-            "Allow column names to be changed to case insensitive format"
+            "Allow column names to be changed to case insensitive format, "
+            "if supported (e.g. Oracle, Snowflake)."
         ),
     }
     label_columns = {
