@@ -38,19 +38,6 @@ logger = logging.getLogger(__name__)
 class ChartDAO(BaseDAO[Slice]):
     base_filter = ChartFilter
 
-    @classmethod
-    def delete(cls, items: Slice | list[Slice], commit: bool = True) -> None:
-        # bulk delete, first delete related data
-        # bulk delete itself
-        try:
-            for item in get_iterable(items):
-                db.session.delete(item)
-            if commit:
-                db.session.commit()
-        except SQLAlchemyError as ex:
-            db.session.rollback()
-            raise ex
-
     @staticmethod
     def favorited_ids(charts: list[Slice]) -> list[FavStar]:
         ids = [chart.id for chart in charts]
