@@ -24,7 +24,7 @@ from sqlalchemy.orm.query import Query
 
 from superset import db, is_feature_enabled, security_manager
 from superset.connectors.sqla.models import SqlaTable
-from superset.models.core import Database, FavStar
+from superset.models.core import Database
 from superset.models.dashboard import Dashboard, is_uuid
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.slice import Slice
