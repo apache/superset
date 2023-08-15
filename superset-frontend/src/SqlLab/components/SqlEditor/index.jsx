@@ -343,6 +343,7 @@ const SqlEditor = ({
           const session = editor.getSession();
           const cursorPosition = editor.getCursorPosition();
           const totalLine = session.getLength();
+          const currentRow = editor.getFirstVisibleRow();
           let end = editor.find(';', {
             backwards: false,
             skipCurrent: true,
@@ -390,6 +391,7 @@ const SqlEditor = ({
           startQuery();
           editor.selection.clearSelection();
           editor.moveCursorToPosition(cursorPosition);
+          editor.scrollToRow(currentRow);
         },
       },
       {
