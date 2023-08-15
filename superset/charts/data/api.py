@@ -383,16 +383,16 @@ class ChartDataRestApi(ChartRestApi):
                 excel_writer.seek(0)
                 return excel_writer
             logger.warning(result)
-            # return multi-query csv results bundled as a zip file
+            # return multi-query xlsx results bundled as a zip file
             encoding = current_app.config["XLSX_EXPORT"].get("encoding", "utf-8")
             logger.warning(result["queries"][0] == result["queries"][1])
             files = {
-                f"query_{idx + 1}.xlsx": str(result["queries"][0]["data"]).encode(encoding)
+                f"query_{idx + 1}.xlsx": str(result["data"]).encode(encoding)
                 for idx, result in enumerate(result["queries"])
             }
-            return Response(
+            logger.warning(files)
+            return send_file(
                 create_zip(files),
-                headers=generate_download_headers("zip"),
                 mimetype="application/zip",
             )
 
@@ -407,13 +407,12 @@ class ChartDataRestApi(ChartRestApi):
             if len(result["queries"]) == 1 or result["queries"][0] == result["queries"][1]:
                 # return single query results csv format
                 data = result["queries"][0]["data"]
-                logger.warning(data)
                 return CsvResponse(data, headers=generate_download_headers("csv"))
 
             # return multi-query csv results bundled as a zip file
             encoding = current_app.config["CSV_EXPORT"].get("encoding", "utf-8")
             files = {
-                f"query_{idx + 1}.csv": result["queries"][0]["data"].encode(encoding)
+                f"query_{idx + 1}.csv": str(result["data"]).encode(encoding)
                 for idx, result in enumerate(result["queries"])
             }
             return Response(
