@@ -62,7 +62,9 @@ export default function transformProps(
     forceTimestampFormatting,
     yAxisFormat,
     timeRangeFixed,
+    conditionalFormatting,
   } = formData;
+
   const granularity = extractTimegrain(rawFormData as QueryFormData);
   const {
     data = [],
@@ -73,7 +75,8 @@ export default function transformProps(
   } = queriesData[0];
   const metricName = getMetricLabel(metric);
   const compareLag = Number(compareLag_) || 0;
-  let formattedSubheader = subheader;
+  const formattedSubheader = subheader;
+  let formattedComparison = '';
 
   const { r, g, b } = colorPicker;
   const mainColor = `rgb(${r}, ${g}, ${b})`;
@@ -114,7 +117,7 @@ export default function transformProps(
           percentChange = compareValue
             ? (bigNumber - compareValue) / Math.abs(compareValue)
             : 0;
-          formattedSubheader = `${formatPercentChange(
+          formattedComparison = `${formatPercentChange(
             percentChange,
           )} ${compareSuffix}`;
         }
@@ -236,8 +239,10 @@ export default function transformProps(
     showTrendLine,
     startYAxisAtZero,
     subheader: formattedSubheader,
+    comparison: formattedComparison,
     timestamp,
     trendLineData,
     echartOptions,
+    conditionalFormatting,
   };
 }

@@ -13,19 +13,17 @@ import {
   styled,
 } from '@superset-ui/core';
 import { EChartsCoreOption } from 'echarts';
+import { TimeSeriesDatum, ConditionalFormattingConfig } from './types';
+import {
+  PROPORTION,
+  NO_DATA_OR_HASNT_LANDED,
+  NO_DATA,
+  DEFAULT_COLOR,
+} from './constants';
+import { calculateColor, getColors } from './utils';
 import Echart from '../components/Echart';
-import { TimeSeriesDatum } from './types';
 
 const defaultNumberFormatter = getNumberFormatter();
-
-const PROPORTION = {
-  // text size: proportion of the chart container sans trendline
-  KICKER: 0.1,
-  HEADER: 0.3,
-  SUBHEADER: 0.125,
-  // trendline size: proportion of the whole chart container
-  TRENDLINE: 0.3,
-};
 
 type BigNumberVisProps = {
   className?: string;
@@ -38,6 +36,7 @@ type BigNumberVisProps = {
   headerFontSize: number;
   kickerFontSize: number;
   subheader: string;
+  comparison: string;
   subheaderFontSize: number;
   showTimestamp?: boolean;
   showTrendLine?: boolean;
@@ -49,6 +48,7 @@ type BigNumberVisProps = {
   positiveColor: string;
   negativeColor: string;
   echartOptions: EChartsCoreOption;
+  conditionalFormatting: ConditionalFormattingConfig[];
 };
 
 class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
@@ -65,8 +65,10 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
     showTrendLine: false,
     startYAxisAtZero: true,
     subheader: '',
+    comparison: '',
     subheaderFontSize: PROPORTION.SUBHEADER,
     timeRangeFixed: false,
+    conditionalFormatting: [] as ConditionalFormattingConfig[],
   };
 
   getClassName() {
@@ -133,7 +135,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
     );
   }
 
-  renderHeader(maxHeight: number) {
+  renderHeader(maxHeight: number, textColor: string) {
     const { bigNumber, headerFormatter, width } = this.props;
     const text = bigNumber === null ? t('No data') : headerFormatter(bigNumber);
 
@@ -154,6 +156,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
         style={{
           fontSize,
           height: maxHeight,
+          color: textColor,
         }}
       >
         {text}
@@ -161,17 +164,8 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
     );
   }
 
-  renderSubheader(maxHeight: number) {
-    const {
-      bigNumber,
-      subheader,
-      width,
-      bigNumberFallback,
-      className,
-      mainColor,
-      positiveColor,
-      negativeColor,
-    } = this.props;
+  renderSubheader(maxHeight: number, textColor: string) {
+    const { bigNumber, subheader, width, bigNumberFallback } = this.props;
     let fontSize = 0;
 
     const NO_DATA_OR_HASNT_LANDED = t(
@@ -184,6 +178,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
     if (bigNumber === null) {
       text = bigNumberFallback ? NO_DATA : NO_DATA_OR_HASNT_LANDED;
     }
+
     if (text) {
       const container = this.createTemporaryContainer();
       document.body.append(container);
@@ -196,12 +191,50 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
       });
       container.remove();
 
-      const calculateColor = (className: string | undefined) => {
-        if (!className) return mainColor;
-        if (className.includes('positive')) return positiveColor;
-        if (className.includes('negative')) return negativeColor;
-        return mainColor;
-      };
+      return (
+        <div
+          className="subheader-line"
+          style={{
+            fontSize,
+            height: maxHeight,
+            color: textColor,
+          }}
+        >
+          {text}
+        </div>
+      );
+    }
+    return null;
+  }
+
+  renderComparison(maxHeight: number) {
+    const {
+      bigNumber,
+      comparison,
+      width,
+      bigNumberFallback,
+      className,
+      positiveColor,
+      negativeColor,
+    } = this.props;
+    let fontSize = 0;
+
+    let text = comparison;
+    if (bigNumber === null) {
+      text = bigNumberFallback ? NO_DATA : NO_DATA_OR_HASNT_LANDED;
+    }
+
+    if (text) {
+      const container = this.createTemporaryContainer();
+      document.body.append(container);
+      fontSize = computeMaxFontSize({
+        text,
+        maxWidth: width,
+        maxHeight,
+        className: 'subheader-line',
+        container,
+      });
+      container.remove();
 
       return (
         <div
@@ -209,7 +242,8 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
           style={{
             fontSize,
             height: maxHeight,
-            color: calculateColor(className),
+            color: calculateColor(className, positiveColor, negativeColor),
+            marginTop: '50px',
           }}
         >
           {text}
@@ -243,7 +277,17 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
       kickerFontSize,
       headerFontSize,
       subheaderFontSize,
+      conditionalFormatting,
+      bigNumber,
     } = this.props;
+
+    const allColors = getColors(conditionalFormatting, bigNumber);
+    const finalColors = allColors.filter(color => color !== DEFAULT_COLOR);
+    const finalColor = !finalColors.length
+      ? DEFAULT_COLOR
+      : finalColors[finalColors.length - 1];
+
+    const textColor: string = finalColor;
     const className = this.getClassName();
 
     if (showTrendLine) {
@@ -259,8 +303,15 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
             )}
             {this.renderHeader(
               Math.ceil(headerFontSize * (1 - PROPORTION.TRENDLINE) * height),
+              textColor,
             )}
             {this.renderSubheader(
+              Math.ceil(
+                subheaderFontSize * (1 - PROPORTION.TRENDLINE) * height,
+              ),
+              textColor,
+            )}
+            {this.renderComparison(
               Math.ceil(
                 subheaderFontSize * (1 - PROPORTION.TRENDLINE) * height,
               ),
@@ -275,8 +326,9 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
       <div className={className} style={{ height }}>
         {this.renderFallbackWarning()}
         {this.renderKicker(kickerFontSize * height)}
-        {this.renderHeader(Math.ceil(headerFontSize * height))}
-        {this.renderSubheader(Math.ceil(subheaderFontSize * height))}
+        {this.renderHeader(Math.ceil(headerFontSize * height), textColor)}
+        {this.renderSubheader(Math.ceil(subheaderFontSize * height), textColor)}
+        {this.renderComparison(Math.ceil(subheaderFontSize * height))}
       </div>
     );
   }
