@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any
+from typing import Any, Optional
 
 from marshmallow import fields, post_load, pre_load, Schema, validate
 from typing_extensions import TypedDict
@@ -29,6 +29,7 @@ class ExternalMetadataParams(TypedDict):
     database_name: str
     schema_name: str
     table_name: str
+    normalize_columns: Optional[bool]
 
 
 get_external_metadata_schema = {
@@ -36,6 +37,7 @@ get_external_metadata_schema = {
     "database_name": "string",
     "schema_name": "string",
     "table_name": "string",
+    "normalize_columns": "boolean",
 }
 
 
@@ -44,6 +46,7 @@ class ExternalMetadataSchema(Schema):
     database_name = fields.Str(required=True)
     schema_name = fields.Str(allow_none=True)
     table_name = fields.Str(required=True)
+    normalize_columns = fields.Bool(allow_none=True)
 
     # pylint: disable=unused-argument
     @post_load
@@ -57,6 +60,7 @@ class ExternalMetadataSchema(Schema):
             database_name=data["database_name"],
             schema_name=data.get("schema_name", ""),
             table_name=data["table_name"],
+            normalize_columns=data["normalize_columns"],
         )
 
 

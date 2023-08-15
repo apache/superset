@@ -43,10 +43,9 @@ from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
-from superset.exceptions import QueryObjectValidationError, SupersetException
+from superset.exceptions import SupersetException
 from superset.extensions import async_query_manager, cache_manager
 from superset.models import core as models
-from superset.models.annotations import Annotation, AnnotationLayer
 from superset.models.cache import CacheKey
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -56,7 +55,6 @@ from superset.sqllab.utils import bootstrap_sqllab_data
 from superset.utils import core as utils
 from superset.utils.core import backend
 from superset.utils.database import get_example_database
-from superset.views import core as views
 from superset.views.database.views import DatabaseView
 from tests.integration_tests.conftest import CTAS_SCHEMA_NAME, with_feature_flags
 from tests.integration_tests.fixtures.birth_names_dashboard import (

@@ -77,6 +77,8 @@ class Datasource(BaseSupersetView):
             return json_error_response(_("Request missing data field."), status=500)
 
         datasource_dict = json.loads(data)
+        normalize_columns = datasource_dict.get("normalize_columns", False)
+        datasource_dict["normalize_columns"] = normalize_columns
         datasource_id = datasource_dict.get("id")
         datasource_type = datasource_dict.get("type")
         database_id = datasource_dict["database"].get("id")
@@ -196,6 +198,7 @@ class Datasource(BaseSupersetView):
                     database=database,
                     table_name=params["table_name"],
                     schema_name=params["schema_name"],
+                    normalize_columns=params.get("normalize_columns") or False,
                 )
         except (NoResultFound, NoSuchTableError) as ex:
             raise DatasetNotFoundError() from ex
