@@ -1698,6 +1698,7 @@ class TestSecurityManager(SupersetTestCase):
             security_manager.raise_for_access(viz=test_viz)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @with_feature_flags(DASHBOARD_RBAC=True)
     @patch("superset.security.manager.g")
     @patch("superset.security.SupersetSecurityManager.is_owner")
@@ -1710,12 +1711,12 @@ class TestSecurityManager(SupersetTestCase):
         mock_is_owner,
         mock_g,
     ):
-        dashboard = self.get_dash_by_slug("births")
+        births = self.get_dash_by_slug("births")
+        girls = self.get_slice("Girls", db.session, expunge_from_session=False)
+        birth_names = girls.datasource
 
-        obj = Mock(
-            datasource=self.get_datasource_mock(),
-            form_data={"dashboardId": dashboard.id},
-        )
+        world_health = self.get_dash_by_slug("world_health")
+        treemap = self.get_slice("Treemap", db.session, expunge_from_session=False)
 
         mock_g.user = security_manager.find_user("gamma")
         mock_is_owner.return_value = False
@@ -1723,15 +1724,88 @@ class TestSecurityManager(SupersetTestCase):
         mock_can_access_schema.return_value = False
 
         for kwarg in ["query_context", "viz"]:
-            dashboard.roles = []
+            births.roles = []
             db.session.flush()
 
+            # No dashboard roles.
             with self.assertRaises(SupersetSecurityException):
-                security_manager.raise_for_access(**{kwarg: obj})
+                security_manager.raise_for_access(
+                    **{
+                        kwarg: Mock(
+                            datasource=birth_names,
+                            form_data={
+                                "dashboardId": births.id,
+                                "slice_id": girls.id,
+                            },
+                        )
+                    }
+                )
 
-            dashboard.roles = [self.get_role("Gamma")]
+            births.roles = [self.get_role("Gamma")]
             db.session.flush()
-            security_manager.raise_for_access(**{kwarg: obj})
+
+            # Undefined dashboard.
+            with self.assertRaises(SupersetSecurityException):
+                security_manager.raise_for_access(
+                    **{
+                        kwarg: Mock(
+                            datasource=birth_names,
+                            form_data={},
+                        )
+                    }
+                )
+
+            # Undefined dashboard chart.
+            with self.assertRaises(SupersetSecurityException):
+                security_manager.raise_for_access(
+                    **{
+                        kwarg: Mock(
+                            datasource=birth_names,
+                            form_data={"dashboardId": births.id},
+                        )
+                    }
+                )
+
+            # Ill-defined dashboard chart.
+            with self.assertRaises(SupersetSecurityException):
+                security_manager.raise_for_access(
+                    **{
+                        kwarg: Mock(
+                            datasource=birth_names,
+                            form_data={
+                                "dashboardId": births.id,
+                                "slice_id": treemap.id,
+                            },
+                        )
+                    }
+                )
+
+            # Dashboard chart not associated with said datasource.
+            with self.assertRaises(SupersetSecurityException):
+                security_manager.raise_for_access(
+                    **{
+                        kwarg: Mock(
+                            datasource=birth_names,
+                            form_data={
+                                "dashboardId": world_health.id,
+                                "slice_id": treemap.id,
+                            },
+                        )
+                    }
+                )
+
+            # Dashboard chart associated with said datasource.
+            security_manager.raise_for_access(
+                **{
+                    kwarg: Mock(
+                        datasource=birth_names,
+                        form_data={
+                            "dashboardId": births.id,
+                            "slice_id": girls.id,
+                        },
+                    )
+                }
+            )
 
         db.session.rollback()
 
