@@ -491,14 +491,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         self, viz_obj: BaseViz, response_type: Optional[str] = None
     ) -> Optional[FlaskResponse, BytesIO]:
         if response_type == ChartDataResultFormat.CSV:
-            return CsvResponse(
-                viz_obj.get_csv(), headers=generate_download_headers("csv")
-            )
+            return viz_obj.get_csv()
 
         if response_type == ChartDataResultFormat.XLSX:
-            # return XlsxResponse(
             return viz_obj.get_xlsx()
-            # )
 
         if response_type == ChartDataResultType.QUERY:
             return self.get_query_string_response(viz_obj)
@@ -714,10 +710,17 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             if response_type == ChartDataResultFormat.XLSX:
                 bytes_stream = self.generate_json(viz_obj, response_type)
                 return send_file(path_or_file=bytes_stream,
-                                 download_name="data.xlsx",
-                                 mimetype="application/xlsx"
+                                 mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                 as_attachment=True,
+                                 attachment_filename="data.xlsx"
                                  )
-
+            if response_type == ChartDataResultFormat.CSV:
+                bytes_stream = self.generate_json(viz_obj, response_type)
+                return send_file(path_or_file=bytes_stream,
+                                 mimetype="text/csv",
+                                 as_attachment=True,
+                                 attachment_filename="data.csv"
+                                 )
             return self.generate_json(viz_obj, response_type)
         except SupersetException as ex:
             return json_error_response(utils.error_msg_from_exception(ex), 400)

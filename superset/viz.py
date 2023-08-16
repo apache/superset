@@ -663,7 +663,8 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         return content
 
     def get_csv(self) -> Optional[str]:
-        df = self.get_df_payload()["df"]  # leverage caching logic
+        d = self.get_df_payload()
+        df = delete_tz_from_df(d)
         include_index = not isinstance(df.index, pd.RangeIndex)
         return csv.df_to_escaped_csv(df, index=include_index, **config["CSV_EXPORT"])
 

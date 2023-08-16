@@ -47,8 +47,7 @@ from superset.connectors.base.models import BaseDatasource
 from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
 from superset.utils.async_query_manager import AsyncQueryTokenException
-from superset.utils.core import create_zip, json_int_dttm_ser
-from superset.views.base import CsvResponse, generate_download_headers
+from superset.utils.core import json_int_dttm_ser
 from superset.views.base_api import statsd_metrics
 from superset import app
 from superset.utils.core import GenericDataType
@@ -257,6 +256,15 @@ class ChartDataRestApi(ChartRestApi):
                              as_attachment=True,
                              attachment_filename="data.xlsx"
                              )
+        if query_context.result_format == ChartDataResultFormat.CSV:
+            bytes_stream = self._get_data_response(command, form_data=form_data,
+                                                   datasource=query_context.datasource
+                                                   )
+            return send_file(path_or_file=bytes_stream,
+                             mimetype="text/csv",
+                             as_attachment=True,
+                             attachment_filename="data.csv"
+                             )
 
         return self._get_data_response(
             command, form_data=form_data, datasource=query_context.datasource
@@ -379,7 +387,6 @@ class ChartDataRestApi(ChartRestApi):
                             if key in exist_df:
                                 new_df.pop(key)
                         df = df.join(new_df, how='right', rsuffix='2')
-
                     except IndexError:
                         return self.response_500(
                             _("Server error occurred while exporting the file")
@@ -393,19 +400,6 @@ class ChartDataRestApi(ChartRestApi):
                 excel_writer.seek(0)
                 return excel_writer
 
-            # return multi-query xlsx results bundled as a zip file
-            encoding = current_app.config["XLSX_EXPORT"].get("encoding", "utf-8")
-            logger.warning(result["queries"][0] == result["queries"][1])
-            files = {
-                f"query_{idx + 1}.xlsx": str(result["data"]).encode(encoding)
-                for idx, result in enumerate(result["queries"])
-            }
-
-            return Response(
-                create_zip(files),
-                mimetype="application/zip",
-            )
-
         if result_format == ChartDataResultFormat.CSV:
             # Verify user has permission to export CSV file
             if not security_manager.can_access("can_csv", "Superset"):
@@ -414,22 +408,28 @@ class ChartDataRestApi(ChartRestApi):
             if not result["queries"]:
                 return self.response_400(_("Empty query result"))
 
-            if len(result["queries"]) == 1:
-                # return single query results csv format
-                data = result["queries"][0]["data"]
-                return CsvResponse(data, headers=generate_download_headers("csv"))
+            if list_of_data := result["queries"]:
+                df = pd.DataFrame()
+                for data in list_of_data:
+                    logger.warning(data)
+                    try:
+                        # return single query results xlsx format
+                        new_df = delete_tz_from_df(data)
+                        keys_of_new_df = new_df.keys()
+                        exist_df = df.keys()
+                        for key in keys_of_new_df:
+                            if key in exist_df:
+                                new_df.pop(key)
+                        df = df.join(new_df, how='right', rsuffix='2')
+                    except IndexError:
+                        return self.response_500(
+                            _("Server error occurred while exporting the file")
+                        )
 
-            # return multi-query csv results bundled as a zip file
-            encoding = current_app.config["CSV_EXPORT"].get("encoding", "utf-8")
-            files = {
-                f"query_{idx + 1}.csv": str(result["data"]).encode(encoding)
-                for idx, result in enumerate(result["queries"])
-            }
-            return Response(
-                create_zip(files),
-                headers=generate_download_headers("zip"),
-                mimetype="application/zip",
-            )
+                csv_writer = io.BytesIO()
+                df.to_csv(csv_writer, **current_app.config["CSV_EXPORT"])
+                csv_writer.seek(0)
+                return csv_writer
 
         if result_format == ChartDataResultFormat.JSON:
             response_data = simplejson.dumps(
