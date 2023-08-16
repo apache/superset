@@ -69,7 +69,7 @@ class ExplorePermalinkRestApi(BaseSupersetApi):
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/ExplorePermalinkPostSchema'
+                  $ref: '#/components/schemas/ExplorePermalinkStateSchema'
           responses:
             201:
               description: The permanent link was stored successfully.
