@@ -105,9 +105,6 @@ const sqlLabPersistStateConfig = {
           ...initialState.sqlLab,
         },
       };
-      // Filter out any user data that may have been persisted in an older version.
-      // Get user from bootstrap data instead, every time
-      result.sqlLab.user = initialState.sqlLab.user;
       return result;
     },
   },

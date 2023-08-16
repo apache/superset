@@ -660,10 +660,10 @@ export const initialState = {
     workspaceQueries: [],
     queriesLastUpdate: 0,
     activeSouthPaneTab: 'Results',
-    user: { user },
     unsavedQueryEditor: {},
   },
   messageToasts: [],
+  user,
   common: {
     conf: {
       DEFAULT_SQLLAB_LIMIT: 1000,

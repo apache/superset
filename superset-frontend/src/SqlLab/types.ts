@@ -66,31 +66,17 @@ export type SqlLabRootState = {
     tabHistory: string[]; // default is activeTab ? [activeTab.id.toString()] : []
     tables: Record<string, any>[];
     queriesLastUpdate: number;
-    user: UserWithPermissionsAndRoles;
     errorMessage: string | null;
     unsavedQueryEditor: Partial<QueryEditor>;
     queryCostEstimates?: Record<string, QueryCostEstimate>;
   };
   localStorageUsageInKilobytes: number;
   messageToasts: toastState[];
+  user: UserWithPermissionsAndRoles;
   common: {
     flash_messages: string[];
     conf: JsonObject;
   };
-};
-
-export type SqlLabExploreRootState = SqlLabRootState | RootState;
-
-export const getInitialState = (state: SqlLabExploreRootState) => {
-  if (state.hasOwnProperty('sqlLab')) {
-    const {
-      sqlLab: { user },
-    } = state as SqlLabRootState;
-    return user;
-  }
-
-  const { user } = state as RootState;
-  return user as UserWithPermissionsAndRoles;
 };
 
 export enum DatasetRadioState {

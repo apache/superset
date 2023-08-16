@@ -200,7 +200,6 @@ export default function getInitialState({
       tabHistory: dedupeTabHistory(tabHistory),
       tables: Object.values(tables),
       queriesLastUpdate: Date.now(),
-      user,
       unsavedQueryEditor,
       queryCostEstimates: {},
     },
@@ -213,5 +212,6 @@ export default function getInitialState({
       flash_messages: common.flash_messages,
       conf: common.conf,
     },
+    user,
   };
 }
