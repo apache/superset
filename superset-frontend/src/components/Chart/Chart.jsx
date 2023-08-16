@@ -21,11 +21,11 @@ import React from 'react';
 import {
   ensureIsArray,
   FeatureFlag,
+  isFeatureEnabled,
   logging,
   styled,
   t,
 } from '@superset-ui/core';
-import { isFeatureEnabled } from 'src/featureFlags';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import Loading from 'src/components/Loading';
 import { EmptyStateBig } from 'src/components/EmptyState';

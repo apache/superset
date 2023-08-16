@@ -23,8 +23,9 @@ from marshmallow import ValidationError
 
 from superset import security_manager
 from superset.commands.base import UpdateMixin
-from superset.dao.exceptions import DAOUpdateFailedError
-from superset.databases.dao import DatabaseDAO
+from superset.daos.database import DatabaseDAO
+from superset.daos.exceptions import DAOUpdateFailedError
+from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
 from superset.reports.commands.base import BaseReportScheduleCommand
 from superset.reports.commands.exceptions import (
@@ -35,7 +36,6 @@ from superset.reports.commands.exceptions import (
     ReportScheduleNotFoundError,
     ReportScheduleUpdateFailedError,
 )
-from superset.reports.dao import ReportScheduleDAO
 from superset.reports.models import ReportSchedule, ReportScheduleType, ReportState
 
 logger = logging.getLogger(__name__)
@@ -49,6 +49,8 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
 
     def run(self) -> Model:
         self.validate()
+        assert self._model
+
         try:
             report_schedule = ReportScheduleDAO.update(self._model, self._properties)
         except DAOUpdateFailedError as ex:

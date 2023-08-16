@@ -35,6 +35,9 @@ import {
   isTimeseriesAnnotationLayer,
   t,
   TimeseriesChartDataResponseResult,
+  buildCustomFormatters,
+  getCustomFormatter,
+  CurrencyFormatter,
 } from '@superset-ui/core';
 import {
   extractExtraMetrics,
@@ -54,7 +57,6 @@ import { ForecastSeriesEnum, ForecastValue, Refs } from '../types';
 import { parseYAxisBound } from '../utils/controls';
 import {
   calculateLowerLogTick,
-  currentSeries,
   dedupSeries,
   extractDataTotalValues,
   extractSeries,
@@ -93,6 +95,7 @@ import {
   TIMEGRAIN_TO_TIMESTAMP,
 } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
+import { getYAxisFormatter } from '../utils/getYAxisFormatter';
 
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
@@ -101,6 +104,7 @@ export default function transformProps(
     width,
     height,
     filterState,
+    legendState,
     formData,
     hooks,
     queriesData,
@@ -109,7 +113,14 @@ export default function transformProps(
     inContextMenu,
     emitCrossFilters,
   } = chartProps;
-  const { verboseMap = {} } = datasource;
+
+  let focusedSeries: string | null = null;
+
+  const {
+    verboseMap = {},
+    columnFormats = {},
+    currencyFormats = {},
+  } = datasource;
   const [queryData] = queriesData;
   const { data = [], label_map = {} } =
     queryData as TimeseriesChartDataResponseResult;
@@ -158,6 +169,7 @@ export default function transformProps(
     xAxisTitleMargin,
     yAxisBounds,
     yAxisFormat,
+    currencyFormat,
     yAxisTitle,
     yAxisTitleMargin,
     yAxisTitlePosition,
@@ -192,6 +204,7 @@ export default function transformProps(
       stack,
       percentageThreshold,
       xAxisCol: xAxisLabel,
+      legendState,
     },
   );
   const extraMetricLabels = extractExtraMetrics(chartProps.rawFormData).map(
@@ -221,6 +234,7 @@ export default function transformProps(
     stack,
     onlyTotal,
     isHorizontal,
+    legendState,
   });
   const seriesContexts = extractForecastSeriesContexts(
     Object.values(rawSeries).map(series => series.name as string),
@@ -230,8 +244,18 @@ export default function transformProps(
 
   const xAxisType = getAxisType(xAxisDataType);
   const series: SeriesOption[] = [];
-  const formatter = getNumberFormatter(
-    contributionMode || isAreaExpand ? ',.0%' : yAxisFormat,
+
+  const forcePercentFormatter = Boolean(contributionMode || isAreaExpand);
+  const percentFormatter = getNumberFormatter(',.0%');
+  const defaultFormatter = currencyFormat?.symbol
+    ? new CurrencyFormatter({ d3Format: yAxisFormat, currency: currencyFormat })
+    : getNumberFormatter(yAxisFormat);
+  const customFormatters = buildCustomFormatters(
+    metrics,
+    currencyFormats,
+    columnFormats,
+    yAxisFormat,
+    currencyFormat,
   );
 
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
@@ -258,8 +282,15 @@ export default function transformProps(
         markerSize,
         areaOpacity: opacity,
         seriesType,
+        legendState,
         stack,
-        formatter,
+        formatter: forcePercentFormatter
+          ? percentFormatter
+          : getCustomFormatter(
+              customFormatters,
+              metrics,
+              labelMap[seriesName]?.[0],
+            ) ?? defaultFormatter,
         showValue,
         onlyTotal,
         totalStackedValues: sortedTotalValues,
@@ -379,6 +410,7 @@ export default function transformProps(
     setDataMask = () => {},
     setControlValue = () => {},
     onContextMenu,
+    onLegendStateChanged,
   } = hooks;
 
   const addYAxisLabelOffset = !!yAxisTitle;
@@ -436,7 +468,14 @@ export default function transformProps(
     max,
     minorTick: { show: true },
     minorSplitLine: { show: minorSplitLine },
-    axisLabel: { formatter },
+    axisLabel: {
+      formatter: getYAxisFormatter(
+        metrics,
+        forcePercentFormatter,
+        customFormatters,
+        defaultFormatter,
+      ),
+    },
     scale: truncateYAxis,
     name: yAxisTitle,
     nameGap: convertInteger(yAxisTitleMargin),
@@ -481,16 +520,21 @@ export default function transformProps(
           if (value.observation === 0 && stack) {
             return;
           }
+          // if there are no dimensions, key is a verbose name of a metric,
+          // otherwise it is a comma separated string where the first part is metric name
+          const formatterKey =
+            groupby.length === 0 ? inverted[key] : labelMap[key]?.[0];
           const content = formatForecastTooltipSeries({
             ...value,
             seriesName: key,
-            formatter,
+            formatter: forcePercentFormatter
+              ? percentFormatter
+              : getCustomFormatter(customFormatters, metrics, formatterKey) ??
+                defaultFormatter,
           });
-          if (currentSeries.name === key) {
-            rows.push(`<span style="font-weight: 700">${content}</span>`);
-          } else {
-            rows.push(`<span style="opacity: 0.7">${content}</span>`);
-          }
+          const contentStyle =
+            key === focusedSeries ? 'font-weight: 700' : 'opacity: 0.7';
+          rows.push(`<span style="${contentStyle}">${content}</span>`);
         });
         if (stack) {
           rows.reverse();
@@ -506,6 +550,7 @@ export default function transformProps(
         showLegend,
         theme,
         zoomable,
+        legendState,
       ),
       data: legendData as string[],
     },
@@ -536,6 +581,10 @@ export default function transformProps(
       : [],
   };
 
+  const onFocusedSeries = (seriesName: string | null) => {
+    focusedSeries = seriesName;
+  };
+
   return {
     echartOptions,
     emitCrossFilters,
@@ -549,6 +598,8 @@ export default function transformProps(
     width,
     legendData,
     onContextMenu,
+    onLegendStateChanged,
+    onFocusedSeries,
     xValueFormatter: tooltipFormatter,
     xAxis: {
       label: xAxisLabel,

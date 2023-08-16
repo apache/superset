@@ -45,6 +45,7 @@ const createProps = (viz_type = 'sunburst') =>
     exportCSV: jest.fn(),
     exportFullCSV: jest.fn(),
     exportXLSX: jest.fn(),
+    exportFullXLSX: jest.fn(),
     forceRefresh: jest.fn(),
     handleToggleFullSize: jest.fn(),
     toggleExpandSlice: jest.fn(),
@@ -221,6 +222,43 @@ test('Should not show export full CSV if report is not table', async () => {
   userEvent.hover(screen.getByText('Download'));
   expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
   expect(screen.queryByText('Export to full .CSV')).not.toBeInTheDocument();
+});
+
+test('Export full Excel is under featureflag', async () => {
+  // @ts-ignore
+  global.featureFlags = {
+    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: false,
+  };
+  const props = createProps('table');
+  renderWrapper(props);
+  userEvent.hover(screen.getByText('Download'));
+  expect(await screen.findByText('Export to Excel')).toBeInTheDocument();
+  expect(screen.queryByText('Export to full Excel')).not.toBeInTheDocument();
+});
+
+test('Should "export full Excel"', async () => {
+  // @ts-ignore
+  global.featureFlags = {
+    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
+  };
+  const props = createProps('table');
+  renderWrapper(props);
+  expect(props.exportFullXLSX).toBeCalledTimes(0);
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.click(await screen.findByText('Export to full Excel'));
+  expect(props.exportFullXLSX).toBeCalledTimes(1);
+  expect(props.exportFullXLSX).toBeCalledWith(371);
+});
+
+test('Should not show export full Excel if report is not table', async () => {
+  // @ts-ignore
+  global.featureFlags = {
+    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
+  };
+  renderWrapper();
+  userEvent.hover(screen.getByText('Download'));
+  expect(await screen.findByText('Export to Excel')).toBeInTheDocument();
+  expect(screen.queryByText('Export to full Excel')).not.toBeInTheDocument();
 });
 
 test('Should "Show chart description"', () => {

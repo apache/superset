@@ -28,7 +28,6 @@ export function dedupeTabHistory(tabHistory) {
 }
 
 export default function getInitialState({
-  defaultDbId,
   common,
   active_tab: activeTab,
   tab_state_ids: tabStateIds = [],
@@ -55,7 +54,7 @@ export default function getInitialState({
     latestQueryId: null,
     autorun: false,
     templateParams: null,
-    dbId: defaultDbId,
+    dbId: common.conf.SQLLAB_DEFAULT_DBID,
     queryLimit: common.conf.DEFAULT_SQLLAB_LIMIT,
     validationResult: {
       id: null,
@@ -116,16 +115,7 @@ export default function getInitialState({
     activeTab.table_schemas
       .filter(tableSchema => tableSchema.description !== null)
       .forEach(tableSchema => {
-        const {
-          columns,
-          selectStar,
-          primaryKey,
-          foreignKeys,
-          indexes,
-          dataPreviewQueryId,
-          partitions,
-          metadata,
-        } = tableSchema.description;
+        const { dataPreviewQueryId, ...persistData } = tableSchema.description;
         const table = {
           dbId: tableSchema.database_id,
           queryEditorId: tableSchema.tab_state_id.toString(),
@@ -133,16 +123,9 @@ export default function getInitialState({
           name: tableSchema.table,
           expanded: tableSchema.expanded,
           id: tableSchema.id,
-          isMetadataLoading: false,
-          isExtraMetadataLoading: false,
           dataPreviewQueryId,
-          columns,
-          selectStar,
-          primaryKey,
-          foreignKeys,
-          indexes,
-          partitions,
-          metadata,
+          persistData,
+          initialized: true,
         };
         tables = {
           ...tables,
@@ -184,16 +167,21 @@ export default function getInitialState({
           },
         };
       });
-      tables = sqlLab.tables.reduce(
-        (merged, table) => ({
+      const expandedTables = new Set();
+      tables = sqlLab.tables.reduce((merged, table) => {
+        const expanded = !expandedTables.has(table.queryEditorId);
+        if (expanded) {
+          expandedTables.add(table.queryEditorId);
+        }
+        return {
           ...merged,
           [table.id]: {
             ...tables[table.id],
             ...table,
+            expanded,
           },
-        }),
-        tables,
-      );
+        };
+      }, tables);
       Object.values(sqlLab.queries).forEach(query => {
         queries[query.id] = { ...query, inLocalStorage: true };
       });

@@ -53,11 +53,10 @@ class DatasetColumnsRestApi(BaseSupersetModelRestApi):
     def delete(  # pylint: disable=arguments-differ
         self, pk: int, column_id: int
     ) -> Response:
-        """Deletes a Dataset column
+        """Delete a dataset column.
         ---
         delete:
-          description: >-
-            Delete a Dataset column
+          summary: Delete a dataset column
           parameters:
           - in: path
             schema:

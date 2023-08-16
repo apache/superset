@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable, Iterator
 from functools import lru_cache
-from typing import Any, Callable, TYPE_CHECKING, TypeVar
+from typing import Callable, TYPE_CHECKING, TypeVar
 from uuid import UUID
 
 from flask_babel import lazy_gettext as _
@@ -48,8 +48,9 @@ if TYPE_CHECKING:
 def get_physical_table_metadata(
     database: Database,
     table_name: str,
+    normalize_columns: bool,
     schema_name: str | None = None,
-) -> list[dict[str, Any]]:
+) -> list[ResultSetColumnType]:
     """Use SQLAlchemy inspector to get table metadata"""
     db_engine_spec = database.db_engine_spec
     db_dialect = database.get_dialect()
@@ -67,6 +68,10 @@ def get_physical_table_metadata(
     for col in cols:
         try:
             if isinstance(col["type"], TypeEngine):
+                name = col["column_name"]
+                if not normalize_columns:
+                    name = db_engine_spec.denormalize_name(db_dialect, name)
+
                 db_type = db_engine_spec.column_datatype_to_string(
                     col["type"], db_dialect
                 )
@@ -75,6 +80,8 @@ def get_physical_table_metadata(
                 )
                 col.update(
                     {
+                        "name": name,
+                        "column_name": name,
                         "type": db_type,
                         "type_generic": type_spec.generic_type if type_spec else None,
                         "is_dttm": type_spec.is_dttm if type_spec else None,
@@ -122,28 +129,19 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
                 level=ErrorLevel.ERROR,
             )
         )
-    # TODO(villebro): refactor to use same code that's used by
-    #  sql_lab.py:execute_sql_statements
-    try:
-        with dataset.database.get_raw_connection(schema=dataset.schema) as conn:
-            cursor = conn.cursor()
-            query = dataset.database.apply_limit_to_sql(statements[0], limit=1)
-            db_engine_spec.execute(cursor, query)
-            result = db_engine_spec.fetch_data(cursor, limit=1)
-            result_set = SupersetResultSet(result, cursor.description, db_engine_spec)
-            cols = result_set.columns
-    except Exception as ex:
-        raise SupersetGenericDBErrorException(message=str(ex)) from ex
-    return cols
+    return get_columns_description(dataset.database, dataset.schema, statements[0])
 
 
 def get_columns_description(
     database: Database,
+    schema: str | None,
     query: str,
 ) -> list[ResultSetColumnType]:
+    # TODO(villebro): refactor to use same code that's used by
+    #  sql_lab.py:execute_sql_statements
     db_engine_spec = database.db_engine_spec
     try:
-        with database.get_raw_connection() as conn:
+        with database.get_raw_connection(schema=schema) as conn:
             cursor = conn.cursor()
             query = database.apply_limit_to_sql(query, limit=1)
             cursor.execute(query)

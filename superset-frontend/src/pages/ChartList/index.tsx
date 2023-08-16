@@ -18,6 +18,7 @@
  */
 import {
   ensureIsArray,
+  isFeatureEnabled,
   FeatureFlag,
   getChartMetadataRegistry,
   JsonResponse,
@@ -29,7 +30,6 @@ import React, { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
 import moment from 'moment';
-import { isFeatureEnabled } from 'src/featureFlags';
 import {
   createErrorHandler,
   createFetchRelated,
@@ -231,9 +231,6 @@ function ChartList(props: ChartListProps) {
   const canExport =
     hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
-  const enableBroadUserAccess = isFeatureEnabled(
-    FeatureFlag.ENABLE_BROAD_ACTIVITY_ACCESS,
-  );
   const handleBulkChartExport = (chartsToExport: Chart[]) => {
     const ids = chartsToExport.map(({ id }) => id);
     handleResourceExport('chart', ids, () => {
@@ -273,8 +270,8 @@ function ChartList(props: ChartListProps) {
       ? {
           filters: [
             {
-              col: 'dashboards',
-              opr: FilterOperator.relationManyMany,
+              col: 'dashboard_title',
+              opr: FilterOperator.startsWith,
               value: filterValue,
             },
           ],
@@ -290,9 +287,7 @@ function ChartList(props: ChartListProps) {
       ...filters,
     });
     const response: void | JsonResponse = await SupersetClient.get({
-      endpoint: !filterValue
-        ? `/api/v1/dashboard/?q=${queryParams}`
-        : `/api/v1/chart/?q=${queryParams}`,
+      endpoint: `/api/v1/dashboard/?q=${queryParams}`,
     }).catch(() =>
       addDangerToast(t('An error occurred while fetching dashboards')),
     );
@@ -415,17 +410,9 @@ function ChartList(props: ChartListProps) {
       {
         Cell: ({
           row: {
-            original: {
-              last_saved_by: lastSavedBy,
-              changed_by_url: changedByUrl,
-            },
+            original: { last_saved_by: lastSavedBy },
           },
-        }: any) =>
-          enableBroadUserAccess ? (
-            <a href={changedByUrl}>{changedByName(lastSavedBy)}</a>
-          ) : (
-            <>{changedByName(lastSavedBy)}</>
-          ),
+        }: any) => <>{changedByName(lastSavedBy)}</>,
         Header: t('Modified by'),
         accessor: 'last_saved_by.first_name',
         size: 'xl',

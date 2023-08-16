@@ -18,11 +18,11 @@
  */
 import {
   DataMask,
+  isFeatureEnabled,
   FeatureFlag,
   FilterConfiguration,
   Filters,
 } from '@superset-ui/core';
-import { isFeatureEnabled } from '../featureFlags';
 import { getInitialDataMask } from './reducer';
 
 export const CLEAR_DATA_MASK_STATE = 'CLEAR_DATA_MASK_STATE';

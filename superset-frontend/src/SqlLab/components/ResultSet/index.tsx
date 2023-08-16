@@ -81,6 +81,12 @@ export interface ResultSetProps {
   defaultQueryLimit: number;
 }
 
+const ResultContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  row-gap: ${({ theme }) => theme.gridUnit * 2}px;
+`;
+
 const ResultlessStyles = styled.div`
   position: relative;
   min-height: ${({ theme }) => theme.gridUnit * 25}px;
@@ -110,7 +116,6 @@ const ReturnedRows = styled.div`
 const ResultSetControls = styled.div`
   display: flex;
   justify-content: space-between;
-  padding: ${({ theme }) => 2 * theme.gridUnit}px 0;
 `;
 
 const ResultSetButtons = styled.div`
@@ -205,7 +210,7 @@ const ResultSet = ({
         ...EXPLORE_CHART_DEFAULT,
         datasource: `${results.query_id}__query`,
         ...{
-          all_columns: results.columns.map(column => column.name),
+          all_columns: results.columns.map(column => column.column_name),
         },
       });
       const url = mountExploreUrl(null, {
@@ -299,7 +304,7 @@ const ResultSet = ({
 
     const displayMaxRowsReachedMessage = {
       withAdmin: t(
-        'The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROWS. ' +
+        'The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROW. ' +
           'Please add additional limits/filters or download to csv to see more rows up to ' +
           'the %(limit)d limit.',
         { rows: rowsCount, limit },
@@ -491,21 +496,21 @@ const ResultSet = ({
     }
     if (data && data.length > 0) {
       const expandedColumns = results.expanded_columns
-        ? results.expanded_columns.map(col => col.name)
+        ? results.expanded_columns.map(col => col.column_name)
         : [];
       return (
-        <>
+        <ResultContainer>
           {renderControls()}
           {renderRowsReturned()}
           {sql}
           <FilterableTable
             data={data}
-            orderedColumnKeys={results.columns.map(col => col.name)}
+            orderedColumnKeys={results.columns.map(col => col.column_name)}
             height={rowsHeight}
             filterText={searchText}
             expandedColumns={expandedColumns}
           />
-        </>
+        </ResultContainer>
       );
     }
     if (data && data.length === 0) {

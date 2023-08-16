@@ -23,9 +23,9 @@ from superset.commands.base import BaseCommand
 from superset.commands.exceptions import DatasourceNotFoundValidationError
 from superset.commands.utils import populate_roles
 from superset.connectors.sqla.models import SqlaTable
-from superset.dao.exceptions import DAOCreateFailedError
+from superset.daos.exceptions import DAOCreateFailedError
+from superset.daos.security import RLSDAO
 from superset.extensions import db
-from superset.row_level_security.dao import RLSDAO
 
 logger = logging.getLogger(__name__)
 
@@ -39,12 +39,10 @@ class CreateRLSRuleCommand(BaseCommand):
     def run(self) -> Any:
         self.validate()
         try:
-            rule = RLSDAO.create(self._properties)
+            return RLSDAO.create(attributes=self._properties)
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)
             raise ex
-
-        return rule
 
     def validate(self) -> None:
         roles = populate_roles(self._roles)

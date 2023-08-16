@@ -176,15 +176,15 @@ configMountPath: "/app/pythonpath"
 extraConfigMountPath: "/app/configs"
 
 image:
-  repository: apache/superset
+  repository: apachesuperset.docker.scarf.sh/apache/superset
   tag: ""
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
 
 initImage:
-  repository: jwilder/dockerize
-  tag: latest
+  repository: apache/superset
+  tag: dockerize
   pullPolicy: IfNotPresent
 
 service:
@@ -695,7 +695,7 @@ init:
   topologySpreadConstraints: []
 
 # -- Configuration values for the postgresql dependency.
-# ref: https://github.com/kubernetes/charts/blob/master/stable/postgresql/README.md
+# ref: https://github.com/bitnami/charts/tree/main/bitnami/postgresql
 # @default -- see `values.yaml`
 postgresql:
   ##

@@ -21,6 +21,7 @@ import { SupersetClient, t } from '@superset-ui/core';
 import { addSuccessToast } from 'src/components/MessageToasts/actions';
 import { isEmpty } from 'lodash';
 import { buildV1ChartDataPayload } from '../exploreUtils';
+import { Operators } from '../constants';
 
 const ADHOC_FILTER_REGEX = /^adhoc_filters/;
 
@@ -47,11 +48,6 @@ export function saveSliceFailed() {
 export const SAVE_SLICE_SUCCESS = 'SAVE_SLICE_SUCCESS';
 export function saveSliceSuccess(data) {
   return { type: SAVE_SLICE_SUCCESS, data };
-}
-
-export const REMOVE_SAVE_MODAL_ALERT = 'REMOVE_SAVE_MODAL_ALERT';
-export function removeSaveModalAlert() {
-  return { type: REMOVE_SAVE_MODAL_ALERT };
 }
 
 const extractAddHocFiltersFromFormData = formDataToHandle =>
@@ -81,6 +77,20 @@ export const getSlicePayload = (
   // time range adhoc_filter was lost
   if (isEmpty(adhocFilters?.adhoc_filters) && !isEmpty(formDataFromSlice)) {
     adhocFilters = extractAddHocFiltersFromFormData(formDataFromSlice);
+  }
+
+  if (
+    isEmpty(adhocFilters?.adhoc_filters) &&
+    isEmpty(formDataFromSlice) &&
+    formDataWithNativeFilters?.adhoc_filters?.[0]?.operator ===
+      Operators.TEMPORAL_RANGE
+  ) {
+    adhocFilters.adhoc_filters = [
+      {
+        ...formDataWithNativeFilters.adhoc_filters[0],
+        comparator: 'No filter',
+      },
+    ];
   }
 
   const formData = {

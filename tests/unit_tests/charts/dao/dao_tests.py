@@ -45,7 +45,7 @@ def session_with_data(session: Session) -> Iterator[Session]:
 
 
 def test_slice_find_by_id_skip_base_filter(session_with_data: Session) -> None:
-    from superset.charts.dao import ChartDAO
+    from superset.daos.chart import ChartDAO
     from superset.models.slice import Slice
 
     result = ChartDAO.find_by_id(1, session=session_with_data, skip_base_filter=True)
@@ -59,7 +59,7 @@ def test_slice_find_by_id_skip_base_filter(session_with_data: Session) -> None:
 def test_datasource_find_by_id_skip_base_filter_not_found(
     session_with_data: Session,
 ) -> None:
-    from superset.charts.dao import ChartDAO
+    from superset.daos.chart import ChartDAO
 
     result = ChartDAO.find_by_id(
         125326326, session=session_with_data, skip_base_filter=True
@@ -68,7 +68,7 @@ def test_datasource_find_by_id_skip_base_filter_not_found(
 
 
 def test_add_favorite(session_with_data: Session) -> None:
-    from superset.charts.dao import ChartDAO
+    from superset.daos.chart import ChartDAO
 
     chart = ChartDAO.find_by_id(1, session=session_with_data, skip_base_filter=True)
     if not chart:
@@ -83,7 +83,7 @@ def test_add_favorite(session_with_data: Session) -> None:
 
 
 def test_remove_favorite(session_with_data: Session) -> None:
-    from superset.charts.dao import ChartDAO
+    from superset.daos.chart import ChartDAO
 
     chart = ChartDAO.find_by_id(1, session=session_with_data, skip_base_filter=True)
     if not chart:

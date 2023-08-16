@@ -16,11 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FeatureFlag, styled, SupersetClient, t } from '@superset-ui/core';
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  styled,
+  SupersetClient,
+  t,
+} from '@superset-ui/core';
 import React, { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import rison from 'rison';
-import { isFeatureEnabled } from 'src/featureFlags';
 import {
   createFetchRelated,
   createErrorHandler,
@@ -83,7 +88,6 @@ interface DashboardListProps {
 
 interface Dashboard {
   changed_by_name: string;
-  changed_by_url: string;
   changed_on_delta_humanized: string;
   changed_by: string;
   dashboard_title: string;
@@ -140,9 +144,6 @@ function DashboardList(props: DashboardListProps) {
   const [importingDashboard, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
-  const enableBroadUserAccess = isFeatureEnabled(
-    FeatureFlag.ENABLE_BROAD_ACTIVITY_ACCESS,
-  );
   const [sshTunnelPasswordFields, setSSHTunnelPasswordFields] = useState<
     string[]
   >([]);
@@ -193,7 +194,6 @@ function DashboardList(props: DashboardListProps) {
             if (dashboard.id === json?.result?.id) {
               const {
                 changed_by_name,
-                changed_by_url,
                 changed_by,
                 dashboard_title = '',
                 slug = '',
@@ -208,7 +208,6 @@ function DashboardList(props: DashboardListProps) {
               return {
                 ...dashboard,
                 changed_by_name,
-                changed_by_url,
                 changed_by,
                 dashboard_title,
                 slug,
@@ -310,17 +309,9 @@ function DashboardList(props: DashboardListProps) {
       {
         Cell: ({
           row: {
-            original: {
-              changed_by_name: changedByName,
-              changed_by_url: changedByUrl,
-            },
+            original: { changed_by_name: changedByName },
           },
-        }: any) =>
-          enableBroadUserAccess ? (
-            <a href={changedByUrl}>{changedByName}</a>
-          ) : (
-            <>{changedByName}</>
-          ),
+        }: any) => <>{changedByName}</>,
         Header: t('Modified by'),
         accessor: 'changed_by.first_name',
         size: 'xl',

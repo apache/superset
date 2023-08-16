@@ -218,7 +218,5 @@ export const mapOptions = (values: SelectOptionsType) =>
   values.map(opt => ({
     children: opt.label,
     key: opt.value,
-    value: opt.value,
-    label: opt.label,
-    disabled: opt.disabled,
+    ...opt,
   }));

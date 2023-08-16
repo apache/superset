@@ -15,18 +15,18 @@
 # specific language governing permissions and limitations
 # under the License.
 from dataclasses import dataclass
-from enum import Enum
 from typing import Any, Optional
 
 from flask_babel import lazy_gettext as _
 
+from superset.utils.backports import StrEnum
 
-class SupersetErrorType(str, Enum):
+
+class SupersetErrorType(StrEnum):
     """
     Types of errors that can exist within Superset.
 
     Keep in sync with superset-frontend/src/components/ErrorMessage/types.ts
-    and docs/src/pages/docs/Miscellaneous/issue_codes.mdx
     """
 
     # Frontend errors
@@ -65,6 +65,7 @@ class SupersetErrorType(str, Enum):
     QUERY_SECURITY_ACCESS_ERROR = "QUERY_SECURITY_ACCESS_ERROR"
     MISSING_OWNERSHIP_ERROR = "MISSING_OWNERSHIP_ERROR"
     USER_ACTIVITY_SECURITY_ACCESS_ERROR = "USER_ACTIVITY_SECURITY_ACCESS_ERROR"
+    DASHBOARD_SECURITY_ACCESS_ERROR = "DASHBOARD_SECURITY_ACCESS_ERROR"
 
     # Other errors
     BACKEND_TIMEOUT_ERROR = "BACKEND_TIMEOUT_ERROR"
@@ -183,7 +184,7 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
 }
 
 
-class ErrorLevel(str, Enum):
+class ErrorLevel(StrEnum):
     """
     Levels of errors that can exist within Superset.
 

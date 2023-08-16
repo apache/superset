@@ -61,47 +61,29 @@
 |can my queries on SqlLab|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 |can log on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can schemas access for csv upload on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can user slices on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can favstar on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can import dashboards on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can search queries on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
-|can sqllab viz on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 |can schemas on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can sqllab history on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
-|can copy dash on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can publish on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can csv on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
-|can fave dashboards by username on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can slice on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can sync druid source on Superset|:heavy_check_mark:|O|O|O|
 |can explore on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can fave slices on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can slice json on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can approve on Superset|:heavy_check_mark:|O|O|O|
 |can explore json on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can fetch datasource metadata on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can override role permissions on Superset|:heavy_check_mark:|O|O|O|
-|can created dashboards on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can csrf token on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can created slices on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can annotation json on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can add slices on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can fave dashboards on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can save dash on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can sqllab on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
-|can recent activity on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can select star on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can warm up cache on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can sqllab table viz on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 |can profile on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can available domains on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can queries on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can stop query on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 |can request access on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can dashboard on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can post on TableSchemaView|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can expanded on TableSchemaView|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can delete on TableSchemaView|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
+|can post on TableSchemaView|:heavy_check_mark:|:heavy_check_mark:|O|O|
+|can expanded on TableSchemaView|:heavy_check_mark:|:heavy_check_mark:|O|O|
+|can delete on TableSchemaView|:heavy_check_mark:|:heavy_check_mark:|O|O|
 |can get on TabStateView|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 |can post on TabStateView|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 |can delete query on TabStateView|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|

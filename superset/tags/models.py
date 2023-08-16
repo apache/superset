@@ -20,11 +20,12 @@ import enum
 from typing import TYPE_CHECKING
 
 from flask_appbuilder import Model
-from sqlalchemy import Column, Enum, ForeignKey, Integer, String
+from sqlalchemy import Column, Enum, ForeignKey, Integer, String, Table, Text
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship, Session, sessionmaker
 from sqlalchemy.orm.mapper import Mapper
 
+from superset import security_manager
 from superset.models.helpers import AuditMixinNullable
 
 if TYPE_CHECKING:
@@ -35,6 +36,13 @@ if TYPE_CHECKING:
     from superset.models.sql_lab import Query
 
 Session = sessionmaker(autoflush=False)
+
+user_favorite_tag_table = Table(
+    "user_favorite_tag",
+    Model.metadata,  # pylint: disable=no-member
+    Column("user_id", Integer, ForeignKey("ab_user.id")),
+    Column("tag_id", Integer, ForeignKey("tag.id")),
+)
 
 
 class TagTypes(enum.Enum):
@@ -76,6 +84,15 @@ class Tag(Model, AuditMixinNullable):
     id = Column(Integer, primary_key=True)
     name = Column(String(250), unique=True)
     type = Column(Enum(TagTypes))
+    description = Column(Text)
+
+    objects = relationship(
+        "TaggedObject", back_populates="tag", overlaps="objects,tags"
+    )
+
+    users_favorited = relationship(
+        security_manager.user_model, secondary=user_favorite_tag_table
+    )
 
 
 class TaggedObject(Model, AuditMixinNullable):
@@ -93,7 +110,7 @@ class TaggedObject(Model, AuditMixinNullable):
     )
     object_type = Column(Enum(ObjectTypes))
 
-    tag = relationship("Tag", backref="objects")
+    tag = relationship("Tag", back_populates="objects", overlaps="tags")
 
 
 def get_tag(name: str, session: Session, type_: TagTypes) -> Tag:
@@ -116,7 +133,9 @@ def get_object_type(class_name: str) -> ObjectTypes:
     try:
         return mapping[class_name.lower()]
     except KeyError as ex:
-        raise Exception(f"No mapping found for {class_name}") from ex
+        raise Exception(  # pylint: disable=broad-exception-raised
+            f"No mapping found for {class_name}"
+        ) from ex
 
 
 class ObjectUpdater:

@@ -25,7 +25,7 @@ from flask_babel import gettext as __
 
 from superset.commands.base import BaseCommand
 from superset.common.db_query_status import QueryStatus
-from superset.dao.exceptions import DAOCreateFailedError
+from superset.daos.exceptions import DAOCreateFailedError
 from superset.errors import SupersetErrorType
 from superset.exceptions import (
     SupersetErrorException,
@@ -43,8 +43,8 @@ from superset.sqllab.execution_context_convertor import ExecutionContextConverto
 from superset.sqllab.limiting_factor import LimitingFactor
 
 if TYPE_CHECKING:
-    from superset.databases.dao import DatabaseDAO
-    from superset.queries.dao import QueryDAO
+    from superset.daos.database import DatabaseDAO
+    from superset.daos.query import QueryDAO
     from superset.sqllab.sql_json_executer import SqlJsonExecutor
     from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 
@@ -177,7 +177,7 @@ class ExecuteSqlCommand(BaseCommand):
 
     def _save_new_query(self, query: Query) -> None:
         try:
-            self._query_dao.save(query)
+            self._query_dao.create(query)
         except DAOCreateFailedError as ex:
             raise SqlLabException(
                 self._execution_context,

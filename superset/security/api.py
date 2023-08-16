@@ -23,7 +23,6 @@ from flask_appbuilder.api import safe
 from flask_appbuilder.security.decorators import permission_name, protect
 from flask_wtf.csrf import generate_csrf
 from marshmallow import EXCLUDE, fields, post_load, Schema, ValidationError
-from marshmallow_enum import EnumField
 
 from superset.embedded_dashboard.commands.exceptions import (
     EmbeddedDashboardNotFoundError,
@@ -51,11 +50,11 @@ class UserSchema(PermissiveSchema):
 
 
 class ResourceSchema(PermissiveSchema):
-    type = EnumField(GuestTokenResourceType, by_value=True, required=True)
+    type = fields.Enum(GuestTokenResourceType, by_value=True, required=True)
     id = fields.String(required=True)
 
     @post_load
-    def convert_enum_to_value(  # pylint: disable=no-self-use
+    def convert_enum_to_value(
         self, data: dict[str, Any], **kwargs: Any  # pylint: disable=unused-argument
     ) -> dict[str, Any]:
         # we don't care about the enum, we want the value inside
@@ -89,12 +88,10 @@ class SecurityRestApi(BaseSupersetApi):
     @statsd_metrics
     @permission_name("read")
     def csrf_token(self) -> Response:
-        """
-        Return the csrf token
+        """Get the CSRF token.
         ---
         get:
-          description: >-
-            Fetch the CSRF token
+          summary: Get the CSRF token
           responses:
             200:
               description: Result contains the CSRF token
@@ -119,12 +116,10 @@ class SecurityRestApi(BaseSupersetApi):
     @statsd_metrics
     @permission_name("grant_guest_token")
     def guest_token(self) -> Response:
-        """Response
-        Returns a guest token that can be used for auth in embedded Superset
+        """Get a guest token that can be used for auth in embedded Superset.
         ---
         post:
-          description: >-
-            Fetches a guest token
+          summary: Get a guest token
           requestBody:
             description: Parameters for the guest token
             required: true

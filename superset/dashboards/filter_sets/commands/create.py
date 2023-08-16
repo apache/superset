@@ -20,6 +20,7 @@ from typing import Any
 from flask_appbuilder.models.sqla import Model
 
 from superset import security_manager
+from superset.daos.dashboard import FilterSetDAO
 from superset.dashboards.filter_sets.commands.base import BaseFilterSetCommand
 from superset.dashboards.filter_sets.commands.exceptions import (
     DashboardIdInconsistencyError,
@@ -32,7 +33,6 @@ from superset.dashboards.filter_sets.consts import (
     OWNER_ID_FIELD,
     OWNER_TYPE_FIELD,
 )
-from superset.dashboards.filter_sets.dao import FilterSetDAO
 from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
@@ -47,8 +47,7 @@ class CreateFilterSetCommand(BaseFilterSetCommand):
     def run(self) -> Model:
         self.validate()
         self._properties[DASHBOARD_ID_FIELD] = self._dashboard.id
-        filter_set = FilterSetDAO.create(self._properties, commit=True)
-        return filter_set
+        return FilterSetDAO.create(attributes=self._properties, commit=True)
 
     def validate(self) -> None:
         self._validate_filterset_dashboard_exists()

@@ -26,7 +26,7 @@ import { render, screen, cleanup } from 'spec/helpers/testing-library';
 import { FeatureFlag } from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
-import * as featureFlags from 'src/featureFlags';
+import * as uiCore from '@superset-ui/core';
 
 import DatasetList from 'src/pages/DatasetList';
 import ListView from 'src/components/ListView';
@@ -50,7 +50,6 @@ const datasetsEndpoint = 'glob:*/api/v1/dataset/?*';
 const mockdatasets = [...new Array(3)].map((_, i) => ({
   changed_by_name: 'user',
   kind: i === 0 ? 'virtual' : 'physical', // ensure there is 1 virtual
-  changed_by_url: 'changed_by_url',
   changed_by: 'user',
   changed_on: new Date().toISOString(),
   database_name: `db ${i}`,
@@ -259,7 +258,7 @@ describe('RTL', () => {
   let isFeatureEnabledMock: jest.SpyInstance<boolean, [feature: FeatureFlag]>;
   beforeEach(async () => {
     isFeatureEnabledMock = jest
-      .spyOn(featureFlags, 'isFeatureEnabled')
+      .spyOn(uiCore, 'isFeatureEnabled')
       .mockImplementation(() => true);
     await renderAndWait();
   });

@@ -27,7 +27,7 @@ from superset.charts.commands.importers.v1.utils import import_chart
 from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.exceptions import CommandException
 from superset.commands.importers.v1 import ImportModelsCommand
-from superset.dao.base import BaseDAO
+from superset.daos.base import BaseDAO
 from superset.dashboards.commands.importers.v1 import ImportDashboardsCommand
 from superset.dashboards.commands.importers.v1.utils import (
     find_chart_uuids,
@@ -91,7 +91,7 @@ class ImportExamplesCommand(ImportModelsCommand):
         )
 
     @staticmethod
-    def _import(  # pylint: disable=arguments-differ, too-many-locals, too-many-branches
+    def _import(  # pylint: disable=too-many-locals, too-many-branches
         session: Session,
         configs: dict[str, Any],
         overwrite: bool = False,
@@ -120,7 +120,9 @@ class ImportExamplesCommand(ImportModelsCommand):
                 # find the ID of the corresponding database
                 if config["database_uuid"] not in database_ids:
                     if examples_db is None:
-                        raise Exception("Cannot find examples database")
+                        raise Exception(  # pylint: disable=broad-exception-raised
+                            "Cannot find examples database"
+                        )
                     config["database_id"] = examples_db.id
                 else:
                     config["database_id"] = database_ids[config["database_uuid"]]

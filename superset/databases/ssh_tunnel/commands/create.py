@@ -21,13 +21,13 @@ from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAOCreateFailedError
+from superset.daos.database import SSHTunnelDAO
+from superset.daos.exceptions import DAOCreateFailedError
 from superset.databases.ssh_tunnel.commands.exceptions import (
     SSHTunnelCreateFailedError,
     SSHTunnelInvalidError,
     SSHTunnelRequiredFieldValidationError,
 )
-from superset.databases.ssh_tunnel.dao import SSHTunnelDAO
 from superset.extensions import db, event_logger
 
 logger = logging.getLogger(__name__)
@@ -46,7 +46,7 @@ class CreateSSHTunnelCommand(BaseCommand):
             # test_do_not_create_database_if_ssh_tunnel_creation_fails test will fail
             db.session.begin_nested()
             self.validate()
-            tunnel = SSHTunnelDAO.create(self._properties, commit=False)
+            return SSHTunnelDAO.create(attributes=self._properties, commit=False)
         except DAOCreateFailedError as ex:
             # Rollback nested transaction
             db.session.rollback()
@@ -55,8 +55,6 @@ class CreateSSHTunnelCommand(BaseCommand):
             # Rollback nested transaction
             db.session.rollback()
             raise ex
-
-        return tunnel
 
     def validate(self) -> None:
         # TODO(hughhh): check to make sure the server port is not localhost
@@ -84,6 +82,7 @@ class CreateSSHTunnelCommand(BaseCommand):
             exception = SSHTunnelInvalidError()
             exception.extend(exceptions)
             event_logger.log_with_context(
+                # pylint: disable=consider-using-f-string
                 action="ssh_tunnel_creation_failed.{}.{}".format(
                     exception.__class__.__name__,
                     ".".join(exception.get_list_classnames()),

@@ -36,11 +36,9 @@ from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.filters import DatabaseFilter
 from superset.extensions import event_logger
 from superset.models.sql_lab import SavedQuery
-from superset.queries.saved_queries.commands.bulk_delete import (
-    BulkDeleteSavedQueryCommand,
-)
+from superset.queries.saved_queries.commands.delete import DeleteSavedQueryCommand
 from superset.queries.saved_queries.commands.exceptions import (
-    SavedQueryBulkDeleteFailedError,
+    SavedQueryDeleteFailedError,
     SavedQueryNotFoundError,
 )
 from superset.queries.saved_queries.commands.export import ExportSavedQueriesCommand
@@ -180,11 +178,10 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @rison(get_delete_ids_schema)
     def bulk_delete(self, **kwargs: Any) -> Response:
-        """Delete bulk Saved Queries
+        """Bulk delete saved queries.
         ---
         delete:
-          description: >-
-            Deletes multiple saved queries in a bulk operation.
+          summary: Bulk delete saved queries
           parameters:
           - in: query
             name: q
@@ -213,7 +210,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteSavedQueryCommand(item_ids).run()
+            DeleteSavedQueryCommand(item_ids).run()
             return self.response(
                 200,
                 message=ngettext(
@@ -224,7 +221,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
             )
         except SavedQueryNotFoundError:
             return self.response_404()
-        except SavedQueryBulkDeleteFailedError as ex:
+        except SavedQueryDeleteFailedError as ex:
             return self.response_422(message=str(ex))
 
     @expose("/export/", methods=("GET",))
@@ -233,11 +230,10 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @rison(get_export_ids_schema)
     def export(self, **kwargs: Any) -> Response:
-        """Export saved queries
+        """Download multiple saved queries as YAML files.
         ---
         get:
-          description: >-
-            Exports multiple saved queries and downloads them as YAML files
+          summary: Download multiple saved queries as YAML files
           parameters:
           - in: query
             name: q
@@ -298,9 +294,10 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     )
     @requires_form_data
     def import_(self) -> Response:
-        """Import Saved Queries with associated databases
+        """Import saved queries with associated databases.
         ---
         post:
+          summary: Import saved queries with associated databases
           requestBody:
             required: true
             content:

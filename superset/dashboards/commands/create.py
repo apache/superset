@@ -22,13 +22,13 @@ from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.commands.utils import populate_roles
-from superset.dao.exceptions import DAOCreateFailedError
+from superset.daos.dashboard import DashboardDAO
+from superset.daos.exceptions import DAOCreateFailedError
 from superset.dashboards.commands.exceptions import (
     DashboardCreateFailedError,
     DashboardInvalidError,
     DashboardSlugExistsValidationError,
 )
-from superset.dashboards.dao import DashboardDAO
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ class CreateDashboardCommand(CreateMixin, BaseCommand):
     def run(self) -> Model:
         self.validate()
         try:
-            dashboard = DashboardDAO.create(self._properties, commit=False)
+            dashboard = DashboardDAO.create(attributes=self._properties, commit=False)
             dashboard = DashboardDAO.update_charts_owners(dashboard, commit=True)
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)

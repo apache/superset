@@ -27,11 +27,10 @@ from superset.annotation_layers.annotations.commands.exceptions import (
     AnnotationInvalidError,
     AnnotationUniquenessValidationError,
 )
-from superset.annotation_layers.annotations.dao import AnnotationDAO
 from superset.annotation_layers.commands.exceptions import AnnotationLayerNotFoundError
-from superset.annotation_layers.dao import AnnotationLayerDAO
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAOCreateFailedError
+from superset.daos.annotation import AnnotationDAO, AnnotationLayerDAO
+from superset.daos.exceptions import DAOCreateFailedError
 
 logger = logging.getLogger(__name__)
 
@@ -43,11 +42,10 @@ class CreateAnnotationCommand(BaseCommand):
     def run(self) -> Model:
         self.validate()
         try:
-            annotation = AnnotationDAO.create(self._properties)
+            return AnnotationDAO.create(attributes=self._properties)
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)
             raise AnnotationCreateFailedError() from ex
-        return annotation
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []

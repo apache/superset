@@ -26,7 +26,7 @@ from werkzeug.utils import secure_filename
 from superset.commands.export.models import ExportModelsCommand
 from superset.models.sql_lab import SavedQuery
 from superset.queries.saved_queries.commands.exceptions import SavedQueryNotFoundError
-from superset.queries.saved_queries.dao import SavedQueryDAO
+from superset.daos.query import SavedQueryDAO
 from superset.utils.dict_import_export import EXPORT_VERSION
 
 logger = logging.getLogger(__name__)

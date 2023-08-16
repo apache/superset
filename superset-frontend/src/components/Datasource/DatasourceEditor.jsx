@@ -25,6 +25,10 @@ import Alert from 'src/components/Alert';
 import Badge from 'src/components/Badge';
 import shortid from 'shortid';
 import {
+  css,
+  isFeatureEnabled,
+  getCurrencySymbol,
+  ensureIsArray,
   FeatureFlag,
   styled,
   SupersetClient,
@@ -48,8 +52,8 @@ import TextControl from 'src/explore/components/controls/TextControl';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { isFeatureEnabled } from 'src/featureFlags';
 import Icons from 'src/components/Icons';
+import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
 import Field from './Field';
@@ -628,6 +632,12 @@ class DatasourceEditor extends React.PureComponent {
     this.allowEditSource = !isFeatureEnabled(
       FeatureFlag.DISABLE_DATASET_SOURCE_EDIT,
     );
+    this.currencies = ensureIsArray(props.currencies).map(currencyCode => ({
+      value: currencyCode,
+      label: `${getCurrencySymbol({
+        symbol: currencyCode,
+      })} (${currencyCode})`,
+    }));
   }
 
   onChange() {
@@ -688,8 +698,9 @@ class DatasourceEditor extends React.PureComponent {
   }
 
   updateColumns(cols) {
+    // cols: Array<{column_name: string; is_dttm: boolean; type: string;}>
     const { databaseColumns } = this.state;
-    const databaseColumnNames = cols.map(col => col.name);
+    const databaseColumnNames = cols.map(col => col.column_name);
     const currentCols = databaseColumns.reduce(
       (agg, col) => ({
         ...agg,
@@ -706,18 +717,18 @@ class DatasourceEditor extends React.PureComponent {
         .filter(col => !databaseColumnNames.includes(col)),
     };
     cols.forEach(col => {
-      const currentCol = currentCols[col.name];
+      const currentCol = currentCols[col.column_name];
       if (!currentCol) {
         // new column
         finalColumns.push({
           id: shortid.generate(),
-          column_name: col.name,
+          column_name: col.column_name,
           type: col.type,
           groupby: true,
           filterable: true,
           is_dttm: col.is_dttm,
         });
-        results.added.push(col.name);
+        results.added.push(col.column_name);
       } else if (
         currentCol.type !== col.type ||
         (!currentCol.is_dttm && col.is_dttm)
@@ -728,7 +739,7 @@ class DatasourceEditor extends React.PureComponent {
           type: col.type,
           is_dttm: currentCol.is_dttm || col.is_dttm,
         });
-        results.modified.push(col.name);
+        results.modified.push(col.column_name);
       } else {
         // unchanged
         finalColumns.push(currentCol);
@@ -754,6 +765,7 @@ class DatasourceEditor extends React.PureComponent {
       table_name: datasource.table_name
         ? encodeURIComponent(datasource.table_name)
         : datasource.table_name,
+      normalize_columns: datasource.normalize_columns,
     };
     Object.entries(params).forEach(([key, value]) => {
       // rison can't encode the undefined value
@@ -837,6 +849,20 @@ class DatasourceEditor extends React.PureComponent {
         t('Calculated column [%s] requires an expression', col.column_name),
       ),
     );
+
+    // validate currency code
+    try {
+      this.state.datasource.metrics?.forEach(
+        metric =>
+          metric.currency?.symbol &&
+          new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: metric.currency.symbol,
+          }),
+      );
+    } catch {
+      errors = errors.concat([t('Invalid currency code in saved metrics')]);
+    }
 
     this.setState({ errors }, callback);
   }
@@ -968,6 +994,15 @@ class DatasourceEditor extends React.PureComponent {
             control={<TextControl controlId="template_params" />}
           />
         )}
+        <Field
+          inline
+          fieldKey="normalize_columns"
+          label={t('Normalize column names')}
+          description={t(
+            'Allow column names to be changed to case insensitive format, if supported (e.g. Oracle, Snowflake).',
+          )}
+          control={<CheckboxControl controlId="normalize_columns" />}
+        />
       </Fieldset>
     );
   }
@@ -1225,6 +1260,20 @@ class DatasourceEditor extends React.PureComponent {
                 label={t('D3 format')}
                 control={
                   <TextControl controlId="d3format" placeholder="%y/%m/%d" />
+                }
+              />
+              <Field
+                fieldKey="currency"
+                label={t('Metric currency')}
+                control={
+                  <CurrencyControl
+                    currencySelectOverrideProps={{
+                      placeholder: t('Select or type currency symbol'),
+                    }}
+                    symbolSelectAdditionalStyles={css`
+                      max-width: 30%;
+                    `}
+                  />
                 }
               />
               <Field

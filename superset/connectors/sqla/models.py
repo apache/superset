@@ -105,7 +105,13 @@ from superset.models.helpers import (
     validate_adhoc_subquery,
 )
 from superset.sql_parse import ParsedQuery, sanitize_clause
-from superset.superset_typing import AdhocColumn, AdhocMetric, Metric, QueryObjectDict
+from superset.superset_typing import (
+    AdhocColumn,
+    AdhocMetric,
+    Metric,
+    QueryObjectDict,
+    ResultSetColumnType,
+)
 from superset.utils import core as utils
 from superset.utils.core import GenericDataType, MediumText
 
@@ -190,7 +196,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
 
     __tablename__ = "table_columns"
     __table_args__ = (UniqueConstraint("table_id", "column_name"),)
-    table_id = Column(Integer, ForeignKey("tables.id"))
+    table_id = Column(Integer, ForeignKey("tables.id", ondelete="CASCADE"))
     table: Mapped[SqlaTable] = relationship(
         "SqlaTable",
         back_populates="columns",
@@ -294,7 +300,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
             return GenericDataType.TEMPORAL
 
         return (
-            column_spec.generic_type  # pylint: disable=used-before-assignment
+            column_spec.generic_type
             if (
                 column_spec := self.db_engine_spec.get_column_spec(
                     self.type,
@@ -394,7 +400,7 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
 
     __tablename__ = "sql_metrics"
     __table_args__ = (UniqueConstraint("table_id", "metric_name"),)
-    table_id = Column(Integer, ForeignKey("tables.id"))
+    table_id = Column(Integer, ForeignKey("tables.id", ondelete="CASCADE"))
     table: Mapped[SqlaTable] = relationship(
         "SqlaTable",
         back_populates="metrics",
@@ -410,6 +416,7 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
         "expression",
         "description",
         "d3format",
+        "currency",
         "extra",
         "warning_text",
     ]
@@ -463,8 +470,8 @@ sqlatable_user = Table(
     "sqlatable_user",
     metadata,
     Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("ab_user.id")),
-    Column("table_id", Integer, ForeignKey("tables.id")),
+    Column("user_id", Integer, ForeignKey("ab_user.id", ondelete="CASCADE")),
+    Column("table_id", Integer, ForeignKey("tables.id", ondelete="CASCADE")),
 )
 
 
@@ -501,11 +508,13 @@ class SqlaTable(
         TableColumn,
         back_populates="table",
         cascade="all, delete-orphan",
+        passive_deletes=True,
     )
     metrics: Mapped[list[SqlMetric]] = relationship(
         SqlMetric,
         back_populates="table",
         cascade="all, delete-orphan",
+        passive_deletes=True,
     )
     metric_class = SqlMetric
     column_class = TableColumn
@@ -537,6 +546,7 @@ class SqlaTable(
     is_sqllab_view = Column(Boolean, default=False)
     template_params = Column(Text)
     extra = Column(Text)
+    normalize_columns = Column(Boolean, default=False)
 
     baselink = "tablemodelview"
 
@@ -555,6 +565,7 @@ class SqlaTable(
         "filter_select_enabled",
         "fetch_values_predicate",
         "extra",
+        "normalize_columns",
     ]
     update_from_object_fields = [f for f in export_fields if f != "database_id"]
     export_parent = "database"
@@ -598,14 +609,6 @@ class SqlaTable(
         if not self.changed_by:
             return ""
         return str(self.changed_by)
-
-    @property
-    def changed_by_url(self) -> str:
-        if not self.changed_by or not is_feature_enabled(
-            "ENABLE_BROAD_ACTIVITY_ACCESS"
-        ):
-            return ""
-        return f"/superset/profile/{self.changed_by.username}"
 
     @property
     def connection(self) -> str:
@@ -708,14 +711,15 @@ class SqlaTable(
     def sql_url(self) -> str:
         return self.database.sql_url + "?table_name=" + str(self.table_name)
 
-    def external_metadata(self) -> list[dict[str, str]]:
+    def external_metadata(self) -> list[ResultSetColumnType]:
         # todo(yongjie): create a physical table column type in a separate PR
         if self.sql:
-            return get_virtual_table_metadata(dataset=self)  # type: ignore
+            return get_virtual_table_metadata(dataset=self)
         return get_physical_table_metadata(
             database=self.database,
             table_name=self.table_name,
             schema_name=self.schema,
+            normalize_columns=self.normalize_columns,
         )
 
     @property
@@ -1002,8 +1006,8 @@ class SqlaTable(
                     tbl, _ = self.get_from_clause(template_processor)
                     qry = sa.select([sqla_column]).limit(1).select_from(tbl)
                     sql = self.database.compile_sqla_query(qry)
-                    col_desc = get_columns_description(self.database, sql)
-                    is_dttm = col_desc[0]["is_dttm"]
+                    col_desc = get_columns_description(self.database, self.schema, sql)
+                    is_dttm = col_desc[0]["is_dttm"]  # type: ignore
                 except SupersetGenericDBErrorException as ex:
                     raise ColumnNotFoundException(message=str(ex)) from ex
 
@@ -1268,18 +1272,18 @@ class SqlaTable(
             removed=[
                 col
                 for col in old_columns_by_name
-                if col not in {col["name"] for col in new_columns}
+                if col not in {col["column_name"] for col in new_columns}
             ]
         )
 
         # clear old columns before adding modified columns back
         columns = []
         for col in new_columns:
-            old_column = old_columns_by_name.pop(col["name"], None)
+            old_column = old_columns_by_name.pop(col["column_name"], None)
             if not old_column:
-                results.added.append(col["name"])
+                results.added.append(col["column_name"])
                 new_column = TableColumn(
-                    column_name=col["name"],
+                    column_name=col["column_name"],
                     type=col["type"],
                     table=self,
                 )
@@ -1288,14 +1292,14 @@ class SqlaTable(
             else:
                 new_column = old_column
                 if new_column.type != col["type"]:
-                    results.modified.append(col["name"])
+                    results.modified.append(col["column_name"])
                 new_column.type = col["type"]
                 new_column.expression = ""
             new_column.groupby = True
             new_column.filterable = True
             columns.append(new_column)
             if not any_date_col and new_column.is_temporal:
-                any_date_col = col["name"]
+                any_date_col = col["column_name"]
 
         # add back calculated (virtual) columns
         columns.extend([col for col in old_columns if col.expression])
@@ -1447,8 +1451,8 @@ class SqlaTable(
         """
 
         # pylint: disable=import-outside-toplevel
+        from superset.daos.dataset import DatasetDAO
         from superset.datasets.commands.exceptions import get_dataset_exist_error_msg
-        from superset.datasets.dao import DatasetDAO
 
         # Check whether the relevant attributes have changed.
         state = db.inspect(target)  # pylint: disable=no-member
@@ -1463,7 +1467,9 @@ class SqlaTable(
         if not DatasetDAO.validate_uniqueness(
             target.database_id, target.schema, target.table_name, target.id
         ):
-            raise Exception(get_dataset_exist_error_msg(target.full_name))
+            raise Exception(  # pylint: disable=broad-exception-raised
+                get_dataset_exist_error_msg(target.full_name)
+            )
 
     @staticmethod
     def update_column(  # pylint: disable=unused-argument
@@ -1619,6 +1625,9 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
         backref="row_level_security_filters",
     )
     tables = relationship(
-        SqlaTable, secondary=RLSFilterTables, backref="row_level_security_filters"
+        SqlaTable,
+        overlaps="table",
+        secondary=RLSFilterTables,
+        backref="row_level_security_filters",
     )
     clause = Column(Text, nullable=False)

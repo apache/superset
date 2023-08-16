@@ -320,6 +320,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(TableSchemaView)
         appbuilder.add_view_no_menu(TabStateView)
         appbuilder.add_view_no_menu(TaggedObjectView)
+        appbuilder.add_view_no_menu(TaggedObjectsModelView)
         appbuilder.add_view_no_menu(TagView)
         appbuilder.add_view_no_menu(ReportView)
 
@@ -367,19 +368,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_label=__("SQL Lab"),
         )
         appbuilder.add_view(
-            TaggedObjectsModelView,
-            "All Entities",
-            label=__("All Entities"),
-            icon="",
-            category_icon="",
-            menu_cond=lambda: feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"),
-        )
-        appbuilder.add_view(
             TagModelView,
             "Tags",
             label=__("Tags"),
             icon="",
             category_icon="",
+            category="Manage",
             menu_cond=lambda: feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"),
         )
         appbuilder.add_api(LogRestApi)
@@ -545,7 +539,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         custom_sm = self.config["CUSTOM_SECURITY_MANAGER"] or SupersetSecurityManager
         if not issubclass(custom_sm, SupersetSecurityManager):
-            raise Exception(
+            raise Exception(  # pylint: disable=broad-exception-raised
                 """Your CUSTOM_SECURITY_MANAGER must now extend SupersetSecurityManager,
                  not FAB's security manager.
                  See [4565] in UPDATING.md"""
@@ -613,7 +607,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         # Talisman
         talisman_enabled = self.config["TALISMAN_ENABLED"]
-        talisman_config = self.config["TALISMAN_CONFIG"]
+        talisman_config = (
+            self.config["TALISMAN_DEV_CONFIG"]
+            if self.superset_app.debug
+            else self.config["TALISMAN_CONFIG"]
+        )
         csp_warning = self.config["CONTENT_SECURITY_POLICY_WARNING"]
 
         if talisman_enabled:

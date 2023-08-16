@@ -23,7 +23,7 @@ from collections.abc import Iterator
 import yaml
 
 from superset.charts.commands.exceptions import ChartNotFoundError
-from superset.charts.dao import ChartDAO
+from superset.daos.chart import ChartDAO
 from superset.datasets.commands.export import ExportDatasetsCommand
 from superset.commands.export.models import ExportModelsCommand
 from superset.models.slice import Slice
@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 
 # keys present in the standard export that are not needed
-REMOVE_KEYS = ["datasource_type", "datasource_name", "query_context", "url_params"]
+REMOVE_KEYS = ["datasource_type", "datasource_name", "url_params"]
 
 
 class ExportChartsCommand(ExportModelsCommand):

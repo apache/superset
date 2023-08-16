@@ -10,7 +10,6 @@ on:
 
 jobs:
   test-mysql:
-    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -76,7 +75,6 @@ jobs:
           bash .github/workflows/codecov.sh -c -F python -F mysql
 
   test-postgres:
-    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -88,7 +86,7 @@ jobs:
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
     services:
       postgres:
-        image: postgres:14-alpine
+        image: postgres:15-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -143,7 +141,6 @@ jobs:
           bash .github/workflows/codecov.sh -c -F python -F postgres
 
   test-sqlite:
-    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       matrix:

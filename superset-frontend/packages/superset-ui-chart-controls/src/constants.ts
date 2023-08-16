@@ -48,7 +48,7 @@ export const DATASET_TIME_COLUMN_OPTION: ColumnMeta = {
 };
 
 export const QUERY_TIME_COLUMN_OPTION: QueryColumn = {
-  name: DTTM_ALIAS,
+  column_name: DTTM_ALIAS,
   type: DatasourceType.Query,
   is_dttm: false,
 };

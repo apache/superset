@@ -194,9 +194,12 @@ export function getExploreUrl({
   return uri.search(search).directory(directory).toString();
 }
 
-export const shouldUseLegacyApi = formData => {
+export const getQuerySettings = formData => {
   const vizMetadata = getChartMetadataRegistry().get(formData.viz_type);
-  return vizMetadata ? vizMetadata.useLegacyApi : false;
+  return [
+    vizMetadata?.useLegacyApi ?? false,
+    vizMetadata?.parseMethod ?? 'json-bigint',
+  ];
 };
 
 export const buildV1ChartDataPayload = ({
@@ -243,7 +246,8 @@ export const exportChart = ({
 }) => {
   let url;
   let payload;
-  if (shouldUseLegacyApi(formData)) {
+  const [useLegacyApi, parseMethod] = getQuerySettings(formData);
+  if (useLegacyApi) {
     const endpointType = getLegacyEndpointType({ resultFormat, resultType });
     url = getExploreUrl({
       formData,
@@ -259,6 +263,7 @@ export const exportChart = ({
       resultFormat,
       resultType,
       ownState,
+      parseMethod,
     });
   }
 

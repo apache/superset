@@ -24,7 +24,8 @@ from marshmallow import ValidationError
 from superset import security_manager
 from superset.commands.base import BaseCommand, UpdateMixin
 from superset.commands.utils import populate_roles
-from superset.dao.exceptions import DAOUpdateFailedError
+from superset.daos.dashboard import DashboardDAO
+from superset.daos.exceptions import DAOUpdateFailedError
 from superset.dashboards.commands.exceptions import (
     DashboardForbiddenError,
     DashboardInvalidError,
@@ -32,7 +33,6 @@ from superset.dashboards.commands.exceptions import (
     DashboardSlugExistsValidationError,
     DashboardUpdateFailedError,
 )
-from superset.dashboards.dao import DashboardDAO
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db
 from superset.models.dashboard import Dashboard
@@ -48,6 +48,8 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
 
     def run(self) -> Model:
         self.validate()
+        assert self._model
+
         try:
             dashboard = DashboardDAO.update(self._model, self._properties, commit=False)
             if self._properties.get("json_metadata"):

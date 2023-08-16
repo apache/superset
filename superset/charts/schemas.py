@@ -23,7 +23,6 @@ from typing import Any, TYPE_CHECKING
 from flask_babel import gettext as _
 from marshmallow import EXCLUDE, fields, post_load, Schema, validate
 from marshmallow.validate import Length, Range
-from marshmallow_enum import EnumField
 
 from superset import app
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
@@ -124,23 +123,17 @@ owners_name_description = "Name of an owner of the chart."
 certified_by_description = "Person or group that has certified this chart"
 certification_details_description = "Details of the certification"
 
-#
-# OpenAPI method specification overrides
-#
 openapi_spec_methods_override = {
-    "get": {"get": {"description": "Get a chart detail information."}},
+    "get": {"get": {"summary": "Get a chart detail information"}},
     "get_list": {
         "get": {
-            "description": "Get a list of charts, use Rison or JSON query "
+            "summary": "Get a list of charts",
+            "description": "Gets a list of charts, use Rison or JSON query "
             "parameters for filtering, sorting, pagination and "
             " for selecting specific columns and metadata.",
         }
     },
-    "info": {
-        "get": {
-            "description": "Several metadata information about chart API endpoints.",
-        }
-    },
+    "info": {"get": {"summary": "Get metadata information about this API resource"}},
     "related": {
         "get": {
             "description": "Get a list of all possible owners for a chart. "
@@ -153,7 +146,7 @@ openapi_spec_methods_override = {
 class TagSchema(Schema):
     id = fields.Int()
     name = fields.String()
-    type = EnumField(TagTypes, by_value=True)
+    type = fields.Enum(TagTypes, by_value=True)
 
 
 class ChartEntityResponseSchema(Schema):
@@ -164,7 +157,7 @@ class ChartEntityResponseSchema(Schema):
     id = fields.Integer(metadata={"description": id_description})
     slice_name = fields.String(metadata={"description": slice_name_description})
     cache_timeout = fields.Integer(metadata={"description": cache_timeout_description})
-    changed_on = fields.String(metadata={"description": changed_on_description})
+    changed_on = fields.DateTime(metadata={"description": changed_on_description})
     description = fields.String(metadata={"description": description_description})
     description_markeddown = fields.String(
         metadata={"description": description_markeddown_description}
@@ -1127,7 +1120,7 @@ class ChartDataQueryObjectSchema(Schema):
         unknown = EXCLUDE
 
     datasource = fields.Nested(ChartDataDatasourceSchema, allow_none=True)
-    result_type = EnumField(ChartDataResultType, by_value=True, allow_none=True)
+    result_type = fields.Enum(ChartDataResultType, by_value=True, allow_none=True)
 
     annotation_layers = fields.List(
         fields.Nested(AnnotationLayerSchema),
@@ -1369,8 +1362,8 @@ class ChartDataQueryContextSchema(Schema):
         allow_none=True,
     )
 
-    result_type = EnumField(ChartDataResultType, by_value=True)
-    result_format = EnumField(ChartDataResultFormat, by_value=True)
+    result_type = fields.Enum(ChartDataResultType, by_value=True)
+    result_format = fields.Enum(ChartDataResultFormat, by_value=True)
 
     form_data = fields.Raw(allow_none=True, required=False)
 
@@ -1557,7 +1550,45 @@ class ImportV1ChartSchema(Schema):
     external_url = fields.String(allow_none=True)
 
 
+class ChartCacheWarmUpRequestSchema(Schema):
+    chart_id = fields.Integer(
+        required=True,
+        metadata={"description": "The ID of the chart to warm up cache for"},
+    )
+    dashboard_id = fields.Integer(
+        metadata={
+            "description": "The ID of the dashboard to get filters for when warming cache"
+        }
+    )
+    extra_filters = fields.String(
+        metadata={"description": "Extra filters to apply when warming up cache"}
+    )
+
+
+class ChartCacheWarmUpResponseSingleSchema(Schema):
+    chart_id = fields.Integer(
+        metadata={"description": "The ID of the chart the status belongs to"}
+    )
+    viz_error = fields.String(
+        metadata={"description": "Error that occurred when warming cache for chart"}
+    )
+    viz_status = fields.String(
+        metadata={"description": "Status of the underlying query for the viz"}
+    )
+
+
+class ChartCacheWarmUpResponseSchema(Schema):
+    result = fields.List(
+        fields.Nested(ChartCacheWarmUpResponseSingleSchema),
+        metadata={
+            "description": "A list of each chart's warmup status and errors if any"
+        },
+    )
+
+
 CHART_SCHEMAS = (
+    ChartCacheWarmUpRequestSchema,
+    ChartCacheWarmUpResponseSchema,
     ChartDataQueryContextSchema,
     ChartDataResponseSchema,
     ChartDataAsyncResponseSchema,

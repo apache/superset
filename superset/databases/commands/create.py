@@ -23,7 +23,8 @@ from marshmallow import ValidationError
 
 from superset import is_feature_enabled
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAOCreateFailedError
+from superset.daos.database import DatabaseDAO
+from superset.daos.exceptions import DAOCreateFailedError
 from superset.databases.commands.exceptions import (
     DatabaseConnectionFailedError,
     DatabaseCreateFailedError,
@@ -32,7 +33,6 @@ from superset.databases.commands.exceptions import (
     DatabaseRequiredFieldValidationError,
 )
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
-from superset.databases.dao import DatabaseDAO
 from superset.databases.ssh_tunnel.commands.create import CreateSSHTunnelCommand
 from superset.databases.ssh_tunnel.commands.exceptions import (
     SSHTunnelCreateFailedError,
@@ -77,7 +77,7 @@ class CreateDatabaseCommand(BaseCommand):
         )
 
         try:
-            database = DatabaseDAO.create(self._properties, commit=False)
+            database = DatabaseDAO.create(attributes=self._properties, commit=False)
             database.set_sqlalchemy_uri(database.sqlalchemy_uri)
 
             ssh_tunnel = None
@@ -143,6 +143,7 @@ class CreateDatabaseCommand(BaseCommand):
             exception = DatabaseInvalidError()
             exception.extend(exceptions)
             event_logger.log_with_context(
+                # pylint: disable=consider-using-f-string
                 action="db_connection_failed.{}.{}".format(
                     exception.__class__.__name__,
                     ".".join(exception.get_list_classnames()),

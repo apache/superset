@@ -30,6 +30,7 @@ from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.exceptions import SupersetException
+from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
@@ -132,7 +133,7 @@ class DruidEngineSpec(BaseEngineSpec):
     @classmethod
     def get_columns(
         cls, inspector: Inspector, table_name: str, schema: str | None
-    ) -> list[dict[str, Any]]:
+    ) -> list[ResultSetColumnType]:
         """
         Update the Druid type map.
         """

@@ -48,10 +48,6 @@ class AnnotationUniquenessValidationError(ValidationError):
         )
 
 
-class AnnotationBulkDeleteFailedError(DeleteFailedError):
-    message = _("Annotations could not be deleted.")
-
-
 class AnnotationNotFoundError(CommandException):
     message = _("Annotation not found.")
 
@@ -68,5 +64,5 @@ class AnnotationUpdateFailedError(CreateFailedError):
     message = _("Annotation could not be updated.")
 
 
-class AnnotationDeleteFailedError(CommandException):
-    message = _("Annotation delete failed.")
+class AnnotationDeleteFailedError(DeleteFailedError):
+    message = _("Annotations could not be deleted.")

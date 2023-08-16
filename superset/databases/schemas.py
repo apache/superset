@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# pylint: disable=no-self-use, unused-argument
+# pylint: disable=unused-argument
 
 import inspect
 import json
@@ -25,7 +25,6 @@ from flask import current_app
 from flask_babel import lazy_gettext as _
 from marshmallow import EXCLUDE, fields, pre_load, Schema, validates_schema
 from marshmallow.validate import Length, ValidationError
-from marshmallow_enum import EnumField
 from sqlalchemy import MetaData
 
 from superset import db, is_feature_enabled
@@ -151,6 +150,18 @@ server_cert_description = markdown(
     True,
 )
 
+openapi_spec_methods_override = {
+    "get_list": {
+        "get": {
+            "summary": "Get a list of databases",
+            "description": "Gets a list of databases, use Rison or JSON query "
+            "parameters for filtering, sorting, pagination and "
+            " for selecting specific columns and metadata.",
+        }
+    },
+    "info": {"get": {"summary": "Get metadata information about this API resource"}},
+}
+
 
 def sqlalchemy_uri_validator(value: str) -> str:
     """
@@ -213,20 +224,20 @@ def extra_validator(value: str) -> str:
             raise ValidationError(
                 [_("Field cannot be decoded by JSON. %(msg)s", msg=str(ex))]
             ) from ex
-        else:
-            metadata_signature = inspect.signature(MetaData)
-            for key in extra_.get("metadata_params", {}):
-                if key not in metadata_signature.parameters:
-                    raise ValidationError(
-                        [
-                            _(
-                                "The metadata_params in Extra field "
-                                "is not configured correctly. The key "
-                                "%(key)s is invalid.",
-                                key=key,
-                            )
-                        ]
-                    )
+
+        metadata_signature = inspect.signature(MetaData)
+        for key in extra_.get("metadata_params", {}):
+            if key not in metadata_signature.parameters:
+                raise ValidationError(
+                    [
+                        _(
+                            "The metadata_params in Extra field "
+                            "is not configured correctly. The key "
+                            "%(key)s is invalid.",
+                            key=key,
+                        )
+                    ]
+                )
     return value
 
 
@@ -254,7 +265,7 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
         values=fields.Raw(),
         metadata={"description": "DB-specific parameters for configuration"},
     )
-    configuration_method = EnumField(
+    configuration_method = fields.Enum(
         ConfigurationMethod,
         by_value=True,
         metadata={"description": configuration_method_description},
@@ -387,7 +398,7 @@ class DatabaseValidateParametersSchema(Schema):
         allow_none=True,
         validate=server_cert_validator,
     )
-    configuration_method = EnumField(
+    configuration_method = fields.Enum(
         ConfigurationMethod,
         by_value=True,
         required=True,

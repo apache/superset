@@ -81,6 +81,7 @@ def test_export(session: Session) -> None:
         is_sqllab_view=0,  # no longer used?
         template_params=json.dumps({"answer": "42"}),
         schema_perm=None,
+        normalize_columns=False,
         extra=json.dumps({"warning_markdown": "*WARNING*"}),
     )
 
@@ -108,6 +109,7 @@ filter_select_enabled: 1
 fetch_values_predicate: foo IN (1, 2)
 extra:
   warning_markdown: '*WARNING*'
+normalize_columns: false
 uuid: null
 metrics:
 - metric_name: cnt
@@ -116,6 +118,7 @@ metrics:
   expression: COUNT(*)
   description: null
   d3format: null
+  currency: null
   extra:
     warning_markdown: null
   warning_text: null

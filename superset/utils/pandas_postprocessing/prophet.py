@@ -17,6 +17,7 @@
 import logging
 from typing import Optional, Union
 
+import pandas as pd
 from flask_babel import gettext as _
 from pandas import DataFrame
 
@@ -51,7 +52,7 @@ def _prophet_fit_and_predict(  # pylint: disable=too-many-arguments
     Fit a prophet model and return a DataFrame with predicted results.
     """
     try:
-        # pylint: disable=import-error,import-outside-toplevel
+        # pylint: disable=import-outside-toplevel
         from prophet import Prophet
 
         prophet_logger = logging.getLogger("prophet.plot")
@@ -134,7 +135,13 @@ def prophet(  # pylint: disable=too-many-arguments
         raise InvalidPostProcessingError(_("DataFrame include at least one series"))
 
     target_df = DataFrame()
-    for column in [column for column in df.columns if column != index]:
+
+    for column in [
+        column
+        for column in df.columns
+        if column != index
+        and pd.to_numeric(df[column], errors="coerce").notnull().all()
+    ]:
         fit_df = _prophet_fit_and_predict(
             df=df[[index, column]].rename(columns={index: "ds", column: "y"}),
             confidence_interval=confidence_interval,

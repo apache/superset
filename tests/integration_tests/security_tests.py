@@ -29,7 +29,7 @@ import pytest
 
 from flask import current_app
 from flask_appbuilder.security.sqla.models import Role
-from superset.datasource.dao import DatasourceDAO
+from superset.daos.datasource import DatasourceDAO
 from superset.models.dashboard import Dashboard
 from superset import app, appbuilder, db, security_manager, viz
 from superset.connectors.sqla.models import SqlaTable
@@ -47,6 +47,7 @@ from superset.utils.database import get_example_database
 from superset.utils.urls import get_url_host
 
 from .base_tests import SupersetTestCase
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.fixtures.public_role import (
     public_role_like_gamma,
     public_role_like_test_role,
@@ -1350,19 +1351,12 @@ class TestRolePermission(SupersetTestCase):
         # make sure that user can create slices and dashboards
         self.assert_can_all("Dashboard", perm_set)
         self.assert_can_all("Chart", perm_set)
-        self.assertIn(("can_add_slices", "Superset"), perm_set)
-        self.assertIn(("can_copy_dash", "Superset"), perm_set)
-        self.assertIn(("can_created_dashboards", "Superset"), perm_set)
-        self.assertIn(("can_created_slices", "Superset"), perm_set)
         self.assertIn(("can_csv", "Superset"), perm_set)
         self.assertIn(("can_dashboard", "Superset"), perm_set)
         self.assertIn(("can_explore", "Superset"), perm_set)
         self.assertIn(("can_share_chart", "Superset"), perm_set)
         self.assertIn(("can_share_dashboard", "Superset"), perm_set)
         self.assertIn(("can_explore_json", "Superset"), perm_set)
-        self.assertIn(("can_fave_dashboards", "Superset"), perm_set)
-        self.assertIn(("can_fave_slices", "Superset"), perm_set)
-        self.assertIn(("can_save_dash", "Superset"), perm_set)
         self.assertIn(("can_explore_json", "Superset"), perm_set)
         self.assertIn(("can_userinfo", "UserDBModelView"), perm_set)
         self.assert_can_menu("Databases", perm_set)
@@ -1500,8 +1494,6 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn(("can_csv", "Superset"), sql_lab_set)
         self.assertIn(("can_read", "Database"), sql_lab_set)
         self.assertIn(("can_read", "SavedQuery"), sql_lab_set)
-        self.assertIn(("can_sqllab_viz", "Superset"), sql_lab_set)
-        self.assertIn(("can_sqllab_table_viz", "Superset"), sql_lab_set)
         self.assertIn(("can_sqllab", "Superset"), sql_lab_set)
 
         self.assertIn(("menu_access", "SQL Lab"), sql_lab_set)
@@ -1530,19 +1522,12 @@ class TestRolePermission(SupersetTestCase):
         self.assert_cannot_write("UserDBModelView", gamma_perm_set)
         self.assert_cannot_write("RoleModelView", gamma_perm_set)
 
-        self.assertIn(("can_add_slices", "Superset"), gamma_perm_set)
-        self.assertIn(("can_copy_dash", "Superset"), gamma_perm_set)
-        self.assertIn(("can_created_dashboards", "Superset"), gamma_perm_set)
-        self.assertIn(("can_created_slices", "Superset"), gamma_perm_set)
         self.assertIn(("can_csv", "Superset"), gamma_perm_set)
         self.assertIn(("can_dashboard", "Superset"), gamma_perm_set)
         self.assertIn(("can_explore", "Superset"), gamma_perm_set)
         self.assertIn(("can_share_chart", "Superset"), gamma_perm_set)
         self.assertIn(("can_share_dashboard", "Superset"), gamma_perm_set)
         self.assertIn(("can_explore_json", "Superset"), gamma_perm_set)
-        self.assertIn(("can_fave_dashboards", "Superset"), gamma_perm_set)
-        self.assertIn(("can_fave_slices", "Superset"), gamma_perm_set)
-        self.assertIn(("can_save_dash", "Superset"), gamma_perm_set)
         self.assertIn(("can_userinfo", "UserDBModelView"), gamma_perm_set)
 
     def test_views_are_secured(self):
@@ -1659,17 +1644,19 @@ class TestSecurityManager(SupersetTestCase):
         with self.assertRaises(SupersetSecurityException):
             security_manager.raise_for_access(query=query)
 
+    @patch("superset.security.manager.g")
     @patch("superset.security.SupersetSecurityManager.is_owner")
     @patch("superset.security.SupersetSecurityManager.can_access")
     @patch("superset.security.SupersetSecurityManager.can_access_schema")
     def test_raise_for_access_query_context(
-        self, mock_can_access_schema, mock_can_access, mock_is_owner
+        self, mock_can_access_schema, mock_can_access, mock_is_owner, mock_g
     ):
         query_context = Mock(datasource=self.get_datasource_mock())
 
         mock_can_access_schema.return_value = True
         security_manager.raise_for_access(query_context=query_context)
 
+        mock_g.user = security_manager.find_user("gamma")
         mock_can_access.return_value = False
         mock_can_access_schema.return_value = False
         mock_is_owner.return_value = False
@@ -1690,23 +1677,63 @@ class TestSecurityManager(SupersetTestCase):
         with self.assertRaises(SupersetSecurityException):
             security_manager.raise_for_access(database=database, table=table)
 
+    @patch("superset.security.manager.g")
     @patch("superset.security.SupersetSecurityManager.is_owner")
     @patch("superset.security.SupersetSecurityManager.can_access")
     @patch("superset.security.SupersetSecurityManager.can_access_schema")
     def test_raise_for_access_viz(
-        self, mock_can_access_schema, mock_can_access, mock_is_owner
+        self, mock_can_access_schema, mock_can_access, mock_is_owner, mock_g
     ):
-        test_viz = viz.TableViz(self.get_datasource_mock(), form_data={})
+        test_viz = viz.TimeTableViz(self.get_datasource_mock(), form_data={})
 
         mock_can_access_schema.return_value = True
         security_manager.raise_for_access(viz=test_viz)
 
+        mock_g.user = security_manager.find_user("gamma")
         mock_can_access.return_value = False
         mock_can_access_schema.return_value = False
         mock_is_owner.return_value = False
 
         with self.assertRaises(SupersetSecurityException):
             security_manager.raise_for_access(viz=test_viz)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @with_feature_flags(DASHBOARD_RBAC=True)
+    @patch("superset.security.manager.g")
+    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    @patch("superset.security.SupersetSecurityManager.can_access_schema")
+    def test_raise_for_access_rbac(
+        self,
+        mock_can_access_schema,
+        mock_can_access,
+        mock_is_owner,
+        mock_g,
+    ):
+        dashboard = self.get_dash_by_slug("births")
+
+        obj = Mock(
+            datasource=self.get_datasource_mock(),
+            form_data={"dashboardId": dashboard.id},
+        )
+
+        mock_g.user = security_manager.find_user("gamma")
+        mock_is_owner.return_value = False
+        mock_can_access.return_value = False
+        mock_can_access_schema.return_value = False
+
+        for kwarg in ["query_context", "viz"]:
+            dashboard.roles = []
+            db.session.flush()
+
+            with self.assertRaises(SupersetSecurityException):
+                security_manager.raise_for_access(**{kwarg: obj})
+
+            dashboard.roles = [self.get_role("Gamma")]
+            db.session.flush()
+            security_manager.raise_for_access(**{kwarg: obj})
+
+        db.session.rollback()
 
     @patch("superset.security.manager.g")
     def test_get_user_roles(self, mock_g):

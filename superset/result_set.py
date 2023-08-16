@@ -167,12 +167,11 @@ class SupersetResultSet:
                         try:
                             if sample.tzinfo:
                                 tz = sample.tzinfo
-                                series = pd.Series(
-                                    array[column], dtype="datetime64[ns]"
-                                )
-                                series = pd.to_datetime(series).dt.tz_localize(tz)
+                                series = pd.Series(array[column])
+                                series = pd.to_datetime(series)
                                 pa_data[i] = pa.Array.from_pandas(
-                                    series, type=pa.timestamp("ns", tz=tz)
+                                    series,
+                                    type=pa.timestamp("ns", tz=tz),
                                 )
                         except Exception as ex:  # pylint: disable=broad-except
                             logger.exception(ex)
@@ -253,10 +252,10 @@ class SupersetResultSet:
         for col in self.table.schema:
             db_type_str = self.data_type(col.name, col.type)
             column: ResultSetColumnType = {
+                "column_name": col.name,
                 "name": col.name,
                 "type": db_type_str,
                 "is_dttm": self.is_temporal(db_type_str),
             }
             columns.append(column)
-
         return columns

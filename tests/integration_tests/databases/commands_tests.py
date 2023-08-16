@@ -421,7 +421,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         assert database.database_name == "imported_database"
         assert database.expose_in_sqllab
         assert database.extra == "{}"
-        assert database.sqlalchemy_uri == "sqlite:///test.db"
+        assert database.sqlalchemy_uri == "someengine://user:pass@host1"
 
         db.session.delete(database)
         db.session.commit()
@@ -460,7 +460,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         assert database.database_name == "imported_database"
         assert database.expose_in_sqllab
         assert database.extra == '{"schemas_allowed_for_file_upload": ["upload"]}'
-        assert database.sqlalchemy_uri == "sqlite:///test.db"
+        assert database.sqlalchemy_uri == "someengine://user:pass@host1"
 
         db.session.delete(database)
         db.session.commit()
@@ -716,7 +716,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         assert database.database_name == "imported_database"
         assert database.expose_in_sqllab
         assert database.extra == "{}"
-        assert database.sqlalchemy_uri == "sqlite:///test.db"
+        assert database.sqlalchemy_uri == "someengine://user:pass@host1"
 
         model_ssh_tunnel = (
             db.session.query(SSHTunnel)
@@ -761,7 +761,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         assert database.database_name == "imported_database"
         assert database.expose_in_sqllab
         assert database.extra == "{}"
-        assert database.sqlalchemy_uri == "sqlite:///test.db"
+        assert database.sqlalchemy_uri == "someengine://user:pass@host1"
 
         model_ssh_tunnel = (
             db.session.query(SSHTunnel)
@@ -859,7 +859,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
 
 
 class TestTestConnectionDatabaseCommand(SupersetTestCase):
-    @patch("superset.databases.dao.Database._get_sqla_engine")
+    @patch("superset.daos.database.Database._get_sqla_engine")
     @patch("superset.databases.commands.test_connection.event_logger.log_with_context")
     @patch("superset.utils.core.g")
     def test_connection_db_exception(
@@ -880,7 +880,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
             )
         mock_event_logger.assert_called()
 
-    @patch("superset.databases.dao.Database._get_sqla_engine")
+    @patch("superset.daos.database.Database._get_sqla_engine")
     @patch("superset.databases.commands.test_connection.event_logger.log_with_context")
     @patch("superset.utils.core.g")
     def test_connection_do_ping_exception(
@@ -925,7 +925,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
             == SupersetErrorType.CONNECTION_DATABASE_TIMEOUT
         )
 
-    @patch("superset.databases.dao.Database._get_sqla_engine")
+    @patch("superset.daos.database.Database._get_sqla_engine")
     @patch("superset.databases.commands.test_connection.event_logger.log_with_context")
     @patch("superset.utils.core.g")
     def test_connection_superset_security_connection(
@@ -948,7 +948,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
 
         mock_event_logger.assert_called()
 
-    @patch("superset.databases.dao.Database._get_sqla_engine")
+    @patch("superset.daos.database.Database._get_sqla_engine")
     @patch("superset.databases.commands.test_connection.event_logger.log_with_context")
     @patch("superset.utils.core.g")
     def test_connection_db_api_exc(
@@ -1093,7 +1093,7 @@ def test_validate_partial_invalid_hostname(is_hostname_valid, app_context):
 
 
 class TestTablesDatabaseCommand(SupersetTestCase):
-    @patch("superset.databases.dao.DatabaseDAO.find_by_id")
+    @patch("superset.daos.database.DatabaseDAO.find_by_id")
     def test_database_tables_list_with_unknown_database(self, mock_find_by_id):
         mock_find_by_id.return_value = None
         command = TablesDatabaseCommand(1, "test", False)
@@ -1102,7 +1102,7 @@ class TestTablesDatabaseCommand(SupersetTestCase):
             command.run()
             assert str(excinfo.value) == ("Database not found.")
 
-    @patch("superset.databases.dao.DatabaseDAO.find_by_id")
+    @patch("superset.daos.database.DatabaseDAO.find_by_id")
     @patch("superset.security.manager.SupersetSecurityManager.can_access_database")
     @patch("superset.utils.core.g")
     def test_database_tables_superset_exception(
@@ -1121,7 +1121,7 @@ class TestTablesDatabaseCommand(SupersetTestCase):
             command.run()
             assert str(excinfo.value) == "Test Error"
 
-    @patch("superset.databases.dao.DatabaseDAO.find_by_id")
+    @patch("superset.daos.database.DatabaseDAO.find_by_id")
     @patch("superset.security.manager.SupersetSecurityManager.can_access_database")
     @patch("superset.utils.core.g")
     def test_database_tables_exception(
@@ -1140,7 +1140,7 @@ class TestTablesDatabaseCommand(SupersetTestCase):
                 == "Unexpected error occurred, please check your logs for details"
             )
 
-    @patch("superset.databases.dao.DatabaseDAO.find_by_id")
+    @patch("superset.daos.database.DatabaseDAO.find_by_id")
     @patch("superset.security.manager.SupersetSecurityManager.can_access_database")
     @patch("superset.utils.core.g")
     def test_database_tables_list_tables(

@@ -49,7 +49,7 @@ from sqlalchemy.sql.elements import BinaryExpression
 from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-from superset.datasource.dao import DatasourceDAO
+from superset.daos.datasource import DatasourceDAO
 from superset.extensions import cache_manager
 from superset.models.filter_set import FilterSet
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
@@ -105,8 +105,8 @@ dashboard_slices = Table(
     "dashboard_slices",
     metadata,
     Column("id", Integer, primary_key=True),
-    Column("dashboard_id", Integer, ForeignKey("dashboards.id")),
-    Column("slice_id", Integer, ForeignKey("slices.id")),
+    Column("dashboard_id", Integer, ForeignKey("dashboards.id", ondelete="CASCADE")),
+    Column("slice_id", Integer, ForeignKey("slices.id", ondelete="CASCADE")),
     UniqueConstraint("dashboard_id", "slice_id"),
 )
 
@@ -115,8 +115,8 @@ dashboard_user = Table(
     "dashboard_user",
     metadata,
     Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("ab_user.id")),
-    Column("dashboard_id", Integer, ForeignKey("dashboards.id")),
+    Column("user_id", Integer, ForeignKey("ab_user.id", ondelete="CASCADE")),
+    Column("dashboard_id", Integer, ForeignKey("dashboards.id", ondelete="CASCADE")),
 )
 
 
@@ -141,14 +141,19 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     css = Column(Text)
     certified_by = Column(Text)
     certification_details = Column(Text)
-    json_metadata = Column(Text)
+    json_metadata = Column(utils.MediumText())
     slug = Column(String(255), unique=True)
     slices: list[Slice] = relationship(
         Slice, secondary=dashboard_slices, backref="dashboards"
     )
-    owners = relationship(security_manager.user_model, secondary=dashboard_user)
+    owners = relationship(
+        security_manager.user_model,
+        secondary=dashboard_user,
+        passive_deletes=True,
+    )
     tags = relationship(
         "Tag",
+        overlaps="objects,tag,tags,tags",
         secondary="tagged_object",
         primaryjoin="and_(Dashboard.id == TaggedObject.object_id)",
         secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
@@ -173,6 +178,9 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         "description",
         "css",
         "slug",
+        "certified_by",
+        "certification_details",
+        "published",
     ]
     extra_import_fields = ["is_managed_externally", "external_url"]
 
@@ -267,14 +275,6 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         if not self.changed_by:
             return ""
         return str(self.changed_by)
-
-    @property
-    def changed_by_url(self) -> str:
-        if not self.changed_by or not is_feature_enabled(
-            "ENABLE_BROAD_ACTIVITY_ACCESS"
-        ):
-            return ""
-        return f"/superset/profile/{self.changed_by.username}"
 
     @property
     def data(self) -> dict[str, Any]:
@@ -376,7 +376,8 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
 
     @classmethod
     def export_dashboards(  # pylint: disable=too-many-locals
-        cls, dashboard_ids: list[int]
+        cls,
+        dashboard_ids: set[int],
     ) -> str:
         copied_dashboards = []
         datasource_ids = set()
@@ -448,6 +449,15 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     def get(cls, id_or_slug: str | int) -> Dashboard:
         qry = db.session.query(Dashboard).filter(id_or_slug_filter(id_or_slug))
         return qry.one_or_none()
+
+    def raise_for_access(self) -> None:
+        """
+        Raise an exception if the user cannot access the resource.
+
+        :raises SupersetSecurityException: If the user cannot access the resource
+        """
+
+        security_manager.raise_for_access(dashboard=self)
 
 
 def is_uuid(value: str | int) -> bool:

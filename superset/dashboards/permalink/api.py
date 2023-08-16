@@ -56,11 +56,10 @@ class DashboardPermalinkRestApi(BaseSupersetApi):
     )
     @requires_json
     def post(self, pk: str) -> Response:
-        """Stores a new permanent link.
+        """Create a new dashboard's permanent link.
         ---
         post:
-          description: >-
-            Stores a new permanent link.
+          summary: Create a new dashboard's permanent link
           parameters:
           - in: path
             schema:
@@ -71,7 +70,7 @@ class DashboardPermalinkRestApi(BaseSupersetApi):
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/DashboardPermalinkPostSchema'
+                  $ref: '#/components/schemas/DashboardPermalinkStateSchema'
           responses:
             201:
               description: The permanent link was stored successfully.
@@ -122,11 +121,10 @@ class DashboardPermalinkRestApi(BaseSupersetApi):
         log_to_statsd=False,
     )
     def get(self, key: str) -> Response:
-        """Retrives permanent link state for dashboard.
+        """Get dashboard's permanent link state.
         ---
         get:
-          description: >-
-            Retrives dashboard state associated with a permanent link.
+          summary: Get dashboard's permanent link state
           parameters:
           - in: path
             schema:

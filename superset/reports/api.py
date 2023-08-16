@@ -30,11 +30,9 @@ from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.dashboards.filters import DashboardAccessFilter
 from superset.databases.filters import DatabaseFilter
 from superset.extensions import event_logger
-from superset.reports.commands.bulk_delete import BulkDeleteReportScheduleCommand
 from superset.reports.commands.create import CreateReportScheduleCommand
 from superset.reports.commands.delete import DeleteReportScheduleCommand
 from superset.reports.commands.exceptions import (
-    ReportScheduleBulkDeleteFailedError,
     ReportScheduleCreateFailedError,
     ReportScheduleDeleteFailedError,
     ReportScheduleForbiddenError,
@@ -93,6 +91,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "context_markdown",
         "creation_method",
         "crontab",
+        "custom_width",
         "dashboard.dashboard_title",
         "dashboard.id",
         "database.database_name",
@@ -159,6 +158,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "context_markdown",
         "creation_method",
         "crontab",
+        "custom_width",
         "dashboard",
         "database",
         "description",
@@ -245,11 +245,10 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def delete(self, pk: int) -> Response:
-        """Delete a Report Schedule
+        """Delete a report schedule.
         ---
         delete:
-          description: >-
-            Delete a Report Schedule
+          summary: Delete a report schedule
           parameters:
           - in: path
             schema:
@@ -276,7 +275,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            DeleteReportScheduleCommand(pk).run()
+            DeleteReportScheduleCommand([pk]).run()
             return self.response(200, message="OK")
         except ReportScheduleNotFoundError:
             return self.response_404()
@@ -299,11 +298,10 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     def post(
         self,
     ) -> Response:
-        """Creates a new Report Schedule
+        """Create a new report schedule.
         ---
         post:
-          description: >-
-            Create a new Report Schedule
+          summary: Create a new report schedule
           requestBody:
             description: Report Schedule schema
             required: true
@@ -372,11 +370,10 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @permission_name("put")
     @requires_json
     def put(self, pk: int) -> Response:
-        """Updates an Report Schedule
+        """Update a report schedule.
         ---
         put:
-          description: >-
-            Updates a Report Schedule
+          summary: Update a report schedule
           parameters:
           - in: path
             schema:
@@ -458,11 +455,10 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
-        """Delete bulk Report Schedule layers
+        """Bulk delete report schedules.
         ---
         delete:
-          description: >-
-            Deletes multiple report schedules in a bulk operation.
+          summary: Bulk delete report schedules
           parameters:
           - in: query
             name: q
@@ -493,7 +489,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteReportScheduleCommand(item_ids).run()
+            DeleteReportScheduleCommand(item_ids).run()
             return self.response(
                 200,
                 message=ngettext(
@@ -506,5 +502,5 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except ReportScheduleForbiddenError:
             return self.response_403()
-        except ReportScheduleBulkDeleteFailedError as ex:
+        except ReportScheduleDeleteFailedError as ex:
             return self.response_422(message=str(ex))

@@ -22,8 +22,9 @@ from flask_babel import gettext as _
 from marshmallow import ValidationError
 
 from superset.commands.base import CreateMixin
-from superset.dao.exceptions import DAOCreateFailedError
-from superset.databases.dao import DatabaseDAO
+from superset.daos.database import DatabaseDAO
+from superset.daos.exceptions import DAOCreateFailedError
+from superset.daos.report import ReportScheduleDAO
 from superset.reports.commands.base import BaseReportScheduleCommand
 from superset.reports.commands.exceptions import (
     DatabaseNotFoundValidationError,
@@ -34,7 +35,6 @@ from superset.reports.commands.exceptions import (
     ReportScheduleNameUniquenessValidationError,
     ReportScheduleRequiredTypeValidationError,
 )
-from superset.reports.dao import ReportScheduleDAO
 from superset.reports.models import (
     ReportCreationMethod,
     ReportSchedule,
@@ -52,11 +52,10 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
     def run(self) -> ReportSchedule:
         self.validate()
         try:
-            report_schedule = ReportScheduleDAO.create(self._properties)
+            return ReportScheduleDAO.create(attributes=self._properties)
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)
             raise ReportScheduleCreateFailedError() from ex
-        return report_schedule
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []

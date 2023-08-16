@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  isFeatureEnabled,
   FeatureFlag,
   getExtensionsRegistry,
   styled,
@@ -57,7 +58,6 @@ import FacePile from 'src/components/FacePile';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import InfoTooltip from 'src/components/InfoTooltip';
 import ImportModelsModal from 'src/components/ImportModal/index';
-import { isFeatureEnabled } from 'src/featureFlags';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import { GenericLink } from 'src/components/GenericLink/GenericLink';
@@ -109,7 +109,6 @@ const Actions = styled.div`
 
 type Dataset = {
   changed_by_name: string;
-  changed_by_url: string;
   changed_by: string;
   changed_on_delta_humanized: string;
   database: {

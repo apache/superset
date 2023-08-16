@@ -64,6 +64,7 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
     data,
     rounded: true,
     widthScale: 1,
+    widthUnits: fd.line_width_unit,
     ...commonLayerProps(fd, setTooltip, setTooltipContent),
   });
 }

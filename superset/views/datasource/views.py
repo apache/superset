@@ -31,11 +31,11 @@ from superset import db, event_logger, security_manager
 from superset.commands.utils import populate_owners
 from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.sqla.utils import get_physical_table_metadata
+from superset.daos.datasource import DatasourceDAO
 from superset.datasets.commands.exceptions import (
     DatasetForbiddenError,
     DatasetNotFoundError,
 )
-from superset.datasource.dao import DatasourceDAO
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.core import Database
 from superset.superset_typing import FlaskResponse
@@ -77,6 +77,8 @@ class Datasource(BaseSupersetView):
             return json_error_response(_("Request missing data field."), status=500)
 
         datasource_dict = json.loads(data)
+        normalize_columns = datasource_dict.get("normalize_columns", False)
+        datasource_dict["normalize_columns"] = normalize_columns
         datasource_id = datasource_dict.get("id")
         datasource_type = datasource_dict.get("type")
         database_id = datasource_dict["database"].get("id")
@@ -196,6 +198,7 @@ class Datasource(BaseSupersetView):
                     database=database,
                     table_name=params["table_name"],
                     schema_name=params["schema_name"],
+                    normalize_columns=params.get("normalize_columns") or False,
                 )
         except (NoResultFound, NoSuchTableError) as ex:
             raise DatasetNotFoundError() from ex

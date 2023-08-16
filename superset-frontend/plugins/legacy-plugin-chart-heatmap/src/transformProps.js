@@ -1,3 +1,5 @@
+import { getValueFormatter } from '@superset-ui/core';
+
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,7 +19,7 @@
  * under the License.
  */
 export default function transformProps(chartProps) {
-  const { width, height, formData, queriesData } = chartProps;
+  const { width, height, formData, queriesData, datasource } = chartProps;
   const {
     bottomMargin,
     canvasImageRendering,
@@ -36,8 +38,16 @@ export default function transformProps(chartProps) {
     yscaleInterval,
     yAxisBounds,
     yAxisFormat,
+    currencyFormat,
   } = formData;
-
+  const { columnFormats = {}, currencyFormats = {} } = datasource;
+  const valueFormatter = getValueFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    yAxisFormat,
+    currencyFormat,
+  );
   return {
     width,
     height,
@@ -50,7 +60,6 @@ export default function transformProps(chartProps) {
     leftMargin,
     metric,
     normalized,
-    numberFormat: yAxisFormat,
     showLegend,
     showPercentage: showPerc,
     showValues,
@@ -59,5 +68,6 @@ export default function transformProps(chartProps) {
     xScaleInterval: parseInt(xscaleInterval, 10),
     yScaleInterval: parseInt(yscaleInterval, 10),
     yAxisBounds,
+    valueFormatter,
   };
 }

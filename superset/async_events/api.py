@@ -39,10 +39,11 @@ class AsyncEventsRestApi(BaseSupersetApi):
     @permission_name("list")
     def events(self) -> Response:
         """
-        Reads off of the Redis async events stream, using the user's JWT token and
+        Read off of the Redis async events stream, using the user's JWT token and
         optional query params for last event received.
         ---
         get:
+          summary: Read off of the Redis events stream
           description: >-
             Reads off of the Redis events stream, using the user's JWT token and
             optional query params for last event received.

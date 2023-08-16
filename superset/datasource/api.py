@@ -19,8 +19,8 @@ import logging
 from flask_appbuilder.api import expose, protect, safe
 
 from superset import app, db, event_logger
-from superset.dao.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
-from superset.datasource.dao import DatasourceDAO
+from superset.daos.datasource import DatasourceDAO
+from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.exceptions import SupersetSecurityException
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import apply_max_row_limit, DatasourceType
@@ -50,7 +50,7 @@ class DatasourceRestApi(BaseSupersetApi):
     def get_column_values(
         self, datasource_type: str, datasource_id: int, column_name: str
     ) -> FlaskResponse:
-        """Get possible values for a datasource column
+        """Get possible values for a datasource column.
         ---
         get:
           summary: Get possible values for a datasource column

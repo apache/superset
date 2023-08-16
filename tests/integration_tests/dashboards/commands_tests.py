@@ -92,6 +92,9 @@ class TestExportDashboardsCommand(SupersetTestCase):
             "description": None,
             "css": None,
             "slug": "world_health",
+            "certified_by": None,
+            "certification_details": None,
+            "published": False,
             "uuid": str(example_dashboard.uuid),
             "position": {
                 "CHART-36bfc934": {
@@ -279,6 +282,9 @@ class TestExportDashboardsCommand(SupersetTestCase):
             "description",
             "css",
             "slug",
+            "certified_by",
+            "certification_details",
+            "published",
             "uuid",
             "position",
             "metadata",
@@ -573,10 +579,6 @@ class TestImportDashboardsCommand(SupersetTestCase):
 
         assert dashboard.owners == [admin]
 
-        dashboard.owners = []
-        chart.owners = []
-        dataset.owners = []
-        database.owners = []
         db.session.delete(dashboard)
         db.session.delete(chart)
         db.session.delete(dataset)

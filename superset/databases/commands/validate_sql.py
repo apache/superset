@@ -22,6 +22,7 @@ from flask import current_app
 from flask_babel import gettext as __
 
 from superset.commands.base import BaseCommand
+from superset.daos.database import DatabaseDAO
 from superset.databases.commands.exceptions import (
     DatabaseNotFoundError,
     NoValidatorConfigFoundError,
@@ -30,7 +31,6 @@ from superset.databases.commands.exceptions import (
     ValidatorSQLError,
     ValidatorSQLUnexpectedError,
 )
-from superset.databases.dao import DatabaseDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.core import Database
 from superset.sql_validators import get_validator_by_name
@@ -108,10 +108,8 @@ class ValidateSQLCommand(BaseCommand):
             raise NoValidatorFoundError(
                 SupersetError(
                     message=__(
-                        "No validator named {} found "
-                        "(configured for the {} engine)".format(
-                            validator_name, spec.engine
-                        )
+                        f"No validator named {validator_name} found "
+                        f"(configured for the {spec.engine} engine)"
                     ),
                     error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
                     level=ErrorLevel.ERROR,

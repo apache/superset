@@ -103,10 +103,10 @@ database engine on a separate host or container.
 
 Superset supports the following database engines/versions:
 
-| Database Engine                                           | Supported Versions                |
-| --------------------------------------------------------- | --------------------------------- |
-| [PostgreSQL](https://www.postgresql.org/)                 | 10.X, 11.X, 12.X, 13.X, 14.X      |
-| [MySQL](https://www.mysql.com/)                           | 5.X                               |
+| Database Engine                                           | Supported Versions                 |
+| --------------------------------------------------------- | ---------------------------------- |
+| [PostgreSQL](https://www.postgresql.org/)                 | 10.X, 11.X, 12.X, 13.X, 14.X, 15.X |
+| [MySQL](https://www.mysql.com/)                           | 5.X                                |
 
 
 Use the following database drivers and connection strings:
@@ -145,6 +145,9 @@ for production use._
 
 If you're not using Gunicorn, you may want to disable the use of `flask-compress` by setting
 `COMPRESS_REGISTER = False` in your `superset_config.py`.
+
+Currently, Google BigQuery python sdk is not compatible with `gevent`, due to some dynamic monkeypatching on python core library by `gevent`.
+So, when you use `BigQuery` datasource on Superset, you have to use `gunicorn` worker type except `gevent`.
 
 ### Configuration Behind a Load Balancer
 

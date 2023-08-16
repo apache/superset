@@ -98,11 +98,10 @@ const plugins = [
             .filter(x => x.endsWith('.css'))
             .map(x => `${output.publicPath}${x}`),
           js: chunks
-            .filter(x => x.endsWith('.js'))
+            .filter(x => x.endsWith('.js') && x.match(/(?<!hot-update).js$/))
             .map(x => `${output.publicPath}${x}`),
         };
       });
-
       return {
         ...seed,
         entrypoints: entryFiles,
@@ -419,12 +418,11 @@ const config = {
           {
             loader: '@svgr/webpack',
             options: {
-              svgoConfig: {
-                plugins: {
-                  removeViewBox: false,
-                  icon: true,
-                },
-              },
+              titleProp: true,
+              ref: true,
+              // this is the default value for the icon. Using other values
+              // here will replace width and height in svg with 1em
+              icon: false,
             },
           },
         ],
@@ -513,7 +511,11 @@ if (isDevMode) {
       () => proxyConfig,
     ],
     client: {
-      overlay: { errors: true, warnings: false },
+      overlay: {
+        errors: true,
+        warnings: false,
+        runtimeErrors: error => !/ResizeObserver/.test(error.message),
+      },
       logging: 'error',
     },
     static: path.join(process.cwd(), '../static/assets'),

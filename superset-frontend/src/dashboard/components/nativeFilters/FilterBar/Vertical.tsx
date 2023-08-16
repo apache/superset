@@ -31,13 +31,13 @@ import cx from 'classnames';
 import {
   FeatureFlag,
   HandlerFunction,
+  isFeatureEnabled,
   isNativeFilter,
   styled,
   t,
 } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { AntdTabs } from 'src/components';
-import { isFeatureEnabled } from 'src/featureFlags';
 import Loading from 'src/components/Loading';
 import { EmptyStateSmall } from 'src/components/EmptyState';
 import { getFilterBarTestId } from './utils';
@@ -287,6 +287,17 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
     [],
   );
 
+  const actionsElement = useMemo(
+    () =>
+      isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) ? actions : null,
+    [actions],
+  );
+
+  // Filter sets depend on native filters
+  const filterSetEnabled =
+    isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET) &&
+    isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS);
+
   return (
     <FilterBarScrollContext.Provider value={isScrolling}>
       <BarWrapper
@@ -315,7 +326,7 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
             <div css={{ height }}>
               <Loading />
             </div>
-          ) : isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET) ? (
+          ) : filterSetEnabled ? (
             <>
               {crossFilters}
               {filterSetsTabs}
@@ -324,11 +335,12 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
             <div css={tabPaneStyle} onScroll={onScroll}>
               <>
                 {crossFilters}
-                {filterControls}
+                {isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
+                  filterControls}
               </>
             </div>
           )}
-          {actions}
+          {actionsElement}
         </Bar>
       </BarWrapper>
     </FilterBarScrollContext.Provider>

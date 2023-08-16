@@ -22,7 +22,6 @@ from datetime import datetime
 from typing import Any, Callable, cast
 from urllib import parse
 
-import backoff
 import simplejson as json
 from flask import abort, flash, g, redirect, render_template, request, Response
 from flask_appbuilder import expose
@@ -31,9 +30,7 @@ from flask_appbuilder.security.decorators import (
     has_access_api,
     permission_name,
 )
-from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __, lazy_gettext as _
-from sqlalchemy import and_, or_
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset import (
@@ -44,37 +41,22 @@ from superset import (
     event_logger,
     is_feature_enabled,
     security_manager,
-    sql_lab,
-    viz,
 )
 from superset.charts.commands.exceptions import ChartNotFoundError
-from superset.charts.dao import ChartDAO
+from superset.charts.commands.warm_up_cache import ChartWarmUpCacheCommand
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
-from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseDatasource
-from superset.connectors.sqla.models import (
-    AnnotationDatasource,
-    SqlaTable,
-    SqlMetric,
-    TableColumn,
-)
-from superset.constants import QUERY_EARLY_CANCEL_KEY
-from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
+from superset.connectors.sqla.models import SqlaTable
+from superset.daos.chart import ChartDAO
+from superset.daos.datasource import DatasourceDAO
 from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
-from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
-from superset.databases.dao import DatabaseDAO
 from superset.datasets.commands.exceptions import DatasetNotFoundError
-from superset.datasource.dao import DatasourceDAO
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
     DatabaseNotFound,
-    SupersetCancelQueryException,
-    SupersetErrorException,
     SupersetException,
-    SupersetGenericErrorException,
     SupersetSecurityException,
 )
 from superset.explore.form_data.commands.create import CreateFormDataCommand
@@ -83,19 +65,24 @@ from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.explore.permalink.commands.get import GetExplorePermalinkCommand
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.extensions import async_query_manager, cache_manager
-from superset.models.core import Database, FavStar
+from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.models.sql_lab import Query, TabState
+from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
-from superset.sql_parse import ParsedQuery
+from superset.sqllab.utils import bootstrap_sqllab_data
 from superset.superset_typing import FlaskResponse
 from superset.tasks.async_queries import load_explore_json_into_cache
 from superset.utils import core as utils
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
-from superset.utils.core import DatasourceType, get_user_id, ReservedUrlParameters
-from superset.utils.dates import now_as_float
+from superset.utils.core import (
+    base_json_conv,
+    DatasourceType,
+    get_user_id,
+    get_username,
+    ReservedUrlParameters,
+)
 from superset.views.base import (
     api,
     BaseSupersetView,
@@ -107,18 +94,13 @@ from superset.views.base import (
     get_error_msg,
     handle_api_exception,
     json_error_response,
-    json_errors_response,
     json_success,
-    validate_sqlatable,
 )
-from superset.views.log.dao import LogDAO
 from superset.views.utils import (
     bootstrap_user_data,
     check_datasource_perms,
     check_explore_cache_perms,
     check_resource_permissions,
-    check_slice_perms,
-    get_dashboard_extra_filters,
     get_datasource_info,
     get_form_data,
     get_viz,
@@ -132,21 +114,6 @@ config = app.config
 SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
 stats_logger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
-
-DATABASE_KEYS = [
-    "allow_file_upload",
-    "allow_ctas",
-    "allow_cvas",
-    "allow_dml",
-    "allow_run_async",
-    "allows_subquery",
-    "backend",
-    "database_name",
-    "expose_in_sqllab",
-    "force_ctas_schema",
-    "id",
-    "disable_data_preview",
-]
 
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
 USER_MISSING_ERR = __("The user seems to have been deleted")
@@ -167,13 +134,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @event_logger.log_this
     @expose("/slice/<int:slice_id>/")
-    def slice(self, slice_id: int) -> FlaskResponse:  # pylint: disable=no-self-use
+    def slice(self, slice_id: int) -> FlaskResponse:
         _, slc = get_form_data(slice_id, use_slice_data=True)
         if not slc:
             abort(404)
-        endpoint = "/explore/?form_data={}".format(
-            parse.quote(json.dumps({"slice_id": slice_id}))
-        )
+        form_data = parse.quote(json.dumps({"slice_id": slice_id}))
+        endpoint = f"/explore/?form_data={form_data}"
 
         is_standalone_mode = ReservedUrlParameters.is_standalone_mode()
         if is_standalone_mode:
@@ -240,70 +206,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @api
     @has_access_api
-    @expose("/slice_json/<int:slice_id>")
-    @etag_cache()
-    @check_resource_permissions(check_slice_perms)
-    @deprecated(new_target="/api/v1/chart/<int:id>/data/")
-    def slice_json(self, slice_id: int) -> FlaskResponse:
-        form_data, slc = get_form_data(slice_id, use_slice_data=True)
-        if not slc:
-            return json_error_response("The slice does not exist")
-
-        if not slc.datasource:
-            return json_error_response("The slice's datasource does not exist")
-
-        try:
-            viz_obj = get_viz(
-                datasource_type=slc.datasource.type,
-                datasource_id=slc.datasource.id,
-                form_data=form_data,
-                force=False,
-            )
-            return self.generate_json(viz_obj)
-        except SupersetException as ex:
-            return json_error_response(utils.error_msg_from_exception(ex))
-
-    @api
-    @has_access_api
-    @event_logger.log_this
-    @expose("/annotation_json/<int:layer_id>")
-    @deprecated(new_target="/api/v1/chart/<int:id>/data/")
-    def annotation_json(  # pylint: disable=no-self-use
-        self, layer_id: int
-    ) -> FlaskResponse:
-        form_data = get_form_data()[0]
-        force = utils.parse_boolean_string(request.args.get("force"))
-
-        form_data["layer_id"] = layer_id
-        form_data["filters"] = [{"col": "layer_id", "op": "==", "val": layer_id}]
-        # Set all_columns to ensure the TableViz returns the necessary columns to the
-        # frontend.
-        form_data["all_columns"] = [
-            "created_on",
-            "changed_on",
-            "id",
-            "start_dttm",
-            "end_dttm",
-            "layer_id",
-            "short_descr",
-            "long_descr",
-            "json_metadata",
-            "created_by_fk",
-            "changed_by_fk",
-        ]
-        datasource = AnnotationDatasource()
-        viz_obj = viz.viz_types["table"](datasource, form_data=form_data, force=force)
-        payload = viz_obj.get_payload()
-        return data_payload_response(*viz_obj.payload_json_and_has_error(payload))
-
-    @event_logger.log_this
-    @api
-    @has_access_api
     @handle_api_exception
     @permission_name("explore_json")
     @expose("/explore_json/data/<cache_key>", methods=("GET",))
     @check_resource_permissions(check_explore_cache_perms)
-    @deprecated(eol_version="3.0")
+    @deprecated(eol_version="4.0.0")
     def explore_json_data(self, cache_key: str) -> FlaskResponse:
         """Serves cached result data for async explore_json calls
 
@@ -351,7 +258,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/explore_json/", methods=EXPLORE_JSON_METHODS)
     @etag_cache()
     @check_resource_permissions(check_datasource_perms)
-    @deprecated(eol_version="3.0")
+    @deprecated(eol_version="4.0.0")
     def explore_json(
         self, datasource_type: str | None = None, datasource_id: int | None = None
     ) -> FlaskResponse:
@@ -733,7 +640,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
             ),
             entry="explore",
-            title=title.__str__(),
+            title=title,
             standalone_mode=standalone_mode,
         )
 
@@ -773,11 +680,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         slc.query_context = query_context
 
         if action == "saveas" and slice_add_perm:
-            ChartDAO.save(slc)
+            ChartDAO.create(slc)
             msg = _("Chart [{}] has been saved").format(slc.slice_name)
             flash(msg, "success")
         elif action == "overwrite" and slice_overwrite_perm:
-            ChartDAO.overwrite(slc)
+            ChartDAO.update(slc)
             msg = _("Chart [{}] has been overwritten").format(slc.slice_name)
             flash(msg, "success")
 
@@ -824,7 +731,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
             flash(
                 _(
-                    "Dashboard [{}] just got created and chart [{}] was added " "to it"
+                    "Dashboard [{}] just got created and chart [{}] was added to it"
                 ).format(dash.dashboard_title, slc.slice_name),
                 "success",
             )
@@ -847,375 +754,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         return json_success(json.dumps(response))
 
-    @api
-    @has_access_api
-    @event_logger.log_this
-    @expose(
-        "/copy_dash/<int:dashboard_id>/",
-        methods=(
-            "GET",
-            "POST",
-        ),
-    )
-    @deprecated(new_target="api/v1/dashboard/<dash_id>/copy/")
-    def copy_dash(  # pylint: disable=no-self-use
-        self, dashboard_id: int
-    ) -> FlaskResponse:
-        """Copy dashboard"""
-        session = db.session()
-        data = json.loads(request.form["data"])
-        # client-side send back last_modified_time which was set when
-        # the dashboard was open. it was use to avoid mid-air collision.
-        # remove it to avoid confusion.
-        data.pop("last_modified_time", None)
-
-        dash = Dashboard()
-        original_dash = session.query(Dashboard).get(dashboard_id)
-
-        dash.owners = [g.user] if g.user else []
-        dash.dashboard_title = data["dashboard_title"]
-        dash.css = data.get("css")
-
-        old_to_new_slice_ids: dict[int, int] = {}
-        if data["duplicate_slices"]:
-            # Duplicating slices as well, mapping old ids to new ones
-            for slc in original_dash.slices:
-                new_slice = slc.clone()
-                new_slice.owners = [g.user] if g.user else []
-                session.add(new_slice)
-                session.flush()
-                new_slice.dashboards.append(dash)
-                old_to_new_slice_ids[slc.id] = new_slice.id
-
-            # update chartId of layout entities
-            for value in data["positions"].values():
-                if isinstance(value, dict) and value.get("meta", {}).get("chartId"):
-                    old_id = value["meta"]["chartId"]
-                    new_id = old_to_new_slice_ids.get(old_id)
-                    value["meta"]["chartId"] = new_id
-        else:
-            dash.slices = original_dash.slices
-
-        dash.params = original_dash.params
-
-        DashboardDAO.set_dash_metadata(dash, data, old_to_new_slice_ids)
-        session.add(dash)
-        session.commit()
-        dash_json = json.dumps(dash.data)
-        session.close()
-        return json_success(dash_json)
-
-    @api
-    @has_access_api
-    @event_logger.log_this
-    @expose(
-        "/save_dash/<int:dashboard_id>/",
-        methods=(
-            "GET",
-            "POST",
-        ),
-    )
-    @deprecated()
-    def save_dash(  # pylint: disable=no-self-use
-        self, dashboard_id: int
-    ) -> FlaskResponse:
-        """Save a dashboard's metadata"""
-        session = db.session()
-        dash = session.query(Dashboard).get(dashboard_id)
-        security_manager.raise_for_ownership(dash)
-        data = json.loads(request.form["data"])
-        # client-side send back last_modified_time which was set when
-        # the dashboard was open. it was use to avoid mid-air collision.
-        remote_last_modified_time = data.get("last_modified_time")
-        current_last_modified_time = dash.changed_on.replace(microsecond=0).timestamp()
-        if (
-            remote_last_modified_time
-            and remote_last_modified_time < current_last_modified_time
-        ):
-            return json_error_response(
-                __(
-                    "This dashboard was changed recently. "
-                    "Please reload dashboard to get latest version."
-                ),
-                412,
-            )
-        # remove to avoid confusion.
-        data.pop("last_modified_time", None)
-
-        if data.get("css") is not None:
-            dash.css = data["css"]
-        if data.get("dashboard_title") is not None:
-            dash.dashboard_title = data["dashboard_title"]
-        DashboardDAO.set_dash_metadata(dash, data)
-        session.merge(dash)
-        session.commit()
-
-        # get updated changed_on
-        dash = session.query(Dashboard).get(dashboard_id)
-        last_modified_time = dash.changed_on.replace(microsecond=0).timestamp()
-        session.close()
-        return json_success(
-            json.dumps({"status": "SUCCESS", "last_modified_time": last_modified_time})
-        )
-
-    @api
-    @has_access_api
-    @event_logger.log_this
-    @expose("/add_slices/<int:dashboard_id>/", methods=("POST",))
-    @deprecated(new_target="api/v1/chart/<chart_id>")
-    def add_slices(  # pylint: disable=no-self-use
-        self, dashboard_id: int
-    ) -> FlaskResponse:
-        """Add and save slices to a dashboard"""
-        data = json.loads(request.form["data"])
-        session = db.session()
-        dash = session.query(Dashboard).get(dashboard_id)
-        security_manager.raise_for_ownership(dash)
-        new_slices = session.query(Slice).filter(Slice.id.in_(data["slice_ids"]))
-        dash.slices += new_slices
-        session.merge(dash)
-        session.commit()
-        session.close()
-        return "SLICES ADDED"
-
-    @staticmethod
-    def get_user_activity_access_error(user_id: int) -> FlaskResponse | None:
-        try:
-            security_manager.raise_for_user_activity_access(user_id)
-        except SupersetSecurityException as ex:
-            return json_error_response(
-                ex.message,
-                status=403,
-            )
-        return None
-
-    @api
-    @has_access_api
-    @event_logger.log_this
-    @expose("/recent_activity/<int:user_id>/", methods=("GET",))
-    @deprecated(new_target="/api/v1/log/recent_activity/<user_id>/")
-    def recent_activity(self, user_id: int) -> FlaskResponse:
-        """Recent activity (actions) for a given user"""
-        if error_obj := self.get_user_activity_access_error(user_id):
-            return error_obj
-
-        limit = request.args.get("limit")
-        limit = int(limit) if limit and limit.isdigit() else 100
-        actions = request.args.get("actions", "explore,dashboard").split(",")
-        # whether to get distinct subjects
-        distinct = request.args.get("distinct") != "false"
-
-        payload = LogDAO.get_recent_activity(user_id, actions, distinct, 0, limit)
-
-        return json_success(json.dumps(payload, default=utils.json_int_dttm_ser))
-
-    @api
-    @has_access_api
-    @event_logger.log_this
-    @expose("/fave_dashboards_by_username/<username>/", methods=("GET",))
-    @deprecated(new_target="api/v1/dashboard/favorite_status/")
-    def fave_dashboards_by_username(self, username: str) -> FlaskResponse:
-        """This lets us use a user's username to pull favourite dashboards"""
-        user = security_manager.find_user(username=username)
-        return self.fave_dashboards(user.id)
-
-    @api
-    @has_access_api
-    @event_logger.log_this
-    @expose("/fave_dashboards/<int:user_id>/", methods=("GET",))
-    @deprecated(new_target="api/v1/dashboard/favorite_status/")
-    def fave_dashboards(self, user_id: int) -> FlaskResponse:
-        if error_obj := self.get_user_activity_access_error(user_id):
-            return error_obj
-        qry = (
-            db.session.query(Dashboard, FavStar.dttm)
-            .join(
-                FavStar,
-                and_(
-                    FavStar.user_id == int(user_id),
-                    FavStar.class_name == "Dashboard",
-                    Dashboard.id == FavStar.obj_id,
-                ),
-            )
-            .order_by(FavStar.dttm.desc())
-        )
-        payload = []
-        for o in qry.all():
-            dash = {
-                "id": o.Dashboard.id,
-                "dashboard": o.Dashboard.dashboard_link(),
-                "title": o.Dashboard.dashboard_title,
-                "url": o.Dashboard.url,
-                "dttm": o.dttm,
-            }
-            if o.Dashboard.created_by:
-                user = o.Dashboard.created_by
-                dash["creator"] = str(user)
-                dash["creator_url"] = f"/superset/profile/{user.username}/"
-            payload.append(dash)
-        return json_success(json.dumps(payload, default=utils.json_int_dttm_ser))
-
-    @api
-    @has_access_api
-    @event_logger.log_this
-    @expose("/created_dashboards/<int:user_id>/", methods=("GET",))
-    @deprecated(new_target="api/v1/dashboard/")
-    def created_dashboards(self, user_id: int) -> FlaskResponse:
-        if error_obj := self.get_user_activity_access_error(user_id):
-            return error_obj
-        qry = (
-            db.session.query(Dashboard)
-            .filter(  # pylint: disable=comparison-with-callable
-                or_(
-                    Dashboard.created_by_fk == user_id,
-                    Dashboard.changed_by_fk == user_id,
-                )
-            )
-            .order_by(Dashboard.changed_on.desc())
-        )
-        payload = [
-            {
-                "id": o.id,
-                "dashboard": o.dashboard_link(),
-                "title": o.dashboard_title,
-                "url": o.url,
-                "dttm": o.changed_on,
-            }
-            for o in qry.all()
-        ]
-        return json_success(json.dumps(payload, default=utils.json_int_dttm_ser))
-
-    @api
-    @has_access_api
-    @event_logger.log_this
-    @expose("/user_slices", methods=("GET",))
-    @expose("/user_slices/<int:user_id>/", methods=("GET",))
-    @deprecated(new_target="/api/v1/chart/")
-    def user_slices(self, user_id: int | None = None) -> FlaskResponse:
-        """List of slices a user owns, created, modified or faved"""
-        if not user_id:
-            user_id = cast(int, get_user_id())
-        if error_obj := self.get_user_activity_access_error(user_id):
-            return error_obj
-
-        owner_ids_query = (
-            db.session.query(Slice.id)
-            .join(Slice.owners)
-            .filter(security_manager.user_model.id == user_id)
-        )
-
-        qry = (
-            db.session.query(Slice, FavStar.dttm)
-            .join(
-                FavStar,
-                and_(
-                    FavStar.user_id == user_id,
-                    FavStar.class_name == "slice",
-                    Slice.id == FavStar.obj_id,
-                ),
-                isouter=True,
-            )
-            .filter(  # pylint: disable=comparison-with-callable
-                or_(
-                    Slice.id.in_(owner_ids_query),
-                    Slice.created_by_fk == user_id,
-                    Slice.changed_by_fk == user_id,
-                    FavStar.user_id == user_id,
-                )
-            )
-            .order_by(Slice.slice_name.asc())
-        )
-        payload = [
-            {
-                "id": o.Slice.id,
-                "title": o.Slice.slice_name,
-                "url": o.Slice.slice_url,
-                "data": o.Slice.form_data,
-                "dttm": o.dttm if o.dttm else o.Slice.changed_on,
-                "viz_type": o.Slice.viz_type,
-            }
-            for o in qry.all()
-        ]
-        return json_success(json.dumps(payload, default=utils.json_int_dttm_ser))
-
-    @api
-    @has_access_api
-    @event_logger.log_this
-    @expose("/created_slices", methods=("GET",))
-    @expose("/created_slices/<int:user_id>/", methods=("GET",))
-    @deprecated(new_target="api/v1/chart/")
-    def created_slices(self, user_id: int | None = None) -> FlaskResponse:
-        """List of slices created by this user"""
-        if not user_id:
-            user_id = cast(int, get_user_id())
-        if error_obj := self.get_user_activity_access_error(user_id):
-            return error_obj
-        qry = (
-            db.session.query(Slice)
-            .filter(  # pylint: disable=comparison-with-callable
-                or_(Slice.created_by_fk == user_id, Slice.changed_by_fk == user_id)
-            )
-            .order_by(Slice.changed_on.desc())
-        )
-        payload = [
-            {
-                "id": o.id,
-                "title": o.slice_name,
-                "url": o.slice_url,
-                "dttm": o.changed_on,
-                "viz_type": o.viz_type,
-            }
-            for o in qry.all()
-        ]
-        return json_success(json.dumps(payload, default=utils.json_int_dttm_ser))
-
-    @api
-    @has_access_api
-    @event_logger.log_this
-    @expose("/fave_slices", methods=("GET",))
-    @expose("/fave_slices/<int:user_id>/", methods=("GET",))
-    @deprecated(new_target="api/v1/chart/")
-    def fave_slices(self, user_id: int | None = None) -> FlaskResponse:
-        """Favorite slices for a user"""
-        if user_id is None:
-            user_id = cast(int, get_user_id())
-        if error_obj := self.get_user_activity_access_error(user_id):
-            return error_obj
-        qry = (
-            db.session.query(Slice, FavStar.dttm)
-            .join(
-                FavStar,
-                and_(
-                    FavStar.user_id == user_id,
-                    FavStar.class_name == "slice",
-                    Slice.id == FavStar.obj_id,
-                ),
-            )
-            .order_by(FavStar.dttm.desc())
-        )
-        payload = []
-        for o in qry.all():
-            dash = {
-                "id": o.Slice.id,
-                "title": o.Slice.slice_name,
-                "url": o.Slice.slice_url,
-                "dttm": o.dttm,
-                "viz_type": o.Slice.viz_type,
-            }
-            if o.Slice.created_by:
-                user = o.Slice.created_by
-                dash["creator"] = str(user)
-                dash["creator_url"] = f"/superset/profile/{user.username}/"
-            payload.append(dash)
-        return json_success(json.dumps(payload, default=utils.json_int_dttm_ser))
-
     @event_logger.log_this
     @api
     @has_access_api
     @expose("/warm_up_cache/", methods=("GET",))
-    def warm_up_cache(  # pylint: disable=too-many-locals,no-self-use
-        self,
-    ) -> FlaskResponse:
+    @deprecated(new_target="api/v1/chart/warm_up_cache/")
+    def warm_up_cache(self) -> FlaskResponse:
         """Warms up the cache for the slice or table.
 
         Note for slices a force refresh occurs.
@@ -1269,79 +813,22 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 .all()
             )
 
-        result = []
-
-        for slc in slices:
-            try:
-                form_data = get_form_data(slc.id, use_slice_data=True)[0]
-                if dashboard_id:
-                    form_data["extra_filters"] = (
-                        json.loads(extra_filters)
-                        if extra_filters
-                        else get_dashboard_extra_filters(slc.id, dashboard_id)
-                    )
-
-                if not slc.datasource:
-                    raise Exception("Slice's datasource does not exist")
-
-                obj = get_viz(
-                    datasource_type=slc.datasource.type,
-                    datasource_id=slc.datasource.id,
-                    form_data=form_data,
-                    force=True,
-                )
-
-                # pylint: disable=assigning-non-slot
-                g.form_data = form_data
-                payload = obj.get_payload()
-                delattr(g, "form_data")
-                error = payload["errors"] or None
-                status = payload["status"]
-            except Exception as ex:  # pylint: disable=broad-except
-                error = utils.error_msg_from_exception(ex)
-                status = None
-
-            result.append(
-                {"slice_id": slc.id, "viz_error": error, "viz_status": status}
-            )
-
-        return json_success(json.dumps(result))
-
-    @has_access_api
-    @event_logger.log_this
-    @expose("/favstar/<class_name>/<int:obj_id>/<action>/")
-    @deprecated(new_target="api/v1/dashboard|chart/<pk>/favorites/")
-    def favstar(  # pylint: disable=no-self-use
-        self, class_name: str, obj_id: int, action: str
-    ) -> FlaskResponse:
-        """Toggle favorite stars on Slices and Dashboard"""
-        if not get_user_id():
-            return json_error_response("ERROR: Favstar toggling denied", status=403)
-        session = db.session()
-        count = 0
-        favs = (
-            session.query(FavStar)
-            .filter_by(class_name=class_name, obj_id=obj_id, user_id=get_user_id())
-            .all()
+        return json_success(
+            json.dumps(
+                [
+                    {
+                        "slice_id" if key == "chart_id" else key: value
+                        for key, value in ChartWarmUpCacheCommand(
+                            slc, dashboard_id, extra_filters
+                        )
+                        .run()
+                        .items()
+                    }
+                    for slc in slices
+                ],
+                default=base_json_conv,
+            ),
         )
-        if action == "select":
-            if not favs:
-                session.add(
-                    FavStar(
-                        class_name=class_name,
-                        obj_id=obj_id,
-                        user_id=get_user_id(),
-                        dttm=datetime.now(),
-                    )
-                )
-            count = 1
-        elif action == "unselect":
-            for fav in favs:
-                session.delete(fav)
-        else:
-            count = len(favs)
-        session.commit()
-        return json_success(json.dumps({"count": count}))
 
     @has_access
     @expose("/dashboard/<dashboard_id_or_slug>/")
@@ -1365,20 +852,19 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             abort(404)
 
         try:
-            security_manager.raise_for_dashboard_access(dashboard)
-        except DashboardAccessDeniedError as ex:
+            dashboard.raise_for_access()
+        except SupersetSecurityException as ex:
             return redirect_with_flash(
                 url="/dashboard/list/",
                 message=utils.error_msg_from_exception(ex),
                 category="danger",
             )
-
         add_extra_log_payload(
             dashboard_id=dashboard.id,
             dashboard_version="v2",
             dash_edit_perm=(
                 security_manager.is_owner(dashboard)
-                and security_manager.can_access("can_save_dash", "Superset")
+                and security_manager.can_access("can_write", "Dashboard")
             ),
             edit_mode=(
                 request.args.get(ReservedUrlParameters.EDIT_MODE.value) == "true"
@@ -1401,7 +887,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access
     @expose("/dashboard/p/<key>/", methods=("GET",))
-    def dashboard_permalink(  # pylint: disable=no-self-use
+    def dashboard_permalink(
         self,
         key: str,
     ) -> FlaskResponse:
@@ -1426,191 +912,22 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @event_logger.log_this
     @expose("/log/", methods=("POST",))
-    def log(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def log(self) -> FlaskResponse:
         return Response(status=200)
-
-    @has_access
-    @expose("/get_or_create_table/", methods=("POST",))
-    @event_logger.log_this
-    @deprecated(new_target="api/v1/dataset/get_or_create/")
-    def sqllab_table_viz(self) -> FlaskResponse:  # pylint: disable=no-self-use
-        """Gets or creates a table object with attributes passed to the API.
-
-        It expects the json with params:
-        * datasourceName - e.g. table name, required
-        * dbId - database id, required
-        * schema - table schema, optional
-        * templateParams - params for the Jinja templating syntax, optional
-        :return: Response
-        """
-        data = json.loads(request.form["data"])
-        table_name = data["datasourceName"]
-        database_id = data["dbId"]
-        table = (
-            db.session.query(SqlaTable)
-            .filter_by(database_id=database_id, table_name=table_name)
-            .one_or_none()
-        )
-        if not table:
-            # Create table if doesn't exist.
-            with db.session.no_autoflush:
-                table = SqlaTable(table_name=table_name, owners=[g.user])
-                table.database_id = database_id
-                table.database = (
-                    db.session.query(Database).filter_by(id=database_id).one()
-                )
-                table.schema = data.get("schema")
-                table.template_params = data.get("templateParams")
-                # needed for the table validation.
-                # fn can be deleted when this endpoint is removed
-                validate_sqlatable(table)
-
-            db.session.add(table)
-            table.fetch_metadata()
-            db.session.commit()
-
-        return json_success(json.dumps({"table_id": table.id}))
-
-    @has_access
-    @expose("/sqllab_viz/", methods=("POST",))
-    @event_logger.log_this
-    @deprecated(new_target="api/v1/dataset/")
-    def sqllab_viz(self) -> FlaskResponse:  # pylint: disable=no-self-use
-        data = json.loads(request.form["data"])
-        try:
-            table_name = data["datasourceName"]
-            database_id = data["dbId"]
-        except KeyError as ex:
-            raise SupersetGenericErrorException(
-                __(
-                    "One or more required fields are missing in the request. Please try "
-                    "again, and if the problem persists contact your administrator."
-                ),
-                status=400,
-            ) from ex
-        database = db.session.query(Database).get(database_id)
-        if not database:
-            raise SupersetErrorException(
-                SupersetError(
-                    message=__("The database was not found."),
-                    error_type=SupersetErrorType.DATABASE_NOT_FOUND_ERROR,
-                    level=ErrorLevel.ERROR,
-                ),
-                status=404,
-            )
-        table = (
-            db.session.query(SqlaTable)
-            .filter_by(database_id=database_id, table_name=table_name)
-            .one_or_none()
-        )
-
-        if table:
-            return json_errors_response(
-                [
-                    SupersetError(
-                        message=f"Dataset [{table_name}] already exists",
-                        error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
-                        level=ErrorLevel.WARNING,
-                    )
-                ],
-                status=422,
-            )
-
-        table = SqlaTable(table_name=table_name, owners=[g.user])
-        table.database = database
-        table.schema = data.get("schema")
-        table.template_params = data.get("templateParams")
-        table.is_sqllab_view = True
-        table.sql = ParsedQuery(data.get("sql")).stripped()
-        db.session.add(table)
-        cols = []
-        for config_ in data.get("columns"):
-            column_name = config_.get("column_name") or config_.get("name")
-            col = TableColumn(
-                column_name=column_name,
-                filterable=True,
-                groupby=True,
-                is_dttm=config_.get("is_dttm", False),
-                type=config_.get("type", False),
-            )
-            cols.append(col)
-
-        table.columns = cols
-        table.metrics = [SqlMetric(metric_name="count", expression="count(*)")]
-        db.session.commit()
-
-        return json_success(
-            json.dumps(
-                {"table_id": table.id, "data": sanitize_datasource_data(table.data)}
-            )
-        )
-
-    @has_access
-    @expose("/extra_table_metadata/<int:database_id>/<table_name>/<schema>/")
-    @event_logger.log_this
-    @deprecated(
-        new_target="api/v1/database/<int:pk>/table_extra/<table_name>/<schema_name>/"
-    )
-    def extra_table_metadata(  # pylint: disable=no-self-use
-        self, database_id: int, table_name: str, schema: str
-    ) -> FlaskResponse:
-        parsed_schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
-        table_name = utils.parse_js_uri_path_item(table_name)  # type: ignore
-        mydb = db.session.query(Database).filter_by(id=database_id).one()
-        payload = mydb.db_engine_spec.extra_table_metadata(
-            mydb, table_name, parsed_schema
-        )
-        return json_success(json.dumps(payload))
 
     @expose("/theme/")
     def theme(self) -> FlaskResponse:
         return self.render_template("superset/theme.html")
-
-    @has_access_api
-    @handle_api_exception
-    @expose("/stop_query/", methods=("POST",))
-    @event_logger.log_this
-    @backoff.on_exception(
-        backoff.constant,
-        Exception,
-        interval=1,
-        on_backoff=lambda details: db.session.rollback(),
-        on_giveup=lambda details: db.session.rollback(),
-        max_tries=5,
-    )
-    @deprecated(new_target="/api/v1/query/stop")
-    def stop_query(self) -> FlaskResponse:
-        client_id = request.form.get("client_id")
-        query = db.session.query(Query).filter_by(client_id=client_id).one()
-        if query.status in [
-            QueryStatus.FAILED,
-            QueryStatus.SUCCESS,
-            QueryStatus.TIMED_OUT,
-        ]:
-            logger.warning(
-                "Query with client_id could not be stopped: query already complete",
-            )
-            return self.json_response("OK")
-
-        if not sql_lab.cancel_query(query):
-            raise SupersetCancelQueryException("Could not cancel query")
-
-        query.status = QueryStatus.STOPPED
-        # Add the stop identity attribute because the sqlalchemy thread is unsafe
-        # because of multiple updates to the status in the query table
-        query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
-        query.end_time = now_as_float()
-        db.session.commit()
-
-        return self.json_response("OK")
 
     @api
     @handle_api_exception
     @has_access
     @event_logger.log_this
     @expose("/fetch_datasource_metadata")
-    @deprecated(new_target="api/v1/database/<int:pk>/table/<table_name>/<schema_name>/")
-    def fetch_datasource_metadata(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    @deprecated(
+        new_target="api/v1/database/<int:pk>/table/<path:table_name>/<schema_name>/"
+    )
+    def fetch_datasource_metadata(self) -> FlaskResponse:
         """
         Fetch the datasource metadata.
 
@@ -1628,104 +945,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         datasource.raise_for_access()
         return json_success(json.dumps(sanitize_datasource_data(datasource.data)))
 
-    @has_access_api
-    @event_logger.log_this
-    @expose("/queries/<float:last_updated_ms>")
-    @expose("/queries/<int:last_updated_ms>")
-    @deprecated(new_target="api/v1/query/updated_since")
-    def queries(self, last_updated_ms: float | int) -> FlaskResponse:
-        """
-        Get the updated queries.
-
-        :param last_updated_ms: Unix time (milliseconds)
-        """
-
-        return self.queries_exec(last_updated_ms)
-
-    @staticmethod
-    def queries_exec(last_updated_ms: float | int) -> FlaskResponse:
-        stats_logger.incr("queries")
-        if not get_user_id():
-            return json_error_response(
-                "Please login to access the queries.", status=403
-            )
-
-        # UTC date time, same that is stored in the DB.
-        last_updated_dt = datetime.utcfromtimestamp(last_updated_ms / 1000)
-
-        sql_queries = (
-            db.session.query(Query)
-            .filter(Query.user_id == get_user_id(), Query.changed_on >= last_updated_dt)
-            .all()
-        )
-        dict_queries = {q.client_id: q.to_dict() for q in sql_queries}
-        return json_success(json.dumps(dict_queries, default=utils.json_int_dttm_ser))
-
-    @has_access
-    @event_logger.log_this
-    @expose("/search_queries")
-    @deprecated(new_target="api/v1/query/")
-    def search_queries(self) -> FlaskResponse:  # pylint: disable=no-self-use
-        """
-        Search for previously run sqllab queries. Used for Sqllab Query Search
-        page /superset/sqllab#search.
-
-        Custom permission can_only_search_queries_owned restricts queries
-        to only queries run by current user.
-
-        :returns: Response with list of sql query dicts
-        """
-        if security_manager.can_access_all_queries():
-            search_user_id = request.args.get("user_id")
-        elif request.args.get("user_id") is not None:
-            try:
-                search_user_id = int(cast(int, request.args.get("user_id")))
-            except ValueError:
-                return Response(status=400, mimetype="application/json")
-            if search_user_id != get_user_id():
-                return Response(status=403, mimetype="application/json")
-        else:
-            search_user_id = get_user_id()
-        database_id = request.args.get("database_id")
-        search_text = request.args.get("search_text")
-        # From and To time stamp should be Epoch timestamp in seconds
-
-        query = db.session.query(Query)
-        if search_user_id:
-            # Filter on user_id
-            query = query.filter(Query.user_id == search_user_id)
-
-        if database_id:
-            # Filter on db Id
-            query = query.filter(Query.database_id == database_id)
-
-        if status := request.args.get("status"):
-            # Filter on status
-            query = query.filter(Query.status == status)
-
-        if search_text:
-            # Filter on search text
-            query = query.filter(Query.sql.like(f"%{search_text}%"))
-
-        if from_time := request.args.get("from"):
-            query = query.filter(Query.start_time > int(from_time))
-
-        if to_time := request.args.get("to"):
-            query = query.filter(Query.start_time < int(to_time))
-
-        query_limit = config["QUERY_SEARCH_LIMIT"]
-        sql_queries = query.order_by(Query.start_time.asc()).limit(query_limit).all()
-
-        dict_queries = [q.to_dict() for q in sql_queries]
-
-        return Response(
-            json.dumps(dict_queries, default=utils.json_int_dttm_ser),
-            status=200,
-            mimetype="application/json",
-        )
-
     @app.errorhandler(500)
-    def show_traceback(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def show_traceback(self) -> FlaskResponse:
         return (
             render_template("superset/traceback.html", error_msg=get_error_msg()),
             500,
@@ -1763,77 +984,25 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access
     @event_logger.log_this
-    @expose("/profile/<username>/")
-    def profile(self, username: str) -> FlaskResponse:
+    @expose("/profile/")
+    def profile(self) -> FlaskResponse:
         """User profile page"""
-        user = (
-            db.session.query(ab_models.User).filter_by(username=username).one_or_none()
-        )
-        # Prevent returning 404 when user is not found to prevent username scanning
-        user_id = -1 if not user else user.id
-        # Prevent unauthorized access to other user's profiles,
-        # unless configured to do so with ENABLE_BROAD_ACTIVITY_ACCESS
-        if error_obj := self.get_user_activity_access_error(user_id):
-            return error_obj
-
+        user = g.user if hasattr(g, "user") and g.user else None
+        if not user or security_manager.is_guest_user(user) or user.is_anonymous:
+            abort(404)
         payload = {
             "user": bootstrap_user_data(user, include_perms=True),
-            "common": common_bootstrap_payload(g.user),
+            "common": common_bootstrap_payload(user),
         }
 
         return self.render_template(
             "superset/basic.html",
-            title=_("%(user)s's profile", user=username).__str__(),
+            title=_("%(user)s's profile", user=get_username()),
             entry="profile",
             bootstrap_data=json.dumps(
                 payload, default=utils.pessimistic_json_iso_dttm_ser
             ),
         )
-
-    @staticmethod
-    def _get_sqllab_tabs(user_id: int | None) -> dict[str, Any]:
-        # send list of tab state ids
-        tabs_state = (
-            db.session.query(TabState.id, TabState.label)
-            .filter_by(user_id=user_id)
-            .all()
-        )
-        tab_state_ids = [str(tab_state[0]) for tab_state in tabs_state]
-        # return first active tab, or fallback to another one if no tab is active
-        active_tab = (
-            db.session.query(TabState)
-            .filter_by(user_id=user_id)
-            .order_by(TabState.active.desc())
-            .first()
-        )
-
-        databases: dict[int, Any] = {}
-        for database in DatabaseDAO.find_all():
-            databases[database.id] = {
-                k: v for k, v in database.to_json().items() if k in DATABASE_KEYS
-            }
-            databases[database.id]["backend"] = database.backend
-        queries: dict[str, Any] = {}
-
-        # These are unnecessary if sqllab backend persistence is disabled
-        if is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE"):
-            # return all user queries associated with existing SQL editors
-            user_queries = (
-                db.session.query(Query)
-                .filter_by(user_id=user_id)
-                .filter(Query.sql_editor_id.in_(tab_state_ids))
-                .all()
-            )
-            queries = {
-                query.client_id: dict(query.to_dict().items()) for query in user_queries
-            }
-
-        return {
-            "tab_state_ids": tabs_state,
-            "active_tab": active_tab.to_dict() if active_tab else None,
-            "databases": databases,
-            "queries": queries,
-        }
 
     @has_access
     @event_logger.log_this
@@ -1847,9 +1016,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def sqllab(self) -> FlaskResponse:
         """SQL Editor"""
         payload = {
-            "defaultDbId": config["SQLLAB_DEFAULT_DBID"],
             "common": common_bootstrap_payload(g.user),
-            **self._get_sqllab_tabs(get_user_id()),
+            **bootstrap_sqllab_data(get_user_id()),
         }
 
         if form_data := request.form.get("form_data"):

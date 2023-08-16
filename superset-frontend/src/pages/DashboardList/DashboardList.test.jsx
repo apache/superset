@@ -22,7 +22,7 @@ import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import { Provider } from 'react-redux';
-import * as featureFlags from 'src/featureFlags';
+import * as uiCore from '@superset-ui/core';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { styledMount as mount } from 'spec/helpers/theming';
@@ -58,7 +58,6 @@ const mockDashboards = [...new Array(3)].map((_, i) => ({
   url: 'url',
   dashboard_title: `title ${i}`,
   changed_by_name: 'user',
-  changed_by_url: 'changed_by_url',
   changed_by_fk: 1,
   published: true,
   changed_on_utc: new Date().toISOString(),
@@ -99,7 +98,7 @@ fetchMock.get('/thumbnail', { body: new Blob(), sendAsJson: false });
 
 describe('DashboardList', () => {
   const isFeatureEnabledMock = jest
-    .spyOn(featureFlags, 'isFeatureEnabled')
+    .spyOn(uiCore, 'isFeatureEnabled')
     .mockImplementation(feature => feature === 'LISTVIEWS_DEFAULT_CARD_VIEW');
 
   afterAll(() => {
@@ -218,7 +217,7 @@ describe('RTL', () => {
   let isFeatureEnabledMock;
   beforeEach(async () => {
     isFeatureEnabledMock = jest
-      .spyOn(featureFlags, 'isFeatureEnabled')
+      .spyOn(uiCore, 'isFeatureEnabled')
       .mockImplementation(() => true);
     await renderAndWait();
   });
