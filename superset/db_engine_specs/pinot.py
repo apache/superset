@@ -14,14 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Optional
-
 from sqlalchemy.types import TypeEngine
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy import types
 
-from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
+from superset.db_engine_specs.base import BaseEngineSpec
 
 
 class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
@@ -37,10 +34,14 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         None: "{col}",
         "PT1S": "CAST(DATE_TRUNC('second', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
         "PT1M": "CAST(DATE_TRUNC('minute', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
-        "PT5M": "CAST(ROUND(DATE_TRUNC('minute', CAST({col} AS TIMESTAMP)), 300000) as TIMESTAMP)",
-        "PT10M": "CAST(ROUND(DATE_TRUNC('minute', CAST({col} AS TIMESTAMP)), 600000) as TIMESTAMP)",
-        "PT15M": "CAST(ROUND(DATE_TRUNC('minute', CAST({col} AS TIMESTAMP)), 900000) as TIMESTAMP)",
-        "PT30M": "CAST(ROUND(DATE_TRUNC('minute', CAST({col} AS TIMESTAMP)), 1800000) as TIMESTAMP)",
+        "PT5M": """CAST(ROUND(DATE_TRUNC('minute', \
+            CAST({col} AS TIMESTAMP)), 300000) as TIMESTAMP)""",
+        "PT10M": """"CAST(ROUND(DATE_TRUNC('minute', \
+            CAST({col} AS TIMESTAMP)), 600000) as TIMESTAMP)""",
+        "PT15M": """CAST(ROUND(DATE_TRUNC('minute', \
+            CAST({col} AS TIMESTAMP)), 900000) as TIMESTAMP)""",
+        "PT30M": """CAST(ROUND(DATE_TRUNC('minute', \
+            CAST({col} AS TIMESTAMP)), 1800000) as TIMESTAMP)""",
         "PT1H": "CAST(DATE_TRUNC('hour', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
         "P1D": "CAST(DATE_TRUNC('day', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
         "P1W": "CAST(DATE_TRUNC('week', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
@@ -57,5 +58,5 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         # When the Pinot driver fix this bug, current method could be removed.
         if isinstance(sqla_column_type, types.TIMESTAMP):
             return sqla_column_type.compile().upper()
-        else:
-            return super().column_datatype_to_string(sqla_column_type, dialect)
+
+        return super().column_datatype_to_string(sqla_column_type, dialect)
