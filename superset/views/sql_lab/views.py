@@ -100,38 +100,6 @@ class SavedQueryView(  # pylint: disable=too-many-ancestors
         self.pre_add(item)
 
 
-class SavedQueryViewApi(SavedQueryView):  # pylint: disable=too-many-ancestors
-    include_route_methods = {
-        RouteMethod.API_READ,
-        RouteMethod.API_CREATE,
-        RouteMethod.API_UPDATE,
-        RouteMethod.API_GET,
-    }
-
-    class_permission_name = "SavedQuery"
-    method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
-
-    list_columns = [
-        "id",
-        "label",
-        "sqlalchemy_uri",
-        "user_email",
-        "schema",
-        "description",
-        "sql",
-        "extra_json",
-        "extra",
-    ]
-    add_columns = ["label", "db_id", "schema", "description", "sql", "extra_json"]
-    edit_columns = add_columns
-    show_columns = add_columns + ["id"]
-
-    @has_access_api
-    @expose("show/<pk>")
-    def show(self, pk: int) -> FlaskResponse:
-        return super().show(pk)
-
-
 def _get_owner_id(tab_state_id: int) -> int:
     return db.session.query(TabState.user_id).filter_by(id=tab_state_id).scalar()
 
