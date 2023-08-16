@@ -406,7 +406,7 @@ def menu_data(user: User) -> dict[str, Any]:
             "user_login_url": appbuilder.get_url_for_login,
             "user_profile_url": None
             if user.is_anonymous or is_feature_enabled("MENU_HIDE_USER_INFO")
-            else "/superset/profile/",
+            else "/profile/",
             "locale": session.get("locale", "en"),
         },
     }

@@ -19,7 +19,7 @@
 import React from 'react';
 import Gravatar from 'react-gravatar';
 import { mount } from 'enzyme';
-import UserInfo from 'src/profile/components/UserInfo';
+import UserInfo from './UserInfo';
 
 import { user } from './fixtures';
 
