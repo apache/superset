@@ -102,8 +102,9 @@ class SqlLabRestApi(BaseSupersetApi):
         get:
           summary: Get the bootstrap data for SqlLab page
           description: >-
-            Assembles SQLLab bootstrap data(active_tab, databases, queries, tab_state_ids
-            ) in a single endpoint. The data can be assembled from the current user's id.
+            Assembles SQLLab bootstrap data (active_tab, databases, queries,
+            tab_state_ids) in a single endpoint. The data can be assembled
+            from the current user's id.
           responses:
             200:
               description: Returns the initial bootstrap data for SqlLab
@@ -129,7 +130,6 @@ class SqlLabRestApi(BaseSupersetApi):
                 {"result": result},
                 default=utils.json_iso_dttm_ser,
                 ignore_nan=True,
-                encoding=None,
             ),
             200,
         )
