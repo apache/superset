@@ -33,7 +33,6 @@ export default function getInitialState({
   tab_state_ids: tabStateIds = [],
   databases,
   queries: queries_,
-  requested_query: requestedQuery,
   user,
 }) {
   /**
@@ -203,7 +202,6 @@ export default function getInitialState({
       unsavedQueryEditor,
       queryCostEstimates: {},
     },
-    requestedQuery,
     messageToasts: getToastsFromPyFlashMessages(
       (common || {}).flash_messages || [],
     ),
