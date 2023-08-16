@@ -19,8 +19,6 @@ console.log('NOT_DONE_EMOJI', NOT_DONE_EMOJI);
 console.log('EXTRA_EMOJI', EXTRA_EMOJI);
 console.groupEnd();
 
-console.log('Checking xlsx');
-
 const UPGRADE_2_0_RU = {
   title: 'Успешный переход на версию Superset 2.0',
   date: '17.03.2023',
