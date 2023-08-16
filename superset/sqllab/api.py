@@ -20,7 +20,7 @@ from urllib import parse
 
 import simplejson as json
 from flask import request, Response
-from flask_appbuilder.api import expose, protect, rison
+from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 
@@ -47,6 +47,7 @@ from superset.sqllab.schemas import (
     ExecutePayloadSchema,
     QueryExecutionResponseSchema,
     sql_lab_get_results_schema,
+    SQLLabBootstrapSchema,
 )
 from superset.sqllab.sql_json_executer import (
     ASynchronousSqlJsonExecutor,
@@ -54,6 +55,7 @@ from superset.sqllab.sql_json_executer import (
     SynchronousSqlJsonExecutor,
 )
 from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
+from superset.sqllab.utils import bootstrap_sqllab_data
 from superset.sqllab.validators import CanAccessQueryValidatorImpl
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
@@ -83,7 +85,54 @@ class SqlLabRestApi(BaseSupersetApi):
         EstimateQueryCostSchema,
         ExecutePayloadSchema,
         QueryExecutionResponseSchema,
+        SQLLabBootstrapSchema,
     )
+
+    @expose("/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
+        log_to_statsd=False,
+    )
+    def get(self) -> Response:
+        """Get the bootstrap data for SqlLab
+        ---
+        get:
+          summary: Get the bootstrap data for SqlLab page
+          description: >-
+            Assembles SQLLab bootstrap data (active_tab, databases, queries,
+            tab_state_ids) in a single endpoint. The data can be assembled
+            from the current user's id.
+          responses:
+            200:
+              description: Returns the initial bootstrap data for SqlLab
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/SQLLabBootstrapSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        user_id = utils.get_user_id()
+        # TODO: Replace with a command class once fully migrated to SPA
+        result = bootstrap_sqllab_data(user_id)
+
+        return json_success(
+            json.dumps(
+                {"result": result},
+                default=utils.json_iso_dttm_ser,
+                ignore_nan=True,
+            ),
+            200,
+        )
 
     @expose("/estimate/", methods=("POST",))
     @protect()
