@@ -19,7 +19,6 @@
 import { JsonObject, QueryResponse } from '@superset-ui/core';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { ToastType } from 'src/components/MessageToasts/types';
-import { RootState } from 'src/dashboard/types';
 import { DropdownButtonProps } from 'src/components/DropdownButton';
 import { ButtonProps } from 'src/components/Button';
 
@@ -69,6 +68,7 @@ export type SqlLabRootState = {
     errorMessage: string | null;
     unsavedQueryEditor: Partial<QueryEditor>;
     queryCostEstimates?: Record<string, QueryCostEstimate>;
+    editorTabLastUpdatedAt?: number;
   };
   localStorageUsageInKilobytes: number;
   messageToasts: toastState[];
