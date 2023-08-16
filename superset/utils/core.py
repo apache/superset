@@ -1581,7 +1581,7 @@ def split(
 T = TypeVar("T")
 
 
-def get_as_list(x: T | list[T]) -> list[T]:
+def as_list(x: T | list[T]) -> list[T]:
     """
     Wrap an object in a list if it's not a list.
 

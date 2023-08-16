@@ -27,7 +27,7 @@ from superset.daos.base import BaseDAO
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
 from superset.models.slice import Slice
-from superset.utils.core import get_as_list, get_user_id
+from superset.utils.core import as_list, get_user_id
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource

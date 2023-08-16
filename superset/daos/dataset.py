@@ -28,7 +28,7 @@ from superset.extensions import db
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.core import DatasourceType, get_as_list
+from superset.utils.core import as_list, DatasourceType
 from superset.views.base import DatasourceFilter
 
 logger = logging.getLogger(__name__)
@@ -326,7 +326,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):  # pylint: disable=too-many-public-methods
         :raises DAODeleteFailedError: If the deletion failed
         :see: https://docs.sqlalchemy.org/en/latest/orm/queryguide/dml.html
         """
-        items = cast(list[SqlaTable], get_as_list(item_or_items))
+        items = cast(list[SqlaTable], as_list(item_or_items))
         try:
             db.session.query(SqlaTable).filter(
                 SqlaTable.id.in_(item.id for item in items)
