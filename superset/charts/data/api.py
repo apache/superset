@@ -372,7 +372,13 @@ class ChartDataRestApi(ChartRestApi):
                     logger.warning(data)
                     try:
                         # return single query results xlsx format
-                        df = df.join(delete_tz_from_df(data), how='right', rsuffix='2')
+                        new_df = delete_tz_from_df(data)
+                        keys_of_new_df = new_df.keys()
+                        exist_df = df.keys()
+                        for key in keys_of_new_df:
+                            if key in exist_df:
+                                new_df.pop(key)
+                        df = df.join(new_df, how='right', rsuffix='2')
 
                     except IndexError:
                         return self.response_500(
