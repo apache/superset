@@ -14,14 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from datetime import datetime
-from typing import Optional
 from unittest import mock
 
 import pytest
 from sqlalchemy import column
-
-from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 
 @pytest.mark.parametrize(
     "time_grain,expected_result",
