@@ -18,6 +18,7 @@
  */
 import { combineReducers } from 'redux';
 import messageToasts from 'src/components/MessageToasts/reducers';
+import { userReducer } from 'src/views/store';
 import sqlLab from './sqlLab';
 import localStorageUsageInKilobytes from './localStorageUsage';
 import common from './common';
@@ -27,6 +28,7 @@ export const reducers = {
   localStorageUsageInKilobytes,
   messageToasts,
   common,
+  user: userReducer,
 };
 
 export default combineReducers(reducers);
