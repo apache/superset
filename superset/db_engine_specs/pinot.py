@@ -34,14 +34,14 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         None: "{col}",
         "PT1S": "CAST(DATE_TRUNC('second', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
         "PT1M": "CAST(DATE_TRUNC('minute', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
-        "PT5M": """CAST(ROUND(DATE_TRUNC('minute', \
-            CAST({col} AS TIMESTAMP)), 300000) as TIMESTAMP)""",
-        "PT10M": """"CAST(ROUND(DATE_TRUNC('minute', \
-            CAST({col} AS TIMESTAMP)), 600000) as TIMESTAMP)""",
-        "PT15M": """CAST(ROUND(DATE_TRUNC('minute', \
-            CAST({col} AS TIMESTAMP)), 900000) as TIMESTAMP)""",
-        "PT30M": """CAST(ROUND(DATE_TRUNC('minute', \
-            CAST({col} AS TIMESTAMP)), 1800000) as TIMESTAMP)""",
+        "PT5M": "CAST(ROUND(DATE_TRUNC('minute', "
+            + "CAST({col} AS TIMESTAMP)), 300000) AS TIMESTAMP)",
+        "PT10M": "CAST(ROUND(DATE_TRUNC('minute', "
+            + "CAST({col} AS TIMESTAMP)), 600000) AS TIMESTAMP)",
+        "PT15M": "CAST(ROUND(DATE_TRUNC('minute', "
+            + "CAST({col} AS TIMESTAMP)), 900000) AS TIMESTAMP)",
+        "PT30M": "CAST(ROUND(DATE_TRUNC('minute', "
+            + "CAST({col} AS TIMESTAMP)), 1800000) AS TIMESTAMP)",
         "PT1H": "CAST(DATE_TRUNC('hour', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
         "P1D": "CAST(DATE_TRUNC('day', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
         "P1W": "CAST(DATE_TRUNC('week', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",

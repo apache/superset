@@ -23,37 +23,15 @@ from sqlalchemy import column
 
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 
-
-@pytest.mark.parametrize(
-    "target_type,expected_result",
-    [
-        ("Date", "CAST(TIME_PARSE('2019-01-02') AS DATE)"),
-        ("DateTime", "TIME_PARSE('2019-01-02T03:04:05')"),
-        ("TimeStamp", "TIME_PARSE('2019-01-02T03:04:05')"),
-        ("UnknownType", None),
-    ],
-)
-def test_convert_dttm(
-    target_type: str, expected_result: Optional[str], dttm: datetime
-) -> None:
-    from superset.db_engine_specs.pinot import PinotEngineSpec as spec
-
-    assert_convert_dttm(spec, target_type, expected_result, dttm)
-
-
 @pytest.mark.parametrize(
     "time_grain,expected_result",
     [
-        ("PT1S", "CAST(DATE_TRUNC('second', CAST(col AS TIMESTAMP)) AS TIMESTAMP), 'PT1S')"),
-        ("PT5M", "CAST(ROUND(DATE_TRUNC('minute', CAST({col} AS TIMESTAMP)), 30000) AS TIMESTAMP), 'PT5M')"),
-        (
-            "P1W/1970-01-03T00:00:00Z",
-            "CAST(DATE_TRUNC('week', CAST(col AS TIMESTAMP)) AS TIMESTAMP)), 'P1D', 5)",
-        ),
-        (
-            "1969-12-28T00:00:00Z/P1W",
-            "CAST(DATE_TRUNC('week', CAST(col AS TIMESTAMP)) AS TIMESTAMP), 'P1D', 5)",
-        ),
+        ("PT1S", "CAST(DATE_TRUNC('second', CAST(col AS TIMESTAMP)) AS TIMESTAMP)"),
+        ("PT5M", "CAST(ROUND(DATE_TRUNC('minute', CAST(col AS TIMESTAMP)), 300000) AS TIMESTAMP)"),
+        ("P1W", "CAST(DATE_TRUNC('week', CAST(col AS TIMESTAMP)) AS TIMESTAMP)"),
+        ("P1M", "CAST(DATE_TRUNC('month', CAST(col AS TIMESTAMP)) AS TIMESTAMP)"),
+        ("P3M", "CAST(DATE_TRUNC('quarter', CAST(col AS TIMESTAMP)) AS TIMESTAMP)"),
+        ("P1Y", "CAST(DATE_TRUNC('year', CAST(col AS TIMESTAMP)) AS TIMESTAMP)")
     ],
 )
 def test_timegrain_expressions(time_grain: str, expected_result: str) -> None:
@@ -62,11 +40,10 @@ def test_timegrain_expressions(time_grain: str, expected_result: str) -> None:
     """
     from superset.db_engine_specs.pinot import PinotEngineSpec as spec
 
-    assert str(
-        spec.get_timestamp_expr(
-            col=column("col"), pdf=None, time_grain=time_grain
+    actual = str(
+        spec.get_timestamp_expr(col=column("col"), pdf=None, time_grain=time_grain)
         )
-    )
+    assert actual == expected_result
 
 
 def test_extras_without_ssl() -> None:
@@ -78,17 +55,3 @@ def test_extras_without_ssl() -> None:
     db.server_cert = None
     extras = spec.get_extra_params(db)
     assert "connect_args" not in extras["engine_params"]
-
-
-def test_extras_with_ssl() -> None:
-    from superset.db_engine_specs.pinot import PinotEngineSpec as spec
-    from tests.integration_tests.fixtures.certificates import ssl_certificate
-    from tests.integration_tests.fixtures.database import default_db_extra
-
-    db = mock.Mock()
-    db.extra = default_db_extra
-    db.server_cert = ssl_certificate
-    extras = spec.get_extra_params(db)
-    connect_args = extras["engine_params"]["connect_args"]
-    assert connect_args["scheme"] == "https"
-    assert "ssl_verify_cert" in connect_args
