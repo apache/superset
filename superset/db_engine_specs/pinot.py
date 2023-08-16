@@ -17,6 +17,7 @@
 from sqlalchemy.types import TypeEngine
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy import types
+from superset.constants import TimeGrain
 
 from superset.db_engine_specs.base import BaseEngineSpec
 
@@ -32,22 +33,22 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     # https://docs.pinot.apache.org/users/user-guide-query/supported-transformations#datetime-functions
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "CAST(DATE_TRUNC('second', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
-        "PT1M": "CAST(DATE_TRUNC('minute', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
-        "PT5M": "CAST(ROUND(DATE_TRUNC('minute', "
+        TimeGrain.SECOND: "CAST(DATE_TRUNC('second', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
+        TimeGrain.MINUTE: "CAST(DATE_TRUNC('minute', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
+        TimeGrain.FIVE_MINUTES: "CAST(ROUND(DATE_TRUNC('minute', "
             + "CAST({col} AS TIMESTAMP)), 300000) AS TIMESTAMP)",
-        "PT10M": "CAST(ROUND(DATE_TRUNC('minute', "
+        TimeGrain.TEN_MINUTES: "CAST(ROUND(DATE_TRUNC('minute', "
             + "CAST({col} AS TIMESTAMP)), 600000) AS TIMESTAMP)",
-        "PT15M": "CAST(ROUND(DATE_TRUNC('minute', "
+        TimeGrain.FIFTEEN_MINUTES: "CAST(ROUND(DATE_TRUNC('minute', "
             + "CAST({col} AS TIMESTAMP)), 900000) AS TIMESTAMP)",
-        "PT30M": "CAST(ROUND(DATE_TRUNC('minute', "
+        TimeGrain.THIRTY_MINUTES: "CAST(ROUND(DATE_TRUNC('minute', "
             + "CAST({col} AS TIMESTAMP)), 1800000) AS TIMESTAMP)",
-        "PT1H": "CAST(DATE_TRUNC('hour', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
-        "P1D": "CAST(DATE_TRUNC('day', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
-        "P1W": "CAST(DATE_TRUNC('week', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
-        "P1M": "CAST(DATE_TRUNC('month', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
-        "P3M": "CAST(DATE_TRUNC('quarter', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
-        "P1Y": "CAST(DATE_TRUNC('year', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
+        TimeGrain.HOUR: "CAST(DATE_TRUNC('hour', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
+        TimeGrain.DAY: "CAST(DATE_TRUNC('day', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
+        TimeGrain.WEEK: "CAST(DATE_TRUNC('week', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
+        TimeGrain.MONTH: "CAST(DATE_TRUNC('month', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
+        TimeGrain.QUARTER: "CAST(DATE_TRUNC('quarter', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
+        TimeGrain.YEAR: "CAST(DATE_TRUNC('year', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
     }
 
     @classmethod
