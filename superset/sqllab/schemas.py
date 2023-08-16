@@ -16,6 +16,8 @@
 # under the License.
 from marshmallow import fields, Schema
 
+from superset.databases.schemas import ImportV1DatabaseSchema
+
 sql_lab_get_results_schema = {
     "type": "object",
     "properties": {
@@ -95,3 +97,50 @@ class QueryExecutionResponseSchema(Schema):
     expanded_columns = fields.List(fields.Dict())
     query = fields.Nested(QueryResultSchema)
     query_id = fields.Integer()
+
+
+class TableSchema(Schema):
+    database_id = fields.Integer()
+    description = fields.String()
+    expanded = fields.Boolean()
+    id = fields.Integer()
+    schema = fields.String()
+    tab_state_id = fields.Integer()
+    table = fields.String()
+
+
+class TabStateSchema(Schema):
+    active = fields.Boolean()
+    autorun = fields.Boolean()
+    database_id = fields.Integer()
+    extra_json = fields.Dict()
+    hide_left_bar = fields.Boolean()
+    id = fields.String()
+    label = fields.String()
+    latest_query = fields.Nested(QueryResultSchema)
+    query_limit = fields.Integer()
+    saved_query = fields.Dict(
+        allow_none=True,
+        metadata={"id": "SavedQuery id"},
+    )
+    schema = fields.String()
+    sql = fields.String()
+    table_schemas = fields.List(fields.Nested(TableSchema))
+    user_id = fields.Integer()
+
+
+class SQLLabBootstrapSchema(Schema):
+    active_tab = fields.Nested(TabStateSchema)
+    databases = fields.Dict(
+        keys=fields.String(
+            metadata={"description": "Database id"},
+        ),
+        values=fields.Nested(ImportV1DatabaseSchema),
+    )
+    queries = fields.Dict(
+        keys=fields.String(
+            metadata={"description": "Query id"},
+        ),
+        values=fields.Nested(QueryResultSchema),
+    )
+    tab_state_ids = fields.List(fields.String())
