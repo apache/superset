@@ -57,13 +57,21 @@ def add_custom_object_tags(
     """
     if not validate_custom_tags(tags):
         raise CustomTagNameValidationError
+    session = db.session
     tagged_objects = []
+    existing_tagged_objects = session.query(TaggedObject).filter(
+            TaggedObject.object_id == object_id and 
+            TaggedObject.object_type == object_type
+        ).all()
     for tag_str in tags:
-        session = db.session
         tag = get_tag(tag_str, session, TagTypes.custom)
-        tagged_objects.append(
-            TaggedObject(object_id=object_id, object_type=object_type, tag=tag)
-        )
+        # ignore duplicates
+        if tag.id not in map(
+            lambda tagged_object: tagged_object.tag_id, existing_tagged_objects
+        ):
+            tagged_objects.append(
+                TaggedObject(object_id=object_id, object_type=object_type, tag=tag)
+            )
 
     session.add_all(tagged_objects)
     if commit:

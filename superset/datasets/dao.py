@@ -15,10 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 from sqlalchemy.exc import SQLAlchemyError
 
+from superset import is_feature_enabled
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.dao.base import BaseDAO
 from superset.extensions import db, feature_flag_manager
@@ -169,9 +170,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         if "metrics" in properties:
             cls.update_metrics(model, properties.pop("metrics"), commit=commit)
 
-        if "tags" in properties and feature_flag_manager.is_feature_enabled(
-            "TAGGING_SYSTEM"
-        ):
+        if "tags" in properties and is_feature_enabled("TAGGING_SYSTEM"):
             cls.update_tags(model.id, properties.get("tags", []), commit=commit)
 
         return super().update(model, properties, commit=commit)

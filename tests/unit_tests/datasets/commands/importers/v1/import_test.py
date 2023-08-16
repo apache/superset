@@ -32,7 +32,9 @@ from superset.datasets.commands.exceptions import (
     DatasetForbiddenDataURI,
     ImportFailedError,
 )
-from superset.datasets.commands.importers.v1.utils import validate_data_uri
+from superset.datasets.commands.importers.v1.utils import extract_tags, import_tags, validate_data_uri
+from superset.tags.models import ObjectTypes, TaggedObject
+from tests.integration_tests.fixtures.tags import with_tagging_system_feature
 
 
 def test_import_dataset(mocker: MockFixture, session: Session) -> None:
@@ -510,3 +512,68 @@ def test_validate_data_uri(allowed_urls, data_uri, expected, exception_class):
     else:
         with pytest.raises(exception_class):
             validate_data_uri(data_uri)
+
+@pytest.mark.usefixtures("with_tagging_system_feature")
+def test_extract_tags() -> None:
+    config = {'tags': ['one', 'two', 'three']}
+    new_config, tags = extract_tags(config.copy())
+    # the new_config should not contain tags anymore
+    assert 'tags' not in new_config.keys()
+    assert tags == config['tags']
+    new_config, tags = extract_tags(new_config)
+    assert tags == None
+
+def test_import_tags(
+    mocker: MockFixture,
+    session: Session,
+) -> None:
+    from superset import security_manager
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.datasets.commands.importers.v1.utils import import_dataset
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import dataset_config
+    # create a dataset
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    session.add(database)
+    session.flush()
+
+    config = copy.deepcopy(dataset_config)
+    config["database_id"] = database.id
+
+    sqla_table = import_dataset(session, config)
+    
+    # importing tags will add tagged objects referencing the tag and the dataset object
+    import_tags(sqla_table, False, tags=['test_tag1', 'test_tag2'])
+
+    tags = session.query(TaggedObject).filter(
+                TaggedObject.object_id == sqla_table.id,
+                TaggedObject.object_type == ObjectTypes.dataset,
+            ).all()
+
+    assert len(tags) == 2
+
+    # importing with existing=True will append tags to the existing tags associated with this dataset
+    import_tags(sqla_table, True, tags=['test_tag3', 'test_tag4'])
+    
+    tags = session.query(TaggedObject).filter(
+                TaggedObject.object_id == sqla_table.id,
+                TaggedObject.object_type == ObjectTypes.dataset,
+            ).all()
+    
+    assert len(tags) == 4
+
+    # importing with existing=False will overwrite all other tags
+    import_tags(sqla_table, False, tags=['test_tag5', 'test_tag6'])
+    
+    tags = session.query(TaggedObject).filter(
+                TaggedObject.object_id == sqla_table.id,
+                TaggedObject.object_type == ObjectTypes.dataset,
+            ).all()
+    
+    assert len(tags) == 2
+

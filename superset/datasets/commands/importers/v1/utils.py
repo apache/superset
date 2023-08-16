@@ -28,6 +28,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.sql.visitors import VisitableType
 
+from superset import is_feature_enabled
 from superset import security_manager
 from superset.commands.exceptions import ImportFailedError
 from superset.connectors.sqla.models import SqlaTable
@@ -189,8 +190,12 @@ def import_dataset(
 
 
 def extract_tags(config: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[List[str]]]:
+    """
+    Check if there is a list of tags in the config dict. Only when TAGGING_SYSTEM 
+    feature flag is enabled.
+    """
     tags = None
-    if "tags" in config.keys() and feature_flag_manager.is_feature_enabled(
+    if ("tags" in config.keys()) and is_feature_enabled(
         "TAGGING_SYSTEM"
     ):
         tags = config.pop("tags")
@@ -198,7 +203,7 @@ def extract_tags(config: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[List[
     return config, tags
 
 
-def import_tags(dataset: SqlaTable, existing: bool, tags: Optional[List[str]]) -> None:
+def import_tags(dataset: SqlaTable, existing: bool, tags: List[str]) -> None:
     if tags:
         if existing:
             add_custom_object_tags(tags, ObjectTypes.dataset, dataset.id)
