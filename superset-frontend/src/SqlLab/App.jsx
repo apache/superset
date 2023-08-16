@@ -27,7 +27,7 @@ import {
   isFeatureEnabled,
 } from '@superset-ui/core';
 import { GlobalStyles } from 'src/GlobalStyles';
-import { setupStore } from 'src/views/store';
+import { setupStore, userReducer } from 'src/views/store';
 import setupExtensions from 'src/setup/setupExtensions';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { tableApiUtil } from 'src/hooks/apiResources/tables';
@@ -112,7 +112,7 @@ const sqlLabPersistStateConfig = {
 
 export const store = setupStore({
   initialState,
-  rootReducers: reducers,
+  rootReducers: { ...reducers, user: userReducer },
   ...(!isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) && {
     enhancers: [
       persistState(
