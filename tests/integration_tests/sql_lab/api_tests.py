@@ -28,6 +28,7 @@ import prison
 from sqlalchemy.sql import func
 from unittest import mock
 
+from flask_appbuilder.security.sqla.models import Role
 from tests.integration_tests.test_app import app
 from superset import db, sql_lab
 from superset.common.db_query_status import QueryStatus
@@ -49,7 +50,7 @@ class TestSqlLabApi(SupersetTestCase):
         {"SQLLAB_BACKEND_PERSISTENCE": False},
         clear=True,
     )
-    def test_get_from_bootstrap_data(self):
+    def test_get_from_empty_bootsrap_data(self):
         self.login(username="gamma_sqllab_no_data")
         resp = self.client.get("/api/v1/sqllab/")
         assert resp.status_code == 200
@@ -65,7 +66,7 @@ class TestSqlLabApi(SupersetTestCase):
         {"SQLLAB_BACKEND_PERSISTENCE": True},
         clear=True,
     )
-    def test_get_from_backend_persistence_payload(self):
+    def test_get_from_bootstrap_data_with_queries(self):
         username = "admin"
         self.login(username)
 
@@ -106,6 +107,25 @@ class TestSqlLabApi(SupersetTestCase):
         resp = self.get_json_resp("/api/v1/sqllab/")
         result = resp["result"]
         self.assertEqual(len(result["queries"]), 1)
+
+    def test_get_access_denied(self):
+        new_role = Role(name="Dummy Role", permissions=[])
+        db.session.add(new_role)
+        db.session.commit()
+        unauth_user = self.create_user(
+            "unauth_user1",
+            "password",
+            "Dummy Role",
+            email=f"unauth_user1@superset.org",
+        )
+        self.login(username="unauth_user1", password="password")
+        rv = self.client.get("/api/v1/sqllab/")
+
+        assert rv.status_code == 403
+
+        db.session.delete(unauth_user)
+        db.session.delete(new_role)
+        db.session.commit()
 
     def test_estimate_required_params(self):
         self.login()
