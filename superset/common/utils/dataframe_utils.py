@@ -32,13 +32,16 @@ def delete_tz_from_df(d: dict) -> pd.DataFrame:
     colnames = d.get('colnames')
     data = d.get('data') or d.get('df')
 
-    if GenericDataType.TEMPORAL in coltypes:
+    if GenericDataType.TEMPORAL in coltypes or GenericDataType.NUMERIC in coltypes:
         df = pd.DataFrame(data)
         for k, type_col in enumerate(coltypes):
             if type_col == GenericDataType.TEMPORAL:
                 name_col = colnames[k]
                 df[name_col] = pd.to_datetime(df[name_col], utc=True)
                 df[name_col] = df[name_col].dt.tz_localize(None)
+            if type_col == GenericDataType.NUMERIC:
+                name_col = colnames[k]
+                df[name_col] = pd.to_numeric(df[name_col])
 
         return df
     return pd.DataFrame(data)
