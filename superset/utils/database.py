@@ -66,7 +66,7 @@ def get_or_create_db(
 
 def get_example_database() -> Database:
     return get_or_create_db(
-        "examples", current_app.config.get["SQLALCHEMY_EXAMPLES_URI"]
+        "examples", current_app.config["SQLALCHEMY_EXAMPLES_URI"]
     )
 
 
