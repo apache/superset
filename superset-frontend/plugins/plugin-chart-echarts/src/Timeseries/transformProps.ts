@@ -20,7 +20,6 @@
 import { invert } from 'lodash';
 import {
   AnnotationLayer,
-  AxisType,
   CategoricalColorNamespace,
   ensureIsArray,
   GenericDataType,
