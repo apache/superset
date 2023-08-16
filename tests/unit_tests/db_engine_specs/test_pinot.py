@@ -22,7 +22,6 @@ import pytest
 from sqlalchemy import column
 
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
-from tests.unit_tests.fixtures.common import dttm
 
 
 @pytest.mark.parametrize(
@@ -45,21 +44,21 @@ def test_convert_dttm(
 @pytest.mark.parametrize(
     "time_grain,expected_result",
     [
-        ("PT1S", "TIME_FLOOR(CAST(col AS TIMESTAMP), 'PT1S')"),
-        ("PT5M", "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT5M')"),
+        ("PT1S", "CAST(DATE_TRUNC('second', CAST(col AS TIMESTAMP)) AS TIMESTAMP), 'PT1S')"),
+        ("PT5M", "CAST(ROUND(DATE_TRUNC('minute', CAST({col} AS TIMESTAMP)), 30000) AS TIMESTAMP), 'PT5M')"),
         (
             "P1W/1970-01-03T00:00:00Z",
-            "TIME_SHIFT(TIME_FLOOR(TIME_SHIFT(CAST(col AS TIMESTAMP), 'P1D', 1), 'P1W'), 'P1D', 5)",
+            "CAST(DATE_TRUNC('week', CAST(col AS TIMESTAMP)) AS TIMESTAMP)), 'P1D', 5)",
         ),
         (
             "1969-12-28T00:00:00Z/P1W",
-            "TIME_SHIFT(TIME_FLOOR(TIME_SHIFT(CAST(col AS TIMESTAMP), 'P1D', 1), 'P1W'), 'P1D', -1)",
+            "CAST(DATE_TRUNC('week', CAST(col AS TIMESTAMP)) AS TIMESTAMP), 'P1D', 5)",
         ),
     ],
 )
 def test_timegrain_expressions(time_grain: str, expected_result: str) -> None:
     """
-    DB Eng Specs (druid): Test time grain expressions
+    DB Eng Specs (pinot): Test time grain expressions
     """
     from superset.db_engine_specs.pinot import PinotEngineSpec as spec
 
