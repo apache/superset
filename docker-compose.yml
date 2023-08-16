@@ -162,7 +162,5 @@ volumes:
     external: false
   db_home:
     external: false
-  db_examples_home:
-    external: false
   redis:
     external: false
