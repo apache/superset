@@ -18,7 +18,7 @@ import gzip
 import json
 import logging
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 from urllib import request
 
 import pandas as pd
@@ -28,11 +28,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.sql.visitors import VisitableType
 
-from superset import is_feature_enabled
-from superset import security_manager
+from superset import is_feature_enabled, security_manager
 from superset.commands.exceptions import ImportFailedError
 from superset.connectors.sqla.models import SqlaTable
-from superset.extensions import feature_flag_manager
 from superset.datasets.commands.exceptions import DatasetForbiddenDataURI
 from superset.models.core import Database
 from superset.tags.models import ObjectTypes
@@ -155,7 +153,8 @@ def import_dataset(
     # import recursively to include columns and metrics
     try:
         dataset = SqlaTable.import_from_dict(session, config, recursive=True, sync=sync)
-        import_tags(dataset, existing, tags)
+        if tags:
+            import_tags(dataset, existing, tags)
 
     except MultipleResultsFound:
         # Finding multiple results when importing a dataset only happens because initially
@@ -189,21 +188,19 @@ def import_dataset(
     return dataset
 
 
-def extract_tags(config: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[List[str]]]:
+def extract_tags(config: dict[str, Any]) -> tuple[dict[str, Any], Optional[list[str]]]:
     """
-    Check if there is a list of tags in the config dict. Only when TAGGING_SYSTEM 
+    Check if there is a list of tags in the config dict. Only when TAGGING_SYSTEM
     feature flag is enabled.
     """
     tags = None
-    if ("tags" in config.keys()) and is_feature_enabled(
-        "TAGGING_SYSTEM"
-    ):
+    if ("tags" in config.keys()) and is_feature_enabled("TAGGING_SYSTEM"):
         tags = config.pop("tags")
 
     return config, tags
 
 
-def import_tags(dataset: SqlaTable, existing: bool, tags: List[str]) -> None:
+def import_tags(dataset: SqlaTable, existing: bool, tags: list[str]) -> None:
     if tags:
         if existing:
             add_custom_object_tags(tags, ObjectTypes.dataset, dataset.id)

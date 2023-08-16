@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import List, Optional
+from typing import Optional
 
 from sqlalchemy import Enum
 
@@ -24,7 +24,7 @@ from superset.tags.models import get_tag, ObjectTypes, Tag, TaggedObject, TagTyp
 
 
 def validate_custom_tags(
-    tags: List[str],
+    tags: list[str],
 ) -> bool:
     """
     Validates custom tags.
@@ -40,11 +40,11 @@ def validate_custom_tags(
 
 
 def add_custom_object_tags(
-    tags: List[str],
+    tags: list[str],
     object_type: Enum[ObjectTypes],
     object_id: int,
     commit: bool = True,
-) -> List[TaggedObject]:
+) -> list[TaggedObject]:
     """
     Add new tags to the dataset. Duplicates are ignored
     tags:
@@ -59,10 +59,14 @@ def add_custom_object_tags(
         raise CustomTagNameValidationError
     session = db.session
     tagged_objects = []
-    existing_tagged_objects = session.query(TaggedObject).filter(
-            TaggedObject.object_id == object_id and 
-            TaggedObject.object_type == object_type
-        ).all()
+    existing_tagged_objects = (
+        session.query(TaggedObject)
+        .filter(
+            TaggedObject.object_id == object_id
+            and TaggedObject.object_type == object_type
+        )
+        .all()
+    )
     for tag_str in tags:
         tag = get_tag(tag_str, session, TagTypes.custom)
         # ignore duplicates
@@ -83,7 +87,7 @@ def delete_custom_object_tags(
     object_type: Enum[ObjectTypes],
     object_id: int,
     commit: bool = True,
-    tags: Optional[List[str]] = None,
+    tags: Optional[list[str]] = None,
 ) -> None:
     """
     delete all tagged_objects with custom tags from an object, or only specified "tags"
@@ -126,12 +130,12 @@ def delete_custom_object_tags(
 
 
 def update_custom_object_tags(
-    tags: List[str],
+    tags: list[str],
     object_type: Enum[ObjectTypes],
     object_id: int,
     commit: bool = True,
     overwrite: bool = False,
-) -> List[TaggedObject]:
+) -> list[TaggedObject]:
     """
     Update tags applied to an object
     tags:

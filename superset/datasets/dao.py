@@ -15,14 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset import is_feature_enabled
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.dao.base import BaseDAO
-from superset.extensions import db, feature_flag_manager
+from superset.extensions import db
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -296,9 +296,9 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
     def update_tags(
         cls,
         dataset_id: int,
-        tags: List[str],
+        tags: list[str],
         commit: bool = True,
-    ) -> List[TaggedObject]:
+    ) -> list[TaggedObject]:
         """
         Creates/updates tagged objects based on a list of Tag names.
         - Delete all current tagged objects related to this object
