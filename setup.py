@@ -108,6 +108,7 @@ setup(
         "pandas[performance]>=2.0.3, <2.1",
         "parsedatetime",
         "pgsanity",
+        "playwright",
         "polyline>=2.0.0, <3.0",
         "pyparsing>=3.0.6, <4",
         "python-dateutil",

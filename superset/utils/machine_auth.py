@@ -22,6 +22,7 @@ from typing import Callable, TYPE_CHECKING
 
 from flask import current_app, Flask, request, Response, session
 from flask_login import login_user
+from playwright.sync_api import BrowserContext
 from selenium.webdriver.remote.webdriver import WebDriver
 from werkzeug.http import parse_cookie
 
@@ -36,7 +37,10 @@ if TYPE_CHECKING:
 
 class MachineAuthProvider:
     def __init__(
-        self, auth_webdriver_func_override: Callable[[WebDriver, User], WebDriver]
+        self,
+        auth_webdriver_func_override: Callable[
+            [WebDriver | BrowserContext, User], WebDriver | BrowserContext
+        ],
     ):
         # This is here in order to allow for the authenticate_webdriver func to be
         # overridden via config, as opposed to the entire provider implementation
@@ -69,6 +73,42 @@ class MachineAuthProvider:
             driver.add_cookie({"name": cookie_name, "value": cookie_val})
 
         return driver
+
+    def authenticate_playwright_browser_context(
+        self,
+        browser_context: BrowserContext,
+        user: User,
+    ) -> BrowserContext:
+        # Short-circuit this method if we have an override configured
+        if self._auth_webdriver_func_override:  # type: ignore
+            return self._auth_webdriver_func_override(browser_context, user)
+
+        # Setting cookies requires doing a request first
+        page = browser_context.new_page()
+        page.goto(headless_url("/login/"))
+
+        if user:
+            cookies = self.get_auth_cookies(user)
+        elif request.cookies:
+            cookies = request.cookies
+        else:
+            cookies = {}
+
+        browser_context.clear_cookies()
+        browser_context.add_cookies(
+            [
+                dict(
+                    name=cookie_name,
+                    value=cookie_val,
+                    domain="0.0.0.0",
+                    path="/",
+                    sameSite="Lax",
+                    httpOnly=True,
+                )
+                for cookie_name, cookie_val in cookies.items()
+            ]
+        )
+        return browser_context
 
     @staticmethod
     def get_auth_cookies(user: User) -> dict[str, str]:
