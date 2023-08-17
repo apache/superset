@@ -14,11 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from sqlalchemy.types import TypeEngine
-from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy import types
-from superset.constants import TimeGrain
+from sqlalchemy.engine.interfaces import Dialect
+from sqlalchemy.types import TypeEngine
 
+from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
 
 
