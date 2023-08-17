@@ -19,6 +19,7 @@ import logging
 from flask import g, request, Response
 from flask_appbuilder.api import expose, protect, safe
 
+from superset import security_manager
 from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.explore.commands.get import GetExploreCommand
@@ -27,10 +28,13 @@ from superset.explore.exceptions import DatasetAccessDeniedError, WrongEndpointE
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.explore.schemas import ExploreContextSchema
 from superset.extensions import event_logger
+from superset.tasks.utils import get_current_user
 from superset.temporary_cache.commands.exceptions import (
     TemporaryCacheAccessDeniedError,
     TemporaryCacheResourceNotFoundError,
 )
+from superset.utils.screenshots import DashboardScreenshot
+from superset.utils.urls import get_url_path
 from superset.views.base_api import BaseSupersetApi, statsd_metrics
 
 logger = logging.getLogger(__name__)
@@ -113,6 +117,10 @@ class ExploreRestApi(BaseSupersetApi):
                 datasource_type=request.args.get("datasource_type", type=str),
                 slice_id=request.args.get("slice_id", type=int),
             )
+            DashboardScreenshot(
+                get_url_path("Superset.dashboard", dashboard_id_or_slug=4), "test"
+            ).get_screenshot(security_manager.find_user(get_current_user()))
+
             result = GetExploreCommand(params).run()
             if not result:
                 return self.response_404()
