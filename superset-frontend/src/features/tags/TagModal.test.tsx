@@ -1,11 +1,10 @@
 import React from 'react';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { render, screen } from 'spec/helpers/testing-library';
 import TagModal from 'src/features/tags/TagModal';
 import fetchMock from 'fetch-mock';
-import TaggableResources from 'src/features/tags/TagModal';
 import { Tag } from 'src/views/CRUD/types';
 
-let mockedProps = {
+const mockedProps = {
   onHide: () => {},
   refreshData: () => {},
   addSuccessToast: () => {},
@@ -37,6 +36,7 @@ test('renders correctly in edit mode', () => {
     description: 'A test tag',
     type: 'dashboard',
     changed_on_delta_humanized: '',
+    created_by: {},
   };
 
   render(<TagModal {...mockedProps} editTag={editTag} />);
