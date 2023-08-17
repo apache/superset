@@ -361,17 +361,16 @@ class QueryContextProcessor:
         rv_df = pd.concat(rv_dfs, axis=1, copy=False) if time_offsets else df
         return CachedTimeOffset(df=rv_df, queries=queries, cache_keys=cache_keys)
 
-    def get_data(self, df: pd.DataFrame) -> Union[str, List[Dict[str, Any]]]:
+    def get_data(self, df: pd.DataFrame) -> Union[str, pd.DataFrame, List[Dict[str, Any]]]:
         if self._query_context.result_format == ChartDataResultFormat.CSV:
-            include_index = not isinstance(df.index, pd.RangeIndex)
             columns = list(df.columns)
             verbose_map = self._qc_datasource.data.get("verbose_map", {})
             if verbose_map:
                 df.columns = [verbose_map.get(column, column) for column in columns]
-            result = csv.df_to_escaped_csv(
-                df, index=include_index, **config["CSV_EXPORT"]
-            )
-            return result or ""
+            result = csv.df_to_escaped_csv(df)
+            if not result.empty:
+                return result
+            return ""
 
         return df.to_dict(orient="records")
 

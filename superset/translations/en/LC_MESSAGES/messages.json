@@ -1235,6 +1235,7 @@
       "Download as image": [""],
       "Download": [""],
       "Export to .CSV": [""],
+      "Export to .XLSX": [""],
       "Toggle fullscreen": [""],
       "There is no chart definition associated with this component, could it have been deleted?": [
         ""

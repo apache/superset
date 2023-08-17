@@ -230,7 +230,7 @@ export const getCSV = async (url, payload, isLegacy, resultFormat) => {
     body: payload,
   };
 
-  if (resultFormat === XLSX) {
+  if (resultFormat === XLSX || resultFormat === CSV) {
     params = {
       ...params,
       responseType: 'blob',
@@ -331,8 +331,8 @@ export const exportChart = ({
 
   // TODO: xlsx
   return exportResultPromise
-    .then(csvExportResult => {
-      if (csvExportResult) {
+    .then(exportResult => {
+      if (exportResult) {
         const extension = resultFormat; // csv | xlsx
         const blobType =
           extension === XLSX
@@ -346,7 +346,7 @@ export const exportChart = ({
 
         if (extension === XLSX) {
           const url = URL.createObjectURL(
-            new Blob([csvExportResult], {
+            new Blob([exportResult], {
               type: blobType,
             }),
           );
@@ -357,15 +357,26 @@ export const exportChart = ({
           document.body.appendChild(link);
           link.click();
         } else {
-          const universalBOM = '\uFEFF';
-          const alteredResult = universalBOM + csvExportResult;
-          const csvFile = new Blob([alteredResult], {
-            type: blobType,
-          });
-          FileSaver.saveAs(csvFile, outputFilename);
+          // const universalBOM = '\uFEFF';
+          // const alteredResult = universalBOM + exportResult;
+          // const csvFile = new Blob([alteredResult], {
+          //   type: blobType,
+          // });
+          // FileSaver.saveAs(csvFile, outputFilename);
+          const url = URL.createObjectURL(
+            new Blob([exportResult], {
+              type: blobType,
+            }),
+          );
+
+          const link = document.createElement('a');
+          link.href = url;
+          link.setAttribute('download', outputFilename);
+          document.body.appendChild(link);
+          link.click();
         }
       } else {
-        console.log('csvExportResult error', csvExportResult);
+        console.log('exportResult error', exportResult);
       }
     })
     .catch(csvExportError => {

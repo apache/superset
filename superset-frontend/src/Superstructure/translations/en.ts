@@ -1121,7 +1121,6 @@ const en = {
       'Edit CSS': [''],
       'Download as image': [''],
       Download: [''],
-      'Export to .CSV': [''],
       'Toggle fullscreen': [''],
       'There is no chart definition associated with this component, could it have been deleted?':
         [''],
@@ -1902,6 +1901,8 @@ const en = {
       Fetched: [''],
       'Edit chart': [''],
       'View as table': [''],
+      'Export to .CSV': [''],
+      'Export to .XLSX': [''],
     },
   },
 };

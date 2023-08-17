@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import copy
 import dataclasses
+import io
 import logging
 import math
 import re
@@ -662,10 +663,21 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         }
         return content
 
-    def get_csv(self) -> Optional[str]:
-        df = self.get_df_payload()["df"]  # leverage caching logic
-        include_index = not isinstance(df.index, pd.RangeIndex)
-        return csv.df_to_escaped_csv(df, index=include_index, **config["CSV_EXPORT"])
+    def get_csv(self) -> io.BytesIO:
+        d = self.get_df_payload()
+        df = pd.DataFrame()
+        new_df = delete_tz_from_df(d)
+        keys_of_new_df = new_df.keys()
+        exist_df = df.keys()
+        for key in keys_of_new_df:
+            if key in exist_df:
+                new_df.pop(key)
+        df = df.join(new_df, how='right', rsuffix='2')
+        df = csv.df_to_escaped_csv(df)
+        csv_writer = io.BytesIO()
+        df.to_csv(csv_writer, **config['CSV_EXPORT'])
+        csv_writer.seek(0)
+        return csv_writer
 
     def get_xlsx(self) -> BytesIO:
         d = self.get_df_payload()

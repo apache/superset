@@ -1674,7 +1674,6 @@ const ru = {
       'Edit CSS': ['Редактировать CSS'],
       'Download as image': ['Сохранить как изображение'],
       Download: ['Скачать'],
-      'Export to .CSV': ['Скачать .CSV файл'],
       'Toggle fullscreen': ['Полноэкранный режим'],
       'There is no chart definition associated with this component, could it have been deleted?':
         [''],
@@ -2858,6 +2857,8 @@ const ru = {
       Fetched: ['Получен'],
       'Edit chart': ['Редактировать график'],
       'View as table': ['Открыть как таблицу'],
+      'Export to .CSV': ['Скачать .CSV файл'],
+      'Export to .XLSX': ['Скачать .XLSX файл'],
     },
   },
 };

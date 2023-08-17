@@ -200,13 +200,13 @@ const NEW_FEATURES_JUNE_2023_RU = {
 const NEW_FEATURES_JULY_2023_RU = {
   title: 'Обновления [Июль 2023]',
   date: '06.07.2023',
-  subTitle: RELEASE_IN_TESTING,
+  subTitle: RELEASE_IS_STABLE,
   extra: IF_QUESTIONS_RU,
   listTitle: 'Новая функциональность / исправлены проблемы',
   releases: [
     {
       date: `${TESTING_EMOJI} 06.07.2023`,
-      status: RELEASE_IN_TESTING,
+      status: RELEASE_IS_STABLE,
       messages: [
         'Добавить условное форматирование без градиента в Table и Pivot Table V2',
         'Обновили недостающие переводы в разных частях системы',
@@ -215,15 +215,44 @@ const NEW_FEATURES_JULY_2023_RU = {
   ],
   listTitleExtra: 'Что планируем брать в работу?',
   messagesExtra: [
-    `${IN_PROGRESS_EMOJI} Добавить условное форматирование без градиента в Table и Pivot Table V2`,
+    `${DONE_EMOJI} Добавить условное форматирование без градиента в Table и Pivot Table V2`,
     `${IN_PROGRESS_EMOJI} Расширить палитру цветового условного форматирования`,
-    'В time grain фильтре сделать выбор по умолчанию "Точная дата"',
-    'Добавить экспорт таблицы в xls',
+    `${IN_PROGRESS_EMOJI}Добавить экспорт таблицы в xls`,
     'Добавить фильтр в таблице "где используется этот чарт"',
-    'Big Number: Цветовая индикация в зависимости от попадания значения в цель',
-    'В выборе даты сделать start, end date Включительно',
+    `${IN_PROGRESS_EMOJI} Big Number: Цветовая индикация в зависимости от попадания значения в цель`,
     'Убрать ненужное в фильтре времени',
     'Грумминг папок с дашборадами в Superset',
+  ],
+};
+
+const NEW_FEATURES_AUGUST_2023_RU = {
+  title: 'Обновления [Август 2023]',
+  date: '17.08.2023',
+  subTitle: RELEASE_IN_TESTING,
+  extra: IF_QUESTIONS_RU,
+  listTitle: 'Новая функциональность / исправлены проблемы',
+  releases: [
+    {
+      date: `${TESTING_EMOJI} 17.08.2023`,
+      status: RELEASE_IN_TESTING,
+      messages: [
+        'Добавить экспорт таблицы в xls',
+        'Обновили экспорт таблицы в csv',
+        'Исправили ошибки при экспорте Mixed Time series в csv',
+        'Расширили палитру цветового условного форматирования Big Number, Big Number With Trendline',
+        'Big Number: Цветовая индикация в зависимости от попадания значения в цель (Conditional Formatting)',
+      ],
+    },
+  ],
+  listTitleExtra: 'Что планируем брать в работу?',
+  messagesExtra: [
+    `${IN_PROGRESS_EMOJI} Грумминг папок с дашборадами в Superset`,
+    `${IN_PROGRESS_EMOJI}Добавить фильтр в таблице "где используется этот чарт"`,
+    `${DONE_EMOJI} Добавить условное форматирование без градиента в Table и Pivot Table V2`,
+    `${DONE_EMOJI} Расширить палитру цветового условного форматирования`,
+    `${DONE_EMOJI}Добавить экспорт таблицы в xls`,
+    `${DONE_EMOJI} Big Number: Цветовая индикация в зависимости от попадания значения в цель`,
+    `${DONE_EMOJI} Убрать ненужное в фильтре времени`,
   ],
 };
 
@@ -233,4 +262,5 @@ export {
   NEW_FEATURES_MAY_2023_RU,
   NEW_FEATURES_JUNE_2023_RU,
   NEW_FEATURES_JULY_2023_RU,
+  NEW_FEATURES_AUGUST_2023_RU,
 };

@@ -8,6 +8,7 @@ import {
   NEW_FEATURES_MAY_2023_RU,
   NEW_FEATURES_JUNE_2023_RU,
   NEW_FEATURES_JULY_2023_RU,
+  NEW_FEATURES_AUGUST_2023_RU,
 } from '../../changelogMessages';
 
 const renderCollapse = (messagesArray: IPanelMsgObj[]) =>
@@ -34,6 +35,7 @@ const renderCollapse = (messagesArray: IPanelMsgObj[]) =>
 export const Changelog = () => (
   <Collapse expandIconPosition="right" accordion>
     {renderCollapse([
+      NEW_FEATURES_AUGUST_2023_RU,
       NEW_FEATURES_JULY_2023_RU,
       NEW_FEATURES_JUNE_2023_RU,
       NEW_FEATURES_MAY_2023_RU,
