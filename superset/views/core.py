@@ -48,7 +48,6 @@ from superset.common.chart_data import ChartDataResultFormat, ChartDataResultTyp
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.chart import ChartDAO
-from superset.daos.database import DatabaseDAO
 from superset.daos.datasource import DatasourceDAO
 from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
@@ -69,8 +68,9 @@ from superset.extensions import async_query_manager, cache_manager
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.models.sql_lab import Query, TabState
+from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
+from superset.sqllab.utils import bootstrap_sqllab_data
 from superset.superset_typing import FlaskResponse
 from superset.tasks.async_queries import load_explore_json_into_cache
 from superset.utils import core as utils
@@ -80,7 +80,6 @@ from superset.utils.core import (
     base_json_conv,
     DatasourceType,
     get_user_id,
-    get_username,
     ReservedUrlParameters,
 )
 from superset.views.base import (
@@ -114,21 +113,6 @@ config = app.config
 SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
 stats_logger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
-
-DATABASE_KEYS = [
-    "allow_file_upload",
-    "allow_ctas",
-    "allow_cvas",
-    "allow_dml",
-    "allow_run_async",
-    "allows_subquery",
-    "backend",
-    "database_name",
-    "expose_in_sqllab",
-    "force_ctas_schema",
-    "id",
-    "disable_data_preview",
-]
 
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
 USER_MISSING_ERR = __("The user seems to have been deleted")
@@ -695,11 +679,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         slc.query_context = query_context
 
         if action == "saveas" and slice_add_perm:
-            ChartDAO.save(slc)
+            ChartDAO.create(slc)
             msg = _("Chart [{}] has been saved").format(slc.slice_name)
             flash(msg, "success")
         elif action == "overwrite" and slice_overwrite_perm:
-            ChartDAO.overwrite(slc)
+            ChartDAO.update(slc)
             msg = _("Chart [{}] has been overwritten").format(slc.slice_name)
             flash(msg, "success")
 
@@ -1000,69 +984,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @event_logger.log_this
     @expose("/profile/")
+    @deprecated(new_target="/profile")
     def profile(self) -> FlaskResponse:
-        """User profile page"""
-        user = g.user if hasattr(g, "user") and g.user else None
-        if not user or security_manager.is_guest_user(user) or user.is_anonymous:
-            abort(404)
-        payload = {
-            "user": bootstrap_user_data(user, include_perms=True),
-            "common": common_bootstrap_payload(user),
-        }
-
-        return self.render_template(
-            "superset/basic.html",
-            title=_("%(user)s's profile", user=get_username()),
-            entry="profile",
-            bootstrap_data=json.dumps(
-                payload, default=utils.pessimistic_json_iso_dttm_ser
-            ),
-        )
-
-    @staticmethod
-    def _get_sqllab_tabs(user_id: int | None) -> dict[str, Any]:
-        # send list of tab state ids
-        tabs_state = (
-            db.session.query(TabState.id, TabState.label)
-            .filter_by(user_id=user_id)
-            .all()
-        )
-        tab_state_ids = [str(tab_state[0]) for tab_state in tabs_state]
-        # return first active tab, or fallback to another one if no tab is active
-        active_tab = (
-            db.session.query(TabState)
-            .filter_by(user_id=user_id)
-            .order_by(TabState.active.desc())
-            .first()
-        )
-
-        databases: dict[int, Any] = {}
-        for database in DatabaseDAO.find_all():
-            databases[database.id] = {
-                k: v for k, v in database.to_json().items() if k in DATABASE_KEYS
-            }
-            databases[database.id]["backend"] = database.backend
-        queries: dict[str, Any] = {}
-
-        # These are unnecessary if sqllab backend persistence is disabled
-        if is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE"):
-            # return all user queries associated with existing SQL editors
-            user_queries = (
-                db.session.query(Query)
-                .filter_by(user_id=user_id)
-                .filter(Query.sql_editor_id.in_(tab_state_ids))
-                .all()
-            )
-            queries = {
-                query.client_id: dict(query.to_dict().items()) for query in user_queries
-            }
-
-        return {
-            "tab_state_ids": tabs_state,
-            "active_tab": active_tab.to_dict() if active_tab else None,
-            "databases": databases,
-            "queries": queries,
-        }
+        return redirect("/profile/")
 
     @has_access
     @event_logger.log_this
@@ -1076,9 +1000,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def sqllab(self) -> FlaskResponse:
         """SQL Editor"""
         payload = {
-            "defaultDbId": config["SQLLAB_DEFAULT_DBID"],
             "common": common_bootstrap_payload(g.user),
-            **self._get_sqllab_tabs(get_user_id()),
+            **bootstrap_sqllab_data(get_user_id()),
         }
 
         if form_data := request.form.get("form_data"):

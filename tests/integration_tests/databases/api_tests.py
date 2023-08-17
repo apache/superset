@@ -3153,7 +3153,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": False,
                     "sqlalchemy_uri_placeholder": "gsheets://",
                     "engine_information": {
-                        "supports_file_upload": False,
+                        "supports_file_upload": True,
                         "disable_ssh_tunneling": True,
                     },
                 },

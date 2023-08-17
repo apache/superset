@@ -98,6 +98,7 @@ class DatasetPostSchema(Schema):
     owners = fields.List(fields.Integer())
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    normalize_columns = fields.Boolean(load_default=False)
 
 
 class DatasetPutSchema(Schema):
@@ -109,6 +110,7 @@ class DatasetPutSchema(Schema):
     schema = fields.String(allow_none=True, validate=Length(0, 255))
     description = fields.String(allow_none=True)
     main_dttm_col = fields.String(allow_none=True)
+    normalize_columns = fields.Boolean(allow_none=True, dump_default=False)
     offset = fields.Integer(allow_none=True)
     default_endpoint = fields.String(allow_none=True)
     cache_timeout = fields.Integer(allow_none=True)
@@ -247,6 +249,7 @@ class ImportV1DatasetSchema(Schema):
     data = fields.URL()
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    normalize_columns = fields.Boolean(load_default=False)
 
 
 class GetOrCreateDatasetSchema(Schema):
@@ -262,6 +265,7 @@ class GetOrCreateDatasetSchema(Schema):
     template_params = fields.String(
         metadata={"description": "Template params for the table"}
     )
+    normalize_columns = fields.Boolean(load_default=False)
 
 
 class DatasetSchema(SQLAlchemyAutoSchema):

@@ -20,7 +20,6 @@
 import { invert } from 'lodash';
 import {
   AnnotationLayer,
-  AxisType,
   CategoricalColorNamespace,
   ensureIsArray,
   GenericDataType,
@@ -447,23 +446,13 @@ export default function transformProps(
       rotate: xAxisLabelRotation,
     },
     minInterval:
-      xAxisType === AxisType.time && timeGrainSqla
+      xAxisType === 'time' && timeGrainSqla
         ? TIMEGRAIN_TO_TIMESTAMP[timeGrainSqla]
         : 0,
   };
-
-  if (xAxisType === AxisType.time) {
-    /**
-     * Overriding default behavior (false) for time axis regardless of the granilarity.
-     * Not including this in the initial declaration above so if echarts changes the default
-     * behavior for other axist types we won't unintentionally override it
-     */
-    xAxis.axisLabel.showMaxLabel = null;
-  }
-
   let yAxis: any = {
     ...defaultYAxis,
-    type: logAxis ? AxisType.log : AxisType.value,
+    type: logAxis ? 'log' : 'value',
     min,
     max,
     minorTick: { show: true },

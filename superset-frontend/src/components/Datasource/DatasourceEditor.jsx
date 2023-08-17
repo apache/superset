@@ -765,6 +765,7 @@ class DatasourceEditor extends React.PureComponent {
       table_name: datasource.table_name
         ? encodeURIComponent(datasource.table_name)
         : datasource.table_name,
+      normalize_columns: datasource.normalize_columns,
     };
     Object.entries(params).forEach(([key, value]) => {
       // rison can't encode the undefined value
@@ -993,6 +994,15 @@ class DatasourceEditor extends React.PureComponent {
             control={<TextControl controlId="template_params" />}
           />
         )}
+        <Field
+          inline
+          fieldKey="normalize_columns"
+          label={t('Normalize column names')}
+          description={t(
+            'Allow column names to be changed to case insensitive format, if supported (e.g. Oracle, Snowflake).',
+          )}
+          control={<CheckboxControl controlId="normalize_columns" />}
+        />
       </Fieldset>
     );
   }

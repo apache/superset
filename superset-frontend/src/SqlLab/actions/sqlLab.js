@@ -570,15 +570,10 @@ export function addQueryEditor(queryEditor) {
 export function addNewQueryEditor() {
   return function (dispatch, getState) {
     const {
-      sqlLab: {
-        queryEditors,
-        tabHistory,
-        unsavedQueryEditor,
-        defaultDbId,
-        databases,
-      },
+      sqlLab: { queryEditors, tabHistory, unsavedQueryEditor, databases },
       common,
     } = getState();
+    const defaultDbId = common.conf.SQLLAB_DEFAULT_DBID;
     const activeQueryEditor = queryEditors.find(
       qe => qe.id === tabHistory[tabHistory.length - 1],
     );

@@ -312,6 +312,7 @@ dashboard_export: dict[str, Any] = {
                 "sql": None,
                 "table_name": "birth_names_2",
                 "template_params": None,
+                "normalize_columns": False,
             }
         }
     ],
@@ -494,6 +495,7 @@ dataset_config: dict[str, Any] = {
     "sql": "",
     "params": None,
     "template_params": {},
+    "normalize_columns": False,
     "filter_select_enabled": True,
     "fetch_values_predicate": None,
     "extra": '{ "certification": { "certified_by": "Data Platform Team", "details": "This table is the source of truth." }, "warning_markdown": "This is a warning." }',
