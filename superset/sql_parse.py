@@ -221,8 +221,10 @@ class ParsedQuery:
         # make sure we strip comments; prevents a bug with comments in the CTE
         parsed = sqlparse.parse(self.strip_comments())
 
+        # Check if this is a CTE
         if parsed[0].is_group and parsed[0][0].ttype == Keyword.CTE:
             inner_cte = self.get_inner_cte_expression(parsed[0].tokens) or []
+            # Check if the inner CTE is a not a SELECT
             if any(token.ttype == DDL for token in inner_cte) or any(
                 token.ttype == DML and token.normalized != "SELECT"
                 for token in inner_cte

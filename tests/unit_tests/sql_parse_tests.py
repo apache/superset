@@ -1029,6 +1029,42 @@ FROM foo f"""
     assert sql.is_select()
 
 
+def test_cte_insert_is_not_select() -> None:
+    """
+    Some CTEs with lowercase select are not correctly identified as SELECTS.
+    """
+    sql = ParsedQuery(
+        """WITH foo AS(
+        INSERT INTO foo (id) VALUES (1) RETURNING 1
+        ) select * FROM foo f"""
+    )
+    assert sql.is_select() is False
+
+
+def test_cte_delete_is_not_select() -> None:
+    """
+    Some CTEs with lowercase select are not correctly identified as SELECTS.
+    """
+    sql = ParsedQuery(
+        """WITH foo AS(
+        DELETE FROM foo RETURNING *
+        ) select * FROM foo f"""
+    )
+    assert sql.is_select() is False
+
+
+def test_cte_is_not_select_lowercase() -> None:
+    """
+    Some CTEs with lowercase select are not correctly identified as SELECTS.
+    """
+    sql = ParsedQuery(
+        """WITH foo AS(
+        insert into foo (id) values (1) RETURNING 1
+        ) select * FROM foo f"""
+    )
+    assert sql.is_select() is False
+
+
 def test_unknown_select() -> None:
     """
     Test that `is_select` works when sqlparse fails to identify the type.
