@@ -22,7 +22,7 @@ import moment from 'moment';
 import { t } from '@superset-ui/core';
 import { DashboardResponse, BootstrapUser } from 'src/types/bootstrapTypes';
 import TableLoader from '../../components/TableLoader';
-import { Chart } from '../types';
+import { Chart } from './types';
 
 interface FavoritesProps {
   user: BootstrapUser;

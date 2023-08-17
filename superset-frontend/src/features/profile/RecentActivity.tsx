@@ -20,10 +20,9 @@ import React from 'react';
 import moment from 'moment';
 import { t } from '@superset-ui/core';
 import rison from 'rison';
-
-import TableLoader from '../../components/TableLoader';
-import { ActivityResult } from '../types';
-import { BootstrapUser } from '../../types/bootstrapTypes';
+import TableLoader from 'src/components/TableLoader';
+import { BootstrapUser } from 'src/types/bootstrapTypes';
+import { ActivityResult } from './types';
 
 interface RecentActivityProps {
   user: BootstrapUser;

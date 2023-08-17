@@ -26,12 +26,10 @@ from unittest import mock
 from urllib.parse import quote
 
 import pandas as pd
-import prison
 import pytest
 import pytz
 import sqlalchemy as sqla
 from flask_babel import lazy_gettext as _
-from sqlalchemy import Table
 from sqlalchemy.exc import SQLAlchemyError
 
 import superset.utils.database
@@ -56,7 +54,7 @@ from superset.utils import core as utils
 from superset.utils.core import backend
 from superset.utils.database import get_example_database
 from superset.views.database.views import DatabaseView
-from tests.integration_tests.conftest import CTAS_SCHEMA_NAME, with_feature_flags
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -65,12 +63,10 @@ from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_data,
     load_energy_table_with_slice,
 )
-from tests.integration_tests.fixtures.public_role import public_role_like_gamma
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
     load_world_bank_data,
 )
-from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 from tests.integration_tests.test_app import app
 
 from .base_tests import SupersetTestCase
@@ -86,7 +82,7 @@ def cleanup():
     yield
 
 
-class TestCore(SupersetTestCase, InsertChartMixin):
+class TestCore(SupersetTestCase):
     def setUp(self):
         self.table_ids = {
             tbl.table_name: tbl.id for tbl in (db.session.query(SqlaTable).all())
@@ -107,39 +103,12 @@ class TestCore(SupersetTestCase, InsertChartMixin):
         )
         return dashboard
 
-    def insert_chart_created_by(self, username: str) -> Slice:
-        user = self.get_user(username)
-        dataset = db.session.query(SqlaTable).first()
-        chart = self.insert_chart(
-            f"create_title_test",
-            [user.id],
-            dataset.id,
-            created_by=user,
-        )
-        return chart
-
-    @pytest.fixture()
-    def insert_dashboard_created_by_admin(self):
-        with self.create_app().app_context():
-            dashboard = self.insert_dashboard_created_by("admin")
-            yield dashboard
-            db.session.delete(dashboard)
-            db.session.commit()
-
     @pytest.fixture()
     def insert_dashboard_created_by_gamma(self):
         dashboard = self.insert_dashboard_created_by("gamma")
         yield dashboard
         db.session.delete(dashboard)
         db.session.commit()
-
-    @pytest.fixture()
-    def insert_chart_created_by_admin(self):
-        with self.create_app().app_context():
-            chart = self.insert_chart_created_by("admin")
-            yield chart
-            db.session.delete(chart)
-            db.session.commit()
 
     def test_login(self):
         resp = self.get_resp("/login/", data=dict(username="admin", password="general"))
@@ -512,100 +481,6 @@ class TestCore(SupersetTestCase, InsertChartMixin):
         ]
         for k in keys:
             self.assertIn(k, resp.keys())
-
-    @pytest.mark.usefixtures("insert_dashboard_created_by_admin")
-    @pytest.mark.usefixtures("insert_chart_created_by_admin")
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_user_profile(self, username="admin"):
-        self.login(username=username)
-        slc = self.get_slice("Girls", db.session)
-        dashboard = db.session.query(Dashboard).filter_by(slug="births").first()
-        # Set a favorite dashboard
-        self.client.post(f"/api/v1/dashboard/{dashboard.id}/favorites/", json={})
-        # Set a favorite chart
-        self.client.post(f"/api/v1/chart/{slc.id}/favorites/", json={})
-
-        # Get favorite dashboards:
-        request_query = {
-            "columns": ["created_on_delta_humanized", "dashboard_title", "url"],
-            "filters": [{"col": "id", "opr": "dashboard_is_favorite", "value": True}],
-            "keys": ["none"],
-            "order_column": "changed_on",
-            "order_direction": "desc",
-            "page": 0,
-            "page_size": 100,
-        }
-        url = f"/api/v1/dashboard/?q={prison.dumps(request_query)}"
-        resp = self.client.get(url)
-        assert resp.json["count"] == 1
-        assert resp.json["result"][0]["dashboard_title"] == "USA Births Names"
-
-        # Get Favorite Charts
-        request_query = {
-            "filters": [{"col": "id", "opr": "chart_is_favorite", "value": True}],
-            "order_column": "slice_name",
-            "order_direction": "asc",
-            "page": 0,
-            "page_size": 25,
-        }
-        url = f"api/v1/chart/?q={prison.dumps(request_query)}"
-        resp = self.client.get(url)
-        assert resp.json["count"] == 1
-        assert resp.json["result"][0]["id"] == slc.id
-
-        # Get recent activity
-        url = "/api/v1/log/recent_activity/?q=(page_size:50)"
-        resp = self.client.get(url)
-        # TODO data for recent activity varies for sqlite, we should be able to assert
-        # the returned data
-        assert resp.status_code == 200
-
-        # Get dashboards created by the user
-        request_query = {
-            "columns": ["created_on_delta_humanized", "dashboard_title", "url"],
-            "filters": [
-                {"col": "created_by", "opr": "dashboard_created_by_me", "value": "me"}
-            ],
-            "keys": ["none"],
-            "order_column": "changed_on",
-            "order_direction": "desc",
-            "page": 0,
-            "page_size": 100,
-        }
-        url = f"/api/v1/dashboard/?q={prison.dumps(request_query)}"
-        resp = self.client.get(url)
-        assert resp.json["result"][0]["dashboard_title"] == "create_title_test"
-
-        # Get charts created by the user
-        request_query = {
-            "columns": ["created_on_delta_humanized", "slice_name", "url"],
-            "filters": [
-                {"col": "created_by", "opr": "chart_created_by_me", "value": "me"}
-            ],
-            "keys": ["none"],
-            "order_column": "changed_on_delta_humanized",
-            "order_direction": "desc",
-            "page": 0,
-            "page_size": 100,
-        }
-        url = f"/api/v1/chart/?q={prison.dumps(request_query)}"
-        resp = self.client.get(url)
-        assert resp.json["count"] == 1
-        assert resp.json["result"][0]["slice_name"] == "create_title_test"
-
-        resp = self.get_resp(f"/superset/profile/")
-        self.assertIn('"app"', resp)
-
-    def test_user_profile_gamma(self):
-        self.login(username="gamma")
-        resp = self.get_resp(f"/superset/profile/")
-        self.assertIn('"app"', resp)
-
-    @pytest.mark.usefixtures("public_role_like_gamma")
-    def test_user_profile_anonymous(self):
-        self.logout()
-        resp = self.client.get("/superset/profile/")
-        assert resp.status_code == 404
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_slice_id_is_always_logged_correctly_on_web_request(self):
@@ -1279,6 +1154,11 @@ class TestCore(SupersetTestCase, InsertChartMixin):
             example_db.has_table_by_name(table_name="birth_names", schema="public")
             is True
         )
+
+    def test_redirect_new_profile(self):
+        self.login(username="admin")
+        resp = self.client.get("/superset/profile/")
+        assert resp.status_code == 302
 
 
 if __name__ == "__main__":

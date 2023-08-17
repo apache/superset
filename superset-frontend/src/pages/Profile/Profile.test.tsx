@@ -17,24 +17,27 @@
  * under the License.
  */
 import React from 'react';
+import { Row, Col } from 'src/components';
 import { shallow } from 'enzyme';
-import RecentActivity from 'src/profile/components/RecentActivity';
-import TableLoader from 'src/components/TableLoader';
+import Profile from 'src/pages/Profile';
+import { user } from 'src/features/profile/fixtures';
 
-import { user } from './fixtures';
-
-describe('RecentActivity', () => {
+describe('Profile', () => {
   const mockedProps = {
     user,
   };
   it('is valid', () => {
-    expect(React.isValidElement(<RecentActivity {...mockedProps} />)).toBe(
-      true,
-    );
+    expect(React.isValidElement(<Profile {...mockedProps} />)).toBe(true);
   });
 
-  it('renders a TableLoader', () => {
-    const wrapper = shallow(<RecentActivity {...mockedProps} />);
-    expect(wrapper.find(TableLoader)).toExist();
+  it('renders 2 Col', () => {
+    const wrapper = shallow(<Profile {...mockedProps} />);
+    expect(wrapper.find(Row)).toExist();
+    expect(wrapper.find(Col)).toHaveLength(2);
+  });
+
+  it('renders 4 Tabs', () => {
+    const wrapper = shallow(<Profile {...mockedProps} />);
+    expect(wrapper.find('[tab]')).toHaveLength(4);
   });
 });
