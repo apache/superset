@@ -35,6 +35,12 @@ DATABASE_HOST = os.getenv("DATABASE_HOST", "db")
 DATABASE_PORT = os.getenv("DATABASE_PORT", "5432")
 DATABASE_DB = os.getenv("DATABASE_DB", "superset")
 
+EXAMPLES_USER = os.getenv("EXAMPLES_USER", "examples")
+EXAMPLES_PASSWORD = os.getenv("EXAMPLES_PASSWORD", "examples")
+EXAMPLES_HOST = os.getenv("EXAMPLES_HOST", "db")
+EXAMPLES_PORT = os.getenv("EXAMPLES_PORT", "5432")
+EXAMPLES_DB = os.getenv("EXAMPLES_DB", "examples")
+
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = "{}://{}:{}@{}:{}/{}".format(
     DATABASE_DIALECT,
