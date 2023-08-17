@@ -220,6 +220,15 @@ class ParsedQuery:
     def is_select(self) -> bool:
         # make sure we strip comments; prevents a bug with comments in the CTE
         parsed = sqlparse.parse(self.strip_comments())
+
+        if len(parsed[0]) > 0 and parsed[0][0].ttype == Keyword.CTE:
+            inner_cte = self.get_inner_cte_expression(parsed[0].tokens) or []
+            if any(token.ttype == DDL for token in inner_cte) or any(
+                token.ttype == DML and token.normalized != "SELECT"
+                for token in inner_cte
+            ):
+                return False
+
         if parsed[0].get_type() == "SELECT":
             return True
 
@@ -240,6 +249,17 @@ class ParsedQuery:
         return any(
             token.ttype == DML and token.normalized == "SELECT" for token in parsed[0]
         )
+
+    def get_inner_cte_expression(self, tokens: TokenList) -> Optional[TokenList]:
+        for token in tokens:
+            if self._is_identifier(token):
+                for identifier_token in token.tokens:
+                    if (
+                        isinstance(identifier_token, Parenthesis)
+                        and identifier_token.is_group
+                    ):
+                        return identifier_token.tokens
+        return None
 
     def is_valid_ctas(self) -> bool:
         parsed = sqlparse.parse(self.strip_comments())
