@@ -33,8 +33,10 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     # https://docs.pinot.apache.org/users/user-guide-query/supported-transformations#datetime-functions
     _time_grain_expressions = {
         None: "{col}",
-        TimeGrain.SECOND: "CAST(DATE_TRUNC('second', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
-        TimeGrain.MINUTE: "CAST(DATE_TRUNC('minute', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
+        TimeGrain.SECOND: "CAST(DATE_TRUNC('second', "
+            + "CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
+        TimeGrain.MINUTE: "CAST(DATE_TRUNC('minute', "
+            + "CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
         TimeGrain.FIVE_MINUTES: "CAST(ROUND(DATE_TRUNC('minute', "
             + "CAST({col} AS TIMESTAMP)), 300000) AS TIMESTAMP)",
         TimeGrain.TEN_MINUTES: "CAST(ROUND(DATE_TRUNC('minute', "
@@ -46,8 +48,10 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         TimeGrain.HOUR: "CAST(DATE_TRUNC('hour', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
         TimeGrain.DAY: "CAST(DATE_TRUNC('day', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
         TimeGrain.WEEK: "CAST(DATE_TRUNC('week', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
-        TimeGrain.MONTH: "CAST(DATE_TRUNC('month', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
-        TimeGrain.QUARTER: "CAST(DATE_TRUNC('quarter', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
+        TimeGrain.MONTH: "CAST(DATE_TRUNC('month', "
+            + "CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
+        TimeGrain.QUARTER: "CAST(DATE_TRUNC('quarter', "
+            + "CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
         TimeGrain.YEAR: "CAST(DATE_TRUNC('year', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
     }
 
