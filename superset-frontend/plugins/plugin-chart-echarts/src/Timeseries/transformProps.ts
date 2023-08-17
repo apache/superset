@@ -28,7 +28,6 @@ import {
   isTimeseriesAnnotationLayer,
   TimeseriesChartDataResponseResult,
   t,
-  AxisType,
   getXAxisLabel,
   isPhysicalColumn,
   isDefined,
