@@ -41,13 +41,6 @@ EXAMPLES_HOST = os.getenv("EXAMPLES_HOST", "db")
 EXAMPLES_PORT = os.getenv("EXAMPLES_PORT", "5432")
 EXAMPLES_DB = os.getenv("EXAMPLES_DB", "examples")
 
-EXAMPLES_USER = get_env_variable("EXAMPLES_USER")
-EXAMPLES_PASSWORD = get_env_variable("EXAMPLES_PASSWORD")
-EXAMPLES_HOST = get_env_variable("EXAMPLES_HOST")
-EXAMPLES_PORT = get_env_variable("EXAMPLES_PORT")
-EXAMPLES_DB = get_env_variable("EXAMPLES_DB")
-
-
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = (
     f"{DATABASE_DIALECT}://"
