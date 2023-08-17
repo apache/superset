@@ -30,6 +30,7 @@ import MetadataBar, { MetadataType } from 'src/components/MetadataBar';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import { fetchSingleTag } from 'src/features/tags/tags';
 import { Tag } from 'src/views/CRUD/types';
+import TagModal from 'src/features/tags/TagModal';
 
 const additionalItemsStyles = theme => css`
   display: flex;
@@ -82,6 +83,7 @@ function AllEntities() {
   const [tagsQuery, setTagsQuery] = useQueryParam('tags', StringParam);
   const [tagId, setTagId] = useQueryParam('id', NumberParam);
   const [tag, setTag] = useState<Tag>(null);
+  const [showTagModal, setShowTagModal] = useState<boolean>(false);
 
   const onTagSearchChange = (value: SelectValue) => {
     const tags = ensureIsArray(value).map(tag => getValue(tag));
@@ -98,7 +100,7 @@ function AllEntities() {
   );
 
   const editableTitleProps = {
-    title: 'Edit Tag',
+    title: tag?.name,
     placeholder: 'testing',
     onSave: (newDatasetName: string) => {},
     canEdit: false,
@@ -108,17 +110,16 @@ function AllEntities() {
   const items = [];
   items.push({
     type: MetadataType.DESCRIPTION,
-    value: 'test description',
+    value: tag?.description || '',
   });
   items.push({
     type: MetadataType.LAST_MODIFIED,
-    value: '2023-07-30T23:20:15.711470',
-    modifiedBy: 'hugh miles',
+    value: tag?.changed_on_delta_humanized,
+    modifiedBy: `${tag?.changed_by.first_name} ${tag?.changed_by.last_name}`,
   });
   items.push({
     type: MetadataType.OWNER,
-    createdBy: 'hugh miles',
-    owners: 'hugh miles',
+    createdBy: `${tag?.created_by.first_name} ${tag?.created_by.last_name}`,
   });
 
   useEffect(() => {
@@ -140,6 +141,17 @@ function AllEntities() {
 
   return (
     <AllEntitiesContainer>
+      <TagModal
+        clearOnHide
+        show={showTagModal}
+        onHide={() => {
+          setShowTagModal(false);
+        }}
+        editTag={tag}
+        // refreshData={refreshData}
+        // addSuccessToast={addSuccessToast}
+        // addDangerToast={addDangerToast}
+      />
       <AllEntitiesNav>
         <PageHeaderWithActions
           editableTitleProps={editableTitleProps}
@@ -154,7 +166,7 @@ function AllEntities() {
               <Button
                 data-test="bulk-select-action"
                 buttonStyle="secondary"
-                onClick={() => console.log('hello')}
+                onClick={() => setShowTagModal(true)}
               >
                 {t('Edit Tag')}{' '}
               </Button>

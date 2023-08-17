@@ -46,6 +46,7 @@ interface TagModalProps {
   addSuccessToast: (msg: string) => void;
   addDangerToast: (msg: string) => void;
   show: boolean;
+  clearOnHide: boolean;
   editTag?: Tag | null;
 }
 
@@ -56,7 +57,9 @@ const TagModal: React.FC<TagModalProps> = ({
   refreshData,
   addSuccessToast,
   addDangerToast,
+  clearOnHide = false,
 }) => {
+  console.log('editTag', editTag);
   const [dashboardsToTag, setDashboardsToTag] = useState<
     TaggableResourceOption[]
   >([]);
@@ -235,11 +238,13 @@ const TagModal: React.FC<TagModalProps> = ({
     <Modal
       title={modalTitle}
       onHide={() => {
-        setTagName('');
-        setDescription('');
-        setDashboardsToTag([]);
-        setChartsToTag([]);
-        setSavedQueriesToTag([]);
+        if (clearOnHide) {
+          setTagName('');
+          setDescription('');
+          setDashboardsToTag([]);
+          setChartsToTag([]);
+          setSavedQueriesToTag([]);
+        }
         onHide();
       }}
       show={show}

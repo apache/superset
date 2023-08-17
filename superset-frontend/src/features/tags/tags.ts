@@ -61,7 +61,7 @@ export function fetchSingleTag(
   error: (response: Response) => void,
 ) {
   SupersetClient.get({ endpoint: `/api/v1/tag/${id}` })
-    .then(({ json }) => callback(json))
+    .then(({ json }) => callback(json.result))
     .catch(response => error(response));
 }
 
