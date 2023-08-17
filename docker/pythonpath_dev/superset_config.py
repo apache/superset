@@ -22,34 +22,18 @@
 #
 import logging
 import os
-from typing import Optional
 
 from cachelib.file import FileSystemCache
 from celery.schedules import crontab
 
 logger = logging.getLogger()
 
-
-def get_env_variable(var_name: str, default: Optional[str] = None) -> str:
-    """Get the environment variable or raise exception."""
-    try:
-        return os.environ[var_name]
-    except KeyError:
-        if default is not None:
-            return default
-        else:
-            error_msg = "The environment variable {} was missing, abort...".format(
-                var_name
-            )
-            raise OSError(error_msg)
-
-
-DATABASE_DIALECT = get_env_variable("DATABASE_DIALECT")
-DATABASE_USER = get_env_variable("DATABASE_USER")
-DATABASE_PASSWORD = get_env_variable("DATABASE_PASSWORD")
-DATABASE_HOST = get_env_variable("DATABASE_HOST")
-DATABASE_PORT = get_env_variable("DATABASE_PORT")
-DATABASE_DB = get_env_variable("DATABASE_DB")
+DATABASE_DIALECT = os.getenv("DATABASE_DIALECT", "postgresql")
+DATABASE_USER = os.getenv("DATABASE_USER", "superset")
+DATABASE_PASSWORD = os.getenv("DATABASE_PASSWORD", "superset")
+DATABASE_HOST = os.getenv("DATABASE_HOST", "db")
+DATABASE_PORT = os.getenv("DATABASE_PORT", "5432")
+DATABASE_DB = os.getenv("DATABASE_DB", "superset")
 
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = "{}://{}:{}@{}:{}/{}".format(
@@ -61,10 +45,10 @@ SQLALCHEMY_DATABASE_URI = "{}://{}:{}@{}:{}/{}".format(
     DATABASE_DB,
 )
 
-REDIS_HOST = get_env_variable("REDIS_HOST")
-REDIS_PORT = get_env_variable("REDIS_PORT")
-REDIS_CELERY_DB = get_env_variable("REDIS_CELERY_DB", "0")
-REDIS_RESULTS_DB = get_env_variable("REDIS_RESULTS_DB", "1")
+REDIS_HOST = os.getenv("REDIS_HOST", "redis")
+REDIS_PORT = os.getenv("REDIS_PORT", "6379")
+REDIS_CELERY_DB = os.getenv("REDIS_CELERY_DB", "0")
+REDIS_RESULTS_DB = os.getenv("REDIS_RESULTS_DB", "1")
 
 RESULTS_BACKEND = FileSystemCache("/app/superset_home/sqllab")
 
