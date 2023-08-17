@@ -18,7 +18,6 @@ import {
 } from 'src/explore/constants';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 import { API_HANDLER } from 'src/Superstructure/api';
-import FileSaver from 'file-saver';
 import { optionLabel } from '../../utils/common';
 
 export function getChartKey(explore) {
@@ -357,12 +356,6 @@ export const exportChart = ({
           document.body.appendChild(link);
           link.click();
         } else {
-          // const universalBOM = '\uFEFF';
-          // const alteredResult = universalBOM + exportResult;
-          // const csvFile = new Blob([alteredResult], {
-          //   type: blobType,
-          // });
-          // FileSaver.saveAs(csvFile, outputFilename);
           const url = URL.createObjectURL(
             new Blob([exportResult], {
               type: blobType,
