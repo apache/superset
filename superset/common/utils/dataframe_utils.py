@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import logging
 from typing import List, TYPE_CHECKING, Optional
 
 import numpy as np
@@ -30,10 +31,16 @@ if TYPE_CHECKING:
 def delete_tz_from_df(d: dict) -> pd.DataFrame:
     coltypes = d.get('coltypes')
     colnames = d.get('colnames')
-    data = d.get('data') or d.get('df')
-
+    if isinstance(d.get('data'), pd.DataFrame):
+        data = d.get('data')
+    elif isinstance(d.get('df'), pd.DataFrame):
+        data = d.get('df')
+    else:
+        data = d.get('data') or d.get('df')
+    df = pd.DataFrame(data)
+    for k, key in enumerate(df.keys()):
+        df.rename(columns={key: colnames[k]}, inplace=True)
     if GenericDataType.TEMPORAL in coltypes or GenericDataType.NUMERIC in coltypes:
-        df = pd.DataFrame(data)
         for k, type_col in enumerate(coltypes):
             if type_col == GenericDataType.TEMPORAL:
                 name_col = colnames[k]
@@ -44,7 +51,7 @@ def delete_tz_from_df(d: dict) -> pd.DataFrame:
                 df[name_col] = pd.to_numeric(df[name_col])
 
         return df
-    return pd.DataFrame(data)
+    return df
 
 
 def left_join_df(

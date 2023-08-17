@@ -60,20 +60,14 @@ def escape_value(value: str) -> str:
     return value
 
 
-def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
-    escape_values = lambda v: escape_value(v) if isinstance(v, str) else v
-
-    # Escape csv headers
-    df = df.rename(columns=escape_values)
-
+def df_to_escaped_csv(df: pd.DataFrame) -> pd.DataFrame:
     # Escape csv values
     for name, column in df.items():
         if column.dtype == np.dtype(object):
             for idx, value in enumerate(column.values):
                 if isinstance(value, str):
                     df.at[idx, name] = escape_value(value)
-
-    return df.to_csv(**kwargs)
+    return df
 
 
 def df_to_escaped_xlsx(df: pd.DataFrame, **kwargs: Any) -> io.BytesIO:

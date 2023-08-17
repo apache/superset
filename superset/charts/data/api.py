@@ -377,9 +377,8 @@ class ChartDataRestApi(ChartRestApi):
             if list_of_data := result["queries"]:
                 df = pd.DataFrame()
                 for data in list_of_data:
-                    logger.warning(data)
                     try:
-                        # return single query results xlsx format
+                        # return query results xlsx format
                         new_df = delete_tz_from_df(data)
                         keys_of_new_df = new_df.keys()
                         exist_df = df.keys()
@@ -411,9 +410,8 @@ class ChartDataRestApi(ChartRestApi):
             if list_of_data := result["queries"]:
                 df = pd.DataFrame()
                 for data in list_of_data:
-                    logger.warning(data)
                     try:
-                        # return single query results xlsx format
+                        # return query results csv format
                         new_df = delete_tz_from_df(data)
                         keys_of_new_df = new_df.keys()
                         exist_df = df.keys()
