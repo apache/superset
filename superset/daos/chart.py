@@ -40,7 +40,7 @@ class ChartDAO(BaseDAO[Slice]):
 
     @classmethod
     def delete(cls, item_or_items: Slice | list[Slice], commit: bool = True) -> None:
-        items = cast(list[Slice], item_or_items)
+        items = cast(list[Slice], as_list(item_or_items))
         item_ids = [item.id for item in items]
         # bulk delete, first delete related data
         # bulk delete itself
