@@ -1435,33 +1435,13 @@ class SqlaTable(
         target: SqlaTable,
     ) -> None:
         """
-        Check before update if the target table already exists.
-
-        Note this listener is called when any fields are being updated and thus it is
-        necessary to first check whether the reference table is being updated.
-
-        Note this logic is temporary, given uniqueness is handled via the dataset DAO,
-        but is necessary until both the legacy datasource editor and datasource/save
-        endpoints are deprecated.
+        Note this listener is called when any fields are being updated
 
         :param mapper: The table mapper
         :param connection: The DB-API connection
         :param target: The mapped instance being persisted
         :raises Exception: If the target table is not unique
         """
-
-        # pylint: disable=import-outside-toplevel
-        from superset.daos.dataset import DatasetDAO
-        from superset.datasets.commands.exceptions import get_dataset_exist_error_msg
-
-        # Check whether the relevant attributes have changed.
-        if not DatasetDAO.validate_uniqueness(
-            target.database_id, target.schema, target.table_name, target.id
-        ):
-            raise Exception(  # pylint: disable=broad-exception-raised
-                get_dataset_exist_error_msg(target.full_name)
-            )
-
         security_manager.dataset_before_update(mapper, connection, target)
 
     @staticmethod
@@ -1488,12 +1468,6 @@ class SqlaTable(
                 .filter_by(uuid=target.table.uuid)
                 .one_or_none()
             )
-            # Update shadow dataset and columns
-            # did we find the dataset?
-            if not dataset:
-                # if dataset is not found create a new copy
-                target.table.write_shadow_dataset()
-                return
 
     @staticmethod
     def after_insert(
@@ -1506,9 +1480,6 @@ class SqlaTable(
         """
         security_manager.dataset_after_insert(mapper, connection, sqla_table)
 
-        # TODO: deprecated
-        sqla_table.write_shadow_dataset()
-
     @staticmethod
     def after_delete(
         mapper: Mapper,
@@ -1519,22 +1490,6 @@ class SqlaTable(
         Update dataset permissions after delete
         """
         security_manager.dataset_after_delete(mapper, connection, sqla_table)
-
-    def write_shadow_dataset(
-        self: SqlaTable,
-    ) -> None:
-        """
-        This method is deprecated
-        """
-        session = inspect(self).session
-        # most of the write_shadow_dataset functionality has been removed
-        # but leaving this portion in
-        # to remove later because it is adding a Database relationship to the session
-        # and there is some functionality that depends on this
-        if self.database_id and (
-            not self.database or self.database.id != self.database_id
-        ):
-            self.database = session.query(Database).filter_by(id=self.database_id).one()
 
 
 sa.event.listen(SqlaTable, "before_update", SqlaTable.before_update)
