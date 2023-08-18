@@ -667,7 +667,6 @@ class BaseViz:  # pylint: disable=too-many-public-methods
     def get_csv(self) -> io.BytesIO:
         d = self.get_df_payload()
         df = pd.DataFrame()
-        logger.warning(d)
         new_df = convert_fields_to_datetime(d)
         keys_of_new_df = new_df.keys()
         exist_df = df.keys()
