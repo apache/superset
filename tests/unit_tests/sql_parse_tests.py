@@ -1065,6 +1065,51 @@ def test_cte_is_not_select_lowercase() -> None:
     assert sql.is_select() is False
 
 
+def test_cte_with_multiple_selects() -> None:
+    sql = ParsedQuery(
+        "WITH a AS ( select * from foo1 ), b as (select * from foo2) SELECT * FROM a;"
+    )
+    assert sql.is_select()
+
+
+def test_cte_with_multiple_with_non_select() -> None:
+    sql = ParsedQuery(
+        """WITH a AS (
+        select * from foo1
+        ), b as (
+        update foo2 set id=2
+        ) SELECT * FROM a"""
+    )
+    assert sql.is_select() is False
+    sql = ParsedQuery(
+        """WITH a AS (
+         update foo2 set name=2
+         ),
+        b as (
+        select * from foo1
+        ) SELECT * FROM a"""
+    )
+    assert sql.is_select() is False
+    sql = ParsedQuery(
+        """WITH a AS (
+         update foo2 set name=2
+         ),
+        b as (
+        update foo1 set name=2
+        ) SELECT * FROM a"""
+    )
+    assert sql.is_select() is False
+    sql = ParsedQuery(
+        """WITH a AS (
+        INSERT INTO foo (id) VALUES (1)
+        ),
+        b as (
+        select 1
+        ) SELECT * FROM a"""
+    )
+    assert sql.is_select() is False
+
+
 def test_unknown_select() -> None:
     """
     Test that `is_select` works when sqlparse fails to identify the type.
