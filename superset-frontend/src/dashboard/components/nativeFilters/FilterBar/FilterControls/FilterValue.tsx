@@ -101,6 +101,9 @@ const FilterValue: React.FC<FilterControlProps> = ({
   const dependencies = useFilterDependencies(id, dataMaskSelected);
   const shouldRefresh = useShouldFilterRefresh();
   const [state, setState] = useState<ChartDataResponseResult[]>([]);
+  const dashboardId = useSelector<RootState, number>(
+    state => state.dashboardInfo.id,
+  );
   const [error, setError] = useState<ClientErrorObject>();
   const [formData, setFormData] = useState<Partial<QueryFormData>>({
     inView: false,
@@ -146,6 +149,7 @@ const FilterValue: React.FC<FilterControlProps> = ({
       groupby,
       adhoc_filters,
       time_range,
+      dashboardId,
     });
     const filterOwnState = filter.dataMask?.ownState || {};
     // TODO: We should try to improve our useEffect hooks to depend more on
@@ -170,7 +174,6 @@ const FilterValue: React.FC<FilterControlProps> = ({
       getChartDataRequest({
         formData: newFormData,
         force: false,
-        requestParams: { dashboardId: 0 },
         ownState: filterOwnState,
       })
         .then(({ response, json }) => {
