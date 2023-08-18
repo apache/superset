@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import cast, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from superset.charts.filters import ChartFilter
 from superset.daos.base import BaseDAO
