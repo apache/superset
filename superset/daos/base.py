@@ -16,7 +16,7 @@
 # under the License.
 from __future__ import annotations
 
-from typing import Any, Generic, get_args, TypeVar
+from typing import Any, cast, Generic, get_args, TypeVar
 
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
@@ -30,7 +30,7 @@ from superset.daos.exceptions import (
     DAOUpdateFailedError,
 )
 from superset.extensions import db
-from superset.utils.core import get_iterable
+from superset.utils.core import as_list
 
 T = TypeVar("T", bound=Model)
 
@@ -197,7 +197,7 @@ class BaseDAO(Generic[T]):
         return item  # type: ignore
 
     @classmethod
-    def delete(cls, items: T | list[T], commit: bool = True) -> None:
+    def delete(cls, item_or_items: T | list[T], commit: bool = True) -> None:
         """
         Delete the specified item(s) including their associated relationships.
 
@@ -214,9 +214,9 @@ class BaseDAO(Generic[T]):
         :raises DAODeleteFailedError: If the deletion failed
         :see: https://docs.sqlalchemy.org/en/latest/orm/queryguide/dml.html
         """
-
+        items = cast(list[T], as_list(item_or_items))
         try:
-            for item in get_iterable(items):
+            for item in items:
                 db.session.delete(item)
 
             if commit:
