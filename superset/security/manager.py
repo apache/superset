@@ -1341,6 +1341,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         # Check if watched fields have changed
         from superset.connectors.sqla.models import SqlaTable
+
         table = SqlaTable.__table__
         current_dataset = connection.execute(
             table.select().where(table.c.id == target.id)
