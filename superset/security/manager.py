@@ -1797,7 +1797,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # pylint: disable=import-outside-toplevel
         from superset import is_feature_enabled
         from superset.connectors.sqla.models import SqlaTable
-        from superset.daos.dashboard import DashboardDAO
+        from superset.models.dashboard import Dashboard
+        from superset.models.slice import Slice
         from superset.sql_parse import Table
 
         if database and table or query:
@@ -1859,10 +1860,27 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 or self.can_access("datasource_access", datasource.perm or "")
                 or self.is_owner(datasource)
                 or (
+                    # Grant access to the datasource only if dashboard RBAC is enabled
+                    # and said datasource is associated with the dashboard chart in
+                    # question.
                     form_data
+                    and is_feature_enabled("DASHBOARD_RBAC")
                     and (dashboard_id := form_data.get("dashboardId"))
-                    and (dashboard := DashboardDAO.find_by_id(dashboard_id))
-                    and self.can_access_dashboard(dashboard)
+                    and (
+                        dashboard_ := self.get_session.query(Dashboard)
+                        .filter(Dashboard.id == dashboard_id)
+                        .one_or_none()
+                    )
+                    and dashboard_.roles
+                    and (slice_id := form_data.get("slice_id"))
+                    and (
+                        slc := self.get_session.query(Slice)
+                        .filter(Slice.id == slice_id)
+                        .one_or_none()
+                    )
+                    and slc in dashboard_.slices
+                    and slc.datasource == datasource
+                    and self.can_access_dashboard(dashboard_)
                 )
             ):
                 raise SupersetSecurityException(
