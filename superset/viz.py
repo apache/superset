@@ -59,7 +59,8 @@ from pandas.tseries.frequencies import to_offset
 
 from superset import app
 from superset.common.db_query_status import QueryStatus
-from superset.common.utils.dataframe_utils import delete_tz_from_df
+from superset.common.utils.dataframe_utils import delete_tz_from_df, \
+    convert_fields_to_datetime
 from superset.constants import NULL_STRING
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -666,7 +667,8 @@ class BaseViz:  # pylint: disable=too-many-public-methods
     def get_csv(self) -> io.BytesIO:
         d = self.get_df_payload()
         df = pd.DataFrame()
-        new_df = delete_tz_from_df(d)
+        logger.warning(d)
+        new_df = convert_fields_to_datetime(d)
         keys_of_new_df = new_df.keys()
         exist_df = df.keys()
         for key in keys_of_new_df:
