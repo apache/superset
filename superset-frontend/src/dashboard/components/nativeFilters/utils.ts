@@ -54,7 +54,9 @@ export const getFormData = ({
   time_range,
   granularity_sqla,
   type,
+  dashboardId,
 }: Partial<Filter> & {
+  dashboardId: number;
   datasetId?: number;
   dependencies?: object;
   groupby?: string;
@@ -91,6 +93,7 @@ export const getFormData = ({
     inView: true,
     viz_type: filterType,
     type,
+    dashboardId,
   };
 };
 

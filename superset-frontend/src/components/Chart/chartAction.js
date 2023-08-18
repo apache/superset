@@ -226,7 +226,6 @@ export async function getChartDataRequest({
       credentials: 'include',
     };
   }
-
   const [useLegacyApi, parseMethod] = getQuerySettings(formData);
   if (useLegacyApi) {
     return legacyChartDataRequest(
