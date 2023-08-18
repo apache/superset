@@ -252,8 +252,9 @@ class ParsedQuery:
                         sqloxide_parse(self.strip_comments(), dialect="ansi")
                     ):
                         return False
-                except ValueError as ex:
-                    # sqloxide was not able to parse the query, so let's continue with sqlparse
+                except ValueError:
+                    # sqloxide was not able to parse the query, so let's continue with
+                    # sqlparse
                     pass
             inner_cte = self.get_inner_cte_expression(parsed[0].tokens) or []
             # Check if the inner CTE is a not a SELECT
