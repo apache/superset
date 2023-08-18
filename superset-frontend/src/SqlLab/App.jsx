@@ -78,12 +78,6 @@ const sqlLabPersistStateConfig = {
         }
       });
 
-      if (subset.sqlLab?.user) {
-        // Don't persist the user.
-        // User should really not be stored under the "sqlLab" field. Oh well.
-        delete subset.sqlLab.user;
-      }
-
       const data = JSON.stringify(subset);
       // 2 digit precision
       const currentSize =
