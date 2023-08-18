@@ -105,6 +105,7 @@ const Actions = styled.div`
 `;
 
 function DashboardList(props: DashboardListProps) {
+  const [showBulkTagModal, setShowBulkTagModal] = useState<boolean>(false);
   const {
     addDangerToast,
     addSuccessToast,
@@ -711,6 +712,14 @@ function DashboardList(props: DashboardListProps) {
               onSelect: handleBulkDashboardExport,
             });
           }
+          if (canEdit) {
+            bulkActions.push({
+              key: 'tag',
+              name: t('Add Tag '),
+              type: 'primary',
+              onSelect: () => setShowBulkTagModal(true),
+            });
+          }
           return (
             <>
               {dashboardToEdit && (
@@ -770,6 +779,7 @@ function DashboardList(props: DashboardListProps) {
                     ? 'card'
                     : 'table'
                 }
+                showBulkTag={showBulkTagModal}
               />
             </>
           );

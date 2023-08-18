@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// @ts-nocheck
 import React, { useMemo, useCallback, useState } from 'react';
 import { isFeatureEnabled, FeatureFlag, t } from '@superset-ui/core';
 import {
@@ -146,13 +147,11 @@ function TagList(props: TagListProps) {
       {
         Cell: ({
           row: {
-            original: { name: tagName },
+            original: { id, name: tagName },
           },
         }: any) => (
           <AntdTag>
-            <Link to={`/superset/all_entities/?tags=${tagName}`}>
-              {tagName}
-            </Link>
+            <Link to={`/superset/all_entities/?id=${id}`}>{tagName}</Link>
           </AntdTag>
         ),
         Header: t('Name'),

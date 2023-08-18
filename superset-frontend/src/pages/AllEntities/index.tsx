@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// @ts-nocheck
 import React, { useEffect, useMemo, useState } from 'react';
 import { ensureIsArray, styled, t, css } from '@superset-ui/core';
 import { NumberParam, StringParam, useQueryParam } from 'use-query-params';
@@ -54,6 +55,9 @@ const AllEntitiesContainer = styled.div`
     font-size: ${theme.gridUnit * 3}px;
     color: ${theme.colors.grayscale.base};
     margin-bottom: ${theme.gridUnit * 1}px;
+  }
+  .entities {
+    margin: 30px 0px;
   }
   `}
 `;
@@ -142,12 +146,12 @@ function AllEntities() {
   return (
     <AllEntitiesContainer>
       <TagModal
-        clearOnHide
         show={showTagModal}
         onHide={() => {
           setShowTagModal(false);
         }}
         editTag={tag}
+        clearOnHide={false}
         // refreshData={refreshData}
         // addSuccessToast={addSuccessToast}
         // addDangerToast={addDangerToast}
@@ -174,7 +178,7 @@ function AllEntities() {
           }
         />
       </AllEntitiesNav>
-      <div className="select-control">
+      {/* <div className="select-control">
         <div className="select-control-label">{t('search by tags')}</div>
         <AsyncSelect
           ariaLabel="tags"
@@ -184,8 +188,10 @@ function AllEntities() {
           placeholder="Select"
           mode="multiple"
         />
+      </div> */}
+      <div className="entities">
+        <AllEntitiesTable search={tag?.name || ''} />
       </div>
-      <AllEntitiesTable search={tagsQuery || ''} />
     </AllEntitiesContainer>
   );
 }

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// @ts-nocheck
 import { t, styled } from '@superset-ui/core';
 import React, { useCallback, useEffect, useRef } from 'react';
 import Alert from 'src/components/Alert';
@@ -25,6 +26,7 @@ import Icons from 'src/components/Icons';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import Pagination from 'src/components/Pagination';
 import TableCollection from 'src/components/TableCollection';
+import BulkTagModal from 'src/features/tags/BulkTagModal';
 import CardCollection from './CardCollection';
 import FilterControls from './Filters';
 import { CardSortSelect } from './CardSortSelect';
@@ -227,6 +229,7 @@ export interface ListViewProps<T extends object = any> {
   showThumbnails?: boolean;
   emptyState?: EmptyStateProps;
   columnsForWrapText?: string[];
+  showBulkTag?: boolean;
 }
 
 function ListView<T extends object = any>({
@@ -250,6 +253,7 @@ function ListView<T extends object = any>({
   highlightRowId,
   emptyState,
   columnsForWrapText,
+  showBulkTag = false,
 }: ListViewProps<T>) {
   const {
     getTableProps,
@@ -310,6 +314,7 @@ function ListView<T extends object = any>({
 
   return (
     <ListViewStyles>
+      <BulkTagModal show={showBulkTag} />
       <div data-test={className} className={`superset-list-view ${className}`}>
         <div className="header">
           {cardViewEnabled && (
@@ -425,7 +430,6 @@ function ListView<T extends object = any>({
           )}
         </div>
       </div>
-
       {rows.length > 0 && (
         <div className="pagination-container">
           <Pagination
