@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, cast
+from typing import Any
 
 from sqlalchemy.exc import SQLAlchemyError
 
