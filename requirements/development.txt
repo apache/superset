@@ -26,12 +26,8 @@ botocore==1.29.130
     #   s3transfer
 cached-property==1.5.2
     # via tableschema
-certifi==2023.5.7
-    # via requests
 chardet==5.1.0
     # via tabulator
-charset-normalizer==3.1.0
-    # via requests
 decorator==5.1.1
     # via ipython
 dill==0.3.6
