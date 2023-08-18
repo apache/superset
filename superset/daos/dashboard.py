@@ -19,7 +19,7 @@ from __future__ import annotations
 import json
 import logging
 from datetime import datetime
-from typing import Any, cast
+from typing import Any
 
 from flask import g
 from flask_appbuilder.models.sqla.interface import SQLAInterface
