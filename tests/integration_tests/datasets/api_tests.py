@@ -25,6 +25,7 @@ from zipfile import is_zipfile, ZipFile
 import prison
 import pytest
 import yaml
+from sqlalchemy import inspect
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import func
 
@@ -153,7 +154,9 @@ class TestDatasetApi(SupersetTestCase):
 
             # rollback changes
             for dataset in datasets:
-                db.session.delete(dataset)
+                state = inspect(dataset)
+                if not state.was_deleted:
+                    db.session.delete(dataset)
             db.session.commit()
 
     @staticmethod
