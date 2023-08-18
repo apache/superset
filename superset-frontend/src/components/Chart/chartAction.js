@@ -212,14 +212,20 @@ export async function getChartDataRequest({
   resultType = 'full',
   force = false,
   method = 'POST',
+  requestParams = {},
   ownState = {},
 }) {
-  const querySettings = domainShardingEnabled
-    ? {
-        mode: 'cors',
-        credentials: 'include',
-      }
-    : {};
+  let querySettings = {
+    ...requestParams,
+  };
+
+  if (domainShardingEnabled) {
+    querySettings = {
+      ...querySettings,
+      mode: 'cors',
+      credentials: 'include',
+    };
+  }
   const [useLegacyApi, parseMethod] = getQuerySettings(formData);
   if (useLegacyApi) {
     return legacyChartDataRequest(
