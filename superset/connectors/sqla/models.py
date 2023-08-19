@@ -78,7 +78,6 @@ from superset.connectors.sqla.utils import (
     get_physical_table_metadata,
     get_virtual_table_metadata,
 )
-from superset.datasets.models import Dataset as NewDataset
 from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 from superset.exceptions import (
     ColumnNotFoundException,
@@ -1458,15 +1457,6 @@ class SqlaTable(
         # Forces an update to the table's changed_on value when a metric or column on the
         # table is updated. This busts the cache key for all charts that use the table.
         session.execute(update(SqlaTable).where(SqlaTable.id == target.table.id))
-
-        # TODO: This shadow writing is deprecated
-        # if table itself has changed, shadow-writing will happen in `after_update` anyway
-        if target.table not in session.dirty:
-            dataset: NewDataset = (
-                session.query(NewDataset)
-                .filter_by(uuid=target.table.uuid)
-                .one_or_none()
-            )
 
     @staticmethod
     def after_insert(
