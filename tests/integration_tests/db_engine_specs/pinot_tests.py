@@ -81,7 +81,7 @@ class TestPinotDbEngineSpec(TestDbEngineSpec):
 
     def test_invalid_get_time_expression_arguments(self):
         with self.assertRaises(NotImplementedError):
-            PinotEngineSpec.get_timestamp_expr(column("tstamp"), None, "P1M")
+            PinotEngineSpec.get_timestamp_expr(column("tstamp"), None, "P0.25Y")
 
         with self.assertRaises(NotImplementedError):
             PinotEngineSpec.get_timestamp_expr(
