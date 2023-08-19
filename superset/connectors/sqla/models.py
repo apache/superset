@@ -1440,6 +1440,7 @@ class SqlaTable(
         :param target: The mapped instance being persisted
         :raises Exception: If the target table is not unique
         """
+        target.load_database()
         security_manager.dataset_before_update(mapper, connection, target)
 
     @staticmethod
@@ -1462,12 +1463,13 @@ class SqlaTable(
     def after_insert(
         mapper: Mapper,
         connection: Connection,
-        sqla_table: SqlaTable,
+        target: SqlaTable,
     ) -> None:
         """
         Update dataset permissions after insert
         """
-        security_manager.dataset_after_insert(mapper, connection, sqla_table)
+        target.load_database()
+        security_manager.dataset_after_insert(mapper, connection, target)
 
     @staticmethod
     def after_delete(
@@ -1479,6 +1481,14 @@ class SqlaTable(
         Update dataset permissions after delete
         """
         security_manager.dataset_after_delete(mapper, connection, sqla_table)
+
+    def load_database(self: SqlaTable) -> None:
+        # somehow the database attribute is not loaded on access
+        if self.database_id and (
+            not self.database or self.database.id != self.database_id
+        ):
+            session = inspect(self).session
+            self.database = session.query(Database).filter_by(id=self.database_id).one()
 
 
 sa.event.listen(SqlaTable, "before_update", SqlaTable.before_update)
