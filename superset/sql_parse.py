@@ -217,9 +217,53 @@ class ParsedQuery:
     def limit(self) -> Optional[int]:
         return self._limit
 
+    def _get_cte_tables(self, parsed: dict[str, Any]) -> list[dict[str, Any]]:
+        if "with" not in parsed:
+            return []
+        return parsed["with"].get("cte_tables", [])
+
+    def _check_cte_is_select(self, oxide_parse: list[dict[str, Any]]) -> bool:
+        """
+        Check if a oxide parsed CTE contains only SELECT statements
+
+        :param oxide_parse: parsed CTE
+        :return: True if CTE is a SELECT statement
+        """
+        for query in oxide_parse:
+            parsed_query = query["Query"]
+            cte_tables = self._get_cte_tables(parsed_query)
+            for cte_table in cte_tables:
+                is_select = all(
+                    key == "Select" for key in cte_table["query"]["body"].keys()
+                )
+                if not is_select:
+                    return False
+        return True
+
     def is_select(self) -> bool:
         # make sure we strip comments; prevents a bug with comments in the CTE
         parsed = sqlparse.parse(self.strip_comments())
+
+        # Check if this is a CTE
+        if parsed[0].is_group and parsed[0][0].ttype == Keyword.CTE:
+            if sqloxide_parse is not None:
+                try:
+                    if not self._check_cte_is_select(
+                        sqloxide_parse(self.strip_comments(), dialect="ansi")
+                    ):
+                        return False
+                except ValueError:
+                    # sqloxide was not able to parse the query, so let's continue with
+                    # sqlparse
+                    pass
+            inner_cte = self.get_inner_cte_expression(parsed[0].tokens) or []
+            # Check if the inner CTE is a not a SELECT
+            if any(token.ttype == DDL for token in inner_cte) or any(
+                token.ttype == DML and token.normalized != "SELECT"
+                for token in inner_cte
+            ):
+                return False
+
         if parsed[0].get_type() == "SELECT":
             return True
 
@@ -240,6 +284,17 @@ class ParsedQuery:
         return any(
             token.ttype == DML and token.normalized == "SELECT" for token in parsed[0]
         )
+
+    def get_inner_cte_expression(self, tokens: TokenList) -> Optional[TokenList]:
+        for token in tokens:
+            if self._is_identifier(token):
+                for identifier_token in token.tokens:
+                    if (
+                        isinstance(identifier_token, Parenthesis)
+                        and identifier_token.is_group
+                    ):
+                        return identifier_token.tokens
+        return None
 
     def is_valid_ctas(self) -> bool:
         parsed = sqlparse.parse(self.strip_comments())
