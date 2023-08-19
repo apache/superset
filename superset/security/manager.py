@@ -1339,9 +1339,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param target: The changed dataset object
         :return:
         """
-        # Check if watched fields have changed
+        # pylint: disable=import-outside-toplevel
         from superset.connectors.sqla.models import SqlaTable
 
+        # Check if watched fields have changed
         table = SqlaTable.__table__
         current_dataset = connection.execute(
             table.select().where(table.c.id == target.id)

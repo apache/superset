@@ -74,7 +74,6 @@ from superset import app, db, is_feature_enabled, security_manager
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.connectors.sqla.utils import (
-    find_cached_objects_in_session,
     get_columns_description,
     get_physical_table_metadata,
     get_virtual_table_metadata,
@@ -1430,8 +1429,8 @@ class SqlaTable(
 
     @staticmethod
     def before_update(
-        mapper: Mapper,  # pylint: disable=unused-argument
-        connection: Connection,  # pylint: disable=unused-argument
+        mapper: Mapper,
+        connection: Connection,
         target: SqlaTable,
     ) -> None:
         """

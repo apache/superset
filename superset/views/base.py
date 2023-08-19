@@ -56,7 +56,6 @@ from superset import (
     app as superset_app,
     appbuilder,
     conf,
-    db,
     get_feature_flags,
     is_feature_enabled,
     security_manager,
