@@ -27,9 +27,12 @@ class TestPinotDbEngineSpec(TestDbEngineSpec):
         col = column("tstamp")
         expr = PinotEngineSpec.get_timestamp_expr(col, "epoch_s", "P1D")
         result = str(expr.compile())
+        expected = "CAST(DATE_TRUNC('month', CAST("
+        +"DATETIMECONVERT(tstamp, '1:SECONDS:EPOCH', '1:SECONDS:EPOCH', '1:SECONDS') "
+        +"AS TIMESTAMP)) AS TIMESTAMP)"
         self.assertEqual(
             result,
-            "DATETIMECONVERT(tstamp, '1:SECONDS:EPOCH', '1:SECONDS:EPOCH', '1:DAYS')",
+            expected,
         )
 
     def test_pinot_time_expression_simple_date_format_1d_grain(self):

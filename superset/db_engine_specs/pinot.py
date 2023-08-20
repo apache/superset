@@ -56,6 +56,16 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     }
 
     @classmethod
+    def epoch_to_dttm(cls) -> str:
+        return (
+            "DATETIMECONVERT({col}, '1:SECONDS:EPOCH', '1:SECONDS:EPOCH', '1:SECONDS')"
+        )
+
+    @classmethod
+    def epoch_ms_to_dttm_(cls) -> str:
+        return "DATETIMECONVERT({col}, '1:MILLISECONDS:EPOCH', '1:MILLISECONDS:EPOCH', '1:MILLISECONDS')"
+
+    @classmethod
     def column_datatype_to_string(
         cls, sqla_column_type: TypeEngine, dialect: Dialect
     ) -> str:
