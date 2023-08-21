@@ -84,13 +84,13 @@ const TagModal: React.FC<TagModalProps> = ({
       [TaggableResources.SavedQuery]: [],
     };
 
-    const updateResourceOptions = (object: Tag) => {
-      const resourceOptions = resourceMap[object.type];
+    const updateResourceOptions = ({ id, name, type }: Tag) => {
+      const resourceOptions = resourceMap[type];
       if (resourceOptions) {
-        resourceOptions?.push({
-          value: object.id,
-          label: object.name,
-          key: object.id,
+        resourceOptions.push({
+          value: id,
+          label: name,
+          key: id,
         });
       }
     };
