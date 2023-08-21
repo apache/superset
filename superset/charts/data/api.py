@@ -28,7 +28,8 @@ from flask_appbuilder.api import expose, protect
 from flask_babel import gettext as _
 from marshmallow import ValidationError
 
-from superset.common.utils.dataframe_utils import delete_tz_from_df
+from superset.common.utils.dataframe_utils import delete_tz_from_df, \
+    convert_fields_to_datetime
 from superset import is_feature_enabled, security_manager
 from superset.charts.api import ChartRestApi
 from superset.charts.commands.exceptions import (
@@ -412,7 +413,7 @@ class ChartDataRestApi(ChartRestApi):
                 for data in list_of_data:
                     try:
                         # return query results csv format
-                        new_df = delete_tz_from_df(data)
+                        new_df = convert_fields_to_datetime(data)
                         keys_of_new_df = new_df.keys()
                         exist_df = df.keys()
                         for key in keys_of_new_df:
