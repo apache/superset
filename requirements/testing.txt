@@ -12,12 +12,12 @@
     #   -r requirements/base.in
     #   -r requirements/development.in
     #   -r requirements/testing.in
-apsw==3.42.0.1
-    # via shillelagh
 cmdstanpy==1.1.0
     # via prophet
 contourpy==1.0.7
     # via matplotlib
+convertdate==2.4.0
+    # via prophet
 coverage[toml]==7.2.5
     # via pytest-cov
 cycler==0.11.0
@@ -50,7 +50,6 @@ google-auth==2.17.3
     #   google-cloud-core
     #   pandas-gbq
     #   pydata-google-auth
-    #   shillelagh
     #   sqlalchemy-bigquery
 google-auth-oauthlib==1.0.0
     # via
@@ -104,7 +103,7 @@ parameterized==0.9.0
     # via -r requirements/testing.in
 pathable==0.4.3
     # via jsonschema-spec
-prophet==1.1.1
+prophet==1.1.4
     # via apache-superset
 proto-plus==1.22.2
     # via
@@ -122,8 +121,8 @@ pydata-google-auth==1.7.0
     # via pandas-gbq
 pyfakefs==5.2.2
     # via -r requirements/testing.in
-pyhive[presto]==0.6.5
-    # via apache-superset
+pymeeus==0.5.12
+    # via convertdate
 pytest==7.3.1
     # via
     #   -r requirements/testing.in
@@ -141,10 +140,6 @@ rfc3339-validator==0.1.4
     # via openapi-schema-validator
 rsa==4.9
     # via google-auth
-setuptools-git==1.2
-    # via prophet
-shillelagh[gsheetsapi]==1.2.6
-    # via apache-superset
 sqlalchemy-bigquery==1.6.1
     # via apache-superset
 statsd==4.0.1
