@@ -87,7 +87,7 @@ const TagModal: React.FC<TagModalProps> = ({
     const updateResourceOptions = (object: Tag) => {
       const resourceOptions = resourceMap[object.type];
       if (resourceOptions) {
-        resourceOptions.push({
+        resourceOptions?.push({
           value: object.id,
           label: object.name,
           key: object.id,
