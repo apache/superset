@@ -217,6 +217,7 @@ class ParsedQuery:
     def limit(self) -> Optional[int]:
         return self._limit
 
+    # pylint: disable=no-self-use
     def _get_cte_tables(self, parsed: dict[str, Any]) -> list[dict[str, Any]]:
         if "with" not in parsed:
             return []
