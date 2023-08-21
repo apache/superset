@@ -24,7 +24,6 @@ from __future__ import annotations
 
 import copy
 import dataclasses
-import io
 import logging
 import math
 import re
@@ -59,8 +58,7 @@ from pandas.tseries.frequencies import to_offset
 
 from superset import app
 from superset.common.db_query_status import QueryStatus
-from superset.common.utils.dataframe_utils import delete_tz_from_df, \
-    convert_fields_to_datetime
+from superset.common.utils.dataframe_utils import delete_tz_from_df
 from superset.constants import NULL_STRING
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -664,21 +662,10 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         }
         return content
 
-    def get_csv(self) -> io.BytesIO:
-        d = self.get_df_payload()
-        df = pd.DataFrame()
-        new_df = convert_fields_to_datetime(d)
-        keys_of_new_df = new_df.keys()
-        exist_df = df.keys()
-        for key in keys_of_new_df:
-            if key in exist_df:
-                new_df.pop(key)
-        df = df.join(new_df, how='right', rsuffix='2')
-        df = csv.df_to_escaped_csv(df)
-        csv_writer = io.BytesIO()
-        df.to_csv(csv_writer, **config['CSV_EXPORT'])
-        csv_writer.seek(0)
-        return csv_writer
+    def get_csv(self) -> Optional[str]:
+        df = self.get_df_payload()["df"]  # leverage caching logic
+        include_index = not isinstance(df.index, pd.RangeIndex)
+        return csv.df_to_escaped_csv(df, index=include_index, **config["CSV_EXPORT"])
 
     def get_xlsx(self) -> BytesIO:
         d = self.get_df_payload()

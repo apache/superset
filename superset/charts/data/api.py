@@ -28,8 +28,7 @@ from flask_appbuilder.api import expose, protect
 from flask_babel import gettext as _
 from marshmallow import ValidationError
 
-from superset.common.utils.dataframe_utils import delete_tz_from_df, \
-    convert_fields_to_datetime
+from superset.common.utils.dataframe_utils import delete_tz_from_df
 from superset import is_feature_enabled, security_manager
 from superset.charts.api import ChartRestApi
 from superset.charts.commands.exceptions import (
@@ -48,7 +47,8 @@ from superset.connectors.base.models import BaseDatasource
 from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
 from superset.utils.async_query_manager import AsyncQueryTokenException
-from superset.utils.core import json_int_dttm_ser
+from superset.utils.core import create_zip, json_int_dttm_ser
+from superset.views.base import CsvResponse, generate_download_headers
 from superset.views.base_api import statsd_metrics
 from superset import app
 from superset.utils.core import GenericDataType
@@ -257,15 +257,6 @@ class ChartDataRestApi(ChartRestApi):
                              as_attachment=True,
                              attachment_filename="data.xlsx"
                              )
-        if query_context.result_format == ChartDataResultFormat.CSV:
-            bytes_stream = self._get_data_response(command, form_data=form_data,
-                                                   datasource=query_context.datasource
-                                                   )
-            return send_file(path_or_file=bytes_stream,
-                             mimetype="text/csv",
-                             as_attachment=True,
-                             attachment_filename="data.csv"
-                             )
 
         return self._get_data_response(
             command, form_data=form_data, datasource=query_context.datasource
@@ -408,27 +399,22 @@ class ChartDataRestApi(ChartRestApi):
             if not result["queries"]:
                 return self.response_400(_("Empty query result"))
 
-            if list_of_data := result["queries"]:
-                df = pd.DataFrame()
-                for data in list_of_data:
-                    try:
-                        # return query results csv format
-                        new_df = convert_fields_to_datetime(data)
-                        keys_of_new_df = new_df.keys()
-                        exist_df = df.keys()
-                        for key in keys_of_new_df:
-                            if key in exist_df:
-                                new_df.pop(key)
-                        df = df.join(new_df, how='right', rsuffix='2')
-                    except IndexError:
-                        return self.response_500(
-                            _("Server error occurred while exporting the file")
-                        )
+            if len(result["queries"]) == 1:
+                # return single query results csv format
+                data = result["queries"][0]["data"]
+                return CsvResponse(data, headers=generate_download_headers("csv"))
 
-                csv_writer = io.BytesIO()
-                df.to_csv(csv_writer, **current_app.config["CSV_EXPORT"])
-                csv_writer.seek(0)
-                return csv_writer
+                # return multi-query csv results bundled as a zip file
+            encoding = current_app.config["CSV_EXPORT"].get("encoding", "utf-8")
+            files = {
+                f"query_{idx + 1}.csv": str(result["data"]).encode(encoding)
+                for idx, result in enumerate(result["queries"])
+            }
+            return Response(
+                create_zip(files),
+                headers=generate_download_headers("zip"),
+                mimetype="application/zip",
+            )
 
         if result_format == ChartDataResultFormat.JSON:
             response_data = simplejson.dumps(
