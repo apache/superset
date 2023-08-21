@@ -117,7 +117,7 @@ const SouthPane = ({
             queries[dataPreviewQueryId],
         )
         .map(({ name, dataPreviewQueryId }) => ({
-          ...queries[dataPreviewQueryId],
+          ...queries[dataPreviewQueryId || ''],
           tableName: name,
         }));
       const editorQueries = Object.values(queries).filter(

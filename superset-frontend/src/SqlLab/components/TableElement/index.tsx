@@ -18,6 +18,7 @@
  */
 import React, { useState, useRef, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
+import type { Table } from 'src/SqlLab/types';
 import Collapse from 'src/components/Collapse';
 import Card from 'src/components/Card';
 import ButtonGroup from 'src/components/ButtonGroup';
@@ -47,16 +48,6 @@ export interface Column {
   name: string;
   keys?: { type: ColumnKeyTypeType }[];
   type: string;
-}
-
-export interface Table {
-  id: string;
-  dbId: number;
-  schema: string;
-  name: string;
-  dataPreviewQueryId?: string | null;
-  expanded?: boolean;
-  initialized?: boolean;
 }
 
 export interface TableElementProps {

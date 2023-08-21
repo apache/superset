@@ -27,6 +27,7 @@ import React, {
 import { useDispatch } from 'react-redux';
 import querystring from 'query-string';
 
+import { Table } from 'src/SqlLab/types';
 import {
   queryEditorSetDb,
   addTable,
@@ -52,7 +53,7 @@ import {
   LocalStorageKeys,
   setItem,
 } from 'src/utils/localStorageHelpers';
-import TableElement, { Table } from '../TableElement';
+import TableElement from '../TableElement';
 
 interface ExtendedTable extends Table {
   expanded: boolean;
