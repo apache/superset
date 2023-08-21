@@ -66,7 +66,7 @@ export type UserLoadedAction = {
   user: UserWithPermissionsAndRoles;
 };
 
-const userReducer = (
+export const userReducer = (
   user = bootstrapData.user || {},
   action: UserLoadedAction,
 ): BootstrapUser | UndefinedUser => {
