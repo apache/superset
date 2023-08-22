@@ -165,7 +165,7 @@ class BaseDAO(Generic[T]):
     @classmethod
     def update(
         cls,
-        item: T,
+        item: T | None = None,
         attributes: dict[str, Any] | None = None,
         commit: bool = True,
     ) -> T:
@@ -177,33 +177,49 @@ class BaseDAO(Generic[T]):
         :param commit: Whether to commit the transaction
         :raises DAOUpdateFailedError: If the updating failed
         """
-        if not item:
-            raise DAOUpdateFailedError("Item is required for update")
 
-        # create a copy of the model here
-        d = dict(item.__dict__)
-        d.pop("_sa_instance_state")  # get rid of SQLAlchemy special attr
-        copy = item.__class__(**d)
-        copy.id = item.id
-        # so it doesn't trigger before_update/after_update sqla listener each time
-        # we set a property
+        if not item:
+            item = cls.model_cls()  # type: ignore  # pylint: disable=not-callable
+
         if attributes:
             for key, value in attributes.items():
-                setattr(copy, key, value)
+                setattr(item, key, value)
 
+        try:
+            db.session.add(instance_model)
+            if commit:
+                db.session.commit()
+        except SQLAlchemyError as ex:  # pragma: no cover
+            db.session.rollback()
+            raise DAOCreateFailedError(exception=ex) from ex
+
+    @classmethod
+    def update(cls, model: T, properties: dict[str, Any], commit: bool = True) -> T:
+        """
+        Generic update a model
+        :raises: DAOCreateFailedError
+        """
+        d = dict(model.__dict__)
+        d.pop("_sa_instance_state")  # get rid of SQLAlchemy special attr
+        copy = model.__class__(**d)
+        copy.id = model.id
+        # create a copy of the model here
+        # so it doesn't trigger before_update/after_update sqla listener each time
+        # we set a property
+        for key, value in properties.items():
+            setattr(copy, key, value)
         try:
             # theoretically copy should not be in the session
             # cautious check here to avoid "conflicts with persistent instance" error
             if copy not in db.session:
                 db.session.merge(copy)
-
             if commit:
                 db.session.commit()
         except SQLAlchemyError as ex:  # pragma: no cover
             db.session.rollback()
             raise DAOUpdateFailedError(exception=ex) from ex
 
-        return item
+        return item  # type: ignore
 
     @classmethod
     def delete(cls, item_or_items: T | list[T], commit: bool = True) -> None:
