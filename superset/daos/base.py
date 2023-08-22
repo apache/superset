@@ -209,7 +209,10 @@ class BaseDAO(Generic[T]):
         for key, value in properties.items():
             setattr(copy, key, value)
         try:
-            db.session.merge(copy)
+            # theoretically copy should not be in the session
+            # cautious check here to avoid "conflicts with persistent instance" error
+            if copy not in db.session:
+                db.session.merge(copy)
             if commit:
                 db.session.commit()
         except SQLAlchemyError as ex:  # pragma: no cover
