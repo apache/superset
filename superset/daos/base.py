@@ -186,30 +186,8 @@ class BaseDAO(Generic[T]):
                 setattr(item, key, value)
 
         try:
-            db.session.add(instance_model)
-            if commit:
-                db.session.commit()
-        except SQLAlchemyError as ex:  # pragma: no cover
-            db.session.rollback()
-            raise DAOCreateFailedError(exception=ex) from ex
+            db.session.merge(item)
 
-    @classmethod
-    def update(cls, model: T, properties: dict[str, Any], commit: bool = True) -> T:
-        """
-        Generic update a model
-        :raises: DAOCreateFailedError
-        """
-        d = dict(model.__dict__)
-        d.pop("_sa_instance_state")  # get rid of SQLAlchemy special attr
-        copy = model.__class__(**d)
-        copy.id = model.id
-        # create a copy of the model here
-        # so it doesn't trigger before_update/after_update sqla listener each time
-        # we set a property
-        for key, value in properties.items():
-            setattr(copy, key, value)
-        try:
-            db.session.merge(copy)
             if commit:
                 db.session.commit()
         except SQLAlchemyError as ex:  # pragma: no cover
