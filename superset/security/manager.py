@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=too-many-lines
 """A set of constants and methods to manage permissions and security"""
+import json
 import logging
 import re
 import time
@@ -1872,14 +1873,36 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         .one_or_none()
                     )
                     and dashboard_.roles
-                    and (slice_id := form_data.get("slice_id"))
                     and (
-                        slc := self.get_session.query(Slice)
-                        .filter(Slice.id == slice_id)
-                        .one_or_none()
+                        (
+                            # Native filter.
+                            form_data.get("type") == "NATIVE_FILTER"
+                            and (native_filter_id := form_data.get("native_filter_id"))
+                            and dashboard_.json_metadata
+                            and (json_metadata := json.loads(dashboard_.json_metadata))
+                            and any(
+                                target.get("datasetId") == datasource.id
+                                for fltr in json_metadata.get(
+                                    "native_filter_configuration",
+                                    [],
+                                )
+                                for target in fltr.get("targets", [])
+                                if native_filter_id == fltr.get("id")
+                            )
+                        )
+                        or (
+                            # Chart.
+                            form_data.get("type") != "NATIVE_FILTER"
+                            and (slice_id := form_data.get("slice_id"))
+                            and (
+                                slc := self.get_session.query(Slice)
+                                .filter(Slice.id == slice_id)
+                                .one_or_none()
+                            )
+                            and slc in dashboard_.slices
+                            and slc.datasource == datasource
+                        )
                     )
-                    and slc in dashboard_.slices
-                    and slc.datasource == datasource
                     and self.can_access_dashboard(dashboard_)
                 )
             ):
