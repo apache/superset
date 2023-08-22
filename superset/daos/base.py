@@ -181,9 +181,9 @@ class BaseDAO(Generic[T]):
             raise DAOUpdateFailedError("Item is required for update")
 
         # create a copy of the model here
-        item_dict = dict(item.__dict__)
-        item_dict.pop("_sa_instance_state")  # get rid of SQLAlchemy special attr
-        copy = item.__class__(**item_dict)
+        d = dict(item.__dict__)
+        d.pop("_sa_instance_state")  # get rid of SQLAlchemy special attr
+        copy = item.__class__(**d)
         copy.id = item.id
         # so it doesn't trigger before_update/after_update sqla listener each time
         # we set a property
