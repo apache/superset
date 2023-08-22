@@ -124,5 +124,37 @@ def test_update_command_success_duplicates(session_with_data: Session):
     assert changed_model.objects[0].object_id == chart.id
 
 
-def test_create_command_failed(session_with_data: Session):
-    pass
+def test_update_command_failed_validation(session_with_data: Session):
+    from superset.daos.tag import TagDAO
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+    from superset.tags.commands.create import CreateCustomTagWithRelationshipsCommand
+    from superset.tags.commands.update import UpdateTagCommand
+    from superset.tags.exceptions import TagUpdateFailedError
+    from superset.tags.models import ObjectTypes, TaggedObject
+
+    dashboard = session_with_data.query(Dashboard).first()
+    chart = session_with_data.query(Slice).first()
+    objects_to_tag = [
+        (ObjectTypes.chart, chart.id),
+    ]
+
+    CreateCustomTagWithRelationshipsCommand(
+        data={"name": "test_tag", "objects_to_tag": objects_to_tag}
+    ).run()
+
+    tag_to_update = TagDAO.find_by_name("test_tag")
+
+    objects_to_tag = [
+        (0, dashboard.id),  # type: ignore
+    ]
+
+    with pytest.raises(TagUpdateFailedError):
+        UpdateTagCommand(
+            tag_to_update.id,
+            {
+                "name": "new_name",
+                "description": "new_description",
+                "objects_to_tag": objects_to_tag,
+            },
+        ).run()
