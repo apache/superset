@@ -28,29 +28,6 @@ if TYPE_CHECKING:
     from superset.common.query_object import QueryObject
 
 
-def convert_fields_to_datetime(d: dict):
-    coltypes = d.get('coltypes')
-    colnames = d.get('colnames')
-    if isinstance(d.get('data'), pd.DataFrame):
-        data = d.get('data')
-    else:
-        data = d.get('df')
-    df = pd.DataFrame(data)
-    for k, key in enumerate(df.keys()):
-        df.rename(columns={key: colnames[k]}, inplace=True)
-    if GenericDataType.TEMPORAL in coltypes or GenericDataType.NUMERIC in coltypes:
-        for k, type_col in enumerate(coltypes):
-            if type_col == GenericDataType.TEMPORAL:
-                name_col = colnames[k]
-                df[name_col] = pd.to_datetime(df[name_col])
-            if type_col == GenericDataType.NUMERIC:
-                name_col = colnames[k]
-                df[name_col] = pd.to_numeric(df[name_col])
-
-        return df
-    return df
-
-
 def delete_tz_from_df(d: dict) -> pd.DataFrame:
     coltypes = d.get('coltypes')
     colnames = d.get('colnames')

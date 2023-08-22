@@ -9,6 +9,7 @@ import {
   getChartMetadataRegistry,
   SupersetClient,
 } from '@superset-ui/core';
+import FileSaver from 'file-saver';
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
 import { URL_PARAMS, XLSX, CSV } from 'src/constants';
@@ -229,7 +230,7 @@ export const getCSV = async (url, payload, isLegacy, resultFormat) => {
     body: payload,
   };
 
-  if (resultFormat === XLSX || resultFormat === CSV) {
+  if (resultFormat === XLSX) {
     params = {
       ...params,
       responseType: 'blob',
@@ -328,15 +329,18 @@ export const exportChart = ({
     slice?.form_data?.time_range ||
     'time_grain_sqla';
 
-  // TODO: xlsx
   return exportResultPromise
     .then(exportResult => {
+      if (exportResult && exportResult.code && exportResult.message) {
+        throw exportResult;
+      }
+
       if (exportResult) {
         const extension = resultFormat; // csv | xlsx
         const blobType =
           extension === XLSX
             ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            : 'text/csv;charset=utf-8;';
+            : 'text/csv';
 
         const outputFilename = generateFileName(
           `${sliceName}__${timeGrain}__${vizType}-chart`,
@@ -356,24 +360,23 @@ export const exportChart = ({
           document.body.appendChild(link);
           link.click();
         } else {
-          const url = URL.createObjectURL(
-            new Blob([exportResult], {
-              type: blobType,
-            }),
-          );
-
-          const link = document.createElement('a');
-          link.href = url;
-          link.setAttribute('download', outputFilename);
-          document.body.appendChild(link);
-          link.click();
+          const universalBOM = '\uFEFF';
+          const alteredResult = universalBOM + exportResult;
+          const csvFile = new Blob([alteredResult], {
+            type: blobType,
+          });
+          FileSaver.saveAs(csvFile, outputFilename);
         }
-      } else {
-        console.log('exportResult error', exportResult);
-      }
+      } else throw exportResult;
     })
     .catch(csvExportError => {
       console.log('csvExportError', csvExportError);
+      // eslint-disable-next-line no-alert
+      alert(
+        `Unfortunately you cannot download ${resultFormat} file. The reason: ${
+          csvExportError.message || 'Unexpected'
+        } [${csvExportError.code || 'Unknown'}]`,
+      );
     });
 };
 
