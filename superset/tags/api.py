@@ -187,8 +187,18 @@ class TagRestApi(BaseSupersetModelRestApi):
             item = self.add_model_schema.load(request.json)
         except ValidationError as error:
             return self.response_400(message=error.messages)
+        
         try:
-            CreateCustomTagWithRelationshipsCommand(item).run()
+            if item.get("tags"):
+              tags = request.json["tags"]
+              objects_to_tag = request.json["objects_to_tag"]
+              # This validates custom Schema with custom validations
+              for tag in tags:
+                item = self.add_model_schema.load({"name": tag, "objects_to_tag": objects_to_tag})
+                CreateCustomTagWithRelationshipsCommand(item).run()
+            else:
+              CreateCustomTagWithRelationshipsCommand(item).run()
+            
             return self.response(201)
         except TagInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())

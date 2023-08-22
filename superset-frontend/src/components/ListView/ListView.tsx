@@ -18,7 +18,7 @@
  */
 // @ts-nocheck
 import { t, styled } from '@superset-ui/core';
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Alert from 'src/components/Alert';
 import cx from 'classnames';
 import Button from 'src/components/Button';
@@ -229,7 +229,6 @@ export interface ListViewProps<T extends object = any> {
   showThumbnails?: boolean;
   emptyState?: EmptyStateProps;
   columnsForWrapText?: string[];
-  showBulkTag?: boolean;
 }
 
 function ListView<T extends object = any>({
@@ -253,7 +252,6 @@ function ListView<T extends object = any>({
   highlightRowId,
   emptyState,
   columnsForWrapText,
-  showBulkTag = false,
 }: ListViewProps<T>) {
   const {
     getTableProps,
@@ -306,6 +304,7 @@ function ListView<T extends object = any>({
   }, [query.filters]);
 
   const cardViewEnabled = Boolean(renderCard);
+  const [showBulkTagModal, setShowBulkTagModal] = useState<boolean>(false);
 
   useEffect(() => {
     // discard selections if bulk select is disabled
@@ -314,7 +313,7 @@ function ListView<T extends object = any>({
 
   return (
     <ListViewStyles>
-      <BulkTagModal show={showBulkTag} />
+      <BulkTagModal show={showBulkTagModal} selected={selectedFlatRows} onHide={() => setShowBulkTagModal(false)} />
       <div data-test={className} className={`superset-list-view ${className}`}>
         <div className="header">
           {cardViewEnabled && (
@@ -380,6 +379,15 @@ function ListView<T extends object = any>({
                           {action.name}
                         </Button>
                       ))}
+                      <span
+                        data-test="bulk-select-deselect-all"
+                        role="button"
+                        tabIndex={0}
+                        className="deselect-all"
+                        onClick={() => setShowBulkTagModal(true)}
+                      >
+                        {t('Add Tag')}
+                      </span>
                     </>
                   )}
                 </>

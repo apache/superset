@@ -712,14 +712,6 @@ function DashboardList(props: DashboardListProps) {
               onSelect: handleBulkDashboardExport,
             });
           }
-          if (canEdit) {
-            bulkActions.push({
-              key: 'tag',
-              name: t('Add Tag '),
-              type: 'primary',
-              onSelect: () => setShowBulkTagModal(true),
-            });
-          }
           return (
             <>
               {dashboardToEdit && (

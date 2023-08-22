@@ -141,5 +141,5 @@ cache-stop:
 	docker stop redis-stack-server
 
 # Primarily made for GH codespaces but this flow could work on your local as well
-api: db cache flask-app
+api: db flask-app
 client: node-app
