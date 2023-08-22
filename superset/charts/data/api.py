@@ -377,7 +377,8 @@ class ChartDataRestApi(ChartRestApi):
                         for key in keys_of_new_df:
                             if key in exist_df:
                                 new_df.pop(key)
-                        df = df.join(new_df, how='right', rsuffix='2')
+                        if not new_df.empty:
+                            df = df.join(new_df, how='right', rsuffix='2')
                     except IndexError:
                         return self.response_500(
                             _("Server error occurred while exporting the file")
