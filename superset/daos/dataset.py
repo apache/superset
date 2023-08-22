@@ -149,7 +149,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
     @classmethod
     def update(
         cls,
-        item: SqlaTable | None = None,
+        item: SqlaTable,
         attributes: dict[str, Any] | None = None,
         commit: bool = True,
     ) -> SqlaTable:
@@ -157,7 +157,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         Updates a Dataset model on the metadata DB
         """
 
-        if item and attributes:
+        if attributes:
             if "columns" in attributes:
                 cls.update_columns(
                     item,

@@ -39,7 +39,7 @@ class DatabaseDAO(BaseDAO[Database]):
     @classmethod
     def update(
         cls,
-        item: Database | None = None,
+        item: Database,
         attributes: dict[str, Any] | None = None,
         commit: bool = True,
     ) -> Database:
@@ -53,7 +53,7 @@ class DatabaseDAO(BaseDAO[Database]):
         The masked values should be unmasked before the database is updated.
         """
 
-        if item and attributes and "encrypted_extra" in attributes:
+        if attributes and "encrypted_extra" in attributes:
             attributes["encrypted_extra"] = item.db_engine_spec.unmask_encrypted_extra(
                 item.encrypted_extra,
                 attributes["encrypted_extra"],
@@ -146,7 +146,7 @@ class SSHTunnelDAO(BaseDAO[SSHTunnel]):
     @classmethod
     def update(
         cls,
-        item: SSHTunnel | None = None,
+        item: SSHTunnel,
         attributes: dict[str, Any] | None = None,
         commit: bool = True,
     ) -> SSHTunnel:
@@ -160,7 +160,7 @@ class SSHTunnelDAO(BaseDAO[SSHTunnel]):
         """
         # ID cannot be updated so we remove it if present in the payload
 
-        if item and attributes:
+        if attributes:
             attributes.pop("id", None)
             attributes = unmask_password_info(attributes, item)
 

@@ -171,7 +171,7 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
     @classmethod
     def update(
         cls,
-        item: ReportSchedule | None = None,
+        item: ReportSchedule,
         attributes: dict[str, Any] | None = None,
         commit: bool = True,
     ) -> ReportSchedule:
@@ -185,9 +185,6 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
         """
 
         # TODO(john-bodley): Determine why we need special handling for recipients.
-        if not item:
-            item = ReportSchedule()
-
         if attributes:
             if recipients := attributes.pop("recipients", None):
                 attributes["recipients"] = [
