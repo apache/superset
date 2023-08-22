@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
+import json
 import inspect
 import time
 import unittest
@@ -1718,6 +1719,21 @@ class TestSecurityManager(SupersetTestCase):
         world_health = self.get_dash_by_slug("world_health")
         treemap = self.get_slice("Treemap", db.session, expunge_from_session=False)
 
+        births.json_metadata = json.dumps(
+            {
+                "native_filter_configuration": [
+                    {
+                        "id": "NATIVE_FILTER-ABCDEFGH",
+                        "targets": [{"datasetId": birth_names.id}],
+                    },
+                    {
+                        "id": "NATIVE_FILTER-IJKLMNOP",
+                        "targets": [{"datasetId": treemap.id}],
+                    },
+                ]
+            }
+        )
+
         mock_g.user = security_manager.find_user("gamma")
         mock_is_owner.return_value = False
         mock_can_access.return_value = False
@@ -1725,7 +1741,6 @@ class TestSecurityManager(SupersetTestCase):
 
         for kwarg in ["query_context", "viz"]:
             births.roles = []
-            db.session.flush()
 
             # No dashboard roles.
             with self.assertRaises(SupersetSecurityException):
@@ -1742,7 +1757,6 @@ class TestSecurityManager(SupersetTestCase):
                 )
 
             births.roles = [self.get_role("Gamma")]
-            db.session.flush()
 
             # Undefined dashboard.
             with self.assertRaises(SupersetSecurityException):
@@ -1807,7 +1821,50 @@ class TestSecurityManager(SupersetTestCase):
                 }
             )
 
-        db.session.rollback()
+            # Ill-defined native filter.
+            with self.assertRaises(SupersetSecurityException):
+                security_manager.raise_for_access(
+                    **{
+                        kwarg: Mock(
+                            datasource=birth_names,
+                            form_data={
+                                "dashboardId": births.id,
+                                "type": "NATIVE_FILTER",
+                            },
+                        )
+                    }
+                )
+
+            # Native filter not associated with said datasource.
+            with self.assertRaises(SupersetSecurityException):
+                security_manager.raise_for_access(
+                    **{
+                        kwarg: Mock(
+                            datasource=birth_names,
+                            form_data={
+                                "dashboardId": births.id,
+                                "native_filter_id": "NATIVE_FILTER-IJKLMNOP",
+                                "type": "NATIVE_FILTER",
+                            },
+                        )
+                    }
+                )
+
+            # Native filter associated with said datasource.
+            security_manager.raise_for_access(
+                **{
+                    kwarg: Mock(
+                        datasource=birth_names,
+                        form_data={
+                            "dashboardId": births.id,
+                            "native_filter_id": "NATIVE_FILTER-ABCDEFGH",
+                            "type": "NATIVE_FILTER",
+                        },
+                    )
+                }
+            )
+
+        db.session.expunge_all()
 
     @patch("superset.security.manager.g")
     def test_get_user_roles(self, mock_g):
