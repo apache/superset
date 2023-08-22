@@ -199,7 +199,7 @@ class TagRestApi(BaseSupersetModelRestApi):
                 str(ex),
                 exc_info=True,
             )
-            return self.response_422(message=str(ex))
+            return self.response_500(message=str(ex))
 
     @expose("/<pk>", methods=("PUT",))
     @protect()
@@ -336,7 +336,7 @@ class TagRestApi(BaseSupersetModelRestApi):
                 str(ex),
                 exc_info=True,
             )
-            return self.response_422(message=str(ex))
+            return self.response_500(message=str(ex))
 
     @expose("/<int:object_type>/<int:object_id>/<tag>/", methods=("DELETE",))
     @protect()
@@ -522,7 +522,7 @@ class TagRestApi(BaseSupersetModelRestApi):
                 str(ex),
                 exc_info=True,
             )
-            return self.response_422(message=str(ex))
+            return self.response_500(message=str(ex))
 
     @expose("/favorite_status/", methods=("GET",))
     @protect()
