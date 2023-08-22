@@ -129,8 +129,8 @@ def test_update_command_failed_validation(session_with_data: Session):
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
     from superset.tags.commands.create import CreateCustomTagWithRelationshipsCommand
+    from superset.tags.commands.exceptions import TagInvalidError
     from superset.tags.commands.update import UpdateTagCommand
-    from superset.tags.exceptions import TagUpdateFailedError
     from superset.tags.models import ObjectTypes, TaggedObject
 
     dashboard = session_with_data.query(Dashboard).first()
@@ -149,7 +149,7 @@ def test_update_command_failed_validation(session_with_data: Session):
         (0, dashboard.id),  # type: ignore
     ]
 
-    with pytest.raises(TagUpdateFailedError):
+    with pytest.raises(TagInvalidError):
         UpdateTagCommand(
             tag_to_update.id,
             {
