@@ -397,6 +397,13 @@ class SupersetShillelaghAdapter(Adapter):
                 raise ProgrammingError(f"Invalid rowid specified: {row_id}")
             row[self._rowid] = row_id
 
+        if (
+            self._rowid
+            and row[self._rowid] is None
+            and self._table.c[self._rowid].autoincrement
+        ):
+            row.pop(self._rowid)
+
         query = self._table.insert().values(**row)
 
         with self.engine_context() as engine:
