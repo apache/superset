@@ -38,14 +38,14 @@ import Checkbox from 'src/components/Checkbox';
 import { noOp } from 'src/utils/common';
 import { NoAnimationDropdown } from 'src/components/Dropdown';
 import DeleteModal from 'src/components/DeleteModal';
-import ReportModal from 'src/components/ReportModal';
+import ReportModal from 'src/features/reports/ReportModal';
 import { ChartState } from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
   fetchUISpecificReport,
   toggleActive,
   deleteActiveReport,
-} from 'src/reports/actions/reports';
+} from 'src/features/reports/ReportModal/actions';
 import { reportSelector } from 'src/views/CRUD/hooks';
 import { MenuItemWithCheckboxContainer } from 'src/explore/components/useExploreAdditionalActionsMenu/index';
 
