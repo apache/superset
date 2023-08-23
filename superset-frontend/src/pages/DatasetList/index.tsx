@@ -30,7 +30,7 @@ import React, {
   useMemo,
   useCallback,
 } from 'react';
-import { useHistory } from 'react-router-dom';
+import { Link, useHistory } from 'react-router-dom';
 import rison from 'rison';
 import {
   createFetchRelated,
@@ -69,6 +69,7 @@ import {
   CONFIRM_OVERWRITE_MESSAGE,
 } from 'src/features/datasets/constants';
 import DuplicateDatasetModal from 'src/features/datasets/DuplicateDatasetModal';
+import { useSelector } from 'react-redux';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DatasetDeleteRelatedExtension = extensionsRegistry.get(
@@ -180,6 +181,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     sshTunnelPrivateKeyPasswordFields,
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
+
+  const PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = useSelector<any, boolean>(
+    state =>
+      state.common?.conf?.PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET || false,
+  );
 
   const openDatasetImportModal = () => {
     showImportModal(true);
@@ -309,11 +315,20 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             },
           },
         }: any) => {
-          const titleLink = (
-            // exploreUrl can be a link to Explore or an external link
-            // in the first case use SPA routing, else use HTML anchor
-            <GenericLink to={exploreURL}>{datasetTitle}</GenericLink>
-          );
+          let titleLink: JSX.Element;
+          if (PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET) {
+            titleLink = (
+              <Link data-test="internal-link" to={exploreURL}>
+                {datasetTitle}
+              </Link>
+            );
+          } else {
+            titleLink = (
+              // exploreUrl can be a link to Explore or an external link
+              // in the first case use SPA routing, else use HTML anchor
+              <GenericLink to={exploreURL}>{datasetTitle}</GenericLink>
+            );
+          }
           try {
             const parsedExtra = JSON.parse(extra);
             return (
