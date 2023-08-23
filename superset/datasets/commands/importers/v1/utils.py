@@ -155,8 +155,6 @@ def import_dataset(
     # import recursively to include columns and metrics
     try:
         dataset = SqlaTable.import_from_dict(session, config, recursive=True, sync=sync)
-        if tags:
-            import_tags(dataset, existing, tags)
 
     except MultipleResultsFound:
         # Finding multiple results when importing a dataset only happens because initially
@@ -168,6 +166,8 @@ def import_dataset(
         #
         # When that happens, we return the original dataset, unmodified.
         dataset = session.query(SqlaTable).filter_by(uuid=config["uuid"]).one()
+
+    import_tags(dataset, existing, tags)
 
     if dataset.id is None:
         session.flush()
@@ -202,7 +202,7 @@ def extract_tags(config: dict[str, Any]) -> tuple[dict[str, Any], Optional[list[
     return config, tags
 
 
-def import_tags(dataset: SqlaTable, existing: bool, tags: list[str]) -> None:
+def import_tags(dataset: SqlaTable, existing: bool, tags: Optional[list[str]]) -> None:
     if tags:
         if existing:
             add_custom_object_tags(tags, ObjectTypes.dataset, dataset.id)
