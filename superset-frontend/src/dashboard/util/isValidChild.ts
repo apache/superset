@@ -47,6 +47,7 @@ import {
   IKI_TABLE_TYPE,
   IKI_PROCESS_BUILDER_TYPE,
   IKI_RUN_PIPELINE_TYPE,
+  IKI_DEEPCAST_TYPE,
 } from './componentTypes';
 
 import { DASHBOARD_ROOT_DEPTH as rootDepth } from './constants';
@@ -71,6 +72,7 @@ const parentMaxDepthLookup = {
     [IKI_TABLE_TYPE]: depthOne,
     [IKI_PROCESS_BUILDER_TYPE]: depthOne,
     [IKI_RUN_PIPELINE_TYPE]: depthOne,
+    [IKI_DEEPCAST_TYPE]: depthOne,
     [COLUMN_TYPE]: depthOne,
     [DIVIDER_TYPE]: depthOne,
     [HEADER_TYPE]: depthOne,
@@ -83,6 +85,7 @@ const parentMaxDepthLookup = {
     [DYNAMIC_TYPE]: depthFour,
     [MARKDOWN_TYPE]: depthFour,
     [COLUMN_TYPE]: depthFour,
+    [IKI_DEEPCAST_TYPE]: depthFour,
   },
 
   [TABS_TYPE]: {
@@ -96,6 +99,7 @@ const parentMaxDepthLookup = {
     [IKI_TABLE_TYPE]: depthFive,
     [IKI_PROCESS_BUILDER_TYPE]: depthFive,
     [IKI_RUN_PIPELINE_TYPE]: depthFive,
+    [IKI_DEEPCAST_TYPE]: depthFive,
     [COLUMN_TYPE]: depthThree,
     [DIVIDER_TYPE]: depthFive,
     [HEADER_TYPE]: depthFive,
@@ -110,6 +114,7 @@ const parentMaxDepthLookup = {
     [IKI_TABLE_TYPE]: depthFive,
     [IKI_PROCESS_BUILDER_TYPE]: depthFive,
     [IKI_RUN_PIPELINE_TYPE]: depthFive,
+    [IKI_DEEPCAST_TYPE]: depthFive,
     [ROW_TYPE]: depthThree,
     [DIVIDER_TYPE]: depthThree,
     [TABS_TYPE]: depthThree,
@@ -124,6 +129,7 @@ const parentMaxDepthLookup = {
   [IKI_TABLE_TYPE]: {},
   [IKI_PROCESS_BUILDER_TYPE]: {},
   [IKI_RUN_PIPELINE_TYPE]: {},
+  [IKI_DEEPCAST_TYPE]: {},
 };
 
 interface IsValidChildProps {

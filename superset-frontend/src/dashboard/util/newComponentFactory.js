@@ -32,6 +32,7 @@ import {
   IKI_TABLE_TYPE,
   IKI_PROCESS_BUILDER_TYPE,
   IKI_RUN_PIPELINE_TYPE,
+  IKI_DEEPCAST_TYPE,
 } from './componentTypes';
 
 import {
@@ -57,6 +58,7 @@ const typeToDefaultMetaData = {
   [IKI_TABLE_TYPE]: { width: GRID_DEFAULT_CHART_WIDTH, height: 50 },
   [IKI_PROCESS_BUILDER_TYPE]: { width: GRID_DEFAULT_CHART_WIDTH, height: 50 },
   [IKI_RUN_PIPELINE_TYPE]: { width: GRID_DEFAULT_CHART_WIDTH, height: 50 },
+  [IKI_DEEPCAST_TYPE]: { width: GRID_DEFAULT_CHART_WIDTH, height: 75 },
   [ROW_TYPE]: { background: BACKGROUND_TRANSPARENT },
   [TABS_TYPE]: null,
   [TAB_TYPE]: {
