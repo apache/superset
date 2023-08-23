@@ -186,4 +186,4 @@ Understanding the Superset Points of View
 - [Superset API](https://superset.apache.org/docs/rest-api)
 
 <!-- telemetry/analytics pixel: -->
-<img referrerpolicy="no-referrer-when-downgrade" src="https://static.scarf.sh/a.png?x-pxid=bc1c90cd-bc04-4e11-8c7b-289fb2839492" />
+![](https://static.scarf.sh/a.png?x-pxid=39ae6855-95fc-4566-86e5-360d542b0a68)
