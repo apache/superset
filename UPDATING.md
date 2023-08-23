@@ -45,6 +45,7 @@ assists people when migrating to a new version.
 
 ### Breaking Changes
 
+- [24686]https://github.com/apache/superset/pull/24686): All dataset's custom explore_url are handled as relative URLs on the frontend, behaviour controlled by PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET.
 - [24262](https://github.com/apache/superset/pull/24262): Enabled `TALISMAN_ENABLED` flag by default and provided stricter default Content Security Policy
 - [24415](https://github.com/apache/superset/pull/24415): Removed the obsolete Druid NoSQL REGEX operator.
 - [24423](https://github.com/apache/superset/pull/24423): Removed deprecated APIs `/superset/slice_json/...`, `/superset/annotation_json/...`

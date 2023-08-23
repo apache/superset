@@ -302,32 +302,6 @@ class TestDatasource(SupersetTestCase):
                 print(k)
                 self.assertEqual(resp[k], datasource_post[k])
 
-    def test_save_default_endpoint_validation_fail(self):
-        self.login(username="admin")
-        tbl_id = self.get_table(name="birth_names").id
-
-        datasource_post = get_datasource_post()
-        datasource_post["id"] = tbl_id
-        datasource_post["owners"] = [1]
-        datasource_post["default_endpoint"] = "http://www.google.com"
-        data = dict(data=json.dumps(datasource_post))
-        resp = self.client.post("/datasource/save/", data=data)
-        assert resp.status_code == 400
-
-    def test_save_default_endpoint_validation_unsafe(self):
-        self.app.config["PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET"] = False
-        self.login(username="admin")
-        tbl_id = self.get_table(name="birth_names").id
-
-        datasource_post = get_datasource_post()
-        datasource_post["id"] = tbl_id
-        datasource_post["owners"] = [1]
-        datasource_post["default_endpoint"] = "http://www.google.com"
-        data = dict(data=json.dumps(datasource_post))
-        resp = self.client.post("/datasource/save/", data=data)
-        assert resp.status_code == 200
-        self.app.config["PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET"] = True
-
     def test_save_default_endpoint_validation_success(self):
         self.login(username="admin")
         tbl_id = self.get_table(name="birth_names").id

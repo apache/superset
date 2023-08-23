@@ -1471,7 +1471,7 @@ STATIC_ASSETS_PREFIX = ""
 # Typically these should not be allowed.
 PREVENT_UNSAFE_DB_CONNECTIONS = True
 
-# Prevents unsafe default endpoints to be registered on datasets.
+# If true all default urls on datasets will be handled as relative URLs by the frontend
 PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = True
 
 # Define a list of allowed URLs for dataset data imports (v1).

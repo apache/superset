@@ -1449,32 +1449,6 @@ class TestDatasetApi(SupersetTestCase):
         db.session.delete(ab_user)
         db.session.commit()
 
-    def test_update_dataset_unsafe_default_endpoint(self):
-        """
-        Dataset API: Test unsafe default endpoint
-        """
-        if backend() == "sqlite":
-            return
-
-        dataset = self.insert_default_dataset()
-        self.login(username="admin")
-        uri = f"api/v1/dataset/{dataset.id}"
-        table_data = {"default_endpoint": "http://www.google.com"}
-        rv = self.client.put(uri, json=table_data)
-        data = json.loads(rv.data.decode("utf-8"))
-        assert rv.status_code == 422
-        expected_response = {
-            "message": {
-                "default_endpoint": [
-                    "The submitted URL is not considered safe,"
-                    " only use URLs with the same domain as Superset."
-                ]
-            }
-        }
-        assert data == expected_response
-        db.session.delete(dataset)
-        db.session.commit()
-
     @patch("superset.daos.dataset.DatasetDAO.update")
     def test_update_dataset_sqlalchemy_error(self, mock_dao_update):
         """
