@@ -1409,6 +1409,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
         self,
+        slice_id: Optional[int] = None,
         apply_fetch_values_predicate: bool = False,
         columns: Optional[list[Column]] = None,
         extras: Optional[dict[str, Any]] = None,

@@ -1209,6 +1209,8 @@ DB_CONNECTION_MUTATOR = None
 def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument
     sql: str, **kwargs: Any
 ) -> str:
+    for key, value in reversed(list(kwargs.items())):
+        sql = f"-- {key}: {value}\n{sql}"
     return sql
 
 
