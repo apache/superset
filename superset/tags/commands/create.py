@@ -78,7 +78,6 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
                 TagDAO.create_tag_relationship(
                     objects_to_tag=self._objects_to_tag, tag=tag
                 )
-
             if self._description:
                 tag.description = self._description
                 db.session.commit()

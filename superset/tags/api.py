@@ -47,6 +47,7 @@ from superset.tags.schemas import (
     openapi_spec_methods_override,
     TaggedObjectEntityResponseSchema,
     TagGetResponseSchema,
+    TagPostBulkSchema,
     TagPostSchema,
     TagPutSchema,
 )
@@ -72,6 +73,7 @@ class TagRestApi(BaseSupersetModelRestApi):
         "add_favorite",
         "remove_favorite",
         "favorite_status",
+        "bulk_create",
     }
 
     resource_name = "tag"
@@ -187,18 +189,72 @@ class TagRestApi(BaseSupersetModelRestApi):
             item = self.add_model_schema.load(request.json)
         except ValidationError as error:
             return self.response_400(message=error.messages)
-        
         try:
-            if item.get("tags"):
-              tags = request.json["tags"]
-              objects_to_tag = request.json["objects_to_tag"]
-              # This validates custom Schema with custom validations
-              for tag in tags:
-                item = self.add_model_schema.load({"name": tag, "objects_to_tag": objects_to_tag})
+            CreateCustomTagWithRelationshipsCommand(item).run()
+            return self.response(201)
+        except TagInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
+        except TaggedObjectDeleteFailedError as ex:
+            logger.error(
+                "Error creating model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
+
+    @expose("/bulk_create", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_create",
+        log_to_statsd=False,
+    )
+    def bulk_create(self) -> Response:
+        """Bulk tag items
+        ---
+        post:
+          description: >-
+            Bulk tag items
+          requestBody:
+            description: Tag schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/{{self.__class__.__name__}}.bulk_create'
+          responses:
+            201:
+              description: Tag added
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      id:
+                        type: number
+                      result:
+                        $ref: '#/components/schemas/{{self.__class__.__name__}}.bulk_create'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            item = TagPostBulkSchema().load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        try:
+            for tag in item.get("tags"):
+                item = self.add_model_schema.load(
+                    {"name": tag, "objects_to_tag": item.get("objects_to_tag")}
+                )
                 CreateCustomTagWithRelationshipsCommand(item).run()
-            else:
-              CreateCustomTagWithRelationshipsCommand(item).run()
-            
             return self.response(201)
         except TagInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())

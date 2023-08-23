@@ -229,6 +229,7 @@ export interface ListViewProps<T extends object = any> {
   showThumbnails?: boolean;
   emptyState?: EmptyStateProps;
   columnsForWrapText?: string[];
+  enableBulkTag?: boolean;
 }
 
 function ListView<T extends object = any>({
@@ -252,6 +253,7 @@ function ListView<T extends object = any>({
   highlightRowId,
   emptyState,
   columnsForWrapText,
+  enableBulkTag = true,
 }: ListViewProps<T>) {
   const {
     getTableProps,
@@ -313,7 +315,11 @@ function ListView<T extends object = any>({
 
   return (
     <ListViewStyles>
-      <BulkTagModal show={showBulkTagModal} selected={selectedFlatRows} onHide={() => setShowBulkTagModal(false)} />
+      <BulkTagModal
+        show={showBulkTagModal}
+        selected={selectedFlatRows}
+        onHide={() => setShowBulkTagModal(false)}
+      />
       <div data-test={className} className={`superset-list-view ${className}`}>
         <div className="header">
           {cardViewEnabled && (
@@ -379,15 +385,17 @@ function ListView<T extends object = any>({
                           {action.name}
                         </Button>
                       ))}
-                      <span
-                        data-test="bulk-select-deselect-all"
-                        role="button"
-                        tabIndex={0}
-                        className="deselect-all"
-                        onClick={() => setShowBulkTagModal(true)}
-                      >
-                        {t('Add Tag')}
-                      </span>
+                      {enableBulkTag && (
+                        <span
+                          data-test="bulk-select-deselect-all"
+                          role="button"
+                          tabIndex={0}
+                          className="deselect-all"
+                          onClick={() => setShowBulkTagModal(true)}
+                        >
+                          {t('Add Tag')}
+                        </span>
+                      )}
                     </>
                   )}
                 </>

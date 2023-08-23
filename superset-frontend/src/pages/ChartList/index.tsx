@@ -857,6 +857,7 @@ function ChartList(props: ChartListProps) {
               loading={loading}
               pageSize={PAGE_SIZE}
               renderCard={renderCard}
+              enableBulkTag
               showThumbnails={
                 userSettings
                   ? userSettings.thumbnails

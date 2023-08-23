@@ -46,6 +46,8 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
 )
 from tests.integration_tests.fixtures.tags import with_tagging_system_feature
 from tests.integration_tests.base_tests import SupersetTestCase
+from superset.daos.tag import TagDAO
+from superset.tags.models import ObjectTypes
 
 TAGS_FIXTURE_COUNT = 10
 
@@ -512,3 +514,26 @@ class TestTagApi(SupersetTestCase):
         rv = self.client.put(uri, json={"foo": "bar"})
 
         self.assertEqual(rv.status_code, 400)
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_post_bulk_tag(self):
+        self.login(username="admin")
+        uri = "api/v1/tag/bulk_create"
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "World Bank's Data")
+            .first()
+        )
+        tags = ["tag1", "tag2", "tag3"]
+        rv = self.client.post(
+            uri,
+            json={
+                "tags": ["tag1", "tag2", "tag3"],
+                "objects_to_tag": [["dashboard", dashboard.id]],
+            },
+        )
+
+        self.assertEqual(rv.status_code, 201)
+
+        result = TagDAO.get_tagged_objects_for_tags(tags, ["dashboard"])
+        assert len(result) == 1

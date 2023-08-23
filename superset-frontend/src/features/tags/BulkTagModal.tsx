@@ -6,6 +6,7 @@ import Modal from 'src/components/Modal';
 import AsyncSelect from 'src/components/Select/AsyncSelect';
 import Button from 'src/components/Button';
 import { loadTags } from 'src/components/Tags/utils';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 
 interface BulkTagModalProps {
   onHide: () => void;
@@ -21,35 +22,37 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({
   show,
   selected = [],
   onHide,
-    // refreshData,
-    // addSuccessToast,
-    // addDangerToast,
+  // refreshData,
 }) => {
+  const { addSuccessToast, addDangerToast } = useToasts();
   useEffect(() => {}, []);
 
   const onSave = () => {
-    console.log('tag items')
     SupersetClient.post({
-      endpoint: `/api/v1/tag/`,
+      endpoint: `/api/v1/tag/bulk_create`,
       jsonPayload: {
-        tags: tags,
-        objects_to_tag: selected,
+        tags: tags.map(tag => tag.value),
+        objects_to_tag: selected.map(item => ['dashboard', +item.id]),
       },
-    }).then(({ json = {} }) => {
-      // refreshData();
-      // addSuccessToast(t('Tag created'));
-    });
-    
-    // addSuccessToast('bitch')
+    })
+      .then(({ json = {} }) => {
+        // refreshData();
+        addSuccessToast(`Tagged ${selected.length} items`);
+      })
+      .catch(err => {
+        addDangerToast('Failed to tag items');
+      });
+
     // refreshData()
-  }
+    onHide();
+  };
 
   const [tags, setTags] = useState<TaggableResourceOption[]>([]);
 
   return (
-    <Modal 
-      title="Bulk tag" 
-      show={show} 
+    <Modal
+      title="Bulk tag"
+      show={show}
       onHide={onHide}
       footer={
         <div>
