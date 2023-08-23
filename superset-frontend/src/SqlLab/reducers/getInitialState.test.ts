@@ -47,6 +47,9 @@ const apiDataWithTabState = {
     database_id: 1,
     sql: '',
     table_schemas: [],
+    saved_query: null,
+    template_params: null,
+    latest_query: null,
   },
 };
 describe('getInitialState', () => {
@@ -182,6 +185,9 @@ describe('getInitialState', () => {
               },
             },
           ],
+          saved_query: null,
+          template_params: null,
+          latest_query: null,
         },
       }).sqlLab.tables;
       expect(initializedTables.map(({ id }) => id)).toEqual([1, 2, 6]);

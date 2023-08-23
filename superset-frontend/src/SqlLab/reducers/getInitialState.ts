@@ -61,6 +61,7 @@ export default function getInitialState({
     dbId: common.conf.SQLLAB_DEFAULT_DBID,
     queryLimit: common.conf.DEFAULT_SQLLAB_LIMIT,
     hideLeftBar: false,
+    remoteId: null,
   };
   let unsavedQueryEditor: UnsavedQueryEditor = {};
 
@@ -80,7 +81,7 @@ export default function getInitialState({
         latestQueryId: activeTab.latest_query
           ? activeTab.latest_query.id
           : null,
-        remoteId: activeTab.saved_query?.id,
+        remoteId: activeTab.saved_query?.id || null,
         autorun: Boolean(activeTab.autorun),
         templateParams: activeTab.template_params || undefined,
         dbId: activeTab.database_id,
@@ -147,7 +148,7 @@ export default function getInitialState({
       // migration was successful
       localStorage.removeItem('redux');
     } else {
-      unsavedQueryEditor = sqlLab.unsavedQueryEditor || {};
+      unsavedQueryEditor = sqlLab.unsavedQueryEditor || unsavedQueryEditor;
       // add query editors and tables to state with a special flag so they can
       // be migrated if the `SQLLAB_BACKEND_PERSISTENCE` feature flag is on
       sqlLab.queryEditors.forEach(qe => {
@@ -197,8 +198,8 @@ export default function getInitialState({
       tables: Object.values(tables),
       queriesLastUpdate: Date.now(),
       editorTabLastUpdatedAt,
-      unsavedQueryEditor,
       queryCostEstimates: {},
+      unsavedQueryEditor,
     },
     messageToasts: getToastsFromPyFlashMessages(
       (common || {})?.flash_messages || [],

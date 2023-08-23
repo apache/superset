@@ -225,7 +225,7 @@ const SqlEditor = ({
   const { database, latestQuery, hideLeftBar } = useSelector(
     ({ sqlLab: { unsavedQueryEditor, databases, queries } }) => {
       let { dbId, latestQueryId, hideLeftBar } = queryEditor;
-      if (unsavedQueryEditor.id === queryEditor.id) {
+      if (unsavedQueryEditor?.id === queryEditor.id) {
         dbId = unsavedQueryEditor.dbId || dbId;
         latestQueryId = unsavedQueryEditor.latestQueryId || latestQueryId;
         hideLeftBar = unsavedQueryEditor.hideLeftBar || hideLeftBar;

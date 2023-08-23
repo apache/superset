@@ -33,11 +33,11 @@ export interface QueryEditor {
   id: string;
   dbId?: number;
   name: string;
-  title?: string; // keep in optional for backward compatibility
+  title?: string; // keep it optional for backward compatibility
   schema?: string;
   autorun: boolean;
   sql: string;
-  remoteId?: number | null;
+  remoteId: number | null;
   hideLeftBar?: boolean;
   latestQueryId?: string | null;
   templateParams?: string;
@@ -56,9 +56,7 @@ export type toastState = {
   noDuplicate: boolean;
 };
 
-export type UnsavedQueryEditor = Partial<QueryEditor> & {
-  id?: QueryEditor['id'];
-};
+export type UnsavedQueryEditor = Partial<QueryEditor>;
 
 export interface Table {
   id: string;
@@ -66,7 +64,7 @@ export interface Table {
   schema: string;
   name: string;
   queryEditorId: QueryEditor['id'];
-  dataPreviewQueryId?: string | null;
+  dataPreviewQueryId: string | null;
   expanded?: boolean;
   initialized?: boolean;
 }

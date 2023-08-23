@@ -44,11 +44,11 @@ export type InitialState = {
     }[];
     sql: string;
     query_limit?: number;
-    latest_query?: QueryResponse | null;
+    latest_query: QueryResponse | null;
     autorun?: boolean;
-    template_params?: string | null;
+    template_params: string | null;
     hide_left_bar?: boolean;
-    saved_query?: { id: number } | null;
+    saved_query: { id: number } | null;
     extra_json?: object;
   };
   databases: object[];
