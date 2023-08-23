@@ -411,6 +411,7 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         "database": QuerySelectField(
             "Database",
             query_func=lambda: db.session.query(models.Database),
+            get_pk_func=lambda item: item.id,
             widget=Select2Widget(extra_classes="readonly"),
         )
     }

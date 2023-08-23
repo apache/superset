@@ -55,6 +55,7 @@ export const getFormData = ({
   granularity_sqla,
   type,
   dashboardId,
+  id,
 }: Partial<Filter> & {
   dashboardId: number;
   datasetId?: number;
@@ -94,6 +95,7 @@ export const getFormData = ({
     viz_type: filterType,
     type,
     dashboardId,
+    native_filter_id: id,
   };
 };
 

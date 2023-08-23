@@ -33,7 +33,6 @@ export default function getInitialState({
   tab_state_ids: tabStateIds = [],
   databases,
   queries: queries_,
-  requested_query: requestedQuery,
   user,
 }) {
   /**
@@ -200,11 +199,9 @@ export default function getInitialState({
       tabHistory: dedupeTabHistory(tabHistory),
       tables: Object.values(tables),
       queriesLastUpdate: Date.now(),
-      user,
       unsavedQueryEditor,
       queryCostEstimates: {},
     },
-    requestedQuery,
     messageToasts: getToastsFromPyFlashMessages(
       (common || {}).flash_messages || [],
     ),
@@ -213,5 +210,6 @@ export default function getInitialState({
       flash_messages: common.flash_messages,
       conf: common.conf,
     },
+    user,
   };
 }
