@@ -22,7 +22,7 @@ import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import * as uiCore from '@superset-ui/core';
-import * as actions from 'src/reports/actions/reports';
+import * as actions from 'src/features/reports/ReportModal/actions';
 import { FeatureFlag } from '@superset-ui/core';
 import ReportModal from '.';
 

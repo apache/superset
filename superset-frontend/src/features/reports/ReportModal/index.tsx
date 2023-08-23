@@ -26,7 +26,10 @@ import React, {
 import { t, SupersetTheme } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { addReport, editReport } from 'src/reports/actions/reports';
+import {
+  addReport,
+  editReport,
+} from 'src/features/reports/ReportModal/actions';
 import Alert from 'src/components/Alert';
 import TimezoneSelector from 'src/components/TimezoneSelector';
 import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
@@ -40,7 +43,7 @@ import {
   ReportCreationMethod,
   ReportObject,
   NOTIFICATION_FORMATS,
-} from 'src/reports/types';
+} from 'src/features/reports/types';
 import { reportSelector } from 'src/views/CRUD/hooks';
 import {
   TRANSLATIONS,

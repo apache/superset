@@ -19,12 +19,7 @@
 /* eslint-disable camelcase */
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { omit } from 'lodash';
-import {
-  SET_REPORT,
-  ADD_REPORT,
-  EDIT_REPORT,
-  DELETE_REPORT,
-} from '../actions/reports';
+import { SET_REPORT, ADD_REPORT, EDIT_REPORT, DELETE_REPORT } from './actions';
 
 export default function reportsReducer(state = {}, action) {
   const actionHandlers = {
