@@ -141,6 +141,8 @@ export interface Tag {
   name: string;
   id: number;
   created_by: object;
+  description: string;
+  type: string;
 }
 
 export type DatabaseObject = Partial<Database> &

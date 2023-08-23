@@ -23,6 +23,7 @@ from superset.commands.exceptions import (
     CommandInvalidError,
     CreateFailedError,
     DeleteFailedError,
+    UpdateFailedError,
 )
 
 
@@ -32,6 +33,10 @@ class TagInvalidError(CommandInvalidError):
 
 class TagCreateFailedError(CreateFailedError):
     message = _("Tag could not be created.")
+
+
+class TagUpdateFailedError(UpdateFailedError):
+    message = _("Tag could not be updated.")
 
 
 class TagDeleteFailedError(DeleteFailedError):

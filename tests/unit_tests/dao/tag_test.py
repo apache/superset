@@ -144,3 +144,31 @@ def test_user_favorite_tag_exc_raise(mocker):
     mock_session.commit.side_effect = Exception("DB Error")
     with pytest.raises(Exception):
         TagDAO.remove_user_favorite_tag(1)
+
+
+def test_create_tag_relationship(mocker):
+    from superset.daos.tag import TagDAO
+    from superset.tags.models import (  # Assuming these are defined in the same module
+        ObjectTypes,
+        TaggedObject,
+    )
+
+    mock_session = mocker.patch("superset.daos.tag.db.session")
+
+    # Define a list of objects to tag
+    objects_to_tag = [
+        (ObjectTypes.query, 1),
+        (ObjectTypes.chart, 2),
+        (ObjectTypes.dashboard, 3),
+    ]
+
+    # Call the function
+    tag = TagDAO.get_by_name("test_tag")
+    TagDAO.create_tag_relationship(objects_to_tag, tag)
+
+    # Verify that the correct number of TaggedObjects are added to the session
+    assert mock_session.add_all.call_count == 1
+    assert len(mock_session.add_all.call_args[0][0]) == len(objects_to_tag)
+
+    # Verify that commit is called
+    mock_session.commit.assert_called_once()
