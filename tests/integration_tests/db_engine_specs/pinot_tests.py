@@ -29,8 +29,8 @@ class TestPinotDbEngineSpec(TestDbEngineSpec):
         result = str(expr.compile())
         expected = (
             "CAST(DATE_TRUNC('day', CAST("
-            + "DATETIMECONVERT(tstamp, '1:SECONDS:EPOCH', '1:SECONDS:EPOCH', '1:SECONDS') "
-            + "AS TIMESTAMP)) AS TIMESTAMP)"
+            + "DATETIMECONVERT(tstamp, '1:SECONDS:EPOCH', "
+            + "'1:SECONDS:EPOCH', '1:SECONDS') AS TIMESTAMP)) AS TIMESTAMP)"
         )
         self.assertEqual(
             result,
@@ -51,7 +51,10 @@ class TestPinotDbEngineSpec(TestDbEngineSpec):
         col = column("tstamp")
         expr = PinotEngineSpec.get_timestamp_expr(col, "%Y-%m-%d %H:%M:%S", "PT10M")
         result = str(expr.compile())
-        expected = "CAST(ROUND(DATE_TRUNC('minute', CAST(tstamp AS TIMESTAMP)), 600000) AS TIMESTAMP)"
+        expected = (
+            "CAST(ROUND(DATE_TRUNC('minute', CAST(tstamp AS "
+            + "TIMESTAMP)), 600000) AS TIMESTAMP)"
+        )
         self.assertEqual(
             result,
             expected,
@@ -73,8 +76,8 @@ class TestPinotDbEngineSpec(TestDbEngineSpec):
         result = str(expr.compile())
         expected = (
             "CAST(DATE_TRUNC('month', CAST("
-            + "DATETIMECONVERT(tstamp, '1:SECONDS:EPOCH', '1:SECONDS:EPOCH', '1:SECONDS') "
-            + "AS TIMESTAMP)) AS TIMESTAMP)"
+            + "DATETIMECONVERT(tstamp, '1:SECONDS:EPOCH', "
+            + "'1:SECONDS:EPOCH', '1:SECONDS') AS TIMESTAMP)) AS TIMESTAMP)"
         )
         self.assertEqual(
             result,
