@@ -38,3 +38,4 @@ class TagUpdateFailedError(UpdateFailedError):
 
 class TagNotFoundError(CommandException):
     message = _("Tag could not be found.")
+    status = 404
