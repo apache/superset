@@ -165,7 +165,12 @@ setup(
         "firebolt": ["firebolt-sqlalchemy>=0.0.1"],
         "gsheets": ["shillelagh[gsheetsapi]>=1.2.6, <2"],
         "hana": ["hdbcli==2.4.162", "sqlalchemy_hana==0.4.0"],
-        "hive": ["pyhive[hive]>=0.6.5", "tableschema", "thrift>=0.14.1, <1.0.0"],
+        "hive": [
+            "pyhive[hive]>=0.6.5;python_version<'3.11'",
+            "pyhive[hive_pure_sasl]>=0.7.0",
+            "tableschema",
+            "thrift>=0.14.1, <1.0.0",
+        ],
         "impala": ["impyla>0.16.2, <0.17"],
         "kusto": ["sqlalchemy-kusto>=2.0.0, <3"],
         "kylin": ["kylinpy>=2.8.1, <2.9"],
@@ -189,7 +194,12 @@ setup(
             "shillelagh[datasetteapi,gsheetsapi,socrata,weatherapi]>=1.2.6,<2"
         ],
         "snowflake": ["snowflake-sqlalchemy>=1.2.4, <2"],
-        "spark": ["pyhive[hive]>=0.6.5", "tableschema", "thrift>=0.14.1, <1.0.0"],
+        "spark": [
+            "pyhive[hive]>=0.6.5;python_version<'3.11'",
+            "pyhive[hive_pure_sasl]>=0.7.0",
+            "tableschema",
+            "thrift>=0.14.1, <1.0.0",
+        ],
         "teradata": ["teradatasql>=16.20.0.23"],
         "thumbnails": ["Pillow>=9.5.0, <10.0.0"],
         "vertica": ["sqlalchemy-vertica-python>=0.5.9, < 0.6"],
