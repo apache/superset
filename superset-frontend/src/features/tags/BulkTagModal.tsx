@@ -22,13 +22,13 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({
   show,
   selected = [],
   onHide,
-  // refreshData,
+  refreshData,
 }) => {
   const { addSuccessToast, addDangerToast } = useToasts();
   useEffect(() => {}, []);
 
-  const onSave = () => {
-    SupersetClient.post({
+  const onSave = async () => {
+    await SupersetClient.post({
       endpoint: `/api/v1/tag/bulk_create`,
       jsonPayload: {
         tags: tags.map(tag => tag.value),
@@ -36,14 +36,13 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({
       },
     })
       .then(({ json = {} }) => {
-        // refreshData();
         addSuccessToast(`Tagged ${selected.length} items`);
       })
       .catch(err => {
         addDangerToast('Failed to tag items');
       });
 
-    // refreshData()
+    refreshData();
     onHide();
   };
 

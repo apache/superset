@@ -209,6 +209,7 @@ export interface ListViewProps<T extends object = any> {
   count: number;
   pageSize: number;
   fetchData: (conf: FetchDataConfig) => any;
+  refreshData: () => any;
   loading: boolean;
   className?: string;
   initialSort?: SortColumn[];
@@ -238,6 +239,7 @@ function ListView<T extends object = any>({
   count,
   pageSize: initialPageSize,
   fetchData,
+  refreshData,
   loading,
   initialSort = [],
   className = '',
@@ -318,6 +320,7 @@ function ListView<T extends object = any>({
       <BulkTagModal
         show={showBulkTagModal}
         selected={selectedFlatRows}
+        refreshData={refreshData}
         onHide={() => setShowBulkTagModal(false)}
       />
       <div data-test={className} className={`superset-list-view ${className}`}>
