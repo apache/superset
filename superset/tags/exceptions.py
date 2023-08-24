@@ -33,6 +33,7 @@ class InvalidTagNameError(ValidationError):
 
 class TagUpdateFailedError(UpdateFailedError):
     message = _("Tag could not be updated.")
+    status = 422
 
 
 class TagNotFoundError(CommandException):
