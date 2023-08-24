@@ -156,8 +156,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     }
 
     GAMMA_READ_ONLY_MODEL_VIEWS = {
-        "Annotation",
-        "CssTemplate",
         "Dataset",
         "Datasource",
     } | READ_ONLY_MODEL_VIEWS
@@ -180,19 +178,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     } | USER_MODEL_VIEWS
 
     ALPHA_ONLY_VIEW_MENUS = {
-        "Manage",
-        "CSS Templates",
-        "Annotation Layers",
-        "Queries",
-        "Import dashboards",
-        "Upload a CSV",
-        "ReportSchedule",
         "Alerts & Report",
-        "TableSchemaView",
-        "CsvToDatabaseView",
+        "Annotation Layers",
+        "Annotation",
+        "CSS Templates",
         "ColumnarToDatabaseView",
+        "CssTemplate",
+        "CsvToDatabaseView",
         "ExcelToDatabaseView",
+        "Import dashboards",
         "ImportExportRestApi",
+        "Manage",
+        "Queries",
+        "ReportSchedule",
+        "TableSchemaView",
+        "Upload a CSV",
     }
 
     ADMIN_ONLY_PERMISSIONS = {
