@@ -18,9 +18,17 @@
  */
 import { t } from '@superset-ui/core';
 import getToastsFromPyFlashMessages from 'src/components/MessageToasts/getToastsFromPyFlashMessages';
+import type { BootstrapData } from 'src/types/bootstrapTypes';
+import type { InitialState } from 'src/hooks/apiResources/sqlLab';
+import type {
+  QueryEditor,
+  UnsavedQueryEditor,
+  SqlLabRootState,
+  Table,
+} from 'src/SqlLab/types';
 
-export function dedupeTabHistory(tabHistory) {
-  return tabHistory.reduce(
+export function dedupeTabHistory(tabHistory: string[]) {
+  return tabHistory.reduce<string[]>(
     (result, tabId) =>
       result.slice(-1)[0] === tabId ? result : result.concat(tabId),
     [],
@@ -34,7 +42,7 @@ export default function getInitialState({
   databases,
   queries: queries_,
   user,
-}) {
+}: BootstrapData & Partial<InitialState>) {
   /**
    * Before YYYY-MM-DD, the state for SQL Lab was stored exclusively in the
    * browser's localStorage. The feature flag `SQLLAB_BACKEND_PERSISTENCE`
@@ -43,54 +51,42 @@ export default function getInitialState({
    * To allow for a transparent migration, the initial state is a combination
    * of the backend state (if any) with the browser state (if any).
    */
-  let queryEditors = {};
+  let queryEditors: Record<string, QueryEditor> = {};
   const defaultQueryEditor = {
-    id: null,
     loaded: true,
     name: t('Untitled query'),
     sql: 'SELECT *\nFROM\nWHERE',
-    selectedText: null,
     latestQueryId: null,
     autorun: false,
-    templateParams: null,
     dbId: common.conf.SQLLAB_DEFAULT_DBID,
     queryLimit: common.conf.DEFAULT_SQLLAB_LIMIT,
-    validationResult: {
-      id: null,
-      errors: [],
-      completed: false,
-    },
     hideLeftBar: false,
+    remoteId: null,
   };
-  let unsavedQueryEditor = {};
+  let unsavedQueryEditor: UnsavedQueryEditor = {};
 
   /**
    * Load state from the backend. This will be empty if the feature flag
    * `SQLLAB_BACKEND_PERSISTENCE` is off.
    */
   tabStateIds.forEach(({ id, label }) => {
-    let queryEditor;
+    let queryEditor: QueryEditor;
     if (activeTab && activeTab.id === id) {
       queryEditor = {
         id: id.toString(),
         loaded: true,
         name: activeTab.label,
-        sql: activeTab.sql || undefined,
+        sql: activeTab.sql || '',
         selectedText: undefined,
         latestQueryId: activeTab.latest_query
           ? activeTab.latest_query.id
           : null,
-        remoteId: activeTab.saved_query?.id,
-        autorun: activeTab.autorun,
+        remoteId: activeTab.saved_query?.id || null,
+        autorun: Boolean(activeTab.autorun),
         templateParams: activeTab.template_params || undefined,
         dbId: activeTab.database_id,
         schema: activeTab.schema,
         queryLimit: activeTab.query_limit,
-        validationResult: {
-          id: null,
-          errors: [],
-          completed: false,
-        },
         hideLeftBar: activeTab.hide_left_bar,
       };
     } else {
@@ -109,7 +105,8 @@ export default function getInitialState({
   });
 
   const tabHistory = activeTab ? [activeTab.id.toString()] : [];
-  let tables = {};
+  let tables = {} as Record<string, Table>;
+  const editorTabLastUpdatedAt = Date.now();
   if (activeTab) {
     activeTab.table_schemas
       .filter(tableSchema => tableSchema.description !== null)
@@ -140,17 +137,18 @@ export default function getInitialState({
    * hasn't used SQL Lab after it has been turned on, the state will be stored
    * in the browser's local storage.
    */
-  if (
-    localStorage.getItem('redux') &&
-    JSON.parse(localStorage.getItem('redux')).sqlLab
-  ) {
-    const { sqlLab } = JSON.parse(localStorage.getItem('redux'));
+  const localStorageData = localStorage.getItem('redux');
+  const sqlLabCacheData = localStorageData
+    ? (JSON.parse(localStorageData) as Pick<SqlLabRootState, 'sqlLab'>)
+    : undefined;
+  if (localStorageData && sqlLabCacheData?.sqlLab) {
+    const { sqlLab } = sqlLabCacheData;
 
     if (sqlLab.queryEditors.length === 0) {
       // migration was successful
       localStorage.removeItem('redux');
     } else {
-      unsavedQueryEditor = sqlLab.unsavedQueryEditor || {};
+      unsavedQueryEditor = sqlLab.unsavedQueryEditor || unsavedQueryEditor;
       // add query editors and tables to state with a special flag so they can
       // be migrated if the `SQLLAB_BACKEND_PERSISTENCE` feature flag is on
       sqlLab.queryEditors.forEach(qe => {
@@ -199,11 +197,12 @@ export default function getInitialState({
       tabHistory: dedupeTabHistory(tabHistory),
       tables: Object.values(tables),
       queriesLastUpdate: Date.now(),
-      unsavedQueryEditor,
+      editorTabLastUpdatedAt,
       queryCostEstimates: {},
+      unsavedQueryEditor,
     },
     messageToasts: getToastsFromPyFlashMessages(
-      (common || {}).flash_messages || [],
+      (common || {})?.flash_messages || [],
     ),
     localStorageUsageInKilobytes: 0,
     common: {

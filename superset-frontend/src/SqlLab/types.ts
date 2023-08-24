@@ -33,7 +33,8 @@ export interface QueryEditor {
   id: string;
   dbId?: number;
   name: string;
-  schema: string;
+  title?: string; // keep it optional for backward compatibility
+  schema?: string;
   autorun: boolean;
   sql: string;
   remoteId: number | null;
@@ -43,6 +44,8 @@ export interface QueryEditor {
   selectedText?: string;
   queryLimit?: number;
   description?: string;
+  loaded?: boolean;
+  inLocalStorage?: boolean;
 }
 
 export type toastState = {
@@ -52,6 +55,19 @@ export type toastState = {
   duration: number;
   noDuplicate: boolean;
 };
+
+export type UnsavedQueryEditor = Partial<QueryEditor>;
+
+export interface Table {
+  id: string;
+  dbId: number;
+  schema: string;
+  name: string;
+  queryEditorId: QueryEditor['id'];
+  dataPreviewQueryId: string | null;
+  expanded?: boolean;
+  initialized?: boolean;
+}
 
 export type SqlLabRootState = {
   sqlLab: {
@@ -63,10 +79,10 @@ export type SqlLabRootState = {
     queries: Record<string, QueryResponse>;
     queryEditors: QueryEditor[];
     tabHistory: string[]; // default is activeTab ? [activeTab.id.toString()] : []
-    tables: Record<string, any>[];
+    tables: Table[];
     queriesLastUpdate: number;
     errorMessage: string | null;
-    unsavedQueryEditor: Partial<QueryEditor>;
+    unsavedQueryEditor: UnsavedQueryEditor;
     queryCostEstimates?: Record<string, QueryCostEstimate>;
     editorTabLastUpdatedAt?: number;
   };
