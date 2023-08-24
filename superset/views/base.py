@@ -121,6 +121,7 @@ FRONTEND_CONF_KEYS = (
     "ALERT_REPORTS_DEFAULT_RETENTION",
     "ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT",
     "NATIVE_FILTER_DEFAULT_ROW_LIMIT",
+    "PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET",
 )
 
 logger = logging.getLogger(__name__)
@@ -406,7 +407,7 @@ def menu_data(user: User) -> dict[str, Any]:
             "user_login_url": appbuilder.get_url_for_login,
             "user_profile_url": None
             if user.is_anonymous or is_feature_enabled("MENU_HIDE_USER_INFO")
-            else "/superset/profile/",
+            else "/profile/",
             "locale": session.get("locale", "en"),
         },
     }

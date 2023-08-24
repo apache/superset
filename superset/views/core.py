@@ -80,7 +80,6 @@ from superset.utils.core import (
     base_json_conv,
     DatasourceType,
     get_user_id,
-    get_username,
     ReservedUrlParameters,
 )
 from superset.views.base import (
@@ -985,24 +984,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @event_logger.log_this
     @expose("/profile/")
+    @deprecated(new_target="/profile")
     def profile(self) -> FlaskResponse:
-        """User profile page"""
-        user = g.user if hasattr(g, "user") and g.user else None
-        if not user or security_manager.is_guest_user(user) or user.is_anonymous:
-            abort(404)
-        payload = {
-            "user": bootstrap_user_data(user, include_perms=True),
-            "common": common_bootstrap_payload(user),
-        }
-
-        return self.render_template(
-            "superset/basic.html",
-            title=_("%(user)s's profile", user=get_username()),
-            entry="profile",
-            bootstrap_data=json.dumps(
-                payload, default=utils.pessimistic_json_iso_dttm_ser
-            ),
-        )
+        return redirect("/profile/")
 
     @has_access
     @event_logger.log_this

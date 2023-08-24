@@ -21,7 +21,7 @@ from typing import Any
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset import is_feature_enabled, security_manager
+from superset import is_feature_enabled
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.daos.base import BaseDAO
 from superset.extensions import db
@@ -30,7 +30,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.tags.models import ObjectTypes, TaggedObject
 from superset.tags.utils import update_custom_object_tags
-from superset.utils.core import DatasourceType, get_iterable
+from superset.utils.core import DatasourceType
 from superset.views.base import DatasourceFilter
 
 logger = logging.getLogger(__name__)
@@ -335,42 +335,6 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         if not dataset:
             return None
         return db.session.query(SqlMetric).get(metric_id)
-
-    @classmethod
-    def delete(
-        cls,
-        items: SqlaTable | list[SqlaTable],
-        commit: bool = True,
-    ) -> None:
-        """
-        Delete the specified items(s) including their associated relationships.
-
-        Note that bulk deletion via `delete` does not dispatch the `after_delete` event
-        and thus the ORM event listener callback needs to be invoked manually.
-
-        :param items: The item(s) to delete
-        :param commit: Whether to commit the transaction
-        :raises DAODeleteFailedError: If the deletion failed
-        :see: https://docs.sqlalchemy.org/en/latest/orm/queryguide/dml.html
-        """
-
-        try:
-            db.session.query(SqlaTable).filter(
-                SqlaTable.id.in_(item.id for item in get_iterable(items))
-            ).delete(synchronize_session="fetch")
-
-            connection = db.session.connection()
-            mapper = next(iter(cls.model_cls.registry.mappers))  # type: ignore
-
-            for item in get_iterable(items):
-                security_manager.dataset_after_delete(mapper, connection, item)
-
-            if commit:
-                db.session.commit()
-        except SQLAlchemyError as ex:
-            if commit:
-                db.session.rollback()
-            raise ex
 
     @staticmethod
     def get_table_by_name(database_id: int, table_name: str) -> SqlaTable | None:

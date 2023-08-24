@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=too-many-lines
 """A set of constants and methods to manage permissions and security"""
+import json
 import logging
 import re
 import time
@@ -236,6 +237,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("can_execute_sql_query", "SQLLab"),
         ("can_estimate_query_cost", "SQL Lab"),
         ("can_export_csv", "SQLLab"),
+        ("can_read", "SQLLab"),
         ("can_sqllab_history", "Superset"),
         ("can_sqllab", "Superset"),
         ("can_test_conn", "Superset"),  # Deprecated permission remove on 3.0.0
@@ -1796,7 +1798,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # pylint: disable=import-outside-toplevel
         from superset import is_feature_enabled
         from superset.connectors.sqla.models import SqlaTable
-        from superset.daos.dashboard import DashboardDAO
+        from superset.models.dashboard import Dashboard
+        from superset.models.slice import Slice
         from superset.sql_parse import Table
 
         if database and table or query:
@@ -1858,10 +1861,49 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 or self.can_access("datasource_access", datasource.perm or "")
                 or self.is_owner(datasource)
                 or (
+                    # Grant access to the datasource only if dashboard RBAC is enabled
+                    # and said datasource is associated with the dashboard chart in
+                    # question.
                     form_data
+                    and is_feature_enabled("DASHBOARD_RBAC")
                     and (dashboard_id := form_data.get("dashboardId"))
-                    and (dashboard := DashboardDAO.find_by_id(dashboard_id))
-                    and self.can_access_dashboard(dashboard)
+                    and (
+                        dashboard_ := self.get_session.query(Dashboard)
+                        .filter(Dashboard.id == dashboard_id)
+                        .one_or_none()
+                    )
+                    and dashboard_.roles
+                    and (
+                        (
+                            # Native filter.
+                            form_data.get("type") == "NATIVE_FILTER"
+                            and (native_filter_id := form_data.get("native_filter_id"))
+                            and dashboard_.json_metadata
+                            and (json_metadata := json.loads(dashboard_.json_metadata))
+                            and any(
+                                target.get("datasetId") == datasource.id
+                                for fltr in json_metadata.get(
+                                    "native_filter_configuration",
+                                    [],
+                                )
+                                for target in fltr.get("targets", [])
+                                if native_filter_id == fltr.get("id")
+                            )
+                        )
+                        or (
+                            # Chart.
+                            form_data.get("type") != "NATIVE_FILTER"
+                            and (slice_id := form_data.get("slice_id"))
+                            and (
+                                slc := self.get_session.query(Slice)
+                                .filter(Slice.id == slice_id)
+                                .one_or_none()
+                            )
+                            and slc in dashboard_.slices
+                            and slc.datasource == datasource
+                        )
+                    )
+                    and self.can_access_dashboard(dashboard_)
                 )
             ):
                 raise SupersetSecurityException(

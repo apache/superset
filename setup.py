@@ -67,6 +67,10 @@ setup(
         "sqlalchemy.dialects": [
             "postgres.psycopg2 = sqlalchemy.dialects.postgresql:dialect",
             "postgres = sqlalchemy.dialects.postgresql:dialect",
+            "superset = superset.extensions.metadb:SupersetAPSWDialect",
+        ],
+        "shillelagh.adapter": [
+            "superset=superset.extensions.metadb:SupersetShillelaghAdapter"
         ],
     },
     install_requires=[
@@ -81,7 +85,7 @@ setup(
         "cryptography>=41.0.0, <41.0.2",
         "deprecation>=2.1.0, <2.2.0",
         "flask>=2.2.5, <3.0.0",
-        "flask-appbuilder>=4.3.4, <5.0.0",
+        "flask-appbuilder>=4.3.6, <5.0.0",
         "flask-caching>=1.10.1, <2.0",
         "flask-compress>=1.13, <2.0",
         "flask-talisman>=1.0.0, <2.0",
@@ -92,7 +96,7 @@ setup(
         "geopy",
         "gunicorn>=20.1.0; sys_platform != 'win32'",
         "hashids>=1.3.1, <2",
-        "holidays>=0.28, <1.0",
+        "holidays>=0.23, <0.24",
         "humanize",
         "importlib_metadata",
         "isodate",
@@ -115,6 +119,7 @@ setup(
         "PyJWT>=2.4.0, <3.0",
         "redis>=4.5.4, <5.0",
         "selenium>=3.141.0, <4.10.0",
+        "shillelagh>=1.2.6,<2.0",
         "shortid",
         "sshtunnel>=0.4.0, <0.5",
         "simplejson>=3.15.0",
@@ -158,7 +163,7 @@ setup(
         "excel": ["xlrd>=1.2.0, <1.3"],
         "firebird": ["sqlalchemy-firebird>=0.7.0, <0.8"],
         "firebolt": ["firebolt-sqlalchemy>=0.0.1"],
-        "gsheets": ["shillelagh[gsheetsapi]>=1.0.14, <2"],
+        "gsheets": ["shillelagh[gsheetsapi]>=1.2.6, <2"],
         "hana": ["hdbcli==2.4.162", "sqlalchemy_hana==0.4.0"],
         "hive": ["pyhive[hive]>=0.6.5", "tableschema", "thrift>=0.14.1, <1.0.0"],
         "impala": ["impyla>0.16.2, <0.17"],
@@ -177,11 +182,11 @@ setup(
         "postgres": ["psycopg2-binary==2.9.6"],
         "presto": ["pyhive[presto]>=0.6.5"],
         "trino": ["trino>=0.324.0"],
-        "prophet": ["prophet>=1.1.0, <2.0.0"],
+        "prophet": ["prophet==1.1.1"],
         "redshift": ["sqlalchemy-redshift>=0.8.1, < 0.9"],
         "rockset": ["rockset-sqlalchemy>=0.0.1, <1.0.0"],
         "shillelagh": [
-            "shillelagh[datasetteapi,gsheetsapi,socrata,weatherapi]>=1.1.1, <2"
+            "shillelagh[datasetteapi,gsheetsapi,socrata,weatherapi]>=1.2.6,<2"
         ],
         "snowflake": ["snowflake-sqlalchemy>=1.2.4, <2"],
         "spark": ["pyhive[hive]>=0.6.5", "tableschema", "thrift>=0.14.1, <1.0.0"],

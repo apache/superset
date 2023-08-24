@@ -20,8 +20,8 @@ import React from 'react';
 import { shallow } from 'enzyme';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
-import CreatedContent from 'src/profile/components/CreatedContent';
 import TableLoader from 'src/components/TableLoader';
+import CreatedContent from './CreatedContent';
 
 import { user } from './fixtures';
 

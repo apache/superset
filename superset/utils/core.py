@@ -1578,12 +1578,15 @@ def split(
     yield string[i:]
 
 
-def get_iterable(x: Any) -> list[Any]:
+T = TypeVar("T")
+
+
+def as_list(x: T | list[T]) -> list[T]:
     """
-    Get an iterable (list) representation of the object.
+    Wrap an object in a list if it's not a list.
 
     :param x: The object
-    :returns: An iterable representation
+    :returns: A list wrapping the object if it's not already a list
     """
     return x if isinstance(x, list) else [x]
 

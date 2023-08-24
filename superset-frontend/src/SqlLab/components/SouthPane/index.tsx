@@ -107,8 +107,8 @@ const SouthPane = ({
   const dispatch = useDispatch();
 
   const { editorQueries, dataPreviewQueries, databases, offline, user } =
-    useSelector(({ sqlLab }: SqlLabRootState) => {
-      const { databases, offline, user, queries, tables } = sqlLab;
+    useSelector(({ user, sqlLab }: SqlLabRootState) => {
+      const { databases, offline, queries, tables } = sqlLab;
       const dataPreviewQueries = tables
         .filter(
           ({ dataPreviewQueryId, queryEditorId: qeId }) =>
