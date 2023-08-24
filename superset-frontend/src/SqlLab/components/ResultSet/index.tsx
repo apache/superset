@@ -363,14 +363,14 @@ const ResultSet = ({
           >
             <Label
               css={css`
-                line-height: 17px;
+                line-height: ${theme.typography.sizes.l}px;
               `}
             >
               {limitMessage && (
                 <Icons.ExclamationCircleOutlined
                   css={css`
-                    font-size: 12px;
-                    margin-right: 4px;
+                    font-size: ${theme.typography.sizes.m}px;
+                    margin-right: ${theme.gridUnit}px;
                   `}
                 />
               )}
@@ -542,7 +542,7 @@ const ResultSet = ({
                 css={[
                   css`
                     height: 28px;
-                    width: calc(100% - ${ROWS_CHIP_WIDTH - GAP}px);
+                    width: calc(100% - ${ROWS_CHIP_WIDTH + GAP}px);
                     code {
                       width: 100%;
                       overflow: hidden;
