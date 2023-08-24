@@ -92,7 +92,7 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
         # Validate object_id
         if self._objects_to_tag:
             if any(obj_id == 0 for obj_type, obj_id in self._objects_to_tag):
-                exceptions.append(TagCreateFailedError())
+                exceptions.append(TagInvalidError())
 
             # Validate object type
             for obj_type, obj_id in self._objects_to_tag:
