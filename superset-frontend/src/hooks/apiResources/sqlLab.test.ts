@@ -25,7 +25,7 @@ import {
 import { api } from 'src/hooks/apiResources/queryApi';
 import { DEFAULT_COMMON_BOOTSTRAP_DATA } from 'src/constants';
 
-import { useSqlLabInitialStateQuery } from './sqlLab';
+import { useSqlLabInitialState } from './sqlLab';
 
 const fakeApiResult = {
   result: {
@@ -61,7 +61,7 @@ beforeEach(() => {
 });
 
 test('returns api response mapping json result', async () => {
-  const { result, waitFor } = renderHook(() => useSqlLabInitialStateQuery(), {
+  const { result, waitFor } = renderHook(() => useSqlLabInitialState(), {
     wrapper: createWrapper({
       useRedux: true,
       store,
@@ -84,7 +84,7 @@ test('returns api response mapping json result', async () => {
 
 test('returns cached data without api request', async () => {
   const { result, waitFor, rerender } = renderHook(
-    () => useSqlLabInitialStateQuery(),
+    () => useSqlLabInitialState(),
     {
       wrapper: createWrapper({
         store,
