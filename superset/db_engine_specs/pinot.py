@@ -22,7 +22,7 @@ from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
 
 
-class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
+class PinotEngineSpec(BaseEngineSpec):
     engine = "pinot"
     engine_name = "Apache Pinot"
     allows_subqueries = False
@@ -63,7 +63,10 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     @classmethod
     def epoch_ms_to_dttm_(cls) -> str:
-        return "DATETIMECONVERT({col}, '1:MILLISECONDS:EPOCH', '1:MILLISECONDS:EPOCH', '1:MILLISECONDS')"
+        return (
+            "DATETIMECONVERT({col}, '1:MILLISECONDS:EPOCH', "
+            + "'1:MILLISECONDS:EPOCH', '1:MILLISECONDS')"
+        )
 
     @classmethod
     def column_datatype_to_string(
