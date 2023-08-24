@@ -28,10 +28,10 @@ import type {
 } from 'src/SqlLab/types';
 
 export function dedupeTabHistory(tabHistory: string[]) {
-  return tabHistory.reduce(
+  return tabHistory.reduce<string[]>(
     (result, tabId) =>
       result.slice(-1)[0] === tabId ? result : result.concat(tabId),
-    tabHistory.slice(0, 0),
+    [],
   );
 }
 
