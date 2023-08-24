@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryResponse } from '@superset-ui/core';
-import { api, JsonResponse } from './queryApi';
+import type { QueryResponse } from '@superset-ui/core';
+import type { JsonResponse } from './queryApi';
+import { api } from './queryApi';
 
 export type InitialState = {
   active_tab: {
@@ -72,4 +73,5 @@ const queryValidationApi = api.injectEndpoints({
   }),
 });
 
-export const { useSqlLabInitialStateQuery } = queryValidationApi;
+export const { useSqlLabInitialStateQuery: useSqlLabInitialState } =
+  queryValidationApi;
