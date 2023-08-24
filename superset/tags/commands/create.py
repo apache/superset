@@ -99,7 +99,7 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
                 object_type = to_object_type(obj_type)
                 if not object_type:
                     exceptions.append(
-                        TagCreateFailedError(f"invalid object type {object_type}")
+                        TagInvalidError(f"invalid object type {object_type}")
                     )
 
         if exceptions:
