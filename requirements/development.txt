@@ -26,12 +26,8 @@ botocore==1.29.130
     #   s3transfer
 cached-property==1.5.2
     # via tableschema
-certifi==2023.5.7
-    # via requests
 chardet==5.1.0
     # via tabulator
-charset-normalizer==3.1.0
-    # via requests
 decorator==5.1.1
     # via ipython
 dill==0.3.6
@@ -89,7 +85,9 @@ ptyprocess==0.7.0
 pure-eval==0.2.2
     # via stack-data
 pure-sasl==0.6.2
-    # via thrift-sasl
+    # via
+    #   pyhive
+    #   thrift-sasl
 pyasn1==0.5.0
     # via
     #   pyasn1-modules
@@ -98,7 +96,7 @@ pyasn1-modules==0.3.0
     # via python-ldap
 pydruid==0.6.5
     # via apache-superset
-pyhive[hive]==0.6.5
+pyhive[hive_pure_sasl]==0.7.0
     # via apache-superset
 pyinstrument==4.4.0
     # via -r requirements/development.in
@@ -115,8 +113,6 @@ rfc3986==2.0.0
     # via tableschema
 s3transfer==0.6.1
     # via boto3
-sasl==0.3.1
-    # via pyhive
 sqloxide==0.1.33
     # via -r requirements/development.in
 stack-data==0.6.2

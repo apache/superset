@@ -73,7 +73,6 @@ const createProps = () => ({
   fetchFaveStar: jest.fn(),
   fetchCharts: jest.fn(),
   onRefresh: jest.fn(),
-  fetchUISpecificReport: jest.fn(),
   saveFaveStar: jest.fn(),
   savePublished: jest.fn(),
   isPublished: false,

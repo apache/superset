@@ -21,11 +21,11 @@ import { t, styled } from '@superset-ui/core';
 import { Row, Col } from 'src/components';
 import Tabs from 'src/components/Tabs';
 import { BootstrapUser } from 'src/types/bootstrapTypes';
-import Favorites from './Favorites';
-import UserInfo from './UserInfo';
-import Security from './Security';
-import RecentActivity from './RecentActivity';
-import CreatedContent from './CreatedContent';
+import Favorites from 'src/features/profile/Favorites';
+import UserInfo from 'src/features/profile/UserInfo';
+import Security from 'src/features/profile/Security';
+import RecentActivity from 'src/features/profile/RecentActivity';
+import CreatedContent from 'src/features/profile/CreatedContent';
 
 interface AppProps {
   user: BootstrapUser;

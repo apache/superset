@@ -105,6 +105,7 @@ class TestDatasource(SupersetTestCase):
                 "database_name": tbl.database.database_name,
                 "schema_name": tbl.schema,
                 "table_name": tbl.table_name,
+                "normalize_columns": tbl.normalize_columns,
             }
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
@@ -133,6 +134,7 @@ class TestDatasource(SupersetTestCase):
                 "database_name": tbl.database.database_name,
                 "schema_name": tbl.schema,
                 "table_name": tbl.table_name,
+                "normalize_columns": tbl.normalize_columns,
             }
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
@@ -151,6 +153,7 @@ class TestDatasource(SupersetTestCase):
                     "database_name": example_database.database_name,
                     "table_name": "test_table",
                     "schema_name": get_example_default_schema(),
+                    "normalize_columns": False,
                 }
             )
             url = f"/datasource/external_metadata_by_name/?q={params}"
@@ -164,6 +167,7 @@ class TestDatasource(SupersetTestCase):
                 "datasource_type": "table",
                 "database_name": "foo",
                 "table_name": "bar",
+                "normalize_columns": False,
             }
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
@@ -180,6 +184,7 @@ class TestDatasource(SupersetTestCase):
                 "datasource_type": "table",
                 "database_name": example_database.database_name,
                 "table_name": "fooooooooobarrrrrr",
+                "normalize_columns": False,
             }
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
@@ -296,32 +301,6 @@ class TestDatasource(SupersetTestCase):
             else:
                 print(k)
                 self.assertEqual(resp[k], datasource_post[k])
-
-    def test_save_default_endpoint_validation_fail(self):
-        self.login(username="admin")
-        tbl_id = self.get_table(name="birth_names").id
-
-        datasource_post = get_datasource_post()
-        datasource_post["id"] = tbl_id
-        datasource_post["owners"] = [1]
-        datasource_post["default_endpoint"] = "http://www.google.com"
-        data = dict(data=json.dumps(datasource_post))
-        resp = self.client.post("/datasource/save/", data=data)
-        assert resp.status_code == 400
-
-    def test_save_default_endpoint_validation_unsafe(self):
-        self.app.config["PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET"] = False
-        self.login(username="admin")
-        tbl_id = self.get_table(name="birth_names").id
-
-        datasource_post = get_datasource_post()
-        datasource_post["id"] = tbl_id
-        datasource_post["owners"] = [1]
-        datasource_post["default_endpoint"] = "http://www.google.com"
-        data = dict(data=json.dumps(datasource_post))
-        resp = self.client.post("/datasource/save/", data=data)
-        assert resp.status_code == 200
-        self.app.config["PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET"] = True
 
     def test_save_default_endpoint_validation_success(self):
         self.login(username="admin")

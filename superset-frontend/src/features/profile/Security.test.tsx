@@ -18,9 +18,9 @@
  */
 import React from 'react';
 import { styledMount as mount } from 'spec/helpers/theming';
-import Security from 'src/profile/components/Security';
 import Label from 'src/components/Label';
 import { user, userNoPerms } from './fixtures';
+import Security from './Security';
 
 describe('Security', () => {
   const mockedProps = {

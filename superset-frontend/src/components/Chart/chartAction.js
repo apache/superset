@@ -35,8 +35,6 @@ import {
   getQuerySettings,
   getChartDataUri,
 } from 'src/explore/exploreUtils';
-import { requiresQuery } from 'src/modules/AnnotationTypes';
-
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { logEvent } from 'src/logger/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
@@ -228,7 +226,6 @@ export async function getChartDataRequest({
       credentials: 'include',
     };
   }
-
   const [useLegacyApi, parseMethod] = getQuerySettings(formData);
   if (useLegacyApi) {
     return legacyChartDataRequest(
@@ -268,7 +265,7 @@ export function runAnnotationQuery({
       ...(formData || getState().charts[sliceKey].latestQueryFormData),
     };
 
-    if (!requiresQuery(annotation.sourceType)) {
+    if (!annotation.sourceType) {
       return Promise.resolve();
     }
 
