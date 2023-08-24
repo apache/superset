@@ -18,8 +18,9 @@
  */
 /* eslint camelcase: 0 */
 import { t } from '@superset-ui/core';
+import { omit } from 'lodash';
 import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
-import { DatasourcesActionType } from 'src/datasource/actions';
+import { DatasourcesAction } from 'src/dashboard/actions/datasources';
 import { ChartState } from 'src/explore/types';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import { HYDRATE_EXPLORE } from 'src/explore/actions/hydrateExplore';
@@ -130,10 +131,7 @@ export default function chartReducer(
       return { ...state, latestQueryFormData: action.value };
     },
     [actions.ANNOTATION_QUERY_STARTED](state) {
-      if (
-        state.annotationQuery &&
-        state.annotationQuery[action.annotation.name]
-      ) {
+      if (state.annotationQuery?.[action.annotation.name]) {
         state.annotationQuery[action.annotation.name].abort();
       }
       const annotationQuery = {
@@ -183,8 +181,7 @@ export default function chartReducer(
 
   /* eslint-disable no-param-reassign */
   if (action.type === actions.REMOVE_CHART) {
-    delete charts[action.key];
-    return charts;
+    return omit(charts, [action.key]);
   }
   if (action.type === actions.UPDATE_CHART_ID) {
     const { newId, key } = action;
@@ -198,7 +195,7 @@ export default function chartReducer(
   if (action.type === HYDRATE_DASHBOARD || action.type === HYDRATE_EXPLORE) {
     return { ...action.data.charts };
   }
-  if (action.type === DatasourcesActionType.SET_DATASOURCES) {
+  if (action.type === DatasourcesAction.SET_DATASOURCES) {
     return Object.fromEntries(
       Object.entries(charts).map(([chartId, chart]) => [
         chartId,

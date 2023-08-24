@@ -23,11 +23,11 @@ import { Tooltip } from 'src/components/Tooltip';
 import Label from 'src/components/Label';
 
 const propTypes = {
-  dashboardId: PropTypes.number.isRequired,
+  dashboardId: PropTypes.number,
   isPublished: PropTypes.bool.isRequired,
   savePublished: PropTypes.func.isRequired,
-  canEdit: PropTypes.bool.isRequired,
-  canSave: PropTypes.bool.isRequired,
+  canEdit: PropTypes.bool,
+  canSave: PropTypes.bool,
 };
 
 const draftButtonTooltip = t(

@@ -15,7 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict
+from typing import Any
+
+from flask_babel import gettext as _
 
 from superset.charts.commands.exceptions import (
     ChartDataCacheLoadError,
@@ -34,7 +36,7 @@ class ChartDataCommand(BaseCommand):
     def __init__(self, query_context: QueryContext):
         self._query_context = query_context
 
-    def run(self, **kwargs: Any) -> Dict[str, Any]:
+    def run(self, **kwargs: Any) -> dict[str, Any]:
         # caching is handled in query_context.get_df_payload
         # (also evals `force` property)
         cache_query_context = kwargs.get("cache", False)
@@ -49,7 +51,9 @@ class ChartDataCommand(BaseCommand):
         # TODO: QueryContext should support SIP-40 style errors
         for query in payload["queries"]:
             if query.get("error"):
-                raise ChartDataQueryFailedError(f"Error: {query['error']}")
+                raise ChartDataQueryFailedError(
+                    _("Error: %(error)s", error=query["error"])
+                )
 
         return_value = {
             "query_context": self._query_context,

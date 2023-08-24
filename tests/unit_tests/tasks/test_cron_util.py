@@ -14,15 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from datetime import datetime
-from typing import List
 
 import pytest
 import pytz
 from dateutil import parser
-from flask.ctx import AppContext
 from freezegun import freeze_time
-from freezegun.api import FakeDatetime  # type: ignore
+from freezegun.api import FakeDatetime
 
 from superset.tasks.cron_util import cron_schedule_window
 
@@ -50,7 +47,7 @@ from superset.tasks.cron_util import cron_schedule_window
     ],
 )
 def test_cron_schedule_window_los_angeles(
-    app_context: AppContext, current_dttm: str, cron: str, expected: List[FakeDatetime]
+    current_dttm: str, cron: str, expected: list[FakeDatetime]
 ) -> None:
     """
     Reports scheduler: Test cron schedule window for "America/Los_Angeles"
@@ -87,7 +84,7 @@ def test_cron_schedule_window_los_angeles(
     ],
 )
 def test_cron_schedule_window_invalid_timezone(
-    app_context: AppContext, current_dttm: str, cron: str, expected: List[FakeDatetime]
+    current_dttm: str, cron: str, expected: list[FakeDatetime]
 ) -> None:
     """
     Reports scheduler: Test cron schedule window for "invalid timezone"
@@ -125,7 +122,7 @@ def test_cron_schedule_window_invalid_timezone(
     ],
 )
 def test_cron_schedule_window_new_york(
-    app_context: AppContext, current_dttm: str, cron: str, expected: List[FakeDatetime]
+    current_dttm: str, cron: str, expected: list[FakeDatetime]
 ) -> None:
     """
     Reports scheduler: Test cron schedule window for "America/New_York"
@@ -162,7 +159,7 @@ def test_cron_schedule_window_new_york(
     ],
 )
 def test_cron_schedule_window_chicago(
-    app_context: AppContext, current_dttm: str, cron: str, expected: List[FakeDatetime]
+    current_dttm: str, cron: str, expected: list[FakeDatetime]
 ) -> None:
     """
     Reports scheduler: Test cron schedule window for "America/Chicago"
@@ -199,7 +196,7 @@ def test_cron_schedule_window_chicago(
     ],
 )
 def test_cron_schedule_window_chicago_daylight(
-    app_context: AppContext, current_dttm: str, cron: str, expected: List[FakeDatetime]
+    current_dttm: str, cron: str, expected: list[FakeDatetime]
 ) -> None:
     """
     Reports scheduler: Test cron schedule window for "America/Chicago"

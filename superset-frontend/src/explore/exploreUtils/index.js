@@ -61,18 +61,16 @@ export function getHostName(allowDomainSharding = false) {
   return availableDomains[currentIndex];
 }
 
-export function getAnnotationJsonUrl(slice_id, form_data, isNative, force) {
+export function getAnnotationJsonUrl(slice_id, force) {
   if (slice_id === null || slice_id === undefined) {
     return null;
   }
+
   const uri = URI(window.location.search);
-  const endpoint = isNative ? 'annotation_json' : 'slice_json';
   return uri
-    .pathname(`/superset/${endpoint}/${slice_id}`)
+    .pathname('/api/v1/chart/data')
     .search({
-      form_data: safeStringify(form_data, (key, value) =>
-        value === null ? undefined : value,
-      ),
+      form_data: safeStringify({ slice_id }),
       force,
     })
     .toString();
@@ -196,9 +194,12 @@ export function getExploreUrl({
   return uri.search(search).directory(directory).toString();
 }
 
-export const shouldUseLegacyApi = formData => {
+export const getQuerySettings = formData => {
   const vizMetadata = getChartMetadataRegistry().get(formData.viz_type);
-  return vizMetadata ? vizMetadata.useLegacyApi : false;
+  return [
+    vizMetadata?.useLegacyApi ?? false,
+    vizMetadata?.parseMethod ?? 'json-bigint',
+  ];
 };
 
 export const buildV1ChartDataPayload = ({
@@ -245,7 +246,8 @@ export const exportChart = ({
 }) => {
   let url;
   let payload;
-  if (shouldUseLegacyApi(formData)) {
+  const [useLegacyApi, parseMethod] = getQuerySettings(formData);
+  if (useLegacyApi) {
     const endpointType = getLegacyEndpointType({ resultFormat, resultType });
     url = getExploreUrl({
       formData,
@@ -261,6 +263,7 @@ export const exportChart = ({
       resultFormat,
       resultType,
       ownState,
+      parseMethod,
     });
   }
 
@@ -297,7 +300,9 @@ export const getSimpleSQLExpression = (subject, operator, comparator) => {
     [...MULTI_OPERATORS]
       .map(op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation)
       .indexOf(operator) >= 0;
-  let expression = subject ?? '';
+  // If returned value is an object after changing dataset
+  let expression =
+    typeof subject === 'object' ? subject?.column_name ?? '' : subject ?? '';
   if (subject && operator) {
     expression += ` ${operator}`;
     const firstValue =

@@ -26,7 +26,6 @@ const scrollMock = jest.fn();
 Element.prototype.scroll = scrollMock;
 
 const defaultProps = {
-  children: jest.fn(),
   getFilterTitle: (id: string) => id,
   onChange: jest.fn(),
   onAdd: jest.fn(),
@@ -61,13 +60,6 @@ function defaultRender(initialState: any = defaultState, props = defaultProps) {
 
 beforeEach(() => {
   scrollMock.mockClear();
-});
-
-test('renders form', async () => {
-  await act(async () => {
-    defaultRender();
-  });
-  expect(defaultProps.children).toHaveBeenCalledTimes(3);
 });
 
 test('drag and drop', async () => {

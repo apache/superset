@@ -33,6 +33,10 @@ from superset.utils.pandas_postprocessing.resample import resample
 from superset.utils.pandas_postprocessing.rolling import rolling
 from superset.utils.pandas_postprocessing.select import select
 from superset.utils.pandas_postprocessing.sort import sort
+from superset.utils.pandas_postprocessing.utils import (
+    escape_separator,
+    unescape_separator,
+)
 
 __all__ = [
     "aggregate",
@@ -52,4 +56,6 @@ __all__ = [
     "select",
     "sort",
     "flatten",
+    "escape_separator",
+    "unescape_separator",
 ]

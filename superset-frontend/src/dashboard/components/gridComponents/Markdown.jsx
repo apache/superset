@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import cx from 'classnames';
 
-import { t, SafeMarkdown } from '@superset-ui/core';
+import { css, styled, t, SafeMarkdown } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { MarkdownEditor } from 'src/components/AsyncAceEditor';
 
@@ -65,19 +65,55 @@ const propTypes = {
   deleteComponent: PropTypes.func.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
   updateComponents: PropTypes.func.isRequired,
+
+  // HTML sanitization
+  htmlSanitization: PropTypes.bool,
+  htmlSchemaOverrides: PropTypes.object,
 };
 
 const defaultProps = {};
 
-const MARKDOWN_PLACE_HOLDER = `# ✨Markdown
-## ✨Markdown
-### ✨Markdown
+// TODO: localize
+const MARKDOWN_PLACE_HOLDER = `# ✨Header 1
+## ✨Header 2
+### ✨Header 3
 
 <br />
 
-Click here to edit [markdown](https://bit.ly/1dQOfRK)`;
+Click here to learn more about [markdown formatting](https://bit.ly/1dQOfRK)`;
 
 const MARKDOWN_ERROR_MESSAGE = t('This markdown component has an error.');
+
+const MarkdownStyles = styled.div`
+  ${({ theme }) => css`
+    &.dashboard-markdown {
+      overflow: hidden;
+
+      h4,
+      h5,
+      h6 {
+        font-weight: ${theme.typography.weights.normal};
+      }
+
+      h5 {
+        color: ${theme.colors.grayscale.base};
+      }
+
+      h6 {
+        font-size: ${theme.typography.sizes.s}px;
+      }
+
+      .dashboard-component-chart-holder {
+        overflow-y: auto;
+        overflow-x: hidden;
+      }
+
+      .dashboard--editing & {
+        cursor: move;
+      }
+    }
+  `}
+`;
 
 class Markdown extends React.PureComponent {
   constructor(props) {
@@ -265,6 +301,8 @@ class Markdown extends React.PureComponent {
             ? MARKDOWN_ERROR_MESSAGE
             : this.state.markdownSource || MARKDOWN_PLACE_HOLDER
         }
+        htmlSanitization={this.props.htmlSanitization}
+        htmlSchemaOverrides={this.props.htmlSchemaOverrides}
       />
     );
   }
@@ -316,7 +354,7 @@ class Markdown extends React.PureComponent {
             ]}
             editMode={editMode}
           >
-            <div
+            <MarkdownStyles
               data-test="dashboard-markdown-editor"
               className={cx(
                 'dashboard-markdown',
@@ -357,7 +395,7 @@ class Markdown extends React.PureComponent {
                     : this.renderPreviewMode()}
                 </div>
               </ResizableContainer>
-            </div>
+            </MarkdownStyles>
             {dropIndicatorProps && <div {...dropIndicatorProps} />}
           </WithPopoverMenu>
         )}
@@ -373,6 +411,8 @@ function mapStateToProps(state) {
   return {
     undoLength: state.dashboardLayout.past.length,
     redoLength: state.dashboardLayout.future.length,
+    htmlSanitization: state.common.conf.HTML_SANITIZATION,
+    htmlSchemaOverrides: state.common.conf.HTML_SANITIZATION_SCHEMA_EXTENSIONS,
   };
 }
 export default connect(mapStateToProps)(Markdown);

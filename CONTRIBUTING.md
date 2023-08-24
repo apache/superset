@@ -52,7 +52,9 @@ little bit helps, and credit will always be given.
   - [Revert Guidelines](#revert-guidelines)
   - [Setup Local Environment for Development](#setup-local-environment-for-development)
     - [Documentation](#documentation)
-      - [Images](#images)
+      - [Local Development](#local-development)
+      - [Build](#build)
+      - [Deployment](#deployment)
     - [Flask server](#flask-server)
       - [OS Dependencies](#os-dependencies)
       - [Dependencies](#dependencies)
@@ -124,7 +126,7 @@ Here's a list of repositories that contain Superset-related packages:
 
 ## Types of Contributions
 
-### Report Bug
+### Report a Bug
 
 The best way to report a bug is to file an issue on GitHub. Please include:
 
@@ -136,15 +138,17 @@ The best way to report a bug is to file an issue on GitHub. Please include:
 When posting Python stack traces, please quote them using
 [Markdown blocks](https://help.github.com/articles/creating-and-highlighting-code-blocks/).
 
+_Please note that feature requests opened as Github Issues will be moved to Discussions._
+
 ### Submit Ideas or Feature Requests
 
-The best way is to file an issue on GitHub:
+The best way is to start an ["Ideas" Discussion thread](https://github.com/apache/superset/discussions/categories/ideas) on GitHub:
 
 - Explain in detail how it would work.
 - Keep the scope as narrow as possible, to make it easier to implement.
-- Remember that this is a volunteer-driven project, and that contributions are welcome :)
+- Remember that this is a volunteer-driven project, and that your contributions are as welcome as anyone's :)
 
-For large features or major changes to codebase, please create **Superset Improvement Proposal (SIP)**. See template from [SIP-0](https://github.com/apache/superset/issues/5602)
+To propose large features or major changes to codebase, and help usher in those changes, please create a **Superset Improvement Proposal (SIP)**. See template from [SIP-0](https://github.com/apache/superset/issues/5602)
 
 ### Fix Bugs
 
@@ -411,7 +415,7 @@ yarn serve
 
 #### Deployment
 
-Commits to `master` trigger a rebuild and redeploy of the documentation site. Submit pull requests that modify the documention with the `docs:` prefix.
+Commits to `master` trigger a rebuild and redeploy of the documentation site. Submit pull requests that modify the documentation with the `docs:` prefix.
 
 ### Flask server
 
@@ -420,7 +424,7 @@ Commits to `master` trigger a rebuild and redeploy of the documentation site. Su
 Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/installing-superset-from-scratch#os-dependencies) before following these steps.
 You also need to install MySQL or [MariaDB](https://mariadb.com/downloads).
 
-Ensure that you are using Python version 3.8 or 3.9, then proceed with:
+Ensure that you are using Python version 3.8, 3.9, 3.10 or 3.11, then proceed with:
 
 ```bash
 # Create a virtual environment and activate it (recommended)
@@ -449,7 +453,7 @@ superset load-examples
 # Start the Flask dev web server from inside your virtualenv.
 # Note that your page may not have CSS at this point.
 # See instructions below how to build the front-end assets.
-FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
+superset run -p 8088 --with-threads --reload --debugger --debug
 ```
 
 Or you can install via our Makefile
@@ -473,7 +477,7 @@ $ make pre-commit
 via `.flaskenv`, however if needed, it should be set to `superset.app:create_app()`**
 
 If you have made changes to the FAB-managed templates, which are not built the same way as the newer, React-powered front-end assets, you need to start the app without the `--with-threads` argument like so:
-`FLASK_ENV=development superset run -p 8088 --reload --debugger`
+`superset run -p 8088 --reload --debugger --debug`
 
 #### Dependencies
 
@@ -514,7 +518,7 @@ def FLASK_APP_MUTATOR(app):
 Then make sure you run your WSGI server using the right worker type:
 
 ```bash
-FLASK_ENV=development gunicorn "superset.app:create_app()" -k "geventwebsocket.gunicorn.workers.GeventWebSocketWorker" -b 127.0.0.1:8088 --reload
+gunicorn "superset.app:create_app()" -k "geventwebsocket.gunicorn.workers.GeventWebSocketWorker" -b 127.0.0.1:8088 --reload
 ```
 
 You can log anything to the browser console, including objects:
@@ -543,6 +547,11 @@ We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node envi
 ```bash
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install.sh | bash
 
+incase it shows '-bash: nvm: command not found'
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
 cd superset-frontend
 nvm install --lts
 nvm use --lts
@@ -568,6 +577,18 @@ cd superset-frontend
 npm ci
 ```
 
+Note that Superset uses [Scarf](https://docs.scarf.sh) to capture telemetry/analytics about versions being installed, including the `scarf-js` npm package. As noted elsewhere in this documentation, Scarf gathers aggregated stats for the sake of security/release strategy, and does not capture/retain PII. [You can read here](https://docs.scarf.sh/package-analytics/) about the package, and various means to opt out of it, but one easy way to opt out is to add this setting in `superset-frontent/package.json`:
+```json
+// your-package/package.json
+{
+  // ...
+  "scarfSettings": {
+    "enabled": false
+  }
+  // ...
+}
+```
+
 #### Build assets
 
 There are three types of assets you can build:
@@ -575,6 +596,15 @@ There are three types of assets you can build:
 1. `npm run build`: the production assets, CSS/JSS minified and optimized
 2. `npm run dev-server`: local development assets, with sourcemaps and hot refresh support
 3. `npm run build-instrumented`: instrumented application code for collecting code coverage from Cypress tests
+
+If this type of error comes while building assets(i.e using above commands):
+```bash
+Error: You must provide the URL of lib/mappings.wasm by calling SourceMapConsumer.initialize
+```
+Then put this:
+```bash
+export NODE_OPTIONS=--no-experimental-fetch
+```
 
 #### Webpack dev server
 
@@ -585,7 +615,7 @@ So a typical development workflow is the following:
 1. [run Superset locally](#flask-server) using Flask, on port `8088` — but don't access it directly,<br/>
    ```bash
    # Install Superset and dependencies, plus load your virtual environment first, as detailed above.
-   FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
+   superset run -p 8088 --with-threads --reload --debugger --debug
    ```
 2. in parallel, run the Webpack dev server locally on port `9000`,<br/>
    ```bash
@@ -638,7 +668,7 @@ FEATURE_FLAGS = {
 }
 ```
 
-If you want to use the same flag in the client code, also add it to the FeatureFlag TypeScript enum in [@superset-ui/core](https://github.com/apache-superset/superset-ui/blob/master/packages/superset-ui-core/src/utils/featureFlags.ts). For example,
+If you want to use the same flag in the client code, also add it to the FeatureFlag TypeScript enum in [@superset-ui/core](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-ui-core/src/utils/featureFlags.ts). For example,
 
 ```typescript
 export enum FeatureFlag {
@@ -850,10 +880,10 @@ npm install
 npm run cypress-run-chrome
 
 # run tests from a specific file
-npm run cypress-run-chrome -- --spec cypress/integration/explore/link.test.ts
+npm run cypress-run-chrome -- --spec cypress/e2e/explore/link.test.ts
 
 # run specific file with video capture
-npm run cypress-run-chrome -- --spec cypress/integration/dashboard/index.test.js --config video=true
+npm run cypress-run-chrome -- --spec cypress/e2e/dashboard/index.test.js --config video=true
 
 # to open the cypress ui
 npm run cypress-debug
@@ -888,6 +918,39 @@ npm run cypress open
 ```
 
 ### Debugging Server App
+
+#### Local
+
+For debugging locally using VSCode, you can configure a launch configuration file .vscode/launch.json such as
+
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Flask",
+            "type": "python",
+            "request": "launch",
+            "module": "flask",
+            "env": {
+                "FLASK_APP": "superset",
+                "SUPERSET_ENV": "development"
+            },
+            "args": [
+                "run",
+                "-p 8088",
+                "--with-threads",
+                "--reload",
+                "--debugger"
+            ],
+            "jinja": true,
+            "justMyCode": true
+        }
+    ]
+}
+```
+
+#### Docker
 
 Follow these instructions to debug the Flask app running inside a docker container.
 
@@ -966,7 +1029,7 @@ tcp        0      0 0.0.0.0:8088            0.0.0.0:*               LISTEN      
 
 You are now ready to attach a debugger to the process. Using VSCode you can configure a launch configuration file .vscode/launch.json like so.
 
-```
+```json
 {
     "version": "0.2.0",
     "configurations": [
@@ -1028,7 +1091,7 @@ When contributing new React components to Superset, please try to add a Story al
 
 ## Translating
 
-We use [Babel](http://babel.pocoo.org/en/latest/) to translate Superset.
+We use [Flask-Babel](https://python-babel.github.io/flask-babel/) to translate Superset.
 In Python files, we import the magic `_` function using:
 
 ```python
@@ -1293,7 +1356,7 @@ To do this, you'll need to:
 - Start up a celery worker
 
   ```shell script
-  celery --app=superset.tasks.celery_app:app worker -Ofair
+  celery --app=superset.tasks.celery_app:app worker -O fair
   ```
 
 Note that:
@@ -1323,6 +1386,7 @@ The following configuration settings are available for async queries (see config
 - `GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE` - the maximum number of events for all users (FIFO eviction)
 - `GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME` - the async query feature uses a [JWT](https://tools.ietf.org/html/rfc7519) cookie for authentication, this setting is the cookie's name
 - `GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE` - JWT cookie secure option
+- `GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE` - JWT cookie same site option
 - `GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN` - JWT cookie domain option ([see docs for set_cookie](https://tedboy.github.io/flask/interface_api.response_object.html#flask.Response.set_cookie))
 - `GLOBAL_ASYNC_QUERIES_JWT_SECRET` - JWT's use a secret key to sign and validate the contents. This value should be at least 32 bytes and have sufficient randomness for proper security
 - `GLOBAL_ASYNC_QUERIES_TRANSPORT` - available options: "polling" (HTTP, default), "ws" (WebSocket, requires running superset-websocket server)
@@ -1351,13 +1415,11 @@ Note not all fields are correctly categorized. The fields vary based on visualiz
 
 ### Time
 
-| Field               | Type     | Notes                                 |
-| ------------------- | -------- | ------------------------------------- |
-| `druid_time_origin` | _string_ | The Druid **Origin** widget           |
-| `granularity`       | _string_ | The Druid **Time Granularity** widget |
-| `granularity_sqla`  | _string_ | The SQLA **Time Column** widget       |
-| `time_grain_sqla`   | _string_ | The SQLA **Time Grain** widget        |
-| `time_range`        | _string_ | The **Time range** widget             |
+| Field              | Type     | Notes                                 |
+| ------------------ | -------- | ------------------------------------- |
+| `granularity_sqla` | _string_ | The SQLA **Time Column** widget       |
+| `time_grain_sqla`  | _string_ | The SQLA **Time Grain** widget        |
+| `time_range`       | _string_ | The **Time range** widget             |
 
 ### GROUP BY
 

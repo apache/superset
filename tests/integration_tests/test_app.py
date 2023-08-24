@@ -29,5 +29,8 @@ app = create_app()
 def login(
     client: "FlaskClient[Any]", username: str = "admin", password: str = "general"
 ):
-    resp = client.post("/login/", data=dict(username=username, password=password))
+    resp = client.post(
+        "/login/",
+        data=dict(username=username, password=password),
+    ).get_data(as_text=True)
     assert "User confirmation needed" not in resp

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { ExtraFormData } from '../../query';
+import { BinaryQueryObjectFilterClause, ExtraFormData } from '../../query';
 import { JsonObject } from '../..';
 
 export type HandlerFunction = (...args: unknown[]) => void;
@@ -25,6 +25,26 @@ export type HandlerFunction = (...args: unknown[]) => void;
 export enum Behavior {
   INTERACTIVE_CHART = 'INTERACTIVE_CHART',
   NATIVE_FILTER = 'NATIVE_FILTER',
+
+  /**
+   * Include `DRILL_TO_DETAIL` behavior if plugin handles `contextmenu` event
+   * when dimensions are right-clicked on.
+   */
+  DRILL_TO_DETAIL = 'DRILL_TO_DETAIL',
+  DRILL_BY = 'DRILL_BY',
+}
+
+export interface ContextMenuFilters {
+  crossFilter?: {
+    dataMask: DataMask;
+    isCurrentValueSelected?: boolean;
+  };
+  drillToDetail?: BinaryQueryObjectFilterClause[];
+  drillBy?: {
+    filters: BinaryQueryObjectFilterClause[];
+    groupbyFieldName: string;
+    adhocFilterFieldName?: string;
+  };
 }
 
 export enum AppSection {
@@ -72,5 +92,16 @@ export const chartLabelWeight: Record<ChartLabel, { weight: number }> = {
     weight: 0.1,
   },
 };
+
+export enum AxisType {
+  category = 'category',
+  value = 'value',
+  time = 'time',
+  log = 'log',
+}
+
+export interface LegendState {
+  [key: string]: boolean;
+}
 
 export default {};

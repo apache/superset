@@ -18,14 +18,14 @@
  */
 import {
   CategoricalColorNamespace,
-  DataRecordValue,
   getColumnLabel,
   getMetricLabel,
   getNumberFormatter,
   getTimeFormatter,
   NumberFormats,
-  NumberFormatter,
   t,
+  ValueFormatter,
+  getValueFormatter,
 } from '@superset-ui/core';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
 import { EChartsCoreOption, PieSeriesOption } from 'echarts';
@@ -44,8 +44,10 @@ import {
   getLegendProps,
   sanitizeHtml,
 } from '../utils/series';
-import { defaultGrid, defaultTooltip } from '../defaults';
+import { defaultGrid } from '../defaults';
 import { convertInteger } from '../utils/convertInteger';
+import { getDefaultTooltip } from '../utils/tooltip';
+import { Refs } from '../types';
 
 const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
 
@@ -57,7 +59,7 @@ export function formatPieLabel({
 }: {
   params: Pick<CallbackDataParams, 'name' | 'value' | 'percent'>;
   labelType: EchartsPieLabelType;
-  numberFormatter: NumberFormatter;
+  numberFormatter: ValueFormatter;
   sanitizeName?: boolean;
 }): string {
   const { name: rawName = '', value, percent } = params;
@@ -134,8 +136,19 @@ function getTotalValuePadding({
 export default function transformProps(
   chartProps: EchartsPieChartProps,
 ): PieChartTransformedProps {
-  const { formData, height, hooks, filterState, queriesData, width, theme } =
-    chartProps;
+  const {
+    formData,
+    height,
+    hooks,
+    filterState,
+    queriesData,
+    width,
+    theme,
+    inContextMenu,
+    emitCrossFilters,
+    datasource,
+  } = chartProps;
+  const { columnFormats = {}, currencyFormats = {} } = datasource;
   const { data = [] } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
 
@@ -152,12 +165,12 @@ export default function transformProps(
     legendType,
     metric = '',
     numberFormat,
+    currencyFormat,
     dateFormat,
     outerRadius,
     showLabels,
     showLegend,
     showLabelsThreshold,
-    emitFilter,
     sliceId,
     showTotal,
   }: EchartsPieFormData = {
@@ -165,6 +178,7 @@ export default function transformProps(
     ...DEFAULT_PIE_FORM_DATA,
     ...formData,
   };
+  const refs: Refs = {};
   const metricLabel = getMetricLabel(metric);
   const groupbyLabels = groupby.map(getColumnLabel);
   const minShowLabelAngle = (showLabelsThreshold || 0) * 3.6;
@@ -177,26 +191,30 @@ export default function transformProps(
       timeFormatter: getTimeFormatter(dateFormat),
     }),
   );
-  const labelMap = data.reduce(
-    (acc: Record<string, DataRecordValue[]>, datum) => {
-      const label = extractGroupbyLabel({
-        datum,
-        groupby: groupbyLabels,
-        coltypeMapping,
-        timeFormatter: getTimeFormatter(dateFormat),
-      });
-      return {
-        ...acc,
-        [label]: groupbyLabels.map(col => datum[col]),
-      };
-    },
-    {},
-  );
+  const labelMap = data.reduce((acc: Record<string, string[]>, datum) => {
+    const label = extractGroupbyLabel({
+      datum,
+      groupby: groupbyLabels,
+      coltypeMapping,
+      timeFormatter: getTimeFormatter(dateFormat),
+    });
+    return {
+      ...acc,
+      [label]: groupbyLabels.map(col => datum[col] as string),
+    };
+  }, {});
 
-  const { setDataMask = () => {} } = hooks;
+  const { setDataMask = () => {}, onContextMenu } = hooks;
 
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
-  const numberFormatter = getNumberFormatter(numberFormat);
+  const numberFormatter = getValueFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    numberFormat,
+    currencyFormat,
+  );
+
   let totalValue = 0;
 
   const transformedData: PieSeriesOption[] = data.map(datum => {
@@ -296,7 +314,8 @@ export default function transformProps(
       ...defaultGrid,
     },
     tooltip: {
-      ...defaultTooltip,
+      ...getDefaultTooltip(refs),
+      show: !inContextMenu,
       trigger: 'item',
       formatter: (params: any) =>
         formatPieLabel({
@@ -307,7 +326,7 @@ export default function transformProps(
         }),
     },
     legend: {
-      ...getLegendProps(legendType, legendOrientation, showLegend),
+      ...getLegendProps(legendType, legendOrientation, showLegend, theme),
       data: keys,
     },
     graphic: showTotal
@@ -331,9 +350,12 @@ export default function transformProps(
     height,
     echartOptions,
     setDataMask,
-    emitFilter,
     labelMap,
     groupby,
     selectedValues,
+    onContextMenu,
+    refs,
+    emitCrossFilters,
+    coltypeMapping,
   };
 }

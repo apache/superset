@@ -17,9 +17,11 @@
 import dataclasses
 import functools
 import logging
+import os
 import traceback
 from datetime import datetime
-from typing import Any, Callable, cast, Dict, List, Optional, Union
+from importlib.resources import files
+from typing import Any, Callable, cast, Optional, Union
 
 import simplejson as json
 import yaml
@@ -38,13 +40,13 @@ from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
+from flask_appbuilder.security.sqla.models import User
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __, lazy_gettext as _
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_wtf.csrf import CSRFError
 from flask_wtf.form import FlaskForm
-from pkg_resources import resource_filename
-from sqlalchemy import exc, or_
+from sqlalchemy import exc
 from sqlalchemy.orm import Query
 from werkzeug.exceptions import HTTPException
 from wtforms import Form
@@ -56,6 +58,7 @@ from superset import (
     conf,
     db,
     get_feature_flags,
+    is_feature_enabled,
     security_manager,
 )
 from superset.commands.exceptions import CommandException, CommandInvalidError
@@ -70,12 +73,13 @@ from superset.exceptions import (
     SupersetException,
     SupersetSecurityException,
 )
+from superset.extensions import cache_manager
 from superset.models.helpers import ImportExportMixin
-from superset.models.reports import ReportRecipientType
+from superset.reports.models import ReportRecipientType
 from superset.superset_typing import FlaskResponse
 from superset.translations.utils import get_language_pack
 from superset.utils import core as utils
-from superset.utils.core import get_user_id
+from superset.utils.filters import get_dataset_access_filters
 
 from .utils import bootstrap_user_data
 
@@ -91,6 +95,7 @@ FRONTEND_CONF_KEYS = (
     "SQL_MAX_ROW",
     "SUPERSET_WEBSERVER_DOMAINS",
     "SQLLAB_SAVE_WARNING_MESSAGE",
+    "SQLLAB_DEFAULT_DBID",
     "DISPLAY_MAX_ROW",
     "GLOBAL_ASYNC_QUERIES_TRANSPORT",
     "GLOBAL_ASYNC_QUERIES_POLLING_DELAY",
@@ -99,11 +104,24 @@ FRONTEND_CONF_KEYS = (
     "SQLALCHEMY_DISPLAY_TEXT",
     "GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL",
     "DASHBOARD_AUTO_REFRESH_MODE",
+    "DASHBOARD_AUTO_REFRESH_INTERVALS",
+    "DASHBOARD_VIRTUALIZATION",
     "SCHEDULED_QUERIES",
     "EXCEL_EXTENSIONS",
     "CSV_EXTENSIONS",
     "COLUMNAR_EXTENSIONS",
     "ALLOWED_EXTENSIONS",
+    "SAMPLES_ROW_LIMIT",
+    "DEFAULT_TIME_FILTER",
+    "HTML_SANITIZATION",
+    "HTML_SANITIZATION_SCHEMA_EXTENSIONS",
+    "WELCOME_PAGE_LAST_TAB",
+    "VIZ_TYPE_DENYLIST",
+    "ALERT_REPORTS_DEFAULT_CRON_VALUE",
+    "ALERT_REPORTS_DEFAULT_RETENTION",
+    "ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT",
+    "NATIVE_FILTER_DEFAULT_ROW_LIMIT",
+    "PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET",
 )
 
 logger = logging.getLogger(__name__)
@@ -125,11 +143,11 @@ def get_error_msg() -> str:
 def json_error_response(
     msg: Optional[str] = None,
     status: int = 500,
-    payload: Optional[Dict[str, Any]] = None,
+    payload: Optional[dict[str, Any]] = None,
     link: Optional[str] = None,
 ) -> FlaskResponse:
     if not payload:
-        payload = {"error": "{}".format(msg)}
+        payload = {"error": f"{msg}"}
     if link:
         payload["link"] = link
 
@@ -141,9 +159,9 @@ def json_error_response(
 
 
 def json_errors_response(
-    errors: List[SupersetError],
+    errors: list[SupersetError],
     status: int = 500,
-    payload: Optional[Dict[str, Any]] = None,
+    payload: Optional[dict[str, Any]] = None,
 ) -> FlaskResponse:
     if not payload:
         payload = {}
@@ -167,11 +185,42 @@ def data_payload_response(payload_json: str, has_error: bool = False) -> FlaskRe
 
 def generate_download_headers(
     extension: str, filename: Optional[str] = None
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     filename = filename if filename else datetime.now().strftime("%Y%m%d_%H%M%S")
     content_disp = f"attachment; filename={filename}.{extension}"
     headers = {"Content-Disposition": content_disp}
     return headers
+
+
+def deprecated(
+    eol_version: str = "4.0.0",
+    new_target: Optional[str] = None,
+) -> Callable[[Callable[..., FlaskResponse]], Callable[..., FlaskResponse]]:
+    """
+    A decorator to set an API endpoint from SupersetView has deprecated.
+    Issues a log warning
+    """
+
+    def _deprecated(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
+        def wraps(self: "BaseSupersetView", *args: Any, **kwargs: Any) -> FlaskResponse:
+            messsage = (
+                "%s.%s "
+                "This API endpoint is deprecated and will be removed in version %s"
+            )
+            logger_args = [
+                self.__class__.__name__,
+                f.__name__,
+                eol_version,
+            ]
+            if new_target:
+                messsage += " . Use the following API endpoint instead: %s"
+                logger_args.append(new_target)
+            logger.warning(messsage, *logger_args)
+            return f(self, *args, **kwargs)
+
+        return functools.update_wrapper(wraps, f)
+
+    return _deprecated
 
 
 def api(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
@@ -246,14 +295,16 @@ def validate_sqlatable(table: models.SqlaTable) -> None:
             models.SqlaTable.database_id == table.database.id,
         )
         if db.session.query(table_query.exists()).scalar():
-            raise Exception(get_dataset_exist_error_msg(table.full_name))
+            raise Exception(  # pylint: disable=broad-exception-raised
+                get_dataset_exist_error_msg(table.full_name)
+            )
 
     # Fail before adding if the table can't be found
     try:
         table.get_sqla_table_object()
     except Exception as ex:
         logger.exception("Got an error in pre_add for %s", table.name)
-        raise Exception(
+        raise Exception(  # pylint: disable=broad-exception-raised
             _(
                 "Table [%{table}s] could not be found, "
                 "please double check your "
@@ -261,12 +312,6 @@ def validate_sqlatable(table: models.SqlaTable) -> None:
                 "table name, error: {}"
             ).format(table.name, str(ex))
         ) from ex
-
-
-def create_table_permissions(table: models.SqlaTable) -> None:
-    security_manager.add_permission_view_menu("datasource_access", table.get_perm())
-    if table.schema:
-        security_manager.add_permission_view_menu("schema_access", table.schema_perm)
 
 
 class BaseSupersetView(BaseView):
@@ -281,7 +326,7 @@ class BaseSupersetView(BaseView):
     def render_app_template(self) -> FlaskResponse:
         payload = {
             "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(),
+            "common": common_bootstrap_payload(g.user),
         }
         return self.render_template(
             "superset/spa.html",
@@ -292,7 +337,31 @@ class BaseSupersetView(BaseView):
         )
 
 
-def menu_data() -> Dict[str, Any]:
+def get_environment_tag() -> dict[str, Any]:
+    # Whether flask is in debug mode (--debug)
+    debug = appbuilder.app.config["DEBUG"]
+
+    # Getting the configuration option for ENVIRONMENT_TAG_CONFIG
+    env_tag_config = appbuilder.app.config["ENVIRONMENT_TAG_CONFIG"]
+
+    # These are the predefined templates define in the config
+    env_tag_templates = env_tag_config.get("values")
+
+    # This is the environment variable name from which to select the template
+    # default is SUPERSET_ENV (from FLASK_ENV in previous versions)
+    env_envvar = env_tag_config.get("variable")
+
+    # this is the actual name we want to use
+    env_name = os.environ.get(env_envvar)
+
+    if not env_name or env_name not in env_tag_templates.keys():
+        env_name = "debug" if debug else None
+
+    env_tag = env_tag_templates.get(env_name)
+    return env_tag or {}
+
+
+def menu_data(user: User) -> dict[str, Any]:
     menu = appbuilder.menu.get_data()
 
     languages = {}
@@ -305,43 +374,52 @@ def menu_data() -> Dict[str, Any]:
     if callable(brand_text):
         brand_text = brand_text()
     build_number = appbuilder.app.config["BUILD_NUMBER"]
+
     return {
         "menu": menu,
         "brand": {
-            "path": appbuilder.app.config["LOGO_TARGET_PATH"] or "/",
+            "path": appbuilder.app.config["LOGO_TARGET_PATH"] or "/superset/welcome/",
             "icon": appbuilder.app_icon,
             "alt": appbuilder.app_name,
             "tooltip": appbuilder.app.config["LOGO_TOOLTIP"],
             "text": brand_text,
         },
+        "environment_tag": get_environment_tag(),
         "navbar_right": {
-            # show the watermark if the default app icon has been overriden
+            # show the watermark if the default app icon has been overridden
             "show_watermark": ("superset-logo-horiz" not in appbuilder.app_icon),
             "bug_report_url": appbuilder.app.config["BUG_REPORT_URL"],
+            "bug_report_icon": appbuilder.app.config["BUG_REPORT_ICON"],
+            "bug_report_text": appbuilder.app.config["BUG_REPORT_TEXT"],
             "documentation_url": appbuilder.app.config["DOCUMENTATION_URL"],
+            "documentation_icon": appbuilder.app.config["DOCUMENTATION_ICON"],
+            "documentation_text": appbuilder.app.config["DOCUMENTATION_TEXT"],
             "version_string": appbuilder.app.config["VERSION_STRING"],
             "version_sha": appbuilder.app.config["VERSION_SHA"],
             "build_number": build_number,
             "languages": languages,
             "show_language_picker": len(languages.keys()) > 1,
-            "user_is_anonymous": g.user.is_anonymous,
+            "user_is_anonymous": user.is_anonymous,
             "user_info_url": None
-            if appbuilder.app.config["MENU_HIDE_USER_INFO"]
+            if is_feature_enabled("MENU_HIDE_USER_INFO")
             else appbuilder.get_url_for_userinfo,
             "user_logout_url": appbuilder.get_url_for_logout,
             "user_login_url": appbuilder.get_url_for_login,
             "user_profile_url": None
-            if g.user.is_anonymous or appbuilder.app.config["MENU_HIDE_USER_INFO"]
-            else f"/superset/profile/{g.user.username}",
+            if user.is_anonymous or is_feature_enabled("MENU_HIDE_USER_INFO")
+            else "/profile/",
             "locale": session.get("locale", "en"),
         },
     }
 
 
-def common_bootstrap_payload() -> Dict[str, Any]:
-    """Common data always sent to the client"""
-    messages = get_flashed_messages(with_categories=True)
-    locale = str(get_locale())
+@cache_manager.cache.memoize(timeout=60)
+def cached_common_bootstrap_data(user: User, locale: str) -> dict[str, Any]:
+    """Common data always sent to the client
+
+    The function is memoized as the return value only changes when user permissions
+    or configuration values change.
+    """
 
     # should not expose API TOKEN to frontend
     frontend_config = {
@@ -364,18 +442,26 @@ def common_bootstrap_payload() -> Dict[str, Any]:
     frontend_config["HAS_GSHEETS_INSTALLED"] = bool(available_specs[GSheetsEngineSpec])
 
     bootstrap_data = {
-        "flash_messages": messages,
         "conf": frontend_config,
         "locale": locale,
         "language_pack": get_language_pack(locale),
+        "d3_format": conf.get("D3_FORMAT"),
+        "currencies": conf.get("CURRENCIES"),
         "feature_flags": get_feature_flags(),
         "extra_sequential_color_schemes": conf["EXTRA_SEQUENTIAL_COLOR_SCHEMES"],
         "extra_categorical_color_schemes": conf["EXTRA_CATEGORICAL_COLOR_SCHEMES"],
         "theme_overrides": conf["THEME_OVERRIDES"],
-        "menu_data": menu_data(),
+        "menu_data": menu_data(user),
     }
     bootstrap_data.update(conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
     return bootstrap_data
+
+
+def common_bootstrap_payload(user: User) -> dict[str, Any]:
+    return {
+        **cached_common_bootstrap_data(user, get_locale()),
+        "flash_messages": get_flashed_messages(with_categories=True),
+    }
 
 
 def get_error_level_from_status_code(  # pylint: disable=invalid-name
@@ -421,8 +507,8 @@ def show_http_exception(ex: HTTPException) -> FlaskResponse:
         and not config["DEBUG"]
         and ex.code in {404, 500}
     ):
-        path = resource_filename("superset", f"static/assets/{ex.code}.html")
-        return send_file(path, cache_timeout=0), ex.code
+        path = files("superset") / f"static/assets/{ex.code}.html"
+        return send_file(path, max_age=0), ex.code
 
     return json_errors_response(
         errors=[
@@ -443,8 +529,8 @@ def show_http_exception(ex: HTTPException) -> FlaskResponse:
 def show_command_errors(ex: CommandException) -> FlaskResponse:
     logger.warning("CommandException", exc_info=True)
     if "text/html" in request.accept_mimetypes and not config["DEBUG"]:
-        path = resource_filename("superset", "static/assets/500.html")
-        return send_file(path, cache_timeout=0), 500
+        path = files("superset") / "static/assets/500.html"
+        return send_file(path, max_age=0), 500
 
     extra = ex.normalized_messages() if isinstance(ex, CommandInvalidError) else {}
     return json_errors_response(
@@ -465,8 +551,8 @@ def show_command_errors(ex: CommandException) -> FlaskResponse:
 def show_unexpected_exception(ex: Exception) -> FlaskResponse:
     logger.exception(ex)
     if "text/html" in request.accept_mimetypes and not config["DEBUG"]:
-        path = resource_filename("superset", "static/assets/500.html")
-        return send_file(path, cache_timeout=0), 500
+        path = files("superset") / "static/assets/500.html"
+        return send_file(path, max_age=0), 500
 
     return json_errors_response(
         errors=[
@@ -480,10 +566,10 @@ def show_unexpected_exception(ex: Exception) -> FlaskResponse:
 
 
 @superset_app.context_processor
-def get_common_bootstrap_data() -> Dict[str, Any]:
+def get_common_bootstrap_data() -> dict[str, Any]:
     def serialize_bootstrap_data() -> str:
         return json.dumps(
-            {"common": common_bootstrap_payload()},
+            {"common": common_bootstrap_payload(g.user)},
             default=utils.pessimistic_json_iso_dttm_ser,
         )
 
@@ -501,7 +587,7 @@ class SupersetModelView(ModelView):
     def render_app_template(self) -> FlaskResponse:
         payload = {
             "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(),
+            "common": common_bootstrap_payload(g.user),
         }
         return self.render_template(
             "superset/spa.html",
@@ -525,7 +611,9 @@ def validate_json(form: Form, field: Field) -> None:  # pylint: disable=unused-a
         json.loads(field.data)
     except Exception as ex:
         logger.exception(ex)
-        raise Exception(_("json isn't valid")) from ex
+        raise Exception(  # pylint: disable=broad-exception-raised
+            _("json isn't valid")
+        ) from ex
 
 
 class YamlExportMixin:  # pylint: disable=too-few-public-methods
@@ -538,7 +626,7 @@ class YamlExportMixin:  # pylint: disable=too-few-public-methods
 
     @action("yaml_export", __("Export to YAML"), __("Export to YAML?"), "fa-download")
     def yaml_export(
-        self, items: Union[ImportExportMixin, List[ImportExportMixin]]
+        self, items: Union[ImportExportMixin, list[ImportExportMixin]]
     ) -> FlaskResponse:
         if not isinstance(items, list):
             items = [items]
@@ -555,7 +643,7 @@ class YamlExportMixin:  # pylint: disable=too-few-public-methods
 class DeleteMixin:  # pylint: disable=too-few-public-methods
     def _delete(self: BaseView, primary_key: int) -> None:
         """
-        Delete function logic, override to implement diferent logic
+        Delete function logic, override to implement different logic
         deletes the record with primary_key = primary_key
 
         :param primary_key:
@@ -595,7 +683,7 @@ class DeleteMixin:  # pylint: disable=too-few-public-methods
     @action(
         "muldelete", __("Delete"), __("Delete all Really?"), "fa-trash", single=False
     )
-    def muldelete(self: BaseView, items: List[Model]) -> FlaskResponse:
+    def muldelete(self: BaseView, items: list[Model]) -> FlaskResponse:
         if not items:
             abort(404)
         for item in items:
@@ -613,20 +701,11 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: Query, value: Any) -> Query:
         if security_manager.can_access_all_datasources():
             return query
-        datasource_perms = security_manager.user_view_menu_names("datasource_access")
-        schema_perms = security_manager.user_view_menu_names("schema_access")
-        owner_ids_query = (
-            db.session.query(models.SqlaTable.id)
-            .join(models.SqlaTable.owners)
-            .filter(security_manager.user_model.id == get_user_id())
+        query = query.join(
+            models.Database,
+            models.Database.id == self.model.database_id,
         )
-        return query.filter(
-            or_(
-                self.model.perm.in_(datasource_perms),
-                self.model.schema_perm.in_(schema_perms),
-                models.SqlaTable.id.in_(owner_ids_query),
-            )
-        )
+        return query.filter(get_dataset_access_filters(self.model))
 
 
 class CsvResponse(Response):
@@ -638,8 +717,19 @@ class CsvResponse(Response):
     default_mimetype = "text/csv"
 
 
+class XlsxResponse(Response):
+    """
+    Override Response to use xlsx mimetype
+    """
+
+    charset = "utf-8"
+    default_mimetype = (
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+
 def bind_field(
-    _: Any, form: DynamicForm, unbound_field: UnboundField, options: Dict[Any, Any]
+    _: Any, form: DynamicForm, unbound_field: UnboundField, options: dict[Any, Any]
 ) -> Field:
     """
     Customize how fields are bound by stripping all whitespace.
@@ -663,7 +753,7 @@ def apply_http_headers(response: Response) -> Response:
     """Applies the configuration's http headers to all responses"""
 
     # HTTP_HEADERS is deprecated, this provides backwards compatibility
-    response.headers.extend(  # type: ignore
+    response.headers.extend(
         {**config["OVERRIDE_HTTP_HEADERS"], **config["HTTP_HEADERS"]}
     )
 

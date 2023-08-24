@@ -1,6 +1,6 @@
-/* eslint-disable import/prefer-default-export */
 import { DatasourceType } from '@superset-ui/core';
-import { Dataset } from '@superset-ui/chart-controls';
+import { Datasource } from 'src/dashboard/types';
+import { DASHBOARD_ROOT_ID } from './util/constants';
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,7 +19,7 @@ import { Dataset } from '@superset-ui/chart-controls';
  * specific language governing permissions and limitations
  * under the License.
  */
-export const PLACEHOLDER_DATASOURCE: Dataset = {
+export const PLACEHOLDER_DATASOURCE: Datasource = {
   id: 0,
   type: DatasourceType.Table,
   uid: '_placeholder_',
@@ -28,7 +28,8 @@ export const PLACEHOLDER_DATASOURCE: Dataset = {
   columns: [],
   column_types: [],
   metrics: [],
-  column_format: {},
+  column_formats: {},
+  currency_formats: {},
   verbose_map: {},
   main_dttm_col: '',
   description: '',
@@ -37,6 +38,13 @@ export const PLACEHOLDER_DATASOURCE: Dataset = {
 export const MAIN_HEADER_HEIGHT = 53;
 export const CLOSED_FILTER_BAR_WIDTH = 32;
 export const OPEN_FILTER_BAR_WIDTH = 260;
+export const OPEN_FILTER_BAR_MAX_WIDTH = 550;
 export const FILTER_BAR_HEADER_HEIGHT = 80;
 export const FILTER_BAR_TABS_HEIGHT = 46;
 export const BUILDER_SIDEPANEL_WIDTH = 374;
+export const OVERWRITE_INSPECT_FIELDS = ['css', 'json_metadata.filter_scopes'];
+
+export const DEFAULT_CROSS_FILTER_SCOPING = {
+  rootPath: [DASHBOARD_ROOT_ID],
+  excluded: [],
+};

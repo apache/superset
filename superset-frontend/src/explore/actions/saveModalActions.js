@@ -16,9 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import rison from 'rison';
 import { SupersetClient, t } from '@superset-ui/core';
 import { addSuccessToast } from 'src/components/MessageToasts/actions';
+import { isEmpty } from 'lodash';
 import { buildV1ChartDataPayload } from '../exploreUtils';
+import { Operators } from '../constants';
+
+const ADHOC_FILTER_REGEX = /^adhoc_filters/;
 
 export const FETCH_DASHBOARDS_SUCCEEDED = 'FETCH_DASHBOARDS_SUCCEEDED';
 export function fetchDashboardsSucceeded(choices) {
@@ -30,21 +35,10 @@ export function fetchDashboardsFailed(userId) {
   return { type: FETCH_DASHBOARDS_FAILED, userId };
 }
 
-export function fetchDashboards(userId) {
-  return function fetchDashboardsThunk(dispatch) {
-    return SupersetClient.get({
-      endpoint: `/dashboardasync/api/read?_flt_0_owners=${userId}`,
-    })
-      .then(({ json }) => {
-        const choices = json.pks.map((id, index) => ({
-          value: id,
-          label: (json.result[index] || {}).dashboard_title,
-        }));
-
-        return dispatch(fetchDashboardsSucceeded(choices));
-      })
-      .catch(() => dispatch(fetchDashboardsFailed(userId)));
-  };
+export const SET_SAVE_CHART_MODAL_VISIBILITY =
+  'SET_SAVE_CHART_MODAL_VISIBILITY';
+export function setSaveChartModalVisibility(isVisible) {
+  return { type: SET_SAVE_CHART_MODAL_VISIBILITY, isVisible };
 }
 
 export const SAVE_SLICE_FAILED = 'SAVE_SLICE_FAILED';
@@ -56,21 +50,53 @@ export function saveSliceSuccess(data) {
   return { type: SAVE_SLICE_SUCCESS, data };
 }
 
-export const REMOVE_SAVE_MODAL_ALERT = 'REMOVE_SAVE_MODAL_ALERT';
-export function removeSaveModalAlert() {
-  return { type: REMOVE_SAVE_MODAL_ALERT };
-}
+const extractAddHocFiltersFromFormData = formDataToHandle =>
+  Object.entries(formDataToHandle).reduce(
+    (acc, [key, value]) =>
+      ADHOC_FILTER_REGEX.test(key)
+        ? { ...acc, [key]: value?.filter(f => !f.isExtra) }
+        : acc,
+    {},
+  );
 
 export const getSlicePayload = (
   sliceName,
   formDataWithNativeFilters,
+  dashboards,
   owners,
+  formDataFromSlice = {},
 ) => {
+  let adhocFilters = extractAddHocFiltersFromFormData(
+    formDataWithNativeFilters,
+  );
+
+  // Retain adhoc_filters from the slice if no adhoc_filters are present
+  // after overwriting a chart.  This ensures the dashboard can continue
+  // to filter the chart. Before, any time range filter applied in the dashboard
+  // would end up as an extra filter and when overwriting the chart the original
+  // time range adhoc_filter was lost
+  if (isEmpty(adhocFilters?.adhoc_filters) && !isEmpty(formDataFromSlice)) {
+    adhocFilters = extractAddHocFiltersFromFormData(formDataFromSlice);
+  }
+
+  if (
+    isEmpty(adhocFilters?.adhoc_filters) &&
+    isEmpty(formDataFromSlice) &&
+    formDataWithNativeFilters?.adhoc_filters?.[0]?.operator ===
+      Operators.TEMPORAL_RANGE
+  ) {
+    adhocFilters.adhoc_filters = [
+      {
+        ...formDataWithNativeFilters.adhoc_filters[0],
+        comparator: 'No filter',
+      },
+    ];
+  }
+
   const formData = {
     ...formDataWithNativeFilters,
-    adhoc_filters: formDataWithNativeFilters.adhoc_filters?.filter(
-      f => !f.isExtra,
-    ),
+    ...adhocFilters,
+    dashboards,
   };
 
   const [datasourceId, datasourceType] = formData.datasource.split('__');
@@ -80,7 +106,7 @@ export const getSlicePayload = (
     viz_type: formData.viz_type,
     datasource_id: parseInt(datasourceId, 10),
     datasource_type: datasourceType,
-    dashboards: formData.dashboards,
+    dashboards,
     owners,
     query_context: JSON.stringify(
       buildV1ChartDataPayload({
@@ -135,12 +161,24 @@ const addToasts = (isNewSlice, sliceName, addedToDashboard) => {
 
 //  Update existing slice
 export const updateSlice =
-  ({ slice_id: sliceId, owners }, sliceName, formData, addedToDashboard) =>
-  async dispatch => {
+  (slice, sliceName, dashboards, addedToDashboard) =>
+  async (dispatch, getState) => {
+    const { slice_id: sliceId, owners, form_data: formDataFromSlice } = slice;
+    const {
+      explore: {
+        form_data: { url_params: _, ...formData },
+      },
+    } = getState();
     try {
       const response = await SupersetClient.put({
         endpoint: `/api/v1/chart/${sliceId}`,
-        jsonPayload: getSlicePayload(sliceName, formData, owners),
+        jsonPayload: getSlicePayload(
+          sliceName,
+          formData,
+          dashboards,
+          owners,
+          formDataFromSlice,
+        ),
       });
 
       dispatch(saveSliceSuccess());
@@ -154,11 +192,16 @@ export const updateSlice =
 
 //  Create new slice
 export const createSlice =
-  (sliceName, formData, addedToDashboard) => async dispatch => {
+  (sliceName, dashboards, addedToDashboard) => async (dispatch, getState) => {
+    const {
+      explore: {
+        form_data: { url_params: _, ...formData },
+      },
+    } = getState();
     try {
       const response = await SupersetClient.post({
         endpoint: `/api/v1/chart/`,
-        jsonPayload: getSlicePayload(sliceName, formData),
+        jsonPayload: getSlicePayload(sliceName, formData, dashboards),
       });
 
       dispatch(saveSliceSuccess());
@@ -185,14 +228,16 @@ export const createDashboard = dashboardName => async dispatch => {
   }
 };
 
-//  Get existing dashboard from ID
-export const getDashboard = dashboardId => async dispatch => {
+//  Get dashboards the slice is added to
+export const getSliceDashboards = slice => async dispatch => {
   try {
     const response = await SupersetClient.get({
-      endpoint: `/api/v1/dashboard/${dashboardId}`,
+      endpoint: `/api/v1/chart/${slice.slice_id}?q=${rison.encode({
+        columns: ['dashboards.id'],
+      })}`,
     });
 
-    return response.json;
+    return response.json.result.dashboards.map(({ id }) => id);
   } catch (error) {
     dispatch(saveSliceFailed());
     throw error;

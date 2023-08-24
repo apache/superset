@@ -17,7 +17,6 @@
 """Loads datasets, dashboards and slices in a new superset instance"""
 import json
 import os
-from typing import List
 
 import pandas as pd
 from sqlalchemy import DateTime, inspect, String
@@ -33,7 +32,7 @@ from superset.utils.core import DatasourceType
 
 from ..connectors.base.models import BaseDatasource
 from .helpers import (
-    get_example_data,
+    get_example_url,
     get_examples_folder,
     get_slice_json,
     get_table_connector_registry,
@@ -51,37 +50,37 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
     """Loads the world bank health dataset, slices and a dashboard"""
     tbl_name = "wb_health_population"
     database = superset.utils.database.get_example_database()
-    engine = database.get_sqla_engine()
-    schema = inspect(engine).default_schema_name
-    table_exists = database.has_table_by_name(tbl_name)
+    with database.get_sqla_engine_with_context() as engine:
+        schema = inspect(engine).default_schema_name
+        table_exists = database.has_table_by_name(tbl_name)
 
-    if not only_metadata and (not table_exists or force):
-        data = get_example_data("countries.json.gz")
-        pdf = pd.read_json(data)
-        pdf.columns = [col.replace(".", "_") for col in pdf.columns]
-        if database.backend == "presto":
-            pdf.year = pd.to_datetime(pdf.year)
-            pdf.year = pdf.year.dt.strftime("%Y-%m-%d %H:%M%:%S")
-        else:
-            pdf.year = pd.to_datetime(pdf.year)
-        pdf = pdf.head(100) if sample else pdf
+        if not only_metadata and (not table_exists or force):
+            url = get_example_url("countries.json.gz")
+            pdf = pd.read_json(url, compression="gzip")
+            pdf.columns = [col.replace(".", "_") for col in pdf.columns]
+            if database.backend == "presto":
+                pdf.year = pd.to_datetime(pdf.year)
+                pdf.year = pdf.year.dt.strftime("%Y-%m-%d %H:%M%:%S")
+            else:
+                pdf.year = pd.to_datetime(pdf.year)
+            pdf = pdf.head(100) if sample else pdf
 
-        pdf.to_sql(
-            tbl_name,
-            engine,
-            schema=schema,
-            if_exists="replace",
-            chunksize=50,
-            dtype={
-                # TODO(bkyryliuk): use TIMESTAMP type for presto
-                "year": DateTime if database.backend != "presto" else String(255),
-                "country_code": String(3),
-                "country_name": String(255),
-                "region": String(255),
-            },
-            method="multi",
-            index=False,
-        )
+            pdf.to_sql(
+                tbl_name,
+                engine,
+                schema=schema,
+                if_exists="replace",
+                chunksize=50,
+                dtype={
+                    # TODO(bkyryliuk): use TIMESTAMP type for presto
+                    "year": DateTime if database.backend != "presto" else String(255),
+                    "country_code": String(3),
+                    "country_name": String(255),
+                    "region": String(255),
+                },
+                method="multi",
+                index=False,
+            )
 
     print("Creating table [wb_health_population] reference")
     table = get_table_connector_registry()
@@ -139,7 +138,7 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
     db.session.commit()
 
 
-def create_slices(tbl: BaseDatasource) -> List[Slice]:
+def create_slices(tbl: BaseDatasource) -> list[Slice]:
     metric = "sum__SP_POP_TOTL"
     metrics = ["sum__SP_POP_TOTL"]
     secondary_metric = {
@@ -343,15 +342,15 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         ),
         Slice(
             slice_name="Treemap",
-            viz_type="treemap",
+            viz_type="treemap_v2",
             datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 since="1960-01-01",
                 until="now",
-                viz_type="treemap",
-                metrics=["sum__SP_POP_TOTL"],
+                viz_type="treemap_v2",
+                metric="sum__SP_POP_TOTL",
                 groupby=["region", "country_code"],
             ),
         ),

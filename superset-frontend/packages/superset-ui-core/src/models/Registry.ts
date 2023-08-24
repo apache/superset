@@ -169,7 +169,7 @@ export default class Registry<
     const item = this.items[key];
     if (item !== undefined) {
       if ('loader' in item) {
-        return item.loader && item.loader();
+        return item.loader?.();
       }
 
       return item.value;

@@ -15,15 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Any, Dict
+from typing import Any
 
 from marshmallow import Schema
 from sqlalchemy.orm import Session
 
 from superset.commands.importers.v1 import ImportModelsCommand
+from superset.daos.database import DatabaseDAO
 from superset.databases.commands.exceptions import DatabaseImportError
 from superset.databases.commands.importers.v1.utils import import_database
-from superset.databases.dao import DatabaseDAO
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.commands.importers.v1.utils import import_dataset
 from superset.datasets.schemas import ImportV1DatasetSchema
@@ -36,7 +36,7 @@ class ImportDatabasesCommand(ImportModelsCommand):
     dao = DatabaseDAO
     model_name = "database"
     prefix = "databases/"
-    schemas: Dict[str, Schema] = {
+    schemas: dict[str, Schema] = {
         "databases/": ImportV1DatabaseSchema(),
         "datasets/": ImportV1DatasetSchema(),
     }
@@ -44,10 +44,10 @@ class ImportDatabasesCommand(ImportModelsCommand):
 
     @staticmethod
     def _import(
-        session: Session, configs: Dict[str, Any], overwrite: bool = False
+        session: Session, configs: dict[str, Any], overwrite: bool = False
     ) -> None:
         # first import databases
-        database_ids: Dict[str, int] = {}
+        database_ids: dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/"):
                 database = import_database(session, config, overwrite=overwrite)

@@ -17,10 +17,33 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 import Tabs from 'src/components/Tabs';
 import { ResultTypes, ResultsPaneProps } from '../types';
 import { useResultsPane } from './useResultsPane';
+
+const Wrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  .ant-tabs {
+    height: 100%;
+  }
+
+  .ant-tabs-content {
+    height: 100%;
+  }
+
+  .ant-tabs-tabpane {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .table-condensed {
+    overflow: auto;
+  }
+`;
 
 export const ResultsPaneOnDashboard = ({
   isRequest,
@@ -42,8 +65,9 @@ export const ResultsPaneOnDashboard = ({
     dataSize,
     isVisible,
   });
+
   if (resultsPanes.length === 1) {
-    return resultsPanes[0];
+    return <Wrapper>{resultsPanes[0]}</Wrapper>;
   }
 
   const panes = resultsPanes.map((pane, idx) => {
@@ -65,5 +89,9 @@ export const ResultsPaneOnDashboard = ({
     );
   });
 
-  return <Tabs fullWidth={false}> {panes} </Tabs>;
+  return (
+    <Wrapper>
+      <Tabs fullWidth={false}>{panes}</Tabs>
+    </Wrapper>
+  );
 };

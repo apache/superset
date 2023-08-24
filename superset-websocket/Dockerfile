@@ -12,13 +12,28 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM node:16
+FROM node:16-alpine as build
 
 WORKDIR /home/superset-websocket
 
-COPY . .
+COPY . ./
 
-RUN npm ci
-RUN npm run build
+RUN npm ci && \
+  npm run build
 
-CMD ["npm", "start"]
+
+FROM node:16-alpine
+
+ENV NODE_ENV=production
+WORKDIR /home/superset-websocket
+
+COPY --from=build /home/superset-websocket/dist ./dist
+COPY package*.json ./
+
+# Only install production dependencies
+RUN npm ci --omit=dev
+
+# Don't run as root!
+USER node
+
+CMD [ "npm", "start" ]

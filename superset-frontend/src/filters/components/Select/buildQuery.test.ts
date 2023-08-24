@@ -41,7 +41,7 @@ describe('Select buildQuery', () => {
     const queryContext = buildQuery(formData);
     expect(queryContext.queries.length).toEqual(1);
     const [query] = queryContext.queries;
-    expect(query.groupby).toEqual(['my_col']);
+    expect(query.columns).toEqual(['my_col']);
     expect(query.filters).toEqual([]);
     expect(query.metrics).toEqual([]);
     expect(query.orderby).toEqual([]);
@@ -55,7 +55,7 @@ describe('Select buildQuery', () => {
     });
     expect(queryContext.queries.length).toEqual(1);
     const [query] = queryContext.queries;
-    expect(query.groupby).toEqual(['my_col']);
+    expect(query.columns).toEqual(['my_col']);
     expect(query.metrics).toEqual(['my_metric']);
     expect(query.orderby).toEqual([['my_metric', false]]);
   });
@@ -68,7 +68,7 @@ describe('Select buildQuery', () => {
     });
     expect(queryContext.queries.length).toEqual(1);
     const [query] = queryContext.queries;
-    expect(query.groupby).toEqual(['my_col']);
+    expect(query.columns).toEqual(['my_col']);
     expect(query.metrics).toEqual(['my_metric']);
     expect(query.orderby).toEqual([['my_metric', true]]);
   });
@@ -80,7 +80,7 @@ describe('Select buildQuery', () => {
     });
     expect(queryContext.queries.length).toEqual(1);
     const [query] = queryContext.queries;
-    expect(query.groupby).toEqual(['my_col']);
+    expect(query.columns).toEqual(['my_col']);
     expect(query.metrics).toEqual([]);
     expect(query.orderby).toEqual([['my_col', true]]);
   });
@@ -92,12 +92,12 @@ describe('Select buildQuery', () => {
     });
     expect(queryContext.queries.length).toEqual(1);
     const [query] = queryContext.queries;
-    expect(query.groupby).toEqual(['my_col']);
+    expect(query.columns).toEqual(['my_col']);
     expect(query.metrics).toEqual([]);
     expect(query.orderby).toEqual([['my_col', false]]);
   });
 
-  it('should add text search parameter to query filter', () => {
+  it('should add text search parameter for string to query filter', () => {
     const queryContext = buildQuery(formData, {
       ownState: {
         search: 'abc',
@@ -111,7 +111,7 @@ describe('Select buildQuery', () => {
     ]);
   });
 
-  it('should add numeric search parameter to query filter', () => {
+  it('should add text search parameter for numeric to query filter', () => {
     const queryContext = buildQuery(formData, {
       ownState: {
         search: '123',
@@ -120,6 +120,8 @@ describe('Select buildQuery', () => {
     });
     expect(queryContext.queries.length).toEqual(1);
     const [query] = queryContext.queries;
-    expect(query.filters).toEqual([{ col: 'my_col', op: '>=', val: 123 }]);
+    expect(query.filters).toEqual([
+      { col: 'my_col', op: 'ILIKE', val: '%123%' },
+    ]);
   });
 });

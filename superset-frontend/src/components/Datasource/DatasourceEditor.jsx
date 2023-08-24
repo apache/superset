@@ -24,7 +24,17 @@ import Card from 'src/components/Card';
 import Alert from 'src/components/Alert';
 import Badge from 'src/components/Badge';
 import shortid from 'shortid';
-import { styled, SupersetClient, t, withTheme } from '@superset-ui/core';
+import {
+  css,
+  isFeatureEnabled,
+  getCurrencySymbol,
+  ensureIsArray,
+  FeatureFlag,
+  styled,
+  SupersetClient,
+  t,
+  withTheme,
+} from '@superset-ui/core';
 import { Select, AsyncSelect, Row, Col } from 'src/components';
 import { FormLabel } from 'src/components/Form';
 import Button from 'src/components/Button';
@@ -42,8 +52,8 @@ import TextControl from 'src/explore/components/controls/TextControl';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import Icons from 'src/components/Icons';
+import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
 import Field from './Field';
@@ -134,10 +144,10 @@ const checkboxGenerator = (d, onChange) => (
   <CheckboxControl value={d} onChange={onChange} />
 );
 const DATA_TYPES = [
-  { value: 'STRING', label: 'STRING' },
-  { value: 'NUMERIC', label: 'NUMERIC' },
-  { value: 'DATETIME', label: 'DATETIME' },
-  { value: 'BOOLEAN', label: 'BOOLEAN' },
+  { value: 'STRING', label: t('STRING') },
+  { value: 'NUMERIC', label: t('NUMERIC') },
+  { value: 'DATETIME', label: t('DATETIME') },
+  { value: 'BOOLEAN', label: t('BOOLEAN') },
 ];
 
 const DATASOURCE_TYPES_ARR = [
@@ -176,10 +186,10 @@ function ColumnCollectionTable({
   allowAddItem,
   allowEditDataType,
   itemGenerator,
+  columnLabelTooltips,
 }) {
   return (
     <CollectionTable
-      collection={columns}
       tableColumns={
         isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)
           ? [
@@ -223,6 +233,8 @@ function ColumnCollectionTable({
       allowDeletes
       allowAddItem={allowAddItem}
       itemGenerator={itemGenerator}
+      collection={columns}
+      columnLabelTooltips={columnLabelTooltips}
       stickyHeader
       expandFieldset={
         <FormContainer>
@@ -235,6 +247,7 @@ function ColumnCollectionTable({
                   <TextAreaControl
                     language="markdown"
                     offerEditInModal={false}
+                    resize="vertical"
                   />
                 }
               />
@@ -490,7 +503,7 @@ ColumnCollectionTable.defaultProps = {
   allowAddItem: false,
   allowEditDataType: false,
   itemGenerator: () => ({
-    column_name: '<new column>',
+    column_name: t('<new column>'),
     filterable: true,
     groupby: true,
   }),
@@ -539,10 +552,12 @@ function OwnersSelector({ datasource, onChange }) {
     return SupersetClient.get({
       endpoint: `/api/v1/dataset/related/owners?q=${query}`,
     }).then(response => ({
-      data: response.json.result.map(item => ({
-        value: item.value,
-        label: item.text,
-      })),
+      data: response.json.result
+        .filter(item => item.extra.active)
+        .map(item => ({
+          value: item.value,
+          label: item.text,
+        })),
       totalCount: response.json.count,
     }));
   }, []);
@@ -617,6 +632,12 @@ class DatasourceEditor extends React.PureComponent {
     this.allowEditSource = !isFeatureEnabled(
       FeatureFlag.DISABLE_DATASET_SOURCE_EDIT,
     );
+    this.currencies = ensureIsArray(props.currencies).map(currencyCode => ({
+      value: currencyCode,
+      label: `${getCurrencySymbol({
+        symbol: currencyCode,
+      })} (${currencyCode})`,
+    }));
   }
 
   onChange() {
@@ -677,8 +698,9 @@ class DatasourceEditor extends React.PureComponent {
   }
 
   updateColumns(cols) {
+    // cols: Array<{column_name: string; is_dttm: boolean; type: string;}>
     const { databaseColumns } = this.state;
-    const databaseColumnNames = cols.map(col => col.name);
+    const databaseColumnNames = cols.map(col => col.column_name);
     const currentCols = databaseColumns.reduce(
       (agg, col) => ({
         ...agg,
@@ -695,18 +717,18 @@ class DatasourceEditor extends React.PureComponent {
         .filter(col => !databaseColumnNames.includes(col)),
     };
     cols.forEach(col => {
-      const currentCol = currentCols[col.name];
+      const currentCol = currentCols[col.column_name];
       if (!currentCol) {
         // new column
         finalColumns.push({
           id: shortid.generate(),
-          column_name: col.name,
+          column_name: col.column_name,
           type: col.type,
           groupby: true,
           filterable: true,
           is_dttm: col.is_dttm,
         });
-        results.added.push(col.name);
+        results.added.push(col.column_name);
       } else if (
         currentCol.type !== col.type ||
         (!currentCol.is_dttm && col.is_dttm)
@@ -717,7 +739,7 @@ class DatasourceEditor extends React.PureComponent {
           type: col.type,
           is_dttm: currentCol.is_dttm || col.is_dttm,
         });
-        results.modified.push(col.name);
+        results.modified.push(col.column_name);
       } else {
         // unchanged
         finalColumns.push(currentCol);
@@ -740,7 +762,10 @@ class DatasourceEditor extends React.PureComponent {
       database_name:
         datasource.database.database_name || datasource.database.name,
       schema_name: datasource.schema,
-      table_name: datasource.table_name,
+      table_name: datasource.table_name
+        ? encodeURIComponent(datasource.table_name)
+        : datasource.table_name,
+      normalize_columns: datasource.normalize_columns,
     };
     Object.entries(params).forEach(([key, value]) => {
       // rison can't encode the undefined value
@@ -825,6 +850,20 @@ class DatasourceEditor extends React.PureComponent {
       ),
     );
 
+    // validate currency code
+    try {
+      this.state.datasource.metrics?.forEach(
+        metric =>
+          metric.currency?.symbol &&
+          new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: metric.currency.symbol,
+          }),
+      );
+    } catch {
+      errors = errors.concat([t('Invalid currency code in saved metrics')]);
+    }
+
     this.setState({ errors }, callback);
   }
 
@@ -848,7 +887,11 @@ class DatasourceEditor extends React.PureComponent {
           fieldKey="description"
           label={t('Description')}
           control={
-            <TextAreaControl language="markdown" offerEditInModal={false} />
+            <TextAreaControl
+              language="markdown"
+              offerEditInModal={false}
+              resize="vertical"
+            />
           }
         />
         <Field
@@ -882,6 +925,7 @@ class DatasourceEditor extends React.PureComponent {
                 language="sql"
                 controlId="fetch_values_predicate"
                 minLines={5}
+                resize="vertical"
               />
             }
           />
@@ -901,6 +945,7 @@ class DatasourceEditor extends React.PureComponent {
                 controlId="extra"
                 language="json"
                 offerEditInModal={false}
+                resize="vertical"
               />
             }
           />
@@ -927,7 +972,7 @@ class DatasourceEditor extends React.PureComponent {
           fieldKey="cache_timeout"
           label={t('Cache timeout')}
           description={t(
-            'The duration of time in seconds before the cache is invalidated',
+            'The duration of time in seconds before the cache is invalidated. Set to -1 to bypass the cache.',
           )}
           control={<TextControl controlId="cache_timeout" />}
         />
@@ -949,6 +994,15 @@ class DatasourceEditor extends React.PureComponent {
             control={<TextControl controlId="template_params" />}
           />
         )}
+        <Field
+          inline
+          fieldKey="normalize_columns"
+          label={t('Normalize column names')}
+          description={t(
+            'Allow column names to be changed to case insensitive format, if supported (e.g. Oracle, Snowflake).',
+          )}
+          control={<CheckboxControl controlId="normalize_columns" />}
+        />
       </Fieldset>
     );
   }
@@ -965,8 +1019,8 @@ class DatasourceEditor extends React.PureComponent {
           tableColumns={['name', 'config']}
           onChange={this.onDatasourcePropChange.bind(this, 'spatials')}
           itemGenerator={() => ({
-            name: '<new spatial>',
-            type: '<no type>',
+            name: t('<new spatial>'),
+            type: t('<no type>'),
             config: null,
           })}
           collection={spatials}
@@ -1081,6 +1135,7 @@ class DatasourceEditor extends React.PureComponent {
                         minLines={20}
                         maxLines={20}
                         readOnly={!this.state.isEditMode}
+                        resize="both"
                       />
                     }
                   />
@@ -1176,9 +1231,16 @@ class DatasourceEditor extends React.PureComponent {
         tableColumns={['metric_name', 'verbose_name', 'expression']}
         sortColumns={['metric_name', 'verbose_name', 'expression']}
         columnLabels={{
-          metric_name: t('Metric'),
+          metric_name: t('Metric Key'),
           verbose_name: t('Label'),
           expression: t('SQL expression'),
+        }}
+        columnLabelTooltips={{
+          metric_name: t(
+            'This field is used as a unique identifier to attach ' +
+              'the metric to charts. It is also used as the alias in the ' +
+              'SQL query.',
+          ),
         }}
         expandFieldset={
           <FormContainer>
@@ -1198,6 +1260,20 @@ class DatasourceEditor extends React.PureComponent {
                 label={t('D3 format')}
                 control={
                   <TextControl controlId="d3format" placeholder="%y/%m/%d" />
+                }
+              />
+              <Field
+                fieldKey="currency"
+                label={t('Metric currency')}
+                control={
+                  <CurrencyControl
+                    currencySelectOverrideProps={{
+                      placeholder: t('Select or type currency symbol'),
+                    }}
+                    symbolSelectAdditionalStyles={css`
+                      max-width: 30%;
+                    `}
+                  />
                 }
               />
               <Field
@@ -1233,6 +1309,7 @@ class DatasourceEditor extends React.PureComponent {
                     controlId="warning_markdown"
                     language="markdown"
                     offerEditInModal={false}
+                    resize="vertical"
                   />
                 }
               />
@@ -1243,10 +1320,15 @@ class DatasourceEditor extends React.PureComponent {
         allowAddItem
         onChange={this.onDatasourcePropChange.bind(this, 'metrics')}
         itemGenerator={() => ({
-          metric_name: '<new metric>',
+          metric_name: t('<new metric>'),
           verbose_name: '',
           expression: '',
         })}
+        itemCellProps={{
+          expression: () => ({
+            width: '240px',
+          }),
+        }}
         itemRenderers={{
           metric_name: (v, onChange, _, record) => (
             <FlexRowContainer>
@@ -1276,6 +1358,8 @@ class DatasourceEditor extends React.PureComponent {
               language="sql"
               offerEditInModal={false}
               minLines={5}
+              textAreaStyles={{ minWidth: '200px', maxWidth: '450px' }}
+              resize="both"
             />
           ),
           description: (v, onChange, label) => (
@@ -1391,6 +1475,13 @@ class DatasourceEditor extends React.PureComponent {
                 onColumnsChange={calculatedColumns =>
                   this.setColumns({ calculatedColumns })
                 }
+                columnLabelTooltips={{
+                  column_name: t(
+                    'This field is used as a unique identifier to attach ' +
+                      'the calculated dimension to charts. It is also used ' +
+                      'as the alias in the SQL query.',
+                  ),
+                }}
                 onDatasourceChange={this.onDatasourceChange}
                 datasource={datasource}
                 editableColumnName
@@ -1398,10 +1489,10 @@ class DatasourceEditor extends React.PureComponent {
                 allowAddItem
                 allowEditDataType
                 itemGenerator={() => ({
-                  column_name: '<new column>',
+                  column_name: t('<new column>'),
                   filterable: true,
                   groupby: true,
-                  expression: '<enter SQL expression here>',
+                  expression: t('<enter SQL expression here>'),
                   __expanded: true,
                 })}
               />

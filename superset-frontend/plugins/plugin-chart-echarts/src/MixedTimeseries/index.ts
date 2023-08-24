@@ -19,22 +19,21 @@
 import {
   AnnotationType,
   Behavior,
-  ChartMetadata,
-  ChartPlugin,
-  FeatureFlag,
-  isFeatureEnabled,
+  hasGenericChartAxes,
   t,
 } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import example from './images/example.jpg';
 import {
   EchartsMixedTimeseriesFormData,
   EchartsMixedTimeseriesProps,
 } from './types';
+import { EchartsChartPlugin } from '../types';
 
-export default class EchartsTimeseriesChartPlugin extends ChartPlugin<
+export default class EchartsTimeseriesChartPlugin extends EchartsChartPlugin<
   EchartsMixedTimeseriesFormData,
   EchartsMixedTimeseriesProps
 > {
@@ -53,11 +52,15 @@ export default class EchartsTimeseriesChartPlugin extends ChartPlugin<
       buildQuery,
       controlPanel,
       loadChart: () => import('./EchartsMixedTimeseries'),
-      metadata: new ChartMetadata({
-        behaviors: [Behavior.INTERACTIVE_CHART],
+      metadata: {
+        behaviors: [
+          Behavior.INTERACTIVE_CHART,
+          Behavior.DRILL_TO_DETAIL,
+          Behavior.DRILL_BY,
+        ],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+        description: hasGenericChartAxes
           ? t(
               'Visualize two different series using the same x-axis. Note that both series can be visualized with a different chart type (e.g. 1 using bars and 1 using a line).',
             )
@@ -70,9 +73,8 @@ export default class EchartsTimeseriesChartPlugin extends ChartPlugin<
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
-          ? t('Mixed Chart')
-          : t('Mixed Time-Series'),
+        exampleGallery: [{ url: example }],
+        name: hasGenericChartAxes ? t('Mixed Chart') : t('Mixed Time-Series'),
         thumbnail,
         tags: [
           t('Advanced-Analytics'),
@@ -84,7 +86,8 @@ export default class EchartsTimeseriesChartPlugin extends ChartPlugin<
           t('Time'),
           t('Transformable'),
         ],
-      }),
+        queryObjectCount: 2,
+      },
       // @ts-ignore
       transformProps,
     });

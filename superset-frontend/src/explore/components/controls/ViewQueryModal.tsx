@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import { ensureIsArray, t } from '@superset-ui/core';
+import { styled, ensureIsArray, t } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
@@ -31,6 +31,12 @@ type Result = {
   query: string;
   language: string;
 };
+
+const ViewQueryModalContainer = styled.div`
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+`;
 
 const ViewQueryModal: React.FC<Props> = props => {
   const [result, setResult] = useState<Result[]>([]);
@@ -71,14 +77,15 @@ const ViewQueryModal: React.FC<Props> = props => {
   if (error) {
     return <pre>{error}</pre>;
   }
+
   return (
-    <>
+    <ViewQueryModalContainer>
       {result.map(item =>
         item.query ? (
           <ViewQuery sql={item.query} language={item.language || undefined} />
         ) : null,
       )}
-    </>
+    </ViewQueryModalContainer>
   );
 };
 

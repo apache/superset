@@ -137,6 +137,11 @@ class DatabaseTestConnectionUnexpectedError(SupersetErrorsException):
     message = _("Unexpected error occurred, please check your logs for details")
 
 
+class DatabaseTablesUnexpectedError(Exception):
+    status = 422
+    message = _("Unexpected error occurred, please check your logs for details")
+
+
 class NoValidatorConfigFoundError(SupersetErrorException):
     status = 422
     message = _("no SQL validator is configured")

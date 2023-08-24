@@ -21,14 +21,17 @@ import {
   ControlPanelConfig,
   D3_FORMAT_DOCS,
   D3_TIME_FORMAT_OPTIONS,
-  formatSelectOptions,
   getStandardizedControls,
-  sections,
 } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
+    {
+      label: t('Time'),
+      expanded: true,
+      description: t('Time related form attributes'),
+      controlSetRows: [['granularity_sqla'], ['time_range']],
+    },
     {
       label: t('Query'),
       expanded: true,
@@ -40,13 +43,13 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               label: t('Domain'),
               default: 'month',
-              choices: formatSelectOptions([
-                'hour',
-                'day',
-                'week',
-                'month',
-                'year',
-              ]),
+              choices: [
+                ['hour', t('hour')],
+                ['day', t('day')],
+                ['week', t('week')],
+                ['month', t('month')],
+                ['year', t('year')],
+              ],
               description: t('The time unit used for the grouping of blocks'),
             },
           },
@@ -56,13 +59,13 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               label: t('Subdomain'),
               default: 'day',
-              choices: formatSelectOptions([
-                'min',
-                'hour',
-                'day',
-                'week',
-                'month',
-              ]),
+              choices: [
+                ['min', t('min')],
+                ['hour', t('hour')],
+                ['day', t('day')],
+                ['week', t('week')],
+                ['month', t('month')],
+              ],
               description: t(
                 'The time unit for each block. Should be a smaller unit than ' +
                   'domain_granularity. Should be larger or equal to Time Grain',

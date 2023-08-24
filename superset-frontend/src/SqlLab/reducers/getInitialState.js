@@ -19,14 +19,20 @@
 import { t } from '@superset-ui/core';
 import getToastsFromPyFlashMessages from 'src/components/MessageToasts/getToastsFromPyFlashMessages';
 
+export function dedupeTabHistory(tabHistory) {
+  return tabHistory.reduce(
+    (result, tabId) =>
+      result.slice(-1)[0] === tabId ? result : result.concat(tabId),
+    [],
+  );
+}
+
 export default function getInitialState({
-  defaultDbId,
   common,
   active_tab: activeTab,
   tab_state_ids: tabStateIds = [],
   databases,
   queries: queries_,
-  requested_query: requestedQuery,
   user,
 }) {
   /**
@@ -37,31 +43,26 @@ export default function getInitialState({
    * To allow for a transparent migration, the initial state is a combination
    * of the backend state (if any) with the browser state (if any).
    */
-  const queryEditors = [];
+  let queryEditors = {};
   const defaultQueryEditor = {
     id: null,
     loaded: true,
-    title: t('Untitled query'),
+    name: t('Untitled query'),
     sql: 'SELECT *\nFROM\nWHERE',
     selectedText: null,
     latestQueryId: null,
     autorun: false,
     templateParams: null,
-    dbId: defaultDbId,
-    functionNames: [],
+    dbId: common.conf.SQLLAB_DEFAULT_DBID,
     queryLimit: common.conf.DEFAULT_SQLLAB_LIMIT,
     validationResult: {
       id: null,
       errors: [],
       completed: false,
     },
-    queryCostEstimate: {
-      cost: null,
-      completed: false,
-      error: null,
-    },
     hideLeftBar: false,
   };
+  let unsavedQueryEditor = {};
 
   /**
    * Load state from the backend. This will be empty if the feature flag
@@ -73,7 +74,7 @@ export default function getInitialState({
       queryEditor = {
         id: id.toString(),
         loaded: true,
-        title: activeTab.label,
+        name: activeTab.label,
         sql: activeTab.sql || undefined,
         selectedText: undefined,
         latestQueryId: activeTab.latest_query
@@ -83,7 +84,6 @@ export default function getInitialState({
         autorun: activeTab.autorun,
         templateParams: activeTab.template_params || undefined,
         dbId: activeTab.database_id,
-        functionNames: [],
         schema: activeTab.schema,
         queryLimit: activeTab.query_limit,
         validationResult: {
@@ -99,28 +99,22 @@ export default function getInitialState({
         ...defaultQueryEditor,
         id: id.toString(),
         loaded: false,
-        title: label,
+        name: label,
       };
     }
-    queryEditors.push(queryEditor);
+    queryEditors = {
+      ...queryEditors,
+      [queryEditor.id]: queryEditor,
+    };
   });
 
   const tabHistory = activeTab ? [activeTab.id.toString()] : [];
-  const tables = [];
+  let tables = {};
   if (activeTab) {
     activeTab.table_schemas
       .filter(tableSchema => tableSchema.description !== null)
       .forEach(tableSchema => {
-        const {
-          columns,
-          selectStar,
-          primaryKey,
-          foreignKeys,
-          indexes,
-          dataPreviewQueryId,
-          partitions,
-          metadata,
-        } = tableSchema.description;
+        const { dataPreviewQueryId, ...persistData } = tableSchema.description;
         const table = {
           dbId: tableSchema.database_id,
           queryEditorId: tableSchema.tab_state_id.toString(),
@@ -128,18 +122,14 @@ export default function getInitialState({
           name: tableSchema.table,
           expanded: tableSchema.expanded,
           id: tableSchema.id,
-          isMetadataLoading: false,
-          isExtraMetadataLoading: false,
           dataPreviewQueryId,
-          columns,
-          selectStar,
-          primaryKey,
-          foreignKeys,
-          indexes,
-          partitions,
-          metadata,
+          persistData,
+          initialized: true,
         };
-        tables.push(table);
+        tables = {
+          ...tables,
+          [table.id]: table,
+        };
       });
   }
 
@@ -160,18 +150,37 @@ export default function getInitialState({
       // migration was successful
       localStorage.removeItem('redux');
     } else {
+      unsavedQueryEditor = sqlLab.unsavedQueryEditor || {};
       // add query editors and tables to state with a special flag so they can
       // be migrated if the `SQLLAB_BACKEND_PERSISTENCE` feature flag is on
-      sqlLab.queryEditors.forEach(qe =>
-        queryEditors.push({
-          ...qe,
-          inLocalStorage: true,
-          loaded: true,
-        }),
-      );
-      sqlLab.tables.forEach(table =>
-        tables.push({ ...table, inLocalStorage: true }),
-      );
+      sqlLab.queryEditors.forEach(qe => {
+        queryEditors = {
+          ...queryEditors,
+          [qe.id]: {
+            ...queryEditors[qe.id],
+            ...qe,
+            name: qe.title || qe.name,
+            ...(unsavedQueryEditor.id === qe.id && unsavedQueryEditor),
+            inLocalStorage: true,
+            loaded: true,
+          },
+        };
+      });
+      const expandedTables = new Set();
+      tables = sqlLab.tables.reduce((merged, table) => {
+        const expanded = !expandedTables.has(table.queryEditorId);
+        if (expanded) {
+          expandedTables.add(table.queryEditorId);
+        }
+        return {
+          ...merged,
+          [table.id]: {
+            ...tables[table.id],
+            ...table,
+            expanded,
+          },
+        };
+      }, tables);
       Object.values(sqlLab.queries).forEach(query => {
         queries[query.id] = { ...query, inLocalStorage: true };
       });
@@ -186,13 +195,13 @@ export default function getInitialState({
       databases,
       offline: false,
       queries,
-      queryEditors,
-      tabHistory,
-      tables,
+      queryEditors: Object.values(queryEditors),
+      tabHistory: dedupeTabHistory(tabHistory),
+      tables: Object.values(tables),
       queriesLastUpdate: Date.now(),
-      user,
+      unsavedQueryEditor,
+      queryCostEstimates: {},
     },
-    requestedQuery,
     messageToasts: getToastsFromPyFlashMessages(
       (common || {}).flash_messages || [],
     ),
@@ -201,5 +210,6 @@ export default function getInitialState({
       flash_messages: common.flash_messages,
       conf: common.conf,
     },
+    user,
   };
 }

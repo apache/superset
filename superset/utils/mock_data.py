@@ -21,8 +21,9 @@ import os
 import random
 import string
 import sys
+from collections.abc import Iterator
 from datetime import date, datetime, time, timedelta
-from typing import Any, Callable, cast, Dict, Iterator, List, Optional, Type
+from typing import Any, Callable, cast, Optional
 from uuid import uuid4
 
 import sqlalchemy.sql.sqltypes
@@ -39,17 +40,14 @@ from superset import db
 
 logger = logging.getLogger(__name__)
 
-ColumnInfo = TypedDict(
-    "ColumnInfo",
-    {
-        "name": str,
-        "type": VisitableType,
-        "nullable": bool,
-        "default": Optional[Any],
-        "autoincrement": str,
-        "primary_key": int,
-    },
-)
+
+class ColumnInfo(TypedDict):
+    name: str
+    type: VisitableType
+    nullable: bool
+    default: Optional[Any]
+    autoincrement: str
+    primary_key: int
 
 
 example_column = {
@@ -167,7 +165,7 @@ def get_type_generator(  # pylint: disable=too-many-return-statements,too-many-b
 
 
 def add_data(
-    columns: Optional[List[ColumnInfo]],
+    columns: Optional[list[ColumnInfo]],
     num_rows: int,
     table_name: str,
     append: bool = True,
@@ -187,43 +185,41 @@ def add_data(
 
     database = get_example_database()
     table_exists = database.has_table_by_name(table_name)
-    engine = database.get_sqla_engine()
 
-    if columns is None:
-        if not table_exists:
-            raise Exception(
-                f"The table {table_name} does not exist. To create it you need to "
-                "pass a list of column names and types."
-            )
+    with database.get_sqla_engine_with_context() as engine:
+        if columns is None:
+            if not table_exists:
+                raise Exception(  # pylint: disable=broad-exception-raised
+                    f"The table {table_name} does not exist. To create it you need to "
+                    "pass a list of column names and types."
+                )
 
-        inspector = inspect(engine)
-        columns = inspector.get_columns(table_name)
+            inspector = inspect(engine)
+            columns = inspector.get_columns(table_name)
 
-    # create table if needed
-    column_objects = get_column_objects(columns)
-    metadata = MetaData()
-    table = Table(table_name, metadata, *column_objects)
-    metadata.create_all(engine)
+        # create table if needed
+        column_objects = get_column_objects(columns)
+        metadata = MetaData()
+        table = Table(table_name, metadata, *column_objects)
+        metadata.create_all(engine)
 
-    if not append:
-        # pylint: disable=no-value-for-parameter # sqlalchemy/issues/4656
-        engine.execute(table.delete())
+        if not append:
+            engine.execute(table.delete())
 
-    data = generate_data(columns, num_rows)
-    # pylint: disable=no-value-for-parameter # sqlalchemy/issues/4656
-    engine.execute(table.insert(), data)
+        data = generate_data(columns, num_rows)
+        engine.execute(table.insert(), data)
 
 
-def get_column_objects(columns: List[ColumnInfo]) -> List[Column]:
+def get_column_objects(columns: list[ColumnInfo]) -> list[Column]:
     out = []
     for column in columns:
-        kwargs = cast(Dict[str, Any], column.copy())
+        kwargs = cast(dict[str, Any], column.copy())
         kwargs["type_"] = kwargs.pop("type")
         out.append(Column(**kwargs))
     return out
 
 
-def generate_data(columns: List[ColumnInfo], num_rows: int) -> List[Dict[str, Any]]:
+def generate_data(columns: list[ColumnInfo], num_rows: int) -> list[dict[str, Any]]:
     keys = [column["name"] for column in columns]
     return [
         dict(zip(keys, row))
@@ -231,13 +227,13 @@ def generate_data(columns: List[ColumnInfo], num_rows: int) -> List[Dict[str, An
     ]
 
 
-def generate_column_data(column: ColumnInfo, num_rows: int) -> List[Any]:
+def generate_column_data(column: ColumnInfo, num_rows: int) -> list[Any]:
     gen = get_type_generator(column["type"])
     return [gen() for _ in range(num_rows)]
 
 
 def add_sample_rows(
-    session: Session, model: Type[Model], count: int
+    session: Session, model: type[Model], count: int
 ) -> Iterator[Model]:
     """
     Add entities of a given model.

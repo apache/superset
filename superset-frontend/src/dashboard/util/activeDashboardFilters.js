@@ -45,10 +45,10 @@ export function isFilterBox(chartId) {
 // this function is to find all filter values applied to a chart,
 // it goes through all active filters and their scopes.
 // return: { [column]: array of selected values }
-export function getAppliedFilterValues(chartId) {
+export function getAppliedFilterValues(chartId, filters) {
   // use cached data if possible
   if (!(chartId in appliedFilterValuesByChart)) {
-    const applicableFilters = Object.entries(activeFilters).filter(
+    const applicableFilters = Object.entries(filters || activeFilters).filter(
       ([, { scope: chartIds }]) => chartIds.includes(chartId),
     );
     appliedFilterValuesByChart[chartId] = flow(

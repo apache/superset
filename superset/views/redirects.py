@@ -34,25 +34,40 @@ class R(BaseSupersetView):  # pylint: disable=invalid-name
     """used for short urls"""
 
     @staticmethod
-    def _validate_url(url: Optional[str] = None) -> bool:
-        if url and (
-            url.startswith("//superset/dashboard/")
-            or url.startswith("//superset/explore/")
-        ):
-            return True
-        return False
+    def _validate_explore_url(url: str) -> Optional[str]:
+        if url.startswith("//superset/explore/p/"):
+            return url
+
+        if url.startswith("//superset/explore"):
+            return "/" + url[10:]  # Remove /superset from old Explore URLs
+
+        if url.startswith("//explore"):
+            return url
+
+        return None
+
+    @staticmethod
+    def _validate_dashboard_url(url: str) -> Optional[str]:
+        if url.startswith("//superset/dashboard/"):
+            return url
+
+        return None
 
     @event_logger.log_this
     @expose("/<int:url_id>")
     def index(self, url_id: int) -> FlaskResponse:
         url = db.session.query(models.Url).get(url_id)
         if url and url.url:
-            explore_url = "//superset/explore/?"
-            if url.url.startswith(explore_url):
-                explore_url += f"r={url_id}"
+            explore_url = self._validate_explore_url(url.url)
+            if explore_url:
+                if explore_url.startswith("//explore/?"):
+                    explore_url = f"//explore/?r={url_id}"
                 return redirect(explore_url[1:])
-            if self._validate_url(url.url):
-                return redirect(url.url[1:])
+
+            dashboard_url = self._validate_dashboard_url(url.url)
+            if dashboard_url:
+                return redirect(dashboard_url[1:])
+
             return redirect("/")
 
         flash("URL to nowhere...", "danger")

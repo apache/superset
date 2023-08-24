@@ -18,13 +18,14 @@
  */
 /* eslint-disable no-unused-expressions */
 import React from 'react';
+import * as redux from 'react-redux';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
+import thunk from 'redux-thunk';
+import { Provider } from 'react-redux';
+import configureStore from 'redux-mock-store';
 
-import AdhocFilter, {
-  EXPRESSION_TYPES,
-  CLAUSES,
-} from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import {
   AGGREGATES,
   Operators,
@@ -33,14 +34,16 @@ import {
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import { render, screen, act, waitFor } from '@testing-library/react';
 import { supersetTheme, FeatureFlag, ThemeProvider } from '@superset-ui/core';
-import * as featureFlags from 'src/featureFlags';
+import * as uiCore from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 
+import { TestDataset } from '@superset-ui/chart-controls';
 import AdhocFilterEditPopoverSimpleTabContent, {
   useSimpleTabFilterProps,
   Props,
 } from '.';
+import { CLAUSES, EXPRESSION_TYPES } from '../types';
 
 const simpleAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,
@@ -99,10 +102,11 @@ const getAdvancedDataTypeTestProps = (overrides?: Record<string, any>) => {
     onChange,
     options: [{ type: 'DOUBLE', column_name: 'advancedDataType', id: 5 }],
     datasource: {
-      id: 'test-id',
-      columns: [],
-      type: 'postgres',
-      filter_select: false,
+      ...TestDataset,
+      ...{
+        columns: [],
+        filter_select: false,
+      },
     },
     partitionColumn: 'test',
     ...overrides,
@@ -114,15 +118,18 @@ const getAdvancedDataTypeTestProps = (overrides?: Record<string, any>) => {
 function setup(overrides?: Record<string, any>) {
   const onChange = sinon.spy();
   const validHandler = sinon.spy();
+  const spy = jest.spyOn(redux, 'useSelector');
+  spy.mockReturnValue({});
   const props = {
     adhocFilter: simpleAdhocFilter,
     onChange,
     options,
     datasource: {
-      id: 'test-id',
-      columns: [],
-      type: 'postgres',
-      filter_select: false,
+      ...TestDataset,
+      ...{
+        columns: [],
+        filter_select: false,
+      },
     },
     partitionColumn: 'test',
     ...overrides,
@@ -372,14 +379,19 @@ fetchMock.get(ADVANCED_DATA_TYPE_ENDPOINT_INVALID, {
     values: [],
   },
 });
+const mockStore = configureStore([thunk]);
+const store = mockStore({});
 
 describe('AdhocFilterEditPopoverSimpleTabContent Advanced data Type Test', () => {
   const setupFilter = async (props: Props) => {
     await act(async () => {
       render(
-        <ThemeProvider theme={supersetTheme}>
-          <AdhocFilterEditPopoverSimpleTabContent {...props} />
-        </ThemeProvider>,
+        <Provider store={store}>
+          <ThemeProvider theme={supersetTheme}>
+            <AdhocFilterEditPopoverSimpleTabContent {...props} />
+          </ThemeProvider>
+          ,
+        </Provider>,
       );
     });
   };
@@ -387,7 +399,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent Advanced data Type Test', () =>
   let isFeatureEnabledMock: any;
   beforeEach(async () => {
     isFeatureEnabledMock = jest
-      .spyOn(featureFlags, 'isFeatureEnabled')
+      .spyOn(uiCore, 'isFeatureEnabled')
       .mockImplementation(
         (featureFlag: FeatureFlag) =>
           featureFlag === FeatureFlag.ENABLE_ADVANCED_DATA_TYPES,

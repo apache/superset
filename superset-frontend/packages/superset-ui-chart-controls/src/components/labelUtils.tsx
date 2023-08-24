@@ -31,6 +31,13 @@ const TooltipSectionWrapper = styled.div`
     &:not(:last-of-type) {
       margin-bottom: ${theme.gridUnit * 2}px;
     }
+    &:last-of-type {
+      display: -webkit-box;
+      -webkit-line-clamp: 40;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
   `}
 `;
 
@@ -54,21 +61,30 @@ const TooltipSection = ({
 );
 
 export const isLabelTruncated = (labelRef?: React.RefObject<any>): boolean =>
-  !!(
-    labelRef &&
-    labelRef.current &&
-    labelRef.current.scrollWidth > labelRef.current.clientWidth
-  );
+  !!(labelRef?.current?.scrollWidth > labelRef?.current?.clientWidth);
 
 export const getColumnLabelText = (column: ColumnMeta): string =>
   column.verbose_name || column.column_name;
+
+export const getColumnTypeTooltipNode = (column: ColumnMeta): ReactNode => {
+  if (!column.type) {
+    return null;
+  }
+
+  return (
+    <TooltipSection
+      label={t('Column datatype')}
+      text={column.type.toLowerCase()}
+    />
+  );
+};
 
 export const getColumnTooltipNode = (
   column: ColumnMeta,
   labelRef?: React.RefObject<any>,
 ): ReactNode => {
   if (
-    !column.verbose_name &&
+    (!column.column_name || !column.verbose_name) &&
     !column.description &&
     !isLabelTruncated(labelRef)
   ) {
@@ -77,7 +93,9 @@ export const getColumnTooltipNode = (
 
   return (
     <>
-      <TooltipSection label={t('Column name')} text={column.column_name} />
+      {column.column_name && (
+        <TooltipSection label={t('Column name')} text={column.column_name} />
+      )}
       {column.verbose_name && (
         <TooltipSection label={t('Label')} text={column.verbose_name} />
       )}

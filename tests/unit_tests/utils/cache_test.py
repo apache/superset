@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -21,7 +20,7 @@
 from pytest_mock import MockerFixture
 
 
-def test_memoized_func(app_context: None, mocker: MockerFixture) -> None:
+def test_memoized_func(mocker: MockerFixture) -> None:
     """
     Test the ``memoized_func`` decorator.
     """

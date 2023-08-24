@@ -14,8 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
-from typing import Any, Dict, Union
 
 import prison
 from flask import Response
@@ -48,17 +46,6 @@ class DashboardTestCase(SupersetTestCase):
     def get_dashboards_api_response(self) -> Response:
         return self.client.get(DASHBOARDS_API_URL)
 
-    def save_dashboard_via_view(
-        self, dashboard_id: Union[str, int], dashboard_data: Dict[str, Any]
-    ) -> Response:
-        save_dash_url = SAVE_DASHBOARD_URL_FORMAT.format(dashboard_id)
-        return self.get_resp(save_dash_url, data=dict(data=json.dumps(dashboard_data)))
-
-    def save_dashboard(
-        self, dashboard_id: Union[str, int], dashboard_data: Dict[str, Any]
-    ) -> Response:
-        return self.save_dashboard_via_view(dashboard_id, dashboard_data)
-
     def delete_dashboard_via_view(self, dashboard_id: int) -> Response:
         delete_dashboard_url = DELETE_DASHBOARD_VIEW_URL_FORMAT.format(dashboard_id)
         return self.get_resp(delete_dashboard_url, {})
@@ -89,26 +76,6 @@ class DashboardTestCase(SupersetTestCase):
     def assert_permissions_were_deleted(self, deleted_dashboard):
         view_menu = security_manager.find_view_menu(deleted_dashboard.view_name)
         self.assertIsNone(view_menu)
-
-    def save_dash_basic_case(self, username=ADMIN_USERNAME):
-        # arrange
-        self.login(username=username)
-        (
-            dashboard_to_save,
-            data_before_change,
-            data_after_change,
-        ) = build_save_dash_parts()
-
-        # act
-        save_dash_response = self.save_dashboard_via_view(
-            dashboard_to_save.id, data_after_change
-        )
-
-        # assert
-        self.assertIn("SUCCESS", save_dash_response)
-
-        # post test
-        self.save_dashboard(dashboard_to_save.id, data_before_change)
 
     def clean_created_objects(self):
         with app.test_request_context():

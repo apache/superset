@@ -166,7 +166,7 @@ const IconFileNames = [
   'redo',
 ];
 
-const iconOverrides: Record<string, React.FC> = {};
+const iconOverrides: Record<string, React.FC<IconType>> = {};
 IconFileNames.forEach(fileName => {
   const keyName = _.startCase(fileName).replace(/ /g, '');
   iconOverrides[keyName] = (props: IconType) => (

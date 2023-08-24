@@ -15,9 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from __future__ import annotations
+
 import importlib
 import logging
-from typing import Callable, Dict, TYPE_CHECKING
+from typing import Callable, TYPE_CHECKING
 
 from flask import current_app, Flask, request, Response, session
 from flask_login import login_user
@@ -34,7 +36,7 @@ if TYPE_CHECKING:
 
 class MachineAuthProvider:
     def __init__(
-        self, auth_webdriver_func_override: Callable[[WebDriver, "User"], WebDriver]
+        self, auth_webdriver_func_override: Callable[[WebDriver, User], WebDriver]
     ):
         # This is here in order to allow for the authenticate_webdriver func to be
         # overridden via config, as opposed to the entire provider implementation
@@ -43,14 +45,14 @@ class MachineAuthProvider:
     def authenticate_webdriver(
         self,
         driver: WebDriver,
-        user: "User",
+        user: User,
     ) -> WebDriver:
         """
         Default AuthDriverFuncType type that sets a session cookie flask-login style
         :return: The WebDriver passed in (fluent)
         """
         # Short-circuit this method if we have an override configured
-        if self._auth_webdriver_func_override:
+        if self._auth_webdriver_func_override:  # type: ignore
             return self._auth_webdriver_func_override(driver, user)
 
         # Setting cookies requires doing a request first
@@ -64,12 +66,12 @@ class MachineAuthProvider:
             cookies = {}
 
         for cookie_name, cookie_val in cookies.items():
-            driver.add_cookie(dict(name=cookie_name, value=cookie_val))
+            driver.add_cookie({"name": cookie_name, "value": cookie_val})
 
         return driver
 
     @staticmethod
-    def get_auth_cookies(user: "User") -> Dict[str, str]:
+    def get_auth_cookies(user: User) -> dict[str, str]:
         # Login with the user specified to get the reports
         with current_app.test_request_context("/login"):
             login_user(user)

@@ -24,7 +24,8 @@ module.exports = {
     builder: 'webpack5',
   },
   stories: [
-    '../src/@(components|common|filters|explore)/**/*.stories.@(t|j)sx',
+    '../src/@(components|common|filters|explore|views|dashboard|features)/**/*.stories.@(tsx|jsx)',
+    '../src/@(components|common|filters|explore|views|dashboard|features)/**/*.*.@(mdx)',
   ],
   addons: [
     '@storybook/addon-essentials',
@@ -47,6 +48,6 @@ module.exports = {
     plugins: [...config.plugins, ...customConfig.plugins],
   }),
   typescript: {
-    reactDocgen: 'none',
+    reactDocgen: 'react-docgen-typescript',
   },
 };

@@ -28,7 +28,7 @@ import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import Alert from 'src/components/Alert';
-import { FiltersConfigModal } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal';
+import FiltersConfigModal from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal';
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

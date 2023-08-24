@@ -92,3 +92,8 @@ export const TooltipTrigger = styled.div`
   display: inline-flex;
   white-space: nowrap;
 `;
+
+export const InternalRow = styled.div`
+  display: flex;
+  align-items: center;
+`;

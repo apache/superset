@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from flask_appbuilder import Model
 from sqlalchemy import Column, ForeignKey, Integer, MetaData, String, Text
@@ -55,8 +55,9 @@ class FilterSet(Model, AuditMixinNullable):
     @property
     def sqla_metadata(self) -> None:
         # pylint: disable=no-member
-        meta = MetaData(bind=self.get_sqla_engine())
-        meta.reflect()
+        with self.get_sqla_engine_with_context() as engine:
+            meta = MetaData(bind=engine)
+            meta.reflect()
 
     @property
     def changed_by_name(self) -> str:
@@ -64,13 +65,7 @@ class FilterSet(Model, AuditMixinNullable):
             return ""
         return str(self.changed_by)
 
-    @property
-    def changed_by_url(self) -> str:
-        if not self.changed_by:
-            return ""
-        return f"/superset/profile/{self.changed_by.username}"
-
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "name": self.name,
@@ -100,7 +95,7 @@ class FilterSet(Model, AuditMixinNullable):
         return qry.all()
 
     @property
-    def params(self) -> Dict[str, Any]:
+    def params(self) -> dict[str, Any]:
         if self.json_metadata:
             return json.loads(self.json_metadata)
         return {}

@@ -56,7 +56,21 @@ In `Secure Extra` field, config as following example:
 
 All fields in `auth_params` are passed directly to the [`KerberosAuthentication`](https://github.com/trinodb/trino-python-client/blob/0.306.0/trino/auth.py#L40) class.
 
-#### 3. JWT Authentication
+#### 3. Certificate Authentication
+In `Secure Extra` field, config as following example:
+```json
+{
+    "auth_method": "certificate",
+    "auth_params": {
+        "cert": "/path/to/cert.pem",
+        "key": "/path/to/key.pem"
+    }
+}
+```
+
+All fields in `auth_params` are passed directly to the [`CertificateAuthentication`](https://github.com/trinodb/trino-python-client/blob/0.315.0/trino/auth.py#L416) class.
+
+#### 4. JWT Authentication
 Config `auth_method` and provide token in `Secure Extra` field
 ```json
 {
@@ -67,7 +81,7 @@ Config `auth_method` and provide token in `Secure Extra` field
 }
 ```
 
-#### 4. Custom Authentication
+#### 5. Custom Authentication
 To use custom authentication, first you need to add it into
 `ALLOWED_EXTRA_AUTHENTICATIONS` allow list in Superset config file:
 ```python

@@ -17,19 +17,14 @@
  * under the License.
  */
 import React from 'react';
-import {
-  ensureIsArray,
-  FeatureFlag,
-  isFeatureEnabled,
-  t,
-} from '@superset-ui/core';
+import { ensureIsArray, hasGenericChartAxes, t } from '@superset-ui/core';
 import { cloneDeep } from 'lodash';
 import {
   ControlPanelConfig,
   ControlPanelSectionConfig,
   ControlSetRow,
+  ControlSubSectionHeader,
   CustomControlItem,
-  emitFilterControl,
   getStandardizedControls,
   sections,
   sharedControls,
@@ -84,14 +79,6 @@ function createQuerySection(
           config: sharedControls.adhoc_filters,
         },
       ],
-      emitFilterControl.length > 0
-        ? [
-            {
-              ...emitFilterControl[0],
-              name: `emit_filter${controlSuffix}`,
-            },
-          ]
-        : [],
       [
         {
           name: `limit${controlSuffix}`,
@@ -142,7 +129,7 @@ function createCustomizeSection(
   controlSuffix: string,
 ): ControlSetRow[] {
   return [
-    [<div className="section-header">{label}</div>],
+    [<ControlSubSectionHeader>{label}</ControlSubSectionHeader>],
     [
       {
         name: `seriesType${controlSuffix}`,
@@ -152,13 +139,13 @@ function createCustomizeSection(
           renderTrigger: true,
           default: seriesType,
           choices: [
-            [EchartsTimeseriesSeriesType.Line, 'Line'],
-            [EchartsTimeseriesSeriesType.Scatter, 'Scatter'],
-            [EchartsTimeseriesSeriesType.Smooth, 'Smooth Line'],
-            [EchartsTimeseriesSeriesType.Bar, 'Bar'],
-            [EchartsTimeseriesSeriesType.Start, 'Step - start'],
-            [EchartsTimeseriesSeriesType.Middle, 'Step - middle'],
-            [EchartsTimeseriesSeriesType.End, 'Step - end'],
+            [EchartsTimeseriesSeriesType.Line, t('Line')],
+            [EchartsTimeseriesSeriesType.Scatter, t('Scatter')],
+            [EchartsTimeseriesSeriesType.Smooth, t('Smooth Line')],
+            [EchartsTimeseriesSeriesType.Bar, t('Bar')],
+            [EchartsTimeseriesSeriesType.Start, t('Step - start')],
+            [EchartsTimeseriesSeriesType.Middle, t('Step - middle')],
+            [EchartsTimeseriesSeriesType.End, t('Step - end')],
           ],
           description: t('Series chart type (line, bar etc)'),
         },
@@ -291,12 +278,12 @@ function createAdvancedAnalyticsSection(
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyTimeseriesTime,
-    isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+    sections.genericTime,
+    hasGenericChartAxes
       ? {
           label: t('Shared query fields'),
           expanded: true,
-          controlSetRows: [['x_axis']],
+          controlSetRows: [['x_axis'], ['time_grain_sqla']],
         }
       : null,
     createQuerySection(t('Query A'), ''),
@@ -325,7 +312,7 @@ const config: ControlPanelConfig = {
           },
         ],
         ...legendSection,
-        [<div className="section-header">{t('X Axis')}</div>],
+        [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         ['x_axis_time_format'],
         [
           {
@@ -349,7 +336,7 @@ const config: ControlPanelConfig = {
         ],
         ...richTooltipSection,
         // eslint-disable-next-line react/jsx-key
-        [<div className="section-header">{t('Y Axis')}</div>],
+        [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
         [
           {
             name: 'minorSplitLine',
@@ -381,11 +368,11 @@ const config: ControlPanelConfig = {
             name: 'y_axis_bounds',
             config: {
               type: 'BoundsControl',
-              label: t('Y Axis Bounds'),
+              label: t('Primary y-axis Bounds'),
               renderTrigger: true,
               default: yAxisBounds,
               description: t(
-                'Bounds for the Y-axis. When left empty, the bounds are ' +
+                'Bounds for the primary Y-axis. When left empty, the bounds are ' +
                   'dynamically defined based on the min/max of the data. Note that ' +
                   "this feature will only expand the axis range. It won't " +
                   "narrow the data's extent.",
@@ -402,6 +389,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['currency_format'],
         [
           {
             name: 'logAxis',
@@ -416,10 +404,36 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'y_axis_bounds_secondary',
+            config: {
+              type: 'BoundsControl',
+              label: t('Secondary y-axis Bounds'),
+              renderTrigger: true,
+              default: yAxisBounds,
+              description: t(
+                `Bounds for the secondary Y-axis. Only works when Independent Y-axis
+                bounds are enabled. When left empty, the bounds are dynamically defined
+                based on the min/max of the data. Note that this feature will only expand
+                the axis range. It won't narrow the data's extent.`,
+              ),
+            },
+          },
+        ],
+        [
+          {
             name: `y_axis_format_secondary`,
             config: {
               ...sharedControls.y_axis_format,
               label: t('Secondary y-axis format'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'currency_format_secondary',
+            config: {
+              ...sharedControls.currency_format,
+              label: t('Secondary currency format'),
             },
           },
         ],

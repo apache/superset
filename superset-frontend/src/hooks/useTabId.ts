@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
+import shortid from 'shortid';
 import { BroadcastChannel } from 'broadcast-channel';
 
 interface TabIdChannelMessage {
@@ -32,7 +33,21 @@ const channel = new BroadcastChannel<TabIdChannelMessage>('tab_id_channel');
 export function useTabId() {
   const [tabId, setTabId] = useState<string>();
 
+  function isStorageAvailable() {
+    try {
+      return window.localStorage && window.sessionStorage;
+    } catch (error) {
+      return false;
+    }
+  }
   useEffect(() => {
+    if (!isStorageAvailable()) {
+      if (!tabId) {
+        setTabId(shortid.generate());
+      }
+      return;
+    }
+
     const updateTabId = () => {
       const lastTabId = window.localStorage.getItem('last_tab_id');
       const newTabId = String(

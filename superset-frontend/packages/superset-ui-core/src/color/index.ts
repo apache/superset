@@ -35,6 +35,7 @@ export * from './utils';
 export {
   default as getSharedLabelColor,
   SharedLabelColor,
+  SharedLabelColorSource,
 } from './SharedLabelColorSingleton';
 
 export const BRAND_COLOR = '#00A699';

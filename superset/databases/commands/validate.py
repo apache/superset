@@ -16,21 +16,20 @@
 # under the License.
 import json
 from contextlib import closing
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from flask_babel import gettext as __
 
 from superset.commands.base import BaseCommand
+from superset.daos.database import DatabaseDAO
 from superset.databases.commands.exceptions import (
     DatabaseOfflineError,
     DatabaseTestConnectionFailedError,
     InvalidEngineError,
     InvalidParametersError,
 )
-from superset.databases.dao import DatabaseDAO
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs import get_engine_specs
-from superset.db_engine_specs.base import BasicParametersMixin
+from superset.db_engine_specs import get_engine_spec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.extensions import event_logger
 from superset.models.core import Database
@@ -39,31 +38,21 @@ BYPASS_VALIDATION_ENGINES = {"bigquery"}
 
 
 class ValidateDatabaseParametersCommand(BaseCommand):
-    def __init__(self, parameters: Dict[str, Any]):
-        self._properties = parameters.copy()
+    def __init__(self, properties: dict[str, Any]):
+        self._properties = properties.copy()
         self._model: Optional[Database] = None
 
     def run(self) -> None:
+        self.validate()
+
         engine = self._properties["engine"]
-        engine_specs = get_engine_specs()
+        driver = self._properties.get("driver")
 
         if engine in BYPASS_VALIDATION_ENGINES:
             # Skip engines that are only validated onCreate
             return
 
-        if engine not in engine_specs:
-            raise InvalidEngineError(
-                SupersetError(
-                    message=__(
-                        'Engine "%(engine)s" is not a valid engine.',
-                        engine=engine,
-                    ),
-                    error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-                    level=ErrorLevel.ERROR,
-                    extra={"allowed": list(engine_specs), "provided": engine},
-                ),
-            )
-        engine_spec = engine_specs[engine]
+        engine_spec = get_engine_spec(engine, driver)
         if not hasattr(engine_spec, "parameters_schema"):
             raise InvalidEngineError(
                 SupersetError(
@@ -73,26 +62,24 @@ class ValidateDatabaseParametersCommand(BaseCommand):
                     ),
                     error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
                     level=ErrorLevel.ERROR,
-                    extra={
-                        "allowed": [
-                            name
-                            for name, engine_spec in engine_specs.items()
-                            if issubclass(engine_spec, BasicParametersMixin)
-                        ],
-                        "provided": engine,
-                    },
                 ),
             )
 
         # perform initial validation
-        errors = engine_spec.validate_parameters(  # type: ignore
-            self._properties.get("parameters", {})
-        )
+        errors = engine_spec.validate_parameters(self._properties)  # type: ignore
         if errors:
             event_logger.log_with_context(action="validation_error", engine=engine)
             raise InvalidParametersError(errors)
 
-        serialized_encrypted_extra = self._properties.get("encrypted_extra", "{}")
+        serialized_encrypted_extra = self._properties.get(
+            "masked_encrypted_extra",
+            "{}",
+        )
+        if self._model:
+            serialized_encrypted_extra = engine_spec.unmask_encrypted_extra(
+                self._model.encrypted_extra,
+                serialized_encrypted_extra,
+            )
         try:
             encrypted_extra = json.loads(serialized_encrypted_extra)
         except json.decoder.JSONDecodeError:
@@ -114,21 +101,22 @@ class ValidateDatabaseParametersCommand(BaseCommand):
         database.set_sqlalchemy_uri(sqlalchemy_uri)
         database.db_engine_spec.mutate_db_for_connection_test(database)
 
-        engine = database.get_sqla_engine()
-        try:
-            with closing(engine.raw_connection()) as conn:
-                alive = engine.dialect.do_ping(conn)
-        except Exception as ex:
-            url = make_url_safe(sqlalchemy_uri)
-            context = {
-                "hostname": url.host,
-                "password": url.password,
-                "port": url.port,
-                "username": url.username,
-                "database": url.database,
-            }
-            errors = database.db_engine_spec.extract_errors(ex, context)
-            raise DatabaseTestConnectionFailedError(errors) from ex
+        alive = False
+        with database.get_sqla_engine_with_context() as engine:
+            try:
+                with closing(engine.raw_connection()) as conn:
+                    alive = engine.dialect.do_ping(conn)
+            except Exception as ex:
+                url = make_url_safe(sqlalchemy_uri)
+                context = {
+                    "hostname": url.host,
+                    "password": url.password,
+                    "port": url.port,
+                    "username": url.username,
+                    "database": url.database,
+                }
+                errors = database.db_engine_spec.extract_errors(ex, context)
+                raise DatabaseTestConnectionFailedError(errors) from ex
 
         if not alive:
             raise DatabaseOfflineError(
@@ -140,6 +128,5 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             )
 
     def validate(self) -> None:
-        database_name = self._properties.get("database_name")
-        if database_name is not None:
-            self._model = DatabaseDAO.get_database_by_name(database_name)
+        if (database_id := self._properties.get("id")) is not None:
+            self._model = DatabaseDAO.find_by_id(database_id)

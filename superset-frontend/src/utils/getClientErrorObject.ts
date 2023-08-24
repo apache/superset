@@ -41,6 +41,14 @@ interface TimeoutError {
   timeout: number;
 }
 
+type ErrorType =
+  | SupersetClientResponse
+  | TimeoutError
+  | { response: Response }
+  | string;
+
+type ErrorTextSource = 'dashboard' | 'chart' | 'query' | 'dataset' | 'database';
+
 export function parseErrorJson(responseObject: JsonObject): ClientErrorObject {
   let error = { ...responseObject };
   // Backwards compatibility for old error renderers with the new error object
@@ -48,7 +56,7 @@ export function parseErrorJson(responseObject: JsonObject): ClientErrorObject {
     error.error = error.description = error.errors[0].message;
     error.link = error.errors[0]?.extra?.link;
   }
-  // Marshmallow field validation returns the error mssage in the format
+  // Marshmallow field validation returns the error message in the format
   // of { message: { field1: [msg1, msg2], field2: [msg], } }
   if (!error.error && error.message) {
     if (typeof error.message === 'object') {
@@ -76,6 +84,29 @@ export function parseErrorJson(responseObject: JsonObject): ClientErrorObject {
   }
 
   return { ...error, error: error.error }; // explicit ClientErrorObject
+}
+
+/*
+ * Utility to get standardized error text for generic update failures
+ */
+export async function getErrorText(
+  errorObject: ErrorType,
+  source: ErrorTextSource,
+) {
+  const { error, message } = await getClientErrorObject(errorObject);
+  let errorText = t('Sorry, an unknown error occurred.');
+
+  if (error) {
+    errorText = t(
+      'Sorry, there was an error saving this %s: %s',
+      source,
+      error,
+    );
+  }
+  if (typeof message === 'string' && message === 'Forbidden') {
+    errorText = t('You do not have permission to edit this %s', source);
+  }
+  return errorText;
 }
 
 export function getClientErrorObject(
@@ -170,4 +201,16 @@ export function getClientErrorObject(
       error,
     });
   });
+}
+
+export function getClientErrorMessage(
+  message: string,
+  clientError?: ClientErrorObject,
+) {
+  let finalMessage = message;
+  const errorMessage = clientError?.message || clientError?.error;
+  if (errorMessage) {
+    finalMessage = `${finalMessage}:\n${errorMessage}`;
+  }
+  return finalMessage;
 }

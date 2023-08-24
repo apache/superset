@@ -32,7 +32,9 @@ type Props = {
   copyText?: string;
   stackTrace?: string;
   source?: ErrorSource;
+  description?: string;
   errorMitigationFunction?: () => void;
+  fallback?: React.ReactNode;
 };
 
 export default function ErrorMessageWithStackTrace({
@@ -43,6 +45,8 @@ export default function ErrorMessageWithStackTrace({
   link,
   stackTrace,
   source,
+  description,
+  fallback,
 }: Props) {
   // Check if a custom error message component was registered for this message
   if (error) {
@@ -60,12 +64,17 @@ export default function ErrorMessageWithStackTrace({
     }
   }
 
+  if (fallback) {
+    return <>{fallback}</>;
+  }
+
   return (
     <ErrorAlert
       level="warning"
       title={title}
       subtitle={subtitle}
       copyText={copyText}
+      description={description}
       source={source}
       body={
         link || stackTrace ? (

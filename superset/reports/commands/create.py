@@ -16,15 +16,15 @@
 # under the License.
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
-from flask_appbuilder.models.sqla import Model
+from flask_babel import gettext as _
 from marshmallow import ValidationError
 
 from superset.commands.base import CreateMixin
-from superset.dao.exceptions import DAOCreateFailedError
-from superset.databases.dao import DatabaseDAO
-from superset.models.reports import ReportCreationMethod, ReportScheduleType
+from superset.daos.database import DatabaseDAO
+from superset.daos.exceptions import DAOCreateFailedError
+from superset.daos.report import ReportScheduleDAO
 from superset.reports.commands.base import BaseReportScheduleCommand
 from superset.reports.commands.exceptions import (
     DatabaseNotFoundValidationError,
@@ -35,27 +35,31 @@ from superset.reports.commands.exceptions import (
     ReportScheduleNameUniquenessValidationError,
     ReportScheduleRequiredTypeValidationError,
 )
-from superset.reports.dao import ReportScheduleDAO
+from superset.reports.models import (
+    ReportCreationMethod,
+    ReportSchedule,
+    ReportScheduleType,
+)
+from superset.reports.types import ReportScheduleExtra
 
 logger = logging.getLogger(__name__)
 
 
 class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
-    def __init__(self, data: Dict[str, Any]):
+    def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
 
-    def run(self) -> Model:
+    def run(self) -> ReportSchedule:
         self.validate()
         try:
-            report_schedule = ReportScheduleDAO.create(self._properties)
+            return ReportScheduleDAO.create(attributes=self._properties)
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)
             raise ReportScheduleCreateFailedError() from ex
-        return report_schedule
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = []
-        owner_ids: Optional[List[int]] = self._properties.get("owners")
+        exceptions: list[ValidationError] = []
+        owner_ids: Optional[list[int]] = self._properties.get("owners")
         name = self._properties.get("name", "")
         report_type = self._properties.get("type")
         creation_method = self._properties.get("creation_method")
@@ -112,25 +116,29 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
         except ValidationError as ex:
             exceptions.append(ex)
         if exceptions:
-            exception = ReportScheduleInvalidError()
-            exception.add_list(exceptions)
-            raise exception
+            raise ReportScheduleInvalidError(exceptions=exceptions)
 
-    def _validate_report_extra(self, exceptions: List[ValidationError]) -> None:
-        extra = self._properties.get("extra")
+    def _validate_report_extra(self, exceptions: list[ValidationError]) -> None:
+        extra: Optional[ReportScheduleExtra] = self._properties.get("extra")
         dashboard = self._properties.get("dashboard")
 
         if extra is None or dashboard is None:
             return
 
-        dashboard_tab_ids = extra.get("dashboard_tab_ids")
-        if dashboard_tab_ids is None:
+        dashboard_state = extra.get("dashboard")
+        if not dashboard_state:
             return
-        position_data = json.loads(dashboard.position_json)
-        invalid_tab_ids = [
-            tab_id for tab_id in dashboard_tab_ids if tab_id not in position_data
-        ]
+
+        position_data = json.loads(dashboard.position_json or "{}")
+        active_tabs = dashboard_state.get("activeTabs") or []
+        anchor = dashboard_state.get("anchor")
+        invalid_tab_ids = set(active_tabs) - set(position_data.keys())
+        if anchor and anchor not in position_data:
+            invalid_tab_ids.add(anchor)
         if invalid_tab_ids:
             exceptions.append(
-                ValidationError(f"Invalid tab IDs selected: {invalid_tab_ids}", "extra")
+                ValidationError(
+                    _("Invalid tab ids: %s(tab_ids)", tab_ids=str(invalid_tab_ids)),
+                    "extra",
+                )
             )

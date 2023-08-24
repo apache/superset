@@ -71,7 +71,7 @@ const Cover = styled.div`
 const TitleContainer = styled.div`
   display: flex;
   justify-content: flex-start;
-  flex-direction: row;
+  flex-direction: column;
 
   .card-actions {
     margin-left: auto;
@@ -81,6 +81,12 @@ const TitleContainer = styled.div`
       display: flex;
       align-items: center;
     }
+  }
+
+  .titleRow {
+    display: flex;
+    justify-content: flex-start;
+    flex-direction: row;
   }
 `;
 
@@ -141,6 +147,7 @@ const AnchorLink: React.FC<LinkProps> = ({ to, children }) => (
 
 interface CardProps {
   title?: React.ReactNode;
+  subtitle?: React.ReactNode;
   url?: string;
   linkComponent?: React.ComponentType<LinkProps>;
   imgURL?: string;
@@ -161,6 +168,7 @@ interface CardProps {
 
 function ListViewCard({
   title,
+  subtitle,
   url,
   linkComponent,
   titleRight,
@@ -245,9 +253,10 @@ function ListViewCard({
         <AntdCard.Meta
           title={
             <TitleContainer>
-              <Tooltip title={title}>
-                <TitleLink>
-                  <Link to={url!}>
+              {subtitle || null}
+              <div className="titleRow">
+                <Tooltip title={title}>
+                  <TitleLink>
                     {certifiedBy && (
                       <>
                         <CertifiedBadge
@@ -257,12 +266,12 @@ function ListViewCard({
                       </>
                     )}
                     {title}
-                  </Link>
-                </TitleLink>
-              </Tooltip>
-              {titleRight && <TitleRight>{titleRight}</TitleRight>}
-              <div className="card-actions" data-test="card-actions">
-                {actions}
+                  </TitleLink>
+                </Tooltip>
+                {titleRight && <TitleRight>{titleRight}</TitleRight>}
+                <div className="card-actions" data-test="card-actions">
+                  {actions}
+                </div>
               </div>
             </TitleContainer>
           }

@@ -70,7 +70,7 @@ export const validateForm = async (
   } catch (error) {
     logging.warn('Filter configuration failed:', error);
 
-    if (!error.errorFields || !error.errorFields.length) return null; // not a validation error
+    if (!error.errorFields?.length) return null; // not a validation error
 
     // the name is in array format since the fields are nested
     type ErrorFields = { name: ['filters', string, string] }[];

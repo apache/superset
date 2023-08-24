@@ -24,7 +24,7 @@ from superset.utils.core import get_example_default_schema
 from tests.integration_tests.utils.get_dashboards import get_dashboards_ids
 from unittest import mock
 from sqlalchemy import Column
-from typing import Any, List
+from typing import Any
 from superset.advanced_data_type.types import (
     AdvancedDataType,
     AdvancedDataTypeRequest,
@@ -52,7 +52,7 @@ def translation_func(req: AdvancedDataTypeRequest) -> AdvancedDataTypeResponse:
     return target_resp
 
 
-def translate_filter_func(col: Column, op: FilterOperator, values: List[Any]):
+def translate_filter_func(col: Column, op: FilterOperator, values: list[Any]):
     pass
 
 

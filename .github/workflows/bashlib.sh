@@ -40,7 +40,8 @@ default-setup-command() {
 apt-get-install() {
   say "::group::apt-get install dependencies"
   sudo apt-get update && sudo apt-get install --yes \
-    libsasl2-dev
+    libsasl2-dev \
+    libldap2-dev
   say "::endgroup::"
 }
 
@@ -159,11 +160,11 @@ cypress-run() {
 
   say "::group::Run Cypress for [$page]"
   if [[ -z $CYPRESS_KEY ]]; then
-    $cypress --spec "cypress/integration/$page" --browser "$browser"
+    $cypress --spec "cypress/e2e/$page" --browser "$browser"
   else
     export CYPRESS_RECORD_KEY=$(echo $CYPRESS_KEY | base64 --decode)
     # additional flags for Cypress dashboard recording
-    $cypress --spec "cypress/integration/$page" --browser "$browser" \
+    $cypress --spec "cypress/e2e/$page" --browser "$browser" \
       --record --group "$group" --tag "${GITHUB_REPOSITORY},${GITHUB_EVENT_NAME}" \
       --parallel --ci-build-id "${GITHUB_SHA:0:8}-${NONCE}"
   fi
@@ -183,7 +184,7 @@ cypress-run-all() {
   nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!
 
-  cypress-run "*/**/!(*.applitools.test.ts)"
+  cypress-run "*/**/*"
 
   # After job is done, print out Flask log for debugging
   say "::group::Flask log for default run"
@@ -198,7 +199,7 @@ cypress-run-all() {
   nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!
 
-  cypress-run "sqllab/!(*.applitools.test.ts)" "Backend persist"
+  cypress-run "sqllab/*" "Backend persist"
 
   # Upload code coverage separately so each page can have separate flags
   # -c will clean existing coverage reports, -F means add flags
@@ -220,14 +221,19 @@ eyes-storybook-dependencies() {
 }
 
 cypress-run-applitools() {
+  cd "$GITHUB_WORKSPACE/superset-frontend/cypress-base"
+
   local flasklog="${HOME}/flask.log"
   local port=8081
+  local cypress="./node_modules/.bin/cypress run"
+  local browser=${CYPRESS_BROWSER:-chrome}
+
   export CYPRESS_BASE_URL="http://localhost:${port}"
 
   nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!
 
-  cypress-run "*/**/*.applitools.test.ts"
+  $cypress --spec "cypress/e2e/*/**/*.applitools.test.ts" --browser "$browser" --headless --config ignoreTestFiles="[]"
 
   codecov -c -F "cypress" || true
 

@@ -49,7 +49,7 @@ const allColumns: typeof sharedControls.groupby = {
     options: datasource?.columns || [],
     queryMode: getQueryMode(controls),
     externalValidationErrors:
-      isRawMode({ controls }) && ensureIsArray(controlState.value).length === 0
+      isRawMode({ controls }) && ensureIsArray(controlState?.value).length === 0
         ? [t('must have a value')]
         : [],
   }),
@@ -66,15 +66,14 @@ const dndAllColumns: typeof sharedControls.groupby = {
     const newState: ExtraControlProps = {};
     if (datasource) {
       if (datasource?.columns[0]?.hasOwnProperty('filterable')) {
-        const options = (datasource as Dataset).columns;
-        newState.options = Object.fromEntries(
-          options.map((option: ColumnMeta) => [option.column_name, option]),
+        newState.options = (datasource as Dataset)?.columns?.filter(
+          (c: ColumnMeta) => c.filterable,
         );
       } else newState.options = datasource.columns;
     }
     newState.queryMode = getQueryMode(controls);
     newState.externalValidationErrors =
-      isRawMode({ controls }) && ensureIsArray(controlState.value).length === 0
+      isRawMode({ controls }) && ensureIsArray(controlState?.value).length === 0
         ? [t('must have a value')]
         : [];
     return newState;

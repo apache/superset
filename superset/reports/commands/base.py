@@ -15,28 +15,28 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from marshmallow import ValidationError
 
-from superset.charts.dao import ChartDAO
 from superset.commands.base import BaseCommand
-from superset.dashboards.dao import DashboardDAO
-from superset.models.reports import ReportCreationMethod
+from superset.daos.chart import ChartDAO
+from superset.daos.dashboard import DashboardDAO
 from superset.reports.commands.exceptions import (
     ChartNotFoundValidationError,
     ChartNotSavedValidationError,
     DashboardNotFoundValidationError,
     DashboardNotSavedValidationError,
-    ReportScheduleChartOrDashboardValidationError,
+    ReportScheduleEitherChartOrDashboardError,
+    ReportScheduleOnlyChartOrDashboardError,
 )
+from superset.reports.models import ReportCreationMethod
 
 logger = logging.getLogger(__name__)
 
 
 class BaseReportScheduleCommand(BaseCommand):
-
-    _properties: Dict[str, Any]
+    _properties: dict[str, Any]
 
     def run(self) -> Any:
         pass
@@ -45,7 +45,7 @@ class BaseReportScheduleCommand(BaseCommand):
         pass
 
     def validate_chart_dashboard(
-        self, exceptions: List[ValidationError], update: bool = False
+        self, exceptions: list[ValidationError], update: bool = False
     ) -> None:
         """Validate chart or dashboard relation"""
         chart_id = self._properties.get("chart")
@@ -62,7 +62,8 @@ class BaseReportScheduleCommand(BaseCommand):
             return
 
         if chart_id and dashboard_id:
-            exceptions.append(ReportScheduleChartOrDashboardValidationError())
+            exceptions.append(ReportScheduleOnlyChartOrDashboardError())
+
         if chart_id:
             chart = ChartDAO.find_by_id(chart_id)
             if not chart:
@@ -74,4 +75,4 @@ class BaseReportScheduleCommand(BaseCommand):
                 exceptions.append(DashboardNotFoundValidationError())
             self._properties["dashboard"] = dashboard
         elif not update:
-            exceptions.append(ReportScheduleChartOrDashboardValidationError())
+            exceptions.append(ReportScheduleEitherChartOrDashboardError())

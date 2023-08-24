@@ -64,13 +64,14 @@ test('renders without icon', async () => {
   });
 });
 
-test('renders message', () => {
+test('renders message', async () => {
   render(<Alert message="Message" />);
-  expect(screen.getByRole('alert')).toHaveTextContent('Message');
+  expect(await screen.findByRole('alert')).toHaveTextContent('Message');
 });
 
-test('renders message and description', () => {
+test('renders message and description', async () => {
   render(<Alert message="Message" description="Description" />);
-  expect(screen.getByRole('alert')).toHaveTextContent('Message');
-  expect(screen.getByRole('alert')).toHaveTextContent('Description');
+  const alert = await screen.findByRole('alert');
+  expect(alert).toHaveTextContent('Message');
+  expect(alert).toHaveTextContent('Description');
 });

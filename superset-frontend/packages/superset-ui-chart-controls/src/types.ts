@@ -21,20 +21,19 @@ import React, { ReactElement, ReactNode, ReactText } from 'react';
 import type {
   AdhocColumn,
   Column,
+  Currency,
   DatasourceType,
+  JsonObject,
   JsonValue,
   Metric,
   QueryFormColumn,
   QueryFormData,
   QueryFormMetric,
   QueryResponse,
-  GenericDataType,
 } from '@superset-ui/core';
-import { sharedControls } from './shared-controls';
-import sharedControlComponents from './shared-controls/components';
+import { sharedControls, sharedControlComponents } from './shared-controls';
 
 export type { Metric } from '@superset-ui/core';
-export type { ControlFormItemSpec } from './components/ControlForm';
 export type { ControlComponentProps } from './shared-controls/components/types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -67,9 +66,9 @@ export interface Dataset {
   id: number;
   type: DatasourceType;
   columns: ColumnMeta[];
-  column_types?: GenericDataType[];
   metrics: Metric[];
-  column_format: Record<string, string>;
+  column_formats: Record<string, string>;
+  currency_formats: Record<string, Currency>;
   verbose_map: Record<string, string>;
   main_dttm_col: string;
   // eg. ['["ds", true]', 'ds [asc]']
@@ -81,17 +80,20 @@ export interface Dataset {
   description: string | null;
   uid?: string;
   owners?: Owner[];
-  table_name?: string;
+  filter_select?: boolean;
+  filter_select_enabled?: boolean;
 }
 
 export interface ControlPanelState {
   form_data: QueryFormData;
   datasource: Dataset | QueryResponse | null;
   controls: ControlStateMapping;
+  common: JsonObject;
+  metadata?: JsonObject | null;
 }
 
 /**
- * The action dispather will call Redux `dispatch` internally and return what's
+ * The action dispatcher will call Redux `dispatch` internally and return what's
  * returned from `dispatch`, which by default is the original or another action.
  */
 export interface ActionDispatcher<
@@ -164,6 +166,12 @@ export type InternalControlType =
   | 'DndColumnSelect'
   | 'DndFilterSelect'
   | 'DndMetricSelect'
+  | 'CurrencyControl'
+  | 'InputNumber'
+  | 'Checkbox'
+  | 'Select'
+  | 'Slider'
+  | 'Input'
   | keyof SharedControlComponents; // expanded in `expandControlConfig`
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -199,7 +207,7 @@ export type TabOverride = 'data' | 'customize' | boolean;
      tab, or 'customize' if you want it to show up on that tam. Otherwise sections with ALL
      `renderTrigger: true` components will show up on the `Customize` tab.
  * - visibility: a function that uses control panel props to check whether a control should
- *    be visibile.
+ *    be visible.
  */
 export interface BaseControlConfig<
   T extends ControlType = ControlType,
@@ -224,6 +232,7 @@ export interface BaseControlConfig<
         chartState?: AnyDict,
       ) => ReactNode);
   default?: V;
+  initialValue?: V;
   renderTrigger?: boolean;
   validators?: ControlValueValidator<T, O, V>[];
   warning?: ReactNode;
@@ -332,7 +341,6 @@ export type SharedSectionAlias =
   | 'annotations'
   | 'colorScheme'
   | 'datasourceAndVizType'
-  | 'druidTimeSeries'
   | 'sqlaTimeSeries'
   | 'NVD3TimeSeries';
 
@@ -364,7 +372,7 @@ export type ControlSetRow = ControlSetItem[];
 //  - superset-frontend/src/explore/components/ControlPanelsContainer.jsx
 //  - superset-frontend/src/explore/components/ControlPanelSection.jsx
 export interface ControlPanelSectionConfig {
-  label: ReactNode;
+  label?: ReactNode;
   description?: ReactNode;
   expanded?: boolean;
   tabOverride?: TabOverride;
@@ -450,10 +458,8 @@ export type ColorFormatters = {
 
 export default {};
 
-export function isColumnMeta(
-  column: AdhocColumn | ColumnMeta,
-): column is ColumnMeta {
-  return 'column_name' in column;
+export function isColumnMeta(column: AnyDict): column is ColumnMeta {
+  return !!column && 'column_name' in column;
 }
 
 export function isSavedExpression(
@@ -479,9 +485,75 @@ export function isDataset(
 export function isQueryResponse(
   datasource: Dataset | QueryResponse | null | undefined,
 ): datasource is QueryResponse {
-  return (
-    !!datasource &&
-    ('results' in datasource ||
-      datasource?.type === ('query' as DatasourceType.Query))
-  );
+  return !!datasource && 'results' in datasource && 'sql' in datasource;
 }
+
+export enum SortSeriesType {
+  Name = 'name',
+  Max = 'max',
+  Min = 'min',
+  Sum = 'sum',
+  Avg = 'avg',
+}
+
+export type SortSeriesData = {
+  sort_series_type: SortSeriesType;
+  sort_series_ascending: boolean;
+};
+
+export type ControlFormValueValidator<V> = (value: V) => string | false;
+
+export type ControlFormItemSpec<T extends ControlType = ControlType> = {
+  controlType: T;
+  label: ReactNode;
+  description: ReactNode;
+  placeholder?: string;
+  validators?: ControlFormValueValidator<any>[];
+  width?: number | string;
+  /**
+   * Time to delay change propagation.
+   */
+  debounceDelay?: number;
+} & (T extends 'Select'
+  ? {
+      options: any;
+      value?: string;
+      defaultValue?: string;
+      creatable?: boolean;
+      minWidth?: number | string;
+      validators?: ControlFormValueValidator<string>[];
+    }
+  : T extends 'RadioButtonControl'
+  ? {
+      options: [string, ReactNode][];
+      value?: string;
+      defaultValue?: string;
+    }
+  : T extends 'Checkbox'
+  ? {
+      value?: boolean;
+      defaultValue?: boolean;
+    }
+  : T extends 'InputNumber' | 'Slider'
+  ? {
+      min?: number;
+      max?: number;
+      step?: number;
+      value?: number;
+      defaultValue?: number;
+      validators?: ControlFormValueValidator<number>[];
+    }
+  : T extends 'Input'
+  ? {
+      controlType: 'Input';
+      value?: string;
+      defaultValue?: string;
+      validators?: ControlFormValueValidator<string>[];
+    }
+  : T extends 'CurrencyControl'
+  ? {
+      controlType: 'CurrencyControl';
+      value?: Currency;
+      defaultValue?: Currency;
+    }
+  : {});

@@ -23,8 +23,8 @@ Docker is an easy way to get started with Superset.
 
 ## Prerequisites
 
-1. Docker! [link](https://www.docker.com/get-started)
-2. Docker-compose [link](https://docs.docker.com/compose/install/)
+1. [Docker](https://www.docker.com/get-started)
+2. [Docker Compose](https://docs.docker.com/compose/install/)
 
 ## Configuration
 

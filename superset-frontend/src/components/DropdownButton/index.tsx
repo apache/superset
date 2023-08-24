@@ -52,10 +52,9 @@ const StyledDropdownButton = styled.div`
           border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light5};
           content: '';
           display: block;
-          height: 23px;
+          height: ${({ theme }) => theme.gridUnit * 8}px;
           margin: 0;
           position: absolute;
-          top: ${({ theme }) => theme.gridUnit * 0.75}px;
           width: ${({ theme }) => theme.gridUnit * 0.25}px;
         }
 

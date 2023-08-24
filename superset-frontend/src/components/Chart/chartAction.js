@@ -19,22 +19,22 @@
 /* eslint no-undef: 'error' */
 /* eslint no-param-reassign: ["error", { "props": false }] */
 import moment from 'moment';
-import { t, SupersetClient } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  isDefined,
+  SupersetClient,
+  t,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import { getControlsState } from 'src/explore/store';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import {
   getAnnotationJsonUrl,
   getExploreUrl,
   getLegacyEndpointType,
   buildV1ChartDataPayload,
-  shouldUseLegacyApi,
+  getQuerySettings,
   getChartDataUri,
 } from 'src/explore/exploreUtils';
-import {
-  requiresQuery,
-  ANNOTATION_SOURCE_TYPES,
-} from 'src/modules/AnnotationTypes';
-
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { logEvent } from 'src/logger/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
@@ -120,6 +120,7 @@ const legacyChartDataRequest = async (
   force,
   method = 'POST',
   requestParams = {},
+  parseMethod,
 ) => {
   const endpointType = getLegacyEndpointType({ resultFormat, resultType });
   const allowDomainSharding =
@@ -139,6 +140,7 @@ const legacyChartDataRequest = async (
     ...requestParams,
     url,
     postPayload: { form_data: formData },
+    parseMethod,
   };
 
   const clientMethod =
@@ -163,6 +165,7 @@ const v1ChartDataRequest = async (
   requestParams,
   setDataMask,
   ownState,
+  parseMethod,
 ) => {
   const payload = buildV1ChartDataPayload({
     formData,
@@ -196,6 +199,7 @@ const v1ChartDataRequest = async (
     url,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
+    parseMethod,
   };
 
   return SupersetClient.post(querySettings);
@@ -222,8 +226,8 @@ export async function getChartDataRequest({
       credentials: 'include',
     };
   }
-
-  if (shouldUseLegacyApi(formData)) {
+  const [useLegacyApi, parseMethod] = getQuerySettings(formData);
+  if (useLegacyApi) {
     return legacyChartDataRequest(
       formData,
       resultFormat,
@@ -231,6 +235,7 @@ export async function getChartDataRequest({
       force,
       method,
       querySettings,
+      parseMethod,
     );
   }
   return v1ChartDataRequest(
@@ -241,6 +246,7 @@ export async function getChartDataRequest({
     querySettings,
     setDataMask,
     ownState,
+    parseMethod,
   );
 }
 
@@ -259,7 +265,7 @@ export function runAnnotationQuery({
       ...(formData || getState().charts[sliceKey].latestQueryFormData),
     };
 
-    if (!requiresQuery(annotation.sourceType)) {
+    if (!annotation.sourceType) {
       return Promise.resolve();
     }
 
@@ -288,26 +294,35 @@ export function runAnnotationQuery({
         : undefined;
     }
 
-    const isNative = annotation.sourceType === ANNOTATION_SOURCE_TYPES.NATIVE;
-    const url = getAnnotationJsonUrl(
-      annotation.value,
-      sliceFormData,
-      isNative,
-      force,
-    );
+    const url = getAnnotationJsonUrl(annotation.value, force);
     const controller = new AbortController();
     const { signal } = controller;
 
     dispatch(annotationQueryStarted(annotation, controller, sliceKey));
 
-    return SupersetClient.get({
+    const annotationIndex = fd?.annotation_layers?.findIndex(
+      it => it.name === annotation.name,
+    );
+    if (annotationIndex >= 0) {
+      fd.annotation_layers[annotationIndex].overrides = sliceFormData;
+    }
+
+    return SupersetClient.post({
       url,
       signal,
       timeout: timeout * 1000,
+      headers: { 'Content-Type': 'application/json' },
+      jsonPayload: buildV1ChartDataPayload({
+        formData: fd,
+        force,
+        resultFormat: 'json',
+        resultType: 'full',
+      }),
     })
-      .then(({ json }) =>
-        dispatch(annotationQuerySuccess(annotation, json, sliceKey)),
-      )
+      .then(({ json }) => {
+        const data = json?.result?.[0]?.annotation_data?.[annotation.name];
+        return dispatch(annotationQuerySuccess(annotation, { data }, sliceKey));
+      })
       .catch(response =>
         getClientErrorObject(response).then(err => {
           if (err.statusText === 'timeout') {
@@ -396,13 +411,14 @@ export function exploreJSON(
         if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
           // deal with getChartDataRequest transforming the response data
           const result = 'result' in json ? json.result : json;
+          const [useLegacyApi] = getQuerySettings(formData);
           switch (response.status) {
             case 200:
               // Query results returned synchronously, meaning query was already cached.
               return Promise.resolve(result);
             case 202:
               // Query is running asynchronously and we must await the results
-              if (shouldUseLegacyApi(formData)) {
+              if (useLegacyApi) {
                 return waitForAsyncData(result[0]);
               }
               return waitForAsyncData(result);
@@ -473,7 +489,8 @@ export function exploreJSON(
       });
 
     // only retrieve annotations when calling the legacy API
-    const annotationLayers = shouldUseLegacyApi(formData)
+    const [useLegacyApi] = getQuerySettings(formData);
+    const annotationLayers = useLegacyApi
       ? formData.annotation_layers || []
       : [];
     const isDashboardRequest = dashboardId > 0;
@@ -602,10 +619,28 @@ export const getDatasourceSamples = async (
   datasourceType,
   datasourceId,
   force,
+  jsonPayload,
+  perPage,
+  page,
 ) => {
-  const endpoint = `/api/v1/explore/samples?force=${force}&datasource_type=${datasourceType}&datasource_id=${datasourceId}`;
   try {
-    const response = await SupersetClient.get({ endpoint });
+    const searchParams = {
+      force,
+      datasource_type: datasourceType,
+      datasource_id: datasourceId,
+    };
+
+    if (isDefined(perPage) && isDefined(page)) {
+      searchParams.per_page = perPage;
+      searchParams.page = page;
+    }
+
+    const response = await SupersetClient.post({
+      endpoint: '/datasource/samples',
+      jsonPayload,
+      searchParams,
+    });
+
     return response.json.result;
   } catch (err) {
     const clientError = await getClientErrorObject(err);

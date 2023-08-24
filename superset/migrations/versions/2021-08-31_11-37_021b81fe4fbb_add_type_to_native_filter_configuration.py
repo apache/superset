@@ -31,7 +31,7 @@ import logging
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.ext.declarative.api import declarative_base
+from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
 
@@ -91,7 +91,7 @@ def downgrade():
 
     for dashboard in session.query(Dashboard).all():
         logger.info(
-            "[RemoveTypeToNativeFilter] Updating Dashobard<pk:%s>",
+            "[RemoveTypeToNativeFilter] Updating Dashboard<pk:%s>",
             dashboard.id,
         )
         if not dashboard.json_metadata:

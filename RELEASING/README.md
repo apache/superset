@@ -30,6 +30,7 @@ partaking in the process should join the channel.
 
 ## Release notes for recent releases
 
+- [2.0](release-notes-2-0/README.md)
 - [1.5](release-notes-1-5/README.md)
 - [1.4](release-notes-1-4/README.md)
 - [1.3](release-notes-1-3/README.md)
@@ -73,7 +74,7 @@ the repo directly from the main `apache/superset` repo to a new directory `super
 
 ```bash
 cd <MY PROJECTS PATH>
-git clone git@github.com:apache/superset.git superset-release
+git clone https://github.com/apache/superset.git superset-release
 cd superset-release
 ```
 
@@ -101,7 +102,7 @@ the same terminal session won't be used for crafting the release candidate and t
 final release. Therefore, it's a good idea to do the following every time you
 work on a new phase of the release process to make sure you aren't releasing
 the wrong files/using wrong names. There's a script to help you set correctly all the
-necessary environment variables. Change your current directory to `superset/RELEASING`
+necessary environment variables. Change your current directory to `RELEASING`
 and execute the `set_release_env.sh` script with the relevant parameters:
 
 Usage (MacOS/ZSH):
@@ -289,10 +290,6 @@ git tag ${SUPERSET_VERSION_RC}
 git push origin ${SUPERSET_VERSION_RC}
 ```
 
-### Create a release on Github
-
-After submitting the tag, follow the steps [here](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) to create the release. Use the vote email text as the content for the release description. Make sure to check the "This is a pre-release" checkbox for release canditates. You can check previous releases if you need an example.
-
 ## Preparing the release candidate
 
 The first step of preparing an Apache Release is packaging a release candidate
@@ -346,7 +343,11 @@ To build and run the recently created tarball **from SVN**:
 # login using admin/admin
 ```
 
-### Voting
+## Create a release on Github
+
+After submitting the tag and testing the release candidate, follow the steps [here](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) to create the release on GitHub. Use the vote email text as the content for the release description. Make sure to check the "This is a pre-release" checkbox for release candidates. You can check previous releases if you need an example.
+
+## Voting
 
 Now you're ready to start the [VOTE] thread. Here's an example of a
 previous release vote thread:
@@ -384,7 +385,7 @@ A List of people with -1 vote (ex: John):
 
 The script will generate the email text that should be sent to dev@superset.apache.org using an email client. The release version and release candidate number are fetched from the previously set environment variables.
 
-### Validating a release
+## Validating a release
 
 https://www.apache.org/info/verification.html
 

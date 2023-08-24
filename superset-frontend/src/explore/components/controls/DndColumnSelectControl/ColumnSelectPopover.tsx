@@ -18,13 +18,23 @@
  */
 /* eslint-disable camelcase */
 import React, {
+  Dispatch,
+  SetStateAction,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
-import { AdhocColumn, isAdhocColumn, t, styled, css } from '@superset-ui/core';
+import { useSelector } from 'react-redux';
+import {
+  AdhocColumn,
+  isAdhocColumn,
+  t,
+  styled,
+  css,
+  DatasourceType,
+} from '@superset-ui/core';
 import { ColumnMeta, isSavedExpression } from '@superset-ui/chart-controls';
 import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
@@ -36,8 +46,10 @@ import { EmptyStateSmall } from 'src/components/EmptyState';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
 import {
   POPOVER_INITIAL_HEIGHT,
-  UNRESIZABLE_POPOVER_WIDTH,
+  POPOVER_INITIAL_WIDTH,
 } from 'src/explore/constants';
+import { ExplorePageState } from 'src/explore/types';
+import useResizeButton from './useResizeButton';
 
 const StyledSelect = styled(Select)`
   .metric-option {
@@ -60,6 +72,7 @@ interface ColumnSelectPopoverProps {
   getCurrentTab: (tab: string) => void;
   label: string;
   isTemporal?: boolean;
+  setDatasetModal?: Dispatch<SetStateAction<boolean>>;
 }
 
 const getInitialColumnValues = (
@@ -82,11 +95,15 @@ const ColumnSelectPopover = ({
   editedColumn,
   onChange,
   onClose,
+  setDatasetModal,
   setLabel,
   getCurrentTab,
   label,
   isTemporal,
 }: ColumnSelectPopoverProps) => {
+  const datasourceType = useSelector<ExplorePageState, string | undefined>(
+    state => state.explore.datasource.type,
+  );
   const [initialLabel] = useState(label);
   const [initialAdhocColumn, initialCalculatedColumn, initialSimpleColumn] =
     getInitialColumnValues(editedColumn);
@@ -100,6 +117,11 @@ const ColumnSelectPopover = ({
   const [selectedSimpleColumn, setSelectedSimpleColumn] = useState<
     ColumnMeta | undefined
   >(initialSimpleColumn);
+
+  const [resizeButton, width, height] = useResizeButton(
+    POPOVER_INITIAL_WIDTH,
+    POPOVER_INITIAL_HEIGHT,
+  );
 
   const sqlEditorRef = useRef(null);
 
@@ -121,7 +143,7 @@ const ColumnSelectPopover = ({
 
   const onSqlExpressionChange = useCallback(
     sqlExpression => {
-      setAdhocColumn({ label, sqlExpression } as AdhocColumn);
+      setAdhocColumn({ label, sqlExpression, expressionType: 'SQL' });
       setSelectedSimpleColumn(undefined);
       setSelectedCalculatedColumn(undefined);
     },
@@ -214,6 +236,13 @@ const ColumnSelectPopover = ({
     sqlEditorRef.current?.editor.resize();
   }, []);
 
+  const setDatasetAndClose = () => {
+    if (setDatasetModal) {
+      setDatasetModal(true);
+    }
+    onClose();
+  };
+
   const stateIsValid =
     adhocColumn || selectedCalculatedColumn || selectedSimpleColumn;
   const hasUnsavedChanges =
@@ -235,8 +264,8 @@ const ColumnSelectPopover = ({
         className="adhoc-metric-edit-tabs"
         allowOverflow
         css={css`
-          height: ${POPOVER_INITIAL_HEIGHT}px;
-          width: ${UNRESIZABLE_POPOVER_WIDTH}px;
+          height: ${height}px;
+          width: ${width}px;
         `}
       >
         <Tabs.TabPane key="saved" tab={t('Saved')}>
@@ -261,7 +290,7 @@ const ColumnSelectPopover = ({
                 }))}
               />
             </FormItem>
-          ) : (
+          ) : datasourceType === DatasourceType.Table ? (
             <EmptyStateSmall
               image="empty.svg"
               title={
@@ -279,6 +308,40 @@ const ColumnSelectPopover = ({
                     )
               }
             />
+          ) : (
+            <EmptyStateSmall
+              image="empty.svg"
+              title={
+                isTemporal
+                  ? t('No temporal columns found')
+                  : t('No saved expressions found')
+              }
+              description={
+                isTemporal ? (
+                  <>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={setDatasetAndClose}
+                    >
+                      {t('Create a dataset')}
+                    </span>{' '}
+                    {t(' to mark a column as a time column')}
+                  </>
+                ) : (
+                  <>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={setDatasetAndClose}
+                    >
+                      {t('Create a dataset')}
+                    </span>{' '}
+                    {t(' to add calculated columns')}
+                  </>
+                )
+              }
+            />
           )}
         </Tabs.TabPane>
         <Tabs.TabPane key="simple" tab={t('Simple')}>
@@ -286,9 +349,22 @@ const ColumnSelectPopover = ({
             <EmptyStateSmall
               image="empty.svg"
               title={t('No temporal columns found')}
-              description={t(
-                'Mark a column as temporal in "Edit datasource" modal',
-              )}
+              description={
+                datasourceType === DatasourceType.Table ? (
+                  t('Mark a column as temporal in "Edit datasource" modal')
+                ) : (
+                  <>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={setDatasetAndClose}
+                    >
+                      {t('Create a dataset')}
+                    </span>{' '}
+                    {t(' to mark a column as a time column')}
+                  </>
+                )
+              }
             />
           ) : (
             <FormItem label={simpleColumnsLabel}>
@@ -323,7 +399,7 @@ const ColumnSelectPopover = ({
             showLoadingForImport
             onChange={onSqlExpressionChange}
             width="100%"
-            height={`${POPOVER_INITIAL_HEIGHT - 80}px`}
+            height={`${height - 80}px`}
             showGutter={false}
             editorProps={{ $blockScrolling: true }}
             enableLiveAutocompletion
@@ -338,10 +414,8 @@ const ColumnSelectPopover = ({
           {t('Close')}
         </Button>
         <Button
-          disabled={!stateIsValid}
-          buttonStyle={
-            hasUnsavedChanges && stateIsValid ? 'primary' : 'default'
-          }
+          disabled={!stateIsValid || !hasUnsavedChanges}
+          buttonStyle="primary"
           buttonSize="small"
           onClick={onSave}
           data-test="ColumnEdit#save"
@@ -349,6 +423,7 @@ const ColumnSelectPopover = ({
         >
           {t('Save')}
         </Button>
+        {resizeButton}
       </div>
     </Form>
   );

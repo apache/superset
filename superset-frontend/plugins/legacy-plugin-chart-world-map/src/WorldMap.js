@@ -21,7 +21,6 @@ import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { extent as d3Extent } from 'd3-array';
 import {
-  getNumberFormatter,
   getSequentialSchemeRegistry,
   CategoricalColorNamespace,
 } from '@superset-ui/core';
@@ -44,12 +43,16 @@ const propTypes = {
   showBubbles: PropTypes.bool,
   linearColorScheme: PropTypes.string,
   color: PropTypes.string,
+  setDataMask: PropTypes.func,
+  onContextMenu: PropTypes.func,
+  emitCrossFilters: PropTypes.bool,
+  formatter: PropTypes.object,
 };
-
-const formatter = getNumberFormatter();
 
 function WorldMap(element, props) {
   const {
+    countryFieldtype,
+    entity,
     data,
     width,
     height,
@@ -61,6 +64,12 @@ function WorldMap(element, props) {
     colorScheme,
     sliceId,
     theme,
+    onContextMenu,
+    setDataMask,
+    inContextMenu,
+    filterState,
+    emitCrossFilters,
+    formatter,
   } = props;
   const div = d3.select(element);
   div.classed('superset-legacy-chart-world-map', true);
@@ -102,6 +111,91 @@ function WorldMap(element, props) {
     mapData[d.country] = d;
   });
 
+  const getCrossFilterDataMask = source => {
+    const selected = Object.values(filterState.selectedValues || {});
+    const key = source.id || source.country;
+    const country =
+      countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.country;
+
+    if (!country) {
+      return undefined;
+    }
+
+    let values;
+    if (selected.includes(key)) {
+      values = [];
+    } else {
+      values = [country];
+    }
+
+    return {
+      dataMask: {
+        extraFormData: {
+          filters: values.length
+            ? [
+                {
+                  col: entity,
+                  op: 'IN',
+                  val: values,
+                },
+              ]
+            : [],
+        },
+        filterState: {
+          value: values.length ? values : null,
+          selectedValues: values.length ? [key] : null,
+        },
+      },
+      isCurrentValueSelected: selected.includes(key),
+    };
+  };
+
+  const handleClick = source => {
+    if (!emitCrossFilters) {
+      return;
+    }
+    const pointerEvent = d3.event;
+    pointerEvent.preventDefault();
+    getCrossFilterDataMask(source);
+
+    const dataMask = getCrossFilterDataMask(source)?.dataMask;
+    if (dataMask) {
+      setDataMask(dataMask);
+    }
+  };
+
+  const handleContextMenu = source => {
+    const pointerEvent = d3.event;
+    pointerEvent.preventDefault();
+    const key = source.id || source.country;
+    const val =
+      countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.country;
+    let drillToDetailFilters;
+    let drillByFilters;
+    if (val) {
+      drillToDetailFilters = [
+        {
+          col: entity,
+          op: '==',
+          val,
+          formattedVal: val,
+        },
+      ];
+      drillByFilters = [
+        {
+          col: entity,
+          op: '==',
+          val,
+        },
+      ];
+    }
+    onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
+      drillToDetail: drillToDetailFilters,
+      crossFilter: getCrossFilterDataMask(source),
+      drillBy: { filters: drillByFilters, groupbyFieldName: 'entity' },
+    });
+  };
+
   const map = new Datamap({
     element,
     width,
@@ -111,8 +205,8 @@ function WorldMap(element, props) {
       defaultFill: theme.colors.grayscale.light2,
     },
     geographyConfig: {
-      popupOnHover: true,
-      highlightOnHover: true,
+      popupOnHover: !inContextMenu,
+      highlightOnHover: !inContextMenu,
       borderWidth: 1,
       borderColor: theme.colors.grayscale.light5,
       highlightBorderColor: theme.colors.grayscale.light5,
@@ -127,7 +221,7 @@ function WorldMap(element, props) {
       borderWidth: 1,
       borderOpacity: 1,
       borderColor: color,
-      popupOnHover: true,
+      popupOnHover: !inContextMenu,
       radius: null,
       popupTemplate: (geo, d) =>
         `<div class="hoverinfo"><strong>${d.name}</strong><br>${formatter(
@@ -135,7 +229,7 @@ function WorldMap(element, props) {
         )}</div>`,
       fillOpacity: 0.5,
       animate: true,
-      highlightOnHover: true,
+      highlightOnHover: !inContextMenu,
       highlightFillColor: color,
       highlightBorderColor: theme.colors.grayscale.dark2,
       highlightBorderWidth: 2,
@@ -143,6 +237,12 @@ function WorldMap(element, props) {
       highlightFillOpacity: 0.85,
       exitDelay: 100,
       key: JSON.stringify,
+    },
+    done: datamap => {
+      datamap.svg
+        .selectAll('.datamaps-subunit')
+        .on('contextmenu', handleContextMenu)
+        .on('click', handleClick);
     },
   });
 
@@ -153,7 +253,27 @@ function WorldMap(element, props) {
     div
       .selectAll('circle.datamaps-bubble')
       .style('fill', color)
-      .style('stroke', color);
+      .style('stroke', color)
+      .on('contextmenu', handleContextMenu)
+      .on('click', handleClick);
+  }
+
+  if (filterState.selectedValues?.length > 0) {
+    d3.selectAll('path.datamaps-subunit')
+      .filter(
+        countryFeature =>
+          !filterState.selectedValues.includes(countryFeature.id),
+      )
+      .style('fill-opacity', theme.opacity.mediumLight);
+
+    // hack to ensure that the clicked country's color is preserved
+    // sometimes the fill color would get default grey value after applying cross filter
+    filterState.selectedValues.forEach(value => {
+      d3.select(`path.datamaps-subunit.${value}`).style(
+        'fill',
+        mapData[value]?.fillColor,
+      );
+    });
   }
 }
 

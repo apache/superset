@@ -23,13 +23,14 @@ import userEvent from '@testing-library/user-event';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
 import * as mockCore from '@superset-ui/core';
 import { testWithId } from 'src/utils/testUtils';
-import { FeatureFlag } from 'src/featureFlags';
-import { Preset } from '@superset-ui/core';
+import { FeatureFlag, Preset } from '@superset-ui/core';
 import { TimeFilterPlugin, SelectFilterPlugin } from 'src/filters/components';
-import { DATE_FILTER_CONTROL_TEST_ID } from 'src/explore/components/controls/DateFilterControl/DateFilterLabel';
+import { DATE_FILTER_TEST_KEY } from 'src/explore/components/controls/DateFilterControl';
 import fetchMock from 'fetch-mock';
 import { waitFor } from '@testing-library/react';
-import FilterBar, { FILTER_BAR_TEST_ID } from '.';
+import { FilterBarOrientation } from 'src/dashboard/types';
+import { FILTER_BAR_TEST_ID } from './utils';
+import FilterBar from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
 
 jest.useFakeTimers();
@@ -71,13 +72,15 @@ fetchMock.get('glob:*/api/v1/dataset/7', {
 
 const getTestId = testWithId<string>(FILTER_BAR_TEST_ID, true);
 const getModalTestId = testWithId<string>(FILTERS_CONFIG_MODAL_TEST_ID, true);
-const getDateControlTestId = testWithId<string>(
-  DATE_FILTER_CONTROL_TEST_ID,
-  true,
-);
 
 const FILTER_NAME = 'Time filter 1';
 const FILTER_SET_NAME = 'New filter set';
+
+// @ts-ignore
+global.featureFlags = {
+  [FeatureFlag.DASHBOARD_NATIVE_FILTERS]: true,
+  [FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET]: true,
+};
 
 const addFilterFlow = async () => {
   // open filter config modal
@@ -121,7 +124,7 @@ const changeFilterValue = async () => {
   userEvent.click(screen.getAllByText('No filter')[0]);
   userEvent.click(screen.getByDisplayValue('Last day'));
   expect(await screen.findByText(/2021-04-13/)).toBeInTheDocument();
-  userEvent.click(screen.getByTestId(getDateControlTestId('apply-button')));
+  userEvent.click(screen.getByTestId(DATE_FILTER_TEST_KEY.applyButton));
 };
 
 describe('FilterBar', () => {
@@ -220,12 +223,23 @@ describe('FilterBar', () => {
   });
 
   const renderWrapper = (props = closedBarProps, state?: object) =>
-    render(<FilterBar {...props} width={280} height={400} offset={0} />, {
-      initialState: state,
-      useDnd: true,
-      useRedux: true,
-      useRouter: true,
-    });
+    render(
+      <FilterBar
+        orientation={FilterBarOrientation.VERTICAL}
+        verticalConfig={{
+          width: 280,
+          height: 400,
+          offset: 0,
+          ...props,
+        }}
+      />,
+      {
+        initialState: state,
+        useDnd: true,
+        useRedux: true,
+        useRouter: true,
+      },
+    );
 
   it('should render', () => {
     const { container } = renderWrapper();

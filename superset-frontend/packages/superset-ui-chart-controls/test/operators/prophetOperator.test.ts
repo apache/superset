@@ -47,6 +47,7 @@ test('should do prophetOperator with default index', () => {
     prophetOperator(
       {
         ...formData,
+        granularity_sqla: 'time_column',
         forecastEnabled: true,
         forecastPeriods: '3',
         forecastInterval: '5',
@@ -107,7 +108,7 @@ test('should do prophetOperator over adhoc column', () => {
         x_axis: {
           label: 'my_case_expr',
           expressionType: 'SQL',
-          expression: 'case when a = 1 then 1 else 0 end',
+          sqlExpression: 'case when a = 1 then 1 else 0 end',
         },
         forecastEnabled: true,
         forecastPeriods: '3',

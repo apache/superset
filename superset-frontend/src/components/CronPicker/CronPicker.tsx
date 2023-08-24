@@ -110,6 +110,9 @@ export const CronPicker = styled((props: CronProps) => (
     <ReactCronPicker locale={LOCALE} {...props} />
   </ConfigProvider>
 ))`
+  .react-js-cron-field {
+    margin-bottom: 0px;
+  }
   .react-js-cron-select:not(.react-js-cron-custom-select) > div:first-of-type,
   .react-js-cron-custom-select {
     border-radius: ${({ theme }) => theme.gridUnit}px;
@@ -118,5 +121,11 @@ export const CronPicker = styled((props: CronProps) => (
   }
   .react-js-cron-custom-select > div:first-of-type {
     border-radius: ${({ theme }) => theme.gridUnit}px;
+  }
+  .react-js-cron-custom-select .ant-select-selection-placeholder {
+    flex: auto;
+  }
+  .react-js-cron-custom-select .ant-select-selection-overflow-item {
+    align-self: center;
   }
 `;

@@ -27,6 +27,11 @@ export enum DatasourceType {
   SavedQuery = 'saved_query',
 }
 
+export interface Currency {
+  symbol: string;
+  symbolPosition: string;
+}
+
 /**
  * Datasource metadata.
  */
@@ -41,6 +46,9 @@ export interface Datasource {
   columnFormats?: {
     [key: string]: string;
   };
+  currencyFormats?: {
+    [key: string]: Currency;
+  };
   verboseMap?: {
     [key: string]: string;
   };
@@ -52,8 +60,5 @@ export const DEFAULT_METRICS: Metric[] = [
     expression: 'COUNT(*)',
   },
 ];
-
-export const isValidDatasourceType = (datasource: DatasourceType) =>
-  Object.values(DatasourceType).includes(datasource);
 
 export default {};

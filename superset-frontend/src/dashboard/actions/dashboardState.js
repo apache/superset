@@ -18,11 +18,14 @@
  */
 /* eslint camelcase: 0 */
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
+import rison from 'rison';
 import {
   ensureIsArray,
-  t,
-  SupersetClient,
+  isFeatureEnabled,
+  FeatureFlag,
   getSharedLabelColor,
+  SupersetClient,
+  t,
 } from '@superset-ui/core';
 import {
   addChart,
@@ -32,7 +35,14 @@ import {
 import { chart as initChart } from 'src/components/Chart/chartReducer';
 import { applyDefaultFormData } from 'src/explore/store';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { SAVE_TYPE_OVERWRITE } from 'src/dashboard/util/constants';
+import {
+  SAVE_TYPE_OVERWRITE,
+  SAVE_TYPE_OVERWRITE_CONFIRMED,
+} from 'src/dashboard/util/constants';
+import {
+  getCrossFiltersConfiguration,
+  isCrossFiltersEnabled,
+} from 'src/dashboard/util/crossFilters';
 import {
   addSuccessToast,
   addWarningToast,
@@ -42,20 +52,22 @@ import serializeActiveFilterValues from 'src/dashboard/util/serializeActiveFilte
 import serializeFilterScopes from 'src/dashboard/util/serializeFilterScopes';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { safeStringify } from 'src/utils/safeStringify';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
-import { fetchDatasourceMetadata } from 'src/dashboard/util/fetchDatasourceMetadata';
+import { logEvent } from 'src/logger/actions';
+import { LOG_ACTIONS_CONFIRM_OVERWRITE_DASHBOARD_METADATA } from 'src/logger/LogUtils';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';
 import {
-  setChartConfiguration,
+  saveChartConfiguration,
   dashboardInfoChanged,
-  SET_CHART_CONFIG_COMPLETE,
+  SAVE_CHART_CONFIG_COMPLETE,
 } from './dashboardInfo';
+import { fetchDatasourceMetadata } from './datasources';
 import {
   addFilter,
   removeFilter,
   updateDirectPathToFilter,
 } from './dashboardFilters';
 import { SET_FILTER_CONFIG_COMPLETE } from './nativeFilters';
+import getOverwriteItems from '../util/getOverwriteItems';
 
 export const SET_UNSAVED_CHANGES = 'SET_UNSAVED_CHANGES';
 export function setUnsavedChanges(hasUnsavedChanges) {
@@ -72,25 +84,18 @@ export function removeSlice(sliceId) {
   return { type: REMOVE_SLICE, sliceId };
 }
 
-export const RESET_SLICE = 'RESET_SLICE';
-export function resetSlice() {
-  return { type: RESET_SLICE };
-}
-
-const FAVESTAR_BASE_URL = '/superset/favstar/Dashboard';
 export const TOGGLE_FAVE_STAR = 'TOGGLE_FAVE_STAR';
 export function toggleFaveStar(isStarred) {
   return { type: TOGGLE_FAVE_STAR, isStarred };
 }
 
-export const FETCH_FAVE_STAR = 'FETCH_FAVE_STAR';
 export function fetchFaveStar(id) {
   return function fetchFaveStarThunk(dispatch) {
     return SupersetClient.get({
-      endpoint: `${FAVESTAR_BASE_URL}/${id}/count/`,
+      endpoint: `/api/v1/dashboard/favorite_status/?q=${rison.encode([id])}`,
     })
       .then(({ json }) => {
-        if (json.count > 0) dispatch(toggleFaveStar(true));
+        dispatch(toggleFaveStar(!!json?.result?.[0]?.value));
       })
       .catch(() =>
         dispatch(
@@ -104,13 +109,16 @@ export function fetchFaveStar(id) {
   };
 }
 
-export const SAVE_FAVE_STAR = 'SAVE_FAVE_STAR';
 export function saveFaveStar(id, isStarred) {
   return function saveFaveStarThunk(dispatch) {
-    const urlSuffix = isStarred ? 'unselect' : 'select';
-    return SupersetClient.get({
-      endpoint: `${FAVESTAR_BASE_URL}/${id}/${urlSuffix}/`,
-    })
+    const endpoint = `/api/v1/dashboard/${id}/favorites/`;
+    const apiCall = isStarred
+      ? SupersetClient.delete({
+          endpoint,
+        })
+      : SupersetClient.post({ endpoint });
+
+    return apiCall
       .then(() => {
         dispatch(toggleFaveStar(!isStarred));
       })
@@ -194,9 +202,28 @@ export function saveDashboardRequestSuccess(lastModifiedTime) {
   };
 }
 
+export const SET_OVERRIDE_CONFIRM = 'SET_OVERRIDE_CONFIRM';
+export function setOverrideConfirm(overwriteConfirmMetadata) {
+  return {
+    type: SET_OVERRIDE_CONFIRM,
+    overwriteConfirmMetadata,
+  };
+}
+
+export const SAVE_DASHBOARD_STARTED = 'SAVE_DASHBOARD_STARTED';
+export function saveDashboardStarted() {
+  return { type: SAVE_DASHBOARD_STARTED };
+}
+
+export const SAVE_DASHBOARD_FINISHED = 'SAVE_DASHBOARD_FINISHED';
+export function saveDashboardFinished() {
+  return { type: SAVE_DASHBOARD_FINISHED };
+}
+
 export function saveDashboardRequest(data, id, saveType) {
   return (dispatch, getState) => {
     dispatch({ type: UPDATE_COMPONENTS_PARENTS_LIST });
+    dispatch(saveDashboardStarted());
 
     const { dashboardFilters, dashboardLayout } = getState();
     const layout = dashboardLayout.present;
@@ -222,7 +249,7 @@ export function saveDashboardRequest(data, id, saveType) {
     } = data;
 
     const hasId = item => item.id !== undefined;
-
+    const metadataCrossFiltersEnabled = data.metadata?.cross_filters_enabled;
     // making sure the data is what the backend expects
     const cleanedData = {
       ...data,
@@ -240,47 +267,49 @@ export function saveDashboardRequest(data, id, saveType) {
         ...data.metadata,
         color_namespace: data.metadata?.color_namespace || undefined,
         color_scheme: data.metadata?.color_scheme || '',
+        color_scheme_domain: data.metadata?.color_scheme_domain || [],
         expanded_slices: data.metadata?.expanded_slices || {},
         label_colors: data.metadata?.label_colors || {},
         shared_label_colors: data.metadata?.shared_label_colors || {},
         refresh_frequency: data.metadata?.refresh_frequency || 0,
         timed_refresh_immune_slices:
           data.metadata?.timed_refresh_immune_slices || [],
+        // cross-filters should be enabled by default
+        cross_filters_enabled: isCrossFiltersEnabled(
+          metadataCrossFiltersEnabled,
+        ),
       },
     };
 
     const handleChartConfiguration = () => {
       const {
-        dashboardInfo: {
-          metadata: { chart_configuration = {} },
-        },
+        dashboardLayout,
+        charts,
+        dashboardInfo: { metadata },
       } = getState();
-      const chartConfiguration = Object.values(chart_configuration).reduce(
-        (prev, next) => {
-          // If chart removed from dashboard - remove it from metadata
-          if (
-            Object.values(layout).find(
-              layoutItem => layoutItem?.meta?.chartId === next.id,
-            )
-          ) {
-            return { ...prev, [next.id]: next };
-          }
-          return prev;
-        },
-        {},
+      return getCrossFiltersConfiguration(
+        dashboardLayout.present,
+        metadata,
+        charts,
       );
-      return chartConfiguration;
     };
 
     const onCopySuccess = response => {
-      const lastModifiedTime = response.json.last_modified_time;
+      const lastModifiedTime = response.json.result.last_modified_time;
       if (lastModifiedTime) {
         dispatch(saveDashboardRequestSuccess(lastModifiedTime));
       }
       if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
-        const chartConfiguration = handleChartConfiguration();
-        dispatch(setChartConfiguration(chartConfiguration));
+        const { chartConfiguration, globalChartConfiguration } =
+          handleChartConfiguration();
+        dispatch(
+          saveChartConfiguration({
+            chartConfiguration,
+            globalChartConfiguration,
+          }),
+        );
       }
+      dispatch(saveDashboardFinished());
       dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
       return response;
     };
@@ -288,7 +317,7 @@ export function saveDashboardRequest(data, id, saveType) {
     const onUpdateSuccess = response => {
       const updatedDashboard = response.json.result;
       const lastModifiedTime = response.json.last_modified_time;
-      // synching with the backend transformations of the metadata
+      // syncing with the backend transformations of the metadata
       if (updatedDashboard.json_metadata) {
         const metadata = JSON.parse(updatedDashboard.json_metadata);
         dispatch(
@@ -298,7 +327,7 @@ export function saveDashboardRequest(data, id, saveType) {
         );
         if (metadata.chart_configuration) {
           dispatch({
-            type: SET_CHART_CONFIG_COMPLETE,
+            type: SAVE_CHART_CONFIG_COMPLETE,
             chartConfiguration: metadata.chart_configuration,
           });
         }
@@ -312,6 +341,7 @@ export function saveDashboardRequest(data, id, saveType) {
       if (lastModifiedTime) {
         dispatch(saveDashboardRequestSuccess(lastModifiedTime));
       }
+      dispatch(saveDashboardFinished());
       // redirect to the new slug or id
       window.history.pushState(
         { event: 'dashboard_properties_changed' },
@@ -320,6 +350,7 @@ export function saveDashboardRequest(data, id, saveType) {
       );
 
       dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
+      dispatch(setOverrideConfirm(undefined));
       return response;
     };
 
@@ -336,57 +367,109 @@ export function saveDashboardRequest(data, id, saveType) {
       if (typeof message === 'string' && message === 'Forbidden') {
         errorText = t('You do not have permission to edit this dashboard');
       }
+      dispatch(saveDashboardFinished());
       dispatch(addDangerToast(errorText));
     };
 
-    if (saveType === SAVE_TYPE_OVERWRITE) {
+    if (
+      [SAVE_TYPE_OVERWRITE, SAVE_TYPE_OVERWRITE_CONFIRMED].includes(saveType)
+    ) {
       let chartConfiguration = {};
+      let globalChartConfiguration = {};
       if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
-        chartConfiguration = handleChartConfiguration();
+        ({ chartConfiguration, globalChartConfiguration } =
+          handleChartConfiguration());
       }
-      const updatedDashboard = {
-        certified_by: cleanedData.certified_by,
-        certification_details: cleanedData.certification_details,
-        css: cleanedData.css,
-        dashboard_title: cleanedData.dashboard_title,
-        slug: cleanedData.slug,
-        owners: cleanedData.owners,
-        roles: cleanedData.roles,
-        json_metadata: safeStringify({
-          ...(cleanedData?.metadata || {}),
-          default_filters: safeStringify(serializedFilters),
-          filter_scopes: serializedFilterScopes,
-          chart_configuration: chartConfiguration,
-        }),
-      };
+      const updatedDashboard =
+        saveType === SAVE_TYPE_OVERWRITE_CONFIRMED
+          ? data
+          : {
+              certified_by: cleanedData.certified_by,
+              certification_details: cleanedData.certification_details,
+              css: cleanedData.css,
+              dashboard_title: cleanedData.dashboard_title,
+              slug: cleanedData.slug,
+              owners: cleanedData.owners,
+              roles: cleanedData.roles,
+              json_metadata: safeStringify({
+                ...(cleanedData?.metadata || {}),
+                default_filters: safeStringify(serializedFilters),
+                filter_scopes: serializedFilterScopes,
+                chart_configuration: chartConfiguration,
+                global_chart_configuration: globalChartConfiguration,
+              }),
+            };
 
-      return SupersetClient.put({
-        endpoint: `/api/v1/dashboard/${id}`,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedDashboard),
+      const updateDashboard = () =>
+        SupersetClient.put({
+          endpoint: `/api/v1/dashboard/${id}`,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedDashboard),
+        })
+          .then(response => onUpdateSuccess(response))
+          .catch(response => onError(response));
+      return new Promise((resolve, reject) => {
+        if (
+          !isFeatureEnabled(FeatureFlag.CONFIRM_DASHBOARD_DIFF) ||
+          saveType === SAVE_TYPE_OVERWRITE_CONFIRMED
+        ) {
+          // skip overwrite precheck
+          resolve();
+          return;
+        }
+
+        // precheck for overwrite items
+        SupersetClient.get({
+          endpoint: `/api/v1/dashboard/${id}`,
+        }).then(response => {
+          const dashboard = response.json.result;
+          const overwriteConfirmItems = getOverwriteItems(
+            dashboard,
+            updatedDashboard,
+          );
+          if (overwriteConfirmItems.length > 0) {
+            dispatch(
+              setOverrideConfirm({
+                updatedAt: dashboard.changed_on,
+                updatedBy: dashboard.changed_by_name,
+                overwriteConfirmItems,
+                dashboardId: id,
+                data: updatedDashboard,
+              }),
+            );
+            return reject(overwriteConfirmItems);
+          }
+          return resolve();
+        });
       })
-        .then(response => onUpdateSuccess(response))
-        .catch(response => onError(response));
+        .then(updateDashboard)
+        .catch(overwriteConfirmItems => {
+          const errorText = t('Please confirm the overwrite values.');
+          dispatch(
+            logEvent(LOG_ACTIONS_CONFIRM_OVERWRITE_DASHBOARD_METADATA, {
+              dashboard_id: id,
+              items: overwriteConfirmItems,
+            }),
+          );
+          dispatch(addDangerToast(errorText));
+        });
     }
     // changing the data as the endpoint requires
-    const copyData = { ...cleanedData };
-    if (copyData.metadata) {
-      delete copyData.metadata;
+    if ('positions' in cleanedData && !('positions' in cleanedData.metadata)) {
+      cleanedData.metadata.positions = cleanedData.positions;
     }
-    const finalCopyData = {
-      ...copyData,
-      // the endpoint is expecting the metadata to be flat
-      ...(cleanedData?.metadata || {}),
+    cleanedData.metadata.default_filters = safeStringify(serializedFilters);
+    cleanedData.metadata.filter_scopes = serializedFilterScopes;
+    const copyPayload = {
+      dashboard_title: cleanedData.dashboard_title,
+      css: cleanedData.css,
+      duplicate_slices: cleanedData.duplicate_slices,
+      json_metadata: JSON.stringify(cleanedData.metadata),
     };
+
     return SupersetClient.post({
-      endpoint: `/superset/copy_dash/${id}/`,
-      postPayload: {
-        data: {
-          ...finalCopyData,
-          default_filters: safeStringify(serializedFilters),
-          filter_scopes: safeStringify(serializedFilterScopes),
-        },
-      },
+      endpoint: `/api/v1/dashboard/${id}/copy/`,
+      jsonPayload: copyPayload,
     })
       .then(response => onCopySuccess(response))
       .catch(response => onError(response));
@@ -505,28 +588,6 @@ export function addSliceToDashboard(id, component) {
   };
 }
 
-export function postAddSliceFromDashboard() {
-  return (dispatch, getState) => {
-    const {
-      dashboardInfo: { metadata },
-      dashboardState,
-    } = getState();
-
-    if (dashboardState?.updateSlice && dashboardState?.editMode) {
-      metadata.shared_label_colors = getSharedLabelColor().getColorMap(
-        metadata?.color_namespace,
-        metadata?.color_scheme,
-      );
-      dispatch(
-        dashboardInfoChanged({
-          metadata,
-        }),
-      );
-      dispatch(resetSlice());
-    }
-  };
-}
-
 export function removeSliceFromDashboard(id) {
   return (dispatch, getState) => {
     const sliceEntity = getState().sliceEntities.slices[id];
@@ -536,33 +597,13 @@ export function removeSliceFromDashboard(id) {
 
     dispatch(removeSlice(id));
     dispatch(removeChart(id));
-
-    const {
-      dashboardInfo: { metadata },
-    } = getState();
     getSharedLabelColor().removeSlice(id);
-    metadata.shared_label_colors = getSharedLabelColor().getColorMap(
-      metadata?.color_namespace,
-      metadata?.color_scheme,
-    );
-    dispatch(
-      dashboardInfoChanged({
-        metadata,
-      }),
-    );
   };
 }
 
 export const SET_COLOR_SCHEME = 'SET_COLOR_SCHEME';
 export function setColorScheme(colorScheme) {
   return { type: SET_COLOR_SCHEME, colorScheme };
-}
-
-export function setColorSchemeAndUnsavedChanges(colorScheme) {
-  return dispatch => {
-    dispatch(setColorScheme(colorScheme));
-    dispatch(setUnsavedChanges(true));
-  };
 }
 
 export const SET_DIRECT_PATH = 'SET_DIRECT_PATH';
@@ -606,7 +647,10 @@ export function maxUndoHistoryToast() {
 
     return dispatch(
       addWarningToast(
-        `You have used all ${historyLength} undo slots and will not be able to fully undo subsequent actions. You may save your current state to reset the history.`,
+        t(
+          'You have used all %(historyLength)s undo slots and will not be able to fully undo subsequent actions. You may save your current state to reset the history.',
+          { historyLength },
+        ),
       ),
     );
   };

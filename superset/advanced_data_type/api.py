@@ -18,7 +18,7 @@ from typing import Any
 
 from flask import current_app as app
 from flask.wrappers import Response
-from flask_appbuilder.api import BaseApi, expose, permission_name, protect, rison, safe
+from flask_appbuilder.api import expose, permission_name, protect, rison, safe
 from flask_babel import lazy_gettext as _
 
 from superset.advanced_data_type.schemas import (
@@ -27,12 +27,13 @@ from superset.advanced_data_type.schemas import (
 )
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.extensions import event_logger
+from superset.views.base_api import BaseSupersetApi
 
 config = app.config
 ADVANCED_DATA_TYPES = config["ADVANCED_DATA_TYPES"]
 
 
-class AdvancedDataTypeRestApi(BaseApi):
+class AdvancedDataTypeRestApi(BaseSupersetApi):
     """
     Advanced Data Type Rest API
     -Will return available AdvancedDataTypes when the /types endpoint is accessed
@@ -41,7 +42,6 @@ class AdvancedDataTypeRestApi(BaseApi):
     """
 
     allow_browser_login = True
-    include_route_methods = {"get", "get_types"}
     resource_name = "advanced_data_type"
     class_permission_name = "AdvancedDataType"
 
@@ -53,7 +53,7 @@ class AdvancedDataTypeRestApi(BaseApi):
 
     @protect()
     @safe
-    @expose("/convert", methods=["GET"])
+    @expose("/convert", methods=("GET",))
     @permission_name("read")
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
@@ -61,11 +61,12 @@ class AdvancedDataTypeRestApi(BaseApi):
     )
     @rison(advanced_data_type_convert_schema)
     def get(self, **kwargs: Any) -> Response:
-        """Returns a AdvancedDataTypeResponse object populated with the passed in args
+        """Return an AdvancedDataTypeResponse object populated with the passed in args.
         ---
         get:
-          summary: >-
-            Returns a AdvancedDataTypeResponse object populated with the passed in args.
+          summary: Return an AdvancedDataTypeResponse
+          description: >-
+            Returns an AdvancedDataTypeResponse object populated with the passed in args.
           parameters:
           - in: query
             name: q
@@ -111,18 +112,17 @@ class AdvancedDataTypeRestApi(BaseApi):
 
     @protect()
     @safe
-    @expose("/types", methods=["GET"])
+    @expose("/types", methods=("GET",))
     @permission_name("read")
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=False,  # pylint: disable-arguments-renamed
     )
     def get_types(self) -> Response:
-        """Returns a list of available advanced data types
+        """Return a list of available advanced data types.
         ---
         get:
-          description: >-
-            Returns a list of available advanced data types.
+          summary: Return a list of available advanced data types
           responses:
             200:
               description: >-
@@ -144,5 +144,4 @@ class AdvancedDataTypeRestApi(BaseApi):
             500:
               $ref: '#/components/responses/500'
         """
-
         return self.response(200, result=list(ADVANCED_DATA_TYPES.keys()))

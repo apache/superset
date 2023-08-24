@@ -7,6 +7,7 @@ updates:
     labels:
       - npm
       - dependabot
+    versioning-strategy: increase
 
   - package-ecosystem: "pip"
     directory: "/requirements/"
@@ -21,9 +22,29 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 0
+    versioning-strategy: increase
 
   - package-ecosystem: "npm"
     directory: "/docs/"
     schedule:
       interval: "daily"
     open-pull-requests-limit: 0
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-websocket/"
+    schedule:
+      interval: "daily"
+    labels:
+      - npm
+      - dependabot
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-websocket/utils/client-ws-app/"
+    schedule:
+      interval: "daily"
+    labels:
+      - npm
+      - dependabot
+    versioning-strategy: increase

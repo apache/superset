@@ -110,7 +110,7 @@ export const fixedHeight100Width = () => {
 };
 fixedHeight100Width.story = { name: 'fixed height, 100% width' };
 
-export const withErrorBoundar = () => {
+export const withErrorBoundary = () => {
   const width = text('Vis width', '500');
   const height = text('Vis height', '300');
 

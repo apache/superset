@@ -18,12 +18,9 @@
  */
 import {
   t,
-  ChartMetadata,
-  ChartPlugin,
   AnnotationType,
   Behavior,
-  isFeatureEnabled,
-  FeatureFlag,
+  hasGenericChartAxes,
 } from '@superset-ui/core';
 import buildQuery from '../buildQuery';
 import controlPanel from './controlPanel';
@@ -34,6 +31,7 @@ import {
   EchartsTimeseriesFormData,
 } from '../types';
 import example1 from './images/Area1.png';
+import { EchartsChartPlugin } from '../../types';
 
 const areaTransformProps = (chartProps: EchartsTimeseriesChartProps) =>
   transformProps({
@@ -41,7 +39,7 @@ const areaTransformProps = (chartProps: EchartsTimeseriesChartProps) =>
     formData: { ...chartProps.formData, area: true },
   });
 
-export default class EchartsAreaChartPlugin extends ChartPlugin<
+export default class EchartsAreaChartPlugin extends EchartsChartPlugin<
   EchartsTimeseriesFormData,
   EchartsTimeseriesChartProps
 > {
@@ -50,11 +48,15 @@ export default class EchartsAreaChartPlugin extends ChartPlugin<
       buildQuery,
       controlPanel,
       loadChart: () => import('../EchartsTimeseries'),
-      metadata: new ChartMetadata({
-        behaviors: [Behavior.INTERACTIVE_CHART],
+      metadata: {
+        behaviors: [
+          Behavior.INTERACTIVE_CHART,
+          Behavior.DRILL_TO_DETAIL,
+          Behavior.DRILL_BY,
+        ],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+        description: hasGenericChartAxes
           ? t(
               'Area charts are similar to line charts in that they represent variables with the same scale, but area charts stack the metrics on top of each other.',
             )
@@ -68,8 +70,8 @@ export default class EchartsAreaChartPlugin extends ChartPlugin<
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
-          ? t('Area Chart v2')
+        name: hasGenericChartAxes
+          ? t('Area Chart')
           : t('Time-series Area Chart'),
         tags: [
           t('ECharts'),
@@ -83,7 +85,7 @@ export default class EchartsAreaChartPlugin extends ChartPlugin<
           t('Popular'),
         ],
         thumbnail,
-      }),
+      },
       transformProps: areaTransformProps,
     });
   }

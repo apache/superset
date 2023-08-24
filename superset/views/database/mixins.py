@@ -63,7 +63,6 @@ class DatabaseMixin:
         "allow_dml",
         "force_ctas_schema",
         "impersonate_user",
-        "allow_multi_schema_metadata_fetch",
         "extra",
         "encrypted_extra",
         "server_cert",
@@ -103,7 +102,7 @@ class DatabaseMixin:
         ),
         "expose_in_sqllab": _("Expose this DB in SQL Lab"),
         "allow_run_async": _(
-            "Operate the database in asynchronous mode, meaning  "
+            "Operate the database in asynchronous mode, meaning "
             "that the queries are executed on remote workers as opposed "
             "to on the web server itself. "
             "This assumes that you have a Celery worker setup as well "
@@ -170,11 +169,6 @@ class DatabaseMixin:
             "service account, but impersonate the currently logged on user "
             "via hive.server2.proxy.user property."
         ),
-        "allow_multi_schema_metadata_fetch": _(
-            "Allow SQL Lab to fetch a list of all tables and all views across "
-            "all database schemas. For large data warehouse with thousands of "
-            "tables, this can be expensive and put strain on the system."
-        ),
         "cache_timeout": _(
             "Duration (in seconds) of the caching timeout for charts of this database. "
             "A timeout of 0 indicates that the cache never expires. "
@@ -203,7 +197,6 @@ class DatabaseMixin:
         "impersonate_user": _("Impersonate the logged on user"),
         "allow_file_upload": _("Allow Csv Upload"),
         "modified": _("Modified"),
-        "allow_multi_schema_metadata_fetch": _("Allow Multi Schema Metadata Fetch"),
         "backend": _("Backend"),
     }
 
@@ -228,22 +221,22 @@ class DatabaseMixin:
     def pre_update(self, database: Database) -> None:
         self._pre_add_update(database)
 
-    def pre_delete(self, database: Database) -> None:  # pylint: disable=no-self-use
+    def pre_delete(self, database: Database) -> None:
         if database.tables:
             raise SupersetException(
                 Markup(
                     "Cannot delete a database that has tables attached. "
                     "Here's the list of associated tables: "
-                    + ", ".join("{}".format(table) for table in database.tables)
+                    + ", ".join(f"{table}" for table in database.tables)
                 )
             )
 
-    def check_extra(self, database: Database) -> None:  # pylint: disable=no-self-use
+    def check_extra(self, database: Database) -> None:
         # this will check whether json.loads(extra) can succeed
         try:
             extra = database.get_extra()
         except Exception as ex:
-            raise Exception(
+            raise Exception(  # pylint: disable=broad-exception-raised
                 _("Extra field cannot be decoded by JSON. %(msg)s", msg=str(ex))
             ) from ex
 
@@ -251,7 +244,7 @@ class DatabaseMixin:
         metadata_signature = inspect.signature(MetaData)
         for key in extra.get("metadata_params", {}):
             if key not in metadata_signature.parameters:
-                raise Exception(
+                raise Exception(  # pylint: disable=broad-exception-raised
                     _(
                         "The metadata_params in Extra field "
                         "is not configured correctly. The key "
@@ -260,13 +253,11 @@ class DatabaseMixin:
                     )
                 )
 
-    def check_encrypted_extra(  # pylint: disable=no-self-use
-        self, database: Database
-    ) -> None:
+    def check_encrypted_extra(self, database: Database) -> None:
         # this will check whether json.loads(secure_extra) can succeed
         try:
             database.get_encrypted_extra()
         except Exception as ex:
-            raise Exception(
+            raise Exception(  # pylint: disable=broad-exception-raised
                 _("Extra field cannot be decoded by JSON. %(msg)s", msg=str(ex))
             ) from ex

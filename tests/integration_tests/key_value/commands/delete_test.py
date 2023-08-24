@@ -16,7 +16,7 @@
 # under the License.
 from __future__ import annotations
 
-import pickle
+import json
 from typing import TYPE_CHECKING
 from uuid import UUID
 
@@ -25,7 +25,11 @@ from flask.ctx import AppContext
 from flask_appbuilder.security.sqla.models import User
 
 from superset.extensions import db
-from tests.integration_tests.key_value.commands.fixtures import admin, RESOURCE, VALUE
+from tests.integration_tests.key_value.commands.fixtures import (
+    admin,
+    JSON_VALUE,
+    RESOURCE,
+)
 
 if TYPE_CHECKING:
     from superset.key_value.models import KeyValueEntry
@@ -42,7 +46,7 @@ def key_value_entry() -> KeyValueEntry:
         id=ID_KEY,
         uuid=UUID_KEY,
         resource=RESOURCE,
-        value=pickle.dumps(VALUE),
+        value=bytes(json.dumps(JSON_VALUE), encoding="utf-8"),
     )
     db.session.add(entry)
     db.session.commit()
@@ -55,7 +59,6 @@ def test_delete_id_entry(
     key_value_entry: KeyValueEntry,
 ) -> None:
     from superset.key_value.commands.delete import DeleteKeyValueCommand
-    from superset.key_value.models import KeyValueEntry
 
     assert DeleteKeyValueCommand(resource=RESOURCE, key=ID_KEY).run() is True
 
@@ -66,7 +69,6 @@ def test_delete_uuid_entry(
     key_value_entry: KeyValueEntry,
 ) -> None:
     from superset.key_value.commands.delete import DeleteKeyValueCommand
-    from superset.key_value.models import KeyValueEntry
 
     assert DeleteKeyValueCommand(resource=RESOURCE, key=UUID_KEY).run() is True
 
@@ -77,6 +79,5 @@ def test_delete_entry_missing(
     key_value_entry: KeyValueEntry,
 ) -> None:
     from superset.key_value.commands.delete import DeleteKeyValueCommand
-    from superset.key_value.models import KeyValueEntry
 
     assert DeleteKeyValueCommand(resource=RESOURCE, key=456).run() is False

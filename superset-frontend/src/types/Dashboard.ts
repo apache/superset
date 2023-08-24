@@ -36,5 +36,3 @@ export interface Dashboard {
   owners: Owner[];
   roles: Role[];
 }
-
-export default Dashboard;

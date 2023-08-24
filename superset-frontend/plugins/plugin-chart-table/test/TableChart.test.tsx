@@ -18,11 +18,13 @@
  */
 import React from 'react';
 import { CommonWrapper } from 'enzyme';
+import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import TableChart from '../src/TableChart';
 import transformProps from '../src/transformProps';
 import DateWithFormatter from '../src/utils/DateWithFormatter';
 import testData from './testData';
-import { mount } from './enzyme';
+import { mount, ProviderWrapper } from './enzyme';
 
 describe('plugin-chart-table', () => {
   describe('transformProps', () => {
@@ -96,14 +98,107 @@ describe('plugin-chart-table', () => {
       // should successful rerender with new props
       const cells = tree.find('td');
       expect(tree.find('th').eq(1).text()).toEqual('Sum of Num');
+      expect(cells.eq(0).text()).toEqual('Michael');
       expect(cells.eq(2).text()).toEqual('12.346%');
       expect(cells.eq(4).text()).toEqual('2.47k');
+    });
+
+    it('render advanced data with currencies', () => {
+      render(
+        ProviderWrapper({
+          children: (
+            <TableChart
+              {...transformProps(testData.advancedWithCurrency)}
+              sticky={false}
+            />
+          ),
+        }),
+      );
+      const cells = document.querySelectorAll('td');
+      expect(document.querySelectorAll('th')[1]).toHaveTextContent(
+        'Sum of Num',
+      );
+      expect(cells[0]).toHaveTextContent('Michael');
+      expect(cells[2]).toHaveTextContent('12.346%');
+      expect(cells[4]).toHaveTextContent('$ 2.47k');
     });
 
     it('render empty data', () => {
       wrap.setProps({ ...transformProps(testData.empty), sticky: false });
       tree = wrap.render();
       expect(tree.text()).toContain('No records found');
+    });
+
+    it('render color with column color formatter', () => {
+      render(
+        ProviderWrapper({
+          children: (
+            <TableChart
+              {...transformProps({
+                ...testData.advanced,
+                rawFormData: {
+                  ...testData.advanced.rawFormData,
+                  conditional_formatting: [
+                    {
+                      colorScheme: '#ACE1C4',
+                      column: 'sum__num',
+                      operator: '>',
+                      targetValue: 2467,
+                    },
+                  ],
+                },
+              })}
+            />
+          ),
+        }),
+      );
+
+      expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
+        'rgba(172, 225, 196, 1)',
+      );
+      expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
+    });
+
+    it('render cell without color', () => {
+      const dataWithEmptyCell = testData.advanced.queriesData[0];
+      dataWithEmptyCell.data.push({
+        __timestamp: null,
+        name: 'Noah',
+        sum__num: null,
+        '%pct_nice': 0.643,
+        'abc.com': 'bazzinga',
+      });
+
+      render(
+        ProviderWrapper({
+          children: (
+            <TableChart
+              {...transformProps({
+                ...testData.advanced,
+                queriesData: [dataWithEmptyCell],
+                rawFormData: {
+                  ...testData.advanced.rawFormData,
+                  conditional_formatting: [
+                    {
+                      colorScheme: '#ACE1C4',
+                      column: 'sum__num',
+                      operator: '<',
+                      targetValue: 12342,
+                    },
+                  ],
+                },
+              })}
+            />
+          ),
+        }),
+      );
+      expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
+        'rgba(172, 225, 196, 0.812)',
+      );
+      expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
+        '',
+      );
+      expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
     });
   });
 });

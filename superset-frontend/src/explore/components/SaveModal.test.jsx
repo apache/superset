@@ -20,13 +20,10 @@ import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { bindActionCreators } from 'redux';
-import { Provider } from 'react-redux';
 
 import { shallow } from 'enzyme';
-import { styledMount as mount } from 'spec/helpers/theming';
 import { Radio } from 'src/components/Radio';
 import Button from 'src/components/Button';
-import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
@@ -39,6 +36,7 @@ const initialState = {
   chart: {},
   saveModal: {
     dashboards: [],
+    isVisible: true,
   },
   explore: {
     datasource: {},
@@ -54,9 +52,10 @@ const initialState = {
   },
 };
 
-const store = mockStore(initialState);
+const initialStore = mockStore(initialState);
 
 const defaultProps = {
+  addDangerToast: jest.fn(),
   onHide: () => ({}),
   actions: bindActionCreators(saveModalActions, arg => {
     if (typeof arg === 'function') {
@@ -79,18 +78,40 @@ const mockDashboardData = {
   result: [{ id: 'id', dashboard_title: 'dashboard title' }],
 };
 
+const queryStore = mockStore({
+  chart: {},
+  saveModal: {
+    dashboards: [],
+    isVisible: true,
+  },
+  explore: {
+    datasource: { name: 'test', type: 'query' },
+    slice: null,
+    alert: null,
+  },
+  user: {
+    userId: 1,
+  },
+});
+
+const queryDefaultProps = {
+  ...defaultProps,
+  form_data: { datasource: '107__query', url_params: { foo: 'bar' } },
+};
+
 const fetchDashboardsEndpoint = `glob:*/dashboardasync/api/read?_flt_0_owners=${1}`;
 
 beforeAll(() => fetchMock.get(fetchDashboardsEndpoint, mockDashboardData));
 
 afterAll(() => fetchMock.restore());
 
-const getWrapper = () =>
+const getWrapper = (props = defaultProps, store = initialStore) =>
   shallow(
     <BrowserRouter>
-      <SaveModal {...defaultProps} store={store} />
+      <SaveModal {...props} store={store} />
     </BrowserRouter>,
   )
+    .dive()
     .dive()
     .dive()
     .dive()
@@ -109,7 +130,7 @@ test('renders a Modal with the right set of components', () => {
   expect(footerWrapper.find(Button)).toHaveLength(3);
 });
 
-test('renders the right footer buttons when existing dashboard selected', () => {
+test('renders the right footer buttons', () => {
   const wrapper = getWrapper();
   const footerWrapper = shallow(wrapper.find(StyledModal).props().footer);
   const saveAndGoDash = footerWrapper
@@ -120,19 +141,43 @@ test('renders the right footer buttons when existing dashboard selected', () => 
   expect(saveAndGoDash.props.children).toBe('Save & go to dashboard');
 });
 
-test('renders the right footer buttons when new dashboard selected', () => {
+test('does not render a message when overriding', () => {
   const wrapper = getWrapper();
   wrapper.setState({
-    saveToDashboardId: null,
-    newDashboardName: 'Test new dashboard',
+    action: 'overwrite',
   });
-  const footerWrapper = shallow(wrapper.find(StyledModal).props().footer);
-  const saveAndGoDash = footerWrapper
-    .find('#btn_modal_save_goto_dash')
-    .getElement();
-  const save = footerWrapper.find('#btn_modal_save').getElement();
-  expect(save.props.children).toBe('Save to new dashboard');
-  expect(saveAndGoDash.props.children).toBe('Save & go to new dashboard');
+  expect(
+    wrapper.find('[message="A new chart will be created."]'),
+  ).not.toExist();
+});
+
+test('renders a message when saving as', () => {
+  const wrapper = getWrapper();
+  wrapper.setState({
+    action: 'saveas',
+  });
+  expect(wrapper.find('[message="A new chart will be created."]')).toExist();
+});
+
+test('renders a message when a new dashboard is selected', () => {
+  const wrapper = getWrapper();
+  wrapper.setState({
+    dashboard: { label: 'Test new dashboard', value: 'Test new dashboard' },
+  });
+  expect(
+    wrapper.find('[message="A new dashboard will be created."]'),
+  ).toExist();
+});
+
+test('renders a message when saving as with new dashboard', () => {
+  const wrapper = getWrapper();
+  wrapper.setState({
+    action: 'saveas',
+    dashboard: { label: 'Test new dashboard', value: 'Test new dashboard' },
+  });
+  expect(
+    wrapper.find('[message="A new chart and dashboard will be created."]'),
+  ).toExist();
 });
 
 test('disables overwrite option for new slice', () => {
@@ -143,7 +188,7 @@ test('disables overwrite option for new slice', () => {
 
 test('disables overwrite option for non-owner', () => {
   const wrapperForNonOwner = getWrapper();
-  wrapperForNonOwner.setProps({ userId: 2 });
+  wrapperForNonOwner.setProps({ user: { userId: 2 } });
   const overwriteRadio = wrapperForNonOwner.find('#overwrite-radio');
   expect(overwriteRadio).toHaveLength(1);
   expect(overwriteRadio.prop('disabled')).toBe(true);
@@ -165,18 +210,6 @@ test('sets action when overwriting slice', () => {
   expect(wrapperForOverwrite.state().action).toBe('overwrite');
 });
 
-test('fetches dashboards on component mount', () => {
-  sinon.spy(defaultProps.actions, 'fetchDashboards');
-  mount(
-    <Provider store={store}>
-      <SaveModal {...defaultProps} />
-    </Provider>,
-  );
-  expect(defaultProps.actions.fetchDashboards.calledOnce).toBe(true);
-
-  defaultProps.actions.fetchDashboards.restore();
-});
-
 test('updates slice name and selected dashboard', () => {
   const wrapper = getWrapper();
   const dashboardId = mockEvent.value;
@@ -184,17 +217,12 @@ test('updates slice name and selected dashboard', () => {
   wrapper.instance().onSliceNameChange(mockEvent);
   expect(wrapper.state().newSliceName).toBe(mockEvent.target.value);
 
-  wrapper.instance().onDashboardSelectChange(dashboardId);
-  expect(wrapper.state().saveToDashboardId).toBe(dashboardId);
+  wrapper.instance().onDashboardChange({ value: dashboardId });
+  expect(wrapper.state().dashboard.value).toBe(dashboardId);
 });
 
-test('removes alert', () => {
-  sinon.spy(defaultProps.actions, 'removeSaveModalAlert');
-  const wrapper = getWrapper();
-  wrapper.setProps({ alert: 'old alert' });
-
-  wrapper.instance().removeAlert();
-  expect(defaultProps.actions.removeSaveModalAlert.callCount).toBe(1);
-  expect(wrapper.state().alert).toBeNull();
-  defaultProps.actions.removeSaveModalAlert.restore();
+test('set dataset name when chart source is query', () => {
+  const wrapper = getWrapper(queryDefaultProps, queryStore);
+  expect(wrapper.find('[data-test="new-dataset-name"]')).toExist();
+  expect(wrapper.state().datasetName).toBe('test');
 });

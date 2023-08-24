@@ -16,11 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { JsonObject, Query, QueryResponse } from '@superset-ui/core';
-import { SupersetError } from 'src/components/ErrorMessage/types';
+import { JsonObject, QueryResponse } from '@superset-ui/core';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { ToastType } from 'src/components/MessageToasts/types';
-import { RootState } from 'src/dashboard/types';
+import { DropdownButtonProps } from 'src/components/DropdownButton';
+import { ButtonProps } from 'src/components/Button';
+
+export type QueryButtonProps = DropdownButtonProps | ButtonProps;
 
 // Object as Dictionary (associative array) with Query id as the key and type Query as the value
 export type QueryDictionary = {
@@ -28,16 +30,19 @@ export type QueryDictionary = {
 };
 
 export interface QueryEditor {
+  id: string;
   dbId?: number;
-  title: string;
+  name: string;
   schema: string;
   autorun: boolean;
   sql: string;
   remoteId: number | null;
-  validationResult?: {
-    completed: boolean;
-    errors: SupersetError[];
-  };
+  hideLeftBar?: boolean;
+  latestQueryId?: string | null;
+  templateParams?: string;
+  selectedText?: string;
+  queryLimit?: number;
+  description?: string;
 }
 
 export type toastState = {
@@ -55,34 +60,23 @@ export type SqlLabRootState = {
     databases: Record<string, any>;
     dbConnect: boolean;
     offline: boolean;
-    queries: Query[];
+    queries: Record<string, QueryResponse>;
     queryEditors: QueryEditor[];
     tabHistory: string[]; // default is activeTab ? [activeTab.id.toString()] : []
     tables: Record<string, any>[];
     queriesLastUpdate: number;
-    user: UserWithPermissionsAndRoles;
     errorMessage: string | null;
+    unsavedQueryEditor: Partial<QueryEditor>;
+    queryCostEstimates?: Record<string, QueryCostEstimate>;
+    editorTabLastUpdatedAt?: number;
   };
   localStorageUsageInKilobytes: number;
   messageToasts: toastState[];
+  user: UserWithPermissionsAndRoles;
   common: {
     flash_messages: string[];
     conf: JsonObject;
   };
-};
-
-export type SqlLabExploreRootState = SqlLabRootState | RootState;
-
-export const getInitialState = (state: SqlLabExploreRootState) => {
-  if (state.hasOwnProperty('sqlLab')) {
-    const {
-      sqlLab: { user },
-    } = state as SqlLabRootState;
-    return user;
-  }
-
-  const { user } = state as RootState;
-  return user as UserWithPermissionsAndRoles;
 };
 
 export enum DatasetRadioState {
@@ -108,4 +102,16 @@ export interface DatasetOptionAutocomplete {
   value: string;
   datasetId: number;
   owners: [DatasetOwner];
+}
+
+export interface SchemaOption {
+  value: string;
+  label: string;
+  title: string;
+}
+
+export interface QueryCostEstimate {
+  completed: string;
+  cost: Record<string, any>[];
+  error: string;
 }
