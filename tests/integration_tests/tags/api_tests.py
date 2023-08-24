@@ -524,12 +524,13 @@ class TestTagApi(SupersetTestCase):
             .filter(Dashboard.dashboard_title == "World Bank's Data")
             .first()
         )
+        chart = db.session.query(Slice).first()
         tags = ["tag1", "tag2", "tag3"]
         rv = self.client.post(
             uri,
             json={
                 "tags": ["tag1", "tag2", "tag3"],
-                "objects_to_tag": [["dashboard", dashboard.id]],
+                "objects_to_tag": [["dashboard", dashboard.id], ["chart", chart.id]],
             },
         )
 
@@ -537,3 +538,19 @@ class TestTagApi(SupersetTestCase):
 
         result = TagDAO.get_tagged_objects_for_tags(tags, ["dashboard"])
         assert len(result) == 1
+
+        result = TagDAO.get_tagged_objects_for_tags(tags, ["chart"])
+        assert len(result) == 1
+
+        tagged_objects = db.session.query(TaggedObject).filter(
+            TaggedObject.object_id == dashboard.id,
+            TaggedObject.object_type == ObjectTypes.dashboard,
+        )
+        assert tagged_objects.count() == 3
+
+        tagged_objects = db.session.query(TaggedObject).filter(
+            # TaggedObject.tag_id.in_([tag.id for tag in tags]),
+            TaggedObject.object_id == chart.id,
+            TaggedObject.object_type == ObjectTypes.chart,
+        )
+        assert tagged_objects.count() == 3

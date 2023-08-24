@@ -32,7 +32,7 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({
       endpoint: `/api/v1/tag/bulk_create`,
       jsonPayload: {
         tags: tags.map(tag => tag.value),
-        objects_to_tag: selected.map(item => ['dashboard', +item.id]),
+        objects_to_tag: selected.map(item => ['dashboard', +item.original.id]),
       },
     })
       .then(({ json = {} }) => {
