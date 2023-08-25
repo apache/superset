@@ -55,22 +55,41 @@ const isIsoband = (contour: ContourType) => {
 const getTabKey = (contour: ContourType | undefined) =>
   contour && isIsoband(contour) ? CONTOUR_TYPES.Isoband : CONTOUR_TYPES.Isoline;
 
-const determineErrorMap = (contour: ContourType) => {
-  const type = getTabKey(contour);
+const determineErrorMap = (tab: string, contour: ContourType) => {
   const errorMap: ErrorMapType = {
     lowerThreshold: [],
     upperThreshold: [],
     strokeWidth: [],
     color: [],
   };
-  if (type === CONTOUR_TYPES.Isoband) {
-    const upperThresholdError = legacyValidateInteger(contour.upperThreshold);
-    if (upperThresholdError) errorMap.upperThreshold.push(upperThresholdError);
-  }
+  // Isoline and Isoband validation
   const lowerThresholdError = legacyValidateInteger(contour.lowerThreshold);
   const strokeWidthError = legacyValidateInteger(contour.strokeWidth);
   if (lowerThresholdError) errorMap.lowerThreshold.push(lowerThresholdError);
   if (strokeWidthError) errorMap.strokeWidth.push(strokeWidthError);
+
+  // Isoband only validation
+  if (tab === CONTOUR_TYPES.Isoband) {
+    const upperThresholdError = legacyValidateInteger(contour.upperThreshold);
+    if (upperThresholdError) errorMap.upperThreshold.push(upperThresholdError);
+    if (
+      !upperThresholdError &&
+      !lowerThresholdError &&
+      contour.upperThreshold &&
+      contour.lowerThreshold
+    ) {
+      const lower = parseFloat(contour.lowerThreshold);
+      const upper = parseFloat(contour.upperThreshold);
+      if (lower >= upper) {
+        errorMap.lowerThreshold.push(
+          t('Lower threshold must be lower than upper threshold'),
+        );
+        errorMap.upperThreshold.push(
+          t('Upper threshold must be greater than lower threshold'),
+        );
+      }
+    }
+  }
   return errorMap;
 };
 
@@ -81,6 +100,24 @@ const convertContourToNumeric = (contour: ContourType) => {
     formattedContour[key] = Number(formattedContour[key]);
   });
   return formattedContour;
+};
+
+const formatIsoline = (contour: ContourType) => {
+  return {
+    color: contour.color,
+    lowerThreshold: contour.lowerThreshold,
+    upperThreshold: undefined,
+    strokeWidth: contour.strokeWidth,
+  };
+};
+
+const formatIsoband = (contour: ContourType) => {
+  return {
+    color: contour.color,
+    lowerThreshold: contour.lowerThreshold,
+    upperThreshold: contour.upperThreshold,
+    strokeWidth: undefined,
+  };
 };
 
 const DEFAULT_CONTOUR = {
@@ -98,9 +135,10 @@ const ContourPopoverControl = ({
   const [currentTab, setCurrentTab] = useState(getTabKey(initialValue));
   const [contour, setContour] = useState(initialValue || DEFAULT_CONTOUR);
   const [validationErrors, setValidationErrors] = useState(
-    determineErrorMap(initialValue || DEFAULT_CONTOUR),
+    determineErrorMap(getTabKey(initialValue), initialValue || DEFAULT_CONTOUR),
   );
   const [isComplete, setIsComplete] = useState(false);
+  const [key, setKey] = useState(0);
 
   useEffect(() => {
     const isIsoband = currentTab === CONTOUR_TYPES.Isoband;
@@ -121,7 +159,7 @@ const ContourPopoverControl = ({
       'a' in contour.color &&
       typeof contour.color.a === 'number';
 
-    const errors = determineErrorMap(contour);
+    const errors = determineErrorMap(currentTab, contour);
     setValidationErrors(errors);
 
     setIsComplete(
@@ -129,6 +167,7 @@ const ContourPopoverControl = ({
         ? validLower && validUpper && validColor
         : validLower && validColor && validStrokeWidth,
     );
+    setKey(prevKey => prevKey + 1);
   }, [contour, currentTab]);
 
   const onTabChange = (activeKey: any) => {
@@ -166,13 +205,17 @@ const ContourPopoverControl = ({
 
   const handleSave = () => {
     if (isComplete && onSave) {
-      onSave(convertContourToNumeric(contour));
+      let newContour =
+        currentTab === CONTOUR_TYPES.Isoline
+          ? formatIsoline(contour)
+          : formatIsoband(contour);
+      onSave(convertContourToNumeric(newContour));
       if (onClose) onClose();
     }
   };
 
-  const isobandSection = () => (
-    <div className="isoline-popover-section">
+  const isobandSection = (key: number) => (
+    <div key={key} className="isoline-popover-section">
       <StyledRow>
         <Col flex="1">
           <ControlHeader
@@ -185,7 +228,7 @@ const ContourPopoverControl = ({
             hovered
           />
           <TextControl
-            value={contour.lowerThreshold}
+            value={contour.lowerThreshold || ''}
             onChange={updateLowerThreshold}
           />
         </Col>
@@ -200,7 +243,7 @@ const ContourPopoverControl = ({
             hovered
           />
           <TextControl
-            value={contour.upperThreshold}
+            value={contour.upperThreshold || ''}
             onChange={updateUpperThreshold}
           />
         </Col>
@@ -220,8 +263,8 @@ const ContourPopoverControl = ({
     </div>
   );
 
-  const isolineSection = () => (
-    <div className="isoline-popover-section">
+  const isolineSection = (key: number) => (
+    <div key={key} className="isoline-popover-section">
       <StyledRow>
         <Col flex="1">
           <ControlHeader
@@ -282,14 +325,14 @@ const ContourPopoverControl = ({
           key={CONTOUR_TYPES.Isoline}
           tab={t('Isoline')}
         >
-          {isolineSection()}
+          {isolineSection(key)}
         </Tabs.TabPane>
         <Tabs.TabPane
           className="adhoc-filter-edit-tab"
           key={CONTOUR_TYPES.Isoband}
           tab={t('Isoband')}
         >
-          {isobandSection()}
+          {isobandSection(key)}
         </Tabs.TabPane>
       </Tabs>
       <ContourActionsContainer>
