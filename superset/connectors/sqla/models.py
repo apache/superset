@@ -74,12 +74,10 @@ from superset import app, db, is_feature_enabled, security_manager
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.connectors.sqla.utils import (
-    find_cached_objects_in_session,
     get_columns_description,
     get_physical_table_metadata,
     get_virtual_table_metadata,
 )
-from superset.datasets.models import Dataset as NewDataset
 from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 from superset.exceptions import (
     ColumnNotFoundException,
@@ -1430,46 +1428,20 @@ class SqlaTable(
 
     @staticmethod
     def before_update(
-        mapper: Mapper,  # pylint: disable=unused-argument
-        connection: Connection,  # pylint: disable=unused-argument
+        mapper: Mapper,
+        connection: Connection,
         target: SqlaTable,
     ) -> None:
         """
-        Check before update if the target table already exists.
-
-        Note this listener is called when any fields are being updated and thus it is
-        necessary to first check whether the reference table is being updated.
-
-        Note this logic is temporary, given uniqueness is handled via the dataset DAO,
-        but is necessary until both the legacy datasource editor and datasource/save
-        endpoints are deprecated.
+        Note this listener is called when any fields are being updated
 
         :param mapper: The table mapper
         :param connection: The DB-API connection
         :param target: The mapped instance being persisted
         :raises Exception: If the target table is not unique
         """
-
-        # pylint: disable=import-outside-toplevel
-        from superset.daos.dataset import DatasetDAO
-        from superset.datasets.commands.exceptions import get_dataset_exist_error_msg
-
-        # Check whether the relevant attributes have changed.
-        state = db.inspect(target)  # pylint: disable=no-member
-
-        for attr in ["database_id", "schema", "table_name"]:
-            history = state.get_history(attr, True)
-            if history.has_changes():
-                break
-        else:
-            return None
-
-        if not DatasetDAO.validate_uniqueness(
-            target.database_id, target.schema, target.table_name, target.id
-        ):
-            raise Exception(  # pylint: disable=broad-exception-raised
-                get_dataset_exist_error_msg(target.full_name)
-            )
+        target.load_database()
+        security_manager.dataset_before_update(mapper, connection, target)
 
     @staticmethod
     def update_column(  # pylint: disable=unused-argument
@@ -1487,34 +1459,17 @@ class SqlaTable(
         # table is updated. This busts the cache key for all charts that use the table.
         session.execute(update(SqlaTable).where(SqlaTable.id == target.table.id))
 
-        # TODO: This shadow writing is deprecated
-        # if table itself has changed, shadow-writing will happen in `after_update` anyway
-        if target.table not in session.dirty:
-            dataset: NewDataset = (
-                session.query(NewDataset)
-                .filter_by(uuid=target.table.uuid)
-                .one_or_none()
-            )
-            # Update shadow dataset and columns
-            # did we find the dataset?
-            if not dataset:
-                # if dataset is not found create a new copy
-                target.table.write_shadow_dataset()
-                return
-
     @staticmethod
     def after_insert(
         mapper: Mapper,
         connection: Connection,
-        sqla_table: SqlaTable,
+        target: SqlaTable,
     ) -> None:
         """
         Update dataset permissions after insert
         """
-        security_manager.dataset_after_insert(mapper, connection, sqla_table)
-
-        # TODO: deprecated
-        sqla_table.write_shadow_dataset()
+        target.load_database()
+        security_manager.dataset_after_insert(mapper, connection, target)
 
     @staticmethod
     def after_delete(
@@ -1527,63 +1482,16 @@ class SqlaTable(
         """
         security_manager.dataset_after_delete(mapper, connection, sqla_table)
 
-    @staticmethod
-    def after_update(
-        mapper: Mapper,
-        connection: Connection,
-        sqla_table: SqlaTable,
-    ) -> None:
-        """
-        Update dataset permissions
-        """
-        # set permissions
-        security_manager.dataset_after_update(mapper, connection, sqla_table)
-
-        # TODO: the shadow writing is deprecated
-        inspector = inspect(sqla_table)
-        session = inspector.session
-
-        # double-check that ``UPDATE``s are actually pending (this method is called even
-        # for instances that have no net changes to their column-based attributes)
-        if not session.is_modified(sqla_table, include_collections=True):
-            return
-
-        # find the dataset from the known instance list first
-        # (it could be either from a previous query or newly created)
-        dataset = next(
-            find_cached_objects_in_session(
-                session, NewDataset, uuids=[sqla_table.uuid]
-            ),
-            None,
-        )
-        # if not found, pull from database
-        if not dataset:
-            dataset = (
-                session.query(NewDataset).filter_by(uuid=sqla_table.uuid).one_or_none()
-            )
-        if not dataset:
-            sqla_table.write_shadow_dataset()
-            return
-
-    def write_shadow_dataset(
-        self: SqlaTable,
-    ) -> None:
-        """
-        This method is deprecated
-        """
-        session = inspect(self).session
-        # most of the write_shadow_dataset functionality has been removed
-        # but leaving this portion in
-        # to remove later because it is adding a Database relationship to the session
-        # and there is some functionality that depends on this
+    def load_database(self: SqlaTable) -> None:
+        # somehow the database attribute is not loaded on access
         if self.database_id and (
             not self.database or self.database.id != self.database_id
         ):
+            session = inspect(self).session
             self.database = session.query(Database).filter_by(id=self.database_id).one()
 
 
 sa.event.listen(SqlaTable, "before_update", SqlaTable.before_update)
-sa.event.listen(SqlaTable, "after_update", SqlaTable.after_update)
 sa.event.listen(SqlaTable, "after_insert", SqlaTable.after_insert)
 sa.event.listen(SqlaTable, "after_delete", SqlaTable.after_delete)
 sa.event.listen(SqlMetric, "after_update", SqlaTable.update_column)
