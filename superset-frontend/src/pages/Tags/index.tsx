@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useCallback, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { isFeatureEnabled, FeatureFlag, t } from '@superset-ui/core';
 import {
   createFetchRelated,
@@ -40,7 +40,6 @@ import { Link } from 'react-router-dom';
 import { deleteTags } from 'src/features/tags/tags';
 import { Tag as AntdTag } from 'antd';
 import { Tag } from 'src/views/CRUD/types';
-import TagCard from 'src/features/tags/TagCard';
 import TagModal from 'src/features/tags/TagModal';
 import FaveStar from 'src/components/FaveStar';
 
