@@ -42,7 +42,7 @@ const ContourActionsContainer = styled.div`
 
 const StyledRow = styled(Row)`
   width: 100%;
-  gap: 10px;
+  gap: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
 const isIsoband = (contour: ContourType) => {

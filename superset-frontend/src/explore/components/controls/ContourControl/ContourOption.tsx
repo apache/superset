@@ -35,9 +35,9 @@ const StyledListItem = styled.li`
 
 const ColorPatch = styled.div<{ formattedColor: string }>`
   background-color: ${({ formattedColor }) => formattedColor};
-  height: 5px;
-  width: 5px;
-  margin: 0 5px;
+  height: ${({ theme }) => theme.gridUnit}px;
+  width: ${({ theme }) => theme.gridUnit}px;
+  margin: 0 ${({ theme }) => theme.gridUnit}px;
 `;
 
 const ContourOption = ({
