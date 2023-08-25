@@ -18,7 +18,7 @@
  */
 
 import React from 'react';
-import { styled } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import { ContourOptionProps } from './types';
 import ContourPopoverTrigger from './ContourPopoverTrigger';
 import OptionWrapper from '../DndColumnSelectControl/OptionWrapper';
@@ -56,10 +56,14 @@ const ContourOption = ({
     : 'undefined';
 
   const formatIsoline = (threshold: number, width: any) =>
-    `Threshold: ${threshold}, color: ${formattedColor}, stroke width: ${width}`;
+    t(
+      `Threshold: ${threshold}, color: ${formattedColor}, stroke width: ${width}`,
+    );
 
   const formatIsoband = (threshold: number[]) =>
-    `Threshold: [${threshold[0]}, ${threshold[1]}], color: ${formattedColor}`;
+    t(
+      `Threshold: [${threshold[0]}, ${threshold[1]}], color: ${formattedColor}`,
+    );
 
   const displayString = isIsoband
     ? formatIsoband([lowerThreshold || -1, upperThreshold])
@@ -68,16 +72,17 @@ const ContourOption = ({
   const overlay = (
     <div className="contour-tooltip-overlay">
       <StyledListItem>
-        Threshold:{' '}
+        {t('Threshold: ')}
         {isIsoband
           ? `[${lowerThreshold}, ${upperThreshold}]`
           : `${lowerThreshold}`}
       </StyledListItem>
       <StyledListItem>
-        Color: <ColorPatch formattedColor={formattedColor} /> {formattedColor}
+        {t('Color: ')}
+        <ColorPatch formattedColor={formattedColor} /> {t(`${formattedColor}`)}
       </StyledListItem>
       {!isIsoband && (
-        <StyledListItem>Stroke Width: {strokeWidth}</StyledListItem>
+        <StyledListItem>{t(`Stroke Width: ${strokeWidth}`)}</StyledListItem>
       )}
     </div>
   );
@@ -85,7 +90,6 @@ const ContourOption = ({
   return (
     <ContourPopoverTrigger saveContour={saveContour} value={contour}>
       <StyledOptionWrapper
-        key={index}
         index={index}
         label={displayString}
         type="ContourOption"

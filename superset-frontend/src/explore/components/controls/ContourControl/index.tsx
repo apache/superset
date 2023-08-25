@@ -18,7 +18,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import styled from '@emotion/styled';
+import { styled, t } from '@superset-ui/core';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import ContourPopoverTrigger from './ContourPopoverTrigger';
 import ContourOption from './ContourOption';
@@ -115,7 +115,7 @@ const ContourControl = ({ onChange, ...props }: ContourControlProps) => {
       />
     ));
 
-  const ghostButtonText = 'Click to add a contour';
+  const ghostButtonText = t('Click to add a contour');
 
   return (
     <>

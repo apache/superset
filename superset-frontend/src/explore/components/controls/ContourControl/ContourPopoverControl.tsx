@@ -176,8 +176,10 @@ const ContourPopoverControl = ({
         <Col flex="1">
           <ControlHeader
             name="isoband-threshold-lower"
-            label="Lower Threshold"
-            description="The lower limit of the threshold range of the Isoband"
+            label={t('Lower Threshold')}
+            description={t(
+              'The lower limit of the threshold range of the Isoband',
+            )}
             validationErrors={validationErrors.lowerThreshold}
             hovered
           />
@@ -189,8 +191,10 @@ const ContourPopoverControl = ({
         <Col flex="1">
           <ControlHeader
             name="isoband-threshold-upper"
-            label="Upper Threshold"
-            description="The upper limit of the threshold range of the Isoband"
+            label={t('Upper Threshold')}
+            description={t(
+              'The upper limit of the threshold range of the Isoband',
+            )}
             validationErrors={validationErrors.upperThreshold}
             hovered
           />
@@ -204,8 +208,8 @@ const ContourPopoverControl = ({
         <Col flex="1">
           <ControlHeader
             name="isoband-color"
-            label="Color"
-            description="The color of the isoband"
+            label={t('Color')}
+            description={t('The color of the isoband')}
             validationErrors={validationErrors.color}
             hovered
           />
@@ -224,8 +228,10 @@ const ContourPopoverControl = ({
         <Col flex="1">
           <ControlHeader
             name="isoline-threshold"
-            label="Threshold"
-            description="Defines the value that determines the boundary between different regions or levels in the data "
+            label={t('Threshold')}
+            description={t(
+              'Defines the value that determines the boundary between different regions or levels in the data ',
+            )}
             validationErrors={validationErrors.lowerThreshold}
             hovered
           />
@@ -239,8 +245,8 @@ const ContourPopoverControl = ({
         <Col flex="1">
           <ControlHeader
             name="isoline-stroke-width"
-            label="Stroke Width"
-            description="The width of the Isoline in pixels"
+            label={t('Stroke Width')}
+            description={t('The width of the Isoline in pixels')}
             validationErrors={validationErrors.strokeWidth}
             hovered
           />
@@ -252,8 +258,8 @@ const ContourPopoverControl = ({
         <Col flex="1">
           <ControlHeader
             name="isoline-color"
-            label="Color"
-            description="The color of the isoline"
+            label={t('Color')}
+            description={t('The color of the isoline')}
             validationErrors={validationErrors.color}
             hovered
           />
@@ -276,14 +282,14 @@ const ContourPopoverControl = ({
         <Tabs.TabPane
           className="adhoc-filter-edit-tab"
           key={CONTOUR_TYPES.Isoline}
-          tab="Isoline"
+          tab={t('Isoline')}
         >
           {isolineSection()}
         </Tabs.TabPane>
         <Tabs.TabPane
           className="adhoc-filter-edit-tab"
           key={CONTOUR_TYPES.Isoband}
-          tab="Isoband"
+          tab={t('Isoband')}
         >
           {isobandSection()}
         </Tabs.TabPane>
