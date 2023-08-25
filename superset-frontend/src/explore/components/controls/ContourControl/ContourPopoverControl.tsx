@@ -27,8 +27,8 @@ import ColorPickerControl from '../ColorPickerControl';
 import {
   ContourPopoverControlProps,
   colorType,
-  contourType,
-  errorMapType,
+  ContourType,
+  ErrorMapType,
 } from './types';
 
 enum CONTOUR_TYPES {
@@ -45,19 +45,19 @@ const StyledRow = styled(Row)`
   gap: 10px;
 `;
 
-const isIsoband = (contour: contourType) => {
+const isIsoband = (contour: ContourType) => {
   if (Object.keys(contour).length < 4) {
     return false;
   }
   return contour.upperThreshold && contour.lowerThreshold;
 };
 
-const getTabKey = (contour: contourType | undefined) =>
+const getTabKey = (contour: ContourType | undefined) =>
   contour && isIsoband(contour) ? CONTOUR_TYPES.Isoband : CONTOUR_TYPES.Isoline;
 
-const determineErrorMap = (contour: contourType) => {
+const determineErrorMap = (contour: ContourType) => {
   const type = getTabKey(contour);
-  const errorMap: errorMapType = {
+  const errorMap: ErrorMapType = {
     lowerThreshold: [],
     upperThreshold: [],
     strokeWidth: [],
@@ -74,7 +74,7 @@ const determineErrorMap = (contour: contourType) => {
   return errorMap;
 };
 
-const convertContourToNumeric = (contour: contourType) => {
+const convertContourToNumeric = (contour: ContourType) => {
   const formattedContour = { ...contour };
   const numericKeys = ['lowerThreshold', 'upperThreshold', 'strokeWidth'];
   numericKeys.forEach(key => {

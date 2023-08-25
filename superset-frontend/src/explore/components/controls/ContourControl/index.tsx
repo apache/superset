@@ -22,9 +22,9 @@ import { styled, t } from '@superset-ui/core';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import ContourPopoverTrigger from './ContourPopoverTrigger';
 import ContourOption from './ContourOption';
-import { contourType, ContourControlProps } from './types';
+import { ContourType, ContourControlProps } from './types';
 
-const DEFAULT_CONTOURS: contourType[] = [
+const DEFAULT_CONTOURS: ContourType[] = [
   {
     lowerThreshold: 4,
     color: { r: 255, g: 0, b: 255, a: 100 },
@@ -53,8 +53,8 @@ const NewContourFormatPlaceholder = styled('div')`
 `;
 
 const ContourControl = ({ onChange, ...props }: ContourControlProps) => {
-  const [popoverVisible, setpopoverVisible] = useState(false);
-  const [contours, setContours] = useState<contourType[]>(
+  const [popoverVisible, setPopoverVisible] = useState(false);
+  const [contours, setContours] = useState<ContourType[]>(
     props?.value ? props?.value : DEFAULT_CONTOURS,
   );
 
@@ -68,14 +68,14 @@ const ContourControl = ({ onChange, ...props }: ContourControlProps) => {
   }, [onChange, contours]);
 
   const togglePopover = (visible: boolean) => {
-    setpopoverVisible(visible);
+    setPopoverVisible(visible);
   };
 
   const handleClickGhostButton = () => {
     togglePopover(true);
   };
 
-  const saveContour = (contour: contourType) => {
+  const saveContour = (contour: ContourType) => {
     setContours([...contours, contour]);
     togglePopover(false);
   };
@@ -95,7 +95,7 @@ const ContourControl = ({ onChange, ...props }: ContourControlProps) => {
     setContours(newContours);
   };
 
-  const editContour = (contour: contourType, index: number) => {
+  const editContour = (contour: ContourType, index: number) => {
     const newContours = [...contours];
     newContours[index] = contour;
     setContours(newContours);
@@ -105,7 +105,7 @@ const ContourControl = ({ onChange, ...props }: ContourControlProps) => {
     contours.map((contour, index) => (
       <ContourOption
         key={index}
-        saveContour={(newContour: contourType) =>
+        saveContour={(newContour: ContourType) =>
           editContour(newContour, index)
         }
         contour={contour}
@@ -132,7 +132,7 @@ const ContourControl = ({ onChange, ...props }: ContourControlProps) => {
         saveContour={saveContour}
         isControlled
         visible={popoverVisible}
-        toggleVisibility={setpopoverVisible}
+        toggleVisibility={setPopoverVisible}
       >
         <NewContourFormatPlaceholder />
       </ContourPopoverTrigger>
