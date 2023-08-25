@@ -40,7 +40,7 @@ import { Link } from 'react-router-dom';
 import { deleteTags } from 'src/features/tags/tags';
 import { Tag as AntdTag } from 'antd';
 import { Tag } from 'src/views/CRUD/types';
-import TagCard from 'src/features/tags/TagCard';
+// import TagCard from 'src/features/tags/TagCard'; removed tag cards
 import FaveStar from 'src/components/FaveStar';
 
 const emptyState = {
@@ -272,35 +272,35 @@ function TagList(props: TagListProps) {
     },
   ];
 
-  const renderCard = useCallback(
-    (tag: Tag) => (
-      <TagCard
-        tag={tag}
-        hasPerm={hasPerm}
-        bulkSelectEnabled={bulkSelectEnabled}
-        refreshData={refreshData}
-        showThumbnails={
-          userKey
-            ? userKey.thumbnails
-            : isFeatureEnabled(FeatureFlag.THUMBNAILS)
-        }
-        userId={userId}
-        loading={loading}
-        addDangerToast={addDangerToast}
-        addSuccessToast={addSuccessToast}
-      />
-    ),
-    [
-      addDangerToast,
-      addSuccessToast,
-      bulkSelectEnabled,
-      hasPerm,
-      loading,
-      userId,
-      refreshData,
-      userKey,
-    ],
-  );
+  // const renderCard = useCallback(
+  //   (tag: Tag) => (
+  //     <TagCard
+  //       tag={tag}
+  //       hasPerm={hasPerm}
+  //       bulkSelectEnabled={bulkSelectEnabled}
+  //       refreshData={refreshData}
+  //       showThumbnails={
+  //         userKey
+  //           ? userKey.thumbnails
+  //           : isFeatureEnabled(FeatureFlag.THUMBNAILS)
+  //       }
+  //       userId={userId}
+  //       loading={loading}
+  //       addDangerToast={addDangerToast}
+  //       addSuccessToast={addSuccessToast}
+  //     />
+  //   ),
+  //   [
+  //     addDangerToast,
+  //     addSuccessToast,
+  //     bulkSelectEnabled,
+  //     hasPerm,
+  //     loading,
+  //     userId,
+  //     refreshData,
+  //     userKey,
+  //   ],
+  // );
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
   if (canDelete) {
@@ -355,7 +355,7 @@ function TagList(props: TagListProps) {
                     ? userKey.thumbnails
                     : isFeatureEnabled(FeatureFlag.THUMBNAILS)
                 }
-                renderCard={renderCard}
+                // renderCard={renderCard}
                 defaultViewMode={
                   isFeatureEnabled(FeatureFlag.LISTVIEWS_DEFAULT_CARD_VIEW)
                     ? 'card'
