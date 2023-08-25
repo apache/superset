@@ -167,6 +167,7 @@ const ContourPopoverControl = ({
   const handleSave = () => {
     if (isComplete && onSave) {
       onSave(convertContourToNumeric(contour));
+      if (onClose) onClose();
     }
   };
 
