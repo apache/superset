@@ -40,8 +40,8 @@ import explore from 'src/explore/reducers/exploreReducer';
 import exploreDatasources from 'src/explore/reducers/datasourcesReducer';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 
-import { persistSqlLabStateEnhander } from 'src/SqlLab/utils/reduxStateToLocalStorageHelper';
-import { reducers as sqlLabReducers } from 'src/SqlLab/reducers';
+import { persistSqlLabStateEnhancer } from 'src/SqlLab/middlewares/persistSqlLabStateEnhancer';
+import sqlLabReducer from 'src/SqlLab/reducers/sqlLab';
 import getInitialState from 'src/SqlLab/reducers/getInitialState';
 import { DatasourcesState } from 'src/dashboard/types';
 import {
@@ -122,7 +122,8 @@ const CombinedDatasourceReducers = (
 };
 
 const reducers = {
-  ...sqlLabReducers,
+  sqlLab: sqlLabReducer,
+  localStorageUsage: noopReducer(0),
   messageToasts: messageToastReducer,
   common: noopReducer(bootstrapData.common),
   user: userReducer,
@@ -167,7 +168,7 @@ export function setupStore({
     middleware: getMiddleware,
     devTools: process.env.WEBPACK_MODE === 'development' && !disableDebugger,
     ...(!isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) && {
-      enhancers: [persistSqlLabStateEnhander as StoreEnhancer],
+      enhancers: [persistSqlLabStateEnhancer as StoreEnhancer],
     }),
     ...overrides,
   });
