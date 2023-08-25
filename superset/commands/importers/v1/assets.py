@@ -79,6 +79,7 @@ class ImportAssetsCommand(BaseCommand):
         )
         self._configs: dict[str, Any] = {}
 
+    # pylint: disable=too-many-locals
     @staticmethod
     def _import(session: Session, configs: dict[str, Any]) -> None:
         # import databases first
