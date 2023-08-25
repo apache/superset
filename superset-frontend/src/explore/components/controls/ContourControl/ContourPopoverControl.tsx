@@ -26,7 +26,7 @@ import TextControl from '../TextControl';
 import ColorPickerControl from '../ColorPickerControl';
 import {
   ContourPopoverControlProps,
-  colorType,
+  ColorType,
   ContourType,
   ErrorMapType,
 } from './types';
@@ -141,7 +141,7 @@ const ContourPopoverControl = ({
     setContour(newContour);
   };
 
-  const updateColor = (rgb: colorType) => {
+  const updateColor = (rgb: ColorType) => {
     const newContour = { ...contour };
     newContour.color = { ...rgb, a: 100 };
     setContour(newContour);

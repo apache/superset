@@ -39,7 +39,7 @@ declare module 'deck.gl' {
     getPosition?: (d: T) => number[] | null | undefined;
     getWeight?: (d: T) => number | null | undefined;
     contours: {
-      color?: colorType | undefined;
+      color?: ColorType | undefined;
       lowerThreshold?: any | undefined;
       upperThreshold?: any | undefined;
       strokeWidth?: any | undefined;

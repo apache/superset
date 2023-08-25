@@ -22,6 +22,7 @@ import { t } from '@superset-ui/core';
 import { commonLayerProps } from '../common';
 import sandboxedEval from '../../utils/sandbox';
 import { createDeckGLComponent, getLayerType } from '../../factory';
+import { ColorType } from '../../types';
 import TooltipRow from '../../TooltipRow';
 
 function setTooltipContent(o: any) {
@@ -50,7 +51,7 @@ export const getLayer: getLayerType<unknown> = (
 
   const contours = rawContours?.map(
     (contour: {
-      color: any;
+      color: ColorType;
       lowerThreshold: number;
       upperThreshold?: number;
       strokeWidth?: number;
@@ -85,7 +86,7 @@ export const getLayer: getLayerType<unknown> = (
     cellSize: Number(cellSize || '200'),
     aggregation: aggregation.toUpperCase(),
     getPosition: (d: { position: number[]; weight: number }) => d.position,
-    getWeight: (d: { weight: any }) => d.weight || 0,
+    getWeight: (d: { weight: number }) => d.weight || 0,
     ...commonLayerProps(fd, setTooltip, setTooltipContent),
   });
 };

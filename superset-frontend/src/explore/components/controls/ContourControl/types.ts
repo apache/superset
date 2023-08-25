@@ -1,7 +1,7 @@
 import { OptionValueType } from 'src/explore/components/controls/DndColumnSelectControl/types';
 import { ControlComponentProps } from 'src/explore/components/Control';
 
-export interface colorType {
+export interface ColorType {
   r: number;
   g: number;
   b: number;
@@ -9,7 +9,7 @@ export interface colorType {
 }
 
 export interface ContourType extends OptionValueType {
-  color?: colorType | undefined;
+  color?: ColorType | undefined;
   lowerThreshold?: any | undefined;
   upperThreshold?: any | undefined;
   strokeWidth?: any | undefined;

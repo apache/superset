@@ -55,7 +55,7 @@ const ContourOption = ({
     ? `rgba(${color.r}, ${color.g}, ${color.b}, 1)`
     : 'undefined';
 
-  const formatIsoline = (threshold: number, width: any) =>
+  const formatIsoline = (threshold: number, width: number) =>
     t(
       `Threshold: ${threshold}, color: ${formattedColor}, stroke width: ${width}`,
     );
