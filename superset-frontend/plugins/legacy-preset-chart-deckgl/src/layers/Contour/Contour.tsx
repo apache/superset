@@ -30,16 +30,21 @@ function setTooltipContent(o: any) {
     <div className="deckgl-tooltip">
       <TooltipRow
         label={t('Centroid (Longitude and Latitude): ')}
-        value={`(${o.coordinate[0]}, ${o.coordinate[1]})`}
+        value={`(${o?.coordinate[0]}, ${o?.coordinate[1]})`}
+      />
+      <TooltipRow
+        label={t('Threshold: ')}
+        value={`${o?.object?.contour?.threshold}`}
       />
     </div>
   );
 }
-export const getLayer: getLayerType<unknown> = (
+export const getLayer: getLayerType<unknown> = function (
   formData,
   payload,
+  onAddFilter,
   setTooltip,
-) => {
+) {
   const fd = formData;
   const {
     aggregation = 'SUM',
