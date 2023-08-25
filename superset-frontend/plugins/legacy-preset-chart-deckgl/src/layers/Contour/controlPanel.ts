@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  getStandardizedControls,
+  sections,
+} from '@superset-ui/chart-controls';
 import { t, validateNonEmpty } from '@superset-ui/core';
 import {
   autozoom,
@@ -120,6 +124,7 @@ const config: ControlPanelConfig = {
   },
   formDataOverrides: formData => ({
     ...formData,
+    size: getStandardizedControls().shiftMetric(),
   }),
 };
 
