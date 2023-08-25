@@ -56,14 +56,14 @@ const ContourOption = ({
     : 'undefined';
 
   const formatIsoline = (threshold: number, width: number) =>
-    t(
-      `Threshold: ${threshold}, color: ${formattedColor}, stroke width: ${width}`,
-    );
+    `${t('Threshold')}: ${threshold}, ${t('color')}: ${formattedColor}, ${t(
+      'stroke width',
+    )}: ${width}`;
 
   const formatIsoband = (threshold: number[]) =>
-    t(
-      `Threshold: [${threshold[0]}, ${threshold[1]}], color: ${formattedColor}`,
-    );
+    `${t('Threshold')}: [${threshold[0]}, ${
+      threshold[1]
+    }], color: ${formattedColor}`;
 
   const displayString = isIsoband
     ? formatIsoband([lowerThreshold || -1, upperThreshold])
@@ -79,10 +79,12 @@ const ContourOption = ({
       </StyledListItem>
       <StyledListItem>
         {t('Color: ')}
-        <ColorPatch formattedColor={formattedColor} /> {t(`${formattedColor}`)}
+        <ColorPatch formattedColor={formattedColor} /> {formattedColor}
       </StyledListItem>
       {!isIsoband && (
-        <StyledListItem>{t(`Stroke Width: ${strokeWidth}`)}</StyledListItem>
+        <StyledListItem>{`${t(
+          'Stroke Width:',
+        )} ${strokeWidth}`}</StyledListItem>
       )}
     </div>
   );

@@ -106,23 +106,19 @@ const convertContourToNumeric = (contour: ContourType) => {
   return formattedContour;
 };
 
-const formatIsoline = (contour: ContourType) => {
-  return {
-    color: contour.color,
-    lowerThreshold: contour.lowerThreshold,
-    upperThreshold: undefined,
-    strokeWidth: contour.strokeWidth,
-  };
-};
+const formatIsoline = (contour: ContourType) => ({
+  color: contour.color,
+  lowerThreshold: contour.lowerThreshold,
+  upperThreshold: undefined,
+  strokeWidth: contour.strokeWidth,
+});
 
-const formatIsoband = (contour: ContourType) => {
-  return {
-    color: contour.color,
-    lowerThreshold: contour.lowerThreshold,
-    upperThreshold: contour.upperThreshold,
-    strokeWidth: undefined,
-  };
-};
+const formatIsoband = (contour: ContourType) => ({
+  color: contour.color,
+  lowerThreshold: contour.lowerThreshold,
+  upperThreshold: contour.upperThreshold,
+  strokeWidth: undefined,
+});
 
 const DEFAULT_CONTOUR = {
   lowerThreshold: undefined,
@@ -209,7 +205,7 @@ const ContourPopoverControl = ({
 
   const handleSave = () => {
     if (isComplete && onSave) {
-      let newContour =
+      const newContour =
         currentTab === CONTOUR_TYPES.Isoline
           ? formatIsoline(contour)
           : formatIsoband(contour);
