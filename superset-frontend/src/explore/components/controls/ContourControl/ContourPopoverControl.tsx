@@ -213,10 +213,7 @@ const ContourPopoverControl = ({
             validationErrors={validationErrors.color}
             hovered
           />
-          <ColorPickerControl
-            value={typeof contour === 'object' && contour?.color}
-            onChange={updateColor}
-          />
+          <ColorPickerControl value={contour?.color} onChange={updateColor} />
         </Col>
       </StyledRow>
     </div>
