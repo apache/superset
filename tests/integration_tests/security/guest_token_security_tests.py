@@ -32,7 +32,6 @@ from superset.utils.core import get_example_default_schema
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
     load_birth_names_dashboard_with_slices_class_scope,
     load_birth_names_data,
 )
@@ -105,7 +104,7 @@ class TestGuestUserSecurity(SupersetTestCase):
     "superset.extensions.feature_flag_manager._feature_flags",
     EMBEDDED_SUPERSET=True,
 )
-@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices_class_scope")
 class TestGuestUserDashboardAccess(SupersetTestCase):
     def setUp(self) -> None:
         self.dash = self.get_dash_by_slug("births")
