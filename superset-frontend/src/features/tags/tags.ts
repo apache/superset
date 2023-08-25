@@ -55,6 +55,16 @@ export function fetchAllTags(
     .catch(response => error(response));
 }
 
+export function fetchSingleTag(
+  name: string,
+  callback: (json: JsonObject) => void,
+  error: (response: Response) => void,
+) {
+  SupersetClient.get({ endpoint: `/api/v1/tag` })
+    .then(({ json }) => callback(json))
+    .catch(response => error(response));
+}
+
 export function fetchTags(
   {
     objectType,
