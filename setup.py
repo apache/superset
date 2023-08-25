@@ -172,6 +172,7 @@ setup(
             "thrift>=0.14.1, <1.0.0",
         ],
         "impala": ["impyla>0.16.2, <0.17"],
+        "iris": ["sqlalchemy-iris>=0.10.0, <1.0.0"],
         "kusto": ["sqlalchemy-kusto>=2.0.0, <3"],
         "kylin": ["kylinpy>=2.8.1, <2.9"],
         "mssql": ["pymssql>=2.1.4, <2.2"],
