@@ -108,10 +108,8 @@ class ValidateSQLCommand(BaseCommand):
             raise NoValidatorFoundError(
                 SupersetError(
                     message=__(
-                        "No validator named {} found "
-                        "(configured for the {} engine)".format(
-                            validator_name, spec.engine
-                        )
+                        f"No validator named {validator_name} found "
+                        f"(configured for the {spec.engine} engine)"
                     ),
                     error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
                     level=ErrorLevel.ERROR,

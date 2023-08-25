@@ -41,7 +41,7 @@ describe('QueryTable', () => {
   it('renders a proper table', () => {
     const mockStore = configureStore([thunk]);
     const store = mockStore({
-      sqlLab: user,
+      user,
     });
 
     const wrapper = mount(

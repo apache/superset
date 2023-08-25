@@ -77,7 +77,7 @@ class CreateDatabaseCommand(BaseCommand):
         )
 
         try:
-            database = DatabaseDAO.create(self._properties, commit=False)
+            database = DatabaseDAO.create(attributes=self._properties, commit=False)
             database.set_sqlalchemy_uri(database.sqlalchemy_uri)
 
             ssh_tunnel = None
@@ -143,6 +143,7 @@ class CreateDatabaseCommand(BaseCommand):
             exception = DatabaseInvalidError()
             exception.extend(exceptions)
             event_logger.log_with_context(
+                # pylint: disable=consider-using-f-string
                 action="db_connection_failed.{}.{}".format(
                     exception.__class__.__name__,
                     ".".join(exception.get_list_classnames()),

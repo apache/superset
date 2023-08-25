@@ -184,6 +184,10 @@ const StyledTable = styled(AntTable)<{ height?: number }>(
     .ant-pagination-item-active {
       border-color: ${theme.colors.primary.base};
     }
+
+    .ant-table.ant-table-small {
+      font-size: ${theme.typography.sizes.s}px;
+    }
   `,
 );
 const StyledVirtualTable = styled(VirtualTable)(

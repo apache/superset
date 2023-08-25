@@ -26,11 +26,11 @@ import {
   getMetricLabel,
   extractTimegrain,
   QueryFormData,
+  getValueFormatter,
 } from '@superset-ui/core';
 import { BigNumberTotalChartProps, BigNumberVizProps } from '../types';
 import { getDateFormatter, parseMetricValue } from '../utils';
 import { Refs } from '../../types';
-import { getValueFormatter } from '../../utils/valueFormatter';
 
 export default function transformProps(
   chartProps: BigNumberTotalChartProps,
@@ -53,6 +53,7 @@ export default function transformProps(
     timeFormat,
     yAxisFormat,
     conditionalFormatting,
+    currencyFormat,
   } = formData;
   const refs: Refs = {};
   const { data = [], coltypes = [] } = queriesData[0];
@@ -80,6 +81,7 @@ export default function transformProps(
     currencyFormats,
     columnFormats,
     yAxisFormat,
+    currencyFormat,
   );
 
   const headerFormatter =

@@ -53,12 +53,12 @@ table_column_association_table = sa.Table(
     Model.metadata,  # pylint: disable=no-member
     sa.Column(
         "table_id",
-        sa.ForeignKey("sl_tables.id", ondelete="cascade"),
+        sa.ForeignKey("sl_tables.id", ondelete="CASCADE"),
         primary_key=True,
     ),
     sa.Column(
         "column_id",
-        sa.ForeignKey("sl_columns.id", ondelete="cascade"),
+        sa.ForeignKey("sl_columns.id", ondelete="CASCADE"),
         primary_key=True,
     ),
 )
@@ -164,7 +164,9 @@ class Table(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
             return []
 
         if not database.id:
-            raise Exception("Database must be already saved to metastore")
+            raise Exception(  # pylint: disable=broad-exception-raised
+                "Database must be already saved to metastore"
+            )
 
         default_props = default_props or {}
         session: Session = inspect(database).session

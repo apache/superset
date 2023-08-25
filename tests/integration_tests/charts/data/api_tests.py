@@ -113,9 +113,10 @@ class BaseTestChartDataApi(SupersetTestCase):
 
     def quote_name(self, name: str):
         if get_main_database().backend in {"presto", "hive"}:
-            return get_example_database().inspector.engine.dialect.identifier_preparer.quote_identifier(
-                name
-            )
+            with get_example_database().get_inspector_with_context() as inspector:  # E: Ne
+                return inspector.engine.dialect.identifier_preparer.quote_identifier(
+                    name
+                )
         return name
 
 
@@ -444,11 +445,11 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         else:
             raise Exception("ds column not found")
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_prophet(self):
         """
         Chart data API: Ensure prophet post transformation works
         """
-        pytest.importorskip("prophet")
         time_grain = "P1Y"
         self.query_context_payload["queries"][0]["is_timeseries"] = True
         self.query_context_payload["queries"][0]["groupby"] = []
@@ -476,7 +477,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         self.assertIn("sum__num__yhat", row)
         self.assertIn("sum__num__yhat_upper", row)
         self.assertIn("sum__num__yhat_lower", row)
-        self.assertEqual(result["rowcount"], 47)
+        self.assertEqual(result["rowcount"], 103)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_invalid_post_processing(self):

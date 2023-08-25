@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { NativeFilterType } from '@superset-ui/core';
+import { FeatureFlag, NativeFilterType } from '@superset-ui/core';
 import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import HorizontalBar from './Horizontal';
@@ -30,6 +30,11 @@ const defaultProps = {
   filterValues: [],
   isInitialized: true,
   onSelectionChange: jest.fn(),
+};
+
+// @ts-ignore
+global.featureFlags = {
+  [FeatureFlag.DASHBOARD_NATIVE_FILTERS]: true,
 };
 
 const renderWrapper = (overrideProps?: Record<string, any>) =>

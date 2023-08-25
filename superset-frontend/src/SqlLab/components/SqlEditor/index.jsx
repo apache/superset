@@ -33,6 +33,7 @@ import Split from 'react-split';
 import {
   css,
   FeatureFlag,
+  isFeatureEnabled,
   styled,
   t,
   useTheme,
@@ -84,7 +85,6 @@ import {
   LocalStorageKeys,
   setItem,
 } from 'src/utils/localStorageHelpers';
-import { isFeatureEnabled } from 'src/featureFlags';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { isEmpty } from 'lodash';
@@ -225,7 +225,7 @@ const SqlEditor = ({
   const { database, latestQuery, hideLeftBar } = useSelector(
     ({ sqlLab: { unsavedQueryEditor, databases, queries } }) => {
       let { dbId, latestQueryId, hideLeftBar } = queryEditor;
-      if (unsavedQueryEditor.id === queryEditor.id) {
+      if (unsavedQueryEditor?.id === queryEditor.id) {
         dbId = unsavedQueryEditor.dbId || dbId;
         latestQueryId = unsavedQueryEditor.latestQueryId || latestQueryId;
         hideLeftBar = unsavedQueryEditor.hideLeftBar || hideLeftBar;
@@ -330,6 +330,68 @@ const SqlEditor = ({
           if (queryEditor.sql.trim() !== '') {
             startQuery();
           }
+        },
+      },
+      {
+        name: 'runQuery3',
+        key: 'ctrl+shift+enter',
+        descr: t('Run current query'),
+        func: editor => {
+          if (!editor.getValue().trim()) {
+            return;
+          }
+          const session = editor.getSession();
+          const cursorPosition = editor.getCursorPosition();
+          const totalLine = session.getLength();
+          const currentRow = editor.getFirstVisibleRow();
+          let end = editor.find(';', {
+            backwards: false,
+            skipCurrent: true,
+            start: cursorPosition,
+          })?.end;
+          if (!end || end.row < cursorPosition.row) {
+            end = {
+              row: totalLine + 1,
+              column: 0,
+            };
+          }
+          let start = editor.find(';', {
+            backwards: true,
+            skipCurrent: true,
+            start: cursorPosition,
+          })?.end;
+          let currentLine = editor.find(';', {
+            backwards: true,
+            skipCurrent: true,
+            start: cursorPosition,
+          })?.end?.row;
+          if (
+            !currentLine ||
+            currentLine > cursorPosition.row ||
+            (currentLine === cursorPosition.row &&
+              start?.column > cursorPosition.column)
+          ) {
+            currentLine = 0;
+          }
+          let content =
+            currentLine === start?.row
+              ? session.getLine(currentLine).slice(start.column).trim()
+              : session.getLine(currentLine).trim();
+          while (!content && currentLine < totalLine) {
+            currentLine += 1;
+            content = session.getLine(currentLine).trim();
+          }
+          if (currentLine !== start?.row) {
+            start = { row: currentLine, column: 0 };
+          }
+          editor.selection.setRange({
+            start: start ?? { row: 0, column: 0 },
+            end,
+          });
+          startQuery();
+          editor.selection.clearSelection();
+          editor.moveCursorToPosition(cursorPosition);
+          editor.scrollToRow(currentRow);
         },
       },
       {
@@ -666,7 +728,6 @@ const SqlEditor = ({
             onBlur={setQueryEditorAndSaveSql}
             onChange={onSqlChanged}
             queryEditorId={queryEditor.id}
-            extendedTables={tables}
             height={`${aceEditorHeight}px`}
             hotkeys={hotkeys}
           />

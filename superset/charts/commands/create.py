@@ -22,9 +22,11 @@ from flask import g
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
+from superset import security_manager
 from superset.charts.commands.exceptions import (
     ChartCreateFailedError,
     ChartInvalidError,
+    DashboardsForbiddenError,
     DashboardsNotFoundValidationError,
 )
 from superset.commands.base import BaseCommand, CreateMixin
@@ -45,11 +47,10 @@ class CreateChartCommand(CreateMixin, BaseCommand):
         try:
             self._properties["last_saved_at"] = datetime.now()
             self._properties["last_saved_by"] = g.user
-            chart = ChartDAO.create(self._properties)
+            return ChartDAO.create(attributes=self._properties)
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)
             raise ChartCreateFailedError() from ex
-        return chart
 
     def validate(self) -> None:
         exceptions = []
@@ -69,6 +70,9 @@ class CreateChartCommand(CreateMixin, BaseCommand):
         dashboards = DashboardDAO.find_by_ids(dashboard_ids)
         if len(dashboards) != len(dashboard_ids):
             exceptions.append(DashboardsNotFoundValidationError())
+        for dash in dashboards:
+            if not security_manager.is_owner(dash):
+                raise DashboardsForbiddenError()
         self._properties["dashboards"] = dashboards
 
         try:

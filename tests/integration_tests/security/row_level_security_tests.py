@@ -483,7 +483,7 @@ class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
         db.session.commit()
 
 
-class TestRowLevelSecurityBulkDeleteAPI(SupersetTestCase):
+class TestRowLevelSecurityDeleteAPI(SupersetTestCase):
     def test_invalid_id_failure(self):
         self.login("Admin")
 

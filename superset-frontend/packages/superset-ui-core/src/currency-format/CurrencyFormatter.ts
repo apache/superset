@@ -31,7 +31,7 @@ interface CurrencyFormatter {
   (value: number | null | undefined): string;
 }
 
-export const getCurrencySymbol = (currency: Currency) =>
+export const getCurrencySymbol = (currency: Partial<Currency>) =>
   new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: currency.symbol,

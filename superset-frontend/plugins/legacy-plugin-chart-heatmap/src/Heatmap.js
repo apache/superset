@@ -51,7 +51,7 @@ const propTypes = {
   leftMargin: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   metric: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
   normalized: PropTypes.bool,
-  numberFormat: PropTypes.string,
+  valueFormatter: PropTypes.object,
   showLegend: PropTypes.bool,
   showPercentage: PropTypes.bool,
   showValues: PropTypes.bool,
@@ -90,7 +90,7 @@ function Heatmap(element, props) {
     leftMargin,
     metric,
     normalized,
-    numberFormat,
+    valueFormatter,
     showLegend,
     showPercentage,
     showValues,
@@ -99,9 +99,16 @@ function Heatmap(element, props) {
     xScaleInterval,
     yScaleInterval,
     yAxisBounds,
+    xAxisFormatter,
+    yAxisFormatter,
   } = props;
 
-  const { records, extents } = data;
+  const { extents } = data;
+  const records = data.records.map(record => ({
+    ...record,
+    x: xAxisFormatter(record.x),
+    y: yAxisFormatter(record.y),
+  }));
 
   const margin = {
     top: 10,
@@ -114,8 +121,6 @@ function Heatmap(element, props) {
   let showX = true;
   const pixelsPerCharX = 4.5; // approx, depends on font size
   let pixelsPerCharY = 6; // approx, depends on font size
-
-  const valueFormatter = getNumberFormatter(numberFormat);
 
   // Dynamically adjusts  based on max x / y category lengths
   function adjustMargins() {

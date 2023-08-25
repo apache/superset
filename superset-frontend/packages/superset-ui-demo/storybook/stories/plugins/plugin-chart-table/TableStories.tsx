@@ -69,7 +69,7 @@ function loadData(
     allowRearrangeColumns = false,
   },
 ): TableChartProps {
-  if (!props.queriesData || !props.queriesData[0]) return props;
+  if (!props.queriesData?.[0]) return props;
   const records = props.queriesData?.[0].data || [];
   const columns = props.queriesData?.[0].colnames || [];
   return {

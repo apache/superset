@@ -20,9 +20,7 @@
 import { invert } from 'lodash';
 import {
   AnnotationLayer,
-  AxisType,
   CategoricalColorNamespace,
-  CurrencyFormatter,
   ensureIsArray,
   GenericDataType,
   getMetricLabel,
@@ -33,13 +31,12 @@ import {
   isFormulaAnnotationLayer,
   isIntervalAnnotationLayer,
   isPhysicalColumn,
-  isSavedMetric,
   isTimeseriesAnnotationLayer,
-  NumberFormats,
-  QueryFormMetric,
   t,
   TimeseriesChartDataResponseResult,
-  ValueFormatter,
+  buildCustomFormatters,
+  getCustomFormatter,
+  CurrencyFormatter,
 } from '@superset-ui/core';
 import {
   extractExtraMetrics,
@@ -97,36 +94,7 @@ import {
   TIMEGRAIN_TO_TIMESTAMP,
 } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
-import {
-  buildCustomFormatters,
-  getCustomFormatter,
-} from '../utils/valueFormatter';
-
-const getYAxisFormatter = (
-  metrics: QueryFormMetric[],
-  forcePercentFormatter: boolean,
-  customFormatters: Record<string, ValueFormatter>,
-  yAxisFormat: string = NumberFormats.SMART_NUMBER,
-) => {
-  if (forcePercentFormatter) {
-    return getNumberFormatter(',.0%');
-  }
-  const metricsArray = ensureIsArray(metrics);
-  if (
-    metricsArray.every(isSavedMetric) &&
-    metricsArray
-      .map(metric => customFormatters[metric])
-      .every(
-        (formatter, _, formatters) =>
-          formatter instanceof CurrencyFormatter &&
-          (formatter as CurrencyFormatter)?.currency?.symbol ===
-            (formatters[0] as CurrencyFormatter)?.currency?.symbol,
-      )
-  ) {
-    return customFormatters[metricsArray[0]];
-  }
-  return getNumberFormatter(yAxisFormat);
-};
+import { getYAxisFormatter } from '../utils/getYAxisFormatter';
 
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
@@ -144,6 +112,9 @@ export default function transformProps(
     inContextMenu,
     emitCrossFilters,
   } = chartProps;
+
+  let focusedSeries: string | null = null;
+
   const {
     verboseMap = {},
     columnFormats = {},
@@ -197,6 +168,7 @@ export default function transformProps(
     xAxisTitleMargin,
     yAxisBounds,
     yAxisFormat,
+    currencyFormat,
     yAxisTitle,
     yAxisTitleMargin,
     yAxisTitlePosition,
@@ -274,12 +246,15 @@ export default function transformProps(
 
   const forcePercentFormatter = Boolean(contributionMode || isAreaExpand);
   const percentFormatter = getNumberFormatter(',.0%');
-  const defaultFormatter = getNumberFormatter(yAxisFormat);
+  const defaultFormatter = currencyFormat?.symbol
+    ? new CurrencyFormatter({ d3Format: yAxisFormat, currency: currencyFormat })
+    : getNumberFormatter(yAxisFormat);
   const customFormatters = buildCustomFormatters(
     metrics,
     currencyFormats,
     columnFormats,
     yAxisFormat,
+    currencyFormat,
   );
 
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
@@ -471,23 +446,13 @@ export default function transformProps(
       rotate: xAxisLabelRotation,
     },
     minInterval:
-      xAxisType === AxisType.time && timeGrainSqla
+      xAxisType === 'time' && timeGrainSqla
         ? TIMEGRAIN_TO_TIMESTAMP[timeGrainSqla]
         : 0,
   };
-
-  if (xAxisType === AxisType.time) {
-    /**
-     * Overriding default behavior (false) for time axis regardless of the granilarity.
-     * Not including this in the initial declaration above so if echarts changes the default
-     * behavior for other axist types we won't unintentionally override it
-     */
-    xAxis.axisLabel.showMaxLabel = null;
-  }
-
   let yAxis: any = {
     ...defaultYAxis,
-    type: logAxis ? AxisType.log : AxisType.value,
+    type: logAxis ? 'log' : 'value',
     min,
     max,
     minorTick: { show: true },
@@ -497,7 +462,7 @@ export default function transformProps(
         metrics,
         forcePercentFormatter,
         customFormatters,
-        yAxisFormat,
+        defaultFormatter,
       ),
     },
     scale: truncateYAxis,
@@ -556,11 +521,9 @@ export default function transformProps(
               : getCustomFormatter(customFormatters, metrics, formatterKey) ??
                 defaultFormatter,
           });
-          if (!legendState || legendState[key]) {
-            rows.push(`<span style="font-weight: 700">${content}</span>`);
-          } else {
-            rows.push(`<span style="opacity: 0.7">${content}</span>`);
-          }
+          const contentStyle =
+            key === focusedSeries ? 'font-weight: 700' : 'opacity: 0.7';
+          rows.push(`<span style="${contentStyle}">${content}</span>`);
         });
         if (stack) {
           rows.reverse();
@@ -607,6 +570,10 @@ export default function transformProps(
       : [],
   };
 
+  const onFocusedSeries = (seriesName: string | null) => {
+    focusedSeries = seriesName;
+  };
+
   return {
     echartOptions,
     emitCrossFilters,
@@ -621,6 +588,7 @@ export default function transformProps(
     legendData,
     onContextMenu,
     onLegendStateChanged,
+    onFocusedSeries,
     xValueFormatter: tooltipFormatter,
     xAxis: {
       label: xAxisLabel,

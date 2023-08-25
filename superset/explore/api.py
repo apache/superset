@@ -53,16 +53,14 @@ class ExploreRestApi(BaseSupersetApi):
         log_to_statsd=True,
     )
     def get(self) -> Response:
-        """Assembles Explore related information (form_data, slice, dataset)
-         in a single endpoint.
+        """Assemble Explore related information (form_data, slice, dataset)
+        in a single endpoint.
         ---
         get:
-          summary: >-
-            Assembles Explore related information (form_data, slice, dataset)
-             in a single endpoint.
+          summary: Assemble Explore related information in a single endpoint
           description: >-
-            Assembles Explore related information (form_data, slice, dataset)
-             in a single endpoint.<br/><br/>
+            Assembles Explore related information (form_data, slice, dataset) in a
+            single endpoint.<br/><br/>
             The information can be assembled from:<br/>
             - The cache using a form_data_key<br/>
             - The metadata database using a permalink_key<br/>

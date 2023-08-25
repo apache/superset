@@ -33,6 +33,7 @@ import sys
 from collections import OrderedDict
 from datetime import timedelta
 from email.mime.multipart import MIMEMultipart
+from importlib.resources import files
 from typing import Any, Callable, Literal, TYPE_CHECKING, TypedDict
 
 import pkg_resources
@@ -49,9 +50,11 @@ from superset.advanced_data_type.plugins.internet_port import internet_port
 from superset.advanced_data_type.types import AdvancedDataType
 from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.jinja_context import BaseTemplateProcessor
+from superset.key_value.types import JsonKeyValueCodec
 from superset.stats_logger import DummyStatsLogger
 from superset.superset_typing import CacheConfig
 from superset.tasks.types import ExecutorType
+from superset.utils import core as utils
 from superset.utils.core import is_test, NO_TIME_RANGE, parse_boolean_string
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
@@ -82,12 +85,9 @@ else:
 # ---------------------------------------------------------
 # Superset specific config
 # ---------------------------------------------------------
-VERSION_INFO_FILE = pkg_resources.resource_filename(
-    "superset", "static/version_info.json"
-)
-PACKAGE_JSON_FILE = pkg_resources.resource_filename(
-    "superset", "static/assets/package.json"
-)
+VERSION_INFO_FILE = str(files("superset") / "static/version_info.json")
+PACKAGE_JSON_FILE = str(files("superset") / "static/assets/package.json")
+
 
 # Multiple favicons can be specified here. The "href" property
 # is mandatory, but "sizes," "type," and "rel" are optional.
@@ -265,6 +265,20 @@ PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefi
 
 # Configuration for scheduling queries from SQL Lab.
 SCHEDULED_QUERIES: dict[str, Any] = {}
+
+# FAB Rate limiting: this is a security feature for preventing DDOS attacks. The
+# feature is on by default to make Superset secure by default, but you should
+# fine tune the limits to your needs. You can read more about the different
+# parameters here: https://flask-limiter.readthedocs.io/en/stable/configuration.html
+RATELIMIT_ENABLED = True
+RATELIMIT_APPLICATION = "50 per second"
+AUTH_RATE_LIMITED = True
+AUTH_RATE_LIMIT = "5 per second"
+# A storage location conforming to the scheme in storage-scheme. See the limits
+# library for allowed values: https://limits.readthedocs.io/en/stable/storage.html
+# RATELIMIT_STORAGE_URI = "redis://host:port"
+# A callable that returns the unique identity of the current request.
+# RATELIMIT_REQUEST_IDENTIFIER = flask.Request.endpoint
 
 # ------------------------------
 # GLOBALS FOR APP Builder
@@ -480,6 +494,12 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # or to disallow users from viewing other users profile page
     # Do not show user info or profile in the menu
     "MENU_HIDE_USER_INFO": False,
+    # Allows users to add a ``superset://`` DB that can query across databases. This is
+    # an experimental feature with potential security and performance risks, so use with
+    # caution. If the feature is enabled you can also set a limit for how much data is
+    # returned from each database in the ``SUPERSET_META_DB_LIMIT`` configuration value
+    # in this file.
+    "ENABLE_SUPERSET_META_DB": False,
 }
 
 # ------------------------------
@@ -681,20 +701,32 @@ CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
 # Cache for datasource metadata and query results
 DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
 
-# Cache for dashboard filter state (`CACHE_TYPE` defaults to `SimpleCache` when
-#  running in debug mode unless overridden)
+# Cache for dashboard filter state. `CACHE_TYPE` defaults to `SupersetMetastoreCache`
+# that stores the values in the key-value table in the Superset metastore, as it's
+# required for Superset to operate correctly, but can be replaced by any
+# `Flask-Caching` backend.
 FILTER_STATE_CACHE_CONFIG: CacheConfig = {
+    "CACHE_TYPE": "SupersetMetastoreCache",
     "CACHE_DEFAULT_TIMEOUT": int(timedelta(days=90).total_seconds()),
-    # should the timeout be reset when retrieving a cached value
+    # Should the timeout be reset when retrieving a cached value?
     "REFRESH_TIMEOUT_ON_RETRIEVAL": True,
+    # The following parameter only applies to `MetastoreCache`:
+    # How should entries be serialized/deserialized?
+    "CODEC": JsonKeyValueCodec(),
 }
 
-# Cache for explore form data state (`CACHE_TYPE` defaults to `SimpleCache` when
-#  running in debug mode unless overridden)
+# Cache for explore form data state. `CACHE_TYPE` defaults to `SupersetMetastoreCache`
+# that stores the values in the key-value table in the Superset metastore, as it's
+# required for Superset to operate correctly, but can be replaced by any
+# `Flask-Caching` backend.
 EXPLORE_FORM_DATA_CACHE_CONFIG: CacheConfig = {
+    "CACHE_TYPE": "SupersetMetastoreCache",
     "CACHE_DEFAULT_TIMEOUT": int(timedelta(days=7).total_seconds()),
-    # should the timeout be reset when retrieving a cached value
+    # Should the timeout be reset when retrieving a cached value?
     "REFRESH_TIMEOUT_ON_RETRIEVAL": True,
+    # The following parameter only applies to `MetastoreCache`:
+    # How should entries be serialized/deserialized?
+    "CODEC": JsonKeyValueCodec(),
 }
 
 # store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
@@ -739,6 +771,9 @@ CSV_EXTENSIONS = {"csv", "tsv", "txt"}
 COLUMNAR_EXTENSIONS = {"parquet", "zip"}
 ALLOWED_EXTENSIONS = {*EXCEL_EXTENSIONS, *CSV_EXTENSIONS, *COLUMNAR_EXTENSIONS}
 
+# Optional maximum file size in bytes when uploading a CSV
+CSV_UPLOAD_MAX_SIZE = None
+
 # CSV Options: key/value pairs that will be passed as argument to DataFrame.to_csv
 # method.
 # note: index option should not be overridden
@@ -747,7 +782,7 @@ CSV_EXPORT = {"encoding": "utf-8"}
 # Excel Options: key/value pairs that will be passed as argument to DataFrame.to_excel
 # method.
 # note: index option should not be overridden
-EXCEL_EXPORT = {"encoding": "utf-8"}
+EXCEL_EXPORT: dict[str, Any] = {}
 
 # ---------------------------------------------------
 # Time grain configurations
@@ -855,6 +890,9 @@ DISPLAY_MAX_ROW = 10000
 # Default row limit for SQL Lab queries. Is overridden by setting a new limit in
 # the SQL Lab UI
 DEFAULT_SQLLAB_LIMIT = 1000
+
+# The limit for the Superset Meta DB when the feature flag ENABLE_SUPERSET_META_DB is on
+SUPERSET_META_DB_LIMIT: int | None = 1000
 
 # Adds a warning message on sqllab save query and schedule query modals.
 SQLLAB_SAVE_WARNING_MESSAGE = None
@@ -1133,6 +1171,7 @@ BLUEPRINTS: list[Blueprint] = []
 #   TRACKING_URL_TRANSFORMER = (
 #       lambda url, query: url if is_fresh(query) else None
 #   )
+# pylint: disable-next=unnecessary-lambda-assignment
 TRACKING_URL_TRANSFORMER = lambda url: url
 
 
@@ -1368,7 +1407,8 @@ TEST_DATABASE_CONNECTION_TIMEOUT = timedelta(seconds=30)
 CONTENT_SECURITY_POLICY_WARNING = True
 
 # Do you want Talisman enabled?
-TALISMAN_ENABLED = True
+TALISMAN_ENABLED = utils.cast_to_boolean(os.environ.get("TALISMAN_ENABLED", True))
+
 # If you want Talisman, how do you want it configured??
 TALISMAN_CONFIG = {
     "content_security_policy": {
@@ -1421,7 +1461,7 @@ SEND_FILE_MAX_AGE_DEFAULT = int(timedelta(days=365).total_seconds())
 
 # URI to database storing the example data, points to
 # SQLALCHEMY_DATABASE_URI by default if set to `None`
-SQLALCHEMY_EXAMPLES_URI = None
+SQLALCHEMY_EXAMPLES_URI = "sqlite:///" + os.path.join(DATA_DIR, "examples.db")
 
 # Optional prefix to be added to all static asset paths when rendering the UI.
 # This is useful for hosting assets in an external CDN, for example
@@ -1431,7 +1471,7 @@ STATIC_ASSETS_PREFIX = ""
 # Typically these should not be allowed.
 PREVENT_UNSAFE_DB_CONNECTIONS = True
 
-# Prevents unsafe default endpoints to be registered on datasets.
+# If true all default urls on datasets will be handled as relative URLs by the frontend
 PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = True
 
 # Define a list of allowed URLs for dataset data imports (v1).
@@ -1452,6 +1492,7 @@ SSL_CERT_PATH: str | None = None
 # This can be used to set any properties of the object based on naming
 # conventions and such. You can find examples in the tests.
 
+# pylint: disable-next=unnecessary-lambda-assignment
 SQLA_TABLE_MUTATOR = lambda table: table
 
 
@@ -1581,6 +1622,26 @@ class ExtraRelatedQueryFilters(TypedDict, total=False):
 
 
 EXTRA_RELATED_QUERY_FILTERS: ExtraRelatedQueryFilters = {}
+
+
+# Extra dynamic query filters make it possible to limit which objects are shown
+# in the UI before any other filtering is applied. Useful for example when
+# considering to filter using Feature Flags along with regular role filters
+# that get applied by default in our base_filters.
+# For example, to only show a database starting with the letter "b"
+# in the "Database Connections" list, you could add the following in your config:
+# def initial_database_filter(query: Query, *args, *kwargs):
+#     from superset.models.core import Database
+#
+#     filter = Database.database_name.startswith('b')
+#     return query.filter(filter)
+#
+#  EXTRA_DYNAMIC_QUERY_FILTERS = {"database": initial_database_filter}
+class ExtraDynamicQueryFilters(TypedDict, total=False):
+    databases: Callable[[Query], Query]
+
+
+EXTRA_DYNAMIC_QUERY_FILTERS: ExtraDynamicQueryFilters = {}
 
 
 # -------------------------------------------------------------------

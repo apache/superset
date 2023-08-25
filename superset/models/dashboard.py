@@ -74,28 +74,31 @@ def copy_dashboard(_mapper: Mapper, connection: Connection, target: Dashboard) -
 
     session_class = sessionmaker(autoflush=False)
     session = session_class(bind=connection)
-    new_user = session.query(User).filter_by(id=target.id).first()
 
-    # copy template dashboard to user
-    template = session.query(Dashboard).filter_by(id=int(dashboard_id)).first()
-    dashboard = Dashboard(
-        dashboard_title=template.dashboard_title,
-        position_json=template.position_json,
-        description=template.description,
-        css=template.css,
-        json_metadata=template.json_metadata,
-        slices=template.slices,
-        owners=[new_user],
-    )
-    session.add(dashboard)
-    session.commit()
+    try:
+        new_user = session.query(User).filter_by(id=target.id).first()
 
-    # set dashboard as the welcome dashboard
-    extra_attributes = UserAttribute(
-        user_id=target.id, welcome_dashboard_id=dashboard.id
-    )
-    session.add(extra_attributes)
-    session.commit()
+        # copy template dashboard to user
+        template = session.query(Dashboard).filter_by(id=int(dashboard_id)).first()
+        dashboard = Dashboard(
+            dashboard_title=template.dashboard_title,
+            position_json=template.position_json,
+            description=template.description,
+            css=template.css,
+            json_metadata=template.json_metadata,
+            slices=template.slices,
+            owners=[new_user],
+        )
+        session.add(dashboard)
+
+        # set dashboard as the welcome dashboard
+        extra_attributes = UserAttribute(
+            user_id=target.id, welcome_dashboard_id=dashboard.id
+        )
+        session.add(extra_attributes)
+        session.commit()
+    finally:
+        session.close()
 
 
 sqla.event.listen(User, "after_insert", copy_dashboard)
@@ -105,8 +108,8 @@ dashboard_slices = Table(
     "dashboard_slices",
     metadata,
     Column("id", Integer, primary_key=True),
-    Column("dashboard_id", Integer, ForeignKey("dashboards.id")),
-    Column("slice_id", Integer, ForeignKey("slices.id")),
+    Column("dashboard_id", Integer, ForeignKey("dashboards.id", ondelete="CASCADE")),
+    Column("slice_id", Integer, ForeignKey("slices.id", ondelete="CASCADE")),
     UniqueConstraint("dashboard_id", "slice_id"),
 )
 
@@ -115,8 +118,8 @@ dashboard_user = Table(
     "dashboard_user",
     metadata,
     Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("ab_user.id")),
-    Column("dashboard_id", Integer, ForeignKey("dashboards.id")),
+    Column("user_id", Integer, ForeignKey("ab_user.id", ondelete="CASCADE")),
+    Column("dashboard_id", Integer, ForeignKey("dashboards.id", ondelete="CASCADE")),
 )
 
 
@@ -141,12 +144,16 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     css = Column(Text)
     certified_by = Column(Text)
     certification_details = Column(Text)
-    json_metadata = Column(Text)
+    json_metadata = Column(utils.MediumText())
     slug = Column(String(255), unique=True)
     slices: list[Slice] = relationship(
         Slice, secondary=dashboard_slices, backref="dashboards"
     )
-    owners = relationship(security_manager.user_model, secondary=dashboard_user)
+    owners = relationship(
+        security_manager.user_model,
+        secondary=dashboard_user,
+        passive_deletes=True,
+    )
     tags = relationship(
         "Tag",
         overlaps="objects,tag,tags,tags",
@@ -174,6 +181,9 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         "description",
         "css",
         "slug",
+        "certified_by",
+        "certification_details",
+        "published",
     ]
     extra_import_fields = ["is_managed_externally", "external_url"]
 
@@ -369,7 +379,8 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
 
     @classmethod
     def export_dashboards(  # pylint: disable=too-many-locals
-        cls, dashboard_ids: list[int]
+        cls,
+        dashboard_ids: set[int],
     ) -> str:
         copied_dashboards = []
         datasource_ids = set()
@@ -406,13 +417,12 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
                 "native_filter_configuration", []
             )
             for native_filter in native_filter_configuration:
-                session = db.session()
                 for target in native_filter.get("targets", []):
                     id_ = target.get("datasetId")
                     if id_ is None:
                         continue
                     datasource = DatasourceDAO.get_datasource(
-                        session, utils.DatasourceType.TABLE, id_
+                        db.session, utils.DatasourceType.TABLE, id_
                     )
                     datasource_ids.add((datasource.id, datasource.type))
 
@@ -441,6 +451,15 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     def get(cls, id_or_slug: str | int) -> Dashboard:
         qry = db.session.query(Dashboard).filter(id_or_slug_filter(id_or_slug))
         return qry.one_or_none()
+
+    def raise_for_access(self) -> None:
+        """
+        Raise an exception if the user cannot access the resource.
+
+        :raises SupersetSecurityException: If the user cannot access the resource
+        """
+
+        security_manager.raise_for_access(dashboard=self)
 
 
 def is_uuid(value: str | int) -> bool:

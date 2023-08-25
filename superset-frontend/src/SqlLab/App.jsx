@@ -20,13 +20,17 @@ import React from 'react';
 import persistState from 'redux-localstorage';
 import { Provider } from 'react-redux';
 import { hot } from 'react-hot-loader/root';
-import { FeatureFlag, ThemeProvider } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  ThemeProvider,
+  initFeatureFlags,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import { GlobalStyles } from 'src/GlobalStyles';
-import { initFeatureFlags, isFeatureEnabled } from 'src/featureFlags';
-import { setupStore } from 'src/views/store';
+import { setupStore, userReducer } from 'src/views/store';
 import setupExtensions from 'src/setup/setupExtensions';
 import getBootstrapData from 'src/utils/getBootstrapData';
-import { api } from 'src/hooks/apiResources/queryApi';
+import { tableApiUtil } from 'src/hooks/apiResources/tables';
 import getInitialState from './reducers/getInitialState';
 import { reducers } from './reducers/index';
 import App from './components/App';
@@ -74,12 +78,6 @@ const sqlLabPersistStateConfig = {
         }
       });
 
-      if (subset.sqlLab?.user) {
-        // Don't persist the user.
-        // User should really not be stored under the "sqlLab" field. Oh well.
-        delete subset.sqlLab.user;
-      }
-
       const data = JSON.stringify(subset);
       // 2 digit precision
       const currentSize =
@@ -101,9 +99,6 @@ const sqlLabPersistStateConfig = {
           ...initialState.sqlLab,
         },
       };
-      // Filter out any user data that may have been persisted in an older version.
-      // Get user from bootstrap data instead, every time
-      result.sqlLab.user = initialState.sqlLab.user;
       return result;
     },
   },
@@ -111,7 +106,7 @@ const sqlLabPersistStateConfig = {
 
 export const store = setupStore({
   initialState,
-  rootReducers: reducers,
+  rootReducers: { ...reducers, user: userReducer },
   ...(!isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) && {
     enhancers: [
       persistState(
@@ -127,14 +122,14 @@ initialState.sqlLab.tables.forEach(
   ({ name: table, schema, dbId, persistData }) => {
     if (dbId && schema && table && persistData?.columns) {
       store.dispatch(
-        api.util.upsertQueryData(
+        tableApiUtil.upsertQueryData(
           'tableMetadata',
           { dbId, schema, table },
           persistData,
         ),
       );
       store.dispatch(
-        api.util.upsertQueryData(
+        tableApiUtil.upsertQueryData(
           'tableExtendedMetadata',
           { dbId, schema, table },
           {},

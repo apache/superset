@@ -45,6 +45,7 @@ export default function EchartsMixedTimeseries({
   emitCrossFilters,
   seriesBreakdown,
   onContextMenu,
+  onFocusedSeries,
   xValueFormatter,
   xAxis,
   refs,
@@ -122,6 +123,12 @@ export default function EchartsMixedTimeseries({
     click: props => {
       const { seriesName, seriesIndex } = props;
       handleChange(seriesName, seriesIndex);
+    },
+    mouseout: () => {
+      onFocusedSeries(null);
+    },
+    mouseover: params => {
+      onFocusedSeries(params.seriesName);
     },
     contextmenu: async eventParams => {
       if (onContextMenu) {

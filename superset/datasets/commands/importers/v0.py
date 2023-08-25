@@ -106,7 +106,9 @@ def import_metric(session: Session, metric: BaseMetric) -> BaseMetric:
     if isinstance(metric, SqlMetric):
         lookup_metric = lookup_sqla_metric
     else:
-        raise Exception(f"Invalid metric type: {metric}")
+        raise Exception(  # pylint: disable=broad-exception-raised
+            f"Invalid metric type: {metric}"
+        )
     return import_simple_obj(session, metric, lookup_metric)
 
 
@@ -125,7 +127,9 @@ def import_column(session: Session, column: BaseColumn) -> BaseColumn:
     if isinstance(column, TableColumn):
         lookup_column = lookup_sqla_column
     else:
-        raise Exception(f"Invalid column type: {column}")
+        raise Exception(  # pylint: disable=broad-exception-raised
+            f"Invalid column type: {column}"
+        )
     return import_simple_obj(session, column, lookup_column)
 
 

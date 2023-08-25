@@ -300,7 +300,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
             return GenericDataType.TEMPORAL
 
         return (
-            column_spec.generic_type  # pylint: disable=used-before-assignment
+            column_spec.generic_type
             if (
                 column_spec := self.db_engine_spec.get_column_spec(
                     self.type,
@@ -546,6 +546,7 @@ class SqlaTable(
     is_sqllab_view = Column(Boolean, default=False)
     template_params = Column(Text)
     extra = Column(Text)
+    normalize_columns = Column(Boolean, default=False)
 
     baselink = "tablemodelview"
 
@@ -564,6 +565,7 @@ class SqlaTable(
         "filter_select_enabled",
         "fetch_values_predicate",
         "extra",
+        "normalize_columns",
     ]
     update_from_object_fields = [f for f in export_fields if f != "database_id"]
     export_parent = "database"
@@ -717,6 +719,7 @@ class SqlaTable(
             database=self.database,
             table_name=self.table_name,
             schema_name=self.schema,
+            normalize_columns=self.normalize_columns,
         )
 
     @property
@@ -1003,7 +1006,7 @@ class SqlaTable(
                     tbl, _ = self.get_from_clause(template_processor)
                     qry = sa.select([sqla_column]).limit(1).select_from(tbl)
                     sql = self.database.compile_sqla_query(qry)
-                    col_desc = get_columns_description(self.database, sql)
+                    col_desc = get_columns_description(self.database, self.schema, sql)
                     is_dttm = col_desc[0]["is_dttm"]  # type: ignore
                 except SupersetGenericDBErrorException as ex:
                     raise ColumnNotFoundException(message=str(ex)) from ex
@@ -1464,7 +1467,9 @@ class SqlaTable(
         if not DatasetDAO.validate_uniqueness(
             target.database_id, target.schema, target.table_name, target.id
         ):
-            raise Exception(get_dataset_exist_error_msg(target.full_name))
+            raise Exception(  # pylint: disable=broad-exception-raised
+                get_dataset_exist_error_msg(target.full_name)
+            )
 
     @staticmethod
     def update_column(  # pylint: disable=unused-argument
