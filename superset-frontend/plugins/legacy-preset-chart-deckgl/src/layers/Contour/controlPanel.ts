@@ -82,6 +82,8 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               choices: [
                 ['sum', t('sum')],
+                ['min', t('min')],
+                ['max', t('max')],
                 ['mean', t('mean')],
               ],
             },
