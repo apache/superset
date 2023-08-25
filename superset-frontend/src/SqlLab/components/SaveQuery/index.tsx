@@ -180,10 +180,12 @@ const SaveQuery = ({
 
   return (
     <Styles className="SaveQuery">
-      <SaveDatasetActionButton
-        setShowSave={setShowSave}
-        overlayMenu={canExploreDatabase ? overlayMenu : null}
-      />
+      {canExploreDatabase && (
+        <SaveDatasetActionButton
+          setShowSave={setShowSave}
+          overlayMenu={canExploreDatabase ? overlayMenu : null}
+        />
+      )}
       <SaveDatasetModal
         visible={showSaveDatasetModal}
         onHide={() => setShowSaveDatasetModal(false)}
