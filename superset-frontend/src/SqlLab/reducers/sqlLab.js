@@ -17,7 +17,6 @@
  * under the License.
  */
 import { normalizeTimestamp, QueryState, t } from '@superset-ui/core';
-import getInitialState from './getInitialState';
 import * as actions from '../actions/sqlLab';
 import { now } from '../../utils/dates';
 import {
@@ -165,7 +164,7 @@ export default function sqlLabReducer(state = {}, action) {
       return { ...state, queries: newQueries };
     },
     [actions.RESET_STATE]() {
-      return { ...getInitialState() };
+      return { ...action.sqlLabInitialState };
     },
     [actions.MERGE_TABLE]() {
       const at = { ...action.table };

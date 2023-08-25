@@ -39,6 +39,9 @@ import COMMON_ERR_MESSAGES from 'src/utils/errorMessages';
 import { LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY } from 'src/logger/LogUtils';
 import { logEvent } from 'src/logger/actions';
 import { newQueryTabName } from '../utils/newQueryTabName';
+import getInitialState from '../reducers/getInitialState';
+import { rehydratePersistedState } from '../utils/reduxStateToLocalStorageHelper';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 export const RESET_STATE = 'RESET_STATE';
 export const ADD_QUERY_EDITOR = 'ADD_QUERY_EDITOR';
@@ -136,8 +139,23 @@ export function getUpToDateQuery(rootState, queryEditor, key) {
   };
 }
 
-export function resetState() {
-  return { type: RESET_STATE };
+export function resetState(data) {
+  return (dispatch, getState) => {
+    const { common, user, config } = getState();
+    const initialState = getInitialState({
+      ...getBootstrapData(),
+      common,
+      user,
+      config,
+      ...data,
+    });
+
+    dispatch({
+      type: RESET_STATE,
+      sqlLabInitialState: initialState.sqlLab,
+    });
+    rehydratePersistedState(dispatch, initialState);
+  };
 }
 
 export function updateQueryEditor(alterations) {

@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { configureStore, ConfigureStoreOptions, Store } from '@reduxjs/toolkit';
+import {
+  configureStore,
+  ConfigureStoreOptions,
+  StoreEnhancer,
+} from '@reduxjs/toolkit';
 import thunk from 'redux-thunk';
 import { api } from 'src/hooks/apiResources/queryApi';
 import messageToastReducer from 'src/components/MessageToasts/reducers';
@@ -34,6 +38,11 @@ import logger from 'src/middleware/loggerMiddleware';
 import saveModal from 'src/explore/reducers/saveModalReducer';
 import explore from 'src/explore/reducers/exploreReducer';
 import exploreDatasources from 'src/explore/reducers/datasourcesReducer';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+
+import { persistSqlLabStateEnhander } from 'src/SqlLab/utils/reduxStateToLocalStorageHelper';
+import { reducers as sqlLabReducers } from 'src/SqlLab/reducers';
+import getInitialState from 'src/SqlLab/reducers/getInitialState';
 import { DatasourcesState } from 'src/dashboard/types';
 import {
   DatasourcesActionPayload,
@@ -113,6 +122,7 @@ const CombinedDatasourceReducers = (
 };
 
 const reducers = {
+  ...sqlLabReducers,
   messageToasts: messageToastReducer,
   common: noopReducer(bootstrapData.common),
   user: userReducer,
@@ -140,14 +150,14 @@ const reducers = {
  */
 export function setupStore({
   disableDebugger = false,
-  initialState = {},
+  initialState = getInitialState(bootstrapData),
   rootReducers = reducers,
   ...overrides
 }: {
   disableDebugger?: boolean;
   initialState?: ConfigureStoreOptions['preloadedState'];
   rootReducers?: ConfigureStoreOptions['reducer'];
-} & Partial<ConfigureStoreOptions> = {}): Store {
+} & Partial<ConfigureStoreOptions> = {}) {
   return configureStore({
     preloadedState: initialState,
     reducer: {
@@ -156,9 +166,12 @@ export function setupStore({
     },
     middleware: getMiddleware,
     devTools: process.env.WEBPACK_MODE === 'development' && !disableDebugger,
+    ...(!isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) && {
+      enhancers: [persistSqlLabStateEnhander as StoreEnhancer],
+    }),
     ...overrides,
   });
 }
 
-export const store: Store = setupStore();
+export const store = setupStore();
 export type RootState = ReturnType<typeof store.getState>;
