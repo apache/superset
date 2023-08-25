@@ -74,28 +74,31 @@ def copy_dashboard(_mapper: Mapper, connection: Connection, target: Dashboard) -
 
     session_class = sessionmaker(autoflush=False)
     session = session_class(bind=connection)
-    new_user = session.query(User).filter_by(id=target.id).first()
 
-    # copy template dashboard to user
-    template = session.query(Dashboard).filter_by(id=int(dashboard_id)).first()
-    dashboard = Dashboard(
-        dashboard_title=template.dashboard_title,
-        position_json=template.position_json,
-        description=template.description,
-        css=template.css,
-        json_metadata=template.json_metadata,
-        slices=template.slices,
-        owners=[new_user],
-    )
-    session.add(dashboard)
-    session.commit()
+    try:
+        new_user = session.query(User).filter_by(id=target.id).first()
 
-    # set dashboard as the welcome dashboard
-    extra_attributes = UserAttribute(
-        user_id=target.id, welcome_dashboard_id=dashboard.id
-    )
-    session.add(extra_attributes)
-    session.commit()
+        # copy template dashboard to user
+        template = session.query(Dashboard).filter_by(id=int(dashboard_id)).first()
+        dashboard = Dashboard(
+            dashboard_title=template.dashboard_title,
+            position_json=template.position_json,
+            description=template.description,
+            css=template.css,
+            json_metadata=template.json_metadata,
+            slices=template.slices,
+            owners=[new_user],
+        )
+        session.add(dashboard)
+
+        # set dashboard as the welcome dashboard
+        extra_attributes = UserAttribute(
+            user_id=target.id, welcome_dashboard_id=dashboard.id
+        )
+        session.add(extra_attributes)
+        session.commit()
+    finally:
+        session.close()
 
 
 sqla.event.listen(User, "after_insert", copy_dashboard)
@@ -414,13 +417,12 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
                 "native_filter_configuration", []
             )
             for native_filter in native_filter_configuration:
-                session = db.session()
                 for target in native_filter.get("targets", []):
                     id_ = target.get("datasetId")
                     if id_ is None:
                         continue
                     datasource = DatasourceDAO.get_datasource(
-                        session, utils.DatasourceType.TABLE, id_
+                        db.session, utils.DatasourceType.TABLE, id_
                     )
                     datasource_ids.add((datasource.id, datasource.type))
 

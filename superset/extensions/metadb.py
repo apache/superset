@@ -62,7 +62,7 @@ from shillelagh.fields import (
 )
 from shillelagh.filters import Equal, Filter, Range
 from shillelagh.typing import RequestedOrder, Row
-from sqlalchemy import MetaData, Table
+from sqlalchemy import func, MetaData, Table
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.sql import Select, select
@@ -397,6 +397,13 @@ class SupersetShillelaghAdapter(Adapter):
                 raise ProgrammingError(f"Invalid rowid specified: {row_id}")
             row[self._rowid] = row_id
 
+        if (
+            self._rowid
+            and row[self._rowid] is None
+            and self._table.c[self._rowid].autoincrement
+        ):
+            row.pop(self._rowid)
+
         query = self._table.insert().values(**row)
 
         with self.engine_context() as engine:
@@ -407,7 +414,7 @@ class SupersetShillelaghAdapter(Adapter):
             if self._rowid:
                 return result.inserted_primary_key[0]
 
-            query = self._table.count()
+            query = select([func.count()]).select_from(self._table)
             return connection.execute(query).scalar()
 
     @check_dml
