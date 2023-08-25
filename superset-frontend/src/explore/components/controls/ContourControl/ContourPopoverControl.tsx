@@ -64,9 +64,13 @@ const determineErrorMap = (tab: string, contour: ContourType) => {
   };
   // Isoline and Isoband validation
   const lowerThresholdError = legacyValidateInteger(contour.lowerThreshold);
-  const strokeWidthError = legacyValidateInteger(contour.strokeWidth);
   if (lowerThresholdError) errorMap.lowerThreshold.push(lowerThresholdError);
-  if (strokeWidthError) errorMap.strokeWidth.push(strokeWidthError);
+
+  // Isoline only validation
+  if (tab === CONTOUR_TYPES.Isoline) {
+    const strokeWidthError = legacyValidateInteger(contour.strokeWidth);
+    if (strokeWidthError) errorMap.strokeWidth.push(strokeWidthError);
+  }
 
   // Isoband only validation
   if (tab === CONTOUR_TYPES.Isoband) {
@@ -292,7 +296,7 @@ const ContourPopoverControl = ({
             hovered
           />
           <TextControl
-            value={contour.strokeWidth}
+            value={contour.strokeWidth || ''}
             onChange={updateStrokeWidth}
           />
         </Col>
