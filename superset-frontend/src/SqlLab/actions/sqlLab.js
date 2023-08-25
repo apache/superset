@@ -37,11 +37,11 @@ import {
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import COMMON_ERR_MESSAGES from 'src/utils/errorMessages';
 import { LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY } from 'src/logger/LogUtils';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import { logEvent } from 'src/logger/actions';
 import { newQueryTabName } from '../utils/newQueryTabName';
 import getInitialState from '../reducers/getInitialState';
 import { rehydratePersistedState } from '../utils/reduxStateToLocalStorageHelper';
-import getBootstrapData from 'src/utils/getBootstrapData';
 
 export const RESET_STATE = 'RESET_STATE';
 export const ADD_QUERY_EDITOR = 'ADD_QUERY_EDITOR';
