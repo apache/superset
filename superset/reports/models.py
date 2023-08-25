@@ -15,8 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 """A collection of ORM sqlalchemy models for Superset"""
-import enum
-
 from cron_descriptor import get_description
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
@@ -41,28 +39,29 @@ from superset.models.dashboard import Dashboard
 from superset.models.helpers import AuditMixinNullable, ExtraJSONMixin
 from superset.models.slice import Slice
 from superset.reports.types import ReportScheduleExtra
+from superset.utils.backports import StrEnum
 
 metadata = Model.metadata  # pylint: disable=no-member
 
 
-class ReportScheduleType(str, enum.Enum):
+class ReportScheduleType(StrEnum):
     ALERT = "Alert"
     REPORT = "Report"
 
 
-class ReportScheduleValidatorType(str, enum.Enum):
+class ReportScheduleValidatorType(StrEnum):
     """Validator types for alerts"""
 
     NOT_NULL = "not null"
     OPERATOR = "operator"
 
 
-class ReportRecipientType(str, enum.Enum):
+class ReportRecipientType(StrEnum):
     EMAIL = "Email"
     SLACK = "Slack"
 
 
-class ReportState(str, enum.Enum):
+class ReportState(StrEnum):
     SUCCESS = "Success"
     WORKING = "Working"
     ERROR = "Error"
@@ -70,19 +69,19 @@ class ReportState(str, enum.Enum):
     GRACE = "On Grace"
 
 
-class ReportDataFormat(str, enum.Enum):
+class ReportDataFormat(StrEnum):
     VISUALIZATION = "PNG"
     DATA = "CSV"
     TEXT = "TEXT"
 
 
-class ReportCreationMethod(str, enum.Enum):
+class ReportCreationMethod(StrEnum):
     CHARTS = "charts"
     DASHBOARDS = "dashboards"
     ALERTS_REPORTS = "alerts_reports"
 
 
-class ReportSourceFormat(str, enum.Enum):
+class ReportSourceFormat(StrEnum):
     CHART = "chart"
     DASHBOARD = "dashboard"
 

@@ -34,7 +34,6 @@ import type {
 import { sharedControls, sharedControlComponents } from './shared-controls';
 
 export type { Metric } from '@superset-ui/core';
-export type { ControlFormItemSpec } from './components/ControlForm';
 export type { ControlComponentProps } from './shared-controls/components/types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -167,6 +166,12 @@ export type InternalControlType =
   | 'DndColumnSelect'
   | 'DndFilterSelect'
   | 'DndMetricSelect'
+  | 'CurrencyControl'
+  | 'InputNumber'
+  | 'Checkbox'
+  | 'Select'
+  | 'Slider'
+  | 'Input'
   | keyof SharedControlComponents; // expanded in `expandControlConfig`
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -495,3 +500,60 @@ export type SortSeriesData = {
   sort_series_type: SortSeriesType;
   sort_series_ascending: boolean;
 };
+
+export type ControlFormValueValidator<V> = (value: V) => string | false;
+
+export type ControlFormItemSpec<T extends ControlType = ControlType> = {
+  controlType: T;
+  label: ReactNode;
+  description: ReactNode;
+  placeholder?: string;
+  validators?: ControlFormValueValidator<any>[];
+  width?: number | string;
+  /**
+   * Time to delay change propagation.
+   */
+  debounceDelay?: number;
+} & (T extends 'Select'
+  ? {
+      options: any;
+      value?: string;
+      defaultValue?: string;
+      creatable?: boolean;
+      minWidth?: number | string;
+      validators?: ControlFormValueValidator<string>[];
+    }
+  : T extends 'RadioButtonControl'
+  ? {
+      options: [string, ReactNode][];
+      value?: string;
+      defaultValue?: string;
+    }
+  : T extends 'Checkbox'
+  ? {
+      value?: boolean;
+      defaultValue?: boolean;
+    }
+  : T extends 'InputNumber' | 'Slider'
+  ? {
+      min?: number;
+      max?: number;
+      step?: number;
+      value?: number;
+      defaultValue?: number;
+      validators?: ControlFormValueValidator<number>[];
+    }
+  : T extends 'Input'
+  ? {
+      controlType: 'Input';
+      value?: string;
+      defaultValue?: string;
+      validators?: ControlFormValueValidator<string>[];
+    }
+  : T extends 'CurrencyControl'
+  ? {
+      controlType: 'CurrencyControl';
+      value?: Currency;
+      defaultValue?: Currency;
+    }
+  : {});

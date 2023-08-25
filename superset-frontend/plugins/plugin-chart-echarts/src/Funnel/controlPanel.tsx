@@ -20,6 +20,7 @@ import React from 'react';
 import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
+  ControlSubSectionHeader,
   D3_FORMAT_OPTIONS,
   D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
   sections,
@@ -77,7 +78,7 @@ const config: ControlPanelConfig = {
         ['color_scheme'],
         ...funnelLegendSection,
         // eslint-disable-next-line react/jsx-key
-        [<div className="section-header">{t('Labels')}</div>],
+        [<ControlSubSectionHeader>{t('Labels')}</ControlSubSectionHeader>],
         [
           {
             name: 'label_type',
@@ -118,6 +119,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['currency_format'],
         [
           {
             name: 'show_labels',

@@ -43,7 +43,7 @@ import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { URL_PARAMS } from 'src/constants';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import {
-  canUserAccessSqlLab,
+  userHasPermission,
   isUserAdmin,
 } from 'src/dashboard/util/permissionUtils';
 import ModalTrigger from 'src/components/ModalTrigger';
@@ -283,7 +283,7 @@ class DatasourceControl extends React.PureComponent {
       datasource.owners?.map(o => o.id || o.value).includes(user.userId) ||
       isUserAdmin(user);
 
-    const canAccessSqlLab = canUserAccessSqlLab(user);
+    const canAccessSqlLab = userHasPermission(user, 'SQL Lab', 'menu_access');
 
     const editText = t('Edit dataset');
 

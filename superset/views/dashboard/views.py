@@ -64,7 +64,7 @@ class DashboardModelView(
         return super().render_app_template()
 
     @action("mulexport", __("Export"), __("Export dashboards?"), "fa-database")
-    def mulexport(  # pylint: disable=no-self-use
+    def mulexport(
         self,
         items: Union["DashboardModelView", builtins.list["DashboardModelView"]],
     ) -> FlaskResponse:
@@ -78,7 +78,7 @@ class DashboardModelView(
     @expose("/export_dashboards_form")
     def download_dashboards(self) -> FlaskResponse:
         if request.args.get("action") == "go":
-            ids = request.args.getlist("id")
+            ids = set(request.args.getlist("id"))
             return Response(
                 DashboardModel.export_dashboards(ids),
                 headers=generate_download_headers("json"),
@@ -114,7 +114,7 @@ class Dashboard(BaseSupersetView):
 
     @has_access
     @expose("/new/")
-    def new(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def new(self) -> FlaskResponse:
         """Creates a new, blank dashboard and redirects to it in edit mode"""
         new_dashboard = DashboardModel(
             dashboard_title="[ untitled dashboard ]",

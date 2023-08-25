@@ -40,6 +40,7 @@ TARGET_FORM_DATA = {
     "any_other_key": "untouched",
     "aggregateFunction": "Sum",
     "colTotals": True,
+    "colSubTotals": True,
     "combineMetric": True,
     "form_data_bak": SOURCE_FORM_DATA,
     "granularity_sqla": "ds",

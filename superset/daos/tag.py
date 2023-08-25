@@ -18,15 +18,26 @@ import logging
 from operator import and_
 from typing import Any, Optional
 
+from flask import g
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.daos.base import BaseDAO
 from superset.daos.exceptions import DAOCreateFailedError, DAODeleteFailedError
+from superset.exceptions import MissingUserContextException
 from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
-from superset.tags.models import get_tag, ObjectTypes, Tag, TaggedObject, TagTypes
+from superset.tags.commands.exceptions import TagNotFoundError
+from superset.tags.models import (
+    get_tag,
+    ObjectTypes,
+    Tag,
+    TaggedObject,
+    TagTypes,
+    user_favorite_tag_table,
+)
+from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
 
@@ -257,3 +268,98 @@ class TagDAO(BaseDAO[Tag]):
                 for obj in saved_queries
             )
         return results
+
+    @staticmethod
+    def favorite_tag_by_id_for_current_user(  # pylint: disable=invalid-name
+        tag_id: int,
+    ) -> None:
+        """
+        Marks a specific tag as a favorite for the current user.
+        This function will find the tag by the provided id,
+        create a new UserFavoriteTag object that represents
+        the user's preference, add that object to the database
+        session, and commit the session. It uses the currently
+        authenticated user from the global 'g' object.
+        Args:
+            tag_id: The id of the tag that is to be marked as
+                    favorite.
+        Raises:
+            Any exceptions raised by the find_by_id function,
+            the UserFavoriteTag constructor, or the database session's
+            add and commit methods will propagate up to the caller.
+        Returns:
+            None.
+        """
+        tag = TagDAO.find_by_id(tag_id)
+        user = g.user
+
+        if not user:
+            raise MissingUserContextException(message="User doesn't exist")
+        if not tag:
+            raise TagNotFoundError()
+
+        tag.users_favorited.append(user)
+        db.session.commit()
+
+    @staticmethod
+    def remove_user_favorite_tag(tag_id: int) -> None:
+        """
+        Removes a tag from the current user's favorite tags.
+
+        This function will find the tag by the provided id and remove the tag
+        from the user's list of favorite tags. It uses the currently authenticated
+        user from the global 'g' object.
+
+        Args:
+            tag_id: The id of the tag that is to be removed from the favorite tags.
+
+        Raises:
+            Any exceptions raised by the find_by_id function, the database session's
+            commit method will propagate up to the caller.
+
+        Returns:
+            None.
+        """
+        tag = TagDAO.find_by_id(tag_id)
+        user = g.user
+
+        if not user:
+            raise MissingUserContextException(message="User doesn't exist")
+        if not tag:
+            raise TagNotFoundError()
+
+        tag.users_favorited.remove(user)
+
+        # Commit to save the changes
+        db.session.commit()
+
+    @staticmethod
+    def favorited_ids(tags: list[Tag]) -> list[int]:
+        """
+        Returns the IDs of tags that the current user has favorited.
+
+        This function takes in a list of Tag objects, extracts their IDs, and checks
+        which of these IDs exist in the user_favorite_tag_table for the current user.
+        The function returns a list of these favorited tag IDs.
+
+        Args:
+            tags (list[Tag]): A list of Tag objects.
+
+        Returns:
+            list[Any]: A list of IDs corresponding to the tags that are favorited by
+            the current user.
+
+        Example:
+            favorited_ids([tag1, tag2, tag3])
+            Output: [tag_id1, tag_id3]   # if the current user has favorited tag1 and tag3
+        """
+        ids = [tag.id for tag in tags]
+        return [
+            star.tag_id
+            for star in db.session.query(user_favorite_tag_table.c.tag_id)
+            .filter(
+                user_favorite_tag_table.c.tag_id.in_(ids),
+                user_favorite_tag_table.c.user_id == get_user_id(),
+            )
+            .all()
+        ]

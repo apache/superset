@@ -16,15 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FeatureFlag, t } from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag, t } from '@superset-ui/core';
 import React, { useMemo, useCallback } from 'react';
-import { isFeatureEnabled } from 'src/featureFlags';
 import {
   createFetchRelated,
   createErrorHandler,
   Actions,
 } from 'src/views/CRUD/utils';
-import { useListViewResource } from 'src/views/CRUD/hooks';
+import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import ListView, {
@@ -42,6 +41,22 @@ import { deleteTags } from 'src/features/tags/tags';
 import { Tag as AntdTag } from 'antd';
 import { Tag } from 'src/views/CRUD/types';
 import TagCard from 'src/features/tags/TagCard';
+import FaveStar from 'src/components/FaveStar';
+
+const emptyState = {
+  title: t('No Tags created'),
+  image: 'dashboard.svg',
+  description:
+    'Create a new tag and assign it to existing entities like charts or dashboards',
+  buttonAction: () => {},
+  // todo(hughhh): Add this back once Tag modal is functional
+  // buttonText: (
+  //   <>
+  //     <i className="fa fa-plus" data-test="add-rule-empty" />{' '}
+  //     {'Create a new Tag'}{' '}
+  //   </>
+  // ),
+};
 
 const PAGE_SIZE = 25;
 
@@ -75,6 +90,13 @@ function TagList(props: TagListProps) {
     refreshData,
   } = useListViewResource<Tag>('tag', t('tag'), addDangerToast);
 
+  const tagIds = useMemo(() => tags.map(c => c.id), [tags]);
+  const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
+    'tag',
+    tagIds,
+    addDangerToast,
+  );
+
   // TODO: Fix usage of localStorage keying on the user id
   const userKey = dangerouslyGetItemDoNotUse(userId?.toString(), null);
 
@@ -94,6 +116,25 @@ function TagList(props: TagListProps) {
 
   const columns = useMemo(
     () => [
+      {
+        Cell: ({
+          row: {
+            original: { id },
+          },
+        }: any) =>
+          userId && (
+            <FaveStar
+              itemId={id}
+              saveFaveStar={saveFavoriteStatus}
+              isStarred={favoriteStatus[id]}
+            />
+          ),
+        Header: '',
+        id: 'id',
+        disableSortBy: true,
+        size: 'xs',
+        hidden: !userId,
+      },
       {
         Cell: ({
           row: {
@@ -303,6 +344,7 @@ function TagList(props: TagListProps) {
                 count={tagCount}
                 data={tags.filter(tag => !tag.name.includes(':'))}
                 disableBulkSelect={toggleBulkSelect}
+                emptyState={emptyState}
                 fetchData={fetchData}
                 filters={filters}
                 initialSort={initialSort}

@@ -52,7 +52,7 @@ const communityLinks = [
       'Participate in conversations with committers and contributors on Superset mailing list',
   },
   {
-    url: 'https://stackoverflow.com/questions/tagged/superset+apache-superset',
+    url: 'https://stackoverflow.com/questions/tagged/apache-superset',
     title: 'Stack Overflow',
     description: 'Our growing knowledge base.',
     image: 'stackoverflow-symbol.jpg',

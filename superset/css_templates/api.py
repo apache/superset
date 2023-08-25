@@ -97,11 +97,10 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
     )
     @rison(get_delete_ids_schema)
     def bulk_delete(self, **kwargs: Any) -> Response:
-        """Delete bulk CSS Templates
+        """Bulk delete CSS templates.
         ---
         delete:
-          description: >-
-            Deletes multiple css templates in a bulk operation.
+          summary: Bulk delete CSS templates
           parameters:
           - in: query
             name: q

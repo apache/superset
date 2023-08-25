@@ -17,7 +17,14 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
+import {
+  createEvent,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { AsyncSelect } from 'src/components';
 
@@ -92,6 +99,9 @@ const getElementsByClassName = (className: string) =>
   document.querySelectorAll(className)! as NodeListOf<HTMLElement>;
 
 const getSelect = () => screen.getByRole('combobox', { name: ARIA_LABEL });
+
+const getAllSelectOptions = () =>
+  getElementsByClassName('.ant-select-item-option-content');
 
 const findSelectOption = (text: string) =>
   waitFor(() =>
@@ -323,12 +333,14 @@ test('same case should be ranked to the top', async () => {
   }));
   render(<AsyncSelect {...defaultProps} options={loadOptions} />);
   await type('Ac');
-  const options = await findAllSelectOptions();
-  expect(options.length).toBe(4);
-  expect(options[0]?.textContent).toEqual('acbc');
-  expect(options[1]?.textContent).toEqual('CAc');
-  expect(options[2]?.textContent).toEqual('abac');
-  expect(options[3]?.textContent).toEqual('Cac');
+  await waitFor(() => {
+    const options = getAllSelectOptions();
+    expect(options.length).toBe(4);
+    expect(options[0]?.textContent).toEqual('acbc');
+    expect(options[1]?.textContent).toEqual('CAc');
+    expect(options[2]?.textContent).toEqual('abac');
+    expect(options[3]?.textContent).toEqual('Cac');
+  });
 });
 
 test('ignores special keys when searching', async () => {
@@ -365,7 +377,13 @@ test('searches for custom fields', async () => {
 
 test('removes duplicated values', async () => {
   render(<AsyncSelect {...defaultProps} mode="multiple" allowNewOptions />);
-  await type('a,b,b,b,c,d,d');
+  const input = getElementByClassName('.ant-select-selection-search-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => 'a,b,b,b,c,d,d',
+    },
+  });
+  fireEvent(input, paste);
   const values = await findAllSelectValues();
   expect(values.length).toBe(4);
   expect(values[0]).toHaveTextContent('a');
@@ -522,7 +540,7 @@ test('changes the selected item in single mode', async () => {
       label: firstOption.label,
       value: firstOption.value,
     }),
-    firstOption,
+    expect.objectContaining(firstOption),
   );
   expect(await findSelectValue()).toHaveTextContent(firstOption.label);
   userEvent.click(await findSelectOption(secondOption.label));
@@ -531,7 +549,7 @@ test('changes the selected item in single mode', async () => {
       label: secondOption.label,
       value: secondOption.value,
     }),
-    secondOption,
+    expect.objectContaining(secondOption),
   );
   expect(await findSelectValue()).toHaveTextContent(secondOption.label);
 });
@@ -601,7 +619,9 @@ test('does not show "No data" when allowNewOptions is true and a new option is e
   render(<AsyncSelect {...defaultProps} allowNewOptions />);
   await open();
   await type(NEW_OPTION);
-  expect(screen.queryByText(NO_DATA)).not.toBeInTheDocument();
+  await waitFor(() =>
+    expect(screen.queryByText(NO_DATA)).not.toBeInTheDocument(),
+  );
 });
 
 test('sets a initial value in single mode', async () => {
@@ -690,12 +710,9 @@ test('does not fire a new request for the same search input', async () => {
     <AsyncSelect {...defaultProps} options={loadOptions} fetchOnlyOnSearch />,
   );
   await type('search');
-  expect(await screen.findByText(NO_DATA)).toBeInTheDocument();
-  expect(loadOptions).toHaveBeenCalledTimes(1);
-  clearAll();
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(1));
   await type('search');
-  expect(await screen.findByText(LOADING)).toBeInTheDocument();
-  expect(loadOptions).toHaveBeenCalledTimes(1);
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(1));
 });
 
 test('does not fire a new request if all values have been fetched', async () => {
@@ -802,6 +819,43 @@ test('Renders only an overflow tag if dropdown is open in oneLine mode', async (
   expect(withinSelector.queryByText(OPTIONS[1].label)).not.toBeInTheDocument();
   expect(withinSelector.queryByText(OPTIONS[2].label)).not.toBeInTheDocument();
   expect(withinSelector.getByText('+ 2 ...')).toBeVisible();
+});
+
+test('does not fire onChange when searching but no selection', async () => {
+  const onChange = jest.fn();
+  render(
+    <div role="main">
+      <AsyncSelect
+        {...defaultProps}
+        onChange={onChange}
+        mode="multiple"
+        allowNewOptions
+      />
+    </div>,
+  );
+  await open();
+  await type('Joh');
+  userEvent.click(await findSelectOption('John'));
+  userEvent.click(screen.getByRole('main'));
+  expect(onChange).toHaveBeenCalledTimes(1);
+});
+
+test('does not duplicate options when using numeric values', async () => {
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      mode="multiple"
+      options={async () => ({
+        data: [
+          { label: '1', value: 1 },
+          { label: '2', value: 2 },
+        ],
+        totalCount: 2,
+      })}
+    />,
+  );
+  await type('1');
+  await waitFor(() => expect(getAllSelectOptions().length).toBe(1));
 });
 
 /*
