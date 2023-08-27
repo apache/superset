@@ -39,12 +39,10 @@ class CreateRLSRuleCommand(BaseCommand):
     def run(self) -> Any:
         self.validate()
         try:
-            rule = RLSDAO.create(self._properties)
+            return RLSDAO.create(attributes=self._properties)
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)
             raise ex
-
-        return rule
 
     def validate(self) -> None:
         roles = populate_roles(self._roles)

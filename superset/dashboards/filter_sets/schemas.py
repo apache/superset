@@ -46,7 +46,6 @@ class FilterSetSchema(Schema):
 
 class FilterSetPostSchema(FilterSetSchema):
     json_metadata_schema: JsonMetadataSchema = JsonMetadataSchema()
-    # pylint: disable=W0613
     name = fields.String(
         required=True,
         allow_none=False,
@@ -83,7 +82,7 @@ class FilterSetPutSchema(FilterSetSchema):
     )
 
     @post_load
-    def validate(  # pylint: disable=unused-argument
+    def validate(
         self, data: Mapping[Any, Any], *, many: Any, partial: Any
     ) -> dict[str, Any]:
         if JSON_METADATA_FIELD in data:

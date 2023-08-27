@@ -68,7 +68,7 @@ const config = {
             from: '/usertutorial.html',
           },
           {
-            to: '/docs/security',
+            to: '/docs/security/',
             from: '/security.html',
           },
           {
@@ -252,7 +252,10 @@ const config = {
               <a href="https://apache.org/events/current-event" target="_blank" rel="noreferrer">Events</a>&nbsp;|&nbsp;
               <a href="https://apache.org/licenses/" target="_blank" rel="noreferrer">License</a>
             </small>
-          </p>`,
+          </p>
+          <!-- telemetry/analytics pixel: -->
+          <img referrerPolicy="no-referrer-when-downgrade" src="https://static.scarf.sh/a.png?x-pxid=39ae6855-95fc-4566-86e5-360d542b0a68" />
+          `,
       },
       prism: {
         theme: lightCodeTheme,

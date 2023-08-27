@@ -26,6 +26,7 @@ from superset.extensions import celery_app
 from superset.reports.commands.exceptions import ReportScheduleUnexpectedError
 from superset.reports.commands.execute import AsyncExecuteReportScheduleCommand
 from superset.reports.commands.log_prune import AsyncPruneReportScheduleLogCommand
+from superset.stats_logger import BaseStatsLogger
 from superset.tasks.cron_util import cron_schedule_window
 from superset.utils.celery import session_scope
 from superset.utils.core import LoggerLevel
@@ -39,6 +40,9 @@ def scheduler() -> None:
     """
     Celery beat main scheduler for reports
     """
+    stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
+    stats_logger.incr("reports.scheduler")
+
     if not is_feature_enabled("ALERT_REPORTS"):
         return
     with session_scope(nullpool=True) as session:
@@ -68,6 +72,9 @@ def scheduler() -> None:
 
 @celery_app.task(name="reports.execute", bind=True)
 def execute(self: Celery.task, report_schedule_id: int) -> None:
+    stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
+    stats_logger.incr("reports.execute")
+
     task_id = None
     try:
         task_id = execute.request.id
@@ -90,9 +97,8 @@ def execute(self: Celery.task, report_schedule_id: int) -> None:
     except CommandException as ex:
         logger_func, level = get_logger_from_status(ex.status)
         logger_func(
-            "A downstream {} occurred while generating a report: {}. {}".format(
-                level, task_id, ex.message
-            ),
+            f"A downstream {level} occurred "
+            f"while generating a report: {task_id}. {ex.message}",
             exc_info=True,
         )
         if level == LoggerLevel.EXCEPTION:
@@ -101,9 +107,12 @@ def execute(self: Celery.task, report_schedule_id: int) -> None:
 
 @celery_app.task(name="reports.prune_log")
 def prune_log() -> None:
+    stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
+    stats_logger.incr("reports.prune_log")
+
     try:
         AsyncPruneReportScheduleLogCommand().run()
     except SoftTimeLimitExceeded as ex:
         logger.warning("A timeout occurred while pruning report schedule logs: %s", ex)
-    except CommandException as ex:
+    except CommandException:
         logger.exception("An exception occurred while pruning report schedule logs")

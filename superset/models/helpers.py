@@ -182,7 +182,7 @@ class ImportExportMixin:
     __mapper__: Mapper
 
     @classmethod
-    def _unique_constrains(cls) -> list[set[str]]:
+    def _unique_constraints(cls) -> list[set[str]]:
         """Get all (single column and multi column) unique constraints"""
         unique = [
             {c.name for c in u.columns}
@@ -244,6 +244,7 @@ class ImportExportMixin:
         parent: Optional[Any] = None,
         recursive: bool = True,
         sync: Optional[list[str]] = None,
+        allow_reparenting: bool = False,
     ) -> Any:
         """Import obj from a dictionary"""
         if sync is None:
@@ -256,7 +257,7 @@ class ImportExportMixin:
             | {"uuid"}
         )
         new_children = {c: dict_rep[c] for c in cls.export_children if c in dict_rep}
-        unique_constrains = cls._unique_constrains()
+        unique_constraints = cls._unique_constraints()
 
         filters = []  # Using these filters to check if obj already exists
 
@@ -275,8 +276,11 @@ class ImportExportMixin:
             for k, v in parent_refs.items():
                 dict_rep[k] = getattr(parent, v)
 
-        # Add filter for parent obj
-        filters.extend([getattr(cls, k) == dict_rep.get(k) for k in parent_refs.keys()])
+        if not allow_reparenting:
+            # Add filter for parent obj
+            filters.extend(
+                [getattr(cls, k) == dict_rep.get(k) for k in parent_refs.keys()]
+            )
 
         # Add filter for unique constraints
         ucs = [
@@ -287,7 +291,7 @@ class ImportExportMixin:
                     if dict_rep.get(k) is not None
                 ]
             )
-            for cs in unique_constrains
+            for cs in unique_constraints
         ]
         filters.append(or_(*ucs))
 
@@ -455,7 +459,7 @@ def _user_link(user: User) -> Union[Markup, str]:
     if not user:
         return ""
     url = f"/superset/profile/{user.username}/"
-    return Markup('<a href="{}">{}</a>'.format(url, escape(user) or ""))
+    return Markup(f"<a href=\"{url}\">{escape(user) or ''}</a>")
 
 
 class AuditMixinNullable(AuditMixin):
@@ -470,7 +474,7 @@ class AuditMixinNullable(AuditMixin):
     )
 
     @declared_attr
-    def created_by_fk(self) -> sa.Column:
+    def created_by_fk(self) -> sa.Column:  # pylint: disable=arguments-renamed
         return sa.Column(
             sa.Integer,
             sa.ForeignKey("ab_user.id"),
@@ -479,7 +483,7 @@ class AuditMixinNullable(AuditMixin):
         )
 
     @declared_attr
-    def changed_by_fk(self) -> sa.Column:
+    def changed_by_fk(self) -> sa.Column:  # pylint: disable=arguments-renamed
         return sa.Column(
             sa.Integer,
             sa.ForeignKey("ab_user.id"),
@@ -598,7 +602,7 @@ class ExtraJSONMixin:
         self.extra_json = json.dumps(extra)
 
     @validates("extra_json")
-    def ensure_extra_json_is_not_none(  # pylint: disable=no-self-use
+    def ensure_extra_json_is_not_none(
         self,
         _: str,
         value: Optional[dict[str, Any]],
@@ -824,7 +828,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
             ) from ex
 
-    def _process_sql_expression(  # pylint: disable=no-self-use
+    def _process_sql_expression(
         self,
         expression: Optional[str],
         database_id: int,

@@ -93,7 +93,6 @@ describe('AnnotationLayer type guards', () => {
     },
   ];
   const recordAnnotationResult: RecordAnnotationResult = {
-    columns: ['col1', 'col2'],
     records: [
       { a: 1, b: 2 },
       { a: 2, b: 3 },

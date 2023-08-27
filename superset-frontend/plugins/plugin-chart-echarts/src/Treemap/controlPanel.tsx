@@ -20,6 +20,7 @@ import React from 'react';
 import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
+  ControlSubSectionHeader,
   D3_FORMAT_DOCS,
   D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
   D3_FORMAT_OPTIONS,
@@ -62,7 +63,7 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         ['color_scheme'],
-        [<div className="section-header">{t('Labels')}</div>],
+        [<ControlSubSectionHeader>{t('Labels')}</ControlSubSectionHeader>],
         [
           {
             name: 'show_labels',
@@ -118,6 +119,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['currency_format'],
         [
           {
             name: 'date_format',

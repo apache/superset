@@ -40,7 +40,11 @@ class EmbeddedDashboard(Model, AuditMixinNullable):
 
     uuid = Column(UUIDType(binary=True), default=uuid.uuid4, primary_key=True)
     allow_domain_list = Column(Text)  # reference the `allowed_domains` property instead
-    dashboard_id = Column(Integer, ForeignKey("dashboards.id"), nullable=False)
+    dashboard_id = Column(
+        Integer,
+        ForeignKey("dashboards.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     dashboard = relationship(
         "Dashboard",
         back_populates="embedded",

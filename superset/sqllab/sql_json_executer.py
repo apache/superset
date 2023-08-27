@@ -151,8 +151,9 @@ class SynchronousSqlJsonExecutor(SqlJsonExecutorBase):
         )
 
     def _get_timeout_error_msg(self) -> str:
-        return "The query exceeded the {timeout} seconds timeout.".format(
-            timeout=self._timeout_duration_in_seconds
+        return (
+            f"The query exceeded the {self._timeout_duration_in_seconds} "
+            "seconds timeout."
         )
 
 

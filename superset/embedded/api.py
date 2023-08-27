@@ -68,12 +68,10 @@ class EmbeddedDashboardRestApi(BaseSupersetModelRestApi):
     )
     # pylint: disable=arguments-differ, arguments-renamed)
     def get(self, uuid: str) -> Response:
-        """Response
-        Returns the dashboard's embedded configuration
+        """Get the dashboard's embedded configuration.
         ---
         get:
-          description: >-
-            Returns the dashboard's embedded configuration
+          summary: Get the dashboard's embedded configuration
           parameters:
           - in: path
             schema:

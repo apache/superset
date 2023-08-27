@@ -34,7 +34,9 @@ const formData: PivotTableQueryFormData = {
   rowSubtotalPosition: true,
   colSubtotalPosition: true,
   colTotals: true,
+  colSubTotals: true,
   rowTotals: true,
+  rowSubTotals: true,
   valueFormat: 'SMART_NUMBER',
   datasource: '5__table',
   viz_type: 'my_chart',
@@ -52,6 +54,7 @@ const formData: PivotTableQueryFormData = {
   margin: 0,
   time_grain_sqla: TimeGranularity.MONTH,
   temporal_columns_lookup: { col1: true },
+  currencyFormat: { symbol: 'USD', symbolPosition: 'prefix' },
 };
 
 test('should build groupby with series in form data', () => {

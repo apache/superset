@@ -20,11 +20,16 @@ from typing import Any
 from flask import request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from marshmallow import ValidationError
 
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.tag import TagDAO
+from superset.exceptions import MissingUserContextException
 from superset.extensions import event_logger
-from superset.tags.commands.create import CreateCustomTagCommand
+from superset.tags.commands.create import (
+    CreateCustomTagCommand,
+    CreateCustomTagWithRelationshipsCommand,
+)
 from superset.tags.commands.delete import DeleteTaggedObjectCommand, DeleteTagsCommand
 from superset.tags.commands.exceptions import (
     TagCreateFailedError,
@@ -33,7 +38,9 @@ from superset.tags.commands.exceptions import (
     TaggedObjectNotFoundError,
     TagInvalidError,
     TagNotFoundError,
+    TagUpdateFailedError,
 )
+from superset.tags.commands.update import UpdateTagCommand
 from superset.tags.models import ObjectTypes, Tag
 from superset.tags.schemas import (
     delete_tags_schema,
@@ -41,6 +48,7 @@ from superset.tags.schemas import (
     TaggedObjectEntityResponseSchema,
     TagGetResponseSchema,
     TagPostSchema,
+    TagPutSchema,
 )
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -61,6 +69,9 @@ class TagRestApi(BaseSupersetModelRestApi):
         "get_all_objects",
         "add_objects",
         "delete_object",
+        "add_favorite",
+        "remove_favorite",
+        "favorite_status",
     }
 
     resource_name = "tag"
@@ -73,6 +84,7 @@ class TagRestApi(BaseSupersetModelRestApi):
         "id",
         "name",
         "type",
+        "description",
         "changed_by.first_name",
         "changed_by.last_name",
         "changed_on_delta_humanized",
@@ -86,6 +98,7 @@ class TagRestApi(BaseSupersetModelRestApi):
         "id",
         "name",
         "type",
+        "description",
         "changed_by.first_name",
         "changed_by.last_name",
         "changed_on_delta_humanized",
@@ -104,6 +117,7 @@ class TagRestApi(BaseSupersetModelRestApi):
     allowed_rel_fields = {"created_by"}
 
     add_model_schema = TagPostSchema()
+    edit_model_schema = TagPutSchema()
     tag_get_response_schema = TagGetResponseSchema()
     object_entity_response_schema = TaggedObjectEntityResponseSchema()
 
@@ -127,6 +141,131 @@ class TagRestApi(BaseSupersetModelRestApi):
             f'{self.appbuilder.app.config["VERSION_SHA"]}'
         )
 
+    @expose("/", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
+        log_to_statsd=False,
+    )
+    def post(self) -> Response:
+        """Creates a new Tags and tag items
+        ---
+        post:
+          description: >-
+            Create a new Tag
+          requestBody:
+            description: Tag schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
+          responses:
+            201:
+              description: Tag added
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      id:
+                        type: number
+                      result:
+                        $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            item = self.add_model_schema.load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        try:
+            CreateCustomTagWithRelationshipsCommand(item).run()
+            return self.response(201)
+        except TagInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
+        except TagCreateFailedError as ex:
+            logger.error(
+                "Error creating model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_500(message=str(ex))
+
+    @expose("/<pk>", methods=("PUT",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
+        log_to_statsd=False,
+    )
+    def put(self, pk: int) -> Response:
+        """Changes a Tag
+        ---
+        put:
+          description: >-
+            Changes a Tag.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          requestBody:
+            description: Chart schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
+          responses:
+            200:
+              description: Tag changed
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      id:
+                        type: number
+                      result:
+                        $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            item = self.edit_model_schema.load(request.json)
+        # This validates custom Schema with custom validations
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        item = request.json
+        try:
+            changed_model = UpdateTagCommand(pk, item).run()
+            response = self.response(200, id=changed_model.id, result=item)
+        except TagUpdateFailedError as ex:
+            response = self.response_422(message=str(ex))
+
+        return response
+
     @expose("/<int:object_type>/<int:object_id>/", methods=("POST",))
     @protect()
     @safe
@@ -136,11 +275,12 @@ class TagRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def add_objects(self, object_type: ObjectTypes, object_id: int) -> Response:
-        """Adds tags to an object. Creates new tags if they do not already exist
+        """Add tags to an object. Create new tags if they do not already exist.
         ---
         post:
+          summary: Add tags to an object
           description: >-
-            Add tags to an object..
+            Adds tags to an object. Creates new tags if they do not already exist.
           requestBody:
             description: Tag schema
             required: true
@@ -196,7 +336,7 @@ class TagRestApi(BaseSupersetModelRestApi):
                 str(ex),
                 exc_info=True,
             )
-            return self.response_422(message=str(ex))
+            return self.response_500(message=str(ex))
 
     @expose("/<int:object_type>/<int:object_id>/<tag>/", methods=("DELETE",))
     @protect()
@@ -209,11 +349,10 @@ class TagRestApi(BaseSupersetModelRestApi):
     def delete_object(
         self, object_type: ObjectTypes, object_id: int, tag: str
     ) -> Response:
-        """Deletes a Tagged Object
+        """Delete a tagged object.
         ---
         delete:
-          description: >-
-            Deletes a Tagged Object.
+          summary: Delete a tagged object
           parameters:
           - in: path
             schema:
@@ -276,11 +415,12 @@ class TagRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
-        """Delete Tags
+        """Bulk delete tags. This will remove all tagged objects with this tag.
         ---
         delete:
+          summary: Bulk delete tags
           description: >-
-            Deletes multiple Tags. This will remove all tagged objects with this tag
+            Bulk deletes tags. This will remove all tagged objects with this tag.
           parameters:
           - in: query
             name: q
@@ -330,11 +470,10 @@ class TagRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def get_objects(self) -> Response:
-        """Gets all objects associated with a Tag
+        """Get all objects associated with a tag.
         ---
         get:
-          description: >-
-            Gets all objects associated with a Tag.
+          summary: Get all objects associated with a tag
           parameters:
           - in: path
             schema:
@@ -383,4 +522,151 @@ class TagRestApi(BaseSupersetModelRestApi):
                 str(ex),
                 exc_info=True,
             )
+            return self.response_500(message=str(ex))
+
+    @expose("/favorite_status/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @rison({"type": "array", "items": {"type": "integer"}})
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".favorite_status",
+        log_to_statsd=False,
+    )
+    def favorite_status(self, **kwargs: Any) -> Response:
+        """Favorite Stars for Dashboards
+        ---
+        get:
+          description: >-
+            Check favorited dashboards for current user
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/get_fav_star_ids_schema'
+          responses:
+            200:
+              description:
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/GetFavStarIdsSchema"
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            requested_ids = kwargs["rison"]
+            tags = TagDAO.find_by_ids(requested_ids)
+            users_favorited_tags = TagDAO.favorited_ids(tags)
+            res = [
+                {"id": request_id, "value": request_id in users_favorited_tags}
+                for request_id in requested_ids
+            ]
+            return self.response(200, result=res)
+        except TagNotFoundError:
+            return self.response_404()
+        except MissingUserContextException as ex:
+            return self.response_422(message=str(ex))
+
+    @expose("/<pk>/favorites/", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".add_favorite",
+        log_to_statsd=False,
+    )
+    def add_favorite(self, pk: int) -> Response:
+        """Marks the tag as favorite
+        ---
+        post:
+          description: >-
+            Marks the tag as favorite for the current user
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          responses:
+            200:
+              description: Tag added to favorites
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            TagDAO.favorite_tag_by_id_for_current_user(pk)
+            return self.response(200, result="OK")
+        except TagNotFoundError:
+            return self.response_404()
+        except MissingUserContextException as ex:
+            return self.response_422(message=str(ex))
+
+    @expose("/<pk>/favorites/", methods=("DELETE",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".remove_favorite",
+        log_to_statsd=False,
+    )
+    def remove_favorite(self, pk: int) -> Response:
+        """Remove the tag from the user favorite list
+        ---
+        delete:
+          description: >-
+            Remove the tag from the user favorite list
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          responses:
+            200:
+              description: Tag removed from favorites
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            TagDAO.remove_user_favorite_tag(pk)
+            return self.response(200, result="OK")
+        except TagNotFoundError:
+            return self.response_404()
+        except MissingUserContextException as ex:
             return self.response_422(message=str(ex))

@@ -27,6 +27,7 @@ import {
   Behavior,
   ChartDataResponseResult,
   Column,
+  isFeatureEnabled,
   FeatureFlag,
   Filter,
   GenericDataType,
@@ -71,7 +72,6 @@ import {
 } from 'src/dashboard/types';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
-import { isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import {
   ClientErrorObject,
@@ -354,7 +354,9 @@ const FiltersConfigForm = (
   const [activeTabKey, setActiveTabKey] = useState<string>(
     FilterTabs.configuration.key,
   );
-
+  const dashboardId = useSelector<RootState, number>(
+    state => state.dashboardInfo.id,
+  );
   const [undoFormValues, setUndoFormValues] = useState<Record<
     string,
     any
@@ -479,6 +481,7 @@ const FiltersConfigForm = (
       }
       const formData = getFormData({
         datasetId: formFilter?.dataset?.value,
+        dashboardId,
         groupby: formFilter?.column,
         ...formFilter,
       });
@@ -492,7 +495,6 @@ const FiltersConfigForm = (
       getChartDataRequest({
         formData,
         force,
-        requestParams: { dashboardId: 0 },
       })
         .then(({ response, json }) => {
           if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {

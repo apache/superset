@@ -22,7 +22,6 @@ import {
   ensureIsArray,
   getNumberFormatter,
   isSavedMetric,
-  NumberFormats,
   QueryFormMetric,
   ValueFormatter,
 } from '@superset-ui/core';
@@ -31,7 +30,7 @@ export const getYAxisFormatter = (
   metrics: QueryFormMetric[],
   forcePercentFormatter: boolean,
   customFormatters: Record<string, ValueFormatter>,
-  yAxisFormat: string = NumberFormats.SMART_NUMBER,
+  defaultFormatter: ValueFormatter,
 ) => {
   if (forcePercentFormatter) {
     return getNumberFormatter(',.0%');
@@ -50,5 +49,5 @@ export const getYAxisFormatter = (
   ) {
     return customFormatters[metricsArray[0]];
   }
-  return getNumberFormatter(yAxisFormat);
+  return defaultFormatter ?? getNumberFormatter();
 };

@@ -52,11 +52,10 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
     def run(self) -> ReportSchedule:
         self.validate()
         try:
-            report_schedule = ReportScheduleDAO.create(self._properties)
+            return ReportScheduleDAO.create(attributes=self._properties)
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)
             raise ReportScheduleCreateFailedError() from ex
-        return report_schedule
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []

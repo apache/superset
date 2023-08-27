@@ -22,10 +22,9 @@ import shortid from 'shortid';
 import Alert from 'src/components/Alert';
 import Tabs from 'src/components/Tabs';
 import { EmptyStateMedium } from 'src/components/EmptyState';
-import { FeatureFlag, styled, t } from '@superset-ui/core';
+import { FeatureFlag, styled, t, isFeatureEnabled } from '@superset-ui/core';
 
 import { setActiveSouthPaneTab } from 'src/SqlLab/actions/sqlLab';
-import { isFeatureEnabled } from 'src/featureFlags';
 
 import Label from 'src/components/Label';
 import { SqlLabRootState } from 'src/SqlLab/types';
@@ -71,8 +70,6 @@ const StyledPane = styled.div<StyledPaneProps>`
     }
   }
   .ant-tabs-tabpane {
-    display: flex;
-    flex-direction: column;
     .scrollable {
       overflow-y: auto;
     }
@@ -110,8 +107,8 @@ const SouthPane = ({
   const dispatch = useDispatch();
 
   const { editorQueries, dataPreviewQueries, databases, offline, user } =
-    useSelector(({ sqlLab }: SqlLabRootState) => {
-      const { databases, offline, user, queries, tables } = sqlLab;
+    useSelector(({ user, sqlLab }: SqlLabRootState) => {
+      const { databases, offline, queries, tables } = sqlLab;
       const dataPreviewQueries = tables
         .filter(
           ({ dataPreviewQueryId, queryEditorId: qeId }) =>
@@ -120,7 +117,7 @@ const SouthPane = ({
             queries[dataPreviewQueryId],
         )
         .map(({ name, dataPreviewQueryId }) => ({
-          ...queries[dataPreviewQueryId],
+          ...queries[dataPreviewQueryId || ''],
           tableName: name,
         }));
       const editorQueries = Object.values(queries).filter(

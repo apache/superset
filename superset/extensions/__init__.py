@@ -80,11 +80,13 @@ class UIManifestProcessor:
                 loaded_chunks.add(f)
             return filtered_files
 
-        return dict(
-            js_manifest=lambda bundle: get_files(bundle, "js"),
-            css_manifest=lambda bundle: get_files(bundle, "css"),
-            assets_prefix=self.app.config["STATIC_ASSETS_PREFIX"] if self.app else "",
-        )
+        return {
+            "js_manifest": lambda bundle: get_files(bundle, "js"),
+            "css_manifest": lambda bundle: get_files(bundle, "css"),
+            "assets_prefix": self.app.config["STATIC_ASSETS_PREFIX"]
+            if self.app
+            else "",
+        }
 
     def parse_manifest_json(self) -> None:
         try:

@@ -198,7 +198,9 @@ class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin)
         query = {}
         if parameters.get("encryption"):
             if not cls.encryption_parameters:
-                raise Exception("Unable to build a URL with encryption enabled")
+                raise Exception(  # pylint: disable=broad-exception-raised
+                    "Unable to build a URL with encryption enabled"
+                )
             query.update(cls.encryption_parameters)
 
         return str(

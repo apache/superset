@@ -31,6 +31,7 @@ import {
   sections,
   sharedControls,
   getStandardizedControls,
+  D3_TIME_FORMAT_DOCS,
 } from '@superset-ui/chart-controls';
 
 const sortAxisChoices = [
@@ -257,6 +258,17 @@ const config: ControlPanelConfig = {
           },
         ],
         ['y_axis_format'],
+        [
+          {
+            name: 'time_format',
+            config: {
+              ...sharedControls.x_axis_time_format,
+              default: '%d/%m/%Y',
+              description: `${D3_TIME_FORMAT_DOCS}.`,
+            },
+          },
+        ],
+        ['currency_format'],
         [
           {
             name: 'sort_x_axis',

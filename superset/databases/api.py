@@ -71,6 +71,7 @@ from superset.databases.schemas import (
     DatabaseTestConnectionSchema,
     DatabaseValidateParametersSchema,
     get_export_ids_schema,
+    openapi_spec_methods_override,
     SchemasResponseSchema,
     SelectStarResponseSchema,
     TableExtraMetadataResponseSchema,
@@ -234,6 +235,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         ValidateSQLResponse,
     )
 
+    openapi_spec_methods = openapi_spec_methods_override
+    """ Overrides GET methods OpenApi descriptions """
+
     @expose("/<int:pk>/connection", methods=("GET",))
     @protect()
     @safe
@@ -241,8 +245,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         """Get database connection info.
         ---
         get:
-          summary: >-
-            Get a database connection info
+          summary: Get a database connection info
           parameters:
           - in: path
             schema:
@@ -282,11 +285,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     def get(self, pk: int, **kwargs: Any) -> Response:
-        """Get a database
+        """Get a database.
         ---
         get:
-          description: >-
-            Get a database
+          summary: Get a database
           parameters:
           - in: path
             schema:
@@ -329,11 +331,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     )
     @requires_json
     def post(self) -> FlaskResponse:
-        """Creates a new Database
+        """Create a new database.
         ---
         post:
-          description: >-
-            Create a new Database.
+          summary: Create a new database
           requestBody:
             description: Database schema
             required: true
@@ -415,11 +416,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     )
     @requires_json
     def put(self, pk: int) -> Response:
-        """Changes a Database
+        """Update a database.
         ---
         put:
-          description: >-
-            Changes a Database.
+          summary: Change a database
           parameters:
           - in: path
             schema:
@@ -498,11 +498,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def delete(self, pk: int) -> Response:
-        """Deletes a Database
+        """Delete a database.
         ---
         delete:
-          description: >-
-            Deletes a Database.
+          summary: Delete a database
           parameters:
           - in: path
             schema:
@@ -555,10 +554,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def schemas(self, pk: int, **kwargs: Any) -> FlaskResponse:
-        """Get all schemas from a database
+        """Get all schemas from a database.
         ---
         get:
-          description: Get all schemas from a database
+          summary: Get all schemas from a database
           parameters:
           - in: path
             schema:
@@ -615,7 +614,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def tables(self, pk: int, **kwargs: Any) -> FlaskResponse:
-        """Get a list of tables for given database
+        """Get a list of tables for given database.
         ---
         get:
           summary: Get a list of tables for given database
@@ -672,7 +671,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except DatabaseTablesUnexpectedError as ex:
             return self.response_422(ex.message)
 
-    @expose("/<int:pk>/table/<table_name>/<schema_name>/", methods=("GET",))
+    @expose("/<int:pk>/table/<path:table_name>/<schema_name>/", methods=("GET",))
     @protect()
     @check_datasource_access
     @safe
@@ -685,10 +684,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     def table_metadata(
         self, database: Database, table_name: str, schema_name: str
     ) -> FlaskResponse:
-        """Table schema info
+        """Get database table metadata.
         ---
         get:
-          description: Get database table metadata
+          summary: Get database table metadata
           parameters:
           - in: path
             schema:
@@ -735,7 +734,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         self.incr_stats("success", self.table_metadata.__name__)
         return self.response(200, **table_info)
 
-    @expose("/<int:pk>/table_extra/<table_name>/<schema_name>/", methods=("GET",))
+    @expose("/<int:pk>/table_extra/<path:table_name>/<schema_name>/", methods=("GET",))
     @protect()
     @check_datasource_access
     @safe
@@ -748,13 +747,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     def table_extra_metadata(
         self, database: Database, table_name: str, schema_name: str
     ) -> FlaskResponse:
-        """Table schema info
+        """Get table extra metadata.
         ---
         get:
-          summary: >-
-            Get table extra metadata
+          summary: Get table extra metadata
           description: >-
-            Response depends on each DB engine spec normally focused on partitions
+            Response depends on each DB engine spec normally focused on partitions.
           parameters:
           - in: path
             schema:
@@ -798,8 +796,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         )
         return self.response(200, **payload)
 
-    @expose("/<int:pk>/select_star/<table_name>/", methods=("GET",))
-    @expose("/<int:pk>/select_star/<table_name>/<schema_name>/", methods=("GET",))
+    @expose("/<int:pk>/select_star/<path:table_name>/", methods=("GET",))
+    @expose("/<int:pk>/select_star/<path:table_name>/<schema_name>/", methods=("GET",))
     @protect()
     @check_datasource_access
     @safe
@@ -811,10 +809,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     def select_star(
         self, database: Database, table_name: str, schema_name: Optional[str] = None
     ) -> FlaskResponse:
-        """Table schema info
+        """Get database select star for table.
         ---
         get:
-          description: Get database select star for table
+          summary: Get database select star for table
           parameters:
           - in: path
             schema:
@@ -870,11 +868,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     )
     @requires_json
     def test_connection(self) -> FlaskResponse:
-        """Tests a database connection
+        """Test a database connection.
         ---
         post:
-          description: >-
-            Tests a database connection
+          summary: Test a database connection
           requestBody:
             description: Database schema
             required: true
@@ -920,11 +917,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def related_objects(self, pk: int) -> Response:
-        """Get charts and dashboards count associated to a database
+        """Get charts and dashboards count associated to a database.
         ---
         get:
-          description:
-            Get charts and dashboards count associated to a database
+          summary: Get charts and dashboards count associated to a database
           parameters:
           - in: path
             name: pk
@@ -987,13 +983,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def validate_sql(self, pk: int) -> FlaskResponse:
-        """
+        """Validate that arbitrary SQL is acceptable for the given database.
         ---
         post:
-          summary: >-
-            Validates that arbitrary sql is acceptable for the given database
+          summary: Validate arbitrary SQL
           description: >-
-            Validates arbitrary SQL.
+            Validates that arbitrary SQL is acceptable for the given database.
           parameters:
           - in: path
             schema:
@@ -1049,10 +1044,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def export(self, **kwargs: Any) -> Response:
-        """Export database(s) with associated datasets
+        """Download database(s) and associated dataset(s) as a zip file.
         ---
         get:
-          description: Download database(s) and associated dataset(s) as a zip file
+          summary: Download database(s) and associated dataset(s) as a zip file
           parameters:
           - in: query
             name: q
@@ -1111,9 +1106,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     )
     @requires_form_data
     def import_(self) -> Response:
-        """Import database(s) with associated datasets
+        """Import database(s) with associated datasets.
         ---
         post:
+          summary: Import database(s) with associated datasets
           requestBody:
             required: true
             content:
@@ -1233,11 +1229,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def function_names(self, pk: int) -> Response:
-        """Get function names supported by a database
+        """Get function names supported by a database.
         ---
         get:
-          description:
-            Get function names supported by a database
+          summary: Get function names supported by a database
           parameters:
           - in: path
             name: pk
@@ -1273,11 +1268,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def available(self) -> Response:
-        """Return names of databases currently available
+        """Get names of databases currently available.
         ---
         get:
-          description:
-            Get names of databases currently available
+          summary: Get names of databases currently available
           responses:
             200:
               description: Database names
@@ -1299,6 +1293,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                           type: array
                           items:
                             type: string
+                        sqlalchemy_uri_placeholder:
+                          description: Placeholder for the SQLAlchemy URI
+                          type: string
                         default_driver:
                           description: Default driver for the engine
                           type: string
@@ -1336,6 +1333,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "name": engine_spec.engine_name,
                 "engine": engine_spec.engine,
                 "available_drivers": sorted(drivers),
+                "sqlalchemy_uri_placeholder": engine_spec.sqlalchemy_uri_placeholder,
                 "preferred": engine_spec.engine_name in preferred_databases,
                 "engine_information": engine_spec.get_public_information(),
             }
@@ -1386,11 +1384,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     )
     @requires_json
     def validate_parameters(self) -> FlaskResponse:
-        """validates database connection parameters
+        """Validate database connection parameters.
         ---
         post:
-          description: >-
-            Validates parameters used to connect to a database
+          summary: Validate database connection parameters
           requestBody:
             description: DB-specific parameters
             required: true
@@ -1442,11 +1439,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def delete_ssh_tunnel(self, pk: int) -> Response:
-        """Deletes a SSH Tunnel
+        """Delete a SSH tunnel.
         ---
         delete:
-          description: >-
-            Deletes a SSH Tunnel.
+          summary: Delete a SSH tunnel
           parameters:
           - in: path
             schema:
@@ -1505,11 +1501,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def schemas_access_for_file_upload(self, pk: int) -> Response:
-        """The list of the database schemas where to upload information
+        """The list of the database schemas where to upload information.
         ---
         get:
-          summary:
-            The list of the database schemas where to upload information
+          summary: The list of the database schemas where to upload information
           parameters:
           - in: path
             name: pk
