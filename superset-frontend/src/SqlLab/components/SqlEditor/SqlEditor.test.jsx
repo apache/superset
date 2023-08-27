@@ -212,10 +212,8 @@ describe('SqlEditor', () => {
   });
 
   it('render a SouthPane', async () => {
-    const { findByText } = setup(mockedProps, store);
-    expect(
-      await findByText(/run a query to display results/i),
-    ).toBeInTheDocument();
+    const { findByTestId } = setup(mockedProps, store);
+    expect(await findByTestId('mock-result-set')).toBeInTheDocument();
   });
 
   it('runs query action with ctas false', async () => {
