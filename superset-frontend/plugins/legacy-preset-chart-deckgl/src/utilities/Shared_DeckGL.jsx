@@ -39,7 +39,7 @@ const DEFAULT_VIEWPORT = {
 
 const sandboxUrl =
   'https://github.com/apache/superset/' +
-  'blob/master/superset-frontend/plugins/legacy-preset-chart-deckgl/src/utils/sandbox.js';
+  'blob/master/superset-frontend/plugins/legacy-preset-chart-deckgl/src/utils/sandbox.ts';
 const jsFunctionInfo = (
   <div>
     {t(
