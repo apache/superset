@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-declare module '@math.gl/web-mercator';
 
 declare module 'deck.gl' {
   import { Layer, LayerProps } from '@deck.gl/core';

@@ -1653,6 +1653,7 @@ class FilterBoxViz(BaseViz):
                 query_obj["orderby"] = [(metric, asc)]
             self.get_query_context_factory().create(
                 datasource={"id": self.datasource.id, "type": self.datasource.type},
+                form_data=self.form_data,
                 queries=[query_obj],
             ).raise_for_access()
             df = self.get_df_payload(query_obj=query_obj).get("df")
