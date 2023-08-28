@@ -1649,7 +1649,7 @@ class TestSecurityManager(SupersetTestCase):
     def test_raise_for_access_query_context(
         self, mock_can_access_schema, mock_can_access, mock_is_owner, mock_g
     ):
-        query_context = Mock(datasource=self.get_datasource_mock())
+        query_context = Mock(datasource=self.get_datasource_mock(), form_data={})
 
         mock_can_access_schema.return_value = True
         security_manager.raise_for_access(query_context=query_context)
