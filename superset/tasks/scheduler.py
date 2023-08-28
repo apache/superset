@@ -20,7 +20,6 @@ from celery import Celery
 from celery.exceptions import SoftTimeLimitExceeded
 
 from superset import app, is_feature_enabled
-from superset.app import SupersetApp
 from superset.commands.exceptions import CommandException
 from superset.daos.report import ReportScheduleDAO
 from superset.extensions import celery_app
