@@ -58,7 +58,12 @@ Navigate to the folder you created in step 1:
 cd superset
 ```
 
-When working on master branch, run the following commands:
+When working on master branch, run the following commands to run `development` mode using `docker compose`:
+```bash
+docker compose up
+```
+
+When working on master branch, run the following commands to run `production` mode using `docker compose`:
 
 ```bash
 docker-compose -f docker-compose-non-dev.yml pull
