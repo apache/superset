@@ -36,7 +36,7 @@ from superset.utils.log import get_logger_from_status
 logger = logging.getLogger(__name__)
 
 
-def _log_stats_if_enabled(app: SupersetApp, metrics_name: str) -> None:
+def _log_stats_if_enabled(metrics_name: str) -> None:
     if app.config["ALERT_REPORTS_SHOULD_LOG_STATS"]:
         stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
         stats_logger.incr(metrics_name)
@@ -50,7 +50,7 @@ def scheduler() -> None:
     if not is_feature_enabled("ALERT_REPORTS"):
         return
 
-    _log_stats_if_enabled(app, "reports.scheduler")
+    _log_stats_if_enabled("reports.scheduler")
 
     with session_scope(nullpool=True) as session:
         active_schedules = ReportScheduleDAO.find_active(session)
@@ -79,7 +79,7 @@ def scheduler() -> None:
 
 @celery_app.task(name="reports.execute", bind=True)
 def execute(self: Celery.task, report_schedule_id: int) -> None:
-    _log_stats_if_enabled(app, "reports.execute")
+    _log_stats_if_enabled("reports.execute")
 
     task_id = None
     try:
@@ -113,7 +113,7 @@ def execute(self: Celery.task, report_schedule_id: int) -> None:
 
 @celery_app.task(name="reports.prune_log")
 def prune_log() -> None:
-    _log_stats_if_enabled(app, "reports.prune_log")
+    _log_stats_if_enabled("reports.prune_log")
 
     try:
         AsyncPruneReportScheduleLogCommand().run()
