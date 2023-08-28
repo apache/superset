@@ -141,7 +141,7 @@ const reducers = {
 export function setupStore({
   disableDebugger = false,
   initialState = {},
-  rootReducers,
+  rootReducers = reducers,
   ...overrides
 }: {
   disableDebugger?: boolean;
@@ -152,7 +152,6 @@ export function setupStore({
     preloadedState: initialState,
     reducer: {
       [api.reducerPath]: api.reducer,
-      ...reducers,
       ...rootReducers,
     },
     middleware: getMiddleware,
