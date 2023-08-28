@@ -141,12 +141,10 @@ export function getUpToDateQuery(rootState, queryEditor, key) {
 
 export function resetState(data) {
   return (dispatch, getState) => {
-    const { common, user, config } = getState();
+    const { common } = getState();
     const initialState = getInitialState({
       ...getBootstrapData(),
       common,
-      user,
-      config,
       ...data,
     });
 
