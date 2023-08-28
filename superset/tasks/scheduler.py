@@ -40,11 +40,13 @@ def scheduler() -> None:
     """
     Celery beat main scheduler for reports
     """
-    stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
-    stats_logger.incr("reports.scheduler")
-
     if not is_feature_enabled("ALERT_REPORTS"):
         return
+
+    if app.config["ALERT_REPORTS_SHOULD_LOG_STATS"]:
+        stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
+        stats_logger.incr("reports.scheduler")
+
     with session_scope(nullpool=True) as session:
         active_schedules = ReportScheduleDAO.find_active(session)
         for active_schedule in active_schedules:
@@ -72,8 +74,9 @@ def scheduler() -> None:
 
 @celery_app.task(name="reports.execute", bind=True)
 def execute(self: Celery.task, report_schedule_id: int) -> None:
-    stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
-    stats_logger.incr("reports.execute")
+    if app.config["ALERT_REPORTS_SHOULD_LOG_STATS"]:
+        stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
+        stats_logger.incr("reports.execute")
 
     task_id = None
     try:
@@ -107,8 +110,9 @@ def execute(self: Celery.task, report_schedule_id: int) -> None:
 
 @celery_app.task(name="reports.prune_log")
 def prune_log() -> None:
-    stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
-    stats_logger.incr("reports.prune_log")
+    if app.config["ALERT_REPORTS_SHOULD_LOG_STATS"]:
+        stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
+        stats_logger.incr("reports.prune_log")
 
     try:
         AsyncPruneReportScheduleLogCommand().run()
