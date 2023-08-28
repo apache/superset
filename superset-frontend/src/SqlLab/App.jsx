@@ -29,13 +29,11 @@ import { GlobalStyles } from 'src/GlobalStyles';
 import { setupStore, userReducer } from 'src/views/store';
 import setupExtensions from 'src/setup/setupExtensions';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { persistSqlLabStateEnhancer } from 'src/SqlLab/middlewares/persistSqlLabStateEnhancer';
 import getInitialState from './reducers/getInitialState';
 import { reducers } from './reducers/index';
 import App from './components/App';
-import {
-  persistSqlLabStateEnhander,
-  rehydratePersistedState,
-} from './utils/reduxStateToLocalStorageHelper';
+import { rehydratePersistedState } from './utils/reduxStateToLocalStorageHelper';
 import setupApp from '../setup/setupApp';
 
 import '../assets/stylesheets/reactable-pagination.less';
@@ -55,7 +53,7 @@ export const store = setupStore({
   initialState,
   rootReducers: { ...reducers, user: userReducer },
   ...(!isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) && {
-    enhancers: [persistSqlLabStateEnhander],
+    enhancers: [persistSqlLabStateEnhancer],
   }),
 });
 
