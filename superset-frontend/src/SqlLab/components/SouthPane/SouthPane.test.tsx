@@ -20,11 +20,12 @@ import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import SouthPane from 'src/SqlLab/components/SouthPane';
+import SouthPane, { SouthPaneProps } from 'src/SqlLab/components/SouthPane';
 import '@testing-library/jest-dom/extend-expect';
 import { STATUS_OPTIONS } from 'src/SqlLab/constants';
 import { initialState, table, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import { denormalizeTimestamp } from '@superset-ui/core';
+import { Store } from 'redux';
 
 const mockedProps = {
   queryEditorId: defaultQueryEditor.id,
@@ -41,6 +42,8 @@ const mockedEmptyProps = {
   displayLimit: 100,
   defaultQueryLimit: 100,
 };
+
+jest.mock('src/SqlLab/components/SqlEditorLeftBar', () => jest.fn());
 
 const latestQueryProgressMsg = 'LATEST QUERY MESSAGE - LCly_kkIN';
 
@@ -100,14 +103,14 @@ const store = mockStore({
     },
   },
 });
-const setup = (props, store) =>
+const setup = (props: SouthPaneProps, store: Store) =>
   render(<SouthPane {...props} />, {
     useRedux: true,
     ...(store && { store }),
   });
 
 describe('SouthPane', () => {
-  const renderAndWait = (props, store) =>
+  const renderAndWait = (props: SouthPaneProps, store: Store) =>
     waitFor(async () => setup(props, store));
 
   it('Renders an empty state for results', async () => {
