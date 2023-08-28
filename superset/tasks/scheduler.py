@@ -18,9 +18,9 @@ import logging
 
 from celery import Celery
 from celery.exceptions import SoftTimeLimitExceeded
-from flask import Flask
 
 from superset import app, is_feature_enabled
+from superset.app import SupersetApp
 from superset.commands.exceptions import CommandException
 from superset.daos.report import ReportScheduleDAO
 from superset.extensions import celery_app
@@ -36,7 +36,7 @@ from superset.utils.log import get_logger_from_status
 logger = logging.getLogger(__name__)
 
 
-def _log_stats_if_enabled(app: Flask, metrics_name: str) -> None:
+def _log_stats_if_enabled(app: SupersetApp, metrics_name: str) -> None:
     if app.config["ALERT_REPORTS_SHOULD_LOG_STATS"]:
         stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
         stats_logger.incr(metrics_name)
