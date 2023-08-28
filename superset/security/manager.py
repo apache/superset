@@ -1882,17 +1882,23 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 or self.is_owner(datasource)
                 or (
                     # Grant access to the datasource only if dashboard RBAC is enabled
+                    # or the user is an embedded guest user with access to the dashboard
                     # and said datasource is associated with the dashboard chart in
                     # question.
                     form_data
-                    and is_feature_enabled("DASHBOARD_RBAC")
                     and (dashboard_id := form_data.get("dashboardId"))
                     and (
                         dashboard_ := self.get_session.query(Dashboard)
                         .filter(Dashboard.id == dashboard_id)
                         .one_or_none()
                     )
-                    and dashboard_.roles
+                    and (
+                        (is_feature_enabled("DASHBOARD_RBAC") and dashboard_.roles)
+                        or (
+                            is_feature_enabled("EMBEDDED_SUPERSET")
+                            and self.is_guest_user()
+                        )
+                    )
                     and (
                         (
                             # Native filter.
