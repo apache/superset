@@ -16,7 +16,7 @@
 # under the License.
 
 from random import randint
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from flask_appbuilder.security.sqla.models import User
@@ -66,6 +66,7 @@ def test_scheduler_celery_no_timeout_ny(execute_mock, owners):
     """
     with app.app_context():
         app.config["ALERT_REPORTS_WORKING_TIME_OUT_KILL"] = False
+        app.config["STATS_LOGGER"] = stats_logger_mock = Mock()
         report_schedule = insert_report_schedule(
             type=ReportScheduleType.ALERT,
             name="report",
@@ -77,9 +78,23 @@ def test_scheduler_celery_no_timeout_ny(execute_mock, owners):
         with freeze_time("2020-01-01T09:00:00Z"):
             scheduler()
             assert execute_mock.call_args[1] == {"eta": FakeDatetime(2020, 1, 1, 9, 0)}
+            stats_logger_mock.incr.assert_called_once_with("reports.scheduler")
         db.session.delete(report_schedule)
         db.session.commit()
         app.config["ALERT_REPORTS_WORKING_TIME_OUT_KILL"] = True
+
+
+def test_no_stats_log_if_disabled():
+    """
+    Reports scheduler: Test no stats log if disabled
+    """
+    with app.app_context():
+        app.config["STATS_LOGGER"] = stats_logger_mock = Mock()
+        app.config["ALERT_REPORTS_SHOULD_LOG_STATS"] = False
+        with freeze_time("2020-01-01T09:00:00Z"):
+            scheduler()
+            stats_logger_mock.incr.assert_not_called()
+        app.config["ALERT_REPORTS_SHOULD_LOG_STATS"] = True
 
 
 @pytest.mark.usefixtures("owners")
