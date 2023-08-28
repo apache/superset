@@ -105,7 +105,7 @@ const QueryTable = ({
     [columns],
   );
 
-  const user = useSelector<SqlLabRootState, User>(state => state.sqlLab.user);
+  const user = useSelector<SqlLabRootState, User>(state => state.user);
 
   const data = useMemo(() => {
     const restoreSql = (query: QueryResponse) => {

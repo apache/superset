@@ -17,119 +17,30 @@
 import logging
 
 import simplejson as json
-from flask import g, redirect, request, Response
+from flask import redirect, request, Response
 from flask_appbuilder import expose
-from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import lazy_gettext as _
 from sqlalchemy import and_
 
 from superset import db
-from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
+from superset.models.sql_lab import Query, TableSchema, TabState
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.utils.core import get_user_id
-from superset.views.base import (
-    BaseSupersetView,
-    DeleteMixin,
-    json_success,
-    SupersetModelView,
-)
+from superset.views.base import BaseSupersetView, json_success
 
 logger = logging.getLogger(__name__)
 
 
-class SavedQueryView(  # pylint: disable=too-many-ancestors
-    SupersetModelView,
-    DeleteMixin,
-):
-    datamodel = SQLAInterface(SavedQuery)
-    include_route_methods = RouteMethod.CRUD_SET
-
+class SavedQueryView(BaseSupersetView):
+    route_base = "/savedqueryview"
     class_permission_name = "SavedQuery"
-    method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
-    list_title = _("List Saved Query")
-    show_title = _("Show Saved Query")
-    add_title = _("Add Saved Query")
-    edit_title = _("Edit Saved Query")
-
-    list_columns = [
-        "label",
-        "user",
-        "database",
-        "schema",
-        "description",
-        "modified",
-        "pop_tab_link",
-    ]
-    order_columns = ["label", "schema", "description", "modified"]
-    show_columns = [
-        "id",
-        "label",
-        "user",
-        "database",
-        "description",
-        "sql",
-        "pop_tab_link",
-    ]
-    search_columns = ("label", "user", "database", "schema", "changed_on")
-    add_columns = ["label", "database", "description", "sql"]
-    edit_columns = add_columns
-    base_order = ("changed_on", "desc")
-    label_columns = {
-        "label": _("Label"),
-        "user": _("User"),
-        "database": _("Database"),
-        "description": _("Description"),
-        "modified": _("Modified"),
-        "end_time": _("End Time"),
-        "pop_tab_link": _("Pop Tab Link"),
-        "changed_on": _("Changed on"),
-    }
 
     @expose("/list/")
     @has_access
     def list(self) -> FlaskResponse:
         return super().render_app_template()
-
-    def pre_add(self, item: "SavedQueryView") -> None:
-        item.user = g.user
-
-    def pre_update(self, item: "SavedQueryView") -> None:
-        self.pre_add(item)
-
-
-class SavedQueryViewApi(SavedQueryView):  # pylint: disable=too-many-ancestors
-    include_route_methods = {
-        RouteMethod.API_READ,
-        RouteMethod.API_CREATE,
-        RouteMethod.API_UPDATE,
-        RouteMethod.API_GET,
-    }
-
-    class_permission_name = "SavedQuery"
-    method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
-
-    list_columns = [
-        "id",
-        "label",
-        "sqlalchemy_uri",
-        "user_email",
-        "schema",
-        "description",
-        "sql",
-        "extra_json",
-        "extra",
-    ]
-    add_columns = ["label", "db_id", "schema", "description", "sql", "extra_json"]
-    edit_columns = add_columns
-    show_columns = add_columns + ["id"]
-
-    @has_access_api
-    @expose("show/<pk>")
-    def show(self, pk: int) -> FlaskResponse:
-        return super().show(pk)
 
 
 def _get_owner_id(tab_state_id: int) -> int:

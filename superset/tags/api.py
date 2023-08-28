@@ -194,14 +194,14 @@ class TagRestApi(BaseSupersetModelRestApi):
             return self.response(201)
         except TagInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
-        except TaggedObjectDeleteFailedError as ex:
+        except TagCreateFailedError as ex:
             logger.error(
                 "Error creating model %s: %s",
                 self.__class__.__name__,
                 str(ex),
                 exc_info=True,
             )
-            return self.response_422(message=str(ex))
+            return self.response_500(message=str(ex))
 
     @expose("/bulk_create", methods=("POST",))
     @protect()

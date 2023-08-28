@@ -59,7 +59,6 @@ const TagModal: React.FC<TagModalProps> = ({
   addDangerToast,
   clearOnHide = false,
 }) => {
-  console.log('editTag', editTag);
   const [dashboardsToTag, setDashboardsToTag] = useState<
     TaggableResourceOption[]
   >([]);

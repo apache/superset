@@ -30,7 +30,7 @@ import saveModal from 'src/explore/reducers/saveModalReducer';
 import explore from 'src/explore/reducers/exploreReducer';
 import sqlLab from 'src/SqlLab/reducers/sqlLab';
 import localStorageUsageInKilobytes from 'src/SqlLab/reducers/localStorageUsage';
-import reports from 'src/reports/reducers/reports';
+import reports from 'src/features/reports/ReportModal/reducer';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
 const impressionId = (state = '') => state;

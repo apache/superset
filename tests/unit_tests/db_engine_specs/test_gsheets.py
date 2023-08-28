@@ -333,7 +333,7 @@ def test_upload_new(mocker: MockFixture) -> None:
     database = mocker.MagicMock()
     database.get_extra.return_value = {}
 
-    df = pd.DataFrame([1, "foo", 3.0])
+    df = pd.DataFrame({"col": [1, "foo", 3.0]})
     table = Table("sample_data")
 
     GSheetsEngineSpec.df_to_sql(database, table, df, {})
@@ -367,7 +367,7 @@ def test_upload_existing(mocker: MockFixture) -> None:
         "engine_params": {"catalog": {"sample_data": "https://docs.example.org"}}
     }
 
-    df = pd.DataFrame([1, "foo", 3.0])
+    df = pd.DataFrame({"col": [1, "foo", 3.0]})
     table = Table("sample_data")
 
     with pytest.raises(SupersetException) as excinfo:
@@ -392,7 +392,7 @@ def test_upload_existing(mocker: MockFixture) -> None:
                 json={
                     "range": "sheet0",
                     "majorDimension": "ROWS",
-                    "values": [[1], ["foo"], [3.0]],
+                    "values": [["col"], [1], ["foo"], [3.0]],
                 },
                 params={"valueInputOption": "USER_ENTERED"},
             ),

@@ -56,14 +56,12 @@ from superset import (
     app as superset_app,
     appbuilder,
     conf,
-    db,
     get_feature_flags,
     is_feature_enabled,
     security_manager,
 )
 from superset.commands.exceptions import CommandException, CommandInvalidError
 from superset.connectors.sqla import models
-from superset.datasets.commands.exceptions import get_dataset_exist_error_msg
 from superset.db_engine_specs import get_available_engine_specs
 from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -95,6 +93,7 @@ FRONTEND_CONF_KEYS = (
     "SQL_MAX_ROW",
     "SUPERSET_WEBSERVER_DOMAINS",
     "SQLLAB_SAVE_WARNING_MESSAGE",
+    "SQLLAB_DEFAULT_DBID",
     "DISPLAY_MAX_ROW",
     "GLOBAL_ASYNC_QUERIES_TRANSPORT",
     "GLOBAL_ASYNC_QUERIES_POLLING_DELAY",
@@ -120,6 +119,7 @@ FRONTEND_CONF_KEYS = (
     "ALERT_REPORTS_DEFAULT_RETENTION",
     "ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT",
     "NATIVE_FILTER_DEFAULT_ROW_LIMIT",
+    "PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET",
 )
 
 logger = logging.getLogger(__name__)
@@ -284,34 +284,6 @@ def handle_api_exception(
     return functools.update_wrapper(wraps, f)
 
 
-def validate_sqlatable(table: models.SqlaTable) -> None:
-    """Checks the table existence in the database."""
-    with db.session.no_autoflush:
-        table_query = db.session.query(models.SqlaTable).filter(
-            models.SqlaTable.table_name == table.table_name,
-            models.SqlaTable.schema == table.schema,
-            models.SqlaTable.database_id == table.database.id,
-        )
-        if db.session.query(table_query.exists()).scalar():
-            raise Exception(  # pylint: disable=broad-exception-raised
-                get_dataset_exist_error_msg(table.full_name)
-            )
-
-    # Fail before adding if the table can't be found
-    try:
-        table.get_sqla_table_object()
-    except Exception as ex:
-        logger.exception("Got an error in pre_add for %s", table.name)
-        raise Exception(  # pylint: disable=broad-exception-raised
-            _(
-                "Table [%{table}s] could not be found, "
-                "please double check your "
-                "database connection, schema, and "
-                "table name, error: {}"
-            ).format(table.name, str(ex))
-        ) from ex
-
-
 class BaseSupersetView(BaseView):
     @staticmethod
     def json_response(obj: Any, status: int = 200) -> FlaskResponse:
@@ -405,7 +377,7 @@ def menu_data(user: User) -> dict[str, Any]:
             "user_login_url": appbuilder.get_url_for_login,
             "user_profile_url": None
             if user.is_anonymous or is_feature_enabled("MENU_HIDE_USER_INFO")
-            else "/superset/profile/",
+            else "/profile/",
             "locale": session.get("locale", "en"),
         },
     }

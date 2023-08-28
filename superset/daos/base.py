@@ -16,7 +16,7 @@
 # under the License.
 from __future__ import annotations
 
-from typing import Any, Generic, get_args, TypeVar
+from typing import Any, cast, Generic, get_args, TypeVar
 
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
@@ -25,13 +25,12 @@ from sqlalchemy.exc import SQLAlchemyError, StatementError
 from sqlalchemy.orm import Session
 
 from superset.daos.exceptions import (
-    DAOConfigError,
     DAOCreateFailedError,
     DAODeleteFailedError,
     DAOUpdateFailedError,
 )
 from superset.extensions import db
-from superset.utils.core import get_iterable
+from superset.utils.core import as_list
 
 T = TypeVar("T", bound=Model)
 
@@ -130,60 +129,75 @@ class BaseDAO(Generic[T]):
         return query.filter_by(**filter_by).one_or_none()
 
     @classmethod
-    def create(cls, properties: dict[str, Any], commit: bool = True) -> T:
+    def create(
+        cls,
+        item: T | None = None,
+        attributes: dict[str, Any] | None = None,
+        commit: bool = True,
+    ) -> T:
         """
-        Generic for creating models
-        :raises: DAOCreateFailedError
-        """
-        if cls.model_cls is None:
-            raise DAOConfigError()
-        model = cls.model_cls()  # pylint: disable=not-callable
-        for key, value in properties.items():
-            setattr(model, key, value)
-        try:
-            db.session.add(model)
-            if commit:
-                db.session.commit()
-        except SQLAlchemyError as ex:  # pragma: no cover
-            db.session.rollback()
-            raise DAOCreateFailedError(exception=ex) from ex
-        return model
+        Create an object from the specified item and/or attributes.
 
-    @classmethod
-    def save(cls, instance_model: T, commit: bool = True) -> None:
+        :param item: The object to create
+        :param attributes: The attributes associated with the object to create
+        :param commit: Whether to commit the transaction
+        :raises DAOCreateFailedError: If the creation failed
         """
-        Generic for saving models
-        :raises: DAOCreateFailedError
-        """
-        if cls.model_cls is None:
-            raise DAOConfigError()
+
+        if not item:
+            item = cls.model_cls()  # type: ignore  # pylint: disable=not-callable
+
+        if attributes:
+            for key, value in attributes.items():
+                setattr(item, key, value)
+
         try:
-            db.session.add(instance_model)
+            db.session.add(item)
+
             if commit:
                 db.session.commit()
         except SQLAlchemyError as ex:  # pragma: no cover
             db.session.rollback()
             raise DAOCreateFailedError(exception=ex) from ex
 
+        return item  # type: ignore
+
     @classmethod
-    def update(cls, model: T, properties: dict[str, Any], commit: bool = True) -> T:
+    def update(
+        cls,
+        item: T | None = None,
+        attributes: dict[str, Any] | None = None,
+        commit: bool = True,
+    ) -> T:
         """
-        Generic update a model
-        :raises: DAOCreateFailedError
+        Update an object from the specified item and/or attributes.
+
+        :param item: The object to update
+        :param attributes: The attributes associated with the object to update
+        :param commit: Whether to commit the transaction
+        :raises DAOUpdateFailedError: If the updating failed
         """
-        for key, value in properties.items():
-            setattr(model, key, value)
+
+        if not item:
+            item = cls.model_cls()  # type: ignore  # pylint: disable=not-callable
+
+        if attributes:
+            for key, value in attributes.items():
+                setattr(item, key, value)
+
         try:
-            db.session.merge(model)
+            db.session.merge(item)
+
             if commit:
                 db.session.commit()
         except SQLAlchemyError as ex:  # pragma: no cover
             db.session.rollback()
             raise DAOUpdateFailedError(exception=ex) from ex
-        return model
+
+        return item  # type: ignore
 
     @classmethod
-    def delete(cls, items: T | list[T], commit: bool = True) -> None:
+    def delete(cls, item_or_items: T | list[T], commit: bool = True) -> None:
         """
         Delete the specified item(s) including their associated relationships.
 
@@ -200,9 +214,9 @@ class BaseDAO(Generic[T]):
         :raises DAODeleteFailedError: If the deletion failed
         :see: https://docs.sqlalchemy.org/en/latest/orm/queryguide/dml.html
         """
-
+        items = cast(list[T], as_list(item_or_items))
         try:
-            for item in get_iterable(items):
+            for item in items:
                 db.session.delete(item)
 
             if commit:

@@ -334,7 +334,7 @@ class BaseDatasource(
             form_data = slc.form_data
             # pull out all required metrics from the form_data
             for metric_param in METRIC_FORM_DATA_PARAMS:
-                for metric in utils.get_iterable(form_data.get(metric_param) or []):
+                for metric in utils.as_list(form_data.get(metric_param) or []):
                     metric_names.add(utils.get_metric_name(metric))
                     if utils.is_adhoc_metric(metric):
                         column = metric.get("column") or {}
@@ -377,7 +377,7 @@ class BaseDatasource(
                     if utils.is_adhoc_column(column)
                     else column
                     for column_param in COLUMN_FORM_DATA_PARAMS
-                    for column in utils.get_iterable(form_data.get(column_param) or [])
+                    for column in utils.as_list(form_data.get(column_param) or [])
                 ]
                 column_names.update(_columns)
 

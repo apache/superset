@@ -71,6 +71,7 @@ export const api = createApi({
     'DatabaseFunctions',
     'QueryValidations',
     'TableMetadatas',
+    'SqlLabInitialState',
   ],
   endpoints: () => ({}),
   baseQuery: supersetClientQuery,

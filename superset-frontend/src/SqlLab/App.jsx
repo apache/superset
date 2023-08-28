@@ -27,7 +27,7 @@ import {
   isFeatureEnabled,
 } from '@superset-ui/core';
 import { GlobalStyles } from 'src/GlobalStyles';
-import { setupStore } from 'src/views/store';
+import { setupStore, userReducer } from 'src/views/store';
 import setupExtensions from 'src/setup/setupExtensions';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { tableApiUtil } from 'src/hooks/apiResources/tables';
@@ -78,12 +78,6 @@ const sqlLabPersistStateConfig = {
         }
       });
 
-      if (subset.sqlLab?.user) {
-        // Don't persist the user.
-        // User should really not be stored under the "sqlLab" field. Oh well.
-        delete subset.sqlLab.user;
-      }
-
       const data = JSON.stringify(subset);
       // 2 digit precision
       const currentSize =
@@ -105,9 +99,6 @@ const sqlLabPersistStateConfig = {
           ...initialState.sqlLab,
         },
       };
-      // Filter out any user data that may have been persisted in an older version.
-      // Get user from bootstrap data instead, every time
-      result.sqlLab.user = initialState.sqlLab.user;
       return result;
     },
   },
@@ -115,7 +106,7 @@ const sqlLabPersistStateConfig = {
 
 export const store = setupStore({
   initialState,
-  rootReducers: reducers,
+  rootReducers: { ...reducers, user: userReducer },
   ...(!isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) && {
     enhancers: [
       persistState(

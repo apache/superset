@@ -78,6 +78,7 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
                 TagDAO.create_tag_relationship(
                     objects_to_tag=self._objects_to_tag, tag=tag
                 )
+
             if self._description:
                 tag.description = self._description
                 db.session.commit()
@@ -91,14 +92,14 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
         # Validate object_id
         if self._objects_to_tag:
             if any(obj_id == 0 for obj_type, obj_id in self._objects_to_tag):
-                exceptions.append(TagCreateFailedError())
+                exceptions.append(TagInvalidError())
 
             # Validate object type
             for obj_type, obj_id in self._objects_to_tag:
                 object_type = to_object_type(obj_type)
                 if not object_type:
                     exceptions.append(
-                        TagCreateFailedError(f"invalid object type {object_type}")
+                        TagInvalidError(f"invalid object type {object_type}")
                     )
 
         if exceptions:

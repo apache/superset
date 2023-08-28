@@ -54,7 +54,7 @@ from superset.utils.core import (
     format_timedelta,
     GenericDataType,
     get_form_data_token,
-    get_iterable,
+    as_list,
     get_email_address_list,
     get_stacktrace,
     json_int_dttm_ser,
@@ -749,10 +749,10 @@ class TestUtils(SupersetTestCase):
         database = get_or_create_db("test_db", "sqlite:///superset.db")
         assert database.sqlalchemy_uri == "sqlite:///superset.db"
 
-    def test_get_iterable(self):
-        self.assertListEqual(get_iterable(123), [123])
-        self.assertListEqual(get_iterable([123]), [123])
-        self.assertListEqual(get_iterable("foo"), ["foo"])
+    def test_as_list(self):
+        self.assertListEqual(as_list(123), [123])
+        self.assertListEqual(as_list([123]), [123])
+        self.assertListEqual(as_list("foo"), ["foo"])
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_build_extra_filters(self):

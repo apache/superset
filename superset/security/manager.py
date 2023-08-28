@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=too-many-lines
 """A set of constants and methods to manage permissions and security"""
+import json
 import logging
 import re
 import time
@@ -155,8 +156,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     }
 
     GAMMA_READ_ONLY_MODEL_VIEWS = {
-        "Annotation",
-        "CssTemplate",
         "Dataset",
         "Datasource",
     } | READ_ONLY_MODEL_VIEWS
@@ -179,19 +178,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     } | USER_MODEL_VIEWS
 
     ALPHA_ONLY_VIEW_MENUS = {
-        "Manage",
-        "CSS Templates",
-        "Annotation Layers",
-        "Queries",
-        "Import dashboards",
-        "Upload a CSV",
-        "ReportSchedule",
         "Alerts & Report",
-        "TableSchemaView",
-        "CsvToDatabaseView",
+        "Annotation Layers",
+        "Annotation",
+        "CSS Templates",
         "ColumnarToDatabaseView",
+        "CssTemplate",
+        "CsvToDatabaseView",
         "ExcelToDatabaseView",
+        "Import dashboards",
         "ImportExportRestApi",
+        "Manage",
+        "Queries",
+        "ReportSchedule",
+        "TableSchemaView",
+        "Upload a CSV",
     }
 
     ADMIN_ONLY_PERMISSIONS = {
@@ -236,6 +237,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("can_execute_sql_query", "SQLLab"),
         ("can_estimate_query_cost", "SQL Lab"),
         ("can_export_csv", "SQLLab"),
+        ("can_read", "SQLLab"),
         ("can_sqllab_history", "Superset"),
         ("can_sqllab", "Superset"),
         ("can_test_conn", "Superset"),  # Deprecated permission remove on 3.0.0
@@ -1317,7 +1319,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             mapper, connection, "datasource_access", dataset_vm_name
         )
 
-    def dataset_after_update(
+    def dataset_before_update(
         self,
         mapper: Mapper,
         connection: Connection,
@@ -1337,14 +1339,20 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param target: The changed dataset object
         :return:
         """
+        # pylint: disable=import-outside-toplevel
+        from superset.connectors.sqla.models import SqlaTable
+
         # Check if watched fields have changed
-        state = inspect(target)
-        history_database = state.get_history("database_id", True)
-        history_table_name = state.get_history("table_name", True)
-        history_schema = state.get_history("schema", True)
+        table = SqlaTable.__table__
+        current_dataset = connection.execute(
+            table.select().where(table.c.id == target.id)
+        ).one()
+        current_db_id = current_dataset.database_id
+        current_schema = current_dataset.schema
+        current_table_name = current_dataset.table_name
 
         # When database name changes
-        if history_database.has_changes() and history_database.deleted:
+        if current_db_id != target.database_id:
             new_dataset_vm_name = self.get_dataset_perm(
                 target.id, target.table_name, target.database.database_name
             )
@@ -1364,20 +1372,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             )
 
         # When table name changes
-        if history_table_name.has_changes() and history_table_name.deleted:
-            old_dataset_name = history_table_name.deleted[0]
+        if current_table_name != target.table_name:
             new_dataset_vm_name = self.get_dataset_perm(
                 target.id, target.table_name, target.database.database_name
             )
             old_dataset_vm_name = self.get_dataset_perm(
-                target.id, old_dataset_name, target.database.database_name
+                target.id, current_table_name, target.database.database_name
             )
             self._update_dataset_perm(
                 mapper, connection, old_dataset_vm_name, new_dataset_vm_name, target
             )
 
         # When schema changes
-        if history_schema.has_changes() and history_schema.deleted:
+        if current_schema != target.schema:
             new_dataset_schema_name = self.get_schema_perm(
                 target.database.database_name, target.schema
             )
@@ -1408,6 +1415,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param target: Dataset that was updated
         :return:
         """
+        logger.info("Updating schema perm, new: %s", new_schema_permission_name)
         from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
             SqlaTable,
         )
@@ -1461,6 +1469,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param target:
         :return:
         """
+        logger.info(
+            "Updating dataset perm, old: %s, new: %s",
+            old_permission_name,
+            new_permission_name,
+        )
         from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
             SqlaTable,
         )
@@ -1474,6 +1487,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         new_dataset_view_menu = self.find_view_menu(new_permission_name)
         if new_dataset_view_menu:
+            return
+        old_dataset_view_menu = self.find_view_menu(old_permission_name)
+        if not old_dataset_view_menu:
+            logger.warning(
+                "Could not find previous dataset permission %s", old_permission_name
+            )
+            self._insert_pvm_on_sqla_event(
+                mapper, connection, "datasource_access", new_permission_name
+            )
             return
         # Update VM
         connection.execute(
@@ -1796,7 +1818,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # pylint: disable=import-outside-toplevel
         from superset import is_feature_enabled
         from superset.connectors.sqla.models import SqlaTable
-        from superset.daos.dashboard import DashboardDAO
+        from superset.models.dashboard import Dashboard
+        from superset.models.slice import Slice
         from superset.sql_parse import Table
 
         if database and table or query:
@@ -1858,10 +1881,49 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 or self.can_access("datasource_access", datasource.perm or "")
                 or self.is_owner(datasource)
                 or (
+                    # Grant access to the datasource only if dashboard RBAC is enabled
+                    # and said datasource is associated with the dashboard chart in
+                    # question.
                     form_data
+                    and is_feature_enabled("DASHBOARD_RBAC")
                     and (dashboard_id := form_data.get("dashboardId"))
-                    and (dashboard := DashboardDAO.find_by_id(dashboard_id))
-                    and self.can_access_dashboard(dashboard)
+                    and (
+                        dashboard_ := self.get_session.query(Dashboard)
+                        .filter(Dashboard.id == dashboard_id)
+                        .one_or_none()
+                    )
+                    and dashboard_.roles
+                    and (
+                        (
+                            # Native filter.
+                            form_data.get("type") == "NATIVE_FILTER"
+                            and (native_filter_id := form_data.get("native_filter_id"))
+                            and dashboard_.json_metadata
+                            and (json_metadata := json.loads(dashboard_.json_metadata))
+                            and any(
+                                target.get("datasetId") == datasource.id
+                                for fltr in json_metadata.get(
+                                    "native_filter_configuration",
+                                    [],
+                                )
+                                for target in fltr.get("targets", [])
+                                if native_filter_id == fltr.get("id")
+                            )
+                        )
+                        or (
+                            # Chart.
+                            form_data.get("type") != "NATIVE_FILTER"
+                            and (slice_id := form_data.get("slice_id"))
+                            and (
+                                slc := self.get_session.query(Slice)
+                                .filter(Slice.id == slice_id)
+                                .one_or_none()
+                            )
+                            and slc in dashboard_.slices
+                            and slc.datasource == datasource
+                        )
+                    )
+                    and self.can_access_dashboard(dashboard_)
                 )
             ):
                 raise SupersetSecurityException(

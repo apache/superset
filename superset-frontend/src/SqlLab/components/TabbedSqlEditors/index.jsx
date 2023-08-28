@@ -340,7 +340,7 @@ function mapStateToProps({ sqlLab, common }) {
     queries: sqlLab.queries,
     tabHistory: sqlLab.tabHistory,
     tables: sqlLab.tables,
-    defaultDbId: sqlLab.defaultDbId,
+    defaultDbId: common.conf.SQLLAB_DEFAULT_DBID,
     displayLimit: common.conf.DISPLAY_MAX_ROW,
     offline: sqlLab.offline,
     defaultQueryLimit: common.conf.DEFAULT_SQLLAB_LIMIT,
