@@ -44,7 +44,7 @@ export type DeckGLContainerProps = {
 };
 
 export type DeckGLContainerState = {
-  lastUpdate?: number | null;
+  lastUpdate: number | null;
   viewState: Viewport;
   tooltip: TooltipProps['tooltip'];
   timer: ReturnType<typeof setInterval>;
@@ -63,6 +63,7 @@ export class DeckGLContainer extends React.Component<
       timer: setInterval(this.tick, TICK),
       tooltip: null,
       viewState: props.viewport,
+      lastUpdate: null,
     };
   }
 
