@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import re
@@ -167,11 +168,8 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         except (TypeError, json.JSONDecodeError):
             return encrypted_extra
 
-        try:
+        with contextlib.suppress(KeyError):
             config["service_account_info"]["private_key"] = PASSWORD_MASK
-        except KeyError:
-            pass
-
         return json.dumps(config)
 
     @classmethod

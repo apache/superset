@@ -17,6 +17,7 @@
 # pylint: disable=too-many-lines, invalid-name
 from __future__ import annotations
 
+import contextlib
 import logging
 from datetime import datetime
 from typing import Any, Callable, cast
@@ -140,16 +141,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         form_data = parse.quote(json.dumps({"slice_id": slice_id}))
         endpoint = f"/explore/?form_data={form_data}"
 
-        is_standalone_mode = ReservedUrlParameters.is_standalone_mode()
-        if is_standalone_mode:
+        if ReservedUrlParameters.is_standalone_mode():
             endpoint += f"&{ReservedUrlParameters.STANDALONE}=true"
         return redirect(endpoint)
 
     def get_query_string_response(self, viz_obj: BaseViz) -> FlaskResponse:
         query = None
         try:
-            query_obj = viz_obj.query_obj()
-            if query_obj:
+            if query_obj := viz_obj.query_obj():
                 query = viz_obj.datasource.get_query_str(query_obj)
         except Exception as ex:  # pylint: disable=broad-except
             err_msg = utils.error_msg_from_exception(ex)
@@ -304,7 +303,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 and response_type == ChartDataResultFormat.JSON
             ):
                 # First, look for the chart query results in the cache.
-                try:
+                with contextlib.suppress(CacheLoadError):
                     viz_obj = get_viz(
                         datasource_type=cast(str, datasource_type),
                         datasource_id=datasource_id,
@@ -316,9 +315,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     # If the chart query has already been cached, return it immediately.
                     if payload is not None:
                         return self.send_data_payload_response(viz_obj, payload)
-                except CacheLoadError:
-                    pass
-
                 # Otherwise, kick off a background job to run the chart query.
                 # Clients will either poll or be notified of query completion,
                 # at which point they will call the /explore_json/data/<cache_key>
@@ -411,8 +407,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             slice_id = parsed_form_data.get(
                 "slice_id", int(request.args.get("slice_id", 0))
             )
-            datasource = parsed_form_data.get("datasource")
-            if datasource:
+            if datasource := parsed_form_data.get("datasource"):
                 datasource_id, datasource_type = datasource.split("__")
                 parameters = CommandParameters(
                     datasource_id=datasource_id,
@@ -431,9 +426,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         # Return a relative URL
         url = parse.urlparse(redirect_url)
-        if url.query:
-            return f"{url.path}?{url.query}"
-        return url.path
+        return f"{url.path}?{url.query}" if url.query else url.path
 
     @has_access
     @event_logger.log_this
@@ -468,8 +461,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if key is not None:
             command = GetExplorePermalinkCommand(key)
             try:
-                permalink_value = command.run()
-                if permalink_value:
+                if permalink_value := command.run():
                     state = permalink_value["state"]
                     initial_form_data = state["formData"]
                     url_params = state.get("urlParams")
@@ -522,14 +514,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         datasource: BaseDatasource | None = None
         if datasource_id is not None:
-            try:
+            with contextlib.suppress(DatasetNotFoundError):
                 datasource = DatasourceDAO.get_datasource(
                     db.session,
                     DatasourceType("table"),
                     datasource_id,
                 )
-            except DatasetNotFoundError:
-                pass
+
         datasource_name = datasource.name if datasource else _("[Missing Dataset]")
         viz_type = form_data.get("viz_type")
         if not viz_type and datasource and datasource.default_endpoint:
@@ -902,8 +893,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if url_params := state.get("urlParams"):
             params = parse.urlencode(url_params)
             url = f"{url}&{params}"
-        hash_ = state.get("anchor", state.get("hash"))
-        if hash_:
+        if hash_ := state.get("anchor", state.get("hash")):
             url = f"{url}#{hash_}"
         return redirect(url)
 
@@ -960,12 +950,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 return self.render_template("superset/public_welcome.html")
             return redirect(appbuilder.get_url_for_login)
 
-        welcome_dashboard_id = (
+        if welcome_dashboard_id := (
             db.session.query(UserAttribute.welcome_dashboard_id)
             .filter_by(user_id=get_user_id())
             .scalar()
-        )
-        if welcome_dashboard_id:
+        ):
             return self.dashboard(dashboard_id_or_slug=str(welcome_dashboard_id))
 
         payload = {
@@ -1005,11 +994,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         }
 
         if form_data := request.form.get("form_data"):
-            try:
+            with contextlib.suppress(json.JSONDecodeError):
                 payload["requested_query"] = json.loads(form_data)
-            except json.JSONDecodeError:
-                pass
-
         payload["user"] = bootstrap_user_data(g.user, include_perms=True)
         bootstrap_data = json.dumps(
             payload, default=utils.pessimistic_json_iso_dttm_ser

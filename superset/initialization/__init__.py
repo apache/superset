@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
 import sys
@@ -25,7 +26,7 @@ import wtforms_json
 from deprecation import deprecated
 from flask import Flask, redirect
 from flask_appbuilder import expose, IndexView
-from flask_babel import gettext as __, lazy_gettext as _
+from flask_babel import gettext as __
 from flask_compress import Compress
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -594,11 +595,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             self.superset_app.wsgi_app = ChunkedEncodingFix(self.superset_app.wsgi_app)
 
         if self.config["UPLOAD_FOLDER"]:
-            try:
+            with contextlib.suppress(OSError):
                 os.makedirs(self.config["UPLOAD_FOLDER"])
-            except OSError:
-                pass
-
         for middleware in self.config["ADDITIONAL_MIDDLEWARE"]:
             self.superset_app.wsgi_app = middleware(self.superset_app.wsgi_app)
 
