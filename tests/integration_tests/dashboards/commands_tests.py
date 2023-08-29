@@ -705,7 +705,9 @@ class TestImportDashboardsCommand(SupersetTestCase):
             "charts/imported_chart.yaml": yaml.safe_dump(chart_config_2),
             "dashboards/imported_dashboard.yaml": yaml.safe_dump(dashboard_config_2),
         }
-        overwrite_command = v1.ImportDashboardsCommand(overwrite_contents, overwrite=True)
+        overwrite_command = v1.ImportDashboardsCommand(
+            overwrite_contents, overwrite=True
+        )
         overwrite_command.run()
 
         new_num_dashboards = db.session.query(Dashboard).count()
