@@ -21,7 +21,7 @@ import { useDispatch } from 'react-redux';
 import Collapse from 'src/components/Collapse';
 import Card from 'src/components/Card';
 import ButtonGroup from 'src/components/ButtonGroup';
-import { css, t, styled } from '@superset-ui/core';
+import { css, t, styled, useTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
 
 import {
@@ -111,6 +111,7 @@ const StyledCollapsePanel = styled(Collapse.Panel)`
 
 const TableElement = ({ table, ...props }: TableElementProps) => {
   const { dbId, schema, name, expanded } = table;
+  const theme = useTheme();
   const dispatch = useDispatch();
   const {
     data: tableMetadata,
@@ -258,7 +259,13 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
       );
     }
     return (
-      <ButtonGroup className="ws-el-controls">
+      <ButtonGroup
+        css={css`
+          display: flex;
+          column-gap: ${theme.gridUnit * 1.5}px;
+          margin-right: ${theme.gridUnit}px;
+        `}
+      >
         {keyLink}
         <IconTooltip
           className={

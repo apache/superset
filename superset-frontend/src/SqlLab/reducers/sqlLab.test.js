@@ -248,6 +248,38 @@ describe('sqlLabReducer', () => {
       expect(newState.tables).toHaveLength(1);
       expect(newState.tables[0].extra).toBe(true);
     });
+    it('should overwrite table ID be ignored when the existing table is already initialized', () => {
+      const action = {
+        type: actions.MERGE_TABLE,
+        table: newTable,
+      };
+      newState = sqlLabReducer(newState, action);
+      expect(newState.tables).toHaveLength(1);
+      // Merging the initialized remote id
+      const remoteId = 1;
+      const syncAction = {
+        type: actions.MERGE_TABLE,
+        table: {
+          ...newTable,
+          id: remoteId,
+          initialized: true,
+        },
+      };
+      newState = sqlLabReducer(newState, syncAction);
+      expect(newState.tables).toHaveLength(1);
+      expect(newState.tables[0].initialized).toBe(true);
+      expect(newState.tables[0].id).toBe(remoteId);
+      const overwriteAction = {
+        type: actions.MERGE_TABLE,
+        table: {
+          id: 'rnd_new_id',
+          ...newTable,
+        },
+      };
+      newState = sqlLabReducer(newState, overwriteAction);
+      expect(newState.tables).toHaveLength(1);
+      expect(newState.tables[0].id).toBe(remoteId);
+    });
     it('should expand and collapse a table', () => {
       const collapseTableAction = {
         type: actions.COLLAPSE_TABLE,
