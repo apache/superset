@@ -21,12 +21,18 @@ import rison from 'rison';
 import Modal from 'src/components/Modal';
 import AsyncSelect from 'src/components/Select/AsyncSelect';
 import { FormLabel } from 'src/components/Form';
-import { t, SupersetClient } from '@superset-ui/core';
+import { t, styled, SupersetClient } from '@superset-ui/core';
 import { Input } from 'antd';
 import { Divider } from 'src/components';
 import Button from 'src/components/Button';
 import { Tag } from 'src/views/CRUD/types';
 import { fetchObjects } from 'src/features/tags/tags';
+
+const StyledModalBody = styled.div`
+  .ant-select-dropdown {
+    max-height: 100px;
+  }
+`;
 
 interface TaggableResourceOption {
   label: string;
@@ -266,20 +272,20 @@ const TagModal: React.FC<TagModalProps> = ({
         </div>
       }
     >
-      <>
-        <FormLabel>{t('Tag Name')}</FormLabel>
-        <Input
-          onChange={handleTagNameChange}
-          placeholder={t('Name of your tag')}
-          value={tagName}
-        />
-        <FormLabel>{t('Description')}</FormLabel>
-        <Input
-          onChange={handleDescriptionChange}
-          placeholder={t('Add description of your tag')}
-          value={description}
-        />
-        <Divider />
+      <FormLabel>{t('Tag Name')}</FormLabel>
+      <Input
+        onChange={handleTagNameChange}
+        placeholder={t('Name of your tag')}
+        value={tagName}
+      />
+      <FormLabel>{t('Description')}</FormLabel>
+      <Input
+        onChange={handleDescriptionChange}
+        placeholder={t('Add description of your tag')}
+        value={description}
+      />
+      <Divider />
+      <StyledModalBody>
         <AsyncSelect
           ariaLabel={t('Select Dashboards')}
           mode="multiple"
@@ -317,7 +323,7 @@ const TagModal: React.FC<TagModalProps> = ({
           header={<FormLabel>{t('Saved Queries')}</FormLabel>}
           allowClear
         />
-      </>
+      </StyledModalBody>
     </Modal>
   );
 };

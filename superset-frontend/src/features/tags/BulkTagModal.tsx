@@ -15,6 +15,7 @@ interface BulkTagModalProps {
   addDangerToast: (msg: string) => void;
   show: boolean;
   selected: any[];
+  resourceName: string;
   // clearOnHide: boolean;
 }
 
@@ -23,6 +24,7 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({
   selected = [],
   onHide,
   refreshData,
+  resourceName,
 }) => {
   const { addSuccessToast, addDangerToast } = useToasts();
   useEffect(() => {}, []);
@@ -32,7 +34,7 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({
       endpoint: `/api/v1/tag/bulk_create`,
       jsonPayload: {
         tags: tags.map(tag => tag.value),
-        objects_to_tag: selected.map(item => ['dashboard', +item.original.id]),
+        objects_to_tag: selected.map(item => [resourceName, +item.original.id]),
       },
     })
       .then(({ json = {} }) => {

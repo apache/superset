@@ -772,7 +772,8 @@ function DashboardList(props: DashboardListProps) {
                     ? 'card'
                     : 'table'
                 }
-                showBulkTag={showBulkTagModal}
+                enableBulkTag
+                bulkTagResourceName={'dashboard'}
               />
             </>
           );

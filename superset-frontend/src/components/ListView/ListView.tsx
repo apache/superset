@@ -231,6 +231,7 @@ export interface ListViewProps<T extends object = any> {
   emptyState?: EmptyStateProps;
   columnsForWrapText?: string[];
   enableBulkTag?: boolean;
+  bulkTagResourceName?: string;
 }
 
 function ListView<T extends object = any>({
@@ -256,6 +257,7 @@ function ListView<T extends object = any>({
   emptyState,
   columnsForWrapText,
   enableBulkTag = true,
+  bulkTagResourceName,
 }: ListViewProps<T>) {
   const {
     getTableProps,
@@ -321,6 +323,7 @@ function ListView<T extends object = any>({
         show={showBulkTagModal}
         selected={selectedFlatRows}
         refreshData={refreshData}
+        resourceName={bulkTagResourceName}
         onHide={() => setShowBulkTagModal(false)}
       />
       <div data-test={className} className={`superset-list-view ${className}`}>
