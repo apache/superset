@@ -47,3 +47,12 @@ class TestStatsdStatsLogger(TestCase):
 
             stats_logger = StatsdStatsLogger()
             self.verify_client_calls(stats_logger, mock_client)
+
+    def test_with_metric_deny_list(self):
+        client = Mock()
+        stats_logger = StatsdStatsLogger(statsd_client=client, metric_denylist={"foo1"})
+        stats_logger.incr("foo1")
+        client.incr.assert_not_called()
+        stats_logger.decr("foo2")
+        client.decr.assert_called_once()
+        client.decr.assert_called_with("foo2")

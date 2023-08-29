@@ -56,5 +56,13 @@ from superset.stats_logger import StatsdStatsLogger
 STATS_LOGGER = StatsdStatsLogger(host='localhost', port=8125, prefix='superset')
 ```
 
+You can also pass metric names that should be ignored via an optional `metric_denylist` parameter:
+
+```
+STATS_LOGGER = StatsdStatsLogger(host='localhost', port=8125, prefix='superset', metric_denylist={"reports.scheduler"})
+```
+
+This would log all metrics, except `reports.scheduler`.
+
 Note that it’s also possible to implement you own logger by deriving
 `superset.stats_logger.BaseStatsLogger`.

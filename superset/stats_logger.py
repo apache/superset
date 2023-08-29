@@ -14,8 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
-from typing import Optional
 
 from colorama import Fore, Style
 
@@ -25,8 +26,19 @@ logger = logging.getLogger(__name__)
 class BaseStatsLogger:
     """Base class for logging realtime events"""
 
-    def __init__(self, prefix: str = "superset") -> None:
+    prefix: str
+    metric_denylist: set[str]
+
+    def should_log(self, key: str) -> bool:
+        return key not in self.metric_denylist
+
+    def __init__(
+        self,
+        prefix: str = "superset",
+        metric_denylist: set[str] | None = None,
+    ) -> None:
         self.prefix = prefix
+        self.metric_denylist = metric_denylist or set()
 
     def key(self, key: str) -> str:
         if self.prefix:
@@ -51,24 +63,30 @@ class BaseStatsLogger:
 
 class DummyStatsLogger(BaseStatsLogger):
     def incr(self, key: str) -> None:
-        logger.debug(Fore.CYAN + "[stats_logger] (incr) " + key + Style.RESET_ALL)
+        if self.should_log(key):
+            logger.debug(Fore.CYAN + "[stats_logger] (incr) " + key + Style.RESET_ALL)
 
     def decr(self, key: str) -> None:
-        logger.debug(Fore.CYAN + "[stats_logger] (decr) " + key + Style.RESET_ALL)
+        if self.should_log(key):
+            logger.debug(Fore.CYAN + "[stats_logger] (decr) " + key + Style.RESET_ALL)
 
     def timing(self, key: str, value: float) -> None:
-        logger.debug(
-            Fore.CYAN + f"[stats_logger] (timing) {key} | {value} " + Style.RESET_ALL
-        )
+        if self.should_log(key):
+            logger.debug(
+                Fore.CYAN
+                + f"[stats_logger] (timing) {key} | {value} "
+                + Style.RESET_ALL
+            )
 
     def gauge(self, key: str, value: float) -> None:
-        logger.debug(
-            Fore.CYAN
-            + "[stats_logger] (gauge) "
-            + f"{key}"
-            + f"{value}"
-            + Style.RESET_ALL
-        )
+        if self.should_log(key):
+            logger.debug(
+                Fore.CYAN
+                + "[stats_logger] (gauge) "
+                + f"{key}"
+                + f"{value}"
+                + Style.RESET_ALL
+            )
 
 
 try:
@@ -80,7 +98,8 @@ try:
             host: str = "localhost",
             port: int = 8125,
             prefix: str = "superset",
-            statsd_client: Optional[StatsClient] = None,
+            statsd_client: StatsClient | None = None,
+            metric_denylist: set[str] | None = None,
         ) -> None:
             """
             Initializes from either params or a supplied, pre-constructed statsd client.
@@ -88,22 +107,27 @@ try:
             If statsd_client argument is given, all other arguments are ignored and the
             supplied client will be used to emit metrics.
             """
+            super().__init__(metric_denylist=metric_denylist)
             if statsd_client:
                 self.client = statsd_client
             else:
                 self.client = StatsClient(host=host, port=port, prefix=prefix)
 
         def incr(self, key: str) -> None:
-            self.client.incr(key)
+            if self.should_log(key):
+                self.client.incr(key)
 
         def decr(self, key: str) -> None:
-            self.client.decr(key)
+            if self.should_log(key):
+                self.client.decr(key)
 
         def timing(self, key: str, value: float) -> None:
-            self.client.timing(key, value)
+            if self.should_log(key):
+                self.client.timing(key, value)
 
         def gauge(self, key: str, value: float) -> None:
-            self.client.gauge(key, value)
+            if self.should_log(key):
+                self.client.gauge(key, value)
 
 except Exception:  # pylint: disable=broad-except
     pass
