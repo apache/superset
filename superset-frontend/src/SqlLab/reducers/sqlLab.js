@@ -184,6 +184,9 @@ export default function sqlLabReducer(state = {}, action) {
         if (action.query) {
           at.dataPreviewQueryId = action.query.id;
         }
+        if (existingTable.initialized) {
+          at.id = existingTable.id;
+        }
         return alterInArr(state, 'tables', existingTable, at);
       }
       // for new table, associate Id of query for data preview
