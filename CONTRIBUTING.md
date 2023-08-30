@@ -578,6 +578,7 @@ npm ci
 ```
 
 Note that Superset uses [Scarf](https://docs.scarf.sh) to capture telemetry/analytics about versions being installed, including the `scarf-js` npm package. As noted elsewhere in this documentation, Scarf gathers aggregated stats for the sake of security/release strategy, and does not capture/retain PII. [You can read here](https://docs.scarf.sh/package-analytics/) about the package, and various means to opt out of it, but one easy way to opt out is to add this setting in `superset-frontent/package.json`:
+
 ```json
 // your-package/package.json
 {
@@ -598,10 +599,13 @@ There are three types of assets you can build:
 3. `npm run build-instrumented`: instrumented application code for collecting code coverage from Cypress tests
 
 If this type of error comes while building assets(i.e using above commands):
+
 ```bash
 Error: You must provide the URL of lib/mappings.wasm by calling SourceMapConsumer.initialize
 ```
+
 Then put this:
+
 ```bash
 export NODE_OPTIONS=--no-experimental-fetch
 ```
@@ -925,28 +929,22 @@ For debugging locally using VSCode, you can configure a launch configuration fil
 
 ```json
 {
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Python: Flask",
-            "type": "python",
-            "request": "launch",
-            "module": "flask",
-            "env": {
-                "FLASK_APP": "superset",
-                "SUPERSET_ENV": "development"
-            },
-            "args": [
-                "run",
-                "-p 8088",
-                "--with-threads",
-                "--reload",
-                "--debugger"
-            ],
-            "jinja": true,
-            "justMyCode": true
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: Flask",
+      "type": "python",
+      "request": "launch",
+      "module": "flask",
+      "env": {
+        "FLASK_APP": "superset",
+        "SUPERSET_ENV": "development"
+      },
+      "args": ["run", "-p 8088", "--with-threads", "--reload", "--debugger"],
+      "jinja": true,
+      "justMyCode": true
+    }
+  ]
 }
 ```
 
@@ -1031,24 +1029,24 @@ You are now ready to attach a debugger to the process. Using VSCode you can conf
 
 ```json
 {
-    "version": "0.2.0",
-    "configurations": [
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Attach to Superset App in Docker Container",
+      "type": "python",
+      "request": "attach",
+      "connect": {
+        "host": "127.0.0.1",
+        "port": 5678
+      },
+      "pathMappings": [
         {
-            "name": "Attach to Superset App in Docker Container",
-            "type": "python",
-            "request": "attach",
-            "connect": {
-                "host": "127.0.0.1",
-                "port": 5678
-            },
-            "pathMappings": [
-                {
-                    "localRoot": "${workspaceFolder}",
-                    "remoteRoot": "/app"
-                }
-            ]
-        },
-    ]
+          "localRoot": "${workspaceFolder}",
+          "remoteRoot": "/app"
+        }
+      ]
+    }
+  ]
 }
 ```
 
@@ -1349,7 +1347,7 @@ To do this, you'll need to:
   but perfect for testing (stores cache in `/tmp`)
 
   ```python
-  from cachelib.file import FileSystemCache
+  from flask_caching.backends.filesystemcache import FileSystemCache
   RESULTS_BACKEND = FileSystemCache('/tmp/sqllab')
   ```
 
@@ -1415,11 +1413,11 @@ Note not all fields are correctly categorized. The fields vary based on visualiz
 
 ### Time
 
-| Field              | Type     | Notes                                 |
-| ------------------ | -------- | ------------------------------------- |
-| `granularity_sqla` | _string_ | The SQLA **Time Column** widget       |
-| `time_grain_sqla`  | _string_ | The SQLA **Time Grain** widget        |
-| `time_range`       | _string_ | The **Time range** widget             |
+| Field              | Type     | Notes                           |
+| ------------------ | -------- | ------------------------------- |
+| `granularity_sqla` | _string_ | The SQLA **Time Column** widget |
+| `time_grain_sqla`  | _string_ | The SQLA **Time Grain** widget  |
+| `time_range`       | _string_ | The **Time range** widget       |
 
 ### GROUP BY
 
