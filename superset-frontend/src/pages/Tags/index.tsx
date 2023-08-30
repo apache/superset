@@ -339,7 +339,11 @@ function TagList(props: TagListProps) {
 
   // render new 'New Tag' btn
   subMenuButtons.push({
-    name: t('New Tag'),
+    name: (
+      <>
+        <i className="fa fa-plus" /> {t('Tag')}
+      </>
+    ),
     buttonStyle: 'primary',
     'data-test': 'bulk-select',
     onClick: () => setShowTagModal(true),
