@@ -265,9 +265,9 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       searchParams.set('save_action', this.state.action);
       if (this.state.action !== 'overwrite') {
         searchParams.delete('form_data_key');
-      } else {
-        searchParams.set('slice_id', value.id.toString());
       }
+
+      searchParams.set('slice_id', value.id.toString());
 
       this.props.history.replace(`/explore/?${searchParams.toString()}`);
 
