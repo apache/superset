@@ -22,7 +22,7 @@ import json
 import logging
 import re
 from re import Pattern
-from typing import Any, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING, TypedDict
 
 import pandas as pd
 from apispec import APISpec
@@ -34,7 +34,6 @@ from marshmallow.exceptions import ValidationError
 from requests import Session
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import URL
-from typing_extensions import TypedDict
 
 from superset import db, security_manager
 from superset.constants import PASSWORD_MASK
