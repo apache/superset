@@ -17,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import persistState from 'redux-localstorage';
 import { Provider } from 'react-redux';
 import { hot } from 'react-hot-loader/root';
 import {
@@ -30,16 +29,11 @@ import { GlobalStyles } from 'src/GlobalStyles';
 import { setupStore, userReducer } from 'src/views/store';
 import setupExtensions from 'src/setup/setupExtensions';
 import getBootstrapData from 'src/utils/getBootstrapData';
-import { tableApiUtil } from 'src/hooks/apiResources/tables';
+import { persistSqlLabStateEnhancer } from 'src/SqlLab/middlewares/persistSqlLabStateEnhancer';
 import getInitialState from './reducers/getInitialState';
 import { reducers } from './reducers/index';
 import App from './components/App';
-import {
-  emptyTablePersistData,
-  emptyQueryResults,
-  clearQueryEditors,
-} from './utils/reduxStateToLocalStorageHelper';
-import { BYTES_PER_CHAR, KB_STORAGE } from './constants';
+import { rehydratePersistedState } from './utils/reduxStateToLocalStorageHelper';
 import setupApp from '../setup/setupApp';
 
 import '../assets/stylesheets/reactable-pagination.less';
@@ -54,90 +48,16 @@ const bootstrapData = getBootstrapData();
 initFeatureFlags(bootstrapData.common.feature_flags);
 
 const initialState = getInitialState(bootstrapData);
-const sqlLabPersistStateConfig = {
-  paths: ['sqlLab'],
-  config: {
-    slicer: paths => state => {
-      const subset = {};
-      paths.forEach(path => {
-        // this line is used to remove old data from browser localStorage.
-        // we used to persist all redux state into localStorage, but
-        // it caused configurations passed from server-side got override.
-        // see PR 6257 for details
-        delete state[path].common; // eslint-disable-line no-param-reassign
-        if (path === 'sqlLab') {
-          subset[path] = {
-            ...state[path],
-            tables: emptyTablePersistData(state[path].tables),
-            queries: emptyQueryResults(state[path].queries),
-            queryEditors: clearQueryEditors(state[path].queryEditors),
-            unsavedQueryEditor: clearQueryEditors([
-              state[path].unsavedQueryEditor,
-            ])[0],
-          };
-        }
-      });
-
-      const data = JSON.stringify(subset);
-      // 2 digit precision
-      const currentSize =
-        Math.round(((data.length * BYTES_PER_CHAR) / KB_STORAGE) * 100) / 100;
-      if (state.localStorageUsageInKilobytes !== currentSize) {
-        state.localStorageUsageInKilobytes = currentSize; // eslint-disable-line no-param-reassign
-      }
-
-      return subset;
-    },
-    merge: (initialState, persistedState = {}) => {
-      const result = {
-        ...initialState,
-        ...persistedState,
-        sqlLab: {
-          ...(persistedState?.sqlLab || {}),
-          // Overwrite initialState over persistedState for sqlLab
-          // since a logic in getInitialState overrides the value from persistedState
-          ...initialState.sqlLab,
-        },
-      };
-      return result;
-    },
-  },
-};
 
 export const store = setupStore({
   initialState,
   rootReducers: { ...reducers, user: userReducer },
   ...(!isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) && {
-    enhancers: [
-      persistState(
-        sqlLabPersistStateConfig.paths,
-        sqlLabPersistStateConfig.config,
-      ),
-    ],
+    enhancers: [persistSqlLabStateEnhancer],
   }),
 });
 
-// Rehydrate server side persisted table metadata
-initialState.sqlLab.tables.forEach(
-  ({ name: table, schema, dbId, persistData }) => {
-    if (dbId && schema && table && persistData?.columns) {
-      store.dispatch(
-        tableApiUtil.upsertQueryData(
-          'tableMetadata',
-          { dbId, schema, table },
-          persistData,
-        ),
-      );
-      store.dispatch(
-        tableApiUtil.upsertQueryData(
-          'tableExtendedMetadata',
-          { dbId, schema, table },
-          {},
-        ),
-      );
-    }
-  },
-);
+rehydratePersistedState(store.dispatch, initialState);
 
 // Highlight the navbar menu
 const menus = document.querySelectorAll('.nav.navbar-nav li.dropdown');
