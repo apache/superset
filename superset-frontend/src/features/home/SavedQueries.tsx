@@ -41,6 +41,7 @@ import {
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
+import { Link } from 'react-router-dom';
 
 SyntaxHighlighter.registerLanguage('sql', sql);
 
@@ -193,12 +194,8 @@ const SavedQueries = ({
   const renderMenu = (query: Query) => (
     <Menu>
       {canEdit && (
-        <Menu.Item
-          onClick={() => {
-            window.location.href = `/superset/sqllab?savedQueryId=${query.id}`;
-          }}
-        >
-          {t('Edit')}
+        <Menu.Item>
+          <Link to={`/sqllab?savedQueryId=${query.id}`}>{t('Edit')}</Link>
         </Menu.Item>
       )}
       <Menu.Item
@@ -256,15 +253,13 @@ const SavedQueries = ({
         buttons={[
           {
             name: (
-              <>
+              <Link to="/sqllab?new=true">
                 <i className="fa fa-plus" />
                 {t('SQL Query')}
-              </>
+              </Link>
             ),
             buttonStyle: 'tertiary',
-            onClick: () => {
-              window.location.href = '/superset/sqllab?new=true';
-            },
+            onClick: () => {},
           },
           {
             name: t('View All »'),
@@ -278,15 +273,10 @@ const SavedQueries = ({
       {queries.length > 0 ? (
         <CardContainer showThumbnails={showThumbnails}>
           {queries.map(q => (
-            <CardStyles
-              onClick={() => {
-                window.location.href = `/superset/sqllab?savedQueryId=${q.id}`;
-              }}
-              key={q.id}
-            >
+            <CardStyles key={q.id}>
               <ListViewCard
                 imgURL=""
-                url={`/superset/sqllab?savedQueryId=${q.id}`}
+                url={`/sqllab?savedQueryId=${q.id}`}
                 title={q.label}
                 imgFallbackURL="/static/assets/images/empty-query.svg"
                 description={t('Ran %s', q.changed_on_delta_humanized)}

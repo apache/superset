@@ -17,16 +17,25 @@
  * under the License.
  */
 
-describe('SqlLab view', () => {
-  beforeEach(() => {
-    cy.visit('/sqllab');
-  });
+import React, { createContext, useContext } from 'react';
+import { useLocation } from 'react-router-dom';
 
-  it('should load the SqlLab', () => {
-    cy.eyesOpen({
-      testName: 'SqlLab page',
-    });
-    cy.eyesCheckWindow('SqlLab loaded');
-    cy.eyesClose();
-  });
-});
+export type LocationState = {
+  requestedQuery?: Record<string, any>;
+};
+
+export const locationContext = createContext<LocationState>({});
+const { Provider } = locationContext;
+
+const EMPTY_STATE: LocationState = {};
+
+export const LocationProvider: React.FC = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
+  const location = useLocation<LocationState>();
+  return <Provider value={location.state || EMPTY_STATE}>{children}</Provider>;
+};
+
+export const useLocationState = () => useContext(locationContext);

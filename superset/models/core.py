@@ -492,6 +492,8 @@ class Database(
                     source = utils.QuerySource.DASHBOARD
                 elif "/explore/" in request.referrer:
                     source = utils.QuerySource.CHART
+                elif "/sqllab/" in request.referrer:
+                    source = utils.QuerySource.SQL_LAB
                 elif "/superset/sqllab" in request.referrer:
                     source = utils.QuerySource.SQL_LAB
 

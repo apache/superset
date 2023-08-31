@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useHistory } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import PropTypes from 'prop-types';
 import { Tooltip } from 'src/components/Tooltip';
@@ -151,12 +152,22 @@ export const ExploreChartHeader = ({
     [dispatch],
   );
 
+  const history = useHistory();
+  const { redirectSQLLab } = actions;
+
+  const redirectToSQLLab = useCallback(
+    formData => {
+      redirectSQLLab(formData, history);
+    },
+    [redirectSQLLab, history],
+  );
+
   const [menu, isDropdownVisible, setIsDropdownVisible] =
     useExploreAdditionalActionsMenu(
       latestQueryFormData,
       canDownload,
       slice,
-      actions.redirectSQLLab,
+      redirectToSQLLab,
       openPropertiesModal,
       ownState,
       metadata?.dashboards,

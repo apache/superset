@@ -571,17 +571,20 @@ export function postChartFormData(
   );
 }
 
-export function redirectSQLLab(formData) {
+export function redirectSQLLab(formData, history) {
   return dispatch => {
     getChartDataRequest({ formData, resultFormat: 'json', resultType: 'query' })
       .then(({ json }) => {
-        const redirectUrl = '/superset/sqllab/';
+        const redirectUrl = '/sqllab/';
         const payload = {
           datasourceKey: formData.datasource,
           sql: json.result[0].query,
         };
-        SupersetClient.postForm(redirectUrl, {
-          form_data: safeStringify(payload),
+        history.push({
+          pathname: redirectUrl,
+          state: {
+            requestedQuery: payload,
+          },
         });
       })
       .catch(() =>

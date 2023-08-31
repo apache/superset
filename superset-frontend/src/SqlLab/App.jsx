@@ -29,6 +29,7 @@ import { GlobalStyles } from 'src/GlobalStyles';
 import { setupStore, userReducer } from 'src/views/store';
 import setupExtensions from 'src/setup/setupExtensions';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { persistSqlLabStateEnhancer } from 'src/SqlLab/middlewares/persistSqlLabStateEnhancer';
 import getInitialState from './reducers/getInitialState';
 import { reducers } from './reducers/index';
@@ -77,6 +78,7 @@ const Application = () => (
       <GlobalStyles />
       <SqlLabGlobalStyles />
       <App />
+      <ToastContainer />
     </ThemeProvider>
   </Provider>
 );
