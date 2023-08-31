@@ -1162,11 +1162,11 @@ class TestCore(SupersetTestCase):
     def test_redirect_new_sqllab(self):
         self.login(username="admin")
         resp = self.client.get(
-            "/superset/sqllab",
-            query_string={"savedQueryId": "1", "testParams": "2"},
+            "/superset/sqllab?savedQueryId=1&testParams=2",
             follow_redirects=True,
         )
-        assert resp.request.path == "/sqllab?savedQueryId=1&testParams=2"
+        assert resp.request.path == "/sqllab/"
+        assert resp.request.query_string == "savedQueryId=1&testParams=2"
 
         resp = self.client.post("/superset/sqllab/")
         assert resp.status_code == 302
