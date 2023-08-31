@@ -19,9 +19,9 @@ import os
 from typing import Any, Callable, Optional
 
 import celery
-from cachelib.base import BaseCache
 from flask import Flask
 from flask_appbuilder import AppBuilder, SQLA
+from flask_caching.backends.base import BaseCache
 from flask_migrate import Migrate
 from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFProtect
