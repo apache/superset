@@ -98,6 +98,7 @@ config = app.config
 logger = logging.getLogger(__name__)
 
 VIRTUAL_TABLE_ALIAS = "virtual_table"
+SERIES_LIMIT_SUBQ_ALIAS = "series_limit"
 ADVANCED_DATA_TYPES = config["ADVANCED_DATA_TYPES"]
 
 
@@ -1463,7 +1464,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         groupby = groupby or []
         rejected_adhoc_filters_columns: list[Union[str, ColumnTyping]] = []
         applied_adhoc_filters_columns: list[Union[str, ColumnTyping]] = []
-        series_column_names = utils.get_column_names(series_columns or [])
+        db_engine_spec = self.db_engine_spec
+        series_column_labels = [
+            db_engine_spec.make_label_compatible(column)
+            for column in utils.get_column_names(
+                columns=series_columns or [],
+            )
+        ]
         # deprecated, to be removed in 2.0
         if is_timeseries and timeseries_limit:
             series_limit = timeseries_limit
@@ -1476,7 +1483,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         template_kwargs["removed_filters"] = removed_filters
         template_kwargs["applied_filters"] = applied_template_filters
         template_processor = self.get_template_processor(**template_kwargs)
-        db_engine_spec = self.db_engine_spec
         prequeries: list[str] = []
         orderby = orderby or []
         need_groupby = bool(metrics is not None or groupby)
@@ -1620,8 +1626,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
                 groupby_all_columns[outer.name] = outer
                 if (
-                    is_timeseries and not series_column_names
-                ) or outer.name in series_column_names:
+                    is_timeseries and not series_column_labels
+                ) or outer.name in series_column_labels:
                     groupby_series_columns[outer.name] = outer
                 select_exprs.append(outer)
         elif columns:
@@ -2012,7 +2018,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     col_name = db_engine_spec.make_label_compatible(gby_name + "__")
                     on_clause.append(gby_obj == sa.column(col_name))
 
-                tbl = tbl.join(subq.alias(), and_(*on_clause))
+                tbl = tbl.join(subq.alias(SERIES_LIMIT_SUBQ_ALIAS), and_(*on_clause))
             else:
                 if series_limit_metric:
                     orderby = [
