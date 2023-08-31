@@ -1166,7 +1166,9 @@ class TestCore(SupersetTestCase):
             follow_redirects=True,
         )
         assert resp.request.path == "/sqllab/"
-        assert resp.request.query_string == "savedQueryId=1&testParams=2"
+        assert (
+            resp.request.query_string.decode("utf-8") == "savedQueryId=1&testParams=2"
+        )
 
         resp = self.client.post("/superset/sqllab/")
         assert resp.status_code == 302
