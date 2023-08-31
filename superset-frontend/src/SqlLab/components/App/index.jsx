@@ -186,7 +186,14 @@ class App extends React.PureComponent {
   render() {
     const { queries, queriesLastUpdate } = this.props;
     if (this.state.hash && this.state.hash === '#search') {
-      return <Redirect to="/superset/sqllab/history/" />;
+      return (
+        <Redirect
+          to={{
+            pathname: '/superset/sqllab/history/',
+            replace: true,
+          }}
+        />
+      );
     }
     return (
       <SqlLabStyles data-test="SqlLabApp" className="App SqlLab">
