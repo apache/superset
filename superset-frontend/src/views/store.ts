@@ -123,7 +123,7 @@ const CombinedDatasourceReducers = (
 
 const reducers = {
   sqlLab: sqlLabReducer,
-  localStorageUsage: noopReducer(0),
+  localStorageUsageInKilobytes: noopReducer(0),
   messageToasts: messageToastReducer,
   common: noopReducer(bootstrapData.common),
   user: userReducer,
