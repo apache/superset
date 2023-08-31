@@ -20,13 +20,7 @@
 
 import React from 'react';
 import PropTypes from 'prop-types';
-import {
-  DatasourceType,
-  SupersetClient,
-  styled,
-  t,
-  withTheme,
-} from '@superset-ui/core';
+import { DatasourceType, styled, t, withTheme } from '@superset-ui/core';
 import { getTemporalColumns } from '@superset-ui/chart-controls';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { AntdDropdown } from 'src/components';
