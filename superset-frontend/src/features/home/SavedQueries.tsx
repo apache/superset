@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { styled, SupersetClient, t, useTheme } from '@superset-ui/core';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
@@ -41,7 +42,6 @@ import {
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
-import { Link } from 'react-router-dom';
 
 SyntaxHighlighter.registerLanguage('sql', sql);
 
