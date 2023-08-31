@@ -73,17 +73,13 @@ describe('SavedQuery', () => {
       useRedux: true,
       store: mockStore(mockState),
     });
-
-    try {
-      const saveBtn = screen.getByRole('button', { name: /save/i });
-      expect(saveBtn).not.toBeVisible();
-    } catch (err) {
-      expect(err.message).not.toContain('Received element is visible');
-      expect(err.message).toContain(
-        'Unable to find an accessible element with the role "button" and name `/save/i`',
-      );
-    }
+    expect(() => {
+      screen.getByRole('button', { name: /save/i });
+    }).toThrow(
+      'Unable to find an accessible element with the role "button" and name `/save/i`',
+    );
   });
+
   it('renders a non-split save button when allows_virtual_table_explore is not enabled', () => {
     render(<SaveQuery {...mockedProps} />, {
       useRedux: true,
