@@ -986,24 +986,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "POST",
         ),
     )
+    @deprecated(new_target="/sqllab")
     def sqllab(self) -> FlaskResponse:
         """SQL Editor"""
-        payload = {
-            "common": common_bootstrap_payload(g.user),
-            **bootstrap_sqllab_data(get_user_id()),
-        }
-
-        if form_data := request.form.get("form_data"):
-            with contextlib.suppress(json.JSONDecodeError):
-                payload["requested_query"] = json.loads(form_data)
-        payload["user"] = bootstrap_user_data(g.user, include_perms=True)
-        bootstrap_data = json.dumps(
-            payload, default=utils.pessimistic_json_iso_dttm_ser
-        )
-
-        return self.render_template(
-            "superset/basic.html", entry="sqllab", bootstrap_data=bootstrap_data
-        )
+        url = "/sqllab"
+        if url_params := request.args:
+            params = parse.urlencode(url_params)
+            url = f"{url}?{params}"
+        return redirect(url)
 
     @has_access
     @event_logger.log_this
