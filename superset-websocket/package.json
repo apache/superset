@@ -19,7 +19,7 @@
     "cookie": "^0.5.0",
     "hot-shots": "^10.0.0",
     "ioredis": "^4.28.0",
-    "jsonwebtoken": "^9.0.1",
+    "jsonwebtoken": "^9.0.2",
     "uuid": "^9.0.0",
     "winston": "^3.10.0",
     "ws": "^8.13.0"
