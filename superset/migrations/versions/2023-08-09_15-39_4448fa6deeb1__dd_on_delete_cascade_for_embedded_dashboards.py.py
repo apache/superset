@@ -26,7 +26,11 @@ Create Date: 2023-08-09 15:39:58.130228
 revision = "4448fa6deeb1"
 down_revision = "8ace289026f3"
 
+from alembic import op
+from sqlalchemy.engine.reflection import Inspector
+
 from superset.migrations.shared.constraints import ForeignKey, redefine
+from superset.utils.core import generic_find_fk_constraint_name
 
 foreign_keys = [
     ForeignKey(
@@ -40,9 +44,90 @@ foreign_keys = [
 
 def upgrade():
     for foreign_key in foreign_keys:
-        redefine(foreign_key, on_delete="CASCADE")
+        bind = op.get_bind()
+        insp = Inspector.from_engine(bind)
+        db_dialect = bind.engine.url.drivername
+
+        if db_dialect == "postgresql":
+            if constraint := generic_find_fk_constraint_name(
+                table=foreign_key.table,
+                columns=set(foreign_key.remote_cols),
+                referenced=foreign_key.referent_table,
+                insp=insp,
+            ):
+                # rename the constraint so that we can drop it later- non-blocking
+                # this only works on postgres
+                op.execute(
+                    f"ALTER TABLE {foreign_key.table} RENAME CONSTRAINT {constraint} TO {foreign_key.constraint_name}_old"
+                )
+
+            # create the new constraint- uses a non-blocking ALTER TABLE Not Valid property
+            op.create_foreign_key(
+                constraint_name=foreign_key.constraint_name,
+                source_table=foreign_key.table,
+                referent_table=foreign_key.referent_table,
+                local_cols=foreign_key.local_cols,
+                remote_cols=foreign_key.remote_cols,
+                ondelete="CASCADE",
+                postgresql_not_valid=True,
+            )
+
+            # validate the constraint- non-blocking
+            op.execute(
+                f"ALTER TABLE {foreign_key.table} VALIDATE CONSTRAINT {foreign_key.constraint_name}"
+            )
+
+            # drop the old constraint which isn't needed anymore- non-blocking
+            if constraint:
+                op.drop_constraint(
+                    f"{foreign_key.constraint_name}_old",
+                    foreign_key.table,
+                    type_="foreignkey",
+                )
+        else:
+            redefine(foreign_key, on_delete="CASCADE")
 
 
 def downgrade():
     for foreign_key in foreign_keys:
-        redefine(foreign_key)
+        bind = op.get_bind()
+        insp = Inspector.from_engine(bind)
+        db_dialect = bind.engine.url.drivername
+
+        if db_dialect == "postgresql":
+            if constraint := generic_find_fk_constraint_name(
+                table=foreign_key.table,
+                columns=set(foreign_key.remote_cols),
+                referenced=foreign_key.referent_table,
+                insp=insp,
+            ):
+                # rename the constraint so that we can drop it later- non-blocking
+                # this only works on postgres
+                op.execute(
+                    f"ALTER TABLE {foreign_key.table} RENAME CONSTRAINT {constraint} TO {foreign_key.constraint_name}_old"
+                )
+
+            # create the new constraint- uses a non-blocking ALTER TABLE Not Valid property
+            op.create_foreign_key(
+                constraint_name=foreign_key.constraint_name,
+                source_table=foreign_key.table,
+                referent_table=foreign_key.referent_table,
+                local_cols=foreign_key.local_cols,
+                remote_cols=foreign_key.remote_cols,
+                postgresql_not_valid=True,
+            )
+
+            # validate the constraint- non-blocking
+            op.execute(
+                f"ALTER TABLE {foreign_key.table} VALIDATE CONSTRAINT {foreign_key.constraint_name}"
+            )
+
+            # drop the old constraint which isn't needed anymore- non-blocking
+            if constraint:
+                op.drop_constraint(
+                    f"{foreign_key.constraint_name}_old",
+                    foreign_key.table,
+                    type_="foreignkey",
+                )
+        else:
+            redefine(foreign_key)
