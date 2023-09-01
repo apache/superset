@@ -20,21 +20,22 @@ import json
 import logging
 import random
 import string
-from typing import Any, Dict, Iterator, Optional, Set, Tuple
+from typing import Any, Optional
+from collections.abc import Iterator
 
 import yaml
-from werkzeug.utils import secure_filename
 
 from superset.charts.commands.export import ExportChartsCommand
 from superset.dashboards.commands.exceptions import DashboardNotFoundError
 from superset.dashboards.commands.importers.v1.utils import find_chart_uuids
-from superset.dashboards.dao import DashboardDAO
+from superset.daos.dashboard import DashboardDAO
 from superset.commands.export.models import ExportModelsCommand
 from superset.datasets.commands.export import ExportDatasetsCommand
-from superset.datasets.dao import DatasetDAO
+from superset.daos.dataset import DatasetDAO
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.dict_import_export import EXPORT_VERSION
+from superset.utils.file import get_filename
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +53,7 @@ def suffix(length: int = 8) -> str:
     )
 
 
-def get_default_position(title: str) -> Dict[str, Any]:
+def get_default_position(title: str) -> dict[str, Any]:
     return {
         "DASHBOARD_VERSION_KEY": "v2",
         "ROOT_ID": {"children": ["GRID_ID"], "id": "ROOT_ID", "type": "ROOT"},
@@ -66,7 +67,7 @@ def get_default_position(title: str) -> Dict[str, Any]:
     }
 
 
-def append_charts(position: Dict[str, Any], charts: Set[Slice]) -> Dict[str, Any]:
+def append_charts(position: dict[str, Any], charts: set[Slice]) -> dict[str, Any]:
     chart_hashes = [f"CHART-{suffix()}" for _ in charts]
 
     # if we have ROOT_ID/GRID_ID, append orphan charts to a new row inside the grid
@@ -102,7 +103,6 @@ def append_charts(position: Dict[str, Any], charts: Set[Slice]) -> Dict[str, Any
 
 
 class ExportDashboardsCommand(ExportModelsCommand):
-
     dao = DashboardDAO
     not_found = DashboardNotFoundError
 
@@ -110,9 +110,9 @@ class ExportDashboardsCommand(ExportModelsCommand):
     @staticmethod
     def _export(
         model: Dashboard, export_related: bool = True
-    ) -> Iterator[Tuple[str, str]]:
-        dashboard_slug = secure_filename(model.dashboard_title)
-        file_name = f"dashboards/{dashboard_slug}_{model.id}.yaml"
+    ) -> Iterator[tuple[str, str]]:
+        file_name = get_filename(model.dashboard_title, model.id)
+        file_path = f"dashboards/{file_name}.yaml"
 
         payload = model.export_to_dict(
             recursive=False,
@@ -163,7 +163,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
         payload["version"] = EXPORT_VERSION
 
         file_content = yaml.safe_dump(payload, sort_keys=False)
-        yield file_name, file_content
+        yield file_path, file_content
 
         if export_related:
             chart_ids = [chart.id for chart in model.slices]

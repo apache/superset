@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import { TableTabTypes } from 'src/views/CRUD/types';
-import { SetTabType } from 'src/views/CRUD/welcome/ActivityTable';
+import { TableTab } from 'src/views/CRUD/types';
 import { DashboardContextForExplore } from 'src/types/DashboardContextForExplore';
 
 export enum LocalStorageKeys {
@@ -55,6 +54,7 @@ export enum LocalStorageKeys {
   explore__data_table_original_formatted_time_columns = 'explore__data_table_original_formatted_time_columns',
   dashboard__custom_filter_bar_widths = 'dashboard__custom_filter_bar_widths',
   dashboard__explore_context = 'dashboard__explore_context',
+  dashboard__editor_show_only_my_charts = 'dashboard__editor_show_only_my_charts',
   common__resizable_sidebar_widths = 'common__resizable_sidebar_widths',
 }
 
@@ -65,15 +65,16 @@ export type LocalStorageValues = {
   controls_width: number;
   datasource_width: number;
   is_datapanel_open: boolean;
-  homepage_chart_filter: TableTabTypes;
-  homepage_dashboard_filter: TableTabTypes;
+  homepage_chart_filter: TableTab;
+  homepage_dashboard_filter: TableTab;
   homepage_collapse_state: string[];
   datasetname_set_successful: boolean;
-  homepage_activity_filter: SetTabType | null;
+  homepage_activity_filter: TableTab | null;
   sqllab__is_autocomplete_enabled: boolean;
   explore__data_table_original_formatted_time_columns: Record<string, string[]>;
   dashboard__custom_filter_bar_widths: Record<string, number>;
   dashboard__explore_context: Record<string, DashboardContextForExplore>;
+  dashboard__editor_show_only_my_charts: boolean;
   common__resizable_sidebar_widths: Record<string, number>;
 };
 

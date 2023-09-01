@@ -17,39 +17,38 @@
 import logging
 from typing import Optional
 
-from flask_appbuilder.models.sqla import Model
-
 from superset.annotation_layers.commands.exceptions import (
     AnnotationLayerDeleteFailedError,
     AnnotationLayerDeleteIntegrityError,
     AnnotationLayerNotFoundError,
 )
-from superset.annotation_layers.dao import AnnotationLayerDAO
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAODeleteFailedError
+from superset.daos.annotation import AnnotationLayerDAO
+from superset.daos.exceptions import DAODeleteFailedError
 from superset.models.annotations import AnnotationLayer
 
 logger = logging.getLogger(__name__)
 
 
 class DeleteAnnotationLayerCommand(BaseCommand):
-    def __init__(self, model_id: int):
-        self._model_id = model_id
-        self._model: Optional[AnnotationLayer] = None
+    def __init__(self, model_ids: list[int]):
+        self._model_ids = model_ids
+        self._models: Optional[list[AnnotationLayer]] = None
 
-    def run(self) -> Model:
+    def run(self) -> None:
         self.validate()
+        assert self._models
+
         try:
-            annotation_layer = AnnotationLayerDAO.delete(self._model)
+            AnnotationLayerDAO.delete(self._models)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
             raise AnnotationLayerDeleteFailedError() from ex
-        return annotation_layer
 
     def validate(self) -> None:
         # Validate/populate model exists
-        self._model = AnnotationLayerDAO.find_by_id(self._model_id)
-        if not self._model:
+        self._models = AnnotationLayerDAO.find_by_ids(self._model_ids)
+        if not self._models or len(self._models) != len(self._model_ids):
             raise AnnotationLayerNotFoundError()
-        if AnnotationLayerDAO.has_annotations(self._model.id):
+        if AnnotationLayerDAO.has_annotations(self._model_ids):
             raise AnnotationLayerDeleteIntegrityError()

@@ -20,11 +20,12 @@ import React, { useContext, useEffect, useReducer } from 'react';
 import {
   ChartMetadata,
   defineSharedModules,
+  isFeatureEnabled,
+  FeatureFlag,
   getChartMetadataRegistry,
   logging,
   makeApi,
 } from '@superset-ui/core';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { omitBy } from 'lodash';
 
 const metadataRegistry = getChartMetadataRegistry();

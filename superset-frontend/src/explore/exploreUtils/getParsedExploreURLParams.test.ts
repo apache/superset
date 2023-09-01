@@ -45,7 +45,7 @@ test('get datasource and viz type from form_data search param - url when creatin
     `${EXPLORE_BASE_URL}?form_data=%7B%22viz_type%22%3A%22big_number%22%2C%22datasource%22%3A%222__table%22%7D`,
   );
   expect(getParsedExploreURLParams().toString()).toEqual(
-    'viz_type=big_number&dataset_id=2&dataset_type=table',
+    'viz_type=big_number&datasource_id=2&datasource_type=table',
   );
 });
 
@@ -58,5 +58,5 @@ test('get permalink key from path params', () => {
 
 test('get dataset id from path params', () => {
   setupLocation(`${EXPLORE_BASE_URL}table/42/`);
-  expect(getParsedExploreURLParams().toString()).toEqual('dataset_id=42');
+  expect(getParsedExploreURLParams().toString()).toEqual('datasource_id=42');
 });

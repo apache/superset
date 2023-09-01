@@ -16,18 +16,18 @@
 # under the License.
 import json
 from contextlib import closing
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from flask_babel import gettext as __
 
 from superset.commands.base import BaseCommand
+from superset.daos.database import DatabaseDAO
 from superset.databases.commands.exceptions import (
     DatabaseOfflineError,
     DatabaseTestConnectionFailedError,
     InvalidEngineError,
     InvalidParametersError,
 )
-from superset.databases.dao import DatabaseDAO
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs import get_engine_spec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -38,7 +38,7 @@ BYPASS_VALIDATION_ENGINES = {"bigquery"}
 
 
 class ValidateDatabaseParametersCommand(BaseCommand):
-    def __init__(self, properties: Dict[str, Any]):
+    def __init__(self, properties: dict[str, Any]):
         self._properties = properties.copy()
         self._model: Optional[Database] = None
 
@@ -101,21 +101,22 @@ class ValidateDatabaseParametersCommand(BaseCommand):
         database.set_sqlalchemy_uri(sqlalchemy_uri)
         database.db_engine_spec.mutate_db_for_connection_test(database)
 
-        engine = database.get_sqla_engine()
-        try:
-            with closing(engine.raw_connection()) as conn:
-                alive = engine.dialect.do_ping(conn)
-        except Exception as ex:
-            url = make_url_safe(sqlalchemy_uri)
-            context = {
-                "hostname": url.host,
-                "password": url.password,
-                "port": url.port,
-                "username": url.username,
-                "database": url.database,
-            }
-            errors = database.db_engine_spec.extract_errors(ex, context)
-            raise DatabaseTestConnectionFailedError(errors) from ex
+        alive = False
+        with database.get_sqla_engine_with_context() as engine:
+            try:
+                with closing(engine.raw_connection()) as conn:
+                    alive = engine.dialect.do_ping(conn)
+            except Exception as ex:
+                url = make_url_safe(sqlalchemy_uri)
+                context = {
+                    "hostname": url.host,
+                    "password": url.password,
+                    "port": url.port,
+                    "username": url.username,
+                    "database": url.database,
+                }
+                errors = database.db_engine_spec.extract_errors(ex, context)
+                raise DatabaseTestConnectionFailedError(errors) from ex
 
         if not alive:
             raise DatabaseOfflineError(
@@ -127,6 +128,5 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             )
 
     def validate(self) -> None:
-        database_id = self._properties.get("id")
-        if database_id is not None:
+        if (database_id := self._properties.get("id")) is not None:
             self._model = DatabaseDAO.find_by_id(database_id)

@@ -122,4 +122,10 @@ export const CronPicker = styled((props: CronProps) => (
   .react-js-cron-custom-select > div:first-of-type {
     border-radius: ${({ theme }) => theme.gridUnit}px;
   }
+  .react-js-cron-custom-select .ant-select-selection-placeholder {
+    flex: auto;
+  }
+  .react-js-cron-custom-select .ant-select-selection-overflow-item {
+    align-self: center;
+  }
 `;

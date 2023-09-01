@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@superset-ui/core';
+
 export const STATE_TYPE_MAP = {
   offline: 'danger',
   failed: 'danger',
@@ -26,12 +28,30 @@ export const STATE_TYPE_MAP = {
   success: 'success',
 };
 
+export const STATE_TYPE_MAP_LOCALIZED = {
+  offline: t('offline'),
+  failed: t('failed'),
+  pending: t('pending'),
+  fetching: t('fetching'),
+  running: t('running'),
+  stopped: t('stopped'),
+  success: t('success'),
+};
+
 export const STATUS_OPTIONS = {
   success: 'success',
   failed: 'failed',
   running: 'running',
   offline: 'offline',
   pending: 'pending',
+};
+
+export const STATUS_OPTIONS_LOCALIZED = {
+  success: t('success'),
+  failed: t('failed'),
+  running: t('running'),
+  offline: t('offline'),
+  pending: t('pending'),
 };
 
 export const TIME_OPTIONS = [
@@ -63,6 +83,7 @@ export const BYTES_PER_CHAR = 2;
 // browser's localStorage max usage constants
 export const LOCALSTORAGE_MAX_QUERY_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
 export const LOCALSTORAGE_MAX_USAGE_KB = 5 * 1024; // 5M
+export const LOCALSTORAGE_MAX_QUERY_RESULTS_KB = 1 * 1024; // 1M
 export const LOCALSTORAGE_WARNING_THRESHOLD = 0.9;
 export const LOCALSTORAGE_WARNING_MESSAGE_THROTTLE_MS = 8000; // danger type toast duration
 

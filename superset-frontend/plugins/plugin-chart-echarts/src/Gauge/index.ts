@@ -16,14 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
+import { t, Behavior } from '@superset-ui/core';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import example1 from './images/example1.jpg';
+import example2 from './images/example2.jpg';
 import buildQuery from './buildQuery';
 import { EchartsGaugeChartProps, EchartsGaugeFormData } from './types';
+import { EchartsChartPlugin } from '../types';
 
-export default class EchartsGaugeChartPlugin extends ChartPlugin<
+export default class EchartsGaugeChartPlugin extends EchartsChartPlugin<
   EchartsGaugeFormData,
   EchartsGaugeChartProps
 > {
@@ -32,13 +35,18 @@ export default class EchartsGaugeChartPlugin extends ChartPlugin<
       buildQuery,
       controlPanel,
       loadChart: () => import('./EchartsGauge'),
-      metadata: new ChartMetadata({
-        behaviors: [Behavior.INTERACTIVE_CHART, Behavior.DRILL_TO_DETAIL],
+      metadata: {
+        behaviors: [
+          Behavior.INTERACTIVE_CHART,
+          Behavior.DRILL_TO_DETAIL,
+          Behavior.DRILL_BY,
+        ],
         category: t('KPI'),
         credits: ['https://echarts.apache.org'],
         description: t(
           'Uses a gauge to showcase progress of a metric towards a target. The position of the dial represents the progress and the terminal value in the gauge represents the target value.',
         ),
+        exampleGallery: [{ url: example1 }, { url: example2 }],
         name: t('Gauge Chart'),
         tags: [
           t('Multi-Variables'),
@@ -48,7 +56,7 @@ export default class EchartsGaugeChartPlugin extends ChartPlugin<
           t('Report'),
         ],
         thumbnail,
-      }),
+      },
       transformProps,
     });
   }

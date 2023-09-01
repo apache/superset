@@ -25,5 +25,5 @@ configureTestingLibrary({
   testIdAttribute: 'data-test',
 });
 
-document.body.innerHTML = '<div id="app" data-bootstrap="{}"></div>';
+document.body.innerHTML = '<div id="app" data-bootstrap=""></div>';
 expect.extend(matchers);

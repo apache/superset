@@ -44,7 +44,6 @@ import {
   sharedControls,
   ControlPanelState,
   ControlState,
-  emitFilterControl,
   Dataset,
   ColumnMeta,
   defineSavedMetrics,
@@ -218,7 +217,7 @@ const config: ControlPanelConfig = {
                 },
               }
             : null,
-          hasGenericChartAxes && isAggMode ? 'datetime_columns_lookup' : null,
+          hasGenericChartAxes && isAggMode ? 'temporal_columns_lookup' : null,
         ],
         [
           {
@@ -328,20 +327,24 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        !hasGenericChartAxes
+          ? [
+              {
+                name: 'include_time',
+                config: {
+                  type: 'CheckboxControl',
+                  label: t('Include time'),
+                  description: t(
+                    'Whether to include the time granularity as defined in the time section',
+                  ),
+                  default: false,
+                  visibility: isAggMode,
+                  resetOnHide: false,
+                },
+              },
+            ]
+          : [null],
         [
-          {
-            name: 'include_time',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Include time'),
-              description: t(
-                'Whether to include the time granularity as defined in the time section',
-              ),
-              default: false,
-              visibility: isAggMode,
-              resetOnHide: false,
-            },
-          },
           {
             name: 'order_desc',
             config: {
@@ -369,7 +372,6 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        emitFilterControl,
       ],
     },
     {
@@ -479,6 +481,8 @@ const config: ControlPanelConfig = {
               type: 'ColumnConfigControl',
               label: t('Customize columns'),
               description: t('Further customize how to display each column'),
+              width: 400,
+              height: 320,
               renderTrigger: true,
               shouldMapStateToProps() {
                 return true;
@@ -488,7 +492,6 @@ const config: ControlPanelConfig = {
                   queryResponse: chart?.queriesResponse?.[0] as
                     | ChartDataResponseResult
                     | undefined,
-                  emitFilter: explore?.controls?.table_filter?.value,
                 };
               },
             },
@@ -513,6 +516,7 @@ const config: ControlPanelConfig = {
                 )
                   ? (explore?.datasource as Dataset)?.verbose_map
                   : explore?.datasource?.columns ?? {};
+                const chartStatus = chart?.chartStatus;
                 const { colnames, coltypes } =
                   chart?.queriesResponse?.[0] ?? {};
                 const numericColumns =
@@ -528,6 +532,7 @@ const config: ControlPanelConfig = {
                         }))
                     : [];
                 return {
+                  removeIrrelevantConditions: chartStatus === 'success',
                   columnOptions: numericColumns,
                   verboseMap,
                 };

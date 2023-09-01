@@ -16,11 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  initFeatureFlags,
-  isFeatureEnabled,
-  FeatureFlag,
-} from 'src/featureFlags';
+import { initFeatureFlags } from '@superset-ui/core';
+import getBootstrapData from './getBootstrapData';
 
 function getDomainsConfig() {
   const appContainer = document.getElementById('app');
@@ -38,14 +35,13 @@ function getDomainsConfig() {
     return Array.from(availableDomains);
   }
 
-  const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
+  const bootstrapData = getBootstrapData();
   // this module is a little special, it may be loaded before index.jsx,
   // where window.featureFlags get initialized
   // eslint-disable-next-line camelcase
-  initFeatureFlags(bootstrapData?.common?.feature_flags);
+  initFeatureFlags(bootstrapData.common.feature_flags);
 
   if (
-    isFeatureEnabled(FeatureFlag.ALLOW_DASHBOARD_DOMAIN_SHARDING) &&
     bootstrapData &&
     bootstrapData.common &&
     bootstrapData.common.conf &&

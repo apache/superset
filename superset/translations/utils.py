@@ -16,25 +16,25 @@
 # under the License.
 import json
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 # Global caching for JSON language packs
-ALL_LANGUAGE_PACKS: Dict[str, Dict[str, Any]] = {"en": {}}
+ALL_LANGUAGE_PACKS: dict[str, dict[str, Any]] = {"en": {}}
 
 DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-def get_language_pack(locale: str) -> Optional[Dict[str, Any]]:
+def get_language_pack(locale: str) -> Optional[dict[str, Any]]:
     """Get/cache a language pack
 
-    Returns the langugage pack from cache if it exists, caches otherwise
+    Returns the language pack from cache if it exists, caches otherwise
 
     >>> get_language_pack('fr')['Dashboards']
     "Tableaux de bords"
     """
     pack = ALL_LANGUAGE_PACKS.get(locale)
     if not pack:
-        filename = DIR + "/{}/LC_MESSAGES/messages.json".format(locale)
+        filename = DIR + f"/{locale}/LC_MESSAGES/messages.json"
         try:
             with open(filename, encoding="utf8") as f:
                 pack = json.load(f)

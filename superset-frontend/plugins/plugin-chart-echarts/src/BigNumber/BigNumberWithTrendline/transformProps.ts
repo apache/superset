@@ -24,22 +24,27 @@ import {
   getMetricLabel,
   t,
   smartDateVerboseFormatter,
-  NumberFormatter,
   TimeFormatter,
   getXAxisLabel,
+  Metric,
+  ValueFormatter,
+  getValueFormatter,
 } from '@superset-ui/core';
 import { EChartsCoreOption, graphic } from 'echarts';
 import {
+  BigNumberVizProps,
   BigNumberDatum,
   BigNumberWithTrendlineChartProps,
   TimeSeriesDatum,
 } from '../types';
 import { getDateFormatter, parseMetricValue } from '../utils';
+import { getDefaultTooltip } from '../../utils/tooltip';
+import { Refs } from '../../types';
 
 const defaultNumberFormatter = getNumberFormatter();
 export function renderTooltipFactory(
   formatDate: TimeFormatter = smartDateVerboseFormatter,
-  formatValue: NumberFormatter | TimeFormatter = defaultNumberFormatter,
+  formatValue: ValueFormatter | TimeFormatter = defaultNumberFormatter,
 ) {
   return function renderTooltip(params: { data: TimeSeriesDatum }[]) {
     return `
@@ -60,7 +65,7 @@ const formatPercentChange = getNumberFormatter(
 
 export default function transformProps(
   chartProps: BigNumberWithTrendlineChartProps,
-) {
+): BigNumberVizProps {
   const {
     width,
     height,
@@ -70,6 +75,7 @@ export default function transformProps(
     theme,
     hooks,
     inContextMenu,
+    datasource: { currencyFormats = {}, columnFormats = {} },
   } = chartProps;
   const {
     colorPicker,
@@ -85,6 +91,7 @@ export default function transformProps(
     subheaderFontSize,
     forceTimestampFormatting,
     yAxisFormat,
+    currencyFormat,
     timeRangeFixed,
   } = formData;
   const granularity = extractTimegrain(rawFormData);
@@ -95,6 +102,7 @@ export default function transformProps(
     from_dttm: fromDatetime,
     to_dttm: toDatetime,
   } = queriesData[0];
+  const refs: Refs = {};
   const metricName = getMetricLabel(metric);
   const compareLag = Number(compareLag_) || 0;
   let formattedSubheader = subheader;
@@ -102,11 +110,11 @@ export default function transformProps(
   const { r, g, b } = colorPicker;
   const mainColor = `rgb(${r}, ${g}, ${b})`;
 
-  const timeColumn = getXAxisLabel(rawFormData) as string;
-  let trendLineData;
+  const xAxisLabel = getXAxisLabel(rawFormData) as string;
+  let trendLineData: TimeSeriesDatum[] | undefined;
   let percentChange = 0;
   let bigNumber = data.length === 0 ? null : data[0][metricName];
-  let timestamp = data.length === 0 ? null : data[0][timeColumn];
+  let timestamp = data.length === 0 ? null : data[0][xAxisLabel];
   let bigNumberFallback;
 
   const metricColtypeIndex = colnames.findIndex(name => name === metricName);
@@ -115,7 +123,7 @@ export default function transformProps(
 
   if (data.length > 0) {
     const sortedData = (data as BigNumberDatum[])
-      .map(d => [d[timeColumn], parseMetricValue(d[metricName])])
+      .map(d => [d[xAxisLabel], parseMetricValue(d[metricName])])
       // sort in time descending order
       .sort((a, b) => (a[0] !== null && b[0] !== null ? b[0] - a[0] : 0));
 
@@ -144,6 +152,7 @@ export default function transformProps(
       }
     }
     sortedData.reverse();
+    // @ts-ignore
     trendLineData = showTrendLine ? sortedData : undefined;
   }
 
@@ -154,7 +163,7 @@ export default function transformProps(
     className = 'negative';
   }
 
-  let metricEntry;
+  let metricEntry: Metric | undefined;
   if (chartProps.datasource?.metrics) {
     metricEntry = chartProps.datasource.metrics.find(
       metricEntry => metricEntry.metric_name === metric,
@@ -167,12 +176,20 @@ export default function transformProps(
     metricEntry?.d3format,
   );
 
+  const numberFormatter = getValueFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    yAxisFormat,
+    currencyFormat,
+  );
+
   const headerFormatter =
     metricColtype === GenericDataType.TEMPORAL ||
     metricColtype === GenericDataType.STRING ||
     forceTimestampFormatting
       ? formatTime
-      : getNumberFormatter(yAxisFormat ?? metricEntry?.d3format ?? undefined);
+      : numberFormatter;
 
   if (trendLineData && timeRangeFixed && fromDatetime) {
     const toDatetimeOrToday = toDatetime ?? Date.now();
@@ -229,10 +246,9 @@ export default function transformProps(
           bottom: 0,
         },
         tooltip: {
-          appendToBody: true,
+          ...getDefaultTooltip(refs),
           show: !inContextMenu,
           trigger: 'axis',
-          confine: true,
           formatter: renderTooltipFactory(formatTime, headerFormatter),
         },
         aria: {
@@ -250,6 +266,7 @@ export default function transformProps(
     width,
     height,
     bigNumber,
+    // @ts-ignore
     bigNumberFallback,
     className,
     headerFormatter,
@@ -267,5 +284,6 @@ export default function transformProps(
     echartOptions,
     onContextMenu,
     xValueFormatter: formatTime,
+    refs,
   };
 }

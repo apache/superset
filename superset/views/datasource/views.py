@@ -31,11 +31,11 @@ from superset import db, event_logger, security_manager
 from superset.commands.utils import populate_owners
 from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.sqla.utils import get_physical_table_metadata
+from superset.daos.datasource import DatasourceDAO
 from superset.datasets.commands.exceptions import (
     DatasetForbiddenError,
     DatasetNotFoundError,
 )
-from superset.datasource.dao import DatasourceDAO
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.core import Database
 from superset.superset_typing import FlaskResponse
@@ -43,6 +43,7 @@ from superset.utils.core import DatasourceType
 from superset.views.base import (
     api,
     BaseSupersetView,
+    deprecated,
     handle_api_exception,
     json_error_response,
 )
@@ -60,7 +61,7 @@ from superset.views.utils import sanitize_datasource_data
 class Datasource(BaseSupersetView):
     """Datasource-related views"""
 
-    @expose("/save/", methods=["POST"])
+    @expose("/save/", methods=("POST",))
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.save",
         log_to_statsd=False,
@@ -68,12 +69,15 @@ class Datasource(BaseSupersetView):
     @has_access_api
     @api
     @handle_api_exception
+    @deprecated(new_target="/api/v1/dataset/<int:pk>")
     def save(self) -> FlaskResponse:
         data = request.form.get("data")
         if not isinstance(data, str):
             return json_error_response(_("Request missing data field."), status=500)
 
         datasource_dict = json.loads(data)
+        normalize_columns = datasource_dict.get("normalize_columns", False)
+        datasource_dict["normalize_columns"] = normalize_columns
         datasource_id = datasource_dict.get("id")
         datasource_type = datasource_dict.get("type")
         database_id = datasource_dict["database"].get("id")
@@ -118,6 +122,7 @@ class Datasource(BaseSupersetView):
     @has_access_api
     @api
     @handle_api_exception
+    @deprecated(new_target="/api/v1/dataset/<int:pk>")
     def get(self, datasource_type: str, datasource_id: int) -> FlaskResponse:
         datasource = DatasourceDAO.get_datasource(
             db.session, DatasourceType(datasource_type), datasource_id
@@ -178,12 +183,13 @@ class Datasource(BaseSupersetView):
                     database=database,
                     table_name=params["table_name"],
                     schema_name=params["schema_name"],
+                    normalize_columns=params.get("normalize_columns") or False,
                 )
         except (NoResultFound, NoSuchTableError) as ex:
             raise DatasetNotFoundError() from ex
         return self.json_response(external_metadata)
 
-    @expose("/samples", methods=["POST"])
+    @expose("/samples", methods=("POST",))
     @has_access_api
     @api
     @handle_api_exception
@@ -213,12 +219,9 @@ class DatasetEditor(BaseSupersetView):
     @has_access
     @permission_name("read")
     def root(self) -> FlaskResponse:
-        dev = request.args.get("testing")
-        if dev is not None:
-            return super().render_app_template()
-        return redirect("/")
+        return super().render_app_template()
 
-    @expose("/<pk>", methods=["GET"])
+    @expose("/<pk>", methods=("GET",))
     @has_access
     @permission_name("read")
     # pylint: disable=unused-argument

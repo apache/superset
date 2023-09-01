@@ -23,6 +23,7 @@ import {
   EXTRA_FORM_DATA_APPEND_KEYS,
   EXTRA_FORM_DATA_OVERRIDE_KEYS,
   ExtraFormData,
+  isFeatureEnabled,
   FeatureFlag,
   Filter,
   getChartMetadataRegistry,
@@ -30,9 +31,16 @@ import {
 } from '@superset-ui/core';
 import { DashboardLayout } from 'src/dashboard/types';
 import extractUrlParams from 'src/dashboard/util/extractUrlParams';
-import { isFeatureEnabled } from 'src/featureFlags';
 import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
 import { DASHBOARD_GRID_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
+import getBootstrapData from '../../../utils/getBootstrapData';
+
+const getDefaultRowLimit = (): number => {
+  const bootstrapData = getBootstrapData();
+  const nativeFilterDefaultRowLimit =
+    bootstrapData?.common?.conf?.NATIVE_FILTER_DEFAULT_ROW_LIMIT;
+  return nativeFilterDefaultRowLimit || 1000;
+};
 
 export const getFormData = ({
   datasetId,
@@ -46,7 +54,10 @@ export const getFormData = ({
   time_range,
   granularity_sqla,
   type,
+  dashboardId,
+  id,
 }: Partial<Filter> & {
+  dashboardId: number;
   datasetId?: number;
   dependencies?: object;
   groupby?: string;
@@ -75,7 +86,7 @@ export const getFormData = ({
     extra_form_data: dependencies,
     granularity_sqla,
     metrics: ['count'],
-    row_limit: 1000,
+    row_limit: getDefaultRowLimit(),
     showSearch: true,
     defaultValue: defaultDataMask?.filterState?.value,
     time_range,
@@ -83,6 +94,8 @@ export const getFormData = ({
     inView: true,
     viz_type: filterType,
     type,
+    dashboardId,
+    native_filter_id: id,
   };
 };
 
@@ -146,7 +159,7 @@ export function nativeFilterGate(behaviors: Behavior[]): boolean {
 const isComponentATab = (
   dashboardLayout: DashboardLayout,
   componentId: string,
-) => dashboardLayout[componentId].type === TAB_TYPE;
+) => dashboardLayout?.[componentId]?.type === TAB_TYPE;
 
 const findTabsWithChartsInScopeHelper = (
   dashboardLayout: DashboardLayout,
@@ -154,27 +167,33 @@ const findTabsWithChartsInScopeHelper = (
   componentId: string,
   tabIds: string[],
   tabsToHighlight: Set<string>,
+  visited: Set<string>,
 ) => {
+  if (visited.has(componentId)) {
+    return;
+  }
+  visited.add(componentId);
   if (
-    dashboardLayout[componentId].type === CHART_TYPE &&
-    chartsInScope.includes(dashboardLayout[componentId].meta.chartId)
+    dashboardLayout?.[componentId]?.type === CHART_TYPE &&
+    chartsInScope.includes(dashboardLayout[componentId]?.meta?.chartId)
   ) {
     tabIds.forEach(tabsToHighlight.add, tabsToHighlight);
   }
   if (
-    dashboardLayout[componentId].children.length === 0 ||
+    dashboardLayout?.[componentId]?.children?.length === 0 ||
     (isComponentATab(dashboardLayout, componentId) &&
       tabsToHighlight.has(componentId))
   ) {
     return;
   }
-  dashboardLayout[componentId].children.forEach(childId =>
+  dashboardLayout[componentId]?.children.forEach(childId =>
     findTabsWithChartsInScopeHelper(
       dashboardLayout,
       chartsInScope,
       childId,
       isComponentATab(dashboardLayout, childId) ? [...tabIds, childId] : tabIds,
       tabsToHighlight,
+      visited,
     ),
   );
 };
@@ -187,19 +206,21 @@ export const findTabsWithChartsInScope = (
   const rootChildId = dashboardRoot.children[0];
   const hasTopLevelTabs = rootChildId !== DASHBOARD_GRID_ID;
   const tabsInScope = new Set<string>();
+  const visited = new Set<string>();
   if (hasTopLevelTabs) {
-    dashboardLayout[rootChildId].children?.forEach(tabId =>
+    dashboardLayout[rootChildId]?.children?.forEach(tabId =>
       findTabsWithChartsInScopeHelper(
         dashboardLayout,
         chartsInScope,
         tabId,
         [tabId],
         tabsInScope,
+        visited,
       ),
     );
   } else {
     Object.values(dashboardLayout)
-      .filter(element => element.type === TAB_TYPE)
+      .filter(element => element?.type === TAB_TYPE)
       .forEach(element =>
         findTabsWithChartsInScopeHelper(
           dashboardLayout,
@@ -207,6 +228,7 @@ export const findTabsWithChartsInScope = (
           element.id,
           [element.id],
           tabsInScope,
+          visited,
         ),
       );
   }

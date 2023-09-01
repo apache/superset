@@ -90,7 +90,7 @@ export type SupersetStyledSelectProps<
   // callback for paste event
   onPaste?: (e: SyntheticEvent) => void;
   forceOverflow?: boolean;
-  // for simplier theme overrides
+  // for simpler theme overrides
   themeConfig?: PartialThemeConfig;
   stylesConfig?: PartialStylesConfig;
 };
@@ -161,13 +161,15 @@ function styled<
       filterOption,
       ignoreAccents = false, // default is `true`, but it is slow
 
+      asText = (value: any) => String(value ?? ''),
+
       getOptionValue = option =>
         typeof option === 'string' ? option : option[valueKey],
 
       getOptionLabel = option =>
         typeof option === 'string'
           ? option
-          : option[labelKey] || option[valueKey],
+          : asText(option[labelKey]) || asText(option[valueKey]),
 
       formatOptionLabel = (
         option: OptionType,
@@ -185,7 +187,7 @@ function styled<
     // `value` may be rendered values (strings), we want option objects
     const value: OptionType[] = findValue(value_, options || [], valueKey);
 
-    // Add backward compability to v1 API
+    // Add backward compatibility to v1 API
     const isMulti = isMulti_ === undefined ? multi : isMulti_;
     const isClearable = isClearable_ === undefined ? clearable : isClearable_;
 

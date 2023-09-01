@@ -21,59 +21,12 @@ import {
   Operators,
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
 } from 'src/explore/constants';
-import { getSimpleSQLExpression } from 'src/explore/exploreUtils';
-
-export const EXPRESSION_TYPES = {
-  SIMPLE: 'SIMPLE',
-  SQL: 'SQL',
-};
-
-export const CLAUSES = {
-  HAVING: 'HAVING',
-  WHERE: 'WHERE',
-};
-
-const OPERATORS_TO_SQL = {
-  '==': '=',
-  '!=': '<>',
-  '>': '>',
-  '<': '<',
-  '>=': '>=',
-  '<=': '<=',
-  IN: 'IN',
-  'NOT IN': 'NOT IN',
-  LIKE: 'LIKE',
-  ILIKE: 'ILIKE',
-  REGEX: 'REGEX',
-  'IS NOT NULL': 'IS NOT NULL',
-  'IS NULL': 'IS NULL',
-  'IS TRUE': 'IS TRUE',
-  'IS FALSE': 'IS FALSE',
-  'LATEST PARTITION': ({ datasource }) =>
-    `= '{{ presto.latest_partition('${datasource.schema}.${datasource.datasource_name}') }}'`,
-};
+import { translateToSql } from '../utils/translateToSQL';
+import { CLAUSES, EXPRESSION_TYPES } from '../types';
 
 const CUSTOM_OPERATIONS = [...CUSTOM_OPERATORS].map(
   op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
 );
-
-function translateToSql(adhocMetric, { useSimple } = {}) {
-  if (adhocMetric.expressionType === EXPRESSION_TYPES.SIMPLE || useSimple) {
-    const { subject, comparator } = adhocMetric;
-    const operator =
-      adhocMetric.operator &&
-      // 'LATEST PARTITION' supported callback only
-      adhocMetric.operator ===
-        OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.LATEST_PARTITION].operation
-        ? OPERATORS_TO_SQL[adhocMetric.operator](adhocMetric)
-        : OPERATORS_TO_SQL[adhocMetric.operator];
-    return getSimpleSQLExpression(subject, operator, comparator);
-  }
-  if (adhocMetric.expressionType === EXPRESSION_TYPES.SQL) {
-    return adhocMetric.sqlExpression;
-  }
-  return '';
-}
 
 export default class AdhocFilter {
   constructor(adhocFilter) {

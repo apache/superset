@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -16,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from dataclasses import dataclass
-from typing import Any, List, Optional, Type
+from typing import Any, Optional
 
 import pandas as pd
 
@@ -29,7 +28,7 @@ class NotificationContent:
     name: str
     header_data: HeaderDataType  # this is optional to account for error states
     csv: Optional[bytes] = None  # bytes for csv file
-    screenshots: Optional[List[bytes]] = None  # bytes for a list of screenshots
+    screenshots: Optional[list[bytes]] = None  # bytes for a list of screenshots
     text: Optional[str] = None
     description: Optional[str] = ""
     url: Optional[str] = None  # url to chart/dashboard for this screenshot
@@ -44,7 +43,7 @@ class BaseNotification:  # pylint: disable=too-few-public-methods
     notification type
     """
 
-    plugins: List[Type["BaseNotification"]] = []
+    plugins: list[type["BaseNotification"]] = []
     type: Optional[ReportRecipientType] = None
     """
     Child classes set their notification type ex: `type = "email"` this string will be

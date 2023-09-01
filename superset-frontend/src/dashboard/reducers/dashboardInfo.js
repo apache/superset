@@ -19,7 +19,8 @@
 
 import {
   DASHBOARD_INFO_UPDATED,
-  SET_FILTER_BAR_LOCATION,
+  SET_FILTER_BAR_ORIENTATION,
+  SET_CROSS_FILTERS_ENABLED,
 } from '../actions/dashboardInfo';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
@@ -38,10 +39,15 @@ export default function dashboardStateReducer(state = {}, action) {
         ...action.data.dashboardInfo,
         // set async api call data
       };
-    case SET_FILTER_BAR_LOCATION:
+    case SET_FILTER_BAR_ORIENTATION:
       return {
         ...state,
-        filterBarLocation: action.filterBarLocation,
+        filterBarOrientation: action.filterBarOrientation,
+      };
+    case SET_CROSS_FILTERS_ENABLED:
+      return {
+        ...state,
+        crossFiltersEnabled: action.crossFiltersEnabled,
       };
     default:
       return state;

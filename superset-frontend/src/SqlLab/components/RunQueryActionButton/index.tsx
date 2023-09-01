@@ -27,7 +27,7 @@ import { detectOS } from 'src/utils/common';
 import { QueryButtonProps } from 'src/SqlLab/types';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
-export interface Props {
+export interface RunQueryActionButtonProps {
   queryEditorId: string;
   allowAsync: boolean;
   queryState?: string;
@@ -81,14 +81,14 @@ const StyledButton = styled.span`
   }
 `;
 
-const RunQueryActionButton: React.FC<Props> = ({
+const RunQueryActionButton = ({
   allowAsync = false,
   queryEditorId,
   queryState,
   overlayCreateAsMenu,
   runQuery,
   stopQuery,
-}) => {
+}: RunQueryActionButtonProps) => {
   const theme = useTheme();
   const userOS = detectOS();
 
@@ -105,9 +105,9 @@ const RunQueryActionButton: React.FC<Props> = ({
     : Button;
 
   const sqlContent = selectedText || sql || '';
-  const isDisabled =
-    !sqlContent ||
-    !sqlContent.replace(/(\/\*[^*]*\*\/)|(\/\/[^*]*)|(--[^.].*)/gm, '').trim();
+  const isDisabled = !sqlContent
+    ?.replace(/(\/\*[^*]*\*\/)|(\/\/[^*]*)|(--[^.].*)/gm, '')
+    .trim();
 
   const stopButtonTooltipText = useMemo(
     () =>
@@ -147,7 +147,9 @@ const RunQueryActionButton: React.FC<Props> = ({
               ),
               trigger: 'click',
             }
-          : { buttonStyle: 'primary' })}
+          : {
+              buttonStyle: shouldShowStopBtn ? 'warning' : 'primary',
+            })}
       >
         {buildText(shouldShowStopBtn, selectedText)}
       </ButtonComponent>

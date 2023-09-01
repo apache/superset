@@ -404,7 +404,7 @@ describe('Registry', () => {
       expect(listener).toBeCalledWith(['foo']);
     });
 
-    it('calls the listener when a value is overriden', () => {
+    it('calls the listener when a value is overridden', () => {
       registry.registerValue('foo', 'bar');
       listener.mockClear();
       registry.registerValue('foo', 'baz');

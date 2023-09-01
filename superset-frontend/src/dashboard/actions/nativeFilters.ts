@@ -25,6 +25,7 @@ import {
   makeApi,
 } from '@superset-ui/core';
 import { Dispatch } from 'redux';
+import { cloneDeep } from 'lodash';
 import {
   SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL,
   setDataMaskForFilterConfigComplete,
@@ -189,7 +190,7 @@ export const setInScopeStatusOfFilters =
       filterConfig: filtersWithScopes,
     });
     // need to update native_filter_configuration in the dashboard metadata
-    const { metadata } = getState().dashboardInfo;
+    const metadata = cloneDeep(getState().dashboardInfo.metadata);
     const filterConfig: FilterConfiguration =
       metadata.native_filter_configuration;
     const mergedFilterConfig = filterConfig.map(filter => {
@@ -372,6 +373,45 @@ export function unsetFocusedNativeFilter(): UnsetFocusedNativeFilter {
   };
 }
 
+export const SET_HOVERED_NATIVE_FILTER = 'SET_HOVERED_NATIVE_FILTER';
+export interface SetHoveredNativeFilter {
+  type: typeof SET_HOVERED_NATIVE_FILTER;
+  id: string;
+}
+export const UNSET_HOVERED_NATIVE_FILTER = 'UNSET_HOVERED_NATIVE_FILTER';
+export interface UnsetHoveredNativeFilter {
+  type: typeof UNSET_HOVERED_NATIVE_FILTER;
+}
+
+export function setHoveredNativeFilter(id: string): SetHoveredNativeFilter {
+  return {
+    type: SET_HOVERED_NATIVE_FILTER,
+    id,
+  };
+}
+export function unsetHoveredNativeFilter(): UnsetHoveredNativeFilter {
+  return {
+    type: UNSET_HOVERED_NATIVE_FILTER,
+  };
+}
+
+export const UPDATE_CASCADE_PARENT_IDS = 'UPDATE_CASCADE_PARENT_IDS';
+export interface UpdateCascadeParentIds {
+  type: typeof UPDATE_CASCADE_PARENT_IDS;
+  id: string;
+  parentIds: string[];
+}
+export function updateCascadeParentIds(
+  id: string,
+  parentIds: string[],
+): UpdateCascadeParentIds {
+  return {
+    type: UPDATE_CASCADE_PARENT_IDS,
+    id,
+    parentIds,
+  };
+}
+
 export type AnyFilterAction =
   | SetFilterConfigBegin
   | SetFilterConfigComplete
@@ -383,6 +423,8 @@ export type AnyFilterAction =
   | SetBootstrapData
   | SetFocusedNativeFilter
   | UnsetFocusedNativeFilter
+  | SetHoveredNativeFilter
+  | UnsetHoveredNativeFilter
   | CreateFilterSetBegin
   | CreateFilterSetComplete
   | CreateFilterSetFail
@@ -391,4 +433,5 @@ export type AnyFilterAction =
   | DeleteFilterSetFail
   | UpdateFilterSetBegin
   | UpdateFilterSetComplete
-  | UpdateFilterSetFail;
+  | UpdateFilterSetFail
+  | UpdateCascadeParentIds;

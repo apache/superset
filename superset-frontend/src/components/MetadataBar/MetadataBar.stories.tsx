@@ -22,13 +22,13 @@ import { useResizeDetector } from 'react-resize-detector';
 import MetadataBar, { MetadataBarProps, MetadataType } from '.';
 
 export default {
-  title: 'MetadataBar',
+  title: 'Design System/Components/MetadataBar/Examples',
   component: MetadataBar,
 };
 
 const A_WEEK_AGO = 'a week ago';
 
-export const Component = ({
+export const Basic = ({
   items,
   onClick,
 }: MetadataBarProps & {
@@ -61,7 +61,7 @@ export const Component = ({
   );
 };
 
-Component.story = {
+Basic.story = {
   parameters: {
     knobs: {
       disable: true,
@@ -69,7 +69,7 @@ Component.story = {
   },
 };
 
-Component.args = {
+Basic.args = {
   items: [
     {
       type: MetadataType.SQL,
@@ -99,7 +99,7 @@ Component.args = {
   ],
 };
 
-Component.argTypes = {
+Basic.argTypes = {
   onClick: {
     action: 'onClick',
     table: {

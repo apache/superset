@@ -107,8 +107,8 @@ test('rolling_type: sum/mean/std', () => {
 });
 
 test('should append compared metrics when sets time compare type', () => {
-  const comparisionTypes = ['values', 'difference', 'percentage', 'ratio'];
-  comparisionTypes.forEach(cType => {
+  const comparisonTypes = ['values', 'difference', 'percentage', 'ratio'];
+  comparisonTypes.forEach(cType => {
     expect(
       rollingWindowOperator(
         {

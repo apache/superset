@@ -33,8 +33,6 @@ import {
   fakePluginControls,
 } from './AlteredSliceTagMocks';
 
-jest.mock('src/components/Icons/Icon', () => () => <span />);
-
 const getTableWrapperFromModalBody = modalBody =>
   modalBody.find(TableView).find(TableCollection);
 

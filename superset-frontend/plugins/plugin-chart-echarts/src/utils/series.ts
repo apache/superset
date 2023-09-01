@@ -18,6 +18,7 @@
  * under the License.
  */
 import {
+  AxisType,
   ChartDataResponseResult,
   DataRecord,
   DataRecordValue,
@@ -27,12 +28,17 @@ import {
   NumberFormats,
   NumberFormatter,
   TimeFormatter,
-  AxisType,
+  SupersetTheme,
+  normalizeTimestamp,
+  LegendState,
+  ValueFormatter,
 } from '@superset-ui/core';
+import { SortSeriesType } from '@superset-ui/chart-controls';
 import { format, LegendComponentOption, SeriesOption } from 'echarts';
+import { maxBy, meanBy, minBy, orderBy, sumBy } from 'lodash';
 import {
-  AreaChartExtraControlsValue,
   NULL_STRING,
+  StackControlsValue,
   TIMESERIES_CONSTANTS,
 } from '../constants';
 import { LegendOrientation, LegendType, StackType } from '../types';
@@ -48,6 +54,7 @@ export function extractDataTotalValues(
     stack: StackType;
     percentageThreshold: number;
     xAxisCol: string;
+    legendState?: LegendState;
   },
 ): {
   totalStackedValues: number[];
@@ -55,11 +62,14 @@ export function extractDataTotalValues(
 } {
   const totalStackedValues: number[] = [];
   const thresholdValues: number[] = [];
-  const { stack, percentageThreshold, xAxisCol } = opts;
+  const { stack, percentageThreshold, xAxisCol, legendState } = opts;
   if (stack) {
     data.forEach(datum => {
       const values = Object.keys(datum).reduce((prev, curr) => {
         if (curr === xAxisCol) {
+          return prev;
+        }
+        if (legendState && !legendState[curr]) {
           return prev;
         }
         const value = datum[curr] || 0;
@@ -81,23 +91,28 @@ export function extractShowValueIndexes(
     stack: StackType;
     onlyTotal?: boolean;
     isHorizontal?: boolean;
+    legendState?: LegendState;
   },
 ): number[] {
   const showValueIndexes: number[] = [];
-  if (opts.stack) {
+  const { legendState, stack, isHorizontal, onlyTotal } = opts;
+  if (stack) {
     series.forEach((entry, seriesIndex) => {
       const { data = [] } = entry;
       (data as [any, number][]).forEach((datum, dataIndex) => {
-        if (!opts.onlyTotal && datum[opts.isHorizontal ? 0 : 1] !== null) {
+        if (entry.id && legendState && !legendState[entry.id]) {
+          return;
+        }
+        if (!onlyTotal && datum[isHorizontal ? 0 : 1] !== null) {
           showValueIndexes[dataIndex] = seriesIndex;
         }
-        if (opts.onlyTotal) {
-          if (datum[opts.isHorizontal ? 0 : 1] > 0) {
+        if (onlyTotal) {
+          if (datum[isHorizontal ? 0 : 1] > 0) {
             showValueIndexes[dataIndex] = seriesIndex;
           }
           if (
             !showValueIndexes[dataIndex] &&
-            datum[opts.isHorizontal ? 0 : 1] !== null
+            datum[isHorizontal ? 0 : 1] !== null
           ) {
             showValueIndexes[dataIndex] = seriesIndex;
           }
@@ -108,58 +123,220 @@ export function extractShowValueIndexes(
   return showValueIndexes;
 }
 
+export function sortAndFilterSeries(
+  rows: DataRecord[],
+  xAxis: string,
+  extraMetricLabels: any[],
+  sortSeriesType?: SortSeriesType,
+  sortSeriesAscending?: boolean,
+): string[] {
+  const seriesNames = Object.keys(rows[0])
+    .filter(key => key !== xAxis)
+    .filter(key => !extraMetricLabels.includes(key));
+
+  let aggregator: (name: string) => { name: string; value: any };
+
+  switch (sortSeriesType) {
+    case SortSeriesType.Sum:
+      aggregator = name => ({ name, value: sumBy(rows, name) });
+      break;
+    case SortSeriesType.Min:
+      aggregator = name => ({ name, value: minBy(rows, name)?.[name] });
+      break;
+    case SortSeriesType.Max:
+      aggregator = name => ({ name, value: maxBy(rows, name)?.[name] });
+      break;
+    case SortSeriesType.Avg:
+      aggregator = name => ({ name, value: meanBy(rows, name) });
+      break;
+    default:
+      aggregator = name => ({ name, value: name.toLowerCase() });
+      break;
+  }
+
+  const sortedValues = seriesNames.map(aggregator);
+
+  return orderBy(
+    sortedValues,
+    ['value'],
+    [sortSeriesAscending ? 'asc' : 'desc'],
+  ).map(({ name }) => name);
+}
+
+export function sortRows(
+  rows: DataRecord[],
+  totalStackedValues: number[],
+  xAxis: string,
+  xAxisSortSeries: SortSeriesType,
+  xAxisSortSeriesAscending: boolean,
+) {
+  const sortedRows = rows.map((row, idx) => {
+    let sortKey: DataRecordValue = '';
+    let aggregate: number | undefined;
+    let entries = 0;
+    Object.entries(row).forEach(([key, value]) => {
+      const isValueDefined = isDefined(value);
+      if (key === xAxis) {
+        sortKey = value;
+      }
+      if (
+        xAxisSortSeries === SortSeriesType.Name ||
+        typeof value !== 'number'
+      ) {
+        return;
+      }
+
+      if (!(xAxisSortSeries === SortSeriesType.Avg && !isValueDefined)) {
+        entries += 1;
+      }
+
+      switch (xAxisSortSeries) {
+        case SortSeriesType.Avg:
+        case SortSeriesType.Sum:
+          if (aggregate === undefined) {
+            aggregate = value;
+          } else {
+            aggregate += value;
+          }
+          break;
+        case SortSeriesType.Min:
+          aggregate =
+            aggregate === undefined || (isValueDefined && value < aggregate)
+              ? value
+              : aggregate;
+          break;
+        case SortSeriesType.Max:
+          aggregate =
+            aggregate === undefined || (isValueDefined && value > aggregate)
+              ? value
+              : aggregate;
+          break;
+        default:
+          break;
+      }
+    });
+    if (
+      xAxisSortSeries === SortSeriesType.Avg &&
+      entries > 0 &&
+      aggregate !== undefined
+    ) {
+      aggregate /= entries;
+    }
+
+    const value =
+      xAxisSortSeries === SortSeriesType.Name && typeof sortKey === 'string'
+        ? sortKey.toLowerCase()
+        : aggregate;
+
+    return {
+      key: sortKey,
+      value,
+      row,
+      totalStackedValue: totalStackedValues[idx],
+    };
+  });
+
+  return orderBy(
+    sortedRows,
+    ['value'],
+    [xAxisSortSeriesAscending ? 'asc' : 'desc'],
+  ).map(({ row, totalStackedValue }) => ({ row, totalStackedValue }));
+}
+
 export function extractSeries(
   data: DataRecord[],
   opts: {
     fillNeighborValue?: number;
     xAxis?: string;
+    extraMetricLabels?: string[];
     removeNulls?: boolean;
     stack?: StackType;
     totalStackedValues?: number[];
     isHorizontal?: boolean;
+    sortSeriesType?: SortSeriesType;
+    sortSeriesAscending?: boolean;
+    xAxisSortSeries?: SortSeriesType;
+    xAxisSortSeriesAscending?: boolean;
   } = {},
-): SeriesOption[] {
+): [SeriesOption[], number[], number | undefined] {
   const {
     fillNeighborValue,
     xAxis = DTTM_ALIAS,
+    extraMetricLabels = [],
     removeNulls = false,
     stack = false,
     totalStackedValues = [],
     isHorizontal = false,
+    sortSeriesType,
+    sortSeriesAscending,
+    xAxisSortSeries,
+    xAxisSortSeriesAscending,
   } = opts;
-  if (data.length === 0) return [];
+  if (data.length === 0) return [[], [], undefined];
   const rows: DataRecord[] = data.map(datum => ({
     ...datum,
     [xAxis]: datum[xAxis],
   }));
+  const sortedSeries = sortAndFilterSeries(
+    rows,
+    xAxis,
+    extraMetricLabels,
+    sortSeriesType,
+    sortSeriesAscending,
+  );
+  const sortedRows =
+    isDefined(xAxisSortSeries) && isDefined(xAxisSortSeriesAscending)
+      ? sortRows(
+          rows,
+          totalStackedValues,
+          xAxis,
+          xAxisSortSeries!,
+          xAxisSortSeriesAscending!,
+        )
+      : rows.map((row, idx) => ({
+          row,
+          totalStackedValue: totalStackedValues[idx],
+        }));
 
-  return Object.keys(rows[0])
-    .filter(key => key !== xAxis && key !== DTTM_ALIAS)
-    .map(key => ({
-      id: key,
-      name: key,
-      data: rows
-        .map((row, idx) => {
-          const isNextToDefinedValue =
-            isDefined(rows[idx - 1]?.[key]) || isDefined(rows[idx + 1]?.[key]);
-          const isFillNeighborValue =
-            !isDefined(row[key]) &&
-            isNextToDefinedValue &&
-            fillNeighborValue !== undefined;
-          let value: DataRecordValue | undefined = row[key];
-          if (isFillNeighborValue) {
-            value = fillNeighborValue;
-          } else if (
-            stack === AreaChartExtraControlsValue.Expand &&
-            totalStackedValues.length > 0
-          ) {
-            value = ((value || 0) as number) / totalStackedValues[idx];
-          }
-          return [row[xAxis], value];
-        })
-        .filter(obs => !removeNulls || (obs[0] !== null && obs[1] !== null))
-        .map(obs => (isHorizontal ? [obs[1], obs[0]] : obs)),
-    }));
+  let minPositiveValue: number | undefined;
+  const finalSeries = sortedSeries.map(name => ({
+    id: name,
+    name,
+    data: sortedRows
+      .map(({ row, totalStackedValue }, idx) => {
+        const currentValue = row[name];
+        if (
+          typeof currentValue === 'number' &&
+          currentValue > 0 &&
+          (minPositiveValue === undefined || minPositiveValue > currentValue)
+        ) {
+          minPositiveValue = currentValue;
+        }
+        const isNextToDefinedValue =
+          isDefined(rows[idx - 1]?.[name]) || isDefined(rows[idx + 1]?.[name]);
+        const isFillNeighborValue =
+          !isDefined(currentValue) &&
+          isNextToDefinedValue &&
+          fillNeighborValue !== undefined;
+        let value: DataRecordValue | undefined = currentValue;
+        if (isFillNeighborValue) {
+          value = fillNeighborValue;
+        } else if (
+          stack === StackControlsValue.Expand &&
+          totalStackedValue !== undefined
+        ) {
+          value = ((value || 0) as number) / totalStackedValue;
+        }
+        return [row[xAxis], value];
+      })
+      .filter(obs => !removeNulls || (obs[0] !== null && obs[1] !== null))
+      .map(obs => (isHorizontal ? [obs[1], obs[0]] : obs)),
+  }));
+  return [
+    finalSeries,
+    sortedRows.map(({ totalStackedValue }) => totalStackedValue),
+    minPositiveValue,
+  ];
 }
 
 export function formatSeriesName(
@@ -169,7 +346,7 @@ export function formatSeriesName(
     timeFormatter,
     coltype,
   }: {
-    numberFormatter?: NumberFormatter;
+    numberFormatter?: ValueFormatter;
     timeFormatter?: TimeFormatter;
     coltype?: GenericDataType;
   } = {},
@@ -181,7 +358,12 @@ export function formatSeriesName(
     return name.toString();
   }
   if (name instanceof Date || coltype === GenericDataType.TEMPORAL) {
-    const d = name instanceof Date ? name : new Date(name);
+    const normalizedName =
+      typeof name === 'string' ? normalizeTimestamp(name) : name;
+    const d =
+      normalizedName instanceof Date
+        ? normalizedName
+        : new Date(normalizedName);
 
     return timeFormatter ? timeFormatter(d) : d.toISOString();
   }
@@ -231,7 +413,9 @@ export function getLegendProps(
   type: LegendType,
   orientation: LegendOrientation,
   show: boolean,
+  theme: SupersetTheme,
   zoomable = false,
+  legendState?: LegendState,
 ): LegendComponentOption | LegendComponentOption[] {
   const legend: LegendComponentOption | LegendComponentOption[] = {
     orient: [LegendOrientation.Top, LegendOrientation.Bottom].includes(
@@ -241,6 +425,14 @@ export function getLegendProps(
       : 'vertical',
     show,
     type,
+    selected: legendState,
+    selector: ['all', 'inverse'],
+    selectorLabel: {
+      fontFamily: theme.typography.families.sansSerif,
+      fontSize: theme.typography.sizes.s,
+      color: theme.colors.grayscale.base,
+      borderColor: theme.colors.grayscale.base,
+    },
   };
   switch (orientation) {
     case LegendOrientation.Left:
@@ -316,12 +508,6 @@ export function sanitizeHtml(text: string): string {
   return format.encodeHTML(text);
 }
 
-// TODO: Better use other method to maintain this state
-export const currentSeries = {
-  name: '',
-  legend: '',
-};
-
 export function getAxisType(dataType?: GenericDataType): AxisType {
   if (dataType === GenericDataType.TEMPORAL) {
     return AxisType.time;
@@ -332,7 +518,7 @@ export function getAxisType(dataType?: GenericDataType): AxisType {
 export function getOverMaxHiddenFormatter(
   config: {
     max?: number;
-    formatter?: NumberFormatter;
+    formatter?: ValueFormatter;
   } = {},
 ) {
   const { max, formatter } = config;
@@ -348,4 +534,9 @@ export function getOverMaxHiddenFormatter(
       }`,
     id: NumberFormats.OVER_MAX_HIDDEN,
   });
+}
+
+export function calculateLowerLogTick(minPositiveValue: number) {
+  const logBase10 = Math.floor(Math.log10(minPositiveValue));
+  return Math.pow(10, logBase10);
 }

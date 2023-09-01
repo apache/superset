@@ -17,11 +17,13 @@
 
 import json
 import logging
-from typing import Any, Dict, Set
+from typing import Any
 
 from flask import g
 from sqlalchemy.orm import Session
 
+from superset import security_manager
+from superset.commands.exceptions import ImportFailedError
 from superset.models.dashboard import Dashboard
 
 logger = logging.getLogger(__name__)
@@ -30,12 +32,12 @@ logger = logging.getLogger(__name__)
 JSON_KEYS = {"position": "position_json", "metadata": "json_metadata"}
 
 
-def find_chart_uuids(position: Dict[str, Any]) -> Set[str]:
+def find_chart_uuids(position: dict[str, Any]) -> set[str]:
     return set(build_uuid_to_id_map(position))
 
 
-def find_native_filter_datasets(metadata: Dict[str, Any]) -> Set[str]:
-    uuids: Set[str] = set()
+def find_native_filter_datasets(metadata: dict[str, Any]) -> set[str]:
+    uuids: set[str] = set()
     for native_filter in metadata.get("native_filter_configuration", []):
         targets = native_filter.get("targets", [])
         for target in targets:
@@ -45,7 +47,7 @@ def find_native_filter_datasets(metadata: Dict[str, Any]) -> Set[str]:
     return uuids
 
 
-def build_uuid_to_id_map(position: Dict[str, Any]) -> Dict[str, int]:
+def build_uuid_to_id_map(position: dict[str, Any]) -> dict[str, int]:
     return {
         child["meta"]["uuid"]: child["meta"]["chartId"]
         for child in position.values()
@@ -58,10 +60,10 @@ def build_uuid_to_id_map(position: Dict[str, Any]) -> Dict[str, int]:
 
 
 def update_id_refs(  # pylint: disable=too-many-locals
-    config: Dict[str, Any],
-    chart_ids: Dict[str, int],
-    dataset_info: Dict[str, Dict[str, Any]],
-) -> Dict[str, Any]:
+    config: dict[str, Any],
+    chart_ids: dict[str, int],
+    dataset_info: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
     """Update dashboard metadata to use new IDs"""
     fixed = config.copy()
 
@@ -79,7 +81,7 @@ def update_id_refs(  # pylint: disable=too-many-locals
         ]
 
     if "filter_scopes" in metadata:
-        # in filter_scopes the key is the chart ID as a string; we need to udpate
+        # in filter_scopes the key is the chart ID as a string; we need to update
         # them to be the new ID as a string:
         metadata["filter_scopes"] = {
             str(id_map[int(old_id)]): columns
@@ -144,16 +146,33 @@ def update_id_refs(  # pylint: disable=too-many-locals
 
 
 def import_dashboard(
-    session: Session, config: Dict[str, Any], overwrite: bool = False
+    session: Session,
+    config: dict[str, Any],
+    overwrite: bool = False,
+    ignore_permissions: bool = False,
 ) -> Dashboard:
+    can_write = ignore_permissions or security_manager.can_access(
+        "can_write",
+        "Dashboard",
+    )
     existing = session.query(Dashboard).filter_by(uuid=config["uuid"]).first()
     if existing:
-        if not overwrite:
+        if not overwrite or not can_write:
             return existing
         config["id"] = existing.id
+    elif not can_write:
+        raise ImportFailedError(
+            "Dashboard doesn't exist and user doesn't "
+            "have permission to create dashboards"
+        )
 
     # TODO (betodealmeida): move this logic to import_from_dict
     config = config.copy()
+
+    # removed in https://github.com/apache/superset/pull/23228
+    if "metadata" in config and "show_native_filters" in config["metadata"]:
+        del config["metadata"]["show_native_filters"]
+
     for key, new_name in JSON_KEYS.items():
         if config.get(key) is not None:
             value = config.pop(key)

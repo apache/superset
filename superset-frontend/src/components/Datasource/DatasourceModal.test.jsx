@@ -18,29 +18,27 @@
  */
 import React from 'react';
 import { act } from 'react-dom/test-utils';
-import configureStore from 'redux-mock-store';
 import { mount } from 'enzyme';
 import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
-import thunk from 'redux-thunk';
 import sinon from 'sinon';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
+import { defaultStore as store } from 'spec/helpers/testing-library';
 import Modal from 'src/components/Modal';
 import { DatasourceModal } from 'src/components/Datasource';
 import DatasourceEditor from 'src/components/Datasource/DatasourceEditor';
-import * as featureFlags from 'src/featureFlags';
+import * as uiCore from '@superset-ui/core';
 import mockDatasource from 'spec/fixtures/mockDatasource';
-import QueryProvider from 'src/views/QueryProvider';
+import { api } from 'src/hooks/apiResources/queryApi';
 
-const mockStore = configureStore([thunk]);
-const store = mockStore({});
 const datasource = mockDatasource['7__table'];
 
 const SAVE_ENDPOINT = 'glob:*/api/v1/dataset/7';
 const SAVE_PAYLOAD = { new: 'data' };
-const SAVE_DATASOURCE_ENDPOINT = 'glob:*/datasource/save/';
+const SAVE_DATASOURCE_ENDPOINT = 'glob:*/api/v1/dataset/7';
+const GET_DATASOURCE_ENDPOINT = SAVE_DATASOURCE_ENDPOINT;
 
 const mockedProps = {
   datasource,
@@ -54,11 +52,9 @@ const mockedProps = {
 
 async function mountAndWait(props = mockedProps) {
   const mounted = mount(
-    <QueryProvider>
-      <Provider store={store}>
-        <DatasourceModal {...props} />
-      </Provider>
-    </QueryProvider>,
+    <Provider store={store}>
+      <DatasourceModal {...props} />
+    </Provider>,
     {
       wrappingComponent: ThemeProvider,
       wrappingComponentProps: { theme: supersetTheme },
@@ -73,13 +69,16 @@ describe('DatasourceModal', () => {
   let wrapper;
   let isFeatureEnabledMock;
   beforeEach(async () => {
-    isFeatureEnabledMock = jest.spyOn(featureFlags, 'isFeatureEnabled');
+    isFeatureEnabledMock = jest.spyOn(uiCore, 'isFeatureEnabled');
     fetchMock.reset();
     wrapper = await mountAndWait();
   });
 
   afterAll(() => {
     isFeatureEnabledMock.restore();
+    act(() => {
+      store.dispatch(api.util.resetApiState());
+    });
   });
 
   it('renders', () => {
@@ -96,7 +95,8 @@ describe('DatasourceModal', () => {
 
   it('saves on confirm', async () => {
     const callsP = fetchMock.post(SAVE_ENDPOINT, SAVE_PAYLOAD);
-    fetchMock.post(SAVE_DATASOURCE_ENDPOINT, {});
+    fetchMock.put(SAVE_DATASOURCE_ENDPOINT, {});
+    fetchMock.get(GET_DATASOURCE_ENDPOINT, {});
     act(() => {
       wrapper
         .find('button[data-test="datasource-modal-save"]')
@@ -111,14 +111,17 @@ describe('DatasourceModal', () => {
       okButton.simulate('click');
     });
     await waitForComponentToPaint(wrapper);
-    const expected = ['http://localhost/datasource/save/'];
+    // one call to PUT, then one to GET
+    const expected = [
+      'http://localhost/api/v1/dataset/7',
+      'http://localhost/api/v1/dataset/7',
+    ];
     expect(callsP._calls.map(call => call[0])).toEqual(
       expected,
     ); /* eslint no-underscore-dangle: 0 */
   });
 
   it('renders a legacy data source btn', () => {
-    featureFlags.DISABLE_LEGACY_DATASOURCE_EDITOR = false;
     expect(
       wrapper.find('button[data-test="datasource-modal-legacy-edit"]'),
     ).toExist();

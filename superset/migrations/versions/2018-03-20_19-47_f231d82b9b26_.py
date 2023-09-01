@@ -36,7 +36,6 @@ names = {"columns": "column_name", "metrics": "metric_name"}
 
 
 def upgrade():
-
     # Reduce the size of the metric_name column for constraint viability.
     with op.batch_alter_table("metrics", naming_convention=conv) as batch_op:
         batch_op.alter_column(
@@ -50,12 +49,11 @@ def upgrade():
     for table, column in names.items():
         with op.batch_alter_table(table, naming_convention=conv) as batch_op:
             batch_op.create_unique_constraint(
-                "uq_{}_{}".format(table, column), [column, "datasource_id"]
+                f"uq_{table}_{column}", [column, "datasource_id"]
             )
 
 
 def downgrade():
-
     bind = op.get_bind()
     insp = sa.engine.reflection.Inspector.from_engine(bind)
 
@@ -73,6 +71,6 @@ def downgrade():
         with op.batch_alter_table(table, naming_convention=conv) as batch_op:
             batch_op.drop_constraint(
                 generic_find_uq_constraint_name(table, {column, "datasource_id"}, insp)
-                or "uq_{}_{}".format(table, column),
+                or f"uq_{table}_{column}",
                 type_="unique",
             )

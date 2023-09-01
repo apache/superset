@@ -22,11 +22,13 @@ import { setFilterConfiguration } from 'src/dashboard/actions/nativeFilters';
 import Button from 'src/components/Button';
 import { FilterConfiguration, styled } from '@superset-ui/core';
 import FiltersConfigModal from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal';
-import { getFilterBarTestId } from '..';
+import { getFilterBarTestId } from '../utils';
 
 export interface FCBProps {
   createNewOnOpen?: boolean;
   dashboardId?: number;
+  initialFilterId?: string;
+  onClick?: () => void;
   children?: React.ReactNode;
 }
 
@@ -37,6 +39,8 @@ const HeaderButton = styled(Button)`
 export const FilterConfigurationLink: React.FC<FCBProps> = ({
   createNewOnOpen,
   dashboardId,
+  initialFilterId,
+  onClick,
   children,
 }) => {
   const dispatch = useDispatch();
@@ -56,7 +60,10 @@ export const FilterConfigurationLink: React.FC<FCBProps> = ({
 
   const handleClick = useCallback(() => {
     setOpen(true);
-  }, [setOpen]);
+    if (onClick) {
+      onClick();
+    }
+  }, [setOpen, onClick]);
 
   return (
     <>
@@ -73,6 +80,7 @@ export const FilterConfigurationLink: React.FC<FCBProps> = ({
         isOpen={isOpen}
         onSave={submit}
         onCancel={close}
+        initialFilterId={initialFilterId}
         createNewOnOpen={createNewOnOpen}
         key={`filters-for-${dashboardId}`}
       />

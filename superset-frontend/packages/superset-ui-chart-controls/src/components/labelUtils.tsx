@@ -31,6 +31,13 @@ const TooltipSectionWrapper = styled.div`
     &:not(:last-of-type) {
       margin-bottom: ${theme.gridUnit * 2}px;
     }
+    &:last-of-type {
+      display: -webkit-box;
+      -webkit-line-clamp: 40;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
   `}
 `;
 
@@ -58,6 +65,19 @@ export const isLabelTruncated = (labelRef?: React.RefObject<any>): boolean =>
 
 export const getColumnLabelText = (column: ColumnMeta): string =>
   column.verbose_name || column.column_name;
+
+export const getColumnTypeTooltipNode = (column: ColumnMeta): ReactNode => {
+  if (!column.type) {
+    return null;
+  }
+
+  return (
+    <TooltipSection
+      label={t('Column datatype')}
+      text={column.type.toLowerCase()}
+    />
+  );
+};
 
 export const getColumnTooltipNode = (
   column: ColumnMeta,

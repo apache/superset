@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SafeMarkdown, styled } from '@superset-ui/core';
+import { SafeMarkdown, styled, t } from '@superset-ui/core';
 import Handlebars from 'handlebars';
 import moment from 'moment';
 import React, { useMemo, useState } from 'react';
@@ -34,6 +34,13 @@ export const HandlebarsViewer = ({
 }: HandlebarsViewerProps) => {
   const [renderedTemplate, setRenderedTemplate] = useState('');
   const [error, setError] = useState('');
+  const appContainer = document.getElementById('app');
+  const { common } = JSON.parse(
+    appContainer?.getAttribute('data-bootstrap') || '{}',
+  );
+  const htmlSanitization = common?.conf?.HTML_SANITIZATION ?? true;
+  const htmlSchemaOverrides =
+    common?.conf?.HTML_SANITIZATION_SCHEMA_EXTENSIONS || {};
 
   useMemo(() => {
     try {
@@ -56,9 +63,15 @@ export const HandlebarsViewer = ({
   }
 
   if (renderedTemplate) {
-    return <SafeMarkdown source={renderedTemplate} />;
+    return (
+      <SafeMarkdown
+        source={renderedTemplate}
+        htmlSanitization={htmlSanitization}
+        htmlSchemaOverrides={htmlSchemaOverrides}
+      />
+    );
   }
-  return <p>Loading...</p>;
+  return <p>{t('Loading...')}</p>;
 };
 
 //  usage: {{dateFormat my_date format="MMMM YYYY"}}

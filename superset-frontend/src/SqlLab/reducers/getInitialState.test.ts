@@ -17,38 +17,180 @@
  * under the License.
  */
 
-import getInitialState from './getInitialState';
+import { DEFAULT_COMMON_BOOTSTRAP_DATA } from 'src/constants';
+import getInitialState, { dedupeTabHistory } from './getInitialState';
 
 const apiData = {
-  defaultDbId: 1,
-  common: {
-    conf: {
-      DEFAULT_SQLLAB_LIMIT: 1,
-    },
-  },
-  active_tab: null,
+  common: DEFAULT_COMMON_BOOTSTRAP_DATA,
   tab_state_ids: [],
   databases: [],
-  queries: [],
-  requested_query: null,
+  queries: {},
   user: {
     userId: 1,
     username: 'some name',
+    isActive: true,
+    isAnonymous: false,
+    firstName: 'first name',
+    lastName: 'last name',
+    permissions: {},
+    roles: {},
   },
 };
 const apiDataWithTabState = {
   ...apiData,
-  tab_state_ids: [{ id: 1 }],
-  active_tab: { id: 1, table_schemas: [] },
+  tab_state_ids: [{ id: 1, label: 'test' }],
+  active_tab: {
+    id: 1,
+    user_id: 1,
+    label: 'editor1',
+    active: true,
+    database_id: 1,
+    sql: '',
+    table_schemas: [],
+    saved_query: null,
+    template_params: null,
+    latest_query: null,
+  },
 };
 describe('getInitialState', () => {
   it('should output the user that is passed in', () => {
-    expect(getInitialState(apiData).sqlLab.user.userId).toEqual(1);
+    expect(getInitialState(apiData).user?.userId).toEqual(1);
   });
   it('should return undefined instead of null for templateParams', () => {
     expect(
-      getInitialState(apiDataWithTabState).sqlLab.queryEditors[0]
-        .templateParams,
+      getInitialState(apiDataWithTabState).sqlLab?.queryEditors?.[0]
+        ?.templateParams,
     ).toBeUndefined();
+  });
+
+  describe('dedupeTabHistory', () => {
+    it('should dedupe the tab history', () => {
+      [
+        { value: [], expected: [] },
+        {
+          value: ['12', '3', '4', '5', '6'],
+          expected: ['12', '3', '4', '5', '6'],
+        },
+        {
+          value: [
+            '1',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+          ],
+          expected: ['1', '2'],
+        },
+        {
+          value: [
+            '1',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '3',
+          ],
+          expected: ['1', '2', '3'],
+        },
+        {
+          value: [
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '3',
+          ],
+          expected: ['2', '3'],
+        },
+      ].forEach(({ value, expected }) => {
+        expect(dedupeTabHistory(value)).toEqual(expected);
+      });
+    });
+  });
+
+  describe('dedupe tables schema', () => {
+    afterEach(() => {
+      localStorage.clear();
+    });
+
+    it('should dedupe the table schema', () => {
+      localStorage.setItem(
+        'redux',
+        JSON.stringify({
+          sqlLab: {
+            tables: [
+              { id: 1, name: 'test1' },
+              { id: 6, name: 'test6' },
+            ],
+            queryEditors: [{ id: 1, title: 'editor1' }],
+            queries: {},
+            tabHistory: [],
+          },
+        }),
+      );
+      const initializedTables = getInitialState({
+        ...apiData,
+        active_tab: {
+          id: 1,
+          user_id: 1,
+          label: 'editor1',
+          active: true,
+          database_id: 1,
+          sql: '',
+          table_schemas: [
+            {
+              id: 1,
+              table: 'table1',
+              tab_state_id: 1,
+              description: {
+                columns: [
+                  { name: 'id', type: 'INT' },
+                  { name: 'column2', type: 'STRING' },
+                ],
+              },
+            },
+            {
+              id: 2,
+              table: 'table2',
+              tab_state_id: 1,
+              description: {
+                columns: [
+                  { name: 'id', type: 'INT' },
+                  { name: 'column2', type: 'STRING' },
+                ],
+              },
+            },
+          ],
+          saved_query: null,
+          template_params: null,
+          latest_query: null,
+        },
+      }).sqlLab.tables;
+      expect(initializedTables.map(({ id }) => id)).toEqual([1, 2, 6]);
+    });
   });
 });

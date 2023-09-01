@@ -19,11 +19,13 @@
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import example from './images/example.jpg';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
   category: t('Part of a Whole'),
   description: t('Compare the same summarized metric across multiple groups.'),
+  exampleGallery: [{ url: example }],
   name: t('Partition Chart'),
   tags: [t('Categorical'), t('Comparison'), t('Legacy'), t('Proportional')],
   thumbnail,

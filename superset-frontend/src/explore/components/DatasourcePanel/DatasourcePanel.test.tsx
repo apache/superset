@@ -186,27 +186,6 @@ test('should render a create dataset infobox', async () => {
   expect(infoboxText).toBeVisible();
 });
 
-test('should render a save dataset modal when "Create a dataset" is clicked', async () => {
-  const newProps = {
-    ...props,
-    datasource: {
-      ...datasource,
-      type: DatasourceType.Query,
-    },
-  };
-  render(<DatasourcePanel {...newProps} />, { useRedux: true, useDnd: true });
-
-  const createButton = await screen.findByRole('button', {
-    name: /create a dataset/i,
-  });
-
-  userEvent.click(createButton);
-
-  const saveDatasetModalTitle = screen.getByText(/save or overwrite dataset/i);
-
-  expect(saveDatasetModalTitle).toBeVisible();
-});
-
 test('should not render a save dataset modal when datasource is not query or dataset', async () => {
   const newProps = {
     ...props,

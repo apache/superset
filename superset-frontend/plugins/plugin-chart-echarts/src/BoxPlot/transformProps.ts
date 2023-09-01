@@ -36,9 +36,11 @@ import {
   sanitizeHtml,
 } from '../utils/series';
 import { convertInteger } from '../utils/convertInteger';
-import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
+import { defaultGrid, defaultYAxis } from '../defaults';
 import { getPadding } from '../Timeseries/transformers';
 import { OpacityEnum } from '../constants';
+import { getDefaultTooltip } from '../utils/tooltip';
+import { Refs } from '../types';
 
 export default function transformProps(
   chartProps: EchartsBoxPlotChartProps,
@@ -51,6 +53,7 @@ export default function transformProps(
     filterState,
     queriesData,
     inContextMenu,
+    emitCrossFilters,
   } = chartProps;
   const { data = [] } = queriesData[0];
   const { setDataMask = () => {}, onContextMenu } = hooks;
@@ -62,7 +65,6 @@ export default function transformProps(
     numberFormat,
     dateFormat,
     xTicksLayout,
-    emitFilter,
     legendOrientation = 'top',
     xAxisTitle,
     yAxisTitle,
@@ -71,6 +73,7 @@ export default function transformProps(
     yAxisTitlePosition,
     sliceId,
   } = formData as BoxPlotQueryFormData;
+  const refs: Refs = {};
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
   const metricLabels = metrics.map(getMetricLabel);
@@ -136,6 +139,7 @@ export default function transformProps(
           type: 'scatter',
           data: outlierDatum.map(val => [name, val]),
           tooltip: {
+            ...getDefaultTooltip(refs),
             formatter: (param: { data: [string, number] }) => {
               const [outlierName, stats] = param.data;
               const headline = groupbyLabels.length
@@ -194,6 +198,7 @@ export default function transformProps(
       type: 'boxplot',
       data: transformedData,
       tooltip: {
+        ...getDefaultTooltip(refs),
         formatter: (param: CallbackDataParams) => {
           // @ts-ignore
           const {
@@ -270,7 +275,7 @@ export default function transformProps(
       nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
     },
     tooltip: {
-      ...defaultTooltip,
+      ...getDefaultTooltip(refs),
       show: !inContextMenu,
       trigger: 'item',
       axisPointer: {
@@ -286,10 +291,12 @@ export default function transformProps(
     height,
     echartOptions,
     setDataMask,
-    emitFilter,
+    emitCrossFilters,
     labelMap,
     groupby,
     selectedValues,
     onContextMenu,
+    refs,
+    coltypeMapping,
   };
 }

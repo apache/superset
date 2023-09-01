@@ -61,7 +61,7 @@ export const SamplesPane = ({
 
     if (isRequest && !cache.has(datasource)) {
       setIsLoading(true);
-      getDatasourceSamples(datasource.type, datasource.id, queryForce)
+      getDatasourceSamples(datasource.type, datasource.id, queryForce, {})
         .then(response => {
           setData(ensureIsArray(response.data));
           setColnames(ensureIsArray(response.colnames));
@@ -92,6 +92,8 @@ export const SamplesPane = ({
     data,
     datasourceId,
     isVisible,
+    {}, // moreConfig
+    true, // allowHTML
   );
   const filteredData = useFilteredTableData(filterText, data);
 

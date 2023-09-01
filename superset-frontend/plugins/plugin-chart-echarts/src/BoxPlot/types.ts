@@ -16,20 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { QueryFormData } from '@superset-ui/core';
 import {
-  ChartDataResponseResult,
-  ChartProps,
-  QueryFormData,
-} from '@superset-ui/core';
-import { EchartsTitleFormData, EChartTransformedProps } from '../types';
+  BaseChartProps,
+  BaseTransformedProps,
+  ContextMenuTransformedProps,
+  CrossFilterTransformedProps,
+  TitleFormData,
+} from '../types';
 import { DEFAULT_TITLE_FORM_DATA } from '../constants';
 
 export type BoxPlotQueryFormData = QueryFormData & {
   numberFormat?: string;
   whiskerOptions?: BoxPlotFormDataWhiskerOptions;
   xTickLayout?: BoxPlotFormXTickLayout;
-  emitFilter: boolean;
-} & EchartsTitleFormData;
+} & TitleFormData;
 
 export type BoxPlotFormDataWhiskerOptions =
   | 'Tukey'
@@ -46,15 +47,15 @@ export type BoxPlotFormXTickLayout =
 
 // @ts-ignore
 export const DEFAULT_FORM_DATA: BoxPlotQueryFormData = {
-  emitFilter: false,
   ...DEFAULT_TITLE_FORM_DATA,
 };
 
 export interface EchartsBoxPlotChartProps
-  extends ChartProps<BoxPlotQueryFormData> {
+  extends BaseChartProps<BoxPlotQueryFormData> {
   formData: BoxPlotQueryFormData;
-  queriesData: ChartDataResponseResult[];
 }
 
 export type BoxPlotChartTransformedProps =
-  EChartTransformedProps<BoxPlotQueryFormData>;
+  BaseTransformedProps<BoxPlotQueryFormData> &
+    CrossFilterTransformedProps &
+    ContextMenuTransformedProps;

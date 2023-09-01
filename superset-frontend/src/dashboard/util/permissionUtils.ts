@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import {
   isUserWithPermissionsAndRoles,
   UndefinedUser,
@@ -29,7 +30,7 @@ import { findPermission } from 'src/utils/findPermission';
 const ADMIN_ROLE_NAME = 'admin';
 
 export const isUserAdmin = (
-  user: UserWithPermissionsAndRoles | UndefinedUser,
+  user?: UserWithPermissionsAndRoles | UndefinedUser,
 ) =>
   isUserWithPermissionsAndRoles(user) &&
   Object.keys(user.roles || {}).some(
@@ -41,7 +42,7 @@ const isUserDashboardOwner = (
   user: UserWithPermissionsAndRoles | UndefinedUser,
 ) =>
   isUserWithPermissionsAndRoles(user) &&
-  dashboard.owners.some(owner => owner.username === user.username);
+  dashboard.owners.some(owner => owner.id === user.userId);
 
 export const canUserEditDashboard = (
   dashboard: Dashboard,
@@ -49,4 +50,32 @@ export const canUserEditDashboard = (
 ) =>
   isUserWithPermissionsAndRoles(user) &&
   (isUserAdmin(user) || isUserDashboardOwner(dashboard, user)) &&
-  findPermission('can_write', 'Dashboard', user.roles);
+  findPermission('can_write', 'Dashboard', user?.roles);
+
+export function userHasPermission(
+  user: UserWithPermissionsAndRoles | UndefinedUser,
+  viewName: string,
+  permissionName: string,
+) {
+  return (
+    isUserAdmin(user) ||
+    (isUserWithPermissionsAndRoles(user) &&
+      Object.values(user.roles || {})
+        .flat()
+        .some(
+          permissionView =>
+            permissionView[0] === permissionName &&
+            permissionView[1] === viewName,
+        ))
+  );
+}
+
+export const canUserSaveAsDashboard = (
+  dashboard: Dashboard,
+  user?: UserWithPermissionsAndRoles | UndefinedUser | null,
+) =>
+  isUserWithPermissionsAndRoles(user) &&
+  findPermission('can_write', 'Dashboard', user?.roles) &&
+  (!isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC) ||
+    isUserAdmin(user) ||
+    isUserDashboardOwner(dashboard, user));

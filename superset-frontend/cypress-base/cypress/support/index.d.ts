@@ -29,7 +29,6 @@ declare namespace Cypress {
      * Login test user.
      */
     login(): void;
-    preserveLogin(): void;
 
     /**
      *
@@ -42,6 +41,7 @@ declare namespace Cypress {
     cleanDashboards(): cy;
     loadChartFixtures(): cy;
     loadDashboardFixtures(): cy;
+    allowConsoleErrors(consoleMessages: (string | RegExp)[]): cy;
 
     visitChartByParams(params: string | Record<string, unknown>): cy;
     visitChartByName(name: string): cy;

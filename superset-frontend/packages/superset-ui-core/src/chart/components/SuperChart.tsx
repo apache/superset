@@ -61,7 +61,7 @@ export type Props = Omit<SuperChartCoreProps, 'chartProps'> &
     FallbackComponent?: React.ComponentType<FallbackPropsWithDimension>;
     /** Event listener for unexpected errors from chart */
     onErrorBoundary?: ErrorBoundaryProps['onError'];
-    /** Prop for form plugins uisng superchart */
+    /** Prop for form plugins using superchart */
     showOverflow?: boolean;
     /** Prop for popovercontainer ref */
     parentRef?: RefObject<any>;
@@ -86,6 +86,10 @@ export type Props = Omit<SuperChartCoreProps, 'chartProps'> &
      * If not defined, NoResultsComponent is used
      */
     noResults?: ReactNode;
+    /**
+     * Determines is the context menu related to the chart is open
+     */
+    inContextMenu?: boolean;
   };
 
 type PropsWithDefault = Props & Readonly<typeof defaultProps>;
@@ -99,8 +103,10 @@ class SuperChart extends React.PureComponent<Props, {}> {
   private createChartProps = ChartProps.createSelector();
 
   private parseDimension = createSelector(
-    ({ width }: { width: string | number; height: string | number }) => width,
-    ({ height }) => height,
+    [
+      ({ width }: { width: string | number; height: string | number }) => width,
+      ({ height }) => height,
+    ],
     (width, height) => {
       // Parse them in case they are % or 'auto'
       const widthInfo = parseLength(width);

@@ -16,13 +16,15 @@
 # under the License.
 import logging
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass
-from enum import Enum
-from typing import Any, cast, Iterator, List, Optional, Set, Tuple
+from typing import Any, cast, Optional
 from urllib import parse
 
 import sqlparse
 from sqlalchemy import and_
+from sqlparse import keywords
+from sqlparse.lexer import Lexer
 from sqlparse.sql import (
     Identifier,
     IdentifierList,
@@ -46,6 +48,7 @@ from sqlparse.tokens import (
 from sqlparse.utils import imt
 
 from superset.exceptions import QueryClauseValidationException
+from superset.utils.backports import StrEnum
 
 try:
     from sqloxide import parse_sql as sqloxide_parse
@@ -59,18 +62,16 @@ CTE_PREFIX = "CTE__"
 
 logger = logging.getLogger(__name__)
 
-
 # TODO: Workaround for https://github.com/andialbrecht/sqlparse/issues/652.
-sqlparse.keywords.SQL_REGEX.insert(
-    0,
-    (
-        re.compile(r"'(''|\\\\|\\|[^'])*'", sqlparse.keywords.FLAGS).match,
-        sqlparse.tokens.String.Single,
-    ),
-)
+# configure the Lexer to extend sqlparse
+# reference: https://sqlparse.readthedocs.io/en/stable/extending/
+lex = Lexer.get_default_instance()
+sqlparser_sql_regex = keywords.SQL_REGEX
+sqlparser_sql_regex.insert(25, (r"'(''|\\\\|\\|[^'])*'", sqlparse.tokens.String.Single))
+lex.set_SQL_REGEX(sqlparser_sql_regex)
 
 
-class CtasMethod(str, Enum):
+class CtasMethod(StrEnum):
     TABLE = "TABLE"
     VIEW = "VIEW"
 
@@ -97,7 +98,7 @@ def _extract_limit_from_query(statement: TokenList) -> Optional[int]:
 
 
 def extract_top_from_query(
-    statement: TokenList, top_keywords: Set[str]
+    statement: TokenList, top_keywords: set[str]
 ) -> Optional[int]:
     """
     Extract top clause value from SQL statement.
@@ -112,8 +113,8 @@ def extract_top_from_query(
     token = str_statement.rstrip().split(" ")
     token = [part for part in token if part]
     top = None
-    for i, _ in enumerate(token):
-        if token[i].upper() in top_keywords and len(token) - 1 > i:
+    for i, part in enumerate(token):
+        if part.upper() in top_keywords and len(token) - 1 > i:
             try:
                 top = int(token[i + 1])
             except ValueError:
@@ -122,7 +123,7 @@ def extract_top_from_query(
     return top
 
 
-def get_cte_remainder_query(sql: str) -> Tuple[Optional[str], str]:
+def get_cte_remainder_query(sql: str) -> tuple[Optional[str], str]:
     """
     parse the SQL and return the CTE and rest of the block to the caller
 
@@ -192,8 +193,8 @@ class ParsedQuery:
             sql_statement = sqlparse.format(sql_statement, strip_comments=True)
 
         self.sql: str = sql_statement
-        self._tables: Set[Table] = set()
-        self._alias_names: Set[str] = set()
+        self._tables: set[Table] = set()
+        self._alias_names: set[str] = set()
         self._limit: Optional[int] = None
 
         logger.debug("Parsing with sqlparse statement: %s", self.sql)
@@ -202,7 +203,7 @@ class ParsedQuery:
             self._limit = _extract_limit_from_query(statement)
 
     @property
-    def tables(self) -> Set[Table]:
+    def tables(self) -> set[Table]:
         if not self._tables:
             for statement in self._parsed:
                 self._extract_from_token(statement)
@@ -216,9 +217,53 @@ class ParsedQuery:
     def limit(self) -> Optional[int]:
         return self._limit
 
+    def _get_cte_tables(self, parsed: dict[str, Any]) -> list[dict[str, Any]]:
+        if "with" not in parsed:
+            return []
+        return parsed["with"].get("cte_tables", [])
+
+    def _check_cte_is_select(self, oxide_parse: list[dict[str, Any]]) -> bool:
+        """
+        Check if a oxide parsed CTE contains only SELECT statements
+
+        :param oxide_parse: parsed CTE
+        :return: True if CTE is a SELECT statement
+        """
+        for query in oxide_parse:
+            parsed_query = query["Query"]
+            cte_tables = self._get_cte_tables(parsed_query)
+            for cte_table in cte_tables:
+                is_select = all(
+                    key == "Select" for key in cte_table["query"]["body"].keys()
+                )
+                if not is_select:
+                    return False
+        return True
+
     def is_select(self) -> bool:
-        # make sure we strip comments; prevents a bug with coments in the CTE
+        # make sure we strip comments; prevents a bug with comments in the CTE
         parsed = sqlparse.parse(self.strip_comments())
+
+        # Check if this is a CTE
+        if parsed[0].is_group and parsed[0][0].ttype == Keyword.CTE:
+            if sqloxide_parse is not None:
+                try:
+                    if not self._check_cte_is_select(
+                        sqloxide_parse(self.strip_comments(), dialect="ansi")
+                    ):
+                        return False
+                except ValueError:
+                    # sqloxide was not able to parse the query, so let's continue with
+                    # sqlparse
+                    pass
+            inner_cte = self.get_inner_cte_expression(parsed[0].tokens) or []
+            # Check if the inner CTE is a not a SELECT
+            if any(token.ttype == DDL for token in inner_cte) or any(
+                token.ttype == DML and token.normalized != "SELECT"
+                for token in inner_cte
+            ):
+                return False
+
         if parsed[0].get_type() == "SELECT":
             return True
 
@@ -228,7 +273,7 @@ class ParsedQuery:
         # for `UNKNOWN`, check all DDL/DML explicitly: only `SELECT` DML is allowed,
         # and no DDL is allowed
         if any(token.ttype == DDL for token in parsed[0]) or any(
-            token.ttype == DML and token.value != "SELECT" for token in parsed[0]
+            token.ttype == DML and token.normalized != "SELECT" for token in parsed[0]
         ):
             return False
 
@@ -237,8 +282,19 @@ class ParsedQuery:
             return False
 
         return any(
-            token.ttype == DML and token.value == "SELECT" for token in parsed[0]
+            token.ttype == DML and token.normalized == "SELECT" for token in parsed[0]
         )
+
+    def get_inner_cte_expression(self, tokens: TokenList) -> Optional[TokenList]:
+        for token in tokens:
+            if self._is_identifier(token):
+                for identifier_token in token.tokens:
+                    if (
+                        isinstance(identifier_token, Parenthesis)
+                        and identifier_token.is_group
+                    ):
+                        return identifier_token.tokens
+        return None
 
     def is_valid_ctas(self) -> bool:
         parsed = sqlparse.parse(self.strip_comments())
@@ -282,7 +338,7 @@ class ParsedQuery:
     def strip_comments(self) -> str:
         return sqlparse.format(self.stripped(), strip_comments=True)
 
-    def get_statements(self) -> List[str]:
+    def get_statements(self) -> list[str]:
         """Returns a list of SQL statements as strings, stripped"""
         statements = []
         for statement in self._parsed:
@@ -482,7 +538,7 @@ def sanitize_clause(clause: str) -> str:
     return clause
 
 
-class InsertRLSState(str, Enum):
+class InsertRLSState(StrEnum):
     """
     State machine that scans for WHERE and ON clauses referencing tables.
     """
@@ -509,6 +565,9 @@ def has_table_query(token_list: TokenList) -> bool:
     """
     state = InsertRLSState.SCANNING
     for token in token_list.tokens:
+        # Ignore comments
+        if isinstance(token, sqlparse.sql.Comment):
+            continue
 
         # Recurse into child token list
         if isinstance(token, TokenList) and has_table_query(token):
@@ -607,7 +666,6 @@ def insert_rls(
     rls: Optional[TokenList] = None
     state = InsertRLSState.SCANNING
     for token in token_list.tokens:
-
         # Recurse into child token list
         if isinstance(token, TokenList):
             i = token_list.tokens.index(token)
@@ -735,7 +793,7 @@ RE_JINJA_BLOCK = re.compile(r"\{[%#][^\{\}%#]+[%#]\}")
 
 def extract_table_references(
     sql_text: str, sqla_dialect: str, show_warning: bool = True
-) -> Set["Table"]:
+) -> set["Table"]:
     """
     Return all the dependencies from a SQL sql_text.
     """

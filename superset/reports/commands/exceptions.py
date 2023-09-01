@@ -14,16 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
 from flask_babel import lazy_gettext as _
 
 from superset.commands.exceptions import (
     CommandException,
     CommandInvalidError,
     CreateFailedError,
-    DeleteFailedError,
     ForbiddenError,
     ValidationError,
 )
+from superset.exceptions import SupersetError, SupersetErrorsException
 from superset.reports.models import ReportScheduleType
 
 
@@ -74,7 +75,7 @@ class ReportScheduleRequiredTypeValidationError(ValidationError):
 
 class ReportScheduleOnlyChartOrDashboardError(ValidationError):
     """
-    Marshmallow validation error for report schedule accept exlusive chart or dashboard
+    Marshmallow validation error for report schedule accept exclusive chart or dashboard
     """
 
     def __init__(self) -> None:
@@ -121,10 +122,6 @@ class DashboardNotSavedValidationError(ValidationError):
 class ReportScheduleInvalidError(CommandInvalidError):
     status = 422
     message = _("Report Schedule parameters are invalid.")
-
-
-class ReportScheduleBulkDeleteFailedError(DeleteFailedError):
-    message = _("Report Schedule could not be deleted.")
 
 
 class ReportScheduleCreateFailedError(CreateFailedError):
@@ -212,6 +209,11 @@ class AlertQueryInvalidTypeError(CommandException):
 
 
 class AlertQueryError(CommandException):
+    """
+    SQL query is not valid
+    """
+
+    status = 400
     message = _("Alert found an error while executing a query.")
 
 
@@ -250,12 +252,19 @@ class ReportScheduleNotificationError(CommandException):
     message = _("Alert on grace period")
 
 
-class ReportScheduleUserNotFoundError(CommandException):
-    message = _("Report Schedule user not found")
-
-
 class ReportScheduleStateNotFoundError(CommandException):
     message = _("Report Schedule state not found")
+
+
+class ReportScheduleSystemErrorsException(CommandException, SupersetErrorsException):
+    errors: list[SupersetError] = []
+    message = _("Report schedule system error")
+
+
+class ReportScheduleClientErrorsException(CommandException, SupersetErrorsException):
+    status = 400
+    errors: list[SupersetError] = []
+    message = _("Report schedule client error")
 
 
 class ReportScheduleUnexpectedError(CommandException):

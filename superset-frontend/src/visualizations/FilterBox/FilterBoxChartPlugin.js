@@ -16,22 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { t, ChartMetadata, ChartPlugin, ChartLabel } from '@superset-ui/core';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import example1 from './images/example1.jpg';
+import example2 from './images/example2.jpg';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
   category: t('Tools'),
-  name: t('Filter box'),
+  label: ChartLabel.DEPRECATED,
+  name: t('Filter box (legacy)'),
   description:
     t(`Chart component that lets you add a custom filter UI in your dashboard. When added to dashboard, a filter box lets users specify specific values or ranges to filter charts by. The charts that each filter box is applied to can be fine tuned as well in the dashboard view.
 
     Note that this plugin is being replaced with the new Filters feature that lives in the dashboard view itself. It's easier to use and has more capabilities!`),
+  exampleGallery: [{ url: example1 }, { url: example2 }],
   thumbnail,
   useLegacyApi: true,
+  tags: [t('Legacy'), t('Deprecated')],
 });
 
+/**
+ * @deprecated in version 3.0.
+ */
 export default class FilterBoxChartPlugin extends ChartPlugin {
   constructor() {
     super({

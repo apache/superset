@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { isEqual } from 'lodash';
 import { css } from '@superset-ui/core';
 import Select from '../Select/Select';
@@ -24,14 +24,14 @@ import Button from '../Button';
 import DropdownContainer, { DropdownContainerProps, Ref } from '.';
 
 export default {
-  title: 'DropdownContainer',
+  title: 'Design System/Components/DropdownContainer',
   component: DropdownContainer,
 };
 
 const ITEMS_COUNT = 6;
 const ITEM_OPTIONS = 10;
 const MIN_WIDTH = 700;
-const MAX_WIDTH = 1500;
+const MAX_WIDTH = 1300;
 const HEIGHT = 400;
 
 const itemsOptions = Array.from({ length: ITEM_OPTIONS }).map((_, i) => ({
@@ -47,10 +47,10 @@ const generateItems = (overflowingState?: OverflowingState) =>
   Array.from({ length: ITEMS_COUNT }).map((_, i) => ({
     id: `el-${i}`,
     element: (
-      <div style={{ minWidth: 200 }}>
+      <div style={{ minWidth: 150 }}>
         <Select
           options={itemsOptions}
-          header={`Option ${i}`}
+          header={`Label ${i}`}
           headerPosition={
             overflowingState?.overflowed.includes(`el-${i}`) ? 'top' : 'left'
           }
@@ -63,10 +63,15 @@ export const Component = (props: DropdownContainerProps) => {
   const [items, setItems] = useState<ItemsType>([]);
   const [overflowingState, setOverflowingState] = useState<OverflowingState>();
   const containerRef = React.useRef<Ref>(null);
-
-  useEffect(() => {
-    setItems(generateItems(overflowingState));
-  }, [overflowingState]);
+  const onOverflowingStateChange = useCallback(
+    value => {
+      if (!isEqual(overflowingState, value)) {
+        setItems(generateItems(value));
+        setOverflowingState(value);
+      }
+    },
+    [overflowingState],
+  );
 
   return (
     <div>
@@ -86,11 +91,7 @@ export const Component = (props: DropdownContainerProps) => {
         <DropdownContainer
           {...props}
           items={items}
-          onOverflowingStateChange={value => {
-            if (!isEqual(overflowingState, value)) {
-              setOverflowingState(value);
-            }
-          }}
+          onOverflowingStateChange={onOverflowingStateChange}
           ref={containerRef}
         />
       </div>

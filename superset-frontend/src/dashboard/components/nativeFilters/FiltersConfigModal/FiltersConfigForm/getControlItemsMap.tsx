@@ -129,7 +129,7 @@ export default function getControlItemsMap({
                 doesColumnMatchFilterType(formFilter?.filterType || '', column)
               }
               onChange={() => {
-                // We need reset default value when when column changed
+                // We need reset default value when column changed
                 setNativeFilterFieldValues(form, filterId, {
                   defaultDataMask: null,
                 });

@@ -10,7 +10,7 @@ import useBaseUrl from "@docusaurus/useBaseUrl";
 ## Apache Druid
 
 A native connector to Druid ships with Superset (behind the `DRUID_IS_ACTIVE` flag) but this is
-slowly getting deprecated in favor of SQLAlchemy / DBAPI connector made available in the
+slowly getting deprecated in favor of the SQLAlchemy / DBAPI connector made available in the
 [pydruid library](https://pythonhosted.org/pydruid/).
 
 The connection string looks like:
@@ -20,10 +20,10 @@ druid://<User>:<password>@<Host>:<Port-default-9088>/druid/v2/sql
 ```
 Here's a breakdown of the key components of this connection string:
 
-User: username portion of the credentials needed to connect to your database
-Password: password portion of the credentials needed to connect to your database
-Host: IP address (or URL) of the host machine that's running your database
-Port: specific port that's exposed on your host machine where your database is running
+- `User`: username portion of the credentials needed to connect to your database
+- `Password`: password portion of the credentials needed to connect to your database
+- `Host`: IP address (or URL) of the host machine that's running your database
+- `Port`: specific port that's exposed on your host machine where your database is running
 
 ### Customizing Druid Connection
 

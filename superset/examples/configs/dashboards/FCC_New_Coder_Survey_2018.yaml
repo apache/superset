@@ -504,7 +504,7 @@ position:
       code: '## FreeCodeCamp New Coder Survey 2018
 
 
-        Every year, FCC surveys its user base (mostly budding softwware developers)
+        Every year, FCC surveys its user base (mostly budding software developers)
         to learn more about their interests, backgrounds, goals, job status, and socioeconomic
         features. This dashboard visualizes survey data from the 2018 survey.
 
@@ -529,7 +529,7 @@ position:
     meta:
       code: "# Demographics\n\nFreeCodeCamp is a completely-online community of people\
         \ learning to code and consists of aspiring & current developers from all\
-        \ over the world. That doesn't necessarily mean that acccess to these types\
+        \ over the world. That doesn't necessarily mean that access to these types\
         \ of opportunities are evenly distributed. \n\nThe following charts can begin\
         \ to help us understand:\n\n- the original citizenship of the survey respondents\n\
         - minority representation among both aspiring and current developers\n- their\
@@ -717,7 +717,7 @@ metadata:
   color_scheme: supersetColors
   filter_scopes:
     '1387':
-      Ethnic Minority:
+      ethnic_minority:
         scope:
         - TAB-AsMaxdYL_t
         immune: []
@@ -725,7 +725,7 @@ metadata:
         scope:
         - ROOT_ID
         immune: []
-      Developer Type:
+      developer_type:
         scope:
         - ROOT_ID
         immune: []

@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Callable, Optional, Union
 
 import numpy as np
 from flask_babel import gettext as _
@@ -27,11 +27,11 @@ from superset.utils.pandas_postprocessing.aggregate import aggregate
 
 def boxplot(
     df: DataFrame,
-    groupby: List[str],
-    metrics: List[str],
+    groupby: list[str],
+    metrics: list[str],
     whisker_type: PostProcessingBoxplotWhiskerType,
     percentiles: Optional[
-        Union[List[Union[int, float]], Tuple[Union[int, float], Union[int, float]]]
+        Union[list[Union[int, float]], tuple[Union[int, float], Union[int, float]]]
     ] = None,
 ) -> DataFrame:
     """
@@ -57,10 +57,10 @@ def boxplot(
     """
 
     def quartile1(series: Series) -> float:
-        return np.nanpercentile(series, 25, interpolation="midpoint")
+        return np.nanpercentile(series, 25, method="midpoint")
 
     def quartile3(series: Series) -> float:
-        return np.nanpercentile(series, 75, interpolation="midpoint")
+        return np.nanpercentile(series, 75, method="midpoint")
 
     if whisker_type == PostProcessingBoxplotWhiskerType.TUKEY:
 
@@ -102,12 +102,12 @@ def boxplot(
         whisker_high = np.max
         whisker_low = np.min
 
-    def outliers(series: Series) -> Set[float]:
+    def outliers(series: Series) -> set[float]:
         above = series[series > whisker_high(series)]
         below = series[series < whisker_low(series)]
         return above.tolist() + below.tolist()
 
-    operators: Dict[str, Callable[[Any], Any]] = {
+    operators: dict[str, Callable[[Any], Any]] = {
         "mean": np.mean,
         "median": np.median,
         "max": whisker_high,
@@ -117,7 +117,7 @@ def boxplot(
         "count": np.ma.count,
         "outliers": outliers,
     }
-    aggregates: Dict[str, Dict[str, Union[str, Callable[..., Any]]]] = {
+    aggregates: dict[str, dict[str, Union[str, Callable[..., Any]]]] = {
         f"{metric}__{operator_name}": {"column": metric, "operator": operator}
         for operator_name, operator in operators.items()
         for metric in metrics
@@ -126,7 +126,7 @@ def boxplot(
     # nanpercentile needs numeric values, otherwise the isnan function
     # that's used in the underlying function will fail
     for column in metrics:
-        if df.dtypes[column] == np.object:
+        if df.dtypes[column] == np.object_:
             df[column] = to_numeric(df[column], errors="coerce")
 
     return aggregate(df, groupby=groupby, aggregates=aggregates)

@@ -17,11 +17,12 @@
  * under the License.
  */
 import React from 'react';
+import fetchMock from 'fetch-mock';
+import { QueryFormData, SupersetClient } from '@superset-ui/core';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
-import { QueryFormData, SupersetClient } from '@superset-ui/core';
-import fetchMock from 'fetch-mock';
+import { supersetGetCache } from 'src/utils/cachedSupersetGet';
 import DrillDetailPane from './DrillDetailPane';
 
 const chart = chartQueries[sliceId];
@@ -114,7 +115,10 @@ const fetchWithData = () => {
   });
 };
 
-afterEach(fetchMock.restore);
+afterEach(() => {
+  fetchMock.restore();
+  supersetGetCache.clear();
+});
 
 test('should render', async () => {
   fetchWithNoData();
@@ -134,7 +138,12 @@ test('should render the table with results', async () => {
   fetchWithData();
   await waitForRender();
   expect(screen.getByRole('table')).toBeInTheDocument();
-  expect(screen.getAllByRole('row')).toHaveLength(4);
+  expect(screen.getByText('1996')).toBeInTheDocument();
+  expect(screen.getByText('11.27')).toBeInTheDocument();
+  expect(screen.getByText('1989')).toBeInTheDocument();
+  expect(screen.getByText('23.2')).toBeInTheDocument();
+  expect(screen.getByText('1999')).toBeInTheDocument();
+  expect(screen.getByText('9')).toBeInTheDocument();
   expect(
     screen.getByRole('columnheader', { name: 'year' }),
   ).toBeInTheDocument();
@@ -175,11 +184,7 @@ test('should render the metadata bar', async () => {
 
 test('should render an error message when fails to load the metadata', async () => {
   fetchWithNoData();
-  fetchMock.get(
-    DATASET_ENDPOINT,
-    { status: 'error', error: 'Some error' },
-    { overwriteRoutes: true },
-  );
+  fetchMock.get(DATASET_ENDPOINT, { status: 400 }, { overwriteRoutes: true });
   setup();
   expect(
     await screen.findByText('There was an error loading the dataset metadata'),

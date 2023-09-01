@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import { t } from '@superset-ui/core';
 import PropTypes from 'prop-types';
 import Popover from 'src/components/Popover';
 import { decimal2sexagesimal } from 'geolib';
@@ -107,7 +108,7 @@ export default class ViewportControl extends React.Component {
           trigger="click"
           placement="right"
           content={this.renderPopover()}
-          title="Viewport"
+          title={t('Viewport')}
         >
           <Label className="pointer">{this.renderLabel()}</Label>
         </Popover>

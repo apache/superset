@@ -19,6 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
+import { css, styled } from '@superset-ui/core';
 
 import PopoverDropdown from 'src/components/PopoverDropdown';
 import EditableTitle from 'src/components/EditableTitle';
@@ -54,6 +55,64 @@ const propTypes = {
 };
 
 const defaultProps = {};
+
+const HeaderStyles = styled.div`
+  ${({ theme }) => css`
+    font-weight: ${theme.typography.weights.bold};
+    width: 100%;
+    padding: ${theme.gridUnit * 4}px 0;
+
+    &.header-small {
+      font-size: ${theme.typography.sizes.l}px;
+    }
+
+    &.header-medium {
+      font-size: ${theme.typography.sizes.xl}px;
+    }
+
+    &.header-large {
+      font-size: ${theme.typography.sizes.xxl}px;
+    }
+
+    .dashboard--editing .dashboard-grid & {
+      &:after {
+        border: 1px dashed transparent;
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        z-index: 1;
+        pointer-events: none;
+      }
+
+      &:hover:after {
+        border: 1px dashed ${theme.colors.primary.base};
+        z-index: 2;
+      }
+    }
+
+    .dashboard--editing .dragdroppable-row & {
+      cursor: move;
+    }
+
+    /**
+   * grids add margin between items, so don't double pad within columns
+   * we'll not worry about double padding on top as it can serve as a visual separator
+   */
+    .grid-column > :not(:last-child) & {
+      margin-bottom: ${theme.gridUnit * -4}px;
+    }
+
+    .background--white &,
+    &.background--white,
+    .dashboard-component-tabs & {
+      padding-left: ${theme.gridUnit * 4}px;
+      padding-right: ${theme.gridUnit * 4}px;
+    }
+  `}
+`;
 
 class Header extends React.PureComponent {
   constructor(props) {
@@ -154,7 +213,7 @@ class Header extends React.PureComponent {
               ]}
               editMode={editMode}
             >
-              <div
+              <HeaderStyles
                 className={cx(
                   'dashboard-component',
                   'dashboard-component-header',
@@ -178,7 +237,7 @@ class Header extends React.PureComponent {
                 {!editMode && (
                   <AnchorLink id={component.id} dashboardId={dashboardId} />
                 )}
-              </div>
+              </HeaderStyles>
             </WithPopoverMenu>
 
             {dropIndicatorProps && <div {...dropIndicatorProps} />}

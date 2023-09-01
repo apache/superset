@@ -44,8 +44,6 @@ const mockedProps: TableViewProps = {
   pageSize: 1,
 };
 
-jest.mock('src/components/Icons/Icon', () => () => <span />);
-
 test('should render', () => {
   const { container } = render(<TableView {...mockedProps} />);
   expect(container).toBeInTheDocument();

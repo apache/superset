@@ -22,14 +22,16 @@ import fetchMock from 'fetch-mock';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import shortid from 'shortid';
-import * as featureFlags from 'src/featureFlags';
+import * as uiCore from '@superset-ui/core';
 import * as actions from 'src/SqlLab/actions/sqlLab';
+import { LOG_EVENT } from 'src/logger/actions';
 import {
   defaultQueryEditor,
   query,
   initialState,
   queryId,
 } from 'src/SqlLab/fixtures';
+import { QueryState } from '@superset-ui/core';
 
 const middlewares = [thunk];
 const mockStore = configureMockStore(middlewares);
@@ -43,7 +45,6 @@ describe('async actions', () => {
     latestQueryId: null,
     sql: 'SELECT *\nFROM\nWHERE',
     name: 'Untitled Query 1',
-    schemaOptions: [{ value: 'main', label: 'main', title: 'main' }],
   };
 
   let dispatch;
@@ -54,13 +55,13 @@ describe('async actions', () => {
 
   afterEach(fetchMock.resetHistory);
 
-  const fetchQueryEndpoint = 'glob:*/superset/results/*';
+  const fetchQueryEndpoint = 'glob:*/api/v1/sqllab/results/*';
   fetchMock.get(
     fetchQueryEndpoint,
     JSON.stringify({ data: mockBigNumber, query: { sqlEditorId: 'dfsadfs' } }),
   );
 
-  const runQueryEndpoint = 'glob:*/superset/sql_json/';
+  const runQueryEndpoint = 'glob:*/api/v1/sqllab/execute/';
   fetchMock.post(runQueryEndpoint, `{ "data": ${mockBigNumber} }`);
 
   describe('saveQuery', () => {
@@ -239,22 +240,38 @@ describe('async actions', () => {
       });
     });
 
-    it('calls queryFailed on fetch error', () => {
-      expect.assertions(1);
+    it('calls queryFailed on fetch error and logs the error details', () => {
+      expect.assertions(3);
 
       fetchMock.post(
         runQueryEndpoint,
-        { throws: { message: 'error text' } },
+        {
+          throws: {
+            message: 'error text',
+            timeout: true,
+            statusText: 'timeout',
+          },
+        },
         { overwriteRoutes: true },
       );
 
       const store = mockStore({});
-      const expectedActionTypes = [actions.START_QUERY, actions.QUERY_FAILED];
+      const expectedActionTypes = [
+        actions.START_QUERY,
+        LOG_EVENT,
+        LOG_EVENT,
+        actions.QUERY_FAILED,
+      ];
       const { dispatch } = store;
       const request = actions.runQuery(query);
       return request(dispatch, () => initialState).then(() => {
-        expect(store.getActions().map(a => a.type)).toEqual(
-          expectedActionTypes,
+        const actions = store.getActions();
+        expect(actions.map(a => a.type)).toEqual(expectedActionTypes);
+        expect(actions[1].payload.eventData.error_details).toContain(
+          'Issue 1000',
+        );
+        expect(actions[2].payload.eventData.error_details).toContain(
+          'Issue 1001',
         );
       });
     });
@@ -279,7 +296,8 @@ describe('async actions', () => {
     };
 
     it('makes the fetch request', async () => {
-      const runQueryEndpointWithParams = 'glob:*/superset/sql_json/?foo=bar';
+      const runQueryEndpointWithParams =
+        'glob:*/api/v1/sqllab/execute/?foo=bar';
       fetchMock.post(
         runQueryEndpointWithParams,
         `{ "data": ${mockBigNumber} }`,
@@ -316,11 +334,15 @@ describe('async actions', () => {
   });
 
   describe('postStopQuery', () => {
-    const stopQueryEndpoint = 'glob:*/superset/stop_query/*';
+    const stopQueryEndpoint = 'glob:*/api/v1/query/stop';
     fetchMock.post(stopQueryEndpoint, {});
+    const baseQuery = {
+      ...query,
+      id: 'test_foo',
+    };
 
     const makeRequest = () => {
-      const request = actions.postStopQuery(query);
+      const request = actions.postStopQuery(baseQuery);
       return request(dispatch);
     };
 
@@ -345,7 +367,8 @@ describe('async actions', () => {
 
       return makeRequest().then(() => {
         const call = fetchMock.calls(stopQueryEndpoint)[0];
-        expect(call[1].body.get('client_id')).toBe(query.id);
+        const body = JSON.parse(call[1].body);
+        expect(body.client_id).toBe(baseQuery.id);
       });
     });
   });
@@ -426,15 +449,21 @@ describe('async actions', () => {
           {
             type: actions.ADD_QUERY_EDITOR,
             queryEditor: {
-              ...defaultQueryEditor,
               id: 'abcd',
+              sql: expect.stringContaining('SELECT ...'),
               name: `Untitled Query ${
                 store.getState().sqlLab.queryEditors.length + 1
               }`,
+              dbId: defaultQueryEditor.dbId,
+              schema: defaultQueryEditor.schema,
+              autorun: false,
+              queryLimit:
+                defaultQueryEditor.queryLimit ||
+                initialState.common.conf.DEFAULT_SQLLAB_LIMIT,
             },
           },
         ];
-        const request = actions.addNewQueryEditor(defaultQueryEditor);
+        const request = actions.addNewQueryEditor();
         return request(store.dispatch, store.getState).then(() => {
           expect(store.getActions()).toEqual(expectedActions);
         });
@@ -463,7 +492,7 @@ describe('async actions', () => {
 
     beforeEach(() => {
       isFeatureEnabledMock = jest
-        .spyOn(featureFlags, 'isFeatureEnabled')
+        .spyOn(uiCore, 'isFeatureEnabled')
         .mockImplementation(
           feature => feature === 'SQLLAB_BACKEND_PERSISTENCE',
         );
@@ -502,6 +531,7 @@ describe('async actions', () => {
         const results = {
           data: mockBigNumber,
           query: { sqlEditorId: 'abcd' },
+          status: QueryState.SUCCESS,
           query_id: 'efgh',
         };
         fetchMock.get(fetchQueryEndpoint, JSON.stringify(results), {
@@ -523,6 +553,35 @@ describe('async actions', () => {
         return store.dispatch(actions.fetchQueryResults(query)).then(() => {
           expect(store.getActions()).toEqual(expectedActions);
           expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(1);
+        });
+      });
+
+      it("doesn't update the tab state in the backend on stoppped query", () => {
+        expect.assertions(2);
+
+        const results = {
+          status: QueryState.STOPPED,
+          query_id: 'efgh',
+        };
+        fetchMock.get(fetchQueryEndpoint, JSON.stringify(results), {
+          overwriteRoutes: true,
+        });
+        const store = mockStore({});
+        const expectedActions = [
+          {
+            type: actions.REQUEST_QUERY_RESULTS,
+            query,
+          },
+          // missing below
+          {
+            type: actions.QUERY_SUCCESS,
+            query,
+            results,
+          },
+        ];
+        return store.dispatch(actions.fetchQueryResults(query)).then(() => {
+          expect(store.getActions()).toEqual(expectedActions);
+          expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(0);
         });
       });
     });
@@ -699,7 +758,7 @@ describe('async actions', () => {
       describe('with backend persistence flag off', () => {
         it('does not update the tab state in the backend', () => {
           const backendPersistenceOffMock = jest
-            .spyOn(featureFlags, 'isFeatureEnabled')
+            .spyOn(uiCore, 'isFeatureEnabled')
             .mockImplementation(
               feature => !(feature === 'SQLLAB_BACKEND_PERSISTENCE'),
             );
@@ -762,43 +821,7 @@ describe('async actions', () => {
     });
 
     describe('addTable', () => {
-      it('updates the table schema state in the backend', () => {
-        expect.assertions(6);
-
-        const database = { disable_data_preview: true };
-        const tableName = 'table';
-        const schemaName = 'schema';
-        const store = mockStore(initialState);
-        const expectedActionTypes = [
-          actions.MERGE_TABLE, // addTable
-          actions.MERGE_TABLE, // getTableMetadata
-          actions.MERGE_TABLE, // getTableExtendedMetadata
-          actions.MERGE_TABLE, // addTable
-        ];
-        const request = actions.addTable(
-          query,
-          database,
-          tableName,
-          schemaName,
-        );
-        return request(store.dispatch, store.getState).then(() => {
-          expect(store.getActions().map(a => a.type)).toEqual(
-            expectedActionTypes,
-          );
-          expect(store.getActions()[0].prepend).toBeTruthy();
-          expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(1);
-          expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(1);
-          expect(fetchMock.calls(getExtraTableMetadataEndpoint)).toHaveLength(
-            1,
-          );
-
-          // tab state is not updated, since no query was run
-          expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(0);
-        });
-      });
-
-      it('fetches table schema state from unsaved change', () => {
-        const database = { disable_data_preview: true };
+      it('dispatches table state from unsaved change', () => {
         const tableName = 'table';
         const schemaName = 'schema';
         const expectedDbId = 473892;
@@ -812,31 +835,47 @@ describe('async actions', () => {
             },
           },
         });
-        const request = actions.addTable(
-          query,
-          database,
-          tableName,
-          schemaName,
+        const request = actions.addTable(query, tableName, schemaName);
+        request(store.dispatch, store.getState);
+        expect(store.getActions()[0]).toEqual(
+          expect.objectContaining({
+            table: expect.objectContaining({
+              name: tableName,
+              schema: schemaName,
+              dbId: expectedDbId,
+            }),
+          }),
         );
+      });
+    });
+
+    describe('syncTable', () => {
+      it('updates the table schema state in the backend', () => {
+        expect.assertions(4);
+
+        const tableName = 'table';
+        const schemaName = 'schema';
+        const store = mockStore(initialState);
+        const expectedActionTypes = [
+          actions.MERGE_TABLE, // syncTable
+        ];
+        const request = actions.syncTable(query, tableName, schemaName);
         return request(store.dispatch, store.getState).then(() => {
-          expect(
-            fetchMock.calls(
-              `glob:**/api/v1/database/${expectedDbId}/table/*/*/`,
-            ),
-          ).toHaveLength(1);
-          expect(
-            fetchMock.calls(
-              `glob:**/api/v1/database/${expectedDbId}/table_extra/*/*/`,
-            ),
-          ).toHaveLength(1);
+          expect(store.getActions().map(a => a.type)).toEqual(
+            expectedActionTypes,
+          );
+          expect(store.getActions()[0].prepend).toBeFalsy();
+          expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(1);
 
           // tab state is not updated, since no query was run
           expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(0);
         });
       });
+    });
 
+    describe('runTablePreviewQuery', () => {
       it('updates and runs data preview query when configured', () => {
-        expect.assertions(5);
+        expect.assertions(3);
 
         const results = {
           data: mockBigNumber,
@@ -847,34 +886,32 @@ describe('async actions', () => {
           overwriteRoutes: true,
         });
 
-        const database = { disable_data_preview: false, id: 1 };
         const tableName = 'table';
         const schemaName = 'schema';
-        const store = mockStore(initialState);
+        const store = mockStore({
+          ...initialState,
+          sqlLab: {
+            ...initialState.sqlLab,
+            databases: {
+              1: { disable_data_preview: false },
+            },
+          },
+        });
         const expectedActionTypes = [
-          actions.MERGE_TABLE, // addTable
-          actions.MERGE_TABLE, // getTableMetadata
-          actions.MERGE_TABLE, // getTableExtendedMetadata
           actions.MERGE_TABLE, // addTable (data preview)
           actions.START_QUERY, // runQuery (data preview)
-          actions.MERGE_TABLE, // addTable
           actions.QUERY_SUCCESS, // querySuccess
         ];
-        const request = actions.addTable(
-          query,
-          database,
-          tableName,
-          schemaName,
-        );
+        const request = actions.runTablePreviewQuery({
+          dbId: 1,
+          name: tableName,
+          schema: schemaName,
+        });
         return request(store.dispatch, store.getState).then(() => {
           expect(store.getActions().map(a => a.type)).toEqual(
             expectedActionTypes,
           );
-          expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(1);
-          expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(1);
-          expect(fetchMock.calls(getExtraTableMetadataEndpoint)).toHaveLength(
-            1,
-          );
+          expect(fetchMock.calls(runQueryEndpoint)).toHaveLength(1);
           // tab state is not updated, since the query is a data preview
           expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(0);
         });

@@ -1,7 +1,7 @@
 ---
 title: Async Queries via Celery
 hide_title: true
-sidebar_position: 8
+sidebar_position: 9
 version: 1
 ---
 
@@ -66,7 +66,7 @@ celery --app=superset.tasks.celery_app:app beat
 ```
 
 To setup a result backend, you need to pass an instance of a derivative of from
-cachelib.base.BaseCache to the RESULTS_BACKEND configuration key in your superset_config.py. You can
+from flask_caching.backends.base import BaseCache to the RESULTS_BACKEND configuration key in your superset_config.py. You can
 use Memcached, Redis, S3 (https://pypi.python.org/pypi/s3werkzeugcache), memory or the file system
 (in a single server-type setup or for testing), or to write your own caching interface. Your
 `superset_config.py` may look something like:
@@ -79,7 +79,7 @@ S3_CACHE_KEY_PREFIX = 'sql_lab_result'
 RESULTS_BACKEND = S3Cache(S3_CACHE_BUCKET, S3_CACHE_KEY_PREFIX)
 
 # On Redis
-from cachelib.redis import RedisCache
+from flask_caching.backends.rediscache import RedisCache
 RESULTS_BACKEND = RedisCache(
     host='localhost', port=6379, key_prefix='superset_results')
 ```

@@ -16,14 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
 import shortid from 'shortid';
-import { styled, t, QueryResponse } from '@superset-ui/core';
-import { usePrevious } from 'src/hooks/usePrevious';
+import {
+  QueryResponse,
+  QueryState,
+  styled,
+  t,
+  useTheme,
+  usePrevious,
+} from '@superset-ui/core';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import {
   ISaveableDatasource,
@@ -36,16 +42,14 @@ import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import ProgressBar from 'src/components/ProgressBar';
 import Loading from 'src/components/Loading';
-import FilterableTable, {
-  MAX_COLUMNS_FOR_TABLE,
-} from 'src/components/FilterableTable';
+import FilterableTable from 'src/components/FilterableTable';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import {
-  CtasEnum,
-  clearQueryResults,
   addQueryEditor,
+  clearQueryResults,
+  CtasEnum,
   fetchQueryResults,
   reFetchQueryResults,
   reRunQuery,
@@ -77,6 +81,12 @@ export interface ResultSetProps {
   defaultQueryLimit: number;
 }
 
+const ResultContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  row-gap: ${({ theme }) => theme.gridUnit * 2}px;
+`;
+
 const ResultlessStyles = styled.div`
   position: relative;
   min-height: ${({ theme }) => theme.gridUnit * 25}px;
@@ -106,7 +116,6 @@ const ReturnedRows = styled.div`
 const ResultSetControls = styled.div`
   display: flex;
   justify-content: space-between;
-  padding: ${({ theme }) => 2 * theme.gridUnit}px 0;
 `;
 
 const ResultSetButtons = styled.div`
@@ -133,6 +142,7 @@ const ResultSet = ({
   user,
   defaultQueryLimit,
 }: ResultSetProps) => {
+  const theme = useTheme();
   const [searchText, setSearchText] = useState('');
   const [cachedData, setCachedData] = useState<Record<string, unknown>[]>([]);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
@@ -200,7 +210,7 @@ const ResultSet = ({
         ...EXPLORE_CHART_DEFAULT,
         datasource: `${results.query_id}__query`,
         ...{
-          all_columns: results.columns.map(column => column.name),
+          all_columns: results.columns.map(column => column.column_name),
         },
       });
       const url = mountExploreUrl(null, {
@@ -211,6 +221,9 @@ const ResultSet = ({
       addDangerToast(t('Unable to create chart without a query id.'));
     }
   };
+
+  const getExportCsvUrl = (clientId: string) =>
+    `/api/v1/sqllab/export/${clientId}/`;
 
   const renderControls = () => {
     if (search || visualize || csv) {
@@ -250,7 +263,7 @@ const ResultSet = ({
               />
             )}
             {csv && (
-              <Button buttonSize="small" href={`/superset/csv/${query.id}`}>
+              <Button buttonSize="small" href={getExportCsvUrl(query.id)}>
                 <i className="fa fa-file-text-o" /> {t('Download to CSV')}
               </Button>
             )}
@@ -272,12 +285,7 @@ const ResultSet = ({
               onChange={changeSearch}
               value={searchText}
               className="form-control input-sm"
-              disabled={columns.length > MAX_COLUMNS_FOR_TABLE}
-              placeholder={
-                columns.length > MAX_COLUMNS_FOR_TABLE
-                  ? t('Too many columns to filter')
-                  : t('Filter results')
-              }
+              placeholder={t('Filter results')}
             />
           )}
         </ResultSetControls>
@@ -296,7 +304,7 @@ const ResultSet = ({
 
     const displayMaxRowsReachedMessage = {
       withAdmin: t(
-        'The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROWS. ' +
+        'The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROW. ' +
           'Please add additional limits/filters or download to csv to see more rows up to ' +
           'the %(limit)d limit.',
         { rows: rowsCount, limit },
@@ -353,8 +361,8 @@ const ResultSet = ({
               message={t('%(rows)d rows returned', { rows })}
               onClose={() => setAlertIsOpen(false)}
               description={t(
-                'The number of rows displayed is limited to %s by the dropdown.',
-                rows,
+                'The number of rows displayed is limited to %(rows)d by the dropdown.',
+                { rows },
               )}
             />
           </div>
@@ -387,8 +395,8 @@ const ResultSet = ({
   let trackingUrl;
   if (
     query.trackingUrl &&
-    query.state !== 'success' &&
-    query.state !== 'fetching'
+    query.state !== QueryState.SUCCESS &&
+    query.state !== QueryState.FETCHING
   ) {
     trackingUrl = (
       <Button
@@ -397,7 +405,9 @@ const ResultSet = ({
         href={query.trackingUrl}
         target="_blank"
       >
-        {query.state === 'running' ? t('Track job') : t('See query details')}
+        {query.state === QueryState.RUNNING
+          ? t('Track job')
+          : t('See query details')}
       </Button>
     );
   }
@@ -406,11 +416,11 @@ const ResultSet = ({
     sql = <HighlightedSql sql={query.sql} />;
   }
 
-  if (query.state === 'stopped') {
+  if (query.state === QueryState.STOPPED) {
     return <Alert type="warning" message={t('Query was stopped')} />;
   }
 
-  if (query.state === 'failed') {
+  if (query.state === QueryState.FAILED) {
     return (
       <ResultlessStyles>
         <ErrorMessageWithStackTrace
@@ -426,7 +436,7 @@ const ResultSet = ({
     );
   }
 
-  if (query.state === 'success' && query.ctas) {
+  if (query.state === QueryState.SUCCESS && query.ctas) {
     const { tempSchema, tempTable } = query;
     let object = 'Table';
     if (query.ctas_method === CtasEnum.VIEW) {
@@ -447,7 +457,7 @@ const ResultSet = ({
               <ButtonGroup>
                 <Button
                   buttonSize="small"
-                  className="m-r-5"
+                  css={{ marginRight: theme.gridUnit }}
                   onClick={() => popSelectStar(tempSchema, tempTable)}
                 >
                   {t('Query in a new tab')}
@@ -465,7 +475,7 @@ const ResultSet = ({
     );
   }
 
-  if (query.state === 'success' && query.results) {
+  if (query.state === QueryState.SUCCESS && query.results) {
     const { results } = query;
     // Accounts for offset needed for height of ResultSetRowsReturned component if !limitReached
     const rowMessageHeight = !limitReached ? 32 : 0;
@@ -474,7 +484,7 @@ const ResultSet = ({
     // We need to calculate the height of this.renderRowsReturned()
     // if we want results panel to be proper height because the
     // FilterTable component needs an explicit height to render
-    // react-virtualized Table component
+    // the Table component
     const rowsHeight = alertIsOpen
       ? height - alertContainerHeight
       : height - rowMessageHeight;
@@ -486,21 +496,21 @@ const ResultSet = ({
     }
     if (data && data.length > 0) {
       const expandedColumns = results.expanded_columns
-        ? results.expanded_columns.map(col => col.name)
+        ? results.expanded_columns.map(col => col.column_name)
         : [];
       return (
-        <>
+        <ResultContainer>
           {renderControls()}
           {renderRowsReturned()}
           {sql}
           <FilterableTable
             data={data}
-            orderedColumnKeys={results.columns.map(col => col.name)}
+            orderedColumnKeys={results.columns.map(col => col.column_name)}
             height={rowsHeight}
             filterText={searchText}
             expandedColumns={expandedColumns}
           />
-        </>
+        </ResultContainer>
       );
     }
     if (data && data.length === 0) {
@@ -508,7 +518,7 @@ const ResultSet = ({
     }
   }
 
-  if (query.cached || (query.state === 'success' && !query.results)) {
+  if (query.cached || (query.state === QueryState.SUCCESS && !query.results)) {
     if (query.isDataPreview) {
       return (
         <Button

@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from unittest import mock
 
 import pytest
 
@@ -41,18 +40,6 @@ class TestTagging(SupersetTestCase):
     def clear_tagged_object_table(self):
         db.session.query(TaggedObject).delete()
         db.session.commit()
-
-    @with_feature_flags(TAGGING_SYSTEM=False)
-    def test_tag_view_disabled(self):
-        self.login("admin")
-        response = self.client.get("/tagview/tags/suggestions/")
-        self.assertEqual(404, response.status_code)
-
-    @with_feature_flags(TAGGING_SYSTEM=True)
-    def test_tag_view_enabled(self):
-        self.login("admin")
-        response = self.client.get("/tagview/tags/suggestions/")
-        self.assertNotEqual(404, response.status_code)
 
     @pytest.mark.usefixtures("with_tagging_system_feature")
     def test_dataset_tagging(self):
@@ -149,7 +136,6 @@ class TestTagging(SupersetTestCase):
         test_dashboard = Dashboard()
         test_dashboard.dashboard_title = "test_dashboard"
         test_dashboard.slug = "test_slug"
-        test_dashboard.slices = []
         test_dashboard.published = True
 
         db.session.add(test_dashboard)
@@ -277,7 +263,6 @@ class TestTagging(SupersetTestCase):
         test_dashboard = Dashboard()
         test_dashboard.dashboard_title = "test_dashboard"
         test_dashboard.slug = "test_slug"
-        test_dashboard.slices = []
         test_dashboard.published = True
 
         # Create a saved query and add it to the db

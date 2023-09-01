@@ -29,7 +29,7 @@ from inspect import (
     Signature,
 )
 from logging import Logger
-from typing import Any, Callable, cast, Optional, Type, Union
+from typing import Any, Callable, cast, Union
 
 _DEFAULT_ENTER_MSG_PREFIX = "enter to "
 _DEFAULT_ENTER_MSG_SUFFIX = ""
@@ -48,11 +48,11 @@ empty_and_none = {Signature.empty, "None"}
 
 
 Function = Callable[..., Any]
-Decorated = Union[Type[Any], Function]
+Decorated = Union[type[Any], Function]
 
 
 def log(
-    decorated: Optional[Decorated] = None,
+    decorated: Decorated | None = None,
     *,
     prefix_enter_msg: str = _DEFAULT_ENTER_MSG_PREFIX,
     suffix_enter_msg: str = _DEFAULT_ENTER_MSG_SUFFIX,
@@ -61,7 +61,6 @@ def log(
     suffix_exit_msg: str = _DEFAULT_EXIT_MSG_SUFFIX,
     return_value_msg_part=_DEFAULT_RETURN_VALUE_MSG_PART,
 ) -> Decorated:
-
     decorator: Decorated = _make_decorator(
         prefix_enter_msg,
         suffix_enter_msg,
@@ -86,11 +85,11 @@ def _make_decorator(
     def decorator(decorated: Decorated):
         decorated_logger = _get_logger(decorated)
 
-        def decorator_class(clazz: Type[Any]) -> Type[Any]:
+        def decorator_class(clazz: type[Any]) -> type[Any]:
             _decorate_class_members_with_logs(clazz)
             return clazz
 
-        def _decorate_class_members_with_logs(clazz: Type[Any]) -> None:
+        def _decorate_class_members_with_logs(clazz: type[Any]) -> None:
             members = getmembers(
                 clazz, predicate=lambda val: ismethod(val) or isfunction(val)
             )
@@ -161,7 +160,7 @@ def _make_decorator(
             return _wrapper_func
 
         if isclass(decorated):
-            return decorator_class(cast(Type[Any], decorated))
+            return decorator_class(cast(type[Any], decorated))
         return decorator_func(cast(Function, decorated))
 
     return decorator

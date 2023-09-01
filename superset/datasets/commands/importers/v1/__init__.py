@@ -15,17 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Any, Dict, Set
+from typing import Any
 
 from marshmallow import Schema
 from sqlalchemy.orm import Session
 
 from superset.commands.importers.v1 import ImportModelsCommand
+from superset.daos.dataset import DatasetDAO
 from superset.databases.commands.importers.v1.utils import import_database
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.commands.exceptions import DatasetImportError
 from superset.datasets.commands.importers.v1.utils import import_dataset
-from superset.datasets.dao import DatasetDAO
 from superset.datasets.schemas import ImportV1DatasetSchema
 
 
@@ -36,7 +36,7 @@ class ImportDatasetsCommand(ImportModelsCommand):
     dao = DatasetDAO
     model_name = "dataset"
     prefix = "datasets/"
-    schemas: Dict[str, Schema] = {
+    schemas: dict[str, Schema] = {
         "databases/": ImportV1DatabaseSchema(),
         "datasets/": ImportV1DatasetSchema(),
     }
@@ -44,16 +44,16 @@ class ImportDatasetsCommand(ImportModelsCommand):
 
     @staticmethod
     def _import(
-        session: Session, configs: Dict[str, Any], overwrite: bool = False
+        session: Session, configs: dict[str, Any], overwrite: bool = False
     ) -> None:
         # discover databases associated with datasets
-        database_uuids: Set[str] = set()
+        database_uuids: set[str] = set()
         for file_name, config in configs.items():
             if file_name.startswith("datasets/"):
                 database_uuids.add(config["database_uuid"])
 
         # import related databases
-        database_ids: Dict[str, int] = {}
+        database_ids: dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/") and config["uuid"] in database_uuids:
                 database = import_database(session, config, overwrite=False)
