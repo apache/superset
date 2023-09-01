@@ -24,7 +24,7 @@ assists people when migrating to a new version.
 
 ## Next
 
-- [25053](https://github.com/apache/superset/pull/25053): Extends the `ab_user.email` column from 64 to 320 characters which has an associated unique key constraint. This will be problematic for MySQL metadata databases which use the InnoDB storage engine with the  `innodb_large_prefix` parameter disabled as the key prefix limit is 767 bytes. Enabling said parameter and ensuring that the table uses either the `DYNAMIC` or `COMPRESSED` row format should remedy the problem. See [here](https://dev.mysql.com/doc/refman/5.7/en/innodb-limits.html) for more details.
+- [25053](https://github.com/apache/superset/pull/25053): Extends the `ab_user.email` column from 64 to 320 characters which has an associated unique key constraint. This will be problematic for MySQL metadata databases which use the InnoDB storage engine with the `innodb_large_prefix` parameter disabled as the key prefix limit is 767 bytes. Enabling said parameter and ensuring that the table uses either the `DYNAMIC` or `COMPRESSED` row format should remedy the problem. See [here](https://dev.mysql.com/doc/refman/5.7/en/innodb-limits.html) for more details.
 - [24939](https://github.com/apache/superset/pull/24939): Augments the foreign key constraints for the `embedded_dashboards` table to include an explicit CASCADE ON DELETE to ensure the relevant records are deleted when a dashboard is deleted. Scheduled downtime may be advised.
 - [24938](https://github.com/apache/superset/pull/24938): Augments the foreign key constraints for the `dashboard_slices` table to include an explicit CASCADE ON DELETE to ensure the relevant records are deleted when a dashboard or slice is deleted. Scheduled downtime may be advised.
 - [24911](https://github.com/apache/superset/pull/24911): Changes the column type from `TEXT` to `MediumText` in table `logs`, potentially requiring a table lock on MySQL dbs or taking some time to complete on large deployments.
@@ -43,6 +43,7 @@ assists people when migrating to a new version.
   make it more clear which envrionment your are in.
   `SUPERSET_ENV=production` and `SUPERSET_ENV=development` are the two
   supported switches based on the default config.
+- [19242](https://github.com/apache/superset/pull/19242): Adhoc subqueries are now disabled by default for security reasons. To enable them, set the feature flag `ALLOW_ADHOC_SUBQUERY` to `True`.
 
 ### Breaking Changes
 
