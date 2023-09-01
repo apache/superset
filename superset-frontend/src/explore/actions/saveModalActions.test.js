@@ -394,7 +394,6 @@ describe('getSlicePayload', () => {
       'viz_type',
       formDataWithAdhocFiltersWithExtra.viz_type,
     );
-    console.log(result.params.adhoc_filters);
     expect(result).toHaveProperty('datasource_id', 22);
     expect(result).toHaveProperty('datasource_type', 'table');
     expect(result).toHaveProperty('dashboards', dashboards);
