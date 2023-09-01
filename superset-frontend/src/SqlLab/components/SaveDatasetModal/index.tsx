@@ -161,7 +161,7 @@ export const SaveDatasetModal = ({
   );
 
   const getDefaultDatasetName = () =>
-    `${datasource?.name || UNTITLED} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
+    `${datasource?.name || UNTITLED} ${moment().format('L HH:mm:ss')}`;
   const [datasetName, setDatasetName] = useState(getDefaultDatasetName());
   const [newOrOverwrite, setNewOrOverwrite] = useState(
     DatasetRadioState.SAVE_NEW,

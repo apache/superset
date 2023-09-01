@@ -626,6 +626,12 @@ export default function sqlLabReducer(state = {}, action) {
           newQueries[id] = {
             ...state.queries[id],
             ...changedQuery,
+            ...(changedQuery.startDttm && {
+              startDttm: Number(changedQuery.startDttm),
+            }),
+            ...(changedQuery.endDttm && {
+              endDttm: Number(changedQuery.endDttm),
+            }),
             // race condition:
             // because of async behavior, sql lab may still poll a couple of seconds
             // when it started fetching or finished rendering results
