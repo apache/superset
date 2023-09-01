@@ -114,12 +114,12 @@ export const useExploreAdditionalActionsMenu = (
   onOpenPropertiesModal,
   ownState,
   dashboards,
+  ...rest
 ) => {
   const theme = useTheme();
   const { addDangerToast, addSuccessToast } = useToasts();
   const [showReportSubMenu, setShowReportSubMenu] = useState(null);
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
-  const [openSubmenus, setOpenSubmenus] = useState([]);
   const chart = useSelector(
     state => state.charts?.[getChartKey(state.explore)],
   );
@@ -204,23 +204,19 @@ export const useExploreAdditionalActionsMenu = (
         case MENU_KEYS.EXPORT_TO_CSV:
           exportCSV();
           setIsDropdownVisible(false);
-          setOpenSubmenus([]);
           break;
         case MENU_KEYS.EXPORT_TO_CSV_PIVOTED:
           exportCSVPivoted();
           setIsDropdownVisible(false);
-          setOpenSubmenus([]);
           break;
         case MENU_KEYS.EXPORT_TO_JSON:
           exportJson();
           setIsDropdownVisible(false);
-          setOpenSubmenus([]);
 
           break;
         case MENU_KEYS.EXPORT_TO_XLSX:
           exportExcel();
           setIsDropdownVisible(false);
-          setOpenSubmenus([]);
           break;
         case MENU_KEYS.DOWNLOAD_AS_IMAGE:
           downloadAsImage(
@@ -230,21 +226,17 @@ export const useExploreAdditionalActionsMenu = (
             true,
           )(domEvent);
           setIsDropdownVisible(false);
-          setOpenSubmenus([]);
           break;
         case MENU_KEYS.COPY_PERMALINK:
           copyLink();
           setIsDropdownVisible(false);
-          setOpenSubmenus([]);
           break;
         case MENU_KEYS.EMBED_CODE:
           setIsDropdownVisible(false);
-          setOpenSubmenus([]);
           break;
         case MENU_KEYS.SHARE_BY_EMAIL:
           shareByEmail();
           setIsDropdownVisible(false);
-          setOpenSubmenus([]);
           break;
         case MENU_KEYS.VIEW_QUERY:
           setIsDropdownVisible(false);
@@ -275,8 +267,7 @@ export const useExploreAdditionalActionsMenu = (
       <Menu
         onClick={handleMenuClick}
         selectable={false}
-        openKeys={openSubmenus}
-        onOpenChange={setOpenSubmenus}
+        {...rest}
       >
         <>
           {slice && (
@@ -423,7 +414,6 @@ export const useExploreAdditionalActionsMenu = (
       handleMenuClick,
       isDropdownVisible,
       latestQueryFormData,
-      openSubmenus,
       showReportSubMenu,
       slice,
       theme.gridUnit,

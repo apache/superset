@@ -114,6 +114,7 @@ export default function HeaderReportDropDown({
   setShowReportSubMenu,
   setIsDropdownVisible,
   isDropdownVisible,
+  ...rest
 }: HeaderReportProps) {
   const dispatch = useDispatch();
   const report = useSelector<any, AlertObject>(state => {
@@ -214,15 +215,18 @@ export default function HeaderReportDropDown({
 
   const textMenu = () =>
     isEmpty(report) ? (
-      <Menu selectable={false} css={onMenuHover}>
-        <Menu.Item onClick={handleShowMenu}>
+      <Menu selectable={false}>
+        <Menu.Item {...rest}>
           {DropdownItemExtension ? (
             <StyledDropdownItemWithIcon>
-              <div>{t('Set up an email report')}</div>
+              <div onClick={handleShowMenu}>{t('Set up an email report')}</div>
               <DropdownItemExtension />
             </StyledDropdownItemWithIcon>
           ) : (
-            t('Set up an email report')
+            <React.Fragment>
+              <div onClick={handleShowMenu} >{t('Set up an email report')}</div>
+            </React.Fragment>
+
           )}
         </Menu.Item>
         <Menu.Divider />
