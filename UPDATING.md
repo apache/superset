@@ -49,6 +49,7 @@ assists people when migrating to a new version.
   make it more clear which envrionment your are in.
   `SUPERSET_ENV=production` and `SUPERSET_ENV=development` are the two
   supported switches based on the default config.
+- [19242](https://github.com/apache/superset/pull/19242): Adhoc subqueries are now disabled by default for security reasons. To enable them, set the feature flag `ALLOW_ADHOC_SUBQUERY` to `True`.
 
 ### Breaking Changes
 
