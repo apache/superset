@@ -184,6 +184,7 @@ Understanding the Superset Points of View
   - [Why Apache Superset is Betting on Apache ECharts](https://preset.io/blog/2021-4-1-why-echarts/)
 
 - [Superset API](https://superset.apache.org/docs/rest-api)
+  - [Go Lib](https://github.com/justmike1/goperset)
 
 <!-- telemetry/analytics pixel: -->
 <img referrerpolicy="no-referrer-when-downgrade" src="https://static.scarf.sh/a.png?x-pxid=bc1c90cd-bc04-4e11-8c7b-289fb2839492" />
