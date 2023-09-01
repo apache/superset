@@ -215,18 +215,17 @@ export default function HeaderReportDropDown({
 
   const textMenu = () =>
     isEmpty(report) ? (
-      <Menu selectable={false}>
-        <Menu.Item {...rest}>
+      <Menu selectable={false} {...rest}>
+        <Menu.Item onClick={handleShowMenu}>
           {DropdownItemExtension ? (
             <StyledDropdownItemWithIcon>
-              <div onClick={handleShowMenu}>{t('Set up an email report')}</div>
+              <div>{t('Set up an email report')}</div>
               <DropdownItemExtension />
             </StyledDropdownItemWithIcon>
           ) : (
             <React.Fragment>
-              <div onClick={handleShowMenu} >{t('Set up an email report')}</div>
+              <div>{t('Set up an email report')}</div>
             </React.Fragment>
-
           )}
         </Menu.Item>
         <Menu.Divider />

@@ -264,11 +264,7 @@ export const useExploreAdditionalActionsMenu = (
 
   const menu = useMemo(
     () => (
-      <Menu
-        onClick={handleMenuClick}
-        selectable={false}
-        {...rest}
-      >
+      <Menu onClick={handleMenuClick} selectable={false} {...rest}>
         <>
           {slice && (
             <Menu.Item key={MENU_KEYS.EDIT_PROPERTIES}>
