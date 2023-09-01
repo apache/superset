@@ -302,7 +302,19 @@ describe('getSlicePayload', () => {
       formDataWithNativeFilters,
       dashboards,
       owners,
-      formDataFromSlice,
+      {
+        datasource: '22__table',
+        viz_type: 'pie',
+        adhoc_filters: [
+          {
+            clause: 'WHERE',
+            subject: 'year',
+            operator: 'TEMPORAL_RANGE',
+            comparator: 'No filter',
+            expressionType: 'SIMPLE',
+          },
+        ],
+      },
     );
     expect(result).toHaveProperty('params');
     expect(result).toHaveProperty('slice_name', sliceName);
@@ -366,7 +378,6 @@ describe('getSlicePayload', () => {
           operator: 'TEMPORAL_RANGE',
           comparator: 'No filter',
           expressionType: 'SIMPLE',
-          isExtra: true,
         },
       ],
     };
@@ -383,6 +394,7 @@ describe('getSlicePayload', () => {
       'viz_type',
       formDataWithAdhocFiltersWithExtra.viz_type,
     );
+    console.log(result.params.adhoc_filters);
     expect(result).toHaveProperty('datasource_id', 22);
     expect(result).toHaveProperty('datasource_type', 'table');
     expect(result).toHaveProperty('dashboards', dashboards);
