@@ -215,7 +215,7 @@ export default function HeaderReportDropDown({
 
   const textMenu = () =>
     isEmpty(report) ? (
-      <Menu selectable={false} {...rest}>
+      <Menu selectable={false} {...rest} css={onMenuHover}>
         <Menu.Item onClick={handleShowMenu}>
           {DropdownItemExtension ? (
             <StyledDropdownItemWithIcon>
