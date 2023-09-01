@@ -213,7 +213,7 @@ const QueryTable = ({
             {q.db}
           </Button>
         );
-        q.started = moment(q.startDttm).format('ll HH:mm:ss');
+        q.started = moment(q.startDttm).format('L HH:mm:ss');
         q.querylink = (
           <Button
             buttonSize="small"
