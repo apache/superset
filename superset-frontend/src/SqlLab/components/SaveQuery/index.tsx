@@ -98,7 +98,7 @@ const SaveQuery = ({
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const isSaved = !!query.remoteId;
   const canExploreDatabase = !!database?.allows_virtual_table_explore;
-  const canShowSaveButton =
+  const shouldShowSaveButton =
     database?.allows_virtual_table_explore !== undefined;
 
   const overlayMenu = (
@@ -182,7 +182,7 @@ const SaveQuery = ({
 
   return (
     <Styles className="SaveQuery">
-      {canShowSaveButton && (
+      {shouldShowSaveButton && (
         <SaveDatasetActionButton
           setShowSave={setShowSave}
           overlayMenu={canExploreDatabase ? overlayMenu : null}
