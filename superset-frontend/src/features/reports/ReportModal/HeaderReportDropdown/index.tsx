@@ -223,9 +223,7 @@ export default function HeaderReportDropDown({
               <DropdownItemExtension />
             </StyledDropdownItemWithIcon>
           ) : (
-            <React.Fragment>
-              <div>{t('Set up an email report')}</div>
-            </React.Fragment>
+            t('Set up an email report')
           )}
         </Menu.Item>
         <Menu.Divider />
