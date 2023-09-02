@@ -538,6 +538,8 @@ export default function transformProps(
         },
         scale: truncateYAxis,
         name: yAxisTitleSecondary,
+        nameGap: convertInteger(yAxisTitleMargin),
+        nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
         alignTicks,
       },
     ],
