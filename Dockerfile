@@ -56,9 +56,7 @@ ENV LANG=C.UTF-8 \
 
 RUN mkdir -p ${PYTHONPATH} superset/static superset-frontend apache_superset.egg-info requirements \
     && useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset \
-    && apt-get update -q \
-    && apt-get install -yq --no-install-recommends \
-        build-essential \
+    && apt-get update -q && apt-get install -yq --no-install-recommends \
         curl \
         default-libmysqlclient-dev \
         libsasl2-dev \
@@ -66,15 +64,19 @@ RUN mkdir -p ${PYTHONPATH} superset/static superset-frontend apache_superset.egg
         libpq-dev \
         libecpg-dev \
         libldap2-dev \
-    && apt-get autoremove -yqq --purge && rm -rf /var/lib/apt/lists/* /var/[log,tmp]/* /tmp/* && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
     && touch superset/static/version_info.json \
     && chown -R superset:superset ./*
 
 COPY --chown=superset:superset ./requirements/*.txt requirements/
+# build-essential needed to install python-ldap and mysqlclient
+RUN apt-get update -q && apt-get install -yq build-essential  \
+    && pip install --no-cache-dir -r requirements/local.txt \
+    && apt-get purge -y --auto-remove build-essential
+
 COPY --chown=superset:superset setup.py MANIFEST.in README.md ./
 # setup.py uses the version information in package.json
 COPY --chown=superset:superset superset-frontend/package.json superset-frontend/
-RUN pip install --no-cache-dir -r requirements/local.txt
 
 COPY --chown=superset:superset --from=superset-node /app/superset/static/assets superset/static/assets
 ## Lastly, let's install superset itself
