@@ -105,6 +105,7 @@ USER root
 
 RUN apt-get update -q \
     && apt-get install -yq --no-install-recommends \
+        build-essential \
         libnss3 \
         libdbus-glib-1-2 \
         libgtk-3-0 \
