@@ -69,12 +69,12 @@ RUN mkdir -p ${PYTHONPATH} superset/static superset-frontend apache_superset.egg
     && chown -R superset:superset ./*
 
 COPY --chown=superset:superset ./requirements/*.txt requirements/
+COPY --chown=superset:superset setup.py MANIFEST.in README.md ./
 # build-essential needed to install python-ldap and mysqlclient
 RUN apt-get update -q && apt-get install -yq build-essential  \
     && pip install --no-cache-dir -r requirements/local.txt \
     && apt-get purge -y --auto-remove build-essential
 
-COPY --chown=superset:superset setup.py MANIFEST.in README.md ./
 # setup.py uses the version information in package.json
 COPY --chown=superset:superset superset-frontend/package.json superset-frontend/
 
