@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { memo, useCallback, useMemo, useRef } from 'react';
 import { GeoJsonLayer } from 'deck.gl/typed';
 import geojsonExtent from '@mapbox/geojson-extent';
 import {
@@ -27,7 +27,7 @@ import {
 } from '@superset-ui/core';
 
 import {
-  DeckGLContainer,
+  DeckGLContainerHandle,
   DeckGLContainerStyledWrapper,
 } from '../../DeckGLContainer';
 import { hexToRGB } from '../../utils/colors';
@@ -164,21 +164,19 @@ export type DeckGLGeoJsonProps = {
   width: number;
 };
 
-class DeckGLGeoJson extends React.Component<DeckGLGeoJsonProps> {
-  containerRef = React.createRef<DeckGLContainer>();
-
-  setTooltip = (tooltip: TooltipProps['tooltip']) => {
-    const { current } = this.containerRef;
+const DeckGLGeoJson = (props: DeckGLGeoJsonProps) => {
+  const containerRef = useRef<DeckGLContainerHandle>();
+  const setTooltip = useCallback((tooltip: TooltipProps['tooltip']) => {
+    const { current } = containerRef;
     if (current) {
       current.setTooltip(tooltip);
     }
-  };
+  }, []);
 
-  render() {
-    const { formData, payload, setControlValue, onAddFilter, height, width } =
-      this.props;
+  const { formData, payload, setControlValue, onAddFilter, height, width } =
+    props;
 
-    let { viewport } = this.props;
+  const viewport: Viewport = useMemo(() => {
     if (formData.autozoom) {
       const points =
         payload?.data?.features?.reduce?.(
@@ -194,29 +192,36 @@ class DeckGLGeoJson extends React.Component<DeckGLGeoJsonProps> {
         ) || [];
 
       if (points.length) {
-        viewport = fitViewport(viewport, {
+        return fitViewport(props.viewport, {
           width,
           height,
           points,
         });
       }
     }
+    return props.viewport;
+  }, [
+    formData.autozoom,
+    height,
+    payload?.data?.features,
+    props.viewport,
+    width,
+  ]);
 
-    const layer = getLayer(formData, payload, onAddFilter, this.setTooltip);
+  const layer = getLayer(formData, payload, onAddFilter, setTooltip);
 
-    return (
-      <DeckGLContainerStyledWrapper
-        ref={this.containerRef}
-        mapboxApiAccessToken={payload.data.mapboxApiKey}
-        viewport={viewport}
-        layers={[layer]}
-        mapStyle={formData.mapbox_style}
-        setControlValue={setControlValue}
-        height={height}
-        width={width}
-      />
-    );
-  }
-}
+  return (
+    <DeckGLContainerStyledWrapper
+      ref={containerRef}
+      mapboxApiAccessToken={payload.data.mapboxApiKey}
+      viewport={viewport}
+      layers={[layer]}
+      mapStyle={formData.mapbox_style}
+      setControlValue={setControlValue}
+      height={height}
+      width={width}
+    />
+  );
+};
 
-export default DeckGLGeoJson;
+export default memo(DeckGLGeoJson);

@@ -24,7 +24,7 @@
  */
 /* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
 
-import React from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
   CategoricalColorNamespace,
   Datasource,
@@ -40,7 +40,7 @@ import sandboxedEval from './utils/sandbox';
 // eslint-disable-next-line import/extensions
 import fitViewport, { Viewport } from './utils/fitViewport';
 import {
-  DeckGLContainer,
+  DeckGLContainerHandle,
   DeckGLContainerStyledWrapper,
 } from './DeckGLContainer';
 import { Point } from './types';
@@ -83,113 +83,51 @@ export type CategoricalDeckGLContainerProps = {
   setControlValue: (control: string, value: JsonValue) => void;
 };
 
-export type CategoricalDeckGLContainerState = {
-  formData?: QueryFormData;
-  viewport: Viewport;
-  categories: JsonObject;
-};
+const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
+  const containerRef = useRef<DeckGLContainerHandle>(null);
 
-export default class CategoricalDeckGLContainer extends React.PureComponent<
-  CategoricalDeckGLContainerProps,
-  CategoricalDeckGLContainerState
-> {
-  containerRef = React.createRef<DeckGLContainer>();
-
-  /*
-   * A Deck.gl container that handles categories.
-   *
-   * The container will have an interactive legend, populated from the
-   * categories present in the data.
-   */
-  constructor(props: CategoricalDeckGLContainerProps) {
-    super(props);
-    this.state = this.getStateFromProps(props);
-
-    this.getLayers = this.getLayers.bind(this);
-    this.toggleCategory = this.toggleCategory.bind(this);
-    this.showSingleCategory = this.showSingleCategory.bind(this);
-  }
-
-  UNSAFE_componentWillReceiveProps(nextProps: CategoricalDeckGLContainerProps) {
-    if (nextProps.payload.form_data !== this.state.formData) {
-      this.setState({ ...this.getStateFromProps(nextProps) });
-    }
-  }
-
-  // eslint-disable-next-line class-methods-use-this
-  getStateFromProps(
-    props: CategoricalDeckGLContainerProps,
-    state?: CategoricalDeckGLContainerState,
-  ) {
-    const features = props.payload.data.features || [];
-    const categories = getCategories(props.formData, features);
-
-    // the state is computed only from the payload; if it hasn't changed, do
-    // not recompute state since this would reset selections and/or the play
-    // slider position due to changes in form controls
-    if (state && props.payload.form_data === state.formData) {
-      return { ...state, categories };
-    }
-
-    const { width, height, formData } = props;
-    let { viewport } = props;
-    if (formData.autozoom) {
+  const getAdjustedViewport = useCallback(() => {
+    let viewport = { ...props.viewport };
+    if (props.formData.autozoom) {
       viewport = fitViewport(viewport, {
-        width,
-        height,
-        points: props.getPoints(features),
+        width: props.width,
+        height: props.height,
+        points: props.getPoints(props.payload.data.features || []),
       });
     }
     if (viewport.zoom < 0) {
       viewport.zoom = 0;
     }
+    return viewport;
+  }, [props]);
 
-    return {
-      viewport,
-      selected: [],
-      lastClick: 0,
-      formData: props.payload.form_data,
-      categories,
-    };
-  }
+  const [categories, setCategories] = useState<JsonObject>(
+    getCategories(props.formData, props.payload.data.features || []),
+  );
+  const [stateFormData, setStateFormData] = useState<JsonObject>(
+    props.payload.form_data,
+  );
+  const [viewport, setViewport] = useState(getAdjustedViewport());
 
-  getLayers() {
-    const { getLayer, payload, formData: fd, onAddFilter } = this.props;
-    let features = payload.data.features ? [...payload.data.features] : [];
+  useEffect(() => {
+    if (props.payload.form_data !== stateFormData) {
+      const features = props.payload.data.features || [];
+      const categories = getCategories(props.formData, features);
 
-    // Add colors from categories or fixed color
-    features = this.addColor(features, fd);
-
-    // Apply user defined data mutator if defined
-    if (fd.js_data_mutator) {
-      const jsFnMutator = sandboxedEval(fd.js_data_mutator);
-      features = jsFnMutator(features);
+      setViewport(getAdjustedViewport());
+      setStateFormData(props.payload.form_data);
+      setCategories(categories);
     }
+  }, [getAdjustedViewport, props, stateFormData]);
 
-    // Show only categories selected in the legend
-    const cats = this.state.categories;
-    if (fd.dimension) {
-      features = features.filter(d => cats[d.cat_color]?.enabled);
+  const setTooltip = useCallback((tooltip: TooltipProps['tooltip']) => {
+    const { current } = containerRef;
+    if (current) {
+      current.setTooltip(tooltip);
     }
+  }, []);
 
-    const filteredPayload = {
-      ...payload,
-      data: { ...payload.data, features },
-    };
-
-    return [
-      getLayer(
-        fd,
-        filteredPayload,
-        onAddFilter,
-        this.setTooltip,
-        this.props.datasource,
-      ) as Layer,
-    ];
-  }
-
-  // eslint-disable-next-line class-methods-use-this
-  addColor(data: JsonObject[], fd: QueryFormData) {
+  const addColor = useCallback((data: JsonObject[], fd: QueryFormData) => {
     const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
     const colorFn = getScale(fd.color_scheme);
 
@@ -203,67 +141,99 @@ export default class CategoricalDeckGLContainer extends React.PureComponent<
 
       return d;
     });
-  }
+  }, []);
 
-  toggleCategory(category: string) {
-    const categoryState = this.state.categories[category];
-    const categories = {
-      ...this.state.categories,
-      [category]: {
-        ...categoryState,
-        enabled: !categoryState.enabled,
-      },
+  const getLayers = useCallback(() => {
+    const { getLayer, payload, formData: fd, onAddFilter } = props;
+    let features = payload.data.features ? [...payload.data.features] : [];
+
+    // Add colors from categories or fixed color
+    features = addColor(features, fd);
+
+    // Apply user defined data mutator if defined
+    if (fd.js_data_mutator) {
+      const jsFnMutator = sandboxedEval(fd.js_data_mutator);
+      features = jsFnMutator(features);
+    }
+
+    // Show only categories selected in the legend
+    if (fd.dimension) {
+      features = features.filter(d => categories[d.cat_color]?.enabled);
+    }
+
+    const filteredPayload = {
+      ...payload,
+      data: { ...payload.data, features },
     };
 
-    // if all categories are disabled, enable all -- similar to nvd3
-    if (Object.values(categories).every(v => !v.enabled)) {
-      /* eslint-disable no-param-reassign */
-      Object.values(categories).forEach(v => {
-        v.enabled = true;
+    return [
+      getLayer(
+        fd,
+        filteredPayload,
+        onAddFilter,
+        setTooltip,
+        props.datasource,
+      ) as Layer,
+    ];
+  }, [addColor, categories, props, setTooltip]);
+
+  const toggleCategory = useCallback(
+    (category: string) => {
+      const categoryState = categories[category];
+      const categoriesExtended = {
+        ...categories,
+        [category]: {
+          ...categoryState,
+          enabled: !categoryState.enabled,
+        },
+      };
+
+      // if all categories are disabled, enable all -- similar to nvd3
+      if (Object.values(categoriesExtended).every(v => !v.enabled)) {
+        /* eslint-disable no-param-reassign */
+        Object.values(categoriesExtended).forEach(v => {
+          v.enabled = true;
+        });
+      }
+      setCategories(categoriesExtended);
+    },
+    [categories],
+  );
+
+  const showSingleCategory = useCallback(
+    (category: string) => {
+      const modifiedCategories = { ...categories };
+      Object.values(modifiedCategories).forEach(v => {
+        v.enabled = false;
       });
-    }
-    this.setState({ categories });
-  }
+      modifiedCategories[category].enabled = true;
+      setCategories(modifiedCategories);
+    },
+    [categories],
+  );
 
-  showSingleCategory(category: string) {
-    const categories = { ...this.state.categories };
-    /* eslint-disable no-param-reassign */
-    Object.values(categories).forEach(v => {
-      v.enabled = false;
-    });
-    categories[category].enabled = true;
-    this.setState({ categories });
-  }
+  return (
+    <div style={{ position: 'relative' }}>
+      <DeckGLContainerStyledWrapper
+        ref={containerRef}
+        viewport={viewport}
+        layers={getLayers()}
+        setControlValue={props.setControlValue}
+        mapStyle={props.formData.mapbox_style}
+        mapboxApiAccessToken={props.mapboxApiKey}
+        width={props.width}
+        height={props.height}
+      />
+      <Legend
+        forceCategorical
+        categories={categories}
+        format={props.formData.legend_format}
+        position={props.formData.legend_position}
+        showSingleCategory={showSingleCategory}
+        toggleCategory={toggleCategory}
+      />
+    </div>
+  );
+};
 
-  setTooltip = (tooltip: TooltipProps['tooltip']) => {
-    const { current } = this.containerRef;
-    if (current) {
-      current.setTooltip(tooltip);
-    }
-  };
-
-  render() {
-    return (
-      <div style={{ position: 'relative' }}>
-        <DeckGLContainerStyledWrapper
-          ref={this.containerRef}
-          viewport={this.state.viewport}
-          layers={this.getLayers()}
-          setControlValue={this.props.setControlValue}
-          mapStyle={this.props.formData.mapbox_style}
-          mapboxApiAccessToken={this.props.mapboxApiKey}
-          width={this.props.width}
-          height={this.props.height}
-        />
-        <Legend
-          forceCategorical
-          categories={this.state.categories}
-          format={this.props.formData.legend_format}
-          position={this.props.formData.legend_position}
-          showSingleCategory={this.showSingleCategory}
-          toggleCategory={this.toggleCategory}
-        />
-      </div>
-    );
-  }
-}
+export default memo(CategoricalDeckGLContainer);

@@ -21,7 +21,7 @@
  */
 /* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
 
-import React from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
   HandlerFunction,
   JsonObject,
@@ -41,7 +41,7 @@ import sandboxedEval from '../../utils/sandbox';
 import getPointsFromPolygon from '../../utils/getPointsFromPolygon';
 import fitViewport, { Viewport } from '../../utils/fitViewport';
 import {
-  DeckGLContainer,
+  DeckGLContainerHandle,
   DeckGLContainerStyledWrapper,
 } from '../../DeckGLContainer';
 import { TooltipProps } from '../../components/Tooltip';
@@ -173,145 +173,134 @@ export type DeckGLPolygonProps = {
   height: number;
 };
 
-export type DeckGLPolygonState = {
-  lastClick: number;
-  viewport: Viewport;
-  formData: PolygonFormData;
-  selected: JsonObject[];
-};
+const DeckGLPolygon = (props: DeckGLPolygonProps) => {
+  const containerRef = useRef<DeckGLContainerHandle>();
 
-class DeckGLPolygon extends React.PureComponent<
-  DeckGLPolygonProps,
-  DeckGLPolygonState
-> {
-  containerRef = React.createRef<DeckGLContainer>();
-
-  constructor(props: DeckGLPolygonProps) {
-    super(props);
-
-    this.state = DeckGLPolygon.getDerivedStateFromProps(
-      props,
-    ) as DeckGLPolygonState;
-
-    this.getLayers = this.getLayers.bind(this);
-    this.onSelect = this.onSelect.bind(this);
-  }
-
-  static getDerivedStateFromProps(
-    props: DeckGLPolygonProps,
-    state?: DeckGLPolygonState,
-  ) {
-    const { width, height, formData, payload } = props;
-
-    // the state is computed only from the payload; if it hasn't changed, do
-    // not recompute state since this would reset selections and/or the play
-    // slider position due to changes in form controls
-    if (state && payload.form_data === state.formData) {
-      return null;
-    }
-
-    const features = payload.data.features || [];
-
-    let { viewport } = props;
-    if (formData.autozoom) {
+  const getAdjustedViewport = useCallback(() => {
+    let viewport = { ...props.viewport };
+    if (props.formData.autozoom) {
+      const features = props.payload.data.features || [];
       viewport = fitViewport(viewport, {
-        width,
-        height,
+        width: props.width,
+        height: props.height,
         points: features.flatMap(getPointsFromPolygon),
       });
     }
+    if (viewport.zoom < 0) {
+      viewport.zoom = 0;
+    }
+    return viewport;
+  }, [props]);
 
-    return {
-      viewport,
-      selected: [],
-      lastClick: 0,
-      formData: payload.form_data,
-    };
-  }
+  const [lastClick, setLastClick] = useState(0);
+  const [viewport, setViewport] = useState(getAdjustedViewport());
+  const [stateFormData, setStateFormData] = useState(props.payload.form_data);
+  const [selected, setSelected] = useState<JsonObject[]>([]);
 
-  onSelect(polygon: JsonObject) {
-    const { formData, onAddFilter } = this.props;
+  useEffect(() => {
+    const { payload } = props;
 
-    const now = new Date().getDate();
-    const doubleClick = now - this.state.lastClick <= DOUBLE_CLICK_THRESHOLD;
+    if (payload.form_data !== stateFormData) {
+      setViewport(getAdjustedViewport());
+      setSelected([]);
+      setLastClick(0);
+      setStateFormData(payload.form_data);
+    }
+  }, [getAdjustedViewport, props, stateFormData, viewport]);
 
-    // toggle selected polygons
-    const selected = [...this.state.selected];
-    if (doubleClick) {
-      selected.splice(0, selected.length, polygon);
-    } else if (formData.toggle_polygons) {
-      const i = selected.indexOf(polygon);
-      if (i === -1) {
-        selected.push(polygon);
+  const setTooltip = useCallback((tooltip: TooltipProps['tooltip']) => {
+    const { current } = containerRef;
+    if (current) {
+      current.setTooltip(tooltip);
+    }
+  }, []);
+
+  const onSelect = useCallback(
+    (polygon: JsonObject) => {
+      const { formData, onAddFilter } = props;
+
+      const now = new Date().getDate();
+      const doubleClick = now - lastClick <= DOUBLE_CLICK_THRESHOLD;
+
+      // toggle selected polygons
+      const selectedCopy = [...selected];
+      if (doubleClick) {
+        selectedCopy.splice(0, selectedCopy.length, polygon);
+      } else if (formData.toggle_polygons) {
+        const i = selectedCopy.indexOf(polygon);
+        if (i === -1) {
+          selectedCopy.push(polygon);
+        } else {
+          selectedCopy.splice(i, 1);
+        }
       } else {
-        selected.splice(i, 1);
+        selectedCopy.splice(0, 1, polygon);
       }
-    } else {
-      selected.splice(0, 1, polygon);
-    }
 
-    this.setState({ selected, lastClick: now });
-    if (formData.table_filter) {
-      onAddFilter(formData.line_column, selected, false, true);
-    }
-  }
+      setSelected(selectedCopy);
+      setLastClick(now);
+      if (formData.table_filter) {
+        onAddFilter(formData.line_column, selected, false, true);
+      }
+    },
+    [lastClick, props, selected],
+  );
 
-  getLayers() {
-    if (this.props.payload.data.features === undefined) {
+  const getLayers = useCallback(() => {
+    if (props.payload.data.features === undefined) {
       return [];
     }
 
     const layer = getLayer(
-      this.props.formData,
-      this.props.payload,
-      this.props.onAddFilter,
-      this.setTooltip,
-      this.state.selected,
-      this.onSelect,
+      props.formData,
+      props.payload,
+      props.onAddFilter,
+      setTooltip,
+      selected,
+      onSelect,
     );
 
     return [layer];
-  }
+  }, [
+    onSelect,
+    props.formData,
+    props.onAddFilter,
+    props.payload,
+    selected,
+    setTooltip,
+  ]);
 
-  setTooltip = (tooltip: TooltipProps['tooltip']) => {
-    const { current } = this.containerRef;
-    if (current) {
-      current.setTooltip(tooltip);
-    }
-  };
+  const { payload, formData, setControlValue } = props;
 
-  render() {
-    const { payload, formData, setControlValue } = this.props;
+  const metricLabel = formData.metric
+    ? formData.metric.label || formData.metric
+    : null;
+  const accessor = (d: JsonObject) => d[metricLabel];
 
-    const fd = formData;
-    const metricLabel = fd.metric ? fd.metric.label || fd.metric : null;
-    const accessor = (d: JsonObject) => d[metricLabel];
+  const buckets = getBuckets(formData, payload.data.features, accessor);
 
-    const buckets = getBuckets(formData, payload.data.features, accessor);
+  return (
+    <div style={{ position: 'relative' }}>
+      <DeckGLContainerStyledWrapper
+        ref={containerRef}
+        viewport={viewport}
+        layers={getLayers()}
+        setControlValue={setControlValue}
+        mapStyle={formData.mapbox_style}
+        mapboxApiAccessToken={payload.data.mapboxApiKey}
+        width={props.width}
+        height={props.height}
+      />
 
-    return (
-      <div style={{ position: 'relative' }}>
-        <DeckGLContainerStyledWrapper
-          ref={this.containerRef}
-          viewport={this.state.viewport}
-          layers={this.getLayers()}
-          setControlValue={setControlValue}
-          mapStyle={formData.mapbox_style}
-          mapboxApiAccessToken={payload.data.mapboxApiKey}
-          width={this.props.width}
-          height={this.props.height}
+      {formData.metric !== null && (
+        <Legend
+          categories={buckets}
+          position={formData.legend_position}
+          format={formData.legend_format}
         />
+      )}
+    </div>
+  );
+};
 
-        {formData.metric !== null && (
-          <Legend
-            categories={buckets}
-            position={formData.legend_position}
-            format={formData.legend_format}
-          />
-        )}
-      </div>
-    );
-  }
-}
-
-export default DeckGLPolygon;
+export default memo(DeckGLPolygon);
