@@ -516,10 +516,7 @@ def execute_sql_statements(
 
         # Commit the connection so CTA queries will create the table and any DML.
         should_commit = (
-            any(
-                not db_engine_spec.is_select_query(statement)
-                for statement in parsed_query.get_statements()
-            )
+            not db_engine_spec.is_select_query(parsed_query)  # check if query is DML
             or apply_ctas
         )
         if should_commit:
