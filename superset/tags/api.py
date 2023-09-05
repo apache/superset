@@ -223,7 +223,7 @@ class TagRestApi(BaseSupersetModelRestApi):
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/{{self.__class__.__name__}}.bulk_create'
+                  $ref: '#/components/schemas/TagPostBulkSchema'
           responses:
             201:
               description: Tag added
@@ -235,7 +235,7 @@ class TagRestApi(BaseSupersetModelRestApi):
                       id:
                         type: number
                       result:
-                        $ref: '#/components/schemas/{{self.__class__.__name__}}.bulk_create'
+                        $ref: '#/components/schemas/TagPostBulkSchema'
             400:
               $ref: '#/components/responses/400'
             401:
