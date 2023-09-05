@@ -272,7 +272,7 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
         session.commit()
         with stats_timing("sqllab.query.time_executing_query", stats_logger):
             logger.debug("Query %d: Running query: %s", query.id, sql)
-            db_engine_spec.execute(cursor, sql, async_=False)
+            db_engine_spec.execute(cursor, sql)
             logger.debug("Query %d: Handling cursor", query.id)
             db_engine_spec.handle_cursor(cursor, query, session)
 
