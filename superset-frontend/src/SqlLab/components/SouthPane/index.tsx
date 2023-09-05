@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { createRef } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import React, { createRef, useMemo } from 'react';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import shortid from 'shortid';
 import Alert from 'src/components/Alert';
 import Tabs from 'src/components/Tabs';
@@ -105,11 +105,26 @@ const SouthPane = ({
   defaultQueryLimit,
 }: SouthPaneProps) => {
   const dispatch = useDispatch();
-
-  const { editorQueries, dataPreviewQueries, databases, offline, user } =
-    useSelector(({ user, sqlLab }: SqlLabRootState) => {
-      const { databases, offline, queries, tables } = sqlLab;
-      const dataPreviewQueries = tables
+  const user = useSelector(({ user }: SqlLabRootState) => user, shallowEqual);
+  const { databases, offline, queries, tables } = useSelector(
+    ({ sqlLab: { databases, offline, queries, tables } }: SqlLabRootState) => ({
+      databases,
+      offline,
+      queries,
+      tables,
+    }),
+    shallowEqual,
+  );
+  const editorQueries = useMemo(
+    () =>
+      Object.values(queries).filter(
+        ({ sqlEditorId }) => sqlEditorId === queryEditorId,
+      ),
+    [queries, queryEditorId],
+  );
+  const dataPreviewQueries = useMemo(
+    () =>
+      tables
         .filter(
           ({ dataPreviewQueryId, queryEditorId: qeId }) =>
             dataPreviewQueryId &&
@@ -119,18 +134,13 @@ const SouthPane = ({
         .map(({ name, dataPreviewQueryId }) => ({
           ...queries[dataPreviewQueryId || ''],
           tableName: name,
-        }));
-      const editorQueries = Object.values(queries).filter(
-        ({ sqlEditorId }) => sqlEditorId === queryEditorId,
-      );
-      return {
-        editorQueries,
-        dataPreviewQueries,
-        databases,
-        offline: offline ?? false,
-        user,
-      };
-    });
+        })),
+    [queries, queryEditorId, tables],
+  );
+  const latestQuery = useMemo(
+    () => editorQueries.find(({ id }) => id === latestQueryId),
+    [editorQueries, latestQueryId],
+  );
 
   const activeSouthPaneTab =
     useSelector<SqlLabRootState, string>(
@@ -148,11 +158,6 @@ const SouthPane = ({
   );
 
   const renderResults = () => {
-    let latestQuery;
-    if (editorQueries.length > 0) {
-      // get the latest query
-      latestQuery = editorQueries.find(({ id }) => id === latestQueryId);
-    }
     let results;
     if (latestQuery) {
       if (latestQuery?.extra?.errors) {

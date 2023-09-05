@@ -168,6 +168,7 @@ class CsvToDatabaseView(CustomFormView):
         form.skip_initial_space.data = False
         form.skip_blank_lines.data = True
         form.infer_datetime_format.data = True
+        form.day_first.data = False
         form.decimal.data = "."
         form.if_exists.data = "fail"
 
@@ -199,6 +200,7 @@ class CsvToDatabaseView(CustomFormView):
                     header=form.header.data if form.header.data else 0,
                     index_col=form.index_col.data,
                     infer_datetime_format=form.infer_datetime_format.data,
+                    dayfirst=form.day_first.data,
                     iterator=True,
                     keep_default_na=not form.null_values.data,
                     usecols=form.use_cols.data if form.use_cols.data else None,

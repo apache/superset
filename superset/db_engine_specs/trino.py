@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import contextlib
 import logging
 from typing import Any, TYPE_CHECKING
 
@@ -35,10 +36,8 @@ from superset.utils import core as utils
 if TYPE_CHECKING:
     from superset.models.core import Database
 
-    try:
+    with contextlib.suppress(ImportError):  # trino may not be installed
         from trino.dbapi import Cursor
-    except ImportError:
-        pass
 
 logger = logging.getLogger(__name__)
 
@@ -140,12 +139,10 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         try:
             return cursor.info_uri
         except AttributeError:
-            try:
+            with contextlib.suppress(AttributeError):
                 conn = cursor.connection
                 # pylint: disable=protected-access, line-too-long
                 return f"{conn.http_scheme}://{conn.host}:{conn.port}/ui/query.html?{cursor._query.query_id}"
-            except AttributeError:
-                pass
         return None
 
     @classmethod

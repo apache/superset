@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import contextlib
 import logging
 from abc import ABC
 from typing import Any, cast, Optional
@@ -107,17 +108,15 @@ class GetExploreCommand(BaseCommand, ABC):
             )
         except SupersetException:
             self._datasource_id = None
-            # fallback unkonw datasource to table type
+            # fallback unknown datasource to table type
             self._datasource_type = SqlaTable.type
 
         datasource: Optional[BaseDatasource] = None
         if self._datasource_id is not None:
-            try:
+            with contextlib.suppress(DatasourceNotFound):
                 datasource = DatasourceDAO.get_datasource(
                     db.session, cast(str, self._datasource_type), self._datasource_id
                 )
-            except DatasourceNotFound:
-                pass
         datasource_name = datasource.name if datasource else _("[Missing Dataset]")
         viz_type = form_data.get("viz_type")
         if not viz_type and datasource and datasource.default_endpoint:

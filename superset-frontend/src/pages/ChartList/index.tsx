@@ -590,6 +590,13 @@ function ChartList(props: ChartListProps) {
   const filters: Filters = useMemo(() => {
     const filters_list = [
       {
+        Header: t('Search'),
+        key: 'search',
+        id: 'slice_name',
+        input: 'search',
+        operator: FilterOperator.chartAllText,
+      },
+      {
         Header: t('Owner'),
         key: 'owner',
         id: 'owners',
@@ -705,13 +712,6 @@ function ChartList(props: ChartListProps) {
         fetchSelects: loadTags,
       });
     }
-    filters_list.push({
-      Header: t('Search'),
-      key: 'search',
-      id: 'slice_name',
-      input: 'search',
-      operator: FilterOperator.chartAllText,
-    });
     return filters_list;
   }, [addDangerToast, favoritesFilter, props.user]);
 

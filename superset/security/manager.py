@@ -295,11 +295,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param schema: The Superset schema name
         :return: The database specific schema permission
         """
-
-        if schema:
-            return f"[{database}].[{schema}]"
-
-        return None
+        return f"[{database}].[{schema}]" if schema else None
 
     @staticmethod
     def get_database_perm(database_id: int, database_name: str) -> str:
@@ -695,7 +691,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Add the FAB permission/view-menu.
 
         :param permission_name: The FAB permission name
-        :param view_menu_names: The FAB view-menu name
+        :param view_menu_name: The FAB view-menu name
         :see: SecurityManager.add_permission_view_menu
         """
 
@@ -1882,17 +1878,23 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 or self.is_owner(datasource)
                 or (
                     # Grant access to the datasource only if dashboard RBAC is enabled
+                    # or the user is an embedded guest user with access to the dashboard
                     # and said datasource is associated with the dashboard chart in
                     # question.
                     form_data
-                    and is_feature_enabled("DASHBOARD_RBAC")
                     and (dashboard_id := form_data.get("dashboardId"))
                     and (
                         dashboard_ := self.get_session.query(Dashboard)
                         .filter(Dashboard.id == dashboard_id)
                         .one_or_none()
                     )
-                    and dashboard_.roles
+                    and (
+                        (is_feature_enabled("DASHBOARD_RBAC") and dashboard_.roles)
+                        or (
+                            is_feature_enabled("EMBEDDED_SUPERSET")
+                            and self.is_guest_user()
+                        )
+                    )
                     and (
                         (
                             # Native filter.
@@ -2157,8 +2159,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             "aud": audience,
             "type": "guest",
         }
-        token = self.pyjwt_for_guest_token.encode(claims, secret, algorithm=algo)
-        return token
+        return self.pyjwt_for_guest_token.encode(claims, secret, algorithm=algo)
 
     def get_guest_user_from_request(self, req: Request) -> Optional[GuestUser]:
         """
@@ -2224,9 +2225,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return hasattr(user, "is_guest_user") and user.is_guest_user
 
     def get_current_guest_user_if_guest(self) -> Optional[GuestUser]:
-        if self.is_guest_user():
-            return g.user
-        return None
+        return g.user if self.is_guest_user() else None
 
     def has_guest_access(self, dashboard: "Dashboard") -> bool:
         user = self.get_current_guest_user_if_guest()
@@ -2287,8 +2286,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         Returns True if the current user is an owner of the resource, False otherwise.
 
-        :param resource: The dashboard, dataste, chart, etc. resource
-        :returns: Whethe the current user is an owner of the resource
+        :param resource: The dashboard, dataset, chart, etc. resource
+        :returns: Whether the current user is an owner of the resource
         """
 
         try:
@@ -2302,7 +2301,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         Returns True if the current user is an admin user, False otherwise.
 
-        :returns: Whehther the current user is an admin user
+        :returns: Whether the current user is an admin user
         """
 
         return current_app.config["AUTH_ROLE_ADMIN"] in [

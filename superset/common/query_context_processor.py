@@ -19,13 +19,12 @@ from __future__ import annotations
 import copy
 import logging
 import re
-from typing import Any, ClassVar, TYPE_CHECKING
+from typing import Any, ClassVar, TYPE_CHECKING, TypedDict
 
 import numpy as np
 import pandas as pd
 from flask_babel import gettext as _
 from pandas import DateOffset
-from typing_extensions import TypedDict
 
 from superset import app
 from superset.common.chart_data import ChartDataResultFormat
@@ -169,7 +168,7 @@ class QueryContextProcessor:
                 cache.error_message = str(ex)
                 cache.status = QueryStatus.FAILED
 
-        # the N-dimensional DataFrame has converteds into flat DataFrame
+        # the N-dimensional DataFrame has converted into flat DataFrame
         # by `flatten operator`, "comma" in the column is escaped by `escape_separator`
         # the result DataFrame columns should be unescaped
         label_map = {
@@ -632,11 +631,6 @@ class QueryContextProcessor:
         return generate_cache_key(cache_dict, key_prefix)
 
     def get_annotation_data(self, query_obj: QueryObject) -> dict[str, Any]:
-        """
-        :param query_context:
-        :param query_obj:
-        :return:
-        """
         annotation_data: dict[str, Any] = self.get_native_annotation_data(query_obj)
         for annotation_layer in [
             layer
