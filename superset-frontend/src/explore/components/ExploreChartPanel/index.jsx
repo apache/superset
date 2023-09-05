@@ -172,6 +172,36 @@ const ExploreChartPanel = ({
     chart.chartStatus !== 'failed' &&
     ensureIsArray(chart.queriesResponse).length > 0;
 
+  /* When feature flags are toggled we might need to resave the chart to update all
+   * required parameters. This can be done by setting `Slice.outdated` to false in a
+   * migration or manually. */
+  const updateChart = useCallback(
+    async function overwriteChart() {
+      if (slice.outdated) {
+        await SupersetClient.put({
+          endpoint: `/api/v1/chart/${slice.slice_id}`,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query_context: slice.query_context,
+            params: JSON.stringify(slice.form_data),
+            outdated: false,
+          }),
+        });
+        // TODO: update slice in the parent and trigger render
+        window.location.reload();
+      }
+    },
+    [slice],
+  );
+
+  useEffect(() => {
+    updateChart();
+  }, [updateChart]);
+
+  /* Orignally charts could be saved without `Slice.query_context`, but the field is
+   * needed for alerts & reports and can only be computed by the visualization Javascript
+   * code. Because of this, when we encounter a chart where the field is null we compute
+   * and store it. */
   const updateQueryContext = useCallback(
     async function fetchChartData() {
       if (slice && slice.query_context === null) {

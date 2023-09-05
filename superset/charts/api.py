@@ -194,6 +194,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "thumbnail_url",
         "url",
         "viz_type",
+        "outdated",
         "tags.id",
         "tags.name",
         "tags.type",

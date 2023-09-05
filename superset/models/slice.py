@@ -118,6 +118,10 @@ class Slice(  # pylint: disable=too-many-public-methods
         lazy="subquery",
     )
 
+    # force the chart to re-save itself; this is useful when the backend has missing
+    # information that can only be computed by the frontend
+    outdated = Column(Boolean, nullable=True, default=False)
+
     token = ""
 
     export_fields = [
@@ -247,6 +251,7 @@ class Slice(  # pylint: disable=too-many-public-methods
             "certified_by": self.certified_by,
             "certification_details": self.certification_details,
             "is_managed_externally": self.is_managed_externally,
+            "outdated": self.outdated,
         }
 
     @property

@@ -147,6 +147,11 @@ class SliceSchema(Schema):
     slice_id = fields.Integer(metadata={"description": "The slice ID."})
     slice_name = fields.String(metadata={"description": "The slice name."})
     slice_url = fields.String(metadata={"description": "The slice URL."})
+    oudated = fields.Boolean(
+        metadata={
+            "description": "Does the chart need to be re-saved to update metadata?"
+        }
+    )
 
 
 class ExploreContextSchema(Schema):
