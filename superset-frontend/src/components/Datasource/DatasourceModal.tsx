@@ -31,7 +31,7 @@ import {
 
 import Modal from 'src/components/Modal';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useSelector } from 'react-redux';
 
@@ -203,11 +203,16 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       })
       .catch(response => {
         setIsSaving(false);
-        getClientErrorObject(response).then(({ error }) => {
+        response.json().then(errorJson => {
           modal.error({
-            title: t('Error'),
-            content: error || t('An error has occurred'),
+            title: t('Error saving dataset'),
             okButtonProps: { danger: true, className: 'btn-danger' },
+            content: (
+              <ErrorMessageWithStackTrace
+                error={errorJson.errors[0]}
+                source="crud"
+              />
+            ),
           });
         });
       });
