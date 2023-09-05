@@ -20,7 +20,7 @@ import React from 'react';
 import { act } from 'react-dom/test-utils';
 import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import { reducers } from 'src/SqlLab/reducers';
+import reducers from 'spec/helpers/reducerIndex';
 import SqlEditor from 'src/SqlLab/components/SqlEditor';
 import { setupStore } from 'src/views/store';
 import {

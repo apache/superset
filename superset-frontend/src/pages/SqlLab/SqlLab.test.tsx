@@ -26,10 +26,10 @@ import {
   defaultStore as store,
   createStore,
 } from 'spec/helpers/testing-library';
+import reducers from 'spec/helpers/reducerIndex';
 import { api } from 'src/hooks/apiResources/queryApi';
 import { DEFAULT_COMMON_BOOTSTRAP_DATA } from 'src/constants';
 import getInitialState from 'src/SqlLab/reducers/getInitialState';
-import { reducers } from 'src/SqlLab/reducers';
 
 import SqlLab from '.';
 
