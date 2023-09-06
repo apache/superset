@@ -923,6 +923,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "viz_type": None,
             "query_context": None,
             "is_managed_externally": False,
+            "force_save": False,
         }
         data = json.loads(rv.data.decode("utf-8"))
         self.assertIn("changed_on_delta_humanized", data["result"])

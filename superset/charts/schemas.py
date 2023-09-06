@@ -234,6 +234,11 @@ class ChartPostSchema(Schema):
     )
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    force_save = fields.Boolean(
+        metadata={
+            "description": "Does the chart need to be re-saved to update metadata?"
+        }
+    )
 
 
 class ChartPutSchema(Schema):

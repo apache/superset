@@ -177,7 +177,7 @@ const ExploreChartPanel = ({
    * migration or manually. */
   const updateChart = useCallback(
     async function overwriteChart() {
-      if (slice.force_save) {
+      if (slice?.force_save) {
         await actions.updateSlice(slice, slice.slice_name);
         // TODO (betodealmeida): better refresh logic
         window.location.reload();
