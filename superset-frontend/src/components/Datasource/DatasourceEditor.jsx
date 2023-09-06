@@ -1397,7 +1397,6 @@ class DatasourceEditor extends React.PureComponent {
     const { metrics } = datasource;
     const sortedMetrics = metrics?.length ? this.sortMetrics(metrics) : [];
     const { theme } = this.props;
-    console.log(datasource);
 
     return (
       <DatasourceContainer>
