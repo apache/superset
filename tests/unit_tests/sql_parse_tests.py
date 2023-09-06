@@ -1616,3 +1616,10 @@ def test_extract_table_references(mocker: MockerFixture) -> None:
         Table(table="other_table", schema=None, catalog=None)
     }
     logger.warning.assert_not_called()
+
+
+def test_is_select() -> None:
+    """
+    Test `is_select`.
+    """
+    assert not ParsedQuery("SELECT 1; DROP DATABASE superset").is_select()
