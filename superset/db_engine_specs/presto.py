@@ -527,7 +527,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
 
     @classmethod
     @cache_manager.data_cache.memoize(timeout=60)
-    def latest_partition(
+    def latest_partition(  # pylint: disable=too-many-arguments
         cls,
         table_name: str,
         schema: str | None,
