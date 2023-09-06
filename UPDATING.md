@@ -32,7 +32,6 @@ assists people when migrating to a new version.
 - [24628](https://github.com/apache/superset/pull/24628): Augments the foreign key constraints for the `dashboard_owner`, `report_schedule_owner`, and `slice_owner` tables to include an explicit CASCADE ON DELETE to ensure the relevant ownership records are deleted when a dataset is deleted. Scheduled downtime may be advised.
 - [24488](https://github.com/apache/superset/pull/24488): Augments the foreign key constraints for the `sql_metrics`, `sqlatable_user`, and `table_columns` tables to include an explicit CASCADE ON DELETE to ensure the relevant records are deleted when a dataset is deleted. Scheduled downtime may be advised.
 - [24335](https://github.com/apache/superset/pull/24335): Removed deprecated API `/superset/filter/<datasource_type>/<int:datasource_id>/<column>/`
-- [24185](https://github.com/apache/superset/pull/24185): `/api/v1/database/test_connection` and `api/v1/database/validate_parameters` permissions changed from `can_read` to `can_write`. Only Admin user's have access.
 - [24232](https://github.com/apache/superset/pull/24232): Enables ENABLE_TEMPLATE_REMOVE_FILTERS, DRILL_TO_DETAIL, DASHBOARD_CROSS_FILTERS by default, marks VERSIONED_EXPORT and ENABLE_TEMPLATE_REMOVE_FILTERS as deprecated.
 - [23652](https://github.com/apache/superset/pull/23652): Enables GENERIC_CHART_AXES feature flag by default.
 - [23226](https://github.com/apache/superset/pull/23226): Migrated endpoint `/estimate_query_cost/<int:database_id>` to `/api/v1/sqllab/estimate/`. Corresponding permissions are can estimate query cost on SQLLab. Make sure you add/replace the necessary permissions on any custom roles you may have.
@@ -83,6 +82,12 @@ assists people when migrating to a new version.
 ### Other
 
 - [24982](https://github.com/apache/superset/pull/24982): By default, physical datasets on Oracle-like dialects like Snowflake will now use denormalized column names. However, existing datasets won't be affected. To change this behavior, the "Advanced" section on the dataset modal has a "Normalize column names" flag which can be changed to change this behavior.
+
+## 2.1.1
+- [24185](https://github.com/apache/superset/pull/24185): `/api/v1/database/test_connection` and `api/v1/database/validate_parameters` permissions changed from `can_read` to `can_write`. Only Admin user's have access.
+
+### Other
+- [23888](https://github.com/apache/superset/pull/23888): Database Migration for json serialization instead of pickle should upgrade/downgrade correctly when bumping to/from this patch version
 
 ## 2.1.0
 
