@@ -388,7 +388,7 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         "time_secondary_column": _(
             "Datasets can have a main datatime column (main_dttm_col), "
             "but can also have secondary time columns. "
-            "When this attribute is true, wheneve the secondary columns are filtered, "
+            "When this attribute is true, whenever the secondary columns are filtered, "
             "the same filter is applied to the main datetime column."
         ),
     }
