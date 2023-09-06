@@ -173,11 +173,11 @@ const ExploreChartPanel = ({
     ensureIsArray(chart.queriesResponse).length > 0;
 
   /* When feature flags are toggled we might need to resave the chart to update all
-   * required parameters. This can be done by setting `Slice.outdated` to false in a
+   * required parameters. This can be done by setting `Slice.force_save` to false in a
    * migration or manually. */
   const updateChart = useCallback(
     async function overwriteChart() {
-      if (slice.outdated) {
+      if (slice.force_save) {
         await actions.updateSlice(slice, slice.slice_name);
         // TODO (betodealmeida): better refresh logic
         window.location.reload();

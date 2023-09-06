@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Add outdated column to charts
+"""Add force_save column to charts
 
 Revision ID: 122965576ebd
 Revises: ec54aca4c8a2
@@ -33,9 +33,9 @@ down_revision = "ec54aca4c8a2"
 def upgrade():
     op.add_column(
         "slices",
-        sa.Column("outdated", sa.Boolean(), nullable=True, default=False),
+        sa.Column("force_save", sa.Boolean(), nullable=True, default=False),
     )
 
 
 def downgrade():
-    op.drop_column("slices", "outdated")
+    op.drop_column("slices", "force_save")

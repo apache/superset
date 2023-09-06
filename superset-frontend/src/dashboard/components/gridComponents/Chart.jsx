@@ -221,7 +221,7 @@ class Chart extends React.Component {
       this.setState({ descriptionHeight });
     }
 
-    if (this.props.slice.outdated) {
+    if (this.props.slice.force_save) {
       const { slice, updateSlices } = this.props;
       SupersetClient.put({
         endpoint: `/api/v1/chart/${slice.slice_id}`,
@@ -229,7 +229,7 @@ class Chart extends React.Component {
         body: JSON.stringify({
           query_context: slice.query_context,
           params: JSON.stringify(slice.form_data),
-          outdated: false,
+          force_save: false,
         }),
       }).then(response =>
         updateSlices({
@@ -391,7 +391,6 @@ class Chart extends React.Component {
   }
 
   render() {
-    console.log(this.props.slice.outdated);
     const {
       id,
       componentId,

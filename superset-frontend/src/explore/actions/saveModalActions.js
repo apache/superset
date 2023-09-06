@@ -114,7 +114,7 @@ export const getSlicePayload = (
         ownState: null,
       }),
     ),
-    outdated: false,
+    force_save: false,
   };
   return payload;
 };
