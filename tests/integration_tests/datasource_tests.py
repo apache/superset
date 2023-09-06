@@ -106,6 +106,7 @@ class TestDatasource(SupersetTestCase):
                 "schema_name": tbl.schema,
                 "table_name": tbl.table_name,
                 "normalize_columns": tbl.normalize_columns,
+                "time_secondary_column": tbl.time_secondary_column,
             }
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
@@ -135,6 +136,7 @@ class TestDatasource(SupersetTestCase):
                 "schema_name": tbl.schema,
                 "table_name": tbl.table_name,
                 "normalize_columns": tbl.normalize_columns,
+                "time_secondary_column": tbl.time_secondary_column,
             }
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
@@ -154,6 +156,7 @@ class TestDatasource(SupersetTestCase):
                     "table_name": "test_table",
                     "schema_name": get_example_default_schema(),
                     "normalize_columns": False,
+                    "time_secondary_column": False,
                 }
             )
             url = f"/datasource/external_metadata_by_name/?q={params}"
@@ -168,6 +171,7 @@ class TestDatasource(SupersetTestCase):
                 "database_name": "foo",
                 "table_name": "bar",
                 "normalize_columns": False,
+                "time_secondary_column": False,
             }
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
@@ -185,6 +189,7 @@ class TestDatasource(SupersetTestCase):
                 "database_name": example_database.database_name,
                 "table_name": "fooooooooobarrrrrr",
                 "normalize_columns": False,
+                "time_secondary_column": False,
             }
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"

@@ -64,4 +64,5 @@ export type DatasetObject = {
   extra?: string;
   is_managed_externally: boolean;
   normalize_columns: boolean;
+  time_secondary_column: boolean;
 };

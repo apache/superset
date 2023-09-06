@@ -766,6 +766,7 @@ class DatasourceEditor extends React.PureComponent {
         ? encodeURIComponent(datasource.table_name)
         : datasource.table_name,
       normalize_columns: datasource.normalize_columns,
+      time_secondary_column: datasource.time_secondary_column,
     };
     Object.entries(params).forEach(([key, value]) => {
       // rison can't encode the undefined value
@@ -1002,6 +1003,16 @@ class DatasourceEditor extends React.PureComponent {
             'Allow column names to be changed to case insensitive format, if supported (e.g. Oracle, Snowflake).',
           )}
           control={<CheckboxControl controlId="normalize_columns" />}
+        />
+          <Field
+          inline
+          fieldKey="time_secondary_column"
+          label={t('Time secondary column')}
+          description={t(
+            `When this attribute is true, wheneve the secondary dttm columns are filtered, 
+            the same filter is applied to the main datetime column.`,
+          )}
+          control={<CheckboxControl controlId="time_secondary_column" />}
         />
       </Fieldset>
     );
@@ -1386,6 +1397,7 @@ class DatasourceEditor extends React.PureComponent {
     const { metrics } = datasource;
     const sortedMetrics = metrics?.length ? this.sortMetrics(metrics) : [];
     const { theme } = this.props;
+    console.log(datasource)
 
     return (
       <DatasourceContainer>

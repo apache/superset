@@ -77,7 +77,9 @@ class Datasource(BaseSupersetView):
 
         datasource_dict = json.loads(data)
         normalize_columns = datasource_dict.get("normalize_columns", False)
+        time_secondary_column = datasource_dict.get("time_secondary_column", False)
         datasource_dict["normalize_columns"] = normalize_columns
+        datasource_dict["time_secondary_column"] = time_secondary_column
         datasource_id = datasource_dict.get("id")
         datasource_type = datasource_dict.get("type")
         database_id = datasource_dict["database"].get("id")

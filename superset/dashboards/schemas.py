@@ -245,6 +245,7 @@ class DashboardDatasetSchema(Schema):
     time_grain_sqla = fields.List(fields.List(fields.Str()))
     granularity_sqla = fields.List(fields.List(fields.Str()))
     normalize_columns = fields.Bool()
+    time_secondary_column = fields.Bool()
 
 
 class BaseDashboardSchema(Schema):

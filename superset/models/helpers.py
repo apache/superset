@@ -752,6 +752,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         raise NotImplementedError()
 
     @property
+    def time_secondary_column(self) -> Optional[bool]:
+        return False
+
+    @property
     def dttm_cols(self) -> list[str]:
         raise NotImplementedError()
 
@@ -1668,9 +1672,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 select_exprs.insert(0, timestamp)
                 groupby_all_columns[timestamp.name] = timestamp
 
+            print('---------------------------')
+            print(dir(self))
+            print(self.time_secondary_column)
             # Use main dttm column to support index with secondary dttm columns.
             if (
-                db_engine_spec.time_secondary_columns
+                self.time_secondary_column
                 and self.main_dttm_col in self.dttm_cols
                 and self.main_dttm_col != dttm_col.column_name
             ):

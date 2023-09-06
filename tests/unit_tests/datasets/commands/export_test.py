@@ -82,6 +82,7 @@ def test_export(session: Session) -> None:
         template_params=json.dumps({"answer": "42"}),
         schema_perm=None,
         normalize_columns=False,
+        time_secondary_column=False,
         extra=json.dumps({"warning_markdown": "*WARNING*"}),
     )
 
@@ -110,6 +111,7 @@ fetch_values_predicate: foo IN (1, 2)
 extra:
   warning_markdown: '*WARNING*'
 normalize_columns: false
+time_secondary_column: false
 uuid: null
 metrics:
 - metric_name: cnt

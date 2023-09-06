@@ -314,6 +314,7 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         "template_params",
         "extra",
         "normalize_columns",
+        "time_secondary_column"
     ]
     base_filters = [["id", DatasourceFilter, lambda: []]]
     show_columns = edit_columns + ["perm", "slices"]
@@ -384,6 +385,12 @@ class TableModelView(  # pylint: disable=too-many-ancestors
             "Allow column names to be changed to case insensitive format, "
             "if supported (e.g. Oracle, Snowflake)."
         ),
+        "time_secondary_column": _(
+            "Datasets can have a main datatime column (main_dttm_col), "
+            "but can also have secondary time columns. "
+            "When this attribute is true, wheneve the secondary columns are filtered, "
+            "the same filter is applied to the main datetime column."
+        )
     }
     label_columns = {
         "slices": _("Associated Charts"),
