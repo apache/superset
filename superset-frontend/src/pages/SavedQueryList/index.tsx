@@ -573,7 +573,7 @@ function SavedQueryList({
               disableBulkSelect={toggleBulkSelect}
               highlightRowId={savedQueryCurrentlyPreviewing?.id}
               enableBulkTag
-              bulkTagResourceName={'query'}
+              bulkTagResourceName="query"
             />
           );
         }}

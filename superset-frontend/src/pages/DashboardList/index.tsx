@@ -773,7 +773,7 @@ function DashboardList(props: DashboardListProps) {
                     : 'table'
                 }
                 enableBulkTag
-                bulkTagResourceName={'dashboard'}
+                bulkTagResourceName="dashboard"
               />
             </>
           );
