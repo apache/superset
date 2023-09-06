@@ -191,7 +191,7 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                 return handle_query_error(ex, query, session)
 
 
-def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statements
+def execute_sql_statement(  # pylint: disable=too-many-arguments
     sql_statement: str,
     query: Query,
     session: Session,
@@ -271,10 +271,7 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
             )
         session.commit()
         with stats_timing("sqllab.query.time_executing_query", stats_logger):
-            logger.debug("Query %d: Running query: %s", query.id, sql)
-            db_engine_spec.execute(cursor, sql, async_=True)
-            logger.debug("Query %d: Handling cursor", query.id)
-            db_engine_spec.handle_cursor(cursor, query, session)
+            db_engine_spec.execute_with_cursor(cursor, sql, query, session)
 
         with stats_timing("sqllab.query.time_fetching_results", stats_logger):
             logger.debug(
