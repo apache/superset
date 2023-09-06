@@ -1009,8 +1009,7 @@ class DatasourceEditor extends React.PureComponent {
           fieldKey="time_secondary_column"
           label={t('Time secondary column')}
           description={t(
-            `When this attribute is true, wheneve the secondary dttm columns are filtered,
-            the same filter is applied to the main datetime column.`,
+            `When the secondary datetime columns are filtered, apply the same filter to the main datetime column.`,
           )}
           control={<CheckboxControl controlId="time_secondary_column" />}
         />
