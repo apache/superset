@@ -565,19 +565,6 @@ function DashboardList(props: DashboardListProps) {
         ],
       },
       ...(userId ? [favoritesFilter] : []),
-      {
-        Header: t('Certified'),
-        key: 'certified',
-        id: 'id',
-        urlDisplay: 'certified',
-        input: 'select',
-        operator: FilterOperator.dashboardIsCertified,
-        unfilteredLabel: t('Any'),
-        selects: [
-          { label: t('Yes'), value: true },
-          { label: t('No'), value: false },
-        ],
-      },
     ] as Filters;
     if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) {
       filters_list.push({
