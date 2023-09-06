@@ -24,6 +24,7 @@ import {
   unsetFocusedFilterField,
 } from 'src/dashboard/actions/dashboardState';
 import { updateComponents } from 'src/dashboard/actions/dashboardLayout';
+import { updateSlices } from 'src/dashboard/actions/sliceEntities';
 import { changeFilter } from 'src/dashboard/actions/dashboardFilters';
 import {
   addSuccessToast,
@@ -116,6 +117,7 @@ function mapDispatchToProps(dispatch) {
       unsetFocusedFilterField,
       refreshChart,
       logEvent,
+      updateSlices,
     },
     dispatch,
   );

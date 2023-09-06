@@ -178,16 +178,8 @@ const ExploreChartPanel = ({
   const updateChart = useCallback(
     async function overwriteChart() {
       if (slice.outdated) {
-        await SupersetClient.put({
-          endpoint: `/api/v1/chart/${slice.slice_id}`,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            query_context: slice.query_context,
-            params: JSON.stringify(slice.form_data),
-            outdated: false,
-          }),
-        });
-        // TODO: update slice in the parent and trigger render
+        await actions.updateSlice(slice, slice.slice_name);
+        // TODO (betodealmeida): better refresh logic
         window.location.reload();
       }
     },

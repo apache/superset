@@ -146,6 +146,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "viz_type",
         "query_context",
         "is_managed_externally",
+        "outdated",
         "tags.id",
         "tags.name",
         "tags.type",

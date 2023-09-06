@@ -19,7 +19,7 @@
 import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { styled, t, logging } from '@superset-ui/core';
+import { SupersetClient, styled, t, logging } from '@superset-ui/core';
 import { debounce, isEqual } from 'lodash';
 import { withRouter } from 'react-router-dom';
 
@@ -86,6 +86,7 @@ const propTypes = {
   datasetsStatus: PropTypes.oneOf(['loading', 'error', 'complete']),
   isInView: PropTypes.bool,
   emitCrossFilters: PropTypes.bool,
+  updateSlices: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
@@ -218,6 +219,23 @@ class Chart extends React.Component {
     if (this.props.isExpanded) {
       const descriptionHeight = this.getDescriptionHeight();
       this.setState({ descriptionHeight });
+    }
+
+    if (this.props.slice.outdated) {
+      const { slice, updateSlices } = this.props;
+      SupersetClient.put({
+        endpoint: `/api/v1/chart/${slice.slice_id}`,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query_context: slice.query_context,
+          params: JSON.stringify(slice.form_data),
+          outdated: false,
+        }),
+      }).then(response =>
+        updateSlices({
+          [slice.slice_id]: { ...slice, ...response.json.result },
+        }),
+      );
     }
   }
 
@@ -373,6 +391,7 @@ class Chart extends React.Component {
   }
 
   render() {
+    console.log(this.props.slice.outdated);
     const {
       id,
       componentId,
