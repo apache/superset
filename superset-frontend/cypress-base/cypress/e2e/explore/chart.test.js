@@ -32,7 +32,7 @@ function openDashboardsAddedTo() {
   cy.getBySel('actions-trigger').click();
   cy.get('.ant-dropdown-menu-submenu-title')
     .contains('Dashboards added to')
-    .trigger('mouseover');
+    .trigger('mouseover', { force: true });
 }
 
 function closeDashboardsAddedTo() {
