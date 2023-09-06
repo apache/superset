@@ -314,7 +314,7 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         "template_params",
         "extra",
         "normalize_columns",
-        "time_secondary_column"
+        "time_secondary_column",
     ]
     base_filters = [["id", DatasourceFilter, lambda: []]]
     show_columns = edit_columns + ["perm", "slices"]
@@ -390,7 +390,7 @@ class TableModelView(  # pylint: disable=too-many-ancestors
             "but can also have secondary time columns. "
             "When this attribute is true, wheneve the secondary columns are filtered, "
             "the same filter is applied to the main datetime column."
-        )
+        ),
     }
     label_columns = {
         "slices": _("Associated Charts"),

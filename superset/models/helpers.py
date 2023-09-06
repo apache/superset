@@ -1672,7 +1672,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 select_exprs.insert(0, timestamp)
                 groupby_all_columns[timestamp.name] = timestamp
 
-            print('---------------------------')
+            print("---------------------------")
             print(dir(self))
             print(self.time_secondary_column)
             # Use main dttm column to support index with secondary dttm columns.

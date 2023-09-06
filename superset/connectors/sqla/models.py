@@ -565,7 +565,7 @@ class SqlaTable(
         "fetch_values_predicate",
         "extra",
         "normalize_columns",
-        "time_secondary_column"
+        "time_secondary_column",
     ]
     update_from_object_fields = [f for f in export_fields if f != "database_id"]
     export_parent = "database"

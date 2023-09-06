@@ -1004,12 +1004,12 @@ class DatasourceEditor extends React.PureComponent {
           )}
           control={<CheckboxControl controlId="normalize_columns" />}
         />
-          <Field
+        <Field
           inline
           fieldKey="time_secondary_column"
           label={t('Time secondary column')}
           description={t(
-            `When this attribute is true, wheneve the secondary dttm columns are filtered, 
+            `When this attribute is true, wheneve the secondary dttm columns are filtered,
             the same filter is applied to the main datetime column.`,
           )}
           control={<CheckboxControl controlId="time_secondary_column" />}
@@ -1397,7 +1397,7 @@ class DatasourceEditor extends React.PureComponent {
     const { metrics } = datasource;
     const sortedMetrics = metrics?.length ? this.sortMetrics(metrics) : [];
     const { theme } = this.props;
-    console.log(datasource)
+    console.log(datasource);
 
     return (
       <DatasourceContainer>
