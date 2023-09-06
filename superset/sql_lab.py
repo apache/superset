@@ -217,6 +217,7 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
         )
 
     sql = parsed_query.stripped()
+
     # This is a test to see if the query is being
     # limited by either the dropdown or the sql.
     # We are testing to see if more rows exist than the limit.
@@ -512,8 +513,13 @@ def execute_sql_statements(
                     ex, query, session, payload, prefix_message
                 )
                 return payload
-        # Commit the connection so CTA queries will create the table.
-        if apply_ctas:
+
+        # Commit the connection so CTA queries will create the table and any DML.
+        should_commit = (
+            not db_engine_spec.is_select_query(parsed_query)  # check if query is DML
+            or apply_ctas
+        )
+        if should_commit:
             conn.commit()
 
     # Success, updating the query entry in database
