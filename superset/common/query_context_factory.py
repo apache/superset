@@ -128,10 +128,11 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
 
         if granularity := query_object.granularity:
             filter_to_remove = None
-            x_axis_column_name = (
+                                    # for custom sql, the x-axis is a dict
+            x_axis = (
                 x_axis["sqlExpression"] if isinstance(x_axis, dict) else x_axis
             )
-            if x_axis_column_name in temporal_columns:
+            if x_axis in temporal_columns:
                 filter_to_remove = x_axis
                 x_axis_column = next(
                     (
@@ -140,7 +141,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                         if column == x_axis
                         or (
                             isinstance(column, dict)
-                            and column["sqlExpression"] == x_axis_column_name
+                            and column["sqlExpression"] == x_axis
                         )
                     ),
                     None,
@@ -178,16 +179,16 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             # another temporal filter. A new filter based on the value of
             # the granularity will be added later in the code.
             # In practice, this is replacing the previous default temporal filter.
-            filter_to_remove_str = (
+            filter_to_remove = (
                 filter_to_remove["sqlExpression"]
                 if isinstance(filter_to_remove, dict)
                 else filter_to_remove
             )
-            if filter_to_remove_str:
+            if filter_to_remove:
                 query_object.filter = [
                     filter
                     for filter in query_object.filter
-                    if filter["col"] != filter_to_remove_str
+                    if filter["col"] != filter_to_remove
                 ]
 
     def _apply_filters(self, query_object: QueryObject) -> None:
