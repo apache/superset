@@ -27,7 +27,12 @@ import { loadTags } from 'src/components/Tags/utils';
 import { getValue } from 'src/components/Select/utils';
 import AllEntitiesTable from 'src/features/allEntities/AllEntitiesTable';
 import Button from 'src/components/Button';
-import MetadataBar, { MetadataType } from 'src/components/MetadataBar';
+import MetadataBar, {
+  MetadataType,
+  Description,
+  Owner,
+  LastModified,
+} from 'src/components/MetadataBar';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import { fetchSingleTag } from 'src/features/tags/tags';
 import { Tag } from 'src/views/CRUD/types';
@@ -111,20 +116,22 @@ function AllEntities() {
     label: t('dataset name'),
   };
 
-  const items = [];
-  items.push({
+  const description: Description = {
     type: MetadataType.DESCRIPTION,
     value: tag?.description || '',
-  });
-  items.push({
+  };
+
+  const owner: Owner = {
+    type: MetadataType.OWNER,
+    createdBy: `${tag?.created_by.first_name} ${tag?.created_by.last_name}`,
+    createdOn: tag?.created_on_delta_humanized,
+  };
+  const lastModified: LastModified = {
     type: MetadataType.LAST_MODIFIED,
     value: tag?.changed_on_delta_humanized,
     modifiedBy: `${tag?.changed_by.first_name} ${tag?.changed_by.last_name}`,
-  });
-  items.push({
-    type: MetadataType.OWNER,
-    createdBy: `${tag?.created_by.first_name} ${tag?.created_by.last_name}`,
-  });
+  };
+  const items = [description, owner, lastModified];
 
   useEffect(() => {
     // fetch single tag met
@@ -132,7 +139,6 @@ function AllEntities() {
       fetchSingleTag(
         tagId,
         (tag: Tag) => {
-          console.log(tag);
           setTag(tag);
         },
         (error: Response) => {
