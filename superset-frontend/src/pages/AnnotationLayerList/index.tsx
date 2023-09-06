@@ -385,6 +385,7 @@ function AnnotationLayersList({
               bulkSelectEnabled={bulkSelectEnabled}
               disableBulkSelect={toggleBulkSelect}
               emptyState={emptyState}
+              refreshData={refreshData}
             />
           );
         }}

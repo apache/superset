@@ -209,7 +209,7 @@ export interface ListViewProps<T extends object = any> {
   count: number;
   pageSize: number;
   fetchData: (conf: FetchDataConfig) => any;
-  refreshData: () => any;
+  refreshData?: () => any;
   loading: boolean;
   className?: string;
   initialSort?: SortColumn[];

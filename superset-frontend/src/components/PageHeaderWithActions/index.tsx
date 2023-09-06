@@ -109,7 +109,7 @@ export type PageHeaderWithActionsProps = {
   showTitlePanelItems: boolean;
   certificatiedBadgeProps?: CertifiedBadgeProps;
   showFaveStar: boolean;
-  showMenuDropdown: boolean;
+  showMenuDropdown?: boolean;
   faveStarProps: FaveStarProps;
   titlePanelAdditionalItems: ReactNode;
   rightPanelAdditionalItems: ReactNode;
@@ -131,7 +131,7 @@ export const PageHeaderWithActions = ({
   rightPanelAdditionalItems,
   additionalActionsMenu,
   menuDropdownProps,
-  showMenuDropdown = true,
+  showMenuDropdown = false,
   tooltipProps,
 }: PageHeaderWithActionsProps) => {
   const theme = useTheme();

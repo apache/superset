@@ -43,6 +43,7 @@ const defaultProps: PageHeaderWithActionsProps = {
     </Menu>
   ),
   menuDropdownProps: { onVisibleChange: jest.fn(), visible: true },
+  showMenuDropdown: false,
 };
 
 test('Renders', async () => {

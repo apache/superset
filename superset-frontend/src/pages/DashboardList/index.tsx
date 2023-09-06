@@ -105,7 +105,6 @@ const Actions = styled.div`
 `;
 
 function DashboardList(props: DashboardListProps) {
-  const [showBulkTagModal, setShowBulkTagModal] = useState<boolean>(false);
   const {
     addDangerToast,
     addSuccessToast,

@@ -32,7 +32,6 @@ from superset.tags.commands.create import (
 )
 from superset.tags.commands.delete import DeleteTaggedObjectCommand, DeleteTagsCommand
 from superset.tags.commands.exceptions import (
-    TagCreateFailedError,
     TagDeleteFailedError,
     TaggedObjectDeleteFailedError,
     TaggedObjectNotFoundError,
@@ -194,14 +193,6 @@ class TagRestApi(BaseSupersetModelRestApi):
             return self.response(201)
         except TagInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
-        except TagCreateFailedError as ex:
-            logger.error(
-                "Error creating model %s: %s",
-                self.__class__.__name__,
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_500(message=str(ex))
 
     @expose("/bulk_create", methods=("POST",))
     @protect()
@@ -220,10 +211,6 @@ class TagRestApi(BaseSupersetModelRestApi):
           requestBody:
             description: Tag schema
             required: true
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/TagPostBulkSchema'
           responses:
             201:
               description: Tag added
@@ -234,8 +221,6 @@ class TagRestApi(BaseSupersetModelRestApi):
                     properties:
                       id:
                         type: number
-                      result:
-                        $ref: '#/components/schemas/TagPostBulkSchema'
             400:
               $ref: '#/components/responses/400'
             401:
@@ -258,14 +243,6 @@ class TagRestApi(BaseSupersetModelRestApi):
             return self.response(201)
         except TagInvalidError as ex:
             return self.response_422(message=ex.message)
-        except TagCreateFailedError as ex:
-            logger.error(
-                "Error creating model %s: %s",
-                self.__class__.__name__,
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_500(message=str(ex))
 
     @expose("/<pk>", methods=("PUT",))
     @protect()
@@ -395,14 +372,6 @@ class TagRestApi(BaseSupersetModelRestApi):
             )
         except TagInvalidError:
             return self.response(422, message="Invalid tag")
-        except TagCreateFailedError as ex:
-            logger.error(
-                "Error creating model %s: %s",
-                self.__class__.__name__,
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_500(message=str(ex))
 
     @expose("/<int:object_type>/<int:object_id>/<tag>/", methods=("DELETE",))
     @protect()
@@ -581,14 +550,6 @@ class TagRestApi(BaseSupersetModelRestApi):
             return self.response(200, result=result)
         except TagInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
-        except TagCreateFailedError as ex:
-            logger.error(
-                "Error creating model %s: %s",
-                self.__class__.__name__,
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_500(message=str(ex))
 
     @expose("/favorite_status/", methods=("GET",))
     @protect()

@@ -612,6 +612,7 @@ function AlertList({
               bulkActions={bulkActions}
               bulkSelectEnabled={bulkSelectEnabled}
               disableBulkSelect={toggleBulkSelect}
+              refreshData={refreshData}
               pageSize={PAGE_SIZE}
             />
           );
