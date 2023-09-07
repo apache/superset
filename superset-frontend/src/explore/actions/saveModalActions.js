@@ -59,12 +59,10 @@ const extractAddHocFiltersFromFormData = formDataToHandle =>
     {},
   );
 
-const hasTemporalRangeFilter = formData => {
-  const { adhoc_filters = [] } = formData;
-  return adhoc_filters.some(
+const hasTemporalRangeFilter = formData =>
+  (formData?.adhoc_filters || []).some(
     filter => filter.operator === Operators.TEMPORAL_RANGE,
   );
-};
 
 export const getSlicePayload = (
   sliceName,
@@ -73,7 +71,7 @@ export const getSlicePayload = (
   owners,
   formDataFromSlice = {},
 ) => {
-  let adhocFilters = extractAddHocFiltersFromFormData(
+  const adhocFilters = extractAddHocFiltersFromFormData(
     formDataWithNativeFilters,
   );
 
@@ -84,7 +82,7 @@ export const getSlicePayload = (
   // time range adhoc_filter was lost
   if (isEmpty(adhocFilters?.adhoc_filters) && !isEmpty(formDataFromSlice)) {
     formDataFromSlice?.adhoc_filters?.forEach(filter => {
-      if (filter.operator === Operators.TEMPORAL_RANGE && filter.isExtra) {
+      if (filter.operator === Operators.TEMPORAL_RANGE && !filter.isExtra) {
         adhocFilters.adhoc_filters.push({ ...filter, comparator: 'No filter' });
       }
     });
