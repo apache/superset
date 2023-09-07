@@ -38,7 +38,7 @@ function openDashboardsAddedTo() {
 function closeDashboardsAddedTo() {
   cy.get('.ant-dropdown-menu-submenu-title')
     .contains('Dashboards added to')
-    .trigger('mouseout');
+    .trigger('mouseout', { force: true });
   cy.getBySel('actions-trigger').click();
 }
 
