@@ -203,30 +203,51 @@ class TagRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def bulk_create(self) -> Response:
-        """Bulk tag items
+        """Bulk create tags and tagged objects
         ---
         post:
-          description: >-
-            Bulk tag items
+          summary: Get all objects associated with a tag
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: tag_id
           requestBody:
             description: Tag schema
             required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    tags:
+                      description: list of tag names to add to object
+                      type: array
+                      items:
+                        type: string
+                    objects_to_tag:
+                      description: list of object names to add to object
+                      type: array
+                      items:
+                        type: array
           responses:
-            201:
-              description: Tag added
+            200:
+              description: Tag added to favorites
               content:
                 application/json:
                   schema:
                     type: object
                     properties:
-                      id:
-                        type: number
+                      result:
+                        type: object
+            302:
+              description: Redirects to the current digest
             400:
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
-            422:
-              $ref: '#/components/responses/422'
+            404:
+              $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
         """
