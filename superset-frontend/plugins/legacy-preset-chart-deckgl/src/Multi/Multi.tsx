@@ -19,7 +19,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { isEqual } from 'lodash';
 import {
   Datasource,
@@ -28,11 +28,12 @@ import {
   JsonValue,
   QueryFormData,
   SupersetClient,
+  usePrevious,
 } from '@superset-ui/core';
 import { Layer } from 'deck.gl/typed';
 
 import {
-  DeckGLContainer,
+  DeckGLContainerHandle,
   DeckGLContainerStyledWrapper,
 } from '../DeckGLContainer';
 import { getExploreLongUrl } from '../utils/explore';
@@ -52,120 +53,97 @@ export type DeckMultiProps = {
   onSelect: () => void;
 };
 
-export type DeckMultiState = {
-  subSlicesLayers: Record<number, Layer>;
-  viewport?: Viewport;
-};
+const DeckMulti = (props: DeckMultiProps) => {
+  const containerRef = useRef<DeckGLContainerHandle>();
 
-class DeckMulti extends React.PureComponent<DeckMultiProps, DeckMultiState> {
-  containerRef = React.createRef<DeckGLContainer>();
+  const [viewport, setViewport] = useState<Viewport>();
+  const [subSlicesLayers, setSubSlicesLayers] = useState<Record<number, Layer>>(
+    {},
+  );
 
-  constructor(props: DeckMultiProps) {
-    super(props);
-    this.state = { subSlicesLayers: {} };
-    this.onViewportChange = this.onViewportChange.bind(this);
-  }
-
-  componentDidMount() {
-    const { formData, payload } = this.props;
-    this.loadLayers(formData, payload);
-  }
-
-  UNSAFE_componentWillReceiveProps(nextProps: DeckMultiProps) {
-    const { formData, payload } = nextProps;
-    const hasChanges = !isEqual(
-      this.props.formData.deck_slices,
-      nextProps.formData.deck_slices,
-    );
-    if (hasChanges) {
-      this.loadLayers(formData, payload);
-    }
-  }
-
-  onViewportChange(viewport: Viewport) {
-    this.setState({ viewport });
-  }
-
-  loadLayers(
-    formData: QueryFormData,
-    payload: JsonObject,
-    viewport?: Viewport,
-  ) {
-    this.setState({ subSlicesLayers: {}, viewport });
-    payload.data.slices.forEach(
-      (subslice: { slice_id: number } & JsonObject) => {
-        // Filters applied to multi_deck are passed down to underlying charts
-        // note that dashboard contextual information (filter_immune_slices and such) aren't
-        // taken into consideration here
-        const filters = [
-          ...(subslice.form_data.filters || []),
-          ...(formData.filters || []),
-          ...(formData.extra_filters || []),
-        ];
-        const subsliceCopy = {
-          ...subslice,
-          form_data: {
-            ...subslice.form_data,
-            filters,
-          },
-        };
-
-        const url = getExploreLongUrl(subsliceCopy.form_data, 'json');
-
-        if (url) {
-          SupersetClient.get({
-            endpoint: url,
-          })
-            .then(({ json }) => {
-              const layer = layerGenerators[subsliceCopy.form_data.viz_type](
-                subsliceCopy.form_data,
-                json,
-                this.props.onAddFilter,
-                this.setTooltip,
-                this.props.datasource,
-                [],
-                this.props.onSelect,
-              );
-              this.setState({
-                subSlicesLayers: {
-                  ...this.state.subSlicesLayers,
-                  [subsliceCopy.slice_id]: layer,
-                },
-              });
-            })
-            .catch(() => {});
-        }
-      },
-    );
-  }
-
-  setTooltip = (tooltip: TooltipProps['tooltip']) => {
-    const { current } = this.containerRef;
+  const setTooltip = useCallback((tooltip: TooltipProps['tooltip']) => {
+    const { current } = containerRef;
     if (current) {
       current.setTooltip(tooltip);
     }
-  };
+  }, []);
 
-  render() {
-    const { payload, formData, setControlValue, height, width } = this.props;
-    const { subSlicesLayers } = this.state;
+  const loadLayers = useCallback(
+    (formData: QueryFormData, payload: JsonObject, viewport?: Viewport) => {
+      setViewport(viewport);
+      setSubSlicesLayers({});
+      payload.data.slices.forEach(
+        (subslice: { slice_id: number } & JsonObject) => {
+          // Filters applied to multi_deck are passed down to underlying charts
+          // note that dashboard contextual information (filter_immune_slices and such) aren't
+          // taken into consideration here
+          const filters = [
+            ...(subslice.form_data.filters || []),
+            ...(formData.filters || []),
+            ...(formData.extra_filters || []),
+          ];
+          const subsliceCopy = {
+            ...subslice,
+            form_data: {
+              ...subslice.form_data,
+              filters,
+            },
+          };
 
-    const layers = Object.values(subSlicesLayers);
+          const url = getExploreLongUrl(subsliceCopy.form_data, 'json');
 
-    return (
-      <DeckGLContainerStyledWrapper
-        ref={this.containerRef}
-        mapboxApiAccessToken={payload.data.mapboxApiKey}
-        viewport={this.state.viewport || this.props.viewport}
-        layers={layers}
-        mapStyle={formData.mapbox_style}
-        setControlValue={setControlValue}
-        onViewportChange={this.onViewportChange}
-        height={height}
-        width={width}
-      />
-    );
-  }
-}
+          if (url) {
+            SupersetClient.get({
+              endpoint: url,
+            })
+              .then(({ json }) => {
+                const layer = layerGenerators[subsliceCopy.form_data.viz_type](
+                  subsliceCopy.form_data,
+                  json,
+                  props.onAddFilter,
+                  setTooltip,
+                  props.datasource,
+                  [],
+                  props.onSelect,
+                );
+                setSubSlicesLayers(subSlicesLayers => ({
+                  ...subSlicesLayers,
+                  [subsliceCopy.slice_id]: layer,
+                }));
+              })
+              .catch(() => {});
+          }
+        },
+      );
+    },
+    [props.datasource, props.onAddFilter, props.onSelect, setTooltip],
+  );
 
-export default DeckMulti;
+  const prevDeckSlices = usePrevious(props.formData.deck_slices);
+  useEffect(() => {
+    const { formData, payload } = props;
+    const hasChanges = !isEqual(prevDeckSlices, formData.deck_slices);
+    if (hasChanges) {
+      loadLayers(formData, payload);
+    }
+  }, [loadLayers, prevDeckSlices, props]);
+
+  const { payload, formData, setControlValue, height, width } = props;
+  const layers = Object.values(subSlicesLayers);
+
+  return (
+    <DeckGLContainerStyledWrapper
+      ref={containerRef}
+      mapboxApiAccessToken={payload.data.mapboxApiKey}
+      viewport={viewport || props.viewport}
+      layers={layers}
+      mapStyle={formData.mapbox_style}
+      setControlValue={setControlValue}
+      onViewportChange={setViewport}
+      height={height}
+      width={width}
+    />
+  );
+};
+
+export default memo(DeckMulti);
