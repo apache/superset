@@ -17,6 +17,7 @@
 """Unit tests for Superset"""
 import json
 from contextlib import contextmanager
+from datetime import datetime, timedelta
 from unittest import mock
 
 import prison
@@ -24,19 +25,15 @@ import pytest
 
 from superset import app, db
 from superset.common.utils.query_cache_manager import QueryCacheManager
-from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.constants import CacheRegion
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.exceptions import SupersetGenericDBErrorException
 from superset.models.core import Database
-from superset.utils.core import backend, get_example_default_schema
-from superset.utils.database import get_example_database, get_main_database
+from superset.utils.core import get_example_default_schema
+from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import db_insert_temp_object, SupersetTestCase
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
-)
 from tests.integration_tests.fixtures.datasource import get_datasource_post
 
 
@@ -75,6 +72,58 @@ class TestDatasource(SupersetTestCase):
         self.assertEqual(
             col_names, {"num_boys", "num", "gender", "name", "ds", "state", "num_girls"}
         )
+
+    def test_always_filter_main_dttm(self):
+        self.login(username="admin")
+        session = db.session
+        database = get_example_database()
+
+        sql = f"SELECT DATE() as default_dttm, DATE() as additional_dttm, 1 as metric;"
+        if database.backend == "sqlite":
+            pass
+        elif database.backend in ["postgresql", "mysql"]:
+            sql = sql.replace("DATE()", "NOW()")
+        else:
+            return
+
+        query_obj = {
+            "columns": ["metric"],
+            "filter": [],
+            "from_dttm": datetime.now() - timedelta(days=1),
+            "granularity": "additional_dttm",
+            "orderby": [],
+            "to_dttm": datetime.now() + timedelta(days=1),
+            "series_columns": [],
+            "row_limit": 1000,
+            "row_offset": 0,
+        }
+        table = SqlaTable(
+            table_name="dummy_sql_table",
+            database=database,
+            schema=get_example_default_schema(),
+            main_dttm_col="default_dttm",
+            columns=[
+                TableColumn(column_name="default_dttm", type="DATETIME", is_dttm=True),
+                TableColumn(
+                    column_name="additional_dttm", type="DATETIME", is_dttm=True
+                ),
+            ],
+            sql=sql,
+        )
+
+        session.add(table)
+        session.commit()
+
+        table.always_filter_main_dttm = False
+        result = str(table.get_sqla_query(**query_obj).sqla_query.whereclause)
+        assert "default_dttm" not in result and "additional_dttm" in result
+
+        table.always_filter_main_dttm = True
+        result = str(table.get_sqla_query(**query_obj).sqla_query.whereclause)
+        assert "default_dttm" in result and "additional_dttm" in result
+
+        session.delete(table)
+        session.commit()
 
     def test_external_metadata_for_virtual_table(self):
         self.login(username="admin")
