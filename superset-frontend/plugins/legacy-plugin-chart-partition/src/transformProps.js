@@ -45,7 +45,7 @@ export default function transformProps(chartProps) {
     metrics,
     numberFormat,
     partitionLimit: partitionLimit && parseInt(partitionLimit, 10),
-    partitionThreshold: partitionThreshold && parseInt(partitionThreshold, 10),
+    partitionThreshold: partitionThreshold && parseFloat(partitionThreshold, 0.05),
     timeSeriesOption,
     useLogScale: logScale,
     useRichTooltip: richTooltip,

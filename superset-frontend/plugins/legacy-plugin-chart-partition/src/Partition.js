@@ -30,14 +30,18 @@ import {
 // Compute dx, dy, x, y for each node and
 // return an array of nodes in breadth-first order
 function init(root) {
-  const flat = [];
-  const dy = 1 / (root.height + 1);
+  let flat = [];
+  let dy = 1 / (root.height + 1);
   let prev = null;
   root.each(n => {
     n.y = dy * n.depth;
     n.dy = dy;
     if (n.parent) {
-      n.x = prev.depth === n.parent.depth ? 0 : prev.x + prev.dx;
+      if (prev.parent == n.parent) {
+        n.x = prev.x + prev.dx;
+      } else {
+        n.x = prev.depth === n.parent.depth ? 0 : n.parent.x;
+      }
       n.dx = (n.weight / n.parent.sum) * n.parent.dx;
     } else {
       n.x = 0;
@@ -90,7 +94,7 @@ const propTypes = {
 };
 
 function getAncestors(d) {
-  const ancestors = [d];
+  let ancestors = [d];
   let node = d;
   while (node.parent) {
     ancestors.push(node.parent);
@@ -149,38 +153,30 @@ function Icicle(element, props) {
     return levels[depth - (hasTime ? 2 : 1)];
   }
 
-  function drawVis(i, dat) {
-    const datum = dat[i];
-    const w = width;
-    const h = height / data.length;
-    const x = d3.scale.linear().range([0, w]);
-    const y = d3.scale.linear().range([0, h]);
+  function addOtherNode(parent, weight) {
+    let otherNodeSrc = {
+      name: Array.isArray(parent.name) ? parent.name.concat(['<other>']) : [parent.name, '<other>'],
+      children: []
+    };
+    let otherNode = hierarchy(otherNodeSrc);
+    otherNode.parent = parent;
+    otherNode.name = otherNode.data.name;
+    otherNode.disp = weight;
+    otherNode.depth = parent.depth + 1;
+    otherNode.value = weight;
+    otherNode.weight = weight;
+    parent.children.push(otherNode);
+  }
 
-    const viz = div
-      .append('div')
-      .attr('class', 'chart')
-      .style('width', `${w}px`)
-      .style('height', `${h}px`)
-      .append('svg:svg')
-      .attr('width', w)
-      .attr('height', h);
-
-    // Add padding between multiple visualizations
-    if (i !== data.length - 1 && data.length > 1) {
-      viz.style('padding-bottom', '3px');
-    }
-    if (i !== 0 && data.length > 1) {
-      viz.style('padding-top', '3px');
-    }
-
-    const root = hierarchy(datum);
+  function prepareData(datum) {
+    let tree = hierarchy(datum);
 
     // node.name is the metric/group name
     // node.disp is the display value
     // node.value determines sorting order
     // node.weight determines partition height
     // node.sum is the sum of children weights
-    root.eachAfter(n => {
+    tree.eachAfter(n => {
       n.disp = n.data.val;
       n.value = n.disp < 0 ? -n.disp : n.disp;
       n.weight = n.value;
@@ -199,21 +195,30 @@ function Icicle(element, props) {
           ? format(n.disp)
           : '';
     });
-    // Perform sort by weight
-    root.sort((a, b) => {
-      const v = b.value - a.value;
-      if (v === 0) {
-        return b.name > a.name ? 1 : -1;
-      }
 
-      return v;
+    // Perform sort by weight
+    tree.sort((a, b) => {
+      if (b.parent.weight === a.parent.weight) {
+        let v = b.weight - a.weight;
+        if (v === 0) {
+          return b.weight > a.weight ? 1 : -1;
+        }
+        return v;
+      } else {
+        let pv = b.parent.weight - a.parent.weight;
+          if (pv === 0) {
+            return b.parent.weight > a.parent.weight ? 1 : -1;
+          }
+        return pv;
+      }
     });
 
-    // Prune data based on partition limit and threshold
-    // both are applied at the same time
+    // Prune data based on partition threshold
     if (partitionThreshold && partitionThreshold >= 0) {
       // Compute weight sums as we go
-      root.each(n => {
+      tree.eachAfter(n => {
+        // Collect weigts of removed nodes
+        let sumRemoved = 0;
         n.sum = n.children
           ? n.children.reduce((a, v) => a + v.weight, 0) || 1
           : 1;
@@ -223,49 +228,102 @@ function Icicle(element, props) {
             if (equalDateSize) {
               return;
             }
-            const removeIndices = [];
+            let removeIndices = [];
             // Keep at least one child
             for (let j = 1; j < n.children.length; j += 1) {
               if (n.children[j].weight / n.sum < partitionThreshold) {
+                sumRemoved += n.children[j].weight;
                 removeIndices.push(j);
               }
             }
+            let removed = [];
             for (let j = removeIndices.length - 1; j >= 0; j -= 1) {
               n.children.splice(removeIndices[j], 1);
             }
           } else {
             // Find first child that falls below the threshold
             let j;
+            n.sum = n.children ? n.children.reduce((a, v) => a + v.weight, 0) || 1 : 1;
+            sumRemoved = n.sum - n.children[0].weight; // First is never dropped
             for (j = 1; j < n.children.length; j += 1) {
               if (n.children[j].weight / n.sum < partitionThreshold) {
                 break;
               }
+              sumRemoved -= n.children[j].weight;
             }
             n.children = n.children.slice(0, j);
           }
-        }
+          if (sumRemoved > 0) {
+            addOtherNode(n, sumRemoved);
+          }
+      }
       });
     }
+
+    // Prune data based on partition limit
     if (partitionLimit && partitionLimit >= 0) {
-      root.each(n => {
+      tree.eachAfter(n => {
+        // Collect weigts of removed nodes
         if (n.children && n.children.length > partitionLimit) {
           if (!hasDateNode(n)) {
+            let prevSum = n.children ? n.children.reduce((a, v) => a + v.weight, 0) || 1 : 1;
             n.children = n.children.slice(0, partitionLimit);
+            let sumRemoved = prevSum - n.children.reduce((a, v) => a + v.weight, 0);;
+            if (sumRemoved > 0) {
+              addOtherNode(n, sumRemoved);
+            }
           }
         }
+        n.sum = n.children
+        ? n.children.reduce((a, v) => a + v.weight, 0) || 1
+        : 1;
       });
     }
+
     // Compute final weight sums
-    root.eachAfter(n => {
+    tree.eachAfter(n => {
       n.sum = n.children
         ? n.children.reduce((a, v) => a + v.weight, 0) || 1
         : 1;
     });
 
+    tree.eachAfter(n => {
+      if (useLogScale) n.weight = Math.log(n.weight + 1);
+    });
+
+    return tree;
+  }
+
+  function drawVis(i, dat) {
+    const datum = dat[i];
+    let root = prepareData(datum)
+
+    let w = width;
+    let h = height / data.length;
+    let x = d3.scale.linear().range([0, w]);
+    let y = d3.scale.linear().range([0, h]);
+
+    let viz = div
+      .append('div')
+      .attr('class', 'chart')
+      .style('width', `${w}px`)
+      .style('height', `${h}px`)
+      .append('svg:svg')
+      .attr('width', w)
+      .attr('height', h);
+
+    // Add padding between multiple visualizations
+    if (i !== data.length - 1 && data.length > 1) {
+      viz.style('padding-bottom', '3px');
+    }
+    if (i !== 0 && data.length > 1) {
+      viz.style('padding-top', '3px');
+    }
+
     function positionAndPopulate(tip, d) {
       let t = '<table>';
       if (useRichTooltip) {
-        const nodes = getAncestors(d);
+        let nodes = getAncestors(d);
         nodes.reverse().forEach(n => {
           t += '<tbody>';
           t +=
@@ -297,14 +355,14 @@ function Icicle(element, props) {
           '</tr>';
       }
       t += '</tbody></table>';
-      const [tipX, tipY] = d3.mouse(element);
+      let [tipX, tipY] = d3.mouse(element);
       tip
         .html(t)
         .style('left', `${tipX + 15}px`)
         .style('top', `${tipY}px`);
     }
 
-    const nodes = init(root);
+    let nodes = init(root);
 
     let zoomX = w / root.dx;
     let zoomY = h / 1;
@@ -314,7 +372,7 @@ function Icicle(element, props) {
       return `translate(8,${(d.dx * zoomY) / 2})`;
     }
 
-    const g = viz
+    let g = viz
       .selectAll('g')
       .data(nodes)
       .enter()
@@ -346,7 +404,7 @@ function Icicle(element, props) {
       x.domain([d.y, 1]).range([d.y ? 40 : 0, w]);
       y.domain([d.x, d.x + d.dx]);
 
-      const t = g
+      let t = g
         .transition()
         .duration(d3.event.altKey ? 7500 : 750)
         .attr('transform', nd => `translate(${x(nd.y)},${y(nd.x)})`);

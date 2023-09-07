@@ -32,7 +32,7 @@ import OptionDescription from './OptionDescription';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
+    sections.legacyTimeseriesTime,
     {
       label: t('Query'),
       expanded: true,
