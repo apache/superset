@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Added time_secondary_column to datasource
+"""Added always_filter_main_dttm to datasource
 
 Revision ID: 317970b4400c
 Revises: ec54aca4c8a2
@@ -41,14 +41,14 @@ class SqlaTable(Base):
     __tablename__ = "tables"
 
     id = sa.Column(sa.Integer, primary_key=True)
-    time_secondary_column = sa.Column(sa.Boolean())
+    always_filter_main_dttm = sa.Column(sa.Boolean())
 
 
 def upgrade():
     op.add_column(
         "tables",
         sa.Column(
-            "time_secondary_column",
+            "always_filter_main_dttm",
             sa.Boolean(),
             nullable=True,
             default=False,
@@ -60,8 +60,8 @@ def upgrade():
     session = db.Session(bind=bind)
 
     for table in paginated_update(session.query(SqlaTable)):
-        table.time_secondary_column = False
+        table.always_filter_main_dttm = False
 
 
 def downgrade():
-    op.drop_column("tables", "time_secondary_column")
+    op.drop_column("tables", "always_filter_main_dttm")

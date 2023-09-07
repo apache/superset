@@ -57,7 +57,7 @@ def create_table_metadata(
             schema=schema,
             table_name=table_name,
             normalize_columns=False,
-            time_secondary_column=False,
+            always_filter_main_dttm=False,
         )
     if fetch_values_predicate:
         table.fetch_values_predicate = fetch_values_predicate

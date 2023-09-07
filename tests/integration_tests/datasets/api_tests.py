@@ -582,7 +582,7 @@ class TestDatasetApi(SupersetTestCase):
             "schema": None,
             "table_name": "ab_permission",
             "normalize_columns": True,
-            "time_secondary_column": False,
+            "always_filter_main_dttm": False,
         }
         uri = "api/v1/dataset/"
         rv = self.post_assert_metric(uri, table_data, "post")

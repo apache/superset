@@ -766,7 +766,7 @@ class DatasourceEditor extends React.PureComponent {
         ? encodeURIComponent(datasource.table_name)
         : datasource.table_name,
       normalize_columns: datasource.normalize_columns,
-      time_secondary_column: datasource.time_secondary_column,
+      always_filter_main_dttm: datasource.always_filter_main_dttm,
     };
     Object.entries(params).forEach(([key, value]) => {
       // rison can't encode the undefined value
@@ -1006,12 +1006,12 @@ class DatasourceEditor extends React.PureComponent {
         />
         <Field
           inline
-          fieldKey="time_secondary_column"
-          label={t('Time secondary column')}
+          fieldKey="always_filter_main_dttm"
+          label={t('Always filter main datetime column')}
           description={t(
-            `When the secondary datetime columns are filtered, apply the same filter to the main datetime column.`,
+            `When the secondary temporal columns are filtered, apply the same filter to the main datetime column.`,
           )}
-          control={<CheckboxControl controlId="time_secondary_column" />}
+          control={<CheckboxControl controlId="always_filter_main_dttm" />}
         />
       </Fieldset>
     );

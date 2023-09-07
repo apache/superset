@@ -99,7 +99,7 @@ class DatasetPostSchema(Schema):
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
     normalize_columns = fields.Boolean(load_default=False)
-    time_secondary_column = fields.Boolean(load_default=False)
+    always_filter_main_dttm = fields.Boolean(load_default=False)
 
 
 class DatasetPutSchema(Schema):
@@ -112,7 +112,7 @@ class DatasetPutSchema(Schema):
     description = fields.String(allow_none=True)
     main_dttm_col = fields.String(allow_none=True)
     normalize_columns = fields.Boolean(allow_none=True, dump_default=False)
-    time_secondary_column = fields.Boolean(load_default=False)
+    always_filter_main_dttm = fields.Boolean(load_default=False)
     offset = fields.Integer(allow_none=True)
     default_endpoint = fields.String(allow_none=True)
     cache_timeout = fields.Integer(allow_none=True)
@@ -252,7 +252,7 @@ class ImportV1DatasetSchema(Schema):
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
     normalize_columns = fields.Boolean(load_default=False)
-    time_secondary_column = fields.Boolean(load_default=False)
+    always_filter_main_dttm = fields.Boolean(load_default=False)
 
 
 class GetOrCreateDatasetSchema(Schema):
@@ -269,7 +269,7 @@ class GetOrCreateDatasetSchema(Schema):
         metadata={"description": "Template params for the table"}
     )
     normalize_columns = fields.Boolean(load_default=False)
-    time_secondary_column = fields.Boolean(load_default=False)
+    always_filter_main_dttm = fields.Boolean(load_default=False)
 
 
 class DatasetSchema(SQLAlchemyAutoSchema):

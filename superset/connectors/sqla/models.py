@@ -545,7 +545,7 @@ class SqlaTable(
     template_params = Column(Text)
     extra = Column(Text)
     normalize_columns = Column(Boolean, default=False)
-    time_secondary_column = Column(Boolean, default=False)
+    always_filter_main_dttm = Column(Boolean, default=False)
 
     baselink = "tablemodelview"
 
@@ -565,7 +565,7 @@ class SqlaTable(
         "fetch_values_predicate",
         "extra",
         "normalize_columns",
-        "time_secondary_column",
+        "always_filter_main_dttm",
     ]
     update_from_object_fields = [f for f in export_fields if f != "database_id"]
     export_parent = "database"
@@ -763,7 +763,7 @@ class SqlaTable(
             data_["health_check_message"] = self.health_check_message
             data_["extra"] = self.extra
             data_["owners"] = self.owners_data
-            data_["time_secondary_column"] = self.time_secondary_column
+            data_["always_filter_main_dttm"] = self.always_filter_main_dttm
             data_["normalize_columns"] = self.normalize_columns
         return data_
 

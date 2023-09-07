@@ -752,7 +752,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         raise NotImplementedError()
 
     @property
-    def time_secondary_column(self) -> Optional[bool]:
+    def always_filter_main_dttm(self) -> Optional[bool]:
         return False
 
     @property
@@ -1674,7 +1674,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
             # Use main dttm column to support index with secondary dttm columns.
             if (
-                self.time_secondary_column
+                self.always_filter_main_dttm
                 and self.main_dttm_col in self.dttm_cols
                 and self.main_dttm_col != dttm_col.column_name
             ):
