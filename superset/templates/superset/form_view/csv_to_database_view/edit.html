@@ -69,10 +69,6 @@ csv_scripts %} {% import 'superset/form_view/csv_macros.html' as csv_macros %}
       begin_sep_field, end_sep_field) }}
     </tr>
     <tr>
-      {{ lib.render_field(form.infer_datetime_format, begin_sep_label,
-      end_sep_label, begin_sep_field, end_sep_field) }}
-    </tr>
-    <tr>
       {{ lib.render_field(form.day_first, begin_sep_label, end_sep_label,
       begin_sep_field, end_sep_field) }}
     </tr>
