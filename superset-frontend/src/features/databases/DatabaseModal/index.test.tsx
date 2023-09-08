@@ -302,6 +302,7 @@ fetchMock.post(VALIDATE_PARAMS_ENDPOINT, {
 });
 
 const databaseFixture: DatabaseObject = {
+  id: 123,
   backend: 'postgres',
   configuration_method: CONFIGURATION_METHOD.DYNAMIC_FORM,
   database_name: 'Postgres',

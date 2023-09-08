@@ -19,7 +19,6 @@
 import React, { useMemo } from 'react';
 import { t, styled, useTheme } from '@superset-ui/core';
 
-import { Menu } from 'src/components/Menu';
 import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
 import { DropdownButton } from 'src/components/DropdownButton';
@@ -33,7 +32,7 @@ export interface RunQueryActionButtonProps {
   queryState?: string;
   runQuery: (c?: boolean) => void;
   stopQuery: () => void;
-  overlayCreateAsMenu: typeof Menu | null;
+  overlayCreateAsMenu: React.ReactElement | null;
 }
 
 const buildText = (
