@@ -293,7 +293,6 @@ class IkiRunPipeline extends React.PureComponent {
     selectedCharts.forEach(selectedChart => {
       this.refreshChart(
         selectedChart.id,
-        selectedChart.id,
         this.state.dashboardId,
         false,
       );
@@ -514,10 +513,9 @@ class IkiRunPipeline extends React.PureComponent {
     return this.renderIframe();
   }
 
-  refreshChart(sliceId, chartId, dashboardId, isCached) {
-    console.log('refreshChart', sliceId, chartId, dashboardId, isCached);
+  refreshChart(chartId, dashboardId, isCached) {
     this.props.logEvent(LOG_ACTIONS_FORCE_REFRESH_CHART, {
-      slice_id: sliceId,
+      slice_id: chartId,
       is_cached: isCached,
     });
     return this.props.refreshChart(chartId, true, dashboardId);
