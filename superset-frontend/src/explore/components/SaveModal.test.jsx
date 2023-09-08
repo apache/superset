@@ -64,6 +64,9 @@ const defaultProps = {
     return arg;
   }),
   form_data: { datasource: '107__table', url_params: { foo: 'bar' } },
+  history: {
+    replace: jest.fn(),
+  },
 };
 
 const mockEvent = {
@@ -100,8 +103,12 @@ const queryDefaultProps = {
 };
 
 const fetchDashboardsEndpoint = `glob:*/dashboardasync/api/read?_flt_0_owners=${1}`;
+const fetchChartEndpoint = `glob:*/api/v1/chart/${1}*`;
 
-beforeAll(() => fetchMock.get(fetchDashboardsEndpoint, mockDashboardData));
+beforeAll(() => {
+  fetchMock.get(fetchDashboardsEndpoint, mockDashboardData);
+  fetchMock.get(fetchChartEndpoint, { dashboards: [1] });
+});
 
 afterAll(() => fetchMock.restore());
 
@@ -225,4 +232,19 @@ test('set dataset name when chart source is query', () => {
   const wrapper = getWrapper(queryDefaultProps, queryStore);
   expect(wrapper.find('[data-test="new-dataset-name"]')).toExist();
   expect(wrapper.state().datasetName).toBe('test');
+});
+
+test('make sure saveOverwrite function always has slice_id attached to the url', () => {
+  const wrapper = getWrapper();
+  const footerWrapper = shallow(wrapper.find(StyledModal).props().footer);
+  wrapper.setState({
+    action: 'overwrite',
+  });
+
+  const overwriteRadio = wrapper.find('#overwrite-radio');
+  overwriteRadio.simulate('click');
+  expect(wrapper.state().action).toBe('overwrite');
+  const save = footerWrapper.find('#btn_modal_save');
+  save.simulate('click');
+  expect(defaultProps.history.replace).toHaveBeenCalled();
 });
