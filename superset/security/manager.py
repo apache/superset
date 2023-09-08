@@ -2083,7 +2083,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
         return query.all()
 
-    def get_rls_filter_clauses(self, table: "BaseDatasource") -> list[int]:
+    def get_rls_filter_clauses(self, table: "BaseDatasource") -> list[str]:
         """
         Retrieves the appropriate row level security filters clauses for the current user
         and the passed table.
