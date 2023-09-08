@@ -2101,7 +2101,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def get_rls_cache_key(self, datasource: "BaseDatasource") -> list[str]:
         rls_clauses = []
         if datasource.is_rls_supported:
-            rls_clauses = self.get_rls_clauses(datasource)
+            rls_clauses = self.get_rls_filter_clauses(datasource)
         guest_rls = self.get_guest_rls_filters_str(datasource)
         return guest_rls + rls_clauses
 
