@@ -211,8 +211,8 @@ export type Props = {
   defaultQueryLimit: number;
   maxRow: number;
   displayLimit: number;
-  saveQueryWarning: string;
-  scheduleQueryWarning: string | null;
+  saveQueryWarning?: string;
+  scheduleQueryWarning?: string | null;
 };
 
 const elementStyle = (
