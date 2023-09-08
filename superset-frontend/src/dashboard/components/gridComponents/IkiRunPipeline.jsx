@@ -291,11 +291,7 @@ class IkiRunPipeline extends React.PureComponent {
 
   refreshCharts(selectedCharts) {
     selectedCharts.forEach(selectedChart => {
-      this.refreshChart(
-        selectedChart.id,
-        this.state.dashboardId,
-        false,
-      );
+      this.refreshChart(selectedChart.id, this.state.dashboardId, false);
     });
   }
 
