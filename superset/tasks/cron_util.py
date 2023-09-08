@@ -40,8 +40,8 @@ def cron_schedule_window(cron: str, timezone: str) -> Iterator[datetime]:
     utc = pytz_timezone("UTC")
     # convert the current time to the user's local time for comparison
     time_now = time_now.astimezone(tz)
-    start_at = time_now - timedelta(seconds=1)
-    stop_at = time_now + timedelta(seconds=window_size)
+    start_at = time_now - timedelta(seconds=window_size / 2)
+    stop_at = time_now + timedelta(seconds=window_size / 2)
     crons = croniter(cron, start_at)
     for schedule in crons.all_next(datetime):
         if schedule >= stop_at:
