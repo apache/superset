@@ -2013,6 +2013,7 @@ describe('dbReducer', () => {
     const currentState = dbReducer({}, action);
 
     expect(currentState).toEqual({
+      id: db.id,
       database_name: db.database_name,
       engine: backend,
       configuration_method: db.configuration_method,
