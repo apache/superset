@@ -2083,28 +2083,27 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
         return query.all()
 
-    def get_rls_ids(self, table: "BaseDatasource") -> list[int]:
+    def get_rls_filter_clauses(self, table: "BaseDatasource") -> list[int]:
         """
-        Retrieves the appropriate row level security filters IDs for the current user
+        Retrieves the appropriate row level security filters clauses for the current user
         and the passed table.
 
         :param table: The table to check against
-        :returns: A list of IDs
+        :returns: A list of clauses
         """
-        ids = [f.id for f in self.get_rls_filters(table)]
-        ids.sort()  # Combinations rather than permutations
-        return ids
+        clauses = [f.clause for f in self.get_rls_filters(table)]
+        clauses.sort()  # Combinations rather than permutations
+        return clauses
 
     def get_guest_rls_filters_str(self, table: "BaseDatasource") -> list[str]:
         return [f.get("clause", "") for f in self.get_guest_rls_filters(table)]
 
     def get_rls_cache_key(self, datasource: "BaseDatasource") -> list[str]:
-        rls_ids = []
+        rls_clauses = []
         if datasource.is_rls_supported:
-            rls_ids = self.get_rls_ids(datasource)
-        rls_str = [str(rls_id) for rls_id in rls_ids]
+            rls_clauses = self.get_rls_clauses(datasource)
         guest_rls = self.get_guest_rls_filters_str(datasource)
-        return guest_rls + rls_str
+        return guest_rls + rls_clauses
 
     @staticmethod
     def _get_current_epoch_time() -> float:
