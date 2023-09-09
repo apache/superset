@@ -20,7 +20,7 @@
  */
 /* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
 
-import React from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { ScreenGridLayer } from 'deck.gl/typed';
 import { JsonObject, JsonValue, QueryFormData, t } from '@superset-ui/core';
 import { noop } from 'lodash';
@@ -30,7 +30,7 @@ import TooltipRow from '../../TooltipRow';
 // eslint-disable-next-line import/extensions
 import fitViewport, { Viewport } from '../../utils/fitViewport';
 import {
-  DeckGLContainer,
+  DeckGLContainerHandle,
   DeckGLContainerStyledWrapper,
 } from '../../DeckGLContainer';
 import { TooltipProps } from '../../components/Tooltip';
@@ -99,93 +99,63 @@ export type DeckGLScreenGridProps = {
   onAddFilter: () => void;
 };
 
-export type DeckGLScreenGridState = {
-  viewport: Viewport;
-  formData: QueryFormData;
-};
+const DeckGLScreenGrid = (props: DeckGLScreenGridProps) => {
+  const containerRef = useRef<DeckGLContainerHandle>();
 
-class DeckGLScreenGrid extends React.PureComponent<
-  DeckGLScreenGridProps,
-  DeckGLScreenGridState
-> {
-  containerRef = React.createRef<DeckGLContainer>();
-
-  constructor(props: DeckGLScreenGridProps) {
-    super(props);
-
-    this.state = DeckGLScreenGrid.getDerivedStateFromProps(
-      props,
-    ) as DeckGLScreenGridState;
-
-    this.getLayers = this.getLayers.bind(this);
-  }
-
-  static getDerivedStateFromProps(
-    props: DeckGLScreenGridProps,
-    state?: DeckGLScreenGridState,
-  ) {
-    // the state is computed only from the payload; if it hasn't changed, do
-    // not recompute state since this would reset selections and/or the play
-    // slider position due to changes in form controls
-    if (state && props.payload.form_data === state.formData) {
-      return null;
-    }
-
+  const getAdjustedViewport = useCallback(() => {
     const features = props.payload.data.features || [];
 
     const { width, height, formData } = props;
 
-    let { viewport } = props;
     if (formData.autozoom) {
-      viewport = fitViewport(viewport, {
+      return fitViewport(props.viewport, {
         width,
         height,
         points: getPoints(features),
       });
     }
+    return props.viewport;
+  }, [props]);
 
-    return {
-      viewport,
-      formData: props.payload.form_data as QueryFormData,
-    };
-  }
+  const [stateFormData, setStateFormData] = useState(props.payload.form_data);
+  const [viewport, setViewport] = useState(getAdjustedViewport());
 
-  getLayers() {
-    const layer = getLayer(
-      this.props.formData,
-      this.props.payload,
-      noop,
-      this.setTooltip,
-    );
+  useEffect(() => {
+    if (props.payload.form_data !== stateFormData) {
+      setViewport(getAdjustedViewport());
+      setStateFormData(props.payload.form_data);
+    }
+  }, [getAdjustedViewport, props.payload.form_data, stateFormData]);
 
-    return [layer];
-  }
-
-  setTooltip = (tooltip: TooltipProps['tooltip']) => {
-    const { current } = this.containerRef;
+  const setTooltip = useCallback((tooltip: TooltipProps['tooltip']) => {
+    const { current } = containerRef;
     if (current) {
       current.setTooltip(tooltip);
     }
-  };
+  }, []);
 
-  render() {
-    const { formData, payload, setControlValue } = this.props;
+  const getLayers = useCallback(() => {
+    const layer = getLayer(props.formData, props.payload, noop, setTooltip);
 
-    return (
-      <div>
-        <DeckGLContainerStyledWrapper
-          ref={this.containerRef}
-          viewport={this.state.viewport}
-          layers={this.getLayers()}
-          setControlValue={setControlValue}
-          mapStyle={formData.mapbox_style}
-          mapboxApiAccessToken={payload.data.mapboxApiKey}
-          width={this.props.width}
-          height={this.props.height}
-        />
-      </div>
-    );
-  }
-}
+    return [layer];
+  }, [props.formData, props.payload, setTooltip]);
 
-export default DeckGLScreenGrid;
+  const { formData, payload, setControlValue } = props;
+
+  return (
+    <div>
+      <DeckGLContainerStyledWrapper
+        ref={containerRef}
+        viewport={viewport}
+        layers={getLayers()}
+        setControlValue={setControlValue}
+        mapStyle={formData.mapbox_style}
+        mapboxApiAccessToken={payload.data.mapboxApiKey}
+        width={props.width}
+        height={props.height}
+      />
+    </div>
+  );
+};
+
+export default memo(DeckGLScreenGrid);

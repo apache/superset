@@ -79,19 +79,15 @@ export const getSlicePayload = (
     adhocFilters = extractAddHocFiltersFromFormData(formDataFromSlice);
   }
 
-  if (
-    isEmpty(adhocFilters?.adhoc_filters) &&
-    isEmpty(formDataFromSlice) &&
-    formDataWithNativeFilters?.adhoc_filters?.[0]?.operator ===
-      Operators.TEMPORAL_RANGE
-  ) {
-    adhocFilters.adhoc_filters = [
-      {
-        ...formDataWithNativeFilters.adhoc_filters[0],
-        comparator: 'No filter',
-      },
-    ];
-  }
+  // This loop iterates through the adhoc_filters array in formDataWithNativeFilters.
+  // If a filter is of type TEMPORAL_RANGE and isExtra, it sets its comparator to
+  // 'No filter' and adds the modified filter to the adhocFilters array. This ensures that all
+  // TEMPORAL_RANGE filters are converted to 'No filter' when saving a chart.
+  formDataWithNativeFilters?.adhoc_filters?.forEach(filter => {
+    if (filter.operator === Operators.TEMPORAL_RANGE && filter.isExtra) {
+      adhocFilters.adhoc_filters.push({ ...filter, comparator: 'No filter' });
+    }
+  });
 
   const formData = {
     ...formDataWithNativeFilters,

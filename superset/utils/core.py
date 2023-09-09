@@ -49,7 +49,7 @@ from enum import Enum, IntEnum
 from io import BytesIO
 from timeit import default_timer
 from types import TracebackType
-from typing import Any, Callable, cast, NamedTuple, TYPE_CHECKING, TypeVar
+from typing import Any, Callable, cast, NamedTuple, TYPE_CHECKING, TypedDict, TypeVar
 from urllib.parse import unquote_plus
 from zipfile import ZipFile
 
@@ -73,7 +73,7 @@ from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql.type_api import Variant
 from sqlalchemy.types import TEXT, TypeDecorator, TypeEngine
-from typing_extensions import TypedDict, TypeGuard
+from typing_extensions import TypeGuard
 
 from superset.constants import (
     EXTRA_FORM_DATA_APPEND_KEYS,
@@ -368,9 +368,9 @@ def flasher(msg: str, severity: str = "message") -> None:
 def parse_js_uri_path_item(
     item: str | None, unquote: bool = True, eval_undefined: bool = False
 ) -> str | None:
-    """Parse a uri path item made with js.
+    """Parse an uri path item made with js.
 
-    :param item: a uri path component
+    :param item: an uri path component
     :param unquote: Perform unquoting of string using urllib.parse.unquote_plus()
     :param eval_undefined: When set to True and item is either 'null' or 'undefined',
     assume item is undefined and return None.
@@ -1162,16 +1162,14 @@ def merge_extra_filters(form_data: dict[str, Any]) -> None:
             filtr["isExtra"] = True
             # Pull out time filters/options and merge into form data
             filter_column = filtr["col"]
-            time_extra = date_options.get(filter_column)
-            if time_extra:
+            if time_extra := date_options.get(filter_column):
                 time_extra_value = filtr.get("val")
                 if time_extra_value and time_extra_value != NO_TIME_RANGE:
                     form_data[time_extra] = time_extra_value
                     form_data["applied_time_extras"][filter_column] = time_extra_value
             elif filtr["val"]:
                 # Merge column filters
-                filter_key = get_filter_key(filtr)
-                if filter_key in existing_filters:
+                if (filter_key := get_filter_key(filtr)) in existing_filters:
                     # Check if the filter already exists
                     if isinstance(filtr["val"], list):
                         if isinstance(existing_filters[filter_key], list):
@@ -1268,11 +1266,9 @@ def get_column_name(column: Column, verbose_map: dict[str, Any] | None = None) -
     :raises ValueError: if metric object is invalid
     """
     if isinstance(column, dict):
-        label = column.get("label")
-        if label:
+        if label := column.get("label"):
             return label
-        expr = column.get("sqlExpression")
-        if expr:
+        if expr := column.get("sqlExpression"):
             return expr
 
     if isinstance(column, str):
@@ -1293,13 +1289,10 @@ def get_metric_name(metric: Metric, verbose_map: dict[str, Any] | None = None) -
     :raises ValueError: if metric object is invalid
     """
     if is_adhoc_metric(metric):
-        label = metric.get("label")
-        if label:
+        if label := metric.get("label"):
             return label
-        expression_type = metric.get("expressionType")
-        if expression_type == "SQL":
-            sql_expression = metric.get("sqlExpression")
-            if sql_expression:
+        if (expression_type := metric.get("expressionType")) == "SQL":
+            if sql_expression := metric.get("sqlExpression"):
                 return sql_expression
         if expression_type == "SIMPLE":
             column: AdhocMetricColumn = metric.get("column") or {}
@@ -1753,9 +1746,8 @@ def get_time_filter_status(
                 }
             )
 
-    time_range = applied_time_extras.get(ExtraFiltersTimeColumnType.TIME_RANGE)
-    if time_range:
-        # are there any temporal columns to assign the time grain to?
+    if applied_time_extras.get(ExtraFiltersTimeColumnType.TIME_RANGE):
+        # are there any temporal columns to assign the time range to?
         if temporal_columns:
             applied.append({"column": ExtraFiltersTimeColumnType.TIME_RANGE})
         else:

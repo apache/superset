@@ -159,7 +159,7 @@ GROUP BY
 
 ### `time_secondary_columns = False`
 
-Datasets can have a main datatime column (`main_dttm_col`), but can also have secondary time columns. When this attribute is true, wheneve the secondary columns are filtered, the same filter is applied to the main datetime column.
+Datasets can have a main datetime column (`main_dttm_col`), but can also have secondary time columns. When this attribute is true, wheneve the secondary columns are filtered, the same filter is applied to the main datetime column.
 
 This might be useful if you have a table partitioned on a daily `ds` column in Hive (which doesn't support indexes), and a secondary column with the timestamp of the events, ie:
 

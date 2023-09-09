@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import contextlib
 import re
 from datetime import datetime
 from re import Pattern
@@ -258,11 +259,9 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     def _extract_error_message(cls, ex: Exception) -> str:
         """Extract error message for queries"""
         message = str(ex)
-        try:
+        with contextlib.suppress(AttributeError, KeyError):
             if isinstance(ex.args, tuple) and len(ex.args) > 1:
                 message = ex.args[1]
-        except (AttributeError, KeyError):
-            pass
         return message
 
     @classmethod

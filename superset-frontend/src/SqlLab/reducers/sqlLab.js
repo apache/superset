@@ -17,7 +17,6 @@
  * under the License.
  */
 import { normalizeTimestamp, QueryState, t } from '@superset-ui/core';
-import getInitialState from './getInitialState';
 import * as actions from '../actions/sqlLab';
 import { now } from '../../utils/dates';
 import {
@@ -165,7 +164,7 @@ export default function sqlLabReducer(state = {}, action) {
       return { ...state, queries: newQueries };
     },
     [actions.RESET_STATE]() {
-      return { ...getInitialState() };
+      return { ...action.sqlLabInitialState };
     },
     [actions.MERGE_TABLE]() {
       const at = { ...action.table };
@@ -183,6 +182,9 @@ export default function sqlLabReducer(state = {}, action) {
       if (existingTable) {
         if (action.query) {
           at.dataPreviewQueryId = action.query.id;
+        }
+        if (existingTable.initialized) {
+          at.id = existingTable.id;
         }
         return alterInArr(state, 'tables', existingTable, at);
       }
@@ -624,6 +626,12 @@ export default function sqlLabReducer(state = {}, action) {
           newQueries[id] = {
             ...state.queries[id],
             ...changedQuery,
+            ...(changedQuery.startDttm && {
+              startDttm: Number(changedQuery.startDttm),
+            }),
+            ...(changedQuery.endDttm && {
+              endDttm: Number(changedQuery.endDttm),
+            }),
             // race condition:
             // because of async behavior, sql lab may still poll a couple of seconds
             // when it started fetching or finished rendering results

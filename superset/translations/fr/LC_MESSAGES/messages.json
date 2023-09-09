@@ -83,14 +83,14 @@
       ".": [""],
       "0 Selected": ["0 sélectionné"],
       "1 calendar day frequency": [""],
-      "1 day ago": [""],
+      "1 day ago": ["Il y a 1 jour"],
       "1 hour": ["1 heure"],
       "1 minute": ["1 minute"],
       "1 minutely frequency": [""],
       "1 month end frequency": [""],
       "1 month start frequency": [""],
-      "1 week ago": [""],
-      "1 year ago": [""],
+      "1 week ago": ["Il y a 1 semaine"],
+      "1 year ago": ["Il y a 1 an"],
       "10 minute": ["10 minutes"],
       "104 weeks ago": [""],
       "15 minute": ["15 minutes"],
@@ -100,11 +100,11 @@
       "1H": [""],
       "1M": [""],
       "1T": [""],
-      "2 years ago": [""],
+      "2 years ago": ["il y a 2 ans"],
       "2/98 percentiles": [""],
       "28 days ago": [""],
       "2D": [""],
-      "3 years ago": [""],
+      "3 years ago": ["Il y a 3 ans"],
       "30 days": ["30 jours"],
       "30 minute": ["30 minutes"],
       "30 minutes": ["30 minutes"],
@@ -1998,6 +1998,7 @@
         ""
       ],
       "Least recently modified": ["Dernière modification"],
+      "Left Axis chart(s)": [""],
       "Left Margin": [""],
       "Left margin, in pixels, allowing for more room for axis labels": [""],
       "Left to Right": [""],
@@ -2442,6 +2443,12 @@
       "Pick a dimension from which categorical colors are defined": [""],
       "Pick a granularity in the Time section or uncheck 'Include Time'": [
         "Choississez une granularité dans la section Temps ou décochez 'Inclure le temps'"
+      ],
+      "Pick a metric for left axis!": [
+        "Choisissez une métrique pour l'axe de gauche !"
+      ],
+      "Pick a metric for right axis!": [
+        "Choisissez une métrique pour l'axe de droite !"
       ],
       "Pick a metric for x, y and size": [
         "Choisissez une métrique pour x, y, taille"
@@ -3139,7 +3146,7 @@
       "Subdomain": [""],
       "Subheader Font Size": [""],
       "Submit": [""],
-      "Subtotal": [""],
+      "Subtotal": ["Sous-Total"],
       "Success": ["Succès"],
       "Suffix to apply after the percentage display": [""],
       "Sum": [""],
@@ -3743,7 +3750,11 @@
       "Thursday": ["Jeudi"],
       "Time": ["Temps"],
       "Time Series - Bar Chart": ["Séries temporelles - histogramme"],
+      "Time Series - Dual Axis Line Chart": ["Séries temporelles - double axe"],
       "Time Series - Line Chart": ["Séries temporelles - ligne"],
+      "Time Series - Multiple Line Charts": [
+        "Séries temporelles - Lignes multiples"
+      ],
       "Time Series - Nightingale Rose Chart": [
         "Séries temporelles - Graphique Nightingale Rose"
       ],
@@ -4521,6 +4532,7 @@
         "le percentile inférieur doit être plus grand que 0 et plus petit que 100 et doit être plus petit que le percentile supérieur."
       ],
       "median": [""],
+      "metric": ["métrique"],
       "minute": ["minute"],
       "minute(s)": ["minute(s)"],
       "month": ["mois"],
@@ -4578,7 +4590,19 @@
       "y": [""],
       "y: values are normalized within each row": [""],
       "year": ["année"],
-      "zoom area": [""]
+      "zoom area": [""],
+      "No matching records found": ["Aucun résultat trouvé"],
+      "Seconds %s": ["%s secondes"],
+      "Minutes %s": ["%s minutes "],
+      "10 seconds": ["10 secondes"],
+      "6 hours": ["6 heures"],
+      "12 hours": ["12 heures"],
+      "24 hours": ["24 heures"],
+      "Last day": ["Hier"],
+      "Last week": ["La semaine derniere"],
+      "Last month": ["Le mois dernier"],
+      "Last quarter": ["Le trimestre dernier"],
+      "Last year": ["L'année dernière"]
     }
   }
 }

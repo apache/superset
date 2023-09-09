@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import contextlib
 import logging
 from abc import ABC, abstractmethod
 from typing import Any
@@ -54,7 +55,7 @@ class TemporaryCacheRestApi(BaseSupersetApi, ABC):
     allow_browser_login = True
 
     def add_apispec_components(self, api_spec: APISpec) -> None:
-        try:
+        with contextlib.suppress(DuplicateComponentNameError):
             api_spec.components.schema(
                 TemporaryCachePostSchema.__name__,
                 schema=TemporaryCachePostSchema,
@@ -63,8 +64,6 @@ class TemporaryCacheRestApi(BaseSupersetApi, ABC):
                 TemporaryCachePutSchema.__name__,
                 schema=TemporaryCachePutSchema,
             )
-        except DuplicateComponentNameError:
-            pass
         super().add_apispec_components(api_spec)
 
     @requires_json
