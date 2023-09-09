@@ -8,6 +8,11 @@ on:
     paths:
       - "docs/**"
 
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   config:
     runs-on: "ubuntu-latest"

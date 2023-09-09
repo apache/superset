@@ -3,10 +3,15 @@ name: PR Lint
 on:
   pull_request:
     # By default, a workflow only runs when a pull_request's activity type is opened, synchronize, or reopened. We
-    # explicity override here so that PR titles are re-linted when the PR text content is edited.
+    # explicitly override here so that PR titles are re-linted when the PR text content is edited.
     #
     # Possible values: https://help.github.com/en/actions/reference/events-that-trigger-workflows#pull-request-event-pull_request
     types: [opened, edited, reopened, synchronize]
+
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   check:
