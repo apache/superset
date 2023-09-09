@@ -60,7 +60,11 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
         if indexes := database.get_indexes(table_name, schema_name):
             col_names, latest_parts = cls.latest_partition(
-                table_name, schema_name, database, show_first=True
+                table_name,
+                schema_name,
+                database,
+                show_first=True,
+                indexes=indexes,
             )
 
             if not latest_parts:
