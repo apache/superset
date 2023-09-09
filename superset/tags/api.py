@@ -264,6 +264,8 @@ class TagRestApi(BaseSupersetModelRestApi):
                 )
                 CreateCustomTagWithRelationshipsCommand(item).run()
             return self.response(201)
+        except TagNotFoundError:
+            return self.response_404()
         except TagInvalidError as ex:
             return self.response_422(message=ex.message)
 
