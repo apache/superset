@@ -259,8 +259,8 @@ class TagRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
         try:
             for tag in item.get("tags"):
-                item = self.add_model_schema.load(
-                    {"name": tag, "objects_to_tag": item.get("objects_to_tag")}
+                tagged_item: dict[str, Any] = self.add_model_schema.load(
+                    {"name": tag, "objects_to_tag": tagged_item.get("objects_to_tag")}
                 )
                 CreateCustomTagWithRelationshipsCommand(item).run()
             return self.response(201)
