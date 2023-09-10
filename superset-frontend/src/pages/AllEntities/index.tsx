@@ -157,7 +157,6 @@ function AllEntities() {
           setShowTagModal(false);
         }}
         editTag={tag}
-        clearOnHide={false}
         // refreshData={refreshData}
         // addSuccessToast={addSuccessToast}
         // addDangerToast={addDangerToast}

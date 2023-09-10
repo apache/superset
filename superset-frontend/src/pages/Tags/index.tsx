@@ -333,6 +333,7 @@ function TagList(props: TagListProps) {
         refreshData={refreshData}
         addSuccessToast={addSuccessToast}
         addDangerToast={addDangerToast}
+        clearOnHide
       />
       <SubMenu name={t('Tags')} buttons={subMenuButtons} />
       <ConfirmStatusChange

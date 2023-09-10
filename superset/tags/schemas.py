@@ -56,7 +56,7 @@ class TagGetResponseSchema(Schema):
 
 class TagPostSchema(Schema):
     name = fields.String()
-    description = fields.String(required=False)
+    description = fields.String(required=False, allow_none=True)
     # resource id's to tag with tag
     objects_to_tag = fields.List(
         fields.Tuple((fields.String(), fields.Int())), required=False
@@ -73,7 +73,7 @@ class TagPostBulkSchema(Schema):
 
 class TagPutSchema(Schema):
     name = fields.String()
-    description = fields.String(required=False)
+    description = fields.String(required=False, allow_none=True)
     # resource id's to tag with tag
     objects_to_tag = fields.List(
         fields.Tuple((fields.String(), fields.Int())), required=False

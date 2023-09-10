@@ -46,6 +46,7 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({
 
     refreshData();
     onHide();
+    setTags([]);
   };
 
   const [tags, setTags] = useState<TaggableResourceOption[]>([]);
@@ -54,7 +55,10 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({
     <Modal
       title="Bulk tag"
       show={show}
-      onHide={onHide}
+      onHide={() => {
+        setTags([]);
+        onHide();
+      }}
       footer={
         <div>
           <Button

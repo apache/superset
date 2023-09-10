@@ -574,6 +574,7 @@ function SavedQueryList({
               highlightRowId={savedQueryCurrentlyPreviewing?.id}
               enableBulkTag
               bulkTagResourceName="query"
+              refreshData={refreshData}
             />
           );
         }}
