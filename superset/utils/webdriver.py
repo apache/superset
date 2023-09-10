@@ -48,6 +48,7 @@ if TYPE_CHECKING:
 if feature_flag_manager.is_feature_enabled("PLAYWRIGHT_REPORTS_AND_THUMBNAILS"):
     from playwright.sync_api import (
         BrowserContext,
+        ElementHandle,
         Error,
         Page,
         sync_playwright,
@@ -148,7 +149,13 @@ class WebDriverPlaywright(WebDriverProxy):
     def get_screenshot(self, url: str, element_name: str, user: User) -> bytes | None:
         with sync_playwright() as p:
             browser = p.chromium.launch()
-            context = browser.new_context(bypass_csp=True)
+            context = browser.new_context(
+                bypass_csp=True,
+                viewport={
+                    "height": self._window[1],
+                    "width": self._window[0],
+                },
+            )
             self.auth(user, context)
             page = context.new_page()
             page.goto(url)
@@ -156,14 +163,14 @@ class WebDriverPlaywright(WebDriverProxy):
             selenium_headstart = current_app.config["SCREENSHOT_SELENIUM_HEADSTART"]
             logger.debug("Sleeping for %i seconds", selenium_headstart)
             page.wait_for_timeout(selenium_headstart * 1000)
-
+            element: ElementHandle
             try:
                 try:
                     # page didn't load
                     logger.debug(
                         "Wait for the presence of %s at url: %s", element_name, url
                     )
-                    page.wait_for_selector(
+                    element = page.wait_for_selector(
                         f".{element_name}",
                         timeout=self._screenshot_locate_wait * 1000,
                     )
@@ -211,12 +218,6 @@ class WebDriverPlaywright(WebDriverProxy):
                     url,
                     user.username,
                 )
-                page.set_viewport_size(
-                    {
-                        "height": page.evaluate("document.body.scrollHeight"),
-                        "width": self._window[0],
-                    }
-                )
                 if True:
                     unexpected_errors = WebDriverPlaywright.find_unexpected_errors(page)
                     if unexpected_errors:
@@ -226,7 +227,7 @@ class WebDriverPlaywright(WebDriverProxy):
                             url,
                             unexpected_errors,
                         )
-                img = page.screenshot()
+                img = element.screenshot(path="test.png")
             except TimeoutError:
                 # raise again for the finally block, but handled above
                 pass
