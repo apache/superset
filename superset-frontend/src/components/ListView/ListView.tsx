@@ -256,7 +256,7 @@ function ListView<T extends object = any>({
   highlightRowId,
   emptyState,
   columnsForWrapText,
-  enableBulkTag = true,
+  enableBulkTag = false,
   bulkTagResourceName,
 }: ListViewProps<T>) {
   const {
