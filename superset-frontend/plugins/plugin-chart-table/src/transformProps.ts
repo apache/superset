@@ -159,7 +159,7 @@ const processColumns = memoizeOne(function processColumns(
       } else if (isPercentMetric) {
         // percent metrics have a default format
         formatter = getNumberFormatter(numberFormat || PERCENT_3_POINT);
-      } else if (isMetric || (isNumber && numberFormat)) {
+      } else if (isMetric || (isNumber && (numberFormat || currency))) {
         formatter = currency
           ? new CurrencyFormatter({
               d3Format: numberFormat,
