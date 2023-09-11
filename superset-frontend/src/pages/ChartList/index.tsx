@@ -49,7 +49,6 @@ import { Link, useHistory } from 'react-router-dom';
 import ListView, {
   Filter,
   FilterOperator,
-  Filters,
   ListViewProps,
   SelectOption,
 } from 'src/components/ListView';
@@ -63,13 +62,11 @@ import Chart, { ChartLinkedDashboard } from 'src/types/Chart';
 import Tag from 'src/types/TagType';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
-import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import setupPlugins from 'src/setup/setupPlugins';
 import InfoTooltip from 'src/components/InfoTooltip';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import { GenericLink } from 'src/components/GenericLink/GenericLink';
 import Owner from 'src/types/Owner';
-import { loadTags } from 'src/components/Tags/utils';
 import ChartCard from 'src/features/charts/ChartCard';
 
 const FlexRowContainer = styled.div`
@@ -111,9 +108,7 @@ const createFetchDatasets = async (
   pageSize: number,
 ) => {
   // add filters if filterValue
-  const filters = filterValue
-    ? { filters: [{ col: 'table_name', opr: 'sw', value: filterValue }] }
-    : {};
+  const filters = {};
   const queryParams = rison.encode({
     columns: ['datasource_name', 'datasource_id'],
     keys: ['none'],
@@ -266,17 +261,7 @@ function ChartList(props: ChartListProps) {
     pageSize: number,
   ) => {
     // add filters if filterValue
-    const filters = filterValue
-      ? {
-          filters: [
-            {
-              col: 'dashboard_title',
-              opr: FilterOperator.startsWith,
-              value: filterValue,
-            },
-          ],
-        }
-      : {};
+    const filters =  {};
     const queryParams = rison.encode({
       columns: ['dashboard_title', 'id'],
       keys: ['none'],
@@ -587,133 +572,6 @@ function ChartList(props: ChartListProps) {
     [],
   );
 
-  const filters: Filters = useMemo(() => {
-    const filters_list = [
-      {
-        Header: t('Search'),
-        key: 'search',
-        id: 'slice_name',
-        input: 'search',
-        operator: FilterOperator.chartAllText,
-      },
-      {
-        Header: t('Owner'),
-        key: 'owner',
-        id: 'owners',
-        input: 'select',
-        operator: FilterOperator.relationManyMany,
-        unfilteredLabel: t('All'),
-        fetchSelects: createFetchRelated(
-          'chart',
-          'owners',
-          createErrorHandler(errMsg =>
-            addDangerToast(
-              t(
-                'An error occurred while fetching chart owners values: %s',
-                errMsg,
-              ),
-            ),
-          ),
-          props.user,
-        ),
-        paginate: true,
-      },
-      {
-        Header: t('Created by'),
-        key: 'created_by',
-        id: 'created_by',
-        input: 'select',
-        operator: FilterOperator.relationOneMany,
-        unfilteredLabel: t('All'),
-        fetchSelects: createFetchRelated(
-          'chart',
-          'created_by',
-          createErrorHandler(errMsg =>
-            addDangerToast(
-              t(
-                'An error occurred while fetching chart created by values: %s',
-                errMsg,
-              ),
-            ),
-          ),
-          props.user,
-        ),
-        paginate: true,
-      },
-      {
-        Header: t('Chart type'),
-        key: 'viz_type',
-        id: 'viz_type',
-        input: 'select',
-        operator: FilterOperator.equals,
-        unfilteredLabel: t('All'),
-        selects: registry
-          .keys()
-          .filter(k => nativeFilterGate(registry.get(k)?.behaviors || []))
-          .map(k => ({ label: registry.get(k)?.name || k, value: k }))
-          .sort((a, b) => {
-            if (!a.label || !b.label) {
-              return 0;
-            }
-
-            if (a.label > b.label) {
-              return 1;
-            }
-            if (a.label < b.label) {
-              return -1;
-            }
-
-            return 0;
-          }),
-      },
-      {
-        Header: t('Dataset'),
-        key: 'dataset',
-        id: 'datasource_id',
-        input: 'select',
-        operator: FilterOperator.equals,
-        unfilteredLabel: t('All'),
-        fetchSelects: createFetchDatasets,
-        paginate: true,
-      },
-      {
-        Header: t('Dashboards'),
-        key: 'dashboards',
-        id: 'dashboards',
-        input: 'select',
-        operator: FilterOperator.relationManyMany,
-        unfilteredLabel: t('All'),
-        fetchSelects: fetchDashboards,
-        paginate: true,
-      },
-      ...(userId ? [favoritesFilter] : []),
-      {
-        Header: t('Certified'),
-        key: 'certified',
-        id: 'id',
-        urlDisplay: 'certified',
-        input: 'select',
-        operator: FilterOperator.chartIsCertified,
-        unfilteredLabel: t('Any'),
-        selects: [
-          { label: t('Yes'), value: true },
-          { label: t('No'), value: false },
-        ],
-      },
-    ] as Filters;
-    if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) {
-      filters_list.push({
-        Header: t('Tags'),
-        key: 'tags',
-        id: 'tags',
-        input: 'select',
-        operator: FilterOperator.chartTags,
-        unfilteredLabel: t('All'),
-        fetchSelects: loadTags,
-      });
-    }
-    return filters_list;
-  }, [addDangerToast, favoritesFilter, props.user]);
 
   const sortTypes = [
     {
@@ -852,7 +710,6 @@ function ChartList(props: ChartListProps) {
               data={charts}
               disableBulkSelect={toggleBulkSelect}
               fetchData={fetchData}
-              filters={filters}
               initialSort={initialSort}
               loading={loading}
               pageSize={PAGE_SIZE}
