@@ -107,6 +107,7 @@ export const CurrencyControl = ({
           onChange={(symbolPosition: string) => {
             onChange({ ...currency, symbolPosition });
           }}
+          onClear={() => onChange({ ...currency, symbolPosition: undefined })}
           value={currency?.symbolPosition}
           allowClear
           {...symbolSelectOverrideProps}
@@ -118,6 +119,7 @@ export const CurrencyControl = ({
           onChange={(symbol: string) => {
             onChange({ ...currency, symbol });
           }}
+          onClear={() => onChange({ ...currency, symbol: undefined })}
           value={currency?.symbol}
           allowClear
           allowNewOptions
