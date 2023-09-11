@@ -357,11 +357,12 @@ function TagList(props: TagListProps) {
                 bulkActions={bulkActions}
                 bulkSelectEnabled={bulkSelectEnabled}
                 cardSortSelectOptions={sortTypes}
-                className="dashboard-list-view"
+                className="tags-list-view"
                 columns={columns}
                 count={tagCount}
                 data={tags.filter(tag => !tag.name.includes(':'))}
                 disableBulkSelect={toggleBulkSelect}
+                refreshData={refreshData}
                 emptyState={emptyState}
                 fetchData={fetchData}
                 filters={filters}
