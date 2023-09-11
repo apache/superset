@@ -240,6 +240,15 @@ hostAliases: []
 # Superset node configuration
 supersetNode:
   replicaCount: 1
+  # -- HPA - Horizontal Pod Autoscaling - enable this feature to scale In/Out pods horizontally in Kubernetes
+  # Autoscaler depends on the AvgCPU and AvgMemory Utilization and Automatically Scale In & Out based on the "minReplica" and "maxReplica" respectively 
+  # For HPA to pick the pod metrics, it requires pod "resources: {}"
+  autoScale:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 5
+    averageUtilizationCPU: 75
+    averageUtilizationMEMORY: 75
   # -- Startup command
   # @default -- See `values.yaml`
   command:
@@ -334,6 +343,15 @@ supersetNode:
 # Superset Celery worker configuration
 supersetWorker:
   replicaCount: 1
+  # -- HPA - Horizontal Pod Autoscaling - enable this feature to scale In/Out pods horizontally in Kubernetes
+  # Autoscaler depends on the AvgCPU and AvgMemory Utilization and Automatically Scale In & Out based on the "minReplica" and "maxReplica" respectively
+  # For HPA to pick the pod metrics, it requires pod "resources: {}"
+  autoScale:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 5
+    averageUtilizationCPU: 75
+    averageUtilizationMEMORY: 75
   # -- Worker startup command
   # @default -- a `celery worker` command
   command:

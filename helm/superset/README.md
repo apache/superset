@@ -169,6 +169,10 @@ helm install my-superset superset/superset
 | supersetCeleryFlower.startupProbe.timeoutSeconds | int | `1` |  |
 | supersetCeleryFlower.topologySpreadConstraints | list | `[]` | TopologySpreadConstrains to be added to supersetCeleryFlower deployments |
 | supersetNode.affinity | object | `{}` | Affinity to be added to supersetNode deployment |
+| supersetNode.autoScale.minReplicas | int | `1` | Minimum Replica of Horizontal Pod Autoscaling for supersetNode deployment |
+| supersetNode.autoScale.maxReplicas | int | `5` | Maximum Replica of Horizontal Pod Autoscaling for supersetNode deployment |
+| supersetNode.autoScale.averageUtilizationCPU | int | `75` | Average CPU Utilization of Horizontal Pod Autoscaling for supersetNode deployment |
+| supersetNode.autoScale.averageUtilizationMEMORY | int | `75` | Average Memory Utilization of Horizontal Pod Autoscaling for supersetNode deployment |
 | supersetNode.command | list | See `values.yaml` | Startup command |
 | supersetNode.connections.db_host | string | `"{{ .Release.Name }}-postgresql"` |  |
 | supersetNode.connections.db_name | string | `"superset"` |  |
@@ -257,6 +261,10 @@ helm install my-superset superset/superset
 | supersetWebsockets.strategy | object | `{}` |  |
 | supersetWebsockets.topologySpreadConstraints | list | `[]` | TopologySpreadConstrains to be added to supersetWebsockets deployments |
 | supersetWorker.affinity | object | `{}` | Affinity to be added to supersetWorker deployment |
+| supersetWorker.autoScale.minReplicas | int | `1` | Minimum Replica of Horizontal Pod Autoscaling for supersetWorker deployment |
+| supersetWorker.autoScale.maxReplicas | int | `5` | Maximum Replica of Horizontal Pod Autoscaling for supersetWorker deployment |
+| supersetWorker.autoScale.averageUtilizationCPU | int | `75` | Average CPU Utilization of Horizontal Pod Autoscaling for supersetWorker deployment |
+| supersetWorker.autoScale.averageUtilizationMEMORY | int | `75` | Average Memory Utilization of Horizontal Pod Autoscaling for supersetWorker deployment |
 | supersetWorker.command | list | a `celery worker` command | Worker startup command |
 | supersetWorker.containerSecurityContext | object | `{}` |  |
 | supersetWorker.deploymentAnnotations | object | `{}` | Annotations to be added to supersetWorker deployment |
