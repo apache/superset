@@ -100,7 +100,7 @@ const BulkSelectWrapper = styled(Alert)`
       padding: ${theme.gridUnit * 2}px 0;
     }
 
-    .deselect-all {
+    .deselect-all, .tag-btn {
       color: ${theme.colors.primary.base};
       margin-left: ${theme.gridUnit * 4}px;
     }
@@ -393,10 +393,10 @@ function ListView<T extends object = any>({
                       ))}
                       {enableBulkTag && (
                         <span
-                          data-test="bulk-select-deselect-all"
+                          data-test="bulk-select-tag-btn"
                           role="button"
                           tabIndex={0}
-                          className="deselect-all"
+                          className="tag-btn"
                           onClick={() => setShowBulkTagModal(true)}
                         >
                           {t('Add Tag')}
