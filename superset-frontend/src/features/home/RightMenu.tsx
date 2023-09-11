@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { Fragment, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
@@ -33,7 +33,6 @@ import {
   useTheme,
 } from '@superset-ui/core';
 import { MainNav as Menu } from 'src/components/Menu';
-import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import Label from 'src/components/Label';
 import { findPermission } from 'src/utils/findPermission';
@@ -41,7 +40,6 @@ import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import {
   MenuObjectProps,
   UserWithPermissionsAndRoles,
-  MenuObjectChildProps,
 } from 'src/types/bootstrapTypes';
 import { RootState } from 'src/dashboard/types';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
@@ -55,24 +53,6 @@ import {
 
 const extensionsRegistry = getExtensionsRegistry();
 
-const versionInfoStyles = (theme: SupersetTheme) => css`
-  padding: ${theme.gridUnit * 1.5}px ${theme.gridUnit * 4}px
-    ${theme.gridUnit * 4}px ${theme.gridUnit * 7}px;
-  color: ${theme.colors.grayscale.base};
-  font-size: ${theme.typography.sizes.xs}px;
-  white-space: nowrap;
-`;
-const StyledI = styled.div`
-  color: ${({ theme }) => theme.colors.primary.dark1};
-`;
-
-const styledDisabled = (theme: SupersetTheme) => css`
-  color: ${theme.colors.grayscale.light1};
-  .ant-menu-item-active {
-    color: ${theme.colors.grayscale.light1};
-    cursor: default;
-  }
-`;
 
 const StyledDiv = styled.div<{ align: string }>`
   display: flex;
@@ -85,12 +65,6 @@ const StyledDiv = styled.div<{ align: string }>`
   }
 `;
 
-const StyledMenuItemWithIcon = styled.div`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-`;
 
 const StyledAnchor = styled.a`
   padding-right: ${({ theme }) => theme.gridUnit}px;
@@ -101,12 +75,6 @@ const tagStyles = (theme: SupersetTheme) => css`
   color: ${theme.colors.grayscale.light5};
 `;
 
-const styledChildMenu = (theme: SupersetTheme) => css`
-  &:hover {
-    color: ${theme.colors.primary.base} !important;
-    cursor: pointer !important;
-  }
-`;
 
 const { SubMenu } = Menu;
 
@@ -143,9 +111,6 @@ const RightMenu = ({
   } = useSelector<any, ExtensionConfigs>(state => state.common.conf);
   const [showDatabaseModal, setShowDatabaseModal] = useState<boolean>(false);
   const [engine, setEngine] = useState<string>('');
-  const canSql = findPermission('can_sqllab', 'Superset', roles);
-  const canDashboard = findPermission('can_write', 'Dashboard', roles);
-  const canChart = findPermission('can_write', 'Chart', roles);
   const canDatabase = findPermission('can_write', 'Database', roles);
   const canDataset = findPermission('can_write', 'Dataset', roles);
 
@@ -158,7 +123,6 @@ const RightMenu = ({
       ALLOWED_EXTENSIONS,
     );
 
-  const showActionDropdown = canSql || canChart || canDashboard;
   const [allowUploads, setAllowUploads] = useState<boolean>(false);
   const [nonExamplesDBConnected, setNonExamplesDBConnected] =
     useState<boolean>(false);
@@ -275,13 +239,6 @@ const RightMenu = ({
     }
   }, [canDatabase, canDataset]);
 
-  const menuIconAndLabel = (menu: MenuObjectProps) => (
-    <>
-      <i data-test={`menu-item-${menu.label}`} className={`fa ${menu.icon}`} />
-      {menu.label}
-    </>
-  );
-
   const handleMenuSelection = (itemChose: any) => {
     if (itemChose.key === GlobalMenuDataOptions.DB_CONNECTION) {
       setShowDatabaseModal(true);
@@ -295,23 +252,6 @@ const RightMenu = ({
     setEngine('');
     setShowDatabaseModal(false);
   };
-
-  const tooltipText = t(
-    "Enable 'Allow file uploads to database' in any database's settings",
-  );
-
-  const buildMenuItem = (item: MenuObjectChildProps) =>
-    item.disable ? (
-      <Menu.Item key={item.name} css={styledDisabled}>
-        <Tooltip placement="top" title={tooltipText}>
-          {item.label}
-        </Tooltip>
-      </Menu.Item>
-    ) : (
-      <Menu.Item key={item.name} css={styledChildMenu}>
-        {item.url ? <a href={item.url}> {item.label} </a> : item.label}
-      </Menu.Item>
-    );
 
   const onMenuOpen = (openKeys: string[]) => {
     // We should query the API only if opening Data submenus
@@ -331,9 +271,6 @@ const RightMenu = ({
     return null;
   };
   const RightMenuExtension = extensionsRegistry.get('navbar.right');
-  const RightMenuItemIconExtension = extensionsRegistry.get(
-    'navbar.right-menu.item.icon',
-  );
 
   const handleDatabaseAdd = () => setQuery({ databaseAdded: true });
 
@@ -370,104 +307,10 @@ const RightMenu = ({
         onOpenChange={onMenuOpen}
       >
         {RightMenuExtension && <RightMenuExtension />}
-        {!navbarRight.user_is_anonymous && showActionDropdown && (
-          <SubMenu
-            data-test="new-dropdown"
-            title={
-              <StyledI data-test="new-dropdown-icon" className="fa fa-plus" />
-            }
-            icon={<Icons.TriangleDown />}
-          >
-            {dropdownItems?.map?.(menu => {
-              const canShowChild = menu.childs?.some(
-                item => typeof item === 'object' && !!item.perm,
-              );
-              if (menu.childs) {
-                if (canShowChild) {
-                  return (
-                    <SubMenu
-                      key={`sub2_${menu.label}`}
-                      className="data-menu"
-                      title={menuIconAndLabel(menu)}
-                    >
-                      {menu?.childs?.map?.((item, idx) =>
-                        typeof item !== 'string' && item.name && item.perm ? (
-                          <Fragment key={item.name}>
-                            {idx === 3 && <Menu.Divider />}
-                            {buildMenuItem(item)}
-                          </Fragment>
-                        ) : null,
-                      )}
-                    </SubMenu>
-                  );
-                }
-                if (!menu.url) {
-                  return null;
-                }
-              }
-              return (
-                findPermission(
-                  menu.perm as string,
-                  menu.view as string,
-                  roles,
-                ) && (
-                  <Menu.Item key={menu.label}>
-                    {isFrontendRoute(menu.url) ? (
-                      <Link to={menu.url || ''}>
-                        <i
-                          data-test={`menu-item-${menu.label}`}
-                          className={`fa ${menu.icon}`}
-                        />{' '}
-                        {menu.label}
-                      </Link>
-                    ) : (
-                      <a href={menu.url}>
-                        <i
-                          data-test={`menu-item-${menu.label}`}
-                          className={`fa ${menu.icon}`}
-                        />{' '}
-                        {menu.label}
-                      </a>
-                    )}
-                  </Menu.Item>
-                )
-              );
-            })}
-          </SubMenu>
-        )}
         <SubMenu
           title={t('Settings')}
           icon={<Icons.TriangleDown iconSize="xl" />}
         >
-          {settings?.map?.((section, index) => [
-            <Menu.ItemGroup key={`${section.label}`} title={section.label}>
-              {section?.childs?.map?.(child => {
-                if (typeof child !== 'string') {
-                  const menuItemDisplay = RightMenuItemIconExtension ? (
-                    <StyledMenuItemWithIcon>
-                      {child.label}
-                      <RightMenuItemIconExtension menuChild={child} />
-                    </StyledMenuItemWithIcon>
-                  ) : (
-                    child.label
-                  );
-                  return (
-                    <Menu.Item key={`${child.label}`}>
-                      {isFrontendRoute(child.url) ? (
-                        <Link to={child.url || ''}>{menuItemDisplay}</Link>
-                      ) : (
-                        <a href={child.url}>{menuItemDisplay}</a>
-                      )}
-                    </Menu.Item>
-                  );
-                }
-                return null;
-              })}
-            </Menu.ItemGroup>,
-            index < settings.length - 1 && (
-              <Menu.Divider key={`divider_${index}`} />
-            ),
-          ])}
 
           {!navbarRight.user_is_anonymous && [
             <Menu.Divider key="user-divider" />,
@@ -485,33 +328,6 @@ const RightMenu = ({
               <Menu.Item key="logout">
                 <a href={navbarRight.user_logout_url}>{t('Logout')}</a>
               </Menu.Item>
-            </Menu.ItemGroup>,
-          ]}
-          {(navbarRight.version_string || navbarRight.version_sha) && [
-            <Menu.Divider key="version-info-divider" />,
-            <Menu.ItemGroup key="about-section" title={t('About')}>
-              <div className="about-section">
-                {navbarRight.show_watermark && (
-                  <div css={versionInfoStyles}>
-                    {t('Powered by Apache Superset')}
-                  </div>
-                )}
-                {navbarRight.version_string && (
-                  <div css={versionInfoStyles}>
-                    {t('Version')}: {navbarRight.version_string}
-                  </div>
-                )}
-                {navbarRight.version_sha && (
-                  <div css={versionInfoStyles}>
-                    {t('SHA')}: {navbarRight.version_sha}
-                  </div>
-                )}
-                {navbarRight.build_number && (
-                  <div css={versionInfoStyles}>
-                    {t('Build')}: {navbarRight.build_number}
-                  </div>
-                )}
-              </div>
             </Menu.ItemGroup>,
           ]}
         </SubMenu>
