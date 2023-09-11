@@ -131,7 +131,7 @@ export const PageHeaderWithActions = ({
   rightPanelAdditionalItems,
   additionalActionsMenu,
   menuDropdownProps,
-  showMenuDropdown = false,
+  showMenuDropdown = true,
   tooltipProps,
 }: PageHeaderWithActionsProps) => {
   const theme = useTheme();
