@@ -262,7 +262,9 @@ class TagRestApi(BaseSupersetModelRestApi):
                 tagged_item: dict[str, Any] = self.add_model_schema.load(
                     {"name": tag, "objects_to_tag": item.get("objects_to_tag")}
                 )
-                CreateCustomTagWithRelationshipsCommand(tagged_item).run()
+                CreateCustomTagWithRelationshipsCommand(
+                    tagged_item, bulk_create=True
+                ).run()
             return self.response(201)
         except TagNotFoundError:
             return self.response_404()
