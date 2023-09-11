@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import JSONbig from 'json-bigint';
+import _JSONbig from 'json-bigint';
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { JSONTree } from 'react-json-tree';
 import {
@@ -32,6 +32,8 @@ import CopyToClipboard from '../CopyToClipboard';
 import ModalTrigger from '../ModalTrigger';
 import { Table, TableSize } from '../Table';
 
+const JSONbig = _JSONbig({ storeAsString: true, constructorAction: 'preserve' });
+
 function safeJsonObjectParse(
   data: unknown,
 ): null | unknown[] | Record<string, unknown> {
@@ -46,7 +48,7 @@ function safeJsonObjectParse(
 
   // We know `data` is a string starting with '{' or '[', so try to parse it as a valid object
   try {
-    const jsonData = JSONbig({ storeAsString: true }).parse(data);
+    const jsonData = JSONbig.parse(data);
     if (jsonData && typeof jsonData === 'object') {
       return jsonData;
     }
