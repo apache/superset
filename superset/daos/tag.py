@@ -407,7 +407,9 @@ class TagDAO(BaseDAO[Tag]):
             # delete relationships that aren't retained from single tag create
             for object_type, object_id in tagged_objects_to_delete:
                 # delete objects that were removed
-                TagDAO.delete_tagged_object(object_type, object_id, tag.name)  # type: ignore
+                TagDAO.delete_tagged_object(
+                    object_type, object_id, tag.name  # type: ignore
+                )
 
         db.session.add_all(tagged_objects)
         db.session.commit()
