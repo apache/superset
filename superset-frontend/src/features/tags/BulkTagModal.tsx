@@ -1,11 +1,29 @@
-// @ts-nocheck
-import React, { ChangeEvent, useState, useEffect } from 'react';
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import React, { useState, useEffect } from 'react';
 import { t, SupersetClient } from '@superset-ui/core';
 import { FormLabel } from 'src/components/Form';
 import Modal from 'src/components/Modal';
 import AsyncSelect from 'src/components/Select/AsyncSelect';
 import Button from 'src/components/Button';
 import { loadTags } from 'src/components/Tags/utils';
+import { TaggableResourceOption } from 'src/features/tags/TagModal';
 
 interface BulkTagModalProps {
   onHide: () => void;
@@ -37,10 +55,10 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({
       },
     })
       .then(({ json = {} }) => {
-        addSuccessToast(`Tagged ${selected.length} items`);
+        addSuccessToast(t('Tagged %s items', selected.length));
       })
       .catch(err => {
-        addDangerToast('Failed to tag items');
+        addDangerToast(t('Failed to tag items'));
       });
 
     refreshData();
@@ -52,7 +70,7 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({
 
   return (
     <Modal
-      title="Bulk tag"
+      title={t('Bulk tag')}
       show={show}
       onHide={() => {
         setTags([]);
@@ -78,16 +96,18 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({
       }
     >
       <>
-        <>{`You are adding tags to the ${selected.length} entities`}</>
+        <>{t('You are adding tags to the %s entities', selected.length)}</>
         <br />
         <FormLabel>{t('tags')}</FormLabel>
         <AsyncSelect
           ariaLabel="tags"
+          // @ts-ignore
           value={tags}
           options={loadTags}
           onHide={onHide}
+          // @ts-ignore
           onChange={tags => setTags(tags)}
-          placeholder="Select Tags"
+          placeholder={t('Select Tags')}
           mode="multiple"
         />
       </>

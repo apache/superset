@@ -100,6 +100,7 @@ const StyledItem = styled.div<{
     }
     & .metadata-text {
       min-width: ${TEXT_MIN_WIDTH}px;
+      overflow: hidden;
       text-overflow: ${collapsed ? 'unset' : 'ellipsis'};
       white-space: nowrap;
       text-decoration: ${onClick ? 'underline' : 'none'};

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// @ts-nocheck
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import TagModal from 'src/features/tags/TagModal';
@@ -55,7 +54,15 @@ test('renders correctly in edit mode', () => {
     description: 'A test tag',
     type: 'dashboard',
     changed_on_delta_humanized: '',
-    created_by: {},
+    created_on_delta_humanized: '',
+    created_by: {
+      first_name: 'joe',
+      last_name: 'smith',
+    },
+    changed_by: {
+      first_name: 'tom',
+      last_name: 'brown',
+    },
   };
 
   render(<TagModal {...mockedProps} editTag={editTag} />);

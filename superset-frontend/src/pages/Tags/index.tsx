@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// @ts-nocheck
 import React, { useMemo, useState } from 'react';
 import { isFeatureEnabled, FeatureFlag, t } from '@superset-ui/core';
 import {
@@ -368,6 +367,8 @@ function TagList(props: TagListProps) {
                 filters={filters}
                 initialSort={initialSort}
                 loading={loading}
+                addDangerToast={addDangerToast}
+                addSuccessToast={addSuccessToast}
                 pageSize={PAGE_SIZE}
                 showThumbnails={
                   userKey

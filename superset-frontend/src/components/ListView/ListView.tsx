@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// @ts-nocheck
 import { t, styled } from '@superset-ui/core';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Alert from 'src/components/Alert';
@@ -209,9 +208,9 @@ export interface ListViewProps<T extends object = any> {
   count: number;
   pageSize: number;
   fetchData: (conf: FetchDataConfig) => any;
-  refreshData?: () => void;
-  addSuccessToast?: (msg: string) => void;
-  addDangerToast?: (msg: string) => void;
+  refreshData: () => void;
+  addSuccessToast: (msg: string) => void;
+  addDangerToast: (msg: string) => void;
   loading: boolean;
   className?: string;
   initialSort?: SortColumn[];
@@ -261,6 +260,7 @@ function ListView<T extends object = any>({
   enableBulkTag = false,
   bulkTagResourceName,
   addSuccessToast,
+  addDangerToast,
 }: ListViewProps<T>) {
   const {
     getTableProps,
@@ -289,6 +289,7 @@ function ListView<T extends object = any>({
     renderCard: Boolean(renderCard),
     defaultViewMode,
   });
+  const allowBulkTagActions = bulkTagResourceName && enableBulkTag;
   const filterable = Boolean(filters.length);
   if (filterable) {
     const columnAccessors = columns.reduce(
@@ -322,14 +323,17 @@ function ListView<T extends object = any>({
 
   return (
     <ListViewStyles>
-      <BulkTagModal
-        show={showBulkTagModal}
-        selected={selectedFlatRows}
-        refreshData={refreshData}
-        resourceName={bulkTagResourceName}
-        addSuccessToast={addSuccessToast}
-        onHide={() => setShowBulkTagModal(false)}
-      />
+      {allowBulkTagActions && (
+        <BulkTagModal
+          show={showBulkTagModal}
+          selected={selectedFlatRows}
+          refreshData={refreshData}
+          resourceName={bulkTagResourceName}
+          addSuccessToast={addSuccessToast}
+          addDangerToast={addDangerToast}
+          onHide={() => setShowBulkTagModal(false)}
+        />
+      )}
       <div data-test={className} className={`superset-list-view ${className}`}>
         <div className="header">
           {cardViewEnabled && (

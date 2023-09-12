@@ -384,6 +384,8 @@ function AnnotationLayersList({
               bulkActions={bulkActions}
               bulkSelectEnabled={bulkSelectEnabled}
               disableBulkSelect={toggleBulkSelect}
+              addDangerToast={addDangerToast}
+              addSuccessToast={addSuccessToast}
               emptyState={emptyState}
               refreshData={refreshData}
             />

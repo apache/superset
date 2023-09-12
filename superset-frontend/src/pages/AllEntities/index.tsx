@@ -16,15 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// @ts-nocheck
-import React, { useEffect, useMemo, useState } from 'react';
-import { ensureIsArray, styled, t, css } from '@superset-ui/core';
-import { NumberParam, StringParam, useQueryParam } from 'use-query-params';
-import withToasts from 'src/components/MessageToasts/withToasts';
-import AsyncSelect from 'src/components/Select/AsyncSelect';
-import { SelectValue } from 'antd/lib/select';
-import { loadTags } from 'src/components/Tags/utils';
-import { getValue } from 'src/components/Select/utils';
+import React, { useEffect, useState } from 'react';
+import { styled, t, css, SupersetTheme } from '@superset-ui/core';
+import { NumberParam, useQueryParam } from 'use-query-params';
 import AllEntitiesTable from 'src/features/allEntities/AllEntitiesTable';
 import Button from 'src/components/Button';
 import MetadataBar, {
@@ -37,8 +31,9 @@ import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import { fetchSingleTag } from 'src/features/tags/tags';
 import { Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
+import withToasts, { useToasts } from 'src/components/MessageToasts/withToasts';
 
-const additionalItemsStyles = theme => css`
+const additionalItemsStyles = (theme: SupersetTheme) => css`
   display: flex;
   align-items: center;
   margin-left: ${theme.gridUnit}px;
@@ -62,7 +57,7 @@ const AllEntitiesContainer = styled.div`
     margin-bottom: ${theme.gridUnit * 1}px;
   }
   .entities {
-    margin: 30px 0px;
+    margin: ${theme.gridUnit * 7.5}px; 0px;
   }
   `}
 `;
@@ -77,39 +72,24 @@ const AllEntitiesNav = styled.div`
     font-weight: ${theme.typography.weights.bold};
   }
   .header {
-    font-weight: 600;
-    margin-right: 12px;
+    font-weight: ${theme.typography.weights.bold};
+    margin-right:  ${theme.gridUnit * 3}px;
     text-align: left;
-    font-size: 18px;
-    padding: 12px;
+    font-size: ${theme.gridUnit * 4.5}px;
+    padding: ${theme.gridUnit * 3}px;
     display: inline-block;
-    line-height: 36px;
+    line-height: ${theme.gridUnit * 9}px;
   }
   `};
 `;
 
 function AllEntities() {
-  const [tagsQuery, setTagsQuery] = useQueryParam('tags', StringParam);
-  const [tagId, setTagId] = useQueryParam('id', NumberParam);
-  const [tag, setTag] = useState<Tag>(null);
+  const [tagId] = useQueryParam('id', NumberParam);
+  const [tag, setTag] = useState<Tag | null>(null);
   const [showTagModal, setShowTagModal] = useState<boolean>(false);
-
-  const onTagSearchChange = (value: SelectValue) => {
-    const tags = ensureIsArray(value).map(tag => getValue(tag));
-    const tagSearch = tags.join(',');
-    setTagsQuery(tagSearch);
-  };
-
-  const tagsValue = useMemo(
-    () =>
-      tagsQuery
-        ? tagsQuery.split(',').map(tag => ({ value: tag, label: tag }))
-        : [],
-    [tagsQuery],
-  );
-
+  const { addSuccessToast, addDangerToast } = useToasts();
   const editableTitleProps = {
-    title: tag?.name,
+    title: tag?.name || '',
     placeholder: 'testing',
     onSave: (newDatasetName: string) => {},
     canEdit: false,
@@ -124,11 +104,11 @@ function AllEntities() {
   const owner: Owner = {
     type: MetadataType.OWNER,
     createdBy: `${tag?.created_by.first_name} ${tag?.created_by.last_name}`,
-    createdOn: tag?.created_on_delta_humanized,
+    createdOn: tag?.created_on_delta_humanized || '',
   };
   const lastModified: LastModified = {
     type: MetadataType.LAST_MODIFIED,
-    value: tag?.changed_on_delta_humanized,
+    value: tag?.changed_on_delta_humanized || '',
     modifiedBy: `${tag?.changed_by.first_name} ${tag?.changed_by.last_name}`,
   };
   const items = [description, owner, lastModified];
@@ -142,8 +122,7 @@ function AllEntities() {
           setTag(tag);
         },
         (error: Response) => {
-          addDangerToast('Error Fetching Tagged Objects');
-          logging.log(error.text);
+          addDangerToast(t('Error Fetching Tagged Objects'));
         },
       );
     }
@@ -157,13 +136,16 @@ function AllEntities() {
           setShowTagModal(false);
         }}
         editTag={tag}
-        // refreshData={refreshData}
-        // addSuccessToast={addSuccessToast}
-        // addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        addDangerToast={addDangerToast}
+        refreshData={() => {}} // todo(hugh): implement refreshData on table reload
       />
       <AllEntitiesNav>
         <PageHeaderWithActions
+          additionalActionsMenu={<></>}
           editableTitleProps={editableTitleProps}
+          faveStarProps={{ itemId: 1, saveFaveStar: () => {} }}
+          showFaveStar={false}
           showTitlePanelItems
           titlePanelAdditionalItems={
             <div css={additionalItemsStyles}>
@@ -181,19 +163,11 @@ function AllEntities() {
               </Button>
             </>
           }
+          menuDropdownProps={{
+            disabled: true,
+          }}
         />
       </AllEntitiesNav>
-      {/* <div className="select-control">
-        <div className="select-control-label">{t('search by tags')}</div>
-        <AsyncSelect
-          ariaLabel="tags"
-          value={tagsValue}
-          onChange={onTagSearchChange}
-          options={loadTags}
-          placeholder="Select"
-          mode="multiple"
-        />
-      </div> */}
       <div className="entities">
         <AllEntitiesTable search={tag?.name || ''} />
       </div>

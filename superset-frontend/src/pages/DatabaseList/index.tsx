@@ -570,6 +570,9 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         filters={filters}
         initialSort={initialSort}
         loading={loading}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        refreshData={() => {}}
         pageSize={PAGE_SIZE}
       />
 

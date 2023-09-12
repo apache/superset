@@ -30,11 +30,11 @@ import { fetchObjects } from 'src/features/tags/tags';
 
 const StyledModalBody = styled.div`
   .ant-select-dropdown {
-    max-height: 100px;
+    max-height: ${({ theme }) => theme.gridUnit * 25}px;
   }
 `;
 
-interface TaggableResourceOption {
+export interface TaggableResourceOption {
   label: string;
   value: number;
   key: number;
@@ -52,7 +52,7 @@ interface TagModalProps {
   addSuccessToast: (msg: string) => void;
   addDangerToast: (msg: string) => void;
   show: boolean;
-  clearOnHide: boolean;
+  clearOnHide?: boolean;
   editTag?: Tag | null;
 }
 
@@ -272,7 +272,7 @@ const TagModal: React.FC<TagModalProps> = ({
         </div>
       }
     >
-      <FormLabel>{t('Tag Name')}</FormLabel>
+      <FormLabel>{t('Tag name')}</FormLabel>
       <Input
         onChange={handleTagNameChange}
         placeholder={t('Name of your tag')}
@@ -287,7 +287,7 @@ const TagModal: React.FC<TagModalProps> = ({
       <Divider />
       <StyledModalBody>
         <AsyncSelect
-          ariaLabel={t('Select Dashboards')}
+          ariaLabel={t('Select dashboards')}
           mode="multiple"
           name="dashboards"
           // @ts-ignore
@@ -300,7 +300,7 @@ const TagModal: React.FC<TagModalProps> = ({
           allowClear
         />
         <AsyncSelect
-          ariaLabel={t('Select Charts')}
+          ariaLabel={t('Select charts')}
           mode="multiple"
           name="charts"
           // @ts-ignore
@@ -311,7 +311,7 @@ const TagModal: React.FC<TagModalProps> = ({
           allowClear
         />
         <AsyncSelect
-          ariaLabel={t('Select Saved Queries')}
+          ariaLabel={t('Select saved queries')}
           mode="multiple"
           name="savedQueries"
           // @ts-ignore
@@ -320,7 +320,7 @@ const TagModal: React.FC<TagModalProps> = ({
           onChange={value =>
             handleOptionChange(TaggableResources.SavedQuery, value)
           }
-          header={<FormLabel>{t('Saved Queries')}</FormLabel>}
+          header={<FormLabel>{t('Saved queries')}</FormLabel>}
           allowClear
         />
       </StyledModalBody>
