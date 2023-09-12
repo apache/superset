@@ -65,10 +65,11 @@ class CreateCustomTagCommand(CreateMixin, BaseCommand):
 
 
 class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
-    def __init__(self, data: dict[str, Any]):
+    def __init__(self, data: dict[str, Any], bulk_create: bool = False):
         self._tag = data["name"]
         self._objects_to_tag = data.get("objects_to_tag")
         self._description = data.get("description")
+        self._bulk_create = bulk_create
 
     def run(self) -> None:
         self.validate()
@@ -76,7 +77,9 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
             tag = TagDAO.get_by_name(self._tag.strip(), TagTypes.custom)
             if self._objects_to_tag:
                 TagDAO.create_tag_relationship(
-                    objects_to_tag=self._objects_to_tag, tag=tag
+                    objects_to_tag=self._objects_to_tag,
+                    tag=tag,
+                    bulk_create=self._bulk_create,
                 )
 
             if self._description:
