@@ -189,7 +189,6 @@ function SavedQueryList({
         <i className="fa fa-plus" /> {t('Query')}
       </Link>
     ),
-    onClick: () => {},
     buttonStyle: 'primary',
   });
 

@@ -259,7 +259,6 @@ const SavedQueries = ({
               </Link>
             ),
             buttonStyle: 'tertiary',
-            onClick: () => {},
           },
           {
             name: t('View All »'),
