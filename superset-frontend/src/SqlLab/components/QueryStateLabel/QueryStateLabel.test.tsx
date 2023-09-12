@@ -17,14 +17,16 @@
  * under the License.
  */
 import React from 'react';
-import { styledMount as mount } from 'spec/helpers/theming';
-import Label from 'src/components/Label';
-import QueryStateLabel from 'src/SqlLab/components/QueryStateLabel';
+import type { QueryState } from '@superset-ui/core';
+import { render } from 'spec/helpers/testing-library';
+import QueryStateLabel from '.';
+
+jest.mock('src/components/Label', () => () => <div data-test="mock-label" />);
 
 describe('SavedQuery', () => {
   const mockedProps = {
     query: {
-      state: 'running',
+      state: 'running' as QueryState,
     },
   };
   it('is valid', () => {
@@ -33,7 +35,7 @@ describe('SavedQuery', () => {
     );
   });
   it('has an Overlay and a Popover', () => {
-    const wrapper = mount(<QueryStateLabel {...mockedProps} />);
-    expect(wrapper.find(Label)).toExist();
+    const { getByTestId } = render(<QueryStateLabel {...mockedProps} />);
+    expect(getByTestId('mock-label')).toBeInTheDocument();
   });
 });

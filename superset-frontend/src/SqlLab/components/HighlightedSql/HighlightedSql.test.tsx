@@ -17,12 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import SyntaxHighlighter from 'react-syntax-highlighter';
-import { mount, shallow } from 'enzyme';
 
 import HighlightedSql from 'src/SqlLab/components/HighlightedSql';
-import ModalTrigger from 'src/components/ModalTrigger';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { fireEvent, render } from 'spec/helpers/testing-library';
 
 describe('HighlightedSql', () => {
   const sql =
@@ -31,34 +28,28 @@ describe('HighlightedSql', () => {
     expect(React.isValidElement(<HighlightedSql sql={sql} />)).toBe(true);
   });
   it('renders a ModalTrigger', () => {
-    const wrapper = shallow(<HighlightedSql sql={sql} />);
-    expect(wrapper.find(ModalTrigger)).toExist();
+    const { getByTestId } = render(<HighlightedSql sql={sql} />);
+    expect(getByTestId('span-modal-trigger')).toBeInTheDocument();
   });
   it('renders a ModalTrigger while using shrink', () => {
-    const wrapper = shallow(<HighlightedSql sql={sql} shrink maxWidth={20} />);
-    expect(wrapper.find(ModalTrigger)).toExist();
+    const { getByTestId } = render(
+      <HighlightedSql sql={sql} shrink maxWidth={20} />,
+    );
+    expect(getByTestId('span-modal-trigger')).toBeInTheDocument();
   });
   it('renders two SyntaxHighlighter in modal', () => {
-    const wrapper = mount(
+    const { getByRole, queryByRole, getByTestId } = render(
       <HighlightedSql
         sql={sql}
         rawSql="SELECT * FORM foo"
         shrink
         maxWidth={5}
       />,
-      {
-        wrappingComponent: ThemeProvider,
-        wrappingComponentProps: {
-          theme: supersetTheme,
-        },
-      },
     );
-    const pre = wrapper.find('pre');
-    expect(pre).toHaveLength(1);
-    pre.simulate('click');
-    setTimeout(() => {
-      const modalBody = mount(wrapper.state().modalBody);
-      expect(modalBody.find(SyntaxHighlighter)).toHaveLength(2);
-    }, 10);
+    expect(queryByRole('dialog')).not.toBeInTheDocument();
+    fireEvent.click(getByTestId('span-modal-trigger'));
+    expect(queryByRole('dialog')).toBeInTheDocument();
+    const syntaxHighlighter = getByRole('dialog').getElementsByTagName('code');
+    expect(syntaxHighlighter.length).toEqual(2);
   });
 });
