@@ -211,8 +211,8 @@ export type Props = {
   defaultQueryLimit: number;
   maxRow: number;
   displayLimit: number;
-  saveQueryWarning?: string;
-  scheduleQueryWarning?: string | null;
+  saveQueryWarning: string | null;
+  scheduleQueryWarning: string | null;
 };
 
 const elementStyle = (
@@ -232,7 +232,7 @@ const SqlEditor: React.FC<Props> = ({
   maxRow,
   displayLimit,
   saveQueryWarning,
-  scheduleQueryWarning = null,
+  scheduleQueryWarning,
 }) => {
   const theme = useTheme();
   const dispatch = useDispatch();

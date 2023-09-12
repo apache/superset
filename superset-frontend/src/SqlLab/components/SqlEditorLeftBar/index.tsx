@@ -63,7 +63,7 @@ interface SqlEditorLeftBarProps {
   queryEditorId: string;
   height?: number;
   tables?: ExtendedTable[];
-  database: DatabaseObject | undefined;
+  database?: DatabaseObject;
   setEmptyState: Dispatch<SetStateAction<boolean>>;
 }
 

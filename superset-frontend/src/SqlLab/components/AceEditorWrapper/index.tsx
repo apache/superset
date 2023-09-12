@@ -31,7 +31,7 @@ type HotKey = {
   key: string;
   descr: string;
   name: string;
-  func: (arg0: IAceEditor) => void;
+  func: (aceEditor: IAceEditor) => void;
 };
 
 type AceEditorWrapperProps = {

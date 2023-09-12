@@ -39,7 +39,7 @@ interface SaveQueryProps {
   columns: ISaveableDatasource['columns'];
   onSave: (arg0: QueryPayload, id: string) => void;
   onUpdate: (arg0: QueryPayload, id: string) => void;
-  saveQueryWarning?: string | null;
+  saveQueryWarning: string | null;
   database: Partial<DatabaseObject> | undefined;
 }
 
@@ -66,7 +66,7 @@ const SaveQuery = ({
   queryEditorId,
   onSave = () => {},
   onUpdate,
-  saveQueryWarning = null,
+  saveQueryWarning,
   database,
   columns,
 }: SaveQueryProps) => {
