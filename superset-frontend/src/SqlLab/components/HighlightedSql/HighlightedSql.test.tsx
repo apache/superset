@@ -21,35 +21,28 @@ import React from 'react';
 import HighlightedSql from 'src/SqlLab/components/HighlightedSql';
 import { fireEvent, render } from 'spec/helpers/testing-library';
 
-describe('HighlightedSql', () => {
-  const sql =
-    "SELECT * FROM test WHERE something='fkldasjfklajdslfkjadlskfjkldasjfkladsjfkdjsa'";
-  it('renders with props', () => {
-    expect(React.isValidElement(<HighlightedSql sql={sql} />)).toBe(true);
-  });
-  it('renders a ModalTrigger', () => {
-    const { getByTestId } = render(<HighlightedSql sql={sql} />);
-    expect(getByTestId('span-modal-trigger')).toBeInTheDocument();
-  });
-  it('renders a ModalTrigger while using shrink', () => {
-    const { getByTestId } = render(
-      <HighlightedSql sql={sql} shrink maxWidth={20} />,
-    );
-    expect(getByTestId('span-modal-trigger')).toBeInTheDocument();
-  });
-  it('renders two SyntaxHighlighter in modal', () => {
-    const { getByRole, queryByRole, getByTestId } = render(
-      <HighlightedSql
-        sql={sql}
-        rawSql="SELECT * FORM foo"
-        shrink
-        maxWidth={5}
-      />,
-    );
-    expect(queryByRole('dialog')).not.toBeInTheDocument();
-    fireEvent.click(getByTestId('span-modal-trigger'));
-    expect(queryByRole('dialog')).toBeInTheDocument();
-    const syntaxHighlighter = getByRole('dialog').getElementsByTagName('code');
-    expect(syntaxHighlighter.length).toEqual(2);
-  });
+const sql =
+  "SELECT * FROM test WHERE something='fkldasjfklajdslfkjadlskfjkldasjfkladsjfkdjsa'";
+test('renders with props', () => {
+  expect(React.isValidElement(<HighlightedSql sql={sql} />)).toBe(true);
+});
+test('renders a ModalTrigger', () => {
+  const { getByTestId } = render(<HighlightedSql sql={sql} />);
+  expect(getByTestId('span-modal-trigger')).toBeInTheDocument();
+});
+test('renders a ModalTrigger while using shrink', () => {
+  const { getByTestId } = render(
+    <HighlightedSql sql={sql} shrink maxWidth={20} />,
+  );
+  expect(getByTestId('span-modal-trigger')).toBeInTheDocument();
+});
+test('renders two SyntaxHighlighter in modal', () => {
+  const { getByRole, queryByRole, getByTestId } = render(
+    <HighlightedSql sql={sql} rawSql="SELECT * FORM foo" shrink maxWidth={5} />,
+  );
+  expect(queryByRole('dialog')).not.toBeInTheDocument();
+  fireEvent.click(getByTestId('span-modal-trigger'));
+  expect(queryByRole('dialog')).toBeInTheDocument();
+  const syntaxHighlighter = getByRole('dialog').getElementsByTagName('code');
+  expect(syntaxHighlighter.length).toEqual(2);
 });

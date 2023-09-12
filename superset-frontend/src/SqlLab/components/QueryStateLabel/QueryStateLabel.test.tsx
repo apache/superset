@@ -23,19 +23,15 @@ import QueryStateLabel from '.';
 
 jest.mock('src/components/Label', () => () => <div data-test="mock-label" />);
 
-describe('SavedQuery', () => {
-  const mockedProps = {
-    query: {
-      state: 'running' as QueryState,
-    },
-  };
-  it('is valid', () => {
-    expect(React.isValidElement(<QueryStateLabel {...mockedProps} />)).toBe(
-      true,
-    );
-  });
-  it('has an Overlay and a Popover', () => {
-    const { getByTestId } = render(<QueryStateLabel {...mockedProps} />);
-    expect(getByTestId('mock-label')).toBeInTheDocument();
-  });
+const mockedProps = {
+  query: {
+    state: 'running' as QueryState,
+  },
+};
+test('is valid', () => {
+  expect(React.isValidElement(<QueryStateLabel {...mockedProps} />)).toBe(true);
+});
+test('has an Overlay and a Popover', () => {
+  const { getByTestId } = render(<QueryStateLabel {...mockedProps} />);
+  expect(getByTestId('mock-label')).toBeInTheDocument();
 });

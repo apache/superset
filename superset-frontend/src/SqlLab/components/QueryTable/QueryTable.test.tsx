@@ -26,34 +26,32 @@ import TableCollection from 'src/components/TableCollection';
 import { Provider } from 'react-redux';
 import { runningQuery, successfulQuery, user } from 'src/SqlLab/fixtures';
 
-describe('QueryTable', () => {
-  const mockedProps = {
-    queries: [runningQuery, successfulQuery],
-    displayLimit: 100,
-    latestQueryId: 'ryhMUZCGb',
-  };
-  it('is valid', () => {
-    expect(React.isValidElement(<QueryTable displayLimit={100} />)).toBe(true);
+const mockedProps = {
+  queries: [runningQuery, successfulQuery],
+  displayLimit: 100,
+  latestQueryId: 'ryhMUZCGb',
+};
+test('is valid', () => {
+  expect(React.isValidElement(<QueryTable displayLimit={100} />)).toBe(true);
+});
+test('is valid with props', () => {
+  expect(React.isValidElement(<QueryTable {...mockedProps} />)).toBe(true);
+});
+test('renders a proper table', () => {
+  const mockStore = configureStore([thunk]);
+  const store = mockStore({
+    user,
   });
-  it('is valid with props', () => {
-    expect(React.isValidElement(<QueryTable {...mockedProps} />)).toBe(true);
-  });
-  it('renders a proper table', () => {
-    const mockStore = configureStore([thunk]);
-    const store = mockStore({
-      user,
-    });
 
-    const wrapper = mount(
-      <Provider store={store}>
-        <QueryTable {...mockedProps} />
-      </Provider>,
-    );
-    const tableWrapper = wrapper.find(TableView).find(TableCollection);
+  const wrapper = mount(
+    <Provider store={store}>
+      <QueryTable {...mockedProps} />
+    </Provider>,
+  );
+  const tableWrapper = wrapper.find(TableView).find(TableCollection);
 
-    expect(wrapper.find(TableView)).toExist();
-    expect(tableWrapper.find('table')).toExist();
-    expect(tableWrapper.find('table').find('thead').find('tr')).toHaveLength(1);
-    expect(tableWrapper.find('table').find('tbody').find('tr')).toHaveLength(2);
-  });
+  expect(wrapper.find(TableView)).toExist();
+  expect(tableWrapper.find('table')).toExist();
+  expect(tableWrapper.find('table').find('thead').find('tr')).toHaveLength(1);
+  expect(tableWrapper.find('table').find('tbody').find('tr')).toHaveLength(2);
 });
