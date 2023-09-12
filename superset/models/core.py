@@ -494,8 +494,6 @@ class Database(
                     source = utils.QuerySource.CHART
                 elif "/sqllab/" in request.referrer:
                     source = utils.QuerySource.SQL_LAB
-                elif "/superset/sqllab" in request.referrer:
-                    source = utils.QuerySource.SQL_LAB
 
             sqlalchemy_url, params = DB_CONNECTION_MUTATOR(
                 sqlalchemy_url,
