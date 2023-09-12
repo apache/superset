@@ -916,7 +916,7 @@ DASHBOARD_AUTO_REFRESH_INTERVALS = [
 
 # Default celery config is to use SQLA as a broker, in a production setting
 # you'll want to use a proper broker as specified here:
-# http://docs.celeryproject.org/en/latest/getting-started/brokers/index.html
+# https://docs.celeryq.dev/en/stable/getting-started/backends-and-brokers/index.html
 
 
 class CeleryConfig:  # pylint: disable=too-few-public-methods
