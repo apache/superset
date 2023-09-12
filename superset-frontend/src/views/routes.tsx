@@ -180,7 +180,7 @@ export const routes: Routes = [
     Component: AnnotationList,
   },
   {
-    path: '/superset/sqllab/history/',
+    path: '/sqllab/history/',
     Component: QueryHistoryList,
   },
   {

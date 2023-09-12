@@ -189,7 +189,7 @@ class App extends React.PureComponent {
       return (
         <Redirect
           to={{
-            pathname: '/superset/sqllab/history/',
+            pathname: '/sqllab/history/',
             replace: true,
           }}
         />

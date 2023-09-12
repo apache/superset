@@ -1173,6 +1173,11 @@ class TestCore(SupersetTestCase):
         resp = self.client.post("/superset/sqllab/")
         assert resp.status_code == 302
 
+    def test_redirect_new_sqllab_history(self):
+        self.login(username="admin")
+        resp = self.client.get("/superset/sqllab/history/")
+        assert resp.status_code == 302
+
 
 if __name__ == "__main__":
     unittest.main()

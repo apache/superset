@@ -997,6 +997,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @event_logger.log_this
     @expose("/sqllab/history/", methods=("GET",))
-    @event_logger.log_this
+    @deprecated(new_target="/sqllab/history")
     def sqllab_history(self) -> FlaskResponse:
-        return super().render_app_template()
+        return redirect("/sqllab/history")
