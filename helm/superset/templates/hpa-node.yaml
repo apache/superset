@@ -1,0 +1,35 @@
+{{- if .Values.supersetNode.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "superset.fullname" . }}-hpa
+  labels:
+    app: {{ template "superset.name" . }}
+    chart: {{ template "superset.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "superset.fullname" . }}
+  minReplicas: {{ .Values.supersetNode.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.supersetNode.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.supersetNode.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.supersetNode.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.supersetNode.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.supersetNode.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}
