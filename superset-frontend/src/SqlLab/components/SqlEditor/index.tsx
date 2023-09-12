@@ -240,9 +240,9 @@ const SqlEditor: React.FC<Props> = ({
   const { database, latestQuery, hideLeftBar } = useSelector<
     SqlLabRootState,
     {
-      database: DatabaseObject | undefined;
-      latestQuery: QueryResponse | undefined;
-      hideLeftBar: boolean | undefined;
+      database?: DatabaseObject;
+      latestQuery?: QueryResponse;
+      hideLeftBar?: boolean;
     }
   >(({ sqlLab: { unsavedQueryEditor, databases, queries } }) => {
     let { dbId, latestQueryId, hideLeftBar } = queryEditor;
@@ -494,8 +494,12 @@ const SqlEditor: React.FC<Props> = ({
   const onResizeStart = () => {
     // Set the heights on the ace editor and the ace content area after drag starts
     // to smooth out the visual transition to the new heights when drag ends
-    // @ts-ignore
-    document.getElementsByClassName('ace_content')[0].style.height = '100%';
+    const editorEl = document.getElementsByClassName(
+      'ace_content',
+    )[0] as HTMLElement;
+    if (editorEl) {
+      editorEl.style.height = '100%';
+    }
   };
 
   const onResizeEnd = ([northPercent, southPercent]: number[]) => {
@@ -584,8 +588,6 @@ const SqlEditor: React.FC<Props> = ({
           <AntdSwitch
             checked={autocompleteEnabled}
             onChange={handleToggleAutocompleteEnabled}
-            // @ts-ignore
-            name="autocomplete-switch"
           />{' '}
         </Menu.Item>
         {isFeatureEnabled(FeatureFlag.ENABLE_TEMPLATE_PROCESSING) && (
