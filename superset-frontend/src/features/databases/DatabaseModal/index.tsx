@@ -667,12 +667,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const getPlaceholder = (field: string) => {
     if (field === 'database') {
-      switch (db?.engine) {
-        case Engines.Snowflake:
-          return t('e.g. xy12345.us-east-2.aws');
-        default:
-          return t('e.g. world_population');
-      }
+      return t('e.g. world_population');
     }
     return undefined;
   };

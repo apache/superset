@@ -17,11 +17,12 @@
  * under the License.
  */
 import URI from 'urijs';
+import { JsonObject } from '@superset-ui/core';
 import { safeStringify } from './safeStringify';
 
 const MAX_URL_LENGTH = 8000;
 
-export function getURIDirectory(formData, endpointType = 'base') {
+export function getURIDirectory(endpointType = 'base') {
   // Building the directory part of the URI
   let directory = '/explore/';
   if (['json', 'csv', 'query', 'results', 'samples'].includes(endpointType)) {
@@ -32,17 +33,17 @@ export function getURIDirectory(formData, endpointType = 'base') {
 }
 
 export function getExploreLongUrl(
-  formData,
-  endpointType,
+  formData: JsonObject,
+  endpointType: string,
   allowOverflow = true,
   extraSearch = {},
-) {
+): string | undefined {
   if (!formData.datasource) {
-    return null;
+    return undefined;
   }
 
   const uri = new URI('/');
-  const directory = getURIDirectory(formData, endpointType);
+  const directory = getURIDirectory(endpointType);
   const search = uri.search(true);
   Object.keys(extraSearch).forEach(key => {
     search[key] = extraSearch[key];

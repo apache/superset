@@ -16,26 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import ReactBootstrapSlider from 'react-bootstrap-slider';
-import 'bootstrap-slider/dist/css/bootstrap-slider.min.css';
-import { styled } from '@superset-ui/core';
 
-const StyledSlider = styled.div`
-  ${({ theme }) => `
-    .slider-selection {
-      background: ${theme.colors.grayscale.light2};
-    }
-    .slider-handle {
-      background: ${theme.colors.grayscale.light1};
-    }
-  `}
-`;
+import { ChartProps } from '@superset-ui/core';
 
-export default function BootstrapSliderWrapper(props) {
-  return (
-    <StyledSlider>
-      <ReactBootstrapSlider {...props} />
-    </StyledSlider>
-  );
+const NOOP = () => {};
+
+export default function transformProps(chartProps: ChartProps) {
+  const { datasource, height, hooks, queriesData, rawFormData, width } =
+    chartProps;
+  const { onAddFilter = NOOP, setControlValue = NOOP } = hooks;
+
+  return {
+    datasource,
+    formData: rawFormData,
+    height,
+    onAddFilter,
+    payload: queriesData[0],
+    setControlValue,
+    viewport: {
+      ...rawFormData.viewport,
+      height,
+      width,
+    },
+    width,
+  };
 }

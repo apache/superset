@@ -16,20 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ScatterplotLayer } from 'deck.gl';
+import { ScatterplotLayer } from 'deck.gl/typed';
 import React from 'react';
-import { getMetricLabel, t } from '@superset-ui/core';
+import {
+  Datasource,
+  getMetricLabel,
+  JsonObject,
+  QueryFormData,
+  t,
+} from '@superset-ui/core';
 import { commonLayerProps } from '../common';
 import { createCategoricalDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
 import { unitToRadius } from '../../utils/geo';
+import { TooltipProps } from '../../components/Tooltip';
 
-function getPoints(data) {
+function getPoints(data: JsonObject[]) {
   return data.map(d => d.position);
 }
 
-function setTooltipContent(formData, verboseMap) {
-  return o => {
+function setTooltipContent(
+  formData: QueryFormData,
+  verboseMap?: Record<string, string>,
+) {
+  return (o: JsonObject) => {
     const label =
       verboseMap?.[formData.point_radius_fixed.value] ||
       getMetricLabel(formData.point_radius_fixed?.value);
@@ -56,14 +66,14 @@ function setTooltipContent(formData, verboseMap) {
 }
 
 export function getLayer(
-  formData,
-  payload,
-  onAddFilter,
-  setTooltip,
-  datasource,
+  formData: QueryFormData,
+  payload: JsonObject,
+  onAddFilter: () => void,
+  setTooltip: (tooltip: TooltipProps['tooltip']) => void,
+  datasource: Datasource,
 ) {
   const fd = formData;
-  const dataWithRadius = payload.data.features.map(d => {
+  const dataWithRadius = payload.data.features.map((d: JsonObject) => {
     let radius = unitToRadius(fd.point_unit, d.radius) || 10;
     if (fd.multiplier) {
       radius *= fd.multiplier;
@@ -78,13 +88,13 @@ export function getLayer(
   });
 
   return new ScatterplotLayer({
-    id: `scatter-layer-${fd.slice_id}`,
+    id: `scatter-layer-${fd.slice_id}` as const,
     data: dataWithRadius,
     fp64: true,
     getFillColor: d => d.color,
     getRadius: d => d.radius,
-    radiusMinPixels: Number(fd.min_radius) || null,
-    radiusMaxPixels: Number(fd.max_radius) || null,
+    radiusMinPixels: Number(fd.min_radius) || undefined,
+    radiusMaxPixels: Number(fd.max_radius) || undefined,
     stroked: false,
     ...commonLayerProps(
       fd,

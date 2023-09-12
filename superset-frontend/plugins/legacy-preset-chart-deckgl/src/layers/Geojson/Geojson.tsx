@@ -16,17 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
-import { GeoJsonLayer } from 'deck.gl';
+import React, { memo, useCallback, useMemo, useRef } from 'react';
+import { GeoJsonLayer } from 'deck.gl/typed';
 import geojsonExtent from '@mapbox/geojson-extent';
+import {
+  HandlerFunction,
+  JsonObject,
+  JsonValue,
+  QueryFormData,
+} from '@superset-ui/core';
 
-import { DeckGLContainerStyledWrapper } from '../../DeckGLContainer';
+import {
+  DeckGLContainerHandle,
+  DeckGLContainerStyledWrapper,
+} from '../../DeckGLContainer';
 import { hexToRGB } from '../../utils/colors';
 import sandboxedEval from '../../utils/sandbox';
 import { commonLayerProps } from '../common';
 import TooltipRow from '../../TooltipRow';
-import fitViewport from '../../utils/fitViewport';
+import fitViewport, { Viewport } from '../../utils/fitViewport';
+import { TooltipProps } from '../../components/Tooltip';
 
 const propertyMap = {
   fillColor: 'fillColor',
@@ -38,8 +47,8 @@ const propertyMap = {
   'stroke-width': 'strokeWidth',
 };
 
-const alterProps = (props, propOverrides) => {
-  const newProps = {};
+const alterProps = (props: JsonObject, propOverrides: JsonObject) => {
+  const newProps: JsonObject = {};
   Object.keys(props).forEach(k => {
     if (k in propertyMap) {
       newProps[propertyMap[k]] = props[k];
@@ -59,18 +68,22 @@ const alterProps = (props, propOverrides) => {
     ...propOverrides,
   };
 };
-let features;
-const recurseGeoJson = (node, propOverrides, extraProps) => {
-  if (node && node.features) {
-    node.features.forEach(obj => {
+let features: JsonObject[];
+const recurseGeoJson = (
+  node: JsonObject,
+  propOverrides: JsonObject,
+  extraProps?: JsonObject,
+) => {
+  if (node?.features) {
+    node.features.forEach((obj: JsonObject) => {
       recurseGeoJson(obj, propOverrides, node.extraProps || extraProps);
     });
   }
-  if (node && node.geometry) {
+  if (node?.geometry) {
     const newNode = {
       ...node,
       properties: alterProps(node.properties, propOverrides),
-    };
+    } as JsonObject;
     if (!newNode.extraProps) {
       newNode.extraProps = extraProps;
     }
@@ -78,7 +91,7 @@ const recurseGeoJson = (node, propOverrides, extraProps) => {
   }
 };
 
-function setTooltipContent(o) {
+function setTooltipContent(o: JsonObject) {
   return (
     o.object.extraProps && (
       <div className="deckgl-tooltip">
@@ -94,16 +107,21 @@ function setTooltipContent(o) {
   );
 }
 
-const getFillColor = feature => feature?.properties?.fillColor;
-const getLineColor = feature => feature?.properties?.strokeColor;
+const getFillColor = (feature: JsonObject) => feature?.properties?.fillColor;
+const getLineColor = (feature: JsonObject) => feature?.properties?.strokeColor;
 
-export function getLayer(formData, payload, onAddFilter, setTooltip) {
+export function getLayer(
+  formData: QueryFormData,
+  payload: JsonObject,
+  onAddFilter: HandlerFunction,
+  setTooltip: (tooltip: TooltipProps['tooltip']) => void,
+) {
   const fd = formData;
   const fc = fd.fill_color_picker;
   const sc = fd.stroke_color_picker;
   const fillColor = [fc.r, fc.g, fc.b, 255 * fc.a];
   const strokeColor = [sc.r, sc.g, sc.b, 255 * sc.a];
-  const propOverrides = {};
+  const propOverrides: JsonObject = {};
   if (fillColor[3] > 0) {
     propOverrides.fillColor = fillColor;
   }
@@ -122,7 +140,7 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
   }
 
   return new GeoJsonLayer({
-    id: `geojson-layer-${fd.slice_id}`,
+    id: `geojson-layer-${fd.slice_id}` as const,
     data: features,
     extruded: fd.extruded,
     filled: fd.filled,
@@ -136,70 +154,74 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
   });
 }
 
-const propTypes = {
-  formData: PropTypes.object.isRequired,
-  payload: PropTypes.object.isRequired,
-  setControlValue: PropTypes.func.isRequired,
-  viewport: PropTypes.object.isRequired,
-  onAddFilter: PropTypes.func,
-};
-const defaultProps = {
-  onAddFilter() {},
+export type DeckGLGeoJsonProps = {
+  formData: QueryFormData;
+  payload: JsonObject;
+  setControlValue: (control: string, value: JsonValue) => void;
+  viewport: Viewport;
+  onAddFilter: HandlerFunction;
+  height: number;
+  width: number;
 };
 
-class DeckGLGeoJson extends React.Component {
-  containerRef = React.createRef();
-
-  setTooltip = tooltip => {
-    const { current } = this.containerRef;
+const DeckGLGeoJson = (props: DeckGLGeoJsonProps) => {
+  const containerRef = useRef<DeckGLContainerHandle>();
+  const setTooltip = useCallback((tooltip: TooltipProps['tooltip']) => {
+    const { current } = containerRef;
     if (current) {
       current.setTooltip(tooltip);
     }
-  };
+  }, []);
 
-  render() {
-    const { formData, payload, setControlValue, onAddFilter, height, width } =
-      this.props;
+  const { formData, payload, setControlValue, onAddFilter, height, width } =
+    props;
 
-    let { viewport } = this.props;
+  const viewport: Viewport = useMemo(() => {
     if (formData.autozoom) {
       const points =
-        payload?.data?.features?.reduce?.((acc, feature) => {
-          const bounds = geojsonExtent(feature);
-          if (bounds) {
-            return [...acc, [bounds[0], bounds[1]], [bounds[2], bounds[3]]];
-          }
+        payload?.data?.features?.reduce?.(
+          (acc: [number, number, number, number][], feature: any) => {
+            const bounds = geojsonExtent(feature);
+            if (bounds) {
+              return [...acc, [bounds[0], bounds[1]], [bounds[2], bounds[3]]];
+            }
 
-          return acc;
-        }, []) || [];
+            return acc;
+          },
+          [],
+        ) || [];
 
       if (points.length) {
-        viewport = fitViewport(viewport, {
+        return fitViewport(props.viewport, {
           width,
           height,
           points,
         });
       }
     }
+    return props.viewport;
+  }, [
+    formData.autozoom,
+    height,
+    payload?.data?.features,
+    props.viewport,
+    width,
+  ]);
 
-    const layer = getLayer(formData, payload, onAddFilter, this.setTooltip);
+  const layer = getLayer(formData, payload, onAddFilter, setTooltip);
 
-    return (
-      <DeckGLContainerStyledWrapper
-        ref={this.containerRef}
-        mapboxApiAccessToken={payload.data.mapboxApiKey}
-        viewport={viewport}
-        layers={[layer]}
-        mapStyle={formData.mapbox_style}
-        setControlValue={setControlValue}
-        height={height}
-        width={width}
-      />
-    );
-  }
-}
+  return (
+    <DeckGLContainerStyledWrapper
+      ref={containerRef}
+      mapboxApiAccessToken={payload.data.mapboxApiKey}
+      viewport={viewport}
+      layers={[layer]}
+      mapStyle={formData.mapbox_style}
+      setControlValue={setControlValue}
+      height={height}
+      width={width}
+    />
+  );
+};
 
-DeckGLGeoJson.propTypes = propTypes;
-DeckGLGeoJson.defaultProps = defaultProps;
-
-export default DeckGLGeoJson;
+export default memo(DeckGLGeoJson);

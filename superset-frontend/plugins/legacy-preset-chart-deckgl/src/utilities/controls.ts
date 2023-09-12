@@ -16,25 +16,37 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
 
-const propTypes = {
-  label: PropTypes.string.isRequired,
-  value: PropTypes.string.isRequired,
-};
+import { QueryResponse } from '@superset-ui/core';
+import {
+  ColumnMeta,
+  ControlPanelState,
+  Dataset,
+} from '@superset-ui/chart-controls';
 
-export default class TooltipRow extends React.PureComponent {
-  render() {
-    const { label, value } = this.props;
-
-    return (
-      <div>
-        {label}
-        <strong>{value}</strong>
-      </div>
-    );
+export function columnChoices(datasource: Dataset | QueryResponse | null) {
+  if (datasource?.columns) {
+    return datasource.columns
+      .map(col => [
+        col.column_name,
+        (col as ColumnMeta).verbose_name || col.column_name,
+      ])
+      .sort((opt1, opt2) =>
+        opt1[1].toLowerCase() > opt2[1].toLowerCase() ? 1 : -1,
+      );
   }
+  return [];
 }
 
-TooltipRow.propTypes = propTypes;
+export const PRIMARY_COLOR = { r: 0, g: 122, b: 135, a: 1 };
+
+export default {
+  default: null,
+  mapStateToProps: (state: ControlPanelState) => ({
+    choices: state.datasource
+      ? (state.datasource as Dataset).time_grain_sqla?.filter(
+          o => o[0] !== null,
+        )
+      : null,
+  }),
+};

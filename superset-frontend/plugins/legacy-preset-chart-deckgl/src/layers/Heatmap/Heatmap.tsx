@@ -16,16 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { HeatmapLayer } from 'deck.gl';
+import { HeatmapLayer, Position, Color } from 'deck.gl/typed';
 import React from 'react';
-import { t, getSequentialSchemeRegistry } from '@superset-ui/core';
+import { t, getSequentialSchemeRegistry, JsonObject } from '@superset-ui/core';
 import { commonLayerProps } from '../common';
 import sandboxedEval from '../../utils/sandbox';
 import { hexToRGB } from '../../utils/colors';
 import { createDeckGLComponent, getLayerType } from '../../factory';
 import TooltipRow from '../../TooltipRow';
 
-function setTooltipContent(o: any) {
+function setTooltipContent(o: JsonObject) {
   return (
     <div className="deckgl-tooltip">
       <TooltipRow
@@ -63,16 +63,16 @@ export const getLayer: getLayerType<unknown> = (
   const colorRange = colorScale
     ?.range()
     ?.map(color => hexToRGB(color))
-    ?.reverse();
+    ?.reverse() as Color[];
 
   return new HeatmapLayer({
-    id: `heatmp-layer-${fd.slice_id}`,
+    id: `heatmp-layer-${fd.slice_id}` as const,
     data,
     intensity,
     radiusPixels,
     colorRange,
     aggregation: aggregation.toUpperCase(),
-    getPosition: (d: { position: number[]; weight: number }) => d.position,
+    getPosition: (d: { position: Position; weight: number }) => d.position,
     getWeight: (d: { position: number[]; weight: number }) =>
       d.weight ? d.weight : 1,
     ...commonLayerProps(fd, setTooltip, setTooltipContent),

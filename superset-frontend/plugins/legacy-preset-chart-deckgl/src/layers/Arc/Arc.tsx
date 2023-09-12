@@ -16,15 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ArcLayer } from 'deck.gl';
+import { ArcLayer } from 'deck.gl/typed';
 import React from 'react';
-import { t } from '@superset-ui/core';
+import {
+  HandlerFunction,
+  JsonObject,
+  QueryFormData,
+  t,
+} from '@superset-ui/core';
 import { commonLayerProps } from '../common';
 import { createCategoricalDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
+import { TooltipProps } from '../../components/Tooltip';
+import { Point } from '../../types';
 
-function getPoints(data) {
-  const points = [];
+function getPoints(data: JsonObject[]) {
+  const points: Point[] = [];
   data.forEach(d => {
     points.push(d.sourcePosition);
     points.push(d.targetPosition);
@@ -33,8 +40,8 @@ function getPoints(data) {
   return points;
 }
 
-function setTooltipContent(formData) {
-  return o => (
+function setTooltipContent(formData: QueryFormData) {
+  return (o: JsonObject) => (
     <div className="deckgl-tooltip">
       <TooltipRow
         label={t('Start (Longitude, Latitude): ')}
@@ -54,7 +61,12 @@ function setTooltipContent(formData) {
   );
 }
 
-export function getLayer(fd, payload, onAddFilter, setTooltip) {
+export function getLayer(
+  fd: QueryFormData,
+  payload: JsonObject,
+  onAddFilter: HandlerFunction,
+  setTooltip: (tooltip: TooltipProps['tooltip']) => void,
+) {
   const data = payload.data.features;
   const sc = fd.color_picker;
   const tc = fd.target_color_picker;
@@ -65,7 +77,7 @@ export function getLayer(fd, payload, onAddFilter, setTooltip) {
       d.sourceColor || d.color || [sc.r, sc.g, sc.b, 255 * sc.a],
     getTargetColor: d =>
       d.targetColor || d.color || [tc.r, tc.g, tc.b, 255 * tc.a],
-    id: `path-layer-${fd.slice_id}`,
+    id: `path-layer-${fd.slice_id}` as const,
     strokeWidth: fd.stroke_width ? fd.stroke_width : 3,
     ...commonLayerProps(fd, setTooltip, setTooltipContent(fd)),
   });

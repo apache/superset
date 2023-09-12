@@ -17,14 +17,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PathLayer } from 'deck.gl';
 import React from 'react';
+import { PathLayer } from 'deck.gl/typed';
+import { JsonObject, QueryFormData } from '@superset-ui/core';
 import { commonLayerProps } from '../common';
 import sandboxedEval from '../../utils/sandbox';
 import { createDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
+import { TooltipProps } from '../../components/Tooltip';
+import { Point } from '../../types';
 
-function setTooltipContent(o) {
+function setTooltipContent(o: JsonObject) {
   return (
     o.object.extraProps && (
       <div className="deckgl-tooltip">
@@ -40,11 +43,16 @@ function setTooltipContent(o) {
   );
 }
 
-export function getLayer(formData, payload, onAddFilter, setTooltip) {
+export function getLayer(
+  formData: QueryFormData,
+  payload: JsonObject,
+  onAddFilter: () => void,
+  setTooltip: (tooltip: TooltipProps['tooltip']) => void,
+) {
   const fd = formData;
   const c = fd.color_picker;
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
-  let data = payload.data.features.map(feature => ({
+  let data = payload.data.features.map((feature: JsonObject) => ({
     ...feature,
     path: feature.path,
     width: fd.line_width,
@@ -57,7 +65,7 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
   }
 
   return new PathLayer({
-    id: `path-layer-${fd.slice_id}`,
+    id: `path-layer-${fd.slice_id}` as const,
     getColor: d => d.color,
     getPath: d => d.path,
     getWidth: d => d.width,
@@ -69,8 +77,8 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
   });
 }
 
-function getPoints(data) {
-  let points = [];
+function getPoints(data: JsonObject[]) {
+  let points: Point[] = [];
   data.forEach(d => {
     points = points.concat(d.path);
   });

@@ -16,18 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint camelcase: 0 */
+import React from 'react';
 
-// eslint-disable-next-line import/prefer-default-export
-export function roundDecimal(number, precision) {
-  let roundedNumber;
-  if (precision) {
-    roundedNumber =
-      // eslint-disable-next-line no-param-reassign
-      Math.round(number * (precision = 10 ** precision)) / precision;
-  } else {
-    roundedNumber = Math.round(number);
-  }
+type TooltipRowProps = {
+  label: string;
+  value: string;
+};
 
-  return roundedNumber;
-}
+const TooltipRow = ({ label, value }: TooltipRowProps) => (
+  <div>
+    {label}
+    <strong>{value}</strong>
+  </div>
+);
+
+export default TooltipRow;

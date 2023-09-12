@@ -18,6 +18,8 @@
  * under the License.
  */
 
+import { JsonObject } from '@superset-ui/core';
+
 /**
  * A Stringify function that will not crash when it runs into circular JSON references,
  * unlike JSON.stringify. Any circular references are simply omitted, as if there had
@@ -26,7 +28,7 @@
  */
 
 // eslint-disable-next-line import/prefer-default-export
-export function safeStringify(object) {
+export function safeStringify(object: JsonObject) {
   const cache = new Set();
 
   return JSON.stringify(object, (key, value) => {

@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 from typing import Any, TYPE_CHECKING
@@ -223,11 +224,8 @@ class ChartDataRestApi(ChartRestApi):
             json_body = request.json
         elif request.form.get("form_data"):
             # CSV export submits regular form data
-            try:
+            with contextlib.suppress(TypeError, json.JSONDecodeError):
                 json_body = json.loads(request.form["form_data"])
-            except (TypeError, json.JSONDecodeError):
-                pass
-
         if json_body is None:
             return self.response_400(message=_("Request is not JSON"))
 
@@ -324,14 +322,10 @@ class ChartDataRestApi(ChartRestApi):
         Execute command as an async query.
         """
         # First, look for the chart query results in the cache.
-        result = None
-        try:
+        with contextlib.suppress(ChartDataCacheLoadError):
             result = command.run(force_cached=True)
             if result is not None:
                 return self._send_chart_response(result)
-        except ChartDataCacheLoadError:
-            pass
-
         # Otherwise, kick off a background job to run the chart query.
         # Clients will either poll or be notified of query completion,
         # at which point they will call the /data/<cache_key> endpoint

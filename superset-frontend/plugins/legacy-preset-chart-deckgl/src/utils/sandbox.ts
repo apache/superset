@@ -17,7 +17,7 @@
  * under the License.
  */
 // A safe alternative to JS's eval
-import vm from 'vm';
+import vm, { Context, RunningScriptOptions } from 'vm';
 import _ from 'underscore';
 import * as d3array from 'd3-array';
 import * as colors from './colors';
@@ -33,7 +33,11 @@ const GLOBAL_CONTEXT = {
 };
 
 // Copied/modified from https://github.com/hacksparrow/safe-eval/blob/master/index.js
-export default function sandboxedEval(code, context, opts) {
+export default function sandboxedEval(
+  code: string,
+  context?: Context,
+  opts?: RunningScriptOptions | string,
+) {
   const sandbox = {};
   const resultKey = `SAFE_EVAL_${Math.floor(Math.random() * 1000000)}`;
   sandbox[resultKey] = {};

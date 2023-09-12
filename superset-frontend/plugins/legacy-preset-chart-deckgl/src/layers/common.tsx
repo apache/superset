@@ -16,14 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ReactNode } from 'react';
 import * as d3array from 'd3-array';
+import { JsonObject, JsonValue, QueryFormData } from '@superset-ui/core';
 import sandboxedEval from '../utils/sandbox';
+import { TooltipProps } from '../components/Tooltip';
 
 export function commonLayerProps(
-  formData,
-  setTooltip,
-  setTooltipContent,
-  onSelect,
+  formData: QueryFormData,
+  setTooltip: (tooltip: TooltipProps['tooltip']) => void,
+  setTooltipContent: (content: JsonObject) => ReactNode,
+  onSelect?: (value: JsonValue) => void,
 ) {
   const fd = formData;
   let onHover;
@@ -32,7 +35,7 @@ export function commonLayerProps(
     tooltipContentGenerator = sandboxedEval(fd.js_tooltip);
   }
   if (tooltipContentGenerator) {
-    onHover = o => {
+    onHover = (o: JsonObject) => {
       if (o.picked) {
         setTooltip({
           content: tooltipContentGenerator(o),
@@ -42,16 +45,21 @@ export function commonLayerProps(
       } else {
         setTooltip(null);
       }
+      return true;
     };
   }
   let onClick;
   if (fd.js_onclick_href) {
-    onClick = o => {
+    onClick = (o: any) => {
       const href = sandboxedEval(fd.js_onclick_href)(o);
       window.open(href);
+      return true;
     };
   } else if (fd.table_filter && onSelect !== undefined) {
-    onClick = o => onSelect(o.object[fd.line_column]);
+    onClick = (o: any) => {
+      onSelect(o.object[fd.line_column]);
+      return true;
+    };
   }
 
   return {
@@ -68,17 +76,23 @@ const percentiles = {
   p99: 0.99,
 };
 
-/* Get an a stat function that operates on arrays, aligns with control=js_agg_function  */
-export function getAggFunc(type = 'sum', accessor = null) {
+/* Get a stat function that operates on arrays, aligns with control=js_agg_function  */
+export function getAggFunc(
+  type = 'sum',
+  accessor: ((object: any) => number | undefined) | null = null,
+) {
   if (type === 'count') {
-    return arr => arr.length;
+    return (arr: number[]) => arr.length;
   }
-  let d3func;
+  let d3func: (
+    iterable: Array<unknown>,
+    accessor?: (object: JsonObject) => number | undefined,
+  ) => number[] | number | undefined;
   if (type in percentiles) {
-    d3func = (arr, acc) => {
+    d3func = (arr, acc: (object: JsonObject) => number | undefined) => {
       let sortedArr;
       if (accessor) {
-        sortedArr = arr.sort((o1, o2) =>
+        sortedArr = arr.sort((o1: JsonObject, o2: JsonObject) =>
           d3array.ascending(accessor(o1), accessor(o2)),
         );
       } else {
@@ -91,8 +105,8 @@ export function getAggFunc(type = 'sum', accessor = null) {
     d3func = d3array[type];
   }
   if (!accessor) {
-    return arr => d3func(arr);
+    return (arr: JsonObject[]) => d3func(arr);
   }
 
-  return arr => d3func(arr.map(x => accessor(x)));
+  return (arr: JsonObject[]) => d3func(arr.map(x => accessor(x)));
 }

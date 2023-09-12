@@ -16,24 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export function columnChoices(datasource) {
-  if (datasource?.columns) {
-    return datasource.columns
-      .map(col => [col.column_name, col.verbose_name || col.column_name])
-      .sort((opt1, opt2) =>
-        opt1[1].toLowerCase() > opt2[1].toLowerCase() ? 1 : -1,
-      );
-  }
-  return [];
+/* eslint camelcase: 0 */
+
+export function formatSelectOptions(options: (string | number)[]) {
+  return options.map(opt => [opt, opt.toString()]);
 }
-
-export const PRIMARY_COLOR = { r: 0, g: 122, b: 135, a: 1 };
-
-export default {
-  default: null,
-  mapStateToProps: state => ({
-    choices: state.datasource
-      ? state.datasource.time_grain_sqla.filter(o => o[0] !== null)
-      : null,
-  }),
-};

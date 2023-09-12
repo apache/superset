@@ -197,9 +197,9 @@ class CsvToDatabaseForm(UploadToDatabaseForm):
         ),
         filters=[filter_not_empty_values],
     )
-    infer_datetime_format = BooleanField(
-        _("Interpret Datetime Format Automatically"),
-        description=_("Interpret the datetime format automatically"),
+    day_first = BooleanField(
+        _("Day First"),
+        description=_("DD/MM format dates, international and European format"),
     )
     decimal = StringField(
         _("Decimal Character"),

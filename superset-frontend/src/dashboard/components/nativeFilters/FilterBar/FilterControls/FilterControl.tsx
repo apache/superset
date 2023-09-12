@@ -43,7 +43,7 @@ const VerticalFilterControlTitle = styled.h4`
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   color: ${({ theme }) => theme.colors.grayscale.dark1};
   margin: 0;
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
 `;
 
 const HorizontalFilterControlTitle = styled(VerticalFilterControlTitle)`

@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=invalid-name, unused-argument, import-outside-toplevel
-from contextlib import nullcontext
+from contextlib import nullcontext, suppress
 from typing import Optional, Union
 
 import pandas as pd
@@ -164,11 +164,8 @@ def test_execute_query_failed_no_retry(mocker: MockFixture, app_context: None) -
 
     command = AlertCommand(report_schedule=mocker.Mock())
 
-    try:
+    with suppress(AlertQueryTimeout):
         command.validate()
-    except AlertQueryTimeout:
-        pass
-
     assert execute_query_mock.call_count == 1
 
 
@@ -189,10 +186,7 @@ def test_execute_query_failed_max_retries(
 
     command = AlertCommand(report_schedule=mocker.Mock())
 
-    try:
+    with suppress(AlertQueryError):
         command.validate()
-    except AlertQueryError:
-        pass
-
     # Should match the value defined in superset_test_config.py
     assert execute_query_mock.call_count == 3

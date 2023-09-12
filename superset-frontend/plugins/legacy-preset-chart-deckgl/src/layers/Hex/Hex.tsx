@@ -16,17 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { HexagonLayer } from 'deck.gl';
+import { HexagonLayer, Color } from 'deck.gl/typed';
 import React from 'react';
-import { t, CategoricalColorNamespace } from '@superset-ui/core';
+import {
+  t,
+  CategoricalColorNamespace,
+  QueryFormData,
+  JsonObject,
+} from '@superset-ui/core';
 
 import { commonLayerProps, getAggFunc } from '../common';
 import sandboxedEval from '../../utils/sandbox';
 import { hexToRGB } from '../../utils/colors';
 import { createDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
+import { TooltipProps } from '../../components/Tooltip';
 
-function setTooltipContent(o) {
+function setTooltipContent(o: JsonObject) {
   return (
     <div className="deckgl-tooltip">
       <TooltipRow
@@ -42,10 +48,17 @@ function setTooltipContent(o) {
   );
 }
 
-export function getLayer(formData, payload, onAddFilter, setTooltip) {
+export function getLayer(
+  formData: QueryFormData,
+  payload: JsonObject,
+  onAddFilter: () => void,
+  setTooltip: (tooltip: TooltipProps['tooltip']) => void,
+) {
   const fd = formData;
   const colorScale = CategoricalColorNamespace.getScale(fd.color_scheme);
-  const colorRange = colorScale.range().map(color => hexToRGB(color));
+  const colorRange = colorScale
+    .range()
+    .map(color => hexToRGB(color)) as Color[];
   let data = payload.data.features;
 
   if (fd.js_data_mutator) {
@@ -53,23 +66,24 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
     const jsFnMutator = sandboxedEval(fd.js_data_mutator);
     data = jsFnMutator(data);
   }
-  const aggFunc = getAggFunc(fd.js_agg_function, p => p.weight);
+  const aggFunc = getAggFunc(fd.js_agg_function, p => p?.weight);
 
   return new HexagonLayer({
-    id: `hex-layer-${fd.slice_id}`,
+    id: `hex-layer-${fd.slice_id}` as const,
     data,
-    pickable: true,
     radius: fd.grid_size,
     extruded: fd.extruded,
     colorRange,
     outline: false,
+    // @ts-ignore
     getElevationValue: aggFunc,
+    // @ts-ignore
     getColorValue: aggFunc,
     ...commonLayerProps(fd, setTooltip, setTooltipContent),
   });
 }
 
-function getPoints(data) {
+function getPoints(data: JsonObject[]) {
   return data.map(d => d.position);
 }
 

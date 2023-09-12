@@ -16,25 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const NOOP = () => {};
+import { rgb } from 'd3-color';
 
-export default function transformProps(chartProps) {
-  const { datasource, height, hooks, queriesData, rawFormData, width } =
-    chartProps;
-  const { onAddFilter = NOOP, setControlValue = NOOP } = hooks;
+// eslint-disable-next-line import/prefer-default-export
+export function hexToRGB(
+  hex: string | undefined,
+  alpha = 255,
+): [number, number, number, number] {
+  if (!hex) {
+    return [0, 0, 0, alpha];
+  }
+  const { r, g, b } = rgb(hex);
 
-  return {
-    datasource,
-    formData: rawFormData,
-    height,
-    onAddFilter,
-    payload: queriesData[0],
-    setControlValue,
-    viewport: {
-      ...rawFormData.viewport,
-      height,
-      width,
-    },
-    width,
-  };
+  return [r, g, b, alpha];
 }
