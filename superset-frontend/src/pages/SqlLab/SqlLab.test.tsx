@@ -70,11 +70,11 @@ jest.mock('src/SqlLab/components/App', () => () => (
   <div data-test="mock-sqllab-app" />
 ));
 
-it('is valid', () => {
+test('is valid', () => {
   expect(React.isValidElement(<SqlLab />)).toBe(true);
 });
 
-it('fetches initial data and renders', async () => {
+test('fetches initial data and renders', async () => {
   expect(fetchMock.calls(sqlLabInitialStateApiRoute).length).toBe(0);
   const storeWithSqlLab = createStore({}, reducers);
   const { getByTestId } = render(<SqlLab />, {
