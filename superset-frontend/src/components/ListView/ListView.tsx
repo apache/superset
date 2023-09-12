@@ -210,6 +210,8 @@ export interface ListViewProps<T extends object = any> {
   pageSize: number;
   fetchData: (conf: FetchDataConfig) => any;
   refreshData?: () => void;
+  addSuccessToast?: (msg: string) => void;
+  addDangerToast?: (msg: string) => void;
   loading: boolean;
   className?: string;
   initialSort?: SortColumn[];
@@ -258,6 +260,7 @@ function ListView<T extends object = any>({
   columnsForWrapText,
   enableBulkTag = false,
   bulkTagResourceName,
+  addSuccessToast,
 }: ListViewProps<T>) {
   const {
     getTableProps,
@@ -324,6 +327,7 @@ function ListView<T extends object = any>({
         selected={selectedFlatRows}
         refreshData={refreshData}
         resourceName={bulkTagResourceName}
+        addSuccessToast={addSuccessToast}
         onHide={() => setShowBulkTagModal(false)}
       />
       <div data-test={className} className={`superset-list-view ${className}`}>

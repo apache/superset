@@ -860,6 +860,8 @@ function ChartList(props: ChartListProps) {
               renderCard={renderCard}
               enableBulkTag
               bulkTagResourceName="chart"
+              addSuccessToast={addSuccessToast}
+              addDangerToast={addDangerToast}
               showThumbnails={
                 userSettings
                   ? userSettings.thumbnails

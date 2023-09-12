@@ -760,6 +760,8 @@ function DashboardList(props: DashboardListProps) {
                 initialSort={initialSort}
                 loading={loading}
                 pageSize={PAGE_SIZE}
+                addSuccessToast={addSuccessToast}
+                addDangerToast={addDangerToast}
                 showThumbnails={
                   userKey
                     ? userKey.thumbnails

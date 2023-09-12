@@ -6,7 +6,6 @@ import Modal from 'src/components/Modal';
 import AsyncSelect from 'src/components/Select/AsyncSelect';
 import Button from 'src/components/Button';
 import { loadTags } from 'src/components/Tags/utils';
-import { useToasts } from 'src/components/MessageToasts/withToasts';
 
 interface BulkTagModalProps {
   onHide: () => void;
@@ -16,7 +15,6 @@ interface BulkTagModalProps {
   show: boolean;
   selected: any[];
   resourceName: string;
-  // clearOnHide: boolean;
 }
 
 const BulkTagModal: React.FC<BulkTagModalProps> = ({
@@ -25,8 +23,9 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({
   onHide,
   refreshData,
   resourceName,
+  addSuccessToast,
+  addDangerToast,
 }) => {
-  const { addSuccessToast, addDangerToast } = useToasts();
   useEffect(() => {}, []);
 
   const onSave = async () => {
