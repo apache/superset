@@ -811,6 +811,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               bulkActions={bulkActions}
               bulkSelectEnabled={bulkSelectEnabled}
               disableBulkSelect={toggleBulkSelect}
+              addDangerToast={addDangerToast}
+              addSuccessToast={addSuccessToast}
+              refreshData={refreshData}
               renderBulkSelectCopy={selected => {
                 const { virtualCount, physicalCount } = selected.reduce(
                   (acc, e) => {

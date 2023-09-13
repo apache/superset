@@ -46,6 +46,8 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
 )
 from tests.integration_tests.fixtures.tags import with_tagging_system_feature
 from tests.integration_tests.base_tests import SupersetTestCase
+from superset.daos.tag import TagDAO
+from superset.tags.models import ObjectTypes
 
 TAGS_FIXTURE_COUNT = 10
 
@@ -57,6 +59,7 @@ TAGS_LIST_COLUMNS = [
     "changed_by.first_name",
     "changed_by.last_name",
     "changed_on_delta_humanized",
+    "created_on_delta_humanized",
     "created_by.first_name",
     "created_by.last_name",
 ]
@@ -501,3 +504,54 @@ class TestTagApi(SupersetTestCase):
             .one_or_none()
         )
         assert tag is not None
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @pytest.mark.usefixtures("create_tags")
+    def test_failed_put_tag(self):
+        self.login(username="admin")
+
+        tag_to_update = db.session.query(Tag).first()
+        uri = f"api/v1/tag/{tag_to_update.id}"
+        rv = self.client.put(uri, json={"foo": "bar"})
+
+        self.assertEqual(rv.status_code, 400)
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_post_bulk_tag(self):
+        self.login(username="admin")
+        uri = "api/v1/tag/bulk_create"
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "World Bank's Data")
+            .first()
+        )
+        chart = db.session.query(Slice).first()
+        tags = ["tag1", "tag2", "tag3"]
+        rv = self.client.post(
+            uri,
+            json={
+                "tags": ["tag1", "tag2", "tag3"],
+                "objects_to_tag": [["dashboard", dashboard.id], ["chart", chart.id]],
+            },
+        )
+
+        self.assertEqual(rv.status_code, 201)
+
+        result = TagDAO.get_tagged_objects_for_tags(tags, ["dashboard"])
+        assert len(result) == 1
+
+        result = TagDAO.get_tagged_objects_for_tags(tags, ["chart"])
+        assert len(result) == 1
+
+        tagged_objects = db.session.query(TaggedObject).filter(
+            TaggedObject.object_id == dashboard.id,
+            TaggedObject.object_type == ObjectTypes.dashboard,
+        )
+        assert tagged_objects.count() == 3
+
+        tagged_objects = db.session.query(TaggedObject).filter(
+            # TaggedObject.tag_id.in_([tag.id for tag in tags]),
+            TaggedObject.object_id == chart.id,
+            TaggedObject.object_type == ObjectTypes.chart,
+        )
+        assert tagged_objects.count() == 3

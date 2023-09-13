@@ -367,7 +367,9 @@ class TagDAO(BaseDAO[Tag]):
 
     @staticmethod
     def create_tag_relationship(
-        objects_to_tag: list[tuple[ObjectTypes, int]], tag: Tag
+        objects_to_tag: list[tuple[ObjectTypes, int]],
+        tag: Tag,
+        bulk_create: bool = False,
     ) -> None:
         """
         Creates a tag relationship between the given objects and the specified tag.
@@ -401,9 +403,13 @@ class TagDAO(BaseDAO[Tag]):
                     TaggedObject(object_id=object_id, object_type=object_type, tag=tag)
                 )
 
-        for object_type, object_id in tagged_objects_to_delete:
-            # delete objects that were removed
-            TagDAO.delete_tagged_object(object_type, object_id, tag.name)  # type: ignore
+        if not bulk_create:
+            # delete relationships that aren't retained from single tag create
+            for object_type, object_id in tagged_objects_to_delete:
+                # delete objects that were removed
+                TagDAO.delete_tagged_object(
+                    object_type, object_id, tag.name  # type: ignore
+                )
 
         db.session.add_all(tagged_objects)
         db.session.commit()

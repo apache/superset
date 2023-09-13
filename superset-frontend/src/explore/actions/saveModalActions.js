@@ -59,6 +59,11 @@ const extractAddHocFiltersFromFormData = formDataToHandle =>
     {},
   );
 
+const hasTemporalRangeFilter = formData =>
+  (formData?.adhoc_filters || []).some(
+    filter => filter.operator === Operators.TEMPORAL_RANGE,
+  );
+
 export const getSlicePayload = (
   sliceName,
   formDataWithNativeFilters,
@@ -66,7 +71,7 @@ export const getSlicePayload = (
   owners,
   formDataFromSlice = {},
 ) => {
-  let adhocFilters = extractAddHocFiltersFromFormData(
+  const adhocFilters = extractAddHocFiltersFromFormData(
     formDataWithNativeFilters,
   );
 
@@ -76,18 +81,24 @@ export const getSlicePayload = (
   // would end up as an extra filter and when overwriting the chart the original
   // time range adhoc_filter was lost
   if (isEmpty(adhocFilters?.adhoc_filters) && !isEmpty(formDataFromSlice)) {
-    adhocFilters = extractAddHocFiltersFromFormData(formDataFromSlice);
+    formDataFromSlice?.adhoc_filters?.forEach(filter => {
+      if (filter.operator === Operators.TEMPORAL_RANGE && !filter.isExtra) {
+        adhocFilters.adhoc_filters.push({ ...filter, comparator: 'No filter' });
+      }
+    });
   }
 
   // This loop iterates through the adhoc_filters array in formDataWithNativeFilters.
   // If a filter is of type TEMPORAL_RANGE and isExtra, it sets its comparator to
   // 'No filter' and adds the modified filter to the adhocFilters array. This ensures that all
   // TEMPORAL_RANGE filters are converted to 'No filter' when saving a chart.
-  formDataWithNativeFilters?.adhoc_filters?.forEach(filter => {
-    if (filter.operator === Operators.TEMPORAL_RANGE && filter.isExtra) {
-      adhocFilters.adhoc_filters.push({ ...filter, comparator: 'No filter' });
-    }
-  });
+  if (!hasTemporalRangeFilter(adhocFilters)) {
+    formDataWithNativeFilters?.adhoc_filters?.forEach(filter => {
+      if (filter.operator === Operators.TEMPORAL_RANGE && filter.isExtra) {
+        adhocFilters.adhoc_filters.push({ ...filter, comparator: 'No filter' });
+      }
+    });
+  }
 
   const formData = {
     ...formDataWithNativeFilters,
