@@ -244,7 +244,12 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     if (dispatchAllowed) {
       clearDataMaskIds.forEach(id => dispatch(clearDataMask(id)));
     }
-  }, [JSON.stringify(dataMaskSelected), dispatch, filtersInScope, setDataMaskSelected]);
+  }, [
+    JSON.stringify(dataMaskSelected),
+    dispatch,
+    filtersInScope,
+    setDataMaskSelected,
+  ]);
 
   useFilterUpdates(dataMaskSelected, setDataMaskSelected);
   const isApplyDisabled = checkIsApplyDisabled(
