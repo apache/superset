@@ -31,11 +31,12 @@ fi
 if [ -f "${REQUIREMENTS_LOCAL}" ]; then
   echo "Installing local overrides at ${REQUIREMENTS_LOCAL}"
   pip install --no-cache-dir -r "${REQUIREMENTS_LOCAL}"
-  playwright install-deps
-  playwright install chromium
 else
   echo "Skipping local overrides"
 fi
+
+playwright install-deps
+playwright install chromium
 
 case "${1}" in
   worker)
