@@ -14,8 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from datetime import datetime, timedelta
 import logging
+from datetime import datetime, timedelta
 
 from celery import Celery
 from celery.exceptions import SoftTimeLimitExceeded
