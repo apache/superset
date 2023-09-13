@@ -50,7 +50,7 @@ def scheduler() -> None:
         active_schedules = ReportScheduleDAO.find_active(session)
         triggered_at = (
             datetime.fromisoformat(scheduler.request.expires)
-            - timedelta(seconds=app.config["CELERY_BEAT_SCHEDULER_EXPIRES"])
+            - app.config["CELERY_BEAT_SCHEDULER_EXPIRES"]
             if scheduler.request.expires
             else datetime.utcnow()
         )
