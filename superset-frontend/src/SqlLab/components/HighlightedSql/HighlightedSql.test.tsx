@@ -23,26 +23,26 @@ import { fireEvent, render } from 'spec/helpers/testing-library';
 
 const sql =
   "SELECT * FROM test WHERE something='fkldasjfklajdslfkjadlskfjkldasjfkladsjfkdjsa'";
-test('renders with props', () => {
+test('renders HighlightedSql component with sql prop', () => {
   expect(React.isValidElement(<HighlightedSql sql={sql} />)).toBe(true);
 });
-test('renders a ModalTrigger', () => {
+test('renders a ModalTrigger component', () => {
   const { getByTestId } = render(<HighlightedSql sql={sql} />);
   expect(getByTestId('span-modal-trigger')).toBeInTheDocument();
 });
-test('renders a ModalTrigger while using shrink', () => {
+test('renders a ModalTrigger component with shrink prop and maxWidth prop set to 20', () => {
   const { getByTestId } = render(
     <HighlightedSql sql={sql} shrink maxWidth={20} />,
   );
   expect(getByTestId('span-modal-trigger')).toBeInTheDocument();
 });
-test('renders two SyntaxHighlighter in modal', () => {
+test('renders two code elements in modal when rawSql prop is provided', () => {
   const { getByRole, queryByRole, getByTestId } = render(
     <HighlightedSql sql={sql} rawSql="SELECT * FORM foo" shrink maxWidth={5} />,
   );
   expect(queryByRole('dialog')).not.toBeInTheDocument();
   fireEvent.click(getByTestId('span-modal-trigger'));
   expect(queryByRole('dialog')).toBeInTheDocument();
-  const syntaxHighlighter = getByRole('dialog').getElementsByTagName('code');
-  expect(syntaxHighlighter.length).toEqual(2);
+  const codeElements = getByRole('dialog').getElementsByTagName('code');
+  expect(codeElements.length).toEqual(2);
 });
