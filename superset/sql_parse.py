@@ -231,11 +231,8 @@ class ParsedQuery:
         """
 
         def is_body_select(body: dict[str, Any]) -> bool:
-            if "SetOperation" in body:
-                return is_body_select(body["SetOperation"]["left"]) and is_body_select(
-                    body["SetOperation"]["right"]
-                )
-
+            if op := body.get("SetOperation"):
+                return is_body_select(op["left"]) and is_body_select(op["right"])
             return all(key == "Select" for key in body.keys())
 
         for query in oxide_parse:
