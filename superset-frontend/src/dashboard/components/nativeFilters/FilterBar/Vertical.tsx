@@ -272,7 +272,7 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
       </StyledTabs>
     ),
     [
-      JSON.stringify(dataMaskSelected),
+      dataMaskSelected,
       editFilterSetId,
       filterControls,
       filterSetFilterValues.length,

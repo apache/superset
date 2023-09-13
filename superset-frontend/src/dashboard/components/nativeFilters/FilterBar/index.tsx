@@ -123,6 +123,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   verticalConfig,
   hidden = false,
 }) => {
+  console.log('rerender');
   const history = useHistory();
   const dataMaskApplied: DataMaskStateWithId = useNativeFiltersDataMask();
   const [dataMaskSelected, setDataMaskSelected] =
@@ -222,7 +223,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         dispatch(updateDataMask(filterId, dataMaskSelected[filterId]));
       }
     });
-  }, [JSON.stringify(dataMaskSelected), dispatch]);
+  }, [dataMaskSelected, dispatch]);
 
   const handleClearAll = useCallback(() => {
     const clearDataMaskIds: string[] = [];
@@ -244,12 +245,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     if (dispatchAllowed) {
       clearDataMaskIds.forEach(id => dispatch(clearDataMask(id)));
     }
-  }, [
-    JSON.stringify(dataMaskSelected),
-    dispatch,
-    filtersInScope,
-    setDataMaskSelected,
-  ]);
+  }, [dataMaskSelected, dispatch, filtersInScope, setDataMaskSelected]);
 
   useFilterUpdates(dataMaskSelected, setDataMaskSelected);
   const isApplyDisabled = checkIsApplyDisabled(
