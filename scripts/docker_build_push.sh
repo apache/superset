@@ -17,6 +17,8 @@
 #
 set -eo pipefail
 
+GITHUB_RELEASE_TAG_NAME="$1"
+
 SHA=$(git rev-parse HEAD)
 REPO_NAME="apache/superset"
 
@@ -32,9 +34,25 @@ else
   LATEST_TAG="${REFSPEC}"
 fi
 
+
 if [[ "${REFSPEC}" == "master" ]]; then
   LATEST_TAG="latest"
 fi
+
+# get the latest release tag
+if [ -n "${GITHUB_RELEASE_TAG_NAME}" ]; then
+  output=$(source ./scripts/tag_latest_release.sh "${GITHUB_RELEASE_TAG_NAME}" --dry-run) || true
+  SKIP_TAG=$(echo "${output}" | grep "SKIP_TAG" | cut -d'=' -f2)
+  if [[ "${SKIP_TAG}" == "SKIP_TAG::false" ]]; then
+    LATEST_TAG="latest-official"
+  fi
+fi
+
+if [[ "${TEST_ENV}" == "true" ]]; then
+  # don't run the build in test environment
+  exit 0
+fi
+
 
 cat<<EOF
   Rolling with tags:
@@ -110,6 +128,21 @@ docker buildx build --target lean \
   --label "target=lean310" \
   --label "build_actor=${GITHUB_ACTOR}" \
   .
+
+#
+# Build the "lean39" image
+#
+DOCKER_BUILDKIT=1 docker build --target lean \
+  -t "${REPO_NAME}:${SHA}-py39" \
+  -t "${REPO_NAME}:${REFSPEC}-py39" \
+  -t "${REPO_NAME}:${LATEST_TAG}-py39" \
+  --build-arg PY_VER="3.9-slim-bullseye"\
+  --label "sha=${SHA}" \
+  --label "built_at=$(date)" \
+  --label "target=lean39" \
+  --label "build_actor=${GITHUB_ACTOR}" \
+  .
+
 for BUILD_PLATFORM in $ARCHITECTURE_FOR_BUILD; do
 #
 # Build the "websocket" image
