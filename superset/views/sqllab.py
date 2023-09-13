@@ -42,5 +42,5 @@ class SqllabView(BaseSupersetView):
     @has_access
     @permission_name("read")
     @event_logger.log_this
-    def root(self) -> FlaskResponse:
+    def history(self) -> FlaskResponse:
         return self.render_app_template()
