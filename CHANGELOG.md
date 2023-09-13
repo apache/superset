@@ -77,6 +77,7 @@ under the License.
 
 **Features**
 
+- [#24718](https://github.com/apache/superset/pull/24718) feat: Add currencies controls in control panels (@kgabryje)
 - [#24960](https://github.com/apache/superset/pull/24960) feat: Adds options to show subtotals in Pivot Table (@michael-s-molina)
 - [#24703](https://github.com/apache/superset/pull/24703) feat: migrate charts on import (@betodealmeida)
 - [#24433](https://github.com/apache/superset/pull/24433) feat: use Scarf Gateway for Superset npm downloads (@arjundevarajan)
@@ -172,6 +173,37 @@ under the License.
 
 **Fixes**
 
+- [#25217](https://github.com/apache/superset/pull/25217) fix: inability to remove chart filter when dashboard time filter is applied (@lilykuang)
+- [#25268](https://github.com/apache/superset/pull/25268) fix: Add line height to metadata bar (@kgabryje)
+- [#25251](https://github.com/apache/superset/pull/25251) fix(dockefile): broken docker image (@hugosjoberg)
+- [#25248](https://github.com/apache/superset/pull/25248) fix: Currency formatting in Table raw mode (@kgabryje)
+- [#25249](https://github.com/apache/superset/pull/25249) fix: Don't apply number formatting to the label in Treemap (@kgabryje)
+- [#25238](https://github.com/apache/superset/pull/25238) fix: Clearing the currency format has no effect on the chart (@michael-s-molina)
+- [#25223](https://github.com/apache/superset/pull/25223) fix: Cypress test to force mouseover (follow-up) (@michael-s-molina)
+- [#25213](https://github.com/apache/superset/pull/25213) fix: granularity_sqla and GENERIC_CHART_AXES (@betodealmeida)
+- [#24859](https://github.com/apache/superset/pull/24859) fix(sqllab): Force trino client async execution (@giftig)
+- [#25209](https://github.com/apache/superset/pull/25209) fix: Cypress test to force mouseover (@michael-s-molina)
+- [#25189](https://github.com/apache/superset/pull/25189) fix: `is_select` (@betodealmeida)
+- [#25202](https://github.com/apache/superset/pull/25202) fix: All values being selected in Select (@michael-s-molina)
+- [#25190](https://github.com/apache/superset/pull/25190) fix: DML failures in SQL Lab (@hughhhh)
+- [#25157](https://github.com/apache/superset/pull/25157) fix: Issue #24493; Resolved report selection menu in chart and dashboard page (@suicide11)
+- [#25156](https://github.com/apache/superset/pull/25156) fix: Applying Dashboard Time Range Filters to Overwritten Charts (@lilykuang)
+- [#25133](https://github.com/apache/superset/pull/25133) fix(sqllab): Invalid start date (@justinpark)
+- [#25159](https://github.com/apache/superset/pull/25159) fix: Sunburst chart error when secondary metric is null (@michael-s-molina)
+- [#20078](https://github.com/apache/superset/pull/20078) fix: Fixing untranslated FR strings (@aehanno)
+- [#25150](https://github.com/apache/superset/pull/25150) fix: Chart series limit doesn't work for some databases (@KSPT-taylorjohn)
+- [#25135](https://github.com/apache/superset/pull/25135) fix: Handle Python date format for GENERIC_CHART_AXES feature (@john-bodley)
+- [#24711](https://github.com/apache/superset/pull/24711) fix: add format for timestamp in crdb to correctly use times values (@elewis787)
+- [#25090](https://github.com/apache/superset/pull/25090) fix: Bumps Flask Caching to fix RCE vulnerability (@michael-s-molina)
+- [#25119](https://github.com/apache/superset/pull/25119) fix(DB Connection): Update placeholder values for Snowflake connection (@Vitor-Avila)
+- [#25113](https://github.com/apache/superset/pull/25113) fix: Date format when importing international timestamps (@michael-s-molina)
+- [#25114](https://github.com/apache/superset/pull/25114) fix(sqllab): error while removing a referenced table (@justinpark)
+- [#25091](https://github.com/apache/superset/pull/25091) fix(sqllab): rendering performance regression by resultset (@justinpark)
+- [#25081](https://github.com/apache/superset/pull/25081) fix: Allow embedded guest user datasource access with dashboard context (@jfrag1)
+- [#25086](https://github.com/apache/superset/pull/25086) fix(assets import): Ensure old datasource ids are not referenced in imported charts (@jfrag1)
+- [#25087](https://github.com/apache/superset/pull/25087) fix: Filter names overflow wrap (@michael-s-molina)
+- [#25043](https://github.com/apache/superset/pull/25043) fix: dataset update permission out of sync (@zephyring)
+- [#25020](https://github.com/apache/superset/pull/25020) fix(embedded sdk): Remove trailing slash from passed superset domain if there is one (@jfrag1)
 - [#25074](https://github.com/apache/superset/pull/25074) fix: Cross filters initial scope (@michael-s-molina)
 - [#24008](https://github.com/apache/superset/pull/24008) fix(table): condition formatting can't formate 0 values (@Always-prog)
 - [#21255](https://github.com/apache/superset/pull/21255) fix(cli): import-directory is missing the application context (@rdubois)
@@ -457,6 +489,14 @@ under the License.
 
 **Others**
 
+- [#25275](https://github.com/apache/superset/pull/25275) chore: Remove the ability to switch to filter-box chart when DASHBOARD_NATIVE_FILTERS feature is enabled (@john-bodley)
+- [#25211](https://github.com/apache/superset/pull/25211) chore(trino): remove unnecessary index checks (@villebro)
+- [#25161](https://github.com/apache/superset/pull/25161) chore: Add a note about adhoc subqueries in UPDATING.md (@michael-s-molina)
+- [#25127](https://github.com/apache/superset/pull/25127) docs: Fix typo in UPDATING.md (@john-bodley)
+- [#25129](https://github.com/apache/superset/pull/25129) refactor(frontend): make "Search" box the first filter for charts and datasets (@sfirke)
+- [#25115](https://github.com/apache/superset/pull/25115) docs: Update UPDATING.md regarding potential breaking change to `ab_user.email` column (@john-bodley)
+- [#24942](https://github.com/apache/superset/pull/24942) refactor(pinot): The `python_date_format` for a temporal column was not being passed to `get_timestamp_expr` (@ege-st)
+- [#24826](https://github.com/apache/superset/pull/24826) chore: remove CssTemplate and Annotation access from gamma role (@lilykuang)
 - [#25016](https://github.com/apache/superset/pull/25016) chore: use os.getenv to simplify superset_config.py (@sebastianliebscher)
 - [#25025](https://github.com/apache/superset/pull/25025) chore: Pass the dashboard id when requesting filter values (@michael-s-molina)
 - [#25003](https://github.com/apache/superset/pull/25003) chore: isolate examples database by default (@dpgaspar)
