@@ -27,10 +27,10 @@ from superset import app
 logger = logging.getLogger(__name__)
 
 
-def cron_schedule_window(cron: str, timezone: str) -> Iterator[datetime]:
+def cron_schedule_window(
+    triggered_at: datetime, cron: str, timezone: str
+) -> Iterator[datetime]:
     window_size = app.config["ALERT_REPORTS_CRON_WINDOW_SIZE"]
-    # create a time-aware datetime in utc
-    time_now = datetime.now(tz=dt_timezone.utc)
     try:
         tz = pytz_timezone(timezone)
     except UnknownTimeZoneError:
@@ -39,7 +39,7 @@ def cron_schedule_window(cron: str, timezone: str) -> Iterator[datetime]:
         logger.warning("Timezone %s was invalid. Falling back to 'UTC'", timezone)
     utc = pytz_timezone("UTC")
     # convert the current time to the user's local time for comparison
-    time_now = time_now.astimezone(tz)
+    time_now = triggered_at.astimezone(tz)
     start_at = time_now - timedelta(seconds=window_size / 2)
     stop_at = time_now + timedelta(seconds=window_size / 2)
     crons = croniter(cron, start_at)

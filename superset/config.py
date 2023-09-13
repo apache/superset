@@ -914,6 +914,8 @@ DASHBOARD_AUTO_REFRESH_INTERVALS = [
     [86400, "24 hours"],
 ]
 
+CELERY_BEAT_SCHEDULER_EXPIRES = 60 * 60 * 24 * 7  # 1 week
+
 # Default celery config is to use SQLA as a broker, in a production setting
 # you'll want to use a proper broker as specified here:
 # https://docs.celeryq.dev/en/stable/getting-started/backends-and-brokers/index.html
@@ -942,6 +944,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         "reports.scheduler": {
             "task": "reports.scheduler",
             "schedule": crontab(minute="*", hour="*"),
+            "options": {"expires": CELERY_BEAT_SCHEDULER_EXPIRES},
         },
         "reports.prune_log": {
             "task": "reports.prune_log",
