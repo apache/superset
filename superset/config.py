@@ -914,6 +914,8 @@ DASHBOARD_AUTO_REFRESH_INTERVALS = [
     [86400, "24 hours"],
 ]
 
+# This is used as a workaround for the alerts & reports scheduler task to get the time
+# celery beat triggered it, see https://github.com/celery/celery/issues/6974 for details
 CELERY_BEAT_SCHEDULER_EXPIRES = timedelta(weeks=1)
 
 # Default celery config is to use SQLA as a broker, in a production setting
