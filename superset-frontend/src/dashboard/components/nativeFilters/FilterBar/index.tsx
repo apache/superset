@@ -166,7 +166,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         };
       });
     },
-    [dataMaskSelected, dispatch, setDataMaskSelected],
+    [JSON.stringify(dataMaskSelected), dispatch, setDataMaskSelected],
   );
 
   useEffect(() => {
@@ -222,7 +222,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         dispatch(updateDataMask(filterId, dataMaskSelected[filterId]));
       }
     });
-  }, [dataMaskSelected, dispatch]);
+  }, [JSON.stringify(dataMaskSelected), dispatch]);
 
   const handleClearAll = useCallback(() => {
     const clearDataMaskIds: string[] = [];
@@ -244,7 +244,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     if (dispatchAllowed) {
       clearDataMaskIds.forEach(id => dispatch(clearDataMask(id)));
     }
-  }, [dataMaskSelected, dispatch, filtersInScope, setDataMaskSelected]);
+  }, [JSON.stringify(dataMaskSelected), dispatch, filtersInScope, setDataMaskSelected]);
 
   useFilterUpdates(dataMaskSelected, setDataMaskSelected);
   const isApplyDisabled = checkIsApplyDisabled(
