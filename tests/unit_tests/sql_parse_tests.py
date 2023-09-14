@@ -1359,7 +1359,7 @@ def test_has_table_query(sql: str, expected: bool) -> None:
             "id=42",
             "SELECT * FROM other_table WHERE 1=1",
         ),
-        # If there's no pre-existing WHERE clause we create one.
+        # If there's no preexisting WHERE clause we create one.
         (
             "SELECT * FROM table",
             "table",
