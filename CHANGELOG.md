@@ -839,7 +839,7 @@ under the License.
 - [#23582](https://github.com/apache/superset/pull/23582) fix(dash import): Ensure old datasource ids are not referenced in imported charts (@jfrag1)
 - [#23506](https://github.com/apache/superset/pull/23506) fix(generic-x-axis): skip initial time filter for legacy charts (@villebro)
 - [#23507](https://github.com/apache/superset/pull/23507) fix(legacy-plugin-chart-heatmap): fix adhoc column tooltip (@villebro)
-- [#23441](https://github.com/apache/superset/pull/23441) fix(chart): non existent time grain no longer breaks the application (@rdubois)
+- [#23441](https://github.com/apache/superset/pull/23441) fix(chart): nonexistent time grain no longer breaks the application (@rdubois)
 - [#23393](https://github.com/apache/superset/pull/23393) fix(Pivot Table v2): resolved full width issue (@AkashBoora)
 - [#22851](https://github.com/apache/superset/pull/22851) fix: Validate jinja rendered query (@geido)
 
