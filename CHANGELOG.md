@@ -3288,7 +3288,7 @@ under the License.
 - [#18254](https://github.com/apache/superset/pull/18254) docs(i18n): make translation guide more explicit (@villebro)
 - [#18231](https://github.com/apache/superset/pull/18231) chore: add ci for docs-v2 (@ad-m)
 - [#18559](https://github.com/apache/superset/pull/18559) chore: Update Docusaurus dependencies (@geido)
-- [#18229](https://github.com/apache/superset/pull/18229) chore: Reference Github code in Docusaurus (@geido)
+- [#18229](https://github.com/apache/superset/pull/18229) chore: Reference GitHub code in Docusaurus (@geido)
 - [#18251](https://github.com/apache/superset/pull/18251) chore(tests): migrate mssql tests to pytest (@villebro)
 - [#18188](https://github.com/apache/superset/pull/18188) refactor: upgrade ControlHeader to TSX & FC and add storybook (@ad-m)
 - [#18230](https://github.com/apache/superset/pull/18230) chore: Docusaurus throw on broken links (@geido)
