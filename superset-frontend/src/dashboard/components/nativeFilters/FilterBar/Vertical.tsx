@@ -159,7 +159,6 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
   width,
 }) => {
   const [editFilterSetId, setEditFilterSetId] = useState<number | null>(null);
-  const dataMaskSelectedRef = useRef(dataMaskSelected);
   const filterSets = useFilterSets();
   const filterSetFilterValues = Object.values(filterSets);
   const [tab, setTab] = useState(TabIds.AllFilters);
@@ -216,12 +215,17 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
       ) : (
         <FilterControlsWrapper>
           <FilterControls
-            dataMaskSelected={dataMaskSelectedRef.current}
+            dataMaskSelected={dataMaskSelected}
             onFilterSelectionChange={onSelectionChange}
           />
         </FilterControlsWrapper>
       ),
-    [canEdit, filterValues.length, onSelectionChange],
+    [
+      canEdit,
+      JSON.stringify(dataMaskSelected),
+      filterValues.length,
+      onSelectionChange,
+    ],
   );
 
   const filterSetsTabs = useMemo(
