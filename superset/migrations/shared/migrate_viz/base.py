@@ -20,26 +20,12 @@ import copy
 import json
 from typing import Any
 
-from alembic import op
-from sqlalchemy import and_, Column, Integer, String, Text
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import and_
 
 from superset import conf, db, is_feature_enabled
 from superset.constants import TimeGrain
 from superset.migrations.shared.utils import paginated_update, try_load_json
-
-Base = declarative_base()
-
-
-class Slice(Base):  # type: ignore
-    __tablename__ = "slices"
-
-    id = Column(Integer, primary_key=True)
-    slice_name = Column(String(250))
-    viz_type = Column(String(250))
-    params = Column(Text)
-    query_context = Column(Text)
-
+from superset.models.slice import Slice
 
 FORM_DATA_BAK_FIELD_NAME = "form_data_bak"
 
@@ -157,9 +143,7 @@ class MigrateViz:
 
     @classmethod
     def upgrade(cls) -> None:
-        bind = op.get_bind()
-        session = db.Session(bind=bind)
-        slices = session.query(Slice).filter(Slice.viz_type == cls.source_viz_type)
+        slices = db.session.query(Slice).filter(Slice.viz_type == cls.source_viz_type)
         for slc in paginated_update(
             slices,
             lambda current, total: print(
@@ -167,13 +151,11 @@ class MigrateViz:
             ),
         ):
             new_viz = cls.upgrade_slice(slc)
-            session.merge(new_viz)
+            db.session.merge(new_viz)
 
     @classmethod
     def downgrade(cls) -> None:
-        bind = op.get_bind()
-        session = db.Session(bind=bind)
-        slices = session.query(Slice).filter(
+        slices = db.session.query(Slice).filter(
             and_(
                 Slice.viz_type == cls.target_viz_type,
                 Slice.params.like(f"%{FORM_DATA_BAK_FIELD_NAME}%"),
@@ -186,4 +168,4 @@ class MigrateViz:
             ),
         ):
             new_viz = cls.downgrade_slice(slc)
-            session.merge(new_viz)
+            db.session.merge(new_viz)
