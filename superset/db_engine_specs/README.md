@@ -158,7 +158,7 @@ GROUP BY
 ```
 ### `time_groupby_inline = False`
 
-In theory this attribute should be used to ommit time filters from the self-joins. When the attribute is false the time attribute will be present in the subquery used to compute limited series, eg:
+In theory this attribute should be used to omit time filters from the self-joins. When the attribute is false the time attribute will be present in the subquery used to compute limited series, eg:
 
 ```sql
 SELECT DATE_TRUNC('day', ts) AS ts,
