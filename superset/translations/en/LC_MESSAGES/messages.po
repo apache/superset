@@ -5499,7 +5499,7 @@ msgstr ""
 msgid "Intervals"
 msgstr ""
 
-msgid "Intesity"
+msgid "Intensity"
 msgstr ""
 
 msgid ""
