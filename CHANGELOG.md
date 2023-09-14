@@ -2964,7 +2964,7 @@ under the License.
 - [#18628](https://github.com/apache/superset/pull/18628) fix: check embedded feature flag in request loader (@lilykuang)
 - [#18562](https://github.com/apache/superset/pull/18562) fix: user UUIDs on export for Native Filter Configuration (@hughhhh)
 - [#18619](https://github.com/apache/superset/pull/18619) fix(helm): Fix support for ingress.ingressClassName (@ad-m)
-- [#18609](https://github.com/apache/superset/pull/18609) fix: change database database selector (@pkdotson)
+- [#18609](https://github.com/apache/superset/pull/18609) fix: change database selector (@pkdotson)
 - [#18601](https://github.com/apache/superset/pull/18601) fix(jest): add superset-frontend to testRegex (@villebro)
 - [#18564](https://github.com/apache/superset/pull/18564) fix: sqllab schema select error msg (@pkdotson)
 - [#18579](https://github.com/apache/superset/pull/18579) fix(sqla): avoid unnecessary groupby in samples request (@villebro)
