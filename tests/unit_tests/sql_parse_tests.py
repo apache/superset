@@ -1623,3 +1623,13 @@ def test_is_select() -> None:
     Test `is_select`.
     """
     assert not ParsedQuery("SELECT 1; DROP DATABASE superset").is_select()
+    assert ParsedQuery(
+        "with base as(select id from table1 union all select id from table2) select * from base"
+    ).is_select()
+    assert ParsedQuery(
+        """
+WITH t AS (
+    SELECT 1 UNION ALL SELECT 2
+)
+SELECT * FROM t"""
+    ).is_select()
