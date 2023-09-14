@@ -49,7 +49,7 @@ assists people when migrating to a new version.
 - [24404](https://github.com/apache/superset/pull/24404): FLASK_ENV is getting
   deprecated, we recommend using SUPERSET_ENV and reviewing your
   config for ENVIRONMENT_TAG_CONFIG, which enables adding a tag in the navbar to
-  make it more clear which envrionment your are in.
+  make it more clear which environment your are in.
   `SUPERSET_ENV=production` and `SUPERSET_ENV=development` are the two
   supported switches based on the default config.
 - [19242](https://github.com/apache/superset/pull/19242): Adhoc subqueries are now disabled by default for security reasons. To enable them, set the feature flag `ALLOW_ADHOC_SUBQUERY` to `True`.
