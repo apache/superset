@@ -2981,7 +2981,7 @@ under the License.
 - [#18217](https://github.com/apache/superset/pull/18217) fix(plugin-chart-echarts): use verbose x-axis name when defined (@villebro)
 - [#18216](https://github.com/apache/superset/pull/18216) fix(explore): Pie chart label formatting when series is temporal (@kgabryje)
 - [#17881](https://github.com/apache/superset/pull/17881) fix(sql): unable to filter text with quotes (@stephenLYZ)
-- [#18205](https://github.com/apache/superset/pull/18205) fix(tests): Remove walrus operator for Python 3.7 compatiblity (@ad-m)
+- [#18205](https://github.com/apache/superset/pull/18205) fix(tests): Remove walrus operator for Python 3.7 compatibility (@ad-m)
 - [#18145](https://github.com/apache/superset/pull/18145) fix(native-filters): values is not sorted when setting sort option (@stephenLYZ)
 - [#18174](https://github.com/apache/superset/pull/18174) fix(helm): allows extra top-level properties (@ad-m)
 - [#18180](https://github.com/apache/superset/pull/18180) fix: Default values getting cleared in native filters form (@geido)
