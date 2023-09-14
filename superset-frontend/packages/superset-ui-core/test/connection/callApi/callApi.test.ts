@@ -218,7 +218,7 @@ describe('callApi()', () => {
       const unstringified = (calls[0][1] as RequestInit).body as FormData;
       const hasCorruptKey = unstringified.has('corrupt');
       expect(hasCorruptKey).toBeFalsy();
-      // When a corrupt attribute is encountred, a console.error call is made with info about the corrupt attribute
+      // When a corrupt attribute is encountered, a console.error call is made with info about the corrupt attribute
       // eslint-disable-next-line no-console
       expect(console.error).toHaveBeenCalledTimes(1);
     });
