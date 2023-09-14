@@ -94,7 +94,7 @@ class Column(
     # Raw type as returned and used by db engine.
     type = sa.Column(sa.Text, default=UNKOWN_TYPE)
 
-    # Assigns column advnaced type to determine custom behavior
+    # Assigns column advanced type to determine custom behavior
     # does nothing unless feature flag ENABLE_ADVANCED_DATA_TYPES in true
     advanced_data_type = sa.Column(sa.Text)
 
