@@ -129,7 +129,6 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   verticalConfig,
   hidden = false,
 }) => {
-  console.log('rerender');
   const history = useHistory();
   const dataMaskApplied: DataMaskStateWithId = useNativeFiltersDataMask();
   const [dataMaskSelected, setDataMaskSelected] =
