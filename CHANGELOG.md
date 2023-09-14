@@ -2887,7 +2887,7 @@ under the License.
 - [#19080](https://github.com/apache/superset/pull/19080) fix(dashboard-edge-cutting): make to be not cut without Filter (@prosdev0107)
 - [#19110](https://github.com/apache/superset/pull/19110) fix: cache key with guest token rls (@lilykuang)
 - [#19095](https://github.com/apache/superset/pull/19095) fix(dashboard): Empty states overflowing small chart containers (@kgabryje)
-- [#18947](https://github.com/apache/superset/pull/18947) fix(plugin-chart-echarts): make to allow the custome of x & y axis title margin i… (@prosdev0107)
+- [#18947](https://github.com/apache/superset/pull/18947) fix(plugin-chart-echarts): make to allow the customization of x & y axis title margin i… (@prosdev0107)
 - [#19088](https://github.com/apache/superset/pull/19088) fix(dashboard): import handle missing excluded charts (@villebro)
 - [#19072](https://github.com/apache/superset/pull/19072) fix: Show Totals error with sort and group by together (@codemaster08240328)
 - [#19037](https://github.com/apache/superset/pull/19037) fix: Database import error with a new field (@codemaster08240328)
