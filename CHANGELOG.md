@@ -1956,7 +1956,7 @@ under the License.
 - [#20612](https://github.com/apache/superset/pull/20612) chore(explore): update Explore icons and icon colors (@codyml)
 - [#20915](https://github.com/apache/superset/pull/20915) chore(test): Unskip Cypress test (@codyml)
 - [#20884](https://github.com/apache/superset/pull/20884) other(mypy): Enable warn_unused_ignores (@john-bodley)
-- [#20690](https://github.com/apache/superset/pull/20690) chore: Remove unecessary code from async and sync select components (@cccs-RyanK)
+- [#20690](https://github.com/apache/superset/pull/20690) chore: Remove unnecessary code from async and sync select components (@cccs-RyanK)
 - [#20669](https://github.com/apache/superset/pull/20669) chore: adding Bazaar Technologies to Superset Users (@umair-abro)
 - [#20786](https://github.com/apache/superset/pull/20786) chore(deps): bump terser from 5.9.0 to 5.14.2 in /docs (@dependabot[bot])
 - [#20810](https://github.com/apache/superset/pull/20810) refactor: Improve performance regression introduced in #20473 (@john-bodley)
