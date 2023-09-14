@@ -2132,7 +2132,7 @@ under the License.
 - [#19898](https://github.com/apache/superset/pull/19898) feat: When editing the label/title in the Metrics popover, hitting Enter should save what you've typed (@diegomedina248)
 - [#16493](https://github.com/apache/superset/pull/16493) feat(plugin-chart-echarts): [feature-parity] support extra control for the area chart V2 (@stephenLYZ)
 - [#19855](https://github.com/apache/superset/pull/19855) feat(explore): Frontend implementation of dataset creation from infobox (@lyndsiWilliams)
-- [#20165](https://github.com/apache/superset/pull/20165) feat: add modfied col and timezone info to schedule col (@pkdotson)
+- [#20165](https://github.com/apache/superset/pull/20165) feat: add modified col and timezone info to schedule col (@pkdotson)
 - [#20144](https://github.com/apache/superset/pull/20144) feat: showing results pane in dashboard (@zhaoyongjie)
 - [#20242](https://github.com/apache/superset/pull/20242) feat: derived metrics use different line style (@zhaoyongjie)
 - [#20010](https://github.com/apache/superset/pull/20010) feat: standardized form_data (@zhaoyongjie)
