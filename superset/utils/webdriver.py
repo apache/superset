@@ -52,7 +52,7 @@ if feature_flag_manager.is_feature_enabled("PLAYWRIGHT_REPORTS_AND_THUMBNAILS"):
         Error,
         Page,
         sync_playwright,
-        TimeoutError,
+        TimeoutError as PlaywrightTimeout,
     )
 
 
@@ -67,6 +67,7 @@ class ChartStandaloneMode(Enum):
     SHOW_NAV = 0
 
 
+# pylint: disable=too-few-public-methods
 class WebDriverProxy(ABC):
     def __init__(self, driver_type: str, window: WindowSize | None = None):
         self._driver_type = driver_type
@@ -84,7 +85,7 @@ class WebDriverProxy(ABC):
 class WebDriverPlaywright(WebDriverProxy):
     @staticmethod
     def auth(user: User, context: BrowserContext) -> BrowserContext:
-        return machine_auth_provider_factory.instance.authenticate_playwright_browser_context(
+        return machine_auth_provider_factory.instance.authenticate_browser_context(
             context, user
         )
 
@@ -136,7 +137,7 @@ class WebDriverPlaywright(WebDriverProxy):
                     # Even if some errors can't be updated in the screenshot,
                     # keep all the errors in the server log and do not fail the loop
                     alert_div.evaluate(
-                        f"(node, error_html) => node.innerHtml = error_html",
+                        "(node, error_html) => node.innerHtml = error_html",
                         [error_as_html],
                     )
                 except Error:
@@ -147,8 +148,8 @@ class WebDriverPlaywright(WebDriverProxy):
         return error_messages
 
     def get_screenshot(self, url: str, element_name: str, user: User) -> bytes | None:
-        with sync_playwright() as p:
-            browser = p.chromium.launch()
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch()
             context = browser.new_context(
                 bypass_csp=True,
                 viewport={
@@ -174,7 +175,7 @@ class WebDriverPlaywright(WebDriverProxy):
                         f".{element_name}",
                         timeout=self._screenshot_locate_wait * 1000,
                     )
-                except TimeoutError as ex:
+                except PlaywrightTimeout as ex:
                     logger.exception("Timed out requesting url %s", url)
                     raise ex
 
@@ -184,7 +185,7 @@ class WebDriverPlaywright(WebDriverProxy):
                     page.wait_for_selector(
                         ".slice_container", timeout=self._screenshot_locate_wait * 1000
                     )
-                except TimeoutError as ex:
+                except PlaywrightTimeout as ex:
                     logger.exception(
                         "Timed out waiting for chart containers to draw at url %s",
                         url,
@@ -200,7 +201,7 @@ class WebDriverPlaywright(WebDriverProxy):
                         timeout=self._screenshot_locate_wait * 1000,
                         state="detached",
                     )
-                except TimeoutError as ex:
+                except PlaywrightTimeout as ex:
                     logger.exception(
                         "Timed out waiting for charts to load at url %s", url
                     )
@@ -218,7 +219,7 @@ class WebDriverPlaywright(WebDriverProxy):
                     url,
                     user.username,
                 )
-                if True:
+                if current_app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"]:
                     unexpected_errors = WebDriverPlaywright.find_unexpected_errors(page)
                     if unexpected_errors:
                         logger.warning(
@@ -228,7 +229,7 @@ class WebDriverPlaywright(WebDriverProxy):
                             unexpected_errors,
                         )
                 img = element.screenshot(path="test.png")
-            except TimeoutError:
+            except PlaywrightTimeout:
                 # raise again for the finally block, but handled above
                 pass
             except StaleElementReferenceException:

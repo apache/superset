@@ -500,8 +500,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # returned from each database in the ``SUPERSET_META_DB_LIMIT`` configuration value
     # in this file.
     "ENABLE_SUPERSET_META_DB": False,
-    # Set to True to replace Selenium library with Playwright to execute reports and thumbnails.
+    # Set to True to replace Selenium with Playwright to execute reports and thumbnails.
     # Unlike Selenium, Playwright reports support deck.gl visualizations
+    # Enabling this feature flag requires installing "playwright" pip package
     "PLAYWRIGHT_REPORTS_AND_THUMBNAILS": False,
 }
 
