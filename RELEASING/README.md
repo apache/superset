@@ -238,7 +238,7 @@ Similar to `cherrytree`, the change log script requires a github token, either a
 
 #### Initial release (e.g. 1.5.0)
 
-When generating the changelog for an initial minor relese, you should compare with
+When generating the changelog for an initial minor release, you should compare with
 the previous release (in the example, the previous release branch is `1.4`, so remember to
 update it accordingly):
 
