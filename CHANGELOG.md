@@ -3216,7 +3216,7 @@ under the License.
 - [#18955](https://github.com/apache/superset/pull/18955) docs: fix sql templating typos (@garyng)
 - [#18931](https://github.com/apache/superset/pull/18931) chore: Moves components out of the commons folder (@michael-s-molina)
 - [#18915](https://github.com/apache/superset/pull/18915) test(Native Filter): User can create parent filters using "Filter is hierarchical (@jinghua-qa)
-- [#18811](https://github.com/apache/superset/pull/18811) chore: add intersect method from backend to fontend for upload extensions (@pkdotson)
+- [#18811](https://github.com/apache/superset/pull/18811) chore: add intersect method from backend to frontend for upload extensions (@pkdotson)
 - [#18935](https://github.com/apache/superset/pull/18935) chore: update `UPDATING.md` re: SIP-68 (@betodealmeida)
 - [#18866](https://github.com/apache/superset/pull/18866) refactor(ImportModelsCommand): clean code, extract logic into methods (@michael-hoffman-26)
 - [#18850](https://github.com/apache/superset/pull/18850) test(native filter): add new native filter test for time column filter (@jinghua-qa)
