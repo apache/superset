@@ -3351,7 +3351,7 @@ under the License.
 - [#17811](https://github.com/apache/superset/pull/17811) other: Add Helm chart option for configOverrides through file (@dd-willgan)
 - [#17828](https://github.com/apache/superset/pull/17828) chore: add lerna version (@zhaoyongjie)
 - [#17827](https://github.com/apache/superset/pull/17827) refactor(monorepo): migrate plugins release workflow (@zhaoyongjie)
-- [#17754](https://github.com/apache/superset/pull/17754) docs: update contribuing docs (@zhaoyongjie)
+- [#17754](https://github.com/apache/superset/pull/17754) docs: update contributing docs (@zhaoyongjie)
 - [#17650](https://github.com/apache/superset/pull/17650) chore: updated screenshots in README.md and added recent events (@srinify)
 - [#17797](https://github.com/apache/superset/pull/17797) chore(plugin-chart-table): move adhoc filters control closer to the metrics (@kgabryje)
 - [#17798](https://github.com/apache/superset/pull/17798) chore(plugin-chart-pivot-table): change order of Columns and Rows controls (@kgabryje)
