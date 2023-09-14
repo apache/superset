@@ -333,9 +333,9 @@ def test_run_async_cta_query_with_lower_limit(test_client, ctas_method):
     query = wait_for_success(result)
     assert QueryStatus.SUCCESS == query.status
 
-    sqllite_select_sql = f"SELECT *\nFROM {tmp_table}\nLIMIT {query.limit}\nOFFSET 0"
+    sqlite_select_sql = f"SELECT *\nFROM {tmp_table}\nLIMIT {query.limit}\nOFFSET 0"
     assert query.select_sql == (
-        sqllite_select_sql
+        sqlite_select_sql
         if backend() == "sqlite"
         else get_select_star(tmp_table, query.limit)
     )
