@@ -52,6 +52,20 @@ class TestSqlLabApi(SupersetTestCase):
     )
     def test_get_from_empty_bootsrap_data(self):
         self.login(username="gamma_sqllab_no_data")
+        # create a tab
+        data = {
+            "queryEditor": json.dumps(
+                {
+                    "title": "Untitled Query 1",
+                    "dbId": 1,
+                    "schema": None,
+                    "autorun": False,
+                    "sql": "SELECT ...",
+                    "queryLimit": 1000,
+                }
+            )
+        }
+        self.get_json_resp("/tabstateview/", data=data)
         resp = self.client.get("/api/v1/sqllab/")
         assert resp.status_code == 200
         data = json.loads(resp.data.decode("utf-8"))
