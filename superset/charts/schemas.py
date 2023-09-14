@@ -1593,7 +1593,7 @@ CHART_SCHEMAS = (
     ChartDataResponseSchema,
     ChartDataAsyncResponseSchema,
     # TODO: These should optimally be included in the QueryContext schema as an `anyOf`
-    #  in ChartDataPostPricessingOperation.options, but since `anyOf` is not
+    #  in ChartDataPostProcessingOperation.options, but since `anyOf` is not
     #  by Marshmallow<3, this is not currently possible.
     ChartDataAdhocMetricSchema,
     ChartDataAggregateOptionsSchema,
