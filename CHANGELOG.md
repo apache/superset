@@ -2856,7 +2856,7 @@ under the License.
 - [#19341](https://github.com/apache/superset/pull/19341) fix: Null values on Explore filter (@michael-s-molina)
 - [#19338](https://github.com/apache/superset/pull/19338) fix(docs): spelling (@ndbu)
 - [#19339](https://github.com/apache/superset/pull/19339) fix(embedded): download chart as image (@lilykuang)
-- [#19327](https://github.com/apache/superset/pull/19327) fix(dashboard): Chart stuck in loading state when when datasets request and chart request fail (@kgabryje)
+- [#19327](https://github.com/apache/superset/pull/19327) fix(dashboard): Chart stuck in loading state when datasets request and chart request fail (@kgabryje)
 - [#19316](https://github.com/apache/superset/pull/19316) fix(explore): make to convert null to N/A in view results (@prosdev0107)
 - [#19326](https://github.com/apache/superset/pull/19326) fix: regression on Select component when handling null values (@diegomedina248)
 - [#18741](https://github.com/apache/superset/pull/18741) fix(dashboard): fix default filter bar visibility + add docs (@villebro)
