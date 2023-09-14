@@ -50,7 +50,7 @@ describe('Button', () => {
   });
 
   // test stories from the storybook!
-  it('All the sorybook gallery variants mount', () => {
+  it('All the storybook gallery variants mount', () => {
     wrapper = mount(<ButtonGallery />);
 
     const permutationCount =
