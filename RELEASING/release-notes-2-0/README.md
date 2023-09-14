@@ -28,7 +28,7 @@ Superset 2.0 is a big step forward. This release cleans up many legacy code path
 
 ## Developer Experience
 
-- Addition of a statsd guage metric for Slack and email notifications for increased visibility into errors around alerts / reports ([#20158](https://github.com/apache/superset/pull/20158))
+- Addition of a statsd gauge metric for Slack and email notifications for increased visibility into errors around alerts / reports ([#20158](https://github.com/apache/superset/pull/20158))
 
 - Helm chart now supports resource limits and requests for each component ([#20052](https://github.com/apache/superset/pull/20052))
 
