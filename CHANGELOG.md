@@ -1434,7 +1434,7 @@ under the License.
 - [#21025](https://github.com/apache/superset/pull/21025) fix: unable to show view as table modal (@zhaoyongjie)
 - [#21030](https://github.com/apache/superset/pull/21030) fix: making crossFilter.chartsInScope optional (@rusackas)
 - [#20970](https://github.com/apache/superset/pull/20970) fix: forwardRef warnings in selects (@michael-s-molina)
-- [#21017](https://github.com/apache/superset/pull/21017) fix(plugin-echart-timeseries): legend trancated on show extra controls (@justinpark)
+- [#21017](https://github.com/apache/superset/pull/21017) fix(plugin-echart-timeseries): legend truncated on show extra controls (@justinpark)
 - [#21016](https://github.com/apache/superset/pull/21016) fix(sqllab): result set min-height (@ktmud)
 - [#20999](https://github.com/apache/superset/pull/20999) fix: quick fix to rows returned in results (@AAfghahi)
 - [#20965](https://github.com/apache/superset/pull/20965) fix: save dataset and repopulate state (@eschutho)
