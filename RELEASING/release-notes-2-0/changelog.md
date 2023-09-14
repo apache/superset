@@ -463,7 +463,7 @@ under the License.
 - [#19486](https://github.com/apache/superset/pull/19486) refactor: Removes the CSS files from the Treemap plugin (@michael-s-molina)
 - [#19488](https://github.com/apache/superset/pull/19488) refactor: Removes the CSS files from the Sunburst plugin (@michael-s-molina)
 - [#19490](https://github.com/apache/superset/pull/19490) chore: Add theme color to ParallelCoordinates (@geido)
-- [#19442](https://github.com/apache/superset/pull/19442) chore: Remove FilterbaleTableStyles.less (@geido)
+- [#19442](https://github.com/apache/superset/pull/19442) chore: Remove FilterableTableStyles.less (@geido)
 - [#19441](https://github.com/apache/superset/pull/19441) chore: Remove StyledQueryButton.less (@geido)
 - [#19473](https://github.com/apache/superset/pull/19473) refactor: Removes the CSS files from the Rose plugin (@michael-s-molina)
 - [#19466](https://github.com/apache/superset/pull/19466) chore: Removes hard-coded colors from legacy-plugin-chart-world-map (@michael-s-molina)
