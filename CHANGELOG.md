@@ -3340,7 +3340,7 @@ under the License.
 - [#17962](https://github.com/apache/superset/pull/17962) chore(deps): bump urijs from 1.19.6 to 1.19.7 in /superset-frontend (@dependabot[bot])
 - [#17942](https://github.com/apache/superset/pull/17942) chore: Fix 'button' misspelling in list_with_checkboxes (@acrks)
 - [#17860](https://github.com/apache/superset/pull/17860) chore: remove unused eslintrc (@zhaoyongjie)
-- [#17909](https://github.com/apache/superset/pull/17909) refactor(storybok): upgrade to webpack5 in storybook of plugins (@zhaoyongjie)
+- [#17909](https://github.com/apache/superset/pull/17909) refactor(storybook): upgrade to webpack5 in storybook of plugins (@zhaoyongjie)
 - [#17924](https://github.com/apache/superset/pull/17924) chore: fix misspelling of button (@DavidWoolner)
 - [#17782](https://github.com/apache/superset/pull/17782) ci: make presto hive tests to cover only chartData and sqljson (@amitmiran137)
 - [#17717](https://github.com/apache/superset/pull/17717) chore: Fix UPDATING.md (@john-bodley)
