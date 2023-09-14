@@ -169,7 +169,7 @@ describe('DashboardBuilder', () => {
     const expectedCount =
       undoableDashboardLayoutWithTabs.present.TABS_ID.children.length;
     const tabPanels = within(parentSize).getAllByRole('tabpanel', {
-      // to include invisiable tab panels
+      // to include invisible tab panels
       hidden: true,
     });
     expect(tabPanels.length).toBe(expectedCount);
@@ -190,7 +190,7 @@ describe('DashboardBuilder', () => {
     const expectedCount =
       undoableDashboardLayoutWithTabs.present.TABS_ID.children.length;
     const tabPanels = within(parentSize).getAllByRole('tabpanel', {
-      // to include invisiable tab panels
+      // to include invisible tab panels
       hidden: true,
     });
     expect(tabPanels.length).toBe(expectedCount);
