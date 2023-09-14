@@ -91,7 +91,7 @@ query_context_description = (
 )
 query_context_generation_description = (
     "The query context generation represents whether the query_context"
-    "is user generated or not so that it does not update user modfied"
+    "is user generated or not so that it does not update user modified"
     "state."
 )
 cache_timeout_description = (

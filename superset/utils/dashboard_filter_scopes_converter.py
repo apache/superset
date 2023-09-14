@@ -109,7 +109,7 @@ def convert_filter_scopes_to_native_filters(  # pylint: disable=invalid-name,too
     filter-box charts whereas native hierarchical filters are defined via explicit
     parental relationships, i.e., the inverse.
 
-    :param json_metata: The dashboard metadata
+    :param json_metadata: The dashboard metadata
     :param position_json: The dashboard layout
     :param filter_boxes: The filter-box charts associated with the dashboard
     :returns: The native filter configuration
