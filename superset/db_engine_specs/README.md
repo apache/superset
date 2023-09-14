@@ -722,4 +722,4 @@ Superset has a command to test the connection to a given database, as well as ch
 superset test-db sqlite://
 ```
 
-If the connection needs additional arguments thay can be passed when the command runs.
+If the connection needs additional arguments they can be passed when the command runs.
