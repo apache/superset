@@ -191,7 +191,7 @@ under the License.
 - [#20206](https://github.com/apache/superset/pull/20206) fix(sql lab): SQL Lab Compile Query Delay (@diegomedina248)
 - [#20201](https://github.com/apache/superset/pull/20201) fix: unable to set destroyOnClose on ModalTrigger (@zhaoyongjie)
 - [#20186](https://github.com/apache/superset/pull/20186) fix(db): make to allow to show/hide the password when only creating (@prosdev0107)
-- [#20127](https://github.com/apache/superset/pull/20127) fix(database): retrival of tables and views from schema for exasol backend (@Nicoretti)
+- [#20127](https://github.com/apache/superset/pull/20127) fix(database): retrieval of tables and views from schema for exasol backend (@Nicoretti)
 - [#19899](https://github.com/apache/superset/pull/19899) fix: always create parameter json field (@pkdotson)
 - [#20173](https://github.com/apache/superset/pull/20173) fix: avoid while cycle in computeMaxFontSize for big Number run forever when css rule applied (@diegomedina248)
 - [#20086](https://github.com/apache/superset/pull/20086) fix(css): transparent linear gradient not working in safari (@stephenLYZ)
