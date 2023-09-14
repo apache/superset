@@ -89,7 +89,7 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
             "(timestamp 'epoch' + lower_case * interval '1 second'))",
         )
 
-    def test_time_exp_mixd_case_col_1y(self):
+    def test_time_exp_mixed_case_col_1y(self):
         """
         DB Eng Specs (postgres): Test grain expr mixed case 1 YEAR
         """

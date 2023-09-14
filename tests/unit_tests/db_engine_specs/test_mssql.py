@@ -94,7 +94,7 @@ def test_where_clause_n_prefix() -> None:
     assert query == query_expected
 
 
-def test_time_exp_mixd_case_col_1y() -> None:
+def test_time_exp_mixed_case_col_1y() -> None:
     from superset.db_engine_specs.mssql import MssqlEngineSpec
 
     col = column("MixedCase")
