@@ -2827,7 +2827,7 @@ under the License.
 - [#19716](https://github.com/apache/superset/pull/19716) fix: drop the first level of MultiIndex (@zhaoyongjie)
 - [#19688](https://github.com/apache/superset/pull/19688) fix(dashboard): Fix BigNumber causing dashboard to crash when overflowing (@kgabryje)
 - [#19664](https://github.com/apache/superset/pull/19664) fix(sql-lab): do not replace undefined schema with empty object (@villebro)
-- [#19659](https://github.com/apache/superset/pull/19659) fix: time comparision (@zhaoyongjie)
+- [#19659](https://github.com/apache/superset/pull/19659) fix: time comparison (@zhaoyongjie)
 - [#19553](https://github.com/apache/superset/pull/19553) fix(dataset): handle missing python_type gracefully (@villebro)
 - [#19612](https://github.com/apache/superset/pull/19612) fix(select): render when empty multiselect (@villebro)
 - [#19565](https://github.com/apache/superset/pull/19565) fix(sqla): apply jinja to metrics (@villebro)
