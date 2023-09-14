@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { JSONTree } from 'react-json-tree';
-import { css, styled, t } from '@superset-ui/core';
+import { css, styled, SupersetTheme, t } from '@superset-ui/core';
 
 import { useJsonTreeTheme } from 'src/hooks/useJsonTreeTheme';
 import Collapse from 'src/components/Collapse';
@@ -38,7 +38,7 @@ const StyledUl = styled.ul`
   padding-top: ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
-const collapseStyle = theme => css`
+const collapseStyle = (theme: SupersetTheme) => css`
   .ant-collapse-arrow {
     left: 0px !important;
   }

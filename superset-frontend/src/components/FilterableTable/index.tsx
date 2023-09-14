@@ -24,7 +24,6 @@ import {
   t,
   safeHtmlSpan,
   styled,
-  useTheme,
 } from '@superset-ui/core';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
 import { useJsonTreeTheme } from 'src/hooks/useJsonTreeTheme';
