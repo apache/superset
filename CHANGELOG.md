@@ -2188,7 +2188,7 @@ under the License.
 - [#19558](https://github.com/apache/superset/pull/19558) feat(explore): Redesign of Run/Save buttons (@kgabryje)
 - [#19650](https://github.com/apache/superset/pull/19650) feat(embedded): API get embedded dashboard config by uuid (@lilykuang)
 - [#19310](https://github.com/apache/superset/pull/19310) feat(CRUD): add new empty state (@stephenLYZ)
-- [#19622](https://github.com/apache/superset/pull/19622) feat(plugin-chart-echarts): add aggregate total for the Pie/Donuct chart (@stephenLYZ)
+- [#19622](https://github.com/apache/superset/pull/19622) feat(plugin-chart-echarts): add aggregate total for the Pie/Donut chart (@stephenLYZ)
 - [#19314](https://github.com/apache/superset/pull/19314) feat: Move Database Import option into DB Connection modal (@lyndsiWilliams)
 - [#19434](https://github.com/apache/superset/pull/19434) feat: deprecate old API and create new API for dashes created by me (@dpgaspar)
 - [#19482](https://github.com/apache/superset/pull/19482) feat: add success toast to alerts and reports (@pkdotson)
