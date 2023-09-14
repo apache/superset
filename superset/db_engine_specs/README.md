@@ -107,7 +107,7 @@ When running user queries in SQL Lab, Superset needs to limit the number of rows
 
 For most databases this is done by parsing the user submitted query and applying a limit, if one is not present, or replacing the existing limit if it's larger. This is called the `FORCE_LIMIT` method, and is the most efficient, since the database will produce at most the number of rows that Superset will display.
 
-For some databases this method might not work, and they can use the `WRAP_SQL` method, which wraps the original query in a `SELECT *` and applies a limit via the SQLAlchemy dialect, which should get translated to the correct syntax. This method might be inneficient, since the database optimizer might not be able to push the limit to the inner query.
+For some databases this method might not work, and they can use the `WRAP_SQL` method, which wraps the original query in a `SELECT *` and applies a limit via the SQLAlchemy dialect, which should get translated to the correct syntax. This method might be inefficient, since the database optimizer might not be able to push the limit to the inner query.
 
 Finally, as a last resource there is the `FETCH_MANY` method. When a DB engine spec uses this method the query runs unmodified, but Superset fetches only a certain number of rows from the cursor. It's possible that a database using this method can optimize the query execution and compute rows as they are being read by the cursor, but it's unlikely. This makes this method the least efficient of the three.
 
