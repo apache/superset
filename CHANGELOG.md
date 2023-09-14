@@ -2708,7 +2708,7 @@ under the License.
 - [#17045](https://github.com/apache/superset/pull/17045) docs: add vscode linter instructions to CONTRIBUTING.md (@suddjian)
 - [#16993](https://github.com/apache/superset/pull/16993) style: Update text for SLL Tooltip (@gabester78)
 - [#16959](https://github.com/apache/superset/pull/16959) chore(Dashboard): Implement dedicated message for missing dataset (@geido)
-- [#17016](https://github.com/apache/superset/pull/17016) docs(pylint): Add context about disablement of Pylint messages (@john-bodley)
+- [#17016](https://github.com/apache/superset/pull/17016) docs(pylint): Add context about disabling of Pylint messages (@john-bodley)
 - [#17009](https://github.com/apache/superset/pull/17009) chore: bump superset-ui 0.18.10 (@zhaoyongjie)
 - [#16974](https://github.com/apache/superset/pull/16974) refactor(filterset): improve response body (@ofekisr)
 - [#16999](https://github.com/apache/superset/pull/16999) chore: no direct use of supersetTheme (or bad LESS vars) in SqlEditor (@rusackas)
