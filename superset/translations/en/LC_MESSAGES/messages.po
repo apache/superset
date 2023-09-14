@@ -6977,7 +6977,7 @@ msgstr ""
 msgid "One or more parameters specified in the query are missing."
 msgstr ""
 
-msgid "One ore more annotation layers failed loading."
+msgid "One or more annotation layers failed loading."
 msgstr ""
 
 msgid "Only SELECT statements are allowed against this database."
