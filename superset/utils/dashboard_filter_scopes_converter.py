@@ -142,7 +142,7 @@ def convert_filter_scopes_to_native_filters(  # pylint: disable=invalid-name,too
             **(filter_scopes.get(key, {})),
         }
 
-    # Contruct the native filters.
+    # Construct the native filters.
     for filter_box in filter_boxes:
         key = str(filter_box.id)
         params = json.loads(filter_box.params or "{}")
