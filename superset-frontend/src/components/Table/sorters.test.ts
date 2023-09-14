@@ -67,7 +67,7 @@ test('alphabeticalSort bad inputs no errors', () => {
   // incorrect non-object values
   // @ts-ignore
   expect(alphabeticalSort('name', 3, [])).toBe(undefined);
-  // incorrect object values without specificed key
+  // incorrect object values without specified key
   expect(alphabeticalSort('name', {}, {})).toBe(undefined);
   // Object as value for name when it should be a string
   expect(
