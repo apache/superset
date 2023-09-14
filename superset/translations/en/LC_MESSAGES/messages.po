@@ -12168,7 +12168,7 @@ msgstr ""
 
 msgid ""
 "Whether to show extra controls or not. Extra controls include things like"
-" making mulitBar charts stacked or side by side."
+" making multiBar charts stacked or side by side."
 msgstr ""
 
 msgid "Whether to show minor ticks on the axis"

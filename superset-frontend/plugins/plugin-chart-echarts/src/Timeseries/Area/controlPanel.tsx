@@ -130,7 +130,7 @@ const config: ControlPanelConfig = {
               default: false,
               description: t(
                 'Whether to show extra controls or not. Extra controls ' +
-                  'include things like making mulitBar charts stacked ' +
+                  'include things like making multiBar charts stacked ' +
                   'or side by side.',
               ),
             },
