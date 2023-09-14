@@ -2904,7 +2904,7 @@ under the License.
 - [#19052](https://github.com/apache/superset/pull/19052) fix: add previous line hotkey to SQL Lab for macOS (@diegomedina248)
 - [#18690](https://github.com/apache/superset/pull/18690) fix: Update time grain expressions for Spark >= 3.x (@thomasdesr)
 - [#19048](https://github.com/apache/superset/pull/19048) fix: remove unnecessary divider (@pkdotson)
-- [#19059](https://github.com/apache/superset/pull/19059) fix(deck.gl): make Deck.gl Javascript tooltip generator works correctly (@chanyou0311)
+- [#19059](https://github.com/apache/superset/pull/19059) fix(deck.gl): make Deck.gl JavaScript tooltip generator works correctly (@chanyou0311)
 - [#19044](https://github.com/apache/superset/pull/19044) fix: improve cypress flakiness (@etr2460)
 - [#19043](https://github.com/apache/superset/pull/19043) fix(big-number): Big Number with Trendline Chart is not working if Time Grain is set to Month (@stephenLYZ)
 - [#19040](https://github.com/apache/superset/pull/19040) fix(docs): update impala.mdx with correct product name (@DLT1412)
