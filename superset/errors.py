@@ -131,7 +131,7 @@ ISSUE_CODES = {
     1025: _("CVAS (create view as select) query is not a SELECT statement."),
     1026: _("Query is too complex and takes too long to run."),
     1027: _("The database is currently running too many queries."),
-    1028: _("One or more parameters specified in the query are malformatted."),
+    1028: _("One or more parameters specified in the query are malformed."),
     1029: _("The object does not exist in the given database."),
     1030: _("The query has a syntax error."),
     1031: _("The results backend no longer has the data from the query."),
