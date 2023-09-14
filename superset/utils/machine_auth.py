@@ -18,14 +18,13 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING
 
 from flask import current_app, Flask, request, Response, session
 from flask_login import login_user
 from selenium.webdriver.remote.webdriver import WebDriver
 from werkzeug.http import parse_cookie
 
-from superset import feature_flag_manager
 from superset.utils.class_utils import load_class_from_name
 from superset.utils.urls import headless_url
 
@@ -34,8 +33,10 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla.models import User
 
-    if feature_flag_manager.is_feature_enabled("PLAYWRIGHT_REPORTS_AND_THUMBNAILS"):
+    try:
         from playwright.sync_api import BrowserContext
+    except ModuleNotFoundError:
+        BrowserContext = Any
 
 
 class MachineAuthProvider:
