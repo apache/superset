@@ -34,8 +34,8 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla.models import User
 
-if feature_flag_manager.is_feature_enabled("PLAYWRIGHT_REPORTS_AND_THUMBNAILS"):
-    from playwright.sync_api import BrowserContext
+    if feature_flag_manager.is_feature_enabled("PLAYWRIGHT_REPORTS_AND_THUMBNAILS"):
+        from playwright.sync_api import BrowserContext
 
 
 class MachineAuthProvider:
