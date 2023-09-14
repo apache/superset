@@ -411,6 +411,7 @@ class TestCore(SupersetTestCase):
         self.get_json_resp(f"/superset/warm_up_cache?slice_id={slc.id}")
         ck = db.session.query(CacheKey).order_by(CacheKey.id.desc()).first()
         assert ck.datasource_uid == f"{slc.table.id}__table"
+        db.session.delete(ck)
         app.config["STORE_CACHE_KEYS_IN_METADATA_DB"] = store_cache_keys
 
     def test_redirect_invalid(self):

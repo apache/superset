@@ -14,9 +14,27 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Optional, TypedDict
+# pylint: disable=unused-argument, import-outside-toplevel, protected-access
+from datetime import datetime
+from typing import Optional
+
+import pytest
+
+from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
+from tests.unit_tests.fixtures.common import dttm
 
 
-class Entry(TypedDict):
-    owner: Optional[int]
-    value: str
+@pytest.mark.parametrize(
+    "target_type,expected_result",
+    [
+        ("Date", "'2019-01-02'"),
+        ("TimeStamp", "'2019-01-02 03:04:05'"),
+        ("UnknownType", None),
+    ],
+)
+def test_convert_dttm(
+    target_type: str, expected_result: Optional[str], dttm: datetime
+) -> None:
+    from superset.db_engine_specs.cockroachdb import CockroachDbEngineSpec as spec
+
+    assert_convert_dttm(spec, target_type, expected_result, dttm)

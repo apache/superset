@@ -27,8 +27,11 @@ import {
   QueryState,
   styled,
   t,
+  tn,
   useTheme,
   usePrevious,
+  css,
+  getNumberFormatter,
 } from '@superset-ui/core';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import {
@@ -42,6 +45,9 @@ import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import ProgressBar from 'src/components/ProgressBar';
 import Loading from 'src/components/Loading';
+import Card from 'src/components/Card';
+import Label from 'src/components/Label';
+import { Tooltip } from 'src/components/Tooltip';
 import FilterableTable from 'src/components/FilterableTable';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
@@ -55,6 +61,7 @@ import {
   reRunQuery,
 } from 'src/SqlLab/actions/sqlLab';
 import { URL_PARAMS } from 'src/constants';
+import Icons from 'src/components/Icons';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
@@ -76,6 +83,7 @@ export interface ResultSetProps {
   query: QueryResponse;
   search?: boolean;
   showSql?: boolean;
+  showSqlInline?: boolean;
   visualize?: boolean;
   user: UserWithPermissionsAndRoles;
   defaultQueryLimit: number;
@@ -110,7 +118,7 @@ const MonospaceDiv = styled.div`
 
 const ReturnedRows = styled.div`
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  line-height: ${({ theme }) => theme.gridUnit * 6}px;
+  line-height: 1;
 `;
 
 const ResultSetControls = styled.div`
@@ -124,10 +132,8 @@ const ResultSetButtons = styled.div`
   padding-right: ${({ theme }) => 2 * theme.gridUnit}px;
 `;
 
-const LimitMessage = styled.span`
-  color: ${({ theme }) => theme.colors.secondary.light1};
-  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
-`;
+const ROWS_CHIP_WIDTH = 100;
+const GAP = 8;
 
 const ResultSet = ({
   cache = false,
@@ -138,6 +144,7 @@ const ResultSet = ({
   query,
   search = true,
   showSql = false,
+  showSqlInline = false,
   visualize = true,
   user,
   defaultQueryLimit,
@@ -296,7 +303,7 @@ const ResultSet = ({
 
   const renderRowsReturned = () => {
     const { results, rows, queryLimit, limitingFactor } = query;
-    let limitMessage;
+    let limitMessage = '';
     const limitReached = results?.displayLimitReached;
     const limit = queryLimit || results.query.limit;
     const isAdmin = !!user?.roles?.Admin;
@@ -339,7 +346,7 @@ const ResultSet = ({
         { rows },
       );
     }
-
+    const formattedRowCount = getNumberFormatter()(rows);
     const rowsReturnedMessage = t('%(rows)d rows returned', {
       rows,
     });
@@ -349,10 +356,27 @@ const ResultSet = ({
     return (
       <ReturnedRows>
         {!limitReached && !shouldUseDefaultDropdownAlert && (
-          <span title={tooltipText}>
-            {rowsReturnedMessage}
-            <LimitMessage>{limitMessage}</LimitMessage>
-          </span>
+          <Tooltip
+            id="sqllab-rowcount-tooltip"
+            title={tooltipText}
+            placement="left"
+          >
+            <Label
+              css={css`
+                line-height: ${theme.typography.sizes.l}px;
+              `}
+            >
+              {limitMessage && (
+                <Icons.ExclamationCircleOutlined
+                  css={css`
+                    font-size: ${theme.typography.sizes.m}px;
+                    margin-right: ${theme.gridUnit}px;
+                  `}
+                />
+              )}
+              {tn('%s row', '%s rows', rows, formattedRowCount)}
+            </Label>
+          </Tooltip>
         )}
         {!limitReached && shouldUseDefaultDropdownAlert && (
           <div ref={calculateAlertRefHeight}>
@@ -413,7 +437,12 @@ const ResultSet = ({
   }
 
   if (showSql) {
-    sql = <HighlightedSql sql={query.sql} />;
+    sql = (
+      <HighlightedSql
+        sql={query.sql}
+        {...(showSqlInline && { maxLines: 1, maxWidth: 60 })}
+      />
+    );
   }
 
   if (query.state === QueryState.STOPPED) {
@@ -501,8 +530,39 @@ const ResultSet = ({
       return (
         <ResultContainer>
           {renderControls()}
-          {renderRowsReturned()}
-          {sql}
+          {showSql && showSqlInline ? (
+            <div
+              css={css`
+                display: flex;
+                justify-content: space-between;
+                gap: ${GAP}px;
+              `}
+            >
+              <Card
+                css={[
+                  css`
+                    height: 28px;
+                    width: calc(100% - ${ROWS_CHIP_WIDTH + GAP}px);
+                    code {
+                      width: 100%;
+                      overflow: hidden;
+                      white-space: nowrap !important;
+                      text-overflow: ellipsis;
+                      display: block;
+                    }
+                  `,
+                ]}
+              >
+                {sql}
+              </Card>
+              {renderRowsReturned()}
+            </div>
+          ) : (
+            <>
+              {renderRowsReturned()}
+              {sql}
+            </>
+          )}
           <FilterableTable
             data={data}
             orderedColumnKeys={results.columns.map(col => col.column_name)}

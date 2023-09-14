@@ -32,7 +32,6 @@ from superset.tags.commands.create import (
 )
 from superset.tags.commands.delete import DeleteTaggedObjectCommand, DeleteTagsCommand
 from superset.tags.commands.exceptions import (
-    TagCreateFailedError,
     TagDeleteFailedError,
     TaggedObjectDeleteFailedError,
     TaggedObjectNotFoundError,
@@ -47,6 +46,7 @@ from superset.tags.schemas import (
     openapi_spec_methods_override,
     TaggedObjectEntityResponseSchema,
     TagGetResponseSchema,
+    TagPostBulkSchema,
     TagPostSchema,
     TagPutSchema,
 )
@@ -72,6 +72,7 @@ class TagRestApi(BaseSupersetModelRestApi):
         "add_favorite",
         "remove_favorite",
         "favorite_status",
+        "bulk_create",
     }
 
     resource_name = "tag"
@@ -88,6 +89,7 @@ class TagRestApi(BaseSupersetModelRestApi):
         "changed_by.first_name",
         "changed_by.last_name",
         "changed_on_delta_humanized",
+        "created_on_delta_humanized",
         "created_by.first_name",
         "created_by.last_name",
     ]
@@ -102,6 +104,7 @@ class TagRestApi(BaseSupersetModelRestApi):
         "changed_by.first_name",
         "changed_by.last_name",
         "changed_on_delta_humanized",
+        "created_on_delta_humanized",
         "created_by.first_name",
         "created_by.last_name",
         "created_by",
@@ -192,14 +195,81 @@ class TagRestApi(BaseSupersetModelRestApi):
             return self.response(201)
         except TagInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
-        except TagCreateFailedError as ex:
-            logger.error(
-                "Error creating model %s: %s",
-                self.__class__.__name__,
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_500(message=str(ex))
+
+    @expose("/bulk_create", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_create",
+        log_to_statsd=False,
+    )
+    def bulk_create(self) -> Response:
+        """Bulk create tags and tagged objects
+        ---
+        post:
+          summary: Get all objects associated with a tag
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: tag_id
+          requestBody:
+            description: Tag schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    tags:
+                      description: list of tag names to add to object
+                      type: array
+                      items:
+                        type: string
+                    objects_to_tag:
+                      description: list of object names to add to object
+                      type: array
+                      items:
+                        type: array
+          responses:
+            200:
+              description: Tag added to favorites
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+            302:
+              description: Redirects to the current digest
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            item = TagPostBulkSchema().load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        try:
+            for tag in item.get("tags"):
+                tagged_item: dict[str, Any] = self.add_model_schema.load(
+                    {"name": tag, "objects_to_tag": item.get("objects_to_tag")}
+                )
+                CreateCustomTagWithRelationshipsCommand(
+                    tagged_item, bulk_create=True
+                ).run()
+            return self.response(201)
+        except TagNotFoundError:
+            return self.response_404()
+        except TagInvalidError as ex:
+            return self.response_422(message=ex.message)
 
     @expose("/<pk>", methods=("PUT",))
     @protect()
@@ -329,14 +399,6 @@ class TagRestApi(BaseSupersetModelRestApi):
             )
         except TagInvalidError:
             return self.response(422, message="Invalid tag")
-        except TagCreateFailedError as ex:
-            logger.error(
-                "Error creating model %s: %s",
-                self.__class__.__name__,
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_500(message=str(ex))
 
     @expose("/<int:object_type>/<int:object_id>/<tag>/", methods=("DELETE",))
     @protect()
@@ -515,14 +577,6 @@ class TagRestApi(BaseSupersetModelRestApi):
             return self.response(200, result=result)
         except TagInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
-        except TagCreateFailedError as ex:
-            logger.error(
-                "Error creating model %s: %s",
-                self.__class__.__name__,
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_500(message=str(ex))
 
     @expose("/favorite_status/", methods=("GET",))
     @protect()
