@@ -2387,7 +2387,7 @@ under the License.
 - [#19570](https://github.com/apache/superset/pull/19570) fix: sqloxide optional (@betodealmeida)
 - [#19397](https://github.com/apache/superset/pull/19397) fix: weight tooltip issue (@codemaster08240328)
 - [#19313](https://github.com/apache/superset/pull/19313) fix(sql lab): increase the size of the action icons in the history tab (@diegomedina248)
-- [#19039](https://github.com/apache/superset/pull/19039) fix(explore): clean data when hidding control (@stephenLYZ)
+- [#19039](https://github.com/apache/superset/pull/19039) fix(explore): clean data when hiding control (@stephenLYZ)
 - [#19444](https://github.com/apache/superset/pull/19444) fix: Error Message is cut off in alerts & reports log page (@codemaster08240328)
 - [#19312](https://github.com/apache/superset/pull/19312) fix: adaptive formatting typo in explore dropdowns (@diegomedina248)
 - [#19534](https://github.com/apache/superset/pull/19534) fix(explore): Chart header icon paddings (@kgabryje)
