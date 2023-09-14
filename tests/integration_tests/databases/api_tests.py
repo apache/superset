@@ -3633,7 +3633,7 @@ class TestDatabaseApi(SupersetTestCase):
         Database API: validate SQL with errors
         """
         request_payload = {
-            "sql": "SELECT col1 froma table1",
+            "sql": "SELECT col1 fromA table1",
             "schema": None,
             "template_params": None,
         }
