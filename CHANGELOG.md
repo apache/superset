@@ -1158,7 +1158,7 @@ under the License.
 - [#22671](https://github.com/apache/superset/pull/22671) fix: remove whitespace from http_path for databricks (@eschutho)
 - [#22716](https://github.com/apache/superset/pull/22716) fix(helm): remove config overrides for CSRF (@reidab)
 - [#22693](https://github.com/apache/superset/pull/22693) fix(explore): Restore missing dataset states (@codyml)
-- [#22720](https://github.com/apache/superset/pull/22720) fix: bootstraping frontend (@cdreier)
+- [#22720](https://github.com/apache/superset/pull/22720) fix: bootstrapping frontend (@cdreier)
 - [#22709](https://github.com/apache/superset/pull/22709) fix: Spacing in alert modal (@lyndsiWilliams)
 - [#22688](https://github.com/apache/superset/pull/22688) fix: alert modal bug fix (@AAfghahi)
 - [#22462](https://github.com/apache/superset/pull/22462) fix(embed): fix server error due to breaking change on flask-login (@Usiel)
