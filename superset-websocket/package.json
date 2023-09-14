@@ -22,7 +22,7 @@
     "jsonwebtoken": "^9.0.2",
     "uuid": "^9.0.1",
     "winston": "^3.10.0",
-    "ws": "^8.13.0"
+    "ws": "^8.14.1"
   },
   "devDependencies": {
     "@types/cookie": "^0.5.1",
