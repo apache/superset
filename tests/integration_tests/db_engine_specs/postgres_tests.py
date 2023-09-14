@@ -240,14 +240,14 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         ]
 
         msg = (
-            'psql: error: could not translate host name "locahost" to address: '
+            'psql: error: could not translate host name "localhost_" to address: '
             "nodename nor servname provided, or not known"
         )
         result = PostgresEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
                 error_type=SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
-                message='The hostname "locahost" cannot be resolved.',
+                message='The hostname "localhost_" cannot be resolved.',
                 level=ErrorLevel.ERROR,
                 extra={
                     "engine_name": "PostgreSQL",

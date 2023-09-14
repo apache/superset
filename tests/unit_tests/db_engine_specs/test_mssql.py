@@ -291,14 +291,14 @@ def test_extract_errors() -> None:
     msg = dedent(
         """
 DB-Lib error message 20009, severity 9:
-Unable to connect: Adaptive Server is unavailable or does not exist (locahost)
+Unable to connect: Adaptive Server is unavailable or does not exist (localhost_)
         """
     )
     result = MssqlEngineSpec.extract_errors(Exception(msg))
     assert result == [
         SupersetError(
             error_type=SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
-            message='The hostname "locahost" cannot be resolved.',
+            message='The hostname "localhost_" cannot be resolved.',
             level=ErrorLevel.ERROR,
             extra={
                 "engine_name": "Microsoft SQL Server",
