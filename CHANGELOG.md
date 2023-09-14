@@ -63,7 +63,7 @@ under the License.
 - [#24197](https://github.com/apache/superset/pull/24197) chore(pre-commit): Add pyupgrade and pycln hooks (@john-bodley)
 - [#24127](https://github.com/apache/superset/pull/24127) chore: Embrace the walrus operator (@john-bodley)
 - [#24020](https://github.com/apache/superset/pull/24020) feat: Cross filters scoping (@kgabryje)
-- [#23942](https://github.com/apache/superset/pull/23942) fix: update migration chart_ds_constraint to have seperate batch op (@hughhhh)
+- [#23942](https://github.com/apache/superset/pull/23942) fix: update migration chart_ds_constraint to have separate batch op (@hughhhh)
 - [#23925](https://github.com/apache/superset/pull/23925) fix(migration): add log for values unseen in `Slice.datasource_type` (@hughhhh)
 - [#23614](https://github.com/apache/superset/pull/23614) chore: add check constraint to restrict `Slice` models datasource_type != "table" (@hughhhh)
 - [#23650](https://github.com/apache/superset/pull/23650) fix(migration): Only attempt to drop types if they exist (@jfrag1)
