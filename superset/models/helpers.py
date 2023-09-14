@@ -753,6 +753,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         raise NotImplementedError()
 
     @property
+    def always_filter_main_dttm(self) -> Optional[bool]:
+        return False
+
+    @property
     def dttm_cols(self) -> list[str]:
         raise NotImplementedError()
 
@@ -1676,7 +1680,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
             # Use main dttm column to support index with secondary dttm columns.
             if (
-                db_engine_spec.time_secondary_columns
+                self.always_filter_main_dttm
                 and self.main_dttm_col in self.dttm_cols
                 and self.main_dttm_col != dttm_col.column_name
             ):
