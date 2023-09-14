@@ -281,7 +281,7 @@ pyyaml==6.0.1
     # via
     #   apache-superset
     #   apispec
-redis==4.5.4
+redis==7.0.10
     # via apache-superset
 requests==2.31.0
     # via shillelagh
