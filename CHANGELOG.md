@@ -1767,7 +1767,7 @@ under the License.
 - [#22068](https://github.com/apache/superset/pull/22068) test: Fix act errors in DndColumnSelectControl tests (@corbinrobb)
 - [#22048](https://github.com/apache/superset/pull/22048) test: Fix act errors in DndMetricSelect test (@lyndsiWilliams)
 - [#22041](https://github.com/apache/superset/pull/22041) chore: Adds RTL tests to DropdownContainer (@michael-s-molina)
-- [#21954](https://github.com/apache/superset/pull/21954) build: Mutli-stage build and slim image for websocket container (@Yann-J)
+- [#21954](https://github.com/apache/superset/pull/21954) build: Multi-stage build and slim image for websocket container (@Yann-J)
 - [#22032](https://github.com/apache/superset/pull/22032) chore(dataset): enable reload for schema and table (@justinpark)
 - [#22015](https://github.com/apache/superset/pull/22015) refactor: Feature flags getter (@zhaoyongjie)
 - [#22002](https://github.com/apache/superset/pull/22002) refactor: clean up codes (@zhaoyongjie)
