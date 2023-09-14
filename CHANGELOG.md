@@ -1065,7 +1065,7 @@ under the License.
 - [#20017](https://github.com/apache/superset/pull/20017) feat: hack db connection modal ctabtns (@pkdotson)
 - [#20586](https://github.com/apache/superset/pull/20586) feat: drop missing columns control (@zhaoyongjie)
 - [#19520](https://github.com/apache/superset/pull/19520) feat(deck.gl): add color range for deck.gl 3D chart (@stephenLYZ)
-- [#20512](https://github.com/apache/superset/pull/20512) feat(sql lab): Save Dataset Modal Autocomplete should display list when overwritting (@Antonio-RiveroMartnez)
+- [#20512](https://github.com/apache/superset/pull/20512) feat(sql lab): Save Dataset Modal Autocomplete should display list when overwriting (@Antonio-RiveroMartnez)
 - [#20575](https://github.com/apache/superset/pull/20575) feat: add extension point to the top of welcome page (@lilykuang)
 - [#20579](https://github.com/apache/superset/pull/20579) feat: apply standardized form data to deckgl (@zhaoyongjie)
 - [#20514](https://github.com/apache/superset/pull/20514) feat: add extension point to the right side of the menu bar (@samtfm)
