@@ -390,7 +390,7 @@ class MssqlEngineSpec(BaseEngineSpec):
 
 ### Function names
 
-DB engine specs should implement a class method called `get_function_names` that retuns a list of strings, representing all the function names that the database supports. This is used for autocomplete in SQL Lab.
+DB engine specs should implement a class method called `get_function_names` that returns a list of strings, representing all the function names that the database supports. This is used for autocomplete in SQL Lab.
 
 ### Masked encrypted extra
 
