@@ -90,9 +90,9 @@ docker buildx build \
   --label "built_at=$(date)" \
   --label "target=lean310" \
   --label "build_actor=${GITHUB_ACTOR}" \
-  -t "${REPO_NAME}:${SHA}-websocke" \
-  -t "${REPO_NAME}:${REFSPEC}-websocke" \
-  -t "${REPO_NAME}:${LATEST_TAG}-websocke" \
+  -t "${REPO_NAME}:${SHA}-websocket" \
+  -t "${REPO_NAME}:${REFSPEC}-websocket" \
+  -t "${REPO_NAME}:${LATEST_TAG}-websocket" \
   superset-websocket
 
 #
