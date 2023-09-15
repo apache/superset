@@ -31,7 +31,10 @@ import {
 
 import Modal from 'src/components/Modal';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
-import { SupersetError } from 'src/components/ErrorMessage/types';
+import {
+  genericSupersetError,
+  SupersetError,
+} from 'src/components/ErrorMessage/types';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useSelector } from 'react-redux';
@@ -66,10 +69,6 @@ interface DatasourceModalProps {
   onDatasourceSave: (datasource: object, errors?: Array<any>) => {};
   onHide: () => {};
   show: boolean;
-}
-
-interface ErrorResponse {
-  errors: SupersetError[];
 }
 
 function buildExtraJsonObject(item: Record<string, unknown>) {
@@ -208,13 +207,15 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       })
       .catch(response => {
         setIsSaving(false);
-        response.json().then((errorJson: ErrorResponse) => {
+        response.json().then((errorJson: { errors: SupersetError[] }) => {
           modal.error({
             title: t('Error saving dataset'),
             okButtonProps: { danger: true, className: 'btn-danger' },
             content: (
               <ErrorMessageWithStackTrace
-                error={errorJson.errors[0]}
+                error={
+                  errorJson?.errors?.[0] || genericSupersetError(errorJson)
+                }
                 source="crud"
               />
             ),
