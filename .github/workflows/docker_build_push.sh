@@ -45,7 +45,20 @@ EOF
 set -x
 # Create a builder buildx
 docker buildx create --use --name builder 
+#
+# Build the dockerize image
+#
+docker buildx build \
+  --platform linux/amd64 \
+  --label "sha=${SHA}" \
+  --label "built_at=$(date)" \
+  --label "build_actor=${GITHUB_ACTOR}" \
+  --push \
+  -t "${REPO_NAME}:dockerize" \
+  -f dockerize.Dockerfile \
+  .
 
+exit 1
 #
 # Build the "lean" image
 #
