@@ -921,24 +921,16 @@ DASHBOARD_AUTO_REFRESH_INTERVALS = [
 
 class CeleryConfig:  # pylint: disable=too-few-public-methods
     broker_url = "sqla+sqlite:///celerydb.sqlite"
-    imports = ("superset.sql_lab",)
+    imports = ("superset.sql_lab", "superset.tasks.scheduler")
     result_backend = "db+sqlite:///celery_results.sqlite"
     worker_prefetch_multiplier = 1
     task_acks_late = False
     task_annotations = {
-        "sql_lab.get_sql_results": {"rate_limit": "100/s"},
-        "email_reports.send": {
-            "rate_limit": "1/s",
-            "time_limit": int(timedelta(seconds=120).total_seconds()),
-            "soft_time_limit": int(timedelta(seconds=150).total_seconds()),
-            "ignore_result": True,
+        "sql_lab.get_sql_results": {
+            "rate_limit": "100/s",
         },
     }
     beat_schedule = {
-        "email_reports.schedule_hourly": {
-            "task": "email_reports.schedule_hourly",
-            "schedule": crontab(minute=1, hour="*"),
-        },
         "reports.scheduler": {
             "task": "reports.scheduler",
             "schedule": crontab(minute="*", hour="*"),
@@ -1498,13 +1490,7 @@ SQLA_TABLE_MUTATOR = lambda table: table
 
 # Global async query config options.
 # Requires GLOBAL_ASYNC_QUERIES feature flag to be enabled.
-GLOBAL_ASYNC_QUERIES_REDIS_CONFIG = {
-    "port": 6379,
-    "host": "127.0.0.1",
-    "password": "",
-    "db": 0,
-    "ssl": False,
-}
+GLOBAL_ASYNC_QUERIES_REDIS_CONFIG: dict[str, Any] = {}
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX = "async-events-"
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT = 1000
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE = 1000000
@@ -1515,7 +1501,7 @@ GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE: None | (
 ) = None
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN = None
 GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me"
-GLOBAL_ASYNC_QUERIES_TRANSPORT = "polling"
+GLOBAL_ASYNC_QUERIES_TRANSPORT: Literal["polling", "ws"] = "polling"
 GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(
     timedelta(milliseconds=500).total_seconds() * 1000
 )

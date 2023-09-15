@@ -104,30 +104,27 @@ REDIS_HOST = "superset_cache"
 REDIS_PORT = "6379"
 
 class CeleryConfig:
-    broker_url = 'redis://%s:%s/0' % (REDIS_HOST, REDIS_PORT)
-    imports = ('superset.sql_lab', "superset.tasks", "superset.tasks.thumbnails", )
-    result_backend = 'redis://%s:%s/0' % (REDIS_HOST, REDIS_PORT)
+    broker_url = f"redis://{REDIS_HOST}:{REDIS_PORT}/0"
+    imports = (
+        "superset.sql_lab",
+        "superset.tasks.scheduler",
+    )
+    result_backend = f"redis://{REDIS_HOST}:{REDIS_PORT}/0"
     worker_prefetch_multiplier = 10
     task_acks_late = True
     task_annotations = {
-        'sql_lab.get_sql_results': {
-            'rate_limit': '100/s',
-        },
-        'email_reports.send': {
-            'rate_limit': '1/s',
-            'time_limit': 600,
-            'soft_time_limit': 600,
-            'ignore_result': True,
+        "sql_lab.get_sql_results": {
+            "rate_limit": "100/s",
         },
     }
     beat_schedule = {
-        'reports.scheduler': {
-            'task': 'reports.scheduler',
-            'schedule': crontab(minute='*', hour='*'),
+        "reports.scheduler": {
+            "task": "reports.scheduler",
+            "schedule": crontab(minute="*", hour="*"),
         },
-        'reports.prune_log': {
-            'task': 'reports.prune_log',
-            'schedule': crontab(minute=0, hour=0),
+        "reports.prune_log": {
+            "task": "reports.prune_log",
+            "schedule": crontab(minute=0, hour=0),
         },
     }
 CELERY_CONFIG = CeleryConfig

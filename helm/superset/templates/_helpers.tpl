@@ -84,15 +84,14 @@ SQLALCHEMY_DATABASE_URI = f"postgresql+psycopg2://{env('DB_USER')}:{env('DB_PASS
 SQLALCHEMY_TRACK_MODIFICATIONS = True
 SECRET_KEY = env('SECRET_KEY', 'thisISaSECRET_1234')
 
-class CeleryConfig(object):
-  CELERY_IMPORTS = ('superset.sql_lab', )
-  CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
+class CeleryConfig:
+  imports  = ("superset.sql_lab", )
   {{- if .Values.supersetNode.connections.redis_password }}
-  BROKER_URL = f"redis://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
-  CELERY_RESULT_BACKEND = f"redis://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
+  broker_url = f"redis://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
+  result_backend = f"redis://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
   {{- else }}
-  BROKER_URL = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
-  CELERY_RESULT_BACKEND = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
+  broker_url = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
+  result_backend = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
   {{- end }}
 
 CELERY_CONFIG = CeleryConfig
