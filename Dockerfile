@@ -25,6 +25,13 @@ ARG NPM_BUILD_CMD="build"
 ENV BUILD_CMD=${NPM_BUILD_CMD}
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
+RUN apt-get update -q \
+    && apt-get install -yq --no-install-recommends \
+        python3 \
+        make \
+        gcc \
+        g++
+
 # NPM ci first, as to NOT invalidate previous steps except for when package.json changes
 RUN mkdir -p /app/superset-frontend
 
