@@ -62,6 +62,7 @@ docker buildx build \
   -t "${REPO_NAME}:${SHA}" \
   -t "${REPO_NAME}:${REFSPEC}" \
   -t "${REPO_NAME}:${LATEST_TAG}" \
+  -f Dockerfile \
   .
 
 #
