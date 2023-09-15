@@ -42,7 +42,7 @@ cat<<EOF
   - ${REPO_NAME}:${REFSPEC}
   - ${REPO_NAME}:${LATEST_TAG}
 EOF
-
+set -x
 # Create a builder buildx
 docker buildx create --use --name builder 
 
