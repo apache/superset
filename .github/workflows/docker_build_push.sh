@@ -57,12 +57,11 @@ docker buildx build \
   --label "sha=${SHA}" \
   --label "built_at=$(date)" \
   --label "target=lean" \
-  --label "build_actor=${GITHUB_ACTOR}"
+  --label "build_actor=${GITHUB_ACTOR}" \
   --push \
   -t "${REPO_NAME}:${SHA}" \
   -t "${REPO_NAME}:${REFSPEC}" \
   -t "${REPO_NAME}:${LATEST_TAG}" \
-  -f Dockerfile \
   .
 
 #
