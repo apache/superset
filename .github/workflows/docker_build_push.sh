@@ -43,6 +43,24 @@ cat<<EOF
   - ${REPO_NAME}:${LATEST_TAG}
 EOF
 
+# Creating a builder buildx
+docker buildx create --use --name builder 
+
+#
+# Build the dockerize image
+#
+docker buildx build \
+  --platform linux/amd64 \
+  --cache-from=type=registry,ref="${REPO_NAME}:dockerize-cache" \
+  --cache-to=type=registry,ref="${REPO_NAME}:dockerize-cache" \
+  --label "sha=${SHA}" \
+  --label "built_at=$(date)" \
+  --label "build_actor=${GITHUB_ACTOR}" \
+  --push \
+  -t "${REPO_NAME}:dockerize" \
+  -f dockerize.Dockerfile \
+  .
+dvvdfvdff
 #
 # Build the "lean" image
 #
@@ -94,21 +112,6 @@ docker build --target dev \
   --label "built_at=$(date)" \
   --label "target=dev" \
   --label "build_actor=${GITHUB_ACTOR}" \
-  .
-
-#
-# Build the dockerize image
-#
-docker buildx build \
-  --platform linux/amd64 \
-  --cache-from=type=registry,ref="${REPO_NAME}:dockerize-cache" \
-  --cache-to=type=registry,ref="${REPO_NAME}:dockerize-cache" \
-  --label "sha=${SHA}" \
-  --label "built_at=$(date)" \
-  --label "build_actor=${GITHUB_ACTOR}" \
-  --push \
-  -t "${REPO_NAME}:dockerize" \
-  -f dockerize.Dockerfile \
   .
 
 if [ -z "${DOCKERHUB_TOKEN}" ]; then
