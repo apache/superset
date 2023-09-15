@@ -101,8 +101,9 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
                 exceptions.append(TagInvalidError())
 
             # Validate object type
-            skipped_tagged_objects = []
+            skipped_tagged_objects: list[tuple[str, int]] = []
             for obj_type, obj_id in self._objects_to_tag:
+                skipped_tagged_objects = []
                 object_type = to_object_type(obj_type)
 
                 if not object_type:
@@ -114,11 +115,11 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
                     security_manager.raise_for_ownership(model)
                 except SupersetSecurityException:
                     # skip the object if the user doesn't have access
-                    skipped_tagged_objects.append([obj_type, obj_id])
+                    skipped_tagged_objects.append((obj_type, obj_id))
 
-        self._objects_to_tag = {item for item in self._objects_to_tag} - {
-            item for item in skipped_tagged_objects
-        }
+                self._objects_to_tag = {item for item in self._objects_to_tag} - {
+                    item for item in skipped_tagged_objects
+                }
 
         if exceptions:
             raise TagInvalidError(exceptions=exceptions)
