@@ -314,7 +314,11 @@ class TestRowLevelSecurity(SupersetTestCase):
 
         g.user = self.get_user(username="gamma")
         clauses = security_manager.get_rls_filters_str(tbl)
-        assert clauses == [f"{self.rls_entry2.id}-name like 'A%' or name like 'B%'", f"{self.rls_entry3.id}-name like 'Q%'", f"{self.rls_entry4.id}-gender = 'boy'"]
+        assert clauses == [
+            f"{self.rls_entry2.id}-name like 'A%' or name like 'B%'",
+            f"{self.rls_entry3.id}-name like 'Q%'",
+            f"{self.rls_entry4.id}-gender = 'boy'",
+        ]
 
 
 class TestRowLevelSecurityCreateAPI(SupersetTestCase):
