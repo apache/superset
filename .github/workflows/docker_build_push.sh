@@ -43,35 +43,25 @@ cat<<EOF
   - ${REPO_NAME}:${LATEST_TAG}
 EOF
 
-# Creating a builder buildx
+# Create a builder buildx
 docker buildx create --use --name builder 
 
 #
-# Build the dockerize image
-#
-docker buildx build \
-  --platform linux/amd64 \
-  --cache-from=type=registry,ref="${REPO_NAME}:dockerize-cache" \
-  --cache-to=type=registry,ref="${REPO_NAME}:dockerize-cache" \
-  --label "sha=${SHA}" \
-  --label "built_at=$(date)" \
-  --label "build_actor=${GITHUB_ACTOR}" \
-  --push \
-  -t "${REPO_NAME}:dockerize" \
-  -f dockerize.Dockerfile \
-  .
-dvvdfvdff
-#
 # Build the "lean" image
 #
-DOCKER_BUILDKIT=1 docker build --target lean \
-  -t "${REPO_NAME}:${SHA}" \
-  -t "${REPO_NAME}:${REFSPEC}" \
-  -t "${REPO_NAME}:${LATEST_TAG}" \
+docker buildx build \
+  --target lean \
+  --platform linux/amd64 \
+  --cache-from=type=registry,ref="${REPO_NAME}:build-cache" \
+  --cache-to=type=registry,ref="${REPO_NAME}:build-cache" \
   --label "sha=${SHA}" \
   --label "built_at=$(date)" \
   --label "target=lean" \
-  --label "build_actor=${GITHUB_ACTOR}" \
+  --label "build_actor=${GITHUB_ACTOR}"
+  --push \
+  -t "${REPO_NAME}:${SHA}" \
+  -t "${REPO_NAME}:${REFSPEC}" \
+  -t "${REPO_NAME}:${LATEST_TAG}" \
   .
 
 #
@@ -104,7 +94,7 @@ DOCKER_BUILDKIT=1 docker build \
 #
 # Build the dev image
 #
-docker build --target dev \
+DOCKER_BUILDKIT=1 docker build --target dev \
   -t "${REPO_NAME}:${SHA}-dev" \
   -t "${REPO_NAME}:${REFSPEC}-dev" \
   -t "${REPO_NAME}:${LATEST_TAG}-dev" \
@@ -112,6 +102,17 @@ docker build --target dev \
   --label "built_at=$(date)" \
   --label "target=dev" \
   --label "build_actor=${GITHUB_ACTOR}" \
+  .
+
+#
+# Build the dockerize image
+#
+DOCKER_BUILDKIT=1 docker build \
+  -t "${REPO_NAME}:dockerize" \
+  --label "sha=${SHA}" \
+  --label "built_at=$(date)" \
+  --label "build_actor=${GITHUB_ACTOR}" \
+  -f dockerize.Dockerfile \
   .
 
 if [ -z "${DOCKERHUB_TOKEN}" ]; then
