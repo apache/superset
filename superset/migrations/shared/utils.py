@@ -97,14 +97,17 @@ def paginated_update(
     query: Query,
     print_page_progress: Optional[Union[Callable[[int, int], None], bool]] = None,
     batch_size: int = DEFAULT_BATCH_SIZE,
+    session: Session = None,
 ) -> Iterator[Any]:
     """
     Update models in small batches so we don't have to load everything in memory.
     """
-
     total = query.count()
     processed = 0
-    session: Session = inspect(query).session
+
+    if not session:
+        session = inspect(query).session
+
     result = session.execute(query)
 
     if print_page_progress is None or print_page_progress is True:

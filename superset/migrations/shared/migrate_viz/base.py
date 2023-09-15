@@ -145,10 +145,11 @@ class MigrateViz:
     def upgrade(cls) -> None:
         slices = db.session.query(Slice).filter(Slice.viz_type == cls.source_viz_type)
         for slc in paginated_update(
-            slices,
-            lambda current, total: print(
+            query=slices,
+            print_page_progress=lambda current, total: print(
                 f"  Updating {current}/{total} charts", end="\r"
             ),
+            session=db.session,
         ):
             new_viz = cls.upgrade_slice(slc)
             db.session.merge(new_viz)
@@ -162,10 +163,11 @@ class MigrateViz:
             )
         )
         for slc in paginated_update(
-            slices,
-            lambda current, total: print(
+            query=slices,
+            print_page_progress=lambda current, total: print(
                 f"  Downgrading {current}/{total} charts", end="\r"
             ),
+            session=db.session,
         ):
             new_viz = cls.downgrade_slice(slc)
             db.session.merge(new_viz)

@@ -42,7 +42,7 @@ def viz_migrations() -> None:
     cls=RequiredMutuallyExclusiveOptionGroup,
 )
 @optgroup.option(
-    "--type",
+    "--viz_type",
     "-t",
     help=f"The viz type to migrate: {', '.join(list(VizTypes))}",
 )
@@ -58,7 +58,7 @@ def upgrade(viz_type: str) -> None:
     cls=RequiredMutuallyExclusiveOptionGroup,
 )
 @optgroup.option(
-    "--type",
+    "--viz_type",
     "-t",
     help=f"The viz type to migrate: {', '.join(list(VizTypes))}",
 )
