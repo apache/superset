@@ -309,15 +309,15 @@ class TestRowLevelSecurity(SupersetTestCase):
     def test_get_rls_filter_clauses(self):
         g.user = self.get_user(username="admin")
         tbl = self.get_table(name="birth_names")
-        clauses = security_manager.get_rls_filters_str(tbl)
+        clauses = security_manager.get_rls_filters_clauses(tbl)
         assert clauses == []
 
         g.user = self.get_user(username="gamma")
-        clauses = security_manager.get_rls_filters_str(tbl)
+        clauses = security_manager.get_rls_filters_clauses(tbl)
         assert clauses == [
-            f"{self.rls_entry2.id}-name like 'A%' or name like 'B%'",
-            f"{self.rls_entry3.id}-name like 'Q%'",
-            f"{self.rls_entry4.id}-gender = 'boy'",
+            "gender = 'boy'",
+            "name like 'A%' or name like 'B%'",
+            "name like 'Q%'",
         ]
 
 
