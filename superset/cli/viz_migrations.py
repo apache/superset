@@ -22,10 +22,10 @@ from flask.cli import with_appcontext
 
 
 class VizTypes(str, Enum):
-    treemap = "treemap"
-    dual_line = "dual_line"
-    area = "area"
-    pivot_table = "pivot_table"
+    TREEMAP = "treemap"
+    DUAL_LINE = "dual_line"
+    AREA = "area"
+    PIVOT_TABLE = "pivot_table"
 
 
 @click.group()
@@ -44,11 +44,11 @@ def viz_migrations() -> None:
 @optgroup.option(
     "--type",
     "-t",
-    help=f"The viz type to migrate: {', '.join([type for type in VizTypes])}",
+    help=f"The viz type to migrate: {', '.join(list(VizTypes))}",
 )
-def upgrade(type: str) -> None:
+def upgrade(viz_type: str) -> None:
     """Upgrade a viz to the latest version."""
-    migrate_viz(VizTypes(type))
+    migrate_viz(VizTypes(viz_type))
 
 
 @viz_migrations.command()
@@ -60,16 +60,16 @@ def upgrade(type: str) -> None:
 @optgroup.option(
     "--type",
     "-t",
-    help=f"The viz type to migrate: {', '.join([type for type in VizTypes])}",
+    help=f"The viz type to migrate: {', '.join(list(VizTypes))}",
 )
-def downgrade(type: str) -> None:
+def downgrade(viz_type: str) -> None:
     """Downgrades a viz to the previous version."""
-    migrate_viz(VizTypes(type), downgrade=True)
+    migrate_viz(VizTypes(viz_type), is_downgrade=True)
 
 
-def migrate_viz(type: VizTypes, downgrade: bool = False) -> None:
+def migrate_viz(viz_type: VizTypes, is_downgrade: bool = False) -> None:
     """Migrates a viz from one type to another."""
-    from superset.migrations.shared.migrate_viz.base import MigrateViz
+    # pylint: disable=import-outside-toplevel
     from superset.migrations.shared.migrate_viz.processors import (
         MigrateAreaChart,
         MigrateDualLine,
@@ -78,12 +78,12 @@ def migrate_viz(type: VizTypes, downgrade: bool = False) -> None:
     )
 
     migrations = {
-        VizTypes.treemap: MigrateTreeMap,
-        VizTypes.dual_line: MigrateDualLine,
-        VizTypes.area: MigrateAreaChart,
-        VizTypes.pivot_table: MigratePivotTable,
+        VizTypes.TREEMAP: MigrateTreeMap,
+        VizTypes.DUAL_LINE: MigrateDualLine,
+        VizTypes.AREA: MigrateAreaChart,
+        VizTypes.PIVOT_TABLE: MigratePivotTable,
     }
-    if downgrade:
-        migrations[type].downgrade()
+    if is_downgrade:
+        migrations[viz_type].downgrade()
     else:
-        migrations[type].upgrade()
+        migrations[viz_type].upgrade()
