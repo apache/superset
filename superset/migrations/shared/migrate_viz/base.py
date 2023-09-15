@@ -20,12 +20,26 @@ import copy
 import json
 from typing import Any
 
-from sqlalchemy import and_
+from sqlalchemy import and_, Column, Integer, String, Text
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import Session
 
-from superset import conf, db, is_feature_enabled
+from superset import conf, is_feature_enabled
 from superset.constants import TimeGrain
 from superset.migrations.shared.utils import paginated_update, try_load_json
-from superset.models.slice import Slice
+
+Base = declarative_base()
+
+
+class Slice(Base):  # type: ignore
+    __tablename__ = "slices"
+
+    id = Column(Integer, primary_key=True)
+    slice_name = Column(String(250))
+    viz_type = Column(String(250))
+    params = Column(Text)
+    query_context = Column(Text)
+
 
 FORM_DATA_BAK_FIELD_NAME = "form_data_bak"
 
@@ -142,20 +156,30 @@ class MigrateViz:
         return slc
 
     @classmethod
-    def upgrade(cls) -> None:
-        slices = db.session.query(Slice).filter(Slice.viz_type == cls.source_viz_type)
-        for slc in slices:
+    def upgrade(cls, session: Session) -> None:
+        slices = session.query(Slice).filter(Slice.viz_type == cls.source_viz_type)
+        for slc in paginated_update(
+            slices,
+            lambda current, total: print(
+                f"  Updating {current}/{total} charts", end="\r"
+            ),
+        ):
             new_viz = cls.upgrade_slice(slc)
-            db.session.merge(new_viz)
+            session.merge(new_viz)
 
     @classmethod
-    def downgrade(cls) -> None:
-        slices = db.session.query(Slice).filter(
+    def downgrade(cls, session: Session) -> None:
+        slices = session.query(Slice).filter(
             and_(
                 Slice.viz_type == cls.target_viz_type,
                 Slice.params.like(f"%{FORM_DATA_BAK_FIELD_NAME}%"),
             )
         )
-        for slc in slices:
+        for slc in paginated_update(
+            slices,
+            lambda current, total: print(
+                f"  Downgrading {current}/{total} charts", end="\r"
+            ),
+        ):
             new_viz = cls.downgrade_slice(slc)
-            db.session.merge(new_viz)
+            session.merge(new_viz)

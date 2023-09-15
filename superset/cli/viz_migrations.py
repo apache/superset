@@ -20,6 +20,8 @@ import click
 from click_option_group import optgroup, RequiredMutuallyExclusiveOptionGroup
 from flask.cli import with_appcontext
 
+from superset import db
+
 
 class VizTypes(str, Enum):
     TREEMAP = "treemap"
@@ -84,6 +86,6 @@ def migrate_viz(viz_type: VizTypes, is_downgrade: bool = False) -> None:
         VizTypes.PIVOT_TABLE: MigratePivotTable,
     }
     if is_downgrade:
-        migrations[viz_type].downgrade()
+        migrations[viz_type].downgrade(db.session)
     else:
-        migrations[viz_type].upgrade()
+        migrations[viz_type].upgrade(db.session)
