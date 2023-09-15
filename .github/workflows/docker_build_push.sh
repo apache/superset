@@ -42,31 +42,10 @@ cat<<EOF
   - ${REPO_NAME}:${REFSPEC}
   - ${REPO_NAME}:${LATEST_TAG}
 EOF
-set -x
+
 # Create a builder buildx
 docker buildx create --use --name builder
-if [ -z "${DOCKERHUB_TOKEN}" ]; then
-  # Skip if secrets aren't populated -- they're only visible for actions running in the repo (not on forks)
-  echo "Skipping Docker push"
-else
-  # Login and push
-  docker logout
-  docker login --username "${DOCKERHUB_USER}" --password "${DOCKERHUB_TOKEN}"
-fi
-#
-# Build the dockerize image
-#
-docker buildx build \
-  --platform linux/amd64 \
-  --label "sha=${SHA}" \
-  --label "built_at=$(date)" \
-  --label "build_actor=${GITHUB_ACTOR}" \
-  --push \
-  -t "${REPO_NAME}:dockerize" \
-  -f dockerize.Dockerfile \
-  .
 
-exit 1
 #
 # Build the "lean" image
 #
@@ -79,7 +58,6 @@ docker buildx build \
   --label "built_at=$(date)" \
   --label "target=lean" \
   --label "build_actor=${GITHUB_ACTOR}" \
-  --push \
   -t "${REPO_NAME}:${SHA}" \
   -t "${REPO_NAME}:${REFSPEC}" \
   -t "${REPO_NAME}:${LATEST_TAG}" \
@@ -88,51 +66,62 @@ docker buildx build \
 #
 # Build the "lean310" image
 #
-DOCKER_BUILDKIT=1 docker build --target lean \
-  -t "${REPO_NAME}:${SHA}-py310" \
-  -t "${REPO_NAME}:${REFSPEC}-py310" \
-  -t "${REPO_NAME}:${LATEST_TAG}-py310" \
-  --build-arg PY_VER="3.10-slim-bookworm"\
-  --label "sha=${SHA}" \
+docker buildx build \
+  --target lean310 \
+  --platform linux/amd64 \
+  --cache-from=type=registry,ref="${REPO_NAME}:build-cache" \
+  --cache-to=type=registry,ref="${REPO_NAME}:build-cache" \
+  --label "sha=${SHA}-py310" \
   --label "built_at=$(date)" \
   --label "target=lean310" \
   --label "build_actor=${GITHUB_ACTOR}" \
+  -t "${REPO_NAME}:${SHA}-py310" \
+  -t "${REPO_NAME}:${REFSPEC}-py310" \
+  -t "${REPO_NAME}:${LATEST_TAG}-py310" \
   .
-
 #
 # Build the "websocket" image
 #
-DOCKER_BUILDKIT=1 docker build \
-  -t "${REPO_NAME}:${SHA}-websocket" \
-  -t "${REPO_NAME}:${REFSPEC}-websocket" \
-  -t "${REPO_NAME}:${LATEST_TAG}-websocket" \
-  --label "sha=${SHA}" \
+docker buildx build \
+  --platform linux/amd64 \
+  --cache-from=type=registry,ref="${REPO_NAME}:build-cache" \
+  --cache-to=type=registry,ref="${REPO_NAME}:build-cache" \
+  --label "sha=${SHA}-py310" \
   --label "built_at=$(date)" \
-  --label "target=websocket" \
+  --label "target=lean310" \
   --label "build_actor=${GITHUB_ACTOR}" \
+  -t "${REPO_NAME}:${SHA}-websocke" \
+  -t "${REPO_NAME}:${REFSPEC}-websocke" \
+  -t "${REPO_NAME}:${LATEST_TAG}-websocke" \
   superset-websocket
 
 #
 # Build the dev image
 #
-DOCKER_BUILDKIT=1 docker build --target dev \
+docker buildx build \
+  --target dev \
+  --platform linux/amd64 \
+  --cache-from=type=registry,ref="${REPO_NAME}:build-cache" \
+  --cache-to=type=registry,ref="${REPO_NAME}:build-cache" \
+  --label "sha=${SHA}" \
+  --label "built_at=$(date)" \
+  --label "target=lean" \
+  --label "build_actor=${GITHUB_ACTOR}" \
   -t "${REPO_NAME}:${SHA}-dev" \
   -t "${REPO_NAME}:${REFSPEC}-dev" \
   -t "${REPO_NAME}:${LATEST_TAG}-dev" \
-  --label "sha=${SHA}" \
-  --label "built_at=$(date)" \
-  --label "target=dev" \
-  --label "build_actor=${GITHUB_ACTOR}" \
   .
-
 #
 # Build the dockerize image
 #
-DOCKER_BUILDKIT=1 docker build \
-  -t "${REPO_NAME}:dockerize" \
+docker buildx build \
+  --platform linux/amd64 \
+  --cache-from=type=registry,ref="${REPO_NAME}:build-cache" \
+  --cache-to=type=registry,ref="${REPO_NAME}:build-cache" \
   --label "sha=${SHA}" \
   --label "built_at=$(date)" \
   --label "build_actor=${GITHUB_ACTOR}" \
+  -t "${REPO_NAME}:dockerize" \
   -f dockerize.Dockerfile \
   .
 
@@ -143,5 +132,5 @@ else
   # Login and push
   docker logout
   docker login --username "${DOCKERHUB_USER}" --password "${DOCKERHUB_TOKEN}"
-  docker push --all-tags "${REPO_NAME}"
+  docker buildx push --all-tags "${REPO_NAME}"
 fi
