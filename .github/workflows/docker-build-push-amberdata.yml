@@ -1,0 +1,51 @@
+name: Build & Push Amberdata-Superset Image
+
+on:
+  push:
+    branches:
+      - "2.1.1"
+      - "feature/automatically-deploy-superset"
+
+jobs:
+  build:
+    name: build
+    runs-on: ["self-hosted", "linux", "x64", "ubuntu-2204"]
+    defaults:
+      run:
+        working-directory: ${{ inputs.WORK_DIR }}
+    env:
+      AWS_REGION: us-east-1
+      ENVIRONMENT: s-000
+      SSM_PATH: /staging/000/market-intelligence/
+      WORK_DIR: platform/bff/api/
+    steps:
+      - name: Checkout
+        uses: amberdata/actions-checkout@v3
+      - name: Configure AWS Credentials
+        uses: amberdata/aws-actions-configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions/github-actions-${{ github.event.repository.name }}
+          aws-region: ${{ inputs.AWS_REGION }}
+      - name: Login ECR
+        id: login-ecr
+        uses: amberdata/aws-actions-amazon-ecr-login@v1
+      - name: Set pull request version
+        id: pull-request-version
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          version=$(echo ${{ github.head_ref }} | sed 's/\//_/g')
+          echo "version=${version}.${{ github.run_number }}.${{ github.run_attempt }}" >> "$GITHUB_OUTPUT"
+      - name: Set main version
+        id: main-version
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          echo "version=${{ github.run_number }}.${{ github.run_attempt }}" >> "$GITHUB_OUTPUT"
+      - name: Set up Docker Buildx
+        uses: amberdata/docker-setup-buildx-action@v2
+      - name: Build and push image
+        uses: amberdata/docker-build-push-action@v4
+        with:
+          context: ${{ inputs.WORK_DIR }}
+          push: true
+          provenance: false
+          tags: ${{ steps.login-ecr.outputs.registry }}/${{ github.event.repository.name }}:${{ steps.pull-request-version.outputs.version }}${{ steps.main-version.outputs.version }},${{ steps.login-ecr.outputs.registry }}/${{ github.event.repository.name }}:${{ github.sha }}
