@@ -306,18 +306,18 @@ class TestRowLevelSecurity(SupersetTestCase):
         assert not self.BASE_FILTER_REGEX.search(sql)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_get_rls_filter_clauses(self):
+    def test_get_rls_filter_clauses_with_group_key(self):
         g.user = self.get_user(username="admin")
         tbl = self.get_table(name="birth_names")
-        clauses = security_manager.get_rls_filters_clauses(tbl)
+        clauses = security_manager.get_rls_filters_clauses_with_group_key(tbl)
         assert clauses == []
 
         g.user = self.get_user(username="gamma")
-        clauses = security_manager.get_rls_filters_clauses(tbl)
+        clauses = security_manager.get_rls_filters_clauses_with_group_key(tbl)
         assert clauses == [
-            "gender = 'boy'",
-            "name like 'A%' or name like 'B%'",
-            "name like 'Q%'",
+            "gender = 'boy'gender",
+            "name like 'A%' or name like 'B%'name",
+            "name like 'Q%'name",
         ]
 
 
