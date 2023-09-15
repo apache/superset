@@ -86,7 +86,7 @@ DOCKER_BUILDKIT=1 docker build \
 #
 # Build the dev image
 #
-DOCKER_BUILDKIT=1 docker build --target dev \
+docker build --target dev \
   -t "${REPO_NAME}:${SHA}-dev" \
   -t "${REPO_NAME}:${REFSPEC}-dev" \
   -t "${REPO_NAME}:${LATEST_TAG}-dev" \
@@ -99,11 +99,15 @@ DOCKER_BUILDKIT=1 docker build --target dev \
 #
 # Build the dockerize image
 #
-DOCKER_BUILDKIT=1 docker build \
-  -t "${REPO_NAME}:dockerize" \
+docker buildx build \
+  --platform linux/amd64 \
+  --cache-from=type=registry,ref="${REPO_NAME}:dockerize-cache" \
+  --cache-to=type=registry,ref="${REPO_NAME}:dockerize-cache" \
   --label "sha=${SHA}" \
   --label "built_at=$(date)" \
   --label "build_actor=${GITHUB_ACTOR}" \
+  --push \
+  -t "${REPO_NAME}:dockerize" \
   -f dockerize.Dockerfile \
   .
 
