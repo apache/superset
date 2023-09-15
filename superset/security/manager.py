@@ -2083,17 +2083,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
         return query.all()
 
-    def get_rls_filter_clauses(self, table: "BaseDatasource") -> list[str]:
+    def get_rls_filters_str(self, table: "BaseDatasource") -> list[str]:
         """
-        Retrieves the appropriate row level security filters clauses for the current user
-        and the passed table.
+        Retrieves the appropriate row level security filters string representation
+        (id concat'ed with clause) for the current user and the passed table.
 
         :param table: The table to check against
-        :returns: A list of clauses
+        :returns: A list of string representations of the user's RLS filters
         """
-        clauses = [f.clause for f in self.get_rls_filters(table)]
-        clauses.sort()  # Combinations rather than permutations
-        return clauses
+        filters = self.get_rls_filters(table)
+        filters.sort(key=lambda f: f.id)  # Combinations rather than permutations
+        str_reps = [f"{f.id}-{f.clause}" for f in filters]
+        return str_reps
 
     def get_guest_rls_filters_str(self, table: "BaseDatasource") -> list[str]:
         return [f.get("clause", "") for f in self.get_guest_rls_filters(table)]
@@ -2101,7 +2102,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def get_rls_cache_key(self, datasource: "BaseDatasource") -> list[str]:
         rls_clauses = []
         if datasource.is_rls_supported:
-            rls_clauses = self.get_rls_filter_clauses(datasource)
+            rls_clauses = self.get_rls_filters_str(datasource)
         guest_rls = self.get_guest_rls_filters_str(datasource)
         return guest_rls + rls_clauses
 
