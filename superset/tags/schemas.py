@@ -58,7 +58,7 @@ class TagObjectSchema(Schema):
     name = fields.String()
     description = fields.String(required=False, allow_none=True)
     objects_to_tag = fields.List(
-        fields.Tuple((fields.String(), fields.Int())), required=False, allow_none=True
+        fields.Tuple((fields.String(), fields.Int())), required=False
     )
 
 
