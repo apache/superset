@@ -44,7 +44,15 @@ cat<<EOF
 EOF
 set -x
 # Create a builder buildx
-docker buildx create --use --name builder 
+docker buildx create --use --name builder
+if [ -z "${DOCKERHUB_TOKEN}" ]; then
+  # Skip if secrets aren't populated -- they're only visible for actions running in the repo (not on forks)
+  echo "Skipping Docker push"
+else
+  # Login and push
+  docker logout
+  docker login --username "${DOCKERHUB_USER}" --password "${DOCKERHUB_TOKEN}"
+fi
 #
 # Build the dockerize image
 #
