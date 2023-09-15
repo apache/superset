@@ -130,7 +130,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             filter_to_remove = None
             if is_adhoc_column(x_axis):  # type: ignore
                 x_axis = x_axis.get("sqlExpression")
-            if x_axis in temporal_columns:
+            if x_axis and x_axis in temporal_columns:
                 filter_to_remove = x_axis
                 x_axis_column = next(
                     (
