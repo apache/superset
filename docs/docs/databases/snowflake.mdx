@@ -7,6 +7,18 @@ version: 1
 
 ## Snowflake
 
+If running Superset using Docker Compose, add the following to your `./docker/requirements-local.txt` file:
+
+```
+snowflake-sqlalchemy==version
+```
+
+example, If version is 1.5.0, then add the following to your `./docker/requirements-local.txt` file:
+
+```
+snowflake-sqlalchemy==1.5.0
+```
+
 The recommended connector library for Snowflake is
 [snowflake-sqlalchemy](https://pypi.org/project/snowflake-sqlalchemy/).
 
