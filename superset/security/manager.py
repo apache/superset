@@ -2095,7 +2095,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         filters = self.get_rls_filters(table)
         filters.sort(key=lambda f: f.clause)  # Combinations rather than permutations
-        return [f"{f.clause}{f.group_key or ''}" for f in filters]
+        return [f"{f.clause}-{f.group_key or ''}" for f in filters]
 
     def get_guest_rls_filters_str(self, table: "BaseDatasource") -> list[str]:
         return [f.get("clause", "") for f in self.get_guest_rls_filters(table)]

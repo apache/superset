@@ -315,9 +315,9 @@ class TestRowLevelSecurity(SupersetTestCase):
         g.user = self.get_user(username="gamma")
         clauses = security_manager.get_rls_filters_clauses_with_group_key(tbl)
         assert clauses == [
-            "gender = 'boy'gender",
-            "name like 'A%' or name like 'B%'name",
-            "name like 'Q%'name",
+            "gender = 'boy'-gender",
+            "name like 'A%' or name like 'B%'-name",
+            "name like 'Q%'-name",
         ]
 
 
