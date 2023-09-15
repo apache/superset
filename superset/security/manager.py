@@ -2100,11 +2100,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return [f.get("clause", "") for f in self.get_guest_rls_filters(table)]
 
     def get_rls_cache_key(self, datasource: "BaseDatasource") -> list[str]:
-        rls_clauses = []
+        rls_str = []
         if datasource.is_rls_supported:
-            rls_clauses = self.get_rls_filters_str(datasource)
+            rls_str = self.get_rls_filters_str(datasource)
         guest_rls = self.get_guest_rls_filters_str(datasource)
-        return guest_rls + rls_clauses
+        return guest_rls + rls_str
 
     @staticmethod
     def _get_current_epoch_time() -> float:
