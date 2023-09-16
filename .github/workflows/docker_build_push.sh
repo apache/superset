@@ -50,6 +50,7 @@ docker buildx create --use --name builder
 # Build the "lean" image
 #
 docker buildx build \
+  --load \
   --target lean \
   --platform linux/amd64 \
   --cache-from=type=registry,ref="${REPO_NAME}:build-cache" \
@@ -67,6 +68,7 @@ docker buildx build \
 # Build the "lean310" image
 #
 docker buildx build \
+  --load \
   --target lean310 \
   --platform linux/amd64 \
   --cache-from=type=registry,ref="${REPO_NAME}:build-cache" \
@@ -83,6 +85,7 @@ docker buildx build \
 # Build the "websocket" image
 #
 docker buildx build \
+  --load \
   --platform linux/amd64 \
   --cache-from=type=registry,ref="${REPO_NAME}:build-cache" \
   --cache-to=type=registry,ref="${REPO_NAME}:build-cache" \
@@ -99,6 +102,7 @@ docker buildx build \
 # Build the dev image
 #
 docker buildx build \
+  --load \
   --target dev \
   --platform linux/amd64 \
   --cache-from=type=registry,ref="${REPO_NAME}:build-cache" \
@@ -115,6 +119,7 @@ docker buildx build \
 # Build the dockerize image
 #
 docker buildx build \
+  --load \
   --platform linux/amd64 \
   --cache-from=type=registry,ref="${REPO_NAME}:build-cache" \
   --cache-to=type=registry,ref="${REPO_NAME}:build-cache" \
