@@ -52,7 +52,7 @@ docker buildx create --use --name builder
 docker buildx build \
   --load \
   --target lean \
-  --platform linux/amd64,linux/arm64 \
+  --platform linux/amd64 \
   --label "sha=${SHA}" \
   --label "built_at=$(date)" \
   --label "target=lean" \
@@ -68,7 +68,7 @@ docker buildx build \
 docker buildx build \
   --load \
   --target lean310 \
-  --platform linux/amd64,linux/arm64 \
+  --platform linux/amd64 \
   --label "sha=${SHA}-py310" \
   --label "built_at=$(date)" \
   --label "target=lean310" \
@@ -82,7 +82,7 @@ docker buildx build \
 #
 docker buildx build \
   --load \
-  --platform linux/amd64,linux/arm64 \
+  --platform linux/amd64 \
   --label "sha=${SHA}-py310" \
   --label "built_at=$(date)" \
   --label "target=lean310" \
@@ -98,7 +98,7 @@ docker buildx build \
 docker buildx build \
   --load \
   --target dev \
-  --platform linux/amd64,linux/arm64 \
+  --platform linux/amd64 \
   --label "sha=${SHA}" \
   --label "built_at=$(date)" \
   --label "target=lean" \
@@ -112,7 +112,7 @@ docker buildx build \
 #
 docker buildx build \
   --load \
-  --platform linux/amd64,linux/arm64 \
+  --platform linux/amd64 \
   --label "sha=${SHA}" \
   --label "built_at=$(date)" \
   --label "build_actor=${GITHUB_ACTOR}" \
