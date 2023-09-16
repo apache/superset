@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: 2023-09-17 01:06+0300\n"
+"PO-Revision-Date: 2023-09-17 01:12+0300\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: uk\n"
@@ -3847,7 +3847,7 @@ msgid "Edit time range"
 msgstr "Редагувати часовий діапазон"
 
 msgid "Edited"
-msgstr "Редаційний"
+msgstr "Редаговані"
 
 msgid "Editing 1 filter:"
 msgstr "Редагування 1 фільтр:"
@@ -7338,7 +7338,7 @@ msgid "Report Schedule is still working, refusing to re-compute."
 msgstr "Графік звіту все ще працює, відмовляючись від повторного складання."
 
 msgid "Report Schedule log prune failed."
-msgstr "Не вдалося не вдалося."
+msgstr "Не вдалося очистити логи Звіту Розкладу."
 
 msgid "Report Schedule not found."
 msgstr "Розклад звіту не знайдено."
@@ -7538,13 +7538,13 @@ msgid "Rotation to apply to words in the cloud"
 msgstr "Обертання, щоб застосувати до слів у хмарі"
 
 msgid "Round cap"
-msgstr "Круглий шапка"
+msgstr "Круглий cap"
 
 msgid "Row"
 msgstr "Рядок"
 
 msgid "Row Level Security"
-msgstr "Безпека рівня ряду"
+msgstr "Безпека на рівні рядків"
 
 msgid "Row containing the headers to use as column names (0 is first line of data). Leave empty if there is no header row"
 msgstr "Рядок, що містить заголовки, які використовуються як імена стовпців (0 - це перший рядок даних). Залиште порожнім, якщо немає рядка заголовка"

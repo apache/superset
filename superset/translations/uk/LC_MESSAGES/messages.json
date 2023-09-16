@@ -2000,7 +2000,7 @@
       "Edit template parameters": ["Редагувати параметри шаблону"],
       "Edit the dashboard": ["Відредагуйте дашборд"],
       "Edit time range": ["Редагувати часовий діапазон"],
-      "Edited": ["Редаційний"],
+      "Edited": ["Редаговані"],
       "Editing 1 filter:": ["Редагування 1 фільтр:"],
       "Editing filter set:": ["Набір фільтрів редагування:"],
       "Either the database is spelled incorrectly or does not exist.": [
@@ -3758,7 +3758,9 @@
       "Report Schedule is still working, refusing to re-compute.": [
         "Графік звіту все ще працює, відмовляючись від повторного складання."
       ],
-      "Report Schedule log prune failed.": ["Не вдалося не вдалося."],
+      "Report Schedule log prune failed.": [
+        "Не вдалося очистити логи Звіту Розкладу."
+      ],
       "Report Schedule not found.": ["Розклад звіту не знайдено."],
       "Report Schedule parameters are invalid.": [
         "Параметри розкладу звіту недійсні."
@@ -3850,9 +3852,9 @@
       "Rotation to apply to words in the cloud": [
         "Обертання, щоб застосувати до слів у хмарі"
       ],
-      "Round cap": ["Круглий шапка"],
+      "Round cap": ["Круглий cap"],
       "Row": ["Рядок"],
-      "Row Level Security": ["Безпека рівня ряду"],
+      "Row Level Security": ["Безпека на рівні рядків"],
       "Row containing the headers to use as column names (0 is first line of data). Leave empty if there is no header row": [
         "Рядок, що містить заголовки, які використовуються як імена стовпців (0 - це перший рядок даних). Залиште порожнім, якщо немає рядка заголовка"
       ],
