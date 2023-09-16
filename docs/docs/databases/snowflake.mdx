@@ -7,16 +7,13 @@ version: 1
 
 ## Snowflake
 
-If running Superset using Docker Compose, add the following to your `./docker/requirements-local.txt` file:
+### Install BigQuery Driver
+
+Follow the steps [here](/docs/databases/docker-add-drivers) about how to
+install new database drivers when setting up Superset locally via docker-compose.
 
 ```
-snowflake-sqlalchemy==version
-```
-
-example, If version is 1.5.0, then add the following to your `./docker/requirements-local.txt` file:
-
-```
-snowflake-sqlalchemy==1.5.0
+echo "snowflake-sqlalchemy" >> ./docker/requirements-local.txt
 ```
 
 The recommended connector library for Snowflake is
