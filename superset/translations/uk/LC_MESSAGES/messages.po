@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: 2023-09-17 00:56+0300\n"
+"PO-Revision-Date: 2023-09-17 01:06+0300\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: uk\n"
@@ -949,7 +949,7 @@ msgid "Align +/-"
 msgstr "Вирівняти +/-"
 
 msgid "All"
-msgstr "Все"
+msgstr "Всі"
 
 msgid "All Entities"
 msgstr "Всі сутності"
@@ -1704,7 +1704,7 @@ msgid "Build"
 msgstr "Побудувати"
 
 msgid "Bulk select"
-msgstr "Виберіть масу"
+msgstr "Виберіть декілька"
 
 msgid "Bullet Chart"
 msgstr "Куляна діаграма"
@@ -2255,7 +2255,7 @@ msgid "Clear"
 msgstr "Чіткий"
 
 msgid "Clear all"
-msgstr "Очистити все"
+msgstr "Очистити всі"
 
 msgid "Clear all data"
 msgstr "Очистіть усі дані"
@@ -2330,7 +2330,7 @@ msgid "Code"
 msgstr "Кодування"
 
 msgid "Collapse all"
-msgstr "Закрити все"
+msgstr "Згорнути всі"
 
 msgid "Collapse data panel"
 msgstr "Панель даних про крах"
@@ -4135,7 +4135,7 @@ msgid "Expand"
 msgstr "Розширити"
 
 msgid "Expand all"
-msgstr "Розширити все"
+msgstr "Розширити всі"
 
 msgid "Expand data panel"
 msgstr "Розгорнути панель даних"
@@ -4307,10 +4307,10 @@ msgid "Failed to verify select options: %s"
 msgstr "Не вдалося перевірити вибрати параметри: %s"
 
 msgid "Favorite"
-msgstr "Улюблений"
+msgstr "Улюблені"
 
 msgid "Favorites"
-msgstr "Фаворити"
+msgstr "Улюблені"
 
 msgid "February"
 msgstr "Лютий"
@@ -4735,7 +4735,7 @@ msgid "Histogram"
 msgstr "Гістограма"
 
 msgid "Home"
-msgstr "Домашній"
+msgstr "Домашня сторінка"
 
 msgid "Horizon Chart"
 msgstr "Діаграма горизонту"
@@ -5242,7 +5242,7 @@ msgid "Last Changed"
 msgstr "Востаннє змінився"
 
 msgid "Last Modified"
-msgstr "Останній модифікований"
+msgstr "Останнє змінено"
 
 msgid "Last Updated %s"
 msgstr "Останній оновлений %s"
@@ -5254,10 +5254,10 @@ msgid "Last available value seen on %s"
 msgstr "Остання доступна вартість, що спостерігається на %s"
 
 msgid "Last modified"
-msgstr "Останній модифікований"
+msgstr "Останнє змінено"
 
 msgid "Last modified by %s"
-msgstr "Останній модифікований на %s"
+msgstr "Останнє змінено на %s"
 
 msgid "Last run"
 msgstr "Останній пробіг"
@@ -5758,7 +5758,7 @@ msgid "Min/max (no outliers)"
 msgstr "Мін/Макс (без переживань)"
 
 msgid "Mine"
-msgstr "Шахта"
+msgstr "Мої"
 
 msgid "Minimum"
 msgstr "Мінімум"
@@ -5809,13 +5809,13 @@ msgid "Mixed Time-Series"
 msgstr "Змішані часові серії"
 
 msgid "Modified"
-msgstr "Модифікований"
+msgstr "Змінений"
 
 msgid "Modified %s"
 msgstr "Модифіковані %s"
 
 msgid "Modified by"
-msgstr "Модифікований"
+msgstr "Змінений"
 
 msgid "Modified columns: %s"
 msgstr "Модифіковані стовпці: %s"
@@ -6984,7 +6984,7 @@ msgid "Proceed"
 msgstr "Тривати"
 
 msgid "Profile"
-msgstr "Профіл"
+msgstr "Профіль"
 
 msgid "Profile picture provided by Gravatar"
 msgstr "Зображення профілю, надане Gravatar"
@@ -7164,7 +7164,7 @@ msgid "Recently edited charts, dashboards, and saved queries will appear here"
 msgstr "Нещодавно відредаговані діаграми, дашборди та збереженні запити з’являться тут"
 
 msgid "Recently modified"
-msgstr "Нещодавно модифікований"
+msgstr "Нещодавно змінений"
 
 msgid "Recently viewed charts, dashboards, and saved queries will appear here"
 msgstr "Нещодавно переглянуті діаграми, дашборди та збережені запити з’являться тут"
@@ -7803,19 +7803,19 @@ msgid "Saved"
 msgstr "Врятований"
 
 msgid "Saved Queries"
-msgstr "Зберегти запити"
+msgstr "Збережені запити"
 
 msgid "Saved expressions"
-msgstr "Зберегти вирази"
+msgstr "Збережені вирази"
 
 msgid "Saved metric"
-msgstr "Збережений показник"
+msgstr "Збережені метрики"
 
 msgid "Saved queries"
-msgstr "Зберегти запити"
+msgstr "Збережені запити"
 
 msgid "Saved queries could not be deleted."
-msgstr "Збережених запитів не можна було видалити."
+msgstr "Збережені запити не можливо видалити."
 
 msgid "Saved query not found."
 msgstr "Збережений запит не знайдено."
@@ -7881,10 +7881,10 @@ msgid "Schemas allowed for File upload"
 msgstr "Схеми дозволені для завантаження файлів"
 
 msgid "Scope"
-msgstr "Обсяг"
+msgstr "Область"
 
 msgid "Scoping"
-msgstr "Область"
+msgstr "Виділення області"
 
 msgid "Scroll"
 msgstr "Прокрутити"
@@ -7893,7 +7893,7 @@ msgid "Scroll down to the bottom to enable overwriting changes. "
 msgstr "Прокрутіть донизу, щоб увімкнути перезапис змін. "
 
 msgid "Search"
-msgstr "Обшук"
+msgstr "Пошук"
 
 msgid "Search / Filter"
 msgstr "Пошук / фільтр"
@@ -10615,7 +10615,7 @@ msgid "View"
 msgstr "Переглянути"
 
 msgid "View All »"
-msgstr "Подивитись все »"
+msgstr "Подивитись всі »"
 
 msgid "View Dataset"
 msgstr "Переглянути набір даних"
@@ -11471,7 +11471,7 @@ msgid "alerts"
 msgstr "попередження"
 
 msgid "all"
-msgstr "все"
+msgstr "всі"
 
 msgid "also copy (duplicate) charts"
 msgstr "також скопіюйте (зробіть дублікат) діаграм"
@@ -11996,7 +11996,7 @@ msgid "recent"
 msgstr "недавній"
 
 msgid "recents"
-msgstr "втілення"
+msgstr "недавні"
 
 msgid "report"
 msgstr "доповідь"

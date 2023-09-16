@@ -446,7 +446,7 @@
       "Alerts & Reports": ["Попередження та звіти"],
       "Alerts & reports": ["Попередження та звіти"],
       "Align +/-": ["Вирівняти +/-"],
-      "All": ["Все"],
+      "All": ["Всі"],
       "All Entities": ["Всі сутності"],
       "All Text": ["Весь текст"],
       "All charts": ["Усі діаграми"],
@@ -919,7 +919,7 @@
       "Bubble size": ["Розмір міхура"],
       "Bucket break points": ["Точки розриву відра"],
       "Build": ["Побудувати"],
-      "Bulk select": ["Виберіть масу"],
+      "Bulk select": ["Виберіть декілька"],
       "Bullet Chart": ["Куляна діаграма"],
       "Business": ["Бізнес"],
       "Business Data Type": ["Тип даних бізнесу"],
@@ -1192,7 +1192,7 @@
       ],
       "Clause": ["Застереження"],
       "Clear": ["Чіткий"],
-      "Clear all": ["Очистити все"],
+      "Clear all": ["Очистити всі"],
       "Clear all data": ["Очистіть усі дані"],
       "Clear form": ["Чітка форма"],
       "Click on \"+Add/Edit Filters\" button to create new dashboard filters": [
@@ -1227,7 +1227,7 @@
       "Cluster label aggregator": ["Агрегатор кластерної етикетки"],
       "Clustering Radius": ["Радій кластеризації"],
       "Code": ["Кодування"],
-      "Collapse all": ["Закрити все"],
+      "Collapse all": ["Згорнути всі"],
       "Collapse data panel": ["Панель даних про крах"],
       "Collapse row": ["Колапс ряд"],
       "Collapse tab content": ["Вміст вкладки колапсу"],
@@ -2140,7 +2140,7 @@
       "Existing dataset": ["Існуючий набір даних"],
       "Exit fullscreen": ["Вийти на повне екран"],
       "Expand": ["Розширити"],
-      "Expand all": ["Розширити все"],
+      "Expand all": ["Розширити всі"],
       "Expand data panel": ["Розгорнути панель даних"],
       "Expand row": ["Розширити ряд"],
       "Expand table preview": ["Розширити попередній перегляд таблиці"],
@@ -2222,8 +2222,8 @@
       "Failed to verify select options: %s": [
         "Не вдалося перевірити вибрати параметри: %s"
       ],
-      "Favorite": ["Улюблений"],
-      "Favorites": ["Фаворити"],
+      "Favorite": ["Улюблені"],
+      "Favorites": ["Улюблені"],
       "February": ["Лютий"],
       "Fetch Values Predicate": ["Значення отримання предикатів"],
       "Fetch data preview": ["Попередній перегляд даних"],
@@ -2428,7 +2428,7 @@
       ],
       "Hierarchy": ["Ієрархія"],
       "Histogram": ["Гістограма"],
-      "Home": ["Домашній"],
+      "Home": ["Домашня сторінка"],
       "Horizon Chart": ["Діаграма горизонту"],
       "Horizon Charts": ["Horizon Charts"],
       "Horizontal": ["Горизонтальний"],
@@ -2688,14 +2688,14 @@
       "Large": ["Великий"],
       "Last": ["Останній"],
       "Last Changed": ["Востаннє змінився"],
-      "Last Modified": ["Останній модифікований"],
+      "Last Modified": ["Останнє змінено"],
       "Last Updated %s": ["Останній оновлений %s"],
       "Last Updated %s by %s": ["Останній оновлений %s на %s"],
       "Last available value seen on %s": [
         "Остання доступна вартість, що спостерігається на %s"
       ],
-      "Last modified": ["Останній модифікований"],
-      "Last modified by %s": ["Останній модифікований на %s"],
+      "Last modified": ["Останнє змінено"],
+      "Last modified by %s": ["Останнє змінено на %s"],
       "Last run": ["Останній пробіг"],
       "Latitude": ["Широта"],
       "Latitude of default viewport": ["Широта перегляду за замовчуванням"],
@@ -2930,7 +2930,7 @@
       "Min Width": ["Мінина ширина"],
       "Min periods": ["Мінські періоди"],
       "Min/max (no outliers)": ["Мін/Макс (без переживань)"],
-      "Mine": ["Шахта"],
+      "Mine": ["Мої"],
       "Minimum": ["Мінімум"],
       "Minimum Font Size": ["Мінімальний розмір шрифту"],
       "Minimum Radius": ["Мінімальний радіус"],
@@ -2955,9 +2955,9 @@
       "Missing dataset": ["Відсутній набір даних"],
       "Mixed Chart": ["Змішана діаграма"],
       "Mixed Time-Series": ["Змішані часові серії"],
-      "Modified": ["Модифікований"],
+      "Modified": ["Змінений"],
       "Modified %s": ["Модифіковані %s"],
-      "Modified by": ["Модифікований"],
+      "Modified by": ["Змінений"],
       "Modified columns: %s": ["Модифіковані стовпці: %s"],
       "Monday": ["Понеділок"],
       "Month": ["Місяць"],
@@ -3593,7 +3593,7 @@
       "Private Key & Password": ["Приватний ключ та пароль"],
       "Private Key Password": ["Пароль приватного ключа"],
       "Proceed": ["Тривати"],
-      "Profile": ["Профіл"],
+      "Profile": ["Профіль"],
       "Profile picture provided by Gravatar": [
         "Зображення профілю, надане Gravatar"
       ],
@@ -3673,7 +3673,7 @@
       "Recently edited charts, dashboards, and saved queries will appear here": [
         "Нещодавно відредаговані діаграми, дашборди та збереженні запити з’являться тут"
       ],
-      "Recently modified": ["Нещодавно модифікований"],
+      "Recently modified": ["Нещодавно змінений"],
       "Recently viewed charts, dashboards, and saved queries will appear here": [
         "Нещодавно переглянуті діаграми, дашборди та збережені запити з’являться тут"
       ],
@@ -3961,12 +3961,12 @@
       ],
       "Save to new dashboard": ["Збережіть на новій панелі приладів"],
       "Saved": ["Врятований"],
-      "Saved Queries": ["Зберегти запити"],
-      "Saved expressions": ["Зберегти вирази"],
-      "Saved metric": ["Збережений показник"],
-      "Saved queries": ["Зберегти запити"],
+      "Saved Queries": ["Збережені запити"],
+      "Saved expressions": ["Збережені вирази"],
+      "Saved metric": ["Збережені метрики"],
+      "Saved queries": ["Збережені запити"],
       "Saved queries could not be deleted.": [
-        "Збережених запитів не можна було видалити."
+        "Збережені запити не можливо видалити."
       ],
       "Saved query not found.": ["Збережений запит не знайдено."],
       "Saved query parameters are invalid.": [
@@ -4001,13 +4001,13 @@
       "Schemas allowed for File upload": [
         "Схеми дозволені для завантаження файлів"
       ],
-      "Scope": ["Обсяг"],
-      "Scoping": ["Область"],
+      "Scope": ["Область"],
+      "Scoping": ["Виділення області"],
       "Scroll": ["Прокрутити"],
       "Scroll down to the bottom to enable overwriting changes. ": [
         "Прокрутіть донизу, щоб увімкнути перезапис змін. "
       ],
-      "Search": ["Обшук"],
+      "Search": ["Пошук"],
       "Search / Filter": ["Пошук / фільтр"],
       "Search Metrics & Columns": ["Пошук показників та стовпців"],
       "Search all charts": ["Шукайте всі діаграми"],
@@ -5571,7 +5571,7 @@
       "Vertical (Left)": ["Вертикальний (зліва)"],
       "Video game consoles": ["Консолі відеоігор"],
       "View": ["Переглянути"],
-      "View All »": ["Подивитись все »"],
+      "View All »": ["Подивитись всі »"],
       "View Dataset": ["Переглянути набір даних"],
       "View all charts": ["Переглянути всі діаграми"],
       "View as table": ["Переглянути як таблицю"],
@@ -6126,7 +6126,7 @@
       "alert": ["насторожений"],
       "alert dark": ["насторожити темно"],
       "alerts": ["попередження"],
-      "all": ["все"],
+      "all": ["всі"],
       "also copy (duplicate) charts": [
         "також скопіюйте (зробіть дублікат) діаграм"
       ],
@@ -6329,7 +6329,7 @@
       "random": ["випадковий"],
       "reboot": ["перезавантажити"],
       "recent": ["недавній"],
-      "recents": ["втілення"],
+      "recents": ["недавні"],
       "report": ["доповідь"],
       "reports": ["звіти"],
       "restore zoom": ["відновити масштаб"],
