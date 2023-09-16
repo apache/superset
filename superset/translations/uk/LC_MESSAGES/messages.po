@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: 2023-09-16 23:40+0300\n"
+"PO-Revision-Date: 2023-09-17 00:56+0300\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: uk\n"
@@ -30,7 +30,7 @@ msgid ""
 "            "
 msgstr ""
 "\n"
-"            Помилка: %(текст) s\n"
+"            Помилка: %(text)s\n"
 "            "
 
 msgid " (excluded)"
@@ -94,82 +94,82 @@ msgid "!= (Is not equal)"
 msgstr "! = (Не рівний)"
 
 msgid "%(dialect)s cannot be used as a data source for security reasons."
-msgstr "%(діалект) s не можна використовувати як джерело даних з міркувань безпеки."
+msgstr "%(dialect)s не можна використовувати як джерело даних з міркувань безпеки."
 
 msgid ""
 "%(message)s\n"
 "This may be triggered by: \n"
 "%(issues)s"
 msgstr ""
-"%(повідомлення) s\n"
+"%(message)s\n"
 "Це може бути спровоковано:\n"
-"%(питання) s"
+"%(issues)s"
 
 msgid "%(name)s.csv"
-msgstr "%(ім'я) S.CSV"
+msgstr "%(name)s.CSV"
 
 msgid "%(object)s does not exist in this database."
-msgstr "%(об’єкт) s не існує в цій базі даних."
+msgstr "%(object)s не існує в цій базі даних."
 
 msgid "%(other)s charts will appear here"
-msgstr "%(інші) S -діаграми з’являться тут"
+msgstr "%(other)s -діаграми з’являться тут"
 
 msgid "%(other)s dashboards will appear here"
 msgstr "%(other)s дашборди з’являться тут"
 
 msgid "%(other)s recents will appear here"
-msgstr "%(Інші) з з’являються тут"
+msgstr "%(other)s останнє з’явиться тут"
 
 msgid "%(other)s saved queries will appear here"
-msgstr "%(інші) Збережено запити з’являться тут"
+msgstr "%(other)s збережені запити з’являться тут"
 
 msgid "%(prefix)s %(title)s"
-msgstr "%(префікс) s %(заголовок) s"
+msgstr "%(prefix)s %(title)s"
 
 msgid "%(rows)d rows returned"
-msgstr "%(рядки) D рядки повернулися"
+msgstr "%(rows)d рядки повернулися"
 
 msgid ""
 "%(subtitle)s\n"
 "This may be triggered by:\n"
 " %(issue)s"
 msgstr ""
-"%(підзаголовок) s\n"
+"%(subtitle)s\n"
 "Це може бути спровоковано:\n"
-" %(питання) s"
+" %(issue)s"
 
 msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgstr "%(Пропозиція) s замість \"%(UndefinedParameter) s?\""
+msgstr "%(suggestion)s замість “%(undefinedParameter)s?\""
 
 msgid "%(user)s was granted the role %(role)s that gives access to the %(datasource)s"
-msgstr "%(користувача) було надано роль %(роль), яка надає доступ до %(DataSource) s"
+msgstr "%(user)s було надано роль %(role)s, яка надає доступ до %(datasource)s"
 
 msgid "%(user)s's profile"
-msgstr "%(Користувач) профілю S"
+msgstr "%(user)s профіль"
 
 msgid ""
 "%(validator)s was unable to check your query.\n"
 "Please recheck your query.\n"
 "Exception: %(ex)s"
 msgstr ""
-"%(валідатор) S не зміг перевірити ваш запит.\n"
+"%(validator)s не зміг перевірити ваш запит.\n"
 "Будь ласка, перегляньте свій запит.\n"
-"Виняток: %(колишня) s"
+"Виняток: %(ex)s"
 
 msgid "%s Error"
-msgstr "%S помилка"
+msgstr "%s помилка"
 
 msgid "%s PASSWORD"
-msgstr "%S пароль"
+msgstr "%s пароль"
 
 msgid "%s SSH TUNNEL PASSWORD"
-msgstr "%S SSH Тунельний пароль"
+msgstr "%s SSH Тунельний пароль"
 
 msgid "%s SSH TUNNEL PRIVATE KEY"
-msgstr "%S SSH Tunnel Private Key"
+msgstr "%s SSH Tunnel Private Key"
 
 msgid "%s SSH TUNNEL PRIVATE KEY PASSWORD"
-msgstr "%S SSH тунель приватного пароля"
+msgstr "%s SSH тунель приватного пароля"
 
 msgid "%s Selected"
 msgstr "%s вибраний"
@@ -184,25 +184,25 @@ msgid "%s Selected (Virtual)"
 msgstr "%s вибраний (віртуальний)"
 
 msgid "%s aggregates(s)"
-msgstr "%S Агрегати (и)"
+msgstr "%s агреговані"
 
 msgid "%s column(s)"
-msgstr "%S -стовпці (и)"
+msgstr "%s стовпці"
 
 msgid "%s operator(s)"
-msgstr "%S Оператор (и)"
+msgstr "%s Оператор(и)"
 
 msgid "%s option"
 msgstr "%s варіант"
 
 msgid "%s option(s)"
-msgstr "%S Варіант (и)"
+msgstr "%s варіант(и)"
 
 msgid "%s row"
 msgstr "%s рядок"
 
 msgid "%s saved metric(s)"
-msgstr "%s Збережено метрики (и)"
+msgstr "%s збережені метрики"
 
 msgid "%s updated"
 msgstr "%s оновлено"
@@ -237,13 +237,13 @@ msgid ""
 "\n"
 "%(table)s\n"
 msgstr ""
-"*%(ім'я) s*\n"
+"*%(name)s*\n"
 "\n"
-"%(опис) s\n"
+"%(description)s\n"
 "\n"
-"<%(URL) S | Ознайомтеся з суперсетами>\n"
+"<%(URL)s | Ознайомтеся з Superset>\n"
 "\n"
-"%(таблиця) s\n"
+"%(table)s\n"
 
 msgid ""
 "*%(name)s*\n"
@@ -252,14 +252,14 @@ msgid ""
 "\n"
 "Error: %(text)s\n"
 msgstr ""
-"*%(ім'я) s*\n"
+"*%(name)s*\n"
 "\n"
-"%(опис) s\n"
+"%(description)s\n"
 "\n"
-"Помилка: %(текст) s\n"
+"Помилка: %(text)s\n"
 
 msgid "+ %s more"
-msgstr "+ %s Більше"
+msgstr "+ %s більше"
 
 msgid ","
 msgstr ","
@@ -350,16 +350,16 @@ msgid "1AS"
 msgstr "1AS"
 
 msgid "1D"
-msgstr "1d"
+msgstr "1D"
 
 msgid "1H"
-msgstr "1 годин"
+msgstr "1H"
 
 msgid "1M"
-msgstr "1 м"
+msgstr "1M"
 
 msgid "1T"
-msgstr "1т"
+msgstr "1T"
 
 msgid "2 years"
 msgstr "2 роки"
@@ -383,7 +383,7 @@ msgid "2D"
 msgstr "2d"
 
 msgid "3 letter code of the country"
-msgstr "3 Лист -код країни"
+msgstr "3х символьний код країни"
 
 msgid "3 years"
 msgstr "3 роки"
@@ -413,7 +413,7 @@ msgid "3D"
 msgstr "3D"
 
 msgid "4 weeks (freq=4W-MON)"
-msgstr "4 тижні (FREQ = 4W-MON)"
+msgstr "4 тижні (частота=4W-MON)"
 
 msgid "5 minute"
 msgstr "5 -хвилинний"
@@ -434,7 +434,7 @@ msgid "52 weeks ago"
 msgstr "52 тижні тому"
 
 msgid "52 weeks starting Monday (freq=52W-MON)"
-msgstr "52 тижні, починаючи з понеділка (FREQ = 52 Вт-місяць)"
+msgstr "52 тижні, починаючи з понеділка (частота=52W-MON)"
 
 msgid "6 hour"
 msgstr "6 годин"
@@ -549,7 +549,7 @@ msgid "A reference to the [Time] configuration, taking granularity into account"
 msgstr "Посилання на конфігурацію [часу], враховуючи деталізацію"
 
 msgid "A report named \"%(name)s\" already exists"
-msgstr "Звіт під назвою \"%(ім'я) S\" вже існує"
+msgstr "Звіт під назвою “%(name)s” вже існує"
 
 msgid "A reusable dataset will be saved with your chart."
 msgstr "Набору даних багаторазового використання буде збережено за допомогою вашої діаграми."
@@ -567,16 +567,16 @@ msgid "A time series chart that visualizes how a related metric from multiple gr
 msgstr "Діаграма часових рядів, яка візуалізує, як пов'язана метрика з декількох груп різниться з часом. Кожна група візуалізується за допомогою іншого кольору."
 
 msgid "A timeout occurred while executing the query."
-msgstr "Під час виконання запиту стався тайм -аут."
+msgstr "Під час виконання запиту стався таймаут."
 
 msgid "A timeout occurred while generating a csv."
-msgstr "Під час генерування CSV стався тайм -аут."
+msgstr "Під час генерування CSV стався таймаут."
 
 msgid "A timeout occurred while generating a dataframe."
-msgstr "Під час генерування даних даних траплявся тайм -аут."
+msgstr "Під час генерування даних даних траплявся таймаут."
 
 msgid "A timeout occurred while taking a screenshot."
-msgstr "Під час зняття скріншота стався тайм -аут."
+msgstr "Під час зняття скріншота стався таймаут."
 
 msgid "A valid color scheme is required"
 msgstr "Потрібна дійсна кольорова гама"
@@ -919,13 +919,13 @@ msgid "Alert query returned more than one column."
 msgstr "Попередній запит повернув більше одного стовпця."
 
 msgid "Alert query returned more than one column. %s columns returned"
-msgstr "Попередній запит повернув більше одного стовпця. повернуті стовпці %S"
+msgstr "Попередній запит повернув більше одного стовпця. повернуті стовпці %s"
 
 msgid "Alert query returned more than one row."
 msgstr "Попередній запит повернув більше одного ряду."
 
 msgid "Alert query returned more than one row. %s rows returned"
-msgstr "Попередній запит повернув більше одного ряду. %S Рядки повернулися"
+msgstr "Попередній запит повернув більше одного ряду. %s Рядки повернулися"
 
 msgid "Alert running"
 msgstr "Попередження"
@@ -1054,7 +1054,7 @@ msgid "An Error Occurred"
 msgstr "Виникла помилка"
 
 msgid "An alert named \"%(name)s\" already exists"
-msgstr "Попередження під назвою \"%(ім'я) S\" вже існує"
+msgstr "Попередження під назвою “%(name)s” вже існує"
 
 msgid "An enclosed time range (both start and end) must be specified when using a Time Comparison."
 msgstr "При використанні порівняння часу вкладений діапазон часу (як стартовий, так і кінець)."
@@ -1378,10 +1378,10 @@ msgid "Append"
 msgstr "Додаватися"
 
 msgid "Applied cross-filters (%d)"
-msgstr "Застосовані перехресні фільти (%D)"
+msgstr "Застосовані перехресні фільти (%d)"
 
 msgid "Applied filters (%d)"
-msgstr "Застосовані фільтри (%D)"
+msgstr "Застосовані фільтри (%d)"
 
 msgid "Applied filters: %s"
 msgstr "Застосовані фільтри: %s"
@@ -1609,7 +1609,7 @@ msgid "Basic information"
 msgstr "Основна інформація"
 
 msgid "Batch editing %d filters:"
-msgstr "Редагування партії %D фільтрів:"
+msgstr "Редагування партії %d фільтрів:"
 
 msgid "Battery level over time"
 msgstr "Рівень акумулятора з часом"
@@ -1783,7 +1783,7 @@ msgid "CSV Upload"
 msgstr "Завантаження CSV"
 
 msgid "CSV file \"%(csv_filename)s\" uploaded to table \"%(table_name)s\" in database \"%(db_name)s\""
-msgstr "CSV -файл \"%(CSV_FILENAME) S\" Завантажено в таблицю \"%(table_name) S\" в базі даних \"%(DB_NAME) S\""
+msgstr "CSV файл “%(csv_filename)s\" Завантажено в таблицю \"%(table_name)s\" в базі даних “%(db_name)s”"
 
 msgid "CSV to Database configuration"
 msgstr "CSV до конфігурації бази даних"
@@ -1878,14 +1878,14 @@ msgid ""
 "Cannot import dashboard: %(db_error)s.\n"
 "Make sure to create the database before importing the dashboard."
 msgstr ""
-"Не вдається імпортувати дашборд: %(DB_ERROR) s.\n"
+"Не вдається імпортувати дашборд: %(db_error)s.\n"
 "Переконайтеся, що створити базу даних перед імпортом дашборду."
 
 msgid "Cannot load filter"
 msgstr "Не вдається завантажувати фільтр"
 
 msgid "Cannot parse time string [%(human_readable)s]"
-msgstr "Не вдається розбирати часовий рядок [%(human_readable) s]"
+msgstr "Не вдається розбирати часовий рядок [%(human_readable)s]"
 
 msgid "Categorical"
 msgstr "Категоричний"
@@ -2011,7 +2011,7 @@ msgid "Chart"
 msgstr "Графік"
 
 msgid "Chart %(id)s not found"
-msgstr "Діаграма %(id) s не знайдено"
+msgstr "Діаграма %(id)s не знайдено"
 
 msgid "Chart Cache Timeout"
 msgstr "ЧАС КАХ ЧАСУВАННЯ"
@@ -2384,7 +2384,7 @@ msgid "Column"
 msgstr "Стовпчик"
 
 msgid "Column \"%(column)s\" is not numeric or does not exists in the query results."
-msgstr "Стовпчик \"%(стовпчик) S\" не є числовим або не існує в результатах запиту."
+msgstr "Стовпчик “%(column)s” не є числовим або не існує в результатах запиту."
 
 msgid "Column Configuration"
 msgstr "Конфігурація стовпців"
@@ -2429,7 +2429,7 @@ msgid "Column name [%s] is duplicated"
 msgstr "Назва стовпця [%s] дублюється"
 
 msgid "Column referenced by aggregate is undefined: %(column)s"
-msgstr "Стовпчик, на який посилається агрегат, не визначений: %(стовпчик) s"
+msgstr "Стовпчик, на який посилається агрегат, не визначений: %(column)s"
 
 msgid "Column select"
 msgstr "Вибір стовпця"
@@ -2444,7 +2444,7 @@ msgid "Columnar File"
 msgstr "Стовпчик"
 
 msgid "Columnar file \"%(columnar_filename)s\" uploaded to table \"%(table_name)s\" in database \"%(db_name)s\""
-msgstr "Солодкий файл \"%(columnar_filename) s\" завантажено в таблицю \"%(table_name) S\" в базі даних \"%(db_name) s\""
+msgstr "Солодкий файл “%(columnar_filename)s\" завантажено в таблицю \"%(table_name)s\" в базі даних \"%(db_name)s\""
 
 msgid "Columnar to Database configuration"
 msgstr "Conturear в конфігурацію бази даних"
@@ -2459,10 +2459,10 @@ msgid "Columns To Read"
 msgstr "Стовпці для читання"
 
 msgid "Columns missing in dataset: %(invalid_columns)s"
-msgstr "Стовпці відсутні в наборі даних: %(invalid_columns) s"
+msgstr "Стовпці відсутні в наборі даних: %(invalid_columns)s"
 
 msgid "Columns missing in datasource: %(invalid_columns)s"
-msgstr "Стовпці відсутні в даних DataSource: %(Infalid_Columns) s"
+msgstr "Стовпці відсутні в даних datasource: %(invalid_columns)s"
 
 msgid "Columns subtotal position"
 msgstr "Стовпці субтотального положення"
@@ -2694,7 +2694,7 @@ msgid "Cost estimate"
 msgstr "Оцінка витрат"
 
 msgid "Could not connect to database: \"%(database)s\""
-msgstr "Не вдалося підключитися до бази даних: \"%(база даних) S\""
+msgstr "Не вдалося підключитися до бази даних: “%(database)s”"
 
 msgid "Could not determine datasource type"
 msgstr "Не вдалося визначити тип даних"
@@ -2709,13 +2709,13 @@ msgid "Could not load database driver"
 msgstr "Не вдалося завантажити драйвер бази даних"
 
 msgid "Could not load database driver: %(driver_name)s"
-msgstr "Не вдалося завантажити драйвер бази даних: %(драйвер_name) s"
+msgstr "Не вдалося завантажити драйвер бази даних: %(driver_name)s"
 
 msgid "Could not load database driver: {}"
 msgstr "Не вдалося завантажити драйвер бази даних: {}"
 
 msgid "Could not resolve hostname: \"%(host)s\"."
-msgstr "Не вдалося вирішити ім'я хоста: \"%(хост) S\"."
+msgstr "Не вдалося вирішити ім'я хоста: “%(host)s\"."
 
 msgid "Count"
 msgstr "Рахувати"
@@ -2893,7 +2893,7 @@ msgid "DATETIME"
 msgstr "ДАТА, ЧАС"
 
 msgid "DB column %(col_name)s has unknown type: %(value_type)s"
-msgstr "Стовпчик DB %(col_name) s має невідомий тип: %(value_type) s"
+msgstr "Стовпчик DB %(col_name)s має невідомий тип: %(value_type)s"
 
 msgid "DEC"
 msgstr "Ухвала"
@@ -3025,13 +3025,13 @@ msgid "Database"
 msgstr "База даних"
 
 msgid "Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for columnar uploads. Please contact your Superset Admin."
-msgstr "База даних \"%(база даних_name) S\" схема \"%(schema_name) s\" не дозволена для завантаження стовпців. Зверніться до свого адміністратора Superset."
+msgstr "База даних “%(database_name)s” схема \"%(schema_name)s\" не дозволена для завантаження стовпців. Зверніться до свого адміністратора Superset."
 
 msgid "Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for csv uploads. Please contact your Superset Admin."
-msgstr "База даних \"%(база даних_name) S\" схема \"%(schema_name) s\" не дозволена для завантаження CSV. Зверніться до свого адміністратора Superset."
+msgstr "База даних “%(database_name)s” схема \"%(schema_name)s\" не дозволена для завантаження CSV. Зверніться до свого адміністратора Superset."
 
 msgid "Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for excel uploads. Please contact your Superset Admin."
-msgstr "База даних \"%(база даних_name) S\" схема \"%(schema_name) s\" не дозволена для завантаження Excel. Зверніться до свого адміністратора Superset."
+msgstr "База даних “%(database_name)s” схема \"%(schema_name)s\" не дозволена для завантаження Excel. Зверніться до свого адміністратора Superset."
 
 msgid "Database Connections"
 msgstr "З'єднання бази даних"
@@ -3085,7 +3085,7 @@ msgid "Database not found."
 msgstr "База даних не знайдена."
 
 msgid "Database not found: %(id)s"
-msgstr "База даних не знайдена: %(id) s"
+msgstr "База даних не знайдена: %(id)s"
 
 msgid "Database parameters are invalid."
 msgstr "Параметри бази даних недійсні."
@@ -3109,7 +3109,7 @@ msgid "Dataset"
 msgstr "Набір даних"
 
 msgid "Dataset %(name)s already exists"
-msgstr "Набір даних %(ім'я) s вже існує"
+msgstr "Набір даних %(name)s вже існує"
 
 msgid "Dataset Name"
 msgstr "Назва набору даних"
@@ -3154,7 +3154,7 @@ msgid "Dataset parameters are invalid."
 msgstr "Параметри набору даних недійсні."
 
 msgid "Dataset schema is invalid, caused by: %(error)s"
-msgstr "Схема набору даних недійсна, викликана: %(помилка) s"
+msgstr "Схема набору даних недійсна, викликана: %(error)s"
 
 msgid "Dataset(s) could not be bulk deleted."
 msgstr "Набір даних (ів) не міг бути вилучений масовим."
@@ -3650,10 +3650,10 @@ msgid "Duplicate"
 msgstr "Дублікат"
 
 msgid "Duplicate column name(s): %(columns)s"
-msgstr "Дублікат назви стовпців (и): %(стовпці) s"
+msgstr "Дублікат назви стовпців: %(columns)s"
 
 msgid "Duplicate column/metric labels: %(labels)s. Please make sure all columns and metrics have a unique label."
-msgstr "Дублікат стовпців/метричних мітків: %(мітки) s. Будь ласка, переконайтеся, що всі стовпці та показники мають унікальну мітку."
+msgstr "Дублікат стовпців/метричних міток: %(labels)s. Будь ласка, переконайтеся, що всі стовпці та показники мають унікальну мітку."
 
 msgid "Duplicate dataset"
 msgstr "Дублікат набору даних"
@@ -3694,7 +3694,7 @@ msgstr ""
 "бази даних, якщо він не визначений."
 
 msgid "Duration (in seconds) of the metadata caching timeout for schemas of this database. If left unset, the cache never expires."
-msgstr "Тривалість (за лічені секунди) тайм -аут кешування метаданих для схем цієї бази даних. Якщо залишатись не встановлено, кеш ніколи не закінчується."
+msgstr "Тривалість (за лічені секунди) таймаут кешування метаданих для схем цієї бази даних. Якщо залишатись не встановлено, кеш ніколи не закінчується."
 
 msgid "Duration (in seconds) of the metadata caching timeout for tables of this database. If left unset, the cache never expires. "
 msgstr "Тривалість (за лічені секунди) таймаут кешування метаданих для таблиць цієї бази даних. Якщо залишатись не встановлено, кеш ніколи не закінчується. "
@@ -3859,10 +3859,10 @@ msgid "Either the database is spelled incorrectly or does not exist."
 msgstr "Або база даних написана неправильно, або не існує."
 
 msgid "Either the username \"%(username)s\" or the password is incorrect."
-msgstr "Або ім'я користувача \"%(ім'я користувача) S\", або пароль невірний."
+msgstr "Або ім'я користувача “%(username)s”, або пароль невірний."
 
 msgid "Either the username \"%(username)s\", password, or database name \"%(database)s\" is incorrect."
-msgstr "Або ім'я користувача \"%(ім'я користувача) S\", пароль або ім'я бази даних \"%(база даних) S\" є неправильним."
+msgstr "Або ім'я користувача “%(username)s”, пароль або ім'я бази даних “%(database)s\" є неправильним."
 
 msgid "Either the username or the password is wrong."
 msgstr "Або ім'я користувача, або пароль неправильні."
@@ -3973,7 +3973,7 @@ msgid "End date must be after start date"
 msgstr "Дата закінчення повинна бути після дати початку"
 
 msgid "Engine \"%(engine)s\" cannot be configured through parameters."
-msgstr "Двигун \"%(двигун) S\" не може бути налаштований за параметрами."
+msgstr "Двигун “%(engine)s” не може бути налаштований за параметрами."
 
 msgid "Engine Parameters"
 msgstr "Параметри двигуна"
@@ -4003,7 +4003,7 @@ msgid "Enter fullscreen"
 msgstr "Введіть повноекранний"
 
 msgid "Enter the required %(dbModelName)s credentials"
-msgstr "Введіть необхідні дані (dbmodelname) s"
+msgstr "Введіть необхідні дані %(dbModelName)s"
 
 msgid "Entity"
 msgstr "Об'єкт"
@@ -4021,16 +4021,16 @@ msgid "Error"
 msgstr "Помилка"
 
 msgid "Error in jinja expression in HAVING clause: %(msg)s"
-msgstr "Помилка в виразі Jinja у встановленні пункту: %(MSG) s"
+msgstr "Помилка в виразі jinja у HAVING фразі: %(msg)s"
 
 msgid "Error in jinja expression in RLS filters: %(msg)s"
-msgstr "Помилка в виразі Jinja у фільмах RLS: %(MSG) s"
+msgstr "Помилка в виразі jinja у фільтрах RLS: %(msg)s"
 
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
-msgstr "Помилка в виразі Jinja, де пункт: %(MSG) s"
+msgstr "Помилка в виразі jinja WHERE: %(msg)s"
 
 msgid "Error in jinja expression in fetch values predicate: %(msg)s"
-msgstr "Помилка в експресії jinja у значеннях вибору предикат: %(msg) s"
+msgstr "Помилка в експресії jinja у значеннях вибору предикат: %(msg)s"
 
 msgid "Error loading chart datasources. Filters may not work correctly."
 msgstr "Помилка завантаження діаграм даних. Фільтри можуть працювати не правильно."
@@ -4045,13 +4045,13 @@ msgid "Error while fetching data: %s"
 msgstr "Помилка під час отримання даних: %s"
 
 msgid "Error while rendering virtual dataset query: %(msg)s"
-msgstr "Помилка під час надання віртуального запиту набору даних: %(MSG) s"
+msgstr "Помилка під час надання віртуального запиту набору даних: %(msg)s"
 
 msgid "Error: %(error)s"
-msgstr "Помилка: %(помилка) s"
+msgstr "Помилка: %(error)s"
 
 msgid "Error: %(msg)s"
-msgstr "Помилка: %(MSG) S"
+msgstr "Помилка: %(msg)s"
 
 msgid "Error: permalink state not found"
 msgstr "Помилка: стан постійного посилання не знайдено"
@@ -4102,7 +4102,7 @@ msgid "Excel File"
 msgstr "Файл Excel"
 
 msgid "Excel file \"%(excel_filename)s\" uploaded to table \"%(table_name)s\" in database \"%(db_name)s\""
-msgstr "Файл Excel \"%(excel_filename) s\" завантажено в таблицю \"%(table_name) s\" в базі даних \"%(db_name) s\""
+msgstr "Файл Excel \"%(excel_filename)s\" завантажено в таблицю \"%(table_name)s\" в базі даних \"%(db_name)s\""
 
 msgid "Excel to Database configuration"
 msgstr "Excel до конфігурації бази даних"
@@ -4165,7 +4165,7 @@ msgid "Explore"
 msgstr "Досліджувати"
 
 msgid "Explore - %(table)s"
-msgstr "Досліджувати - %(таблиця) s"
+msgstr "Дослідити - %(table)s"
 
 msgid "Explore the result set in the data exploration view"
 msgstr "Вивчіть результат, встановлений у поданні досліджень даних"
@@ -4235,7 +4235,7 @@ msgstr ""
 "Деталі \":\" Ця таблиця є джерелом істини \". }, \"попередження_markdown\": \"Це попередження\". } `."
 
 msgid "Extra field cannot be decoded by JSON. %(msg)s"
-msgstr "Додаткове поле не може розшифровувати JSON. %(msg) s"
+msgstr "Додаткове поле не може розшифровувати JSON. %(msg)s"
 
 msgid "Extra parameters for use in jinja templated queries"
 msgstr "Додаткові параметри для використання в шаблонних запитах Jinja"
@@ -4277,7 +4277,7 @@ msgid "Failed to create report"
 msgstr "Не вдалося створити звіт"
 
 msgid "Failed to execute %(query)s"
-msgstr "Не вдалося виконати %(запит) s"
+msgstr "Не вдалося виконати %(query)s"
 
 msgid "Failed to generate chart edit URL"
 msgstr "Не вдалося створити URL -адресу редагування діаграм"
@@ -4328,10 +4328,10 @@ msgid "Fetching"
 msgstr "Приплив"
 
 msgid "Field cannot be decoded by JSON. %(json_error)s"
-msgstr "Поле не може розшифрувати JSON. %(json_error) s"
+msgstr "Поле не може розшифрувати JSON. %(json_error)s"
 
 msgid "Field cannot be decoded by JSON. %(msg)s"
-msgstr "Поле не може розшифрувати JSON. %(msg) s"
+msgstr "Поле не може розшифрувати JSON. %(msg)s"
 
 msgid "Field is required"
 msgstr "Потрібне поле"
@@ -4439,7 +4439,7 @@ msgid "Filters configuration"
 msgstr "Конфігурація фільтрів"
 
 msgid "Filters out of scope (%d)"
-msgstr "Фільтри поза обсягом (%D)"
+msgstr "Фільтри поза обсягом (%d)"
 
 msgid ""
 "Filters with the same group key will be ORed together within the group, while different filter groups will be ANDed together. Undefined group keys are treated as "
@@ -4979,7 +4979,7 @@ msgid "Invalid JSON"
 msgstr "Недійсний JSON"
 
 msgid "Invalid advanced data type: %(advanced_data_type)s"
-msgstr "Недійсний тип даних про розширені дані: %(ardanced_data_type) s"
+msgstr "Недійсний тип даних про розширені дані: %(advanced_data_type)s"
 
 msgid "Invalid certificate"
 msgstr "Недійсний сертифікат"
@@ -5005,7 +5005,7 @@ msgid "Invalid cron expression"
 msgstr "Недійсний вираз Cron"
 
 msgid "Invalid cumulative operator: %(operator)s"
-msgstr "Недійсний кумулятивний оператор: %(оператор) s"
+msgstr "Недійсний кумулятивний оператор: %(operator)s"
 
 msgid "Invalid date/timestamp format"
 msgstr "Недійсна дата/формат часової позначки"
@@ -5014,7 +5014,7 @@ msgid "Invalid filter configuration, please select a column"
 msgstr "Недійсна конфігурація фільтра, будь ласка, виберіть стовпець"
 
 msgid "Invalid filter operation type: %(op)s"
-msgstr "Недійсний тип функції фільтра: %(OP) S"
+msgstr "Недійсний тип функції фільтра: %(op)s"
 
 msgid "Invalid geodetic string"
 msgstr "Недійсна геодезна струна"
@@ -5032,25 +5032,25 @@ msgid "Invalid longitude/latitude"
 msgstr "Недійсна довгота/широта"
 
 msgid "Invalid metric object: %(metric)s"
-msgstr "Недійсний метричний об’єкт: %(метрика) s"
+msgstr "Недійсний метричний об’єкт: %(metric)s"
 
 msgid "Invalid numpy function: %(operator)s"
-msgstr "Недійна функція Numpy: %(оператор) s"
+msgstr "Недійсна функція Numpy: %(operator)s"
 
 msgid "Invalid options for %(rolling_type)s: %(options)s"
-msgstr "Недійсні варіанти для %(ROLLING_TYPE) S: %(Параметри) S"
+msgstr "Недійсні варіанти для %(rolling_type)s: %(options)s"
 
 msgid "Invalid permalink key"
 msgstr "Недійсний ключ постійного посилання"
 
 msgid "Invalid reference to column: \"%(column)s\""
-msgstr "Недійсне посилання на стовпець: \"%(стовпчик) S\""
+msgstr "Недійсне посилання на стовпець: “%(column)s”"
 
 msgid "Invalid result type: %(result_type)s"
-msgstr "Недійсний тип результату: %(result_type) s"
+msgstr "Недійсний тип результату: %(result_type)s"
 
 msgid "Invalid rolling_type: %(type)s"
-msgstr "Недійсне Rolling_Type: %(тип) s"
+msgstr "Недійсне Rolling_Type: %(type)s"
 
 msgid "Invalid spatial point encountered: %s"
 msgstr "Недійсна просторова точка, що зустрічається: %s"
@@ -5059,7 +5059,7 @@ msgid "Invalid state."
 msgstr "Недійсна держава."
 
 msgid "Invalid tab ids: %s(tab_ids)"
-msgstr "Недійсні ідентифікатори вкладки: %S (tab_ids)"
+msgstr "Недійсні ідентифікатори вкладки: %s (tab_ids)"
 
 msgid "Inverse selection"
 msgstr "Зворотний вибір"
@@ -5664,7 +5664,7 @@ msgid "Metric"
 msgstr "Метричний"
 
 msgid "Metric '%(metric)s' does not exist"
-msgstr "Метрика '%(метрика) s' не існує"
+msgstr "Метрика ‘%(metric)s' не існує"
 
 msgid "Metric ascending"
 msgstr "Метричний висхід"
@@ -6400,7 +6400,7 @@ msgid "Only single queries supported"
 msgstr "Підтримуються лише одиночні запити"
 
 msgid "Only the following file extensions are allowed: %(allowed_extensions)s"
-msgstr "Дозволено лише наступні розширення файлу: %(дозволено_extensions) s"
+msgstr "Дозволено лише наступні розширення файлу: %(allowed_extensions)s"
 
 msgid "Oops! An error occurred!"
 msgstr "На жаль! Виникла помилка!"
@@ -6776,10 +6776,10 @@ msgstr ""
 "Будь ласка, перевірте свій запит і підтвердьте, що всі параметри шаблону оточують подвійні брекети, наприклад, \"{{ds}}\". Потім спробуйте знову запустити свій запит."
 
 msgid "Please check your query for syntax errors at or near \"%(syntax_error)s\". Then, try running your query again."
-msgstr "Будь ласка, перевірте свій запит на наявність помилок синтаксису на або поблизу \"%(syntax_error) s\". Потім спробуйте знову запустити свій запит."
+msgstr "Будь ласка, перевірте свій запит на наявність помилок синтаксису на або поблизу “%(syntax_error)s\". Потім спробуйте знову запустити свій запит."
 
 msgid "Please check your query for syntax errors near \"%(server_error)s\". Then, try running your query again."
-msgstr "Будь ласка, перевірте свій запит на наявність помилок синтаксису поблизу \"%(server_error) s\". Потім спробуйте знову запустити свій запит."
+msgstr "Будь ласка, перевірте свій запит на наявність помилок синтаксису поблизу \"%(server_error)s\". Потім спробуйте знову запустити свій запит."
 
 msgid "Please check your template parameters for syntax errors and make sure they match across your SQL query and Set Parameters. Then, try running your query again."
 msgstr ""
@@ -6896,7 +6896,7 @@ msgid "Port"
 msgstr "Порт"
 
 msgid "Port %(port)s on hostname \"%(hostname)s\" refused the connection."
-msgstr "Порт %(порт) на ім'я хоста \" %(ім'я хоста) S\" відмовився від з'єднання."
+msgstr "Порт %(port)s на ім'я хоста \" %(hostname)s” відмовився від з'єднання."
 
 msgid "Port out of range 0-65535"
 msgstr "Порт поза діапазоном 0-65535"
@@ -7395,7 +7395,7 @@ msgid "Request Permissions"
 msgstr "Попросити дозволи"
 
 msgid "Request is incorrect: %(error)s"
-msgstr "Запит невірний: %(помилка) s"
+msgstr "Запит невірний: %(error)s"
 
 msgid "Request is not JSON"
 msgstr "Запит - це не json"
@@ -7488,7 +7488,7 @@ msgid "Role"
 msgstr "Роль"
 
 msgid "Role %(r)s was extended to provide the access to the datasource %(ds)s"
-msgstr "Роль %(r) S була розширена для забезпечення доступу до даних %(ds) s"
+msgstr "Роль %(r)s була розширена для забезпечення доступу до даних %(ds)s"
 
 msgid "Roles"
 msgstr "Ролі"
@@ -7604,7 +7604,7 @@ msgid "Running"
 msgstr "Біг"
 
 msgid "Running statement %(statement_num)s out of %(statement_count)s"
-msgstr "Запуск оператора %(state_num) s з %(state_count) s"
+msgstr "Запуск оператора %(statement_num)s з %(statement_count)s"
 
 msgid "SAT"
 msgstr "Сидіти"
@@ -7638,7 +7638,7 @@ msgid ""
 "Note that you will need to close other SQL Lab windows before you do this."
 msgstr ""
 "SQL Lab використовує місцеве сховище вашого браузера для зберігання запитів та результатів.\n"
-"В даний час ви використовуєте %(поточний з підсумками) S KB з %(MaxStorage) D KB зберігання.\n"
+"В даний час ви використовуєте %(currentUsage)s KB з %(maxStorage)d KB зберігання.\n"
 "Щоб не зійти в лабораторію SQL, будь ласка, видаліть кілька вкладок запитів.\n"
 "Ви можете повторно отримати ці запити, використовуючи функцію збереження, перш ніж видалити вкладку.\n"
 "Зауважте, що вам потрібно буде закрити інші вікна лабораторії SQL, перш ніж це зробити."
@@ -7692,7 +7692,7 @@ msgid "START (INCLUSIVE)"
 msgstr "Почати (включно)"
 
 msgid "STEP %(stepCurr)s OF %(stepLast)s"
-msgstr "Крок %(Stepcurr) s %(steplast) s"
+msgstr "Крок %(stepCurr)s %(stepLast)s"
 
 msgid "STRING"
 msgstr "Нитка"
@@ -7959,7 +7959,7 @@ msgid "Security & Access"
 msgstr "Безпека та доступ"
 
 msgid "See all %(tableName)s"
-msgstr "Див. All %(TABLENAME) s"
+msgstr "Див. All %(tableName)s"
 
 msgid "See less"
 msgstr "Див. Менше"
@@ -8722,7 +8722,7 @@ msgid "State"
 msgstr "Держави"
 
 msgid "Statement %(statement_num)s out of %(statement_count)s"
-msgstr "Заява %(state_num) s з %(state_count) s"
+msgstr "Заява %(statement_num)s з %(statement_count)s"
 
 msgid "Statistical"
 msgstr "Статистичний"
@@ -8908,7 +8908,7 @@ msgid "Syntax"
 msgstr "Синтаксис"
 
 msgid "Syntax Error: %(qualifier)s input \"%(input)s\" expecting \"%(expected)s"
-msgstr "Помилка синтаксису:%(кваліфікатор) s введення \"%(вхід) S\" очікування \"%(очікувалося) s"
+msgstr "Помилка синтаксису:%(qualifier)s введення “%(input)s” очікування “%(expected)s"
 
 msgid "TABLES"
 msgstr "Столи"
@@ -8935,7 +8935,7 @@ msgid "Table"
 msgstr "Стіл"
 
 msgid "Table %(table)s wasn't found in the database %(db)s"
-msgstr "Таблиця %(таблиця) S не знайдено в базі даних %(db) s"
+msgstr "Таблиця %(table)s не знайдено в базі даних %(db)s"
 
 msgid "Table Exists"
 msgstr "Таблиця існує"
@@ -8947,7 +8947,7 @@ msgid "Table View"
 msgstr "Перегляд таблиці"
 
 msgid "Table [%(table_name)s] could not be found, please double check your database connection, schema, and table name"
-msgstr "Таблиця [%(TABLE_NAME) S] Не вдалося знайти, будь ласка, перевірте підключення до бази даних, схеми та назву таблиці"
+msgstr "Таблиця [%(table_name)s] Не вдалося знайти, будь ласка, перевірте підключення до бази даних, схеми та назву таблиці"
 
 msgid "Table [%{table}s] could not be found, please double check your database connection, schema, and table name, error: {}"
 msgstr "Таблиця [%{table} s] не вдалося знайти, будь ласка, перевірте з'єднання з базою даних, схему та назву таблиці, помилка: {}"
@@ -8968,7 +8968,7 @@ msgid "Table name undefined"
 msgstr "Назва таблиці не визначена"
 
 msgid "Table or View \"%(table)s\" does not exist."
-msgstr "Таблиця або переглянути \"%(таблиця) S\" не існує."
+msgstr "Таблиця або переглянути \"%(таблиця)s\" не існує."
 
 msgid "Table that visualizes paired t-tests, which are used to understand statistical differences between groups."
 msgstr "Таблиця, яка візуалізує парні t-тести, які використовуються для розуміння статистичних відмінностей між групами."
@@ -9044,7 +9044,7 @@ msgid "Text embedded in email"
 msgstr "Текст, вбудований в електронну пошту"
 
 msgid "The API response from %s does not match the IDatabaseTable interface."
-msgstr "Відповідь API від %S не відповідає інтерфейсу IDATABASETABLE."
+msgstr "Відповідь API від %s не відповідає інтерфейсу IDATABASETABLE."
 
 msgid "The CSS for individual dashboards can be altered here, or in the dashboard view where changes are immediately visible"
 msgstr "CSS для окремих інформаційних панелей може бути змінений тут, або на поданні приладової панелі, де зміни негайно видно"
@@ -9140,7 +9140,7 @@ msgid ""
 "The database %s is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? "
 "Deleting the database will break those objects."
 msgstr ""
-"База даних %S пов'язана з діаграмами %S, які з’являються на інформаційних панелях %S, а користувачі мають %S SQL Lab вкладки, використовуючи цю базу даних. Ви "
+"База даних %s пов'язана з діаграмами %s, які з’являються на інформаційних панелях %s, а користувачі мають %s SQL Lab вкладки, використовуючи цю базу даних. Ви "
 "впевнені, що хочете продовжувати? Видалення бази даних порушить ці об'єкти."
 
 msgid "The database columns that contains lines information"
@@ -9169,7 +9169,7 @@ msgstr "База даних не була знайдена."
 
 msgid "The dataset %s is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects."
 msgstr ""
-"DataSet %S пов'язаний з діаграмами %S, які з’являються на інформаційних панелях %S. Ви впевнені, що хочете продовжувати? Видалення набору даних порушить ці об'єкти."
+"DataSet %s пов'язаний з діаграмами %s, які з’являються на інформаційних панелях %s. Ви впевнені, що хочете продовжувати? Видалення набору даних порушить ці об'єкти."
 
 msgid "The dataset associated with this chart no longer exists"
 msgstr "Набір даних, пов'язаний з цією діаграмою, більше не існує"
@@ -9221,16 +9221,16 @@ msgid "The function to use when aggregating points into groups"
 msgstr "Функція, яку слід використовувати при агрегуванні точок у групи"
 
 msgid "The host \"%(hostname)s\" might be down and can't be reached."
-msgstr "Хост \"%(ім'я хоста) S\" може бути знижений і неможливо досягти."
+msgstr "Хост “%(hostname)s” може бути знижений і неможливо досягти."
 
 msgid "The host \"%(hostname)s\" might be down, and can't be reached on port %(port)s."
-msgstr "Хост \" %(ім'я хоста) S\" може бути знижений, і його не можна дістатися на порт %(порт) s."
+msgstr "Хост \" %(hostname)s” може бути знижений, і його не можна дістатися на порт %(port)s."
 
 msgid "The host might be down, and can't be reached on the provided port."
 msgstr "Хост може бути вниз, і його неможливо дістатися на наданий порт."
 
 msgid "The hostname \"%(hostname)s\" cannot be resolved."
-msgstr "Ім'я хоста \"%(ім'я хоста) S\" неможливо вирішити."
+msgstr "Ім'я хоста \"%(ім'я хоста)s\" неможливо вирішити."
 
 msgid "The hostname provided can't be resolved."
 msgstr "Ім'я хоста неможливо вирішити."
@@ -9257,7 +9257,7 @@ msgid "The maximum value of metrics. It is an optional configuration"
 msgstr "Максимальне значення показників. Це необов'язкова конфігурація"
 
 msgid "The metadata_params in Extra field is not configured correctly. The key %(key)s is invalid."
-msgstr "Metadata_params у додатковому полі налаштовані не правильно. Ключ %(ключ) s є недійсним."
+msgstr "Metadata_params у додатковому полі налаштовані не правильно. Ключ %(key)s є недійсним."
 
 msgid "The metadata_params in Extra field is not configured correctly. The key %{key}s is invalid."
 msgstr "Metadata_params у додатковому полі налаштовані не правильно. Ключ %{key} s є недійсним."
@@ -9311,10 +9311,10 @@ msgid "The object does not exist in the given database."
 msgstr "Об'єкт не існує в даній базі даних."
 
 msgid "The parameter %(parameters)s in your query is undefined."
-msgstr "Параметр %(параметри) s у вашому запиті не визначений."
+msgstr "Параметр %(parameters)s у вашому запиті не визначений."
 
 msgid "The password provided for username \"%(username)s\" is incorrect."
-msgstr "Пароль, що надається для імені користувача \"%(ім'я користувача) S\", є неправильним."
+msgstr "Пароль, що надається для імені користувача \"%(ім'я користувача)s\", є неправильним."
 
 msgid "The password provided when connecting to a database is not valid."
 msgstr "Пароль, наданий при підключенні до бази даних, не є дійсним."
@@ -9401,7 +9401,7 @@ msgid "The query couldn't be loaded"
 msgstr "Запит не вдалося завантажити"
 
 msgid "The query estimation was killed after %(sqllab_timeout)s seconds. It might be too complex, or the database might be under heavy load."
-msgstr "Оцінка запитів була вбита після %(sqllab_timeout) s секунд. Це може бути занадто складно, або база даних може бути під великим навантаженням."
+msgstr "Оцінка запитів була вбита після %(sqllab_timeout)s секунд. Це може бути занадто складно, або база даних може бути під великим навантаженням."
 
 msgid "The query has a syntax error."
 msgstr "Запит має помилку синтаксису."
@@ -9410,7 +9410,7 @@ msgid "The query returned no data"
 msgstr "Запит не повертав даних"
 
 msgid "The query was killed after %(sqllab_timeout)s seconds. It might be too complex, or the database might be under heavy load."
-msgstr "Запит був убитий після %(sqllab_timeout) s секунд. Це може бути занадто складно, або база даних може бути під великим навантаженням."
+msgstr "Запит був убитий після %(sqllab_timeout)s секунд. Це може бути занадто складно, або база даних може бути під великим навантаженням."
 
 msgid "The radius (in pixels) the algorithm uses to define a cluster. Choose 0 to turn off clustering, but beware that a large number of points (>1000) will cause lag."
 msgstr ""
@@ -9433,10 +9433,10 @@ msgid "The rich tooltip shows a list of all series for that point in time"
 msgstr "Багата підказка показує список усіх серій для цього моменту часу"
 
 msgid "The schema \"%(schema)s\" does not exist. A valid schema must be used to run this query."
-msgstr "Схеми \"%(схема) S\" не існує. Для запуску цього запиту необхідно використовувати дійсну схему."
+msgstr "Схеми “%(schema)s\" не існує. Для запуску цього запиту необхідно використовувати дійсну схему."
 
 msgid "The schema \"%(schema_name)s\" does not exist. A valid schema must be used to run this query."
-msgstr "Схема \"%(schema_name) S\" не існує. Для запуску цього запиту необхідно використовувати дійсну схему."
+msgstr "Схема \"%(schema_name)s\" не існує. Для запуску цього запиту необхідно використовувати дійсну схему."
 
 msgid "The schema was deleted or renamed in the database."
 msgstr "Схема була видалена або перейменована в базу даних."
@@ -9454,10 +9454,10 @@ msgid "The submitted payload has the incorrect schema."
 msgstr "Надіслане корисне навантаження має неправильну схему."
 
 msgid "The table \"%(table)s\" does not exist. A valid table must be used to run this query."
-msgstr "Таблиця \"%(таблиця) S\" не існує. Для запуску цього запиту необхідно використовувати дійсну таблицю."
+msgstr "Таблиця “%(table)s\" не існує. Для запуску цього запиту необхідно використовувати дійсну таблицю."
 
 msgid "The table \"%(table_name)s\" does not exist. A valid table must be used to run this query."
-msgstr "Таблиця \"%(Таблиця_NAME) S\" не існує. Для запуску цього запиту необхідно використовувати дійсну таблицю."
+msgstr "Таблиця “%(table_name)s\" не існує. Для запуску цього запиту необхідно використовувати дійсну таблицю."
 
 msgid "The table was created. As part of this two-phase configuration process, you should now click the edit button by the new table to configure it."
 msgstr "Стол був створений. У рамках цього двофазного процесу конфігурації тепер слід натиснути кнопку Редагувати за новою таблицею, щоб налаштувати її."
@@ -9513,7 +9513,7 @@ msgid "The user/password combination is not valid (Incorrect password for user).
 msgstr "Комбінація користувача/пароля не є дійсною (неправильний пароль для користувача)."
 
 msgid "The username \"%(username)s\" does not exist."
-msgstr "Ім'я користувача \"%(ім'я користувача) S\" не існує."
+msgstr "Ім'я користувача “%(username)s\" не існує."
 
 msgid "The username provided when connecting to a database is not valid."
 msgstr "Ім'я користувача, що надається при підключенні до бази даних, не є дійсним."
@@ -10455,7 +10455,7 @@ msgid "Use \"%(menuName)s\" menu instead."
 msgstr "Натомість використовуйте меню “%(menuName)s”."
 
 msgid "Use %s to open in a new tab."
-msgstr "Використовуйте %S, щоб відкрити на новій вкладці."
+msgstr "Використовуйте %s, щоб відкрити на новій вкладці."
 
 msgid "Use Area Proportions"
 msgstr "Використовуйте пропорції площі"
@@ -10796,7 +10796,7 @@ msgid "We were unable to carry over any controls when switching to this new data
 msgstr "Ми не змогли перенести будь -які елементи керування при переході на цей новий набір даних."
 
 msgid "We were unable to connect to your database named \"%(database)s\". Please verify your database name and try again."
-msgstr "Ми не змогли підключитися до вашої бази даних під назвою \"%(база даних) S\". Будь ласка, перевірте ім’я бази даних та спробуйте ще раз."
+msgstr "Ми не змогли підключитися до вашої бази даних під назвою “%(database)s\". Будь ласка, перевірте ім’я бази даних та спробуйте ще раз."
 
 msgid "Web"
 msgstr "Павутина"
@@ -10835,10 +10835,10 @@ msgid "Weight"
 msgstr "Вага"
 
 msgid "We’re having trouble loading these results. Queries are set to timeout after %s second."
-msgstr "У нас виникають проблеми з завантаженням цих результатів. Запити встановлюються на тайм -аут після %S секунди."
+msgstr "У нас виникають проблеми з завантаженням цих результатів. Запити встановлюються на таймаут після %s секунди."
 
 msgid "We’re having trouble loading this visualization. Queries are set to timeout after %s second."
-msgstr "У нас виникають проблеми з завантаженням цієї візуалізації. Запити встановлюються на тайм -аут після %S секунди."
+msgstr "У нас виникають проблеми з завантаженням цієї візуалізації. Запити встановлюються на таймаут після %s секунди."
 
 msgid "What should be shown on the label?"
 msgstr "Що слід показати на етикетці?"
@@ -11077,7 +11077,7 @@ msgid "Working"
 msgstr "Робочий"
 
 msgid "Working timeout"
-msgstr "Робочий тайм -аут"
+msgstr "Робочий таймаут"
 
 msgid "World Map"
 msgstr "Карта світу"

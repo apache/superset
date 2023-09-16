@@ -8,7 +8,7 @@
         "\n                Цей фільтр був успадкований із контексту панелі приладної панелі.\n                Це не буде збережено під час збереження діаграми.\n              "
       ],
       "\n            Error: %(text)s\n            ": [
-        "\n            Помилка: %(текст) s\n            "
+        "\n            Помилка: %(text)s\n            "
       ],
       " (excluded)": [" (виключається)"],
       " Set the opacity to 0 if you do not want to override the color specified in the GeoJSON": [
@@ -39,58 +39,58 @@
       " to visualize your data.": [" Візуалізувати свої дані."],
       "!= (Is not equal)": ["! = (Не рівний)"],
       "%(dialect)s cannot be used as a data source for security reasons.": [
-        "%(діалект) s не можна використовувати як джерело даних з міркувань безпеки."
+        "%(dialect)s не можна використовувати як джерело даних з міркувань безпеки."
       ],
       "%(message)s\nThis may be triggered by: \n%(issues)s": [
-        "%(повідомлення) s\nЦе може бути спровоковано:\n%(питання) s"
+        "%(message)s\nЦе може бути спровоковано:\n%(issues)s"
       ],
-      "%(name)s.csv": ["%(ім'я) S.CSV"],
+      "%(name)s.csv": ["%(name)s.CSV"],
       "%(object)s does not exist in this database.": [
-        "%(об’єкт) s не існує в цій базі даних."
+        "%(object)s не існує в цій базі даних."
       ],
       "%(other)s charts will appear here": [
-        "%(інші) S -діаграми з’являться тут"
+        "%(other)s -діаграми з’являться тут"
       ],
       "%(other)s dashboards will appear here": [
         "%(other)s дашборди з’являться тут"
       ],
-      "%(other)s recents will appear here": ["%(Інші) з з’являються тут"],
+      "%(other)s recents will appear here": ["%(other)s останнє з’явиться тут"],
       "%(other)s saved queries will appear here": [
-        "%(інші) Збережено запити з’являться тут"
+        "%(other)s збережені запити з’являться тут"
       ],
-      "%(prefix)s %(title)s": ["%(префікс) s %(заголовок) s"],
-      "%(rows)d rows returned": ["%(рядки) D рядки повернулися"],
+      "%(prefix)s %(title)s": ["%(prefix)s %(title)s"],
+      "%(rows)d rows returned": ["%(rows)d рядки повернулися"],
       "%(subtitle)s\nThis may be triggered by:\n %(issue)s": [
-        "%(підзаголовок) s\nЦе може бути спровоковано:\n %(питання) s"
+        "%(subtitle)s\nЦе може бути спровоковано:\n %(issue)s"
       ],
       "%(suggestion)s instead of \"%(undefinedParameter)s?\"": [
-        "%(Пропозиція) s замість \"%(UndefinedParameter) s?\""
+        "%(suggestion)s замість “%(undefinedParameter)s?\""
       ],
       "%(user)s was granted the role %(role)s that gives access to the %(datasource)s": [
-        "%(користувача) було надано роль %(роль), яка надає доступ до %(DataSource) s"
+        "%(user)s було надано роль %(role)s, яка надає доступ до %(datasource)s"
       ],
-      "%(user)s's profile": ["%(Користувач) профілю S"],
+      "%(user)s's profile": ["%(user)s профіль"],
       "%(validator)s was unable to check your query.\nPlease recheck your query.\nException: %(ex)s": [
-        "%(валідатор) S не зміг перевірити ваш запит.\nБудь ласка, перегляньте свій запит.\nВиняток: %(колишня) s"
+        "%(validator)s не зміг перевірити ваш запит.\nБудь ласка, перегляньте свій запит.\nВиняток: %(ex)s"
       ],
-      "%s Error": ["%S помилка"],
-      "%s PASSWORD": ["%S пароль"],
-      "%s SSH TUNNEL PASSWORD": ["%S SSH Тунельний пароль"],
-      "%s SSH TUNNEL PRIVATE KEY": ["%S SSH Tunnel Private Key"],
-      "%s SSH TUNNEL PRIVATE KEY PASSWORD": ["%S SSH тунель приватного пароля"],
+      "%s Error": ["%s помилка"],
+      "%s PASSWORD": ["%s пароль"],
+      "%s SSH TUNNEL PASSWORD": ["%s SSH Тунельний пароль"],
+      "%s SSH TUNNEL PRIVATE KEY": ["%s SSH Tunnel Private Key"],
+      "%s SSH TUNNEL PRIVATE KEY PASSWORD": ["%s SSH тунель приватного пароля"],
       "%s Selected": ["%s вибраний"],
       "%s Selected (%s Physical, %s Virtual)": [
         "%s вибраний ( %s фізичний, %s віртуальний)"
       ],
       "%s Selected (Physical)": ["%s вибраний (фізичний)"],
       "%s Selected (Virtual)": ["%s вибраний (віртуальний)"],
-      "%s aggregates(s)": ["%S Агрегати (и)"],
-      "%s column(s)": ["%S -стовпці (и)"],
-      "%s operator(s)": ["%S Оператор (и)"],
+      "%s aggregates(s)": ["%s агреговані"],
+      "%s column(s)": ["%s стовпці"],
+      "%s operator(s)": ["%s Оператор(и)"],
       "%s option": ["%s варіант"],
-      "%s option(s)": ["%S Варіант (и)"],
+      "%s option(s)": ["%s варіант(и)"],
       "%s row": ["%s рядок"],
-      "%s saved metric(s)": ["%s Збережено метрики (и)"],
+      "%s saved metric(s)": ["%s збережені метрики"],
       "%s updated": ["%s оновлено"],
       "%s%s": ["%s%s"],
       "%s-%s of %s": ["%s-%s з %s"],
@@ -106,12 +106,12 @@
         "), і вони стають доступними у вашому SQL (приклад:"
       ],
       "*%(name)s*\n\n%(description)s\n\n<%(url)s|Explore in Superset>\n\n%(table)s\n": [
-        "*%(ім'я) s*\n\n%(опис) s\n\n<%(URL) S | Ознайомтеся з суперсетами>\n\n%(таблиця) s\n"
+        "*%(name)s*\n\n%(description)s\n\n<%(URL)s | Ознайомтеся з Superset>\n\n%(table)s\n"
       ],
       "*%(name)s*\n\n%(description)s\n\nError: %(text)s\n": [
-        "*%(ім'я) s*\n\n%(опис) s\n\nПомилка: %(текст) s\n"
+        "*%(name)s*\n\n%(description)s\n\nПомилка: %(text)s\n"
       ],
-      "+ %s more": ["+ %s Більше"],
+      "+ %s more": ["+ %s більше"],
       ",": [","],
       "-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.\n\n": [
         "- Примітка. Якщо ви не зберегли свій запит, ці вкладки не будуть зберігатись, якщо ви очистите файли cookie або змінить браузери.\n\n"
@@ -146,17 +146,17 @@
       "156 weeks": ["156 тижнів"],
       "156 weeks ago": ["156 тижнів тому"],
       "1AS": ["1AS"],
-      "1D": ["1d"],
-      "1H": ["1 годин"],
-      "1M": ["1 м"],
-      "1T": ["1т"],
+      "1D": ["1D"],
+      "1H": ["1H"],
+      "1M": ["1M"],
+      "1T": ["1T"],
       "2 years": ["2 роки"],
       "2 years ago": ["2 роки назад"],
       "2/98 percentiles": ["2/98 відсотків"],
       "28 days": ["28 днів"],
       "28 days ago": ["28 днів тому"],
       "2D": ["2d"],
-      "3 letter code of the country": ["3 Лист -код країни"],
+      "3 letter code of the country": ["3х символьний код країни"],
       "3 years": ["3 роки"],
       "3 years ago": ["3 роки тому"],
       "30 days": ["30 днів"],
@@ -166,7 +166,7 @@
       "30 second": ["30 секунд"],
       "30 seconds": ["30 секунд"],
       "3D": ["3D"],
-      "4 weeks (freq=4W-MON)": ["4 тижні (FREQ = 4W-MON)"],
+      "4 weeks (freq=4W-MON)": ["4 тижні (частота=4W-MON)"],
       "5 minute": ["5 -хвилинний"],
       "5 minutes": ["5 хвилин"],
       "5 second": ["5 секунд"],
@@ -174,7 +174,7 @@
       "52 weeks": ["52 тижні"],
       "52 weeks ago": ["52 тижні тому"],
       "52 weeks starting Monday (freq=52W-MON)": [
-        "52 тижні, починаючи з понеділка (FREQ = 52 Вт-місяць)"
+        "52 тижні, починаючи з понеділка (частота=52W-MON)"
       ],
       "6 hour": ["6 годин"],
       "60 days": ["60 днів"],
@@ -243,7 +243,7 @@
         "Посилання на конфігурацію [часу], враховуючи деталізацію"
       ],
       "A report named \"%(name)s\" already exists": [
-        "Звіт під назвою \"%(ім'я) S\" вже існує"
+        "Звіт під назвою “%(name)s” вже існує"
       ],
       "A reusable dataset will be saved with your chart.": [
         "Набору даних багаторазового використання буде збережено за допомогою вашої діаграми."
@@ -261,16 +261,16 @@
         "Діаграма часових рядів, яка візуалізує, як пов'язана метрика з декількох груп різниться з часом. Кожна група візуалізується за допомогою іншого кольору."
       ],
       "A timeout occurred while executing the query.": [
-        "Під час виконання запиту стався тайм -аут."
+        "Під час виконання запиту стався таймаут."
       ],
       "A timeout occurred while generating a csv.": [
-        "Під час генерування CSV стався тайм -аут."
+        "Під час генерування CSV стався таймаут."
       ],
       "A timeout occurred while generating a dataframe.": [
-        "Під час генерування даних даних траплявся тайм -аут."
+        "Під час генерування даних даних траплявся таймаут."
       ],
       "A timeout occurred while taking a screenshot.": [
-        "Під час зняття скріншота стався тайм -аут."
+        "Під час зняття скріншота стався таймаут."
       ],
       "A valid color scheme is required": ["Потрібна дійсна кольорова гама"],
       "APPLY": ["Застосовувати"],
@@ -429,13 +429,13 @@
         "Попередній запит повернув більше одного стовпця."
       ],
       "Alert query returned more than one column. %s columns returned": [
-        "Попередній запит повернув більше одного стовпця. повернуті стовпці %S"
+        "Попередній запит повернув більше одного стовпця. повернуті стовпці %s"
       ],
       "Alert query returned more than one row.": [
         "Попередній запит повернув більше одного ряду."
       ],
       "Alert query returned more than one row. %s rows returned": [
-        "Попередній запит повернув більше одного ряду. %S Рядки повернулися"
+        "Попередній запит повернув більше одного ряду. %s Рядки повернулися"
       ],
       "Alert running": ["Попередження"],
       "Alert triggered, notification sent": [
@@ -510,7 +510,7 @@
       "Altered": ["Змінений"],
       "An Error Occurred": ["Виникла помилка"],
       "An alert named \"%(name)s\" already exists": [
-        "Попередження під назвою \"%(ім'я) S\" вже існує"
+        "Попередження під назвою “%(name)s” вже існує"
       ],
       "An enclosed time range (both start and end) must be specified when using a Time Comparison.": [
         "При використанні порівняння часу вкладений діапазон часу (як стартовий, так і кінець)."
@@ -761,8 +761,8 @@
         "Будь-які бази даних, які можуть бути з'єднані через URIs SQL Alchemy. Дізнайтеся, як підключити драйвер бази даних "
       ],
       "Append": ["Додаватися"],
-      "Applied cross-filters (%d)": ["Застосовані перехресні фільти (%D)"],
-      "Applied filters (%d)": ["Застосовані фільтри (%D)"],
+      "Applied cross-filters (%d)": ["Застосовані перехресні фільти (%d)"],
+      "Applied filters (%d)": ["Застосовані фільтри (%d)"],
       "Applied filters: %s": ["Застосовані фільтри: %s"],
       "Applied rolling window did not return any data. Please make sure the source query satisfies the minimum periods defined in the rolling window.": [
         "Застосоване вікно прокатки не повернуло жодних даних. Будь ласка, переконайтесь, що запит джерела задовольняє мінімальні періоди, визначені у вікні прокатки."
@@ -884,7 +884,7 @@
       ],
       "Basic": ["Основний"],
       "Basic information": ["Основна інформація"],
-      "Batch editing %d filters:": ["Редагування партії %D фільтрів:"],
+      "Batch editing %d filters:": ["Редагування партії %d фільтрів:"],
       "Battery level over time": ["Рівень акумулятора з часом"],
       "Be careful.": ["Будь обережний."],
       "Before": ["До"],
@@ -955,7 +955,7 @@
       "CSS templates": ["Шаблони CSS"],
       "CSV Upload": ["Завантаження CSV"],
       "CSV file \"%(csv_filename)s\" uploaded to table \"%(table_name)s\" in database \"%(db_name)s\"": [
-        "CSV -файл \"%(CSV_FILENAME) S\" Завантажено в таблицю \"%(table_name) S\" в базі даних \"%(DB_NAME) S\""
+        "CSV файл “%(csv_filename)s\" Завантажено в таблицю \"%(table_name)s\" в базі даних “%(db_name)s”"
       ],
       "CSV to Database configuration": ["CSV до конфігурації бази даних"],
       "CSV upload": ["Завантаження CSV"],
@@ -1007,11 +1007,11 @@
         "Не може бути декількох облікових даних для тунелю SSH"
       ],
       "Cannot import dashboard: %(db_error)s.\nMake sure to create the database before importing the dashboard.": [
-        "Не вдається імпортувати дашборд: %(DB_ERROR) s.\nПереконайтеся, що створити базу даних перед імпортом дашборду."
+        "Не вдається імпортувати дашборд: %(db_error)s.\nПереконайтеся, що створити базу даних перед імпортом дашборду."
       ],
       "Cannot load filter": ["Не вдається завантажувати фільтр"],
       "Cannot parse time string [%(human_readable)s]": [
-        "Не вдається розбирати часовий рядок [%(human_readable) s]"
+        "Не вдається розбирати часовий рядок [%(human_readable)s]"
       ],
       "Categorical": ["Категоричний"],
       "Categorical Color": ["Категоричний колір"],
@@ -1074,7 +1074,7 @@
         "Характер тлумачити як десяткову точку."
       ],
       "Chart": ["Графік"],
-      "Chart %(id)s not found": ["Діаграма %(id) s не знайдено"],
+      "Chart %(id)s not found": ["Діаграма %(id)s не знайдено"],
       "Chart Cache Timeout": ["ЧАС КАХ ЧАСУВАННЯ"],
       "Chart Data: %s": ["Дані діаграми: %s"],
       "Chart ID": ["Ідентифікатор діаграми"],
@@ -1248,7 +1248,7 @@
       "Colors": ["Кольори"],
       "Column": ["Стовпчик"],
       "Column \"%(column)s\" is not numeric or does not exists in the query results.": [
-        "Стовпчик \"%(стовпчик) S\" не є числовим або не існує в результатах запиту."
+        "Стовпчик “%(column)s” не є числовим або не існує в результатах запиту."
       ],
       "Column Configuration": ["Конфігурація стовпців"],
       "Column Data Types": ["Типи даних стовпців"],
@@ -1273,7 +1273,7 @@
       "Column name": ["Назва стовпця"],
       "Column name [%s] is duplicated": ["Назва стовпця [%s] дублюється"],
       "Column referenced by aggregate is undefined: %(column)s": [
-        "Стовпчик, на який посилається агрегат, не визначений: %(стовпчик) s"
+        "Стовпчик, на який посилається агрегат, не визначений: %(column)s"
       ],
       "Column select": ["Вибір стовпця"],
       "Column to use as the row labels of the dataframe. Leave empty if no index column": [
@@ -1284,7 +1284,7 @@
       ],
       "Columnar File": ["Стовпчик"],
       "Columnar file \"%(columnar_filename)s\" uploaded to table \"%(table_name)s\" in database \"%(db_name)s\"": [
-        "Солодкий файл \"%(columnar_filename) s\" завантажено в таблицю \"%(table_name) S\" в базі даних \"%(db_name) s\""
+        "Солодкий файл “%(columnar_filename)s\" завантажено в таблицю \"%(table_name)s\" в базі даних \"%(db_name)s\""
       ],
       "Columnar to Database configuration": [
         "Conturear в конфігурацію бази даних"
@@ -1295,10 +1295,10 @@
       ],
       "Columns To Read": ["Стовпці для читання"],
       "Columns missing in dataset: %(invalid_columns)s": [
-        "Стовпці відсутні в наборі даних: %(invalid_columns) s"
+        "Стовпці відсутні в наборі даних: %(invalid_columns)s"
       ],
       "Columns missing in datasource: %(invalid_columns)s": [
-        "Стовпці відсутні в даних DataSource: %(Infalid_Columns) s"
+        "Стовпці відсутні в даних datasource: %(invalid_columns)s"
       ],
       "Columns subtotal position": ["Стовпці субтотального положення"],
       "Columns to calculate distribution across.": [
@@ -1433,7 +1433,7 @@
       "Correlation": ["Співвідношення"],
       "Cost estimate": ["Оцінка витрат"],
       "Could not connect to database: \"%(database)s\"": [
-        "Не вдалося підключитися до бази даних: \"%(база даних) S\""
+        "Не вдалося підключитися до бази даних: “%(database)s”"
       ],
       "Could not determine datasource type": ["Не вдалося визначити тип даних"],
       "Could not fetch all saved charts": [
@@ -1444,13 +1444,13 @@
         "Не вдалося завантажити драйвер бази даних"
       ],
       "Could not load database driver: %(driver_name)s": [
-        "Не вдалося завантажити драйвер бази даних: %(драйвер_name) s"
+        "Не вдалося завантажити драйвер бази даних: %(driver_name)s"
       ],
       "Could not load database driver: {}": [
         "Не вдалося завантажити драйвер бази даних: {}"
       ],
       "Could not resolve hostname: \"%(host)s\".": [
-        "Не вдалося вирішити ім'я хоста: \"%(хост) S\"."
+        "Не вдалося вирішити ім'я хоста: “%(host)s\"."
       ],
       "Count": ["Рахувати"],
       "Count Unique Values": ["Порахуйте унікальні значення"],
@@ -1538,7 +1538,7 @@
       ],
       "DATETIME": ["ДАТА, ЧАС"],
       "DB column %(col_name)s has unknown type: %(value_type)s": [
-        "Стовпчик DB %(col_name) s має невідомий тип: %(value_type) s"
+        "Стовпчик DB %(col_name)s має невідомий тип: %(value_type)s"
       ],
       "DEC": ["Ухвала"],
       "DELETE": ["Видаляти"],
@@ -1595,13 +1595,13 @@
       ],
       "Database": ["База даних"],
       "Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for columnar uploads. Please contact your Superset Admin.": [
-        "База даних \"%(база даних_name) S\" схема \"%(schema_name) s\" не дозволена для завантаження стовпців. Зверніться до свого адміністратора Superset."
+        "База даних “%(database_name)s” схема \"%(schema_name)s\" не дозволена для завантаження стовпців. Зверніться до свого адміністратора Superset."
       ],
       "Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for csv uploads. Please contact your Superset Admin.": [
-        "База даних \"%(база даних_name) S\" схема \"%(schema_name) s\" не дозволена для завантаження CSV. Зверніться до свого адміністратора Superset."
+        "База даних “%(database_name)s” схема \"%(schema_name)s\" не дозволена для завантаження CSV. Зверніться до свого адміністратора Superset."
       ],
       "Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for excel uploads. Please contact your Superset Admin.": [
-        "База даних \"%(база даних_name) S\" схема \"%(schema_name) s\" не дозволена для завантаження Excel. Зверніться до свого адміністратора Superset."
+        "База даних “%(database_name)s” схема \"%(schema_name)s\" не дозволена для завантаження Excel. Зверніться до свого адміністратора Superset."
       ],
       "Database Connections": ["З'єднання бази даних"],
       "Database Creation Error": ["Помилка створення бази даних"],
@@ -1628,7 +1628,7 @@
         "База даних не дозволяється змінювати"
       ],
       "Database not found.": ["База даних не знайдена."],
-      "Database not found: %(id)s": ["База даних не знайдена: %(id) s"],
+      "Database not found: %(id)s": ["База даних не знайдена: %(id)s"],
       "Database parameters are invalid.": ["Параметри бази даних недійсні."],
       "Database passwords": ["Паролі бази даних"],
       "Database port": ["Порт бази даних"],
@@ -1636,7 +1636,7 @@
       "Databases": ["Бази даних"],
       "Dataframe Index": ["Індекс даних даних"],
       "Dataset": ["Набір даних"],
-      "Dataset %(name)s already exists": ["Набір даних %(ім'я) s вже існує"],
+      "Dataset %(name)s already exists": ["Набір даних %(name)s вже існує"],
       "Dataset Name": ["Назва набору даних"],
       "Dataset column delete failed.": [
         "Видалення стовпця набору даних не вдалося."
@@ -1658,7 +1658,7 @@
       "Dataset name": ["Назва набору даних"],
       "Dataset parameters are invalid.": ["Параметри набору даних недійсні."],
       "Dataset schema is invalid, caused by: %(error)s": [
-        "Схема набору даних недійсна, викликана: %(помилка) s"
+        "Схема набору даних недійсна, викликана: %(error)s"
       ],
       "Dataset(s) could not be bulk deleted.": [
         "Набір даних (ів) не міг бути вилучений масовим."
@@ -1914,10 +1914,10 @@
       "Dual Line Chart": ["Діаграма подвійної лінії"],
       "Duplicate": ["Дублікат"],
       "Duplicate column name(s): %(columns)s": [
-        "Дублікат назви стовпців (и): %(стовпці) s"
+        "Дублікат назви стовпців: %(columns)s"
       ],
       "Duplicate column/metric labels: %(labels)s. Please make sure all columns and metrics have a unique label.": [
-        "Дублікат стовпців/метричних мітків: %(мітки) s. Будь ласка, переконайтеся, що всі стовпці та показники мають унікальну мітку."
+        "Дублікат стовпців/метричних міток: %(labels)s. Будь ласка, переконайтеся, що всі стовпці та показники мають унікальну мітку."
       ],
       "Duplicate dataset": ["Дублікат набору даних"],
       "Duplicate tab": ["Вкладка дублікатів"],
@@ -1938,7 +1938,7 @@
         "Тривалість (за секунди) тайм -ауту кешування для цієї таблиці. Час очікування 0 вказує на те, що кеш ніколи не закінчується. Зверніть увагу на цей час очікування бази даних, якщо він не визначений."
       ],
       "Duration (in seconds) of the metadata caching timeout for schemas of this database. If left unset, the cache never expires.": [
-        "Тривалість (за лічені секунди) тайм -аут кешування метаданих для схем цієї бази даних. Якщо залишатись не встановлено, кеш ніколи не закінчується."
+        "Тривалість (за лічені секунди) таймаут кешування метаданих для схем цієї бази даних. Якщо залишатись не встановлено, кеш ніколи не закінчується."
       ],
       "Duration (in seconds) of the metadata caching timeout for tables of this database. If left unset, the cache never expires. ": [
         "Тривалість (за лічені секунди) таймаут кешування метаданих для таблиць цієї бази даних. Якщо залишатись не встановлено, кеш ніколи не закінчується. "
@@ -2007,10 +2007,10 @@
         "Або база даних написана неправильно, або не існує."
       ],
       "Either the username \"%(username)s\" or the password is incorrect.": [
-        "Або ім'я користувача \"%(ім'я користувача) S\", або пароль невірний."
+        "Або ім'я користувача “%(username)s”, або пароль невірний."
       ],
       "Either the username \"%(username)s\", password, or database name \"%(database)s\" is incorrect.": [
-        "Або ім'я користувача \"%(ім'я користувача) S\", пароль або ім'я бази даних \"%(база даних) S\" є неправильним."
+        "Або ім'я користувача “%(username)s”, пароль або ім'я бази даних “%(database)s\" є неправильним."
       ],
       "Either the username or the password is wrong.": [
         "Або ім'я користувача, або пароль неправильні."
@@ -2063,7 +2063,7 @@
         "Дата закінчення повинна бути після дати початку"
       ],
       "Engine \"%(engine)s\" cannot be configured through parameters.": [
-        "Двигун \"%(двигун) S\" не може бути налаштований за параметрами."
+        "Двигун “%(engine)s” не може бути налаштований за параметрами."
       ],
       "Engine Parameters": ["Параметри двигуна"],
       "Engine spec \"InvalidEngine\" does not support being configured via individual parameters.": [
@@ -2077,7 +2077,7 @@
       "Enter duration in seconds": ["Введіть тривалість за лічені секунди"],
       "Enter fullscreen": ["Введіть повноекранний"],
       "Enter the required %(dbModelName)s credentials": [
-        "Введіть необхідні дані (dbmodelname) s"
+        "Введіть необхідні дані %(dbModelName)s"
       ],
       "Entity": ["Об'єкт"],
       "Entity ID": ["Ідентифікатор сутності"],
@@ -2085,16 +2085,16 @@
       "Equal to (=)": ["Дорівнює (=)"],
       "Error": ["Помилка"],
       "Error in jinja expression in HAVING clause: %(msg)s": [
-        "Помилка в виразі Jinja у встановленні пункту: %(MSG) s"
+        "Помилка в виразі jinja у HAVING фразі: %(msg)s"
       ],
       "Error in jinja expression in RLS filters: %(msg)s": [
-        "Помилка в виразі Jinja у фільмах RLS: %(MSG) s"
+        "Помилка в виразі jinja у фільтрах RLS: %(msg)s"
       ],
       "Error in jinja expression in WHERE clause: %(msg)s": [
-        "Помилка в виразі Jinja, де пункт: %(MSG) s"
+        "Помилка в виразі jinja WHERE: %(msg)s"
       ],
       "Error in jinja expression in fetch values predicate: %(msg)s": [
-        "Помилка в експресії jinja у значеннях вибору предикат: %(msg) s"
+        "Помилка в експресії jinja у значеннях вибору предикат: %(msg)s"
       ],
       "Error loading chart datasources. Filters may not work correctly.": [
         "Помилка завантаження діаграм даних. Фільтри можуть працювати не правильно."
@@ -2103,10 +2103,10 @@
       "Error while fetching charts": ["Помилка під час отримання діаграм"],
       "Error while fetching data: %s": ["Помилка під час отримання даних: %s"],
       "Error while rendering virtual dataset query: %(msg)s": [
-        "Помилка під час надання віртуального запиту набору даних: %(MSG) s"
+        "Помилка під час надання віртуального запиту набору даних: %(msg)s"
       ],
-      "Error: %(error)s": ["Помилка: %(помилка) s"],
-      "Error: %(msg)s": ["Помилка: %(MSG) S"],
+      "Error: %(error)s": ["Помилка: %(error)s"],
+      "Error: %(msg)s": ["Помилка: %(msg)s"],
       "Error: permalink state not found": [
         "Помилка: стан постійного посилання не знайдено"
       ],
@@ -2128,7 +2128,7 @@
       "Examples": ["Приклади"],
       "Excel File": ["Файл Excel"],
       "Excel file \"%(excel_filename)s\" uploaded to table \"%(table_name)s\" in database \"%(db_name)s\"": [
-        "Файл Excel \"%(excel_filename) s\" завантажено в таблицю \"%(table_name) s\" в базі даних \"%(db_name) s\""
+        "Файл Excel \"%(excel_filename)s\" завантажено в таблицю \"%(table_name)s\" в базі даних \"%(db_name)s\""
       ],
       "Excel to Database configuration": ["Excel до конфігурації бази даних"],
       "Exclude selected values": ["Виключіть вибрані значення"],
@@ -2150,7 +2150,7 @@
       ],
       "Experimental": ["Експериментальний"],
       "Explore": ["Досліджувати"],
-      "Explore - %(table)s": ["Досліджувати - %(таблиця) s"],
+      "Explore - %(table)s": ["Дослідити - %(table)s"],
       "Explore the result set in the data exploration view": [
         "Вивчіть результат, встановлений у поданні досліджень даних"
       ],
@@ -2177,7 +2177,7 @@
         "Додаткові дані для визначення метаданих таблиць. В даний час підтримує метадані формату: `{\" Сертифікація \": {\" сертифікат_by \":\" Команда платформи даних \",\" Деталі \":\" Ця таблиця є джерелом істини \". }, \"попередження_markdown\": \"Це попередження\". } `."
       ],
       "Extra field cannot be decoded by JSON. %(msg)s": [
-        "Додаткове поле не може розшифровувати JSON. %(msg) s"
+        "Додаткове поле не може розшифровувати JSON. %(msg)s"
       ],
       "Extra parameters for use in jinja templated queries": [
         "Додаткові параметри для використання в шаблонних запитах Jinja"
@@ -2200,7 +2200,7 @@
       "Failed at retrieving results": ["Не вдалося отримати результати"],
       "Failed at stopping query. %s": ["Не вдалося зупинити запит. %s"],
       "Failed to create report": ["Не вдалося створити звіт"],
-      "Failed to execute %(query)s": ["Не вдалося виконати %(запит) s"],
+      "Failed to execute %(query)s": ["Не вдалося виконати %(query)s"],
       "Failed to generate chart edit URL": [
         "Не вдалося створити URL -адресу редагування діаграм"
       ],
@@ -2230,10 +2230,10 @@
       "Fetched %s": ["Витягнутий %s"],
       "Fetching": ["Приплив"],
       "Field cannot be decoded by JSON. %(json_error)s": [
-        "Поле не може розшифрувати JSON. %(json_error) s"
+        "Поле не може розшифрувати JSON. %(json_error)s"
       ],
       "Field cannot be decoded by JSON. %(msg)s": [
-        "Поле не може розшифрувати JSON. %(msg) s"
+        "Поле не може розшифрувати JSON. %(msg)s"
       ],
       "Field is required": ["Потрібне поле"],
       "File": ["Файл"],
@@ -2286,7 +2286,7 @@
       "Filters by columns": ["Фільтри за колонками"],
       "Filters by metrics": ["Фільтри за метриками"],
       "Filters configuration": ["Конфігурація фільтрів"],
-      "Filters out of scope (%d)": ["Фільтри поза обсягом (%D)"],
+      "Filters out of scope (%d)": ["Фільтри поза обсягом (%d)"],
       "Filters with the same group key will be ORed together within the group, while different filter groups will be ANDed together. Undefined group keys are treated as unique groups, i.e. are not grouped together. For example, if a table has three filters, of which two are for departments Finance and Marketing (group key = 'department'), and one refers to the region Europe (group key = 'region'), the filter clause would apply the filter (department = 'Finance' OR department = 'Marketing') AND (region = 'Europe').": [
         "Фільтри з тим самим груповим ключем будуть розглянуті разом у групі, тоді як різні групи фільтрів будуть та разом. Невизначені групові ключі трактуються як унікальні групи, тобто не згруповані разом. Наприклад, якщо в таблиці є три фільтри, з яких два - для відділів фінансування та маркетинг (груповий ключ = 'відділ'), а один відноситься до регіону Європи (груповий ключ = 'регіон'), застереження про фільтр застосовуватиметься фільтр (відділ = \"фінанси\" або відділ = \"маркетинг\") та (регіон = \"Європа\")."
       ],
@@ -2562,7 +2562,7 @@
       ],
       "Invalid JSON": ["Недійсний JSON"],
       "Invalid advanced data type: %(advanced_data_type)s": [
-        "Недійсний тип даних про розширені дані: %(ardanced_data_type) s"
+        "Недійсний тип даних про розширені дані: %(advanced_data_type)s"
       ],
       "Invalid certificate": ["Недійсний сертифікат"],
       "Invalid connection string, a valid string usually follows:\n'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'": [
@@ -2576,7 +2576,7 @@
       ],
       "Invalid cron expression": ["Недійсний вираз Cron"],
       "Invalid cumulative operator: %(operator)s": [
-        "Недійсний кумулятивний оператор: %(оператор) s"
+        "Недійсний кумулятивний оператор: %(operator)s"
       ],
       "Invalid date/timestamp format": [
         "Недійсна дата/формат часової позначки"
@@ -2585,7 +2585,7 @@
         "Недійсна конфігурація фільтра, будь ласка, виберіть стовпець"
       ],
       "Invalid filter operation type: %(op)s": [
-        "Недійсний тип функції фільтра: %(OP) S"
+        "Недійсний тип функції фільтра: %(op)s"
       ],
       "Invalid geodetic string": ["Недійсна геодезна струна"],
       "Invalid geohash string": ["Недійсна геохашна струна"],
@@ -2593,28 +2593,28 @@
       "Invalid lat/long configuration.": ["Недійсна конфігурація LAT/Довга."],
       "Invalid longitude/latitude": ["Недійсна довгота/широта"],
       "Invalid metric object: %(metric)s": [
-        "Недійсний метричний об’єкт: %(метрика) s"
+        "Недійсний метричний об’єкт: %(metric)s"
       ],
       "Invalid numpy function: %(operator)s": [
-        "Недійна функція Numpy: %(оператор) s"
+        "Недійсна функція Numpy: %(operator)s"
       ],
       "Invalid options for %(rolling_type)s: %(options)s": [
-        "Недійсні варіанти для %(ROLLING_TYPE) S: %(Параметри) S"
+        "Недійсні варіанти для %(rolling_type)s: %(options)s"
       ],
       "Invalid permalink key": ["Недійсний ключ постійного посилання"],
       "Invalid reference to column: \"%(column)s\"": [
-        "Недійсне посилання на стовпець: \"%(стовпчик) S\""
+        "Недійсне посилання на стовпець: “%(column)s”"
       ],
       "Invalid result type: %(result_type)s": [
-        "Недійсний тип результату: %(result_type) s"
+        "Недійсний тип результату: %(result_type)s"
       ],
-      "Invalid rolling_type: %(type)s": ["Недійсне Rolling_Type: %(тип) s"],
+      "Invalid rolling_type: %(type)s": ["Недійсне Rolling_Type: %(type)s"],
       "Invalid spatial point encountered: %s": [
         "Недійсна просторова точка, що зустрічається: %s"
       ],
       "Invalid state.": ["Недійсна держава."],
       "Invalid tab ids: %s(tab_ids)": [
-        "Недійсні ідентифікатори вкладки: %S (tab_ids)"
+        "Недійсні ідентифікатори вкладки: %s (tab_ids)"
       ],
       "Inverse selection": ["Зворотний вибір"],
       "Invert current page": ["Інвертуйте поточну сторінку"],
@@ -2874,7 +2874,7 @@
       "Metadata has been synced": ["Метадані синхронізовані"],
       "Method": ["Метод"],
       "Metric": ["Метричний"],
-      "Metric '%(metric)s' does not exist": ["Метрика '%(метрика) s' не існує"],
+      "Metric '%(metric)s' does not exist": ["Метрика ‘%(metric)s' не існує"],
       "Metric ascending": ["Метричний висхід"],
       "Metric assigned to the [X] axis": ["Метрика, призначена до осі [x]"],
       "Metric assigned to the [Y] axis": ["Метрика, присвоєна вісь [y]"],
@@ -3281,7 +3281,7 @@
       ],
       "Only single queries supported": ["Підтримуються лише одиночні запити"],
       "Only the following file extensions are allowed: %(allowed_extensions)s": [
-        "Дозволено лише наступні розширення файлу: %(дозволено_extensions) s"
+        "Дозволено лише наступні розширення файлу: %(allowed_extensions)s"
       ],
       "Oops! An error occurred!": ["На жаль! Виникла помилка!"],
       "Opacity": ["Непрозорість"],
@@ -3482,10 +3482,10 @@
         "Будь ласка, перевірте свій запит і підтвердьте, що всі параметри шаблону оточують подвійні брекети, наприклад, \"{{ds}}\". Потім спробуйте знову запустити свій запит."
       ],
       "Please check your query for syntax errors at or near \"%(syntax_error)s\". Then, try running your query again.": [
-        "Будь ласка, перевірте свій запит на наявність помилок синтаксису на або поблизу \"%(syntax_error) s\". Потім спробуйте знову запустити свій запит."
+        "Будь ласка, перевірте свій запит на наявність помилок синтаксису на або поблизу “%(syntax_error)s\". Потім спробуйте знову запустити свій запит."
       ],
       "Please check your query for syntax errors near \"%(server_error)s\". Then, try running your query again.": [
-        "Будь ласка, перевірте свій запит на наявність помилок синтаксису поблизу \"%(server_error) s\". Потім спробуйте знову запустити свій запит."
+        "Будь ласка, перевірте свій запит на наявність помилок синтаксису поблизу \"%(server_error)s\". Потім спробуйте знову запустити свій запит."
       ],
       "Please check your template parameters for syntax errors and make sure they match across your SQL query and Set Parameters. Then, try running your query again.": [
         "Будь ласка, перевірте свої параметри шаблону на наявність помилок синтаксису та переконайтеся, що вони відповідають вашому запиту SQL та встановіть параметри. Потім спробуйте знову запустити свій запит."
@@ -3556,7 +3556,7 @@
       "Population age data": ["Дані віку населення"],
       "Port": ["Порт"],
       "Port %(port)s on hostname \"%(hostname)s\" refused the connection.": [
-        "Порт %(порт) на ім'я хоста \" %(ім'я хоста) S\" відмовився від з'єднання."
+        "Порт %(port)s на ім'я хоста \" %(hostname)s” відмовився від з'єднання."
       ],
       "Port out of range 0-65535": ["Порт поза діапазоном 0-65535"],
       "Position JSON": ["Позиція JSON"],
@@ -3785,7 +3785,7 @@
       "Repulsion": ["Відштовхування"],
       "Repulsion strength between nodes": ["Сила відштовхування між вузлами"],
       "Request Permissions": ["Попросити дозволи"],
-      "Request is incorrect: %(error)s": ["Запит невірний: %(помилка) s"],
+      "Request is incorrect: %(error)s": ["Запит невірний: %(error)s"],
       "Request is not JSON": ["Запит - це не json"],
       "Request missing data field.": ["Запит пропущеного поля даних."],
       "Request timed out": ["Час запиту вичерпано"],
@@ -3829,7 +3829,7 @@
       ],
       "Role": ["Роль"],
       "Role %(r)s was extended to provide the access to the datasource %(ds)s": [
-        "Роль %(r) S була розширена для забезпечення доступу до даних %(ds) s"
+        "Роль %(r)s була розширена для забезпечення доступу до даних %(ds)s"
       ],
       "Roles": ["Ролі"],
       "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, regular access permissions apply.": [
@@ -3883,7 +3883,7 @@
       "Run selection": ["Вибір запуску"],
       "Running": ["Біг"],
       "Running statement %(statement_num)s out of %(statement_count)s": [
-        "Запуск оператора %(state_num) s з %(state_count) s"
+        "Запуск оператора %(statement_num)s з %(statement_count)s"
       ],
       "SAT": ["Сидіти"],
       "SEP": ["Сеп"],
@@ -3894,7 +3894,7 @@
       "SQL Lab": ["SQL LAB"],
       "SQL Lab View": ["Перегляд лабораторії SQL"],
       "SQL Lab uses your browser's local storage to store queries and results.\nCurrently, you are using %(currentUsage)s KB out of %(maxStorage)d KB storage space.\nTo keep SQL Lab from crashing, please delete some query tabs.\nYou can re-access these queries by using the Save feature before you delete the tab.\nNote that you will need to close other SQL Lab windows before you do this.": [
-        "SQL Lab використовує місцеве сховище вашого браузера для зберігання запитів та результатів.\nВ даний час ви використовуєте %(поточний з підсумками) S KB з %(MaxStorage) D KB зберігання.\nЩоб не зійти в лабораторію SQL, будь ласка, видаліть кілька вкладок запитів.\nВи можете повторно отримати ці запити, використовуючи функцію збереження, перш ніж видалити вкладку.\nЗауважте, що вам потрібно буде закрити інші вікна лабораторії SQL, перш ніж це зробити."
+        "SQL Lab використовує місцеве сховище вашого браузера для зберігання запитів та результатів.\nВ даний час ви використовуєте %(currentUsage)s KB з %(maxStorage)d KB зберігання.\nЩоб не зійти в лабораторію SQL, будь ласка, видаліть кілька вкладок запитів.\nВи можете повторно отримати ці запити, використовуючи функцію збереження, перш ніж видалити вкладку.\nЗауважте, що вам потрібно буде закрити інші вікна лабораторії SQL, перш ніж це зробити."
       ],
       "SQL Query": ["SQL -запит"],
       "SQL expression": ["Вираз SQL"],
@@ -3916,7 +3916,7 @@
         "Буде використаний режим SSL \"вимагати\"."
       ],
       "START (INCLUSIVE)": ["Почати (включно)"],
-      "STEP %(stepCurr)s OF %(stepLast)s": ["Крок %(Stepcurr) s %(steplast) s"],
+      "STEP %(stepCurr)s OF %(stepLast)s": ["Крок %(stepCurr)s %(stepLast)s"],
       "STRING": ["Нитка"],
       "SUN": ["Сонце"],
       "Sample Standard Deviation": ["Зразок стандартного відхилення"],
@@ -4029,7 +4029,7 @@
       "Secure extra": ["Забезпечити додаткове"],
       "Security": ["Безпека"],
       "Security & Access": ["Безпека та доступ"],
-      "See all %(tableName)s": ["Див. All %(TABLENAME) s"],
+      "See all %(tableName)s": ["Див. All %(tableName)s"],
       "See less": ["Див. Менше"],
       "See more": ["Побачити більше"],
       "See query details": ["Див. Деталі запиту"],
@@ -4406,7 +4406,7 @@
       "Started": ["Розпочато"],
       "State": ["Держави"],
       "Statement %(statement_num)s out of %(statement_count)s": [
-        "Заява %(state_num) s з %(state_count) s"
+        "Заява %(statement_num)s з %(statement_count)s"
       ],
       "Statistical": ["Статистичний"],
       "Status": ["Статус"],
@@ -4492,7 +4492,7 @@
       "Sync columns from source": ["Синхронізовані стовпці з джерела"],
       "Syntax": ["Синтаксис"],
       "Syntax Error: %(qualifier)s input \"%(input)s\" expecting \"%(expected)s": [
-        "Помилка синтаксису:%(кваліфікатор) s введення \"%(вхід) S\" очікування \"%(очікувалося) s"
+        "Помилка синтаксису:%(qualifier)s введення “%(input)s” очікування “%(expected)s"
       ],
       "TABLES": ["Столи"],
       "TEMPORAL X-AXIS": ["Тимчасова осі x"],
@@ -4503,13 +4503,13 @@
       "Tab title": ["Назва вкладки"],
       "Table": ["Стіл"],
       "Table %(table)s wasn't found in the database %(db)s": [
-        "Таблиця %(таблиця) S не знайдено в базі даних %(db) s"
+        "Таблиця %(table)s не знайдено в базі даних %(db)s"
       ],
       "Table Exists": ["Таблиця існує"],
       "Table Name": ["Назва таблиці"],
       "Table View": ["Перегляд таблиці"],
       "Table [%(table_name)s] could not be found, please double check your database connection, schema, and table name": [
-        "Таблиця [%(TABLE_NAME) S] Не вдалося знайти, будь ласка, перевірте підключення до бази даних, схеми та назву таблиці"
+        "Таблиця [%(table_name)s] Не вдалося знайти, будь ласка, перевірте підключення до бази даних, схеми та назву таблиці"
       ],
       "Table [%{table}s] could not be found, please double check your database connection, schema, and table name, error: {}": [
         "Таблиця [%{table} s] не вдалося знайти, будь ласка, перевірте з'єднання з базою даних, схему та назву таблиці, помилка: {}"
@@ -4522,7 +4522,7 @@
       ],
       "Table name undefined": ["Назва таблиці не визначена"],
       "Table or View \"%(table)s\" does not exist.": [
-        "Таблиця або переглянути \"%(таблиця) S\" не існує."
+        "Таблиця або переглянути \"%(таблиця)s\" не існує."
       ],
       "Table that visualizes paired t-tests, which are used to understand statistical differences between groups.": [
         "Таблиця, яка візуалізує парні t-тести, які використовуються для розуміння статистичних відмінностей між групами."
@@ -4561,7 +4561,7 @@
       "Text align": ["Текст вирівнює"],
       "Text embedded in email": ["Текст, вбудований в електронну пошту"],
       "The API response from %s does not match the IDatabaseTable interface.": [
-        "Відповідь API від %S не відповідає інтерфейсу IDATABASETABLE."
+        "Відповідь API від %s не відповідає інтерфейсу IDATABASETABLE."
       ],
       "The CSS for individual dashboards can be altered here, or in the dashboard view where changes are immediately visible": [
         "CSS для окремих інформаційних панелей може бути змінений тут, або на поданні приладової панелі, де зміни негайно видно"
@@ -4618,7 +4618,7 @@
         "Тип даних, який висловився в базі даних. У деяких випадках може знадобитися вводити тип вручну для визначені виразами стовпців. У більшості випадків користувачам не потрібно це змінювати."
       ],
       "The database %s is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects.": [
-        "База даних %S пов'язана з діаграмами %S, які з’являються на інформаційних панелях %S, а користувачі мають %S SQL Lab вкладки, використовуючи цю базу даних. Ви впевнені, що хочете продовжувати? Видалення бази даних порушить ці об'єкти."
+        "База даних %s пов'язана з діаграмами %s, які з’являються на інформаційних панелях %s, а користувачі мають %s SQL Lab вкладки, використовуючи цю базу даних. Ви впевнені, що хочете продовжувати? Видалення бази даних порушить ці об'єкти."
       ],
       "The database columns that contains lines information": [
         "Стовпці бази даних, що містить інформацію про рядки"
@@ -4639,7 +4639,7 @@
       "The database was deleted.": ["База даних була видалена."],
       "The database was not found.": ["База даних не була знайдена."],
       "The dataset %s is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects.": [
-        "DataSet %S пов'язаний з діаграмами %S, які з’являються на інформаційних панелях %S. Ви впевнені, що хочете продовжувати? Видалення набору даних порушить ці об'єкти."
+        "DataSet %s пов'язаний з діаграмами %s, які з’являються на інформаційних панелях %s. Ви впевнені, що хочете продовжувати? Видалення набору даних порушить ці об'єкти."
       ],
       "The dataset associated with this chart no longer exists": [
         "Набір даних, пов'язаний з цією діаграмою, більше не існує"
@@ -4675,16 +4675,16 @@
         "Функція, яку слід використовувати при агрегуванні точок у групи"
       ],
       "The host \"%(hostname)s\" might be down and can't be reached.": [
-        "Хост \"%(ім'я хоста) S\" може бути знижений і неможливо досягти."
+        "Хост “%(hostname)s” може бути знижений і неможливо досягти."
       ],
       "The host \"%(hostname)s\" might be down, and can't be reached on port %(port)s.": [
-        "Хост \" %(ім'я хоста) S\" може бути знижений, і його не можна дістатися на порт %(порт) s."
+        "Хост \" %(hostname)s” може бути знижений, і його не можна дістатися на порт %(port)s."
       ],
       "The host might be down, and can't be reached on the provided port.": [
         "Хост може бути вниз, і його неможливо дістатися на наданий порт."
       ],
       "The hostname \"%(hostname)s\" cannot be resolved.": [
-        "Ім'я хоста \"%(ім'я хоста) S\" неможливо вирішити."
+        "Ім'я хоста \"%(ім'я хоста)s\" неможливо вирішити."
       ],
       "The hostname provided can't be resolved.": [
         "Ім'я хоста неможливо вирішити."
@@ -4703,7 +4703,7 @@
         "Максимальне значення показників. Це необов'язкова конфігурація"
       ],
       "The metadata_params in Extra field is not configured correctly. The key %(key)s is invalid.": [
-        "Metadata_params у додатковому полі налаштовані не правильно. Ключ %(ключ) s є недійсним."
+        "Metadata_params у додатковому полі налаштовані не правильно. Ключ %(key)s є недійсним."
       ],
       "The metadata_params in Extra field is not configured correctly. The key %{key}s is invalid.": [
         "Metadata_params у додатковому полі налаштовані не правильно. Ключ %{key} s є недійсним."
@@ -4743,10 +4743,10 @@
         "Об'єкт не існує в даній базі даних."
       ],
       "The parameter %(parameters)s in your query is undefined.": [
-        "Параметр %(параметри) s у вашому запиті не визначений."
+        "Параметр %(parameters)s у вашому запиті не визначений."
       ],
       "The password provided for username \"%(username)s\" is incorrect.": [
-        "Пароль, що надається для імені користувача \"%(ім'я користувача) S\", є неправильним."
+        "Пароль, що надається для імені користувача \"%(ім'я користувача)s\", є неправильним."
       ],
       "The password provided when connecting to a database is not valid.": [
         "Пароль, наданий при підключенні до бази даних, не є дійсним."
@@ -4795,12 +4795,12 @@
       ],
       "The query couldn't be loaded": ["Запит не вдалося завантажити"],
       "The query estimation was killed after %(sqllab_timeout)s seconds. It might be too complex, or the database might be under heavy load.": [
-        "Оцінка запитів була вбита після %(sqllab_timeout) s секунд. Це може бути занадто складно, або база даних може бути під великим навантаженням."
+        "Оцінка запитів була вбита після %(sqllab_timeout)s секунд. Це може бути занадто складно, або база даних може бути під великим навантаженням."
       ],
       "The query has a syntax error.": ["Запит має помилку синтаксису."],
       "The query returned no data": ["Запит не повертав даних"],
       "The query was killed after %(sqllab_timeout)s seconds. It might be too complex, or the database might be under heavy load.": [
-        "Запит був убитий після %(sqllab_timeout) s секунд. Це може бути занадто складно, або база даних може бути під великим навантаженням."
+        "Запит був убитий після %(sqllab_timeout)s секунд. Це може бути занадто складно, або база даних може бути під великим навантаженням."
       ],
       "The radius (in pixels) the algorithm uses to define a cluster. Choose 0 to turn off clustering, but beware that a large number of points (>1000) will cause lag.": [
         "Радіус (у пікселях) алгоритм використовує для визначення кластера. Виберіть 0, щоб вимкнути кластеризацію, але будьте обережні, що велика кількість балів (> 1000) спричинить відставання."
@@ -4819,10 +4819,10 @@
         "Багата підказка показує список усіх серій для цього моменту часу"
       ],
       "The schema \"%(schema)s\" does not exist. A valid schema must be used to run this query.": [
-        "Схеми \"%(схема) S\" не існує. Для запуску цього запиту необхідно використовувати дійсну схему."
+        "Схеми “%(schema)s\" не існує. Для запуску цього запиту необхідно використовувати дійсну схему."
       ],
       "The schema \"%(schema_name)s\" does not exist. A valid schema must be used to run this query.": [
-        "Схема \"%(schema_name) S\" не існує. Для запуску цього запиту необхідно використовувати дійсну схему."
+        "Схема \"%(schema_name)s\" не існує. Для запуску цього запиту необхідно використовувати дійсну схему."
       ],
       "The schema was deleted or renamed in the database.": [
         "Схема була видалена або перейменована в базу даних."
@@ -4840,10 +4840,10 @@
         "Надіслане корисне навантаження має неправильну схему."
       ],
       "The table \"%(table)s\" does not exist. A valid table must be used to run this query.": [
-        "Таблиця \"%(таблиця) S\" не існує. Для запуску цього запиту необхідно використовувати дійсну таблицю."
+        "Таблиця “%(table)s\" не існує. Для запуску цього запиту необхідно використовувати дійсну таблицю."
       ],
       "The table \"%(table_name)s\" does not exist. A valid table must be used to run this query.": [
-        "Таблиця \"%(Таблиця_NAME) S\" не існує. Для запуску цього запиту необхідно використовувати дійсну таблицю."
+        "Таблиця “%(table_name)s\" не існує. Для запуску цього запиту необхідно використовувати дійсну таблицю."
       ],
       "The table was created. As part of this two-phase configuration process, you should now click the edit button by the new table to configure it.": [
         "Стол був створений. У рамках цього двофазного процесу конфігурації тепер слід натиснути кнопку Редагувати за новою таблицею, щоб налаштувати її."
@@ -4883,7 +4883,7 @@
         "Комбінація користувача/пароля не є дійсною (неправильний пароль для користувача)."
       ],
       "The username \"%(username)s\" does not exist.": [
-        "Ім'я користувача \"%(ім'я користувача) S\" не існує."
+        "Ім'я користувача “%(username)s\" не існує."
       ],
       "The username provided when connecting to a database is not valid.": [
         "Ім'я користувача, що надається при підключенні до бази даних, не є дійсним."
@@ -5476,7 +5476,7 @@
         "Натомість використовуйте меню “%(menuName)s”."
       ],
       "Use %s to open in a new tab.": [
-        "Використовуйте %S, щоб відкрити на новій вкладці."
+        "Використовуйте %s, щоб відкрити на новій вкладці."
       ],
       "Use Area Proportions": ["Використовуйте пропорції площі"],
       "Use Columns": ["Використовуйте стовпці"],
@@ -5672,7 +5672,7 @@
         "Ми не змогли перенести будь -які елементи керування при переході на цей новий набір даних."
       ],
       "We were unable to connect to your database named \"%(database)s\". Please verify your database name and try again.": [
-        "Ми не змогли підключитися до вашої бази даних під назвою \"%(база даних) S\". Будь ласка, перевірте ім’я бази даних та спробуйте ще раз."
+        "Ми не змогли підключитися до вашої бази даних під назвою “%(database)s\". Будь ласка, перевірте ім’я бази даних та спробуйте ще раз."
       ],
       "Web": ["Павутина"],
       "Wednesday": ["Середа"],
@@ -5687,10 +5687,10 @@
       "Weeks %s": ["Тиждень %s"],
       "Weight": ["Вага"],
       "We’re having trouble loading these results. Queries are set to timeout after %s second.": [
-        "У нас виникають проблеми з завантаженням цих результатів. Запити встановлюються на тайм -аут після %S секунди."
+        "У нас виникають проблеми з завантаженням цих результатів. Запити встановлюються на таймаут після %s секунди."
       ],
       "We’re having trouble loading this visualization. Queries are set to timeout after %s second.": [
-        "У нас виникають проблеми з завантаженням цієї візуалізації. Запити встановлюються на тайм -аут після %S секунди."
+        "У нас виникають проблеми з завантаженням цієї візуалізації. Запити встановлюються на таймаут після %s секунди."
       ],
       "What should be shown on the label?": ["Що слід показати на етикетці?"],
       "What should happen if the table already exists": [
@@ -5880,7 +5880,7 @@
       "Word Cloud": ["Слово хмара"],
       "Word Rotation": ["Обертання слів"],
       "Working": ["Робочий"],
-      "Working timeout": ["Робочий тайм -аут"],
+      "Working timeout": ["Робочий таймаут"],
       "World Map": ["Карта світу"],
       "Write a description for your query": ["Напишіть опис свого запиту"],
       "Write a handlebars template to render the data": [
