@@ -2083,6 +2083,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
         return query.all()
 
+    # pylint: disable=invalid-name
     def get_rls_filters_clauses_with_group_key(
         self, table: "BaseDatasource"
     ) -> list[str]:
