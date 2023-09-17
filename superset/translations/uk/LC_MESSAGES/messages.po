@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: 2023-09-17 12:17+0300\n"
+"PO-Revision-Date: 2023-09-17 12:51+0300\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: uk\n"
@@ -40,7 +40,7 @@ msgid " Set the opacity to 0 if you do not want to override the color specified 
 msgstr " Встановіть непрозорість на 0, якщо ви не хочете перекрити колір, вказаний у Geojson"
 
 msgid " a dashboard OR "
-msgstr " дашборд або "
+msgstr " інформаційна панель або "
 
 msgid " a new one"
 msgstr " новий"
@@ -115,7 +115,7 @@ msgid "%(other)s charts will appear here"
 msgstr "%(other)s -діаграми з’являться тут"
 
 msgid "%(other)s dashboards will appear here"
-msgstr "%(other)s дашборди з’являться тут"
+msgstr "%(other)s інформаційні панелі з’являться тут"
 
 msgid "%(other)s recents will appear here"
 msgstr "%(other)s останнє з’явиться тут"
@@ -518,7 +518,7 @@ msgid "A human-friendly name"
 msgstr "Зручне для людини ім’я"
 
 msgid "A list of domain names that can embed this dashboard. Leaving this field empty will allow embedding from any domain."
-msgstr "Список доменних імен, які можуть вбудувати цей дашборд. Залишення цього поля порожнім дозволить вбудувати з будь -якого домену."
+msgstr "Список доменних імен, які можуть вбудувати цю інформаційну панель. Якщо лишити це поле порожнім, це дозволить вбудувати панель з будь-якого домену."
 
 msgid "A list of tags that have been applied to this chart."
 msgstr "Список тегів, які були застосовані до цієї діаграми."
@@ -543,7 +543,7 @@ msgstr ""
 "радіусом або кутом підмітання."
 
 msgid "A readable URL for your dashboard"
-msgstr "Читабельна URL адреса для вашого дашборду"
+msgstr "Читабельна URL адреса для вашої інформаційної панелі"
 
 msgid "A reference to the [Time] configuration, taking granularity into account"
 msgstr "Посилання на конфігурацію [часу], враховуючи деталізацію"
@@ -555,7 +555,7 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "Набору даних багаторазового використання буде збережено за допомогою вашої діаграми."
 
 msgid "A screenshot of the dashboard will be sent to your email at"
-msgstr "Скріншот дашборду буде надіслано на ваш електронний лист за адресою"
+msgstr "Скріншот інформаційної панелі буде надіслано на ваш електронний лист за адресою"
 
 msgid "A set of parameters that become available in the query using Jinja templating syntax"
 msgstr "Набір параметрів, які стають доступними у запиті за допомогою синтаксису шаблону Jinja"
@@ -663,7 +663,7 @@ msgid "Add Column"
 msgstr "Додайте стовпчик"
 
 msgid "Add Dashboard"
-msgstr "Додайте Дашборд"
+msgstr "Додайте Інформаційну панель"
 
 msgid "Add Database"
 msgstr "Додати базу даних"
@@ -743,7 +743,7 @@ msgid ""
 msgstr ""
 "Додайте застереження про фільтр для контролю запиту джерела фільтра,\n"
 "                    Хоча лише в контексті автозаповнення, тобто ці умови\n"
-"                    Не впливайте на те, як фільтр застосовується на дашборд. Це корисно\n"
+"                    Не впливайте на те, як фільтр застосовується на інформаційній панелі. Це корисно\n"
 "                    Коли ви хочете покращити продуктивність запиту, лише скануючи підмножину\n"
 "                    базових даних або обмежити наявні значення, відображені у фільтрі."
 
@@ -781,10 +781,10 @@ msgid "Add the name of the chart"
 msgstr "Додайте назву діаграми"
 
 msgid "Add the name of the dashboard"
-msgstr "Додайте назву дашборду"
+msgstr "Додайте назву інформаційної панелі"
 
 msgid "Add to dashboard"
-msgstr "Додайте до дашборду"
+msgstr "Додайте до інформаційної панелі"
 
 msgid "Add/Edit Filters"
 msgstr "Додати/редагувати фільтри"
@@ -793,7 +793,7 @@ msgid "Added"
 msgstr "Доданий"
 
 msgid "Added to 1 dashboard"
-msgstr "Додано до 1 дашборду"
+msgstr "Додано до 1 інформаційної панелі"
 
 msgid "Additional Parameters"
 msgstr "Додаткові параметри"
@@ -1111,16 +1111,16 @@ msgid "An error occurred while fetching created by values: %s"
 msgstr "Помилка сталася під час отримання, створеного за значеннями: %s"
 
 msgid "An error occurred while fetching dashboard created by values: %s"
-msgstr "Помилка сталася під час отримання дашборду, створеного за значеннями: %s"
+msgstr "Помилка сталася під час отримання інформаційної панелі, створеного за значеннями: %s"
 
 msgid "An error occurred while fetching dashboard owner values: %s"
-msgstr "Помилка сталася під час отримання значення власника дашборду: %s"
+msgstr "Помилка сталася під час отримання значення власника інформаційної панелі: %s"
 
 msgid "An error occurred while fetching dashboards"
-msgstr "Під час отримання дашборду сталася помилка"
+msgstr "Під час отримання інформаційної панелі сталася помилка"
 
 msgid "An error occurred while fetching dashboards: %s"
-msgstr "Під час отримання дашборду сталася помилка: %s"
+msgstr "Під час отримання інформаційної панелі сталася помилка: %s"
 
 msgid "An error occurred while fetching database related data: %s"
 msgstr "Помилка сталася під час отримання даних, пов’язаних з базою даних: %s"
@@ -1174,7 +1174,7 @@ msgid "An error occurred while importing %s: %s"
 msgstr "Помилка сталася під час імпорту %s: %s"
 
 msgid "An error occurred while loading dashboard information."
-msgstr "Під час завантаження інформації про дашборд сталася помилка."
+msgstr "Під час завантаження інформації про інформаційну панель сталася помилка."
 
 msgid "An error occurred while loading the SQL"
 msgstr "Під час завантаження SQL сталася помилка"
@@ -1366,7 +1366,7 @@ msgid "Any additional detail to show in the certification tooltip."
 msgstr "Будь -яка додаткова деталь для показу в підказці сертифікації."
 
 msgid "Any color palette selected here will override the colors applied to this dashboard's individual charts"
-msgstr "Будь -яка вибрана тут палітра перевищить кольори, застосовані до окремих діаграм цього дашборду"
+msgstr "Будь-яка вибрана тут палітра перевищить кольори, застосовані до окремих діаграм цієї інформаційної панелі"
 
 msgid "Any databases that allow connections via SQL Alchemy URIs can be added. "
 msgstr "Будь-які бази даних, які можуть бути з'єднані через URIs SQL Alchemy. "
@@ -1441,7 +1441,7 @@ msgid "Are you sure you want to delete the selected charts?"
 msgstr "Ви впевнені, що хочете видалити вибрані діаграми?"
 
 msgid "Are you sure you want to delete the selected dashboards?"
-msgstr "Ви впевнені, що хочете видалити вибрані дашборди?"
+msgstr "Ви впевнені, що хочете видалити вибрані інформаційні панелі?"
 
 msgid "Are you sure you want to delete the selected datasets?"
 msgstr "Ви впевнені, що хочете видалити вибрані набори даних?"
@@ -1878,8 +1878,8 @@ msgid ""
 "Cannot import dashboard: %(db_error)s.\n"
 "Make sure to create the database before importing the dashboard."
 msgstr ""
-"Не вдається імпортувати дашборд: %(db_error)s.\n"
-"Переконайтеся, що створити базу даних перед імпортом дашборду."
+"Не вдається імпортувати інформаційну панель: %(db_error)s.\n"
+"Переконайтеся, що створили базу даних перед імпортом інформаційної панелі."
 
 msgid "Cannot load filter"
 msgstr "Не вдається завантажувати фільтр"
@@ -1981,7 +1981,7 @@ msgid "Changing these settings will affect all charts using this dataset, includ
 msgstr "Зміна цих налаштувань вплине на всі діаграми за допомогою цього набору даних, включаючи діаграми, що належать іншим людям."
 
 msgid "Changing this Dashboard is forbidden"
-msgstr "Зміна цього дашборду заборонена"
+msgstr "Зміна цієї інформаційної панелі заборонена"
 
 msgid "Changing this chart is forbidden"
 msgstr "Зміна цієї діаграми заборонена"
@@ -2044,7 +2044,7 @@ msgid "Chart [%s] has been saved"
 msgstr "Діаграма [%s] збережена"
 
 msgid "Chart [%s] was added to dashboard [%s]"
-msgstr "Діаграма [%s] була додана до дашборду [%s]"
+msgstr "Діаграма [%s] була додана до інформаційної панелі [%s]"
 
 msgid "Chart [{}] has been overwritten"
 msgstr "Діаграма [{}] була перезаписана"
@@ -2053,7 +2053,7 @@ msgid "Chart [{}] has been saved"
 msgstr "Діаграма [{}] збережена"
 
 msgid "Chart [{}] was added to dashboard [{}]"
-msgstr "Діаграма [{}] була додана до дашборду [{}]"
+msgstr "Діаграма [{}] була додана до інформаційної панелі [{}]"
 
 msgid "Chart cache timeout"
 msgstr "ЧАС КАХ ЧАСУВАННЯ"
@@ -2067,8 +2067,8 @@ msgid ""
 "\n"
 "    Note that this plugin is being replaced with the new Filters feature that lives in the dashboard view itself. It's easier to use and has more capabilities!"
 msgstr ""
-"Компонент діаграми, який дозволяє додавати користувальницький фільтр -інтерфейс на дашборді. При додаванні на інформаційну панель, поле фільтру дозволяє користувачам "
-"вказувати конкретні значення або діапазони для фільтра діаграм. Діаграми, до яких застосовується кожне поле фільтру, можна також налаштувати на дашборді.\n"
+"Компонент діаграми, який дозволяє додавати користувальницький фільтр інтерфейс на інформаційній панелі. При додаванні на інформаційну панель, поле фільтру дозволяє "
+"користувачам вказувати конкретні значення або діапазони для фільтра діаграм. Діаграми, до яких застосовується кожне поле фільтру, можна також налаштувати на панелі.\n"
 "\n"
 "    Зауважте, що цей плагін замінюється новою функцією фільтрів, яка живе на самому поданні приладової панелі. Це простіше використовувати і має більше можливостей!"
 
@@ -2142,13 +2142,13 @@ msgid "Check if the Rose Chart should use segment area instead of segment radius
 msgstr "Перевірте, чи повинна діаграма троянд використовувати область сегмента замість радіуса сегмента для пропорції"
 
 msgid "Check out this chart in dashboard:"
-msgstr "Перевірте цю діаграму на дашборді:"
+msgstr "Перегляньте цю діаграму на інформаційній панелі:"
 
 msgid "Check out this chart: "
 msgstr "Перегляньте цю діаграму: "
 
 msgid "Check out this dashboard: "
-msgstr "Перегляньте цю панель приладів: "
+msgstr "Перегляньте цю інформаційну панель: "
 
 msgid "Check to apply filters instantly as they change instead of displaying [Apply] button"
 msgstr "Перевірте, щоб застосувати фільтри миттєво, коли вони змінюються, а не відображати кнопку [Застосувати]"
@@ -2175,7 +2175,7 @@ msgid "Choose File"
 msgstr "Виберіть файл"
 
 msgid "Choose a chart or dashboard not both"
-msgstr "Виберіть діаграму або дашборд, а не обидва"
+msgstr "Виберіть діаграму або інформаційну панель, а не обидва"
 
 msgid "Choose a database..."
 msgstr "Виберіть базу даних ..."
@@ -2264,7 +2264,7 @@ msgid "Clear form"
 msgstr "Чітка форма"
 
 msgid "Click on \"+Add/Edit Filters\" button to create new dashboard filters"
-msgstr "Натисніть кнопку \"+додавання/редагування фільтрів\", щоб створити нові фільтри для дашборду"
+msgstr "Натисніть кнопку \"+додавання/редагування фільтрів\", щоб створити нові фільтри для інформаційної панелі"
 
 msgid "Click on \"Create chart\" button in the control panel on the left to preview a visualization or"
 msgstr "Натисніть кнопку \"Створити діаграму\" на панелі управління зліва, щоб переглянути візуалізацію або"
@@ -2571,7 +2571,7 @@ msgid "Configure the basics of your Annotation Layer."
 msgstr "Налаштуйте основи вашого шару анотації."
 
 msgid "Configure this dashboard to embed it into an external web application."
-msgstr "Налаштуйте цей дашборд, щоб вставити її у зовнішній веб додаток."
+msgstr "Налаштуйте цю інформаційну панель, щоб вставити її у зовнішній веб додаток."
 
 msgid "Configure your how you overlay is displayed here."
 msgstr "Налаштуйте, як тут відображається накладка."
@@ -2821,10 +2821,10 @@ msgid "Cross-filter will be applied to all of the charts that use this dataset."
 msgstr "Перехресний фільтр буде застосований до всіх діаграм, які використовують цей набір даних."
 
 msgid "Cross-filtering is not enabled for this dashboard."
-msgstr "Перехресне фільтрування не ввімкнено для цього дашборду."
+msgstr "Перехресне фільтрування не ввімкнено для цієї інформаційної панелі."
 
 msgid "Cross-filtering is not enabled in this dashboard"
-msgstr "Перехресне фільтрування не ввімкнено на цього дашборду"
+msgstr "Перехресне фільтрування не ввімкнено для цієї інформаційної панелі"
 
 msgid "Cross-filtering scoping"
 msgstr "Перехресне фільтрування"
@@ -2926,13 +2926,13 @@ msgid "Dashboard [{}] just got created and chart [{}] was added to it"
 msgstr "Дашборд [{}] був щойно створений, і діаграма [{}] була додана до нього"
 
 msgid "Dashboard could not be created."
-msgstr "Не вдалося створити дашборд."
+msgstr "Не вдалося створити інформаційну панель."
 
 msgid "Dashboard could not be deleted."
-msgstr "Не вдалося видалити дашборд."
+msgstr "Не вдалося видалити інформаційну панель."
 
 msgid "Dashboard could not be updated."
-msgstr "Не вдалося оновити дашборд."
+msgstr "Не вдалося оновити інформаційну панель."
 
 msgid "Dashboard does not exist"
 msgstr "Дашборд не існує"
@@ -2941,31 +2941,31 @@ msgid "Dashboard imported"
 msgstr "Дашборд імпортовано"
 
 msgid "Dashboard parameters are invalid."
-msgstr "Параметри дашборду недійсні."
+msgstr "Параметри інформаційної панелі недійсні."
 
 msgid "Dashboard properties"
-msgstr "Властивості дашборду"
+msgstr "Властивості інформаційної панелі"
 
 msgid "Dashboard properties updated"
-msgstr "Оновлені властивості дашборду"
+msgstr "Оновлені властивості інформаційної панелі"
 
 msgid "Dashboard scheme"
-msgstr "Схема дашборду"
+msgstr "Схема інформаційної панелі"
 
 msgid ""
 "Dashboard time range filters apply to temporal columns defined in\n"
 "          the filter section of each chart. Add temporal columns to the chart\n"
 "          filters to have this dashboard filter impact those charts."
 msgstr ""
-"Фільтри діапазону часу на дашборді застосовуються до тимчасових стовпців, визначених у\n"
+"Фільтри діапазону часу на інформаційній панелі застосовуються до тимчасових стовпців, визначених у\n"
 "          розділ фільтра кожної діаграми. Додайте тимчасові стовпці до діаграми\n"
-"          Фільтри, щоб цей фільтр на панелі приладів впливав на ці діаграми."
+"          Фільтри, щоб цей фільтр на інформаційній панелі впливав на ці діаграми."
 
 msgid "Dashboard title"
-msgstr "Назва дашборду"
+msgstr "Назва інформаційної панелі"
 
 msgid "Dashboard usage"
-msgstr "Використання дашборду"
+msgstr "Використання інформаційної панелі"
 
 msgid "Dashboards"
 msgstr "Дашборди"
@@ -3368,7 +3368,7 @@ msgid "Delete annotation"
 msgstr "Видалити анотацію"
 
 msgid "Delete dashboard tab?"
-msgstr "Видалити вкладку для дашборду?"
+msgstr "Видалити вкладку для інформаційної панелі?"
 
 msgid "Delete database"
 msgstr "Видалити базу даних"
@@ -3401,7 +3401,7 @@ msgid "Deleted %(num)d css template"
 msgstr "Видалений %(num) d шаблон CSS"
 
 msgid "Deleted %(num)d dashboard"
-msgstr "Видалено %(num)d дашбордів"
+msgstr "Видалено %(num)d інформаційних панелей"
 
 msgid "Deleted %(num)d dataset"
 msgstr "Видалено %(число) D набору даних"
@@ -3467,7 +3467,7 @@ msgid "Determines how whiskers and outliers are calculated."
 msgstr "Визначає, як обчислюються вуса та переживчі."
 
 msgid "Determines whether or not this dashboard is visible in the list of all dashboards"
-msgstr "Визначає, чи видно цей дашборд у списку всіх дашбордів"
+msgstr "Визначає, чи видно цю інформаційну панель у списку всіх інформаційних панелей"
 
 msgid "Diamond"
 msgstr "Алмаз"
@@ -3584,7 +3584,7 @@ msgid "Draft"
 msgstr "Розтягувати"
 
 msgid "Drag and drop components and charts to the dashboard"
-msgstr "Перетягніть компоненти та діаграми на дашборд"
+msgstr "Перетягніть компоненти та діаграми на інформаційну панель"
 
 msgid "Drag and drop components to this tab"
 msgstr "Перетягніть компоненти на цю вкладку"
@@ -3814,7 +3814,7 @@ msgid "Edit chart properties"
 msgstr "Редагувати властивості діаграми"
 
 msgid "Edit dashboard"
-msgstr "Редагувати дашборд"
+msgstr "Редагувати інформаційну панель"
 
 msgid "Edit database"
 msgstr "Редагувати базу даних"
@@ -3841,7 +3841,7 @@ msgid "Edit template parameters"
 msgstr "Редагувати параметри шаблону"
 
 msgid "Edit the dashboard"
-msgstr "Відредагуйте дашборд"
+msgstr "Відредагуйте інформаційну панель"
 
 msgid "Edit time range"
 msgstr "Редагувати часовий діапазон"
@@ -3880,7 +3880,7 @@ msgid "Embed code"
 msgstr "Вбудувати код"
 
 msgid "Embed dashboard"
-msgstr "Вбудувати дашборд"
+msgstr "Вбудувати інформаційну панель"
 
 msgid "Embedding deactivated."
 msgstr "Вбудовування деактивовано."
@@ -4174,7 +4174,7 @@ msgid "Export"
 msgstr "Експорт"
 
 msgid "Export dashboards?"
-msgstr "Експортувати дашборди?"
+msgstr "Експортувати інформаційні панелі?"
 
 msgid "Export query"
 msgstr "Експортний запит"
@@ -4385,7 +4385,7 @@ msgid "Filter menu"
 msgstr "Меню фільтра"
 
 msgid "Filter metadata changed in dashboard. It will not be applied."
-msgstr "Метадані фільтра змінюються на дашборді. Це не буде застосовуватися."
+msgstr "Метадані фільтра змінюються на інформаційній панелі. Це не буде застосовуватися."
 
 msgid "Filter name"
 msgstr "Назва фільтра"
@@ -4628,7 +4628,7 @@ msgid "Get the specify date for the holiday"
 msgstr "Отримайте дату вказати на свято"
 
 msgid "Go to the edit mode to configure the dashboard and add charts"
-msgstr "Перейдіть у режим редагування, щоб налаштувати дашборд та додати діаграми"
+msgstr "Перейдіть у режим редагування, щоб налаштувати інформаційну панель та додати діаграми"
 
 msgid "Gold"
 msgstr "Золото"
@@ -4871,10 +4871,10 @@ msgid "Import charts"
 msgstr "Імпортувати діаграми"
 
 msgid "Import dashboard failed for an unknown reason"
-msgstr "Не вдалося імпортувати дашборд з невідомих причин"
+msgstr "Не вдалося імпортувати інформаційну панель з невідомих причин"
 
 msgid "Import dashboards"
-msgstr "Імпортувати дашборди"
+msgstr "Імпортувати інформаційні панелі"
 
 msgid "Import database failed for an unknown reason"
 msgstr "Імпортувати базу даних не вдалося з незрозумілої причини"
@@ -5878,7 +5878,7 @@ msgid "Must be unique"
 msgstr "Має бути унікальним"
 
 msgid "Must choose either a chart or a dashboard"
-msgstr "Потрібно вибрати або діаграму, або дашборд"
+msgstr "Потрібно вибрати або діаграму, або інформаційну панель"
 
 msgid "Must have a [Group By] column to have 'count' as the [Label]"
 msgstr "Повинен мати стовпець [група за], щоб мати \"рахувати\" як [мітку]"
@@ -6052,10 +6052,10 @@ msgid "No compatible schema found"
 msgstr "Не знайдено сумісної схеми"
 
 msgid "No dashboards"
-msgstr "Немає дашбордів"
+msgstr "Немає інформаційних панелей"
 
 msgid "No dashboards yet"
-msgstr "Ще немає дашбордів"
+msgstr "Ще немає інформаційних панелей"
 
 msgid "No data"
 msgstr "Немає даних"
@@ -6079,7 +6079,7 @@ msgid "No favorite charts yet, go click on stars!"
 msgstr "Ще немає улюблених діаграм, перейдіть на зірки!"
 
 msgid "No favorite dashboards yet, go click on stars!"
-msgstr "Ще немає улюблених дашбордів, натисніть на зірку!"
+msgstr "Ще немає улюблених інформаційних панелей, натисніть на зірку!"
 
 msgid "No filter"
 msgstr "Без фільтра"
@@ -6091,7 +6091,7 @@ msgid "No filters"
 msgstr "Немає фільтрів"
 
 msgid "No filters are currently added to this dashboard."
-msgstr "Наразі на цей дашборд не додано жодних фільтрів."
+msgstr "Наразі на цю інформаційну панель не додано жодних фільтрів."
 
 msgid "No form settings were maintained"
 msgstr "Налаштування форми не зберігалися"
@@ -6197,7 +6197,7 @@ msgid "Not Time Series"
 msgstr "Не часовий ряд"
 
 msgid "Not added to any dashboard"
-msgstr "Не додано на будь-який дашборд"
+msgstr "Не додано на будь-яку інформаційну панель"
 
 msgid "Not available"
 msgstr "Недоступний"
@@ -6565,10 +6565,10 @@ msgid "Owners are invalid"
 msgstr "Власники недійсні"
 
 msgid "Owners is a list of users who can alter the dashboard."
-msgstr "Власники - це список користувачів, які можуть змінити дашборд."
+msgstr "Власники - це список користувачів, які можуть змінити інформаційну панель."
 
 msgid "Owners is a list of users who can alter the dashboard. Searchable by name or username."
-msgstr "Власники - це список користувачів, які можуть змінити дашборд. Шукати за іменем або іменем користувача."
+msgstr "Власники - це список користувачів, які можуть змінити інформаційну панель. Шукати за іменем або іменем користувача."
 
 msgid "Page length"
 msgstr "Довжина сторінки"
@@ -6670,7 +6670,7 @@ msgid "Person or group that has certified this chart."
 msgstr "Особа або група, яка сертифікувала цю діаграму."
 
 msgid "Person or group that has certified this dashboard."
-msgstr "Особа або група, яка сертифікувала цей дашборд."
+msgstr "Особа або група, яка сертифікувала цю інформаційну панель."
 
 msgid "Person or group that has certified this metric"
 msgstr "Особа або група, яка сертифікувала цей показник"
@@ -6820,7 +6820,7 @@ msgid "Please save your chart first, then try creating a new email report."
 msgstr "Спочатку збережіть свою діаграму, а потім спробуйте створити новий звіт електронної пошти."
 
 msgid "Please save your dashboard first, then try creating a new email report."
-msgstr "Спочатку збережіть свій дашборд, а потім спробуйте створити новий звіт на електронну пошту."
+msgstr "Спочатку збережіть свою інформаційну панель, а потім спробуйте створити новий звіт на електронну пошту."
 
 msgid "Please select both a Dataset and a Chart type to proceed"
 msgstr "Виберіть як набір даних, так і тип діаграми, щоб продовжити"
@@ -7149,7 +7149,7 @@ msgid "Raw records"
 msgstr "RAW Records"
 
 msgid "Ready to review filters in this dashboard?"
-msgstr "Готові переглянути фільтри на цьому дашборді?"
+msgstr "Готові переглянути фільтри на цій інформаційній панелі?"
 
 msgid "Rebuild"
 msgstr "Відновлювати"
@@ -7158,16 +7158,16 @@ msgid "Recent activity"
 msgstr "Остання активність"
 
 msgid "Recently created charts, dashboards, and saved queries will appear here"
-msgstr "Нещодавно створені діаграми, дашборди та збережені запити з’являться тут"
+msgstr "Нещодавно створені діаграми, інформаційні панелі та збережені запити з’являться тут"
 
 msgid "Recently edited charts, dashboards, and saved queries will appear here"
-msgstr "Нещодавно відредаговані діаграми, дашборди та збереженні запити з’являться тут"
+msgstr "Нещодавно відредаговані діаграми, інформаційні панелі та збереженні запити з’являться тут"
 
 msgid "Recently modified"
 msgstr "Нещодавно змінений"
 
 msgid "Recently viewed charts, dashboards, and saved queries will appear here"
-msgstr "Нещодавно переглянуті діаграми, дашборди та збережені запити з’являться тут"
+msgstr "Нещодавно переглянуті діаграми, інформаційні панелі та збережені запити з’являться тут"
 
 msgid "Recents"
 msgstr "Втілення"
@@ -7213,7 +7213,7 @@ msgid "Refresh"
 msgstr "Оновлювати"
 
 msgid "Refresh dashboard"
-msgstr "Оновити дашборд"
+msgstr "Оновити інформаційну панель"
 
 msgid "Refresh frequency"
 msgstr "Частота оновлення"
@@ -7497,15 +7497,15 @@ msgid ""
 "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, regular "
 "access permissions apply."
 msgstr ""
-"Ролі - це список, який визначає доступ до дашборду. Надання ролі доступу до дашборду буде обходити перевірки рівня набору даних. Якщо не визначено ролей, "
-"застосовуються регулярні дозволи на доступ."
+"Ролі - це список, який визначає доступ до інформаційної панелі. Надання ролі доступу до інформаційної панелі буде обходити перевірки рівня набору даних. Якщо не "
+"визначено ролей, застосовуються регулярні дозволи на доступ."
 
 msgid ""
 "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks.If no roles are defined, regular access "
 "permissions apply."
 msgstr ""
-"Ролі - це список, який визначає доступ до дашборду. Надання ролі доступу до дашборду буде обходити перевірки рівня набору даних. Якщо визначаються жодні ролі, "
-"застосовуються регулярні дозволи на доступ."
+"Ролі - це список, який визначає доступ до інформаційної панелі. Надання ролі доступу до інформаційної панелі буде обходити перевірки рівня набору даних. Якщо "
+"визначаються жодні ролі, застосовуються регулярні дозволи на доступ."
 
 msgid "Roles to grant"
 msgstr "Ролі для надання"
@@ -7740,10 +7740,10 @@ msgid "Save & Explore"
 msgstr "Зберегти та досліджувати"
 
 msgid "Save & go to dashboard"
-msgstr "Збережіть та перейдіть на дашборд"
+msgstr "Збережіть та перейдіть на інформаційну панель"
 
 msgid "Save & go to new dashboard"
-msgstr "Збережіть та перейдіть на новий дашборд"
+msgstr "Збережіть та перейдіть на нову інформаційну панель"
 
 msgid "Save (Overwrite)"
 msgstr "Зберегти (перезапис)"
@@ -7797,7 +7797,7 @@ msgid "Save this query as a virtual dataset to continue exploring"
 msgstr "Збережіть цей запит як віртуальний набір даних для продовження вивчення"
 
 msgid "Save to new dashboard"
-msgstr "Збережіть на новій панелі приладів"
+msgstr "Збережіть на новій інформаційній панелі"
 
 msgid "Saved"
 msgstr "Врятований"
@@ -8127,7 +8127,7 @@ msgid ""
 "the same dataset or contain the same column name in the dashboard."
 msgstr ""
 "Виберіть діаграми, до яких потрібно застосувати перехресні фільтри під час взаємодії з цією діаграмою. Ви можете вибрати \"всі діаграми\", щоб застосувати фільтри до "
-"всіх діаграм, які використовують один і той же набір даних, або містити одне і те ж ім'я стовпця на панелі приладів."
+"всіх діаграм, які використовують один і той же набір даних, або містити одне і те ж ім'я стовпця на інформаційній панелі."
 
 msgid "Select the geojson column"
 msgstr "Виберіть стовпчик Geojson"
@@ -9603,7 +9603,7 @@ msgid "There was an issue deleting the selected charts: %s"
 msgstr "Виникла проблема з видалення вибраних діаграм: %s"
 
 msgid "There was an issue deleting the selected dashboards: "
-msgstr "Була проблема, яка видалила вибрані дашборди: "
+msgstr "Була проблема, яка видалила вибрані інформаційні панелі: "
 
 msgid "There was an issue deleting the selected datasets: %s"
 msgstr "Виникла проблема з видалення вибраних наборів даних: %s"
@@ -9810,7 +9810,7 @@ msgid ""
 "drop in the dashboard view"
 msgstr ""
 "Цей об’єкт JSON описує позиціонування віджетів на приладовій панелі. Він динамічно генерується при регулюванні розміру та позицій віджетів, використовуючи "
-"перетягування в подачу панелі приладів"
+"перетягування в інформаційній панелі"
 
 msgid "This markdown component has an error."
 msgstr "Цей компонент відмітки має помилку."
@@ -10120,7 +10120,7 @@ msgid "To filter on a metric, use Custom SQL tab."
 msgstr "Щоб фільтрувати метрику, використовуйте власну вкладку SQL."
 
 msgid "To get a readable URL for your dashboard"
-msgstr "Щоб отримати читабельну URL -адресу для вашої панелі приладів"
+msgstr "Щоб отримати читабельну URL адресу для вашої інформаційної панелі"
 
 msgid "Tools"
 msgstr "Інструменти"
@@ -11266,7 +11266,7 @@ msgid "You do not have permission to edit this chart"
 msgstr "Ви не маєте дозволу на редагування цієї діаграми"
 
 msgid "You do not have permission to edit this dashboard"
-msgstr "У вас немає дозволу на редагування цієї панелі приладів"
+msgstr "У вас немає дозволу на редагування цієї інформаційної панелі"
 
 msgid "You do not have permissions to access the datasource(s): %(name)s."
 msgstr "У вас немає дозволів на доступ до даних: %(ім'я)s."
@@ -11278,13 +11278,13 @@ msgid "You don't have access to this chart."
 msgstr "Ви не маєте доступу до цієї діаграми."
 
 msgid "You don't have access to this dashboard."
-msgstr "У вас немає доступу до цієї панелі приладів."
+msgstr "У вас немає доступу до цієї інформаційної панелі."
 
 msgid "You don't have access to this dataset."
 msgstr "Ви не маєте доступу до цього набору даних."
 
 msgid "You don't have access to this embedded dashboard config."
-msgstr "У вас немає доступу до цієї вбудованої конфігурації панелі приладів."
+msgstr "У вас немає доступу до цієї вбудованої конфігурації інформаційної панелі."
 
 msgid "You don't have any favorites yet!"
 msgstr "У вас ще немає улюблених!"
@@ -11299,7 +11299,7 @@ msgid "You don't have the rights to alter this chart"
 msgstr "Ви не маєте прав на зміну цієї діаграми"
 
 msgid "You don't have the rights to alter this dashboard"
-msgstr "Ви не маєте прав на зміну цієї панелі приладів"
+msgstr "Ви не маєте прав на зміну цієї інформаційної панелі"
 
 msgid "You don't have the rights to alter this title."
 msgstr "Ви не маєте прав на зміну цієї назви."
@@ -11308,7 +11308,7 @@ msgid "You don't have the rights to create a chart"
 msgstr "Ви не маєте прав на створення діаграми"
 
 msgid "You don't have the rights to create a dashboard"
-msgstr "Ви не маєте прав на створення панелі приладів"
+msgstr "Ви не маєте прав на створення інформаційної панелі"
 
 msgid "You don't have the rights to download as csv"
 msgstr "Ви не маєте прав на завантаження як CSV"
@@ -11330,7 +11330,7 @@ msgid "You must be a dataset owner in order to edit. Please reach out to a datas
 msgstr "Ви повинні бути власником набору даних для редагування. Будь ласка, зверніться до власника набору даних, щоб вимагати модифікацій або редагувати доступ."
 
 msgid "You must pick a name for the new dashboard"
-msgstr "Ви повинні вибрати ім’я для нової панелі приладів"
+msgstr "Ви повинні вибрати ім’я для нової інформаційної панелі"
 
 msgid "You must run the query successfully first"
 msgstr "Ви повинні спочатку успішно запустити запит"
@@ -11762,7 +11762,7 @@ msgid "ffill"
 msgstr "ффіл"
 
 msgid "filter_box will be deprecated in a future version of Superset. Please replace filter_box by dashboard filter components."
-msgstr "filter_box буде застарілий у майбутній версії Superset. Будь ласка, замініть filter_box компонентою дашборд фільтра."
+msgstr "filter_box буде застарілий у майбутній версії Superset. Будь ласка, замініть filter_box компонентою фільтра інформаційної панелі."
 
 msgid "flat"
 msgstr "рівномірний"

@@ -14,7 +14,7 @@
       " Set the opacity to 0 if you do not want to override the color specified in the GeoJSON": [
         " Встановіть непрозорість на 0, якщо ви не хочете перекрити колір, вказаний у Geojson"
       ],
-      " a dashboard OR ": [" дашборд або "],
+      " a dashboard OR ": [" інформаційна панель або "],
       " a new one": [" новий"],
       " expression which needs to adhere to the ": [
         " вираз, який повинен дотримуватися до "
@@ -52,7 +52,7 @@
         "%(other)s -діаграми з’являться тут"
       ],
       "%(other)s dashboards will appear here": [
-        "%(other)s дашборди з’являться тут"
+        "%(other)s інформаційні панелі з’являться тут"
       ],
       "%(other)s recents will appear here": ["%(other)s останнє з’явиться тут"],
       "%(other)s saved queries will appear here": [
@@ -218,7 +218,7 @@
       ],
       "A human-friendly name": ["Зручне для людини ім’я"],
       "A list of domain names that can embed this dashboard. Leaving this field empty will allow embedding from any domain.": [
-        "Список доменних імен, які можуть вбудувати цей дашборд. Залишення цього поля порожнім дозволить вбудувати з будь -якого домену."
+        "Список доменних імен, які можуть вбудувати цю інформаційну панель. Якщо лишити це поле порожнім, це дозволить вбудувати панель з будь-якого домену."
       ],
       "A list of tags that have been applied to this chart.": [
         "Список тегів, які були застосовані до цієї діаграми."
@@ -237,7 +237,7 @@
         "Полярна координатна діаграма, де коло розбивається на клини з рівним кутом, а значення, представлене будь -яким клином, проілюстровано його областю, а не його радіусом або кутом підмітання."
       ],
       "A readable URL for your dashboard": [
-        "Читабельна URL адреса для вашого дашборду"
+        "Читабельна URL адреса для вашої інформаційної панелі"
       ],
       "A reference to the [Time] configuration, taking granularity into account": [
         "Посилання на конфігурацію [часу], враховуючи деталізацію"
@@ -249,7 +249,7 @@
         "Набору даних багаторазового використання буде збережено за допомогою вашої діаграми."
       ],
       "A screenshot of the dashboard will be sent to your email at": [
-        "Скріншот дашборду буде надіслано на ваш електронний лист за адресою"
+        "Скріншот інформаційної панелі буде надіслано на ваш електронний лист за адресою"
       ],
       "A set of parameters that become available in the query using Jinja templating syntax": [
         "Набір параметрів, які стають доступними у запиті за допомогою синтаксису шаблону Jinja"
@@ -302,7 +302,7 @@
       "Add CSS template": ["Додайте шаблон CSS"],
       "Add Chart": ["Додайте діаграму"],
       "Add Column": ["Додайте стовпчик"],
-      "Add Dashboard": ["Додайте Дашборд"],
+      "Add Dashboard": ["Додайте Інформаційну панель"],
       "Add Database": ["Додати базу даних"],
       "Add Log": ["Додати журнал"],
       "Add Metric": ["Додати показник"],
@@ -337,7 +337,7 @@
       ],
       "Add filter": ["Додати фільтр"],
       "Add filter clauses to control the filter's source query,\n                    though only in the context of the autocomplete i.e., these conditions\n                    do not impact how the filter is applied to the dashboard. This is useful\n                    when you want to improve the query's performance by only scanning a subset\n                    of the underlying data or limit the available values displayed in the filter.": [
-        "Додайте застереження про фільтр для контролю запиту джерела фільтра,\n                    Хоча лише в контексті автозаповнення, тобто ці умови\n                    Не впливайте на те, як фільтр застосовується на дашборд. Це корисно\n                    Коли ви хочете покращити продуктивність запиту, лише скануючи підмножину\n                    базових даних або обмежити наявні значення, відображені у фільтрі."
+        "Додайте застереження про фільтр для контролю запиту джерела фільтра,\n                    Хоча лише в контексті автозаповнення, тобто ці умови\n                    Не впливайте на те, як фільтр застосовується на інформаційній панелі. Це корисно\n                    Коли ви хочете покращити продуктивність запиту, лише скануючи підмножину\n                    базових даних або обмежити наявні значення, відображені у фільтрі."
       ],
       "Add filters and dividers": ["Додайте фільтри та роздільники"],
       "Add item": ["Додати елемент"],
@@ -356,11 +356,11 @@
       ],
       "Add sheet": ["Додати аркуш"],
       "Add the name of the chart": ["Додайте назву діаграми"],
-      "Add the name of the dashboard": ["Додайте назву дашборду"],
-      "Add to dashboard": ["Додайте до дашборду"],
+      "Add the name of the dashboard": ["Додайте назву інформаційної панелі"],
+      "Add to dashboard": ["Додайте до інформаційної панелі"],
       "Add/Edit Filters": ["Додати/редагувати фільтри"],
       "Added": ["Доданий"],
-      "Added to 1 dashboard": ["Додано до 1 дашборду"],
+      "Added to 1 dashboard": ["Додано до 1 інформаційної панелі"],
       "Additional Parameters": ["Додаткові параметри"],
       "Additional fields may be required": [
         "Можуть знадобитися додаткові поля"
@@ -563,16 +563,16 @@
         "Помилка сталася під час отримання, створеного за значеннями: %s"
       ],
       "An error occurred while fetching dashboard created by values: %s": [
-        "Помилка сталася під час отримання дашборду, створеного за значеннями: %s"
+        "Помилка сталася під час отримання інформаційної панелі, створеного за значеннями: %s"
       ],
       "An error occurred while fetching dashboard owner values: %s": [
-        "Помилка сталася під час отримання значення власника дашборду: %s"
+        "Помилка сталася під час отримання значення власника інформаційної панелі: %s"
       ],
       "An error occurred while fetching dashboards": [
-        "Під час отримання дашборду сталася помилка"
+        "Під час отримання інформаційної панелі сталася помилка"
       ],
       "An error occurred while fetching dashboards: %s": [
-        "Під час отримання дашборду сталася помилка: %s"
+        "Під час отримання інформаційної панелі сталася помилка: %s"
       ],
       "An error occurred while fetching database related data: %s": [
         "Помилка сталася під час отримання даних, пов’язаних з базою даних: %s"
@@ -626,7 +626,7 @@
         "Помилка сталася під час імпорту %s: %s"
       ],
       "An error occurred while loading dashboard information.": [
-        "Під час завантаження інформації про дашборд сталася помилка."
+        "Під час завантаження інформації про інформаційну панель сталася помилка."
       ],
       "An error occurred while loading the SQL": [
         "Під час завантаження SQL сталася помилка"
@@ -752,7 +752,7 @@
         "Будь -яка додаткова деталь для показу в підказці сертифікації."
       ],
       "Any color palette selected here will override the colors applied to this dashboard's individual charts": [
-        "Будь -яка вибрана тут палітра перевищить кольори, застосовані до окремих діаграм цього дашборду"
+        "Будь-яка вибрана тут палітра перевищить кольори, застосовані до окремих діаграм цієї інформаційної панелі"
       ],
       "Any databases that allow connections via SQL Alchemy URIs can be added. ": [
         "Будь-які бази даних, які можуть бути з'єднані через URIs SQL Alchemy. "
@@ -801,7 +801,7 @@
         "Ви впевнені, що хочете видалити вибрані діаграми?"
       ],
       "Are you sure you want to delete the selected dashboards?": [
-        "Ви впевнені, що хочете видалити вибрані дашборди?"
+        "Ви впевнені, що хочете видалити вибрані інформаційні панелі?"
       ],
       "Are you sure you want to delete the selected datasets?": [
         "Ви впевнені, що хочете видалити вибрані набори даних?"
@@ -1007,7 +1007,7 @@
         "Не може бути декількох облікових даних для тунелю SSH"
       ],
       "Cannot import dashboard: %(db_error)s.\nMake sure to create the database before importing the dashboard.": [
-        "Не вдається імпортувати дашборд: %(db_error)s.\nПереконайтеся, що створити базу даних перед імпортом дашборду."
+        "Не вдається імпортувати інформаційну панель: %(db_error)s.\nПереконайтеся, що створили базу даних перед імпортом інформаційної панелі."
       ],
       "Cannot load filter": ["Не вдається завантажувати фільтр"],
       "Cannot parse time string [%(human_readable)s]": [
@@ -1051,7 +1051,7 @@
         "Зміна цих налаштувань вплине на всі діаграми за допомогою цього набору даних, включаючи діаграми, що належать іншим людям."
       ],
       "Changing this Dashboard is forbidden": [
-        "Зміна цього дашборду заборонена"
+        "Зміна цієї інформаційної панелі заборонена"
       ],
       "Changing this chart is forbidden": ["Зміна цієї діаграми заборонена"],
       "Changing this control takes effect instantly": [
@@ -1086,17 +1086,17 @@
       "Chart [%s] has been overwritten": ["Діаграма [%s] була перезаписана"],
       "Chart [%s] has been saved": ["Діаграма [%s] збережена"],
       "Chart [%s] was added to dashboard [%s]": [
-        "Діаграма [%s] була додана до дашборду [%s]"
+        "Діаграма [%s] була додана до інформаційної панелі [%s]"
       ],
       "Chart [{}] has been overwritten": ["Діаграма [{}] була перезаписана"],
       "Chart [{}] has been saved": ["Діаграма [{}] збережена"],
       "Chart [{}] was added to dashboard [{}]": [
-        "Діаграма [{}] була додана до дашборду [{}]"
+        "Діаграма [{}] була додана до інформаційної панелі [{}]"
       ],
       "Chart cache timeout": ["ЧАС КАХ ЧАСУВАННЯ"],
       "Chart changes": ["Зміни діаграми"],
       "Chart component that lets you add a custom filter UI in your dashboard. When added to dashboard, a filter box lets users specify specific values or ranges to filter charts by. The charts that each filter box is applied to can be fine tuned as well in the dashboard view.\n\n    Note that this plugin is being replaced with the new Filters feature that lives in the dashboard view itself. It's easier to use and has more capabilities!": [
-        "Компонент діаграми, який дозволяє додавати користувальницький фільтр -інтерфейс на дашборді. При додаванні на інформаційну панель, поле фільтру дозволяє користувачам вказувати конкретні значення або діапазони для фільтра діаграм. Діаграми, до яких застосовується кожне поле фільтру, можна також налаштувати на дашборді.\n\n    Зауважте, що цей плагін замінюється новою функцією фільтрів, яка живе на самому поданні приладової панелі. Це простіше використовувати і має більше можливостей!"
+        "Компонент діаграми, який дозволяє додавати користувальницький фільтр інтерфейс на інформаційній панелі. При додаванні на інформаційну панель, поле фільтру дозволяє користувачам вказувати конкретні значення або діапазони для фільтра діаграм. Діаграми, до яких застосовується кожне поле фільтру, можна також налаштувати на панелі.\n\n    Зауважте, що цей плагін замінюється новою функцією фільтрів, яка живе на самому поданні приладової панелі. Це простіше використовувати і має більше можливостей!"
       ],
       "Chart could not be created.": ["Діаграма не вдалося створити."],
       "Chart could not be deleted.": ["Діаграму не можна було видалити."],
@@ -1128,10 +1128,10 @@
         "Перевірте, чи повинна діаграма троянд використовувати область сегмента замість радіуса сегмента для пропорції"
       ],
       "Check out this chart in dashboard:": [
-        "Перевірте цю діаграму на дашборді:"
+        "Перегляньте цю діаграму на інформаційній панелі:"
       ],
       "Check out this chart: ": ["Перегляньте цю діаграму: "],
-      "Check out this dashboard: ": ["Перегляньте цю панель приладів: "],
+      "Check out this dashboard: ": ["Перегляньте цю інформаційну панель: "],
       "Check to apply filters instantly as they change instead of displaying [Apply] button": [
         "Перевірте, щоб застосувати фільтри миттєво, коли вони змінюються, а не відображати кнопку [Застосувати]"
       ],
@@ -1153,7 +1153,7 @@
       ],
       "Choose File": ["Виберіть файл"],
       "Choose a chart or dashboard not both": [
-        "Виберіть діаграму або дашборд, а не обидва"
+        "Виберіть діаграму або інформаційну панель, а не обидва"
       ],
       "Choose a database...": ["Виберіть базу даних ..."],
       "Choose a dataset": ["Виберіть набір даних"],
@@ -1196,7 +1196,7 @@
       "Clear all data": ["Очистіть усі дані"],
       "Clear form": ["Чітка форма"],
       "Click on \"+Add/Edit Filters\" button to create new dashboard filters": [
-        "Натисніть кнопку \"+додавання/редагування фільтрів\", щоб створити нові фільтри для дашборду"
+        "Натисніть кнопку \"+додавання/редагування фільтрів\", щоб створити нові фільтри для інформаційної панелі"
       ],
       "Click on \"Create chart\" button in the control panel on the left to preview a visualization or": [
         "Натисніть кнопку \"Створити діаграму\" на панелі управління зліва, щоб переглянути візуалізацію або"
@@ -1362,7 +1362,7 @@
         "Налаштуйте основи вашого шару анотації."
       ],
       "Configure this dashboard to embed it into an external web application.": [
-        "Налаштуйте цей дашборд, щоб вставити її у зовнішній веб додаток."
+        "Налаштуйте цю інформаційну панель, щоб вставити її у зовнішній веб додаток."
       ],
       "Configure your how you overlay is displayed here.": [
         "Налаштуйте, як тут відображається накладка."
@@ -1498,10 +1498,10 @@
         "Перехресний фільтр буде застосований до всіх діаграм, які використовують цей набір даних."
       ],
       "Cross-filtering is not enabled for this dashboard.": [
-        "Перехресне фільтрування не ввімкнено для цього дашборду."
+        "Перехресне фільтрування не ввімкнено для цієї інформаційної панелі."
       ],
       "Cross-filtering is not enabled in this dashboard": [
-        "Перехресне фільтрування не ввімкнено на цього дашборду"
+        "Перехресне фільтрування не ввімкнено для цієї інформаційної панелі"
       ],
       "Cross-filtering scoping": ["Перехресне фільтрування"],
       "Cross-filters": ["Перехресні фільтри"],
@@ -1554,20 +1554,30 @@
       "Dashboard [{}] just got created and chart [{}] was added to it": [
         "Дашборд [{}] був щойно створений, і діаграма [{}] була додана до нього"
       ],
-      "Dashboard could not be created.": ["Не вдалося створити дашборд."],
-      "Dashboard could not be deleted.": ["Не вдалося видалити дашборд."],
-      "Dashboard could not be updated.": ["Не вдалося оновити дашборд."],
+      "Dashboard could not be created.": [
+        "Не вдалося створити інформаційну панель."
+      ],
+      "Dashboard could not be deleted.": [
+        "Не вдалося видалити інформаційну панель."
+      ],
+      "Dashboard could not be updated.": [
+        "Не вдалося оновити інформаційну панель."
+      ],
       "Dashboard does not exist": ["Дашборд не існує"],
       "Dashboard imported": ["Дашборд імпортовано"],
-      "Dashboard parameters are invalid.": ["Параметри дашборду недійсні."],
-      "Dashboard properties": ["Властивості дашборду"],
-      "Dashboard properties updated": ["Оновлені властивості дашборду"],
-      "Dashboard scheme": ["Схема дашборду"],
-      "Dashboard time range filters apply to temporal columns defined in\n          the filter section of each chart. Add temporal columns to the chart\n          filters to have this dashboard filter impact those charts.": [
-        "Фільтри діапазону часу на дашборді застосовуються до тимчасових стовпців, визначених у\n          розділ фільтра кожної діаграми. Додайте тимчасові стовпці до діаграми\n          Фільтри, щоб цей фільтр на панелі приладів впливав на ці діаграми."
+      "Dashboard parameters are invalid.": [
+        "Параметри інформаційної панелі недійсні."
       ],
-      "Dashboard title": ["Назва дашборду"],
-      "Dashboard usage": ["Використання дашборду"],
+      "Dashboard properties": ["Властивості інформаційної панелі"],
+      "Dashboard properties updated": [
+        "Оновлені властивості інформаційної панелі"
+      ],
+      "Dashboard scheme": ["Схема інформаційної панелі"],
+      "Dashboard time range filters apply to temporal columns defined in\n          the filter section of each chart. Add temporal columns to the chart\n          filters to have this dashboard filter impact those charts.": [
+        "Фільтри діапазону часу на інформаційній панелі застосовуються до тимчасових стовпців, визначених у\n          розділ фільтра кожної діаграми. Додайте тимчасові стовпці до діаграми\n          Фільтри, щоб цей фільтр на інформаційній панелі впливав на ці діаграми."
+      ],
+      "Dashboard title": ["Назва інформаційної панелі"],
+      "Dashboard usage": ["Використання інформаційної панелі"],
       "Dashboards": ["Дашборди"],
       "Dashboards added to": ["Дашборди були додані до"],
       "Dashboards could not be deleted.": ["Дашборди не можливо видалити."],
@@ -1771,7 +1781,7 @@
       "Delete Template?": ["Видалити шаблон?"],
       "Delete all Really?": ["Видалити все справді?"],
       "Delete annotation": ["Видалити анотацію"],
-      "Delete dashboard tab?": ["Видалити вкладку для дашборду?"],
+      "Delete dashboard tab?": ["Видалити вкладку для інформаційної панелі?"],
       "Delete database": ["Видалити базу даних"],
       "Delete email report": ["Видалити звіт електронної пошти"],
       "Delete query": ["Видалити запит"],
@@ -1784,7 +1794,7 @@
       "Deleted %(num)d annotation layer": ["Видалений %(число) D шар анотації"],
       "Deleted %(num)d chart": ["Видалено %(число) D діаграми"],
       "Deleted %(num)d css template": ["Видалений %(num) d шаблон CSS"],
-      "Deleted %(num)d dashboard": ["Видалено %(num)d дашбордів"],
+      "Deleted %(num)d dashboard": ["Видалено %(num)d інформаційних панелей"],
       "Deleted %(num)d dataset": ["Видалено %(число) D набору даних"],
       "Deleted %(num)d report schedule": ["Видалений %(число) d Розклад звіту"],
       "Deleted %(num)d rules": ["Видалено %(число) D Правила"],
@@ -1817,7 +1827,7 @@
         "Визначає, як обчислюються вуса та переживчі."
       ],
       "Determines whether or not this dashboard is visible in the list of all dashboards": [
-        "Визначає, чи видно цей дашборд у списку всіх дашбордів"
+        "Визначає, чи видно цю інформаційну панель у списку всіх інформаційних панелей"
       ],
       "Diamond": ["Алмаз"],
       "Did you mean:": ["Ти мав на увазі:"],
@@ -1864,7 +1874,7 @@
       "Download to CSV": ["Завантажте в CSV"],
       "Draft": ["Розтягувати"],
       "Drag and drop components and charts to the dashboard": [
-        "Перетягніть компоненти та діаграми на дашборд"
+        "Перетягніть компоненти та діаграми на інформаційну панель"
       ],
       "Drag and drop components to this tab": [
         "Перетягніть компоненти на цю вкладку"
@@ -1989,7 +1999,7 @@
       ],
       "Edit chart": ["Редагувати діаграму"],
       "Edit chart properties": ["Редагувати властивості діаграми"],
-      "Edit dashboard": ["Редагувати дашборд"],
+      "Edit dashboard": ["Редагувати інформаційну панель"],
       "Edit database": ["Редагувати базу даних"],
       "Edit dataset": ["Редагувати набір даних"],
       "Edit email report": ["Редагувати звіт електронної пошти"],
@@ -1998,7 +2008,7 @@
       "Edit query": ["Редагувати запит"],
       "Edit template": ["Редагувати шаблон"],
       "Edit template parameters": ["Редагувати параметри шаблону"],
-      "Edit the dashboard": ["Відредагуйте дашборд"],
+      "Edit the dashboard": ["Відредагуйте інформаційну панель"],
       "Edit time range": ["Редагувати часовий діапазон"],
       "Edited": ["Редаговані"],
       "Editing 1 filter:": ["Редагування 1 фільтр:"],
@@ -2019,7 +2029,7 @@
       "Email reports active": ["Звіти про електронну пошту активні"],
       "Embed": ["Вбудувати"],
       "Embed code": ["Вбудувати код"],
-      "Embed dashboard": ["Вбудувати дашборд"],
+      "Embed dashboard": ["Вбудувати інформаційну панель"],
       "Embedding deactivated.": ["Вбудовування деактивовано."],
       "Emit Filter Events": ["Виносити подій фільтра"],
       "Emphasis": ["Наголос"],
@@ -2155,7 +2165,7 @@
         "Вивчіть результат, встановлений у поданні досліджень даних"
       ],
       "Export": ["Експорт"],
-      "Export dashboards?": ["Експортувати дашборди?"],
+      "Export dashboards?": ["Експортувати інформаційні панелі?"],
       "Export query": ["Експортний запит"],
       "Export to .CSV": ["Експорт до .csv"],
       "Export to .JSON": ["Експорт до .json"],
@@ -2257,7 +2267,7 @@
       "Filter has default value": ["Фільтр має значення за замовчуванням"],
       "Filter menu": ["Меню фільтра"],
       "Filter metadata changed in dashboard. It will not be applied.": [
-        "Метадані фільтра змінюються на дашборді. Це не буде застосовуватися."
+        "Метадані фільтра змінюються на інформаційній панелі. Це не буде застосовуватися."
       ],
       "Filter name": ["Назва фільтра"],
       "Filter only displays values relevant to selections made in other filters.": [
@@ -2386,7 +2396,7 @@
         "Отримайте дату вказати на свято"
       ],
       "Go to the edit mode to configure the dashboard and add charts": [
-        "Перейдіть у режим редагування, щоб налаштувати дашборд та додати діаграми"
+        "Перейдіть у режим редагування, щоб налаштувати інформаційну панель та додати діаграми"
       ],
       "Gold": ["Золото"],
       "Google Sheet Name and URL": ["Назва та URL адреса Google Sheet"],
@@ -2502,9 +2512,9 @@
       ],
       "Import charts": ["Імпортувати діаграми"],
       "Import dashboard failed for an unknown reason": [
-        "Не вдалося імпортувати дашборд з невідомих причин"
+        "Не вдалося імпортувати інформаційну панель з невідомих причин"
       ],
-      "Import dashboards": ["Імпортувати дашборди"],
+      "Import dashboards": ["Імпортувати інформаційні панелі"],
       "Import database failed for an unknown reason": [
         "Імпортувати базу даних не вдалося з незрозумілої причини"
       ],
@@ -2987,7 +2997,7 @@
       "Multiplier": ["Множник"],
       "Must be unique": ["Має бути унікальним"],
       "Must choose either a chart or a dashboard": [
-        "Потрібно вибрати або діаграму, або дашборд"
+        "Потрібно вибрати або діаграму, або інформаційну панель"
       ],
       "Must have a [Group By] column to have 'count' as the [Label]": [
         "Повинен мати стовпець [група за], щоб мати \"рахувати\" як [мітку]"
@@ -3068,8 +3078,8 @@
       "No compatible columns found": ["Не знайдено сумісних стовпців"],
       "No compatible datasets found": ["Не знайдено сумісних наборів даних"],
       "No compatible schema found": ["Не знайдено сумісної схеми"],
-      "No dashboards": ["Немає дашбордів"],
-      "No dashboards yet": ["Ще немає дашбордів"],
+      "No dashboards": ["Немає інформаційних панелей"],
+      "No dashboards yet": ["Ще немає інформаційних панелей"],
       "No data": ["Немає даних"],
       "No data after filtering or data is NULL for the latest time record": [
         "Ніякі дані після фільтрації або даних є нульовими для останнього запису часу"
@@ -3084,13 +3094,13 @@
         "Ще немає улюблених діаграм, перейдіть на зірки!"
       ],
       "No favorite dashboards yet, go click on stars!": [
-        "Ще немає улюблених дашбордів, натисніть на зірку!"
+        "Ще немає улюблених інформаційних панелей, натисніть на зірку!"
       ],
       "No filter": ["Без фільтра"],
       "No filter is selected.": ["Фільтр не вибирається."],
       "No filters": ["Немає фільтрів"],
       "No filters are currently added to this dashboard.": [
-        "Наразі на цей дашборд не додано жодних фільтрів."
+        "Наразі на цю інформаційну панель не додано жодних фільтрів."
       ],
       "No form settings were maintained": ["Налаштування форми не зберігалися"],
       "No global filters are currently added": [
@@ -3145,7 +3155,9 @@
       "Normalize Across": ["Нормалізувати"],
       "Normalized": ["Нормалізований"],
       "Not Time Series": ["Не часовий ряд"],
-      "Not added to any dashboard": ["Не додано на будь-який дашборд"],
+      "Not added to any dashboard": [
+        "Не додано на будь-яку інформаційну панель"
+      ],
       "Not available": ["Недоступний"],
       "Not equal to (≠)": ["Не дорівнює (≠)"],
       "Not in": ["Не в"],
@@ -3364,10 +3376,10 @@
       "Owners": ["Власники"],
       "Owners are invalid": ["Власники недійсні"],
       "Owners is a list of users who can alter the dashboard.": [
-        "Власники - це список користувачів, які можуть змінити дашборд."
+        "Власники - це список користувачів, які можуть змінити інформаційну панель."
       ],
       "Owners is a list of users who can alter the dashboard. Searchable by name or username.": [
-        "Власники - це список користувачів, які можуть змінити дашборд. Шукати за іменем або іменем користувача."
+        "Власники - це список користувачів, які можуть змінити інформаційну панель. Шукати за іменем або іменем користувача."
       ],
       "Page length": ["Довжина сторінки"],
       "Paired t-test Table": ["Парна таблиця t-тесту"],
@@ -3413,7 +3425,7 @@
         "Особа або група, яка сертифікувала цю діаграму."
       ],
       "Person or group that has certified this dashboard.": [
-        "Особа або група, яка сертифікувала цей дашборд."
+        "Особа або група, яка сертифікувала цю інформаційну панель."
       ],
       "Person or group that has certified this metric": [
         "Особа або група, яка сертифікувала цей показник"
@@ -3518,7 +3530,7 @@
         "Спочатку збережіть свою діаграму, а потім спробуйте створити новий звіт електронної пошти."
       ],
       "Please save your dashboard first, then try creating a new email report.": [
-        "Спочатку збережіть свій дашборд, а потім спробуйте створити новий звіт на електронну пошту."
+        "Спочатку збережіть свою інформаційну панель, а потім спробуйте створити новий звіт на електронну пошту."
       ],
       "Please select both a Dataset and a Chart type to proceed": [
         "Виберіть як набір даних, так і тип діаграми, щоб продовжити"
@@ -3663,19 +3675,19 @@
       "Ratio": ["Співвідношення"],
       "Raw records": ["RAW Records"],
       "Ready to review filters in this dashboard?": [
-        "Готові переглянути фільтри на цьому дашборді?"
+        "Готові переглянути фільтри на цій інформаційній панелі?"
       ],
       "Rebuild": ["Відновлювати"],
       "Recent activity": ["Остання активність"],
       "Recently created charts, dashboards, and saved queries will appear here": [
-        "Нещодавно створені діаграми, дашборди та збережені запити з’являться тут"
+        "Нещодавно створені діаграми, інформаційні панелі та збережені запити з’являться тут"
       ],
       "Recently edited charts, dashboards, and saved queries will appear here": [
-        "Нещодавно відредаговані діаграми, дашборди та збереженні запити з’являться тут"
+        "Нещодавно відредаговані діаграми, інформаційні панелі та збереженні запити з’являться тут"
       ],
       "Recently modified": ["Нещодавно змінений"],
       "Recently viewed charts, dashboards, and saved queries will appear here": [
-        "Нещодавно переглянуті діаграми, дашборди та збережені запити з’являться тут"
+        "Нещодавно переглянуті діаграми, інформаційні панелі та збережені запити з’являться тут"
       ],
       "Recents": ["Втілення"],
       "Recipients are separated by \",\" or \";\"": [
@@ -3698,7 +3710,7 @@
       ],
       "Refetch results": ["Результати переробки"],
       "Refresh": ["Оновлювати"],
-      "Refresh dashboard": ["Оновити дашборд"],
+      "Refresh dashboard": ["Оновити інформаційну панель"],
       "Refresh frequency": ["Частота оновлення"],
       "Refresh interval": ["Інтервал оновлення"],
       "Refresh interval saved": ["Оновити інтервал збережено"],
@@ -3835,10 +3847,10 @@
       ],
       "Roles": ["Ролі"],
       "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, regular access permissions apply.": [
-        "Ролі - це список, який визначає доступ до дашборду. Надання ролі доступу до дашборду буде обходити перевірки рівня набору даних. Якщо не визначено ролей, застосовуються регулярні дозволи на доступ."
+        "Ролі - це список, який визначає доступ до інформаційної панелі. Надання ролі доступу до інформаційної панелі буде обходити перевірки рівня набору даних. Якщо не визначено ролей, застосовуються регулярні дозволи на доступ."
       ],
       "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks.If no roles are defined, regular access permissions apply.": [
-        "Ролі - це список, який визначає доступ до дашборду. Надання ролі доступу до дашборду буде обходити перевірки рівня набору даних. Якщо визначаються жодні ролі, застосовуються регулярні дозволи на доступ."
+        "Ролі - це список, який визначає доступ до інформаційної панелі. Надання ролі доступу до інформаційної панелі буде обходити перевірки рівня набору даних. Якщо визначаються жодні ролі, застосовуються регулярні дозволи на доступ."
       ],
       "Roles to grant": ["Ролі для надання"],
       "Rolling Function": ["Функція прокатки"],
@@ -3938,8 +3950,12 @@
       "Saturday": ["Субота"],
       "Save": ["Заощадити"],
       "Save & Explore": ["Зберегти та досліджувати"],
-      "Save & go to dashboard": ["Збережіть та перейдіть на дашборд"],
-      "Save & go to new dashboard": ["Збережіть та перейдіть на новий дашборд"],
+      "Save & go to dashboard": [
+        "Збережіть та перейдіть на інформаційну панель"
+      ],
+      "Save & go to new dashboard": [
+        "Збережіть та перейдіть на нову інформаційну панель"
+      ],
       "Save (Overwrite)": ["Зберегти (перезапис)"],
       "Save as": ["Зберегти як"],
       "Save as Dataset": ["Збережіть як набір даних"],
@@ -3961,7 +3977,7 @@
       "Save this query as a virtual dataset to continue exploring": [
         "Збережіть цей запит як віртуальний набір даних для продовження вивчення"
       ],
-      "Save to new dashboard": ["Збережіть на новій панелі приладів"],
+      "Save to new dashboard": ["Збережіть на новій інформаційній панелі"],
       "Saved": ["Врятований"],
       "Saved Queries": ["Збережені запити"],
       "Saved expressions": ["Збережені вирази"],
@@ -4116,7 +4132,7 @@
         "Виберіть діаграми, до яких потрібно застосувати перехресні фільтри на цій інформаційній панелі. Скасування діаграми виключає її з фільтрування при застосуванні перехресних фільтрів з будь-якої діаграми на приладовій панелі. Ви можете вибрати \"всі діаграми\", щоб застосувати перехресні фільтри до всіх діаграм, які використовують один і той же набір даних, або містять одне і те ж ім'я стовпця на інформаційній панелі."
       ],
       "Select the charts to which you want to apply cross-filters when interacting with this chart. You can select \"All charts\" to apply filters to all charts that use the same dataset or contain the same column name in the dashboard.": [
-        "Виберіть діаграми, до яких потрібно застосувати перехресні фільтри під час взаємодії з цією діаграмою. Ви можете вибрати \"всі діаграми\", щоб застосувати фільтри до всіх діаграм, які використовують один і той же набір даних, або містити одне і те ж ім'я стовпця на панелі приладів."
+        "Виберіть діаграми, до яких потрібно застосувати перехресні фільтри під час взаємодії з цією діаграмою. Ви можете вибрати \"всі діаграми\", щоб застосувати фільтри до всіх діаграм, які використовують один і той же набір даних, або містити одне і те ж ім'я стовпця на інформаційній панелі."
       ],
       "Select the geojson column": ["Виберіть стовпчик Geojson"],
       "Select the number of bins for the histogram": [
@@ -4967,7 +4983,7 @@
         "Виникла проблема з видалення вибраних діаграм: %s"
       ],
       "There was an issue deleting the selected dashboards: ": [
-        "Була проблема, яка видалила вибрані дашборди: "
+        "Була проблема, яка видалила вибрані інформаційні панелі: "
       ],
       "There was an issue deleting the selected datasets: %s": [
         "Виникла проблема з видалення вибраних наборів даних: %s"
@@ -5142,7 +5158,7 @@
         "Це умова, яка буде додана до пункту «Де». Наприклад, щоб повернути лише рядки для певного клієнта, ви можете визначити звичайний фільтр із пунктом `client_id = 9`. Щоб не відображати рядків, якщо користувач не належить до ролі фільтра RLS, базовий фільтр може бути створений із пунктом `1 = 0` (завжди помилково)."
       ],
       "This json object describes the positioning of the widgets in the dashboard. It is dynamically generated when adjusting the widgets size and positions by using drag & drop in the dashboard view": [
-        "Цей об’єкт JSON описує позиціонування віджетів на приладовій панелі. Він динамічно генерується при регулюванні розміру та позицій віджетів, використовуючи перетягування в подачу панелі приладів"
+        "Цей об’єкт JSON описує позиціонування віджетів на приладовій панелі. Він динамічно генерується при регулюванні розміру та позицій віджетів, використовуючи перетягування в інформаційній панелі"
       ],
       "This markdown component has an error.": [
         "Цей компонент відмітки має помилку."
@@ -5302,7 +5318,7 @@
         "Щоб фільтрувати метрику, використовуйте власну вкладку SQL."
       ],
       "To get a readable URL for your dashboard": [
-        "Щоб отримати читабельну URL -адресу для вашої панелі приладів"
+        "Щоб отримати читабельну URL адресу для вашої інформаційної панелі"
       ],
       "Tools": ["Інструменти"],
       "Tooltip": ["Підказка"],
@@ -5985,7 +6001,7 @@
         "Ви не маєте дозволу на редагування цієї діаграми"
       ],
       "You do not have permission to edit this dashboard": [
-        "У вас немає дозволу на редагування цієї панелі приладів"
+        "У вас немає дозволу на редагування цієї інформаційної панелі"
       ],
       "You do not have permissions to access the datasource(s): %(name)s.": [
         "У вас немає дозволів на доступ до даних: %(ім'я)s."
@@ -5997,13 +6013,13 @@
         "Ви не маєте доступу до цієї діаграми."
       ],
       "You don't have access to this dashboard.": [
-        "У вас немає доступу до цієї панелі приладів."
+        "У вас немає доступу до цієї інформаційної панелі."
       ],
       "You don't have access to this dataset.": [
         "Ви не маєте доступу до цього набору даних."
       ],
       "You don't have access to this embedded dashboard config.": [
-        "У вас немає доступу до цієї вбудованої конфігурації панелі приладів."
+        "У вас немає доступу до цієї вбудованої конфігурації інформаційної панелі."
       ],
       "You don't have any favorites yet!": ["У вас ще немає улюблених!"],
       "You don't have permission to modify the value.": [
@@ -6016,7 +6032,7 @@
         "Ви не маєте прав на зміну цієї діаграми"
       ],
       "You don't have the rights to alter this dashboard": [
-        "Ви не маєте прав на зміну цієї панелі приладів"
+        "Ви не маєте прав на зміну цієї інформаційної панелі"
       ],
       "You don't have the rights to alter this title.": [
         "Ви не маєте прав на зміну цієї назви."
@@ -6025,7 +6041,7 @@
         "Ви не маєте прав на створення діаграми"
       ],
       "You don't have the rights to create a dashboard": [
-        "Ви не маєте прав на створення панелі приладів"
+        "Ви не маєте прав на створення інформаційної панелі"
       ],
       "You don't have the rights to download as csv": [
         "Ви не маєте прав на завантаження як CSV"
@@ -6042,7 +6058,7 @@
         "Ви повинні бути власником набору даних для редагування. Будь ласка, зверніться до власника набору даних, щоб вимагати модифікацій або редагувати доступ."
       ],
       "You must pick a name for the new dashboard": [
-        "Ви повинні вибрати ім’я для нової панелі приладів"
+        "Ви повинні вибрати ім’я для нової інформаційної панелі"
       ],
       "You must run the query successfully first": [
         "Ви повинні спочатку успішно запустити запит"
@@ -6238,7 +6254,7 @@
       "fetching": ["приплив"],
       "ffill": ["ффіл"],
       "filter_box will be deprecated in a future version of Superset. Please replace filter_box by dashboard filter components.": [
-        "filter_box буде застарілий у майбутній версії Superset. Будь ласка, замініть filter_box компонентою дашборд фільтра."
+        "filter_box буде застарілий у майбутній версії Superset. Будь ласка, замініть filter_box компонентою фільтра інформаційної панелі."
       ],
       "flat": ["рівномірний"],
       "for more information on how to structure your URI.": [
