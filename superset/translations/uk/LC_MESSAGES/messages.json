@@ -124,7 +124,7 @@
       "1 hour": ["1 година"],
       "1 hourly frequency": ["1 погодинна частота"],
       "1 minute": ["1 хвилина"],
-      "1 minutely frequency": ["1 Частотна частота"],
+      "1 minutely frequency": ["1 хвилинна частота"],
       "1 month end frequency": ["Кінцева частота 1 місяця"],
       "1 month start frequency": ["Частота початку 1 місяця"],
       "1 week": ["1 тиждень"],
@@ -151,8 +151,8 @@
       "1M": ["1M"],
       "1T": ["1T"],
       "2 years": ["2 роки"],
-      "2 years ago": ["2 роки назад"],
-      "2/98 percentiles": ["2/98 відсотків"],
+      "2 years ago": ["2 роки тому"],
+      "2/98 percentiles": ["2/98 процентиль"],
       "28 days": ["28 днів"],
       "28 days ago": ["28 днів тому"],
       "2D": ["2d"],
@@ -216,7 +216,7 @@
       "A handlebars template that is applied to the data": [
         "Шаблон ручки, який застосовується до даних"
       ],
-      "A human-friendly name": ["Ім'я зручної для людини"],
+      "A human-friendly name": ["Зручне для людини ім’я"],
       "A list of domain names that can embed this dashboard. Leaving this field empty will allow embedding from any domain.": [
         "Список доменних імен, які можуть вбудувати цей дашборд. Залишення цього поля порожнім дозволить вбудувати з будь -якого домену."
       ],
@@ -281,7 +281,7 @@
       "AXIS TITLE POSITION": ["Позиція заголовка вісь"],
       "About": ["Про"],
       "Access": ["Доступ"],
-      "Access requests": ["Запити на доступ до доступу"],
+      "Access requests": ["Запити доступу"],
       "Access to user activity data is restricted": [
         "Доступ до даних про активність користувача обмежений"
       ],
@@ -349,7 +349,7 @@
       "Add new formatter": ["Додати новий форматер"],
       "Add notification method": ["Додайте метод сповіщення"],
       "Add required control values to preview chart": [
-        "Додайте необхідні контрольні значення до діаграми попереднього перегляду"
+        "Додайте необхідні контрольні значення для попереднього перегляду діаграми"
       ],
       "Add required control values to save chart": [
         "Додайте необхідні контрольні значення для збереження діаграми"
@@ -505,7 +505,7 @@
       ],
       "Alphabetical": ["Алфавітний"],
       "Also known as a box and whisker plot, this visualization compares the distributions of a related metric across multiple groups. The box in the middle emphasizes the mean, median, and inner 2 quartiles. The whiskers around each box visualize the min, max, range, and outer 2 quartiles.": [
-        "Також відома як графік коробки та вуса, ця візуалізація порівнює розподіл спорідненої метрики для декількох груп. Коробка в середині підкреслює середні, медіани та внутрішні 2 кварталі. Вуси навколо кожної коробки візуалізують мінімальний, максимум, діапазон та зовнішні 2 квартали."
+        "Також відома як графік коробки та вусів, ця візуалізація порівнює розподіл спорідненої метрики для декількох груп. Коробка в середині підкреслює середні, медіани та внутрішні 2 кварталі. Вуси навколо кожної коробки візуалізують мінімальний, максимум, діапазон та зовнішні 2 квартали."
       ],
       "Altered": ["Змінений"],
       "An Error Occurred": ["Виникла помилка"],
@@ -880,7 +880,7 @@
         "На основі деталізації, кількість часових періодів для порівняння"
       ],
       "Based on what should series be ordered on the chart and legend": [
-        "Виходячи з того, що слід замовити серії на графіку та легенді"
+        "Виходячи з того, як слід впорядкувати серії на діаграмі та легенді"
       ],
       "Basic": ["Основний"],
       "Basic information": ["Основна інформація"],
@@ -1079,7 +1079,7 @@
       "Chart Data: %s": ["Дані діаграми: %s"],
       "Chart ID": ["Ідентифікатор діаграми"],
       "Chart Options": ["Параметри діаграми"],
-      "Chart Orientation": ["Орієнтація на графік"],
+      "Chart Orientation": ["Орієнтація діаграми"],
       "Chart Owner: %s": ["Власник діаграми: %s"],
       "Chart Source": ["Джерело діаграми"],
       "Chart Title": ["Назва діаграми"],
@@ -1318,7 +1318,7 @@
       ],
       "Comparator option": ["Параметр порівняння"],
       "Compare multiple time series charts (as sparklines) and related metrics quickly.": [
-        "Порівняйте кілька графіків часових рядів (як іскричні лінії) та пов'язані з ними показники."
+        "Порівняйте кілька діаграм часових рядів (як іскричні лінії) та пов'язані з ними показники."
       ],
       "Compare the same summarized metric across multiple groups.": [
         "Порівняйте однакову узагальнену метрику для декількох груп."
@@ -1752,7 +1752,7 @@
       ],
       "Defines the grid size in pixels": ["Визначає розмір сітки в пікселях"],
       "Defines the grouping of entities. Each series is shown as a specific color on the chart and has a legend toggle": [
-        "Визначає групування суб'єктів. Кожна серія відображається як конкретний колір на графіку і має легенду перемикання"
+        "Визначає групування суб'єктів. Кожна серія відображається як конкретний колір на діаграмі і має легенду перемикання"
       ],
       "Defines the size of the rolling window function, relative to the time granularity selected": [
         "Визначає розмір функції котячого вікна, відносно вибитої деталізації часу"
@@ -1848,7 +1848,7 @@
       "Display row level total": ["Відображення рівня рядка загалом"],
       "Display settings": ["Налаштування дисплею"],
       "Displays connections between entities in a graph structure. Useful for mapping relationships and showing which nodes are important in a network. Graph charts can be configured to be force-directed or circulate. If your data has a geospatial component, try the deck.gl Arc chart.": [
-        "Відображає з'єднання між об'єктами в структурі графіків. Корисно для відображення відносин та показ, які вузли важливі в мережі. Графічні діаграми можуть бути налаштовані на спрямування сили або циркуляцію. Якщо ваші дані мають геопросторову складову, спробуйте діаграму дуги Deck.gl."
+        "Відображає з'єднання між об'єктами в структурі графів. Корисно для відображення відносин та показ, які вузли важливі в мережі. Діаграми графів можуть бути налаштовані на спрямування сили або циркуляцію. Якщо ваші дані мають геопросторову складову, спробуйте діаграму дуги Deck.gl."
       ],
       "Distribute across": ["Розповсюджувати"],
       "Distribution": ["Розподіл"],
@@ -2041,7 +2041,7 @@
       "Enable embedding": ["Увімкнути вбудовування"],
       "Enable forecast": ["Увімкнути прогноз"],
       "Enable forecasting": ["Увімкнути прогнозування"],
-      "Enable graph roaming": ["Увімкнути графік Roaming"],
+      "Enable graph roaming": ["Увімкнути роумінг графів"],
       "Enable node dragging": ["Увімкнути перетягування вузла"],
       "Enable query cost estimation": ["Увімкнути оцінку витрат на запит"],
       "Enable server side pagination of results (experimental feature)": [
@@ -2389,10 +2389,10 @@
         "Перейдіть у режим редагування, щоб налаштувати дашборд та додати діаграми"
       ],
       "Gold": ["Золото"],
-      "Google Sheet Name and URL": ["Назва та URL -адреса Google"],
+      "Google Sheet Name and URL": ["Назва та URL адреса Google Sheet"],
       "Grace period": ["Період витонченості"],
-      "Graph Chart": ["Графік"],
-      "Graph layout": ["Макет графіків"],
+      "Graph Chart": ["Діаграма графа"],
+      "Graph layout": ["Розположення графу"],
       "Gravity": ["Тяжкість"],
       "Greater or equal (>=)": ["Більший або рівний (> =)"],
       "Greater than (>)": ["Більше (>)"],
@@ -2500,7 +2500,7 @@
       "Import chart failed for an unknown reason": [
         "Діаграма імпорту не вдалася з невідомих причин"
       ],
-      "Import charts": ["Імпортувати графіки"],
+      "Import charts": ["Імпортувати діаграми"],
       "Import dashboard failed for an unknown reason": [
         "Не вдалося імпортувати дашборд з невідомих причин"
       ],
@@ -2702,7 +2702,7 @@
       "Layer configuration": ["Конфігурація шару"],
       "Layout": ["Макет"],
       "Layout elements": ["Елементи макета"],
-      "Layout type of graph": ["Тип макета графіка"],
+      "Layout type of graph": ["Тип макета графа"],
       "Layout type of tree": ["Тип макета дерева"],
       "Leaf nodes that represent fewer than this number of events will be initially hidden in the visualization": [
         "Листові вузли, що представляють менше, ніж ця кількість подій, спочатку будуть приховані у візуалізації"
@@ -2710,7 +2710,7 @@
       "Least recently modified": ["Найменше нещодавно модифіковано"],
       "Left": ["Лівий"],
       "Left Axis Format": ["Формат лівої осі"],
-      "Left Axis chart(s)": ["Ліва діаграма осі (и)"],
+      "Left Axis chart(s)": ["Діаграма лівої осі"],
       "Left Margin": ["Залишив націнку"],
       "Left margin, in pixels, allowing for more room for axis labels": [
         "Лівий запас у пікселях, що дозволяє отримати більше місця для етикетки Axis"
@@ -2945,7 +2945,7 @@
       ],
       "Minimum value": ["Мінімальне значення"],
       "Minimum value for label to be displayed on graph.": [
-        "Мінімальне значення для мітки для відображення на графіку."
+        "Мінімальне значення для мітки для відображення на графі."
       ],
       "Minimum value on the gauge axis": ["Мінімальне значення на осі датчика"],
       "Minor Split Line": ["Незначна лінія розколу"],
@@ -3986,7 +3986,7 @@
         "Заплануйте новий звіт електронної пошти"
       ],
       "Schedule email report": ["Розклад звіту електронної пошти"],
-      "Schedule query": ["Запит на графік"],
+      "Schedule query": ["Запит на розклад"],
       "Schedule settings": ["Налаштування розкладу"],
       "Schedule the query periodically": ["Періодично планувати запит"],
       "Scheduled": ["Запланований"],
@@ -4237,7 +4237,9 @@
       "Show pointer": ["Покажіть вказівник"],
       "Show progress": ["Показати прогрес"],
       "Show rows total": ["Показати ціє рядки"],
-      "Show series values on the chart": ["Значення серії показу на графіку"],
+      "Show series values on the chart": [
+        "Показувати значення серії на діаграмі"
+      ],
       "Show split lines": ["Показати розділені лінії"],
       "Show the value on top of the bar": ["Покажіть значення на вершині бару"],
       "Show time column": ["Показати стовпчик Time"],
@@ -4430,7 +4432,7 @@
       "Stream": ["Потік"],
       "Streets": ["Вулиці"],
       "Strength to pull the graph toward center": [
-        "Сила, щоб потягнути графік до центру"
+        "Сила, щоб потягнути граф до центру"
       ],
       "Stretched style": ["Розтягнутий стиль"],
       "Strings used for sheet names (default is the first sheet).": [
@@ -5116,7 +5118,7 @@
         "Цей набір даних не використовується для живлення будь -яких діаграм."
       ],
       "This defines the element to be plotted on the chart": [
-        "Це визначає елемент, який потрібно побудувати на графіку"
+        "Це визначає елемент, який потрібно побудувати на діаграмі"
       ],
       "This defines the level of the hierarchy": [
         "Це визначає рівень ієрархії"
@@ -5599,7 +5601,7 @@
       "Visualization Type": ["Тип візуалізації"],
       "Visualization type": ["Тип візуалізації"],
       "Visualize a parallel set of metrics across multiple groups. Each group is visualized using its own line of points and each metric is represented as an edge in the chart.": [
-        "Візуалізуйте паралельний набір показників у різних групах. Кожна група візуалізується за допомогою власної лінії точок, і кожна метрика представлена ​​як край у графіку."
+        "Візуалізуйте паралельний набір показників у різних групах. Кожна група візуалізується за допомогою власної лінії точок, і кожна метрика представлена ​​як край на діаграмі."
       ],
       "Visualize a related metric across pairs of groups. Heatmaps excel at showcasing the correlation or strength between two groups. Color is used to emphasize the strength of the link between each pair of groups.": [
         "Візуалізуйте пов'язаний показник по парах груп. Теплові карти перевершують кореляцію або міцність між двома групами. Колір використовується для підкреслення сили зв'язку між кожною парою груп."
@@ -6155,7 +6157,7 @@
       "cannot be empty": ["не може бути порожнім"],
       "cardinal": ["кардинальний"],
       "change": ["зміна"],
-      "chart": ["графік"],
+      "chart": ["діаграма"],
       "charts": ["діаграми"],
       "choose WHERE or HAVING...": ["виберіть WHERE або HAVING ..."],
       "clear all filters": ["очистіть усі фільтри"],

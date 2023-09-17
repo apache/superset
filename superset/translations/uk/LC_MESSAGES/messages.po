@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: 2023-09-17 01:12+0300\n"
+"PO-Revision-Date: 2023-09-17 12:17+0300\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: uk\n"
@@ -296,7 +296,7 @@ msgid "1 minute"
 msgstr "1 хвилина"
 
 msgid "1 minutely frequency"
-msgstr "1 Частотна частота"
+msgstr "1 хвилинна частота"
 
 msgid "1 month end frequency"
 msgstr "Кінцева частота 1 місяця"
@@ -365,10 +365,10 @@ msgid "2 years"
 msgstr "2 роки"
 
 msgid "2 years ago"
-msgstr "2 роки назад"
+msgstr "2 роки тому"
 
 msgid "2/98 percentiles"
-msgstr "2/98 відсотків"
+msgstr "2/98 процентиль"
 
 msgid "22"
 msgstr "22"
@@ -515,7 +515,7 @@ msgid "A handlebars template that is applied to the data"
 msgstr "Шаблон ручки, який застосовується до даних"
 
 msgid "A human-friendly name"
-msgstr "Ім'я зручної для людини"
+msgstr "Зручне для людини ім’я"
 
 msgid "A list of domain names that can embed this dashboard. Leaving this field empty will allow embedding from any domain."
 msgstr "Список доменних імен, які можуть вбудувати цей дашборд. Залишення цього поля порожнім дозволить вбудувати з будь -якого домену."
@@ -606,7 +606,7 @@ msgid "Access"
 msgstr "Доступ"
 
 msgid "Access requests"
-msgstr "Запити на доступ до доступу"
+msgstr "Запити доступу"
 
 msgid "Access to user activity data is restricted"
 msgstr "Доступ до даних про активність користувача обмежений"
@@ -769,7 +769,7 @@ msgid "Add notification method"
 msgstr "Додайте метод сповіщення"
 
 msgid "Add required control values to preview chart"
-msgstr "Додайте необхідні контрольні значення до діаграми попереднього перегляду"
+msgstr "Додайте необхідні контрольні значення для попереднього перегляду діаграми"
 
 msgid "Add required control values to save chart"
 msgstr "Додайте необхідні контрольні значення для збереження діаграми"
@@ -1044,7 +1044,7 @@ msgid ""
 "Also known as a box and whisker plot, this visualization compares the distributions of a related metric across multiple groups. The box in the middle emphasizes the "
 "mean, median, and inner 2 quartiles. The whiskers around each box visualize the min, max, range, and outer 2 quartiles."
 msgstr ""
-"Також відома як графік коробки та вуса, ця візуалізація порівнює розподіл спорідненої метрики для декількох груп. Коробка в середині підкреслює середні, медіани та "
+"Також відома як графік коробки та вусів, ця візуалізація порівнює розподіл спорідненої метрики для декількох груп. Коробка в середині підкреслює середні, медіани та "
 "внутрішні 2 кварталі. Вуси навколо кожної коробки візуалізують мінімальний, максимум, діапазон та зовнішні 2 квартали."
 
 msgid "Altered"
@@ -1600,7 +1600,7 @@ msgid "Based on granularity, number of time periods to compare against"
 msgstr "На основі деталізації, кількість часових періодів для порівняння"
 
 msgid "Based on what should series be ordered on the chart and legend"
-msgstr "Виходячи з того, що слід замовити серії на графіку та легенді"
+msgstr "Виходячи з того, як слід впорядкувати серії на діаграмі та легенді"
 
 msgid "Basic"
 msgstr "Основний"
@@ -2026,7 +2026,7 @@ msgid "Chart Options"
 msgstr "Параметри діаграми"
 
 msgid "Chart Orientation"
-msgstr "Орієнтація на графік"
+msgstr "Орієнтація діаграми"
 
 msgid "Chart Owner: %s"
 msgstr "Власник діаграми: %s"
@@ -2502,7 +2502,7 @@ msgid "Comparator option"
 msgstr "Параметр порівняння"
 
 msgid "Compare multiple time series charts (as sparklines) and related metrics quickly."
-msgstr "Порівняйте кілька графіків часових рядів (як іскричні лінії) та пов'язані з ними показники."
+msgstr "Порівняйте кілька діаграм часових рядів (як іскричні лінії) та пов'язані з ними показники."
 
 msgid "Compare the same summarized metric across multiple groups."
 msgstr "Порівняйте однакову узагальнену метрику для декількох груп."
@@ -3326,7 +3326,7 @@ msgid "Defines the grid size in pixels"
 msgstr "Визначає розмір сітки в пікселях"
 
 msgid "Defines the grouping of entities. Each series is shown as a specific color on the chart and has a legend toggle"
-msgstr "Визначає групування суб'єктів. Кожна серія відображається як конкретний колір на графіку і має легенду перемикання"
+msgstr "Визначає групування суб'єктів. Кожна серія відображається як конкретний колір на діаграмі і має легенду перемикання"
 
 msgid "Defines the size of the rolling window function, relative to the time granularity selected"
 msgstr "Визначає розмір функції котячого вікна, відносно вибитої деталізації часу"
@@ -3541,7 +3541,7 @@ msgid ""
 "Displays connections between entities in a graph structure. Useful for mapping relationships and showing which nodes are important in a network. Graph charts can be "
 "configured to be force-directed or circulate. If your data has a geospatial component, try the deck.gl Arc chart."
 msgstr ""
-"Відображає з'єднання між об'єктами в структурі графіків. Корисно для відображення відносин та показ, які вузли важливі в мережі. Графічні діаграми можуть бути "
+"Відображає з'єднання між об'єктами в структурі графів. Корисно для відображення відносин та показ, які вузли важливі в мережі. Діаграми графів можуть бути "
 "налаштовані на спрямування сили або циркуляцію. Якщо ваші дані мають геопросторову складову, спробуйте діаграму дуги Deck.gl."
 
 msgid "Distribute across"
@@ -3934,7 +3934,7 @@ msgid "Enable forecasting"
 msgstr "Увімкнути прогнозування"
 
 msgid "Enable graph roaming"
-msgstr "Увімкнути графік Roaming"
+msgstr "Увімкнути роумінг графів"
 
 msgid "Enable node dragging"
 msgstr "Увімкнути перетягування вузла"
@@ -4634,16 +4634,16 @@ msgid "Gold"
 msgstr "Золото"
 
 msgid "Google Sheet Name and URL"
-msgstr "Назва та URL -адреса Google"
+msgstr "Назва та URL адреса Google Sheet"
 
 msgid "Grace period"
 msgstr "Період витонченості"
 
 msgid "Graph Chart"
-msgstr "Графік"
+msgstr "Діаграма графа"
 
 msgid "Graph layout"
-msgstr "Макет графіків"
+msgstr "Розположення графу"
 
 msgid "Gravity"
 msgstr "Тяжкість"
@@ -4868,7 +4868,7 @@ msgid "Import chart failed for an unknown reason"
 msgstr "Діаграма імпорту не вдалася з невідомих причин"
 
 msgid "Import charts"
-msgstr "Імпортувати графіки"
+msgstr "Імпортувати діаграми"
 
 msgid "Import dashboard failed for an unknown reason"
 msgstr "Не вдалося імпортувати дашборд з невідомих причин"
@@ -5278,7 +5278,7 @@ msgid "Layout elements"
 msgstr "Елементи макета"
 
 msgid "Layout type of graph"
-msgstr "Тип макета графіка"
+msgstr "Тип макета графа"
 
 msgid "Layout type of tree"
 msgstr "Тип макета дерева"
@@ -5296,7 +5296,7 @@ msgid "Left Axis Format"
 msgstr "Формат лівої осі"
 
 msgid "Left Axis chart(s)"
-msgstr "Ліва діаграма осі (и)"
+msgstr "Діаграма лівої осі"
 
 msgid "Left Margin"
 msgstr "Залишив націнку"
@@ -5782,7 +5782,7 @@ msgid "Minimum value"
 msgstr "Мінімальне значення"
 
 msgid "Minimum value for label to be displayed on graph."
-msgstr "Мінімальне значення для мітки для відображення на графіку."
+msgstr "Мінімальне значення для мітки для відображення на графі."
 
 msgid "Minimum value on the gauge axis"
 msgstr "Мінімальне значення на осі датчика"
@@ -7848,7 +7848,7 @@ msgid "Schedule email report"
 msgstr "Розклад звіту електронної пошти"
 
 msgid "Schedule query"
-msgstr "Запит на графік"
+msgstr "Запит на розклад"
 
 msgid "Schedule settings"
 msgstr "Налаштування розкладу"
@@ -8389,7 +8389,7 @@ msgid "Show rows total"
 msgstr "Показати ціє рядки"
 
 msgid "Show series values on the chart"
-msgstr "Значення серії показу на графіку"
+msgstr "Показувати значення серії на діаграмі"
 
 msgid "Show split lines"
 msgstr "Показати розділені лінії"
@@ -8774,7 +8774,7 @@ msgid "Streets"
 msgstr "Вулиці"
 
 msgid "Strength to pull the graph toward center"
-msgstr "Сила, щоб потягнути графік до центру"
+msgstr "Сила, щоб потягнути граф до центру"
 
 msgid "Stretched style"
 msgstr "Розтягнутий стиль"
@@ -9778,7 +9778,7 @@ msgid "This dataset is not used to power any charts."
 msgstr "Цей набір даних не використовується для живлення будь -яких діаграм."
 
 msgid "This defines the element to be plotted on the chart"
-msgstr "Це визначає елемент, який потрібно побудувати на графіку"
+msgstr "Це визначає елемент, який потрібно побудувати на діаграмі"
 
 msgid "This defines the level of the hierarchy"
 msgstr "Це визначає рівень ієрархії"
@@ -10675,8 +10675,8 @@ msgid ""
 "Visualize a parallel set of metrics across multiple groups. Each group is visualized using its own line of points and each metric is represented as an edge in the "
 "chart."
 msgstr ""
-"Візуалізуйте паралельний набір показників у різних групах. Кожна група візуалізується за допомогою власної лінії точок, і кожна метрика представлена ​​як край у "
-"графіку."
+"Візуалізуйте паралельний набір показників у різних групах. Кожна група візуалізується за допомогою власної лінії точок, і кожна метрика представлена ​​як край на "
+"діаграмі."
 
 msgid ""
 "Visualize a related metric across pairs of groups. Heatmaps excel at showcasing the correlation or strength between two groups. Color is used to emphasize the "
@@ -11540,7 +11540,7 @@ msgid "change"
 msgstr "зміна"
 
 msgid "chart"
-msgstr "графік"
+msgstr "діаграма"
 
 msgid "charts"
 msgstr "діаграми"
