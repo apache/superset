@@ -3365,7 +3365,7 @@
       "Override time range": ["Переоцінка часового діапазону"],
       "Overwrite": ["Переписувати"],
       "Overwrite & Explore": ["Переписати та досліджувати"],
-      "Overwrite Dashboard [%s]": ["Перезаписати Дашборд [%s]"],
+      "Overwrite Dashboard [%s]": ["Перезаписати Інформаційну панель [%s]"],
       "Overwrite Duplicate Columns": ["Перезаписати дублікат стовпців"],
       "Overwrite existing": ["Переписати існуючі"],
       "Overwrite text in the editor with a query on this table": [
