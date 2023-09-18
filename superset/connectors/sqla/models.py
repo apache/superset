@@ -774,6 +774,10 @@ class SqlaTable(
         except (TypeError, json.JSONDecodeError):
             return {}
 
+    @property
+    def hour_offset(self) -> str:
+        return f"{self.offset} hours"
+
     def get_fetch_values_predicate(
         self,
         template_processor: BaseTemplateProcessor | None = None,
