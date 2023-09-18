@@ -23,7 +23,7 @@ import pandas as pd
 def df_to_excel(df: pd.DataFrame, **kwargs: Any) -> Any:
     output = io.BytesIO()
 
-    # timezone are not supported
+    # timezones are not supported
     for column in df.select_dtypes(include=["datetimetz"]).columns:
         df[column] = df[column].astype(str)
 
