@@ -23,7 +23,7 @@ from flask.cli import with_appcontext
 from superset import db
 
 
-class VizTypes(str, Enum):
+class VizType(str, Enum):
     TREEMAP = "treemap"
     DUAL_LINE = "dual_line"
     AREA = "area"
@@ -31,13 +31,13 @@ class VizTypes(str, Enum):
 
 
 @click.group()
-def viz_migrations() -> None:
+def migrate_viz() -> None:
     """
-    Migrates a viz from one type to another.
+    Migrate a viz from one type to another.
     """
 
 
-@viz_migrations.command()
+@migrate_viz.command()
 @with_appcontext
 @optgroup.group(
     "Grouped options",
@@ -46,14 +46,14 @@ def viz_migrations() -> None:
 @optgroup.option(
     "--viz_type",
     "-t",
-    help=f"The viz type to migrate: {', '.join(list(VizTypes))}",
+    help=f"The viz type to migrate: {', '.join(list(VizType))}",
 )
 def upgrade(viz_type: str) -> None:
     """Upgrade a viz to the latest version."""
-    migrate_viz(VizTypes(viz_type))
+    migrate(VizType(viz_type))
 
 
-@viz_migrations.command()
+@migrate_viz.command()
 @with_appcontext
 @optgroup.group(
     "Grouped options",
@@ -62,15 +62,15 @@ def upgrade(viz_type: str) -> None:
 @optgroup.option(
     "--viz_type",
     "-t",
-    help=f"The viz type to migrate: {', '.join(list(VizTypes))}",
+    help=f"The viz type to migrate: {', '.join(list(VizType))}",
 )
 def downgrade(viz_type: str) -> None:
-    """Downgrades a viz to the previous version."""
-    migrate_viz(VizTypes(viz_type), is_downgrade=True)
+    """Downgrade a viz to the previous version."""
+    migrate(VizType(viz_type), is_downgrade=True)
 
 
-def migrate_viz(viz_type: VizTypes, is_downgrade: bool = False) -> None:
-    """Migrates a viz from one type to another."""
+def migrate(viz_type: VizType, is_downgrade: bool = False) -> None:
+    """Migrate a viz from one type to another."""
     # pylint: disable=import-outside-toplevel
     from superset.migrations.shared.migrate_viz.processors import (
         MigrateAreaChart,
@@ -80,10 +80,10 @@ def migrate_viz(viz_type: VizTypes, is_downgrade: bool = False) -> None:
     )
 
     migrations = {
-        VizTypes.TREEMAP: MigrateTreeMap,
-        VizTypes.DUAL_LINE: MigrateDualLine,
-        VizTypes.AREA: MigrateAreaChart,
-        VizTypes.PIVOT_TABLE: MigratePivotTable,
+        VizType.TREEMAP: MigrateTreeMap,
+        VizType.DUAL_LINE: MigrateDualLine,
+        VizType.AREA: MigrateAreaChart,
+        VizType.PIVOT_TABLE: MigratePivotTable,
     }
     if is_downgrade:
         migrations[viz_type].downgrade(db.session)
