@@ -51,6 +51,7 @@ from superset.models.slice import Slice
 from superset.superset_typing import AdhocColumn
 from superset.utils.core import (
     AnnotationType,
+    backend,
     get_example_default_schema,
     AdhocMetricExpressionType,
     ExtraFiltersReasonType,
@@ -942,6 +943,71 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         data = json.loads(rv.data.decode("utf-8"))
         assert data["result"][0]["status"] == "success"
         assert data["result"][0]["rowcount"] == 2
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_data_get_with_x_axis_using_custom_sql(self):
+        """
+        Chart data API: Test GET endpoint
+        """
+        chart = db.session.query(Slice).filter_by(slice_name="Genders").one()
+        chart.query_context = json.dumps(
+            {
+                "datasource": {"id": chart.table.id, "type": "table"},
+                "force": False,
+                "queries": [
+                    {
+                        "time_range": "1900-01-01T00:00:00 : 2000-01-01T00:00:00",
+                        "granularity": "ds",
+                        "filters": [
+                            {"col": "ds", "op": "TEMPORAL_RANGE", "val": "No filter"}
+                        ],
+                        "extras": {
+                            "having": "",
+                            "where": "",
+                        },
+                        "applied_time_extras": {},
+                        "columns": [
+                            {
+                                "columnType": "BASE_AXIS",
+                                "datasourceWarning": False,
+                                "expressionType": "SQL",
+                                "label": "My column",
+                                "sqlExpression": "ds",
+                                "timeGrain": "P1W",
+                            }
+                        ],
+                        "metrics": ["sum__num"],
+                        "orderby": [["sum__num", False]],
+                        "annotation_layers": [],
+                        "row_limit": 50000,
+                        "timeseries_limit": 0,
+                        "order_desc": True,
+                        "url_params": {},
+                        "custom_params": {},
+                        "custom_form_data": {},
+                    }
+                ],
+                "form_data": {
+                    "x_axis": {
+                        "datasourceWarning": False,
+                        "expressionType": "SQL",
+                        "label": "My column",
+                        "sqlExpression": "ds",
+                    }
+                },
+                "result_format": "json",
+                "result_type": "full",
+            }
+        )
+        rv = self.get_assert_metric(f"api/v1/chart/{chart.id}/data/", "get_data")
+        assert rv.mimetype == "application/json"
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["result"][0]["status"] == "success"
+
+        if backend() == "presto":
+            assert data["result"][0]["rowcount"] == 41
+        else:
+            assert data["result"][0]["rowcount"] == 40
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_get_forced(self):
