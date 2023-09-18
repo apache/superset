@@ -17,12 +17,13 @@
 import logging
 from typing import Any
 
-from superset import db
+from superset import db, security_manager
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.daos.exceptions import DAOCreateFailedError
 from superset.daos.tag import TagDAO
+from superset.exceptions import SupersetSecurityException
 from superset.tags.commands.exceptions import TagCreateFailedError, TagInvalidError
-from superset.tags.commands.utils import to_object_type
+from superset.tags.commands.utils import to_object_model, to_object_type
 from superset.tags.models import ObjectTypes, TagTypes
 
 logger = logging.getLogger(__name__)
@@ -73,6 +74,7 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
 
     def run(self) -> None:
         self.validate()
+
         try:
             tag = TagDAO.get_by_name(self._tag.strip(), TagTypes.custom)
             if self._objects_to_tag:
@@ -84,7 +86,8 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
 
             if self._description:
                 tag.description = self._description
-                db.session.commit()
+
+            db.session.commit()
 
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)
@@ -98,12 +101,25 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
                 exceptions.append(TagInvalidError())
 
             # Validate object type
+            skipped_tagged_objects: list[tuple[str, int]] = []
             for obj_type, obj_id in self._objects_to_tag:
+                skipped_tagged_objects = []
                 object_type = to_object_type(obj_type)
+
                 if not object_type:
                     exceptions.append(
                         TagInvalidError(f"invalid object type {object_type}")
                     )
+                try:
+                    model = to_object_model(object_type, obj_id)  # type: ignore
+                    security_manager.raise_for_ownership(model)
+                except SupersetSecurityException:
+                    # skip the object if the user doesn't have access
+                    skipped_tagged_objects.append((obj_type, obj_id))
+
+            self._objects_to_tag = set(self._objects_to_tag) - set(
+                skipped_tagged_objects
+            )
 
         if exceptions:
             raise TagInvalidError(exceptions=exceptions)
