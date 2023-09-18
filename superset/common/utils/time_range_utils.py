@@ -29,6 +29,7 @@ def get_since_until_from_time_range(
     time_range: str | None = None,
     time_shift: str | None = None,
     extras: dict[str, Any] | None = None,
+    offset: str | None = None,
 ) -> tuple[datetime | None, datetime | None]:
     return get_since_until(
         relative_start=(extras or {}).get(
@@ -39,6 +40,7 @@ def get_since_until_from_time_range(
         ),
         time_range=time_range,
         time_shift=time_shift,
+        offset=offset
     )
 
 
