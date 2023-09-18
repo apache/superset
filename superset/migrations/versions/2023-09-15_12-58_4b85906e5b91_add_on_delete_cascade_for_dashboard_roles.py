@@ -14,32 +14,32 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""add on delete cascade for dashboard_slices
+"""add on delete cascade for dashboard_roles
 
-Revision ID: 8ace289026f3
-Revises: 2e826adca42c
-Create Date: 2023-08-09 14:17:53.326191
+Revision ID: 4b85906e5b91
+Revises: 317970b4400c
+Create Date: 2023-09-15 12:58:26.772759
 
 """
 
 # revision identifiers, used by Alembic.
-revision = "8ace289026f3"
-down_revision = "2e826adca42c"
+revision = "4b85906e5b91"
+down_revision = "317970b4400c"
 
 
 from superset.migrations.shared.constraints import ForeignKey, redefine
 
 foreign_keys = [
     ForeignKey(
-        table="dashboard_slices",
+        table="dashboard_roles",
         referent_table="dashboards",
         local_cols=["dashboard_id"],
         remote_cols=["id"],
     ),
     ForeignKey(
-        table="dashboard_slices",
-        referent_table="slices",
-        local_cols=["slice_id"],
+        table="dashboard_roles",
+        referent_table="ab_role",
+        local_cols=["role_id"],
         remote_cols=["id"],
     ),
 ]
