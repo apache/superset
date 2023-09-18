@@ -240,6 +240,13 @@ hostAliases: []
 # Superset node configuration
 supersetNode:
   replicaCount: 1
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+
   # -- Startup command
   # @default -- See `values.yaml`
   command:
@@ -334,6 +341,13 @@ supersetNode:
 # Superset Celery worker configuration
 supersetWorker:
   replicaCount: 1
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+
   # -- Worker startup command
   # @default -- a `celery worker` command
   command:
