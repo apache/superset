@@ -19,7 +19,9 @@ from typing import Any, cast, Optional
 from urllib import parse
 
 import simplejson as json
+import sqlparse
 from flask import request, Response
+from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
@@ -46,6 +48,7 @@ from superset.sqllab.query_render import SqlQueryRenderImpl
 from superset.sqllab.schemas import (
     EstimateQueryCostSchema,
     ExecutePayloadSchema,
+    FormatQueryPayloadSchema,
     QueryExecutionResponseSchema,
     sql_lab_get_results_schema,
     SQLLabBootstrapSchema,
@@ -78,6 +81,7 @@ class SqlLabRestApi(BaseSupersetApi):
 
     estimate_model_schema = EstimateQueryCostSchema()
     execute_model_schema = ExecutePayloadSchema()
+    format_model_schema = FormatQueryPayloadSchema()
 
     apispec_parameter_schemas = {
         "sql_lab_get_results_schema": sql_lab_get_results_schema,
@@ -183,6 +187,24 @@ class SqlLabRestApi(BaseSupersetApi):
 
         command = QueryEstimationCommand(model)
         result = command.run()
+        return self.response(200, result=result)
+
+    @expose("/format/", methods=("POST",))
+    @statsd_metrics
+    @protect()
+    @permission_name("read")
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".format",
+        log_to_statsd=False,
+    )
+    def format(self) -> FlaskResponse:
+        try:
+            model = self.format_model_schema.load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        result = sqlparse.format(
+            model.get("sql", ""), reindent=True, keyword_case="upper"
+        )
         return self.response(200, result=result)
 
     @expose("/export/<string:client_id>/")

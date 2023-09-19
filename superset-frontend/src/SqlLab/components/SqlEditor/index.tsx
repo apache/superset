@@ -72,6 +72,7 @@ import {
   scheduleQuery,
   setActiveSouthPaneTab,
   updateSavedQuery,
+  formatQuery,
 } from 'src/SqlLab/actions/sqlLab';
 import {
   STATE_TYPE_MAP,
@@ -92,6 +93,7 @@ import {
 } from 'src/utils/localStorageHelpers';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import Badge from 'src/components/Badge';
 import { isEmpty } from 'lodash';
 import TemplateParamsEditor from '../TemplateParamsEditor';
 import SouthPane from '../SouthPane';
@@ -230,6 +232,8 @@ const elementStyle = (
   }px)`,
 });
 
+const KEYBOARD_SHORTCUT_FOR_FORMAT = 'ctrl+shift+f';
+
 const SqlEditor: React.FC<Props> = ({
   tables,
   queryEditor,
@@ -304,6 +308,10 @@ const SqlEditor: React.FC<Props> = ({
     },
     [ctas, database, defaultQueryLimit, dispatch, queryEditor],
   );
+
+  const formatCurrentQuery = useCallback(() => {
+    dispatch(formatQuery(queryEditor));
+  }, [dispatch, queryEditor]);
 
   const stopQuery = useCallback(() => {
     if (latestQuery && ['running', 'pending'].indexOf(latestQuery.state) >= 0) {
@@ -384,8 +392,16 @@ const SqlEditor: React.FC<Props> = ({
             }),
         func: stopQuery,
       },
+      {
+        name: 'formatQuery',
+        key: KEYBOARD_SHORTCUT_FOR_FORMAT,
+        descr: t('Format query'),
+        func: () => {
+          formatCurrentQuery();
+        },
+      },
     ];
-  }, [dispatch, queryEditor.sql, startQuery, stopQuery]);
+  }, [dispatch, queryEditor.sql, startQuery, stopQuery, formatCurrentQuery]);
 
   const hotkeys = useMemo(() => {
     // Get all hotkeys including ace editor hotkeys
@@ -602,7 +618,7 @@ const SqlEditor: React.FC<Props> = ({
       ? t('Schedule the query periodically')
       : t('You must run the query successfully first');
     return (
-      <Menu css={{ width: theme.gridUnit * 44 }}>
+      <Menu css={{ width: theme.gridUnit * 50 }}>
         <Menu.Item css={{ display: 'flex', justifyContent: 'space-between' }}>
           {' '}
           <span>{t('Autocomplete')}</span>{' '}
@@ -622,6 +638,17 @@ const SqlEditor: React.FC<Props> = ({
             />
           </Menu.Item>
         )}
+        <Menu.Item
+          onClick={formatCurrentQuery}
+          css={{ display: 'flex', justifyContent: 'space-between' }}
+        >
+          <span>{t('Format SQL')}</span>
+          <Badge
+            count={KEYBOARD_SHORTCUT_FOR_FORMAT}
+            color={theme.colors.grayscale.light2}
+            textColor={theme.colors.grayscale.dark1}
+          />
+        </Menu.Item>
         {!isEmpty(scheduledQueriesConf) && (
           <Menu.Item>
             <ScheduleQueryButton
