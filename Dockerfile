@@ -25,6 +25,14 @@ ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
 FROM --platform=${BUILDPLATFORM} node:16-slim AS superset-node
 
 ARG NPM_BUILD_CMD="build"
+
+RUN apt-get update -q \
+    && apt-get install -yq --no-install-recommends \
+        python3 \
+        make \
+        gcc \
+        g++
+
 ENV BUILD_CMD=${NPM_BUILD_CMD} \
     PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 # NPM ci first, as to NOT invalidate previous steps except for when package.json changes
@@ -96,8 +104,8 @@ CMD ["/usr/bin/run-server.sh"]
 # Dev image...
 ######################################################################
 FROM lean AS dev
-ARG GECKODRIVER_VERSION=v0.32.0 \
-    FIREFOX_VERSION=106.0.3
+ARG GECKODRIVER_VERSION=v0.33.0 \
+    FIREFOX_VERSION=117.0.1
 
 USER root
 

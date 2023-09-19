@@ -125,7 +125,6 @@ def diagnose(spec: type[BaseEngineSpec]) -> dict[str, Any]:
             "subqueries": spec.allows_subqueries,
             "alias_in_select": spec.allows_alias_in_select,
             "alias_in_orderby": spec.allows_alias_in_orderby,
-            "secondary_time_columns": spec.time_secondary_columns,
             "time_groupby_inline": spec.time_groupby_inline,
             "alias_to_source_column": not spec.allows_alias_to_source_column,
             "order_by_not_in_select": spec.allows_hidden_orderby_agg,

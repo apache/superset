@@ -545,6 +545,7 @@ class SqlaTable(
     template_params = Column(Text)
     extra = Column(Text)
     normalize_columns = Column(Boolean, default=False)
+    always_filter_main_dttm = Column(Boolean, default=False)
 
     baselink = "tablemodelview"
 
@@ -564,6 +565,7 @@ class SqlaTable(
         "fetch_values_predicate",
         "extra",
         "normalize_columns",
+        "always_filter_main_dttm",
     ]
     update_from_object_fields = [f for f in export_fields if f != "database_id"]
     export_parent = "database"
@@ -761,6 +763,8 @@ class SqlaTable(
             data_["health_check_message"] = self.health_check_message
             data_["extra"] = self.extra
             data_["owners"] = self.owners_data
+            data_["always_filter_main_dttm"] = self.always_filter_main_dttm
+            data_["normalize_columns"] = self.normalize_columns
         return data_
 
     @property
@@ -991,11 +995,13 @@ class SqlaTable(
         time_grain = col.get("timeGrain")
         has_timegrain = col.get("columnType") == "BASE_AXIS" and time_grain
         is_dttm = False
+        pdf = None
         if col_in_metadata := self.get_column(expression):
             sqla_column = col_in_metadata.get_sqla_col(
                 template_processor=template_processor
             )
             is_dttm = col_in_metadata.is_temporal
+            pdf = col_in_metadata.python_date_format
         else:
             sqla_column = literal_column(expression)
             if has_timegrain or force_type_check:
@@ -1005,6 +1011,8 @@ class SqlaTable(
                     qry = sa.select([sqla_column]).limit(1).select_from(tbl)
                     sql = self.database.compile_sqla_query(qry)
                     col_desc = get_columns_description(self.database, self.schema, sql)
+                    if not col_desc:
+                        raise SupersetGenericDBErrorException("Column not found")
                     is_dttm = col_desc[0]["is_dttm"]  # type: ignore
                 except SupersetGenericDBErrorException as ex:
                     raise ColumnNotFoundException(message=str(ex)) from ex
@@ -1012,7 +1020,7 @@ class SqlaTable(
         if is_dttm and has_timegrain:
             sqla_column = self.db_engine_spec.get_timestamp_expr(
                 col=sqla_column,
-                pdf=None,
+                pdf=pdf,
                 time_grain=time_grain,
             )
         return self.make_sqla_column_compatible(sqla_column, label)

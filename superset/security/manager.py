@@ -79,7 +79,7 @@ from superset.utils.urls import get_url_host
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.connectors.base.models import BaseDatasource
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
     from superset.models.core import Database
     from superset.models.dashboard import Dashboard
     from superset.models.sql_lab import Query
@@ -2083,28 +2083,30 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
         return query.all()
 
-    def get_rls_ids(self, table: "BaseDatasource") -> list[int]:
+    def get_rls_sorted(self, table: "BaseDatasource") -> list["RowLevelSecurityFilter"]:
         """
-        Retrieves the appropriate row level security filters IDs for the current user
-        and the passed table.
+        Retrieves a list RLS filters sorted by ID for
+        the current user and the passed table.
 
         :param table: The table to check against
-        :returns: A list of IDs
+        :returns: A list RLS filters
         """
-        ids = [f.id for f in self.get_rls_filters(table)]
-        ids.sort()  # Combinations rather than permutations
-        return ids
+        filters = self.get_rls_filters(table)
+        filters.sort(key=lambda f: f.id)
+        return filters
 
     def get_guest_rls_filters_str(self, table: "BaseDatasource") -> list[str]:
         return [f.get("clause", "") for f in self.get_guest_rls_filters(table)]
 
     def get_rls_cache_key(self, datasource: "BaseDatasource") -> list[str]:
-        rls_ids = []
+        rls_clauses_with_group_key = []
         if datasource.is_rls_supported:
-            rls_ids = self.get_rls_ids(datasource)
-        rls_str = [str(rls_id) for rls_id in rls_ids]
+            rls_clauses_with_group_key = [
+                f"{f.clause}-{f.group_key or ''}"
+                for f in self.get_rls_sorted(datasource)
+            ]
         guest_rls = self.get_guest_rls_filters_str(datasource)
-        return guest_rls + rls_str
+        return guest_rls + rls_clauses_with_group_key
 
     @staticmethod
     def _get_current_epoch_time() -> float:

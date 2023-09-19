@@ -127,8 +127,20 @@ DashboardRoles = Table(
     "dashboard_roles",
     metadata,
     Column("id", Integer, primary_key=True),
-    Column("dashboard_id", Integer, ForeignKey("dashboards.id"), nullable=False),
-    Column("role_id", Integer, ForeignKey("ab_role.id"), nullable=False),
+    Column(
+        "dashboard_id",
+        Integer,
+        ForeignKey("dashboards.id"),
+        nullable=False,
+        on_delete="CASCADE",
+    ),
+    Column(
+        "role_id",
+        Integer,
+        ForeignKey("ab_role.id"),
+        nullable=False,
+        on_delete="CASCADE",
+    ),
 )
 
 

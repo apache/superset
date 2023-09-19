@@ -364,16 +364,24 @@ describe('sqlLabReducer', () => {
       expect(Object.keys(newState.queries)).toHaveLength(0);
     });
     it('should refresh queries when polling returns new results', () => {
+      const startDttmInStr = '1693433503447.166992';
+      const endDttmInStr = '1693433503500.23132';
       newState = sqlLabReducer(
         {
           ...newState,
           queries: { abcd: {} },
         },
         actions.refreshQueries({
-          abcd: query,
+          abcd: {
+            ...query,
+            startDttm: startDttmInStr,
+            endDttm: endDttmInStr,
+          },
         }),
       );
       expect(newState.queries.abcd.changed_on).toBe(DENORMALIZED_CHANGED_ON);
+      expect(newState.queries.abcd.startDttm).toBe(Number(startDttmInStr));
+      expect(newState.queries.abcd.endDttm).toBe(Number(endDttmInStr));
       expect(newState.queriesLastUpdate).toBe(CHANGED_ON_TIMESTAMP);
     });
     it('should refresh queries when polling returns empty', () => {

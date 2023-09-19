@@ -196,6 +196,7 @@ OAUTH_PROVIDERS = [
             'access_token_params':{        # Additional parameters for calls to access_token_url
                 'client_id':'myClientId'
             },
+            'jwks_uri':'https://myAuthorizationServe/adfs/discovery/keys', # may be required to generate token
             'access_token_headers':{    # Additional headers for calls to access_token_url
                 'Authorization': 'Basic Base64EncodedClientIdAndSecret'
             },

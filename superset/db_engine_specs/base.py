@@ -326,7 +326,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Does database support join-free timeslot grouping
     time_groupby_inline = False
     limit_method = LimitMethod.FORCE_LIMIT
-    time_secondary_columns = False
     allows_joins = True
     allows_subqueries = True
     allows_alias_in_select = True
@@ -1039,6 +1038,24 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         for handling the cursor and updating progress information in the
         query object"""
         # TODO: Fix circular import error caused by importing sql_lab.Query
+
+    @classmethod
+    def execute_with_cursor(
+        cls, cursor: Any, sql: str, query: Query, session: Session
+    ) -> None:
+        """
+        Trigger execution of a query and handle the resulting cursor.
+
+        For most implementations this just makes calls to `execute` and
+        `handle_cursor` consecutively, but in some engines (e.g. Trino) we may
+        need to handle client limitations such as lack of async support and
+        perform a more complicated operation to get information from the cursor
+        in a timely manner and facilitate operations such as query stop
+        """
+        logger.debug("Query %d: Running query: %s", query.id, sql)
+        cls.execute(cursor, sql, async_=True)
+        logger.debug("Query %d: Handling cursor", query.id)
+        cls.handle_cursor(cursor, query, session)
 
     @classmethod
     def extract_error_message(cls, ex: Exception) -> str:

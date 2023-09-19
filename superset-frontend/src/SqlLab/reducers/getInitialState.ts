@@ -130,7 +130,20 @@ export default function getInitialState({
       });
   }
 
-  const queries = { ...queries_ };
+  const queries = Object.fromEntries(
+    Object.entries(queries_ || {}).map(([queryId, query]) => [
+      queryId,
+      {
+        ...query,
+        ...(query.startDttm && {
+          startDttm: Number(query.startDttm),
+        }),
+        ...(query.endDttm && {
+          endDttm: Number(query.endDttm),
+        }),
+      },
+    ]),
+  );
 
   /**
    * If the `SQLLAB_BACKEND_PERSISTENCE` feature flag is off, or if the user
