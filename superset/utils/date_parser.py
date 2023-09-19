@@ -149,7 +149,7 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
     time_shift: Optional[str] = None,
     relative_start: Optional[str] = None,
     relative_end: Optional[str] = None,
-    offset: Optional[int] = None,
+    offset: Optional[str] = None,
 ) -> tuple[Optional[datetime], Optional[datetime]]:
     """Return `since` and `until` date time tuple from string representations of
     time_range, since, until and time_shift.
@@ -266,9 +266,9 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
 
     if offset:
         offset_delta = parse_human_timedelta(offset)
-        if 'now' not in since_and_until[0]:
+        if "now" not in since_and_until_partition[0]:
             _since = _since if _since is None else (_since - offset_delta)
-        if 'now' not in since_and_until[1]:
+        if "now" not in since_and_until_partition[1]:
             _until = _until if _until is None else (_until - offset_delta)
 
     if _since and _until and _since > _until:
