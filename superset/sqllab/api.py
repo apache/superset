@@ -198,6 +198,36 @@ class SqlLabRestApi(BaseSupersetApi):
         log_to_statsd=False,
     )
     def format(self) -> FlaskResponse:
+        """Format the SQL query.
+        ---
+        post:
+          summary: Format SQL code
+          requestBody:
+            description: SQL query
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/EstimateQueryCostSchema'
+          responses:
+            200:
+              description: Format SQL result
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            500:
+              $ref: '#/components/responses/500'
+        """
         try:
             model = self.format_model_schema.load(request.json)
         except ValidationError as error:
