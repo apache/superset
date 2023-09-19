@@ -140,8 +140,8 @@ export function formatTooltip({
     `<div style="font-weight: ${theme.typography.weights.bold}">
       ${(node.name || NULL_STRING)
         .toString()
-        .replace('<', '&lt;')
-        .replace('>', '&gt;')}
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')}
      </div>`,
     `<div">
       ${absolutePercentage} of total
