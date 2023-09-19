@@ -16,6 +16,8 @@
 # under the License.
 from typing import Any
 
+from superset.utils.core import as_list
+
 from .base import MigrateViz
 
 
@@ -155,7 +157,9 @@ class TimeseriesChart(MigrateViz):
             self.data["rolling_type"] = rolling_type
 
         if time_compare := self.data.get("time_compare"):
-            self.data["time_compare"] = [value + " ago" for value in time_compare]
+            self.data["time_compare"] = [
+                value + " ago" for value in as_list(time_compare) if value
+            ]
 
         comparison_type = self.data.get("comparison_type") or "values"
         self.data["comparison_type"] = (
