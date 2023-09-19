@@ -1093,6 +1093,33 @@ class TestCore(SupersetTestCase, InsertChartMixin):
 
     @mock.patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
+        {"SQLLAB_BACKEND_PERSISTENCE": False},
+        clear=True,
+    )
+    def test_get_from_bootstrap_data_for_non_persisted_tab_state(self):
+        username = "admin"
+        self.login(username)
+        user_id = security_manager.find_user(username).id
+        # create a tab
+        data = {
+            "queryEditor": json.dumps(
+                {
+                    "title": "Untitled Query 1",
+                    "dbId": 1,
+                    "schema": None,
+                    "autorun": False,
+                    "sql": "SELECT ...",
+                    "queryLimit": 1000,
+                }
+            )
+        }
+
+        payload = views.Superset._get_sqllab_tabs(user_id=user_id)
+        self.assertEqual(len(payload["queries"]), 0)
+        self.assertEqual(len(payload["tab_state_ids"]), 0)
+
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
         {"SQLLAB_BACKEND_PERSISTENCE": True},
         clear=True,
     )
