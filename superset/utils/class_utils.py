@@ -29,14 +29,11 @@ def load_class_from_name(fq_class_name: str) -> Any:
     :raises Exception: if the class cannot be loaded
     """
     if not fq_class_name:
-        raise Exception(f"Invalid class name {fq_class_name}")
+        raise ValueError(f"Invalid class name {fq_class_name}")
 
     parts = fq_class_name.split(".")
     module_name = ".".join(parts[:-1])
     class_name = parts[-1]
 
-    try:
-        module = import_module(module_name)
-        return getattr(module, class_name)
-    except (ImportError, AttributeError):
-        raise Exception(f"Could not import class {fq_class_name}")
+    module = import_module(module_name)
+    return getattr(module, class_name)
