@@ -77,10 +77,10 @@ def migrate(viz_type: VizType, is_downgrade: bool = False) -> None:
     from superset.migrations.shared.migrate_viz.processors import (
         MigrateAreaChart,
         MigrateDualLine,
+        MigrateLineChart,
         MigratePivotTable,
         MigrateSunburst,
         MigrateTreeMap,
-        MigrateLineChart,
     )
 
     migrations = {
