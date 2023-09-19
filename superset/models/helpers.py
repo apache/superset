@@ -1886,7 +1886,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             time_range=eq,
                             time_shift=time_shift,
                             extras=extras,
-                            offset=offset
+                            offset=offset,
                         )
                         where_clause_and.append(
                             self.get_time_filter(

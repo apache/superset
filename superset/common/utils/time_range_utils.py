@@ -40,7 +40,7 @@ def get_since_until_from_time_range(
         ),
         time_range=time_range,
         time_shift=time_shift,
-        offset=offset
+        offset=offset,
     )
 
 
