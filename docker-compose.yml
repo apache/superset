@@ -29,6 +29,14 @@ x-superset-volumes: &superset-volumes
 
 version: "3.7"
 services:
+  nginx:
+    image: nginx:latest
+    container_name: superset_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
   redis:
     image: redis:7
     container_name: superset_cache

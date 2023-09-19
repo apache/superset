@@ -21,8 +21,8 @@ from flask_appbuilder import expose
 from flask_appbuilder.api import safe
 from flask_appbuilder.security.decorators import permission_name, protect
 
+from superset.async_events.async_query_manager import AsyncQueryTokenException
 from superset.extensions import async_query_manager, event_logger
-from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.views.base_api import BaseSupersetApi
 
 logger = logging.getLogger(__name__)
