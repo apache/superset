@@ -116,7 +116,7 @@ class ProfilingExtension:  # pylint: disable=too-few-public-methods
 APP_DIR = os.path.join(os.path.dirname(__file__), os.path.pardir)
 appbuilder = AppBuilder(update_perms=False)
 async_query_manager_factory = AsyncQueryManagerFactory()
-async_query_manager: AsyncQueryManager = LocalProxy(async_query_manager_factory.get)
+async_query_manager: AsyncQueryManager = LocalProxy(async_query_manager_factory.instance)
 cache_manager = CacheManager()
 celery_app = celery.Celery()
 csrf = CSRFProtect()
