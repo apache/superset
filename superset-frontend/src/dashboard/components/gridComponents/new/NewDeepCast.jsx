@@ -10,7 +10,7 @@ export default function DraggableNewDivider() {
     <DraggableNewComponent
       id={NEW_IKI_DEEPCAST_ID}
       type={IKI_DEEPCAST_TYPE}
-      label={t('DeepCast')}
+      label={t('aiCast')}
       className="fa fa-eye"
     />
   );
