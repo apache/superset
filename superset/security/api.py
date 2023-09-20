@@ -32,6 +32,11 @@ from superset.extensions import event_logger
 from superset.security.guest_token import GuestTokenResourceType
 from superset.views.base_api import BaseSupersetApi, statsd_metrics
 
+from sqlalchemy import create_engine, text, select, join, MetaData, case, func
+from flask import jsonify 
+from superset import app
+import pandas as pd
+
 logger = logging.getLogger(__name__)
 
 
@@ -163,3 +168,366 @@ class SecurityRestApi(BaseSupersetApi):
             return self.response_400(message=error.message)
         except ValidationError as error:
             return self.response_400(message=error.messages)
+        
+    @expose("/get_rls_by_username/", methods=("POST",))
+    @event_logger.log_this
+    @protect()
+    @safe
+    @statsd_metrics
+    @permission_name("read")
+    def guest_rls_by_username(self) -> Response:
+        """Get RLS configs related to a specific user, provide the output of this view during guest token request.
+        ---
+        post:
+          description: >-
+            Get RLS configs of a Superset user
+          requestBody:
+            description: Parameters for the RLS configs
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                      username:
+                        type: string
+          responses:
+            200:
+              description: Result contains RLS configs
+              content:
+                application/json:
+                  schema:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        dataset:
+                          type: integer
+                        clause:
+                          type: string
+            401:
+              $ref: '#/components/responses/401'
+            400:
+              $ref: '#/components/responses/400'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            body = request.json
+            # get username for next steps
+            username_target = body["username"]
+
+            # read all RLS configs related to that specific user
+            engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
+            metadata = MetaData(bind=engine)
+            metadata.reflect()
+
+            # Check if user exists and it is active
+            ab_user = metadata.tables["ab_user"]
+            query = select(
+                [
+                    case(
+                        [
+                            (func.count(ab_user.c.username) > 0, True)
+                        ],
+                        else_=False
+                    ).label("is_user")
+                ]
+            ).filter(
+                (ab_user.c.username == text(f"'{username_target}'")) & (ab_user.c.active == True)
+            )
+
+            # execute query getting boolean value
+            is_active_user = engine.execute(query).scalar()
+
+            if is_active_user == False:
+              return self.response_400(message=f"user {username_target} doesn't exist or not active")
+
+            ####### Execute query to get RLS #######################
+            # get tables object
+            ab_user = metadata.tables["ab_user"]
+            ab_user_role = metadata.tables["ab_user_role"]
+            ab_role = metadata.tables["ab_role"]
+            
+            # read roles related to "username_target" (argument of function)
+            query = select(
+                [
+                    ab_user.c.first_name.label("first_name"),
+                    ab_user.c.last_name.label("last_name"),
+                    ab_user.c.username.label("username"),
+                    ab_role.c.name.label("roles"),
+                ]
+            ).select_from(
+                join(
+                    join(
+                        ab_user,
+                        ab_user_role,
+                        ab_user.c.id == ab_user_role.c.user_id,
+                    ),
+                    ab_role,
+                    ab_user_role.c.role_id == ab_role.c.id,
+                )
+            )
+
+            # get roles related to username_target
+            results = engine.execute(query).fetchall()
+            users_roles = [dict(row) for row in results]
+            users_roles = [u for u in users_roles if u['username']==username_target]
+
+            # Get row level security filters
+            row_level_security_filters = metadata.tables["row_level_security_filters"]
+            rls_filter_roles = metadata.tables["rls_filter_roles"]
+            ab_role = metadata.tables["ab_role"]
+            rls_filter_tables = metadata.tables["rls_filter_tables"]
+
+            query = select(
+                [
+                    row_level_security_filters.c.group_key.label("group_key"),
+                    rls_filter_tables.c.table_id.label("rls_table_id"),
+                    row_level_security_filters.c.filter_type.label("rls_filter_type"),
+                    ab_role.c.name.label("rls_roles"),
+                    row_level_security_filters.c.clause.label("rls_clause"),
+                ]
+            ).select_from(
+                join(
+                    join(
+                        join(
+                            row_level_security_filters,
+                            rls_filter_roles,
+                            row_level_security_filters.c.id == rls_filter_roles.c.rls_filter_id,
+                        ),
+                        ab_role,
+                        rls_filter_roles.c.role_id == ab_role.c.id,
+                    ),
+                    rls_filter_tables,
+                    rls_filter_roles.c.rls_filter_id == rls_filter_tables.c.rls_filter_id,
+                )
+            )
+
+            # Execute query getting results as list of dictionaries
+            results = engine.execute(query).fetchall()
+            rls_filters = [dict(row) for row in results]
+
+            # get all roles defined in Superset UI
+            ab_role = metadata.tables["ab_role"]
+            name = ab_role.c.name
+            query = select([name]).distinct()
+            results = engine.execute(query).fetchall()
+            distinct_roles = [row[0] for row in results]
+
+            # ################### Convert Base filters to Regular filters ###########################
+            # ######## (Base filter is applied to all roles not defined in the filter) ##############
+
+            if rls_filters != []:
+                
+                rls_filters = pd.DataFrame(rls_filters)
+                # group_key fillna to manage null values as distinct elements in group_by()
+                rls_filters['group_key'] = rls_filters['group_key'].fillna('valore' + (rls_filters['group_key'].isnull().cumsum().astype(str)))
+                
+                #get regular filters
+                requested_roles = [x['roles'] for x in users_roles]
+                rls_regular_filters = rls_filters[(rls_filters['rls_filter_type']=='Regular') & (rls_filters['rls_roles'].isin(requested_roles))]
+                rls_regular_filters = rls_regular_filters.to_dict('records')
+
+                #get base filters
+                def agg_roles(x):
+                    return '|'.join(set(x))
+
+                def agg_rls_clause(x):
+                    return '|'.join(set(x))
+
+                rls_base_filters = rls_filters[(rls_filters['rls_filter_type']=='Base')]
+                rls_base_filters = rls_base_filters.groupby(['group_key','rls_table_id','rls_filter_type']).agg({'rls_roles':agg_roles,'rls_clause':agg_rls_clause}).reset_index()
+                rls_base_filters = rls_base_filters.to_dict('records')
+
+                for rls in rls_base_filters:
+                  base_roles = rls['rls_roles'].split('|')
+                  for x in set(distinct_roles).difference(set(base_roles)): #explode the row into several rows, each row for the Role not defined in the Base filter
+                      rls_regular_filters.append({'group_key': rls['group_key'],
+                                                  'rls_roles': x,
+                                                  'rls_filter_type': 'Regular',
+                                                  'rls_clause': rls['rls_clause'],
+                                                  'rls_table_id': rls['rls_table_id']})
+
+                # aggregate filters by group key
+                rls_regular_filters = [x for x in rls_regular_filters if x['rls_roles'] in requested_roles]
+
+                if rls_regular_filters != []:
+                    rls_regular_filters = pd.DataFrame(rls_regular_filters).drop_duplicates(subset=['group_key','rls_table_id','rls_clause'])
+                    rls_regular_filters = pd.DataFrame(rls_regular_filters).groupby(['group_key','rls_table_id'])['rls_clause'].agg(lambda x: ' OR '.join("(" + x + ")")).reset_index().to_dict('records')
+                    prova1 = rls_regular_filters.copy()
+
+                    rls = [{"dataset": x['rls_table_id'], "clause": x['rls_clause']} for x in rls_regular_filters]
+                    rls = pd.DataFrame(rls).drop_duplicates().to_dict('records') #drop duplicated dictionaries
+                else:
+                    rls = []
+            else:
+                rls = []
+
+            return jsonify(rls)
+        except EmbeddedDashboardNotFoundError as error:
+            return self.response_400(message=error.message)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+    @expose("/get_rls_by_role/", methods=("POST",))
+    @event_logger.log_this
+    @protect()
+    @safe
+    @statsd_metrics
+    @permission_name("read")
+    def get_rls_by_role(self) -> Response:
+      """
+      Get RLS configs related to a specific subset of roles, provide the output of this view during guest token request.
+      ---
+      post:
+        description: >-
+          Get RLS configs related to a specific subset of roles, provide the output of this view during guest token request.
+        
+        requestBody:
+          description: Parameters for the RLS configs, list of roles to fetch
+          required: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                    roles:
+                      type: array
+                      items:
+                        type: string
+        responses:
+          200:
+            description: Result contains RLS configs of input roles 
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      dataset:
+                        type: integer
+                      clause:
+                        type: string
+          401:
+            $ref: '#/components/responses/401'
+          400:
+            $ref: '#/components/responses/400'
+          500:
+            $ref: '#/components/responses/500'
+      """
+      try:
+        body = request.json
+        requested_roles = body["roles"]
+
+        # read all RLS configs related to that specific user
+        engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
+
+        # Create a metadata object that reflects the database schema
+        metadata = MetaData(bind=engine)
+        metadata.reflect()
+
+        ####### Execute query to get RLS #######################
+        # get all roles defined in Superset UI
+        ab_role = metadata.tables["ab_role"]
+        name = ab_role.c.name
+        query = select([name]).distinct()
+        result = engine.execute(query).fetchall()
+        distinct_roles = [row[0] for row in result]
+
+        # check if all roles provided by Client exist in Apache Superset otherwise error
+        if len(requested_roles) > 0:
+          if set(requested_roles).issubset(distinct_roles):
+            pass
+          else:
+            return self.response_400(message=f"in {requested_roles} there's at least a role not defined in Apache Superset, check on Apache Superset or contact Administrator")
+        else:
+          return self.response_400(message=f"no roles provided, in request you must add at least a role defined in Apache Superset")
+
+        # Get row level security filters
+        row_level_security_filters = metadata.tables["row_level_security_filters"]
+        rls_filter_roles = metadata.tables["rls_filter_roles"]
+        ab_role = metadata.tables["ab_role"]
+        rls_filter_tables = metadata.tables["rls_filter_tables"]
+
+        query = select(
+            [
+                row_level_security_filters.c.group_key.label("group_key"),
+                rls_filter_tables.c.table_id.label("rls_table_id"),
+                row_level_security_filters.c.filter_type.label("rls_filter_type"),
+                ab_role.c.name.label("rls_roles"),
+                row_level_security_filters.c.clause.label("rls_clause"),
+            ]
+        ).select_from(
+            join(
+                join(
+                    join(
+                        row_level_security_filters,
+                        rls_filter_roles,
+                        row_level_security_filters.c.id == rls_filter_roles.c.rls_filter_id,
+                    ),
+                    ab_role,
+                    rls_filter_roles.c.role_id == ab_role.c.id,
+                ),
+                rls_filter_tables,
+                rls_filter_roles.c.rls_filter_id == rls_filter_tables.c.rls_filter_id,
+            )
+        )
+
+        # Execute query getting results as list of dictionaries
+        results = engine.execute(query).fetchall()
+        rls_filters = [dict(row) for row in results]
+
+        if rls_filters != []:
+            
+          rls_filters = pd.DataFrame(rls_filters)
+          # group_key fillna to manage null values as distinct elements in group_by()
+          rls_filters['group_key'] = rls_filters['group_key'].fillna('valore' + (rls_filters['group_key'].isnull().cumsum().astype(str)))
+          
+          #get regular filters
+          rls_regular_filters = rls_filters[(rls_filters['rls_filter_type']=='Regular') & (rls_filters['rls_roles'].isin(requested_roles))]
+          rls_regular_filters = rls_regular_filters.to_dict('records')
+          
+          #get base filters
+          def agg_roles(x):
+              return '|'.join(set(x))
+
+          def agg_rls_clause(x):
+              return '|'.join(set(x))
+
+          rls_base_filters = rls_filters[(rls_filters['rls_filter_type']=='Base')]
+          rls_base_filters = rls_base_filters.groupby(['group_key','rls_table_id','rls_filter_type']).agg({'rls_roles':agg_roles,'rls_clause':agg_rls_clause}).reset_index()
+          rls_base_filters = rls_base_filters.to_dict('records')
+
+          for rls in rls_base_filters:
+            base_roles = rls['rls_roles'].split('|')
+            for x in set(distinct_roles).difference(set(base_roles)): #explode the row into several rows, each row for the Role not defined in the Base filter
+                rls_regular_filters.append({'group_key': rls['group_key'],
+                                            'rls_roles': x,
+                                            'rls_filter_type': 'Regular',
+                                            'rls_clause': rls['rls_clause'],
+                                            'rls_table_id': rls['rls_table_id']})
+
+              
+          # aggregate filters by group key
+          rls_regular_filters = [x for x in rls_regular_filters if x['rls_roles'] in requested_roles]
+
+          if rls_regular_filters != []:
+            rls_regular_filters = pd.DataFrame(rls_regular_filters).drop_duplicates(subset=['group_key','rls_table_id','rls_clause']) 
+            rls_regular_filters = pd.DataFrame(rls_regular_filters).groupby(['group_key','rls_table_id'])['rls_clause'].agg(lambda x: ' OR '.join("(" + x + ")")).reset_index().to_dict('records')
+
+            rls = [{"dataset": x['rls_table_id'], "clause": x['rls_clause']} for x in rls_regular_filters]
+            rls = pd.DataFrame(rls).drop_duplicates().to_dict('records') #drop duplicated dictionaries
+          else:
+            rls = []
+        else:
+          rls = []          
+        
+        return jsonify(rls)
+      
+      except EmbeddedDashboardNotFoundError as error:
+        return self.response_400(message=error.message)
+      
+      except ValidationError as error:
+        return self.response_400(message=error.messages)
