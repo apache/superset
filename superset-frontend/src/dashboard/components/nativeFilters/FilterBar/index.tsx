@@ -45,6 +45,8 @@ import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { useTabId } from 'src/hooks/useTabId';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
+import { userHasPermission } from 'src/dashboard/util/permissionUtils';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import { checkIsApplyDisabled } from './utils';
 import { FiltersBarProps } from './types';
 import {
@@ -58,6 +60,9 @@ import ActionButtons from './ActionButtons';
 import Horizontal from './Horizontal';
 import Vertical from './Vertical';
 import { useSelectFiltersInScope } from '../state';
+
+const bootstrapData = getBootstrapData();
+const user = { ...bootstrapData.user };
 
 // FilterBar is just being hidden as it must still
 // render fully due to encapsulated logics
@@ -82,7 +87,7 @@ const publishDataMask = debounce(
     const { search } = location;
     const previousParams = new URLSearchParams(search);
     const newParams = new URLSearchParams();
-    let dataMaskKey: string | null;
+    let dataMaskKey: string | null = null;
     previousParams.forEach((value, key) => {
       if (!EXCLUDED_URL_PARAMS.includes(key)) {
         newParams.append(key, value);
@@ -102,7 +107,9 @@ const publishDataMask = debounce(
       ))
     ) {
       dataMaskKey = nativeFiltersCacheKey;
-    } else {
+    } else if (
+      userHasPermission(user, 'DashboardFilterStateRestApi', 'can_write')
+    ) {
       dataMaskKey = await createFilterKey(dashboardId, dataMask, tabId);
     }
     if (dataMaskKey) {
