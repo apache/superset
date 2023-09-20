@@ -24,9 +24,7 @@ import {
 } from '@superset-ui/core';
 import { EchartsBubbleChartProps } from 'plugins/plugin-chart-echarts/src/Bubble/types';
 
-import transformProps, {
-  formatBubbleLabel,
-} from '../../src/Bubble/transformProps';
+import transformProps, { formatTooltip } from '../../src/Bubble/transformProps';
 
 describe('Bubble transformProps', () => {
   const formData: SqlaFormData = {
@@ -112,7 +110,7 @@ describe('Bubble transformProps', () => {
   });
 });
 
-describe('Bubble formatBubbleLabel', () => {
+describe('Bubble formatTooltip', () => {
   const dollerFormatter = getNumberFormatter('$,.2f');
   const percentFormatter = getNumberFormatter(',.1%');
 
@@ -122,7 +120,7 @@ describe('Bubble formatBubbleLabel', () => {
     };
 
     expect(
-      formatBubbleLabel(
+      formatTooltip(
         params,
         'x-axis-label',
         'y-axis-label',
@@ -143,7 +141,7 @@ describe('Bubble formatBubbleLabel', () => {
       data: [10000, 25000, 3, 'bubble title', null],
     };
     expect(
-      formatBubbleLabel(
+      formatTooltip(
         params,
         'x-axis-label',
         'y-axis-label',
