@@ -18,7 +18,11 @@
  */
 
 import { CallbackDataParams } from 'echarts/types/src/util/types';
-import { TOOLTIP_OVERFLOW_MARGIN, TOOLTIP_POINTER_MARGIN } from '../constants';
+import {
+  NULL_STRING,
+  TOOLTIP_OVERFLOW_MARGIN,
+  TOOLTIP_POINTER_MARGIN,
+} from '../constants';
 import { Refs } from '../types';
 
 export function getDefaultTooltip(refs: Refs) {

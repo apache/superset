@@ -34,6 +34,7 @@ import { parseYAxisBound } from '../utils/controls';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { getPadding } from '../Timeseries/transformers';
 import { convertInteger } from '../utils/convertInteger';
+import { NULL_STRING } from '../constants';
 
 function normalizeSymbolSize(
   nodes: ScatterSeriesOption[],
@@ -49,7 +50,7 @@ function normalizeSymbolSize(
   });
 }
 
-export function formatBubbleLabel(
+export function formatTooltip(
   params: any,
   xAxisLabel: string,
   yAxisLabel: string,
@@ -113,7 +114,9 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
   const refs: Refs = {};
 
   data.forEach(datum => {
-    const name = (bubbleSeries ? datum[bubbleSeries] : datum[entity]) as string;
+    const name =
+      ((bubbleSeries ? datum[bubbleSeries] : datum[entity]) as string) ||
+      NULL_STRING;
     const bubbleSeriesValue = bubbleSeries ? datum[bubbleSeries] : null;
 
     series.push({
@@ -199,7 +202,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
       show: !inContextMenu,
       ...getDefaultTooltip(refs),
       formatter: (params: any): string =>
-        formatBubbleLabel(
+        formatTooltip(
           params,
           xAxisLabel,
           yAxisLabel,
