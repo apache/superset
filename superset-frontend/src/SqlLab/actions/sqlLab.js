@@ -1036,7 +1036,6 @@ export function queryEditorSetSql(queryEditor, sql) {
 export function formatQuery(queryEditor) {
   return function (dispatch, getState) {
     const { sql } = getUpToDateQuery(getState(), queryEditor);
-
     return SupersetClient.post({
       endpoint: `/api/v1/sqllab/format/`,
       body: JSON.stringify({ sql }),
