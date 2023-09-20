@@ -228,7 +228,7 @@ const config: ControlPanelConfig = {
               clearable: true,
               label: t('Y AXIS TITLE MARGIN'),
               renderTrigger: true,
-              default: sections.TITLE_MARGIN_OPTIONS[2],
+              default: sections.TITLE_MARGIN_OPTIONS[1],
               choices: formatSelectOptions(sections.TITLE_MARGIN_OPTIONS),
             },
           },
