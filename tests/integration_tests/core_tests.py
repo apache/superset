@@ -737,7 +737,7 @@ class TestCore(SupersetTestCase):
             "row_limit": 100,
         }
         app._got_first_request = False
-        async_query_manager.init_app(app)
+        async_query_manager_factory.init_app(app)
         self.login(username="admin")
         rv = self.client.post(
             "/superset/explore_json/?results=true",
