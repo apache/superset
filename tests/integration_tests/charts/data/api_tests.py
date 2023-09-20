@@ -45,7 +45,7 @@ from superset.models.slice import Slice
 from superset.charts.data.commands.get_data_command import ChartDataCommand
 from superset.connectors.sqla.models import TableColumn, SqlaTable
 from superset.errors import SupersetErrorType
-from superset.extensions import async_query_manager, db
+from superset.extensions import async_query_manager_factory, db
 from superset.models.annotations import AnnotationLayer
 from superset.models.slice import Slice
 from superset.superset_typing import AdhocColumn
@@ -626,7 +626,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
     def test_chart_data_async(self):
         self.logout()
         app._got_first_request = False
-        async_query_manager.init_app(app)
+        async_query_manager_factory.init_app(app)
         self.login("admin")
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         self.assertEqual(rv.status_code, 202)
@@ -644,7 +644,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         when results are already cached.
         """
         app._got_first_request = False
-        async_query_manager.init_app(app)
+        async_query_manager_factory.init_app(app)
 
         class QueryContext:
             result_format = ChartDataResultFormat.JSON
@@ -674,7 +674,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         Chart data API: Test chart data query non-JSON format (async)
         """
         app._got_first_request = False
-        async_query_manager.init_app(app)
+        async_query_manager_factory.init_app(app)
         self.query_context_payload["result_type"] = "results"
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         self.assertEqual(rv.status_code, 200)
@@ -686,7 +686,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         Chart data API: Test chart data query (async)
         """
         app._got_first_request = False
-        async_query_manager.init_app(app)
+        async_query_manager_factory.init_app(app)
         test_client.set_cookie(
             "localhost", app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"], "foo"
         )
@@ -1066,7 +1066,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         Chart data cache API: Test chart data async cache request
         """
         app._got_first_request = False
-        async_query_manager.init_app(app)
+        async_query_manager_factory.init_app(app)
         cache_loader.load.return_value = self.query_context_payload
         orig_run = ChartDataCommand.run
 
@@ -1093,7 +1093,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         Chart data cache API: Test chart data async cache request with run failure
         """
         app._got_first_request = False
-        async_query_manager.init_app(app)
+        async_query_manager_factory.init_app(app)
         cache_loader.load.return_value = self.query_context_payload
         rv = self.get_assert_metric(
             f"{CHART_DATA_URI}/test-cache-key", "data_from_cache"
@@ -1111,7 +1111,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         Chart data cache API: Test chart data async cache request (no login)
         """
         app._got_first_request = False
-        async_query_manager.init_app(app)
+        async_query_manager_factory.init_app(app)
         self.logout()
         cache_loader.load.return_value = self.query_context_payload
         orig_run = ChartDataCommand.run
@@ -1134,7 +1134,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         Chart data cache API: Test chart data async cache request with invalid cache key
         """
         app._got_first_request = False
-        async_query_manager.init_app(app)
+        async_query_manager_factory.init_app(app)
         rv = self.get_assert_metric(
             f"{CHART_DATA_URI}/test-cache-key", "data_from_cache"
         )

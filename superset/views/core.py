@@ -43,6 +43,7 @@ from superset import (
     is_feature_enabled,
     security_manager,
 )
+from superset.async_events.async_query_manager import AsyncQueryTokenException
 from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.charts.commands.warm_up_cache import ChartWarmUpCacheCommand
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
@@ -75,7 +76,6 @@ from superset.sqllab.utils import bootstrap_sqllab_data
 from superset.superset_typing import FlaskResponse
 from superset.tasks.async_queries import load_explore_json_into_cache
 from superset.utils import core as utils
-from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
 from superset.utils.core import (
     base_json_conv,

@@ -14,28 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from os import environ
-from typing import TYPE_CHECKING
 
-from superset.app import create_app
+from flask import Flask
 
-if TYPE_CHECKING:
-    from typing import Any
-
-    from flask.testing import FlaskClient
+from superset.async_events.async_query_manager import AsyncQueryManager
+from superset.utils.class_utils import load_class_from_name
 
 
-superset_config_module = environ.get(
-    "SUPERSET_CONFIG", "tests.integration_tests.superset_test_config"
-)
-app = create_app(superset_config_module=superset_config_module)
+class AsyncQueryManagerFactory:
+    def __init__(self) -> None:
+        self._async_query_manager: AsyncQueryManager = None  # type: ignore
 
+    def init_app(self, app: Flask) -> None:
+        self._async_query_manager = load_class_from_name(
+            app.config["GLOBAL_ASYNC_QUERY_MANAGER_CLASS"]
+        )()
+        self._async_query_manager.init_app(app)
 
-def login(
-    client: "FlaskClient[Any]", username: str = "admin", password: str = "general"
-):
-    resp = client.post(
-        "/login/",
-        data=dict(username=username, password=password),
-    ).get_data(as_text=True)
-    assert "User confirmation needed" not in resp
+    def instance(self) -> AsyncQueryManager:
+        return self._async_query_manager
