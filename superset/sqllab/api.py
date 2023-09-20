@@ -208,7 +208,7 @@ class SqlLabRestApi(BaseSupersetApi):
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/EstimateQueryCostSchema'
+                  $ref: '#/components/schemas/FormatQueryPayloadSchema'
           responses:
             200:
               description: Format SQL result
@@ -230,12 +230,12 @@ class SqlLabRestApi(BaseSupersetApi):
         """
         try:
             model = self.format_model_schema.load(request.json)
+            result = sqlparse.format(
+                model.get("sql", ""), reindent=True, keyword_case="upper"
+            )
+            return self.response(200, result=result)
         except ValidationError as error:
             return self.response_400(message=error.messages)
-        result = sqlparse.format(
-            model.get("sql", ""), reindent=True, keyword_case="upper"
-        )
-        return self.response(200, result=result)
 
     @expose("/export/<string:client_id>/")
     @protect()
