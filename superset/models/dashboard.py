@@ -130,16 +130,14 @@ DashboardRoles = Table(
     Column(
         "dashboard_id",
         Integer,
-        ForeignKey("dashboards.id"),
+        ForeignKey("dashboards.id", on_delete="CASCADE"),
         nullable=False,
-        on_delete="CASCADE",
     ),
     Column(
         "role_id",
         Integer,
-        ForeignKey("ab_role.id"),
+        ForeignKey("ab_role.id", on_delete="CASCADE"),
         nullable=False,
-        on_delete="CASCADE",
     ),
 )
 
