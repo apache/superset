@@ -25,7 +25,7 @@ from superset.utils.class_utils import load_class_from_name
 
 class AsyncQueryManagerFactory:
     def __init__(self) -> None:
-        self.async_query_manager: Optional[AsyncQueryManager] = None
+        self.async_query_manager: AsyncQueryManager = None  # type: ignore
 
     def init_app(self, app: Flask) -> None:
         self.async_query_manager = load_class_from_name(
