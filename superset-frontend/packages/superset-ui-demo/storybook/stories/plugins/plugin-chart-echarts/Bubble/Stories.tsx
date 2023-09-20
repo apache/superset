@@ -32,10 +32,10 @@ import {
 import { simpleBubbleData } from './data';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
-new EchartsBubbleChartPlugin().configure({ key: 'echarts-bubble' }).register();
+new EchartsBubbleChartPlugin().configure({ key: 'bubble_v2' }).register();
 
 getChartTransformPropsRegistry().registerValue(
-  'echarts-bubble',
+  'bubble_v2',
   BubbleTransformProps,
 );
 
@@ -46,7 +46,7 @@ export default {
 
 export const SimpleBubble = ({ width, height }) => (
   <SuperChart
-    chartType="echarts-bubble"
+    chartType="bubble_v2"
     width={width}
     height={height}
     queriesData={[{ data: simpleBubbleData }]}

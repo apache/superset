@@ -19,8 +19,7 @@
 import { DEFAULT_LEGEND_FORM_DATA } from '../constants';
 import { EchartsBubbleFormData } from './types';
 
-// @ts-ignore
-export const DEFAULT_FORM_DATA: EchartsBubbleFormData = {
+export const DEFAULT_FORM_DATA: Partial<EchartsBubbleFormData> = {
   ...DEFAULT_LEGEND_FORM_DATA,
   emitFilter: false,
   logXAis: false,

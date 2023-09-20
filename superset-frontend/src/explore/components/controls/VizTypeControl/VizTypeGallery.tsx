@@ -101,6 +101,7 @@ const DEFAULT_ORDER = [
   'cal_heatmap',
   'rose',
   'bubble',
+  'bubble_v2',
   'deck_geojson',
   'horizon',
   'deck_multi',

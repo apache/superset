@@ -37,6 +37,7 @@ import WorldMapChartPlugin from '@superset-ui/legacy-plugin-chart-world-map';
 import {
   AreaChartPlugin,
   BarChartPlugin,
+  BubbleChartPlugin,
   BulletChartPlugin,
   CompareChartPlugin,
   DistBarChartPlugin,
@@ -96,6 +97,7 @@ export default class MainPreset extends Preset {
         new BigNumberChartPlugin().configure({ key: 'big_number' }),
         new BigNumberTotalChartPlugin().configure({ key: 'big_number_total' }),
         new EchartsBoxPlotChartPlugin().configure({ key: 'box_plot' }),
+        new BubbleChartPlugin().configure({ key: 'bubble' }),
         new BulletChartPlugin().configure({ key: 'bullet' }),
         new CalendarChartPlugin().configure({ key: 'cal_heatmap' }),
         new ChordChartPlugin().configure({ key: 'chord' }),
@@ -159,7 +161,7 @@ export default class MainPreset extends Preset {
         new EchartsTreeChartPlugin().configure({ key: 'tree_chart' }),
         new EchartsSunburstChartPlugin().configure({ key: 'sunburst_v2' }),
         new HandlebarsChartPlugin().configure({ key: 'handlebars' }),
-        new EchartsBubbleChartPlugin().configure({ key: 'bubble' }),
+        new EchartsBubbleChartPlugin().configure({ key: 'bubble_v2' }),
         ...experimentalplugins,
       ],
     });

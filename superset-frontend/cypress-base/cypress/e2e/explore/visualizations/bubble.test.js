@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-describe('Visualization > Bubble', () => {
+describe('Visualization > Bubble v2', () => {
   beforeEach(() => {
     cy.intercept('POST', '/api/v1/chart/data*').as('getJson');
   });
 
   const BUBBLE_FORM_DATA = {
     datasource: '2__table',
-    viz_type: 'bubble',
+    viz_type: 'bubble_v2',
     slice_id: 46,
     granularity_sqla: 'year',
     time_grain_sqla: 'P1D',

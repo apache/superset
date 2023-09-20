@@ -69,7 +69,7 @@ export function formatBubbleLabel(
 }
 
 export default function transformProps(chartProps: EchartsBubbleChartProps) {
-  const { height, width, hooks, queriesData, formData, inContextMenu } =
+  const { height, width, hooks, queriesData, formData, inContextMenu, theme } =
     chartProps;
 
   const { data = [] } = queriesData[0];
@@ -99,8 +99,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     legendOrientation,
     legendMargin,
     legendType,
-  }: // emitFilter,
-  EchartsBubbleFormData = { ...DEFAULT_FORM_DATA, ...formData };
+  }: EchartsBubbleFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
 
@@ -193,7 +192,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
       type: logYAxis ? AxisType.log : AxisType.value,
     },
     legend: {
-      ...getLegendProps(legendType, legendOrientation, showLegend),
+      ...getLegendProps(legendType, legendOrientation, showLegend, theme),
       data: legends,
     },
     tooltip: {
@@ -222,9 +221,6 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     echartOptions,
     onContextMenu,
     setDataMask,
-    // emitFilter,
-    // entity,
-    // bubbleSeries,
     formData,
   };
 }
