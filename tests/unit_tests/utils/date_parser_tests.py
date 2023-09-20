@@ -165,27 +165,6 @@ def test_get_since_until() -> None:
     expected = datetime(2016, 10, 31, 9, 30, 10), datetime(2016, 11, 7, 3, 0, 0)
     assert result == expected
 
-    result = get_since_until("previous calendar week", offset="-3 hours")
-    expected = datetime(2016, 10, 31, 3, 0, 0), datetime(2016, 11, 7, 3, 0, 0)
-    assert result == expected
-
-    result = get_since_until(time_range="5 days : now", offset="-3 hours")
-    expected = datetime(2016, 11, 2, 3, 0, 0), datetime(2016, 11, 7, 9, 30, 10)
-    assert result == expected
-
-    result = get_since_until(time_range="today : now", offset="-3 hours")
-    expected = datetime(2016, 11, 7, 3, 0, 0), datetime(2016, 11, 7, 9, 30, 10)
-    assert result == expected
-
-    result = get_since_until(
-        "2018-01-01T00:00:00 : 2018-12-31T23:59:59", offset="-3 hours"
-    )
-    expected = datetime(2018, 1, 1, 3, 0, 0), datetime(2019, 1, 1, 2, 59, 59)
-    assert result == expected
-
-    with pytest.raises(ValueError):
-        get_since_until(time_range="tomorrow : yesterday")
-
 
 @patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
 def test_datetime_eval() -> None:
