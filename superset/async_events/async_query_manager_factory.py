@@ -15,8 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Optional
-
 from flask import Flask
 
 from superset.async_events.async_query_manager import AsyncQueryManager

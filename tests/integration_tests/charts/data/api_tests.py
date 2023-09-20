@@ -45,7 +45,7 @@ from superset.models.slice import Slice
 from superset.charts.data.commands.get_data_command import ChartDataCommand
 from superset.connectors.sqla.models import TableColumn, SqlaTable
 from superset.errors import SupersetErrorType
-from superset.extensions import async_query_manager, db
+from superset.extensions import async_query_manager_factory, db
 from superset.models.annotations import AnnotationLayer
 from superset.models.slice import Slice
 from superset.superset_typing import AdhocColumn
@@ -626,7 +626,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
     def test_chart_data_async(self):
         self.logout()
         app._got_first_request = False
-        async_query_manager.init_app(app)
+        async_query_manager_factory.init_app(app)
         self.login("admin")
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         self.assertEqual(rv.status_code, 202)
