@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC, useEffect, useMemo, useRef } from 'react';
+import React, { FC, useEffect, useMemo, useRef, useState } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { Tooltip } from 'src/components/Tooltip';
 import { useDispatch, useSelector } from 'react-redux';
-// import EditableTitle from 'src/components/EditableTitle';
+import EditableTitle from 'src/components/EditableTitle';
 import SliceHeaderControls, {
   SliceHeaderControlsProps,
 } from 'src/dashboard/components/SliceHeaderControls';
@@ -57,7 +57,7 @@ const CrossFilterIcon = styled(Icons.CursorTarget)`
 const SliceHeader: FC<SliceHeaderProps> = ({
   innerRef = null,
   forceRefresh = () => ({}),
-  // updateSliceName = () => ({}),
+  updateSliceName = () => ({}),
   toggleExpandSlice = () => ({}),
   logExploreChart = () => ({}),
   onExploreChart,
@@ -89,7 +89,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
 }) => {
   const dispatch = useDispatch();
   const uiConfig = useUiConfig();
-  // const [headerTooltip, setHeaderTooltip] = useState<string | null>(null);
+  const [headerTooltip, setHeaderTooltip] = useState<string | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   // TODO: change to indicator field after it will be implemented
   const crossFilterValue = useSelector<RootState, any>(
@@ -110,26 +110,26 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   useEffect(() => {
     const headerElement = headerRef.current;
     if (handleClickTitle) {
-      // setHeaderTooltip(
-      //   sliceName
-      //     ? t('Click to edit %s in a new tab', sliceName)
-      //     : t('Click to edit chart in a new tab'),
-      // );
+      setHeaderTooltip(
+        sliceName
+          ? t('Click to edit %s in a new tab', sliceName)
+          : t('Click to edit chart in a new tab'),
+      );
     } else if (
       headerElement &&
       (headerElement.scrollWidth > headerElement.offsetWidth ||
         headerElement.scrollHeight > headerElement.offsetHeight)
     ) {
-      // setHeaderTooltip(sliceName ?? null);
+      setHeaderTooltip(sliceName ?? null);
     } else {
-      // setHeaderTooltip(null);
+      setHeaderTooltip(null);
     }
   }, [sliceName, width, height, handleClickTitle]);
 
   return (
     <div className="chart-header" data-test="slice-header" ref={innerRef}>
       <div className="header-title" ref={headerRef}>
-        {/* <Tooltip title={headerTooltip}>
+        <Tooltip title={headerTooltip}>
           <EditableTitle
             title={
               sliceName ||
@@ -143,8 +143,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
             showTooltip={false}
             onClickTitle={handleClickTitle}
           />
-        </Tooltip> */}
-        {sliceName}
+        </Tooltip>
         {!!Object.values(annotationQuery).length && (
           <Tooltip
             id="annotations-loading-tooltip"
