@@ -45,13 +45,19 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({
   addDangerToast,
 }) => {
   useEffect(() => {}, []);
+  const [tags, setTags] = useState<TaggableResourceOption[]>([]);
 
   const onSave = async () => {
     await SupersetClient.post({
       endpoint: `/api/v1/tag/bulk_create`,
       jsonPayload: {
-        tags: tags.map(tag => tag.value),
-        objects_to_tag: selected.map(item => [resourceName, +item.original.id]),
+        tags: tags.map(tag => ({
+          name: tag.value,
+          objects_to_tag: selected.map(item => [
+            resourceName,
+            +item.original.id,
+          ]),
+        })),
       },
     })
       .then(({ json = {} }) => {
@@ -65,8 +71,6 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({
     onHide();
     setTags([]);
   };
-
-  const [tags, setTags] = useState<TaggableResourceOption[]>([]);
 
   return (
     <Modal

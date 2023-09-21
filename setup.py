@@ -93,7 +93,7 @@ setup(
         "flask-wtf>=1.1.0, <2.0",
         "func_timeout",
         "geopy",
-        "gunicorn>=20.1.0; sys_platform != 'win32'",
+        "gunicorn>=21.2.0, <22.0; sys_platform != 'win32'",
         "hashids>=1.3.1, <2",
         "holidays>=0.23, <0.24",
         "humanize",

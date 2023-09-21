@@ -412,4 +412,3 @@ class TagDAO(BaseDAO[Tag]):
                 )
 
         db.session.add_all(tagged_objects)
-        db.session.commit()

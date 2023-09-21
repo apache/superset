@@ -26,7 +26,7 @@ from superset.common.query_object_factory import QueryObjectFactory
 from superset.daos.chart import ChartDAO
 from superset.daos.datasource import DatasourceDAO
 from superset.models.slice import Slice
-from superset.utils.core import DatasourceDict, DatasourceType
+from superset.utils.core import DatasourceDict, DatasourceType, is_adhoc_column
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
@@ -128,6 +128,8 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
 
         if granularity := query_object.granularity:
             filter_to_remove = None
+            if is_adhoc_column(x_axis):  # type: ignore
+                x_axis = x_axis.get("sqlExpression")
             if x_axis and x_axis in temporal_columns:
                 filter_to_remove = x_axis
                 x_axis_column = next(
@@ -175,6 +177,9 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             # another temporal filter. A new filter based on the value of
             # the granularity will be added later in the code.
             # In practice, this is replacing the previous default temporal filter.
+            if is_adhoc_column(filter_to_remove):  # type: ignore
+                filter_to_remove = filter_to_remove.get("sqlExpression")
+
             if filter_to_remove:
                 query_object.filter = [
                     filter

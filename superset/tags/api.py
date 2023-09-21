@@ -260,7 +260,10 @@ class TagRestApi(BaseSupersetModelRestApi):
         try:
             for tag in item.get("tags"):
                 tagged_item: dict[str, Any] = self.add_model_schema.load(
-                    {"name": tag, "objects_to_tag": item.get("objects_to_tag")}
+                    {
+                        "name": tag.get("name"),
+                        "objects_to_tag": tag.get("objects_to_tag"),
+                    }
                 )
                 CreateCustomTagWithRelationshipsCommand(
                     tagged_item, bulk_create=True

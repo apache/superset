@@ -156,44 +156,6 @@ FROM
 GROUP BY
   UPPER(country_of_origin)
 ```
-
-### `time_secondary_columns = False`
-
-Datasets can have a main datetime column (`main_dttm_col`), but can also have secondary time columns. When this attribute is true, wheneve the secondary columns are filtered, the same filter is applied to the main datetime column.
-
-This might be useful if you have a table partitioned on a daily `ds` column in Hive (which doesn't support indexes), and a secondary column with the timestamp of the events, ie:
-
-|     ds     |        event        | ... |
-| ---------- | ------------------- | --- |
-| 2023-01-01 | 2023-01-01 23:58:41 | ... |
-| 2023-01-02 | 2023-01-02 00:03:17 | ... |
-| 2023-01-02 | 2023-01-02 00:14:02 | ... |
-
-With the table above, filtering only on `event` can be very innefective. For example, this query:
-
-```sql
-SELECT
-  *
-FROM
-  some_table
-WHERE
-  event BETWEEN '2023-01-02 00:00:00' AND '2023-01-02 01:00:00'
-```
-
-Would scan all the `ds` partitions, even though only one is needed! By setting the attribute to true, if `ds` is set as the main datetime column then the query would be generated as:
-
-```sql
-SELECT
-  *
-FROM
-  some_table
-WHERE
-  event BETWEEN '2023-01-02 00:00:00' AND '2023-01-02 01:00:00' AND
-  ds BETWEEN '2023-01-02 00:00:00' AND '2023-01-02 01:00:00'
-```
-
-Which reads data from a single partition instead.
-
 ### `time_groupby_inline = False`
 
 In theory this attribute should be used to ommit time filters from the self-joins. When the attribute is false the time attribute will be present in the subquery used to compute limited series, eg:

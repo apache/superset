@@ -229,13 +229,17 @@ class ParsedQuery:
         :param oxide_parse: parsed CTE
         :return: True if CTE is a SELECT statement
         """
+
+        def is_body_select(body: dict[str, Any]) -> bool:
+            if op := body.get("SetOperation"):
+                return is_body_select(op["left"]) and is_body_select(op["right"])
+            return all(key == "Select" for key in body.keys())
+
         for query in oxide_parse:
             parsed_query = query["Query"]
             cte_tables = self._get_cte_tables(parsed_query)
             for cte_table in cte_tables:
-                is_select = all(
-                    key == "Select" for key in cte_table["query"]["body"].keys()
-                )
+                is_select = is_body_select(cte_table["query"]["body"])
                 if not is_select:
                     return False
         return True

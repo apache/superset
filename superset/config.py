@@ -914,6 +914,10 @@ DASHBOARD_AUTO_REFRESH_INTERVALS = [
     [86400, "24 hours"],
 ]
 
+# This is used as a workaround for the alerts & reports scheduler task to get the time
+# celery beat triggered it, see https://github.com/celery/celery/issues/6974 for details
+CELERY_BEAT_SCHEDULER_EXPIRES = timedelta(weeks=1)
+
 # Default celery config is to use SQLA as a broker, in a production setting
 # you'll want to use a proper broker as specified here:
 # https://docs.celeryq.dev/en/stable/getting-started/backends-and-brokers/index.html
@@ -942,6 +946,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         "reports.scheduler": {
             "task": "reports.scheduler",
             "schedule": crontab(minute="*", hour="*"),
+            "options": {"expires": int(CELERY_BEAT_SCHEDULER_EXPIRES.total_seconds())},
         },
         "reports.prune_log": {
             "task": "reports.prune_log",
@@ -1498,6 +1503,9 @@ SQLA_TABLE_MUTATOR = lambda table: table
 
 # Global async query config options.
 # Requires GLOBAL_ASYNC_QUERIES feature flag to be enabled.
+GLOBAL_ASYNC_QUERY_MANAGER_CLASS = (
+    "superset.async_events.async_query_manager.AsyncQueryManager"
+)
 GLOBAL_ASYNC_QUERIES_REDIS_CONFIG = {
     "port": 6379,
     "host": "127.0.0.1",
