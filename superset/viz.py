@@ -229,7 +229,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             elif rolling_type == "sum":
                 df = df.rolling(**kwargs).sum()
         elif rolling_type == "cumsum":
-            df = df.cumsum()
+            df = df.fillna(0).cumsum()
         if min_periods:
             df = df[min_periods:]
         if df.empty:
