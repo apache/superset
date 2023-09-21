@@ -29,10 +29,11 @@ class CreateAsyncChartDataJobCommand:
     _async_channel_id: str
 
     def validate(self, request: Request) -> None:
-        jwt_data = async_query_manager.parse_jwt_from_request(request)
-        self._async_channel_id = jwt_data["channel"]
+        self._async_channel_id = async_query_manager.parse_channel_id_from_request(
+            request
+        )
 
     def run(self, form_data: dict[str, Any], user_id: Optional[int]) -> dict[str, Any]:
-        job_metadata = async_query_manager.init_job(self._async_channel_id, user_id)
-        load_chart_data_into_cache.delay(job_metadata, form_data)
-        return job_metadata
+        return async_query_manager.submit_chart_data_job(
+            self._async_channel_id, form_data, user_id
+        )
