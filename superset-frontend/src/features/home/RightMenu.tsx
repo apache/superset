@@ -53,7 +53,6 @@ import {
 
 const extensionsRegistry = getExtensionsRegistry();
 
-
 const StyledDiv = styled.div<{ align: string }>`
   display: flex;
   flex-direction: row;
@@ -65,7 +64,6 @@ const StyledDiv = styled.div<{ align: string }>`
   }
 `;
 
-
 const StyledAnchor = styled.a`
   padding-right: ${({ theme }) => theme.gridUnit}px;
   padding-left: ${({ theme }) => theme.gridUnit}px;
@@ -74,7 +72,6 @@ const StyledAnchor = styled.a`
 const tagStyles = (theme: SupersetTheme) => css`
   color: ${theme.colors.grayscale.light5};
 `;
-
 
 const { SubMenu } = Menu;
 
@@ -311,7 +308,6 @@ const RightMenu = ({
           title={t('Settings')}
           icon={<Icons.TriangleDown iconSize="xl" />}
         >
-
           {!navbarRight.user_is_anonymous && [
             <Menu.Divider key="user-divider" />,
             <Menu.ItemGroup key="user-section" title={t('User')}>

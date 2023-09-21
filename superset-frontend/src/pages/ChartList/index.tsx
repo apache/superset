@@ -21,20 +21,14 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   getChartMetadataRegistry,
-  JsonResponse,
   styled,
   SupersetClient,
   t,
 } from '@superset-ui/core';
 import React, { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
-import { uniqBy } from 'lodash';
 import moment from 'moment';
-import {
-  createErrorHandler,
-  createFetchRelated,
-  handleChartDelete,
-} from 'src/views/CRUD/utils';
+import { createErrorHandler, handleChartDelete } from 'src/views/CRUD/utils';
 import {
   useChartEditModal,
   useFavoriteStatus,
@@ -46,12 +40,7 @@ import { TagsList } from 'src/components/Tags';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import FaveStar from 'src/components/FaveStar';
 import { Link, useHistory } from 'react-router-dom';
-import ListView, {
-  Filter,
-  FilterOperator,
-  ListViewProps,
-  SelectOption,
-} from 'src/components/ListView';
+import ListView, { ListViewProps } from 'src/components/ListView';
 import CrossLinks from 'src/components/ListView/CrossLinks';
 import Loading from 'src/components/Loading';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
@@ -101,40 +90,6 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
 
 setupPlugins();
 const registry = getChartMetadataRegistry();
-
-const createFetchDatasets = async (
-  filterValue = '',
-  page: number,
-  pageSize: number,
-) => {
-  // add filters if filterValue
-  const filters = {};
-  const queryParams = rison.encode({
-    columns: ['datasource_name', 'datasource_id'],
-    keys: ['none'],
-    order_column: 'table_name',
-    order_direction: 'asc',
-    page,
-    page_size: pageSize,
-    ...filters,
-  });
-
-  const { json = {} } = await SupersetClient.get({
-    endpoint: `/api/v1/dataset/?q=${queryParams}`,
-  });
-
-  const datasets = json?.result?.map(
-    ({ table_name: tableName, id }: { table_name: string; id: number }) => ({
-      label: tableName,
-      value: id,
-    }),
-  );
-
-  return {
-    data: uniqBy<SelectOption>(datasets, 'value'),
-    totalCount: json?.count,
-  };
-};
 
 interface ChartListProps {
   addDangerToast: (msg: string) => void;
@@ -255,44 +210,6 @@ function ChartList(props: ChartListProps) {
       ),
     );
   }
-  const fetchDashboards = async (
-    filterValue = '',
-    page: number,
-    pageSize: number,
-  ) => {
-    // add filters if filterValue
-    const filters =  {};
-    const queryParams = rison.encode({
-      columns: ['dashboard_title', 'id'],
-      keys: ['none'],
-      order_column: 'dashboard_title',
-      order_direction: 'asc',
-      page,
-      page_size: pageSize,
-      ...filters,
-    });
-    const response: void | JsonResponse = await SupersetClient.get({
-      endpoint: `/api/v1/dashboard/?q=${queryParams}`,
-    }).catch(() =>
-      addDangerToast(t('An error occurred while fetching dashboards')),
-    );
-    const dashboards = response?.json?.result?.map(
-      ({
-        dashboard_title: dashboardTitle,
-        id,
-      }: {
-        dashboard_title: string;
-        id: number;
-      }) => ({
-        label: dashboardTitle,
-        value: id,
-      }),
-    );
-    return {
-      data: uniqBy<SelectOption>(dashboards, 'value'),
-      totalCount: response?.json?.count,
-    };
-  };
 
   const columns = useMemo(
     () => [
@@ -554,24 +471,6 @@ function ChartList(props: ChartListProps) {
       addDangerToast,
     ],
   );
-
-  const favoritesFilter: Filter = useMemo(
-    () => ({
-      Header: t('Favorite'),
-      key: 'favorite',
-      id: 'id',
-      urlDisplay: 'favorite',
-      input: 'select',
-      operator: FilterOperator.chartIsFav,
-      unfilteredLabel: t('Any'),
-      selects: [
-        { label: t('Yes'), value: true },
-        { label: t('No'), value: false },
-      ],
-    }),
-    [],
-  );
-
 
   const sortTypes = [
     {
