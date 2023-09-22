@@ -20,7 +20,7 @@ import {
   DEFAULT_SORT_SERIES_DATA,
   sections,
 } from '@superset-ui/chart-controls';
-import { t } from '@superset-ui/core';
+import { RequiredKeys, t } from '@superset-ui/core';
 import {
   OrientationType,
   EchartsTimeseriesSeriesType,
@@ -31,8 +31,10 @@ import {
   DEFAULT_TITLE_FORM_DATA,
 } from '../constants';
 
-// @ts-ignore
-export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
+export const DEFAULT_FORM_DATA: Omit<
+  EchartsTimeseriesFormData,
+  'datasource' | 'viz_type'
+> = {
   ...DEFAULT_LEGEND_FORM_DATA,
   ...DEFAULT_TITLE_FORM_DATA,
   ...DEFAULT_SORT_SERIES_DATA,
@@ -74,3 +76,48 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
 export const TIME_SERIES_DESCRIPTION_TEXT: string = t(
   'When using other than adaptive formatting, labels may overlap',
 );
+
+export const FORM_DATA_REQUIRED_PROPERTIES: Record<
+  keyof RequiredKeys<EchartsTimeseriesFormData>,
+  true
+> = {
+  annotationLayers: true,
+  area: true,
+  datasource: true,
+  forecastEnabled: true,
+  forecastPeriods: true,
+  forecastInterval: true,
+  forecastSeasonalityDaily: true,
+  forecastSeasonalityWeekly: true,
+  forecastSeasonalityYearly: true,
+  groupby: true,
+  legendMargin: true,
+  legendOrientation: true,
+  legendType: true,
+  logAxis: true,
+  markerEnabled: true,
+  markerSize: true,
+  metrics: true,
+  minorSplitLine: true,
+  onlyTotal: true,
+  opacity: true,
+  orderDesc: true,
+  percentageThreshold: true,
+  richTooltip: true,
+  rowLimit: true,
+  seriesType: true,
+  showExtraControls: true,
+  showLegend: true,
+  showValue: true,
+  stack: true,
+  truncateYAxis: true,
+  viz_type: true,
+  xAxisLabelRotation: true,
+  xAxisTitle: true,
+  xAxisTitleMargin: true,
+  yAxisBounds: true,
+  yAxisTitle: true,
+  yAxisTitleMargin: true,
+  yAxisTitlePosition: true,
+  zoomable: true,
+};

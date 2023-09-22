@@ -43,7 +43,6 @@ import {
 import { getOriginalSeries } from '@superset-ui/chart-controls';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
 import {
-  DEFAULT_FORM_DATA,
   EchartsMixedTimeseriesFormData,
   EchartsMixedTimeseriesChartTransformedProps,
   EchartsMixedTimeseriesProps,
@@ -193,7 +192,7 @@ export default function transformProps(
     percentageThreshold,
     metrics = [],
     metricsB = [],
-  }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
+  }: EchartsMixedTimeseriesFormData = formData;
 
   const refs: Refs = {};
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);

@@ -47,7 +47,15 @@ export { default as TreeTransformProps } from './Tree/transformProps';
 export { default as TreemapTransformProps } from './Treemap/transformProps';
 export { default as SunburstTransformProps } from './Sunburst/transformProps';
 
-export { DEFAULT_FORM_DATA as TimeseriesDefaultFormData } from './Timeseries/constants';
+export {
+  DEFAULT_FORM_DATA as TimeseriesDefaultFormData,
+  FORM_DATA_REQUIRED_PROPERTIES as TimeseriesRequiredProperties,
+} from './Timeseries/constants';
+
+export {
+  DEFAULT_FORM_DATA as MixedTimeseriesDefaultFormData,
+  FORM_DATA_REQUIRED_PROPERTIES as MixedTimeseriesRequiredProperties,
+} from './MixedTimeseries/constants';
 
 export * from './types';
 

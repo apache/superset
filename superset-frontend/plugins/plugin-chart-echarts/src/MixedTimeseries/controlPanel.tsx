@@ -30,7 +30,7 @@ import {
   sharedControls,
 } from '@superset-ui/chart-controls';
 
-import { DEFAULT_FORM_DATA } from './types';
+import { DEFAULT_FORM_DATA } from './constants';
 import { EchartsTimeseriesSeriesType } from '../Timeseries/types';
 import { legendSection, richTooltipSection } from '../controls';
 

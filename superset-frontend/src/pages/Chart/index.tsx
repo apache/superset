@@ -41,6 +41,7 @@ import { ExploreResponsePayload, SaveActionType } from 'src/explore/types';
 import { fallbackExploreInitialData } from 'src/explore/fixtures';
 import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { getFormDataWithDashboardContext } from 'src/explore/controlUtils/getFormDataWithDashboardContext';
+import parseFormData from 'src/utils/parseFormData';
 
 const isValidResult = (rv: JsonObject): boolean =>
   rv?.result?.form_data && isDefined(rv?.result?.dataset?.id);
@@ -125,6 +126,7 @@ export default function ExplorePage() {
     const saveAction = getUrlParam(
       URL_PARAMS.saveAction,
     ) as SaveActionType | null;
+    const vizType = getUrlParam(URL_PARAMS.vizType);
     const dashboardContextFormData = getDashboardContextFormData();
     if (!isExploreInitialized.current || !!saveAction) {
       fetchExploreData(exploreUrlParams)
@@ -136,10 +138,13 @@ export default function ExplorePage() {
                   dashboardContextFormData,
                 )
               : result.form_data;
+          if (vizType) {
+            formData.viz_type = vizType;
+          }
           dispatch(
             hydrateExplore({
               ...result,
-              form_data: formData,
+              form_data: parseFormData(formData),
               saveAction,
             }),
           );

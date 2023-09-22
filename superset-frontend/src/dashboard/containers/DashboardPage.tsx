@@ -57,6 +57,7 @@ import {
 } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
 import { DashboardContextForExplore } from 'src/types/DashboardContextForExplore';
 import shortid from 'shortid';
+import parseFormData from 'src/utils/parseFormData';
 import { RootState } from '../types';
 import { getActiveFilters } from '../util/activeDashboardFilters';
 import {
@@ -163,6 +164,8 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   } = useDashboardDatasets(idOrSlug);
   const isDashboardHydrated = useRef(false);
 
+  // TODO: Parse charts form data
+
   const error = dashboardApiError || chartsApiError;
   const readyToRender = Boolean(dashboard && charts);
   const { dashboard_title, css, metadata, id = 0 } = dashboard || {};
@@ -230,7 +233,10 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
           hydrateDashboard({
             history,
             dashboard,
-            charts,
+            charts: charts?.map(chart => ({
+              ...chart,
+              form_data: parseFormData(chart.form_data),
+            })),
             activeTabs,
             dataMask,
           }),

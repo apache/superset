@@ -54,6 +54,7 @@ export interface Chart {
   };
   datasource_name_text?: string;
   form_data: {
+    datasource: string;
     viz_type: string;
   };
   is_managed_externally: boolean;
