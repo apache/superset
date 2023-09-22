@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-x-superset-image: &superset-image apachesuperset.docker.scarf.sh/apache/superset:2.1.1
+x-superset-image: &superset-image apachesuperset.docker.scarf.sh/apache/superset:3.0.0
 x-superset-depends-on: &superset-depends-on
   - db
   - redis
