@@ -92,7 +92,34 @@ class CeleryConfig:
 
 CELERY_CONFIG = CeleryConfig
 
-FEATURE_FLAGS = {"ALERT_REPORTS": True}
+FEATURE_FLAGS = {
+    "ALERT_REPORTS": True,
+    "ENABLE_TEMPLATE_PROCESSING": True,
+    "EMBEDDED_SUPERSET": True,
+    "DRILL_TO_DETAIL": True,
+}
+
+HTTP_HEADERS = {
+    "X-Frame-Options": "ALLOW-FROM *",
+}
+
+TALISMAN_ENABLED = False
+ENABLE_CORS = True
+SESSION_COOKIE_SAMESITE = "None"
+SESSION_COOKIE_SECURE = False
+SESSION_COOKIE_HTTPONLY = False
+ENABLE_PROXY_FIX = True
+PUBLIC_ROLE_LIKE_GAMMA = True
+WTF_CSRF_ENABLED = False
+
+CORS_OPTIONS = {
+    'supports_credentials': True,
+    'allow_headers': ['*'],
+    'resources':['*'],
+    'origins': ['*']
+}
+
+
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
 WEBDRIVER_BASEURL = "http://superset:8088/"
 # The base URL for the email report hyperlinks.
