@@ -125,3 +125,9 @@ class MigrateDualLine(MigrateViz):
     def _migrate_temporal_filter(self, rv_data: dict[str, Any]) -> None:
         super()._migrate_temporal_filter(rv_data)
         rv_data["adhoc_filters_b"] = rv_data.get("adhoc_filters") or []
+
+
+class MigrateSunburst(MigrateViz):
+    source_viz_type = "sunburst"
+    target_viz_type = "sunburst_v2"
+    rename_keys = {"groupby": "columns"}
