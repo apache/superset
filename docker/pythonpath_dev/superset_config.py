@@ -116,7 +116,7 @@ CORS_OPTIONS = {
     'supports_credentials': True,
     'allow_headers': ['*'],
     'resources':['*'],
-    'origins': ['http://localhost:1234', 'http://localhost:8888', 'http://localhost:8088',  '*', 'http://host.docker.internal', 'host.docker.internal', 'http://host.docker.internal:1234']
+    'origins': ['*']
 }
 
 
