@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-x-superset-image: &superset-image apachesuperset.docker.scarf.sh/apache/superset:${TAG:-latest-dev}
+x-superset-image: &superset-image apachesuperset.docker.scarf.sh/apache/superset:2.1.1
 x-superset-depends-on: &superset-depends-on
   - db
   - redis
@@ -52,6 +52,8 @@ services:
       - 8088:8088
     depends_on: *superset-depends-on
     volumes: *superset-volumes
+    environment:
+      - SUPERSET_FEATURE_EMBEDDED_SUPERSET='true'
 
   superset-init:
     image: *superset-image
