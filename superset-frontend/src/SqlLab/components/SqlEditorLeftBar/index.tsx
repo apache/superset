@@ -85,7 +85,7 @@ const collapseStyles = (theme: SupersetTheme) => css`
     padding: 0px ${theme.gridUnit * 4}px 0px 0px !important;
   }
   .ant-collapse-arrow {
-    padding: 2px 0 !important;
+    padding: ${theme.gridUnit / 2}px 0 !important;
     bottom: ${theme.gridUnit}px !important;
     right: ${theme.gridUnit * 4}px !important;
     color: ${theme.colors.primary.dark1} !important;
