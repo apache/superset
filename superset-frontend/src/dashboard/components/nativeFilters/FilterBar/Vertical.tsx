@@ -222,7 +222,7 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
       ),
     [
       canEdit,
-      JSON.stringify(dataMaskSelected),
+      dataMaskSelected,
       filterValues.length,
       onSelectionChange,
     ],
