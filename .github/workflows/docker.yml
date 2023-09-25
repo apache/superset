@@ -4,57 +4,41 @@ on:
   push:
     branches:
       - 'master'
-  pull_request:
-    types: [synchronize, opened, reopened, ready_for_review]
 
 jobs:
-  config:
-    runs-on: "ubuntu-latest"
-    outputs:
-      has-secrets: ${{ steps.check.outputs.has-secrets }}
-    steps:
-      - name: "Check for secrets"
-        id: check
-        shell: bash
-        run: |
-          if [ -n "${{ (secrets.DOCKERHUB_USER != '' && secrets.DOCKERHUB_TOKEN != '') || '' }}" ]; then
-            echo "has-secrets=1" >> "$GITHUB_OUTPUT"
-            echo "has secrets!"
-          else
-            echo "has-secrets=0" >> "$GITHUB_OUTPUT"
-            echo "no secrets!"
-          fi
-
   docker-build:
-    needs: config
-    if: needs.config.outputs.has-secrets
     name: docker-build
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v3
+
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v1'
         with:
-          persist-credentials: false
+          token_format: 'access_token'
+          credentials_json: '${{ secrets.GOOGLE_ARTIFACTREGISTRY_CREDENTIALS }}'
 
-      - shell: bash
-        env:
-          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        run: |
-          .github/workflows/docker_build_push.sh
-
-      - name: Build ephemeral env image
-        if: github.event_name == 'pull_request'
-        run: |
-          mkdir -p ./build
-          echo ${{ github.sha }} > ./build/SHA
-          echo ${{ github.event.pull_request.number }} > ./build/PR-NUM
-          DOCKER_BUILDKIT=1 docker build --target ci -t ${{ github.sha }} -t "pr-${{ github.event.pull_request.number }}" .
-          docker save ${{ github.sha }} | gzip > ./build/${{ github.sha }}.tar.gz
-
-      - name: Upload build artifacts
-        if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v3
+      - uses: 'docker/login-action@v1'
         with:
-          name: build
-          path: build/
+          registry: 'europe-west4-docker.pkg.dev'
+          username: 'oauth2accesstoken'
+          password: '${{ steps.auth.outputs.access_token }}'
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          images: europe-west4-docker.pkg.dev/tooling-team-371411/general/polkadot-rfp-superset
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          target: lean
