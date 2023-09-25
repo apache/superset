@@ -736,14 +736,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         logger.info("Fetching a set of all perms to lookup which ones are missing")
         all_pvs = set()
-        for pv in (
-            self.get_session.query(self.permissionview_model)
-            .options(
-                eagerload(self.permissionview_model.permission),
-                eagerload(self.permissionview_model.view_menu),
-            )
-            .all()
-        ):
+        for pv in self._get_all_pvms():
             if pv.permission and pv.view_menu:
                 all_pvs.add((pv.permission.name, pv.view_menu.name))
 
@@ -791,16 +784,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         self.create_custom_permissions()
 
-        # Fetch all pvms
-        pvms = (
-            self.get_session.query(PermissionView)
-            .options(
-                eagerload(PermissionView.permission),
-                eagerload(PermissionView.view_menu),
-            )
-            .all()
-        )
-        pvms = [p for p in pvms if p.permission and p.view_menu]
+        pvms = self._get_all_pvms()
 
         # Creating default roles
         self.set_role("Admin", self._is_admin_pvm, pvms)
@@ -821,6 +805,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # commit role and view menu updates
         self.get_session.commit()
         self.clean_perms()
+
+    def _get_all_pvms(self) -> list[PermissionView]:
+        # Fetch all pvms
+        pvms = (
+            self.get_session.query(self.permissionview_model)
+            .options(
+                eagerload(self.permissionview_model.permission),
+                eagerload(self.permissionview_model.view_menu),
+            )
+            .all()
+        )
+        pvms = [p for p in pvms if p.permission and p.view_menu]
+        return pvms
 
     def _get_pvms_from_builtin_role(self, role_name: str) -> list[PermissionView]:
         """
