@@ -260,9 +260,9 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
           column-gap: ${theme.gridUnit * 1.5}px;
           margin-right: ${theme.gridUnit}px;
           & span {
-            display:flex;
+            display: flex;
             justify-content: center;
-            width: ${theme.gridUnit * 3.4}px; 
+            width: ${theme.gridUnit * 3}px;
           }
         `}
       >

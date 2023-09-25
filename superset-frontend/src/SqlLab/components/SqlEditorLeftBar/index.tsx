@@ -92,7 +92,6 @@ const collapseStyles = (theme: SupersetTheme) => css`
     &:hover {
       color: ${theme.colors.primary.dark2} !important;
     }
-
   }
 `;
 
