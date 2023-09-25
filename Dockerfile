@@ -83,12 +83,14 @@ COPY --chown=superset:superset superset-frontend/package.json superset-frontend/
 RUN --mount=type=bind,target=./requirements/local.txt,src=./requirements/local.txt \
     --mount=type=bind,target=./requirements/development.txt,src=./requirements/development.txt \
     --mount=type=bind,target=./requirements/base.txt,src=./requirements/base.txt \
-    pip install --no-cache-dir -r requirements/local.txt
+    --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements/local.txt
 
 COPY --chown=superset:superset --from=superset-node /app/superset/static/assets superset/static/assets
 ## Lastly, let's install superset itself
 COPY --chown=superset:superset superset superset
-RUN pip install --no-cache-dir -e . \
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -e . \
     && flask fab babel-compile --target superset/translations \
     && chown -R superset:superset superset/translations
 
@@ -129,7 +131,8 @@ RUN --mount=target=/var/lib/apt/lists,type=cache \
 # Cache everything for dev purposes...
 RUN --mount=type=bind,target=./requirements/base.txt,src=./requirements/base.txt \
     --mount=type=bind,target=./requirements/docker.txt,src=./requirements/docker.txt \
-    pip install --no-cache-dir -r requirements/docker.txt
+    --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements/docker.txt
 
 USER superset
 ######################################################################
