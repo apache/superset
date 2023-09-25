@@ -20,10 +20,17 @@
 import finestTemporalGrain from './finestTemporalGrain';
 
 test('finestTemporalGrain', () => {
-  const formatter = finestTemporalGrain([
-    1041379200000, // 2023-01-01 00:00:00
-    1044057600000, // 2023-02-01 00:00:00
+  const monthFormatter = finestTemporalGrain([
+    1041379200000, // 2003-01-01 00:00:00Z
+    1044057600000, // 2003-02-01 00:00:00Z
   ]);
-  expect(formatter(1041379200000)).toBe('2003-01-01');
-  expect(formatter(1044057600000)).toBe('2003-02-01');
+  expect(monthFormatter(1041379200000)).toBe('2003-01-01');
+  expect(monthFormatter(1044057600000)).toBe('2003-02-01');
+
+  const yearFormatter = finestTemporalGrain([
+    1041379200000, // 2003-01-01 00:00:00Z
+    1072915200000, // 2004-01-01 00:00:00Z
+  ]);
+  expect(yearFormatter(1041379200000)).toBe('2003');
+  expect(yearFormatter(1072915200000)).toBe('2004');
 });
