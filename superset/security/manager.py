@@ -48,7 +48,7 @@ from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
 from sqlalchemy import and_, inspect, or_
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import Session, eagerload
+from sqlalchemy.orm import eagerload, Session
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 
@@ -738,7 +738,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         all_pvs = set()
         for pv in (
             self.get_session.query(self.permissionview_model)
-            .options(   
+            .options(
                 eagerload(self.permissionview_model.permission),
                 eagerload(self.permissionview_model.view_menu),
             )
@@ -882,7 +882,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.get_session.commit()
 
     def set_role(
-        self, role_name: str, pvm_check: Callable[[PermissionView], bool], pvms: [PermissionView]
+        self,
+        role_name: str,
+        pvm_check: Callable[[PermissionView], bool],
+        pvms: list[PermissionView],
     ) -> None:
         """
         Set the FAB permission/views for the role.
