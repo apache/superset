@@ -262,7 +262,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
           & span {
             display: flex;
             justify-content: center;
-            width: ${theme.gridUnit * 3}px;
+            width: ${theme.gridUnit * 4}px;
           }
         `}
       >
