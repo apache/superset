@@ -86,7 +86,7 @@ interface DashboardListProps {
   };
 }
 
-interface Dashboard {
+export interface Dashboard {
   changed_by_name: string;
   changed_on_delta_humanized: string;
   changed_by: string;

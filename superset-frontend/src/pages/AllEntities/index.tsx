@@ -32,6 +32,14 @@ import { fetchSingleTag } from 'src/features/tags/tags';
 import { Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
 import withToasts, { useToasts } from 'src/components/MessageToasts/withToasts';
+import { useListViewResource } from 'src/views/CRUD/hooks';
+import { Dashboard } from 'src/pages/DashboardList/index';
+import ListView, {
+  ListViewProps,
+  Filter,
+  Filters,
+  FilterOperator,
+} from 'src/components/ListView';
 
 const additionalItemsStyles = (theme: SupersetTheme) => css`
   display: flex;
@@ -57,7 +65,7 @@ const AllEntitiesContainer = styled.div`
     margin-bottom: ${theme.gridUnit * 1}px;
   }
   .entities {
-    margin: ${theme.gridUnit * 7.5}px; 0px;
+    margin: ${theme.gridUnit * 6}px; 0px;
   }
   `}
 `;
@@ -88,6 +96,25 @@ function AllEntities() {
   const [tag, setTag] = useState<Tag | null>(null);
   const [showTagModal, setShowTagModal] = useState<boolean>(false);
   const { addSuccessToast, addDangerToast } = useToasts();
+
+  const {
+    state: {
+      loading,
+      resourceCount: dashboardCount,
+      resourceCollection: dashboards,
+      bulkSelectEnabled,
+    },
+    setResourceCollection: setDashboards,
+    hasPerm,
+    fetchData,
+    toggleBulkSelect,
+    refreshData,
+  } = useListViewResource<Dashboard>(
+    'dashboard',
+    t('dashboard'),
+    addDangerToast,
+  );
+
   const editableTitleProps = {
     title: tag?.name || '',
     placeholder: 'testing',
@@ -166,11 +193,31 @@ function AllEntities() {
           menuDropdownProps={{
             disabled: true,
           }}
+          showMenuDropdown={false}
         />
       </AllEntitiesNav>
       <div className="entities">
         <AllEntitiesTable search={tag?.name || ''} />
       </div>
+      {/* <ListView<Dashboard>
+                bulkActions={[]} // bulkActions={bulkActions}
+                bulkSelectEnabled={bulkSelectEnabled}
+                cardSortSelectOptions={[]} // cardSortSelectOptions={sortTypes}
+                className="dashboard-list-view"
+                columns={[]}// columns={columns}
+                count={dashboardCount}
+                data={dashboards}
+                disableBulkSelect={toggleBulkSelect}
+                fetchData={fetchData}
+                refreshData={refreshData}
+                filters={[]} // filters={filters}
+                // initialSort={initialSort}
+                loading={loading}
+                pageSize={10}
+                addSuccessToast={addSuccessToast}
+                addDangerToast={addDangerToast}
+                // renderCard={renderCard}
+              /> */}
     </AllEntitiesContainer>
   );
 }
