@@ -39,6 +39,7 @@ import { FilterType, RLSObject, RoleObject, TableObject } from './types';
 
 const StyledModal = styled(Modal)`
   max-width: 1200px;
+  min-width: 352px;
   width: 100%;
   .ant-modal-body {
     overflow: initial;
