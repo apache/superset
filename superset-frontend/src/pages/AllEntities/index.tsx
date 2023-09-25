@@ -32,14 +32,6 @@ import { fetchSingleTag } from 'src/features/tags/tags';
 import { Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
 import withToasts, { useToasts } from 'src/components/MessageToasts/withToasts';
-import { useListViewResource } from 'src/views/CRUD/hooks';
-import { Dashboard } from 'src/pages/DashboardList/index';
-import ListView, {
-  ListViewProps,
-  Filter,
-  Filters,
-  FilterOperator,
-} from 'src/components/ListView';
 
 const additionalItemsStyles = (theme: SupersetTheme) => css`
   display: flex;
@@ -96,24 +88,6 @@ function AllEntities() {
   const [tag, setTag] = useState<Tag | null>(null);
   const [showTagModal, setShowTagModal] = useState<boolean>(false);
   const { addSuccessToast, addDangerToast } = useToasts();
-
-  const {
-    state: {
-      loading,
-      resourceCount: dashboardCount,
-      resourceCollection: dashboards,
-      bulkSelectEnabled,
-    },
-    setResourceCollection: setDashboards,
-    hasPerm,
-    fetchData,
-    toggleBulkSelect,
-    refreshData,
-  } = useListViewResource<Dashboard>(
-    'dashboard',
-    t('dashboard'),
-    addDangerToast,
-  );
 
   const editableTitleProps = {
     title: tag?.name || '',
@@ -197,27 +171,11 @@ function AllEntities() {
         />
       </AllEntitiesNav>
       <div className="entities">
-        <AllEntitiesTable search={tag?.name || ''} />
+        <AllEntitiesTable
+          search={tag?.name || ''}
+          setShowTagModal={setShowTagModal}
+        />
       </div>
-      {/* <ListView<Dashboard>
-                bulkActions={[]} // bulkActions={bulkActions}
-                bulkSelectEnabled={bulkSelectEnabled}
-                cardSortSelectOptions={[]} // cardSortSelectOptions={sortTypes}
-                className="dashboard-list-view"
-                columns={[]}// columns={columns}
-                count={dashboardCount}
-                data={dashboards}
-                disableBulkSelect={toggleBulkSelect}
-                fetchData={fetchData}
-                refreshData={refreshData}
-                filters={[]} // filters={filters}
-                // initialSort={initialSort}
-                loading={loading}
-                pageSize={10}
-                addSuccessToast={addSuccessToast}
-                addDangerToast={addDangerToast}
-                // renderCard={renderCard}
-              /> */}
     </AllEntitiesContainer>
   );
 }

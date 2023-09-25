@@ -23,10 +23,11 @@ import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import Loading from 'src/components/Loading';
 import { TagsList } from 'src/components/Tags';
-import { fetchObjects } from '../tags/tags';
 import FacePile from 'src/components/FacePile';
 import Tag from 'src/types/TagType';
+import Owner from 'src/types/Owner';
 import { EmptyStateBig } from 'src/components/EmptyState';
+import { fetchObjects } from '../tags/tags';
 
 const AllEntitiesTableContainer = styled.div`
   text-align: left;
@@ -56,6 +57,8 @@ interface TaggedObject {
   changed_on: moment.MomentInput;
   created_by: number | undefined;
   creator: string;
+  owners: Owner[];
+  tags: Tag[];
 }
 
 interface TaggedObjects {
@@ -66,10 +69,12 @@ interface TaggedObjects {
 
 interface AllEntitiesTableProps {
   search?: string;
+  setShowTagModal: (show: boolean) => void;
 }
 
 export default function AllEntitiesTable({
   search = '',
+  setShowTagModal,
 }: AllEntitiesTableProps) {
   type objectType = 'dashboard' | 'chart' | 'query';
 
@@ -110,7 +115,6 @@ export default function AllEntitiesTable({
   }, [search]);
 
   const renderTable = (type: objectType) => {
-    console.log(objects);
     const data = objects[type].map((o: TaggedObject) => ({
       [type]: <a href={o.url}>{o.name}</a>,
       modified: moment.utc(o.changed_on).fromNow(),
@@ -170,8 +174,6 @@ export default function AllEntitiesTable({
     );
   };
 
-  console.log(objects);
-
   if (isLoading) return <Loading />;
   return (
     <AllEntitiesTableContainer>
@@ -188,7 +190,7 @@ export default function AllEntitiesTable({
         <EmptyStateBig
           image="dashboard.svg"
           title={t('No entities have this tag currently assigned')}
-          buttonAction={() => console.log('show modal')}
+          buttonAction={() => setShowTagModal(true)}
           buttonText={t('Add tag to entities')}
         />
       )}
