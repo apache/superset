@@ -25,7 +25,7 @@ and web server processes should have the same configuration.
 class CeleryConfig(object):
     broker_url = "redis://localhost:6379/0"
     imports = (
-        "superset.sql_lab',
+        "superset.sql_lab",
         "superset.tasks.scheduler",
     )
     result_backend = "redis://localhost:6379/0"
