@@ -736,9 +736,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         logger.info("Fetching a set of all perms to lookup which ones are missing")
         all_pvs = set()
-        for pv in self.get_session.query(self.permissionview_model).options(
-            eagerload(self.permissionview_model.permission),
-            eagerload(self.permissionview_model.view_menu)).all():
+        for pv in (
+            self.get_session.query(self.permissionview_model)
+            .options(   
+                eagerload(self.permissionview_model.permission),
+                eagerload(self.permissionview_model.view_menu),
+            )
+            .all()
+        ):
             if pv.permission and pv.view_menu:
                 all_pvs.add((pv.permission.name, pv.view_menu.name))
 
@@ -786,10 +791,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         self.create_custom_permissions()
 
-        #Fetch all pvms
-        pvms = self.get_session.query(PermissionView).options(
-            eagerload(PermissionView.permission),
-            eagerload(PermissionView.view_menu)).all()
+        # Fetch all pvms
+        pvms = (
+            self.get_session.query(PermissionView)
+            .options(
+                eagerload(PermissionView.permission),
+                eagerload(PermissionView.view_menu),
+            )
+            .all()
+        )
         pvms = [p for p in pvms if p.permission and p.view_menu]
 
         # Creating default roles
@@ -872,7 +882,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.get_session.commit()
 
     def set_role(
-        self, role_name: str, pvm_check: Callable[[PermissionView], bool], pvms:[]
+        self, role_name: str, pvm_check: Callable[[PermissionView], bool], pvms: [PermissionView]
     ) -> None:
         """
         Set the FAB permission/views for the role.
