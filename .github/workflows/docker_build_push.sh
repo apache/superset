@@ -57,7 +57,7 @@ else
   ARCHITECTURE_FOR_BUILD="linux/amd64,linux/arm64"
 fi
 set -x
-for BUILD_PLATFORM in $ARCHITECTURE_FOR_BUILD; do
+
 #
 # Build the dev image
 #
@@ -69,7 +69,7 @@ docker buildx build --target dev \
   -t "${REPO_NAME}:${SHA}-dev" \
   -t "${REPO_NAME}:${REFSPEC}-dev" \
   -t "${REPO_NAME}:${LATEST_TAG}-dev" \
-  --platform ${BUILD_PLATFORM} \
+  --platform linux/amd64 \
   --label "sha=${SHA}" \
   --label "built_at=$(date)" \
   --label "target=dev" \
@@ -86,7 +86,7 @@ docker buildx build --target lean \
   -t "${REPO_NAME}:${SHA}" \
   -t "${REPO_NAME}:${REFSPEC}" \
   -t "${REPO_NAME}:${LATEST_TAG}" \
-  --platform ${BUILD_PLATFORM} \
+  --platform linux/amd64 \
   --label "sha=${SHA}" \
   --label "built_at=$(date)" \
   --label "target=lean" \
@@ -103,14 +103,14 @@ docker buildx build --target lean \
   -t "${REPO_NAME}:${SHA}-py310" \
   -t "${REPO_NAME}:${REFSPEC}-py310" \
   -t "${REPO_NAME}:${LATEST_TAG}-py310" \
-  --platform ${BUILD_PLATFORM} \
+  --platform linux/amd64 \
   --build-arg PY_VER="3.10-slim-bookworm"\
   --label "sha=${SHA}" \
   --label "built_at=$(date)" \
   --label "target=lean310" \
   --label "build_actor=${GITHUB_ACTOR}" \
   .
-
+for BUILD_PLATFORM in $ARCHITECTURE_FOR_BUILD; do
 #
 # Build the "websocket" image
 #
