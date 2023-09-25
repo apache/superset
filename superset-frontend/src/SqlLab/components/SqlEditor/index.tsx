@@ -484,11 +484,15 @@ const SqlEditor: React.FC<Props> = ({
 
   useEffect(() => {
     // setup hotkeys
-    Mousetrap.reset();
     const hotkeys = getHotkeyConfig();
     hotkeys.forEach(keyConfig => {
       Mousetrap.bind([keyConfig.key], keyConfig.func);
     });
+    return () => {
+      hotkeys.forEach(keyConfig => {
+        Mousetrap.unbind(keyConfig.key);
+      });
+    };
   }, [getHotkeyConfig, latestQuery]);
 
   const onResizeStart = () => {
