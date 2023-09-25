@@ -26,7 +26,6 @@ import {
   GenericDataType,
   getColumnLabel,
   JsonObject,
-  smartDateDetailedFormatter,
   finestTemporalGrainFormatter,
   t,
   tn,
@@ -118,10 +117,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const labelFormatter = useMemo(
     () =>
       getDataRecordFormatter({
-        timeFormatter:
-          datatype === GenericDataType.TEMPORAL
-            ? finestTemporalGrainFormatter(data.map(el => el.col))
-            : smartDateDetailedFormatter,
+        timeFormatter: finestTemporalGrainFormatter(data.map(el => el.col)),
       }),
     [data, datatype],
   );
