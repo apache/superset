@@ -35,8 +35,13 @@ else
   echo "Skipping local overrides"
 fi
 
-playwright install-deps
-playwright install chromium
+#
+# playwright is an optional package - run only if it is installed
+#
+if command -v playwright > /dev/null 2>&1; then
+  playwright install-deps
+  playwright install chromium
+fi
 
 case "${1}" in
   worker)
