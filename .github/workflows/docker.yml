@@ -47,13 +47,13 @@ jobs:
           .github/workflows/docker_build_push.sh
 
       - name: Build ephemeral env image
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-      - shell: bash
-        if: github.event_name == 'pull_request'        
+        if: github.event_name == 'pull_request'
         run: |
+          mkdir -p ./build
+          echo ${{ github.sha }} > ./build/SHA
+          echo ${{ github.event.pull_request.number }} > ./build/PR-NUM
+          DOCKER_BUILDKIT=1 docker build --target ci -t ${{ github.sha }} -t "pr-${{ github.event.pull_request.number }}" .
+          docker save ${{ github.sha }} | gzip > ./build/${{ github.sha }}.tar.gz
           mkdir -p ./build
           echo ${{ github.sha }} > ./build/SHA
           echo ${{ github.event.pull_request.number }} > ./build/PR-NUM
