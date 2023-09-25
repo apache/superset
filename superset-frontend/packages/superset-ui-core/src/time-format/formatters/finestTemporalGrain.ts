@@ -21,6 +21,9 @@ import { utcFormat, timeFormat } from 'd3-time-format';
 import { utcUtils, localTimeUtils } from '../utils/d3Time';
 import TimeFormatter from '../TimeFormatter';
 
+/*
+ * A formatter that examines all the values, and uses the finest temporal grain.
+ */
 export default function finestTemporalGrain(
   values: any[],
   useLocalTime = false,
