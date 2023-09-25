@@ -52,9 +52,6 @@ jobs:
           mkdir -p ./build
           echo ${{ github.sha }} > ./build/SHA
           echo ${{ github.event.pull_request.number }} > ./build/PR-NUM
-          mkdir -p ./build
-          echo ${{ github.sha }} > ./build/SHA
-          echo ${{ github.event.pull_request.number }} > ./build/PR-NUM
           docker buildx build --target ci \
             --load \
             --cache-from=type=local,src=/tmp/superset \
