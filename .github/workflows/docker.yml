@@ -9,6 +9,9 @@ jobs:
   docker-build:
     name: docker-build
     runs-on: ubuntu-latest
+    outputs:
+      author-name: ${{ steps.author-name.outputs.author-name }}
+      author-email: ${{ steps.author-email.outputs.author-email }}
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v3
@@ -34,6 +37,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}
+            type=sha,format=long
 
       - name: Build and push
         uses: docker/build-push-action@v2
@@ -42,3 +46,32 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           target: lean
+      - id: author-name
+        run: echo "author-name=$(git log -1 --pretty=format:'%an')" >> $GITHUB_OUTPUT
+      - id: author-email
+        run: echo "author-email=$(git log -1 --pretty=format:'%ae')" >> $GITHUB_OUTPUT
+
+  update-refs:
+    runs-on: ubuntu-latest
+    needs: docker-build
+    if: ${{ needs.docker-build.outputs.author-email != '' }}
+    steps:
+      # change airflow image tag
+      - uses: actions/checkout@master
+        with:
+          repository: p2p-org/tooling-k8s-specs
+          ssh-key: ${{ secrets.K8S_SPECS_KEY }}
+      - name: update airflow image tag
+        env:
+          _BUILD_TAG: sha-${{ github.sha }}
+        run: yq eval ".superset.image.tag = \"${_BUILD_TAG}\"" -i charts/polkadot-rfp-superset/values.prod.yaml
+      - name: push changes
+        env:
+          AUTHOR_NAME: ${{ needs.docker-build.outputs.author-name }}
+          AUTHOR_EMAIL: ${{ needs.docker-build.outputs.author-email }}
+          _BUILD_TAG: sha-${{ github.sha }}
+        run: |
+          git config user.name $AUTHOR_NAME
+          git config user.email $AUTHOR_EMAIL
+          git commit -am "Update polkadot-rfp-superset to ${_BUILD_TAG}"
+          git push
