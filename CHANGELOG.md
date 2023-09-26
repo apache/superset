@@ -538,7 +538,7 @@ under the License.
 - [#24504](https://github.com/apache/superset/pull/24504) build(docker): simplification of assembly to facilitate further support (@alekseyolg)
 - [#24503](https://github.com/apache/superset/pull/24503) chore: update ansi-regex (@hughhhh)
 - [#24489](https://github.com/apache/superset/pull/24489) chore(sqllab): add extra_json on tabstate (@justinpark)
-- [#24497](https://github.com/apache/superset/pull/24497) build(docker): pin the underlying debain base image (@boenshao)
+- [#24497](https://github.com/apache/superset/pull/24497) build(docker): pin the underlying debian base image (@boenshao)
 - [#24371](https://github.com/apache/superset/pull/24371) chore(sqllab): Remove table metadata from state (@justinpark)
 - [#24443](https://github.com/apache/superset/pull/24443) build(deps-dev): bump eslint from 8.42.0 to 8.43.0 in /superset-websocket (@dependabot[bot])
 - [#24454](https://github.com/apache/superset/pull/24454) build(deps-dev): bump @typescript-eslint/eslint-plugin from 5.59.11 to 5.60.0 in /superset-websocket (@dependabot[bot])
