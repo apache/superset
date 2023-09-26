@@ -119,7 +119,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       getDataRecordFormatter({
         timeFormatter: finestTemporalGrainFormatter(data.map(el => el.col)),
       }),
-    [data, datatype],
+    [data],
   );
 
   const updateDataMask = useCallback(
