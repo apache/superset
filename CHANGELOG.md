@@ -367,7 +367,7 @@ under the License.
 - [#23892](https://github.com/apache/superset/pull/23892) fix(sql-editor): Fix run stop button color to improve usability (@curious86)
 - [#23909](https://github.com/apache/superset/pull/23909) fix: remove feature flag for tags on Dashboard API for `Tags` (@hughhhh)
 - [#23881](https://github.com/apache/superset/pull/23881) fix(native-filters): Address spelling mistakes (@john-bodley)
-- [#23778](https://github.com/apache/superset/pull/23778) fix(chart): scrollbar keep flusing on and off (@justinpark)
+- [#23778](https://github.com/apache/superset/pull/23778) fix(chart): scrollbar keep flushing on and off (@justinpark)
 - [#23868](https://github.com/apache/superset/pull/23868) fix: move dynamic schema out of base Postgres class (@hughhhh)
 - [#23702](https://github.com/apache/superset/pull/23702) fix: npm run dev-server error resolved (@Abhishek-kumar-samsung)
 - [#23872](https://github.com/apache/superset/pull/23872) fix(dremio): query with alias (@betodealmeida)
