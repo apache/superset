@@ -196,7 +196,7 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                 return handle_query_error(ex, query, session)
 
 
-def execute_sql_statement(  # pylint: disable=too-many-arguments
+def execute_sql_statement(  # pylint: disable=too-many-arguments, too-many-locals
     sql_statement: str,
     query: Query,
     session: Session,

@@ -775,7 +775,6 @@ def insert_rls_in_predicate(
     rls: Optional[TokenList] = None
     state = InsertRLSState.SCANNING
     for token in token_list.tokens:
-
         # Recurse into child token list
         if isinstance(token, TokenList):
             i = token_list.tokens.index(token)
