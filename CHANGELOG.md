@@ -167,7 +167,7 @@ under the License.
 - [#23138](https://github.com/apache/superset/pull/23138) feat: Cross Filters in FilterBar (@geido)
 - [#23099](https://github.com/apache/superset/pull/23099) feat(ssh_tunnel): Import/Export Databases with SSHTunnel credentials (@Antonio-RiveroMartnez)
 - [#23141](https://github.com/apache/superset/pull/23141) feat(dashboard): Add cross filter from context menu (@kgabryje)
-- [#22886](https://github.com/apache/superset/pull/22886) feat: Enable cross fitlers in WorldMap and Graph charts (@kgabryje)
+- [#22886](https://github.com/apache/superset/pull/22886) feat: Enable cross filters in WorldMap and Graph charts (@kgabryje)
 - [#23143](https://github.com/apache/superset/pull/23143) feat: return UUID on database creation (@betodealmeida)
 - [#20876](https://github.com/apache/superset/pull/20876) feat: Frontend tagging (@cccs-RyanK)
 
