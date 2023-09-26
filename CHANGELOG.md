@@ -279,7 +279,7 @@ under the License.
 - [#24567](https://github.com/apache/superset/pull/24567) fix: remove underscore from builtin_time_grains label (@cnabro)
 - [#24608](https://github.com/apache/superset/pull/24608) fix: Incorrect dependency between filters related feature flags (@michael-s-molina)
 - [#24612](https://github.com/apache/superset/pull/24612) fix(report): edit without custom width (@betodealmeida)
-- [#24552](https://github.com/apache/superset/pull/24552) fix(ssh): Editting Database w/ SSH Tunneling (@hughhhh)
+- [#24552](https://github.com/apache/superset/pull/24552) fix(ssh): Editing Database w/ SSH Tunneling (@hughhhh)
 - [#24556](https://github.com/apache/superset/pull/24556) fix: set max version for pyocient (@jwilliams-ocient)
 - [#24129](https://github.com/apache/superset/pull/24129) fix: Bump prophet, re-enable tests, and remedy column eligibility logic (@john-bodley)
 - [#24593](https://github.com/apache/superset/pull/24593) fix: Clicking on a tag in the dashboard and charts lists does not work (@michael-s-molina)
