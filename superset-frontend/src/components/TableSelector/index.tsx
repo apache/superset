@@ -29,9 +29,7 @@ import { styled, t } from '@superset-ui/core';
 import { Select } from 'src/components';
 import { FormLabel } from 'src/components/Form';
 import Icons from 'src/components/Icons';
-import {
-  DatabaseObject,
-} from 'src/components/DatabaseSelector';
+import { DatabaseObject } from 'src/components/DatabaseSelector';
 import RefreshLabel from 'src/components/RefreshLabel';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
@@ -219,7 +217,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     if (database === undefined) {
       setCurrentSchema(undefined);
       setTableSelectValue(undefined);
-    }
+    }inter
   }, [database, tableSelectMode]);
 
   useEffect(() => {

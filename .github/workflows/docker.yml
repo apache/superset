@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - 'master'
-      - 'mnacharov'
 
 jobs:
   docker-build:
