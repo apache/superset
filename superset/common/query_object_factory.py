@@ -122,9 +122,9 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         self, datasource: BaseDatasource, query_filters: list[QueryObjectFilterClause]
     ) -> list[QueryObjectFilterClause]:
         def get_dttm_filter_value(
-            value: Any, column: BaseColumn, date_format: str
+            value: Any, col: BaseColumn, date_format: str
         ) -> int | str:
-            if type(value) != int:
+            if not isinstance(value, int):
                 return value
             if date_format in {"epoch_ms", "epoch_s"}:
                 if date_format == "epoch_s":
@@ -135,20 +135,20 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
                 dttm = datetime.utcfromtimestamp(value / 1000)
                 value = dttm.strftime(date_format)
 
-            if column.type in column.num_types:
+            if col.type in col.num_types:
                 value = int(value)
             return value
 
-        for filter in query_filters:
-            if filter.get("op") == FilterOperator.TEMPORAL_RANGE:
+        for query_filter in query_filters:
+            if query_filter.get("op") == FilterOperator.TEMPORAL_RANGE:
                 continue
-            filter_col = filter.get("col")
-            if type(filter_col) != str:
+            filter_col = query_filter.get("col")
+            if not isinstance(filter_col, str):
                 continue
             column = datasource.get_column(filter_col)
             if not column:
                 continue
-            filter_value = filter.get("val")
+            filter_value = query_filter.get("val")
 
             date_format = column.python_date_format
             if not date_format and datasource.db_extra:
@@ -157,12 +157,14 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
                 ).get(column.column_name)
 
             if column.is_dttm and date_format:
-                if type(filter_value) == list:
-                    filter["val"] = [
+                if isinstance(filter_value, list):
+                    query_filter["val"] = [
                         get_dttm_filter_value(value, column, date_format)
                         for value in filter_value
                     ]
                 else:
-                    filter["val"] = get_dttm_filter_value(filter_value, date_format)
+                    query_filter["val"] = get_dttm_filter_value(
+                        filter_value, column, date_format
+                    )
 
         return query_filters
