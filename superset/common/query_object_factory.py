@@ -73,11 +73,7 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         )
         kwargs["from_dttm"] = from_dttm
         kwargs["to_dttm"] = to_dttm
-        if (
-            datasource_model_instance
-            and kwargs.get("filters")
-            and len(kwargs["filters"])
-        ):
+        if datasource_model_instance and kwargs.get("filters", []):
             kwargs["filters"] = self._process_filters(
                 datasource_model_instance, kwargs["filters"]
             )
