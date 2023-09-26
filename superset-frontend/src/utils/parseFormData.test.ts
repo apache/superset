@@ -22,6 +22,7 @@ import parseFormData from './parseFormData';
 test('parses formData with all required properties', () => {
   const formData = {
     ...TimeseriesDefaultFormData,
+    datasource: '5__table',
     viz_type: 'echarts_timeseries_line',
   };
   const parsedFormData = parseFormData(formData);

@@ -26,7 +26,10 @@ import {
 import { logging } from '@superset-ui/core';
 
 const PLUGIN_METADATA: {
-  [key: string]: [BaseFormData, Record<keyof RequiredKeys<BaseFormData>, true>];
+  [key: string]: [
+    Partial<BaseFormData>,
+    Record<keyof RequiredKeys<BaseFormData>, true>,
+  ];
 } = {
   echarts_timeseries_line: [
     TimeseriesDefaultFormData,
