@@ -62,6 +62,9 @@ When working on master branch, run the following commands to run `development` m
 ```bash
 docker compose up
 ```
+:::tip
+When running in development mode the `superset-node` container needs to finish building assets in order for the UI to render properly. If you would just like to try out Superset without making any code changes follow the steps documented for `production` or a specific version below.
+:::
 
 When working on master branch, run the following commands to run `production` mode using `docker compose`:
 
@@ -72,12 +75,12 @@ docker-compose -f docker-compose-non-dev.yml up
 
 Alternatively, you can also run a specific version of Superset by first checking out
 the branch/tag, and then starting `docker-compose` with the `TAG` variable.
-For example, to run the 2.1.0 version, run the following commands:
+For example, to run the 3.0.0 version, run the following commands:
 
 ```bash
-git checkout 2.1.0
-TAG=2.1.0 docker-compose -f docker-compose-non-dev.yml pull
-TAG=2.1.0 docker-compose -f docker-compose-non-dev.yml up
+git checkout 3.0.0
+TAG=3.0.0 docker-compose -f docker-compose-non-dev.yml pull
+TAG=3.0.0 docker-compose -f docker-compose-non-dev.yml up
 ```
 
 :::tip
@@ -93,10 +96,6 @@ and storing the contents of the default PostgreSQL database from its volume (her
 You should see a wall of logging output from the containers being launched on your machine. Once
 this output slows, you should have a running instance of Superset on your local machine!  To
 avoid the wall of text on future runs, add the `-d` option to the end of the `docker-compose up` command.
-
-**Note:** This will bring up superset in a non-dev mode, changes to the codebase will not be reflected.
-If you would like to run superset in dev mode to test local changes, simply replace the previous command with: `docker-compose up`,
-and wait for the `superset_node` container to finish building the assets.
 
 #### Configuring Docker Compose
 
