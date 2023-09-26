@@ -32,7 +32,10 @@ import CopyToClipboard from '../CopyToClipboard';
 import ModalTrigger from '../ModalTrigger';
 import { Table, TableSize } from '../Table';
 
-const JSONbig = _JSONbig({ storeAsString: true, constructorAction: 'preserve' });
+const JSONbig = _JSONbig({
+  storeAsString: true,
+  constructorAction: 'preserve',
+});
 
 function safeJsonObjectParse(
   data: unknown,

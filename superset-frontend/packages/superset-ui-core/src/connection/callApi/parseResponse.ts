@@ -21,7 +21,9 @@ import { cloneDeepWith } from 'lodash';
 
 import { ParseMethod, TextResponse, JsonResponse } from '../types';
 
-const JSONbig = _JSONbig({ constructorAction: 'preserve' });
+const JSONbig = _JSONbig({
+  constructorAction: 'preserve',
+});
 
 export default async function parseResponse<T extends ParseMethod = 'json'>(
   apiPromise: Promise<Response>,
