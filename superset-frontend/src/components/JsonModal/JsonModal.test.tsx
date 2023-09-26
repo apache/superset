@@ -28,7 +28,11 @@ test('renders JSON object in a tree view in a modal', () => {
   const jsonData = { a: 1 };
   const jsonValue = JSON.stringify(jsonData);
   const { getByText, getByTestId, queryByTestId } = render(
-    <JsonModal jsonObject={jsonData} jsonValue={jsonValue} />,
+    <JsonModal
+      jsonObject={jsonData}
+      jsonValue={jsonValue}
+      modalTitle="title"
+    />,
     {
       useRedux: true,
     },
