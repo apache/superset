@@ -1,5 +1,4 @@
 GIT_ROOT := $(shell git rev-parse --show-toplevel)
-INFRA_ROOT := ${GIT_ROOT}/infra
 VERSION ?= local
 RELEASE_VERSION ?= alpha-0.0.1
 
@@ -15,3 +14,11 @@ set-kubectl-context:
 
 set-kubectl-context-dev:
 	aws eks update-kubeconfig --region ap-southeast-1 --name kuwago-dev-eks
+
+deploy-superset:
+	cd helm/superset && helm dependency update && cd ../..
+	helm upgrade -i superset helm/superset -f helm/superset/values.yaml --debug --wait
+
+generate-template-superset:
+	cd helm/superset && helm dependency update && cd ../..
+	helm template superset helm/superset -f helm/superset/values.yaml --debug

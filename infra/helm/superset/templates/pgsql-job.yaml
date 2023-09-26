@@ -1,0 +1,24 @@
+{{ if .Values.superset.dbInit.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: supersetdb
+spec:
+  ttlSecondsAfterFinished: 120
+  template:
+    spec:
+      containers:
+      - name: supersetdb
+        image: bitnami/postgresql:latest
+        command: ["createdb"]
+        args: [
+          "-h", {{ .Values.supersetNode.connections.db_host | quote }}, 
+          "-U", {{ .Values.supersetNode.connections.db_user | quote }}, 
+          "-p", {{ .Values.supersetNode.connections.db_port | quote }},
+          {{ .Values.supersetNode.connections.db_name | quote }}
+        ]
+        env:
+        - name: PGPASSWORD
+          value: {{ .Values.supersetNode.connections.db_pass | quote }}
+      restartPolicy: Never
+{{ end }}
