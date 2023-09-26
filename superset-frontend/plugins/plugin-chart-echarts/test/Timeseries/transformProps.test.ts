@@ -33,12 +33,13 @@ import transformProps from '../../src/Timeseries/transformProps';
 
 describe('EchartsTimeseries transformProps', () => {
   const formData: SqlaFormData = {
+    annotation_layers: [],
     colorScheme: 'bnbColors',
     datasource: '3__table',
     granularity_sqla: 'ds',
     metric: 'sum__num',
     groupby: ['foo', 'bar'],
-    viz_type: 'my_viz',
+    viz_type: 'echarts_timeseries_line',
   };
   const queriesData = [
     {
@@ -417,7 +418,8 @@ describe('Does transformProps transform series correctly', () => {
   };
 
   const formData: SqlaFormData = {
-    viz_type: 'my_viz',
+    viz_type: 'echarts_timeseries_line',
+    annotation_layers: [],
     colorScheme: 'bnbColors',
     datasource: '3__table',
     granularity_sqla: 'ds',

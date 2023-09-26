@@ -110,6 +110,8 @@ def create_slices(tbl: SqlaTable) -> list[Slice]:
                 viz_type="echarts_timeseries_line",
                 metrics=["sum__num"],
                 groupby=["gender"],
+                yAxisTitleMargin=15,
+                yAxisTitlePosition="Left",
             ),
         ),
         Slice(
@@ -336,6 +338,8 @@ def create_slices(tbl: SqlaTable) -> list[Slice]:
                 groupby=["gender"],
                 metrics_b=["sum__num"],
                 groupby_b=["state"],
+                yAxisTitleMargin=15,
+                yAxisTitlePosition="Left",
             ),
         ),
         Slice(

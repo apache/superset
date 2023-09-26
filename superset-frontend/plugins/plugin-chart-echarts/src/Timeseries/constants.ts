@@ -52,6 +52,7 @@ export const DEFAULT_FORM_DATA: Omit<
   logAxis: false,
   markerEnabled: false,
   markerSize: 6,
+  metrics: [],
   minorSplitLine: false,
   opacity: 0.2,
   orderDesc: true,
