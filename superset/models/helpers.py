@@ -68,7 +68,12 @@ from superset.exceptions import (
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
-from superset.sql_parse import has_table_query, insert_rls, ParsedQuery, sanitize_clause
+from superset.sql_parse import (
+    has_table_query,
+    insert_rls_in_predicate,
+    ParsedQuery,
+    sanitize_clause,
+)
 from superset.superset_typing import (
     AdhocMetric,
     Column as ColumnTyping,
@@ -128,7 +133,7 @@ def validate_adhoc_subquery(
                         level=ErrorLevel.ERROR,
                     )
                 )
-            statement = insert_rls(statement, database_id, default_schema)
+            statement = insert_rls_in_predicate(statement, database_id, default_schema)
         statements.append(statement)
 
     return ";\n".join(str(statement) for statement in statements)
@@ -895,6 +900,43 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if cte:
             sql = f"{cte}\n{sql}"
         return sql
+
+    @staticmethod
+    def validate_adhoc_subquery(
+        sql: str,
+        database_id: int,
+        default_schema: str,
+    ) -> str:
+        """
+        Check if adhoc SQL contains sub-queries or nested sub-queries with table.
+
+        If sub-queries are allowed, the adhoc SQL is modified to insert any applicable RLS
+        predicates to it.
+
+        :param sql: adhoc sql expression
+        :raise SupersetSecurityException if sql contains sub-queries or
+        nested sub-queries with table
+        """
+
+        statements = []
+        for statement in sqlparse.parse(sql):
+            if has_table_query(statement):
+                if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
+                    raise SupersetSecurityException(
+                        SupersetError(
+                            error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
+                            message=_("Custom SQL fields cannot contain sub-queries."),
+                            level=ErrorLevel.ERROR,
+                        )
+                    )
+                statement = insert_rls_in_predicate(
+                    statement,
+                    database_id,
+                    default_schema,
+                )
+            statements.append(statement)
+
+        return ";\n".join(str(statement) for statement in statements)
 
     def get_query_str_extended(
         self, query_obj: QueryObjectDict, mutate: bool = True
