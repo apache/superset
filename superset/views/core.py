@@ -1025,21 +1025,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @staticmethod
     def _get_sqllab_tabs(user_id: int | None) -> dict[str, Any]:
-        # send list of tab state ids
-        tabs_state = (
-            db.session.query(TabState.id, TabState.label)
-            .filter_by(user_id=user_id)
-            .all()
-        )
-        tab_state_ids = [str(tab_state[0]) for tab_state in tabs_state]
-        # return first active tab, or fallback to another one if no tab is active
-        active_tab = (
-            db.session.query(TabState)
-            .filter_by(user_id=user_id)
-            .order_by(TabState.active.desc())
-            .first()
-        )
-
+        tabs_state: list[Any] = []
+        active_tab: Any = None
         databases: dict[int, Any] = {}
         for database in DatabaseDAO.find_all():
             databases[database.id] = {
@@ -1050,6 +1037,20 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         # These are unnecessary if sqllab backend persistence is disabled
         if is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE"):
+            # send list of tab state ids
+            tabs_state = (
+                db.session.query(TabState.id, TabState.label)
+                .filter_by(user_id=user_id)
+                .all()
+            )
+            tab_state_ids = [str(tab_state[0]) for tab_state in tabs_state]
+            # return first active tab, or fallback to another one if no tab is active
+            active_tab = (
+                db.session.query(TabState)
+                .filter_by(user_id=user_id)
+                .order_by(TabState.active.desc())
+                .first()
+            )
             # return all user queries associated with existing SQL editors
             user_queries = (
                 db.session.query(Query)
