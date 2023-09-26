@@ -97,6 +97,7 @@ export default typedMemo(function DataTable<D extends object>({
   noResults: noResultsText = 'No data found',
   hooks,
   serverPagination,
+  includeDownload,
   wrapperRef: userWrapperRef,
   onColumnOrderChange,
   ...moreUseTableOptions
@@ -248,6 +249,10 @@ export default typedMemo(function DataTable<D extends object>({
     e.preventDefault();
   };
 
+  const handleDownload = (row) => {
+    window.parent.postMessage(row, "*"); // TODO: Specify origin explicitly to improve security
+  };
+
   const renderTable = () => (
     <table {...getTableProps({ className: tableClassName })}>
       <thead>
@@ -264,6 +269,7 @@ export default typedMemo(function DataTable<D extends object>({
                   onDrop,
                 }),
               )}
+              {includeDownload && <th>Download</th>}
             </tr>
           );
         })}
@@ -277,6 +283,16 @@ export default typedMemo(function DataTable<D extends object>({
               <tr key={rowKey || row.id} {...rowProps}>
                 {row.cells.map(cell =>
                   cell.render('Cell', { key: cell.column.id }),
+                )}
+                {includeDownload && (
+                    <td>
+                      <button
+                        onClick={() => handleDownload(row.original)}
+                        className="download-button"
+                      >
+                        Download
+                      </button>
+                    </td>
                 )}
               </tr>
             );

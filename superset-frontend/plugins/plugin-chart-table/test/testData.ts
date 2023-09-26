@@ -32,6 +32,7 @@ const basicFormData: TableChartFormData = {
   color_pn: false,
   show_cell_bars: true,
   include_search: false,
+  include_download: false,
   order_desc: true,
   page_length: 20,
   metrics: [],

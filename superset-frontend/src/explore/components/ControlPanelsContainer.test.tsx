@@ -70,7 +70,7 @@ describe('ControlPanelsContainer', () => {
           controlSetRows: [
             ['table_timestamp_format'],
             ['page_length', null],
-            ['include_search', 'table_filter'],
+            ['include_search', 'include_download','table_filter'],
             ['align_pn', 'color_pn'],
           ],
         },

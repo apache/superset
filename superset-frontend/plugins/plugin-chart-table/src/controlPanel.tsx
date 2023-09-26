@@ -422,6 +422,16 @@ const config: ControlPanelConfig = {
             },
           },
           {
+            name: 'include_download',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Download Button'),
+              renderTrigger: true,
+              default: false,
+              description: t('Whether to include a download button in each row'),
+            },
+          },
+          {
             name: 'show_cell_bars',
             config: {
               type: 'CheckboxControl',

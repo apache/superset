@@ -150,6 +150,7 @@ const tableVizStore = {
     },
     page_length: {},
     include_search: {},
+    include_download: {},
     show_cell_bars: {
       value: true,
     },

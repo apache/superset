@@ -220,6 +220,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     alignPositiveNegative: defaultAlignPN = false,
     colorPositiveNegative: defaultColorPN = false,
     includeSearch = false,
+    includeDownload = false,
     pageSize = 0,
     serverPagination = false,
     serverPaginationData,
@@ -709,6 +710,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         maxPageItemCount={width > 340 ? 9 : 7}
         noResults={getNoResultsMessage}
         searchInput={includeSearch && SearchInput}
+        includeDownload={includeDownload}
         selectPageSize={pageSize !== null && SelectPageSize}
         // not in use in Superset, but needed for unit tests
         sticky={sticky}

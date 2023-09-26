@@ -34,6 +34,7 @@ import {
   CurrencyFormatter,
 } from '@superset-ui/core';
 import { ColorFormatters, ColumnConfig } from '@superset-ui/chart-controls';
+import { BackTopProps } from 'antd/lib/back-top';
 
 export type CustomFormatter = (value: DataRecordValue) => string;
 
@@ -64,6 +65,7 @@ export type TableChartFormData = QueryFormData & {
   color_pn?: boolean;
   include_time?: boolean;
   include_search?: boolean;
+  include_download?: boolean;
   query_mode?: QueryMode;
   page_length?: string | number | null; // null means auto-paginate
   metrics?: QueryFormMetric[] | null;
@@ -106,6 +108,7 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   showCellBars?: boolean;
   sortDesc?: boolean;
   includeSearch?: boolean;
+  includeDownload?: boolean;
   alignPositiveNegative?: boolean;
   colorPositiveNegative?: boolean;
   tableTimestampFormat?: string;

@@ -33,6 +33,7 @@ export const basicFormData: TableChartFormData = {
   align_pn: false,
   color_pn: false,
   include_search: true,
+  include_download: false,
   metrics: ['sum__num', 'MAX(ds)'],
   order_desc: true,
   page_length: 0,

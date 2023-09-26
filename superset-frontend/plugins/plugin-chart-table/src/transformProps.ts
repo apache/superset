@@ -224,6 +224,7 @@ const transformProps = (
     color_pn: colorPositiveNegative = true,
     show_cell_bars: showCellBars = true,
     include_search: includeSearch = false,
+    include_download: includeDownload = false,
     page_length: pageLength,
     server_pagination: serverPagination = false,
     server_page_length: serverPageLength = 10,
@@ -275,6 +276,7 @@ const transformProps = (
     showCellBars,
     sortDesc,
     includeSearch,
+    includeDownload,
     rowCount,
     pageSize: serverPagination
       ? serverPageLength

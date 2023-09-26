@@ -42,6 +42,7 @@ export type HandlebarsQueryFormData = QueryFormData &
     color_pn?: boolean;
     include_time?: boolean;
     include_search?: boolean;
+    include_download?: boolean;
     query_mode?: QueryMode;
     page_length?: string | number | null; // null means auto-paginate
     metrics?: QueryFormMetric[] | null;

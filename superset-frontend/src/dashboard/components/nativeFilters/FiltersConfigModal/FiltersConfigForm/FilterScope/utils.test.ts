@@ -18067,6 +18067,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
         table_timestamp_format: 'smart_date',
         page_length: '15',
         include_search: true,
+        include_download: false,
         show_cell_bars: false,
         color_pn: false,
         queryFields: {
