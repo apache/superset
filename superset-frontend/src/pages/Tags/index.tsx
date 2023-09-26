@@ -145,13 +145,11 @@ function TagList(props: TagListProps) {
       {
         Cell: ({
           row: {
-            original: { name: tagName },
+            original: { id, name: tagName },
           },
         }: any) => (
           <AntdTag>
-            <Link to={`/superset/all_entities/?tags=${tagName}`}>
-              {tagName}
-            </Link>
+            <Link to={`/superset/all_entities/?id=${id}`}>{tagName}</Link>
           </AntdTag>
         ),
         Header: t('Name'),
@@ -309,7 +307,11 @@ function TagList(props: TagListProps) {
 
   // render new 'New Tag' btn
   subMenuButtons.push({
-    name: t('New Tag'),
+    name: (
+      <>
+        <i className="fa fa-plus" /> {t('Tag')}
+      </>
+    ),
     buttonStyle: 'primary',
     'data-test': 'bulk-select',
     onClick: () => setShowTagModal(true),
@@ -330,6 +332,7 @@ function TagList(props: TagListProps) {
         refreshData={refreshData}
         addSuccessToast={addSuccessToast}
         addDangerToast={addDangerToast}
+        clearOnHide
       />
       <SubMenu name={t('Tags')} buttons={subMenuButtons} />
       <ConfirmStatusChange
@@ -353,16 +356,19 @@ function TagList(props: TagListProps) {
                 bulkActions={bulkActions}
                 bulkSelectEnabled={bulkSelectEnabled}
                 cardSortSelectOptions={sortTypes}
-                className="dashboard-list-view"
+                className="tags-list-view"
                 columns={columns}
                 count={tagCount}
                 data={tags.filter(tag => !tag.name.includes(':'))}
                 disableBulkSelect={toggleBulkSelect}
+                refreshData={refreshData}
                 emptyState={emptyState}
                 fetchData={fetchData}
                 filters={filters}
                 initialSort={initialSort}
                 loading={loading}
+                addDangerToast={addDangerToast}
+                addSuccessToast={addSuccessToast}
                 pageSize={PAGE_SIZE}
                 showThumbnails={
                   userKey

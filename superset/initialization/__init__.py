@@ -35,7 +35,7 @@ from superset.extensions import (
     _event_logger,
     APP_DIR,
     appbuilder,
-    async_query_manager,
+    async_query_manager_factory,
     cache_manager,
     celery_app,
     csrf,
@@ -665,7 +665,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def configure_async_queries(self) -> None:
         if feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
-            async_query_manager.init_app(self.superset_app)
+            async_query_manager_factory.init_app(self.superset_app)
 
     def register_blueprints(self) -> None:
         for bp in self.config["BLUEPRINTS"]:

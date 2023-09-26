@@ -17,23 +17,21 @@
  * under the License.
  */
 import React from 'react';
-import { styledMount as mount } from 'spec/helpers/theming';
-import Label from 'src/components/Label';
-import QueryStateLabel from 'src/SqlLab/components/QueryStateLabel';
+import type { QueryState } from '@superset-ui/core';
+import { render } from 'spec/helpers/testing-library';
+import QueryStateLabel from '.';
 
-describe('SavedQuery', () => {
-  const mockedProps = {
-    query: {
-      state: 'running',
-    },
-  };
-  it('is valid', () => {
-    expect(React.isValidElement(<QueryStateLabel {...mockedProps} />)).toBe(
-      true,
-    );
-  });
-  it('has an Overlay and a Popover', () => {
-    const wrapper = mount(<QueryStateLabel {...mockedProps} />);
-    expect(wrapper.find(Label)).toExist();
-  });
+jest.mock('src/components/Label', () => () => <div data-test="mock-label" />);
+
+const mockedProps = {
+  query: {
+    state: 'running' as QueryState,
+  },
+};
+test('is valid', () => {
+  expect(React.isValidElement(<QueryStateLabel {...mockedProps} />)).toBe(true);
+});
+test('has an Overlay and a Popover', () => {
+  const { getByTestId } = render(<QueryStateLabel {...mockedProps} />);
+  expect(getByTestId('mock-label')).toBeInTheDocument();
 });

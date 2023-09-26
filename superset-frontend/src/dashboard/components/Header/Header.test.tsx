@@ -95,6 +95,7 @@ const createProps = () => ({
   maxUndoHistoryToast: jest.fn(),
   dashboardInfoChanged: jest.fn(),
   dashboardTitleChanged: jest.fn(),
+  showMenuDropdown: true,
 });
 const props = createProps();
 const editableProps = {

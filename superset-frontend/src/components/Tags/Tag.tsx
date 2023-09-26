@@ -58,7 +58,7 @@ const Tag = ({
         <StyledTag role="link" key={id} onClick={onClick}>
           {id ? (
             <a
-              href={`/superset/all_entities/?tags=${name}`}
+              href={`/superset/all_entities/?id=${id}`}
               target="_blank"
               rel="noreferrer"
             >

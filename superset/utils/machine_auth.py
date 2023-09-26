@@ -17,7 +17,6 @@
 
 from __future__ import annotations
 
-import importlib
 import logging
 from typing import Callable, TYPE_CHECKING
 
@@ -26,6 +25,7 @@ from flask_login import login_user
 from selenium.webdriver.remote.webdriver import WebDriver
 from werkzeug.http import parse_cookie
 
+from superset.utils.class_utils import load_class_from_name
 from superset.utils.urls import headless_url
 
 logger = logging.getLogger(__name__)
@@ -100,18 +100,9 @@ class MachineAuthProviderFactory:
         self._auth_provider = None
 
     def init_app(self, app: Flask) -> None:
-        auth_provider_fqclass = app.config["MACHINE_AUTH_PROVIDER_CLASS"]
-        auth_provider_classname = auth_provider_fqclass[
-            auth_provider_fqclass.rfind(".") + 1 :
-        ]
-        auth_provider_module_name = auth_provider_fqclass[
-            0 : auth_provider_fqclass.rfind(".")
-        ]
-        auth_provider_class = getattr(
-            importlib.import_module(auth_provider_module_name), auth_provider_classname
-        )
-
-        self._auth_provider = auth_provider_class(app.config["WEBDRIVER_AUTH_FUNC"])
+        self._auth_provider = load_class_from_name(
+            app.config["MACHINE_AUTH_PROVIDER_CLASS"]
+        )(app.config["WEBDRIVER_AUTH_FUNC"])
 
     @property
     def instance(self) -> MachineAuthProvider:

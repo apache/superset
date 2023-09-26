@@ -17,6 +17,7 @@
 """Unit tests for Superset"""
 import json
 from contextlib import contextmanager
+from datetime import datetime, timedelta
 from unittest import mock
 
 import prison
@@ -76,6 +77,58 @@ class TestDatasource(SupersetTestCase):
             col_names, {"num_boys", "num", "gender", "name", "ds", "state", "num_girls"}
         )
 
+    def test_always_filter_main_dttm(self):
+        self.login(username="admin")
+        session = db.session
+        database = get_example_database()
+
+        sql = f"SELECT DATE() as default_dttm, DATE() as additional_dttm, 1 as metric;"
+        if database.backend == "sqlite":
+            pass
+        elif database.backend in ["postgresql", "mysql"]:
+            sql = sql.replace("DATE()", "NOW()")
+        else:
+            return
+
+        query_obj = {
+            "columns": ["metric"],
+            "filter": [],
+            "from_dttm": datetime.now() - timedelta(days=1),
+            "granularity": "additional_dttm",
+            "orderby": [],
+            "to_dttm": datetime.now() + timedelta(days=1),
+            "series_columns": [],
+            "row_limit": 1000,
+            "row_offset": 0,
+        }
+        table = SqlaTable(
+            table_name="dummy_sql_table",
+            database=database,
+            schema=get_example_default_schema(),
+            main_dttm_col="default_dttm",
+            columns=[
+                TableColumn(column_name="default_dttm", type="DATETIME", is_dttm=True),
+                TableColumn(
+                    column_name="additional_dttm", type="DATETIME", is_dttm=True
+                ),
+            ],
+            sql=sql,
+        )
+
+        session.add(table)
+        session.commit()
+
+        table.always_filter_main_dttm = False
+        result = str(table.get_sqla_query(**query_obj).sqla_query.whereclause)
+        assert "default_dttm" not in result and "additional_dttm" in result
+
+        table.always_filter_main_dttm = True
+        result = str(table.get_sqla_query(**query_obj).sqla_query.whereclause)
+        assert "default_dttm" in result and "additional_dttm" in result
+
+        session.delete(table)
+        session.commit()
+
     def test_external_metadata_for_virtual_table(self):
         self.login(username="admin")
         session = db.session
@@ -106,6 +159,7 @@ class TestDatasource(SupersetTestCase):
                 "schema_name": tbl.schema,
                 "table_name": tbl.table_name,
                 "normalize_columns": tbl.normalize_columns,
+                "always_filter_main_dttm": tbl.always_filter_main_dttm,
             }
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
@@ -135,6 +189,7 @@ class TestDatasource(SupersetTestCase):
                 "schema_name": tbl.schema,
                 "table_name": tbl.table_name,
                 "normalize_columns": tbl.normalize_columns,
+                "always_filter_main_dttm": tbl.always_filter_main_dttm,
             }
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
@@ -154,6 +209,7 @@ class TestDatasource(SupersetTestCase):
                     "table_name": "test_table",
                     "schema_name": get_example_default_schema(),
                     "normalize_columns": False,
+                    "always_filter_main_dttm": False,
                 }
             )
             url = f"/datasource/external_metadata_by_name/?q={params}"
@@ -168,6 +224,7 @@ class TestDatasource(SupersetTestCase):
                 "database_name": "foo",
                 "table_name": "bar",
                 "normalize_columns": False,
+                "always_filter_main_dttm": False,
             }
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
@@ -185,6 +242,7 @@ class TestDatasource(SupersetTestCase):
                 "database_name": example_database.database_name,
                 "table_name": "fooooooooobarrrrrr",
                 "normalize_columns": False,
+                "always_filter_main_dttm": False,
             }
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"

@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   css,
   isFeatureEnabled,
@@ -36,6 +36,14 @@ import downloadAsImage from 'src/utils/downloadAsImage';
 import { getChartPermalink } from 'src/utils/urlUtils';
 import copyTextToClipboard from 'src/utils/copy';
 import HeaderReportDropDown from 'src/features/reports/ReportModal/HeaderReportDropdown';
+import { logEvent } from 'src/logger/actions';
+import {
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE,
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_JSON,
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV,
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV_PIVOTED,
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_XLS,
+} from 'src/logger/LogUtils';
 import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
 import DashboardsSubMenu from './DashboardsSubMenu';
@@ -118,6 +126,7 @@ export const useExploreAdditionalActionsMenu = (
 ) => {
   const theme = useTheme();
   const { addDangerToast, addSuccessToast } = useToasts();
+  const dispatch = useDispatch();
   const [showReportSubMenu, setShowReportSubMenu] = useState(null);
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const chart = useSelector(
@@ -204,19 +213,42 @@ export const useExploreAdditionalActionsMenu = (
         case MENU_KEYS.EXPORT_TO_CSV:
           exportCSV();
           setIsDropdownVisible(false);
+          dispatch(
+            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV, {
+              chartId: slice?.slice_id,
+              chartName: slice?.slice_name,
+            }),
+          );
           break;
         case MENU_KEYS.EXPORT_TO_CSV_PIVOTED:
           exportCSVPivoted();
           setIsDropdownVisible(false);
+          dispatch(
+            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV_PIVOTED, {
+              chartId: slice?.slice_id,
+              chartName: slice?.slice_name,
+            }),
+          );
           break;
         case MENU_KEYS.EXPORT_TO_JSON:
           exportJson();
           setIsDropdownVisible(false);
-
+          dispatch(
+            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_JSON, {
+              chartId: slice?.slice_id,
+              chartName: slice?.slice_name,
+            }),
+          );
           break;
         case MENU_KEYS.EXPORT_TO_XLSX:
           exportExcel();
           setIsDropdownVisible(false);
+          dispatch(
+            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_XLS, {
+              chartId: slice?.slice_id,
+              chartName: slice?.slice_name,
+            }),
+          );
           break;
         case MENU_KEYS.DOWNLOAD_AS_IMAGE:
           downloadAsImage(
@@ -226,6 +258,12 @@ export const useExploreAdditionalActionsMenu = (
             true,
           )(domEvent);
           setIsDropdownVisible(false);
+          dispatch(
+            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE, {
+              chartId: slice?.slice_id,
+              chartName: slice?.slice_name,
+            }),
+          );
           break;
         case MENU_KEYS.COPY_PERMALINK:
           copyLink();

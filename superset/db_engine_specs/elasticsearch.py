@@ -36,7 +36,6 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
     engine = "elasticsearch"
     engine_name = "ElasticSearch (SQL API)"
     time_groupby_inline = True
-    time_secondary_columns = True
     allows_joins = False
     allows_subqueries = True
     allows_sql_comments = False
@@ -98,7 +97,6 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
 
 class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     time_groupby_inline = True
-    time_secondary_columns = True
     allows_joins = False
     allows_subqueries = True
     allows_sql_comments = False

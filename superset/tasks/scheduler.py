@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from datetime import datetime
 
 from celery import Celery
 from celery.exceptions import SoftTimeLimitExceeded
@@ -47,9 +48,15 @@ def scheduler() -> None:
         return
     with session_scope(nullpool=True) as session:
         active_schedules = ReportScheduleDAO.find_active(session)
+        triggered_at = (
+            datetime.fromisoformat(scheduler.request.expires)
+            - app.config["CELERY_BEAT_SCHEDULER_EXPIRES"]
+            if scheduler.request.expires
+            else datetime.utcnow()
+        )
         for active_schedule in active_schedules:
             for schedule in cron_schedule_window(
-                active_schedule.crontab, active_schedule.timezone
+                triggered_at, active_schedule.crontab, active_schedule.timezone
             ):
                 logger.info(
                     "Scheduling alert %s eta: %s", active_schedule.name, schedule

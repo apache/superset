@@ -7,6 +7,15 @@ version: 1
 
 ## Snowflake
 
+### Install Snowflake Driver
+
+Follow the steps [here](/docs/databases/docker-add-drivers) about how to
+install new database drivers when setting up Superset locally via docker-compose.
+
+```
+echo "snowflake-sqlalchemy" >> ./docker/requirements-local.txt
+```
+
 The recommended connector library for Snowflake is
 [snowflake-sqlalchemy](https://pypi.org/project/snowflake-sqlalchemy/).
 
