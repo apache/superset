@@ -96,7 +96,7 @@ under the License.
 - [#24345](https://github.com/apache/superset/pull/24345) feat: Convert ENABLE_BROAD_ACTIVITY_ACCESS and MENU_HIDE_USER_INFO into feature flags (@michael-s-molina)
 - [#23943](https://github.com/apache/superset/pull/23943) feat: Removes the preset-chart-xy plugin (@michael-s-molina)
 - [#23933](https://github.com/apache/superset/pull/23933) feat: Removes the Multiple Line Charts (@michael-s-molina)
-- [#24237](https://github.com/apache/superset/pull/24237) feat: support complex types and use get_columns implementation of starrrocks python client (@miomiocat)
+- [#24237](https://github.com/apache/superset/pull/24237) feat: support complex types and use get_columns implementation of starrocks python client (@miomiocat)
 - [#24205](https://github.com/apache/superset/pull/24205) feat(sqllab): SQLEditor Extension (@Antonio-RiveroMartnez)
 - [#24232](https://github.com/apache/superset/pull/24232) feat(flags): enabling and deprecating a few feature flags (@rusackas)
 - [#24191](https://github.com/apache/superset/pull/24191) feat: extension hook for DB delete (@betodealmeida)
