@@ -2912,7 +2912,7 @@ under the License.
 - [#18877](https://github.com/apache/superset/pull/18877) fix(nested-tab-available): make the another tabs into one tabs available (@prosdev0107)
 - [#18960](https://github.com/apache/superset/pull/18960) fix(chart): deprecate persisting url_params (@villebro)
 - [#18973](https://github.com/apache/superset/pull/18973) fix(packages): Fixing users packages (@craig-rueda)
-- [#18892](https://github.com/apache/superset/pull/18892) fix(tooltip-not-dissapeared): make the tooltip disappear when mouse away (@prosdev0107)
+- [#18892](https://github.com/apache/superset/pull/18892) fix(tooltip-not-disappeared): make the tooltip disappear when mouse away (@prosdev0107)
 - [#18982](https://github.com/apache/superset/pull/18982) fix(external-link): change the external link in creating chart dashboard (@prosdev0107)
 - [#18963](https://github.com/apache/superset/pull/18963) fix(native-filters): Default value not shown in native filters (@kgabryje)
 - [#18958](https://github.com/apache/superset/pull/18958) fix(plugin-chart-echarts): fix customize margin (@stephenLYZ)
