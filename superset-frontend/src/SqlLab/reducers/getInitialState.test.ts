@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+import { runningQuery, successfulQuery } from 'src/SqlLab/fixtures';
 import getInitialState, { dedupeTabHistory } from './getInitialState';
 
 const apiData = {
@@ -120,6 +120,57 @@ describe('getInitialState', () => {
         },
       }).sqlLab.tables;
       expect(initializedTables.map(({ id }) => id)).toEqual([1, 2, 6]);
+    });
+
+    it('should parse the float dttm value', () => {
+      const startDttmInStr = '1693433503447.166992';
+      const endDttmInStr = '1693433503500.23132';
+
+      localStorage.setItem(
+        'redux',
+        JSON.stringify({
+          sqlLab: {
+            tables: [
+              { id: 1, name: 'test1' },
+              { id: 6, name: 'test6' },
+            ],
+            queryEditors: [{ id: 1, title: 'editor1' }],
+            queries: {
+              localStoragePersisted: {
+                ...successfulQuery,
+                id: 'localStoragePersisted',
+                startDttm: startDttmInStr,
+                endDttm: endDttmInStr,
+              },
+            },
+            tabHistory: [],
+          },
+        }),
+      );
+
+      const initializedQueries = getInitialState({
+        ...apiData,
+        queries: {
+          backendPersisted: {
+            ...runningQuery,
+            id: 'backendPersisted',
+            startDttm: startDttmInStr,
+            endDttm: endDttmInStr,
+          },
+        },
+      }).sqlLab.queries;
+      expect(initializedQueries.backendPersisted).toEqual(
+        expect.objectContaining({
+          startDttm: Number(startDttmInStr),
+          endDttm: Number(endDttmInStr),
+        }),
+      );
+      expect(initializedQueries.localStoragePersisted).toEqual(
+        expect.objectContaining({
+          startDttm: Number(startDttmInStr),
+          endDttm: Number(endDttmInStr),
+        }),
+      );
     });
   });
 });
