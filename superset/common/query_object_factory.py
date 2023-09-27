@@ -61,6 +61,10 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         processed_extras = self._process_extras(extras)
         result_type = kwargs.setdefault("result_type", parent_result_type)
         row_limit = self._process_row_limit(row_limit, result_type)
+        if time_range is None:
+            for filter_object in kwargs.get("filters", []):
+                if filter_object.get("op") == "TEMPORAL_RANGE":
+                    time_range = filter_object.get("val")
         from_dttm, to_dttm = get_since_until_from_time_range(
             time_range, time_shift, processed_extras
         )
