@@ -2019,15 +2019,15 @@ class BaseDeckGLViz(BaseViz):
 
     @staticmethod
     @deprecated(deprecated_in="3.0")
-    def parse_coordinates(latlog: Any) -> tuple[float, float] | None:
-        if not latlog:
+    def parse_coordinates(latlong: Any) -> tuple[float, float] | None:
+        if not latlong:
             return None
         try:
-            point = Point(latlog)
+            point = Point(latlong)
             return (point.latitude, point.longitude)
         except Exception as ex:
             raise SpatialException(
-                _(f"Invalid spatial point encountered: {latlog}")
+                _(f"Invalid spatial point encountered: {latlong}")
             ) from ex
 
     @staticmethod
