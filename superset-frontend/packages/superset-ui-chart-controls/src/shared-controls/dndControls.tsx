@@ -169,7 +169,7 @@ export const dndAdhocMetricsControl: SharedControlConfig<
   description: t(
     'Select one or many metrics to display. ' +
       'You can use an aggregation function on a column ' +
-      'or write custom SQL to create a metric.'
+      'or write custom SQL to create a metric.',
   ),
 };
 
@@ -180,7 +180,7 @@ export const dndAdhocMetricControl: typeof dndAdhocMetricsControl = {
   description: t(
     'Select a metric to display. ' +
       'You can use an aggregation function on a column ' +
-      'or write custom SQL to create a metric.'
+      'or write custom SQL to create a metric.',
   ),
 };
 
@@ -220,7 +220,7 @@ export const dndXControl: typeof dndAdhocMetricControl = {
   ...dndAdhocMetricControl,
   label: t('X Axis'),
   description: t(
-    'The dataset column/metric that returns the values on your chart\'s x-axis.',
+    "The dataset column/metric that returns the values on your chart's x-axis.",
   ),
   default: null,
 };
@@ -229,7 +229,7 @@ export const dndYControl: typeof dndAdhocMetricControl = {
   ...dndAdhocMetricControl,
   label: t('Y Axis'),
   description: t(
-    'The dataset column/metric that returns the values on your chart\'s y-axis.',
+    "The dataset column/metric that returns the values on your chart's y-axis.",
   ),
   default: null,
 };
