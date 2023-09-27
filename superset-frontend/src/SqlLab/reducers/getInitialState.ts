@@ -130,20 +130,7 @@ export default function getInitialState({
       });
   }
 
-  const queries = Object.fromEntries(
-    Object.entries(queries_ || {}).map(([queryId, query]) => [
-      queryId,
-      {
-        ...query,
-        ...(query.startDttm && {
-          startDttm: Number(query.startDttm),
-        }),
-        ...(query.endDttm && {
-          endDttm: Number(query.endDttm),
-        }),
-      },
-    ]),
-  );
+  const queries = { ...queries_ };
 
   /**
    * If the `SQLLAB_BACKEND_PERSISTENCE` feature flag is off, or if the user
@@ -205,7 +192,20 @@ export default function getInitialState({
       alerts: [],
       databases,
       offline: false,
-      queries,
+      queries: Object.fromEntries(
+        Object.entries(queries).map(([queryId, query]) => [
+          queryId,
+          {
+            ...query,
+            ...(query.startDttm && {
+              startDttm: Number(query.startDttm),
+            }),
+            ...(query.endDttm && {
+              endDttm: Number(query.endDttm),
+            }),
+          },
+        ]),
+      ),
       queryEditors: Object.values(queryEditors),
       tabHistory: dedupeTabHistory(tabHistory),
       tables: Object.values(tables),
