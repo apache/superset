@@ -375,7 +375,6 @@ const SqlEditor: React.FC<Props> = ({
     const base = [
       ...getHotkeyConfig(),
       {
-        aceOnly: true,
         name: 'runQuery3',
         key: 'ctrl+shift+enter',
         descr: t('Run current query'),
@@ -434,7 +433,6 @@ const SqlEditor: React.FC<Props> = ({
     ];
     if (userOS === 'MacOS') {
       base.push({
-        aceOnly: true,
         name: 'previousLine',
         key: 'ctrl+p',
         descr: t('Previous Line'),
