@@ -25,6 +25,8 @@ import os
 
 from cachelib.file import FileSystemCache
 from celery.schedules import crontab
+from flask_appbuilder.security.manager import AUTH_OID, AUTH_REMOTE_USER, AUTH_DB, \
+    AUTH_LDAP, AUTH_OAUTH
 
 logger = logging.getLogger()
 
@@ -113,3 +115,41 @@ try:
     )
 except ImportError:
     logger.info("Using default Docker config...")
+
+basedir = os.path.abspath(os.path.dirname(__file__))
+
+GITHUB_OAUTH_CLIENT_ID = os.getenv("GITHUB_OAUTH_CLIENT_ID", "")
+GITHUB_OAUTH_CLIENT_SECRET = os.getenv("GITHUB_OAUTH_CLIENT_SECRET", "")
+ROW_LIMIT = 5000
+SUPERSET_WORKERS = 4
+# TODO: add key here
+SECRET_KEY = 'a random secret key!'
+CSRF_ENABLED = True
+AUTH_TYPE = AUTH_OAUTH
+AUTH_USER_REGISTRATION = True
+AUTH_USER_REGISTRATION_ROLE = "Public"
+OAUTH_PROVIDERS = [
+    {
+        'name': 'github',
+        'token_key': 'access_token',
+        'icon': 'fa-github',
+        'remote_app': {
+            'client_id': GITHUB_OAUTH_CLIENT_ID,
+            'client_secret': GITHUB_OAUTH_CLIENT_SECRET,
+            'client_kwargs': {
+                'scope': 'read'
+            },
+            'access_token_method': 'POST',
+            'access_token_params': {
+                'client_id': GITHUB_OAUTH_CLIENT_ID
+            },
+            'access_token_headers': {
+                'Authorization': 'Basic Base64EncodedClientIdAndSecret'
+            },
+            'api_base_url': 'https://api.github.com/user',
+            'access_token_url': 'https://github.com/login/oauth/access_token',
+            'authorize_url': 'https://github.com/login/oauth/authorize',
+            'redirect_uri': 'https://localhost:8088/oauth-authorized/github'
+        }
+    }
+]
