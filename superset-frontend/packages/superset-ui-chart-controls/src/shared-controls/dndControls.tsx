@@ -166,9 +166,10 @@ export const dndAdhocMetricsControl: SharedControlConfig<
     datasource,
     datasourceType: datasource?.type,
   }),
-  description: t('Select one or many metrics to display. ' +
-                  'You can use an aggregation function on a column ' +
-                  'or write custom SQL to create a metric.'
+  description: t(
+    'Select one or many metrics to display. ' +
+'You can use an aggregation function on a column ' +
+'or write custom SQL to create a metric.'
   ),
 };
 
@@ -176,9 +177,10 @@ export const dndAdhocMetricControl: typeof dndAdhocMetricsControl = {
   ...dndAdhocMetricsControl,
   multi: false,
   label: t('Metric'),
-  description: t('Select a metric to display. ' +
-                  'You can use an aggregation function on a column ' +
-                  'or write custom SQL to create a metric.'
+  description: t(
+    'Select a metric to display. ' +
+'You can use an aggregation function on a column ' +
+'or write custom SQL to create a metric.'
   ),
 };
 
@@ -217,14 +219,16 @@ export const dndSizeControl: typeof dndAdhocMetricControl = {
 export const dndXControl: typeof dndAdhocMetricControl = {
   ...dndAdhocMetricControl,
   label: t('X Axis'),
-  description: t('The dataset column/metric that returns the values on your chart\'s x-axis.'),
+  description: t(
+    'The dataset column/metric that returns the values on your chart\'s x-axis.'),
   default: null,
 };
 
 export const dndYControl: typeof dndAdhocMetricControl = {
   ...dndAdhocMetricControl,
   label: t('Y Axis'),
-  description: t('The dataset column/metric that returns the values on your chart\'s y-axis.'),
+  description: t(
+    'The dataset column/metric that returns the values on your chart\'s y-axis.'),
   default: null,
 };
 
