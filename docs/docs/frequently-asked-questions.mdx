@@ -255,7 +255,8 @@ guarantees and are not recommended but may fit your use case temporarily:
 ### How can I see usage statistics (e.g., monthly active users)?
 
 This functionality is not included with Superset, but you can extract and analyze Superset's application
-metadata to see what actions have occurred.  One company has written about [how they analyzed Superset
+metadata to see what actions have occurred.  By default, user activities are logged in the `logs` table
+in Superset's metadata database.  One company has published a write-up of [how they analyzed Superset
 usage, including example queries](https://engineering.hometogo.com/monitor-superset-usage-via-superset-c7f9fba79525).
 
 ### What Does Hours Offset in the Edit Dataset view do?
