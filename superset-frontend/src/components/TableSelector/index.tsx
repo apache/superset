@@ -217,7 +217,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     if (database === undefined) {
       setCurrentSchema(undefined);
       setTableSelectValue(undefined);
-    }inter
+    }
   }, [database, tableSelectMode]);
 
   useEffect(() => {
@@ -247,22 +247,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     } else {
       setTableSelectValue(selectedOptions);
     }
-  };
-
-  const internalDbChange = (db: DatabaseObject) => {
-    if (onDbChange) {
-      onDbChange(db);
-    }
-  };
-
-  const internalSchemaChange = (schema?: string) => {
-    setCurrentSchema(schema);
-    if (onSchemaChange) {
-      onSchemaChange(schema);
-    }
-
-    const value = tableSelectMode === 'single' ? undefined : [];
-    internalTableChange(value);
   };
 
   const handleFilterOption = useMemo(
