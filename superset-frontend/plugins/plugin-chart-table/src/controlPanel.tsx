@@ -353,7 +353,9 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Sort descending'),
               default: true,
-              description: t('If enabled, this control sorts the results/values descending, otherwise it sorts the results ascending.'),
+              description: t(
+                'If enabled, this control sorts the results/values descending, otherwise it sorts the results ascending.'
+              ),
               visibility: isAggMode,
               resetOnHide: false,
             },
