@@ -525,7 +525,7 @@ const AsyncSelect = forwardRef(
       [ref],
     );
 
-    const pastedTextValue = useMemo(
+    const getPastedTextValue = useMemo(
       () => (text: string) => {
         const option = getOption(text, fullSelectOptions, true);
         const value: AntdLabeledValue = {
@@ -544,11 +544,11 @@ const AsyncSelect = forwardRef(
     const onPaste = (e: ClipboardEvent<HTMLInputElement>) => {
       const pastedText = e.clipboardData.getData('text');
       if (isSingleMode) {
-        setSelectValue(pastedTextValue(pastedText));
+        setSelectValue(getPastedTextValue(pastedText));
       } else {
         const token = tokenSeparators.find(token => pastedText.includes(token));
         const array = token ? uniq(pastedText.split(token)) : [pastedText];
-        const values = array.map(item => pastedTextValue(item));
+        const values = array.map(item => getPastedTextValue(item));
         setSelectValue(previous => [
           ...((previous || []) as AntdLabeledValue[]),
           ...values,
