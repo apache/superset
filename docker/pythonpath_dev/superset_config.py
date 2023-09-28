@@ -118,6 +118,8 @@ except ImportError:
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
+logger.info("Using Github auth provider")
+
 GITHUB_OAUTH_CLIENT_ID = os.getenv("GITHUB_OAUTH_CLIENT_ID", "")
 GITHUB_OAUTH_CLIENT_SECRET = os.getenv("GITHUB_OAUTH_CLIENT_SECRET", "")
 ROW_LIMIT = 5000
@@ -153,3 +155,5 @@ OAUTH_PROVIDERS = [
         }
     }
 ]
+
+
