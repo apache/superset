@@ -21,7 +21,14 @@ from typing import Any, TYPE_CHECKING
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object import QueryObject
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
-from superset.utils.core import apply_max_row_limit, DatasourceDict, DatasourceType
+from superset.utils.core import (
+  apply_max_row_limit,
+  get_xaxis_label,
+  DatasourceDict,
+  DatasourceType,
+  QueryObjectFilterClause
+)
+from superset.superset_typing import Column
 from superset.constants import NO_TIME_RANGE
 
 if TYPE_CHECKING:
@@ -62,14 +69,11 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         processed_extras = self._process_extras(extras)
         result_type = kwargs.setdefault("result_type", parent_result_type)
         row_limit = self._process_row_limit(row_limit, result_type)
-        if time_range is None:
-            for filter_object in kwargs.get("filters", []):
-                if filter_object.get("op") == "TEMPORAL_RANGE":
-                    time_range = filter_object.get("val")
-                    break
-            time_range = time_range if time_range is not None else NO_TIME_RANGE
+        processed_time_range = self._process_time_range(
+            time_range, kwargs.get("filters", []), kwargs.get("columns", [])
+        )
         from_dttm, to_dttm = get_since_until_from_time_range(
-            time_range, time_shift, processed_extras
+            processed_time_range, time_shift, processed_extras
         )
         kwargs["from_dttm"] = from_dttm
         kwargs["to_dttm"] = to_dttm
@@ -105,6 +109,24 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
             else self._config["ROW_LIMIT"]
         )
         return apply_max_row_limit(row_limit or default_row_limit)
+
+    def _process_time_range(
+            self,
+            time_range: str| None,
+            filters: list[QueryObjectFilterClause]|[],
+            columns: list[Column]|[],
+        )-> str:
+        if time_range is None:
+            time_range = NO_TIME_RANGE
+            temporal_flt = [flt for flt in filters if flt.get("op") == "TEMPORAL_RANGE"]
+            if temporal_flt:
+                xaxis_label = get_xaxis_label(columns)
+                match_flt = [flt for flt in temporal_flt if flt.get("col") == xaxis_label]
+                if match_flt:
+                    time_range = match_flt[0].get("val")
+                else:
+                    time_range = temporal_flt[0].get("val")
+        return time_range
 
     # light version of the view.utils.core
     # import view.utils require application context
