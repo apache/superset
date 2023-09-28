@@ -38,6 +38,8 @@ from superset.dashboards.permalink.commands.create import (
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorsException, SupersetException
 from superset.extensions import feature_flag_manager, machine_auth_provider_factory
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
 from superset.reports.commands.alert import AlertCommand
 from superset.reports.commands.exceptions import (
     ReportScheduleAlertGracePeriodError,
@@ -75,6 +77,7 @@ from superset.utils.core import HeaderDataType, override_user
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
+from flask_appbuilder.security.sqla.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -534,6 +537,384 @@ class BaseReportState:
 
     def next(self) -> None:
         raise NotImplementedError()
+
+
+class SingleReportExecutor:
+    def __init__(
+        self,
+        *,
+        chart: Union[Slice, None],
+        dashboard: Union[Dashboard, None],
+        name: str = '',
+        description: str = '',
+        type: ReportScheduleType,
+        report_format: ReportDataFormat,
+        owners: list[User],
+        send_to_owners: bool,
+        recipients: list[ReportRecipients],
+        force_screenshot: bool,
+        custom_width: Union[int, None] = None,
+        extra=None,
+        **kwargs,
+    ) -> None:
+        if extra is None:
+            extra = {}
+        self._force_screenshot = force_screenshot
+        self._chart = chart
+        self._dashboard = dashboard
+        self._custom_width = custom_width
+        self._custom_height = None
+        self._type = type
+        self._report_format = report_format
+        self._name = name
+        self._description = description
+        self._owners = owners
+        self._recipients = [ReportRecipients(
+                        type=recipient["type"],
+                        recipient_config_json=json.dumps(
+                            recipient["recipient_config_json"]
+                        ),
+                    ) for recipient in recipients]
+        self._extra = extra
+        self._send_to_owners = send_to_owners
+
+    def _get_url(
+        self,
+        user_friendly: bool = False,
+        result_format: Optional[ChartDataResultFormat] = None,
+        **kwargs: Any,
+    ) -> str:
+        """
+        Get the url for this report schedule: chart or dashboard
+        """
+        force = "true" if self._force_screenshot else "false"
+        if self._chart:
+            if result_format in {
+                ChartDataResultFormat.CSV,
+                ChartDataResultFormat.JSON,
+            }:
+                return get_url_path(
+                    "ChartDataRestApi.get_data",
+                    pk=self._chart.id,
+                    format=result_format.value,
+                    type=ChartDataResultType.POST_PROCESSED.value,
+                    force=force,
+                )
+            return get_url_path(
+                "ExploreView.root",
+                user_friendly=user_friendly,
+                form_data=json.dumps({"slice_id": self._chart.id}),
+                force=force,
+                **kwargs,
+            )
+
+        # If we need to render dashboard in a specific state, use stateful permalink
+        if dashboard_state := self._extra.get("dashboard"):
+            permalink_key = CreateDashboardPermalinkCommand(
+                dashboard_id=str(self._dashboard.uuid),
+                state=dashboard_state,
+            ).run()
+            return get_url_path("Superset.dashboard_permalink", key=permalink_key)
+
+        dashboard_id_or_slug = (
+            self._dashboard.uuid
+            if self._dashboard and self._dashboard.uuid
+            else self._dashboard.id
+        )
+        return get_url_path(
+            "Superset.dashboard",
+            user_friendly=user_friendly,
+            dashboard_id_or_slug=dashboard_id_or_slug,
+            force=force,
+            **kwargs,
+        )
+
+    def _get_screenshots(self) -> list[bytes]:
+        """
+        Get chart or dashboard screenshots
+        :raises: ReportScheduleScreenshotFailedError
+        """
+        url = self._get_url()
+        # _, username = get_executor(
+        #     executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
+        #     model=self._report_schedule,
+        # )
+        username = app.config["THUMBNAIL_SELENIUM_USER"]
+        user = security_manager.find_user(username)
+
+        if self._chart:
+            window_width, window_height = app.config["WEBDRIVER_WINDOW"]["slice"]
+            window_size = (
+                self._custom_width or window_width,
+                self._custom_height or window_height,
+            )
+            screenshot: Union[ChartScreenshot, DashboardScreenshot] = ChartScreenshot(
+                url,
+                self._chart.digest,
+                window_size=window_size,
+                thumb_size=app.config["WEBDRIVER_WINDOW"]["slice"],
+            )
+        else:
+            window_width, window_height = app.config["WEBDRIVER_WINDOW"]["dashboard"]
+            window_size = (
+                self._custom_width or window_width,
+                self._custom_height or window_height,
+            )
+            screenshot = DashboardScreenshot(
+                url,
+                self._dashboard.digest,
+                window_size=window_size,
+                thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
+            )
+        try:
+            image = screenshot.get_screenshot(user=user)
+        except SoftTimeLimitExceeded as ex:
+            logger.warning("A timeout occurred while taking a screenshot.")
+            raise ReportScheduleScreenshotTimeout() from ex
+        except Exception as ex:
+            raise ReportScheduleScreenshotFailedError(
+                f"Failed taking a screenshot {str(ex)}"
+            ) from ex
+        if not image:
+            raise ReportScheduleScreenshotFailedError()
+        return [image]
+
+    def _get_csv_data(self) -> bytes:
+        url = self._get_url(result_format=ChartDataResultFormat.CSV)
+        # _, username = get_executor(
+        #     executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
+        #     model=self._report_schedule,
+        # )
+        username = app.config["THUMBNAIL_SELENIUM_USER"]
+        user = security_manager.find_user(username)
+        auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
+
+        if self._chart.query_context is None:
+            logger.warning("No query context found, taking a screenshot to generate it")
+            self._update_query_context()
+
+        try:
+            logger.info("Getting chart from %s as user %s", url, user.username)
+            csv_data = get_chart_csv_data(chart_url=url, auth_cookies=auth_cookies)
+        except SoftTimeLimitExceeded as ex:
+            raise ReportScheduleCsvTimeout() from ex
+        except Exception as ex:
+            raise ReportScheduleCsvFailedError(
+                f"Failed generating csv {str(ex)}"
+            ) from ex
+        if not csv_data:
+            raise ReportScheduleCsvFailedError()
+        return csv_data
+
+    def _get_embedded_data(self) -> pd.DataFrame:
+        """
+        Return data as a Pandas dataframe, to embed in notifications as a table.
+        """
+        url = self._get_url(result_format=ChartDataResultFormat.JSON)
+        # _, username = get_executor(
+        #     executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
+        #     model=self._report_schedule,
+        # )
+        username = app.config["THUMBNAIL_SELENIUM_USER"]
+        user = security_manager.find_user(username)
+        auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
+
+        if self._chart.query_context is None:
+            logger.warning("No query context found, taking a screenshot to generate it")
+            self._update_query_context()
+
+        try:
+            logger.info("Getting chart from %s as user %s", url, user.username)
+            dataframe = get_chart_dataframe(url, auth_cookies)
+        except SoftTimeLimitExceeded as ex:
+            raise ReportScheduleDataFrameTimeout() from ex
+        except Exception as ex:
+            raise ReportScheduleDataFrameFailedError(
+                f"Failed generating dataframe {str(ex)}"
+            ) from ex
+        if dataframe is None:
+            raise ReportScheduleCsvFailedError()
+        return dataframe
+
+    def _update_query_context(self) -> None:
+        """
+        Update chart query context.
+
+        To load CSV data from the endpoint the chart must have been saved
+        with its query context. For charts without saved query context we
+        get a screenshot to force the chart to produce and save the query
+        context.
+        """
+        try:
+            self._get_screenshots()
+        except (
+            ReportScheduleScreenshotFailedError,
+            ReportScheduleScreenshotTimeout,
+        ) as ex:
+            raise ReportScheduleCsvFailedError(
+                "Unable to fetch data because the chart has no query context "
+                "saved, and an error occurred when fetching it via a screenshot. "
+                "Please try loading the chart and saving it again."
+            ) from ex
+
+    def _get_log_data(self) -> HeaderDataType:
+        chart_id = None
+        dashboard_id = None
+        report_source = None
+        if self._chart:
+            report_source = ReportSourceFormat.CHART
+            chart_id = self._chart.id
+        else:
+            report_source = ReportSourceFormat.DASHBOARD
+            dashboard_id = self._dashboard.id
+
+        log_data: HeaderDataType = {
+            "notification_type": self._type,
+            "notification_source": report_source,
+            "notification_format": self._report_format,
+            "chart_id": chart_id,
+            "dashboard_id": dashboard_id,
+            "owners": self._owners,
+        }
+        return log_data
+
+    def _get_notification_content(self) -> NotificationContent:
+        """
+        Gets a notification content, this is composed by a title and a screenshot
+
+        :raises: ReportScheduleScreenshotFailedError
+        """
+        csv_data = None
+        embedded_data = None
+        error_text = None
+        screenshot_data = []
+        header_data = self._get_log_data()
+        url = self._get_url(user_friendly=True)
+        if (
+            feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
+            or self._type == ReportScheduleType.REPORT
+        ):
+            if self._report_format == ReportDataFormat.VISUALIZATION:
+                screenshot_data = self._get_screenshots()
+                if not screenshot_data:
+                    error_text = "Unexpected missing screenshot"
+            elif self._chart and self._report_format == ReportDataFormat.DATA:
+                csv_data = self._get_csv_data()
+                if not csv_data:
+                    error_text = "Unexpected missing csv file"
+            if error_text:
+                return NotificationContent(
+                    name=self._name,
+                    text=error_text,
+                    header_data=header_data,
+                )
+
+        if self._chart and self._report_format == ReportDataFormat.TEXT:
+            embedded_data = self._get_embedded_data()
+
+        if self._chart:
+            name = f"{self._name}: " f"{self._chart.slice_name}"
+        else:
+            name = f"{self._name}: " f"{self._dashboard.dashboard_title}"
+
+        return NotificationContent(
+            name=name,
+            url=url,
+            screenshots=screenshot_data,
+            description=self._description,
+            csv=csv_data,
+            embedded_data=embedded_data,
+            header_data=header_data,
+        )
+
+    def _send(
+        self,
+        notification_content: NotificationContent,
+        recipients: list[ReportRecipients],
+    ) -> None:
+        """
+        Sends a notification to all recipients
+
+        :raises: CommandException
+        """
+        notification_errors: list[SupersetError] = []
+        for recipient in recipients:
+            notification = create_notification(recipient, notification_content)
+            try:
+                if app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"]:
+                    logger.info(
+                        "Would send notification for alert %s, to %s. "
+                        "ALERT_REPORTS_NOTIFICATION_DRY_RUN is enabled, "
+                        "set it to False to send notifications.",
+                        self._name,
+                        recipient.recipient_config_json,
+                    )
+                else:
+                    notification.send()
+            except (NotificationError, SupersetException) as ex:
+                # collect errors but keep processing them
+                notification_errors.append(
+                    SupersetError(
+                        message=ex.message,
+                        error_type=SupersetErrorType.REPORT_NOTIFICATION_ERROR,
+                        level=ErrorLevel.ERROR
+                        if ex.status >= 500
+                        else ErrorLevel.WARNING,
+                    )
+                )
+        if notification_errors:
+            # log all errors but raise based on the most severe
+            for error in notification_errors:
+                logger.warning(str(error))
+
+            if any(error.level == ErrorLevel.ERROR for error in notification_errors):
+                raise ReportScheduleSystemErrorsException(errors=notification_errors)
+            if any(error.level == ErrorLevel.WARNING for error in notification_errors):
+                raise ReportScheduleClientErrorsException(errors=notification_errors)
+
+    def send(self) -> None:
+        """
+        Creates the notification content and sends them to all recipients
+
+        :raises: CommandException
+        """
+        notification_content = self._get_notification_content()
+        if self._send_to_owners:
+            owner_recipients = [
+                ReportRecipients(
+                    type=ReportRecipientType.EMAIL,
+                    recipient_config_json=json.dumps({"target": owner.email}),
+                )
+                for owner in self._owners
+            ]
+            self._send(notification_content, owner_recipients)
+        self._send(notification_content, self._recipients)
+
+    def send_error(self, name: str, message: str) -> None:
+        """
+        Creates and sends a notification for an error, to all recipients
+
+        :raises: CommandException
+        """
+        header_data = self._get_log_data()
+        logger.info(
+            "header_data in notifications for alerts and reports %s",
+            header_data,
+        )
+        notification_content = NotificationContent(
+            name=name, text=message, header_data=header_data
+        )
+
+        # filter recipients to recipients who are also owners
+        owner_recipients = [
+            ReportRecipients(
+                type=ReportRecipientType.EMAIL,
+                recipient_config_json=json.dumps({"target": owner.email}),
+            )
+            for owner in self._owners
+        ]
+
+        self._send(notification_content, owner_recipients)
 
 
 class ReportNotTriggeredErrorState(BaseReportState):

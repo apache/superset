@@ -132,6 +132,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "favorite_status": "read",
     "add_favorite": "read",
     "remove_favorite": "read",
+    "single_report": "read",
     "thumbnail": "read",
     "import_": "write",
     "refresh": "write",

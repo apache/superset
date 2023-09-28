@@ -369,3 +369,58 @@ class ReportSchedulePutSchema(Schema):
                     max=max_width,
                 )
             )
+
+
+class SingleReportSchema(Schema):
+    type = fields.String(
+        metadata={"description": type_description},
+        required=False,
+        validate=validate.OneOf(choices=tuple(key.value for key in ReportScheduleType)),
+    )
+    name = fields.String(
+        metadata={"description": name_description},
+        required=False,
+        validate=[Length(1, 150)],
+    )
+    description = fields.String(
+        metadata={
+            "description": description_description,
+            "example": "Daily sales dashboard to marketing",
+        },
+        allow_none=True,
+        required=False,
+    )
+    context_markdown = fields.String(
+        metadata={"description": context_markdown_description},
+        allow_none=True,
+        required=False,
+    )
+    chart = fields.Integer(required=False, allow_none=True)
+    creation_method = fields.Enum(
+        ReportCreationMethod,
+        by_value=True,
+        allow_none=True,
+        metadata={"description": creation_method_description},
+    )
+    dashboard = fields.Integer(required=False, allow_none=True)
+    owners = fields.List(
+        fields.Integer(metadata={"description": owners_description}), required=False
+    )
+    send_to_owners = fields.Boolean(dump_default=False, required=False)
+    recipients = fields.List(fields.Nested(ReportRecipientSchema), required=False)
+    report_format = fields.String(
+        dump_default=ReportDataFormat.VISUALIZATION,
+        validate=validate.OneOf(choices=tuple(key.value for key in ReportDataFormat)),
+    )
+    extra = fields.Dict(dump_default=None)
+    force_screenshot = fields.Boolean(dump_default=False)
+
+    custom_width = fields.Integer(
+        metadata={
+            "description": _("Custom width of the screenshot in pixels"),
+            "example": 1000,
+        },
+        allow_none=True,
+        required=False,
+        default=None,
+    )

@@ -40,6 +40,7 @@ from superset.reports.commands.exceptions import (
     ReportScheduleNotFoundError,
     ReportScheduleUpdateFailedError,
 )
+from superset.reports.commands.single import SingleReportCommand
 from superset.reports.commands.update import UpdateReportScheduleCommand
 from superset.reports.filters import ReportScheduleAllTextFilter, ReportScheduleFilter
 from superset.reports.models import ReportSchedule
@@ -48,6 +49,7 @@ from superset.reports.schemas import (
     openapi_spec_methods_override,
     ReportSchedulePostSchema,
     ReportSchedulePutSchema,
+    SingleReportSchema,
 )
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -72,6 +74,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
+        "single_report",
     }
     class_permission_name = "ReportSchedule"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -180,6 +183,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     edit_columns = add_columns
     add_model_schema = ReportSchedulePostSchema()
     edit_model_schema = ReportSchedulePutSchema()
+    single_report_schema = SingleReportSchema()
 
     order_columns = [
         "active",
@@ -503,4 +507,80 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         except ReportScheduleForbiddenError:
             return self.response_403()
         except ReportScheduleDeleteFailedError as ex:
+            return self.response_422(message=str(ex))
+
+    @expose("/single_report", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @permission_name("read")
+    @requires_json
+    def single_report(self) -> Response:
+        """Generate a single, unscheduled report. The report's settings are not persisted.
+        ---
+        post:
+          summary: Generate a single, unscheduled report. The report's settings are not persisted
+          requestBody:
+            description: Single Report schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
+          responses:
+            201:
+              description: Report schedule added
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      id:
+                        type: number
+                      result:
+                        $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            item = self.single_report_schema.load(request.json)
+            # normally this would be covered by a decorator, however
+            # due to this model being formatted incorrectly the data
+            # needed some manipulation.
+            event_logger.log_with_context(
+                action="ReportScheduleRestApi.single_report",
+                dashboard_id=request.json.get("dashboard", None),
+                chart_id=request.json.get("chart", None),
+                report_format=request.json.get("report_format", None),
+            )
+            SingleReportCommand(item).run()
+            return self.response(200)
+        # This validates custom Schema with custom validations
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        try:
+            pass
+            # new_model = UpdateReportScheduleCommand(pk, item).run()
+            # return self.response(200, id=new_model.id, result=item)
+        except ReportScheduleNotFoundError:
+            return self.response_404()
+        except ReportScheduleInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
+        except ReportScheduleForbiddenError:
+            return self.response_403()
+        except ReportScheduleUpdateFailedError as ex:
+            logger.error(
+                "Error updating report %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
             return self.response_422(message=str(ex))

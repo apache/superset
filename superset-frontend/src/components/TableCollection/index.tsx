@@ -151,6 +151,10 @@ export const Table = styled.table`
         opacity: 0;
         font-size: ${theme.typography.sizes.xl}px;
         display: flex;
+        
+        & .anticon-send {
+          scale: 0.85;
+        }
       }
 
       &:hover {
