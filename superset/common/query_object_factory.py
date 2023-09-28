@@ -21,15 +21,15 @@ from typing import Any, TYPE_CHECKING
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object import QueryObject
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
-from superset.utils.core import (
-  apply_max_row_limit,
-  get_xaxis_label,
-  DatasourceDict,
-  DatasourceType,
-  QueryObjectFilterClause
-)
-from superset.superset_typing import Column
 from superset.constants import NO_TIME_RANGE
+from superset.superset_typing import Column
+from superset.utils.core import (
+    apply_max_row_limit,
+    DatasourceDict,
+    DatasourceType,
+    get_xaxis_label,
+    QueryObjectFilterClause,
+)
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import sessionmaker
@@ -111,17 +111,19 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         return apply_max_row_limit(row_limit or default_row_limit)
 
     def _process_time_range(
-            self,
-            time_range: str| None,
-            filters: list[QueryObjectFilterClause]|[],
-            columns: list[Column]|[],
-        )-> str:
+        self,
+        time_range: str | None,
+        filters: list[QueryObjectFilterClause] | [],
+        columns: list[Column] | [],
+    ) -> str:
         if time_range is None:
             time_range = NO_TIME_RANGE
             temporal_flt = [flt for flt in filters if flt.get("op") == "TEMPORAL_RANGE"]
             if temporal_flt:
                 xaxis_label = get_xaxis_label(columns)
-                match_flt = [flt for flt in temporal_flt if flt.get("col") == xaxis_label]
+                match_flt = [
+                    flt for flt in temporal_flt if flt.get("col") == xaxis_label
+                ]
                 if match_flt:
                     time_range = match_flt[0].get("val")
                 else:
