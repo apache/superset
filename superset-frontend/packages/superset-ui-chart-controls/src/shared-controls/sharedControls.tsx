@@ -246,8 +246,8 @@ const row_limit: SharedControlConfig<'SelectControl'> = {
   validators: [legacyValidateInteger],
   default: 10000,
   choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
-  description: t('
-    Limits the number of the rows that are computed in the query that is the source of the data used for this chart.',
+  description: t(
+    'Limits the number of the rows that are computed in the query that is the source of the data used for this chart.',
   ),
 };
 
@@ -255,8 +255,8 @@ const order_desc: SharedControlConfig<'CheckboxControl'> = {
   type: 'CheckboxControl',
   label: t('Sort Descending'),
   default: true,
-  description: t("
-    If enabled, this control sorts the results/values descending, otherwise it sorts the results ascending.",
+  description: t(
+    "If enabled, this control sorts the results/values descending, otherwise it sorts the results ascending.",
   ),
   visibility: ({ controls }) =>
     Boolean(
