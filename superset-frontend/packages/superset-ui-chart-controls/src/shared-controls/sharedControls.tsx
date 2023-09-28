@@ -255,8 +255,8 @@ const order_desc: SharedControlConfig<'CheckboxControl'> = {
   type: 'CheckboxControl',
   label: t('Sort Descending'),
   default: true,
-  description: t('
-    If enabled, this control sorts the results/values descending, otherwise it sorts the results ascending.'
+  description: t("
+    If enabled, this control sorts the results/values descending, otherwise it sorts the results ascending."
   ),
   visibility: ({ controls }) =>
     Boolean(
