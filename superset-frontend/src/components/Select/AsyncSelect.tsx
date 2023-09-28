@@ -525,8 +525,8 @@ const AsyncSelect = forwardRef(
       [ref],
     );
 
-    const getPastedTextValue = useMemo(
-      () => (text: string) => {
+    const getPastedTextValue = useCallback(
+      (text: string) => {
         const option = getOption(text, fullSelectOptions, true);
         const value: AntdLabeledValue = {
           label: text,

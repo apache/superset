@@ -532,8 +532,8 @@ const Select = forwardRef(
       actualMaxTagCount -= 1;
     }
 
-    const getPastedTextValue = useMemo(
-      () => (text: string) => {
+    const getPastedTextValue = useCallback(
+      (text: string) => {
         const option = getOption(text, fullSelectOptions, true);
         if (labelInValue) {
           const value: AntdLabeledValue = {
