@@ -22,6 +22,7 @@ from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object import QueryObject
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
 from superset.utils.core import apply_max_row_limit, DatasourceDict, DatasourceType
+from superset.constants import NO_TIME_RANGE
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import sessionmaker
@@ -65,6 +66,8 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
             for filter_object in kwargs.get("filters", []):
                 if filter_object.get("op") == "TEMPORAL_RANGE":
                     time_range = filter_object.get("val")
+                    break
+            time_range = time_range if time_range is not None else NO_TIME_RANGE
         from_dttm, to_dttm = get_since_until_from_time_range(
             time_range, time_shift, processed_extras
         )
