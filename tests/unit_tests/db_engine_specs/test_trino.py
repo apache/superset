@@ -15,12 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
-from __future__ import annotations
-
 import json
 from datetime import datetime
-from decimal import Decimal
-from typing import Any
+from typing import Any, Optional
 from unittest.mock import Mock, patch
 
 import pandas as pd
@@ -247,7 +244,7 @@ def test_auth_custom_auth_denied() -> None:
 def test_get_column_spec(
     native_type: str,
     sqla_type: type[types.TypeEngine],
-    attrs: dict[str, Any] | None,
+    attrs: Optional[dict[str, Any]],
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
@@ -276,7 +273,7 @@ def test_get_column_spec(
 )
 def test_convert_dttm(
     target_type: str,
-    expected_result: str | None,
+    expected_result: Optional[str],
     dttm: datetime,
 ) -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec
@@ -398,42 +395,3 @@ def test_execute_with_cursor_in_parallel(mocker: MockerFixture):
     mock_query.set_extra_json_key.assert_called_once_with(
         key=QUERY_CANCEL_KEY, value=query_id
     )
-
-
-@pytest.mark.parametrize(
-    "data,description,expected_result",
-    [
-        (
-            [["1.23456", "abc"]],
-            [("dec", "decimal(12,6)"), ("str", "varchar(3)")],
-            [(Decimal("1.23456"), "abc")],
-        ),
-        (
-            [[Decimal("1.23456"), "abc"]],
-            [("dec", "decimal(12,6)"), ("str", "varchar(3)")],
-            [(Decimal("1.23456"), "abc")],
-        ),
-        (
-            [[None, "abc"]],
-            [("dec", "decimal(12,6)"), ("str", "varchar(3)")],
-            [(None, "abc")],
-        ),
-        (
-            [["1.23456", "abc"]],
-            [("dec", "varchar(255)"), ("str", "varchar(3)")],
-            [["1.23456", "abc"]],
-        ),
-    ],
-)
-def test_column_type_mutator(
-    data: list[tuple[Any, ...] | list[Any]],
-    description: list[Any],
-    expected_result: list[tuple[Any, ...] | list[Any]],
-):
-    from superset.db_engine_specs.trino import TrinoEngineSpec as spec
-
-    mock_cursor = Mock()
-    mock_cursor.fetchall.return_value = data
-    mock_cursor.description = description
-
-    assert spec.fetch_data(mock_cursor) == expected_result

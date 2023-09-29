@@ -20,14 +20,12 @@ import contextlib
 import logging
 import threading
 import time
-from decimal import Decimal
-from typing import Any, Callable, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 import simplejson as json
 from flask import current_app
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import Session
-from sqlalchemy.types import DECIMAL, TypeEngine
 
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY, USER_AGENT
 from superset.databases.utils import make_url_safe
@@ -50,10 +48,6 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     engine = "trino"
     engine_name = "Trino"
     allows_alias_to_source_column = False
-
-    column_type_mutators: dict[TypeEngine, Callable[[Any], Any]] = {
-        DECIMAL: lambda val: Decimal(val) if isinstance(val, str) else val
-    }
 
     @classmethod
     def extra_table_metadata(
