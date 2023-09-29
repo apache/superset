@@ -33,10 +33,14 @@ import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 import { SAVE_TYPE_NEWDASHBOARD } from 'src/dashboard/util/constants';
 import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 import downloadAsImage from 'src/utils/downloadAsImage';
+import downloadAsPdf from 'src/utils/downloadAsPdf';
 import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
+import {
+  LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE,
+  LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF,
+} from 'src/logger/LogUtils';
 import { isFeatureEnabled } from 'src/featureFlags';
 
 const propTypes = {
@@ -89,6 +93,7 @@ const MENU_KEYS = {
   EDIT_PROPERTIES: 'edit-properties',
   EDIT_CSS: 'edit-css',
   DOWNLOAD_AS_IMAGE: 'download-as-image',
+  DOWNLOAD_AS_PDF: 'download-as-pdf',
   TOGGLE_FULLSCREEN: 'toggle-fullscreen',
   MANAGE_EMBEDDED: 'manage-embedded',
   MANAGE_EMAIL_REPORT: 'manage-email-report',
@@ -180,6 +185,23 @@ class HeaderActionsDropdown extends React.PureComponent {
           menu.style.visibility = 'visible';
         });
         this.props.logEvent?.(LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE);
+        break;
+      }
+      case MENU_KEYS.DOWNLOAD_AS_PDF: {
+        // menu closes with a delay, we need to hide it manually,
+        // so that we don't capture it on the screenshot
+        const menu = document.querySelector(
+          '.ant-dropdown:not(.ant-dropdown-hidden)',
+        );
+        menu.style.visibility = 'hidden';
+        downloadAsPdf(
+          SCREENSHOT_NODE_SELECTOR,
+          this.props.dashboardTitle,
+          true,
+        )(domEvent).then(() => {
+          menu.style.visibility = 'visible';
+        });
+        this.props.logEvent?.(LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF);
         break;
       }
       case MENU_KEYS.TOGGLE_FULLSCREEN: {
@@ -315,6 +337,14 @@ class HeaderActionsDropdown extends React.PureComponent {
             onClick={this.handleMenuClick}
           >
             {t('Download as image')}
+          </Menu.Item>
+        )}
+        {!editMode && (
+          <Menu.Item
+            key={MENU_KEYS.DOWNLOAD_AS_PDF}
+            onClick={this.handleMenuClick}
+          >
+            {t('Download as PDF')}
           </Menu.Item>
         )}
         {userCanShare && (
