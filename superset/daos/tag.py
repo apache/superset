@@ -230,6 +230,8 @@ class TagDAO(BaseDAO[Tag]):
                     "changed_on": obj.changed_on,
                     "created_by": obj.created_by_fk,
                     "creator": obj.creator(),
+                    "tags": obj.tags,
+                    "owners": obj.owners,
                 }
                 for obj in charts
             )
@@ -257,6 +259,8 @@ class TagDAO(BaseDAO[Tag]):
                     "changed_on": obj.changed_on,
                     "created_by": obj.created_by_fk,
                     "creator": obj.creator(),
+                    "tags": obj.tags,
+                    "owners": obj.owners,
                 }
                 for obj in saved_queries
             )
