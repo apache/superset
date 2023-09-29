@@ -1426,10 +1426,14 @@ TALISMAN_CONFIG = {
             "https://events.mapbox.com",
         ],
         "object-src": "'none'",
-        "style-src": ["'self'", "'unsafe-inline'"],
+        "style-src": [
+            "'self'",
+            "'unsafe-inline'",
+            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
+        ],
         "script-src": ["'self'", "'strict-dynamic'"],
     },
-    "content_security_policy_nonce_in": ["script-src", "style-src"],
+    "content_security_policy_nonce_in": ["script-src"],
     "force_https": False,
 }
 # React requires `eval` to work correctly in dev mode
@@ -1444,10 +1448,14 @@ TALISMAN_DEV_CONFIG = {
             "https://events.mapbox.com",
         ],
         "object-src": "'none'",
-        "style-src": ["'self'", "'unsafe-inline'"],
+        "style-src": [
+            "'self'",
+            "'unsafe-inline'",
+            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
+        ],
         "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
     },
-    "content_security_policy_nonce_in": ["script-src", "style-src"],
+    "content_security_policy_nonce_in": ["script-src"],
     "force_https": False,
 }
 
