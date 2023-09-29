@@ -14,3 +14,13 @@ The expected connection string is formatted as follows:
 ```
 pinot+http://<pinot-broker-host>:<pinot-broker-port>/query?controller=http://<pinot-controller-host>:<pinot-controller-port>/``
 ```
+
+### Customizing Pinot Connection
+
+The default request timeout is 5 seconds. To extend the timeout,
+add the following to the engine params:
+
+```
+engine_params:
+  {"connect_args": {"timeout": <seconds>}}
+```
