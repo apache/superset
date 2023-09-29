@@ -27,7 +27,7 @@ import {
   SET_OVERRIDE_CONFIRM,
 } from 'src/dashboard/actions/dashboardState';
 import { REMOVE_FILTER } from 'src/dashboard/actions/dashboardFilters';
-import * as featureFlags from 'src/featureFlags';
+import * as uiCore from '@superset-ui/core';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from 'src/dashboard/actions/dashboardLayout';
 import {
   DASHBOARD_GRID_ID,
@@ -145,7 +145,7 @@ describe('dashboardState actions', () => {
       let isFeatureEnabledMock;
       beforeEach(() => {
         isFeatureEnabledMock = jest
-          .spyOn(featureFlags, 'isFeatureEnabled')
+          .spyOn(uiCore, 'isFeatureEnabled')
           .mockImplementation(feature => feature === 'CONFIRM_DASHBOARD_DIFF');
       });
 

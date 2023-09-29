@@ -95,6 +95,7 @@ class MigratePivotTable(MigrateViz):
     def _pre_action(self) -> None:
         if pivot_margins := self.data.get("pivot_margins"):
             self.data["colTotals"] = pivot_margins
+            self.data["colSubTotals"] = pivot_margins
 
         if pandas_aggfunc := self.data.get("pandas_aggfunc"):
             self.data["pandas_aggfunc"] = self.aggregation_mapping[pandas_aggfunc]
@@ -124,3 +125,9 @@ class MigrateDualLine(MigrateViz):
     def _migrate_temporal_filter(self, rv_data: dict[str, Any]) -> None:
         super()._migrate_temporal_filter(rv_data)
         rv_data["adhoc_filters_b"] = rv_data.get("adhoc_filters") or []
+
+
+class MigrateSunburst(MigrateViz):
+    source_viz_type = "sunburst"
+    target_viz_type = "sunburst_v2"
+    rename_keys = {"groupby": "columns"}

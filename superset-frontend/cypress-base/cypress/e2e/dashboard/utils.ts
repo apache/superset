@@ -322,7 +322,7 @@ export function applyNativeFilterValueWithIndex(index: number, value: string) {
   cy.get(nativeFilters.filterFromDashboardView.filterValueInput)
     .eq(index)
     .should('exist', { timeout: 10000 })
-    .type(`${value}{enter}`);
+    .type(`${value}{enter}`, { force: true });
   // click the title to dismiss shown options
   cy.get(nativeFilters.filterFromDashboardView.filterName)
     .eq(index)

@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  isFeatureEnabled,
   FeatureFlag,
   getExtensionsRegistry,
   styled,
@@ -30,7 +31,6 @@ import { useQueryParams, BooleanParam } from 'use-query-params';
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 
 import Loading from 'src/components/Loading';
-import { isFeatureEnabled } from 'src/featureFlags';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler, uploadUserPerms } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -570,6 +570,9 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         filters={filters}
         initialSort={initialSort}
         loading={loading}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        refreshData={() => {}}
         pageSize={PAGE_SIZE}
       />
 

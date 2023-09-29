@@ -18,10 +18,11 @@
  */
 import React, { useState, useRef, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
+import type { Table } from 'src/SqlLab/types';
 import Collapse from 'src/components/Collapse';
 import Card from 'src/components/Card';
 import ButtonGroup from 'src/components/ButtonGroup';
-import { css, t, styled } from '@superset-ui/core';
+import { css, t, styled, useTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
 
 import {
@@ -47,16 +48,6 @@ export interface Column {
   name: string;
   keys?: { type: ColumnKeyTypeType }[];
   type: string;
-}
-
-export interface Table {
-  id: string;
-  dbId: number;
-  schema: string;
-  name: string;
-  dataPreviewQueryId?: string | null;
-  expanded?: boolean;
-  initialized?: boolean;
 }
 
 export interface TableElementProps {
@@ -111,6 +102,7 @@ const StyledCollapsePanel = styled(Collapse.Panel)`
 
 const TableElement = ({ table, ...props }: TableElementProps) => {
   const { dbId, schema, name, expanded } = table;
+  const theme = useTheme();
   const dispatch = useDispatch();
   const {
     data: tableMetadata,
@@ -262,7 +254,18 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
       );
     }
     return (
-      <ButtonGroup className="ws-el-controls">
+      <ButtonGroup
+        css={css`
+          display: flex;
+          column-gap: ${theme.gridUnit * 1.5}px;
+          margin-right: ${theme.gridUnit}px;
+          & span {
+            display: flex;
+            justify-content: center;
+            width: ${theme.gridUnit * 4}px;
+          }
+        `}
+      >
         {keyLink}
         <IconTooltip
           className={

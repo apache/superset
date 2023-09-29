@@ -313,6 +313,8 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         "is_sqllab_view",
         "template_params",
         "extra",
+        "normalize_columns",
+        "always_filter_main_dttm",
     ]
     base_filters = [["id", DatasourceFilter, lambda: []]]
     show_columns = edit_columns + ["perm", "slices"]
@@ -379,6 +381,16 @@ class TableModelView(  # pylint: disable=too-many-ancestors
             '}, "warning_markdown": "This is a warning." }`.',
             True,
         ),
+        "normalize_columns": _(
+            "Allow column names to be changed to case insensitive format, "
+            "if supported (e.g. Oracle, Snowflake)."
+        ),
+        "always_filter_main_dttm": _(
+            "Datasets can have a main temporal column (main_dttm_col), "
+            "but can also have secondary time columns. "
+            "When this attribute is true, whenever the secondary columns are filtered, "
+            "the same filter is applied to the main datetime column."
+        ),
     }
     label_columns = {
         "slices": _("Associated Charts"),
@@ -406,6 +418,7 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         "database": QuerySelectField(
             "Database",
             query_func=lambda: db.session.query(models.Database),
+            get_pk_func=lambda item: item.id,
             widget=Select2Widget(extra_classes="readonly"),
         )
     }

@@ -20,6 +20,7 @@ import React, { ReactNode } from 'react';
 import rison from 'rison';
 import querystring from 'query-string';
 import {
+  isFeatureEnabled,
   FeatureFlag,
   isDefined,
   JsonResponse,
@@ -34,7 +35,6 @@ import Button from 'src/components/Button';
 import { AsyncSelect, Steps } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { isFeatureEnabled } from 'src/featureFlags';
 
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
@@ -70,7 +70,7 @@ const denyList: string[] = bootstrapData.common.conf.VIZ_TYPE_DENYLIST || [];
 
 if (
   isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
-  !('filter_box' in denyList)
+  !denyList.includes('filter_box')
 ) {
   denyList.push('filter_box');
 }

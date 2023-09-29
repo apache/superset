@@ -33,6 +33,7 @@ import Split from 'react-split';
 import {
   css,
   FeatureFlag,
+  isFeatureEnabled,
   styled,
   t,
   useTheme,
@@ -84,7 +85,6 @@ import {
   LocalStorageKeys,
   setItem,
 } from 'src/utils/localStorageHelpers';
-import { isFeatureEnabled } from 'src/featureFlags';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { isEmpty } from 'lodash';
@@ -225,7 +225,7 @@ const SqlEditor = ({
   const { database, latestQuery, hideLeftBar } = useSelector(
     ({ sqlLab: { unsavedQueryEditor, databases, queries } }) => {
       let { dbId, latestQueryId, hideLeftBar } = queryEditor;
-      if (unsavedQueryEditor.id === queryEditor.id) {
+      if (unsavedQueryEditor?.id === queryEditor.id) {
         dbId = unsavedQueryEditor.dbId || dbId;
         latestQueryId = unsavedQueryEditor.latestQueryId || latestQueryId;
         hideLeftBar = unsavedQueryEditor.hideLeftBar || hideLeftBar;
@@ -343,6 +343,7 @@ const SqlEditor = ({
           const session = editor.getSession();
           const cursorPosition = editor.getCursorPosition();
           const totalLine = session.getLength();
+          const currentRow = editor.getFirstVisibleRow();
           let end = editor.find(';', {
             backwards: false,
             skipCurrent: true,
@@ -390,6 +391,7 @@ const SqlEditor = ({
           startQuery();
           editor.selection.clearSelection();
           editor.moveCursorToPosition(cursorPosition);
+          editor.scrollToRow(currentRow);
         },
       },
       {

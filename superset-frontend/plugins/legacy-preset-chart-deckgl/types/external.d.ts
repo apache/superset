@@ -16,32 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-declare module '@math.gl/web-mercator';
 
-declare module 'deck.gl' {
-  import { Layer, LayerProps } from '@deck.gl/core';
-
-  interface HeatmapLayerProps<T extends object = any> extends LayerProps<T> {
-    id?: string;
-    data?: T[];
-    getPosition?: (d: T) => number[] | null | undefined;
-    getWeight?: (d: T) => number | null | undefined;
-    radiusPixels?: number;
-    colorRange?: number[][];
-    threshold?: number;
-    intensity?: number;
-    aggregation?: string;
-  }
-
-  export class HeatmapLayer<T extends object = any> extends Layer<
-    T,
-    HeatmapLayerProps<T>
-  > {
-    constructor(props: HeatmapLayerProps<T>);
-  }
-}
-
-declare module '*.png' {
-  const value: any;
-  export default value;
-}
+declare module '*.png';

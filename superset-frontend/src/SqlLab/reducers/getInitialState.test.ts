@@ -17,38 +17,50 @@
  * under the License.
  */
 
+import { DEFAULT_COMMON_BOOTSTRAP_DATA } from 'src/constants';
+import { runningQuery, successfulQuery } from 'src/SqlLab/fixtures';
 import getInitialState, { dedupeTabHistory } from './getInitialState';
 
 const apiData = {
-  defaultDbId: 1,
-  common: {
-    conf: {
-      DEFAULT_SQLLAB_LIMIT: 1,
-    },
-  },
-  active_tab: null,
+  common: DEFAULT_COMMON_BOOTSTRAP_DATA,
   tab_state_ids: [],
   databases: [],
-  queries: [],
-  requested_query: null,
+  queries: {},
   user: {
     userId: 1,
     username: 'some name',
+    isActive: true,
+    isAnonymous: false,
+    firstName: 'first name',
+    lastName: 'last name',
+    permissions: {},
+    roles: {},
   },
 };
 const apiDataWithTabState = {
   ...apiData,
-  tab_state_ids: [{ id: 1 }],
-  active_tab: { id: 1, table_schemas: [] },
+  tab_state_ids: [{ id: 1, label: 'test' }],
+  active_tab: {
+    id: 1,
+    user_id: 1,
+    label: 'editor1',
+    active: true,
+    database_id: 1,
+    sql: '',
+    table_schemas: [],
+    saved_query: null,
+    template_params: null,
+    latest_query: null,
+  },
 };
 describe('getInitialState', () => {
   it('should output the user that is passed in', () => {
-    expect(getInitialState(apiData).sqlLab.user.userId).toEqual(1);
+    expect(getInitialState(apiData).user?.userId).toEqual(1);
   });
   it('should return undefined instead of null for templateParams', () => {
     expect(
-      getInitialState(apiDataWithTabState).sqlLab.queryEditors[0]
-        .templateParams,
+      getInitialState(apiDataWithTabState).sqlLab?.queryEditors?.[0]
+        ?.templateParams,
     ).toBeUndefined();
   });
 
@@ -56,13 +68,65 @@ describe('getInitialState', () => {
     it('should dedupe the tab history', () => {
       [
         { value: [], expected: [] },
-        { value: [12, 3, 4, 5, 6], expected: [12, 3, 4, 5, 6] },
-        { value: [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], expected: [1, 2] },
         {
-          value: [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3],
-          expected: [1, 2, 3],
+          value: ['12', '3', '4', '5', '6'],
+          expected: ['12', '3', '4', '5', '6'],
         },
-        { value: [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3], expected: [2, 3] },
+        {
+          value: [
+            '1',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+          ],
+          expected: ['1', '2'],
+        },
+        {
+          value: [
+            '1',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '3',
+          ],
+          expected: ['1', '2', '3'],
+        },
+        {
+          value: [
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '2',
+            '3',
+          ],
+          expected: ['2', '3'],
+        },
       ].forEach(({ value, expected }) => {
         expect(dedupeTabHistory(value)).toEqual(expected);
       });
@@ -93,6 +157,11 @@ describe('getInitialState', () => {
         ...apiData,
         active_tab: {
           id: 1,
+          user_id: 1,
+          label: 'editor1',
+          active: true,
+          database_id: 1,
+          sql: '',
           table_schemas: [
             {
               id: 1,
@@ -117,9 +186,63 @@ describe('getInitialState', () => {
               },
             },
           ],
+          saved_query: null,
+          template_params: null,
+          latest_query: null,
         },
       }).sqlLab.tables;
       expect(initializedTables.map(({ id }) => id)).toEqual([1, 2, 6]);
+    });
+
+    it('should parse the float dttm value', () => {
+      const startDttmInStr = '1693433503447.166992';
+      const endDttmInStr = '1693433503500.23132';
+
+      localStorage.setItem(
+        'redux',
+        JSON.stringify({
+          sqlLab: {
+            tables: [
+              { id: 1, name: 'test1' },
+              { id: 6, name: 'test6' },
+            ],
+            queryEditors: [{ id: 1, title: 'editor1' }],
+            queries: {
+              localStoragePersisted: {
+                ...successfulQuery,
+                id: 'localStoragePersisted',
+                startDttm: startDttmInStr,
+                endDttm: endDttmInStr,
+              },
+            },
+            tabHistory: [],
+          },
+        }),
+      );
+
+      const initializedQueries = getInitialState({
+        ...apiData,
+        queries: {
+          backendPersisted: {
+            ...runningQuery,
+            id: 'backendPersisted',
+            startDttm: startDttmInStr,
+            endDttm: endDttmInStr,
+          },
+        },
+      }).sqlLab.queries;
+      expect(initializedQueries.backendPersisted).toEqual(
+        expect.objectContaining({
+          startDttm: Number(startDttmInStr),
+          endDttm: Number(endDttmInStr),
+        }),
+      );
+      expect(initializedQueries.localStoragePersisted).toEqual(
+        expect.objectContaining({
+          startDttm: Number(startDttmInStr),
+          endDttm: Number(endDttmInStr),
+        }),
+      );
     });
   });
 });

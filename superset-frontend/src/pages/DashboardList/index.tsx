@@ -16,11 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FeatureFlag, styled, SupersetClient, t } from '@superset-ui/core';
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  styled,
+  SupersetClient,
+  t,
+} from '@superset-ui/core';
 import React, { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import rison from 'rison';
-import { isFeatureEnabled } from 'src/featureFlags';
 import {
   createFetchRelated,
   createErrorHandler,
@@ -750,10 +755,13 @@ function DashboardList(props: DashboardListProps) {
                 data={dashboards}
                 disableBulkSelect={toggleBulkSelect}
                 fetchData={fetchData}
+                refreshData={refreshData}
                 filters={filters}
                 initialSort={initialSort}
                 loading={loading}
                 pageSize={PAGE_SIZE}
+                addSuccessToast={addSuccessToast}
+                addDangerToast={addDangerToast}
                 showThumbnails={
                   userKey
                     ? userKey.thumbnails
@@ -765,6 +773,8 @@ function DashboardList(props: DashboardListProps) {
                     ? 'card'
                     : 'table'
                 }
+                enableBulkTag
+                bulkTagResourceName="dashboard"
               />
             </>
           );

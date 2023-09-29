@@ -42,11 +42,10 @@ class CreateAnnotationCommand(BaseCommand):
     def run(self) -> Model:
         self.validate()
         try:
-            annotation = AnnotationDAO.create(self._properties)
+            return AnnotationDAO.create(attributes=self._properties)
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)
             raise AnnotationCreateFailedError() from ex
-        return annotation
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []

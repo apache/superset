@@ -661,6 +661,8 @@ describe('Dashboard edit', () => {
     it('should not accept an invalid color scheme', () => {
       openAdvancedProperties();
       clearMetadata();
+      // allow console error
+      cy.allowConsoleErrors(['Error: A valid color scheme is required']);
       writeMetadata('{"color_scheme":"wrongcolorscheme"}');
       applyChanges();
       cy.get('.ant-modal-body')

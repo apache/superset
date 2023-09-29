@@ -25,6 +25,7 @@ import React, {
 } from 'react';
 import {
   css,
+  isFeatureEnabled,
   FeatureFlag,
   styled,
   SupersetClient,
@@ -41,13 +42,12 @@ import Modal from 'src/components/Modal';
 import TimezoneSelector from 'src/components/TimezoneSelector';
 import { Radio } from 'src/components/Radio';
 import { propertyComparator } from 'src/components/Select/utils';
-import { isFeatureEnabled } from 'src/featureFlags';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
 import { AntdCheckbox, AsyncSelect, Select } from 'src/components';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/features/databases/state';
-import { CustomWidthHeaderStyle } from 'src/components/ReportModal/styles';
+import { CustomWidthHeaderStyle } from 'src/features/reports/ReportModal/styles';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import {
   NotificationMethodOption,

@@ -19,7 +19,7 @@ import logging
 import re
 from datetime import datetime
 from re import Pattern
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING, TypedDict
 from urllib import parse
 
 from apispec import APISpec
@@ -32,7 +32,6 @@ from marshmallow import fields, Schema
 from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
-from typing_extensions import TypedDict
 
 from superset.constants import TimeGrain, USER_AGENT
 from superset.databases.utils import make_url_safe

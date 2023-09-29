@@ -202,6 +202,7 @@ export type DBReducerActionType =
         configuration_method: CONFIGURATION_METHOD;
         engine_information?: {};
         driver?: string;
+        sqlalchemy_uri_placeholder?: string;
       };
     }
   | {
@@ -666,12 +667,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const getPlaceholder = (field: string) => {
     if (field === 'database') {
-      switch (db?.engine) {
-        case Engines.Snowflake:
-          return t('e.g. xy12345.us-east-2.aws');
-        default:
-          return t('e.g. world_population');
-      }
+      return t('e.g. world_population');
     }
     return undefined;
   };
@@ -946,8 +942,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       const selectedDbModel = availableDbs?.databases.filter(
         (db: DatabaseObject) => db.name === database_name,
       )[0];
-      const { engine, parameters, engine_information, default_driver } =
-        selectedDbModel;
+      const {
+        engine,
+        parameters,
+        engine_information,
+        default_driver,
+        sqlalchemy_uri_placeholder,
+      } = selectedDbModel;
       const isDynamic = parameters !== undefined;
       setDB({
         type: ActionType.dbSelected,
@@ -959,6 +960,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             : CONFIGURATION_METHOD.SQLALCHEMY_URI,
           engine_information,
           driver: default_driver,
+          sqlalchemy_uri_placeholder,
         },
       });
 
