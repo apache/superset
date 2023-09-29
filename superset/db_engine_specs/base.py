@@ -461,7 +461,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         connect_args: dict[str, Any],
     ) -> str | None:
         """
-        Return the schema configured in a SQLALchemy URI and connection argments, if any.
+        Return the schema configured in a SQLALchemy URI and connection arguments, if any.
         """
         return None
 
@@ -1144,7 +1144,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         connection arguments.
 
         For example, in order to specify a default schema in RDS we need to run a query
-        at the beggining of the session:
+        at the beginning of the session:
 
             sql> set search_path = my_schema;
 

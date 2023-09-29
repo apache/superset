@@ -53,7 +53,14 @@ export type InitialState = {
     extra_json?: object;
   };
   databases: object[];
-  queries: Record<string, QueryResponse & { inLocalStorage?: boolean }>;
+  queries: Record<
+    string,
+    Omit<QueryResponse, 'startDttm' | 'endDttm'> & {
+      startDttm: number | string;
+      endDttm: number | string;
+      inLocalStorage?: boolean;
+    }
+  >;
   tab_state_ids: {
     id: number;
     label: string;

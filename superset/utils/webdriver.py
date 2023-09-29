@@ -249,7 +249,7 @@ class WebDriverProxy:
             )
         except WebDriverException:
             logger.exception(
-                "Encountered an unexpected error when requeating url %s", url
+                "Encountered an unexpected error when requesting url %s", url
             )
         finally:
             self.destroy(driver, current_app.config["SCREENSHOT_SELENIUM_RETRIES"])

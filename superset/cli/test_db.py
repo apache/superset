@@ -125,7 +125,7 @@ def test_datetime(console: Console, engine: Engine) -> None:
         stmt = select(table)
         row = engine.execute(stmt).fetchone()
         assert row[0] == now
-        console.print(":thumbs_up: [green]Succcess!")
+        console.print(":thumbs_up: [green]Success!")
     except Exception as ex:  # pylint: disable=broad-except
         console.print(f"[red]Test failed: {ex}")
         console.print("[bold]Exiting...")

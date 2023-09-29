@@ -28,6 +28,7 @@ class VizType(str, Enum):
     DUAL_LINE = "dual_line"
     AREA = "area"
     PIVOT_TABLE = "pivot_table"
+    SUNBURST = "sunburst"
 
 
 @click.group()
@@ -76,6 +77,7 @@ def migrate(viz_type: VizType, is_downgrade: bool = False) -> None:
         MigrateAreaChart,
         MigrateDualLine,
         MigratePivotTable,
+        MigrateSunburst,
         MigrateTreeMap,
     )
 
@@ -84,6 +86,7 @@ def migrate(viz_type: VizType, is_downgrade: bool = False) -> None:
         VizType.DUAL_LINE: MigrateDualLine,
         VizType.AREA: MigrateAreaChart,
         VizType.PIVOT_TABLE: MigratePivotTable,
+        VizType.SUNBURST: MigrateSunburst,
     }
     if is_downgrade:
         migrations[viz_type].downgrade(db.session)

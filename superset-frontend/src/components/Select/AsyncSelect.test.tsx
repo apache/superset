@@ -858,6 +858,45 @@ test('does not duplicate options when using numeric values', async () => {
   await waitFor(() => expect(getAllSelectOptions().length).toBe(1));
 });
 
+test('pasting an existing option does not duplicate it', async () => {
+  const options = jest.fn(async () => ({
+    data: [OPTIONS[0]],
+    totalCount: 1,
+  }));
+  render(<AsyncSelect {...defaultProps} options={options} />);
+  await open();
+  const input = getElementByClassName('.ant-select-selection-search-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => OPTIONS[0].label,
+    },
+  });
+  fireEvent(input, paste);
+  expect(await findAllSelectOptions()).toHaveLength(1);
+});
+
+test('pasting an existing option does not duplicate it in multiple mode', async () => {
+  const options = jest.fn(async () => ({
+    data: [
+      { label: 'John', value: 1 },
+      { label: 'Liam', value: 2 },
+      { label: 'Olivia', value: 3 },
+    ],
+    totalCount: 3,
+  }));
+  render(<AsyncSelect {...defaultProps} options={options} mode="multiple" />);
+  await open();
+  const input = getElementByClassName('.ant-select-selection-search-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => 'John,Liam,Peter',
+    },
+  });
+  fireEvent(input, paste);
+  // Only Peter should be added
+  expect(await findAllSelectOptions()).toHaveLength(4);
+});
+
 /*
  TODO: Add tests that require scroll interaction. Needs further investigation.
  - Fetches more data when scrolling and more data is available
