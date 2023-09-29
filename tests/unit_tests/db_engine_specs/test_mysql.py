@@ -227,24 +227,24 @@ def test_get_schema_from_engine_params() -> None:
     "data,description,expected_result",
     [
         (
-            [["1.23456", "abc"]],
+            [("1.23456", "abc")],
             [("dec", "decimal(12,6)"), ("str", "varchar(3)")],
             [(Decimal("1.23456"), "abc")],
         ),
         (
-            [[Decimal("1.23456"), "abc"]],
+            [(Decimal("1.23456"), "abc")],
             [("dec", "decimal(12,6)"), ("str", "varchar(3)")],
             [(Decimal("1.23456"), "abc")],
         ),
         (
-            [[None, "abc"]],
+            [(None, "abc")],
             [("dec", "decimal(12,6)"), ("str", "varchar(3)")],
             [(None, "abc")],
         ),
         (
-            [["1.23456", "abc"]],
+            [("1.23456", "abc")],
             [("dec", "varchar(255)"), ("str", "varchar(3)")],
-            [["1.23456", "abc"]],
+            [("1.23456", "abc")],
         ),
     ],
 )
@@ -253,7 +253,7 @@ def test_column_type_mutator(
     description: list[Any],
     expected_result: list[tuple[Any, ...]],
 ):
-    from superset.db_engine_specs.trino import TrinoEngineSpec as spec
+    from superset.db_engine_specs.mysql import MySQLEngineSpec as spec
 
     mock_cursor = Mock()
     mock_cursor.fetchall.return_value = data
