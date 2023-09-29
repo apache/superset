@@ -296,7 +296,8 @@ class TestDatabaseModel(SupersetTestCase):
         db = get_example_database()
         table_name = "energy_usage"
         sql = db.select_star(table_name, show_cols=False, latest_partition=False)
-        quote = db.inspector.engine.dialect.identifier_preparer.quote_identifier
+        with db.get_sqla_engine_with_context() as engine:
+            quote = engine.dialect.identifier_preparer.quote_identifier
         expected = (
             textwrap.dedent(
                 f"""\
@@ -417,14 +418,14 @@ class TestSqlaTableModel(SupersetTestCase):
         assert str(sqla_literal.compile()) == "ds"
 
         sqla_literal = ds_col.get_timestamp_expression("P1D")
-        compiled = "{}".format(sqla_literal.compile())
+        compiled = f"{sqla_literal.compile()}"
         if tbl.database.backend == "mysql":
             assert compiled == "DATE(ds)"
 
         prev_ds_expr = ds_col.expression
         ds_col.expression = "DATE_ADD(ds, 1)"
         sqla_literal = ds_col.get_timestamp_expression("P1D")
-        compiled = "{}".format(sqla_literal.compile())
+        compiled = f"{sqla_literal.compile()}"
         if tbl.database.backend == "mysql":
             assert compiled == "DATE(DATE_ADD(ds, 1))"
         ds_col.expression = prev_ds_expr
@@ -437,20 +438,20 @@ class TestSqlaTableModel(SupersetTestCase):
         ds_col.expression = None
         ds_col.python_date_format = "epoch_s"
         sqla_literal = ds_col.get_timestamp_expression(None)
-        compiled = "{}".format(sqla_literal.compile())
+        compiled = f"{sqla_literal.compile()}"
         if tbl.database.backend == "mysql":
             self.assertEqual(compiled, "from_unixtime(ds)")
 
         ds_col.python_date_format = "epoch_s"
         sqla_literal = ds_col.get_timestamp_expression("P1D")
-        compiled = "{}".format(sqla_literal.compile())
+        compiled = f"{sqla_literal.compile()}"
         if tbl.database.backend == "mysql":
             self.assertEqual(compiled, "DATE(from_unixtime(ds))")
 
         prev_ds_expr = ds_col.expression
         ds_col.expression = "DATE_ADD(ds, 1)"
         sqla_literal = ds_col.get_timestamp_expression("P1D")
-        compiled = "{}".format(sqla_literal.compile())
+        compiled = f"{sqla_literal.compile()}"
         if tbl.database.backend == "mysql":
             self.assertEqual(compiled, "DATE(from_unixtime(DATE_ADD(ds, 1)))")
         ds_col.expression = prev_ds_expr
@@ -671,3 +672,8 @@ class TestSqlaTableModel(SupersetTestCase):
 
         # clean up and auto commit
         metadata_db.session.delete(slc)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_table_column_database(self) -> None:
+        tbl = self.get_table(name="birth_names")
+        assert tbl.get_column("ds").database is tbl.database  # type: ignore

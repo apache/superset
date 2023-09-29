@@ -20,8 +20,7 @@ import json
 import pickle
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from enum import Enum
-from typing import Any, Optional, TypedDict
+from typing import Any, TypedDict
 from uuid import UUID
 
 from marshmallow import Schema, ValidationError
@@ -30,28 +29,29 @@ from superset.key_value.exceptions import (
     KeyValueCodecDecodeException,
     KeyValueCodecEncodeException,
 )
+from superset.utils.backports import StrEnum
 
 
 @dataclass
 class Key:
-    id: Optional[int]
-    uuid: Optional[UUID]
+    id: int | None
+    uuid: UUID | None
 
 
 class KeyValueFilter(TypedDict, total=False):
     resource: str
-    id: Optional[int]
-    uuid: Optional[UUID]
+    id: int | None
+    uuid: UUID | None
 
 
-class KeyValueResource(str, Enum):
+class KeyValueResource(StrEnum):
     APP = "app"
     DASHBOARD_PERMALINK = "dashboard_permalink"
     EXPLORE_PERMALINK = "explore_permalink"
     METASTORE_CACHE = "superset_metastore_cache"
 
 
-class SharedKey(str, Enum):
+class SharedKey(StrEnum):
     DASHBOARD_PERMALINK_SALT = "dashboard_permalink_salt"
     EXPLORE_PERMALINK_SALT = "explore_permalink_salt"
 

@@ -20,7 +20,7 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Dict, Optional, Type, Union
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pandas as pd
@@ -60,7 +60,7 @@ from tests.unit_tests.fixtures.common import dttm
         ),
     ],
 )
-def test_get_extra_params(extra: Dict[str, Any], expected: Dict[str, Any]) -> None:
+def test_get_extra_params(extra: dict[str, Any], expected: dict[str, Any]) -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
     database = Mock()
@@ -98,7 +98,7 @@ def test_auth_basic(mock_auth: Mock) -> None:
         {"auth_method": "basic", "auth_params": auth_params}
     )
 
-    params: Dict[str, Any] = {}
+    params: dict[str, Any] = {}
     TrinoEngineSpec.update_params_from_encrypted_extra(database, params)
     connect_args = params.setdefault("connect_args", {})
     assert connect_args.get("http_scheme") == "https"
@@ -120,7 +120,7 @@ def test_auth_kerberos(mock_auth: Mock) -> None:
         {"auth_method": "kerberos", "auth_params": auth_params}
     )
 
-    params: Dict[str, Any] = {}
+    params: dict[str, Any] = {}
     TrinoEngineSpec.update_params_from_encrypted_extra(database, params)
     connect_args = params.setdefault("connect_args", {})
     assert connect_args.get("http_scheme") == "https"
@@ -137,7 +137,7 @@ def test_auth_certificate(mock_auth: Mock) -> None:
         {"auth_method": "certificate", "auth_params": auth_params}
     )
 
-    params: Dict[str, Any] = {}
+    params: dict[str, Any] = {}
     TrinoEngineSpec.update_params_from_encrypted_extra(database, params)
     connect_args = params.setdefault("connect_args", {})
     assert connect_args.get("http_scheme") == "https"
@@ -155,7 +155,7 @@ def test_auth_jwt(mock_auth: Mock) -> None:
         {"auth_method": "jwt", "auth_params": auth_params}
     )
 
-    params: Dict[str, Any] = {}
+    params: dict[str, Any] = {}
     TrinoEngineSpec.update_params_from_encrypted_extra(database, params)
     connect_args = params.setdefault("connect_args", {})
     assert connect_args.get("http_scheme") == "https"
@@ -179,7 +179,7 @@ def test_auth_custom_auth() -> None:
         {"trino": {"custom_auth": auth_class}},
         clear=True,
     ):
-        params: Dict[str, Any] = {}
+        params: dict[str, Any] = {}
         TrinoEngineSpec.update_params_from_encrypted_extra(database, params)
 
         connect_args = params.setdefault("connect_args", {})
@@ -246,8 +246,8 @@ def test_auth_custom_auth_denied() -> None:
 )
 def test_get_column_spec(
     native_type: str,
-    sqla_type: Type[types.TypeEngine],
-    attrs: Optional[Dict[str, Any]],
+    sqla_type: type[types.TypeEngine],
+    attrs: dict[str, Any] | None,
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
@@ -276,7 +276,7 @@ def test_get_column_spec(
 )
 def test_convert_dttm(
     target_type: str,
-    expected_result: Optional[str],
+    expected_result: str | None,
     dttm: datetime,
 ) -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec
@@ -327,8 +327,8 @@ def test_cancel_query_failed(engine_mock: Mock) -> None:
     ],
 )
 def test_prepare_cancel_query(
-    initial_extra: Dict[str, Any],
-    final_extra: Dict[str, Any],
+    initial_extra: dict[str, Any],
+    final_extra: dict[str, Any],
     mocker: MockerFixture,
 ) -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec
@@ -355,7 +355,7 @@ def test_handle_cursor_early_cancel(
     query_id = "myQueryId"
 
     cursor_mock = engine_mock.return_value.__enter__.return_value
-    cursor_mock.stats = {"queryId": query_id}
+    cursor_mock.query_id = query_id
     session_mock = mocker.MagicMock()
 
     query = Query()
@@ -369,6 +369,35 @@ def test_handle_cursor_early_cancel(
         assert cancel_query_mock.call_args[1]["cancel_query_id"] == query_id
     else:
         assert cancel_query_mock.call_args is None
+
+
+def test_execute_with_cursor_in_parallel(mocker: MockerFixture):
+    """Test that `execute_with_cursor` fetches query ID from the cursor"""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    query_id = "myQueryId"
+
+    mock_cursor = mocker.MagicMock()
+    mock_cursor.query_id = None
+
+    mock_query = mocker.MagicMock()
+    mock_session = mocker.MagicMock()
+
+    def _mock_execute(*args, **kwargs):
+        mock_cursor.query_id = query_id
+
+    mock_cursor.execute.side_effect = _mock_execute
+
+    TrinoEngineSpec.execute_with_cursor(
+        cursor=mock_cursor,
+        sql="SELECT 1 FROM foo",
+        query=mock_query,
+        session=mock_session,
+    )
+
+    mock_query.set_extra_json_key.assert_called_once_with(
+        key=QUERY_CANCEL_KEY, value=query_id
+    )
 
 
 @pytest.mark.parametrize(
@@ -397,9 +426,9 @@ def test_handle_cursor_early_cancel(
     ],
 )
 def test_column_type_mutator(
-    data: list[Union[tuple[Any, ...], list[Any]]],
+    data: list[tuple[Any, ...] | list[Any]],
     description: list[Any],
-    expected_result: list[Union[tuple[Any, ...], list[Any]]],
+    expected_result: list[tuple[Any, ...] | list[Any]],
 ):
     from superset.db_engine_specs.trino import TrinoEngineSpec as spec
 

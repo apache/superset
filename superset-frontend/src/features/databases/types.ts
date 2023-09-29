@@ -52,6 +52,7 @@ export type DatabaseObject = {
   name: string; // synonym to database_name
   paramProperties?: Record<string, any>;
   sqlalchemy_uri?: string;
+  sqlalchemy_uri_placeholder?: string;
   parameters?: {
     access_token?: string;
     database_name?: string;
@@ -69,6 +70,7 @@ export type DatabaseObject = {
     warehouse?: string;
     role?: string;
     account?: string;
+    ssh?: boolean;
   };
 
   // Performance

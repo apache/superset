@@ -17,7 +17,7 @@
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import Any, List, Optional, Union
+from typing import Any, Optional, Union
 from uuid import UUID
 
 import pandas as pd
@@ -28,6 +28,10 @@ from superset import app, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import CommandException
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.daos.report import (
+    REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
+    ReportScheduleDAO,
+)
 from superset.dashboards.permalink.commands.create import (
     CreateDashboardPermalinkCommand,
 )
@@ -51,10 +55,6 @@ from superset.reports.commands.exceptions import (
     ReportScheduleSystemErrorsException,
     ReportScheduleUnexpectedError,
     ReportScheduleWorkingTimeoutError,
-)
-from superset.reports.dao import (
-    REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
-    ReportScheduleDAO,
 )
 from superset.reports.models import (
     ReportDataFormat,
@@ -80,7 +80,7 @@ logger = logging.getLogger(__name__)
 
 
 class BaseReportState:
-    current_states: List[ReportState] = []
+    current_states: list[ReportState] = []
     initial: bool = False
 
     def __init__(
@@ -195,7 +195,7 @@ class BaseReportState:
             **kwargs,
         )
 
-    def _get_screenshots(self) -> List[bytes]:
+    def _get_screenshots(self) -> list[bytes]:
         """
         Get chart or dashboard screenshots
         :raises: ReportScheduleScreenshotFailedError
@@ -206,18 +206,29 @@ class BaseReportState:
             model=self._report_schedule,
         )
         user = security_manager.find_user(username)
+
         if self._report_schedule.chart:
+            window_width, window_height = app.config["WEBDRIVER_WINDOW"]["slice"]
+            window_size = (
+                self._report_schedule.custom_width or window_width,
+                self._report_schedule.custom_height or window_height,
+            )
             screenshot: Union[ChartScreenshot, DashboardScreenshot] = ChartScreenshot(
                 url,
                 self._report_schedule.chart.digest,
-                window_size=app.config["WEBDRIVER_WINDOW"]["slice"],
+                window_size=window_size,
                 thumb_size=app.config["WEBDRIVER_WINDOW"]["slice"],
             )
         else:
+            window_width, window_height = app.config["WEBDRIVER_WINDOW"]["dashboard"]
+            window_size = (
+                self._report_schedule.custom_width or window_width,
+                self._report_schedule.custom_height or window_height,
+            )
             screenshot = DashboardScreenshot(
                 url,
                 self._report_schedule.dashboard.digest,
-                window_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
+                window_size=window_size,
                 thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
             )
         try:
@@ -394,14 +405,14 @@ class BaseReportState:
     def _send(
         self,
         notification_content: NotificationContent,
-        recipients: List[ReportRecipients],
+        recipients: list[ReportRecipients],
     ) -> None:
         """
         Sends a notification to all recipients
 
         :raises: CommandException
         """
-        notification_errors: List[SupersetError] = []
+        notification_errors: list[SupersetError] = []
         for recipient in recipients:
             notification = create_notification(recipient, notification_content)
             try:
@@ -723,9 +734,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             except Exception as ex:
                 raise ReportScheduleUnexpectedError(str(ex)) from ex
 
-    def validate(  # pylint: disable=arguments-differ
-        self, session: Session = None
-    ) -> None:
+    def validate(self, session: Session = None) -> None:
         # Validate/populate model exists
         logger.info(
             "session is validated: id %s, executionid: %s",

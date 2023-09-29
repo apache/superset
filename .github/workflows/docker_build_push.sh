@@ -43,13 +43,50 @@ cat<<EOF
   - ${REPO_NAME}:${LATEST_TAG}
 EOF
 
+if [ -z "${DOCKERHUB_TOKEN}" ]; then
+  # Skip if secrets aren't populated -- they're only visible for actions running in the repo (not on forks)
+  echo "Skipping Docker push"
+  # By default load it back
+  DOCKER_ARGS="--load"
+  ARCHITECTURE_FOR_BUILD="linux/amd64 linux/arm64"
+else
+  # Login and push
+  docker logout
+  docker login --username "${DOCKERHUB_USER}" --password "${DOCKERHUB_TOKEN}"
+  DOCKER_ARGS="--push"
+  ARCHITECTURE_FOR_BUILD="linux/amd64,linux/arm64"
+fi
+set -x
+
+#
+# Build the dev image
+#
+docker buildx build --target dev \
+  $DOCKER_ARGS \
+  --cache-from=type=registry,ref=apache/superset:master-dev \
+  --cache-from=type=local,src=/tmp/superset \
+  --cache-to=type=local,ignore-error=true,dest=/tmp/superset \
+  -t "${REPO_NAME}:${SHA}-dev" \
+  -t "${REPO_NAME}:${REFSPEC}-dev" \
+  -t "${REPO_NAME}:${LATEST_TAG}-dev" \
+  --platform linux/amd64 \
+  --label "sha=${SHA}" \
+  --label "built_at=$(date)" \
+  --label "target=dev" \
+  --label "build_actor=${GITHUB_ACTOR}" \
+  .
+
 #
 # Build the "lean" image
 #
-docker build --target lean \
+docker buildx build --target lean \
+  $DOCKER_ARGS \
+  --cache-from=type=local,src=/tmp/superset \
+  --cache-to=type=local,ignore-error=true,dest=/tmp/superset \
   -t "${REPO_NAME}:${SHA}" \
   -t "${REPO_NAME}:${REFSPEC}" \
   -t "${REPO_NAME}:${LATEST_TAG}" \
+  --platform linux/amd64 \
   --label "sha=${SHA}" \
   --label "built_at=$(date)" \
   --label "target=lean" \
@@ -59,24 +96,31 @@ docker build --target lean \
 #
 # Build the "lean310" image
 #
-docker build --target lean \
+docker buildx build --target lean \
+  $DOCKER_ARGS \
+  --cache-from=type=local,src=/tmp/superset \
+  --cache-to=type=local,ignore-error=true,dest=/tmp/superset \
   -t "${REPO_NAME}:${SHA}-py310" \
   -t "${REPO_NAME}:${REFSPEC}-py310" \
   -t "${REPO_NAME}:${LATEST_TAG}-py310" \
-  --build-arg PY_VER="3.10-slim"\
+  --platform linux/amd64 \
+  --build-arg PY_VER="3.10-slim-bookworm"\
   --label "sha=${SHA}" \
   --label "built_at=$(date)" \
   --label "target=lean310" \
   --label "build_actor=${GITHUB_ACTOR}" \
   .
-
+for BUILD_PLATFORM in $ARCHITECTURE_FOR_BUILD; do
 #
 # Build the "websocket" image
 #
-docker build \
+docker buildx build \
+  $DOCKER_ARGS \
+  --cache-from=type=registry,ref=apache/superset:master-websocket \
   -t "${REPO_NAME}:${SHA}-websocket" \
   -t "${REPO_NAME}:${REFSPEC}-websocket" \
   -t "${REPO_NAME}:${LATEST_TAG}-websocket" \
+  --platform ${BUILD_PLATFORM} \
   --label "sha=${SHA}" \
   --label "built_at=$(date)" \
   --label "target=websocket" \
@@ -84,24 +128,16 @@ docker build \
   superset-websocket
 
 #
-# Build the dev image
+# Build the dockerize image
 #
-docker build --target dev \
-  -t "${REPO_NAME}:${SHA}-dev" \
-  -t "${REPO_NAME}:${REFSPEC}-dev" \
-  -t "${REPO_NAME}:${LATEST_TAG}-dev" \
+docker buildx build \
+  $DOCKER_ARGS \
+  --cache-from=type=registry,ref=apache/superset:dockerize \
+  -t "${REPO_NAME}:dockerize" \
+  --platform ${BUILD_PLATFORM} \
   --label "sha=${SHA}" \
   --label "built_at=$(date)" \
-  --label "target=dev" \
   --label "build_actor=${GITHUB_ACTOR}" \
+  -f dockerize.Dockerfile \
   .
-
-if [ -z "${DOCKERHUB_TOKEN}" ]; then
-  # Skip if secrets aren't populated -- they're only visible for actions running in the repo (not on forks)
-  echo "Skipping Docker push"
-else
-  # Login and push
-  docker logout
-  docker login --username "${DOCKERHUB_USER}" --password "${DOCKERHUB_TOKEN}"
-  docker push --all-tags "${REPO_NAME}"
-fi
+done

@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import itertools
-import json
 from unittest.mock import MagicMock, patch
 
 import pytest

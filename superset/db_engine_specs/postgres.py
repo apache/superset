@@ -14,12 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+from __future__ import annotations
+
 import json
 import logging
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Pattern, Set, Tuple, TYPE_CHECKING
+from re import Pattern
+from typing import Any, TYPE_CHECKING
 
+import sqlparse
 from flask_babel import gettext as __
 from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
@@ -27,9 +32,10 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.types import Date, DateTime, String
 
+from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
-from superset.errors import SupersetErrorType
-from superset.exceptions import SupersetException
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.sql_lab import Query
 from superset.utils import core as utils
 from superset.utils.core import GenericDataType
@@ -73,7 +79,7 @@ COLUMN_DOES_NOT_EXIST_REGEX = re.compile(
 SYNTAX_ERROR_REGEX = re.compile('syntax error at or near "(?P<syntax_error>.*?)"')
 
 
-def parse_options(connect_args: Dict[str, Any]) -> Dict[str, str]:
+def parse_options(connect_args: dict[str, Any]) -> dict[str, str]:
     """
     Parse ``options`` from  ``connect_args`` into a dictionary.
     """
@@ -99,17 +105,17 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "DATE_TRUNC('second', {col})",
-        "PT1M": "DATE_TRUNC('minute', {col})",
-        "PT1H": "DATE_TRUNC('hour', {col})",
-        "P1D": "DATE_TRUNC('day', {col})",
-        "P1W": "DATE_TRUNC('week', {col})",
-        "P1M": "DATE_TRUNC('month', {col})",
-        "P3M": "DATE_TRUNC('quarter', {col})",
-        "P1Y": "DATE_TRUNC('year', {col})",
+        TimeGrain.SECOND: "DATE_TRUNC('second', {col})",
+        TimeGrain.MINUTE: "DATE_TRUNC('minute', {col})",
+        TimeGrain.HOUR: "DATE_TRUNC('hour', {col})",
+        TimeGrain.DAY: "DATE_TRUNC('day', {col})",
+        TimeGrain.WEEK: "DATE_TRUNC('week', {col})",
+        TimeGrain.MONTH: "DATE_TRUNC('month', {col})",
+        TimeGrain.QUARTER: "DATE_TRUNC('quarter', {col})",
+        TimeGrain.YEAR: "DATE_TRUNC('year', {col})",
     }
 
-    custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
+    custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         CONNECTION_INVALID_USERNAME_REGEX: (
             __('The username "%(username)s" does not exist.'),
             SupersetErrorType.CONNECTION_INVALID_USERNAME_ERROR,
@@ -167,9 +173,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
-    def fetch_data(
-        cls, cursor: Any, limit: Optional[int] = None
-    ) -> List[Tuple[Any, ...]]:
+    def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
         if not cursor.description:
             return []
         return super().fetch_data(cursor, limit)
@@ -221,8 +225,8 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
     def get_schema_from_engine_params(
         cls,
         sqlalchemy_uri: URL,
-        connect_args: Dict[str, Any],
-    ) -> Optional[str]:
+        connect_args: dict[str, Any],
+    ) -> str | None:
         """
         Return the configured schema.
 
@@ -235,12 +239,15 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         in Superset because it breaks schema-level permissions, since it's impossible
         to determine the schema for a non-qualified table in a query. In cases like
         that we raise an exception.
+
+        Note that because the DB engine supports dynamic schema this method is never
+        called. It's left here as an implementation reference.
         """
         options = parse_options(connect_args)
         if search_path := options.get("search_path"):
             schemas = search_path.split(",")
             if len(schemas) > 1:
-                raise Exception(
+                raise Exception(  # pylint: disable=broad-exception-raised
                     "Multiple schemas are configured in the search path, which means "
                     "Superset is unable to determine the schema of unqualified table "
                     "names and enforce permissions."
@@ -250,30 +257,57 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         return None
 
     @classmethod
-    def adjust_engine_params(
+    def get_default_schema_for_query(
         cls,
-        uri: URL,
-        connect_args: Dict[str, Any],
-        catalog: Optional[str] = None,
-        schema: Optional[str] = None,
-    ) -> Tuple[URL, Dict[str, Any]]:
-        if not schema:
-            return uri, connect_args
+        database: Database,
+        query: Query,
+    ) -> str | None:
+        """
+        Return the default schema for a given query.
 
-        options = parse_options(connect_args)
-        options["search_path"] = schema
-        connect_args["options"] = " ".join(
-            f"-c{key}={value}" for key, value in options.items()
-        )
+        This method simply uses the parent method after checking that there are no
+        malicious path setting in the query.
+        """
+        sql = sqlparse.format(query.sql, strip_comments=True)
+        if re.search(r"set\s+search_path\s*=", sql, re.IGNORECASE):
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+                    message=__(
+                        "Users are not allowed to set a search path for security reasons."
+                    ),
+                    level=ErrorLevel.ERROR,
+                )
+            )
 
-        return uri, connect_args
+        return super().get_default_schema_for_query(database, query)
 
     @classmethod
-    def get_allow_cost_estimate(cls, extra: Dict[str, Any]) -> bool:
+    def get_prequeries(
+        cls,
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> list[str]:
+        """
+        Set the search path to the specified schema.
+
+        This is important for two reasons: in SQL Lab it will allow queries to run in
+        the schema selected in the dropdown, resolving unqualified table names to the
+        expected schema.
+
+        But more importantly, in SQL Lab this is used to check if the user has access to
+        any tables with unqualified names. If the schema is not set by SQL Lab it could
+        be anything, and we would have to block users from running any queries
+        referencing tables without an explicit schema.
+        """
+        return [f'set search_path = "{schema}"'] if schema else []
+
+    @classmethod
+    def get_allow_cost_estimate(cls, extra: dict[str, Any]) -> bool:
         return True
 
     @classmethod
-    def estimate_statement_cost(cls, statement: str, cursor: Any) -> Dict[str, Any]:
+    def estimate_statement_cost(cls, statement: str, cursor: Any) -> dict[str, Any]:
         sql = f"EXPLAIN {statement}"
         cursor.execute(sql)
 
@@ -289,16 +323,16 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
 
     @classmethod
     def query_cost_formatter(
-        cls, raw_cost: List[Dict[str, Any]]
-    ) -> List[Dict[str, str]]:
+        cls, raw_cost: list[dict[str, Any]]
+    ) -> list[dict[str, str]]:
         return [{k: str(v) for k, v in row.items()} for row in raw_cost]
 
     @classmethod
     def get_catalog_names(
         cls,
-        database: "Database",
+        database: Database,
         inspector: Inspector,
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Return all catalogs.
 
@@ -316,8 +350,8 @@ WHERE datistemplate = false;
 
     @classmethod
     def get_table_names(
-        cls, database: "Database", inspector: PGInspector, schema: Optional[str]
-    ) -> Set[str]:
+        cls, database: Database, inspector: PGInspector, schema: str | None
+    ) -> set[str]:
         """Need to consider foreign tables for PostgreSQL"""
         return set(inspector.get_table_names(schema)) | set(
             inspector.get_foreign_table_names(schema)
@@ -325,8 +359,8 @@ WHERE datistemplate = false;
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
-    ) -> Optional[str]:
+        cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
+    ) -> str | None:
         sqla_type = cls.get_sqla_column_type(target_type)
 
         if isinstance(sqla_type, Date):
@@ -337,7 +371,7 @@ WHERE datistemplate = false;
         return None
 
     @staticmethod
-    def get_extra_params(database: "Database") -> Dict[str, Any]:
+    def get_extra_params(database: Database) -> dict[str, Any]:
         """
         For Postgres, the path to a SSL certificate is placed in `connect_args`.
 
@@ -361,7 +395,7 @@ WHERE datistemplate = false;
         return extra
 
     @classmethod
-    def get_datatype(cls, type_code: Any) -> Optional[str]:
+    def get_datatype(cls, type_code: Any) -> str | None:
         # pylint: disable=import-outside-toplevel
         from psycopg2.extensions import binary_types, string_types
 
@@ -372,7 +406,7 @@ WHERE datistemplate = false;
         return None
 
     @classmethod
-    def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:
+    def get_cancel_query_id(cls, cursor: Any, query: Query) -> str | None:
         """
         Get Postgres PID that will be used to cancel all other running
         queries in the same session.

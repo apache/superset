@@ -49,25 +49,31 @@ export function getValue(
   return isLabeledValue(option) ? option.value : option;
 }
 
+export function getOption(
+  value: V,
+  options?: V | LabeledValue | (V | LabeledValue)[],
+  checkLabel = false,
+): V | LabeledValue {
+  const optionsArray = ensureIsArray(options);
+  // When comparing the values we use the equality
+  // operator to automatically convert different types
+  return optionsArray.find(
+    x =>
+      // eslint-disable-next-line eqeqeq
+      x == value ||
+      (isObject(x) &&
+        // eslint-disable-next-line eqeqeq
+        (('value' in x && x.value == value) ||
+          (checkLabel && 'label' in x && x.label === value))),
+  );
+}
+
 export function hasOption(
   value: V,
   options?: V | LabeledValue | (V | LabeledValue)[],
   checkLabel = false,
 ): boolean {
-  const optionsArray = ensureIsArray(options);
-  // When comparing the values we use the equality
-  // operator to automatically convert different types
-  return (
-    optionsArray.find(
-      x =>
-        // eslint-disable-next-line eqeqeq
-        x == value ||
-        (isObject(x) &&
-          // eslint-disable-next-line eqeqeq
-          (('value' in x && x.value == value) ||
-            (checkLabel && 'label' in x && x.label === value))),
-    ) !== undefined
-  );
+  return getOption(value, options, checkLabel) !== undefined;
 }
 
 /**
@@ -218,7 +224,5 @@ export const mapOptions = (values: SelectOptionsType) =>
   values.map(opt => ({
     children: opt.label,
     key: opt.value,
-    value: opt.value,
-    label: opt.label,
-    disabled: opt.disabled,
+    ...opt,
   }));

@@ -18,10 +18,14 @@
  */
 import shortid from 'shortid';
 import rison from 'rison';
-import { FeatureFlag, SupersetClient, t } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  SupersetClient,
+  t,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import invert from 'lodash/invert';
 import mapKeys from 'lodash/mapKeys';
-import { isFeatureEnabled } from 'src/featureFlags';
 
 import { now } from 'src/utils/dates';
 import {
@@ -33,8 +37,11 @@ import {
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import COMMON_ERR_MESSAGES from 'src/utils/errorMessages';
 import { LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY } from 'src/logger/LogUtils';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import { logEvent } from 'src/logger/actions';
 import { newQueryTabName } from '../utils/newQueryTabName';
+import getInitialState from '../reducers/getInitialState';
+import { rehydratePersistedState } from '../utils/reduxStateToLocalStorageHelper';
 
 export const RESET_STATE = 'RESET_STATE';
 export const ADD_QUERY_EDITOR = 'ADD_QUERY_EDITOR';
@@ -84,9 +91,6 @@ export const CLEAR_QUERY_RESULTS = 'CLEAR_QUERY_RESULTS';
 export const REMOVE_DATA_PREVIEW = 'REMOVE_DATA_PREVIEW';
 export const CHANGE_DATA_PREVIEW_ID = 'CHANGE_DATA_PREVIEW_ID';
 
-export const START_QUERY_VALIDATION = 'START_QUERY_VALIDATION';
-export const QUERY_VALIDATION_RETURNED = 'QUERY_VALIDATION_RETURNED';
-export const QUERY_VALIDATION_FAILED = 'QUERY_VALIDATION_FAILED';
 export const COST_ESTIMATE_STARTED = 'COST_ESTIMATE_STARTED';
 export const COST_ESTIMATE_RETURNED = 'COST_ESTIMATE_RETURNED';
 export const COST_ESTIMATE_FAILED = 'COST_ESTIMATE_FAILED';
@@ -135,23 +139,21 @@ export function getUpToDateQuery(rootState, queryEditor, key) {
   };
 }
 
-export function resetState() {
-  return { type: RESET_STATE };
-}
+export function resetState(data) {
+  return (dispatch, getState) => {
+    const { common } = getState();
+    const initialState = getInitialState({
+      ...getBootstrapData(),
+      common,
+      ...data,
+    });
 
-export function startQueryValidation(query) {
-  Object.assign(query, {
-    id: query.id ? query.id : shortid.generate(),
-  });
-  return { type: START_QUERY_VALIDATION, query };
-}
-
-export function queryValidationReturned(query, results) {
-  return { type: QUERY_VALIDATION_RETURNED, query, results };
-}
-
-export function queryValidationFailed(query, message, error) {
-  return { type: QUERY_VALIDATION_FAILED, query, message, error };
+    dispatch({
+      type: RESET_STATE,
+      sqlLabInitialState: initialState.sqlLab,
+    });
+    rehydratePersistedState(dispatch, initialState);
+  };
 }
 
 export function updateQueryEditor(alterations) {
@@ -219,8 +221,8 @@ export function estimateQueryCost(queryEditor) {
   };
 }
 
-export function clearInactiveQueries() {
-  return { type: CLEAR_INACTIVE_QUERIES };
+export function clearInactiveQueries(interval) {
+  return { type: CLEAR_INACTIVE_QUERIES, interval };
 }
 
 export function startQuery(query) {
@@ -440,49 +442,6 @@ export function reRunQuery(query) {
   };
 }
 
-export function validateQuery(queryEditor, sql) {
-  return function (dispatch, getState) {
-    const {
-      sqlLab: { unsavedQueryEditor },
-    } = getState();
-    const qe = {
-      ...queryEditor,
-      ...(queryEditor.id === unsavedQueryEditor.id && unsavedQueryEditor),
-    };
-
-    const query = {
-      dbId: qe.dbId,
-      sql,
-      sqlEditorId: qe.id,
-      schema: qe.schema,
-      templateParams: qe.templateParams,
-    };
-    dispatch(startQueryValidation(query));
-
-    const postPayload = {
-      schema: query.schema,
-      sql: query.sql,
-      template_params: query.templateParams,
-    };
-
-    return SupersetClient.post({
-      endpoint: `/api/v1/database/${query.dbId}/validate_sql/`,
-      body: JSON.stringify(postPayload),
-      headers: { 'Content-Type': 'application/json' },
-    })
-      .then(({ json }) => dispatch(queryValidationReturned(query, json.result)))
-      .catch(response =>
-        getClientErrorObject(response.result).then(error => {
-          let message = error.error || error.statusText || t('Unknown error');
-          if (message.includes('CSRF token')) {
-            message = t(COMMON_ERR_MESSAGES.SESSION_TIMED_OUT);
-          }
-          dispatch(queryValidationFailed(query, message, error));
-        }),
-      );
-  };
-}
-
 export function postStopQuery(query) {
   return function (dispatch) {
     return SupersetClient.post({
@@ -627,15 +586,10 @@ export function addQueryEditor(queryEditor) {
 export function addNewQueryEditor() {
   return function (dispatch, getState) {
     const {
-      sqlLab: {
-        queryEditors,
-        tabHistory,
-        unsavedQueryEditor,
-        defaultDbId,
-        databases,
-      },
+      sqlLab: { queryEditors, tabHistory, unsavedQueryEditor, databases },
       common,
     } = getState();
+    const defaultDbId = common.conf.SQLLAB_DEFAULT_DBID;
     const activeQueryEditor = queryEditors.find(
       qe => qe.id === tabHistory[tabHistory.length - 1],
     );
@@ -1161,65 +1115,7 @@ export function mergeTable(table, query, prepend) {
   return { type: MERGE_TABLE, table, query, prepend };
 }
 
-function getTableMetadata(table, query, dispatch) {
-  return SupersetClient.get({
-    endpoint: encodeURI(
-      `/api/v1/database/${query.dbId}/table/${encodeURIComponent(
-        table.name,
-      )}/${encodeURIComponent(table.schema)}/`,
-    ),
-  })
-    .then(({ json }) => {
-      const newTable = {
-        ...table,
-        ...json,
-        expanded: true,
-        isMetadataLoading: false,
-      };
-      dispatch(mergeTable(newTable)); // Merge table to tables in state
-      return newTable;
-    })
-    .catch(() =>
-      Promise.all([
-        dispatch(
-          mergeTable({
-            ...table,
-            isMetadataLoading: false,
-          }),
-        ),
-        dispatch(
-          addDangerToast(t('An error occurred while fetching table metadata')),
-        ),
-      ]),
-    );
-}
-
-function getTableExtendedMetadata(table, query, dispatch) {
-  return SupersetClient.get({
-    endpoint: encodeURI(
-      `/api/v1/database/${query.dbId}/table_extra/` +
-        `${encodeURIComponent(table.name)}/${encodeURIComponent(
-          table.schema,
-        )}/`,
-    ),
-  })
-    .then(({ json }) => {
-      dispatch(
-        mergeTable({ ...table, ...json, isExtraMetadataLoading: false }),
-      );
-      return json;
-    })
-    .catch(() =>
-      Promise.all([
-        dispatch(mergeTable({ ...table, isExtraMetadataLoading: false })),
-        dispatch(
-          addDangerToast(t('An error occurred while fetching table metadata')),
-        ),
-      ]),
-    );
-}
-
-export function addTable(queryEditor, database, tableName, schemaName) {
+export function addTable(queryEditor, tableName, schemaName) {
   return function (dispatch, getState) {
     const query = getUpToDateQuery(getState(), queryEditor, queryEditor.id);
     const table = {
@@ -1232,67 +1128,90 @@ export function addTable(queryEditor, database, tableName, schemaName) {
       mergeTable(
         {
           ...table,
-          isMetadataLoading: true,
-          isExtraMetadataLoading: true,
+          id: shortid.generate(),
           expanded: true,
         },
         null,
         true,
       ),
     );
+  };
+}
 
-    return Promise.all([
-      getTableMetadata(table, query, dispatch),
-      getTableExtendedMetadata(table, query, dispatch),
-    ]).then(([newTable, json]) => {
-      const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
-        ? SupersetClient.post({
-            endpoint: encodeURI('/tableschemaview/'),
-            postPayload: { table: { ...newTable, ...json } },
-          })
-        : Promise.resolve({ json: { id: shortid.generate() } });
+export function runTablePreviewQuery(newTable) {
+  return function (dispatch, getState) {
+    const {
+      sqlLab: { databases },
+    } = getState();
+    const database = databases[newTable.dbId];
+    const { dbId } = newTable;
 
-      if (!database.disable_data_preview && database.id === query.dbId) {
-        const dataPreviewQuery = {
-          id: shortid.generate(),
-          dbId: query.dbId,
-          sql: newTable.selectStar,
-          tableName: table.name,
-          sqlEditorId: null,
-          tab: '',
-          runAsync: database.allow_run_async,
-          ctas: false,
-          isDataPreview: true,
-        };
-        Promise.all([
-          dispatch(
-            mergeTable(
-              {
-                ...newTable,
-                dataPreviewQueryId: dataPreviewQuery.id,
-              },
-              dataPreviewQuery,
-            ),
+    if (database && !database.disable_data_preview) {
+      const dataPreviewQuery = {
+        id: shortid.generate(),
+        dbId,
+        sql: newTable.selectStar,
+        tableName: newTable.name,
+        sqlEditorId: null,
+        tab: '',
+        runAsync: database.allow_run_async,
+        ctas: false,
+        isDataPreview: true,
+      };
+      return Promise.all([
+        dispatch(
+          mergeTable(
+            {
+              id: newTable.id,
+              dbId: newTable.dbId,
+              schema: newTable.schema,
+              name: newTable.name,
+              queryEditorId: newTable.queryEditorId,
+              dataPreviewQueryId: dataPreviewQuery.id,
+            },
+            dataPreviewQuery,
           ),
-          dispatch(runQuery(dataPreviewQuery)),
-        ]);
-      }
+        ),
+        dispatch(runQuery(dataPreviewQuery)),
+      ]);
+    }
+    return Promise.resolve();
+  };
+}
 
-      return sync
-        .then(({ json: resultJson }) =>
-          dispatch(mergeTable({ ...table, id: resultJson.id })),
-        )
-        .catch(() =>
-          dispatch(
-            addDangerToast(
-              t(
-                'An error occurred while fetching table metadata. ' +
-                  'Please contact your administrator.',
-              ),
-            ),
-          ),
+export function syncTable(table, tableMetadata) {
+  return function (dispatch) {
+    const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
+      ? SupersetClient.post({
+          endpoint: encodeURI('/tableschemaview/'),
+          postPayload: { table: { ...tableMetadata, ...table } },
+        })
+      : Promise.resolve({ json: { id: table.id } });
+
+    return sync
+      .then(({ json: resultJson }) => {
+        const newTable = { ...table, id: resultJson.id };
+        dispatch(
+          mergeTable({
+            ...newTable,
+            expanded: true,
+            initialized: true,
+          }),
         );
-    });
+        if (!table.dataPreviewQueryId) {
+          dispatch(runTablePreviewQuery({ ...tableMetadata, ...newTable }));
+        }
+      })
+      .catch(() =>
+        dispatch(
+          addDangerToast(
+            t(
+              'An error occurred while fetching table metadata. ' +
+                'Please contact your administrator.',
+            ),
+          ),
+        ),
+      );
   };
 }
 
@@ -1433,12 +1352,11 @@ export function popStoredQuery(urlId) {
 export function popSavedQuery(saveQueryId) {
   return function (dispatch) {
     return SupersetClient.get({
-      endpoint: `/api/v1/saved_query/${saveQueryId}`,
+      endpoint: `/savedqueryviewapi/api/get/${saveQueryId}`,
     })
       .then(({ json }) => {
         const queryEditorProps = {
           ...convertQueryToClient(json.result),
-          dbId: json.result?.database?.id,
           loaded: true,
           autorun: false,
         };

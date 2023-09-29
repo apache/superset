@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from flask_appbuilder.security.sqla.models import User
 
@@ -45,7 +45,7 @@ class BaseCommand(ABC):
 
 class CreateMixin:  # pylint: disable=too-few-public-methods
     @staticmethod
-    def populate_owners(owner_ids: Optional[List[int]] = None) -> List[User]:
+    def populate_owners(owner_ids: Optional[list[int]] = None) -> list[User]:
         """
         Populate list of owners, defaulting to the current user if `owner_ids` is
         undefined or empty. If current user is missing in `owner_ids`, current user
@@ -60,7 +60,7 @@ class CreateMixin:  # pylint: disable=too-few-public-methods
 
 class UpdateMixin:  # pylint: disable=too-few-public-methods
     @staticmethod
-    def populate_owners(owner_ids: Optional[List[int]] = None) -> List[User]:
+    def populate_owners(owner_ids: Optional[list[int]] = None) -> list[User]:
         """
         Populate list of owners. If current user is missing in `owner_ids`, current user
         is added unless belonging to the Admin role.

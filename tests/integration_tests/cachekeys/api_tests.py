@@ -16,7 +16,7 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
-from typing import Dict, Any
+from typing import Any
 
 import pytest
 
@@ -27,11 +27,15 @@ from tests.integration_tests.base_tests import (
     SupersetTestCase,
     post_assert_metric,
 )
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
+)
 
 
 @pytest.fixture
 def invalidate(test_client, login_as_admin):
-    def _invalidate(params: Dict[str, Any]):
+    def _invalidate(params: dict[str, Any]):
         return post_assert_metric(
             test_client, "api/v1/cachekey/invalidate", params, "invalidate"
         )
@@ -95,6 +99,7 @@ def test_invalidate_cache_bad_request(invalidate):
     assert rv.status_code == 400
 
 
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 def test_invalidate_existing_caches(invalidate):
     schema = get_example_default_schema() or ""
     bn = SupersetTestCase.get_birth_names_dataset()

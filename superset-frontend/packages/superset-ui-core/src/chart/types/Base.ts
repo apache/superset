@@ -58,6 +58,7 @@ export enum AppSection {
 export type FilterState = { value?: any; [key: string]: any };
 
 export type DataMask = {
+  __cache?: FilterState;
   extraFormData?: ExtraFormData;
   filterState?: FilterState;
   ownState?: JsonObject;
@@ -98,6 +99,10 @@ export enum AxisType {
   value = 'value',
   time = 'time',
   log = 'log',
+}
+
+export interface LegendState {
+  [key: string]: boolean;
 }
 
 export default {};

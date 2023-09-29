@@ -15,9 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import cast, Optional
+from typing import Optional
 
-from flask_appbuilder.models.sqla import Model
 from flask_babel import lazy_gettext as _
 
 from superset import security_manager
@@ -27,50 +26,49 @@ from superset.charts.commands.exceptions import (
     ChartForbiddenError,
     ChartNotFoundError,
 )
-from superset.charts.dao import ChartDAO
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAODeleteFailedError
+from superset.daos.chart import ChartDAO
+from superset.daos.exceptions import DAODeleteFailedError
+from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.reports.dao import ReportScheduleDAO
 
 logger = logging.getLogger(__name__)
 
 
 class DeleteChartCommand(BaseCommand):
-    def __init__(self, model_id: int):
-        self._model_id = model_id
-        self._model: Optional[Slice] = None
+    def __init__(self, model_ids: list[int]):
+        self._model_ids = model_ids
+        self._models: Optional[list[Slice]] = None
 
-    def run(self) -> Model:
+    def run(self) -> None:
         self.validate()
-        self._model = cast(Slice, self._model)
+        assert self._models
+
+        for model_id in self._model_ids:
+            Dashboard.clear_cache_for_slice(slice_id=model_id)
+
         try:
-            Dashboard.clear_cache_for_slice(slice_id=self._model_id)
-            # Even though SQLAlchemy should in theory delete rows from the association
-            # table, sporadically Superset will error because the rows are not deleted.
-            # Let's do it manually here to prevent the error.
-            self._model.owners = []
-            chart = ChartDAO.delete(self._model)
+            ChartDAO.delete(self._models)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
             raise ChartDeleteFailedError() from ex
-        return chart
 
     def validate(self) -> None:
         # Validate/populate model exists
-        self._model = ChartDAO.find_by_id(self._model_id)
-        if not self._model:
+        self._models = ChartDAO.find_by_ids(self._model_ids)
+        if not self._models or len(self._models) != len(self._model_ids):
             raise ChartNotFoundError()
         # Check there are no associated ReportSchedules
-        if reports := ReportScheduleDAO.find_by_chart_id(self._model_id):
+        if reports := ReportScheduleDAO.find_by_chart_ids(self._model_ids):
             report_names = [report.name for report in reports]
             raise ChartDeleteFailedReportsExistError(
-                _("There are associated alerts or reports: %s" % ",".join(report_names))
+                _(f"There are associated alerts or reports: {','.join(report_names)}")
             )
         # Check ownership
-        try:
-            security_manager.raise_for_ownership(self._model)
-        except SupersetSecurityException as ex:
-            raise ChartForbiddenError() from ex
+        for model in self._models:
+            try:
+                security_manager.raise_for_ownership(model)
+            except SupersetSecurityException as ex:
+                raise ChartForbiddenError() from ex

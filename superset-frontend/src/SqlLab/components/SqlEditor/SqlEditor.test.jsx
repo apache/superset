@@ -30,7 +30,10 @@ import {
   defaultQueryEditor,
 } from 'src/SqlLab/fixtures';
 import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
+import ResultSet from 'src/SqlLab/components/ResultSet';
 import { api } from 'src/hooks/apiResources/queryApi';
+import { getExtensionsRegistry } from '@superset-ui/core';
+import setupExtensions from 'src/setup/setupExtensions';
 
 jest.mock('src/components/AsyncAceEditor', () => ({
   ...jest.requireActual('src/components/AsyncAceEditor'),
@@ -44,17 +47,28 @@ jest.mock('src/components/AsyncAceEditor', () => ({
   ),
 }));
 jest.mock('src/SqlLab/components/SqlEditorLeftBar', () => jest.fn());
+jest.mock('src/SqlLab/components/ResultSet', () => jest.fn());
 
+fetchMock.get('glob:*/api/v1/database/*/function_names/', {
+  function_names: [],
+});
 fetchMock.get('glob:*/api/v1/database/*', { result: [] });
 fetchMock.get('glob:*/api/v1/database/*/tables/*', { options: [] });
 fetchMock.post('glob:*/sqllab/execute/*', { result: [] });
 
 let store;
 let actions;
+const latestQuery = {
+  ...queries[0],
+  sqlEditorId: defaultQueryEditor.id,
+};
 const mockInitialState = {
   ...initialState,
   sqlLab: {
     ...initialState.sqlLab,
+    queries: {
+      [latestQuery.id]: { ...latestQuery, startDttm: new Date().getTime() },
+    },
     databases: {
       1991: {
         allow_ctas: false,
@@ -72,6 +86,7 @@ const mockInitialState = {
     unsavedQueryEditor: {
       id: defaultQueryEditor.id,
       dbId: 1991,
+      latestQueryId: latestQuery.id,
     },
   },
 };
@@ -102,7 +117,6 @@ const createStore = initState =>
 describe('SqlEditor', () => {
   const mockedProps = {
     queryEditor: initialState.sqlLab.queryEditors[0],
-    latestQuery: queries[0],
     tables: [table],
     getHeight: () => '100px',
     editorQueries: [],
@@ -120,6 +134,8 @@ describe('SqlEditor', () => {
     SqlEditorLeftBar.mockImplementation(() => (
       <div data-test="mock-sql-editor-left-bar" />
     ));
+    ResultSet.mockClear();
+    ResultSet.mockImplementation(() => <div data-test="mock-result-set" />);
   });
 
   afterEach(() => {
@@ -148,15 +164,18 @@ describe('SqlEditor', () => {
     expect(await findByTestId('react-ace')).toBeInTheDocument();
   });
 
-  it('avoids rerendering EditorLeftBar while typing', async () => {
+  it('avoids rerendering EditorLeftBar and ResultSet while typing', async () => {
     const { findByTestId } = setup(mockedProps, store);
     const editor = await findByTestId('react-ace');
     const sql = 'select *';
     const renderCount = SqlEditorLeftBar.mock.calls.length;
+    const renderCountForSouthPane = ResultSet.mock.calls.length;
     expect(SqlEditorLeftBar).toHaveBeenCalledTimes(renderCount);
+    expect(ResultSet).toHaveBeenCalledTimes(renderCountForSouthPane);
     fireEvent.change(editor, { target: { value: sql } });
     // Verify the rendering regression
     expect(SqlEditorLeftBar).toHaveBeenCalledTimes(renderCount);
+    expect(ResultSet).toHaveBeenCalledTimes(renderCountForSouthPane);
   });
 
   it('renders sql from unsaved change', async () => {
@@ -193,10 +212,8 @@ describe('SqlEditor', () => {
   });
 
   it('render a SouthPane', async () => {
-    const { findByText } = setup(mockedProps, store);
-    expect(
-      await findByText(/run a query to display results/i),
-    ).toBeInTheDocument();
+    const { findByTestId } = setup(mockedProps, store);
+    expect(await findByTestId('mock-result-set')).toBeInTheDocument();
   });
 
   it('runs query action with ctas false', async () => {
@@ -245,5 +262,19 @@ describe('SqlEditor', () => {
     const { findByText } = setup(updatedProps, store);
     fireEvent.click(await findByText('LIMIT:'));
     expect(await findByText('10 000')).toBeInTheDocument();
+  });
+
+  it('renders an Extension if provided', async () => {
+    const extensionsRegistry = getExtensionsRegistry();
+
+    extensionsRegistry.set('sqleditor.extension.form', () => (
+      <>sqleditor.extension.form extension component</>
+    ));
+
+    setupExtensions();
+    const { findByText } = setup(mockedProps, store);
+    expect(
+      await findByText('sqleditor.extension.form extension component'),
+    ).toBeInTheDocument();
   });
 });

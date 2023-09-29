@@ -23,10 +23,10 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset import db, event_logger
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.daos.query import QueryDAO
 from superset.databases.filters import DatabaseFilter
 from superset.exceptions import SupersetException
 from superset.models.sql_lab import Query
-from superset.queries.dao import QueryDAO
 from superset.queries.filters import QueryFilter
 from superset.queries.schemas import (
     openapi_spec_methods_override,
@@ -159,7 +159,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def get_updated_since(self, **kwargs: Any) -> FlaskResponse:
-        """Get a list of queries that changed after last_updated_ms
+        """Get a list of queries that changed after last_updated_ms.
         ---
         get:
           summary: Get a list of queries that changed after last_updated_ms
@@ -220,7 +220,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
     )
     @requires_json
     def stop_query(self) -> FlaskResponse:
-        """Manually stop a query with client_id
+        """Manually stop a query with client_id.
         ---
         post:
           summary: Manually stop a query with client_id

@@ -21,8 +21,8 @@ from flask_appbuilder import expose
 from flask_appbuilder.api import safe
 from flask_appbuilder.security.decorators import permission_name, protect
 
+from superset.async_events.async_query_manager import AsyncQueryTokenException
 from superset.extensions import async_query_manager, event_logger
-from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.views.base_api import BaseSupersetApi
 
 logger = logging.getLogger(__name__)
@@ -39,10 +39,11 @@ class AsyncEventsRestApi(BaseSupersetApi):
     @permission_name("list")
     def events(self) -> Response:
         """
-        Reads off of the Redis async events stream, using the user's JWT token and
+        Read off of the Redis async events stream, using the user's JWT token and
         optional query params for last event received.
         ---
         get:
+          summary: Read off of the Redis events stream
           description: >-
             Reads off of the Redis events stream, using the user's JWT token and
             optional query params for last event received.

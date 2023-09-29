@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import logger from './logging';
+
 // We can codegen the enum definition based on a list of supported flags that we
 // check into source control. We're hardcoding the supported flags for now.
 export enum FeatureFlag {
@@ -85,11 +87,17 @@ declare global {
   }
 }
 
+export function initFeatureFlags(featureFlags?: FeatureFlagMap) {
+  if (!window.featureFlags) {
+    window.featureFlags = featureFlags || {};
+  }
+}
+
 export function isFeatureEnabled(feature: FeatureFlag): boolean {
   try {
     return !!window.featureFlags[feature];
   } catch (error) {
-    console.error(`Failed to query feature flag ${feature}`);
+    logger.error(`Failed to query feature flag ${feature}`);
   }
   return false;
 }

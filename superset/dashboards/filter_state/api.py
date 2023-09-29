@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Type
 
 from flask import Response
 from flask_appbuilder.api import expose, protect, safe
@@ -35,16 +34,16 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
     resource_name = "dashboard"
     openapi_spec_tag = "Dashboard Filter State"
 
-    def get_create_command(self) -> Type[CreateFilterStateCommand]:
+    def get_create_command(self) -> type[CreateFilterStateCommand]:
         return CreateFilterStateCommand
 
-    def get_update_command(self) -> Type[UpdateFilterStateCommand]:
+    def get_update_command(self) -> type[UpdateFilterStateCommand]:
         return UpdateFilterStateCommand
 
-    def get_get_command(self) -> Type[GetFilterStateCommand]:
+    def get_get_command(self) -> type[GetFilterStateCommand]:
         return GetFilterStateCommand
 
-    def get_delete_command(self) -> Type[DeleteFilterStateCommand]:
+    def get_delete_command(self) -> type[DeleteFilterStateCommand]:
         return DeleteFilterStateCommand
 
     @expose("/<int:pk>/filter_state", methods=("POST",))
@@ -55,11 +54,10 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
         log_to_statsd=False,
     )
     def post(self, pk: int) -> Response:
-        """Stores a new value.
+        """Create a dashboard's filter state.
         ---
         post:
-          description: >-
-            Stores a new value.
+          summary: Create a dashboard's filter state
           parameters:
           - in: path
             schema:
@@ -105,11 +103,10 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
         log_to_statsd=False,
     )
     def put(self, pk: int, key: str) -> Response:
-        """Updates an existing value.
+        """Update a dashboard's filter state value.
         ---
         put:
-          description: >-
-            Updates an existing value.
+          summary: Update a dashboard's filter state value
           parameters:
           - in: path
             schema:
@@ -161,11 +158,10 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
         log_to_statsd=False,
     )
     def get(self, pk: int, key: str) -> Response:
-        """Retrives a value.
+        """Get a dashboard's filter state value.
         ---
         get:
-          description: >-
-            Retrives a value.
+          summary: Get a dashboard's filter state value
           parameters:
           - in: path
             schema:
@@ -207,11 +203,10 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
         log_to_statsd=False,
     )
     def delete(self, pk: int, key: str) -> Response:
-        """Deletes a value.
+        """Delete a dashboard's filter state value.
         ---
         delete:
-          description: >-
-            Deletes a value.
+          summary: Delete a dashboard's filter state value
           parameters:
           - in: path
             schema:

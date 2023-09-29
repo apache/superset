@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=invalid-name, unused-argument, import-outside-toplevel
-from contextlib import nullcontext
-from typing import List, Optional, Tuple, Union
+from contextlib import nullcontext, suppress
+from typing import Optional, Union
 
 import pandas as pd
 import pytest
@@ -56,10 +56,10 @@ from tests.integration_tests.test_app import app
     ],
 )
 def test_execute_query_as_report_executor(
-    owner_names: List[str],
+    owner_names: list[str],
     creator_name: Optional[str],
-    config: List[ExecutorType],
-    expected_result: Union[Tuple[ExecutorType, str], Exception],
+    config: list[ExecutorType],
+    expected_result: Union[tuple[ExecutorType, str], Exception],
     mocker: MockFixture,
     app_context: None,
     get_user,
@@ -164,11 +164,8 @@ def test_execute_query_failed_no_retry(mocker: MockFixture, app_context: None) -
 
     command = AlertCommand(report_schedule=mocker.Mock())
 
-    try:
+    with suppress(AlertQueryTimeout):
         command.validate()
-    except AlertQueryTimeout:
-        pass
-
     assert execute_query_mock.call_count == 1
 
 
@@ -189,10 +186,7 @@ def test_execute_query_failed_max_retries(
 
     command = AlertCommand(report_schedule=mocker.Mock())
 
-    try:
+    with suppress(AlertQueryError):
         command.validate()
-    except AlertQueryError:
-        pass
-
     # Should match the value defined in superset_test_config.py
     assert execute_query_mock.call_count == 3

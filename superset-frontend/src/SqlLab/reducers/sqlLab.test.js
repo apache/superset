@@ -18,7 +18,6 @@
  */
 import sqlLabReducer from 'src/SqlLab/reducers/sqlLab';
 import * as actions from 'src/SqlLab/actions/sqlLab';
-import { now } from 'src/utils/dates';
 import { table, initialState as mockState } from '../fixtures';
 
 const initialState = mockState.sqlLab;
@@ -249,6 +248,38 @@ describe('sqlLabReducer', () => {
       expect(newState.tables).toHaveLength(1);
       expect(newState.tables[0].extra).toBe(true);
     });
+    it('should overwrite table ID be ignored when the existing table is already initialized', () => {
+      const action = {
+        type: actions.MERGE_TABLE,
+        table: newTable,
+      };
+      newState = sqlLabReducer(newState, action);
+      expect(newState.tables).toHaveLength(1);
+      // Merging the initialized remote id
+      const remoteId = 1;
+      const syncAction = {
+        type: actions.MERGE_TABLE,
+        table: {
+          ...newTable,
+          id: remoteId,
+          initialized: true,
+        },
+      };
+      newState = sqlLabReducer(newState, syncAction);
+      expect(newState.tables).toHaveLength(1);
+      expect(newState.tables[0].initialized).toBe(true);
+      expect(newState.tables[0].id).toBe(remoteId);
+      const overwriteAction = {
+        type: actions.MERGE_TABLE,
+        table: {
+          id: 'rnd_new_id',
+          ...newTable,
+        },
+      };
+      newState = sqlLabReducer(newState, overwriteAction);
+      expect(newState.tables).toHaveLength(1);
+      expect(newState.tables[0].id).toBe(remoteId);
+    });
     it('should expand and collapse a table', () => {
       const collapseTableAction = {
         type: actions.COLLAPSE_TABLE,
@@ -273,6 +304,8 @@ describe('sqlLabReducer', () => {
     });
   });
   describe('Run Query', () => {
+    const DENORMALIZED_CHANGED_ON = '2023-06-26T07:53:05.439';
+    const CHANGED_ON_TIMESTAMP = 1687765985439;
     let newState;
     let query;
     beforeEach(() => {
@@ -280,7 +313,8 @@ describe('sqlLabReducer', () => {
       query = {
         id: 'abcd',
         progress: 0,
-        startDttm: now(),
+        changed_on: DENORMALIZED_CHANGED_ON,
+        startDttm: CHANGED_ON_TIMESTAMP,
         state: 'running',
         cached: false,
         sqlEditorId: 'dfsadfs',
@@ -292,7 +326,8 @@ describe('sqlLabReducer', () => {
         query: {
           id: 'abcd',
           progress: 0,
-          startDttm: now(),
+          changed_on: DENORMALIZED_CHANGED_ON,
+          startDttm: CHANGED_ON_TIMESTAMP,
           state: 'running',
           cached: false,
           sqlEditorId: 'dfsadfs',
@@ -327,6 +362,27 @@ describe('sqlLabReducer', () => {
       };
       newState = sqlLabReducer(newState, removeQueryAction);
       expect(Object.keys(newState.queries)).toHaveLength(0);
+    });
+    it('should refresh queries when polling returns new results', () => {
+      const startDttmInStr = '1693433503447.166992';
+      const endDttmInStr = '1693433503500.23132';
+      newState = sqlLabReducer(
+        {
+          ...newState,
+          queries: { abcd: {} },
+        },
+        actions.refreshQueries({
+          abcd: {
+            ...query,
+            startDttm: startDttmInStr,
+            endDttm: endDttmInStr,
+          },
+        }),
+      );
+      expect(newState.queries.abcd.changed_on).toBe(DENORMALIZED_CHANGED_ON);
+      expect(newState.queries.abcd.startDttm).toBe(Number(startDttmInStr));
+      expect(newState.queries.abcd.endDttm).toBe(Number(endDttmInStr));
+      expect(newState.queriesLastUpdate).toBe(CHANGED_ON_TIMESTAMP);
     });
     it('should refresh queries when polling returns empty', () => {
       newState = sqlLabReducer(newState, actions.refreshQueries({}));

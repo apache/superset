@@ -39,15 +39,13 @@ export function findValue<OptionType extends OptionTypeBase>(
   if (value === null || value === undefined || value === '') {
     return [];
   }
-  const isGroup = Array.isArray((options[0] || {}).options);
+  const isGroup = Array.isArray(options[0]?.options);
   const flatOptions = isGroup
     ? (options as GroupedOptionsType<OptionType>).flatMap(x => x.options || [])
     : (options as OptionsType<OptionType>);
 
   const find = (val: OptionType) => {
-    const realVal = (value || {}).hasOwnProperty(valueKey)
-      ? val[valueKey]
-      : val;
+    const realVal = value?.hasOwnProperty(valueKey) ? val[valueKey] : val;
     return (
       flatOptions.find(x => x === realVal || x[valueKey] === realVal) || val
     );

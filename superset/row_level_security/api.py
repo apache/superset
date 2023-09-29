@@ -30,14 +30,15 @@ from superset.commands.exceptions import (
 )
 from superset.connectors.sqla.models import RowLevelSecurityFilter
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.dao.exceptions import DAOCreateFailedError, DAOUpdateFailedError
+from superset.daos.exceptions import DAOCreateFailedError, DAOUpdateFailedError
 from superset.extensions import event_logger
-from superset.row_level_security.commands.bulk_delete import BulkDeleteRLSRuleCommand
 from superset.row_level_security.commands.create import CreateRLSRuleCommand
+from superset.row_level_security.commands.delete import DeleteRLSRuleCommand
 from superset.row_level_security.commands.exceptions import RLSRuleNotFoundError
 from superset.row_level_security.commands.update import UpdateRLSRuleCommand
 from superset.row_level_security.schemas import (
     get_delete_ids_schema,
+    openapi_spec_methods_override,
     RLSListSchema,
     RLSPostSchema,
     RLSPutSchema,
@@ -128,6 +129,9 @@ class RLSRestApi(BaseSupersetModelRestApi):
         "roles": [["id", BaseFilterRelatedRoles, lambda: []]],
     }
 
+    openapi_spec_methods = openapi_spec_methods_override
+    """ Overrides GET methods OpenApi descriptions """
+
     @expose("/", methods=("POST",))
     @protect()
     @safe
@@ -138,11 +142,10 @@ class RLSRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def post(self) -> Response:
-        """Creates a new RLS rule
+        """Create a new RLS rule.
         ---
         post:
-          description: >-
-            Create a new RLS Rule
+          summary: Create a new RLS rule
           requestBody:
             description: RLS schema
             required: true
@@ -216,11 +219,10 @@ class RLSRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def put(self, pk: int) -> Response:
-        """Updates an RLS Rule
+        """Update an RLS rule.
         ---
         put:
-          description: >-
-            Updates an RLS Rule
+          summary: Update an RLS rule
           parameters:
           - in: path
             schema:
@@ -305,11 +307,10 @@ class RLSRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
-        """Delete bulk RLS rules
+        """Bulk delete RLS rules.
         ---
         delete:
-          description: >-
-            Deletes multiple RLS rules in a bulk operation.
+          summary: Bulk delete RLS rules
           parameters:
           - in: query
             name: q
@@ -340,7 +341,7 @@ class RLSRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteRLSRuleCommand(item_ids).run()
+            DeleteRLSRuleCommand(item_ids).run()
             return self.response(
                 200,
                 message=ngettext(

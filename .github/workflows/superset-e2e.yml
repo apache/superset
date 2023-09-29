@@ -11,7 +11,6 @@ on:
 
 jobs:
   cypress-matrix:
-    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     permissions:
       contents: read
@@ -26,7 +25,7 @@ jobs:
         containers: [1, 2, 3]
         browser: ["chrome"]
     env:
-      FLASK_ENV: development
+      SUPERSET_ENV: development
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
       PYTHONPATH: ${{ github.workspace }}
@@ -34,7 +33,7 @@ jobs:
       GITHUB_TOKEN: ${{ github.token }}
     services:
       postgres:
-        image: postgres:14-alpine
+        image: postgres:15-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset

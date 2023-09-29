@@ -29,7 +29,7 @@ export const WORLD_HEALTH_CHARTS = [
   { name: 'Rural Breakdown', viz: 'sunburst' },
   { name: "World's Pop Growth", viz: 'area' },
   { name: 'Life Expectancy VS Rural %', viz: 'bubble' },
-  { name: 'Treemap', viz: 'treemap' },
+  { name: 'Treemap', viz: 'treemap_v2' },
   { name: 'Box plot', viz: 'box_plot' },
 ] as ChartSpec[];
 
@@ -322,7 +322,7 @@ export function applyNativeFilterValueWithIndex(index: number, value: string) {
   cy.get(nativeFilters.filterFromDashboardView.filterValueInput)
     .eq(index)
     .should('exist', { timeout: 10000 })
-    .type(`${value}{enter}`);
+    .type(`${value}{enter}`, { force: true });
   // click the title to dismiss shown options
   cy.get(nativeFilters.filterFromDashboardView.filterName)
     .eq(index)

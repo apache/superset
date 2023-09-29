@@ -202,6 +202,7 @@ export type DBReducerActionType =
         configuration_method: CONFIGURATION_METHOD;
         engine_information?: {};
         driver?: string;
+        sqlalchemy_uri_placeholder?: string;
       };
     }
   | {
@@ -267,7 +268,6 @@ export function dbReducer(
       };
     case ActionType.extraInputChange:
       // "extra" payload in state is a string
-
       if (
         action.payload.name === 'schema_cache_timeout' ||
         action.payload.name === 'table_cache_timeout'
@@ -667,12 +667,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const getPlaceholder = (field: string) => {
     if (field === 'database') {
-      switch (db?.engine) {
-        case Engines.Snowflake:
-          return t('e.g. xy12345.us-east-2.aws');
-        default:
-          return t('e.g. world_population');
-      }
+      return t('e.g. world_population');
     }
     return undefined;
   };
@@ -763,15 +758,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         });
       }
 
-      // make sure that button spinner animates
-      setLoading(true);
-      const errors = await getValidation(dbToUpdate, true);
-      if ((validationErrors && !isEmpty(validationErrors)) || errors) {
+      // only do validation for non ssh tunnel connections
+      if (!dbToUpdate?.ssh_tunnel) {
+        // make sure that button spinner animates
+        setLoading(true);
+        const errors = await getValidation(dbToUpdate, true);
+        if ((validationErrors && !isEmpty(validationErrors)) || errors) {
+          setLoading(false);
+          return;
+        }
+        // end spinner animation
         setLoading(false);
-        return;
       }
-      setLoading(false);
-      // end spinner animation
 
       const parameters_schema = isEditMode
         ? dbToUpdate.parameters_schema?.properties
@@ -944,8 +942,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       const selectedDbModel = availableDbs?.databases.filter(
         (db: DatabaseObject) => db.name === database_name,
       )[0];
-      const { engine, parameters, engine_information, default_driver } =
-        selectedDbModel;
+      const {
+        engine,
+        parameters,
+        engine_information,
+        default_driver,
+        sqlalchemy_uri_placeholder,
+      } = selectedDbModel;
       const isDynamic = parameters !== undefined;
       setDB({
         type: ActionType.dbSelected,
@@ -957,6 +960,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             : CONFIGURATION_METHOD.SQLALCHEMY_URI,
           engine_information,
           driver: default_driver,
+          sqlalchemy_uri_placeholder,
         },
       });
 
@@ -1632,19 +1636,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         getValidation={() => getValidation(db)}
         validationErrors={validationErrors}
         getPlaceholder={getPlaceholder}
+        clearValidationErrors={() => setValidationErrors(null)}
       />
-      <SSHTunnelContainer>
-        <SSHTunnelSwitchComponent
-          isEditMode={isEditMode}
-          dbFetched={dbFetched}
-          disableSSHTunnelingForEngine={disableSSHTunnelingForEngine}
-          useSSHTunneling={useSSHTunneling}
-          setUseSSHTunneling={setUseSSHTunneling}
-          setDB={setDB}
-          isSSHTunneling={isSSHTunneling}
-        />
-      </SSHTunnelContainer>
-      {useSSHTunneling && (
+      {db?.parameters?.ssh && (
         <SSHTunnelContainer>{renderSSHTunnelForm()}</SSHTunnelContainer>
       )}
     </>

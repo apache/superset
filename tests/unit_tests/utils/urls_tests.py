@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -40,27 +39,3 @@ def test_convert_dashboard_link() -> None:
 def test_convert_dashboard_link_with_integer() -> None:
     test_url = modify_url_query(EXPLORE_DASHBOARD_LINK, standalone=0)
     assert test_url == "http://localhost:9000/superset/dashboard/3/?standalone=0"
-
-
-@pytest.mark.parametrize(
-    "url,is_safe",
-    [
-        ("http://localhost/", True),
-        ("http://localhost/superset/1", True),
-        ("https://localhost/", False),
-        ("https://localhost/superset/1", False),
-        ("localhost/superset/1", False),
-        ("ftp://localhost/superset/1", False),
-        ("http://external.com", False),
-        ("https://external.com", False),
-        ("external.com", False),
-        ("///localhost", False),
-        ("xpto://localhost:[3/1/", False),
-    ],
-)
-def test_is_safe_url(url: str, is_safe: bool) -> None:
-    from superset import app
-    from superset.utils.urls import is_safe_url
-
-    with app.test_request_context("/"):
-        assert is_safe_url(url) == is_safe

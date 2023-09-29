@@ -21,7 +21,7 @@ from unittest import mock
 import pytest
 
 from superset import db
-from superset.embedded.dao import EmbeddedDAO
+from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.models.dashboard import Dashboard
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -41,7 +41,7 @@ class TestEmbeddedDashboardApi(SupersetTestCase):
     def test_get_embedded_dashboard(self):
         self.login("admin")
         self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
-        self.embedded = EmbeddedDAO.upsert(self.dash, [])
+        self.embedded = EmbeddedDashboardDAO.upsert(self.dash, [])
         uri = f"api/v1/{self.resource_name}/{self.embedded.uuid}"
         response = self.client.get(uri)
         self.assert200(response)

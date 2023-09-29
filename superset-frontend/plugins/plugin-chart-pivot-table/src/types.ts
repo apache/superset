@@ -28,6 +28,7 @@ import {
   QueryFormColumn,
   TimeGranularity,
   ContextMenuFilters,
+  Currency,
 } from '@superset-ui/core';
 import { ColorFormatters } from '@superset-ui/chart-controls';
 
@@ -62,13 +63,17 @@ interface PivotTableCustomizeProps {
   rowSubtotalPosition: boolean;
   colSubtotalPosition: boolean;
   colTotals: boolean;
+  colSubTotals: boolean;
   rowTotals: boolean;
+  rowSubTotals: boolean;
   valueFormat: string;
+  currencyFormat: Currency;
   setDataMask: SetDataMaskHook;
   emitCrossFilters?: boolean;
   selectedFilters?: SelectedFiltersType;
   verboseMap: JsonObject;
   columnFormats: JsonObject;
+  currencyFormats: Record<string, Currency>;
   metricsLayout?: MetricsLayoutEnum;
   metricColorFormatters: ColorFormatters;
   dateFormatters: Record<string, DateFormatter | undefined>;

@@ -15,10 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import List
 
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAODeleteFailedError
+from superset.daos.exceptions import DAODeleteFailedError
+from superset.daos.tag import TagDAO
 from superset.tags.commands.exceptions import (
     TagDeleteFailedError,
     TaggedObjectDeleteFailedError,
@@ -27,7 +27,6 @@ from superset.tags.commands.exceptions import (
     TagNotFoundError,
 )
 from superset.tags.commands.utils import to_object_type
-from superset.tags.dao import TagDAO
 from superset.tags.models import ObjectTypes
 from superset.views.base import DeleteMixin
 
@@ -90,7 +89,7 @@ class DeleteTaggedObjectCommand(DeleteMixin, BaseCommand):
 
 
 class DeleteTagsCommand(DeleteMixin, BaseCommand):
-    def __init__(self, tags: List[str]):
+    def __init__(self, tags: list[str]):
         self._tags = tags
 
     def run(self) -> None:

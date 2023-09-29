@@ -17,6 +17,9 @@
  * under the License.
  */
 
+// timezone for unit tests
+process.env.TZ = 'America/New_York';
+
 module.exports = {
   testRegex:
     '\\/superset-frontend\\/(spec|src|plugins|packages|tools)\\/.*(_spec|\\.test)\\.[jt]sx?$',
@@ -51,7 +54,7 @@ module.exports = {
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   snapshotSerializers: ['@emotion/jest/enzyme-serializer'],
   transformIgnorePatterns: [
-    'node_modules/(?!remark-gfm|markdown-table|micromark-*.|decode-named-character-reference|character-entities|mdast-util-*.|unist-util-*.|ccount|escape-string-regexp)',
+    'node_modules/(?!d3-(interpolate|color)|remark-gfm|markdown-table|micromark-*.|decode-named-character-reference|character-entities|mdast-util-*.|unist-util-*.|ccount|escape-string-regexp)',
   ],
   globals: {
     __DEV__: true,

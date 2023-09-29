@@ -20,7 +20,7 @@ from __future__ import annotations
 import logging
 from enum import Enum
 from time import sleep
-from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from flask import current_app
 from selenium.common.exceptions import (
@@ -37,7 +37,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from superset.extensions import machine_auth_provider_factory
 from superset.utils.retries import retry_call
 
-WindowSize = Tuple[int, int]
+WindowSize = tuple[int, int]
 logger = logging.getLogger(__name__)
 
 
@@ -56,7 +56,7 @@ class ChartStandaloneMode(Enum):
     SHOW_NAV = 0
 
 
-def find_unexpected_errors(driver: WebDriver) -> List[str]:
+def find_unexpected_errors(driver: WebDriver) -> list[str]:
     error_messages = []
 
     try:
@@ -111,7 +111,7 @@ def find_unexpected_errors(driver: WebDriver) -> List[str]:
 
 
 class WebDriverProxy:
-    def __init__(self, driver_type: str, window: Optional[WindowSize] = None):
+    def __init__(self, driver_type: str, window: WindowSize | None = None):
         self._driver_type = driver_type
         self._window: WindowSize = window or (800, 600)
         self._screenshot_locate_wait = current_app.config["SCREENSHOT_LOCATE_WAIT"]
@@ -124,15 +124,17 @@ class WebDriverProxy:
             options = firefox.options.Options()
             profile = FirefoxProfile()
             profile.set_preference("layout.css.devPixelsPerPx", str(pixel_density))
-            kwargs: Dict[Any, Any] = dict(options=options, firefox_profile=profile)
+            kwargs: dict[Any, Any] = {"options": options, "firefox_profile": profile}
         elif self._driver_type == "chrome":
             driver_class = chrome.webdriver.WebDriver
             options = chrome.options.Options()
             options.add_argument(f"--force-device-scale-factor={pixel_density}")
             options.add_argument(f"--window-size={self._window[0]},{self._window[1]}")
-            kwargs = dict(options=options)
+            kwargs = {"options": options}
         else:
-            raise Exception(f"Webdriver name ({self._driver_type}) not supported")
+            raise Exception(  # pylint: disable=broad-exception-raised
+                f"Webdriver name ({self._driver_type}) not supported"
+            )
         # Prepare args for the webdriver init
 
         # Add additional configured options
@@ -164,13 +166,11 @@ class WebDriverProxy:
         except Exception:  # pylint: disable=broad-except
             pass
 
-    def get_screenshot(
-        self, url: str, element_name: str, user: User
-    ) -> Optional[bytes]:
+    def get_screenshot(self, url: str, element_name: str, user: User) -> bytes | None:
         driver = self.auth(user)
         driver.set_window_size(*self._window)
         driver.get(url)
-        img: Optional[bytes] = None
+        img: bytes | None = None
         selenium_headstart = current_app.config["SCREENSHOT_SELENIUM_HEADSTART"]
         logger.debug("Sleeping for %i seconds", selenium_headstart)
         sleep(selenium_headstart)

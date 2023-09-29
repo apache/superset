@@ -18,13 +18,14 @@ from __future__ import annotations
 
 import copy
 import json
-from typing import Any, Dict, Set
+from typing import Any
 
-from alembic import op
 from sqlalchemy import and_, Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import Session
 
-from superset import conf, db, is_feature_enabled
+from superset import conf, is_feature_enabled
+from superset.constants import TimeGrain
 from superset.migrations.shared.utils import paginated_update, try_load_json
 
 Base = declarative_base()
@@ -44,8 +45,8 @@ FORM_DATA_BAK_FIELD_NAME = "form_data_bak"
 
 
 class MigrateViz:
-    remove_keys: Set[str] = set()
-    rename_keys: Dict[str, str] = {}
+    remove_keys: set[str] = set()
+    rename_keys: dict[str, str] = {}
     source_viz_type: str
     target_viz_type: str
     has_x_axis_control: bool = False
@@ -62,6 +63,12 @@ class MigrateViz:
 
         if "viz_type" in self.data:
             self.data["viz_type"] = self.target_viz_type
+
+        # Sometimes visualizations have same keys in the source form_data and rename_keys
+        # We need to remove them from data to allow the migration to work properly with rename_keys
+        for source_key, target_key in self.rename_keys.items():
+            if source_key in self.data and target_key in self.data:
+                self.data.pop(target_key)
 
         rv_data = {}
         for key, value in self.data.items():
@@ -85,7 +92,7 @@ class MigrateViz:
     def _post_action(self) -> None:
         """Some actions after migrate"""
 
-    def _migrate_temporal_filter(self, rv_data: Dict[str, Any]) -> None:
+    def _migrate_temporal_filter(self, rv_data: dict[str, Any]) -> None:
         """Adds a temporal filter."""
         granularity_sqla = rv_data.pop("granularity_sqla", None)
         time_range = rv_data.pop("time_range", None) or conf.get("DEFAULT_TIME_FILTER")
@@ -95,6 +102,7 @@ class MigrateViz:
 
         if self.has_x_axis_control:
             rv_data["x_axis"] = granularity_sqla
+            rv_data["time_grain_sqla"] = rv_data.get("time_grain_sqla") or TimeGrain.DAY
 
         temporal_filter = {
             "clause": "WHERE",
@@ -148,9 +156,7 @@ class MigrateViz:
         return slc
 
     @classmethod
-    def upgrade(cls) -> None:
-        bind = op.get_bind()
-        session = db.Session(bind=bind)
+    def upgrade(cls, session: Session) -> None:
         slices = session.query(Slice).filter(Slice.viz_type == cls.source_viz_type)
         for slc in paginated_update(
             slices,
@@ -162,9 +168,7 @@ class MigrateViz:
             session.merge(new_viz)
 
     @classmethod
-    def downgrade(cls) -> None:
-        bind = op.get_bind()
-        session = db.Session(bind=bind)
+    def downgrade(cls, session: Session) -> None:
         slices = session.query(Slice).filter(
             and_(
                 Slice.viz_type == cls.target_viz_type,

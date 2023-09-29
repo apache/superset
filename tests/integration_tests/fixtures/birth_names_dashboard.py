@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Callable, List, Optional
+from typing import Callable, Optional
 
 import pytest
 
@@ -59,6 +59,14 @@ def load_birth_names_dashboard_with_slices_module_scope(load_birth_names_data):
         _cleanup(dash_id_to_delete, slices_ids_to_delete)
 
 
+@pytest.fixture(scope="class")
+def load_birth_names_dashboard_with_slices_class_scope(load_birth_names_data):
+    with app.app_context():
+        dash_id_to_delete, slices_ids_to_delete = _create_dashboards()
+        yield
+        _cleanup(dash_id_to_delete, slices_ids_to_delete)
+
+
 def _create_dashboards():
     table = _create_table(
         table_name=BIRTH_NAMES_TBL_NAME,
@@ -93,7 +101,7 @@ def _create_table(
     return table
 
 
-def _cleanup(dash_id: int, slice_ids: List[int]) -> None:
+def _cleanup(dash_id: int, slice_ids: list[int]) -> None:
     schema = get_example_default_schema()
     for datasource in db.session.query(SqlaTable).filter_by(
         table_name="birth_names", schema=schema

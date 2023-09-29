@@ -23,16 +23,24 @@ from flask import g
 
 from superset import db, security_manager
 from superset.charts.commands.create import CreateChartCommand
-from superset.charts.commands.exceptions import ChartNotFoundError
+from superset.charts.commands.exceptions import (
+    ChartNotFoundError,
+    WarmUpCacheChartNotFoundError,
+)
 from superset.charts.commands.export import ExportChartsCommand
 from superset.charts.commands.importers.v1 import ImportChartsCommand
 from superset.charts.commands.update import UpdateChartCommand
+from superset.charts.commands.warm_up_cache import ChartWarmUpCacheCommand
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.slice import Slice
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
+)
 from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_data,
     load_energy_table_with_slice,
@@ -88,52 +96,7 @@ class TestExportChartsCommand(SupersetTestCase):
             "dataset_uuid": str(example_chart.table.uuid),
             "uuid": str(example_chart.uuid),
             "version": "1.0.0",
-        }
-
-    @patch("superset.security.manager.g")
-    @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_export_chart_with_query_context(self, mock_g):
-        """Test that charts that have a query_context are exported correctly"""
-
-        mock_g.user = security_manager.find_user("alpha")
-        example_chart = db.session.query(Slice).filter_by(slice_name="Heatmap").one()
-        command = ExportChartsCommand([example_chart.id])
-
-        contents = dict(command.run())
-
-        expected = [
-            "metadata.yaml",
-            f"charts/Heatmap_{example_chart.id}.yaml",
-            "datasets/examples/energy_usage.yaml",
-            "databases/examples.yaml",
-        ]
-        assert expected == list(contents.keys())
-
-        metadata = yaml.safe_load(contents[f"charts/Heatmap_{example_chart.id}.yaml"])
-
-        assert metadata == {
-            "slice_name": "Heatmap",
-            "description": None,
-            "certified_by": None,
-            "certification_details": None,
-            "viz_type": "heatmap",
-            "params": {
-                "all_columns_x": "source",
-                "all_columns_y": "target",
-                "canvas_image_rendering": "pixelated",
-                "collapsed_fieldsets": "",
-                "linear_color_scheme": "blue_white_yellow",
-                "metric": "sum__value",
-                "normalize_across": "heatmap",
-                "slice_name": "Heatmap",
-                "viz_type": "heatmap",
-                "xscale_interval": "1",
-                "yscale_interval": "1",
-            },
-            "cache_timeout": None,
-            "dataset_uuid": str(example_chart.table.uuid),
-            "uuid": str(example_chart.uuid),
-            "version": "1.0.0",
+            "query_context": None,
         }
 
     @patch("superset.security.manager.g")
@@ -179,6 +142,7 @@ class TestExportChartsCommand(SupersetTestCase):
             "certification_details",
             "viz_type",
             "params",
+            "query_context",
             "cache_timeout",
             "uuid",
             "version",
@@ -274,9 +238,6 @@ class TestImportChartsCommand(SupersetTestCase):
 
         assert chart.owners == [admin]
 
-        chart.owners = []
-        dataset.owners = []
-        database.owners = []
         db.session.delete(chart)
         db.session.delete(dataset)
         db.session.delete(database)
@@ -442,3 +403,23 @@ class TestChartsUpdateCommand(SupersetTestCase):
         assert chart.query_context == query_context
         assert len(chart.owners) == 1
         assert chart.owners[0] == admin
+
+
+class TestChartWarmUpCacheCommand(SupersetTestCase):
+    def test_warm_up_cache_command_chart_not_found(self):
+        with self.assertRaises(WarmUpCacheChartNotFoundError):
+            ChartWarmUpCacheCommand(99999, None, None).run()
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_warm_up_cache(self):
+        slc = self.get_slice("Top 10 Girl Name Share", db.session)
+        result = ChartWarmUpCacheCommand(slc.id, None, None).run()
+        self.assertEqual(
+            result, {"chart_id": slc.id, "viz_error": None, "viz_status": "success"}
+        )
+
+        # can just pass in chart as well
+        result = ChartWarmUpCacheCommand(slc, None, None).run()
+        self.assertEqual(
+            result, {"chart_id": slc.id, "viz_error": None, "viz_status": "success"}
+        )
