@@ -44,7 +44,6 @@ import {
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE,
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF,
 } from 'src/logger/LogUtils';
-import { isFeatureEnabled } from 'src/featureFlags';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
