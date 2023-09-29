@@ -260,7 +260,7 @@ class TagDAO(BaseDAO[Tag]):
                     "created_by": obj.created_by_fk,
                     "creator": obj.creator(),
                     "tags": obj.tags,
-                    "owners": obj.owners,
+                    "owners": [obj.creator()],
                 }
                 for obj in saved_queries
             )
