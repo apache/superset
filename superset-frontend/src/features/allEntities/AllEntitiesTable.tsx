@@ -29,6 +29,8 @@ import Owner from 'src/types/Owner';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import { fetchObjects } from '../tags/tags';
 
+const MAX_TAGS_TO_SHOW = 3;
+
 const AllEntitiesTableContainer = styled.div`
   text-align: left;
   border-radius: ${({ theme }) => theme.gridUnit * 1}px 0;
@@ -151,7 +153,7 @@ export default function AllEntitiesTable({
                   (tag: Tag) =>
                     tag.type === 'TagTypes.custom' || tag.type === 1,
                 )}
-                maxTags={3}
+                maxTags={MAX_TAGS_TO_SHOW}
               />
             ),
             Header: t('Tags'),
