@@ -37,10 +37,10 @@ from importlib.resources import files
 from typing import Any, Callable, Literal, TYPE_CHECKING, TypedDict
 
 import pkg_resources
-from cachelib.base import BaseCache
 from celery.schedules import crontab
 from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
+from flask_caching.backends.base import BaseCache
 from pandas import Series
 from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
 from sqlalchemy.orm.query import Query
@@ -914,9 +914,13 @@ DASHBOARD_AUTO_REFRESH_INTERVALS = [
     [86400, "24 hours"],
 ]
 
+# This is used as a workaround for the alerts & reports scheduler task to get the time
+# celery beat triggered it, see https://github.com/celery/celery/issues/6974 for details
+CELERY_BEAT_SCHEDULER_EXPIRES = timedelta(weeks=1)
+
 # Default celery config is to use SQLA as a broker, in a production setting
 # you'll want to use a proper broker as specified here:
-# http://docs.celeryproject.org/en/latest/getting-started/brokers/index.html
+# https://docs.celeryq.dev/en/stable/getting-started/backends-and-brokers/index.html
 
 
 class CeleryConfig:  # pylint: disable=too-few-public-methods
@@ -942,6 +946,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         "reports.scheduler": {
             "task": "reports.scheduler",
             "schedule": crontab(minute="*", hour="*"),
+            "options": {"expires": int(CELERY_BEAT_SCHEDULER_EXPIRES.total_seconds())},
         },
         "reports.prune_log": {
             "task": "reports.prune_log",
@@ -1424,7 +1429,7 @@ TALISMAN_CONFIG = {
         "style-src": ["'self'", "'unsafe-inline'"],
         "script-src": ["'self'", "'strict-dynamic'"],
     },
-    "content_security_policy_nonce_in": ["script-src"],
+    "content_security_policy_nonce_in": ["script-src", "style-src"],
     "force_https": False,
 }
 # React requires `eval` to work correctly in dev mode
@@ -1442,7 +1447,7 @@ TALISMAN_DEV_CONFIG = {
         "style-src": ["'self'", "'unsafe-inline'"],
         "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
     },
-    "content_security_policy_nonce_in": ["script-src"],
+    "content_security_policy_nonce_in": ["script-src", "style-src"],
     "force_https": False,
 }
 
@@ -1498,6 +1503,9 @@ SQLA_TABLE_MUTATOR = lambda table: table
 
 # Global async query config options.
 # Requires GLOBAL_ASYNC_QUERIES feature flag to be enabled.
+GLOBAL_ASYNC_QUERY_MANAGER_CLASS = (
+    "superset.async_events.async_query_manager.AsyncQueryManager"
+)
 GLOBAL_ASYNC_QUERIES_REDIS_CONFIG = {
     "port": 6379,
     "host": "127.0.0.1",

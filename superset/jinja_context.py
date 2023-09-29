@@ -18,7 +18,7 @@
 import json
 import re
 from functools import lru_cache, partial
-from typing import Any, Callable, cast, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, cast, Optional, TYPE_CHECKING, TypedDict, Union
 
 from flask import current_app, g, has_request_context, request
 from flask_babel import gettext as _
@@ -26,7 +26,6 @@ from jinja2 import DebugUndefined
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.types import String
-from typing_extensions import TypedDict
 
 from superset.constants import LRU_CACHE_MAX_SIZE
 from superset.datasets.commands.exceptions import DatasetNotFoundError
@@ -597,7 +596,7 @@ def get_template_processors() -> dict[str, Any]:
     processors = current_app.config.get("CUSTOM_TEMPLATE_PROCESSORS", {})
     for engine, processor in DEFAULT_PROCESSORS.items():
         # do not overwrite engine-specific CUSTOM_TEMPLATE_PROCESSORS
-        if not engine in processors:
+        if engine not in processors:
             processors[engine] = processor
 
     return processors

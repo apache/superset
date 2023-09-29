@@ -79,7 +79,7 @@ from superset.utils.urls import get_url_host
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.connectors.base.models import BaseDatasource
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
     from superset.models.core import Database
     from superset.models.dashboard import Dashboard
     from superset.models.sql_lab import Query
@@ -295,11 +295,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param schema: The Superset schema name
         :return: The database specific schema permission
         """
-
-        if schema:
-            return f"[{database}].[{schema}]"
-
-        return None
+        return f"[{database}].[{schema}]" if schema else None
 
     @staticmethod
     def get_database_perm(database_id: int, database_name: str) -> str:
@@ -695,7 +691,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Add the FAB permission/view-menu.
 
         :param permission_name: The FAB permission name
-        :param view_menu_names: The FAB view-menu name
+        :param view_menu_name: The FAB view-menu name
         :see: SecurityManager.add_permission_view_menu
         """
 
@@ -2087,28 +2083,30 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
         return query.all()
 
-    def get_rls_ids(self, table: "BaseDatasource") -> list[int]:
+    def get_rls_sorted(self, table: "BaseDatasource") -> list["RowLevelSecurityFilter"]:
         """
-        Retrieves the appropriate row level security filters IDs for the current user
-        and the passed table.
+        Retrieves a list RLS filters sorted by ID for
+        the current user and the passed table.
 
         :param table: The table to check against
-        :returns: A list of IDs
+        :returns: A list RLS filters
         """
-        ids = [f.id for f in self.get_rls_filters(table)]
-        ids.sort()  # Combinations rather than permutations
-        return ids
+        filters = self.get_rls_filters(table)
+        filters.sort(key=lambda f: f.id)
+        return filters
 
     def get_guest_rls_filters_str(self, table: "BaseDatasource") -> list[str]:
         return [f.get("clause", "") for f in self.get_guest_rls_filters(table)]
 
     def get_rls_cache_key(self, datasource: "BaseDatasource") -> list[str]:
-        rls_ids = []
+        rls_clauses_with_group_key = []
         if datasource.is_rls_supported:
-            rls_ids = self.get_rls_ids(datasource)
-        rls_str = [str(rls_id) for rls_id in rls_ids]
+            rls_clauses_with_group_key = [
+                f"{f.clause}-{f.group_key or ''}"
+                for f in self.get_rls_sorted(datasource)
+            ]
         guest_rls = self.get_guest_rls_filters_str(datasource)
-        return guest_rls + rls_str
+        return guest_rls + rls_clauses_with_group_key
 
     @staticmethod
     def _get_current_epoch_time() -> float:
@@ -2163,8 +2161,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             "aud": audience,
             "type": "guest",
         }
-        token = self.pyjwt_for_guest_token.encode(claims, secret, algorithm=algo)
-        return token
+        return self.pyjwt_for_guest_token.encode(claims, secret, algorithm=algo)
 
     def get_guest_user_from_request(self, req: Request) -> Optional[GuestUser]:
         """
@@ -2230,9 +2227,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return hasattr(user, "is_guest_user") and user.is_guest_user
 
     def get_current_guest_user_if_guest(self) -> Optional[GuestUser]:
-        if self.is_guest_user():
-            return g.user
-        return None
+        return g.user if self.is_guest_user() else None
 
     def has_guest_access(self, dashboard: "Dashboard") -> bool:
         user = self.get_current_guest_user_if_guest()
@@ -2293,8 +2288,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         Returns True if the current user is an owner of the resource, False otherwise.
 
-        :param resource: The dashboard, dataste, chart, etc. resource
-        :returns: Whethe the current user is an owner of the resource
+        :param resource: The dashboard, dataset, chart, etc. resource
+        :returns: Whether the current user is an owner of the resource
         """
 
         try:
@@ -2308,7 +2303,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         Returns True if the current user is an admin user, False otherwise.
 
-        :returns: Whehther the current user is an admin user
+        :returns: Whether the current user is an admin user
         """
 
         return current_app.config["AUTH_ROLE_ADMIN"] in [

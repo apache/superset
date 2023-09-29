@@ -20,11 +20,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode } from 'react';
+import React, {
+  forwardRef,
+  memo,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useState,
+} from 'react';
 import { isEqual } from 'lodash';
 import { StaticMap } from 'react-map-gl';
 import DeckGL, { Layer } from 'deck.gl/typed';
-import { JsonObject, JsonValue, styled } from '@superset-ui/core';
+import { JsonObject, JsonValue, styled, usePrevious } from '@superset-ui/core';
 import Tooltip, { TooltipProps } from './components/Tooltip';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Viewport } from './utils/fitViewport';
@@ -43,76 +51,57 @@ export type DeckGLContainerProps = {
   onViewportChange?: (viewport: Viewport) => void;
 };
 
-export type DeckGLContainerState = {
-  lastUpdate: number | null;
-  viewState: Viewport;
-  tooltip: TooltipProps['tooltip'];
-  timer: ReturnType<typeof setInterval>;
-};
+export const DeckGLContainer = memo(
+  forwardRef((props: DeckGLContainerProps, ref) => {
+    const [tooltip, setTooltip] = useState<TooltipProps['tooltip']>(null);
+    const [lastUpdate, setLastUpdate] = useState<number | null>(null);
+    const [viewState, setViewState] = useState(props.viewport);
+    const prevViewport = usePrevious(props.viewport);
 
-export class DeckGLContainer extends React.Component<
-  DeckGLContainerProps,
-  DeckGLContainerState
-> {
-  constructor(props: DeckGLContainerProps) {
-    super(props);
-    this.tick = this.tick.bind(this);
-    this.onViewStateChange = this.onViewStateChange.bind(this);
-    // This has to be placed after this.tick is bound to this
-    this.state = {
-      timer: setInterval(this.tick, TICK),
-      tooltip: null,
-      viewState: props.viewport,
-      lastUpdate: null,
-    };
-  }
+    useImperativeHandle(ref, () => ({ setTooltip }), []);
 
-  UNSAFE_componentWillReceiveProps(nextProps: DeckGLContainerProps) {
-    if (!isEqual(nextProps.viewport, this.props.viewport)) {
-      this.setState({ viewState: nextProps.viewport });
-    }
-  }
-
-  componentWillUnmount() {
-    clearInterval(this.state.timer);
-  }
-
-  onViewStateChange({ viewState }: { viewState: JsonObject }) {
-    this.setState({ viewState: viewState as Viewport, lastUpdate: Date.now() });
-  }
-
-  tick() {
-    // Rate limiting updating viewport controls as it triggers lotsa renders
-    const { lastUpdate } = this.state;
-    if (lastUpdate && Date.now() - lastUpdate > TICK) {
-      const setCV = this.props.setControlValue;
-      if (setCV) {
-        setCV('viewport', this.state.viewState);
+    const tick = useCallback(() => {
+      // Rate limiting updating viewport controls as it triggers lots of renders
+      if (lastUpdate && Date.now() - lastUpdate > TICK) {
+        const setCV = props.setControlValue;
+        if (setCV) {
+          setCV('viewport', viewState);
+        }
+        setLastUpdate(null);
       }
-      this.setState({ lastUpdate: null });
-    }
-  }
+    }, [lastUpdate, props.setControlValue, viewState]);
 
-  layers() {
-    // Support for layer factory
-    if (this.props.layers.some(l => typeof l === 'function')) {
-      return this.props.layers.map(l =>
-        typeof l === 'function' ? l() : l,
-      ) as Layer[];
-    }
+    useEffect(() => {
+      const timer = setInterval(tick, TICK);
+      return clearInterval(timer);
+    }, [tick]);
 
-    return this.props.layers as Layer[];
-  }
+    useEffect(() => {
+      if (!isEqual(props.viewport, prevViewport)) {
+        setViewState(props.viewport);
+      }
+    }, [prevViewport, props.viewport]);
 
-  setTooltip = (tooltip: TooltipProps['tooltip']) => {
-    this.setState({ tooltip });
-  };
+    const onViewStateChange = useCallback(
+      ({ viewState }: { viewState: JsonObject }) => {
+        setViewState(viewState as Viewport);
+        setLastUpdate(Date.now());
+      },
+      [],
+    );
 
-  render() {
-    const { children = null, height, width } = this.props;
-    const { viewState, tooltip } = this.state;
+    const layers = useCallback(() => {
+      // Support for layer factory
+      if (props.layers.some(l => typeof l === 'function')) {
+        return props.layers.map(l =>
+          typeof l === 'function' ? l() : l,
+        ) as Layer[];
+      }
 
-    const layers = this.layers();
+      return props.layers as Layer[];
+    }, [props.layers]);
+
+    const { children = null, height, width } = props;
 
     return (
       <>
@@ -121,15 +110,15 @@ export class DeckGLContainer extends React.Component<
             controller
             width={width}
             height={height}
-            layers={layers}
+            layers={layers()}
             viewState={viewState}
             glOptions={{ preserveDrawingBuffer: true }}
-            onViewStateChange={this.onViewStateChange}
+            onViewStateChange={onViewStateChange}
           >
             <StaticMap
               preserveDrawingBuffer
-              mapStyle={this.props.mapStyle || 'light'}
-              mapboxApiAccessToken={this.props.mapboxApiAccessToken}
+              mapStyle={props.mapStyle || 'light'}
+              mapboxApiAccessToken={props.mapboxApiAccessToken}
             />
           </DeckGL>
           {children}
@@ -137,8 +126,8 @@ export class DeckGLContainer extends React.Component<
         <Tooltip tooltip={tooltip} />
       </>
     );
-  }
-}
+  }),
+);
 
 export const DeckGLContainerStyledWrapper = styled(DeckGLContainer)`
   .deckgl-tooltip > div {
@@ -146,3 +135,7 @@ export const DeckGLContainerStyledWrapper = styled(DeckGLContainer)`
     text-overflow: ellipsis;
   }
 `;
+
+export type DeckGLContainerHandle = typeof DeckGLContainer & {
+  setTooltip: (tooltip: ReactNode) => void;
+};

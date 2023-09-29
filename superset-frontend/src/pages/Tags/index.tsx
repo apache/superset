@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useCallback, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { isFeatureEnabled, FeatureFlag, t } from '@superset-ui/core';
 import {
   createFetchRelated,
@@ -40,7 +40,6 @@ import { Link } from 'react-router-dom';
 import { deleteTags } from 'src/features/tags/tags';
 import { Tag as AntdTag } from 'antd';
 import { Tag } from 'src/views/CRUD/types';
-import TagCard from 'src/features/tags/TagCard';
 import TagModal from 'src/features/tags/TagModal';
 import FaveStar from 'src/components/FaveStar';
 
@@ -146,13 +145,11 @@ function TagList(props: TagListProps) {
       {
         Cell: ({
           row: {
-            original: { name: tagName },
+            original: { id, name: tagName },
           },
         }: any) => (
           <AntdTag>
-            <Link to={`/superset/all_entities/?tags=${tagName}`}>
-              {tagName}
-            </Link>
+            <Link to={`/superset/all_entities/?id=${id}`}>{tagName}</Link>
           </AntdTag>
         ),
         Header: t('Name'),
@@ -297,36 +294,6 @@ function TagList(props: TagListProps) {
     },
   ];
 
-  const renderCard = useCallback(
-    (tag: Tag) => (
-      <TagCard
-        tag={tag}
-        hasPerm={hasPerm}
-        bulkSelectEnabled={bulkSelectEnabled}
-        refreshData={refreshData}
-        showThumbnails={
-          userKey
-            ? userKey.thumbnails
-            : isFeatureEnabled(FeatureFlag.THUMBNAILS)
-        }
-        userId={userId}
-        loading={loading}
-        addDangerToast={addDangerToast}
-        addSuccessToast={addSuccessToast}
-      />
-    ),
-    [
-      addDangerToast,
-      addSuccessToast,
-      bulkSelectEnabled,
-      hasPerm,
-      loading,
-      userId,
-      refreshData,
-      userKey,
-    ],
-  );
-
   const subMenuButtons: SubMenuProps['buttons'] = [];
 
   if (canDelete) {
@@ -340,7 +307,11 @@ function TagList(props: TagListProps) {
 
   // render new 'New Tag' btn
   subMenuButtons.push({
-    name: t('New Tag'),
+    name: (
+      <>
+        <i className="fa fa-plus" /> {t('Tag')}
+      </>
+    ),
     buttonStyle: 'primary',
     'data-test': 'bulk-select',
     onClick: () => setShowTagModal(true),
@@ -361,6 +332,7 @@ function TagList(props: TagListProps) {
         refreshData={refreshData}
         addSuccessToast={addSuccessToast}
         addDangerToast={addDangerToast}
+        clearOnHide
       />
       <SubMenu name={t('Tags')} buttons={subMenuButtons} />
       <ConfirmStatusChange
@@ -384,23 +356,25 @@ function TagList(props: TagListProps) {
                 bulkActions={bulkActions}
                 bulkSelectEnabled={bulkSelectEnabled}
                 cardSortSelectOptions={sortTypes}
-                className="dashboard-list-view"
+                className="tags-list-view"
                 columns={columns}
                 count={tagCount}
                 data={tags.filter(tag => !tag.name.includes(':'))}
                 disableBulkSelect={toggleBulkSelect}
+                refreshData={refreshData}
                 emptyState={emptyState}
                 fetchData={fetchData}
                 filters={filters}
                 initialSort={initialSort}
                 loading={loading}
+                addDangerToast={addDangerToast}
+                addSuccessToast={addSuccessToast}
                 pageSize={PAGE_SIZE}
                 showThumbnails={
                   userKey
                     ? userKey.thumbnails
                     : isFeatureEnabled(FeatureFlag.THUMBNAILS)
                 }
-                renderCard={renderCard}
                 defaultViewMode={
                   isFeatureEnabled(FeatureFlag.LISTVIEWS_DEFAULT_CARD_VIEW)
                     ? 'card'

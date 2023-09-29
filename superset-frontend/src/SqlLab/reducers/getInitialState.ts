@@ -41,7 +41,7 @@ export default function getInitialState({
   tab_state_ids: tabStateIds = [],
   databases,
   queries: queries_,
-  user,
+  ...otherBootstrapData
 }: BootstrapData & Partial<InitialState>) {
   /**
    * Before YYYY-MM-DD, the state for SQL Lab was stored exclusively in the
@@ -192,7 +192,20 @@ export default function getInitialState({
       alerts: [],
       databases,
       offline: false,
-      queries,
+      queries: Object.fromEntries(
+        Object.entries(queries).map(([queryId, query]) => [
+          queryId,
+          {
+            ...query,
+            ...(query.startDttm && {
+              startDttm: Number(query.startDttm),
+            }),
+            ...(query.endDttm && {
+              endDttm: Number(query.endDttm),
+            }),
+          },
+        ]),
+      ),
       queryEditors: Object.values(queryEditors),
       tabHistory: dedupeTabHistory(tabHistory),
       tables: Object.values(tables),
@@ -205,10 +218,7 @@ export default function getInitialState({
       (common || {})?.flash_messages || [],
     ),
     localStorageUsageInKilobytes: 0,
-    common: {
-      flash_messages: common.flash_messages,
-      conf: common.conf,
-    },
-    user,
+    common,
+    ...otherBootstrapData,
   };
 }

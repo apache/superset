@@ -24,7 +24,7 @@ import json
 import logging
 import textwrap
 from ast import literal_eval
-from contextlib import closing, contextmanager, nullcontext
+from contextlib import closing, contextmanager, nullcontext, suppress
 from copy import deepcopy
 from datetime import datetime
 from functools import lru_cache
@@ -225,7 +225,6 @@ class Database(
     @property
     def allows_virtual_table_explore(self) -> bool:
         extra = self.get_extra()
-
         return bool(extra.get("allows_virtual_table_explore", True))
 
     @property
@@ -235,9 +234,7 @@ class Database(
     @property
     def disable_data_preview(self) -> bool:
         # this will prevent any 'trash value' strings from going through
-        if self.get_extra().get("disable_data_preview", False) is not True:
-            return False
-        return True
+        return self.get_extra().get("disable_data_preview", False) is True
 
     @property
     def data(self) -> dict[str, Any]:
@@ -285,11 +282,8 @@ class Database(
         masked_uri = make_url_safe(self.sqlalchemy_uri)
         encrypted_config = {}
         if (masked_encrypted_extra := self.masked_encrypted_extra) is not None:
-            try:
+            with suppress(TypeError, json.JSONDecodeError):
                 encrypted_config = json.loads(masked_encrypted_extra)
-            except (TypeError, json.JSONDecodeError):
-                pass
-
         try:
             # pylint: disable=useless-suppression
             parameters = self.db_engine_spec.get_parameters_from_uri(  # type: ignore
@@ -550,7 +544,7 @@ class Database(
 
     @property
     def quote_identifier(self) -> Callable[[str], str]:
-        """Add quotes to potential identifiter expressions if needed"""
+        """Add quotes to potential identifier expressions if needed"""
         return self.get_dialect().identifier_preparer.quote
 
     def get_reserved_words(self) -> set[str]:
@@ -692,7 +686,7 @@ class Database(
         """
         try:
             with self.get_inspector_with_context() as inspector:
-                tables = {
+                return {
                     (table, schema)
                     for table in self.db_engine_spec.get_table_names(
                         database=self,
@@ -700,7 +694,6 @@ class Database(
                         schema=schema,
                     )
                 }
-                return tables
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
@@ -985,7 +978,6 @@ sqla.event.listen(Database, "after_delete", security_manager.database_after_dele
 
 
 class Log(Model):  # pylint: disable=too-few-public-methods
-
     """ORM object used to log Superset actions to the database"""
 
     __tablename__ = "logs"

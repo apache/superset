@@ -42,7 +42,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
 from superset.exceptions import SupersetException
-from superset.extensions import async_query_manager, cache_manager
+from superset.extensions import async_query_manager_factory, cache_manager
 from superset.models import core as models
 from superset.models.cache import CacheKey
 from superset.models.dashboard import Dashboard
@@ -411,6 +411,7 @@ class TestCore(SupersetTestCase):
         self.get_json_resp(f"/superset/warm_up_cache?slice_id={slc.id}")
         ck = db.session.query(CacheKey).order_by(CacheKey.id.desc()).first()
         assert ck.datasource_uid == f"{slc.table.id}__table"
+        db.session.delete(ck)
         app.config["STORE_CACHE_KEYS_IN_METADATA_DB"] = store_cache_keys
 
     def test_redirect_invalid(self):
@@ -704,7 +705,7 @@ class TestCore(SupersetTestCase):
             "row_limit": 100,
         }
         app._got_first_request = False
-        async_query_manager.init_app(app)
+        async_query_manager_factory.init_app(app)
         self.login(username="admin")
         rv = self.client.post(
             "/superset/explore_json/",
@@ -736,7 +737,7 @@ class TestCore(SupersetTestCase):
             "row_limit": 100,
         }
         app._got_first_request = False
-        async_query_manager.init_app(app)
+        async_query_manager_factory.init_app(app)
         self.login(username="admin")
         rv = self.client.post(
             "/superset/explore_json/?results=true",

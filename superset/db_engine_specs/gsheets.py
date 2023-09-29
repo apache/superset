@@ -17,11 +17,12 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import re
 from re import Pattern
-from typing import Any, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING, TypedDict
 
 import pandas as pd
 from apispec import APISpec
@@ -33,7 +34,6 @@ from marshmallow.exceptions import ValidationError
 from requests import Session
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import URL
-from typing_extensions import TypedDict
 
 from superset import db, security_manager
 from superset.constants import PASSWORD_MASK
@@ -167,11 +167,8 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         except (TypeError, json.JSONDecodeError):
             return encrypted_extra
 
-        try:
+        with contextlib.suppress(KeyError):
             config["service_account_info"]["private_key"] = PASSWORD_MASK
-        except KeyError:
-            pass
-
         return json.dumps(config)
 
     @classmethod

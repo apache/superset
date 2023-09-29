@@ -569,9 +569,14 @@ function SavedQueryList({
               loading={loading}
               pageSize={PAGE_SIZE}
               bulkActions={bulkActions}
+              addSuccessToast={addSuccessToast}
+              addDangerToast={addDangerToast}
               bulkSelectEnabled={bulkSelectEnabled}
               disableBulkSelect={toggleBulkSelect}
               highlightRowId={savedQueryCurrentlyPreviewing?.id}
+              enableBulkTag
+              bulkTagResourceName="query"
+              refreshData={refreshData}
             />
           );
         }}

@@ -1,4 +1,5 @@
 import pytest
+from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
 from superset.utils.core import DatasourceType
@@ -47,7 +48,7 @@ def session_with_data(session: Session):
     yield session
 
 
-def test_create_command_success(session_with_data: Session):
+def test_create_command_success(session_with_data: Session, mocker: MockFixture):
     from superset.connectors.sqla.models import SqlaTable
     from superset.daos.tag import TagDAO
     from superset.models.dashboard import Dashboard
@@ -60,6 +61,12 @@ def test_create_command_success(session_with_data: Session):
     query = session_with_data.query(SavedQuery).first()
     chart = session_with_data.query(Slice).first()
     dashboard = session_with_data.query(Dashboard).first()
+
+    mocker.patch(
+        "superset.security.SupersetSecurityManager.is_admin", return_value=True
+    )
+    mocker.patch("superset.daos.chart.ChartDAO.find_by_id", return_value=chart)
+    mocker.patch("superset.daos.query.SavedQueryDAO.find_by_id", return_value=query)
 
     objects_to_tag = [
         (ObjectTypes.query, query.id),
@@ -84,7 +91,9 @@ def test_create_command_success(session_with_data: Session):
         )
 
 
-def test_create_command_failed_validate(session_with_data: Session):
+def test_create_command_failed_validate(
+    session_with_data: Session, mocker: MockFixture
+):
     from superset.connectors.sqla.models import SqlaTable
     from superset.daos.tag import TagDAO
     from superset.models.dashboard import Dashboard
@@ -97,6 +106,12 @@ def test_create_command_failed_validate(session_with_data: Session):
     query = session_with_data.query(SavedQuery).first()
     chart = session_with_data.query(Slice).first()
     dashboard = session_with_data.query(Dashboard).first()
+
+    mocker.patch(
+        "superset.security.SupersetSecurityManager.is_admin", return_value=True
+    )
+    mocker.patch("superset.daos.chart.ChartDAO.find_by_id", return_value=query)
+    mocker.patch("superset.daos.query.SavedQueryDAO.find_by_id", return_value=chart)
 
     objects_to_tag = [
         (ObjectTypes.query, query.id),

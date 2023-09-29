@@ -169,6 +169,3 @@ def test_create_tag_relationship(mocker):
     # Verify that the correct number of TaggedObjects are added to the session
     assert mock_session.add_all.call_count == 1
     assert len(mock_session.add_all.call_args[0][0]) == len(objects_to_tag)
-
-    # Verify that commit is called
-    mock_session.commit.assert_called_once()

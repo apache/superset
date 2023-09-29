@@ -50,6 +50,7 @@ import { QueryObject, QueryObjectColumns } from 'src/views/CRUD/types';
 
 import Icons from 'src/components/Icons';
 import QueryPreviewModal from 'src/features/queries/QueryPreviewModal';
+import { addSuccessToast } from 'src/components/MessageToasts/actions';
 
 const PAGE_SIZE = 25;
 const SQL_PREVIEW_MAX_LINES = 4;
@@ -443,6 +444,9 @@ function QueryList({ addDangerToast }: QueryListProps) {
         loading={loading}
         pageSize={PAGE_SIZE}
         highlightRowId={queryCurrentlyPreviewing?.id}
+        refreshData={() => {}}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
       />
     </>
   );
