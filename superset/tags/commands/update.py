@@ -38,12 +38,10 @@ class UpdateTagCommand(UpdateMixin, BaseCommand):
     def run(self) -> Model:
         self.validate()
         if self._model:
-            if self._properties.get("objects_to_tag"):
-                # todo(hugh): can this manage duplication
-                TagDAO.create_tag_relationship(
-                    objects_to_tag=self._properties["objects_to_tag"],
-                    tag=self._model,
-                )
+            TagDAO.create_tag_relationship(
+                objects_to_tag=self._properties["objects_to_tag"],
+                tag=self._model,
+            )
             if description := self._properties.get("description"):
                 self._model.description = description
             if tag_name := self._properties.get("name"):
