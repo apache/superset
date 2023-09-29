@@ -1193,7 +1193,7 @@ def merge_extra_filters(form_data: dict[str, Any]) -> None:
 def merge_request_params(form_data: dict[str, Any], params: dict[str, Any]) -> None:
     """
     Merge request parameters to the key `url_params` in form_data. Only updates
-    or appends parameters to `form_data` that are defined in `params; pre-existing
+    or appends parameters to `form_data` that are defined in `params; preexisting
     parameters not defined in params are left unchanged.
 
     :param form_data: object to be updated

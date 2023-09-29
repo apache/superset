@@ -2259,7 +2259,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         Note admins are deemed owners of all resources.
 
-        :param resource: The dashboard, dataste, chart, etc. resource
+        :param resource: The dashboard, dataset, chart, etc. resource
         :raises SupersetSecurityException: If the current user is not an owner
         """
 

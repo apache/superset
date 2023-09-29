@@ -472,7 +472,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable caching per impersonation key (e.g username) in a datasource where user
     # impersonation is enabled
     "CACHE_IMPERSONATION": False,
-    # Enable caching per user key for Superset cache (not datatabase cache impersonation)
+    # Enable caching per user key for Superset cache (not database cache impersonation)
     "CACHE_QUERY_BY_USER": False,
     # Enable sharing charts with embedding
     "EMBEDDABLE_CHARTS": True,
@@ -743,7 +743,7 @@ CORS_OPTIONS: dict[Any, Any] = {}
 HTML_SANITIZATION = True
 
 # Use this configuration to extend the HTML sanitization schema.
-# By default we use the Gihtub schema defined in
+# By default we use the GitHub schema defined in
 # https://github.com/syntax-tree/hast-util-sanitize/blob/main/lib/schema.js
 # For example, the following configuration would allow the rendering of the
 # style attribute for div elements and the ftp protocol in hrefs:
@@ -1102,7 +1102,7 @@ CSV_DEFAULT_NA_NAMES = list(STR_NA_VALUES)
 # dictionary. Exposing functionality through JINJA_CONTEXT_ADDONS has security
 # implications as it opens a window for a user to execute untrusted code.
 # It's important to make sure that the objects exposed (as well as objects attached
-# to those objets) are harmless. We recommend only exposing simple/pure functions that
+# to those objects) are harmless. We recommend only exposing simple/pure functions that
 # return native types.
 JINJA_CONTEXT_ADDONS: dict[str, Callable[..., Any]] = {}
 
