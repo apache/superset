@@ -16,7 +16,7 @@
 # under the License.
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING
+from typing import Any, cast, TYPE_CHECKING
 
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object import QueryObject
@@ -70,7 +70,7 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         result_type = kwargs.setdefault("result_type", parent_result_type)
         row_limit = self._process_row_limit(row_limit, result_type)
         processed_time_range = self._process_time_range(
-            time_range, kwargs.get("filters", []), kwargs.get("columns", [])
+            time_range, kwargs.get("filters"), kwargs.get("columns")
         )
         from_dttm, to_dttm = get_since_until_from_time_range(
             processed_time_range, time_shift, processed_extras
@@ -113,21 +113,23 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
     def _process_time_range(
         self,
         time_range: str | None,
-        filters: list[QueryObjectFilterClause] | [],
-        columns: list[Column] | [],
+        filters: list[QueryObjectFilterClause] | None,
+        columns: list[Column] | None,
     ) -> str:
         if time_range is None:
             time_range = NO_TIME_RANGE
-            temporal_flt = [flt for flt in filters if flt.get("op") == "TEMPORAL_RANGE"]
+            temporal_flt = [
+                flt for flt in filters or [] if flt.get("op") == "TEMPORAL_RANGE"
+            ]
             if temporal_flt:
-                xaxis_label = get_xaxis_label(columns)
+                xaxis_label = get_xaxis_label(columns or [])
                 match_flt = [
                     flt for flt in temporal_flt if flt.get("col") == xaxis_label
                 ]
                 if match_flt:
-                    time_range = match_flt[0].get("val")
+                    time_range = cast(str, match_flt[0].get("val"))
                 else:
-                    time_range = temporal_flt[0].get("val")
+                    time_range = cast(str, temporal_flt[0].get("val"))
         return time_range
 
     # light version of the view.utils.core
