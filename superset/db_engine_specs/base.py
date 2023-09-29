@@ -323,6 +323,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # engine-specific type mappings to check prior to the defaults
     column_type_mappings: tuple[ColumnTypeMapping, ...] = ()
 
+    # type-specific functions to mutate values received from the database.
+    # Needed on certain databases that return values in an unexpected format
+    column_type_mutators: dict[TypeEngine, Callable[[Any], Any]] = {}
+
     # Does database support join-free timeslot grouping
     time_groupby_inline = False
     limit_method = LimitMethod.FORCE_LIMIT
@@ -743,7 +747,30 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         try:
             if cls.limit_method == LimitMethod.FETCH_MANY and limit:
                 return cursor.fetchmany(limit)
-            return cursor.fetchall()
+            data = cursor.fetchall()
+            description = cursor.description or []
+            # Create a mapping between column name and a mutator function to normalize
+            # values with. The first two items in the description row are
+            # the column name and type.
+            column_mutators = {
+                row[0]: func
+                for row in description
+                if (
+                    func := cls.column_type_mutators.get(
+                        type(cls.get_sqla_column_type(cls.get_datatype(row[1])))
+                    )
+                )
+            }
+            if column_mutators:
+                indexes = {row[0]: idx for idx, row in enumerate(description)}
+                for row_idx, row in enumerate(data):
+                    new_row = list(row)
+                    for col, func in column_mutators.items():
+                        col_idx = indexes[col]
+                        new_row[col_idx] = func(row[col_idx])
+                    data[row_idx] = tuple(new_row)
+
+            return data
         except Exception as ex:
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
