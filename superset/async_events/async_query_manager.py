@@ -169,7 +169,7 @@ class AsyncQueryManager:
             raise AsyncQueryTokenException("Token not preset")
 
         try:
-            return jwt.decode(token, self._jwt_secret, algorithms=["HS256"])
+            return jwt.decode(token, self._jwt_secret, algorithms=["HS256"])["channel"]
         except Exception as ex:
             logger.warning("Parse jwt failed", exc_info=True)
             raise AsyncQueryTokenException("Failed to parse token") from ex
