@@ -83,6 +83,7 @@ class AsyncQueryManager:
         self._jwt_cookie_samesite: Optional[Literal["None", "Lax", "Strict"]] = None
         self._jwt_secret: str
         self._load_chart_data_into_cache_job: Any = None
+        # pylint: disable=invalid-name
         self._load_explore_json_into_cache_job: Any = None
 
     def init_app(self, app: Flask) -> None:
@@ -120,6 +121,7 @@ class AsyncQueryManager:
         if config["GLOBAL_ASYNC_QUERIES_REGISTER_REQUEST_HANDLERS"]:
             self.register_request_handlers(app)
 
+        # pylint: disable=import-outside-toplevel
         from superset.tasks.async_queries import (
             load_chart_data_into_cache,
             load_explore_json_into_cache,
@@ -180,6 +182,7 @@ class AsyncQueryManager:
             channel_id, job_id, user_id, status=self.STATUS_PENDING
         )
 
+    # pylint: disable=too-many-arguments
     def submit_explore_json_job(
         self,
         channel_id: str,

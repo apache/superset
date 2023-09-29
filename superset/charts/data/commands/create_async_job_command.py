@@ -20,7 +20,6 @@ from typing import Any, Optional
 from flask import Request
 
 from superset.extensions import async_query_manager
-from superset.tasks.async_queries import load_chart_data_into_cache
 
 logger = logging.getLogger(__name__)
 
