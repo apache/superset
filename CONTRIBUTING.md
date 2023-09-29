@@ -138,7 +138,7 @@ The best way to report a bug is to file an issue on GitHub. Please include:
 When posting Python stack traces, please quote them using
 [Markdown blocks](https://help.github.com/articles/creating-and-highlighting-code-blocks/).
 
-_Please note that feature requests opened as Github Issues will be moved to Discussions._
+_Please note that feature requests opened as GitHub Issues will be moved to Discussions._
 
 ### Submit Ideas or Feature Requests
 
@@ -170,7 +170,7 @@ articles. See [Documentation](#documentation) for more details.
 ### Add Translations
 
 If you are proficient in a non-English language, you can help translate
-text strings from Superset's UI. You can jump in to the existing
+text strings from Superset's UI. You can jump into the existing
 language dictionaries at
 `superset/translations/<language_code>/LC_MESSAGES/messages.po`, or
 even create a dictionary for a new language altogether.
@@ -329,16 +329,16 @@ Triaging goals
 
 First, add **Category labels (a.k.a. hash labels)**. Every issue/PR must have one hash label (except spam entry). Labels that begin with `#` defines issue/PR type:
 
-| Label           | for Issue                                                                                                                               | for PR                                                                                                                                            |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `#bug`          | Bug report                                                                                                                              | Bug fix                                                                                                                                           |
-| `#code-quality` | Describe problem with code, architecture or productivity                                                                                | Refactor, tests, tooling                                                                                                                          |
-| `#feature`      | New feature request                                                                                                                     | New feature implementation                                                                                                                        |
-| `#refine`       | Propose improvement that does not provide new features and is also not a bug fix nor refactor, such as adjust padding, refine UI style. | Implementation of improvement that does not provide new features and is also not a bug fix nor refactor, such as adjust padding, refine UI style. |
-| `#doc`          | Documentation                                                                                                                           | Documentation                                                                                                                                     |
-| `#question`     | Troubleshooting: Installation, Running locally, Ask how to do something. Can be changed to `#bug` later.                                | N/A                                                                                                                                               |
-| `#SIP`          | Superset Improvement Proposal                                                                                                           | N/A                                                                                                                                               |
-| `#ASF`          | Tasks related to Apache Software Foundation policy                                                                                      | Tasks related to Apache Software Foundation policy                                                                                                |
+| Label           | for Issue                                                                                                               | for PR                                                                                                                                            |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `#bug`          | Bug report                                                                                                              | Bug fix                                                                                                                           |
+| `#code-quality` | Describe problem with code, architecture or productivity                                                                | Refactor, tests, tooling                                                                                                          |
+| `#feature`      | New feature request                                                                                                     | New feature implementation                                                                                                        |
+| `#refine`       | Propose improvement such as adjusting padding or refining UI style, excluding new features, bug fixes, and refactoring. | Implementation of improvement such as adjusting padding or refining UI style, excluding new features, bug fixes, and refactoring. |
+| `#doc`          | Documentation                                                                                                           | Documentation                                                                                                                     |
+| `#question`     | Troubleshooting: Installation, Running locally, Ask how to do something. Can be changed to `#bug` later.                | N/A                                                                                                                               |
+| `#SIP`          | Superset Improvement Proposal                                                                                           | N/A                                                                                                                               |
+| `#ASF`          | Tasks related to Apache Software Foundation policy                                                                      | Tasks related to Apache Software Foundation policy                                                                                |
 
 Then add other types of labels as appropriate.
 
@@ -1211,7 +1211,7 @@ To contribute a plugin to Superset, your plugin must meet the following criteria
 - The plugin should contain sufficient unit/e2e tests
 - The plugin should use appropriate namespacing, e.g. a folder name of `plugin-chart-whatever` and a package name of `@superset-ui/plugin-chart-whatever`
 - The plugin should use them variables via Emotion, as passed in by the ThemeProvider
-- The plugin should provide adequate error handling (no data returned, malformatted data, invalid controls, etc.)
+- The plugin should provide adequate error handling (no data returned, malformed data, invalid controls, etc.)
 - The plugin should contain documentation in the form of a populated `README.md` file
 - The plugin should have a meaningful and unique icon
 - Above all else, the plugin should come with a _commitment to maintenance_ from the original author(s)

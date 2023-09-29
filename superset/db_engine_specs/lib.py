@@ -41,7 +41,7 @@ DATABASE_DETAILS = {
     "alias_in_orderby": "Allows referencing aliases in the ORDER BY statement",
     "secondary_time_columns": "Supports secondary time columns",
     "time_groupby_inline": (
-        "Allows ommiting time filters from inline GROUP BYs"
+        "Allows omitting time filters from inline GROUP BYs"
     ),  # E: line too long (80 > 79 characters)
     "alias_to_source_column": (
         "Able to use source column when an alias overshadows it"

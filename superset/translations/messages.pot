@@ -10121,7 +10121,7 @@ msgid "One or more parameters needed to configure a database are missing."
 msgstr ""
 
 #: superset/errors.py:133
-msgid "One or more parameters specified in the query are malformatted."
+msgid "One or more parameters specified in the query are malformed."
 msgstr ""
 
 #: superset/errors.py:107

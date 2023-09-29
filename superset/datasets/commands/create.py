@@ -46,7 +46,7 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
             # Creates SqlaTable (Dataset)
             dataset = DatasetDAO.create(attributes=self._properties, commit=False)
 
-            # Updates columns and metrics from the datase
+            # Updates columns and metrics from the dataset
             dataset.fetch_metadata(commit=False)
             db.session.commit()
         except (SQLAlchemyError, DAOCreateFailedError) as ex:
