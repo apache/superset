@@ -103,7 +103,7 @@ The following is for users who want to configure how Superset runs in Docker Com
 
 You can install additional python packages and apply config overrides by following the steps mentioned in [docker/README.md](https://github.com/apache/superset/tree/master/docker#configuration)
 
-You can configure the Docker Compose environment varirables for dev and non-dev mode with `docker/.env` and `docker/.env-non-dev` respectively. These environment files set the environment for most containers in the Docker Compose setup, and some variables affect multiple containers and others only single ones.
+You can configure the Docker Compose environment variables for dev and non-dev mode with `docker/.env` and `docker/.env-non-dev` respectively. These environment files set the environment for most containers in the Docker Compose setup, and some variables affect multiple containers and others only single ones.
 
 One important variable is `SUPERSET_LOAD_EXAMPLES` which determines whether the `superset_init` container will populate example data and visualizations into the metadata database. These examples are helpful for learning and testing out Superset but unnecessary for experienced users and production deployments. The loading process can sometimes take a few minutes and a good amount of CPU, so you may want to disable it on a resource-constrained device.
 
