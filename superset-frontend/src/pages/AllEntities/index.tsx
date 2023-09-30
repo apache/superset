@@ -32,6 +32,20 @@ import { fetchSingleTag } from 'src/features/tags/tags';
 import { Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
 import withToasts, { useToasts } from 'src/components/MessageToasts/withToasts';
+import { fetchObjects } from 'src/features/tags/tags';
+import Loading from 'src/components/Loading';
+
+interface TaggedObject {
+  id: number;
+  type: string;
+  name: string;
+  url: string;
+  changed_on: moment.MomentInput;
+  created_by: number | undefined;
+  creator: string;
+  owners: Owner[];
+  tags: Tag[];
+}
 
 const additionalItemsStyles = (theme: SupersetTheme) => css`
   display: flex;
@@ -88,6 +102,12 @@ function AllEntities() {
   const [tag, setTag] = useState<Tag | null>(null);
   const [showTagModal, setShowTagModal] = useState<boolean>(false);
   const { addSuccessToast, addDangerToast } = useToasts();
+  const [isLoading, setLoading] = useState<boolean>(false);
+  const [objects, setObjects] = useState<TaggedObjects>({
+    dashboard: [],
+    chart: [],
+    query: [],
+  });
 
   const editableTitleProps = {
     title: tag?.name || '',
@@ -114,13 +134,34 @@ function AllEntities() {
   };
   const items = [description, owner, lastModified];
 
+  const fetchTaggedObjects = () => {
+    setLoading(true);
+    fetchObjects(
+      { tags: tag?.name || '', types: null },
+      (data: TaggedObject[]) => {
+        const objects = { dashboard: [], chart: [], query: [] };
+        data.forEach(function (object) {
+          const object_type = object.type;
+          objects[object_type].push(object);
+        });
+        setObjects(objects);
+        setLoading(false);
+      },
+      (error: Response) => {
+        addDangerToast('Error Fetching Tagged Objects');
+      },
+    );
+  };
+
   useEffect(() => {
     // fetch single tag met
     if (tagId) {
+      setLoading(true);
       fetchSingleTag(
         tagId,
         (tag: Tag) => {
           setTag(tag);
+          setLoading(false);
         },
         (error: Response) => {
           addDangerToast(t('Error Fetching Tagged Objects'));
@@ -129,6 +170,11 @@ function AllEntities() {
     }
   }, [tagId]);
 
+  useEffect(() => {
+    if (tag) fetchTaggedObjects();
+  }, [tag]);
+
+  if (isLoading) return <Loading />;
   return (
     <AllEntitiesContainer>
       <TagModal
@@ -139,7 +185,7 @@ function AllEntities() {
         editTag={tag}
         addSuccessToast={addSuccessToast}
         addDangerToast={addDangerToast}
-        refreshData={() => {}} // todo(hugh): implement refreshData on table reload
+        refreshData={fetchTaggedObjects}
       />
       <AllEntitiesNav>
         <PageHeaderWithActions
@@ -174,6 +220,7 @@ function AllEntities() {
         <AllEntitiesTable
           search={tag?.name || ''}
           setShowTagModal={setShowTagModal}
+          objects={objects}
         />
       </div>
     </AllEntitiesContainer>
