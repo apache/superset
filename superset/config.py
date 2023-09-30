@@ -348,7 +348,7 @@ PUBLIC_ROLE_LIKE: str | None = None
 BABEL_DEFAULT_LOCALE = "en"
 # Your application default translation path
 BABEL_DEFAULT_FOLDER = "superset/translations"
-# The allowed translation for you app
+# The allowed translation for your app
 LANGUAGES = {
     "en": {"flag": "us", "name": "English"},
     "es": {"flag": "es", "name": "Spanish"},
@@ -811,7 +811,7 @@ TIME_GRAIN_ADDON_EXPRESSIONS: dict[str, dict[str, str]] = {}
 
 # Map of custom time grains and artificial join column producers used
 # when generating the join key between results and time shifts.
-# See supeset/common/query_context_processor.get_aggregated_join_column
+# See superset/common/query_context_processor.get_aggregated_join_column
 #
 # Example of a join column producer that aggregates by fiscal year
 # def join_producer(row: Series, column_index: int) -> str:
@@ -1114,7 +1114,7 @@ JINJA_CONTEXT_ADDONS: dict[str, Callable[..., Any]] = {}
 # basis. Example value = `{"presto": CustomPrestoTemplateProcessor}`
 CUSTOM_TEMPLATE_PROCESSORS: dict[str, type[BaseTemplateProcessor]] = {}
 
-# Roles that are controlled by the API / Superset and should not be changes
+# Roles that are controlled by the API / Superset and should not be changed
 # by humans.
 ROBOT_PERMISSION_ROLES = ["Public", "Gamma", "Alpha", "Admin", "sql_lab"]
 
