@@ -22,17 +22,32 @@ import { t, styled, logging } from '@superset-ui/core';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import Loading from 'src/components/Loading';
+import { TagsList } from 'src/components/Tags';
+import FacePile from 'src/components/FacePile';
+import Tag from 'src/types/TagType';
+import Owner from 'src/types/Owner';
+import { EmptyStateBig } from 'src/components/EmptyState';
 import { fetchObjects } from '../tags/tags';
+
+const MAX_TAGS_TO_SHOW = 3;
 
 const AllEntitiesTableContainer = styled.div`
   text-align: left;
   border-radius: ${({ theme }) => theme.gridUnit * 1}px 0;
-  margin: 0 ${({ theme }) => theme.gridUnit * 4}px;
   .table {
     table-layout: fixed;
   }
   .td {
     width: 33%;
+  }
+  .entity-title {
+    font-family: Inter;
+    font-size: ${({ theme }) => theme.typography.sizes.m}px;
+    font-weight: ${({ theme }) => theme.typography.weights.medium};
+    line-height: 17px;
+    letter-spacing: 0px;
+    text-align: left;
+    margin: ${({ theme }) => theme.gridUnit * 4}px 0;
   }
 `;
 
@@ -44,6 +59,8 @@ interface TaggedObject {
   changed_on: moment.MomentInput;
   created_by: number | undefined;
   creator: string;
+  owners: Owner[];
+  tags: Tag[];
 }
 
 interface TaggedObjects {
@@ -54,10 +71,12 @@ interface TaggedObjects {
 
 interface AllEntitiesTableProps {
   search?: string;
+  setShowTagModal: (show: boolean) => void;
 }
 
 export default function AllEntitiesTable({
   search = '',
+  setShowTagModal,
 }: AllEntitiesTableProps) {
   type objectType = 'dashboard' | 'chart' | 'query';
 
@@ -66,8 +85,19 @@ export default function AllEntitiesTable({
     chart: [],
     query: [],
   });
+  const [isLoading, setLoading] = useState<boolean>(true);
+  const showListViewObjs =
+    objects.dashboard.length > 0 ||
+    objects.chart.length > 0 ||
+    objects.query.length > 0;
 
   useEffect(() => {
+    if (search === '') {
+      return;
+    }
+
+    setLoading(true);
+
     fetchObjects(
       { tags: search, types: null },
       (data: TaggedObject[]) => {
@@ -77,6 +107,7 @@ export default function AllEntitiesTable({
           objects[object_type].push(object);
         });
         setObjects(objects);
+        setLoading(false);
       },
       (error: Response) => {
         addDangerToast('Error Fetching Tagged Objects');
@@ -89,7 +120,10 @@ export default function AllEntitiesTable({
     const data = objects[type].map((o: TaggedObject) => ({
       [type]: <a href={o.url}>{o.name}</a>,
       modified: moment.utc(o.changed_on).fromNow(),
+      tags: o.tags,
+      owners: o.owners,
     }));
+
     return (
       <TableView
         className="table-condensed"
@@ -99,27 +133,69 @@ export default function AllEntitiesTable({
         columns={[
           {
             accessor: type,
-            Header: type.charAt(0).toUpperCase() + type.slice(1),
+            Header: 'Title',
           },
-          { accessor: 'modified', Header: 'Modified' },
+          {
+            Cell: ({
+              row: {
+                original: { tags = [] },
+              },
+            }: {
+              row: {
+                original: {
+                  tags: Tag[];
+                };
+              };
+            }) => (
+              // Only show custom type tags
+              <TagsList
+                tags={tags.filter(
+                  (tag: Tag) =>
+                    tag.type === 'TagTypes.custom' || tag.type === 1,
+                )}
+                maxTags={MAX_TAGS_TO_SHOW}
+              />
+            ),
+            Header: t('Tags'),
+            accessor: 'tags',
+            disableSortBy: true,
+          },
+          {
+            Cell: ({
+              row: {
+                original: { owners = [] },
+              },
+            }: any) => <FacePile users={owners} />,
+            Header: t('Owners'),
+            accessor: 'owners',
+            disableSortBy: true,
+            size: 'xl',
+          },
         ]}
       />
     );
   };
 
-  if (objects) {
-    return (
-      <AllEntitiesTableContainer>
-        <h3>{t('Dashboards')}</h3>
-        {renderTable('dashboard')}
-        <hr />
-        <h3>{t('Charts')}</h3>
-        {renderTable('chart')}
-        <hr />
-        <h3>{t('Queries')}</h3>
-        {renderTable('query')}
-      </AllEntitiesTableContainer>
-    );
-  }
-  return <Loading />;
+  if (isLoading) return <Loading />;
+  return (
+    <AllEntitiesTableContainer>
+      {showListViewObjs ? (
+        <>
+          <div className="entity-title">{t('Dashboards')}</div>
+          {renderTable('dashboard')}
+          <div className="entity-title">{t('Charts')}</div>
+          {renderTable('chart')}
+          <div className="entity-title">{t('Queries')}</div>
+          {renderTable('query')}
+        </>
+      ) : (
+        <EmptyStateBig
+          image="dashboard.svg"
+          title={t('No entities have this tag currently assigned')}
+          buttonAction={() => setShowTagModal(true)}
+          buttonText={t('Add tag to entities')}
+        />
+      )}
+    </AllEntitiesTableContainer>
+  );
 }
