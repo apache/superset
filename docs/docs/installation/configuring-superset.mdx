@@ -149,6 +149,11 @@ If you're not using Gunicorn, you may want to disable the use of `flask-compress
 Currently, Google BigQuery python sdk is not compatible with `gevent`, due to some dynamic monkeypatching on python core library by `gevent`.
 So, when you use `BigQuery` datasource on Superset, you have to use `gunicorn` worker type except `gevent`.
 
+### HTTPS Configuration
+
+You can configure HTTPS upstream via a load balancer or an nginx reverse proxy and do TLS Offloading before it reaches Superset App.
+You can also configure [SSL in Gunicorn](https://docs.gunicorn.org/en/stable/settings.html#ssl) (the Python webserver) if you are using an official Superset Docker image.
+
 ### Configuration Behind a Load Balancer
 
 If you are running superset behind a load balancer or reverse proxy (e.g. NGINX or ELB on AWS), you
