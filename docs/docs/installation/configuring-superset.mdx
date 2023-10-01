@@ -265,6 +265,12 @@ CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
   ]
   ```
 
+### LDAP Authentication
+
+FAB allows to authenticate the user’s credentials against an LDAP server.
+To use LDAP you need to install [python-ldap](https://www.python-ldap.org/en/latest/installing.html).
+Please refer [FAB's LDAP documentation](https://flask-appbuilder.readthedocs.io/en/latest/security.html#authentication-ldap) for configuration details.
+
 ### Flask app Configuration Hook
 
 `FLASK_APP_MUTATOR` is a configuration function that can be provided in your environment, receives
