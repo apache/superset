@@ -123,7 +123,7 @@ export default function ErrorAlert({
         {!isExpandable && !description && (
           <span
             role="button"
-            tabIndex={0}
+            tabIndex={-1}
             className="link"
             onClick={() => setIsModalOpen(true)}
           >
@@ -137,7 +137,7 @@ export default function ErrorAlert({
           {!isExpandable && (
             <span
               role="button"
-              tabIndex={0}
+              tabIndex={-1}
               className="link"
               onClick={() => setIsModalOpen(true)}
             >
@@ -154,7 +154,7 @@ export default function ErrorAlert({
               {!isBodyExpanded && (
                 <span
                   role="button"
-                  tabIndex={0}
+                  tabIndex={-1}
                   className="link"
                   onClick={() => setIsBodyExpanded(true)}
                 >
@@ -167,7 +167,7 @@ export default function ErrorAlert({
                   {body}
                   <span
                     role="button"
-                    tabIndex={0}
+                    tabIndex={-1}
                     className="link"
                     onClick={() => setIsBodyExpanded(false)}
                   >

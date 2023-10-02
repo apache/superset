@@ -97,3 +97,28 @@ export const chartContextMenuStyles = (theme: SupersetTheme) => css`
     min-width: ${theme.gridUnit * 40}px;
   }
 `;
+
+export const focusStyle = (theme: SupersetTheme) => css`
+  a,
+  .ant-tabs-tabpane,
+  .ant-tabs-tab-btn,
+  .superset-button.action-button,
+  .superset-button.ant-dropdown-trigger,
+  .header-controls span {
+    &:focus {
+      box-shadow: 0 0 0 2px ${theme.colors.primary.dark1};
+      border-radius: 4px;
+      outline: none;
+      text-decoration: none;
+    }
+    &:not(.superset-button, .ant-menu-item
+        a, .fave-unfave-icon, .ant-tabs-tabpane, .header-controls span) {
+      &:focus {
+        padding: 2px;
+      }
+    }
+    .header-title & {
+      margin: 2px;
+    }
+  }
+`;
