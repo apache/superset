@@ -38,6 +38,7 @@ type ConfigType = {
   redisStreamReadBlockMs: number;
   jwtSecret: string;
   jwtCookieName: string;
+  jwtChannelIdKey: string;
   socketResponseTimeoutMs: number;
   pingSocketsIntervalMs: number;
   gcChannelsIntervalMs: number;
@@ -54,6 +55,7 @@ function defaultConfig(): ConfigType {
     redisStreamReadBlockMs: 5000,
     jwtSecret: '',
     jwtCookieName: 'async-token',
+    jwtChannelIdKey: 'channel',
     socketResponseTimeoutMs: 60 * 1000,
     pingSocketsIntervalMs: 20 * 1000,
     gcChannelsIntervalMs: 120 * 1000,
