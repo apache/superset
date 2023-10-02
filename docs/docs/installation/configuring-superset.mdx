@@ -174,8 +174,9 @@ RequestHeader set X-Forwarded-Proto "https"
 
 ### Custom OAuth2 Configuration
 
-Beyond FAB supported providers (GitHub, Twitter, LinkedIn, Google, Azure, etc), its easy to connect
-Superset with other OAuth2 Authorization Server implementations that support “code” authorization.
+Superset is built on Flask-AppBuilder (FAB), which supports many providers out of the box
+(GitHub, Twitter, LinkedIn, Google, Azure, etc).  Beyond those, Superset can be configured to connect
+with other OAuth2 Authorization Server implementations that support “code” authorization.
 
 Make sure the pip package [`Authlib`](https://authlib.org/) is installed on the webserver.
 
@@ -272,9 +273,10 @@ CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
 
 ### LDAP Authentication
 
-FAB allows to authenticate the user’s credentials against an LDAP server.
-To use LDAP you need to install [python-ldap](https://www.python-ldap.org/en/latest/installing.html).
-Please refer [FAB's LDAP documentation](https://flask-appbuilder.readthedocs.io/en/latest/security.html#authentication-ldap) for configuration details.
+FAB supports authenticating user credentials against an LDAP server.
+To use LDAP you must install the [python-ldap](https://www.python-ldap.org/en/latest/installing.html) package.
+See [FAB's LDAP documentation](https://flask-appbuilder.readthedocs.io/en/latest/security.html#authentication-ldap)
+for details.
 
 ### Flask app Configuration Hook
 
