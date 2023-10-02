@@ -16,7 +16,6 @@
 # under the License.
 
 from datetime import datetime
-from http.client import HTTPConnection
 from typing import Any, Optional
 from unittest.mock import Mock
 
@@ -31,6 +30,7 @@ from sqlalchemy.types import (
     String,
     TypeEngine,
 )
+from urllib3.connection import HTTPConnection
 
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
