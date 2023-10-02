@@ -39,7 +39,7 @@ class UpdateTagCommand(UpdateMixin, BaseCommand):
         self.validate()
         if self._model:
             TagDAO.create_tag_relationship(
-                objects_to_tag=self._properties["objects_to_tag"],
+                objects_to_tag=self._properties.get("objects_to_tag", []),
                 tag=self._model,
             )
             if description := self._properties.get("description"):
