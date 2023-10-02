@@ -16,6 +16,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from typing import Callable, Any
 
 from superset import config
 
@@ -24,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 feature_flags = config.DEFAULT_FEATURE_FLAGS.copy()
 feature_flags.update(config.FEATURE_FLAGS)
-feature_flags_func = config.GET_FEATURE_FLAGS_FUNC
+feature_flags_func: Callable[[Any], Any] = config.GET_FEATURE_FLAGS_FUNC
 if feature_flags_func:
     try:
         feature_flags = feature_flags_func(feature_flags)
