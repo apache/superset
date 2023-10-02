@@ -57,7 +57,7 @@ const AllEntitiesContainer = styled.div`
     margin-bottom: ${theme.gridUnit * 1}px;
   }
   .entities {
-    margin: ${theme.gridUnit * 7.5}px; 0px;
+    margin: ${theme.gridUnit * 6}px; 0px;
   }
   `}
 `;
@@ -88,6 +88,7 @@ function AllEntities() {
   const [tag, setTag] = useState<Tag | null>(null);
   const [showTagModal, setShowTagModal] = useState<boolean>(false);
   const { addSuccessToast, addDangerToast } = useToasts();
+
   const editableTitleProps = {
     title: tag?.name || '',
     placeholder: 'testing',
@@ -166,10 +167,14 @@ function AllEntities() {
           menuDropdownProps={{
             disabled: true,
           }}
+          showMenuDropdown={false}
         />
       </AllEntitiesNav>
       <div className="entities">
-        <AllEntitiesTable search={tag?.name || ''} />
+        <AllEntitiesTable
+          search={tag?.name || ''}
+          setShowTagModal={setShowTagModal}
+        />
       </div>
     </AllEntitiesContainer>
   );

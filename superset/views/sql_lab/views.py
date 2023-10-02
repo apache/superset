@@ -21,7 +21,7 @@ from flask import redirect, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
-from flask_babel import lazy_gettext as _
+from flask_babel import gettext as __
 from sqlalchemy import and_
 
 from superset import db
@@ -90,7 +90,7 @@ class TabStateView(BaseSupersetView):
             user_id=get_user_id(),
             # This is for backward compatibility
             label=query_editor.get("name")
-            or query_editor.get("title", _("Untitled Query")),
+            or query_editor.get("title", __("Untitled Query")),
             active=True,
             database_id=query_editor["dbId"],
             schema=query_editor.get("schema"),

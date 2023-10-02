@@ -38,6 +38,12 @@ openapi_spec_methods_override = {
 }
 
 
+class TagGetResponseSchema(Schema):
+    id = fields.Int()
+    name = fields.String()
+    type = fields.String()
+
+
 class TaggedObjectEntityResponseSchema(Schema):
     id = fields.Int()
     type = fields.String()
@@ -46,12 +52,8 @@ class TaggedObjectEntityResponseSchema(Schema):
     changed_on = fields.DateTime()
     created_by = fields.Nested(UserSchema(exclude=["username"]))
     creator = fields.String()
-
-
-class TagGetResponseSchema(Schema):
-    id = fields.Int()
-    name = fields.String()
-    type = fields.String()
+    tags = fields.List(fields.Nested(TagGetResponseSchema))
+    owners = fields.List(fields.Nested(UserSchema))
 
 
 class TagObjectSchema(Schema):
