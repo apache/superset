@@ -61,6 +61,7 @@ export const QUERY_EDITOR_SET_TITLE = 'QUERY_EDITOR_SET_TITLE';
 export const QUERY_EDITOR_SET_AUTORUN = 'QUERY_EDITOR_SET_AUTORUN';
 export const QUERY_EDITOR_SET_SQL = 'QUERY_EDITOR_SET_SQL';
 export const QUERY_EDITOR_SET_QUERY_LIMIT = 'QUERY_EDITOR_SET_QUERY_LIMIT';
+export const QUERY_EDITOR_SET_IS_NLP_QUERY = 'QUERY_EDITOR_SET_IS_NLP_QUERY';
 export const QUERY_EDITOR_SET_TEMPLATE_PARAMS =
   'QUERY_EDITOR_SET_TEMPLATE_PARAMS';
 export const QUERY_EDITOR_SET_SELECTED_TEXT = 'QUERY_EDITOR_SET_SELECTED_TEXT';
@@ -133,10 +134,12 @@ export function getUpToDateQuery(rootState, queryEditor, key) {
     sqlLab: { unsavedQueryEditor },
   } = rootState;
   const id = key ?? queryEditor.id;
-  return {
+  const a = {
     ...queryEditor,
     ...(id === unsavedQueryEditor.id && unsavedQueryEditor),
   };
+  console.log(a);
+  return a;
 }
 
 export function resetState(data) {
@@ -377,6 +380,7 @@ export function runQuery(query) {
       templateParams: query.templateParams,
       queryLimit: query.queryLimit,
       expand_data: true,
+      isNlpQuery: query.isNlpQuery
     };
 
     const search = window.location.search || '';
@@ -417,7 +421,10 @@ export function runQueryFromSqlEditor(
 ) {
   return function (dispatch, getState) {
     const qe = getUpToDateQuery(getState(), queryEditor, queryEditor.id);
+    console.log("RUN QUERY")
+    console.log(qe.isNlpQuery)
     const query = {
+      isNlpQuery: qe.isNlpQuery,
       dbId: qe.dbId,
       sql: qe.selectedText || qe.sql,
       sqlEditorId: qe.id,
@@ -595,7 +602,7 @@ export function addNewQueryEditor() {
     );
     const dbIds = Object.values(databases).map(database => database.id);
     const firstDbId = dbIds.length > 0 ? Math.min(...dbIds) : undefined;
-    const { dbId, schema, queryLimit, autorun } = {
+    const { dbId, schema, queryLimit, autorun, isNlpQuery } = {
       ...queryEditors[0],
       ...activeQueryEditor,
       ...(unsavedQueryEditor.id === activeQueryEditor?.id &&
@@ -617,6 +624,7 @@ export function addNewQueryEditor() {
         sql: `${warning}SELECT ...`,
         queryLimit: queryLimit || common.conf.DEFAULT_SQLLAB_LIMIT,
         name,
+        isNlpQuery: isNlpQuery ?? false
       }),
     );
   };
@@ -636,6 +644,7 @@ export function cloneQueryToNewTab(query, autorun) {
       autorun,
       sql: query.sql,
       queryLimit: sourceQueryEditor.queryLimit,
+      isNlpQuery: sourceQueryEditor.isNlpQuery,
       maxRow: sourceQueryEditor.maxRow,
       templateParams: sourceQueryEditor.templateParams,
     };
@@ -735,6 +744,7 @@ export function switchQueryEditor(queryEditor, displayLimit) {
               completed: false,
             },
             hideLeftBar: json.hide_left_bar,
+            isNlpQuery: json.is_nlp_query
           };
           dispatch(loadQueryEditor(loadedQueryEditor));
           dispatch(setTables(json.table_schemas || []));
@@ -784,6 +794,36 @@ export function toggleLeftBar(queryEditor) {
           addDangerToast(
             t(
               'An error occurred while hiding the left bar. Please contact your administrator.',
+            ),
+          ),
+        ),
+      );
+  };
+}
+
+export function toggleIsNlpQuery(queryEditor, updatedIsNlpQuery) {
+  return function (dispatch) {
+
+    const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
+      ? SupersetClient.put({
+          endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
+          postPayload: { is_nlp_query: updatedIsNlpQuery },
+        })
+      : Promise.resolve();
+    return sync
+      .then(() =>{
+        dispatch({
+          type: QUERY_EDITOR_SET_IS_NLP_QUERY,
+          queryEditor,
+          isNlpQuery: updatedIsNlpQuery,
+        })
+      }
+      )
+      .catch(() =>
+        dispatch(
+          addDangerToast(
+            t(
+              'An error occurred while setting the is nlp query. Please contact your administrator.',
             ),
           ),
         ),

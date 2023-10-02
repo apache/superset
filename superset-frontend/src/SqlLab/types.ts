@@ -46,6 +46,7 @@ export interface QueryEditor {
   description?: string;
   loaded?: boolean;
   inLocalStorage?: boolean;
+  isNlpQuery?: boolean;
 }
 
 export type toastState = {

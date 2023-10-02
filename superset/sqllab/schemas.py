@@ -57,6 +57,7 @@ class ExecutePayloadSchema(Schema):
     json = fields.Boolean(allow_none=True)
     runAsync = fields.Boolean(allow_none=True)
     expand_data = fields.Boolean(allow_none=True)
+    isNlpQuery = fields.Boolean(allow_none=True)
 
 
 class QueryResultSchema(Schema):
@@ -115,6 +116,7 @@ class TabStateSchema(Schema):
     database_id = fields.Integer()
     extra_json = fields.Dict()
     hide_left_bar = fields.Boolean()
+    is_nlp_query = fields.Boolean()
     id = fields.String()
     label = fields.String()
     latest_query = fields.Nested(QueryResultSchema)

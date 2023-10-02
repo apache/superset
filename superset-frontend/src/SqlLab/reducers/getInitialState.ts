@@ -61,6 +61,7 @@ export default function getInitialState({
     dbId: common.conf.SQLLAB_DEFAULT_DBID,
     queryLimit: common.conf.DEFAULT_SQLLAB_LIMIT,
     hideLeftBar: false,
+    isNlpQuery: false,
     remoteId: null,
   };
   let unsavedQueryEditor: UnsavedQueryEditor = {};
@@ -88,6 +89,7 @@ export default function getInitialState({
         schema: activeTab.schema,
         queryLimit: activeTab.query_limit,
         hideLeftBar: activeTab.hide_left_bar,
+        isNlpQuery: activeTab.is_nlp_query,
       };
     } else {
       // dummy state, actual state will be loaded on tab switch

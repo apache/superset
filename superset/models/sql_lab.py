@@ -478,6 +478,7 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
     autorun = Column(Boolean, default=False)
     template_params = Column(Text)
     hide_left_bar = Column(Boolean, default=False)
+    is_nlp_query = Column(Boolean, default=False)
 
     # any saved queries that are associated with the Tab State
     saved_query_id = Column(

@@ -49,6 +49,7 @@ export type InitialState = {
     autorun?: boolean;
     template_params: string | null;
     hide_left_bar?: boolean;
+    is_nlp_query?: boolean;
     saved_query: { id: number } | null;
     extra_json?: object;
   };

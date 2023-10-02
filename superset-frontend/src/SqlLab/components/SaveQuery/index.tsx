@@ -81,6 +81,7 @@ const SaveQuery = ({
     'selectedText',
     'sql',
     'templateParams',
+    'isNlpQuery'
   ]);
   const query = useMemo(
     () => ({

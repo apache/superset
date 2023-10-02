@@ -67,6 +67,8 @@ import {
   scheduleQuery,
   setActiveSouthPaneTab,
   updateSavedQuery,
+  QUERY_EDITOR_SET_IS_NLP_QUERY,
+  toggleIsNlpQuery,
 } from 'src/SqlLab/actions/sqlLab';
 import {
   STATE_TYPE_MAP,
@@ -98,6 +100,9 @@ import SqlEditorLeftBar from '../SqlEditorLeftBar';
 import AceEditorWrapper from '../AceEditorWrapper';
 import RunQueryActionButton from '../RunQueryActionButton';
 import QueryLimitSelect from '../QueryLimitSelect';
+import { Switch } from 'antd';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
+import NlpQueryToggle from '../NlpQueryToggle';
 
 const bootstrapData = getBootstrapData();
 const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
@@ -657,6 +662,9 @@ const SqlEditor = ({
                 />
               </span>
             )}
+          <span>
+            <NlpQueryToggle queryEditorId={queryEditor.id}/>
+          </span>
           <span>
             <QueryLimitSelect
               queryEditorId={queryEditor.id}
