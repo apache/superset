@@ -80,6 +80,7 @@ def connector_registry() -> Mock:
         if col_name in TEMPORAL_COLUMN_NAMES
         else Mock()
     )
+    datasource_dao_mock.get_datasource().db_extra = None
     return datasource_dao_mock
 
 
