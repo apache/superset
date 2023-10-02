@@ -31,7 +31,6 @@ from typing import Any, Optional, TYPE_CHECKING, Union
 
 import pandas as pd
 from flask_babel import gettext as __
-from flask import current_app
 
 from superset.common.chart_data import ChartDataResultFormat
 from superset.utils.core import (
@@ -339,7 +338,7 @@ def apply_post_process(
             query["data"] = processed_df.to_dict()
         elif query["result_format"] == ChartDataResultFormat.CSV:
             buf = StringIO()
-            processed_df.to_csv(buf, index=current_app.config["CSV_INDEX"])
+            processed_df.to_csv(buf)
             buf.seek(0)
             query["data"] = buf.getvalue()
 

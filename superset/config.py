@@ -779,7 +779,7 @@ CSV_UPLOAD_MAX_SIZE = None
 # note: index option should not be overridden
 CSV_EXPORT = {"encoding": "utf-8"}
 
-# Show the dataframe index when emailing a CSV report
+# Show the CSV index when emailing a CSV report
 CSV_INDEX = True
 # Excel Options: key/value pairs that will be passed as argument to DataFrame.to_excel
 # method.

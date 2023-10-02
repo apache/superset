@@ -75,6 +75,9 @@ from superset.utils.core import HeaderDataType, override_user
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
+from io import StringIO
+import pandas as pd
+from io import BytesIO
 
 logger = logging.getLogger(__name__)
 
@@ -260,6 +263,11 @@ class BaseReportState:
         try:
             logger.info("Getting chart from %s as user %s", url, user.username)
             csv_data = get_chart_csv_data(chart_url=url, auth_cookies=auth_cookies)
+            if csv_data:
+                buf = BytesIO()
+                pd.read_csv(StringIO(csv_data.decode("utf-8"))).iloc[:, 1:].to_csv(buf,encoding="utf-8",index=app.config["CSV_INDEX"])
+                buf.seek(0)
+                csv_data = buf.getvalue()
         except SoftTimeLimitExceeded as ex:
             raise ReportScheduleCsvTimeout() from ex
         except Exception as ex:
