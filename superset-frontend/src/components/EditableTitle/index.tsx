@@ -229,6 +229,7 @@ export default function EditableTitle({
           :hover {
             text-decoration: underline;
           }
+          display: inline-block;
         `}
       >
         {value}

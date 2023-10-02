@@ -53,6 +53,7 @@ import { RootState } from '../types';
 import {
   chartContextMenuStyles,
   filterCardPopoverStyle,
+  focusStyle,
   headerStyles,
 } from '../styles';
 import SyncDashboardState, {
@@ -218,6 +219,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
           filterCardPopoverStyle(theme),
           headerStyles(theme),
           chartContextMenuStyles(theme),
+          focusStyle(theme),
         ]}
       />
       <SyncDashboardState dashboardPageId={dashboardPageId} />

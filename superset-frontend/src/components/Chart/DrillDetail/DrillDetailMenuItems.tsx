@@ -81,6 +81,8 @@ export type DrillDetailMenuItemsProps = {
   onSelection?: () => void;
   onClick?: (event: MouseEvent) => void;
   submenuIndex?: number;
+  showModal: boolean;
+  setShowModal: (show: boolean) => void;
 };
 
 const DrillDetailMenuItems = ({
@@ -92,13 +94,14 @@ const DrillDetailMenuItems = ({
   onSelection = () => null,
   onClick = () => null,
   submenuIndex = 0,
+  showModal,
+  setShowModal,
   ...props
 }: DrillDetailMenuItemsProps) => {
   const [modalFilters, setFilters] = useState<BinaryQueryObjectFilterClause[]>(
     [],
   );
 
-  const [showModal, setShowModal] = useState(false);
   const openModal = useCallback(
     (filters, event) => {
       onClick(event);

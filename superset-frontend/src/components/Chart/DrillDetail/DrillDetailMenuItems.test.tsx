@@ -66,6 +66,28 @@ const filterB: BinaryQueryObjectFilterClause = {
   formattedVal: 'Two days ago',
 };
 
+const MockRenderChart = ({
+  chartId,
+  formData,
+  isContextMenu,
+  filters,
+}: Partial<DrillDetailMenuItemsProps>) => {
+  const [showMenu, setShowMenu] = React.useState(false);
+
+  return (
+    <Menu>
+      <DrillDetailMenuItems
+        chartId={chartId ?? defaultChartId}
+        formData={formData ?? defaultFormData}
+        filters={filters}
+        isContextMenu={isContextMenu}
+        showModal={showMenu}
+        setShowModal={setShowMenu}
+      />
+    </Menu>
+  );
+};
+
 const renderMenu = ({
   chartId,
   formData,
@@ -74,14 +96,12 @@ const renderMenu = ({
 }: Partial<DrillDetailMenuItemsProps>) => {
   const store = getMockStoreWithNativeFilters();
   return render(
-    <Menu>
-      <DrillDetailMenuItems
-        chartId={chartId ?? defaultChartId}
-        formData={formData ?? defaultFormData}
-        filters={filters}
-        isContextMenu={isContextMenu}
-      />
-    </Menu>,
+    <MockRenderChart
+      chartId={chartId}
+      formData={formData}
+      isContextMenu={isContextMenu}
+      filters={filters}
+    />,
     { useRouter: true, useRedux: true, store },
   );
 };

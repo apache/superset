@@ -21,14 +21,10 @@ import React, {
   Key,
   ReactChild,
   useState,
-  useCallback,
+  useRef,
+  RefObject,
 } from 'react';
-import {
-  Link,
-  RouteComponentProps,
-  useHistory,
-  withRouter,
-} from 'react-router-dom';
+import { RouteComponentProps, useHistory, withRouter } from 'react-router-dom';
 import moment from 'moment';
 import {
   Behavior,
@@ -74,6 +70,8 @@ const MENU_KEYS = {
   VIEW_RESULTS: 'view_results',
   DRILL_TO_DETAIL: 'drill_to_detail',
   CROSS_FILTER_SCOPING: 'cross_filter_scoping',
+  SHARE: 'share',
+  DOWNLOAD: 'download',
 };
 
 // TODO: replace 3 dots with an icon
@@ -176,16 +174,17 @@ const ViewResultsModalTrigger = ({
   triggerNode,
   modalTitle,
   modalBody,
+  showModal = false,
+  setShowModal,
 }: {
   canExplore?: boolean;
   exploreUrl: string;
   triggerNode: ReactChild;
   modalTitle: ReactChild;
   modalBody: ReactChild;
+  showModal: boolean;
+  setShowModal: (showModal: boolean) => void;
 }) => {
-  const [showModal, setShowModal] = useState(false);
-  const openModal = useCallback(() => setShowModal(true), []);
-  const closeModal = useCallback(() => setShowModal(false), []);
   const history = useHistory();
   const exploreChart = () => history.push(exploreUrl);
   const theme = useTheme();
@@ -194,7 +193,7 @@ const ViewResultsModalTrigger = ({
     <>
       <span
         data-test="span-modal-trigger"
-        onClick={openModal}
+        onClick={() => setShowModal(true)}
         role="button"
         tabIndex={0}
       >
@@ -209,7 +208,8 @@ const ViewResultsModalTrigger = ({
             }
           `}
           show={showModal}
-          onHide={closeModal}
+          onHide={() => setShowModal(false)}
+          closable
           title={modalTitle}
           footer={
             <>
@@ -231,7 +231,7 @@ const ViewResultsModalTrigger = ({
               <Button
                 buttonStyle="primary"
                 buttonSize="small"
-                onClick={closeModal}
+                onClick={() => setShowModal(false)}
                 css={css`
                   margin-left: ${theme.gridUnit * 2}px;
                 `}
@@ -261,9 +261,21 @@ const ViewResultsModalTrigger = ({
 };
 
 const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
+  const [dropdownIsOpen, setDropdownIsOpen] = useState(false);
+  const [tableModalIsOpen, setTableModalIsOpen] = useState(false);
+  const [drillModalIsOpen, setDrillModalIsOpen] = useState(false);
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [openScopingModal, scopingModal] = useCrossFiltersScopingModal(
     props.slice.slice_id,
   );
+
+  const queryMenuRef: RefObject<any> = useRef(null);
+
+  const toggleDropdown = () => {
+    setDropdownIsOpen(!dropdownIsOpen);
+    // clear selected keys
+    setSelectedKeys([]);
+  };
 
   const canEditCrossFilters =
     useSelector<RootState, boolean>(
@@ -309,6 +321,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
       case MENU_KEYS.EXPLORE_CHART:
         // eslint-disable-next-line no-unused-expressions
         props.logExploreChart?.(props.slice.slice_id);
+        window.open(props.exploreUrl, '_blank');
         break;
       case MENU_KEYS.EXPORT_CSV:
         // eslint-disable-next-line no-unused-expressions
@@ -351,6 +364,22 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
       }
       case MENU_KEYS.CROSS_FILTER_SCOPING: {
         openScopingModal();
+        break;
+      }
+      case MENU_KEYS.VIEW_RESULTS: {
+        if (!tableModalIsOpen) {
+          setTableModalIsOpen(true);
+        }
+        break;
+      }
+      case MENU_KEYS.DRILL_TO_DETAIL: {
+        setDrillModalIsOpen(!drillModalIsOpen);
+        break;
+      }
+      case MENU_KEYS.VIEW_QUERY: {
+        if (queryMenuRef.current) {
+          queryMenuRef.current.open(domEvent);
+        }
         break;
       }
       default:
@@ -408,6 +437,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
       onClick={handleMenuClick}
       selectable={false}
       data-test={`slice_${slice.slice_id}-menu`}
+      selectedKeys={selectedKeys}
     >
       <Menu.Item
         key={MENU_KEYS.FORCE_REFRESH}
@@ -435,11 +465,9 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
 
       {canExplore && (
         <Menu.Item key={MENU_KEYS.EXPLORE_CHART}>
-          <Link to={props.exploreUrl}>
-            <Tooltip title={getSliceHeaderTooltip(props.slice.slice_name)}>
-              {t('Edit chart')}
-            </Tooltip>
-          </Link>
+          <Tooltip title={getSliceHeaderTooltip(props.slice.slice_name)}>
+            {t('Edit chart')}
+          </Tooltip>
         </Menu.Item>
       )}
 
@@ -463,6 +491,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
             draggable
             resizable
             responsive
+            ref={queryMenuRef}
           />
         </Menu.Item>
       )}
@@ -475,6 +504,8 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
             triggerNode={
               <span data-test="view-query-menu-item">{t('View as table')}</span>
             }
+            setShowModal={setTableModalIsOpen}
+            showModal={tableModalIsOpen}
             modalTitle={t('Chart Data: %s', slice.slice_name)}
             modalBody={
               <ResultsPaneOnDashboard
@@ -493,13 +524,16 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         <DrillDetailMenuItems
           chartId={slice.slice_id}
           formData={props.formData}
+          key={MENU_KEYS.DRILL_TO_DETAIL}
+          showModal={drillModalIsOpen}
+          setShowModal={setDrillModalIsOpen}
         />
       )}
 
       {(slice.description || canExplore) && <Menu.Divider />}
 
       {supersetCanShare && (
-        <Menu.SubMenu title={t('Share')}>
+        <Menu.SubMenu title={t('Share')} key={MENU_KEYS.SHARE}>
           <ShareMenuItems
             dashboardId={dashboardId}
             dashboardComponentId={componentId}
@@ -514,7 +548,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
       )}
 
       {props.supersetCanCSV && (
-        <Menu.SubMenu title={t('Download')}>
+        <Menu.SubMenu title={t('Download')} key={MENU_KEYS.DOWNLOAD}>
           <Menu.Item
             key={MENU_KEYS.EXPORT_CSV}
             icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
@@ -573,15 +607,57 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         overlayStyle={dropdownOverlayStyle}
         trigger={['click']}
         placement="bottomRight"
+        visible={dropdownIsOpen}
       >
         <span
-          css={css`
+          css={() => css`
             display: flex;
             align-items: center;
           `}
           id={`slice_${slice.slice_id}-controls`}
           role="button"
           aria-label="More Options"
+          tabIndex={0}
+          onClick={e => {
+            e.currentTarget.blur();
+            toggleDropdown();
+          }}
+          onKeyDown={e => {
+            if (e.key === 'Tab') {
+              return; // continue with system tab navigation
+            }
+            e.preventDefault();
+            // for accessibility
+            const keys = menu.props.children
+              .map((item: any) => item?.key)
+              .filter((item: any) => !!item);
+            const { selectedKeys } = menu.props;
+            const currentKeyIndex = keys.indexOf(selectedKeys[0]);
+            // programatically toggle the dropdown on keypress
+            if (['Enter', 'Spacebar', ' '].includes(e.key)) {
+              if (!selectedKeys.length) {
+                // if nothing is selected, then open and close
+                // the menu on enter or spacebar
+                toggleDropdown();
+              } else {
+                // when a menu item is selected, then trigger
+                // the menu item's onClick handler
+                menu.props.onClick({ key: selectedKeys[0], domEvent: e });
+                // clear out/deselect keys
+                setSelectedKeys([]);
+                // close dropdown menu
+                toggleDropdown();
+                // put focus back on menu trigger
+                e.currentTarget.focus();
+              }
+            } else if (e.key === 'ArrowDown') {
+              setSelectedKeys([
+                keys[Math.min(currentKeyIndex + 1, keys.length)],
+              ]);
+            } else if (e.key === 'ArrowUp') {
+              setSelectedKeys([keys[Math.max(currentKeyIndex - 1, 0)]]);
+            }
+          }}
         >
           <VerticalDotsTrigger />
         </span>
