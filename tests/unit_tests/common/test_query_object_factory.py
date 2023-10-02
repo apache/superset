@@ -44,8 +44,8 @@ def session_factory() -> Mock:
 
 
 class SimpleDatasetColumn:
-    def __init__(self, dictionary):
-        self.__dict__.update(dictionary)
+    def __init__(self, col_params: dict[str, Any]):
+        self.__dict__.update(col_params)
 
 
 TEMPORAL_COLUMN_NAMES = ["temporal_column", "temporal_column_with_python_date_format"]
