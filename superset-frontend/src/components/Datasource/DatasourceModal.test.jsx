@@ -36,7 +36,7 @@ import { api } from 'src/hooks/apiResources/queryApi';
 const datasource = mockDatasource['7__table'];
 
 const SAVE_ENDPOINT = 'glob:*/api/v1/dataset/7';
-const SAVE_PAYLOAD = { json: () => ({ new: 'data' }) };
+const SAVE_PAYLOAD = { new: 'data' };
 const SAVE_DATASOURCE_ENDPOINT = 'glob:*/api/v1/dataset/7';
 const GET_DATASOURCE_ENDPOINT = SAVE_DATASOURCE_ENDPOINT;
 
@@ -96,7 +96,7 @@ describe('DatasourceModal', () => {
   it('saves on confirm', async () => {
     const callsP = fetchMock.post(SAVE_ENDPOINT, SAVE_PAYLOAD);
     fetchMock.put(SAVE_DATASOURCE_ENDPOINT, {});
-    fetchMock.get(GET_DATASOURCE_ENDPOINT, {});
+    fetchMock.get(GET_DATASOURCE_ENDPOINT, { result: {} });
     act(() => {
       wrapper
         .find('button[data-test="datasource-modal-save"]')
