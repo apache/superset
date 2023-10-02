@@ -20,8 +20,6 @@ from typing import Any, Optional
 from unittest.mock import Mock
 
 import pytest
-from urllib3.connection import HTTPConnection
-from urllib3.exceptions import NewConnectionError
 from sqlalchemy.types import (
     Boolean,
     Date,
@@ -32,6 +30,8 @@ from sqlalchemy.types import (
     String,
     TypeEngine,
 )
+from urllib3.connection import HTTPConnection
+from urllib3.exceptions import NewConnectionError
 
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
