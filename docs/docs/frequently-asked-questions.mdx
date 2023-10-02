@@ -95,49 +95,6 @@ to **.env** and **.env-non-dev** at the key MAPBOX_API_KEY:
 MAPBOX_API_KEY = "longstringofalphanumer1c"
 ```
 
-### How to add dynamic filters to a dashboard?
-
-Use the **Filter Box** widget, build a slice, and add it to your dashboard.
-
-The **Filter Box** widget allows you to define a query to populate dropdowns that can be used for
-filtering. To build the list of distinct values, we run a query, and sort the result by the metric
-you provide, sorting descending.
-
-The widget also has a checkbox **Date Filter**, which enables time filtering capabilities to your
-dashboard. After checking the box and refreshing, you’ll see a from and a to dropdown show up.
-
-By default, the filtering will be applied to all the slices that are built on top of a datasource
-that shares the column name that the filter is based on. It’s also a requirement for that column to
-be checked as “filterable” in the column tab of the table editor.
-
-But what about if you don’t want certain widgets to get filtered on your dashboard? You can do that
-by editing your dashboard, and in the form, edit the JSON Metadata field, more specifically the
-`filter_immune_slices` key, that receives an array of sliceIds that should never be affected by any
-dashboard level filtering.
-
-```
-{
-    "filter_immune_slices": [324, 65, 92],
-    "expanded_slices": {},
-    "filter_immune_slice_fields": {
-        "177": ["country_name", "__time_range"],
-        "32": ["__time_range"]
-    },
-    "timed_refresh_immune_slices": [324]
-}
-```
-
-In the json blob above, slices 324, 65 and 92 won’t be affected by any dashboard level filtering.
-
-Now note the `filter_immune_slice_fields` key. This one allows you to be more specific and define
-for a specific slice_id, which filter fields should be disregarded.
-
-Note the use of the `__time_range` keyword, which is reserved for dealing with the time boundary
-filtering mentioned above.
-
-But what happens with filtering when dealing with slices coming from different tables or databases?
-If the column name is shared, the filter will be applied, it’s as simple as that.
-
 ### How to limit the timed refresh on a dashboard?
 
 By default, the dashboard timed refresh feature allows you to automatically re-query every slice on
@@ -294,6 +251,13 @@ guarantees and are not recommended but may fit your use case temporarily:
 - using the ORM (SQLAlchemy) directly
 - using the internal FAB ModelView API (to be deprecated in Superset)
 - altering the source code in your fork
+
+### How can I see usage statistics (e.g., monthly active users)?
+
+This functionality is not included with Superset, but you can extract and analyze Superset's application
+metadata to see what actions have occurred.  By default, user activities are logged in the `logs` table
+in Superset's metadata database.  One company has published a write-up of [how they analyzed Superset
+usage, including example queries](https://engineering.hometogo.com/monitor-superset-usage-via-superset-c7f9fba79525).
 
 ### What Does Hours Offset in the Edit Dataset view do?
 

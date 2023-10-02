@@ -17,8 +17,9 @@
 import contextlib
 import re
 from datetime import datetime
+from decimal import Decimal
 from re import Pattern
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 from urllib import parse
 
 from flask_babel import gettext as __
@@ -126,6 +127,9 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
             GenericDataType.STRING,
         ),
     )
+    column_type_mutators: dict[types.TypeEngine, Callable[[Any], Any]] = {
+        DECIMAL: lambda val: Decimal(val) if isinstance(val, str) else val
+    }
 
     _time_grain_expressions = {
         None: "{col}",

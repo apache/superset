@@ -175,16 +175,6 @@ class TagDAO(BaseDAO[Tag]):
         returns a list of tagged objects filtered by tag names and object types
         if no filters applied returns all tagged objects
         """
-        # id = fields.Int()
-        # type = fields.String()
-        # name = fields.String()
-        # url = fields.String()
-        # changed_on = fields.DateTime()
-        # created_by = fields.Nested(UserSchema)
-        # creator = fields.String(
-
-        # filter types
-
         results: list[dict[str, Any]] = []
 
         # dashboards
@@ -211,6 +201,8 @@ class TagDAO(BaseDAO[Tag]):
                     "changed_on": obj.changed_on,
                     "created_by": obj.created_by_fk,
                     "creator": obj.creator(),
+                    "tags": obj.tags,
+                    "owners": obj.owners,
                 }
                 for obj in dashboards
             )
@@ -238,6 +230,8 @@ class TagDAO(BaseDAO[Tag]):
                     "changed_on": obj.changed_on,
                     "created_by": obj.created_by_fk,
                     "creator": obj.creator(),
+                    "tags": obj.tags,
+                    "owners": obj.owners,
                 }
                 for obj in charts
             )
@@ -265,6 +259,8 @@ class TagDAO(BaseDAO[Tag]):
                     "changed_on": obj.changed_on,
                     "created_by": obj.created_by_fk,
                     "creator": obj.creator(),
+                    "tags": obj.tags,
+                    "owners": [obj.creator()],
                 }
                 for obj in saved_queries
             )
