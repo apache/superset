@@ -16,6 +16,7 @@
 # under the License.
 
 from datetime import datetime
+from http.client import HTTPConnection
 from typing import Any, Optional
 from unittest.mock import Mock
 
@@ -63,7 +64,7 @@ def test_execute_connection_error() -> None:
 
     cursor = Mock()
     cursor.execute.side_effect = NewConnectionError(
-        "Dummypool", "Exception with sensitive data"
+        HTTPConnection("localhost", 8080), "Exception with sensitive data"
     )
     with pytest.raises(SupersetDBAPIDatabaseError) as ex:
         ClickHouseEngineSpec.execute(cursor, "SELECT col1 from table1")
