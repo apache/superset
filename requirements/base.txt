@@ -231,8 +231,6 @@ parsedatetime==2.6
     # via apache-superset
 pgsanity==0.2.9
     # via apache-superset
-playwright==1.37.0
-    # via apache-superset
 polyline==2.0.0
     # via apache-superset
 prison==0.2.1
