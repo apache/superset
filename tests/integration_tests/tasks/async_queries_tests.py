@@ -28,13 +28,17 @@ from superset.extensions import async_query_manager, security_manager
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 from tests.integration_tests.fixtures.query_context import get_query_context
+from tests.integration_tests.fixtures.tags import with_tagging_system_feature
 from tests.integration_tests.test_app import app
 
 
 class TestAsyncQueries(SupersetTestCase):
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures(
+        "load_birth_names_data", "load_birth_names_dashboard_with_slices"
+    )
     @mock.patch.object(async_query_manager, "update_job")
     @mock.patch("superset.tasks.async_queries.set_form_data")
     def test_load_chart_data_into_cache(self, mock_set_form_data, mock_update_job):
