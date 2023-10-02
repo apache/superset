@@ -275,6 +275,6 @@ Scarf purges PII and provides aggregated statistics. Superset users can easily o
 
 No. Currently, there is no way to recover a deleted Superset dashboard/chart/dataset/database from the UI. However, there is an [ongoing discussion](https://github.com/apache/superset/discussions/18386) about implementing such a feature.
 
-Hence, it is recommended to take periodic backups of the metadata database. For recovery, you can launch a recovery instance of a Superset server with the backed-up copy of the DB attached and use the Export Dashboard button in the Superset UI (or the `superset export-dashboards` CLI command). Then, take the ZIP file and import it into the current Superset instance.
+Hence, it is recommended to take periodic backups of the metadata database. For recovery, you can launch a recovery instance of a Superset server with the backed-up copy of the DB attached and use the Export Dashboard button in the Superset UI (or the `superset export-dashboards` CLI command). Then, take the .zip file and import it into the current Superset instance.
 
 Alternatively, you can programmatically take regular exports of the assets as a backup.
