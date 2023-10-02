@@ -21,7 +21,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { getMockStore } from 'spec/fixtures/mockStore';
 import { render, screen } from 'spec/helpers/testing-library';
-import { FeatureFlag } from 'src/featureFlags';
+import { FeatureFlag } from '@superset-ui/core';
 import SliceHeaderControls, { SliceHeaderControlsProps } from '.';
 
 jest.mock('src/components/Dropdown', () => {
@@ -44,6 +44,8 @@ const createProps = (viz_type = 'sunburst') =>
     exploreChart: jest.fn(),
     exportCSV: jest.fn(),
     exportFullCSV: jest.fn(),
+    exportXLSX: jest.fn(),
+    exportFullXLSX: jest.fn(),
     forceRefresh: jest.fn(),
     handleToggleFullSize: jest.fn(),
     toggleExpandSlice: jest.fn(),
@@ -85,7 +87,6 @@ const createProps = (viz_type = 'sunburst') =>
     updatedDttm: 1617213803803,
     supersetCanExplore: true,
     supersetCanCSV: true,
-    sliceCanEdit: false,
     componentId: 'CHART-fYo7IyvKZQ',
     dashboardId: 26,
     isFullSize: false,
@@ -126,6 +127,8 @@ test('Should render default props', () => {
   // @ts-ignore
   delete props.exportCSV;
   // @ts-ignore
+  delete props.exportXLSX;
+  // @ts-ignore
   delete props.cachedDttm;
   // @ts-ignore
   delete props.updatedDttm;
@@ -133,8 +136,6 @@ test('Should render default props', () => {
   delete props.isCached;
   // @ts-ignore
   delete props.isExpanded;
-  // @ts-ignore
-  delete props.sliceCanEdit;
 
   renderWrapper(props);
   expect(
@@ -168,6 +169,16 @@ test('Should "export to CSV"', async () => {
   userEvent.click(await screen.findByText('Export to .CSV'));
   expect(props.exportCSV).toBeCalledTimes(1);
   expect(props.exportCSV).toBeCalledWith(371);
+});
+
+test('Should "export to Excel"', async () => {
+  const props = createProps();
+  renderWrapper(props);
+  expect(props.exportXLSX).toBeCalledTimes(0);
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.click(await screen.findByText('Export to Excel'));
+  expect(props.exportXLSX).toBeCalledTimes(1);
+  expect(props.exportXLSX).toBeCalledWith(371);
 });
 
 test('Should not show "Download" if slice is filter box', () => {
@@ -211,6 +222,43 @@ test('Should not show export full CSV if report is not table', async () => {
   userEvent.hover(screen.getByText('Download'));
   expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
   expect(screen.queryByText('Export to full .CSV')).not.toBeInTheDocument();
+});
+
+test('Export full Excel is under featureflag', async () => {
+  // @ts-ignore
+  global.featureFlags = {
+    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: false,
+  };
+  const props = createProps('table');
+  renderWrapper(props);
+  userEvent.hover(screen.getByText('Download'));
+  expect(await screen.findByText('Export to Excel')).toBeInTheDocument();
+  expect(screen.queryByText('Export to full Excel')).not.toBeInTheDocument();
+});
+
+test('Should "export full Excel"', async () => {
+  // @ts-ignore
+  global.featureFlags = {
+    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
+  };
+  const props = createProps('table');
+  renderWrapper(props);
+  expect(props.exportFullXLSX).toBeCalledTimes(0);
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.click(await screen.findByText('Export to full Excel'));
+  expect(props.exportFullXLSX).toBeCalledTimes(1);
+  expect(props.exportFullXLSX).toBeCalledWith(371);
+});
+
+test('Should not show export full Excel if report is not table', async () => {
+  // @ts-ignore
+  global.featureFlags = {
+    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
+  };
+  renderWrapper();
+  userEvent.hover(screen.getByText('Download'));
+  expect(await screen.findByText('Export to Excel')).toBeInTheDocument();
+  expect(screen.queryByText('Export to full Excel')).not.toBeInTheDocument();
 });
 
 test('Should "Show chart description"', () => {

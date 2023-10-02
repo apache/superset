@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from collections.abc import Iterator
 from datetime import datetime, timezone
-from typing import Iterator, Tuple
 
 import yaml
 
@@ -36,8 +36,7 @@ class ExportAssetsCommand(BaseCommand):
     Command that exports all databases, datasets, charts, dashboards and saved queries.
     """
 
-    def run(self) -> Iterator[Tuple[str, str]]:
-
+    def run(self) -> Iterator[tuple[str, str]]:
         metadata = {
             "version": EXPORT_VERSION,
             "type": "assets",

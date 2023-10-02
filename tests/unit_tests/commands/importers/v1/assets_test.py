@@ -17,6 +17,7 @@
 
 import copy
 
+from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import select
 
@@ -30,13 +31,16 @@ from tests.unit_tests.fixtures.assets_configs import (
 )
 
 
-def test_import_new_assets(session: Session) -> None:
+def test_import_new_assets(mocker: MockFixture, session: Session) -> None:
     """
     Test that all new assets are imported correctly.
     """
+    from superset import security_manager
     from superset.commands.importers.v1.assets import ImportAssetsCommand
     from superset.models.dashboard import dashboard_slices
     from superset.models.slice import Slice
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = session.get_bind()
     Slice.metadata.create_all(engine)  # pylint: disable=no-member
@@ -59,13 +63,16 @@ def test_import_new_assets(session: Session) -> None:
     assert len(dashboard_ids) == expected_number_of_dashboards
 
 
-def test_import_adds_dashboard_charts(session: Session) -> None:
+def test_import_adds_dashboard_charts(mocker: MockFixture, session: Session) -> None:
     """
     Test that existing dashboards are updated with new charts.
     """
+    from superset import security_manager
     from superset.commands.importers.v1.assets import ImportAssetsCommand
     from superset.models.dashboard import dashboard_slices
     from superset.models.slice import Slice
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = session.get_bind()
     Slice.metadata.create_all(engine)  # pylint: disable=no-member
@@ -95,13 +102,16 @@ def test_import_adds_dashboard_charts(session: Session) -> None:
     assert len(dashboard_ids) == expected_number_of_dashboards
 
 
-def test_import_removes_dashboard_charts(session: Session) -> None:
+def test_import_removes_dashboard_charts(mocker: MockFixture, session: Session) -> None:
     """
     Test that existing dashboards are updated without old charts.
     """
+    from superset import security_manager
     from superset.commands.importers.v1.assets import ImportAssetsCommand
     from superset.models.dashboard import dashboard_slices
     from superset.models.slice import Slice
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = session.get_bind()
     Slice.metadata.create_all(engine)  # pylint: disable=no-member

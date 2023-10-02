@@ -14,17 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from collections.abc import Sequence
 from functools import partial
-from typing import Any, Callable, Dict, Sequence
+from typing import Any, Callable
 
 import numpy as np
 import pandas as pd
 from flask_babel import gettext as _
 from pandas import DataFrame, NamedAgg
 
+from superset.constants import TimeGrain
 from superset.exceptions import InvalidPostProcessingError
 
-NUMPY_FUNCTIONS: Dict[str, Callable[..., Any]] = {
+NUMPY_FUNCTIONS: dict[str, Callable[..., Any]] = {
     "average": np.average,
     "argmin": np.argmin,
     "argmax": np.argmax,
@@ -73,23 +75,23 @@ ALLOWLIST_CUMULATIVE_FUNCTIONS = (
     "cumsum",
 )
 
-PROPHET_TIME_GRAIN_MAP = {
-    "PT1S": "S",
-    "PT1M": "min",
-    "PT5M": "5min",
-    "PT10M": "10min",
-    "PT15M": "15min",
-    "PT30M": "30min",
-    "PT1H": "H",
-    "P1D": "D",
-    "P1W": "W",
-    "P1M": "M",
-    "P3M": "Q",
-    "P1Y": "A",
-    "1969-12-28T00:00:00Z/P1W": "W-SUN",
-    "1969-12-29T00:00:00Z/P1W": "W-MON",
-    "P1W/1970-01-03T00:00:00Z": "W-SAT",
-    "P1W/1970-01-04T00:00:00Z": "W-SUN",
+PROPHET_TIME_GRAIN_MAP: dict[str, str] = {
+    TimeGrain.SECOND: "S",
+    TimeGrain.MINUTE: "min",
+    TimeGrain.FIVE_MINUTES: "5min",
+    TimeGrain.TEN_MINUTES: "10min",
+    TimeGrain.FIFTEEN_MINUTES: "15min",
+    TimeGrain.THIRTY_MINUTES: "30min",
+    TimeGrain.HOUR: "H",
+    TimeGrain.DAY: "D",
+    TimeGrain.WEEK: "W",
+    TimeGrain.MONTH: "M",
+    TimeGrain.QUARTER: "Q",
+    TimeGrain.YEAR: "A",
+    TimeGrain.WEEK_STARTING_SUNDAY: "W-SUN",
+    TimeGrain.WEEK_STARTING_MONDAY: "W-MON",
+    TimeGrain.WEEK_ENDING_SATURDAY: "W-SAT",
+    TimeGrain.WEEK_ENDING_SUNDAY: "W-SUN",
 }
 
 RESAMPLE_METHOD = ("asfreq", "bfill", "ffill", "linear", "median", "mean", "sum")
@@ -133,8 +135,8 @@ def validate_column_args(*argnames: str) -> Callable[..., Any]:
 
 def _get_aggregate_funcs(
     df: DataFrame,
-    aggregates: Dict[str, Dict[str, Any]],
-) -> Dict[str, NamedAgg]:
+    aggregates: dict[str, dict[str, Any]],
+) -> dict[str, NamedAgg]:
     """
     Converts a set of aggregate config objects into functions that pandas can use as
     aggregators. Currently only numpy aggregators are supported.
@@ -143,7 +145,7 @@ def _get_aggregate_funcs(
     :param aggregates: Mapping from column name to aggregate config.
     :return: Mapping from metric name to function that takes a single input argument.
     """
-    agg_funcs: Dict[str, NamedAgg] = {}
+    agg_funcs: dict[str, NamedAgg] = {}
     for name, agg_obj in aggregates.items():
         column = agg_obj.get("column", name)
         if column not in df:
@@ -180,7 +182,7 @@ def _get_aggregate_funcs(
 
 
 def _append_columns(
-    base_df: DataFrame, append_df: DataFrame, columns: Dict[str, str]
+    base_df: DataFrame, append_df: DataFrame, columns: dict[str, str]
 ) -> DataFrame:
     """
     Function for adding columns from one DataFrame to another DataFrame. Calls the

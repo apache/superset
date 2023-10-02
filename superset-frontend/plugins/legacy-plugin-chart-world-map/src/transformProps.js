@@ -17,11 +17,21 @@
  * under the License.
  */
 import { rgb } from 'd3-color';
+import { getValueFormatter } from '@superset-ui/core';
 
 export default function transformProps(chartProps) {
-  const { width, height, formData, queriesData, hooks, inContextMenu } =
-    chartProps;
-  const { onContextMenu } = hooks;
+  const {
+    width,
+    height,
+    formData,
+    queriesData,
+    hooks,
+    inContextMenu,
+    filterState,
+    emitCrossFilters,
+    datasource,
+  } = chartProps;
+  const { onContextMenu, setDataMask } = hooks;
   const {
     countryFieldtype,
     entity,
@@ -32,8 +42,20 @@ export default function transformProps(chartProps) {
     colorBy,
     colorScheme,
     sliceId,
+    metric,
+    yAxisFormat,
+    currencyFormat,
   } = formData;
   const { r, g, b } = colorPicker;
+  const { currencyFormats = {}, columnFormats = {} } = datasource;
+
+  const formatter = getValueFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    yAxisFormat,
+    currencyFormat,
+  );
 
   return {
     countryFieldtype,
@@ -49,6 +71,10 @@ export default function transformProps(chartProps) {
     colorScheme,
     sliceId,
     onContextMenu,
+    setDataMask,
     inContextMenu,
+    filterState,
+    emitCrossFilters,
+    formatter,
   };
 }

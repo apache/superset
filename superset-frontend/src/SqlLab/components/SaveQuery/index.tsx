@@ -78,10 +78,8 @@ const SaveQuery = ({
     'latestQueryId',
     'queryLimit',
     'schema',
-    'schemaOptions',
     'selectedText',
     'sql',
-    'tableOptions',
     'templateParams',
   ]);
   const query = useMemo(
@@ -100,6 +98,8 @@ const SaveQuery = ({
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const isSaved = !!query.remoteId;
   const canExploreDatabase = !!database?.allows_virtual_table_explore;
+  const shouldShowSaveButton =
+    database?.allows_virtual_table_explore !== undefined;
 
   const overlayMenu = (
     <Menu>
@@ -182,10 +182,12 @@ const SaveQuery = ({
 
   return (
     <Styles className="SaveQuery">
-      <SaveDatasetActionButton
-        setShowSave={setShowSave}
-        overlayMenu={canExploreDatabase ? overlayMenu : null}
-      />
+      {shouldShowSaveButton && (
+        <SaveDatasetActionButton
+          setShowSave={setShowSave}
+          overlayMenu={canExploreDatabase ? overlayMenu : null}
+        />
+      )}
       <SaveDatasetModal
         visible={showSaveDatasetModal}
         onHide={() => setShowSaveDatasetModal(false)}

@@ -17,33 +17,18 @@
  * under the License.
  */
 import React, { useState, useEffect, useRef, ReactElement } from 'react';
-import { Table as AntTable, ConfigProvider } from 'antd';
-import {
-  ColumnType,
-  ColumnGroupType,
+import AntTable, {
+  ColumnsType,
   TableProps as AntTableProps,
-} from 'antd/es/table';
-import { PaginationProps } from 'antd/es/pagination';
-import { Key } from 'antd/lib/table/interface';
-import { t, useTheme, logging } from '@superset-ui/core';
+} from 'antd/lib/table';
+import ConfigProvider from 'antd/lib/config-provider';
+import { PaginationProps } from 'antd/lib/pagination';
+import { t, useTheme, logging, styled } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
-import styled, { StyledComponent } from '@emotion/styled';
 import InteractiveTableUtils from './utils/InteractiveTableUtils';
 import VirtualTable from './VirtualTable';
 
 export const SUPERSET_TABLE_COLUMN = 'superset/table-column';
-export interface TableDataType {
-  key: React.Key;
-}
-
-export interface TablePaginationConfig extends PaginationProps {
-  extra?: object;
-}
-
-export type ColumnsType<RecordType = unknown> = (
-  | ColumnGroupType<RecordType>
-  | ColumnType<RecordType>
-)[];
 
 export enum SelectionType {
   'DISABLED' = 'disabled',
@@ -51,36 +36,7 @@ export enum SelectionType {
   'MULTI' = 'multi',
 }
 
-export interface Locale {
-  /**
-   * Text contained within the Table UI.
-   */
-  filterTitle: string;
-  filterConfirm: string;
-  filterReset: string;
-  filterEmptyText: string;
-  filterCheckall: string;
-  filterSearchPlaceholder: string;
-  emptyText: string;
-  selectAll: string;
-  selectInvert: string;
-  selectNone: string;
-  selectionAll: string;
-  sortTitle: string;
-  expand: string;
-  collapse: string;
-  triggerDesc: string;
-  triggerAsc: string;
-  cancelSort: string;
-}
-
 export type SortOrder = 'descend' | 'ascend' | null;
-export interface SorterResult<RecordType> {
-  column?: ColumnType<RecordType>;
-  order?: SortOrder;
-  field?: Key | Key[];
-  columnKey?: Key;
-}
 
 export enum ETableAction {
   PAGINATE = 'paginate',
@@ -88,27 +44,28 @@ export enum ETableAction {
   FILTER = 'filter',
 }
 
-export interface TableCurrentDataSource<RecordType> {
-  currentDataSource: RecordType[];
-  action: ETableAction;
+export type { ColumnsType };
+export type OnChangeFunction<RecordType> =
+  AntTableProps<RecordType>['onChange'];
+
+export enum TableSize {
+  SMALL = 'small',
+  MIDDLE = 'middle',
 }
 
-export type OnChangeFunction = (
-  pagination: TablePaginationConfig,
-  filters: Record<string, (Key | boolean)[] | null>,
-  sorter: SorterResult<any> | SorterResult<any>[],
-  extra: TableCurrentDataSource<any>,
-) => void;
-
-export interface TableProps extends AntTableProps<TableProps> {
+export interface TableProps<RecordType> {
   /**
    * Data that will populate the each row and map to the column key.
    */
-  data: object[];
+  data: RecordType[];
+  /**
+   * Whether to show all table borders
+   */
+  bordered?: boolean;
   /**
    * Table column definitions.
    */
-  columns: ColumnsType<any>;
+  columns: ColumnsType<RecordType>;
   /**
    * Array of row keys to represent list of selected rows.
    */
@@ -116,13 +73,13 @@ export interface TableProps extends AntTableProps<TableProps> {
   /**
    * Callback function invoked when a row is selected by user.
    */
-  handleRowSelection?: Function;
+  handleRowSelection?: (newSelectedRowKeys: React.Key[]) => void;
   /**
    * Controls the size of the table.
    */
   size: TableSize;
   /**
-   * Adjusts the padding around elements for different amounts of spacing between elements.
+   * Controls if table rows are selectable and if multiple select is supported.
    */
   selectionType?: SelectionType;
   /*
@@ -165,7 +122,7 @@ export interface TableProps extends AntTableProps<TableProps> {
   /**
    * Enables setting the text displayed in various components and tooltips within the Table UI.
    */
-  locale?: Locale;
+  locale?: Partial<AntTableProps<RecordType>['locale']>;
   /**
    * Restricts the visible height of the table and allows for internal scrolling within the table
    * when the number of rows exceeds the visible space.
@@ -183,20 +140,16 @@ export interface TableProps extends AntTableProps<TableProps> {
   /**
    * Invoked when the tables sorting, paging, or filtering is changed.
    */
-  onChange?: OnChangeFunction;
-}
-
-interface IPaginationOptions {
-  hideOnSinglePage: boolean;
-  pageSize: number;
-  pageSizeOptions: string[];
-  onShowSizeChange: Function;
-  total?: number;
-}
-
-export enum TableSize {
-  SMALL = 'small',
-  MIDDLE = 'middle',
+  onChange?: OnChangeFunction<RecordType>;
+  /**
+   * Returns props that should be applied to each row component.
+   */
+  onRow?: AntTableProps<RecordType>['onRow'];
+  /**
+   * Will render html safely if set to true, anchor tags and such. Currently
+   * only supported for virtualize == true
+   */
+  allowHTML?: boolean;
 }
 
 const defaultRowSelection: React.Key[] = [];
@@ -204,7 +157,7 @@ const defaultRowSelection: React.Key[] = [];
 const PAGINATION_HEIGHT = 40;
 const HEADER_HEIGHT = 68;
 
-const StyledTable: StyledComponent<any> = styled(AntTable)<any>(
+const StyledTable = styled(AntTable)<{ height?: number }>(
   ({ theme, height }) => `
     .ant-table-body {
       overflow: auto;
@@ -231,11 +184,13 @@ const StyledTable: StyledComponent<any> = styled(AntTable)<any>(
     .ant-pagination-item-active {
       border-color: ${theme.colors.primary.base};
     }
-  }
-`,
-);
 
-const StyledVirtualTable: StyledComponent<any> = styled(VirtualTable)<any>(
+    .ant-table.ant-table-small {
+      font-size: ${theme.typography.sizes.s}px;
+    }
+  `,
+);
+const StyledVirtualTable = styled(VirtualTable)(
   ({ theme }) => `
   .virtual-table .ant-table-container:before,
   .virtual-table .ant-table-container:after {
@@ -277,9 +232,12 @@ selectionMap[SelectionType.MULTI] = 'checkbox';
 selectionMap[SelectionType.SINGLE] = 'radio';
 selectionMap[SelectionType.DISABLED] = null;
 
-export function Table(props: TableProps) {
+export function Table<RecordType extends object>(
+  props: TableProps<RecordType>,
+) {
   const {
     data,
+    bordered,
     columns,
     selectedRows = defaultRowSelection,
     handleRowSelection,
@@ -299,12 +257,16 @@ export function Table(props: TableProps) {
     virtualize = false,
     onChange = noop,
     recordCount,
+    onRow,
+    allowHTML = false,
   } = props;
 
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const [derivedColumns, setDerivedColumns] = useState(columns);
   const [pageSize, setPageSize] = useState(defaultPageSize);
-  const [mergedLocale, setMergedLocale] = useState({ ...defaultLocale });
+  const [mergedLocale, setMergedLocale] = useState<
+    Required<AntTableProps<RecordType>>['locale']
+  >({ ...defaultLocale });
   const [selectedRowKeys, setSelectedRowKeys] =
     useState<React.Key[]>(selectedRows);
   const interactiveTableUtils = useRef<InteractiveTableUtils | null>(null);
@@ -387,7 +349,7 @@ export function Table(props: TableProps) {
 
   const theme = useTheme();
 
-  const paginationSettings: IPaginationOptions | false = usePagination
+  const paginationSettings: PaginationProps | false = usePagination
     ? {
         hideOnSinglePage: true,
         pageSize,
@@ -420,14 +382,16 @@ export function Table(props: TableProps) {
     loading: { spinning: loading ?? false, indicator: <Loading /> },
     hasData: hideData ? false : data,
     columns: derivedColumns,
-    dataSource: hideData ? [undefined] : data,
+    dataSource: hideData ? undefined : data,
     size,
     pagination: paginationSettings,
     locale: mergedLocale,
     showSorterTooltip: false,
     onChange,
+    onRow,
     theme,
     height: bodyHeight,
+    bordered,
   };
 
   return (
@@ -443,7 +407,15 @@ export function Table(props: TableProps) {
         {virtualize && (
           <StyledVirtualTable
             {...sharedProps}
-            scroll={{ y: 300, x: '100vw' }}
+            scroll={{
+              y: 300,
+              x: '100vw',
+              // To avoid jest failure by scrollTo
+              ...(process.env.WEBPACK_MODE === 'test' && {
+                scrollToFirstRowOnChange: false,
+              }),
+            }}
+            allowHTML={allowHTML}
           />
         )}
       </div>

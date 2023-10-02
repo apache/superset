@@ -19,6 +19,7 @@
 import React from 'react';
 import { CommonWrapper } from 'enzyme';
 import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import TableChart from '../src/TableChart';
 import transformProps from '../src/transformProps';
 import DateWithFormatter from '../src/utils/DateWithFormatter';
@@ -97,8 +98,70 @@ describe('plugin-chart-table', () => {
       // should successful rerender with new props
       const cells = tree.find('td');
       expect(tree.find('th').eq(1).text()).toEqual('Sum of Num');
+      expect(cells.eq(0).text()).toEqual('Michael');
       expect(cells.eq(2).text()).toEqual('12.346%');
       expect(cells.eq(4).text()).toEqual('2.47k');
+    });
+
+    it('render advanced data with currencies', () => {
+      render(
+        ProviderWrapper({
+          children: (
+            <TableChart
+              {...transformProps(testData.advancedWithCurrency)}
+              sticky={false}
+            />
+          ),
+        }),
+      );
+      const cells = document.querySelectorAll('td');
+      expect(document.querySelectorAll('th')[1]).toHaveTextContent(
+        'Sum of Num',
+      );
+      expect(cells[0]).toHaveTextContent('Michael');
+      expect(cells[2]).toHaveTextContent('12.346%');
+      expect(cells[4]).toHaveTextContent('$ 2.47k');
+    });
+
+    it('render raw data', () => {
+      const props = transformProps({
+        ...testData.raw,
+        rawFormData: { ...testData.raw.rawFormData },
+      });
+      render(
+        ProviderWrapper({
+          children: <TableChart {...props} sticky={false} />,
+        }),
+      );
+      const cells = document.querySelectorAll('td');
+      expect(document.querySelectorAll('th')[0]).toHaveTextContent('num');
+      expect(cells[0]).toHaveTextContent('1234');
+      expect(cells[1]).toHaveTextContent('10000');
+      expect(cells[1]).toHaveTextContent('0');
+    });
+
+    it('render raw data with currencies', () => {
+      const props = transformProps({
+        ...testData.raw,
+        rawFormData: {
+          ...testData.raw.rawFormData,
+          column_config: {
+            num: {
+              currencyFormat: { symbol: 'USD', symbolPosition: 'prefix' },
+            },
+          },
+        },
+      });
+      render(
+        ProviderWrapper({
+          children: <TableChart {...props} sticky={false} />,
+        }),
+      );
+      const cells = document.querySelectorAll('td');
+      expect(document.querySelectorAll('th')[0]).toHaveTextContent('num');
+      expect(cells[0]).toHaveTextContent('$ 1.23k');
+      expect(cells[1]).toHaveTextContent('$ 10k');
+      expect(cells[2]).toHaveTextContent('$ 0');
     });
 
     it('render empty data', () => {

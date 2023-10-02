@@ -1,7 +1,7 @@
 ---
 title: Alerts and Reports
 hide_title: true
-sidebar_position: 9
+sidebar_position: 10
 version: 2
 ---
 
@@ -30,7 +30,7 @@ Alerts and reports are disabled by default. To turn them on, you need to do some
 
 ###### Disable dry-run mode
 
-Screenshots will be taken but no messages actually sent as long as `ALERT_REPORTS_NOTIFICATION_DRY_RUN = True`, its default value in `config.py`.  To disable dry-run mode and start receiving email/Slack notifications, set `ALERT_REPORTS_NOTIFICATION_DRY_RUN` to `False` in [superset config](https://github.com/apache/superset/blob/master/docker/pythonpath_dev/superset_config.py).
+Screenshots will be taken but no messages actually sent as long as `ALERT_REPORTS_NOTIFICATION_DRY_RUN = True`, its default value in `docker/pythonpath_dev/superset_config.py`.  To disable dry-run mode and start receiving email/Slack notifications, set `ALERT_REPORTS_NOTIFICATION_DRY_RUN` to `False` in [superset config](https://github.com/apache/superset/blob/master/docker/pythonpath_dev/superset_config.py).
 
 ##### In your `Dockerfile`
 
@@ -100,7 +100,7 @@ FEATURE_FLAGS = {
     "ALERT_REPORTS": True
 }
 
-REDIS_HOST = "redis-superset"
+REDIS_HOST = "superset_cache"
 REDIS_PORT = "6379"
 
 class CeleryConfig:
@@ -175,35 +175,17 @@ to specify on behalf of which username to render the dashboards. In general dash
 are not accessible to unauthorized requests, that is why the worker needs to take over credentials
 of an existing user to take a snapshot.
 
-By default, Alerts and Reports are executed as the user that the `THUMBNAIL_SELENIUM_USER` config
-parameter is set to. To change this user, just change the config as follows:
+By default, Alerts and Reports are executed as the owner of the alert/report object. To use a fixed user account,
+just change the config as follows (`admin` in this example):
 
 ```python
-THUMBNAIL_SELENIUM_USER = 'username_with_permission_to_access_dashboards'
+from superset.tasks.types import ExecutorType
+
+THUMBNAIL_SELENIUM_USER = 'admin'
+ALERT_REPORTS_EXECUTE_AS = [ExecutorType.SELENIUM]
 ```
 
-In addition, it's also possible to execute the reports as the report owners/creators. This is typically
-needed if there isn't a central service account that has access to all objects or databases (e.g.
-when using user impersonation on database connections). For this there's the config flag
-`ALERTS_REPORTS_EXECUTE_AS` which makes it possible to customize how alerts and reports are executed.
-To first try to execute as the creator in the owners list (if present), then fall
-back to the creator, then the last modifier in the owners list (if present), then the
-last modifier, then an owner (giving priority to the last modifier and then the
-creator if either is contained within the list of owners, otherwise the first owner
-will be used) and finally `THUMBNAIL_SELENIUM_USER`, set as follows:
-
-```python
-from superset.reports.types import ReportScheduleExecutor
-
-ALERT_REPORTS_EXECUTE_AS = [
-    ReportScheduleExecutor.CREATOR_OWNER,
-    ReportScheduleExecutor.CREATOR,
-    ReportScheduleExecutor.MODIFIER_OWNER,
-    ReportScheduleExecutor.MODIFIER,
-    ReportScheduleExecutor.OWNER,
-    ReportScheduleExecutor.SELENIUM,
-]
-```
+Please refer to `ExecutorType` in the codebase for other executor types.
 
 
 **Important notes**

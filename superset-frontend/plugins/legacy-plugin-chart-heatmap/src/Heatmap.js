@@ -22,6 +22,8 @@ import PropTypes from 'prop-types';
 import 'd3-svg-legend';
 import d3tip from 'd3-tip';
 import {
+  getColumnLabel,
+  getMetricLabel,
   getNumberFormatter,
   NumberFormats,
   getSequentialSchemeRegistry,
@@ -44,12 +46,12 @@ const propTypes = {
   height: PropTypes.number,
   bottomMargin: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   colorScheme: PropTypes.string,
-  columnX: PropTypes.string,
-  columnY: PropTypes.string,
+  columnX: PropTypes.oneOfType([PropTypes.object, PropTypes.string]),
+  columnY: PropTypes.oneOfType([PropTypes.object, PropTypes.string]),
   leftMargin: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   metric: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
   normalized: PropTypes.bool,
-  numberFormat: PropTypes.string,
+  valueFormatter: PropTypes.object,
   showLegend: PropTypes.bool,
   showPercentage: PropTypes.bool,
   showValues: PropTypes.bool,
@@ -88,7 +90,7 @@ function Heatmap(element, props) {
     leftMargin,
     metric,
     normalized,
-    numberFormat,
+    valueFormatter,
     showLegend,
     showPercentage,
     showValues,
@@ -97,9 +99,16 @@ function Heatmap(element, props) {
     xScaleInterval,
     yScaleInterval,
     yAxisBounds,
+    xAxisFormatter,
+    yAxisFormatter,
   } = props;
 
-  const { records, extents } = data;
+  const { extents } = data;
+  const records = data.records.map(record => ({
+    ...record,
+    x: xAxisFormatter(record.x),
+    y: yAxisFormatter(record.y),
+  }));
 
   const margin = {
     top: 10,
@@ -112,8 +121,6 @@ function Heatmap(element, props) {
   let showX = true;
   const pixelsPerCharX = 4.5; // approx, depends on font size
   let pixelsPerCharY = 6; // approx, depends on font size
-
-  const valueFormatter = getNumberFormatter(numberFormat);
 
   // Dynamically adjusts  based on max x / y category lengths
   function adjustMargins() {
@@ -338,12 +345,13 @@ function Heatmap(element, props) {
       const k = d3.mouse(this);
       const m = Math.floor(scale[0].invert(k[0]));
       const n = Math.floor(scale[1].invert(k[1]));
-      const metricLabel = typeof metric === 'object' ? metric.label : metric;
       if (m in matrix && n in matrix[m]) {
         const obj = matrix[m][n];
-        s += `<div><b>${columnX}: </b>${obj.x}<div>`;
-        s += `<div><b>${columnY}: </b>${obj.y}<div>`;
-        s += `<div><b>${metricLabel}: </b>${valueFormatter(obj.v)}<div>`;
+        s += `<div><b>${getColumnLabel(columnX)}: </b>${obj.x}<div>`;
+        s += `<div><b>${getColumnLabel(columnY)}: </b>${obj.y}<div>`;
+        s += `<div><b>${getMetricLabel(metric)}: </b>${valueFormatter(
+          obj.v,
+        )}<div>`;
         if (showPercentage) {
           s += `<div><b>%: </b>${fp(normalized ? obj.rank : obj.perc)}<div>`;
         }

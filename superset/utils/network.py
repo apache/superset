@@ -32,10 +32,10 @@ def is_port_open(host: str, port: int) -> bool:
         s = socket.socket(af, socket.SOCK_STREAM)
         try:
             s.settimeout(PORT_TIMEOUT)
-            s.connect((sockaddr))
+            s.connect(sockaddr)
             s.shutdown(socket.SHUT_RDWR)
             return True
-        except socket.error as _:
+        except OSError as _:
             continue
         finally:
             s.close()

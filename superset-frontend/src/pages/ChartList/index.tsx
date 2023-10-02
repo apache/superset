@@ -18,6 +18,8 @@
  */
 import {
   ensureIsArray,
+  isFeatureEnabled,
+  FeatureFlag,
   getChartMetadataRegistry,
   JsonResponse,
   styled,
@@ -28,7 +30,6 @@ import React, { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
 import moment from 'moment';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
   createErrorHandler,
   createFetchRelated,
@@ -42,7 +43,7 @@ import {
 import handleResourceExport from 'src/utils/export';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import { TagsList } from 'src/components/Tags';
-import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
+import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import FaveStar from 'src/components/FaveStar';
 import { Link, useHistory } from 'react-router-dom';
 import ListView, {
@@ -67,10 +68,9 @@ import setupPlugins from 'src/setup/setupPlugins';
 import InfoTooltip from 'src/components/InfoTooltip';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import { GenericLink } from 'src/components/GenericLink/GenericLink';
-import getBootstrapData from 'src/utils/getBootstrapData';
 import Owner from 'src/types/Owner';
 import { loadTags } from 'src/components/Tags/utils';
-import ChartCard from './ChartCard';
+import ChartCard from 'src/features/charts/ChartCard';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -155,8 +155,6 @@ const StyledActions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
-const bootstrapData = getBootstrapData();
-
 function ChartList(props: ChartListProps) {
   const {
     addDangerToast,
@@ -197,6 +195,16 @@ function ChartList(props: ChartListProps) {
   const [importingChart, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
+  const [sshTunnelPasswordFields, setSSHTunnelPasswordFields] = useState<
+    string[]
+  >([]);
+  const [sshTunnelPrivateKeyFields, setSSHTunnelPrivateKeyFields] = useState<
+    string[]
+  >([]);
+  const [
+    sshTunnelPrivateKeyPasswordFields,
+    setSSHTunnelPrivateKeyPasswordFields,
+  ] = useState<string[]>([]);
 
   // TODO: Fix usage of localStorage keying on the user id
   const userSettings = dangerouslyGetItemDoNotUse(userId?.toString(), null) as {
@@ -223,8 +231,6 @@ function ChartList(props: ChartListProps) {
   const canExport =
     hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
-  const enableBroadUserAccess =
-    bootstrapData.common.conf.ENABLE_BROAD_ACTIVITY_ACCESS;
   const handleBulkChartExport = (chartsToExport: Chart[]) => {
     const ids = chartsToExport.map(({ id }) => id);
     handleResourceExport('chart', ids, () => {
@@ -264,8 +270,8 @@ function ChartList(props: ChartListProps) {
       ? {
           filters: [
             {
-              col: 'dashboards',
-              opr: FilterOperator.relationManyMany,
+              col: 'dashboard_title',
+              opr: FilterOperator.startsWith,
               value: filterValue,
             },
           ],
@@ -281,9 +287,7 @@ function ChartList(props: ChartListProps) {
       ...filters,
     });
     const response: void | JsonResponse = await SupersetClient.get({
-      endpoint: !filterValue
-        ? `/api/v1/dashboard/?q=${queryParams}`
-        : `/api/v1/chart/?q=${queryParams}`,
+      endpoint: `/api/v1/dashboard/?q=${queryParams}`,
     }).catch(() =>
       addDangerToast(t('An error occurred while fetching dashboards')),
     );
@@ -406,17 +410,9 @@ function ChartList(props: ChartListProps) {
       {
         Cell: ({
           row: {
-            original: {
-              last_saved_by: lastSavedBy,
-              changed_by_url: changedByUrl,
-            },
+            original: { last_saved_by: lastSavedBy },
           },
-        }: any) =>
-          enableBroadUserAccess ? (
-            <a href={changedByUrl}>{changedByName(lastSavedBy)}</a>
-          ) : (
-            <>{changedByName(lastSavedBy)}</>
-          ),
+        }: any) => <>{changedByName(lastSavedBy)}</>,
         Header: t('Modified by'),
         accessor: 'last_saved_by.first_name',
         size: 'xl',
@@ -594,6 +590,13 @@ function ChartList(props: ChartListProps) {
   const filters: Filters = useMemo(() => {
     const filters_list = [
       {
+        Header: t('Search'),
+        key: 'search',
+        id: 'slice_name',
+        input: 'search',
+        operator: FilterOperator.chartAllText,
+      },
+      {
         Header: t('Owner'),
         key: 'owner',
         id: 'owners',
@@ -709,13 +712,6 @@ function ChartList(props: ChartListProps) {
         fetchSelects: loadTags,
       });
     }
-    filters_list.push({
-      Header: t('Search'),
-      key: 'search',
-      id: 'slice_name',
-      input: 'search',
-      operator: FilterOperator.chartAllText,
-    });
     return filters_list;
   }, [addDangerToast, favoritesFilter, props.user]);
 
@@ -855,12 +851,17 @@ function ChartList(props: ChartListProps) {
               count={chartCount}
               data={charts}
               disableBulkSelect={toggleBulkSelect}
+              refreshData={refreshData}
               fetchData={fetchData}
               filters={filters}
               initialSort={initialSort}
               loading={loading}
               pageSize={PAGE_SIZE}
               renderCard={renderCard}
+              enableBulkTag
+              bulkTagResourceName="chart"
+              addSuccessToast={addSuccessToast}
+              addDangerToast={addDangerToast}
               showThumbnails={
                 userSettings
                   ? userSettings.thumbnails
@@ -888,6 +889,14 @@ function ChartList(props: ChartListProps) {
         onHide={closeChartImportModal}
         passwordFields={passwordFields}
         setPasswordFields={setPasswordFields}
+        sshTunnelPasswordFields={sshTunnelPasswordFields}
+        setSSHTunnelPasswordFields={setSSHTunnelPasswordFields}
+        sshTunnelPrivateKeyFields={sshTunnelPrivateKeyFields}
+        setSSHTunnelPrivateKeyFields={setSSHTunnelPrivateKeyFields}
+        sshTunnelPrivateKeyPasswordFields={sshTunnelPrivateKeyPasswordFields}
+        setSSHTunnelPrivateKeyPasswordFields={
+          setSSHTunnelPrivateKeyPasswordFields
+        }
       />
       {preparingExport && <Loading />}
     </>

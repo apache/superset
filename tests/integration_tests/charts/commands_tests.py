@@ -23,16 +23,24 @@ from flask import g
 
 from superset import db, security_manager
 from superset.charts.commands.create import CreateChartCommand
-from superset.charts.commands.exceptions import ChartNotFoundError
+from superset.charts.commands.exceptions import (
+    ChartNotFoundError,
+    WarmUpCacheChartNotFoundError,
+)
 from superset.charts.commands.export import ExportChartsCommand
 from superset.charts.commands.importers.v1 import ImportChartsCommand
 from superset.charts.commands.update import UpdateChartCommand
+from superset.charts.commands.warm_up_cache import ChartWarmUpCacheCommand
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.slice import Slice
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
+)
 from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_data,
     load_energy_table_with_slice,
@@ -164,9 +172,10 @@ class TestExportChartsCommand(SupersetTestCase):
 
 class TestImportChartsCommand(SupersetTestCase):
     @patch("superset.charts.commands.importers.v1.utils.g")
-    def test_import_v1_chart(self, mock_g):
+    @patch("superset.security.manager.g")
+    def test_import_v1_chart(self, sm_g, utils_g):
         """Test that we can import a chart"""
-        mock_g.user = security_manager.find_user("admin")
+        admin = sm_g.user = utils_g.user = security_manager.find_user("admin")
         contents = {
             "metadata.yaml": yaml.safe_dump(chart_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
@@ -227,18 +236,17 @@ class TestImportChartsCommand(SupersetTestCase):
         assert database.database_name == "imported_database"
         assert chart.table.database == database
 
-        assert chart.owners == [mock_g.user]
+        assert chart.owners == [admin]
 
-        chart.owners = []
-        dataset.owners = []
-        database.owners = []
         db.session.delete(chart)
         db.session.delete(dataset)
         db.session.delete(database)
         db.session.commit()
 
-    def test_import_v1_chart_multiple(self):
+    @patch("superset.security.manager.g")
+    def test_import_v1_chart_multiple(self, sm_g):
         """Test that a chart can be imported multiple times"""
+        sm_g.user = security_manager.find_user("admin")
         contents = {
             "metadata.yaml": yaml.safe_dump(chart_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
@@ -374,7 +382,7 @@ class TestChartsUpdateCommand(SupersetTestCase):
     def test_query_context_update_command(self, mock_sm_g, mock_g):
         """
         Test that a user can generate the chart query context
-        payloadwithout affecting owners
+        payload without affecting owners
         """
         chart = db.session.query(Slice).all()[0]
         pk = chart.id
@@ -395,3 +403,23 @@ class TestChartsUpdateCommand(SupersetTestCase):
         assert chart.query_context == query_context
         assert len(chart.owners) == 1
         assert chart.owners[0] == admin
+
+
+class TestChartWarmUpCacheCommand(SupersetTestCase):
+    def test_warm_up_cache_command_chart_not_found(self):
+        with self.assertRaises(WarmUpCacheChartNotFoundError):
+            ChartWarmUpCacheCommand(99999, None, None).run()
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_warm_up_cache(self):
+        slc = self.get_slice("Top 10 Girl Name Share", db.session)
+        result = ChartWarmUpCacheCommand(slc.id, None, None).run()
+        self.assertEqual(
+            result, {"chart_id": slc.id, "viz_error": None, "viz_status": "success"}
+        )
+
+        # can just pass in chart as well
+        result = ChartWarmUpCacheCommand(slc, None, None).run()
+        self.assertEqual(
+            result, {"chart_id": slc.id, "viz_error": None, "viz_status": "success"}
+        )

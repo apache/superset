@@ -57,3 +57,11 @@ class SSHTunnelRequiredFieldValidationError(ValidationError):
             [_("Field is required")],
             field_name=field_name,
         )
+
+
+class SSHTunnelMissingCredentials(CommandInvalidError):
+    message = _("Must provide credentials for the SSH Tunnel")
+
+
+class SSHTunnelInvalidCredentials(CommandInvalidError):
+    message = _("Cannot have multiple credentials for the SSH Tunnel")

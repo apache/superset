@@ -19,8 +19,7 @@
 import json
 from io import BytesIO
 from time import sleep
-from typing import List, Optional
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 from zipfile import is_zipfile, ZipFile
 
 from tests.integration_tests.insert_chart_mixin import InsertChartMixin
@@ -31,14 +30,15 @@ import yaml
 
 from freezegun import freeze_time
 from sqlalchemy import and_
-from superset import db, security_manager
+from superset import app, db, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
-from superset.utils.core import backend
+from superset.utils.core import backend, override_user
 from superset.views.base import generate_download_headers
 
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.importexport import (
@@ -66,7 +66,7 @@ DASHBOARDS_FIXTURE_COUNT = 10
 class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
     resource_name = "dashboard"
 
-    dashboards: List[Dashboard] = []
+    dashboards: list[Dashboard] = []
     dashboard_data = {
         "dashboard_title": "title1_changed",
         "slug": "slug1_changed",
@@ -75,48 +75,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         "json_metadata": '{"refresh_frequency": 30, "timed_refresh_immune_slices": [], "expanded_slices": {}, "color_scheme": "", "label_colors": {}, "shared_label_colors": {}, "color_scheme_domain": [], "cross_filters_enabled": false}',
         "published": False,
     }
-
-    def insert_dashboard(
-        self,
-        dashboard_title: str,
-        slug: Optional[str],
-        owners: List[int],
-        roles: List[int] = [],
-        created_by=None,
-        slices: Optional[List[Slice]] = None,
-        position_json: str = "",
-        css: str = "",
-        json_metadata: str = "",
-        published: bool = False,
-        certified_by: Optional[str] = None,
-        certification_details: Optional[str] = None,
-    ) -> Dashboard:
-        obj_owners = list()
-        obj_roles = list()
-        slices = slices or []
-        for owner in owners:
-            user = db.session.query(security_manager.user_model).get(owner)
-            obj_owners.append(user)
-        for role in roles:
-            role_obj = db.session.query(security_manager.role_model).get(role)
-            obj_roles.append(role_obj)
-        dashboard = Dashboard(
-            dashboard_title=dashboard_title,
-            slug=slug,
-            owners=obj_owners,
-            roles=obj_roles,
-            position_json=position_json,
-            css=css,
-            json_metadata=json_metadata,
-            slices=slices,
-            published=published,
-            created_by=created_by,
-            certified_by=certified_by,
-            certification_details=certification_details,
-        )
-        db.session.add(dashboard)
-        db.session.commit()
-        return dashboard
 
     @pytest.fixture()
     def create_dashboards(self):
@@ -211,9 +169,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data.decode("utf-8"))
         dashboard = Dashboard.get("world_health")
-        expected_dataset_ids = set([s.datasource_id for s in dashboard.slices])
+        expected_dataset_ids = {s.datasource_id for s in dashboard.slices}
         result = data["result"]
-        actual_dataset_ids = set([dataset["id"] for dataset in result])
+        actual_dataset_ids = {dataset["id"] for dataset in result}
         self.assertEqual(actual_dataset_ids, expected_dataset_ids)
         expected_values = [0, 1] if backend() == "presto" else [0, 1, 2]
         self.assertEqual(result[0]["column_types"], expected_values)
@@ -404,39 +362,39 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.get_assert_metric(uri, "get")
         self.assertEqual(rv.status_code, 200)
-        expected_result = {
-            "certified_by": None,
-            "certification_details": None,
-            "changed_by": None,
-            "changed_by_name": "",
-            "changed_by_url": "",
-            "charts": [],
-            "created_by": {
-                "id": 1,
-                "first_name": "admin",
-                "last_name": "user",
-            },
-            "id": dashboard.id,
-            "css": "",
-            "dashboard_title": "title",
-            "datasources": [],
-            "json_metadata": "",
-            "owners": [
-                {
+        with override_user(admin):
+            expected_result = {
+                "certified_by": None,
+                "certification_details": None,
+                "changed_by": None,
+                "changed_by_name": "",
+                "charts": [],
+                "created_by": {
                     "id": 1,
-                    "username": "admin",
                     "first_name": "admin",
                     "last_name": "user",
-                }
-            ],
-            "roles": [],
-            "position_json": "",
-            "published": False,
-            "url": "/superset/dashboard/slug1/",
-            "slug": "slug1",
-            "thumbnail_url": dashboard.thumbnail_url,
-            "is_managed_externally": False,
-        }
+                },
+                "id": dashboard.id,
+                "css": "",
+                "dashboard_title": "title",
+                "datasources": [],
+                "json_metadata": "",
+                "owners": [
+                    {
+                        "id": 1,
+                        "first_name": "admin",
+                        "last_name": "user",
+                    }
+                ],
+                "roles": [],
+                "position_json": "",
+                "published": False,
+                "url": "/superset/dashboard/slug1/",
+                "slug": "slug1",
+                "tags": [],
+                "thumbnail_url": dashboard.thumbnail_url,
+                "is_managed_externally": False,
+            }
         data = json.loads(rv.data.decode("utf-8"))
         self.assertIn("changed_on", data["result"])
         self.assertIn("changed_on_delta_humanized", data["result"])
@@ -683,6 +641,75 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             if res["id"] in users_favorite_ids:
                 assert res["value"]
 
+    def test_add_favorite(self):
+        """
+        Dataset API: Test add dashboard to favorites
+        """
+        dashboard = Dashboard(
+            id=100,
+            dashboard_title="test_dashboard",
+            slug="test_slug",
+            slices=[],
+            published=True,
+        )
+        db.session.add(dashboard)
+        db.session.commit()
+
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/favorite_status/?q={prison.dumps([dashboard.id])}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        for res in data["result"]:
+            assert res["value"] is False
+
+        uri = f"api/v1/dashboard/{dashboard.id}/favorites/"
+        self.client.post(uri)
+
+        uri = f"api/v1/dashboard/favorite_status/?q={prison.dumps([dashboard.id])}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        for res in data["result"]:
+            assert res["value"] is True
+
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    def test_remove_favorite(self):
+        """
+        Dataset API: Test remove dashboard from favorites
+        """
+        dashboard = Dashboard(
+            id=100,
+            dashboard_title="test_dashboard",
+            slug="test_slug",
+            slices=[],
+            published=True,
+        )
+        db.session.add(dashboard)
+        db.session.commit()
+
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{dashboard.id}/favorites/"
+        self.client.post(uri)
+
+        uri = f"api/v1/dashboard/favorite_status/?q={prison.dumps([dashboard.id])}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        for res in data["result"]:
+            assert res["value"] is True
+
+        uri = f"api/v1/dashboard/{dashboard.id}/favorites/"
+        self.client.delete(uri)
+
+        uri = f"api/v1/dashboard/favorite_status/?q={prison.dumps([dashboard.id])}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        for res in data["result"]:
+            assert res["value"] is False
+
+        db.session.delete(dashboard)
+        db.session.commit()
+
     @pytest.mark.usefixtures("create_dashboards")
     def test_get_dashboards_not_favorite_filter(self):
         """
@@ -820,7 +847,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
             with bundle.open("sql/dump.sql", "w") as fp:
-                fp.write("CREATE TABLE foo (bar INT)".encode())
+                fp.write(b"CREATE TABLE foo (bar INT)")
         buf.seek(0)
         return buf
 
@@ -1294,6 +1321,59 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.assertEqual(model.published, self.dashboard_data["published"])
         self.assertEqual(model.owners, [admin])
         self.assertEqual(model.roles, [admin_role])
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_dashboard_get_list_no_username(self):
+        """
+        Dashboard API: Tests that no username is returned
+        """
+        admin = self.get_user("admin")
+        admin_role = self.get_role("Admin")
+        dashboard_id = self.insert_dashboard(
+            "title1", "slug1", [admin.id], roles=[admin_role.id]
+        ).id
+        model = db.session.query(Dashboard).get(dashboard_id)
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{dashboard_id}"
+        dashboard_data = {"dashboard_title": "title2"}
+        rv = self.client.put(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 200)
+
+        response = self.get_assert_metric("api/v1/dashboard/", "get_list")
+        res = json.loads(response.data.decode("utf-8"))["result"]
+
+        current_dash = [d for d in res if d["id"] == dashboard_id][0]
+        self.assertEqual(current_dash["dashboard_title"], "title2")
+        self.assertNotIn("username", current_dash["changed_by"].keys())
+        self.assertNotIn("username", current_dash["owners"][0].keys())
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_dashboard_get_no_username(self):
+        """
+        Dashboard API: Tests that no username is returned
+        """
+        admin = self.get_user("admin")
+        admin_role = self.get_role("Admin")
+        dashboard_id = self.insert_dashboard(
+            "title1", "slug1", [admin.id], roles=[admin_role.id]
+        ).id
+        model = db.session.query(Dashboard).get(dashboard_id)
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{dashboard_id}"
+        dashboard_data = {"dashboard_title": "title2"}
+        rv = self.client.put(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 200)
+
+        response = self.get_assert_metric(uri, "get")
+        res = json.loads(response.data.decode("utf-8"))["result"]
+
+        self.assertEqual(res["dashboard_title"], "title2")
+        self.assertNotIn("username", res["changed_by"].keys())
+        self.assertNotIn("username", res["owners"][0].keys())
 
         db.session.delete(model)
         db.session.commit()
@@ -2063,4 +2143,96 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], len(expected_models))
         db.session.delete(dashboard)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_copy_dashboard(self):
+        self.login(username="admin")
+        original_dash = (
+            db.session.query(Dashboard).filter_by(slug="world_health").first()
+        )
+
+        data = {
+            "dashboard_title": "copied dash",
+            "css": "<css>",
+            "duplicate_slices": False,
+            "json_metadata": json.dumps(
+                {
+                    "positions": original_dash.position,
+                    "color_namespace": "Color Namespace Test",
+                    "color_scheme": "Color Scheme Test",
+                }
+            ),
+        }
+        pk = original_dash.id
+        uri = f"api/v1/dashboard/{pk}/copy/"
+        rv = self.client.post(uri, json=data)
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(response, {"result": {"id": ANY, "last_modified_time": ANY}})
+
+        dash = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.id == response["result"]["id"])
+            .one()
+        )
+        self.assertNotEqual(dash.id, original_dash.id)
+        self.assertEqual(len(dash.position), len(original_dash.position))
+        self.assertEqual(dash.dashboard_title, "copied dash")
+        self.assertEqual(dash.css, "<css>")
+        self.assertEqual(dash.owners, [security_manager.find_user("admin")])
+        self.assertCountEqual(dash.slices, original_dash.slices)
+        self.assertEqual(dash.params_dict["color_namespace"], "Color Namespace Test")
+        self.assertEqual(dash.params_dict["color_scheme"], "Color Scheme Test")
+
+        db.session.delete(dash)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_copy_dashboard_duplicate_slices(self):
+        self.login(username="admin")
+        original_dash = (
+            db.session.query(Dashboard).filter_by(slug="world_health").first()
+        )
+
+        data = {
+            "dashboard_title": "copied dash",
+            "css": "<css>",
+            "duplicate_slices": True,
+            "json_metadata": json.dumps(
+                {
+                    "positions": original_dash.position,
+                    "color_namespace": "Color Namespace Test",
+                    "color_scheme": "Color Scheme Test",
+                }
+            ),
+        }
+        pk = original_dash.id
+        uri = f"api/v1/dashboard/{pk}/copy/"
+        rv = self.client.post(uri, json=data)
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(response, {"result": {"id": ANY, "last_modified_time": ANY}})
+
+        dash = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.id == response["result"]["id"])
+            .one()
+        )
+        self.assertNotEqual(dash.id, original_dash.id)
+        self.assertEqual(len(dash.position), len(original_dash.position))
+        self.assertEqual(dash.dashboard_title, "copied dash")
+        self.assertEqual(dash.css, "<css>")
+        self.assertEqual(dash.owners, [security_manager.find_user("admin")])
+        self.assertEqual(dash.params_dict["color_namespace"], "Color Namespace Test")
+        self.assertEqual(dash.params_dict["color_scheme"], "Color Scheme Test")
+        self.assertEqual(len(dash.slices), len(original_dash.slices))
+        for original_slc in original_dash.slices:
+            for slc in dash.slices:
+                self.assertNotEqual(slc.id, original_slc.id)
+
+        for slc in dash.slices:
+            db.session.delete(slc)
+
+        db.session.delete(dash)
         db.session.commit()

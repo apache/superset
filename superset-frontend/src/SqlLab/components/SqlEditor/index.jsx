@@ -25,11 +25,20 @@ import React, {
   useRef,
   useCallback,
 } from 'react';
+import useEffectEvent from 'src/hooks/useEffectEvent';
 import { CSSTransition } from 'react-transition-group';
-import { useDispatch, useSelector } from 'react-redux';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
-import { css, t, styled, useTheme } from '@superset-ui/core';
+import {
+  css,
+  FeatureFlag,
+  isFeatureEnabled,
+  styled,
+  t,
+  useTheme,
+  getExtensionsRegistry,
+} from '@superset-ui/core';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
 import Modal from 'src/components/Modal';
@@ -58,7 +67,6 @@ import {
   scheduleQuery,
   setActiveSouthPaneTab,
   updateSavedQuery,
-  validateQuery,
 } from 'src/SqlLab/actions/sqlLab';
 import {
   STATE_TYPE_MAP,
@@ -70,7 +78,6 @@ import {
   INITIAL_NORTH_PERCENT,
   INITIAL_SOUTH_PERCENT,
   SET_QUERY_EDITOR_SQL_DEBOUNCE_MS,
-  VALIDATION_DEBOUNCE_MS,
   WINDOW_RESIZE_THROTTLE_MS,
 } from 'src/SqlLab/constants';
 import {
@@ -78,7 +85,6 @@ import {
   LocalStorageKeys,
   setItem,
 } from 'src/utils/localStorageHelpers';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { isEmpty } from 'lodash';
@@ -94,8 +100,6 @@ import RunQueryActionButton from '../RunQueryActionButton';
 import QueryLimitSelect from '../QueryLimitSelect';
 
 const bootstrapData = getBootstrapData();
-const validatorMap =
-  bootstrapData?.common?.conf?.SQL_VALIDATORS_BY_ENGINE || {};
 const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
 
 const StyledToolbar = styled.div`
@@ -204,6 +208,8 @@ const propTypes = {
   scheduleQueryWarning: PropTypes.string,
 };
 
+const extensionsRegistry = getExtensionsRegistry();
+
 const SqlEditor = ({
   tables,
   queryEditor,
@@ -219,7 +225,7 @@ const SqlEditor = ({
   const { database, latestQuery, hideLeftBar } = useSelector(
     ({ sqlLab: { unsavedQueryEditor, databases, queries } }) => {
       let { dbId, latestQueryId, hideLeftBar } = queryEditor;
-      if (unsavedQueryEditor.id === queryEditor.id) {
+      if (unsavedQueryEditor?.id === queryEditor.id) {
         dbId = unsavedQueryEditor.dbId || dbId;
         latestQueryId = unsavedQueryEditor.latestQueryId || latestQueryId;
         hideLeftBar = unsavedQueryEditor.hideLeftBar || hideLeftBar;
@@ -230,6 +236,7 @@ const SqlEditor = ({
         hideLeftBar,
       };
     },
+    shallowEqual,
   );
 
   const [height, setHeight] = useState(0);
@@ -250,6 +257,8 @@ const SqlEditor = ({
 
   const sqlEditorRef = useRef(null);
   const northPaneRef = useRef(null);
+
+  const SqlFormExtension = extensionsRegistry.get('sqleditor.extension.form');
 
   const startQuery = useCallback(
     (ctasArg = false, ctas_method = CtasEnum.TABLE) => {
@@ -324,6 +333,68 @@ const SqlEditor = ({
         },
       },
       {
+        name: 'runQuery3',
+        key: 'ctrl+shift+enter',
+        descr: t('Run current query'),
+        func: editor => {
+          if (!editor.getValue().trim()) {
+            return;
+          }
+          const session = editor.getSession();
+          const cursorPosition = editor.getCursorPosition();
+          const totalLine = session.getLength();
+          const currentRow = editor.getFirstVisibleRow();
+          let end = editor.find(';', {
+            backwards: false,
+            skipCurrent: true,
+            start: cursorPosition,
+          })?.end;
+          if (!end || end.row < cursorPosition.row) {
+            end = {
+              row: totalLine + 1,
+              column: 0,
+            };
+          }
+          let start = editor.find(';', {
+            backwards: true,
+            skipCurrent: true,
+            start: cursorPosition,
+          })?.end;
+          let currentLine = editor.find(';', {
+            backwards: true,
+            skipCurrent: true,
+            start: cursorPosition,
+          })?.end?.row;
+          if (
+            !currentLine ||
+            currentLine > cursorPosition.row ||
+            (currentLine === cursorPosition.row &&
+              start?.column > cursorPosition.column)
+          ) {
+            currentLine = 0;
+          }
+          let content =
+            currentLine === start?.row
+              ? session.getLine(currentLine).slice(start.column).trim()
+              : session.getLine(currentLine).trim();
+          while (!content && currentLine < totalLine) {
+            currentLine += 1;
+            content = session.getLine(currentLine).trim();
+          }
+          if (currentLine !== start?.row) {
+            start = { row: currentLine, column: 0 };
+          }
+          editor.selection.setRange({
+            start: start ?? { row: 0, column: 0 },
+            end,
+          });
+          startQuery();
+          editor.selection.clearSelection();
+          editor.moveCursorToPosition(cursorPosition);
+          editor.scrollToRow(currentRow);
+        },
+      },
+      {
         name: 'newTab',
         key: userOS === 'Windows' ? 'ctrl+q' : 'ctrl+t',
         descr: t('New tab'),
@@ -353,39 +424,24 @@ const SqlEditor = ({
     return base;
   }, [dispatch, queryEditor.sql, startQuery, stopQuery]);
 
-  const handleWindowResize = useCallback(() => {
-    setHeight(getSqlEditorHeight());
-  }, []);
-
-  const handleWindowResizeWithThrottle = useMemo(
-    () => throttle(handleWindowResize, WINDOW_RESIZE_THROTTLE_MS),
-    [handleWindowResize],
-  );
-
-  const onBeforeUnload = useCallback(
-    event => {
-      if (
-        database?.extra_json?.cancel_query_on_windows_unload &&
-        latestQuery?.state === 'running'
-      ) {
-        event.preventDefault();
-        stopQuery();
-      }
-    },
-    [
-      database?.extra_json?.cancel_query_on_windows_unload,
-      latestQuery?.state,
-      stopQuery,
-    ],
-  );
+  const onBeforeUnload = useEffectEvent(event => {
+    if (
+      database?.extra_json?.cancel_query_on_windows_unload &&
+      latestQuery?.state === 'running'
+    ) {
+      event.preventDefault();
+      stopQuery();
+    }
+  });
 
   useEffect(() => {
     // We need to measure the height of the sql editor post render to figure the height of
     // the south pane so it gets rendered properly
     setHeight(getSqlEditorHeight());
-    if (!database || isEmpty(database)) {
-      setShowEmptyState(true);
-    }
+    const handleWindowResizeWithThrottle = throttle(
+      () => setHeight(getSqlEditorHeight()),
+      WINDOW_RESIZE_THROTTLE_MS,
+    );
 
     window.addEventListener('resize', handleWindowResizeWithThrottle);
     window.addEventListener('beforeunload', onBeforeUnload);
@@ -394,7 +450,14 @@ const SqlEditor = ({
       window.removeEventListener('resize', handleWindowResizeWithThrottle);
       window.removeEventListener('beforeunload', onBeforeUnload);
     };
-  }, [database, handleWindowResizeWithThrottle, onBeforeUnload]);
+    // TODO: Remove useEffectEvent deps once https://github.com/facebook/react/pull/25881 is released
+  }, [onBeforeUnload]);
+
+  useEffect(() => {
+    if (!database || isEmpty(database)) {
+      setShowEmptyState(true);
+    }
+  }, [database]);
 
   useEffect(() => {
     // setup hotkeys
@@ -432,37 +495,9 @@ const SqlEditor = ({
     [setQueryEditorAndSaveSql],
   );
 
-  const canValidateQuery = () => {
-    // Check whether or not we can validate the current query based on whether
-    // or not the backend has a validator configured for it.
-    if (database) {
-      return validatorMap.hasOwnProperty(database.backend);
-    }
-    return false;
-  };
-
-  const requestValidation = useCallback(
-    sql => {
-      if (database) {
-        dispatch(validateQuery(queryEditor, sql));
-      }
-    },
-    [database, dispatch, queryEditor],
-  );
-
-  const requestValidationWithDebounce = useMemo(
-    () => debounce(requestValidation, VALIDATION_DEBOUNCE_MS),
-    [requestValidation],
-  );
-
   const onSqlChanged = sql => {
     dispatch(queryEditorSetSql(queryEditor, sql));
     setQueryEditorAndSaveSqlWithDebounce(sql);
-    // Request server-side validation of the query text
-    if (canValidateQuery()) {
-      // NB. requestValidation is debounced
-      requestValidationWithDebounce(sql);
-    }
   };
 
   // Return the heights for the ace editor and the south pane as an object
@@ -545,7 +580,7 @@ const SqlEditor = ({
             />
           </Menu.Item>
         )}
-        {scheduledQueriesConf && (
+        {!isEmpty(scheduledQueriesConf) && (
           <Menu.Item>
             <ScheduleQueryButton
               defaultLabel={qe.name}
@@ -679,13 +714,20 @@ const SqlEditor = ({
         onDragEnd={onResizeEnd}
       >
         <div ref={northPaneRef} className="north-pane">
+          {SqlFormExtension && (
+            <SqlFormExtension
+              queryEditorId={queryEditor.id}
+              setQueryEditorAndSaveSqlWithDebounce={
+                setQueryEditorAndSaveSqlWithDebounce
+              }
+              startQuery={startQuery}
+            />
+          )}
           <AceEditorWrapper
             autocomplete={autocompleteEnabled}
             onBlur={setQueryEditorAndSaveSql}
             onChange={onSqlChanged}
             queryEditorId={queryEditor.id}
-            database={database}
-            extendedTables={tables}
             height={`${aceEditorHeight}px`}
             hotkeys={hotkeys}
           />

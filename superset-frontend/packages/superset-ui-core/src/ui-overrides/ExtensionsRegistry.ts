@@ -16,71 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import React from 'react';
 import { TypedRegistry } from '../models';
 import { makeSingleton } from '../utils';
-
-/**
- * A function which returns text (or marked-up text)
- * If what you want is a react component, don't use this. Use React.ComponentType instead.
- */
-type ReturningDisplayable<P = void> = (props: P) => string | React.ReactElement;
-
-/**
- * This type defines all available extensions of Superset's default UI.
- * Namespace the keys here to follow the form of 'some_domain.functonality.item'.
- * Take care to name your keys well, as the name describes what this extension point's role is in Superset.
- *
- * When defining a new option here, take care to keep any parameters to functions (or components) minimal.
- * Any removal or alteration to a parameter will be considered a breaking change.
- */
-
-// from src/views/components/Menu, not imported since this is a separate package
-interface MenuObjectChildProps {
-  label: string;
-  name?: string;
-  icon?: string;
-  index?: number;
-  url?: string;
-  isFrontendRoute?: boolean;
-  perm?: string | boolean;
-  view?: string;
-  disable?: boolean;
-}
-
-export interface SwitchProps {
-  isEditMode: boolean;
-  dbFetched: any;
-  disableSSHTunnelingForEngine?: boolean;
-  useSSHTunneling: boolean;
-  setUseSSHTunneling: React.Dispatch<React.SetStateAction<boolean>>;
-  setDB: React.Dispatch<any>;
-  isSSHTunneling: boolean;
-}
-
-type ConfigDetailsProps = {
-  embeddedId: string;
-};
-type RightMenuItemIconProps = {
-  menuChild: MenuObjectChildProps;
-};
-
-export type Extensions = Partial<{
-  'alertsreports.header.icon': React.ComponentType;
-  'embedded.documentation.configuration_details': React.ComponentType<ConfigDetailsProps>;
-  'embedded.documentation.description': ReturningDisplayable;
-  'embedded.documentation.url': string;
-  'dashboard.nav.right': React.ComponentType;
-  'navbar.right-menu.item.icon': React.ComponentType<RightMenuItemIconProps>;
-  'navbar.right': React.ComponentType;
-  'report-modal.dropdown.item.icon': React.ComponentType;
-  'root.context.provider': React.ComponentType;
-  'welcome.message': React.ComponentType;
-  'welcome.banner': React.ComponentType;
-  'welcome.main.replacement': React.ComponentType;
-  'ssh_tunnel.form.switch': React.ComponentType<SwitchProps>;
-}>;
+import { Extensions } from './types';
 
 /**
  * A registry containing extensions which can alter Superset's UI at specific points defined by Superset.
@@ -91,7 +29,3 @@ class ExtensionsRegistry extends TypedRegistry<Extensions> {
 }
 
 export const getExtensionsRegistry = makeSingleton(ExtensionsRegistry, {});
-
-// Exporting this under the old name for backwards compatibility.
-// After downstream folks have migrated to `getExtensionsRegistry`, we should remove this.
-export const getUiOverrideRegistry = getExtensionsRegistry;

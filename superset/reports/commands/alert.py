@@ -20,7 +20,7 @@ import json
 import logging
 from operator import eq, ge, gt, le, lt, ne
 from timeit import default_timer
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -54,7 +54,7 @@ OPERATOR_FUNCTIONS = {">=": ge, ">": gt, "<=": le, "<": lt, "==": eq, "!=": ne}
 class AlertCommand(BaseCommand):
     def __init__(self, report_schedule: ReportSchedule):
         self._report_schedule = report_schedule
-        self._result: Optional[float] = None
+        self._result: float | None = None
 
     def run(self) -> bool:
         """
@@ -96,8 +96,7 @@ class AlertCommand(BaseCommand):
         if len(rows) > 1:
             raise AlertQueryMultipleRowsError(
                 message=_(
-                    "Alert query returned more than one row. %s rows returned"
-                    % len(rows),
+                    f"Alert query returned more than one row. {len(rows)} rows returned"
                 )
             )
         # check if query returned more than one column
@@ -105,8 +104,8 @@ class AlertCommand(BaseCommand):
             raise AlertQueryMultipleColumnsError(
                 # len is subtracted by 1 to discard pandas index column
                 _(
-                    "Alert query returned more than one column. %s columns returned"
-                    % (len(rows[0]) - 1)
+                    f"Alert query returned more than one column. "
+                    f"{(len(rows[0]) - 1)} columns returned"
                 )
             )
 

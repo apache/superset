@@ -14,28 +14,101 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from unittest import mock, skip
+from unittest import mock
 from unittest.mock import Mock, patch
 
 import pandas as pd
 import pytest
+from flask_babel import gettext as __
 
-from superset import db, sql_lab
+from superset import app, db, sql_lab
 from superset.common.db_query_status import QueryStatus
-from superset.errors import ErrorLevel, SupersetErrorType
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SerializationError,
-    SupersetError,
     SupersetErrorException,
     SupersetSecurityException,
+    SupersetTimeoutException,
 )
 from superset.models.core import Database
 from superset.models.sql_lab import Query
-from superset.sqllab.commands import export, results
+from superset.sqllab.commands import estimate, export, results
 from superset.sqllab.limiting_factor import LimitingFactor
+from superset.sqllab.schemas import EstimateQueryCostSchema
 from superset.utils import core as utils
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
+
+
+class TestQueryEstimationCommand(SupersetTestCase):
+    def test_validation_no_database(self) -> None:
+        params = {"database_id": 1, "sql": "SELECT 1"}
+        schema = EstimateQueryCostSchema()
+        data: EstimateQueryCostSchema = schema.dump(params)
+        command = estimate.QueryEstimationCommand(data)
+
+        with mock.patch("superset.sqllab.commands.estimate.db") as mock_superset_db:
+            mock_superset_db.session.query().get.return_value = None
+            with pytest.raises(SupersetErrorException) as ex_info:
+                command.validate()
+            assert (
+                ex_info.value.error.error_type
+                == SupersetErrorType.RESULTS_BACKEND_ERROR
+            )
+
+    @patch("superset.tasks.scheduler.is_feature_enabled")
+    def test_run_timeout(self, is_feature_enabled) -> None:
+        params = {"database_id": 1, "sql": "SELECT 1", "template_params": {"temp": 123}}
+        schema = EstimateQueryCostSchema()
+        data: EstimateQueryCostSchema = schema.dump(params)
+        command = estimate.QueryEstimationCommand(data)
+
+        db_mock = mock.Mock()
+        db_mock.db_engine_spec = mock.Mock()
+        db_mock.db_engine_spec.estimate_query_cost = mock.Mock(
+            side_effect=SupersetTimeoutException(
+                error_type=SupersetErrorType.CONNECTION_DATABASE_TIMEOUT,
+                message=(
+                    "Please check your connection details and database settings, "
+                    "and ensure that your database is accepting connections, "
+                    "then try connecting again."
+                ),
+                level=ErrorLevel.ERROR,
+            )
+        )
+        db_mock.db_engine_spec.query_cost_formatter = mock.Mock(return_value=None)
+        is_feature_enabled.return_value = False
+
+        with mock.patch("superset.sqllab.commands.estimate.db") as mock_superset_db:
+            mock_superset_db.session.query().get.return_value = db_mock
+            with pytest.raises(SupersetErrorException) as ex_info:
+                command.run()
+            assert (
+                ex_info.value.error.error_type == SupersetErrorType.SQLLAB_TIMEOUT_ERROR
+            )
+            assert ex_info.value.error.message == __(
+                "The query estimation was killed after %(sqllab_timeout)s seconds. It might "
+                "be too complex, or the database might be under heavy load.",
+                sqllab_timeout=app.config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"],
+            )
+
+    def test_run_success(self) -> None:
+        params = {"database_id": 1, "sql": "SELECT 1"}
+        schema = EstimateQueryCostSchema()
+        data: EstimateQueryCostSchema = schema.dump(params)
+        command = estimate.QueryEstimationCommand(data)
+
+        payload = {"value": 100}
+
+        db_mock = mock.Mock()
+        db_mock.db_engine_spec = mock.Mock()
+        db_mock.db_engine_spec.estimate_query_cost = mock.Mock(return_value=100)
+        db_mock.db_engine_spec.query_cost_formatter = mock.Mock(return_value=payload)
+
+        with mock.patch("superset.sqllab.commands.estimate.db") as mock_superset_db:
+            mock_superset_db.session.query().get.return_value = db_mock
+            result = command.run()
+            assert result == payload
 
 
 class TestSqlResultExportCommand(SupersetTestCase):

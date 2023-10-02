@@ -35,7 +35,6 @@ jest.mock('src/dashboard/components/SliceHeaderControls', () => ({
       data-updated-dttm={props.updatedDttm}
       data-superset-can-explore={props.supersetCanExplore}
       data-superset-can-csv={props.supersetCanCSV}
-      data-slice-can-edit={props.sliceCanEdit}
       data-component-id={props.componentId}
       data-dashboard-id={props.dashboardId}
       data-is-full-size={props.isFullSize}
@@ -114,7 +113,6 @@ const createProps = (overrides: any = {}) => ({
   sliceName: 'Vaccine Candidates per Phase',
   supersetCanExplore: true,
   supersetCanCSV: true,
-  sliceCanEdit: false,
   slice: {
     slice_id: 312,
     slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20312%7D',
@@ -205,8 +203,6 @@ test('Should render - default props', () => {
   delete props.supersetCanExplore;
   // @ts-ignore
   delete props.supersetCanCSV;
-  // @ts-ignore
-  delete props.sliceCanEdit;
 
   render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
   expect(screen.getByTestId('slice-header')).toBeInTheDocument();
@@ -247,8 +243,6 @@ test('Should render default props and "call" actions', () => {
   delete props.supersetCanExplore;
   // @ts-ignore
   delete props.supersetCanCSV;
-  // @ts-ignore
-  delete props.sliceCanEdit;
 
   render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
   userEvent.click(screen.getByTestId('toggleExpandSlice'));
@@ -300,18 +294,6 @@ test('Display cmd button in tooltip if running on MacOS', async () => {
   ).toBeInTheDocument();
   expect(
     await screen.findByText('Use ⌘ + click to open in a new tab.'),
-  ).toBeInTheDocument();
-});
-
-test('Display correct tooltip when DASHBOARD_EDIT_CHART_IN_NEW_TAB is enabled', async () => {
-  window.featureFlags.DASHBOARD_EDIT_CHART_IN_NEW_TAB = true;
-  const props = createProps();
-  render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
-  userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
-  expect(
-    await screen.findByText(
-      'Click to edit Vaccine Candidates per Phase in a new tab',
-    ),
   ).toBeInTheDocument();
 });
 
@@ -434,10 +416,6 @@ test('Correct props to "SliceHeaderControls"', () => {
   );
   expect(screen.getByTestId('SliceHeaderControls')).toHaveAttribute(
     'data-is-full-size',
-    'false',
-  );
-  expect(screen.getByTestId('SliceHeaderControls')).toHaveAttribute(
-    'data-slice-can-edit',
     'false',
   );
   expect(screen.getByTestId('SliceHeaderControls')).toHaveAttribute(

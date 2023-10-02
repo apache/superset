@@ -22,47 +22,48 @@ import { css } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { getFilterValueForDisplay } from 'src/dashboard/components/nativeFilters/FilterBar/FilterSets/utils';
 import {
-  FilterIndicatorText,
   FilterValue,
-  Item,
-  ItemIcon,
-  Title,
+  FilterItem,
+  FilterName,
 } from 'src/dashboard/components/FiltersBadge/Styles';
-import { Indicator } from 'src/dashboard/components/FiltersBadge/selectors';
+import { Indicator } from 'src/dashboard/components/nativeFilters/selectors';
 
 export interface IndicatorProps {
   indicator: Indicator;
   onClick?: (path: string[]) => void;
-  text?: string;
 }
 
 const FilterIndicator: FC<IndicatorProps> = ({
   indicator: { column, name, value, path = [] },
-  onClick = () => {},
-  text,
+  onClick,
 }) => {
   const resultValue = getFilterValueForDisplay(value);
   return (
-    <>
-      <Item onClick={() => onClick([...path, `LABEL-${column}`])}>
-        <Title bold>
-          <ItemIcon>
-            <Icons.SearchOutlined
-              iconSize="m"
-              css={css`
-                span {
-                  vertical-align: 0;
-                }
-              `}
-            />
-          </ItemIcon>
+    <FilterItem
+      onClick={
+        onClick ? () => onClick([...path, `LABEL-${column}`]) : undefined
+      }
+    >
+      {onClick && (
+        <i>
+          <Icons.SearchOutlined
+            iconSize="m"
+            css={css`
+              span {
+                vertical-align: 0;
+              }
+            `}
+          />
+        </i>
+      )}
+      <div>
+        <FilterName>
           {name}
           {resultValue ? ': ' : ''}
-        </Title>
+        </FilterName>
         <FilterValue>{resultValue}</FilterValue>
-      </Item>
-      {text && <FilterIndicatorText>{text}</FilterIndicatorText>}
-    </>
+      </div>
+    </FilterItem>
   );
 };
 

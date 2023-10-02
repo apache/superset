@@ -18,7 +18,8 @@ import json
 import logging
 import os
 import time
-from typing import Any, Callable, Dict, Iterator, Optional, Union
+from collections.abc import Iterator
+from typing import Any, Callable, Optional, Union
 from uuid import uuid4
 
 from alembic import op
@@ -127,7 +128,7 @@ def paginated_update(
             print_page_progress(processed, total)
 
 
-def try_load_json(data: Optional[str]) -> Dict[str, Any]:
+def try_load_json(data: Optional[str]) -> dict[str, Any]:
     try:
         return data and json.loads(data) or {}
     except json.decoder.JSONDecodeError:

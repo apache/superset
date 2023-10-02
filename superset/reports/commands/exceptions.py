@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import List
 
 from flask_babel import lazy_gettext as _
 
@@ -22,7 +21,6 @@ from superset.commands.exceptions import (
     CommandException,
     CommandInvalidError,
     CreateFailedError,
-    DeleteFailedError,
     ForbiddenError,
     ValidationError,
 )
@@ -124,10 +122,6 @@ class DashboardNotSavedValidationError(ValidationError):
 class ReportScheduleInvalidError(CommandInvalidError):
     status = 422
     message = _("Report Schedule parameters are invalid.")
-
-
-class ReportScheduleBulkDeleteFailedError(DeleteFailedError):
-    message = _("Report Schedule could not be deleted.")
 
 
 class ReportScheduleCreateFailedError(CreateFailedError):
@@ -263,13 +257,13 @@ class ReportScheduleStateNotFoundError(CommandException):
 
 
 class ReportScheduleSystemErrorsException(CommandException, SupersetErrorsException):
-    errors: List[SupersetError] = []
+    errors: list[SupersetError] = []
     message = _("Report schedule system error")
 
 
 class ReportScheduleClientErrorsException(CommandException, SupersetErrorsException):
     status = 400
-    errors: List[SupersetError] = []
+    errors: list[SupersetError] = []
     message = _("Report schedule client error")
 
 

@@ -26,20 +26,21 @@ user_response_schema = UserResponseSchema()
 
 
 class CurrentUserRestApi(BaseSupersetApi):
-    """An api to get information about the current user"""
+    """An API to get information about the current user"""
 
     resource_name = "me"
     openapi_spec_tag = "Current User"
     openapi_spec_component_schemas = (UserResponseSchema,)
 
-    @expose("/", methods=["GET"])
+    @expose("/", methods=("GET",))
     @safe
     def get_me(self) -> Response:
-        """Get the user object corresponding to the agent making the request
+        """Get the user object corresponding to the agent making the request.
         ---
         get:
+          summary: Get the user object
           description: >-
-            Returns the user object corresponding to the agent making the request,
+            Gets the user object corresponding to the agent making the request,
             or returns a 401 error if the user is unauthenticated.
           responses:
             200:
@@ -62,14 +63,15 @@ class CurrentUserRestApi(BaseSupersetApi):
 
         return self.response(200, result=user_response_schema.dump(g.user))
 
-    @expose("/roles/", methods=["GET"])
+    @expose("/roles/", methods=("GET",))
     @safe
     def get_my_roles(self) -> Response:
-        """Get the user roles corresponding to the agent making the request
+        """Get the user roles corresponding to the agent making the request.
         ---
         get:
+          summary: Get the user roles
           description: >-
-            Returns the user roles corresponding to the agent making the request,
+            Gets the user roles corresponding to the agent making the request,
             or returns a 401 error if the user is unauthenticated.
           responses:
             200:

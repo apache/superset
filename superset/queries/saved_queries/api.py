@@ -36,11 +36,9 @@ from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.filters import DatabaseFilter
 from superset.extensions import event_logger
 from superset.models.sql_lab import SavedQuery
-from superset.queries.saved_queries.commands.bulk_delete import (
-    BulkDeleteSavedQueryCommand,
-)
+from superset.queries.saved_queries.commands.delete import DeleteSavedQueryCommand
 from superset.queries.saved_queries.commands.exceptions import (
-    SavedQueryBulkDeleteFailedError,
+    SavedQueryDeleteFailedError,
     SavedQueryNotFoundError,
 )
 from superset.queries.saved_queries.commands.export import ExportSavedQueriesCommand
@@ -174,17 +172,16 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     def pre_update(self, item: SavedQuery) -> None:
         self.pre_add(item)
 
-    @expose("/", methods=["DELETE"])
+    @expose("/", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics
     @rison(get_delete_ids_schema)
     def bulk_delete(self, **kwargs: Any) -> Response:
-        """Delete bulk Saved Queries
+        """Bulk delete saved queries.
         ---
         delete:
-          description: >-
-            Deletes multiple saved queries in a bulk operation.
+          summary: Bulk delete saved queries
           parameters:
           - in: query
             name: q
@@ -213,7 +210,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteSavedQueryCommand(item_ids).run()
+            DeleteSavedQueryCommand(item_ids).run()
             return self.response(
                 200,
                 message=ngettext(
@@ -224,20 +221,19 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
             )
         except SavedQueryNotFoundError:
             return self.response_404()
-        except SavedQueryBulkDeleteFailedError as ex:
+        except SavedQueryDeleteFailedError as ex:
             return self.response_422(message=str(ex))
 
-    @expose("/export/", methods=["GET"])
+    @expose("/export/", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
     @rison(get_export_ids_schema)
     def export(self, **kwargs: Any) -> Response:
-        """Export saved queries
+        """Download multiple saved queries as YAML files.
         ---
         get:
-          description: >-
-            Exports multiple saved queries and downloads them as YAML files
+          summary: Download multiple saved queries as YAML files
           parameters:
           - in: query
             name: q
@@ -262,7 +258,6 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        token = request.args.get("token")
         requested_ids = kwargs["rison"]
         timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
         root = f"saved_query_export_{timestamp}"
@@ -284,13 +279,13 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
             buf,
             mimetype="application/zip",
             as_attachment=True,
-            attachment_filename=filename,
+            download_name=filename,
         )
-        if token:
+        if token := request.args.get("token"):
             response.set_cookie(token, "done", max_age=600)
         return response
 
-    @expose("/import/", methods=["POST"])
+    @expose("/import/", methods=("POST",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -299,9 +294,10 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     )
     @requires_form_data
     def import_(self) -> Response:
-        """Import Saved Queries with associated databases
+        """Import saved queries with associated databases.
         ---
         post:
+          summary: Import saved queries with associated databases
           requestBody:
             required: true
             content:
@@ -324,6 +320,30 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
                     overwrite:
                       description: overwrite existing saved queries?
                       type: boolean
+                    ssh_tunnel_passwords:
+                      description: >-
+                        JSON map of passwords for each ssh_tunnel associated to a
+                        featured database in the ZIP file. If the ZIP includes a
+                        ssh_tunnel config in the path `databases/MyDatabase.yaml`,
+                        the password should be provided in the following format:
+                        `{"databases/MyDatabase.yaml": "my_password"}`.
+                      type: string
+                    ssh_tunnel_private_keys:
+                      description: >-
+                        JSON map of private_keys for each ssh_tunnel associated to a
+                        featured database in the ZIP file. If the ZIP includes a
+                        ssh_tunnel config in the path `databases/MyDatabase.yaml`,
+                        the private_key should be provided in the following format:
+                        `{"databases/MyDatabase.yaml": "my_private_key"}`.
+                      type: string
+                    ssh_tunnel_private_key_passwords:
+                      description: >-
+                        JSON map of private_key_passwords for each ssh_tunnel associated
+                        to a featured database in the ZIP file. If the ZIP includes a
+                        ssh_tunnel config in the path `databases/MyDatabase.yaml`,
+                        the private_key should be provided in the following format:
+                        `{"databases/MyDatabase.yaml": "my_private_key_password"}`.
+                      type: string
           responses:
             200:
               description: Saved Query import result
@@ -360,9 +380,29 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
             else None
         )
         overwrite = request.form.get("overwrite") == "true"
+        ssh_tunnel_passwords = (
+            json.loads(request.form["ssh_tunnel_passwords"])
+            if "ssh_tunnel_passwords" in request.form
+            else None
+        )
+        ssh_tunnel_private_keys = (
+            json.loads(request.form["ssh_tunnel_private_keys"])
+            if "ssh_tunnel_private_keys" in request.form
+            else None
+        )
+        ssh_tunnel_priv_key_passwords = (
+            json.loads(request.form["ssh_tunnel_private_key_passwords"])
+            if "ssh_tunnel_private_key_passwords" in request.form
+            else None
+        )
 
         command = ImportSavedQueriesCommand(
-            contents, passwords=passwords, overwrite=overwrite
+            contents,
+            passwords=passwords,
+            overwrite=overwrite,
+            ssh_tunnel_passwords=ssh_tunnel_passwords,
+            ssh_tunnel_private_keys=ssh_tunnel_private_keys,
+            ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
         )
         command.run()
         return self.response(200, message="OK")

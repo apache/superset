@@ -15,20 +15,22 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import List
+from typing import Any
 
+from superset import db, security_manager
 from superset.commands.base import BaseCommand, CreateMixin
-from superset.dao.exceptions import DAOCreateFailedError
+from superset.daos.exceptions import DAOCreateFailedError
+from superset.daos.tag import TagDAO
+from superset.exceptions import SupersetSecurityException
 from superset.tags.commands.exceptions import TagCreateFailedError, TagInvalidError
-from superset.tags.commands.utils import to_object_type
-from superset.tags.dao import TagDAO
-from superset.tags.models import ObjectTypes
+from superset.tags.commands.utils import to_object_model, to_object_type
+from superset.tags.models import ObjectTypes, TagTypes
 
 logger = logging.getLogger(__name__)
 
 
 class CreateCustomTagCommand(CreateMixin, BaseCommand):
-    def __init__(self, object_type: ObjectTypes, object_id: int, tags: List[str]):
+    def __init__(self, object_type: ObjectTypes, object_id: int, tags: list[str]):
         self._object_type = object_type
         self._object_id = object_id
         self._tags = tags
@@ -60,6 +62,64 @@ class CreateCustomTagCommand(CreateMixin, BaseCommand):
                 TagCreateFailedError(f"invalid object type {self._object_type}")
             )
         if exceptions:
-            exception = TagInvalidError()
-            exception.add_list(exceptions)
-            raise exception
+            raise TagInvalidError(exceptions=exceptions)
+
+
+class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
+    def __init__(self, data: dict[str, Any], bulk_create: bool = False):
+        self._tag = data["name"]
+        self._objects_to_tag = data.get("objects_to_tag")
+        self._description = data.get("description")
+        self._bulk_create = bulk_create
+
+    def run(self) -> None:
+        self.validate()
+
+        try:
+            tag = TagDAO.get_by_name(self._tag.strip(), TagTypes.custom)
+            if self._objects_to_tag:
+                TagDAO.create_tag_relationship(
+                    objects_to_tag=self._objects_to_tag,
+                    tag=tag,
+                    bulk_create=self._bulk_create,
+                )
+
+            if self._description:
+                tag.description = self._description
+
+            db.session.commit()
+
+        except DAOCreateFailedError as ex:
+            logger.exception(ex.exception)
+            raise TagCreateFailedError() from ex
+
+    def validate(self) -> None:
+        exceptions = []
+        # Validate object_id
+        if self._objects_to_tag:
+            if any(obj_id == 0 for obj_type, obj_id in self._objects_to_tag):
+                exceptions.append(TagInvalidError())
+
+            # Validate object type
+            skipped_tagged_objects: list[tuple[str, int]] = []
+            for obj_type, obj_id in self._objects_to_tag:
+                skipped_tagged_objects = []
+                object_type = to_object_type(obj_type)
+
+                if not object_type:
+                    exceptions.append(
+                        TagInvalidError(f"invalid object type {object_type}")
+                    )
+                try:
+                    model = to_object_model(object_type, obj_id)  # type: ignore
+                    security_manager.raise_for_ownership(model)
+                except SupersetSecurityException:
+                    # skip the object if the user doesn't have access
+                    skipped_tagged_objects.append((obj_type, obj_id))
+
+            self._objects_to_tag = set(self._objects_to_tag) - set(
+                skipped_tagged_objects
+            )
+
+        if exceptions:
+            raise TagInvalidError(exceptions=exceptions)

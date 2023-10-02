@@ -22,18 +22,29 @@ import userEvent from '@testing-library/user-event';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import DatasourceEditor from 'src/components/Datasource/DatasourceEditor';
 import mockDatasource from 'spec/fixtures/mockDatasource';
-import * as featureFlags from 'src/featureFlags';
+import * as uiCore from '@superset-ui/core';
 
 const props = {
   datasource: mockDatasource['7__table'],
   addSuccessToast: () => {},
   addDangerToast: () => {},
-  onChange: () => {},
+  onChange: jest.fn(),
+  columnLabels: {
+    state: 'State',
+  },
+  columnLabelTooltips: {
+    state: 'This is a tooltip for `state`',
+  },
 };
 const DATASOURCE_ENDPOINT = 'glob:*/datasource/external_metadata_by_name/*';
 
 const asyncRender = props =>
-  waitFor(() => render(<DatasourceEditor {...props} />, { useRedux: true }));
+  waitFor(() =>
+    render(<DatasourceEditor {...props} />, {
+      useRedux: true,
+      initialState: { common: { currencies: ['USD', 'GBP', 'EUR'] } },
+    }),
+  );
 
 describe('DatasourceEditor', () => {
   fetchMock.get(DATASOURCE_ENDPOINT, []);
@@ -107,7 +118,6 @@ describe('DatasourceEditor', () => {
     });
 
     userEvent.click(getToggles[0]);
-    screen.logTestingPlaygroundURL();
     const deleteButtons = screen.getAllByRole('button', {
       name: /delete item/i,
     });
@@ -146,7 +156,7 @@ describe('DatasourceEditor', () => {
   describe('enable edit Source tab', () => {
     beforeAll(() => {
       isFeatureEnabledMock = jest
-        .spyOn(featureFlags, 'isFeatureEnabled')
+        .spyOn(uiCore, 'isFeatureEnabled')
         .mockImplementation(() => false);
     });
 
@@ -184,7 +194,7 @@ describe('DatasourceEditor', () => {
   describe('render editor with feature flag false', () => {
     beforeAll(() => {
       isFeatureEnabledMock = jest
-        .spyOn(featureFlags, 'isFeatureEnabled')
+        .spyOn(uiCore, 'isFeatureEnabled')
         .mockImplementation(() => true);
     });
 
@@ -211,6 +221,89 @@ describe('DatasourceEditor RTL', () => {
     expect(certificationDetails.value).toEqual('foo');
     const warningMarkdown = await screen.findByPlaceholderText(/certified by/i);
     expect(warningMarkdown.value).toEqual('someone');
+  });
+  it('renders currency controls', async () => {
+    const propsWithCurrency = {
+      ...props,
+      datasource: {
+        ...props.datasource,
+        metrics: [
+          {
+            ...props.datasource.metrics[0],
+            currency: { symbol: 'USD', symbolPosition: 'prefix' },
+          },
+          ...props.datasource.metrics.slice(1),
+        ],
+      },
+    };
+    await asyncRender(propsWithCurrency);
+    const metricButton = screen.getByTestId('collection-tab-Metrics');
+    userEvent.click(metricButton);
+    const expandToggle = await screen.findAllByLabelText(/toggle expand/i);
+    userEvent.click(expandToggle[0]);
+
+    expect(await screen.findByText('Metric currency')).toBeVisible();
+    expect(
+      await waitFor(() =>
+        document.querySelector(
+          `[aria-label='Currency prefix or suffix'] .ant-select-selection-item`,
+        ),
+      ),
+    ).toHaveTextContent('Prefix');
+    await userEvent.click(
+      screen.getByRole('combobox', { name: 'Currency prefix or suffix' }),
+    );
+    const positionOptions = await waitFor(() =>
+      document.querySelectorAll(
+        `[aria-label='Currency prefix or suffix'] .ant-select-item-option-content`,
+      ),
+    );
+    expect(positionOptions[0]).toHaveTextContent('Prefix');
+    expect(positionOptions[1]).toHaveTextContent('Suffix');
+
+    propsWithCurrency.onChange.mockClear();
+    await userEvent.click(positionOptions[1]);
+    expect(propsWithCurrency.onChange.mock.calls[0][0]).toMatchObject(
+      expect.objectContaining({
+        metrics: expect.arrayContaining([
+          expect.objectContaining({
+            currency: { symbolPosition: 'suffix', symbol: 'USD' },
+          }),
+        ]),
+      }),
+    );
+
+    expect(
+      await waitFor(() =>
+        document.querySelector(
+          `[aria-label='Currency symbol'] .ant-select-selection-item`,
+        ),
+      ),
+    ).toHaveTextContent('$ (USD)');
+
+    propsWithCurrency.onChange.mockClear();
+    await userEvent.click(
+      screen.getByRole('combobox', { name: 'Currency symbol' }),
+    );
+    const symbolOptions = await waitFor(() =>
+      document.querySelectorAll(
+        `[aria-label='Currency symbol'] .ant-select-item-option-content`,
+      ),
+    );
+    expect(symbolOptions[0]).toHaveTextContent('$ (USD)');
+    expect(symbolOptions[1]).toHaveTextContent('£ (GBP)');
+    expect(symbolOptions[2]).toHaveTextContent('€ (EUR)');
+
+    await userEvent.click(symbolOptions[1]);
+    expect(propsWithCurrency.onChange.mock.calls[0][0]).toMatchObject(
+      expect.objectContaining({
+        metrics: expect.arrayContaining([
+          expect.objectContaining({
+            currency: { symbolPosition: 'suffix', symbol: 'GBP' },
+          }),
+        ]),
+      }),
+    );
   });
   it('properly updates the metric information', async () => {
     await asyncRender(props);

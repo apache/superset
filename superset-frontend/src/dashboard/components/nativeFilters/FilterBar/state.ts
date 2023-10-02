@@ -18,7 +18,6 @@
  */
 /* eslint-disable no-param-reassign */
 import { useSelector } from 'react-redux';
-import { filter, keyBy } from 'lodash';
 import {
   DataMaskState,
   DataMaskStateWithId,
@@ -27,10 +26,8 @@ import {
   Filters,
   FilterSets as FilterSetsType,
 } from '@superset-ui/core';
-import { useContext, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ChartsState, RootState } from 'src/dashboard/types';
-import { MigrationContext } from 'src/dashboard/containers/DashboardPage';
-import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 import { NATIVE_FILTER_PREFIX } from '../FiltersConfigModal/utils';
 
 export const useFilterSets = () =>
@@ -102,30 +99,14 @@ export const useFilterUpdates = (
 export const useInitialization = () => {
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
   const filters = useFilters();
-  const filterboxMigrationState = useContext(MigrationContext);
-  let charts = useSelector<RootState, ChartsState>(state => state.charts);
+  const charts = useSelector<RootState, ChartsState>(state => state.charts);
 
   // We need to know how much charts now shown on dashboard to know how many of all charts should be loaded
   let numberOfLoadingCharts = 0;
   if (!isInitialized) {
-    // do not load filter_box in reviewing
-    if (filterboxMigrationState === FILTER_BOX_MIGRATION_STATES.REVIEWING) {
-      charts = keyBy(
-        filter(charts, chart => chart.form_data?.viz_type !== 'filter_box'),
-        'id',
-      );
-      const numberOfFilterbox = document.querySelectorAll(
-        '[data-test-viz-type="filter_box"]',
-      ).length;
-
-      numberOfLoadingCharts =
-        document.querySelectorAll('[data-ui-anchor="chart"]').length -
-        numberOfFilterbox;
-    } else {
-      numberOfLoadingCharts = document.querySelectorAll(
-        '[data-ui-anchor="chart"]',
-      ).length;
-    }
+    numberOfLoadingCharts = document.querySelectorAll(
+      '[data-ui-anchor="chart"]',
+    ).length;
   }
   useEffect(() => {
     if (isInitialized) {

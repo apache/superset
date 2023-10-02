@@ -20,10 +20,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ensureIsArray,
-  FeatureFlag,
   GenericDataType,
   isAdhocMetricSimple,
-  isFeatureEnabled,
   isSavedMetric,
   Metric,
   QueryFormMetric,
@@ -315,33 +313,25 @@ const DndMetricSelect = (props: any) => {
       const config: Partial<AdhocMetric> = {
         column: itemValue,
       };
-      if (isFeatureEnabled(FeatureFlag.UX_BETA)) {
-        if (itemValue.type_generic === GenericDataType.NUMERIC) {
-          config.aggregate = AGGREGATES.SUM;
-        } else if (
-          itemValue.type_generic === GenericDataType.STRING ||
-          itemValue.type_generic === GenericDataType.BOOLEAN ||
-          itemValue.type_generic === GenericDataType.TEMPORAL
-        ) {
-          config.aggregate = AGGREGATES.COUNT_DISTINCT;
-        }
+      if (itemValue.type_generic === GenericDataType.NUMERIC) {
+        config.aggregate = AGGREGATES.SUM;
+      } else if (
+        itemValue.type_generic === GenericDataType.STRING ||
+        itemValue.type_generic === GenericDataType.BOOLEAN ||
+        itemValue.type_generic === GenericDataType.TEMPORAL
+      ) {
+        config.aggregate = AGGREGATES.COUNT_DISTINCT;
       }
       return new AdhocMetric(config);
     }
     return new AdhocMetric({});
   }, [droppedItem]);
 
-  const ghostButtonText = isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX)
-    ? tn(
-        'Drop a column/metric here or click',
-        'Drop columns/metrics here or click',
-        multi ? 2 : 1,
-      )
-    : tn(
-        'Drop column or metric here',
-        'Drop columns or metrics here',
-        multi ? 2 : 1,
-      );
+  const ghostButtonText = tn(
+    'Drop a column/metric here or click',
+    'Drop columns/metrics here or click',
+    multi ? 2 : 1,
+  );
 
   return (
     <div className="metrics-select">
@@ -352,11 +342,7 @@ const DndMetricSelect = (props: any) => {
         accept={DND_ACCEPTED_TYPES}
         ghostButtonText={ghostButtonText}
         displayGhostButton={multi || value.length === 0}
-        onClickGhostButton={
-          isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX)
-            ? handleClickGhostButton
-            : undefined
-        }
+        onClickGhostButton={handleClickGhostButton}
         {...props}
       />
       <AdhocMetricPopoverTrigger

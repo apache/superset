@@ -18,17 +18,22 @@
  */
 import React, { RefObject } from 'react';
 import {
-  BinaryQueryObjectFilterClause,
   ChartDataResponseResult,
   ChartProps,
+  ContextMenuFilters,
+  FilterState,
   HandlerFunction,
+  LegendState,
   PlainObject,
   QueryFormColumn,
   SetDataMaskHook,
+  ChartPlugin,
+  SqlaFormData,
+  ChartMetadata,
 } from '@superset-ui/core';
 import { EChartsCoreOption, ECharts } from 'echarts';
 import { TooltipMarker } from 'echarts/types/src/util/format';
-import { AreaChartExtraControlsValue } from './constants';
+import { StackControlsValue } from './constants';
 
 export type EchartsStylesProps = {
   height: number;
@@ -123,10 +128,15 @@ export interface BaseTransformedProps<F> {
   onContextMenu?: (
     clientX: number,
     clientY: number,
-    filters?: BinaryQueryObjectFilterClause[],
+    filters?: ContextMenuFilters,
   ) => void;
+  setDataMask?: SetDataMaskHook;
+  onLegendStateChanged?: (state: LegendState) => void;
+  filterState?: FilterState;
   refs: Refs;
   width: number;
+  emitCrossFilters?: boolean;
+  coltypeMapping?: Record<string, number>;
 }
 
 export type CrossFilterTransformedProps = {
@@ -142,8 +152,9 @@ export type ContextMenuTransformedProps = {
   onContextMenu?: (
     clientX: number,
     clientY: number,
-    filters?: BinaryQueryObjectFilterClause[],
+    filters?: ContextMenuFilters,
   ) => void;
+  setDataMask?: SetDataMaskHook;
 };
 
 export interface TitleFormData {
@@ -154,12 +165,28 @@ export interface TitleFormData {
   yAxisTitlePosition: string;
 }
 
-export type StackType = boolean | null | Partial<AreaChartExtraControlsValue>;
+export type StackType = boolean | null | Partial<StackControlsValue>;
 
 export interface TreePathInfo {
   name: string;
   dataIndex: number;
   value: number | number[];
+}
+
+export class EchartsChartPlugin<
+  T extends SqlaFormData = SqlaFormData,
+  P extends ChartProps = ChartProps,
+> extends ChartPlugin<T, P> {
+  constructor(props: any) {
+    const { metadata, ...restProps } = props;
+    super({
+      ...restProps,
+      metadata: new ChartMetadata({
+        parseMethod: 'json',
+        ...metadata,
+      }),
+    });
+  }
 }
 
 export * from './Timeseries/types';

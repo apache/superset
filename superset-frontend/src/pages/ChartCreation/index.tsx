@@ -20,11 +20,13 @@ import React, { ReactNode } from 'react';
 import rison from 'rison';
 import querystring from 'query-string';
 import {
-  styled,
-  t,
-  SupersetClient,
-  JsonResponse,
+  isFeatureEnabled,
+  FeatureFlag,
   isDefined,
+  JsonResponse,
+  styled,
+  SupersetClient,
+  t,
 } from '@superset-ui/core';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
@@ -65,6 +67,13 @@ const ELEMENTS_EXCEPT_VIZ_GALLERY = ESTIMATED_NAV_HEIGHT + 250;
 
 const bootstrapData = getBootstrapData();
 const denyList: string[] = bootstrapData.common.conf.VIZ_TYPE_DENYLIST || [];
+
+if (
+  isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
+  !denyList.includes('filter_box')
+) {
+  denyList.push('filter_box');
+}
 
 const StyledContainer = styled.div`
   ${({ theme }) => `

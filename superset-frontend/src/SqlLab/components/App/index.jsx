@@ -30,7 +30,10 @@ import {
 } from 'src/SqlLab/constants';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
 import { logEvent } from 'src/logger/actions';
-import { LOG_ACTIONS_SQLLAB_WARN_LOCAL_STORAGE_USAGE } from 'src/logger/LogUtils';
+import {
+  LOG_ACTIONS_SQLLAB_WARN_LOCAL_STORAGE_USAGE,
+  LOG_ACTIONS_SQLLAB_MONITOR_LOCAL_STORAGE_USAGE,
+} from 'src/logger/LogUtils';
 import TabbedSqlEditors from '../TabbedSqlEditors';
 import QueryAutoRefresh from '../QueryAutoRefresh';
 
@@ -121,14 +124,27 @@ class App extends React.PureComponent {
   }
 
   componentDidUpdate() {
+    const { localStorageUsageInKilobytes, actions, queries } = this.props;
+    const queryCount = queries?.lenghth || 0;
     if (
-      this.props.localStorageUsageInKilobytes >=
+      localStorageUsageInKilobytes >=
       LOCALSTORAGE_WARNING_THRESHOLD * LOCALSTORAGE_MAX_USAGE_KB
     ) {
       this.showLocalStorageUsageWarning(
-        this.props.localStorageUsageInKilobytes,
-        this.props.queries?.lenghth || 0,
+        localStorageUsageInKilobytes,
+        queryCount,
       );
+    }
+    if (localStorageUsageInKilobytes > 0 && !this.hasLoggedLocalStorageUsage) {
+      const eventData = {
+        current_usage: localStorageUsageInKilobytes,
+        query_count: queryCount,
+      };
+      actions.logEvent(
+        LOG_ACTIONS_SQLLAB_MONITOR_LOCAL_STORAGE_USAGE,
+        eventData,
+      );
+      this.hasLoggedLocalStorageUsage = true;
     }
   }
 
@@ -168,7 +184,7 @@ class App extends React.PureComponent {
   }
 
   render() {
-    const { queries, actions, queriesLastUpdate } = this.props;
+    const { queries, queriesLastUpdate } = this.props;
     if (this.state.hash && this.state.hash === '#search') {
       return window.location.replace('/superset/sqllab/history/');
     }
@@ -176,7 +192,6 @@ class App extends React.PureComponent {
       <SqlLabStyles data-test="SqlLabApp" className="App SqlLab">
         <QueryAutoRefresh
           queries={queries}
-          refreshQueries={actions?.refreshQueries}
           queriesLastUpdate={queriesLastUpdate}
         />
         <TabbedSqlEditors />

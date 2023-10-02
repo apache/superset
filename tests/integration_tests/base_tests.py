@@ -20,7 +20,7 @@ from datetime import datetime
 import imp
 import json
 from contextlib import contextmanager
-from typing import Any, Dict, Union, List, Optional
+from typing import Any, Union, Optional
 from unittest.mock import Mock, patch, MagicMock
 
 import pandas as pd
@@ -42,7 +42,6 @@ from superset.models import core as models
 from superset.models.slice import Slice
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
-from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.utils.core import get_example_default_schema
 from superset.utils.database import get_example_database
 from superset.views.base_api import BaseSupersetModelRestApi
@@ -67,12 +66,12 @@ def get_resp(
     else:
         resp = client.get(url, follow_redirects=follow_redirects)
     if raise_on_error and resp.status_code > 400:
-        raise Exception("http request failed with code {}".format(resp.status_code))
+        raise Exception(f"http request failed with code {resp.status_code}")
     return resp.data.decode("utf-8")
 
 
 def post_assert_metric(
-    client: Any, uri: str, data: Dict[str, Any], func_name: str
+    client: Any, uri: str, data: dict[str, Any], func_name: str
 ) -> Response:
     """
     Simple client post with an extra assertion for statsd metrics
@@ -121,7 +120,7 @@ class SupersetTestCase(TestCase):
 
     @staticmethod
     def create_user_with_roles(
-        username: str, roles: List[str], should_create_roles: bool = False
+        username: str, roles: list[str], should_create_roles: bool = False
     ):
         user_to_create = security_manager.find_user(username)
         if not user_to_create:
@@ -268,18 +267,6 @@ class SupersetTestCase(TestCase):
         resp = self.get_resp(url, data, follow_redirects, raise_on_error, json_)
         return json.loads(resp)
 
-    def get_access_requests(self, username, ds_type, ds_id):
-        DAR = DatasourceAccessRequest
-        return (
-            db.session.query(DAR)
-            .filter(
-                DAR.created_by == security_manager.find_user(username=username),
-                DAR.datasource_type == ds_type,
-                DAR.datasource_id == ds_id,
-            )
-            .first()
-        )
-
     def logout(self):
         self.client.get("/logout/", follow_redirects=True)
 
@@ -411,33 +398,6 @@ class SupersetTestCase(TestCase):
             db.session.delete(database)
             db.session.commit()
 
-    def validate_sql(
-        self,
-        sql,
-        client_id=None,
-        username=None,
-        raise_on_error=False,
-        database_name="examples",
-        template_params=None,
-    ):
-        if username:
-            self.logout()
-            self.login(username=username)
-        dbid = SupersetTestCase.get_database_by_name(database_name).id
-        resp = self.get_json_resp(
-            "/superset/validate_sql_json/",
-            raise_on_error=False,
-            data=dict(
-                database_id=dbid,
-                sql=sql,
-                client_id=client_id,
-                templateParams=template_params,
-            ),
-        )
-        if raise_on_error and "error" in resp:
-            raise Exception("validate_sql failed")
-        return resp
-
     def get_dash_by_slug(self, dash_slug):
         sesh = db.session()
         return sesh.query(Dashboard).filter_by(slug=dash_slug).first()
@@ -485,12 +445,12 @@ class SupersetTestCase(TestCase):
         return rv
 
     def post_assert_metric(
-        self, uri: str, data: Dict[str, Any], func_name: str
+        self, uri: str, data: dict[str, Any], func_name: str
     ) -> Response:
         return post_assert_metric(self.client, uri, data, func_name)
 
     def put_assert_metric(
-        self, uri: str, data: Dict[str, Any], func_name: str
+        self, uri: str, data: dict[str, Any], func_name: str
     ) -> Response:
         """
         Simple client put with an extra assertion for statsd metrics
@@ -516,6 +476,48 @@ class SupersetTestCase(TestCase):
     @classmethod
     def get_dttm(cls):
         return datetime.strptime("2019-01-02 03:04:05.678900", "%Y-%m-%d %H:%M:%S.%f")
+
+    def insert_dashboard(
+        self,
+        dashboard_title: str,
+        slug: Optional[str],
+        owners: list[int],
+        roles: list[int] = [],
+        created_by=None,
+        slices: Optional[list[Slice]] = None,
+        position_json: str = "",
+        css: str = "",
+        json_metadata: str = "",
+        published: bool = False,
+        certified_by: Optional[str] = None,
+        certification_details: Optional[str] = None,
+    ) -> Dashboard:
+        obj_owners = list()
+        obj_roles = list()
+        slices = slices or []
+        for owner in owners:
+            user = db.session.query(security_manager.user_model).get(owner)
+            obj_owners.append(user)
+        for role in roles:
+            role_obj = db.session.query(security_manager.role_model).get(role)
+            obj_roles.append(role_obj)
+        dashboard = Dashboard(
+            dashboard_title=dashboard_title,
+            slug=slug,
+            owners=obj_owners,
+            roles=obj_roles,
+            position_json=position_json,
+            css=css,
+            json_metadata=json_metadata,
+            slices=slices,
+            published=published,
+            created_by=created_by,
+            certified_by=certified_by,
+            certification_details=certification_details,
+        )
+        db.session.add(dashboard)
+        db.session.commit()
+        return dashboard
 
 
 @contextmanager

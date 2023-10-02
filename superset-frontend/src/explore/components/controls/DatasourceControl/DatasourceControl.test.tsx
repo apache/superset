@@ -69,9 +69,20 @@ const createProps = (overrides: JsonObject = {}) => ({
 });
 
 async function openAndSaveChanges(datasource: any) {
-  fetchMock.post('glob:*/datasource/save/', datasource, {
-    overwriteRoutes: true,
-  });
+  fetchMock.put(
+    'glob:*/api/v1/dataset/*',
+    {},
+    {
+      overwriteRoutes: true,
+    },
+  );
+  fetchMock.get(
+    'glob:*/api/v1/dataset/*',
+    { result: datasource },
+    {
+      overwriteRoutes: true,
+    },
+  );
   userEvent.click(screen.getByTestId('datasource-menu-trigger'));
   userEvent.click(await screen.findByTestId('edit-dataset'));
   userEvent.click(await screen.findByTestId('datasource-modal-save'));
@@ -138,7 +149,7 @@ test('Should show SQL Lab for sql_lab role', async () => {
       isActive: true,
       lastName: 'sql',
       permissions: {},
-      roles: { Gamma: [], sql_lab: [] },
+      roles: { Gamma: [], sql_lab: [['menu_access', 'SQL Lab']] },
       userId: 2,
       username: 'sql',
     },
@@ -154,7 +165,7 @@ test('Should show SQL Lab for sql_lab role', async () => {
 
 test('Click on Swap dataset option', async () => {
   const props = createProps();
-  SupersetClientGet.mockImplementation(
+  SupersetClientGet.mockImplementationOnce(
     async ({ endpoint }: { endpoint: string }) => {
       if (endpoint.includes('_info')) {
         return {
@@ -182,7 +193,7 @@ test('Click on Swap dataset option', async () => {
 
 test('Click on Edit dataset', async () => {
   const props = createProps();
-  SupersetClientGet.mockImplementation(
+  SupersetClientGet.mockImplementationOnce(
     async () => ({ json: { result: [] } } as any),
   );
   render(<DatasourceControl {...props} />, {
@@ -206,7 +217,7 @@ test('Edit dataset should be disabled when user is not admin', async () => {
   // @ts-expect-error
   props.user.roles = {};
   props.datasource.owners = [];
-  SupersetClientGet.mockImplementation(
+  SupersetClientGet.mockImplementationOnce(
     async () => ({ json: { result: [] } } as any),
   );
 

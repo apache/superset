@@ -22,17 +22,17 @@ import {
   InPortal,
   OutPortal,
 } from 'react-reverse-portal';
-import { styled, SupersetTheme } from '@superset-ui/core';
+import { styled, SupersetTheme, truncationCSS } from '@superset-ui/core';
 import { FormItem as StyledFormItem, Form } from 'src/components/Form';
 import { Tooltip } from 'src/components/Tooltip';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import { truncationCSS } from 'src/hooks/useTruncation';
 import { checkIsMissingRequiredValue } from '../utils';
 import FilterValue from './FilterValue';
 import { FilterCard } from '../../FilterCard';
 import { FilterBarScrollContext } from '../Vertical';
 import { FilterControlProps } from './types';
 import { FilterCardPlacement } from '../../FilterCard/types';
+import { useIsFilterInScope } from '../../state';
 
 const StyledIcon = styled.div`
   position: absolute;
@@ -43,7 +43,7 @@ const VerticalFilterControlTitle = styled.h4`
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   color: ${({ theme }) => theme.colors.grayscale.dark1};
   margin: 0;
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
 `;
 
 const HorizontalFilterControlTitle = styled(VerticalFilterControlTitle)`
@@ -205,6 +205,7 @@ const DescriptionToolTip = ({ description }: { description: string }) => (
         WebkitBoxOrient: 'vertical',
         textOverflow: 'ellipsis',
       }}
+      getPopupContainer={trigger => trigger.parentElement as HTMLElement}
     >
       <i
         className="fa fa-info-circle text-muted"
@@ -222,7 +223,6 @@ const FilterControl = ({
   filter,
   icon,
   onFilterSelectionChange,
-  focusedFilterId,
   inView,
   showOverflow,
   parentRef,
@@ -234,10 +234,11 @@ const FilterControl = ({
 
   const { name = '<undefined>' } = filter;
 
-  const isMissingRequiredValue = checkIsMissingRequiredValue(
-    filter,
-    filter.dataMask?.filterState,
-  );
+  const isFilterInScope = useIsFilterInScope();
+  const isMissingRequiredValue =
+    isFilterInScope(filter) &&
+    checkIsMissingRequiredValue(filter, filter.dataMask?.filterState);
+  const validateStatus = isMissingRequiredValue ? 'error' : undefined;
   const isRequired = !!filter.controlValues?.enableEmptyFilter;
 
   const {
@@ -288,13 +289,13 @@ const FilterControl = ({
           dataMaskSelected={dataMaskSelected}
           filter={filter}
           showOverflow={showOverflow}
-          focusedFilterId={focusedFilterId}
           onFilterSelectionChange={onFilterSelectionChange}
           inView={inView}
           parentRef={parentRef}
           setFilterActive={setIsFilterActive}
           orientation={orientation}
           overflow={overflow}
+          validateStatus={validateStatus}
         />
       </InPortal>
       <FilterControlContainer
@@ -313,7 +314,7 @@ const FilterControl = ({
             <FormItem
               label={label}
               required={filter?.controlValues?.enableEmptyFilter}
-              validateStatus={isMissingRequiredValue ? 'error' : undefined}
+              validateStatus={validateStatus}
             >
               <OutPortal node={portalNode} />
             </FormItem>

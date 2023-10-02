@@ -14,14 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Dict, Optional
+from sqlalchemy import types
+from sqlalchemy.engine.interfaces import Dialect
+from sqlalchemy.types import TypeEngine
 
-from sqlalchemy.sql.expression import ColumnClause
+from superset.constants import TimeGrain
+from superset.db_engine_specs.base import BaseEngineSpec
 
-from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 
-
-class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
+class PinotEngineSpec(BaseEngineSpec):
     engine = "pinot"
     engine_name = "Apache Pinot"
     allows_subqueries = False
@@ -29,93 +30,51 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     allows_alias_in_select = False
     allows_alias_in_orderby = False
 
-    # Pinot does its own conversion below
-    _time_grain_expressions: Dict[Optional[str], str] = {
-        "PT1S": "1:SECONDS",
-        "PT1M": "1:MINUTES",
-        "PT5M": "5:MINUTES",
-        "PT10M": "10:MINUTES",
-        "PT15M": "15:MINUTES",
-        "PT30M": "30:MINUTES",
-        "PT1H": "1:HOURS",
-        "P1D": "1:DAYS",
-        "P1W": "week",
-        "P1M": "month",
-        "P3MY": "quarter",
-        "P1Y": "year",
-    }
-
-    _python_to_java_time_patterns: Dict[str, str] = {
-        "%Y": "yyyy",
-        "%m": "MM",
-        "%d": "dd",
-        "%H": "HH",
-        "%M": "mm",
-        "%S": "ss",
-    }
-
-    _use_date_trunc_function: Dict[str, bool] = {
-        "PT1S": False,
-        "PT1M": False,
-        "PT5M": False,
-        "PT10M": False,
-        "PT15M": False,
-        "PT30M": False,
-        "PT1H": False,
-        "P1D": False,
-        "P1W": True,
-        "P1M": True,
-        "P3M": True,
-        "P1Y": True,
+    # https://docs.pinot.apache.org/users/user-guide-query/supported-transformations#datetime-functions
+    _time_grain_expressions = {
+        None: "{col}",
+        TimeGrain.SECOND: "CAST(DATE_TRUNC('second', "
+        + "CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
+        TimeGrain.MINUTE: "CAST(DATE_TRUNC('minute', "
+        + "CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
+        TimeGrain.FIVE_MINUTES: "CAST(ROUND(DATE_TRUNC('minute', "
+        + "CAST({col} AS TIMESTAMP)), 300000) AS TIMESTAMP)",
+        TimeGrain.TEN_MINUTES: "CAST(ROUND(DATE_TRUNC('minute', "
+        + "CAST({col} AS TIMESTAMP)), 600000) AS TIMESTAMP)",
+        TimeGrain.FIFTEEN_MINUTES: "CAST(ROUND(DATE_TRUNC('minute', "
+        + "CAST({col} AS TIMESTAMP)), 900000) AS TIMESTAMP)",
+        TimeGrain.THIRTY_MINUTES: "CAST(ROUND(DATE_TRUNC('minute', "
+        + "CAST({col} AS TIMESTAMP)), 1800000) AS TIMESTAMP)",
+        TimeGrain.HOUR: "CAST(DATE_TRUNC('hour', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
+        TimeGrain.DAY: "CAST(DATE_TRUNC('day', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
+        TimeGrain.WEEK: "CAST(DATE_TRUNC('week', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
+        TimeGrain.MONTH: "CAST(DATE_TRUNC('month', "
+        + "CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
+        TimeGrain.QUARTER: "CAST(DATE_TRUNC('quarter', "
+        + "CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
+        TimeGrain.YEAR: "CAST(DATE_TRUNC('year', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)",
     }
 
     @classmethod
-    def get_timestamp_expr(
-        cls,
-        col: ColumnClause,
-        pdf: Optional[str],
-        time_grain: Optional[str],
-    ) -> TimestampExpression:
-        if not pdf:
-            raise NotImplementedError(f"Empty date format for '{col}'")
-        is_epoch = pdf in ("epoch_s", "epoch_ms")
+    def epoch_to_dttm(cls) -> str:
+        return (
+            "DATETIMECONVERT({col}, '1:SECONDS:EPOCH', '1:SECONDS:EPOCH', '1:SECONDS')"
+        )
 
-        # The DATETIMECONVERT pinot udf is documented at
-        # Per https://github.com/apache/incubator-pinot/wiki/dateTimeConvert-UDF
-        # We are not really converting any time units, just bucketing them.
-        tf = ""
-        java_date_format = ""
-        if not is_epoch:
-            java_date_format = pdf
-            for (
-                python_pattern,
-                java_pattern,
-            ) in cls._python_to_java_time_patterns.items():
-                java_date_format = java_date_format.replace(
-                    python_pattern, java_pattern
-                )
-            tf = f"1:SECONDS:SIMPLE_DATE_FORMAT:{java_date_format}"
-        else:
-            seconds_or_ms = "MILLISECONDS" if pdf == "epoch_ms" else "SECONDS"
-            tf = f"1:{seconds_or_ms}:EPOCH"
-        if time_grain:
-            granularity = cls.get_time_grain_expressions().get(time_grain)
-            if not granularity:
-                raise NotImplementedError(f"No pinot grain spec for '{time_grain}'")
-        else:
-            return TimestampExpression("{{col}}", col)
+    @classmethod
+    def epoch_ms_to_dttm_(cls) -> str:
+        return (
+            "DATETIMECONVERT({col}, '1:MILLISECONDS:EPOCH', "
+            + "'1:MILLISECONDS:EPOCH', '1:MILLISECONDS')"
+        )
 
-        # In pinot the output is a string since there is no timestamp column like pg
-        if cls._use_date_trunc_function.get(time_grain):
-            if is_epoch:
-                time_expr = f"DATETRUNC('{granularity}', {{col}}, '{seconds_or_ms}')"
-            else:
-                time_expr = (
-                    f"ToDateTime(DATETRUNC('{granularity}', "
-                    + f"FromDateTime({{col}}, '{java_date_format}'), "
-                    + f"'MILLISECONDS'), '{java_date_format}')"
-                )
-        else:
-            time_expr = f"DATETIMECONVERT({{col}}, '{tf}', '{tf}', '{granularity}')"
+    @classmethod
+    def column_datatype_to_string(
+        cls, sqla_column_type: TypeEngine, dialect: Dialect
+    ) -> str:
+        # Pinot driver infers TIMESTAMP column as LONG, so make the quick fix.
+        # When the Pinot driver fix this bug, current method could be removed.
+        if isinstance(sqla_column_type, types.TIMESTAMP):
+            return sqla_column_type.compile().upper()
 
-        return TimestampExpression(time_expr, col)
+        return super().column_datatype_to_string(sqla_column_type, dialect)

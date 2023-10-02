@@ -16,12 +16,13 @@
  limitations under the License.
 
 */}}
+
 {{/* vim: set filetype=mustache: */}}
 {{/*
 Expand the name of the chart.
 */}}
 {{- define "superset.name" -}}
-{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
+  {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{/*
@@ -30,46 +31,46 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 If release name contains chart name it will be used as a full name.
 */}}
 {{- define "superset.fullname" -}}
-{{- if .Values.fullnameOverride -}}
-{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" -}}
-{{- else -}}
-{{- $name := default .Chart.Name .Values.nameOverride -}}
-{{- if contains $name .Release.Name -}}
-{{- .Release.Name | trunc 63 | trimSuffix "-" -}}
-{{- else -}}
-{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
-{{- end -}}
-{{- end -}}
+  {{- if .Values.fullnameOverride -}}
+    {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" -}}
+  {{- else -}}
+    {{- $name := default .Chart.Name .Values.nameOverride -}}
+    {{- if contains $name .Release.Name -}}
+      {{- .Release.Name | trunc 63 | trimSuffix "-" -}}
+    {{- else -}}
+      {{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
+    {{- end -}}
+  {{- end -}}
 {{- end -}}
 
 {{/*
 Create the name of the service account to use
 */}}
 {{- define "superset.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create -}}
-{{- default (include "superset.fullname" .) .Values.serviceAccountName -}}
-{{- else -}}
-{{- default "default" .Values.serviceAccountName -}}
-{{- end -}}
+  {{- if .Values.serviceAccount.create -}}
+    {{- default (include "superset.fullname" .) .Values.serviceAccountName -}}
+  {{- else -}}
+    {{- default "default" .Values.serviceAccountName -}}
+  {{- end -}}
 {{- end -}}
 
 {{/*
 Create chart name and version as used by the chart label.
 */}}
 {{- define "superset.chart" -}}
-{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
+  {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{- define "superset-config" }}
 import os
-from cachelib.redis import RedisCache
+from flask_caching.backends.rediscache import RedisCache
 
 def env(key, default=None):
     return os.getenv(key, default)
 
 MAPBOX_API_KEY = env('MAPBOX_API_KEY', '')
 CACHE_CONFIG = {
-      'CACHE_TYPE': 'redis',
+      'CACHE_TYPE': 'RedisCache',
       'CACHE_DEFAULT_TIMEOUT': 300,
       'CACHE_KEY_PREFIX': 'superset_',
       'CACHE_REDIS_HOST': env('REDIS_HOST'),
@@ -86,20 +87,20 @@ SECRET_KEY = env('SECRET_KEY', 'thisISaSECRET_1234')
 class CeleryConfig(object):
   CELERY_IMPORTS = ('superset.sql_lab', )
   CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
-{{- if .Values.supersetNode.connections.redis_password }}
+  {{- if .Values.supersetNode.connections.redis_password }}
   BROKER_URL = f"redis://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
   CELERY_RESULT_BACKEND = f"redis://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
-{{- else }}
+  {{- else }}
   BROKER_URL = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
   CELERY_RESULT_BACKEND = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
-{{- end }}
+  {{- end }}
 
 CELERY_CONFIG = CeleryConfig
 RESULTS_BACKEND = RedisCache(
       host=env('REDIS_HOST'),
-{{- if .Values.supersetNode.connections.redis_password }}
+      {{- if .Values.supersetNode.connections.redis_password }}
       password=env('REDIS_PASSWORD'),
-{{- end }}
+      {{- end }}
       port=env('REDIS_PORT'),
       key_prefix='superset_results'
 )
@@ -111,6 +112,7 @@ RESULTS_BACKEND = RedisCache(
 {{ tpl $value $ }}
 {{- end }}
 {{- end }}
+
 {{ if .Values.configOverridesFiles }}
 # Overrides from files
 {{- $files := .Files }}

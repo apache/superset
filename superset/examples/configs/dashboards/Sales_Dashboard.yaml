@@ -386,12 +386,12 @@ metadata:
   refresh_frequency: 0
   default_filters: '{"671": {"__time_range": "No filter"}}'
   filter_scopes:
-    '671':
-      ProductLine:
+    "671":
+      product_line:
         scope:
         - TAB-4fthLQmdX
         immune: []
-      DealSize:
+      deal_size:
         scope:
         - ROOT_ID
         immune: []

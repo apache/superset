@@ -17,12 +17,14 @@
 import logging
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Pattern, Tuple
+from re import Pattern
+from typing import Any, Optional
 
 from flask_babel import gettext as __
 from sqlalchemy import types
 from sqlalchemy.dialects.mssql.base import SMALLDATETIME
 
+from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 from superset.errors import SupersetErrorType
 from superset.utils.core import GenericDataType
@@ -54,24 +56,30 @@ class MssqlEngineSpec(BaseEngineSpec):
 
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "DATEADD(SECOND, DATEDIFF(SECOND, '2000-01-01', {col}), '2000-01-01')",
-        "PT1M": "DATEADD(MINUTE, DATEDIFF(MINUTE, 0, {col}), 0)",
-        "PT5M": "DATEADD(MINUTE, DATEDIFF(MINUTE, 0, {col}) / 5 * 5, 0)",
-        "PT10M": "DATEADD(MINUTE, DATEDIFF(MINUTE, 0, {col}) / 10 * 10, 0)",
-        "PT15M": "DATEADD(MINUTE, DATEDIFF(MINUTE, 0, {col}) / 15 * 15, 0)",
-        "PT30M": "DATEADD(MINUTE, DATEDIFF(MINUTE, 0, {col}) / 30 * 30, 0)",
-        "PT1H": "DATEADD(HOUR, DATEDIFF(HOUR, 0, {col}), 0)",
-        "P1D": "DATEADD(DAY, DATEDIFF(DAY, 0, {col}), 0)",
-        "P1W": "DATEADD(DAY, 1 - DATEPART(WEEKDAY, {col}),"
+        TimeGrain.SECOND: "DATEADD(SECOND, \
+            DATEDIFF(SECOND, '2000-01-01', {col}), '2000-01-01')",
+        TimeGrain.MINUTE: "DATEADD(MINUTE, DATEDIFF(MINUTE, 0, {col}), 0)",
+        TimeGrain.FIVE_MINUTES: "DATEADD(MINUTE, \
+            DATEDIFF(MINUTE, 0, {col}) / 5 * 5, 0)",
+        TimeGrain.TEN_MINUTES: "DATEADD(MINUTE, \
+            DATEDIFF(MINUTE, 0, {col}) / 10 * 10, 0)",
+        TimeGrain.FIFTEEN_MINUTES: "DATEADD(MINUTE, \
+            DATEDIFF(MINUTE, 0, {col}) / 15 * 15, 0)",
+        TimeGrain.THIRTY_MINUTES: "DATEADD(MINUTE, \
+            DATEDIFF(MINUTE, 0, {col}) / 30 * 30, 0)",
+        TimeGrain.HOUR: "DATEADD(HOUR, DATEDIFF(HOUR, 0, {col}), 0)",
+        TimeGrain.DAY: "DATEADD(DAY, DATEDIFF(DAY, 0, {col}), 0)",
+        TimeGrain.WEEK: "DATEADD(DAY, 1 - DATEPART(WEEKDAY, {col}),"
         " DATEADD(DAY, DATEDIFF(DAY, 0, {col}), 0))",
-        "P1M": "DATEADD(MONTH, DATEDIFF(MONTH, 0, {col}), 0)",
-        "P3M": "DATEADD(QUARTER, DATEDIFF(QUARTER, 0, {col}), 0)",
-        "P1Y": "DATEADD(YEAR, DATEDIFF(YEAR, 0, {col}), 0)",
-        "1969-12-28T00:00:00Z/P1W": "DATEADD(DAY, -1,"
+        TimeGrain.MONTH: "DATEADD(MONTH, DATEDIFF(MONTH, 0, {col}), 0)",
+        TimeGrain.QUARTER: "DATEADD(QUARTER, DATEDIFF(QUARTER, 0, {col}), 0)",
+        TimeGrain.YEAR: "DATEADD(YEAR, DATEDIFF(YEAR, 0, {col}), 0)",
+        TimeGrain.WEEK_STARTING_SUNDAY: "DATEADD(DAY, -1,"
         " DATEADD(WEEK, DATEDIFF(WEEK, 0, {col}), 0))",
-        "1969-12-29T00:00:00Z/P1W": "DATEADD(WEEK,"
+        TimeGrain.WEEK_STARTING_MONDAY: "DATEADD(WEEK,"
         " DATEDIFF(WEEK, 0, DATEADD(DAY, -1, {col})), 0)",
     }
+
     column_type_mappings = (
         (
             re.compile(r"^smalldatetime.*", re.IGNORECASE),
@@ -80,7 +88,7 @@ class MssqlEngineSpec(BaseEngineSpec):
         ),
     )
 
-    custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
+    custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         CONNECTION_ACCESS_DENIED_REGEX: (
             __(
                 'Either the username "%(username)s", password, '
@@ -115,7 +123,7 @@ class MssqlEngineSpec(BaseEngineSpec):
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+        cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
     ) -> Optional[str]:
         sqla_type = cls.get_sqla_column_type(target_type)
 
@@ -132,7 +140,9 @@ class MssqlEngineSpec(BaseEngineSpec):
     @classmethod
     def fetch_data(
         cls, cursor: Any, limit: Optional[int] = None
-    ) -> List[Tuple[Any, ...]]:
+    ) -> list[tuple[Any, ...]]:
+        if not cursor.description:
+            return []
         data = super().fetch_data(cursor, limit)
         # Lists of `pyodbc.Row` need to be unpacked further
         return cls.pyodbc_rows_to_tuples(data)

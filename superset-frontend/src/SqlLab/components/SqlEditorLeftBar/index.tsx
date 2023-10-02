@@ -27,16 +27,14 @@ import React, {
 import { useDispatch } from 'react-redux';
 import querystring from 'query-string';
 
+import { Table } from 'src/SqlLab/types';
 import {
   queryEditorSetDb,
-  queryEditorSetFunctionNames,
   addTable,
   removeTables,
   collapseTable,
   expandTable,
   queryEditorSetSchema,
-  queryEditorSetTableOptions,
-  queryEditorSetSchemaOptions,
   setDatabases,
   addDangerToast,
   resetState,
@@ -55,7 +53,7 @@ import {
   LocalStorageKeys,
   setItem,
 } from 'src/utils/localStorageHelpers';
-import TableElement, { Table } from '../TableElement';
+import TableElement from '../TableElement';
 
 interface ExtendedTable extends Table {
   expanded: boolean;
@@ -87,7 +85,9 @@ const collapseStyles = (theme: SupersetTheme) => css`
     padding: 0px ${theme.gridUnit * 4}px 0px 0px !important;
   }
   .ant-collapse-arrow {
-    top: ${theme.gridUnit * 2}px !important;
+    padding: 0 !important;
+    bottom: ${theme.gridUnit}px !important;
+    right: ${theme.gridUnit * 4}px !important;
     color: ${theme.colors.primary.dark1} !important;
     &:hover {
       color: ${theme.colors.primary.dark2} !important;
@@ -144,7 +144,6 @@ const SqlEditorLeftBar = ({
   const onDbChange = ({ id: dbId }: { id: number }) => {
     setEmptyState(false);
     dispatch(queryEditorSetDb(queryEditor, dbId));
-    dispatch(queryEditorSetFunctionNames(queryEditor, dbId));
   };
 
   const selectedTableNames = useMemo(
@@ -168,9 +167,9 @@ const SqlEditorLeftBar = ({
       return true;
     });
 
-    tablesToAdd.forEach(tableName =>
-      dispatch(addTable(queryEditor, database, tableName, schemaName)),
-    );
+    tablesToAdd.forEach(tableName => {
+      dispatch(addTable(queryEditor, tableName, schemaName));
+    });
 
     dispatch(removeTables(currentTables));
   };
@@ -219,24 +218,6 @@ const SqlEditorLeftBar = ({
     [dispatch, queryEditor],
   );
 
-  const handleTablesLoad = useCallback(
-    (options: Array<any>) => {
-      if (queryEditor) {
-        dispatch(queryEditorSetTableOptions(queryEditor, options));
-      }
-    },
-    [dispatch, queryEditor],
-  );
-
-  const handleSchemasLoad = useCallback(
-    (options: Array<any>) => {
-      if (queryEditor) {
-        dispatch(queryEditorSetSchemaOptions(queryEditor, options));
-      }
-    },
-    [dispatch, queryEditor],
-  );
-
   const handleDbList = useCallback(
     (result: DatabaseObject) => {
       dispatch(setDatabases(result));
@@ -265,9 +246,7 @@ const SqlEditorLeftBar = ({
         handleError={handleError}
         onDbChange={onDbChange}
         onSchemaChange={handleSchemaChange}
-        onSchemasLoad={handleSchemasLoad}
         onTableSelectChange={onTablesChange}
-        onTablesLoad={handleTablesLoad}
         schema={schema}
         tableValue={selectedTableNames}
         sqlLabMode
