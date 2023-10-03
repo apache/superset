@@ -1440,7 +1440,7 @@ TALISMAN_CONFIG = {
 TALISMAN_DEV_CONFIG = {
     "content_security_policy": {
         "default-src": ["'self'"],
-        "img-src": ["'self'", "data:"],
+        "img-src": ["'self'", "blob:", "data:"],
         "worker-src": ["'self'", "blob:"],
         "connect-src": [
             "'self'",
