@@ -20,18 +20,11 @@ from uuid import uuid4
 
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
-from flask import g
 
 from superset.charts.commands.exceptions import ChartDataQueryFailedError
 from superset.charts.data.commands.get_data_command import ChartDataCommand
 from superset.exceptions import SupersetException
 from superset.extensions import async_query_manager, security_manager
-from superset.tasks import async_queries
-from superset.tasks.async_queries import (
-    load_chart_data_into_cache,
-    load_explore_json_into_cache,
-)
-from superset.utils.core import get_user_id
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -43,10 +36,14 @@ from tests.integration_tests.test_app import app
 
 
 class TestAsyncQueries(SupersetTestCase):
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures(
+        "load_birth_names_data", "load_birth_names_dashboard_with_slices"
+    )
     @mock.patch.object(async_query_manager, "update_job")
-    @mock.patch.object(async_queries, "set_form_data")
+    @mock.patch("superset.tasks.async_queries.set_form_data")
     def test_load_chart_data_into_cache(self, mock_set_form_data, mock_update_job):
+        from superset.tasks.async_queries import load_chart_data_into_cache
+
         app._got_first_request = False
         async_query_manager.init_app(app)
         query_context = get_query_context("birth_names")
@@ -70,6 +67,8 @@ class TestAsyncQueries(SupersetTestCase):
     )
     @mock.patch.object(async_query_manager, "update_job")
     def test_load_chart_data_into_cache_error(self, mock_update_job, mock_run_command):
+        from superset.tasks.async_queries import load_chart_data_into_cache
+
         app._got_first_request = False
         async_query_manager.init_app(app)
         query_context = get_query_context("birth_names")
@@ -93,6 +92,8 @@ class TestAsyncQueries(SupersetTestCase):
     def test_soft_timeout_load_chart_data_into_cache(
         self, mock_update_job, mock_run_command
     ):
+        from superset.tasks.async_queries import load_chart_data_into_cache
+
         app._got_first_request = False
         async_query_manager.init_app(app)
         user = security_manager.find_user("gamma")
@@ -107,9 +108,8 @@ class TestAsyncQueries(SupersetTestCase):
         errors = ["A timeout occurred while loading chart data"]
 
         with pytest.raises(SoftTimeLimitExceeded):
-            with mock.patch.object(
-                async_queries,
-                "set_form_data",
+            with mock.patch(
+                "superset.tasks.async_queries.set_form_data"
             ) as set_form_data:
                 set_form_data.side_effect = SoftTimeLimitExceeded()
                 load_chart_data_into_cache(job_metadata, form_data)
@@ -118,6 +118,8 @@ class TestAsyncQueries(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch.object(async_query_manager, "update_job")
     def test_load_explore_json_into_cache(self, mock_update_job):
+        from superset.tasks.async_queries import load_explore_json_into_cache
+
         app._got_first_request = False
         async_query_manager.init_app(app)
         table = self.get_table(name="birth_names")
@@ -146,10 +148,12 @@ class TestAsyncQueries(SupersetTestCase):
         )
 
     @mock.patch.object(async_query_manager, "update_job")
-    @mock.patch.object(async_queries, "set_form_data")
+    @mock.patch("superset.tasks.async_queries.set_form_data")
     def test_load_explore_json_into_cache_error(
         self, mock_set_form_data, mock_update_job
     ):
+        from superset.tasks.async_queries import load_explore_json_into_cache
+
         app._got_first_request = False
         async_query_manager.init_app(app)
         user = security_manager.find_user("gamma")
@@ -174,6 +178,8 @@ class TestAsyncQueries(SupersetTestCase):
     def test_soft_timeout_load_explore_json_into_cache(
         self, mock_update_job, mock_run_command
     ):
+        from superset.tasks.async_queries import load_explore_json_into_cache
+
         app._got_first_request = False
         async_query_manager.init_app(app)
         user = security_manager.find_user("gamma")
@@ -188,9 +194,8 @@ class TestAsyncQueries(SupersetTestCase):
         errors = ["A timeout occurred while loading explore json, error"]
 
         with pytest.raises(SoftTimeLimitExceeded):
-            with mock.patch.object(
-                async_queries,
-                "set_form_data",
+            with mock.patch(
+                "superset.tasks.async_queries.set_form_data"
             ) as set_form_data:
                 set_form_data.side_effect = SoftTimeLimitExceeded()
                 load_explore_json_into_cache(job_metadata, form_data)
