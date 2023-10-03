@@ -95,9 +95,6 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
         exceptions = []
         # Validate object_id
         if objects_to_tag := self._properties.get("objects_to_tag", []):
-            if any(obj_id == 0 for obj_type, obj_id in objects_to_tag):
-                exceptions.append(TagInvalidError())
-
             # Validate object type
             skipped_tagged_objects: list[tuple[str, int]] = []
             for obj_type, obj_id in objects_to_tag:
