@@ -50,6 +50,7 @@ fi
 
 if [[ "${TEST_ENV}" == "true" ]]; then
   # don't run the build in test environment
+  echo "LATEST_TAG is ${LATEST_TAG}"
   exit 0
 fi
 
@@ -132,16 +133,21 @@ docker buildx build --target lean \
 #
 # Build the "lean39" image
 #
-DOCKER_BUILDKIT=1 docker build --target lean \
+docker buildx build --target lean \
+  $DOCKER_ARGS \
+  --cache-from=type=local,src=/tmp/superset \
+  --cache-to=type=local,ignore-error=true,dest=/tmp/superset \
   -t "${REPO_NAME}:${SHA}-py39" \
   -t "${REPO_NAME}:${REFSPEC}-py39" \
   -t "${REPO_NAME}:${LATEST_TAG}-py39" \
+  --platform linux/amd64 \
   --build-arg PY_VER="3.9-slim-bullseye"\
   --label "sha=${SHA}" \
   --label "built_at=$(date)" \
   --label "target=lean39" \
   --label "build_actor=${GITHUB_ACTOR}" \
   .
+
 
 for BUILD_PLATFORM in $ARCHITECTURE_FOR_BUILD; do
 #
