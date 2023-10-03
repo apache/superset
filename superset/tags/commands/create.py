@@ -82,8 +82,7 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
                 bulk_create=self._bulk_create,
             )
 
-            if description := self._properties.get("description"):
-                tag.description = description
+            tag.description = self._properties.get("description", "")
 
             db.session.commit()
 
@@ -93,28 +92,23 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
 
     def validate(self) -> None:
         exceptions = []
-        # Validate object_id
-        if objects_to_tag := self._properties.get("objects_to_tag", []):
-            # Validate object type
-            skipped_tagged_objects: list[tuple[str, int]] = []
-            for obj_type, obj_id in objects_to_tag:
-                skipped_tagged_objects = []
-                object_type = to_object_type(obj_type)
+        objects_to_tag = self._properties.get("objects_to_tag", [])
+        skipped_tagged_objects: list[tuple[str, int]] = []
+        for obj_type, obj_id in objects_to_tag:
+            object_type = to_object_type(obj_type)
 
-                if not object_type:
-                    exceptions.append(
-                        TagInvalidError(f"invalid object type {object_type}")
-                    )
-                try:
-                    model = to_object_model(object_type, obj_id)  # type: ignore
-                    security_manager.raise_for_ownership(model)
-                except SupersetSecurityException:
-                    # skip the object if the user doesn't have access
-                    skipped_tagged_objects.append((obj_type, obj_id))
+            if not object_type:
+                exceptions.append(TagInvalidError(f"invalid object type {object_type}"))
+            try:
+                model = to_object_model(object_type, obj_id)  # type: ignore
+                security_manager.raise_for_ownership(model)
+            except SupersetSecurityException:
+                # skip the object if the user doesn't have access
+                skipped_tagged_objects.append((obj_type, obj_id))
 
-            self._properties["objects_to_tag"] = set(objects_to_tag) - set(
-                skipped_tagged_objects
-            )
+        self._properties["objects_to_tag"] = set(objects_to_tag) - set(
+            skipped_tagged_objects
+        )
 
         if exceptions:
             raise TagInvalidError(exceptions=exceptions)
