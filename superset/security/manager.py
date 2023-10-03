@@ -807,7 +807,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.clean_perms()
 
     def _get_all_pvms(self) -> list[PermissionView]:
-        # Fetch all pvms
+        """
+        Gets list of all PVM
+        """
         pvms = (
             self.get_session.query(self.permissionview_model)
             .options(
@@ -816,8 +818,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             )
             .all()
         )
-        pvms = [p for p in pvms if p.permission and p.view_menu]
-        return pvms
+        return [p for p in pvms if p.permission and p.view_menu]
 
     def _get_pvms_from_builtin_role(self, role_name: str) -> list[PermissionView]:
         """
