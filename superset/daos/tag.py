@@ -391,10 +391,11 @@ class TagDAO(BaseDAO[Tag]):
             (to_object_type(obj[0]), obj[1]) for obj in objects_to_tag
         }
 
-        if not objects_to_tag:
-            tagged_objects_to_delete = current_tagged_objects
-        else:
-            tagged_objects_to_delete = current_tagged_objects - updated_tagged_objects
+        tagged_objects_to_delete = (
+            current_tagged_objects
+            if not objects_to_tag
+            else current_tagged_objects - updated_tagged_objects
+        )
 
         for object_type, object_id in updated_tagged_objects:
             # create rows for new objects, and skip tags that already exist
