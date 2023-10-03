@@ -41,19 +41,15 @@ function alterUnsavedQueryEditorState(state, updatedState, id) {
       queryEditors,
     };
   }
-  let a = {
+  return {
     unsavedQueryEditor: {
       ...(state.unsavedQueryEditor.id === id && state.unsavedQueryEditor),
       ...(id ? { id, ...updatedState } : state.unsavedQueryEditor),
     },
   };
-  console.log(a);
-  return a;
 }
 
 export default function sqlLabReducer(state = {}, action) {
-  console.log("SQL lab reducer")
-  console.log(action)
   const actionHandlers = {
     [actions.ADD_QUERY_EDITOR]() {
       const mergeUnsavedState = alterInArr(
@@ -394,14 +390,14 @@ export default function sqlLabReducer(state = {}, action) {
         return {
           ...(action.queryEditor.id === state.unsavedQueryEditor.id
             ? alterInArr(
-                mergeUnsavedState,
-                'queryEditors',
-                action.queryEditor,
-                {
-                  ...action.queryEditor,
-                  ...state.unsavedQueryEditor,
-                },
-              )
+              mergeUnsavedState,
+              'queryEditors',
+              action.queryEditor,
+              {
+                ...action.queryEditor,
+                ...state.unsavedQueryEditor,
+              },
+            )
             : mergeUnsavedState),
           tabHistory: [...state.tabHistory, action.queryEditor.id],
         };
@@ -654,7 +650,7 @@ export default function sqlLabReducer(state = {}, action) {
             // when it started fetching or finished rendering results
             state:
               currentState === QueryState.SUCCESS &&
-              [QueryState.FETCHING, QueryState.SUCCESS].includes(prevState)
+                [QueryState.FETCHING, QueryState.SUCCESS].includes(prevState)
                 ? prevState
                 : currentState,
           };

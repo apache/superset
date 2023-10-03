@@ -67,8 +67,6 @@ import {
   scheduleQuery,
   setActiveSouthPaneTab,
   updateSavedQuery,
-  QUERY_EDITOR_SET_IS_NLP_QUERY,
-  toggleIsNlpQuery,
 } from 'src/SqlLab/actions/sqlLab';
 import {
   STATE_TYPE_MAP,
@@ -101,7 +99,6 @@ import AceEditorWrapper from '../AceEditorWrapper';
 import RunQueryActionButton from '../RunQueryActionButton';
 import QueryLimitSelect from '../QueryLimitSelect';
 import { Switch } from 'antd';
-import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import NlpQueryToggle from '../NlpQueryToggle';
 
 const bootstrapData = getBootstrapData();
@@ -144,7 +141,7 @@ const StyledSidebar = styled.div`
   padding: ${({ theme, hide }) => (hide ? 0 : theme.gridUnit * 2.5)}px;
   border-right: 1px solid
     ${({ theme, hide }) =>
-      hide ? 'transparent' : theme.colors.grayscale.light2};
+    hide ? 'transparent' : theme.colors.grayscale.light2};
 `;
 
 const StyledSqlEditor = styled.div`
@@ -536,9 +533,8 @@ const SqlEditor = ({
   };
 
   const elementStyle = (dimension, elementSize, gutterSize) => ({
-    [dimension]: `calc(${elementSize}% - ${
-      gutterSize + SQL_EDITOR_GUTTER_MARGIN
-    }px)`,
+    [dimension]: `calc(${elementSize}% - ${gutterSize + SQL_EDITOR_GUTTER_MARGIN
+      }px)`,
   });
 
   const createTableAs = () => {
@@ -663,7 +659,7 @@ const SqlEditor = ({
               </span>
             )}
           <span>
-            <NlpQueryToggle queryEditorId={queryEditor.id}/>
+            <NlpQueryToggle queryEditorId={queryEditor.id} />
           </span>
           <span>
             <QueryLimitSelect
