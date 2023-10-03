@@ -332,7 +332,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
     @expose("/<pk>", methods=("PUT",))
     @protect()
-    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
