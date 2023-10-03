@@ -165,6 +165,7 @@ function AllEntities() {
                 data-test="bulk-select-action"
                 buttonStyle="secondary"
                 onClick={() => setShowTagModal(true)}
+                showMarginRight={false}
               >
                 {t('Edit Tag')}{' '}
               </Button>
