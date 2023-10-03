@@ -62,7 +62,7 @@ class UpdateTagCommand(UpdateMixin, BaseCommand):
         # Validate object_id
         if objects_to_tag := self._properties.get("objects_to_tag"):
             # Validate object type
-            for obj_type, obj_id in objects_to_tag:
+            for obj_type, _ in objects_to_tag:
                 object_type = to_object_type(obj_type)
                 if not object_type:
                     exceptions.append(
