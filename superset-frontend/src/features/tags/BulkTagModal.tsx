@@ -107,11 +107,7 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({
     >
       <BulkTagModalContainer>
         <div className="bulk-tag-text">
-          {t(
-            'You are adding tags to the %s %ss',
-            selected.length,
-            resourceName,
-          )}
+          {t('You are adding tags to %s %ss', selected.length, resourceName)}
         </div>
         <FormLabel>{t('tags')}</FormLabel>
         <AsyncSelect
