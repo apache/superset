@@ -151,7 +151,7 @@ So, when you use `BigQuery` datasource on Superset, you have to use `gunicorn` w
 
 ### HTTPS Configuration
 
-You can configure HTTPS upstream via a load balancer or an nginx reverse proxy and do TLS Offloading before it reaches Superset App.
+You can configure HTTPS upstream via a load balancer or a reverse proxy (such as nginx) and do SSL/TLS Offloading before traffic reaches the Superset application.  In this setup, local traffic from a Celery worker taking a snapshot of a chart for Alerts & Reports can access Superset at a `http://` URL, from behind the ingress point.
 You can also configure [SSL in Gunicorn](https://docs.gunicorn.org/en/stable/settings.html#ssl) (the Python webserver) if you are using an official Superset Docker image.
 
 ### Configuration Behind a Load Balancer
