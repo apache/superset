@@ -42,13 +42,15 @@ if TYPE_CHECKING:
 class MachineAuthProvider:
     def __init__(
         self,
-        auth_webdriver_func_override: Callable[
-            [WebDriver | BrowserContext, User], WebDriver | BrowserContext
+        auth_webdriver_func_override: Callable[[WebDriver, User], WebDriver],
+        auth_browser_context_func_override: Callable[
+            [BrowserContext, User], BrowserContext
         ],
     ):
         # This is here in order to allow for the authenticate_webdriver func to be
         # overridden via config, as opposed to the entire provider implementation
         self._auth_webdriver_func_override = auth_webdriver_func_override
+        self._auth_browser_context_func_override = auth_browser_context_func_override
 
     def authenticate_webdriver(
         self,
@@ -79,8 +81,8 @@ class MachineAuthProvider:
         user: User,
     ) -> BrowserContext:
         # Short-circuit this method if we have an override configured
-        if self._auth_webdriver_func_override:  # type: ignore
-            return self._auth_webdriver_func_override(browser_context, user)
+        if self._auth_browser_context_func_override:  # type: ignore
+            return self._auth_browser_context_func_override(browser_context, user)
 
         # Setting cookies requires doing a request first
         page = browser_context.new_page()
@@ -145,7 +147,7 @@ class MachineAuthProviderFactory:
     def init_app(self, app: Flask) -> None:
         self._auth_provider = load_class_from_name(
             app.config["MACHINE_AUTH_PROVIDER_CLASS"]
-        )(app.config["WEBDRIVER_AUTH_FUNC"])
+        )(app.config["WEBDRIVER_AUTH_FUNC"], app.config["BROWSER_CONTEXT_AUTH_FUNC"])
 
     @property
     def instance(self) -> MachineAuthProvider:
