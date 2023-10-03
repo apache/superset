@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any, Callable, TYPE_CHECKING
+from urllib.parse import urlparse
 
 from flask import current_app, Flask, request, Response, session
 from flask_login import login_user
@@ -45,8 +46,10 @@ class MachineAuthProvider:
         auth_webdriver_func_override: Callable[[WebDriver, User], WebDriver],
         auth_context_func_override: Callable[[BrowserContext, User], BrowserContext],
     ):
-        # This is here in order to allow for the authenticate_webdriver func to be
-        # overridden via config, as opposed to the entire provider implementation
+        # This is here in order to allow for the authenticate_webdriver
+        # or authenticate_browser_context (if PLAYWRIGHT_REPORTS_AND_THUMBNAILS is
+        # enabled) func to be overridden via config, as opposed to the entire
+        # provider implementation
         self._auth_webdriver_func_override = auth_webdriver_func_override
         self._auth_context_func_override = auth_context_func_override
 
@@ -82,6 +85,8 @@ class MachineAuthProvider:
         if self._auth_context_func_override:  # type: ignore
             return self._auth_context_func_override(browser_context, user)
 
+        url = urlparse(current_app.config["WEBDRIVER_BASEURL"])
+
         # Setting cookies requires doing a request first
         page = browser_context.new_page()
         page.goto(headless_url("/login/"))
@@ -94,7 +99,7 @@ class MachineAuthProvider:
                 {
                     "name": cookie_name,
                     "value": cookie_val,
-                    "domain": "0.0.0.0",
+                    "domain": url.netloc,
                     "path": "/",
                     "sameSite": "Lax",
                     "httpOnly": True,
