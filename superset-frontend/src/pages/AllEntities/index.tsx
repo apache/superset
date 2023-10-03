@@ -143,6 +143,7 @@ function AllEntities() {
     modifiedBy: `${tag?.changed_by.first_name} ${tag?.changed_by.last_name}`,
   };
   items.push(lastModified);
+<<<<<<< HEAD
 
   const fetchTaggedObjects = () => {
     setLoading(true);
@@ -163,6 +164,8 @@ function AllEntities() {
       },
     );
   };
+=======
+>>>>>>> 77d5216e7f (hide description if empty)
 
   useEffect(() => {
     // fetch single tag met
