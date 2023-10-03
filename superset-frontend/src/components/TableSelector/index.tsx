@@ -29,7 +29,9 @@ import { styled, t } from '@superset-ui/core';
 import { Select } from 'src/components';
 import { FormLabel } from 'src/components/Form';
 import Icons from 'src/components/Icons';
-import { DatabaseObject } from 'src/components/DatabaseSelector';
+import DatabaseSelector, {
+  DatabaseObject,
+} from 'src/components/DatabaseSelector';
 import RefreshLabel from 'src/components/RefreshLabel';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
@@ -249,6 +251,22 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     }
   };
 
+  const internalDbChange = (db: DatabaseObject) => {
+    if (onDbChange) {
+      onDbChange(db);
+    }
+  };
+
+  const internalSchemaChange = (schema?: string) => {
+    setCurrentSchema(schema);
+    if (onSchemaChange) {
+      onSchemaChange(schema);
+    }
+
+    const value = tableSelectMode === 'single' ? undefined : [];
+    internalTableChange(value);
+  };
+
   const handleFilterOption = useMemo(
     () => (search: string, option: TableOption) => {
       const searchValue = search.trim().toLowerCase();
@@ -301,6 +319,20 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
 
   return (
     <TableSelectorWrapper>
+      <DatabaseSelector
+        db={database}
+        emptyState={emptyState}
+        formMode={formMode}
+        getDbList={getDbList}
+        handleError={handleError}
+        onDbChange={readOnly ? undefined : internalDbChange}
+        onEmptyResults={onEmptyResults}
+        onSchemaChange={readOnly ? undefined : internalSchemaChange}
+        schema={currentSchema}
+        sqlLabMode={sqlLabMode}
+        isDatabaseSelectEnabled={isDatabaseSelectEnabled && !readOnly}
+        readOnly={readOnly}
+      />
       {sqlLabMode && !formMode && <div className="divider" />}
       {renderTableSelect()}
     </TableSelectorWrapper>
