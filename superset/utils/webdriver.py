@@ -150,12 +150,16 @@ class WebDriverPlaywright(WebDriverProxy):
     def get_screenshot(self, url: str, element_name: str, user: User) -> bytes | None:
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch()
+            pixel_density = current_app.config["WEBDRIVER_WINDOW"].get(
+                "pixel_density", 1
+            )
             context = browser.new_context(
                 bypass_csp=True,
                 viewport={
                     "height": self._window[1],
                     "width": self._window[0],
                 },
+                device_scale_factor=pixel_density,
             )
             self.auth(user, context)
             page = context.new_page()

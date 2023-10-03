@@ -43,14 +43,12 @@ class MachineAuthProvider:
     def __init__(
         self,
         auth_webdriver_func_override: Callable[[WebDriver, User], WebDriver],
-        auth_browser_context_func_override: Callable[
-            [BrowserContext, User], BrowserContext
-        ],
+        auth_context_func_override: Callable[[BrowserContext, User], BrowserContext],
     ):
         # This is here in order to allow for the authenticate_webdriver func to be
         # overridden via config, as opposed to the entire provider implementation
         self._auth_webdriver_func_override = auth_webdriver_func_override
-        self._auth_browser_context_func_override = auth_browser_context_func_override
+        self._auth_context_func_override = auth_context_func_override
 
     def authenticate_webdriver(
         self,
@@ -81,8 +79,8 @@ class MachineAuthProvider:
         user: User,
     ) -> BrowserContext:
         # Short-circuit this method if we have an override configured
-        if self._auth_browser_context_func_override:  # type: ignore
-            return self._auth_browser_context_func_override(browser_context, user)
+        if self._auth_context_func_override:  # type: ignore
+            return self._auth_context_func_override(browser_context, user)
 
         # Setting cookies requires doing a request first
         page = browser_context.new_page()
