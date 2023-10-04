@@ -152,7 +152,7 @@ export interface TableProps<RecordType> {
   allowHTML?: boolean;
 
   /**
-   * The column contains children to display.
+   * The column that contains children to display.
    * Check https://ant.design/components/table#table for more details.
    */
   childrenColumnName?: string;
