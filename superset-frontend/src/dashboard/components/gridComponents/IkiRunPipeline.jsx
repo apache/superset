@@ -56,6 +56,7 @@ import {
 } from 'src/dashboard/util/constants';
 import { refreshChart } from 'src/components/Chart/chartAction';
 // import { chart } from 'src/components/Chart/chartReducer';
+const { Buffer } = require('buffer');
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -264,7 +265,10 @@ class IkiRunPipeline extends React.PureComponent {
               widgetUrlQuery.set('edit_variables', messageData.variable);
               widgetUrlQuery.set(
                 'selected_charts',
-                window.btoa(JSON.stringify(messageData.selectedCharts)),
+                Buffer.from(
+                  JSON.stringify(messageData.selectedCharts),
+                  'utf-8',
+                ).toString('base64'),
               );
               widgetUrl.search = widgetUrlQuery.toString();
               const tempIframe = `<iframe
@@ -344,10 +348,12 @@ class IkiRunPipeline extends React.PureComponent {
     } else {
       widgetUrl = `${this.props.ikigaiOrigin}/widget/pipeline/run?mode=edit&v=1&run_flow_times=${timestamp}`;
     }
-    console.log('widgetUrl', widgetUrl);
     const widgetUrlQuery = new URLSearchParams(widgetUrl.search);
     widgetUrlQuery.set('mode', mode);
-    widgetUrlQuery.set('charts_list', window.btoa(JSON.stringify(chartsList)));
+    widgetUrlQuery.set(
+      'charts_list',
+      Buffer.from(JSON.stringify(chartsList), 'utf-8').toString('base64'),
+    );
     widgetUrl.search = widgetUrlQuery.toString();
     const tempIframe = `<iframe
                       id="ikirunpipeline-widget-${this.props.component.id}"
@@ -483,9 +489,10 @@ class IkiRunPipeline extends React.PureComponent {
         chartsList.push({ id: tempChartID, name: tempChartName });
       });
 
-      iframeSrc = `${iframeSrc}&charts_list=${window.btoa(
+      iframeSrc = `${iframeSrc}&charts_list=${Buffer.from(
         JSON.stringify(chartsList),
-      )}`;
+        'utf-8',
+      ).toString('base64')}`;
 
       iframe = `<iframe
                     id="ikirunpipeline-widget-${this.props.component.id}"
