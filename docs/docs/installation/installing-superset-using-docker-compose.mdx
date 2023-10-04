@@ -75,7 +75,7 @@ docker-compose -f docker-compose-non-dev.yml up
 
 Alternatively, you can also run a specific version of Superset by first checking out
 the branch/tag, and then starting `docker-compose` with the `TAG` variable.
-For example, to run the 3.0.0 version, run the following commands:
+For example, to run the 3.0.0 version, run the following commands on Linux-based systems:
 
 ```bash
 git checkout 3.0.0
@@ -83,8 +83,17 @@ TAG=3.0.0 docker-compose -f docker-compose-non-dev.yml pull
 TAG=3.0.0 docker-compose -f docker-compose-non-dev.yml up
 ```
 
+If you are using Docker Desktop for Windows then run the following commands:
+
+```bash
+git checkout 3.0.0
+set TAG=3.0.0
+docker-compose -f docker-compose-non-dev.yml pull
+docker-compose -f docker-compose-non-dev.yml up
+```
+
 :::tip
-Note that some configuration is mandatory for production instances of Superset. In particular, Superset will not start without a user-specified value of `SECRET_KEY`.  Please see [Configuring Superset](https://superset.apache.org/docs/installation/configuring-superset/).
+Note that some configuration is mandatory for production instances of Superset. In particular, Superset will not start without a user-specified value of `SECRET_KEY` in a Superset config file or `SUPERSET_SECRET_KEY` as an [environment variable](https://github.com/apache/superset/blob/master/docker/.env-non-dev). Please see [Configuring Superset](https://superset.apache.org/docs/installation/configuring-superset/) for more details.
 :::
 :::caution
 All of the content belonging to a Superset instance - charts, dashboards, users, etc. - is stored in its metadata database. In production, this database should be backed up.

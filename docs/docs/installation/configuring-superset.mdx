@@ -149,6 +149,11 @@ If you're not using Gunicorn, you may want to disable the use of `flask-compress
 Currently, Google BigQuery python sdk is not compatible with `gevent`, due to some dynamic monkeypatching on python core library by `gevent`.
 So, when you use `BigQuery` datasource on Superset, you have to use `gunicorn` worker type except `gevent`.
 
+### HTTPS Configuration
+
+You can configure HTTPS upstream via a load balancer or a reverse proxy (such as nginx) and do SSL/TLS Offloading before traffic reaches the Superset application.  In this setup, local traffic from a Celery worker taking a snapshot of a chart for Alerts & Reports can access Superset at a `http://` URL, from behind the ingress point.
+You can also configure [SSL in Gunicorn](https://docs.gunicorn.org/en/stable/settings.html#ssl) (the Python webserver) if you are using an official Superset Docker image.
+
 ### Configuration Behind a Load Balancer
 
 If you are running superset behind a load balancer or reverse proxy (e.g. NGINX or ELB on AWS), you
@@ -169,8 +174,9 @@ RequestHeader set X-Forwarded-Proto "https"
 
 ### Custom OAuth2 Configuration
 
-Beyond FAB supported providers (GitHub, Twitter, LinkedIn, Google, Azure, etc), its easy to connect
-Superset with other OAuth2 Authorization Server implementations that support “code” authorization.
+Superset is built on Flask-AppBuilder (FAB), which supports many providers out of the box
+(GitHub, Twitter, LinkedIn, Google, Azure, etc).  Beyond those, Superset can be configured to connect
+with other OAuth2 Authorization Server implementations that support “code” authorization.
 
 Make sure the pip package [`Authlib`](https://authlib.org/) is installed on the webserver.
 
@@ -264,6 +270,13 @@ CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
     }
   ]
   ```
+
+### LDAP Authentication
+
+FAB supports authenticating user credentials against an LDAP server.
+To use LDAP you must install the [python-ldap](https://www.python-ldap.org/en/latest/installing.html) package.
+See [FAB's LDAP documentation](https://flask-appbuilder.readthedocs.io/en/latest/security.html#authentication-ldap)
+for details.
 
 ### Flask app Configuration Hook
 
