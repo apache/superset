@@ -30,7 +30,10 @@ import { fetchObjects } from 'src/features/tags/tags';
 
 const StyledModalBody = styled.div`
   .ant-select-dropdown {
-    max-height: ${({ theme }) => theme.gridUnit * 25}px;
+    max-height: ${({ theme }) => theme.gridUnit * 40}px;
+  }
+  .tag-input {
+    margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
   }
 `;
 
@@ -272,21 +275,24 @@ const TagModal: React.FC<TagModalProps> = ({
         </div>
       }
     >
-      <FormLabel>{t('Tag name')}</FormLabel>
-      <Input
-        onChange={handleTagNameChange}
-        placeholder={t('Name of your tag')}
-        value={tagName}
-      />
-      <FormLabel>{t('Description')}</FormLabel>
-      <Input
-        onChange={handleDescriptionChange}
-        placeholder={t('Add description of your tag')}
-        value={description}
-      />
-      <Divider />
       <StyledModalBody>
+        <FormLabel>{t('Tag name')}</FormLabel>
+        <Input
+          className="tag-input"
+          onChange={handleTagNameChange}
+          placeholder={t('Name of your tag')}
+          value={tagName}
+        />
+        <FormLabel>{t('Description')}</FormLabel>
+        <Input
+          className="tag-input"
+          onChange={handleDescriptionChange}
+          placeholder={t('Add description of your tag')}
+          value={description}
+        />
+        <Divider />
         <AsyncSelect
+          className="tag-input"
           ariaLabel={t('Select dashboards')}
           mode="multiple"
           name="dashboards"
@@ -300,6 +306,7 @@ const TagModal: React.FC<TagModalProps> = ({
           allowClear
         />
         <AsyncSelect
+          className="tag-input"
           ariaLabel={t('Select charts')}
           mode="multiple"
           name="charts"
@@ -311,6 +318,7 @@ const TagModal: React.FC<TagModalProps> = ({
           allowClear
         />
         <AsyncSelect
+          className="tag-input"
           ariaLabel={t('Select saved queries')}
           mode="multiple"
           name="savedQueries"

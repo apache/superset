@@ -18,7 +18,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING
+from urllib.parse import urlparse
 
 from flask import current_app, Flask, request, Response, session
 from flask_login import login_user
@@ -33,14 +34,24 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla.models import User
 
+    try:
+        from playwright.sync_api import BrowserContext
+    except ModuleNotFoundError:
+        BrowserContext = Any
+
 
 class MachineAuthProvider:
     def __init__(
-        self, auth_webdriver_func_override: Callable[[WebDriver, User], WebDriver]
+        self,
+        auth_webdriver_func_override: Callable[[WebDriver, User], WebDriver],
+        auth_context_func_override: Callable[[BrowserContext, User], BrowserContext],
     ):
-        # This is here in order to allow for the authenticate_webdriver func to be
-        # overridden via config, as opposed to the entire provider implementation
+        # This is here in order to allow for the authenticate_webdriver
+        # or authenticate_browser_context (if PLAYWRIGHT_REPORTS_AND_THUMBNAILS is
+        # enabled) func to be overridden via config, as opposed to the entire
+        # provider implementation
         self._auth_webdriver_func_override = auth_webdriver_func_override
+        self._auth_context_func_override = auth_context_func_override
 
     def authenticate_webdriver(
         self,
@@ -58,17 +69,54 @@ class MachineAuthProvider:
         # Setting cookies requires doing a request first
         driver.get(headless_url("/login/"))
 
+        cookies = self.get_cookies(user)
+
+        for cookie_name, cookie_val in cookies.items():
+            driver.add_cookie({"name": cookie_name, "value": cookie_val})
+
+        return driver
+
+    def authenticate_browser_context(
+        self,
+        browser_context: BrowserContext,
+        user: User,
+    ) -> BrowserContext:
+        # Short-circuit this method if we have an override configured
+        if self._auth_context_func_override:  # type: ignore
+            return self._auth_context_func_override(browser_context, user)
+
+        url = urlparse(current_app.config["WEBDRIVER_BASEURL"])
+
+        # Setting cookies requires doing a request first
+        page = browser_context.new_page()
+        page.goto(headless_url("/login/"))
+
+        cookies = self.get_cookies(user)
+
+        browser_context.clear_cookies()
+        browser_context.add_cookies(
+            [
+                {
+                    "name": cookie_name,
+                    "value": cookie_val,
+                    "domain": url.netloc,
+                    "path": "/",
+                    "sameSite": "Lax",
+                    "httpOnly": True,
+                }
+                for cookie_name, cookie_val in cookies.items()
+            ]
+        )
+        return browser_context
+
+    def get_cookies(self, user: User | None) -> dict[str, str]:
         if user:
             cookies = self.get_auth_cookies(user)
         elif request.cookies:
             cookies = request.cookies
         else:
             cookies = {}
-
-        for cookie_name, cookie_val in cookies.items():
-            driver.add_cookie({"name": cookie_name, "value": cookie_val})
-
-        return driver
+        return cookies
 
     @staticmethod
     def get_auth_cookies(user: User) -> dict[str, str]:
@@ -102,7 +150,7 @@ class MachineAuthProviderFactory:
     def init_app(self, app: Flask) -> None:
         self._auth_provider = load_class_from_name(
             app.config["MACHINE_AUTH_PROVIDER_CLASS"]
-        )(app.config["WEBDRIVER_AUTH_FUNC"])
+        )(app.config["WEBDRIVER_AUTH_FUNC"], app.config["BROWSER_CONTEXT_AUTH_FUNC"])
 
     @property
     def instance(self) -> MachineAuthProvider:
