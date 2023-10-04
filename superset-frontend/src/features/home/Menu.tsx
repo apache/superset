@@ -209,7 +209,7 @@ export function Menu({
       default:
         setActiveTabs(['']);
     }
-  }, [location]);
+  }, [location.pathname]);
 
   const standalone = getUrlParam(URL_PARAMS.standalone);
   if (standalone || uiConfig.hideNav) return <></>;
