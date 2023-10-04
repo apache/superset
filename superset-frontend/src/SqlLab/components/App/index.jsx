@@ -20,9 +20,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import { Redirect } from 'react-router-dom';
 import { css, styled, t } from '@superset-ui/core';
 import throttle from 'lodash/throttle';
-import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import {
   LOCALSTORAGE_MAX_USAGE_KB,
   LOCALSTORAGE_WARNING_THRESHOLD,
@@ -186,7 +186,14 @@ class App extends React.PureComponent {
   render() {
     const { queries, queriesLastUpdate } = this.props;
     if (this.state.hash && this.state.hash === '#search') {
-      return window.location.replace('/superset/sqllab/history/');
+      return (
+        <Redirect
+          to={{
+            pathname: '/sqllab/history/',
+            replace: true,
+          }}
+        />
+      );
     }
     return (
       <SqlLabStyles data-test="SqlLabApp" className="App SqlLab">
@@ -195,7 +202,6 @@ class App extends React.PureComponent {
           queriesLastUpdate={queriesLastUpdate}
         />
         <TabbedSqlEditors />
-        <ToastContainer />
       </SqlLabStyles>
     );
   }

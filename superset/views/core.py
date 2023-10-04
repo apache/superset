@@ -72,7 +72,6 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
-from superset.sqllab.utils import bootstrap_sqllab_data
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.utils.cache import etag_cache
@@ -982,28 +981,18 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "POST",
         ),
     )
+    @deprecated(new_target="/sqllab")
     def sqllab(self) -> FlaskResponse:
         """SQL Editor"""
-        payload = {
-            "common": common_bootstrap_payload(g.user),
-            **bootstrap_sqllab_data(get_user_id()),
-        }
-
-        if form_data := request.form.get("form_data"):
-            with contextlib.suppress(json.JSONDecodeError):
-                payload["requested_query"] = json.loads(form_data)
-        payload["user"] = bootstrap_user_data(g.user, include_perms=True)
-        bootstrap_data = json.dumps(
-            payload, default=utils.pessimistic_json_iso_dttm_ser
-        )
-
-        return self.render_template(
-            "superset/basic.html", entry="sqllab", bootstrap_data=bootstrap_data
-        )
+        url = "/sqllab"
+        if url_params := request.args:
+            params = parse.urlencode(url_params)
+            url = f"{url}?{params}"
+        return redirect(url)
 
     @has_access
     @event_logger.log_this
     @expose("/sqllab/history/", methods=("GET",))
-    @event_logger.log_this
+    @deprecated(new_target="/sqllab/history")
     def sqllab_history(self) -> FlaskResponse:
-        return super().render_app_template()
+        return redirect("/sqllab/history")

@@ -492,7 +492,7 @@ class Database(
                     source = utils.QuerySource.DASHBOARD
                 elif "/explore/" in request.referrer:
                     source = utils.QuerySource.CHART
-                elif "/superset/sqllab" in request.referrer:
+                elif "/sqllab/" in request.referrer:
                     source = utils.QuerySource.SQL_LAB
 
             sqlalchemy_url, params = DB_CONNECTION_MUTATOR(
