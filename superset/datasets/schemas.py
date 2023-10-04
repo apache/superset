@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
-import re
+from datetime import datetime
 from typing import Any
 
 from flask_babel import lazy_gettext as _
@@ -43,18 +43,12 @@ openapi_spec_methods_override = {
 
 
 def validate_python_date_format(value: str) -> None:
-    regex = re.compile(
-        r"""
-        ^(
-            epoch_s|epoch_ms|
-            (?P<date>%Y([-/]%m([-/]%d)?)?)([\sT](?P<time>%H(:%M(:%S(\.%f)?)?)?))?
-        )$
-        """,
-        re.VERBOSE,
-    )
-    match = regex.match(value or "")
-    if not match:
-        raise ValidationError([_("Invalid date/timestamp format")])
+    if value in ("epoch_s", "epoch_ms"):
+        return
+    try:
+        datetime.now().strftime(value)
+    except ValueError as ex:
+        raise ValidationError([_("Invalid date/timestamp format")]) from ex
 
 
 class DatasetColumnsPutSchema(Schema):
