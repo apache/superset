@@ -258,6 +258,8 @@ class TagRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
+            all_tagged_objects = []
+            all_skipped_tagged_objects = []
             for tag in item.get("tags"):
                 tagged_item: dict[str, Any] = self.add_model_schema.load(
                     {
@@ -271,8 +273,16 @@ class TagRestApi(BaseSupersetModelRestApi):
                 ) = CreateCustomTagWithRelationshipsCommand(
                     tagged_item, bulk_create=True
                 ).run()
+                all_tagged_objects += objects_tagged
+                all_skipped_tagged_objects += objects_skipped
             return self.response(
-                200, objects_tagged=objects_tagged, objects_skipped=objects_skipped
+                200,
+                result={
+                    "objects_tagged": list(
+                        set(all_tagged_objects) - set(all_skipped_tagged_objects)
+                    ),
+                    "objects_skipped": list(all_skipped_tagged_objects),
+                },
             )
         except TagNotFoundError:
             return self.response_404()
