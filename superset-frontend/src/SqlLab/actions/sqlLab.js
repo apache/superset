@@ -607,7 +607,12 @@ export function addNewQueryEditor() {
           '-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.\n\n',
         );
 
-    const name = newQueryTabName(queryEditors || []);
+    const name = newQueryTabName(
+      queryEditors?.map(qe => ({
+        ...qe,
+        ...(qe.id === unsavedQueryEditor.id && unsavedQueryEditor),
+      })) || [],
+    );
 
     return dispatch(
       addQueryEditor({
