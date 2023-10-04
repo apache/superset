@@ -20,8 +20,12 @@ import { SyntheticEvent } from 'react';
 import { t, logging } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import downloadAsImage from 'src/utils/downloadAsImage';
+import downloadAsPdf from 'src/utils/downloadAsPdf';
 
-import { LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
+import {
+  LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE,
+  LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF,
+} from 'src/logger/LogUtils';
 
 interface DownloadMenuItemProps {
   url?: string;
@@ -46,8 +50,15 @@ const ShareMenuItems = (props: DownloadMenuItemProps) => {
     ...rest
   } = props;
 
-  const onDownloadPDF = () => {
+  const onDownloadPDF = async (e: SyntheticEvent) => {
     addSuccessToast(t('You attempted to download the PDF.'));
+    try {
+      downloadAsPdf(SCREENSHOT_NODE_SELECTOR, dashboardTitle, true)(e);
+    } catch (error) {
+      logging.error(error);
+      addDangerToast(t('Sorry, something went wrong. Try again later.'));
+    }
+    logEvent?.(LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF);
   };
   // case MENU_KEYS.DOWNLOAD_DASHBOARD: {
   //   // menu closes with a delay, we need to hide it manually,
