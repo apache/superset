@@ -389,8 +389,11 @@ describe('async actions', () => {
       const state = {
         sqlLab: {
           tabHistory: [id],
-          queryEditors: [{ id, name: 'Dummy query editor' }],
-          unsavedQueryEditor: {},
+          queryEditors: [{ id, name: 'out of updated title' }],
+          unsavedQueryEditor: {
+            id,
+            name: 'Dummy query editor',
+          },
         },
       };
       const store = mockStore(state);

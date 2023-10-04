@@ -630,10 +630,12 @@ export function addNewQueryEditor() {
 export function cloneQueryToNewTab(query, autorun) {
   return function (dispatch, getState) {
     const state = getState();
-    const { queryEditors, tabHistory } = state.sqlLab;
-    const sourceQueryEditor = queryEditors.find(
-      qe => qe.id === tabHistory[tabHistory.length - 1],
-    );
+    const { queryEditors, unsavedQueryEditor, tabHistory } = state.sqlLab;
+    const sourceQueryEditor = {
+      ...queryEditors.find(qe => qe.id === tabHistory[tabHistory.length - 1]),
+      ...(tabHistory[tabHistory.length - 1] === unsavedQueryEditor.id &&
+        unsavedQueryEditor),
+    };
     const queryEditor = {
       name: t('Copy of %s', sourceQueryEditor.name),
       dbId: query.dbId ? query.dbId : null,
