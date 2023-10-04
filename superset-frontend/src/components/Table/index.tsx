@@ -399,7 +399,9 @@ export function Table<RecordType extends object>(
     theme,
     height: bodyHeight,
     bordered,
-    childrenColumnName,
+    expandable: {
+      childrenColumnName,
+    },
   };
 
   return (
