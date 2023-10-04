@@ -366,6 +366,7 @@ const FilterableTable = ({
           usePagination={false}
           columns={columns}
           data={filteredList}
+          childrenColumnName=""
           virtualize
           bordered
         />
