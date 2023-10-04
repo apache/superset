@@ -67,7 +67,12 @@ user_prefs = Table(
     "tmp_superset_test_table_user_prefs",
     metadata_obj,
     Column("pref_id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("user.user_id"), nullable=False),
+    Column(
+        "user_id",
+        Integer,
+        ForeignKey("tmp_superset_test_table_user.user_id"),
+        nullable=False,
+    ),
     Column("pref_name", String(40), nullable=False),
     Column("pref_value", String(100)),
 )
@@ -118,12 +123,12 @@ def test_datetime(console: Console, engine: Engine) -> None:
         now = datetime.now()
 
         console.print("Inserting timestamp value...")
-        stmt = insert(table).values(ts=now)
-        engine.execute(stmt)
+        insert_stmt = insert(table).values(ts=now)
+        engine.execute(insert_stmt)
 
         console.print("Reading timestamp value...")
-        stmt = select(table)
-        row = engine.execute(stmt).fetchone()
+        select_stmt = select(table)
+        row = engine.execute(select_stmt).fetchone()
         assert row[0] == now
         console.print(":thumbs_up: [green]Success!")
     except Exception as ex:  # pylint: disable=broad-except
