@@ -305,7 +305,31 @@ function DashboardList(props: DashboardListProps) {
         Header: t('Title'),
         accessor: 'dashboard_title',
       },
-
+      {
+        Cell: ({
+          row: {
+            original: { tags = [] },
+          },
+        }: {
+          row: {
+            original: {
+              tags: Tag[];
+            };
+          };
+        }) => (
+          // Only show custom type tags
+          <TagsList
+            tags={tags.filter(
+              (tag: Tag) => tag.type === 'TagTypes.custom' || tag.type === 1,
+            )}
+            maxTags={3}
+          />
+        ),
+        Header: t('Tags'),
+        accessor: 'tags',
+        disableSortBy: true,
+        hidden: !isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM),
+      },
       {
         Cell: ({
           row: {
@@ -359,31 +383,6 @@ function DashboardList(props: DashboardListProps) {
         accessor: 'owners',
         disableSortBy: true,
         size: 'xl',
-      },
-      {
-        Cell: ({
-          row: {
-            original: { tags = [] },
-          },
-        }: {
-          row: {
-            original: {
-              tags: Tag[];
-            };
-          };
-        }) => (
-          // Only show custom type tags
-          <TagsList
-            tags={tags.filter(
-              (tag: Tag) => tag.type === 'TagTypes.custom' || tag.type === 1,
-            )}
-            maxTags={3}
-          />
-        ),
-        Header: t('Tags'),
-        accessor: 'tags',
-        disableSortBy: true,
-        hidden: !isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM),
       },
       {
         Cell: ({ row: { original } }: any) => {
