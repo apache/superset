@@ -500,6 +500,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # returned from each database in the ``SUPERSET_META_DB_LIMIT`` configuration value
     # in this file.
     "ENABLE_SUPERSET_META_DB": False,
+    # Set to True to replace Selenium with Playwright to execute reports and thumbnails.
+    # Unlike Selenium, Playwright reports support deck.gl visualizations
+    # Enabling this feature flag requires installing "playwright" pip package
+    "PLAYWRIGHT_REPORTS_AND_THUMBNAILS": False,
 }
 
 # ------------------------------
@@ -1347,9 +1351,11 @@ WEBDRIVER_WINDOW = {
     "pixel_density": 1,
 }
 
-# An optional override to the default auth hook used to provide auth to the
-# offline webdriver
+# An optional override to the default auth hook used to provide auth to the offline
+# webdriver (when using Selenium) or browser context (when using Playwright - see
+# PLAYWRIGHT_REPORTS_AND_THUMBNAILS feature flag)
 WEBDRIVER_AUTH_FUNC = None
+BROWSER_CONTEXT_AUTH_FUNC = None
 
 # Any config options to be passed as-is to the webdriver
 WEBDRIVER_CONFIGURATION: dict[Any, Any] = {"service_log_path": "/dev/null"}

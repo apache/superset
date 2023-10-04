@@ -181,6 +181,7 @@ export default function ErrorAlert({
           level={level}
           show={isModalOpen}
           onHide={() => setIsModalOpen(false)}
+          destroyOnClose
           title={
             <div className="header">
               {level === 'error' ? (
