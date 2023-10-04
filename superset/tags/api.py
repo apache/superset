@@ -265,10 +265,15 @@ class TagRestApi(BaseSupersetModelRestApi):
                         "objects_to_tag": tag.get("objects_to_tag"),
                     }
                 )
-                CreateCustomTagWithRelationshipsCommand(
+                (
+                    objects_tagged,
+                    objects_skipped,
+                ) = CreateCustomTagWithRelationshipsCommand(
                     tagged_item, bulk_create=True
                 ).run()
-            return self.response(201)
+            return self.response(
+                200, objects_tagged=objects_tagged, objects_skipped=objects_skipped
+            )
         except TagNotFoundError:
             return self.response_404()
         except TagInvalidError as ex:
