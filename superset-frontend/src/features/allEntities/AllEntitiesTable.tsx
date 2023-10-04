@@ -61,7 +61,7 @@ interface TaggedObject {
   tags: Tag[];
 }
 
-interface TaggedObjects {
+export interface TaggedObjects {
   dashboard: TaggedObject[];
   chart: TaggedObject[];
   query: TaggedObject[];

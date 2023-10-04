@@ -19,7 +19,9 @@
 import React, { useEffect, useState } from 'react';
 import { styled, t, css, SupersetTheme } from '@superset-ui/core';
 import { NumberParam, useQueryParam } from 'use-query-params';
-import AllEntitiesTable from 'src/features/allEntities/AllEntitiesTable';
+import AllEntitiesTable, {
+  TaggedObjects,
+} from 'src/features/allEntities/AllEntitiesTable';
 import Button from 'src/components/Button';
 import MetadataBar, {
   MetadataType,
@@ -28,11 +30,10 @@ import MetadataBar, {
   LastModified,
 } from 'src/components/MetadataBar';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
-import { fetchSingleTag } from 'src/features/tags/tags';
 import { Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
 import withToasts, { useToasts } from 'src/components/MessageToasts/withToasts';
-import { fetchObjects } from 'src/features/tags/tags';
+import { fetchObjects, fetchSingleTag } from 'src/features/tags/tags';
 import Loading from 'src/components/Loading';
 
 interface TaggedObject {
