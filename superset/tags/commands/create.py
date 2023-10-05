@@ -92,8 +92,8 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
 
     def validate(self) -> None:
         exceptions = []
-        objects_to_tag = self._properties.get("objects_to_tag", [])
-        skipped_tagged_objects: list[tuple[str, int]] = []
+        objects_to_tag = set(self._properties.get("objects_to_tag", []))
+        skipped_tagged_objects: set[tuple[str, int]] = set()
         for obj_type, obj_id in objects_to_tag:
             object_type = to_object_type(obj_type)
 
