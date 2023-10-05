@@ -16,20 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import moment from 'moment';
-import { t, styled, logging } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
-import Loading from 'src/components/Loading';
 import { TagsList } from 'src/components/Tags';
 import FacePile from 'src/components/FacePile';
 import Tag from 'src/types/TagType';
 import Owner from 'src/types/Owner';
 import { EmptyStateBig } from 'src/components/EmptyState';
-import { fetchObjects } from '../tags/tags';
 
 const MAX_TAGS_TO_SHOW = 3;
+const PAGE_SIZE = 5;
 
 const AllEntitiesTableContainer = styled.div`
   text-align: left;
@@ -63,7 +61,7 @@ interface TaggedObject {
   tags: Tag[];
 }
 
-interface TaggedObjects {
+export interface TaggedObjects {
   dashboard: TaggedObject[];
   chart: TaggedObject[];
   query: TaggedObject[];
@@ -72,49 +70,20 @@ interface TaggedObjects {
 interface AllEntitiesTableProps {
   search?: string;
   setShowTagModal: (show: boolean) => void;
+  objects: TaggedObjects;
 }
 
 export default function AllEntitiesTable({
   search = '',
   setShowTagModal,
+  objects,
 }: AllEntitiesTableProps) {
   type objectType = 'dashboard' | 'chart' | 'query';
 
-  const [objects, setObjects] = useState<TaggedObjects>({
-    dashboard: [],
-    chart: [],
-    query: [],
-  });
-  const [isLoading, setLoading] = useState<boolean>(true);
   const showListViewObjs =
     objects.dashboard.length > 0 ||
     objects.chart.length > 0 ||
     objects.query.length > 0;
-
-  useEffect(() => {
-    if (search === '') {
-      return;
-    }
-
-    setLoading(true);
-
-    fetchObjects(
-      { tags: search, types: null },
-      (data: TaggedObject[]) => {
-        const objects = { dashboard: [], chart: [], query: [] };
-        data.forEach(function (object) {
-          const object_type = object.type;
-          objects[object_type].push(object);
-        });
-        setObjects(objects);
-        setLoading(false);
-      },
-      (error: Response) => {
-        addDangerToast('Error Fetching Tagged Objects');
-        logging.log(error.text);
-      },
-    );
-  }, [search]);
 
   const renderTable = (type: objectType) => {
     const data = objects[type].map((o: TaggedObject) => ({
@@ -129,7 +98,7 @@ export default function AllEntitiesTable({
         className="table-condensed"
         emptyWrapperType={EmptyWrapperType.Small}
         data={data}
-        pageSize={50}
+        pageSize={PAGE_SIZE}
         columns={[
           {
             accessor: type,
@@ -176,7 +145,6 @@ export default function AllEntitiesTable({
     );
   };
 
-  if (isLoading) return <Loading />;
   return (
     <AllEntitiesTableContainer>
       {showListViewObjs ? (
