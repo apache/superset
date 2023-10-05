@@ -24,7 +24,7 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { Row, Col, Grid } from 'src/components';
 import { MainNav as DropdownMenu, MenuMode } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
-import { Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { GenericLink } from 'src/components/GenericLink/GenericLink';
 import Icons from 'src/components/Icons';
 import { useUiConfig } from 'src/components/UiConfigContext';
@@ -154,6 +154,27 @@ const globalStyles = (theme: SupersetTheme) => css`
       margin-left: ${theme.gridUnit * 1.75}px;
     }
   }
+  .ant-menu-item-selected {
+    color: inherit !important;
+    background-color: transparent !important;
+    border-bottom-color: transparent !important;
+    & > a {
+      color: inherit !important;
+    }
+  }
+  .ant-menu-horizontal > .ant-menu-item:has(> .is-active) {
+    color: ${theme.colors.primary.base} !important;
+    border-bottom-color: ${theme.colors.primary.base} !important;
+    & > a {
+      color: ${theme.colors.primary.base} !important;
+    }
+  }
+  .ant-menu-vertical > .ant-menu-item:has(> .is-active) {
+    background-color: ${theme.colors.primary.light5} !important;
+    & > a {
+      color: ${theme.colors.primary.base} !important;
+    }
+  }
 `;
 const { SubMenu } = DropdownMenu;
 
@@ -199,9 +220,9 @@ export function Menu({
     if (url && isFrontendRoute) {
       return (
         <DropdownMenu.Item key={label} role="presentation">
-          <Link role="button" to={url}>
+          <NavLink role="button" to={url} activeClassName="is-active">
             {label}
-          </Link>
+          </NavLink>
         </DropdownMenu.Item>
       );
     }
@@ -226,7 +247,13 @@ export function Menu({
             return (
               <DropdownMenu.Item key={`${child.label}`}>
                 {child.isFrontendRoute ? (
-                  <Link to={child.url || ''}>{child.label}</Link>
+                  <NavLink
+                    to={child.url || ''}
+                    exact
+                    activeClassName="is-active"
+                  >
+                    {child.label}
+                  </NavLink>
                 ) : (
                   <a href={child.url}>{child.label}</a>
                 )}
