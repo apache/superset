@@ -104,7 +104,7 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
                 security_manager.raise_for_ownership(model)
             except SupersetSecurityException:
                 # skip the object if the user doesn't have access
-                skipped_tagged_objects.append((obj_type, obj_id))
+                skipped_tagged_objects.add((obj_type, obj_id))
 
         self._properties["objects_to_tag"] = objects_to_tag - skipped_tagged_objects
 
