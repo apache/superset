@@ -106,9 +106,7 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
                 # skip the object if the user doesn't have access
                 skipped_tagged_objects.append((obj_type, obj_id))
 
-        self._properties["objects_to_tag"] = set(objects_to_tag) - set(
-            skipped_tagged_objects
-        )
+        self._properties["objects_to_tag"] = objects_to_tag - skipped_tagged_objects
 
         if exceptions:
             raise TagInvalidError(exceptions=exceptions)
