@@ -91,18 +91,16 @@ def test_create_command_success(session_with_data: Session, mocker: MockFixture)
         )
 
 
-def test_create_command_failed_validate(
-    session_with_data: Session, mocker: MockFixture
-):
+def test_create_command_success_clear(session_with_data: Session, mocker: MockFixture):
     from superset.connectors.sqla.models import SqlaTable
     from superset.daos.tag import TagDAO
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
     from superset.models.sql_lab import Query, SavedQuery
     from superset.tags.commands.create import CreateCustomTagWithRelationshipsCommand
-    from superset.tags.commands.exceptions import TagInvalidError
     from superset.tags.models import ObjectTypes, TaggedObject
 
+    # Define a list of objects to tag
     query = session_with_data.query(SavedQuery).first()
     chart = session_with_data.query(Slice).first()
     dashboard = session_with_data.query(Dashboard).first()
@@ -110,16 +108,22 @@ def test_create_command_failed_validate(
     mocker.patch(
         "superset.security.SupersetSecurityManager.is_admin", return_value=True
     )
-    mocker.patch("superset.daos.chart.ChartDAO.find_by_id", return_value=query)
-    mocker.patch("superset.daos.query.SavedQueryDAO.find_by_id", return_value=chart)
+    mocker.patch("superset.daos.chart.ChartDAO.find_by_id", return_value=chart)
+    mocker.patch("superset.daos.query.SavedQueryDAO.find_by_id", return_value=query)
 
     objects_to_tag = [
         (ObjectTypes.query, query.id),
         (ObjectTypes.chart, chart.id),
-        (ObjectTypes.dashboard, 0),
+        (ObjectTypes.dashboard, dashboard.id),
     ]
 
-    with pytest.raises(TagInvalidError):
-        CreateCustomTagWithRelationshipsCommand(
-            data={"name": "test_tag", "objects_to_tag": objects_to_tag}
-        ).run()
+    CreateCustomTagWithRelationshipsCommand(
+        data={"name": "test_tag", "objects_to_tag": objects_to_tag}
+    ).run()
+    assert len(session_with_data.query(TaggedObject).all()) == len(objects_to_tag)
+
+    CreateCustomTagWithRelationshipsCommand(
+        data={"name": "test_tag", "objects_to_tag": []}
+    ).run()
+
+    assert len(session_with_data.query(TaggedObject).all()) == 0
