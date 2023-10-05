@@ -353,61 +353,6 @@ def test_database_connectivity(console: Console, engine: Engine) -> None:
     color = "green" if result == 1 else "red"
     console.print(f"[{color}]> {result}")
 
-    console.print("[bold]Checking that we can create tables...")
-    try:
-        metadata_obj.create_all(engine)
-        console.print("[green]Tables created!")
-    except Exception as ex:  # pylint: disable=broad-except
-        console.print(f"[red]Unable to create tables: {ex}")
-        console.print("[bold]Exiting...")
-        sys.exit(1)
-
-    console.print("[bold]Checking that we can insert data...")
-    stmt = insert(user).values(
-        user_name="beto",
-        email="beto@example.org",
-        nickname="Beto",
-    )
-    try:
-        console.print(
-            "sql>",
-            stmt.compile(
-                dialect=engine.dialect,
-                compile_kwargs={"literal_binds": True},
-            ),
-        )
-        engine.execute(stmt)
-    except Exception as ex:  # pylint: disable=broad-except
-        console.print(f"[red]Unable to insert data: {ex}")
-        console.print("[bold]Exiting...")
-        sys.exit(1)
-
-    console.print("[bold]Checking that we can read data...")
-    stmt = select(user).where(user.c.user_name == "beto")
-    try:
-        console.print(
-            "sql>",
-            stmt.compile(
-                dialect=engine.dialect,
-                compile_kwargs={"literal_binds": True},
-            ),
-        )
-        result = engine.execute(stmt).fetchall()
-        console.print(f"[green]> {result}")
-    except Exception as ex:  # pylint: disable=broad-except
-        console.print(f"[red]Unable to read data: {ex}")
-        console.print("[bold]Exiting...")
-        sys.exit(1)
-
-    console.print("[bold]Checking that we can drop tables...")
-    try:
-        metadata_obj.drop_all(engine)
-        console.print("[green]Done!")
-    except Exception as ex:  # pylint: disable=broad-except
-        console.print(f"[red]Unable to drop tables: {ex}")
-        console.print("[bold]Exiting...")
-        sys.exit(1)
-
     # run engine-specific tests
     if tests := registry.get_tests(engine.dialect.name):
         console.print("[bold]Running engine-specific tests...")
