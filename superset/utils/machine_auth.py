@@ -26,7 +26,6 @@ from flask_login import login_user
 from selenium.webdriver.remote.webdriver import WebDriver
 from werkzeug.http import parse_cookie
 
-from superset.utils.class_utils import load_class_from_name
 from superset.utils.urls import headless_url
 
 logger = logging.getLogger(__name__)
@@ -43,8 +42,10 @@ if TYPE_CHECKING:
 class MachineAuthProvider:
     def __init__(
         self,
-        auth_webdriver_func_override: Callable[[WebDriver, User], WebDriver],
-        auth_context_func_override: Callable[[BrowserContext, User], BrowserContext],
+        auth_webdriver_func_override: Callable[[WebDriver, User], WebDriver]
+        | None = None,
+        auth_context_func_override: Callable[[BrowserContext, User], BrowserContext]
+        | None = None,
     ):
         # This is here in order to allow for the authenticate_webdriver
         # or authenticate_browser_context (if PLAYWRIGHT_REPORTS_AND_THUMBNAILS is
@@ -63,7 +64,7 @@ class MachineAuthProvider:
         :return: The WebDriver passed in (fluent)
         """
         # Short-circuit this method if we have an override configured
-        if self._auth_webdriver_func_override:  # type: ignore
+        if self._auth_webdriver_func_override:
             return self._auth_webdriver_func_override(driver, user)
 
         # Setting cookies requires doing a request first
@@ -82,7 +83,7 @@ class MachineAuthProvider:
         user: User,
     ) -> BrowserContext:
         # Short-circuit this method if we have an override configured
-        if self._auth_context_func_override:  # type: ignore
+        if self._auth_context_func_override:
             return self._auth_context_func_override(browser_context, user)
 
         url = urlparse(current_app.config["WEBDRIVER_BASEURL"])
@@ -143,14 +144,20 @@ class MachineAuthProvider:
         return cookies
 
 
+class Auth2(MachineAuthProvider):
+    def __init__(
+        self,
+        auth_webdriver_func_override: Callable[[WebDriver, User], WebDriver],
+    ):
+        super().__init__(auth_webdriver_func_override)
+
+
 class MachineAuthProviderFactory:
     def __init__(self) -> None:
-        self._auth_provider = None
+        self._auth_provider: MachineAuthProvider | None = None
 
     def init_app(self, app: Flask) -> None:
-        self._auth_provider = load_class_from_name(
-            app.config["MACHINE_AUTH_PROVIDER_CLASS"]
-        )(app.config["WEBDRIVER_AUTH_FUNC"], app.config["BROWSER_CONTEXT_AUTH_FUNC"])
+        self._auth_provider = Auth2(app.config["WEBDRIVER_AUTH_FUNC"])
 
     @property
     def instance(self) -> MachineAuthProvider:
