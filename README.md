@@ -28,11 +28,19 @@ under the License.
 [![Get on Slack](https://img.shields.io/badge/slack-join-orange.svg)](http://bit.ly/join-superset-slack)
 [![Documentation](https://img.shields.io/badge/docs-apache.org-blue.svg)](https://superset.apache.org)
 
-<img
-  src="https://github.com/apache/superset/raw/master/superset-frontend/src/assets/branding/superset-logo-horiz-apache.png"
-  alt="Superset"
+<picture
   width="500"
-/>
+>
+  <source
+    media="(prefers-color-scheme: dark)"
+    src="https://github.com/apache/superset/raw/master/superset-frontend/src/assets/branding/superset-logo-horiz-apache-dark.png"
+    alt="Superset logo (dark)"
+  />
+  <img
+    src="https://github.com/apache/superset/raw/master/superset-frontend/src/assets/branding/superset-logo-horiz-apache.png"
+    alt="Superset logo (light)"
+  />
+</picture>
 
 A modern, enterprise-ready business intelligence web application.
 
