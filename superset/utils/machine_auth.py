@@ -45,7 +45,8 @@ class MachineAuthProvider:
         self,
         auth_webdriver_func_override: Callable[
             [WebDriver | BrowserContext, User], WebDriver | BrowserContext
-        ],
+        ]
+        | None = None,
     ):
         # This is here in order to allow for the authenticate_webdriver
         # or authenticate_browser_context (if PLAYWRIGHT_REPORTS_AND_THUMBNAILS is
@@ -63,7 +64,7 @@ class MachineAuthProvider:
         :return: The WebDriver passed in (fluent)
         """
         # Short-circuit this method if we have an override configured
-        if self._auth_webdriver_func_override:  # type: ignore
+        if self._auth_webdriver_func_override:
             return self._auth_webdriver_func_override(driver, user)
 
         # Setting cookies requires doing a request first
@@ -82,7 +83,7 @@ class MachineAuthProvider:
         user: User,
     ) -> BrowserContext:
         # Short-circuit this method if we have an override configured
-        if self._auth_webdriver_func_override:  # type: ignore
+        if self._auth_webdriver_func_override:
             return self._auth_webdriver_func_override(browser_context, user)
 
         url = urlparse(current_app.config["WEBDRIVER_BASEURL"])
