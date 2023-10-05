@@ -46,7 +46,7 @@ def validate_python_date_format(value: str) -> None:
     if value in ("epoch_s", "epoch_ms"):
         return
     try:
-        datetime.now().strftime(value)
+        datetime.now().strftime(value or "")
     except ValueError as ex:
         raise ValidationError([_("Invalid date/timestamp format")]) from ex
 
