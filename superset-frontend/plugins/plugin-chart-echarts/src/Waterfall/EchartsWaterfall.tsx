@@ -31,6 +31,7 @@ export default function EchartsWaterfall(
     setDataMask,
     labelMap,
     groupby,
+    refs,
     selectedValues,
   } = props;
   const handleChange = useCallback(
@@ -65,10 +66,14 @@ export default function EchartsWaterfall(
     [setDataMask, groupby, labelMap],
   );
 
-  const eventHandlers = allEventHandlers(props, handleChange);
+  const eventHandlers = {
+    ...allEventHandlers(props),
+    handleChange,
+  };
 
   return (
     <Echart
+      refs={refs}
       height={height}
       width={width}
       echartOptions={echartOptions}

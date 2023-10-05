@@ -33,9 +33,11 @@ import {
   ISeriesData,
   WaterfallChartTransformedProps,
 } from './types';
-import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
+import { getDefaultTooltip } from '../utils/tooltip';
+import { defaultGrid, defaultYAxis } from '../defaults';
 import { ASSIST_MARK, LEGEND, TOKEN, TOTAL_MARK } from './constants';
 import { extractGroupbyLabel, getColtypesMapping } from '../utils/series';
+import { Refs } from '../types';
 
 function formatTooltip({
   theme,
@@ -163,6 +165,7 @@ export default function transformProps(
     theme,
     inContextMenu,
   } = chartProps;
+  const refs: Refs = {};
   const { data = [] } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
   const { setDataMask = () => {}, onContextMenu } = hooks;
@@ -368,7 +371,7 @@ export default function transformProps(
       axisLabel: { formatter: numberFormatter },
     },
     tooltip: {
-      ...defaultTooltip,
+      ...getDefaultTooltip(refs),
       appendToBody: true,
       trigger: richTooltip ? 'axis' : 'item',
       show: !inContextMenu,
@@ -384,6 +387,7 @@ export default function transformProps(
   };
 
   return {
+    refs,
     formData,
     width,
     height,
