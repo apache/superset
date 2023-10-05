@@ -74,6 +74,9 @@ const AllEntitiesContainer = styled.div`
   .entities {
     margin: ${theme.gridUnit * 6}px; 0px;
   }
+  .pagination-container {
+    background-color: transparent;
+  }
   `}
 `;
 
