@@ -263,13 +263,9 @@ class IkiRunPipeline extends React.PureComponent {
               );
               widgetUrlQuery.set('pipeline_log_type', messageData.logLevel);
               widgetUrlQuery.set('edit_variables', messageData.variable);
-              widgetUrlQuery.set(
-                'selected_charts',
-                Buffer.from(
-                  JSON.stringify(messageData.selectedCharts),
-                  'utf-8',
-                ).toString('base64'),
-              );
+              const jsonString = JSON.stringify(messageData.selectedCharts);
+              const base64String = Buffer.from(jsonString).toString('base64');
+              widgetUrlQuery.set('selected_charts', base64String);
               widgetUrl.search = widgetUrlQuery.toString();
               const tempIframe = `<iframe
                       id="ikirunpipeline-widget-${this.props.component.id}"
@@ -334,7 +330,6 @@ class IkiRunPipeline extends React.PureComponent {
       const tempChartName = chartElement.getAttribute('data-test-chart-name');
       chartsList.push({ id: tempChartID, name: tempChartName });
     });
-
     if (
       document.getElementById(
         `ikirunpipeline-widget-${this.props.component.id}`,
@@ -350,10 +345,9 @@ class IkiRunPipeline extends React.PureComponent {
     }
     const widgetUrlQuery = new URLSearchParams(widgetUrl.search);
     widgetUrlQuery.set('mode', mode);
-    widgetUrlQuery.set(
-      'charts_list',
-      Buffer.from(JSON.stringify(chartsList), 'utf-8').toString('base64'),
-    );
+    const jsonString2 = JSON.stringify(chartsList);
+    const base64String2 = Buffer.from(jsonString2).toString('base64');
+    widgetUrlQuery.set('charts_list', base64String2);
     widgetUrl.search = widgetUrlQuery.toString();
     const tempIframe = `<iframe
                       id="ikirunpipeline-widget-${this.props.component.id}"
@@ -488,11 +482,9 @@ class IkiRunPipeline extends React.PureComponent {
         const tempChartName = chartElement.getAttribute('data-test-chart-name');
         chartsList.push({ id: tempChartID, name: tempChartName });
       });
-
-      iframeSrc = `${iframeSrc}&charts_list=${Buffer.from(
-        JSON.stringify(chartsList),
-        'utf-8',
-      ).toString('base64')}`;
+      const jsonString3 = JSON.stringify(chartsList);
+      const base64String3 = Buffer.from(jsonString3).toString('base64');
+      iframeSrc = `${iframeSrc}&charts_list=${base64String3}`;
 
       iframe = `<iframe
                     id="ikirunpipeline-widget-${this.props.component.id}"
