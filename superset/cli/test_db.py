@@ -67,7 +67,12 @@ user_prefs = Table(
     "tmp_superset_test_table_user_prefs",
     metadata_obj,
     Column("pref_id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("user.user_id"), nullable=False),
+    Column(
+        "user_id",
+        Integer,
+        ForeignKey("tmp_superset_test_table_user.user_id"),
+        nullable=False,
+    ),
     Column("pref_name", String(40), nullable=False),
     Column("pref_value", String(100)),
 )
@@ -99,10 +104,8 @@ registry = TestRegistry()
 @registry.add("sqlite", "postgresql")
 def test_datetime(console: Console, engine: Engine) -> None:
     """
-    Create a table with a timestamp column.
+    Create a table with a timestamp column and read value back.
     """
-    console.print("[bold]Testing datetime support...")
-
     md = MetaData()
     table = Table(
         "test",
@@ -110,26 +113,21 @@ def test_datetime(console: Console, engine: Engine) -> None:
         Column("ts", DateTime),
     )
 
-    try:
-        console.print("Creating a table with a timestamp column...")
-        md.create_all(engine)
-        console.print("[green]Table created!")
+    console.print("Creating a table with a timestamp column...")
+    md.create_all(engine)
+    console.print("[green]Table created!")
 
-        now = datetime.now()
+    now = datetime.now()
 
-        console.print("Inserting timestamp value...")
-        stmt = insert(table).values(ts=now)
-        engine.execute(stmt)
+    console.print("Inserting timestamp value...")
+    insert_stmt = insert(table).values(ts=now)
+    engine.execute(insert_stmt)
 
-        console.print("Reading timestamp value...")
-        stmt = select(table)
-        row = engine.execute(stmt).fetchone()
-        assert row[0] == now
-        console.print(":thumbs_up: [green]Success!")
-    except Exception as ex:  # pylint: disable=broad-except
-        console.print(f"[red]Test failed: {ex}")
-        console.print("[bold]Exiting...")
-        sys.exit(1)
+    console.print("Reading timestamp value...")
+    select_stmt = select(table)
+    row = engine.execute(select_stmt).fetchone()
+    assert row[0] == now
+    console.print(":thumbs_up: [green]Success!")
 
 
 @click.command()
@@ -355,63 +353,15 @@ def test_database_connectivity(console: Console, engine: Engine) -> None:
     color = "green" if result == 1 else "red"
     console.print(f"[{color}]> {result}")
 
-    console.print("[bold]Checking that we can create tables...")
-    try:
-        metadata_obj.create_all(engine)
-        console.print("[green]Tables created!")
-    except Exception as ex:  # pylint: disable=broad-except
-        console.print(f"[red]Unable to create tables: {ex}")
-        console.print("[bold]Exiting...")
-        sys.exit(1)
-
-    console.print("[bold]Checking that we can insert data...")
-    stmt = insert(user).values(
-        user_name="beto",
-        email="beto@example.org",
-        nickname="Beto",
-    )
-    try:
-        console.print(
-            "sql>",
-            stmt.compile(
-                dialect=engine.dialect,
-                compile_kwargs={"literal_binds": True},
-            ),
-        )
-        engine.execute(stmt)
-    except Exception as ex:  # pylint: disable=broad-except
-        console.print(f"[red]Unable to insert data: {ex}")
-        console.print("[bold]Exiting...")
-        sys.exit(1)
-
-    console.print("[bold]Checking that we can read data...")
-    stmt = select(user).where(user.c.user_name == "beto")
-    try:
-        console.print(
-            "sql>",
-            stmt.compile(
-                dialect=engine.dialect,
-                compile_kwargs={"literal_binds": True},
-            ),
-        )
-        result = engine.execute(stmt).fetchall()
-        console.print(f"[green]> {result}")
-    except Exception as ex:  # pylint: disable=broad-except
-        console.print(f"[red]Unable to read data: {ex}")
-        console.print("[bold]Exiting...")
-        sys.exit(1)
-
-    console.print("[bold]Checking that we can drop tables...")
-    try:
-        metadata_obj.drop_all(engine)
-        console.print("[green]Done!")
-    except Exception as ex:  # pylint: disable=broad-except
-        console.print(f"[red]Unable to drop tables: {ex}")
-        console.print("[bold]Exiting...")
-        sys.exit(1)
-
     # run engine-specific tests
     if tests := registry.get_tests(engine.dialect.name):
         console.print("[bold]Running engine-specific tests...")
         for test in tests:
-            test(console, engine)
+            docstring = (test.__doc__ or test.__name__).strip().splitlines()[0]
+            try:
+                console.print(f"[bold]{docstring}...")
+                test(console, engine)
+            except Exception as ex:  # pylint: disable=broad-except
+                console.print(f"[red]Test failed: {ex}")
+                console.print("[bold]Exiting...")
+                sys.exit(1)
