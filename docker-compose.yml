@@ -30,6 +30,7 @@ x-superset-volumes: &superset-volumes
 version: "3.7"
 services:
   redis:
+    platform: linux/amd64
     image: redis:7
     container_name: superset_cache
     restart: unless-stopped
@@ -39,6 +40,7 @@ services:
       - redis:/data
 
   db:
+    platform: linux/amd64
     env_file: docker/.env
     image: postgres:14
     container_name: superset_db
@@ -50,6 +52,7 @@ services:
       - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
 
   superset:
+    platform: linux/amd64
     env_file: docker/.env
     image: *superset-image
     container_name: superset_app
@@ -64,6 +67,7 @@ services:
       CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
 
   superset-websocket:
+    platform: linux/amd64
     container_name: superset_websocket
     build: ./superset-websocket
     image: superset-websocket
@@ -92,6 +96,7 @@ services:
       - REDIS_SSL=false
 
   superset-init:
+    platform: linux/amd64
     image: *superset-image
     container_name: superset_init
     command: ["/app/docker/docker-init.sh"]
@@ -105,6 +110,7 @@ services:
       disable: true
 
   superset-node:
+    platform: linux/amd64
     image: node:16
     container_name: superset_node
     command: ["/app/docker/docker-frontend.sh"]
@@ -113,6 +119,7 @@ services:
     volumes: *superset-volumes
 
   superset-worker:
+    platform: linux/amd64
     image: *superset-image
     container_name: superset_worker
     command: ["/app/docker/docker-bootstrap.sh", "worker"]
@@ -128,6 +135,7 @@ services:
     # mem_reservation: 128M
 
   superset-worker-beat:
+    platform: linux/amd64
     image: *superset-image
     container_name: superset_worker_beat
     command: ["/app/docker/docker-bootstrap.sh", "beat"]
@@ -140,6 +148,7 @@ services:
       disable: true
 
   superset-tests-worker:
+    platform: linux/amd64
     image: *superset-image
     container_name: superset_tests_worker
     command: ["/app/docker/docker-bootstrap.sh", "worker"]
