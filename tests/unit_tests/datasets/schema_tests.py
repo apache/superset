@@ -16,56 +16,59 @@
 # under the License.
 
 # pylint: disable=import-outside-toplevel, invalid-name, unused-argument, redefined-outer-name
-from marshmallow import ValidationError
 import pytest
+from marshmallow import ValidationError
 
-from superset.datasets.schemas import DatasetColumnsPutSchema
 
 # pylint: disable=too-few-public-methods
-
-@pytest.mark.parametrize("payload", [
-    (
-        {
-            "column_name": "insert_time",
-            "filterable": True,
-            "groupby": True,
-            "python_date_format": None,
-        }
-    ),
-    (
-        {
-            "column_name": "insert_time",
-            "filterable": True,
-            "groupby": True,
-            "python_date_format": "epoch_ms",
-        }
-    ),
-    (
-        {
-            "column_name": "insert_time",
-            "filterable": True,
-            "groupby": True,
-            "python_date_format": "epoch_s",
-        }
-    ),
-    (
-        {
-            "column_name": "insert_time",
-            "filterable": True,
-            "groupby": True,
-            "python_date_format": "%Y/%m/%dT%H:%M:%S.%f",
-        }
-    ),
-    (
-        {
-            "column_name": "insert_time",
-            "filterable": True,
-            "groupby": True,
-            "python_date_format": "%Y%m%d",
-        }
-    ),
-])
+@pytest.mark.parametrize(
+    "payload",
+    [
+        (
+            {
+                "column_name": "insert_time",
+                "filterable": True,
+                "groupby": True,
+                "python_date_format": None,
+            }
+        ),
+        (
+            {
+                "column_name": "insert_time",
+                "filterable": True,
+                "groupby": True,
+                "python_date_format": "epoch_ms",
+            }
+        ),
+        (
+            {
+                "column_name": "insert_time",
+                "filterable": True,
+                "groupby": True,
+                "python_date_format": "epoch_s",
+            }
+        ),
+        (
+            {
+                "column_name": "insert_time",
+                "filterable": True,
+                "groupby": True,
+                "python_date_format": "%Y/%m/%dT%H:%M:%S.%f",
+            }
+        ),
+        (
+            {
+                "column_name": "insert_time",
+                "filterable": True,
+                "groupby": True,
+                "python_date_format": "%Y%m%d",
+            }
+        ),
+    ],
+)
 def test_datasets_schema_update_column_datetime_format(payload) -> None:
+    from superset.datasets.schemas import DatasetColumnsPutSchema
+
     schema = DatasetColumnsPutSchema()
 
     try:
