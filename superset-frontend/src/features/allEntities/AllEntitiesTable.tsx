@@ -27,7 +27,7 @@ import Owner from 'src/types/Owner';
 import { EmptyStateBig } from 'src/components/EmptyState';
 
 const MAX_TAGS_TO_SHOW = 3;
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 10;
 
 const AllEntitiesTableContainer = styled.div`
   text-align: left;
