@@ -21,7 +21,6 @@ import { act } from 'react-dom/test-utils';
 import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import reducers from 'spec/helpers/reducerIndex';
-import SqlEditor from 'src/SqlLab/components/SqlEditor';
 import { setupStore } from 'src/views/store';
 import {
   initialState,
@@ -34,10 +33,20 @@ import ResultSet from 'src/SqlLab/components/ResultSet';
 import { api } from 'src/hooks/apiResources/queryApi';
 import { getExtensionsRegistry } from '@superset-ui/core';
 import setupExtensions from 'src/setup/setupExtensions';
+import type { Action, Middleware, Store } from 'redux';
+import SqlEditor, { Props } from '.';
 
 jest.mock('src/components/AsyncAceEditor', () => ({
   ...jest.requireActual('src/components/AsyncAceEditor'),
-  FullSQLEditor: ({ onChange, onBlur, value }) => (
+  FullSQLEditor: ({
+    onChange,
+    onBlur,
+    value,
+  }: {
+    onChange: (value: string) => void;
+    onBlur: React.FocusEventHandler<HTMLTextAreaElement>;
+    value: string;
+  }) => (
     <textarea
       data-test="react-ace"
       onChange={evt => onChange(evt.target.value)}
@@ -56,8 +65,8 @@ fetchMock.get('glob:*/api/v1/database/*', { result: [] });
 fetchMock.get('glob:*/api/v1/database/*/tables/*', { options: [] });
 fetchMock.post('glob:*/sqllab/execute/*', { result: [] });
 
-let store;
-let actions;
+let store: Store;
+let actions: Action[];
 const latestQuery = {
   ...queries[0],
   sqlEditorId: defaultQueryEditor.id,
@@ -91,13 +100,13 @@ const mockInitialState = {
   },
 };
 
-const setup = (props = {}, store) =>
+const setup = (props: Props, store: Store) =>
   render(<SqlEditor {...props} />, {
     useRedux: true,
     ...(store && { store }),
   });
 
-const logAction = () => next => action => {
+const logAction: Middleware = () => next => action => {
   if (typeof action === 'function') {
     return next(action);
   }
@@ -105,9 +114,9 @@ const logAction = () => next => action => {
   return next(action);
 };
 
-const createStore = initState =>
+const createStore = (initState: object) =>
   setupStore({
-    disableDegugger: true,
+    disableDebugger: true,
     initialState: initState,
     rootReducers: reducers,
     middleware: getDefaultMiddleware =>
@@ -124,18 +133,22 @@ describe('SqlEditor', () => {
     defaultQueryLimit: 1000,
     maxRow: 100000,
     displayLimit: 100,
+    saveQueryWarning: '',
+    scheduleQueryWarning: '',
   };
 
   beforeEach(() => {
     store = createStore(mockInitialState);
     actions = [];
 
-    SqlEditorLeftBar.mockClear();
-    SqlEditorLeftBar.mockImplementation(() => (
+    (SqlEditorLeftBar as jest.Mock).mockClear();
+    (SqlEditorLeftBar as jest.Mock).mockImplementation(() => (
       <div data-test="mock-sql-editor-left-bar" />
     ));
-    ResultSet.mockClear();
-    ResultSet.mockImplementation(() => <div data-test="mock-result-set" />);
+    (ResultSet as jest.Mock).mockClear();
+    (ResultSet as jest.Mock).mockImplementation(() => (
+      <div data-test="mock-result-set" />
+    ));
   });
 
   afterEach(() => {
@@ -168,8 +181,8 @@ describe('SqlEditor', () => {
     const { findByTestId } = setup(mockedProps, store);
     const editor = await findByTestId('react-ace');
     const sql = 'select *';
-    const renderCount = SqlEditorLeftBar.mock.calls.length;
-    const renderCountForSouthPane = ResultSet.mock.calls.length;
+    const renderCount = (SqlEditorLeftBar as jest.Mock).mock.calls.length;
+    const renderCountForSouthPane = (ResultSet as jest.Mock).mock.calls.length;
     expect(SqlEditorLeftBar).toHaveBeenCalledTimes(renderCount);
     expect(ResultSet).toHaveBeenCalledTimes(renderCountForSouthPane);
     fireEvent.change(editor, { target: { value: sql } });
