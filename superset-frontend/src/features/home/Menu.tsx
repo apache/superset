@@ -24,7 +24,7 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { Row, Col, Grid } from 'src/components';
 import { MainNav as DropdownMenu, MenuMode } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
-import { Link, NavLink } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { GenericLink } from 'src/components/GenericLink/GenericLink';
 import Icons from 'src/components/Icons';
 import { useUiConfig } from 'src/components/UiConfigContext';
