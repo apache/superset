@@ -104,10 +104,8 @@ registry = TestRegistry()
 @registry.add("sqlite", "postgresql")
 def test_datetime(console: Console, engine: Engine) -> None:
     """
-    Create a table with a timestamp column.
+    Create a table with a timestamp column and read value back.
     """
-    console.print("[bold]Testing datetime support...")
-
     md = MetaData()
     table = Table(
         "test",
@@ -115,26 +113,21 @@ def test_datetime(console: Console, engine: Engine) -> None:
         Column("ts", DateTime),
     )
 
-    try:
-        console.print("Creating a table with a timestamp column...")
-        md.create_all(engine)
-        console.print("[green]Table created!")
+    console.print("Creating a table with a timestamp column...")
+    md.create_all(engine)
+    console.print("[green]Table created!")
 
-        now = datetime.now()
+    now = datetime.now()
 
-        console.print("Inserting timestamp value...")
-        insert_stmt = insert(table).values(ts=now)
-        engine.execute(insert_stmt)
+    console.print("Inserting timestamp value...")
+    insert_stmt = insert(table).values(ts=now)
+    engine.execute(insert_stmt)
 
-        console.print("Reading timestamp value...")
-        select_stmt = select(table)
-        row = engine.execute(select_stmt).fetchone()
-        assert row[0] == now
-        console.print(":thumbs_up: [green]Success!")
-    except Exception as ex:  # pylint: disable=broad-except
-        console.print(f"[red]Test failed: {ex}")
-        console.print("[bold]Exiting...")
-        sys.exit(1)
+    console.print("Reading timestamp value...")
+    select_stmt = select(table)
+    row = engine.execute(select_stmt).fetchone()
+    assert row[0] == now
+    console.print(":thumbs_up: [green]Success!")
 
 
 @click.command()
@@ -419,4 +412,11 @@ def test_database_connectivity(console: Console, engine: Engine) -> None:
     if tests := registry.get_tests(engine.dialect.name):
         console.print("[bold]Running engine-specific tests...")
         for test in tests:
-            test(console, engine)
+            docstring = (test.__doc__ or test.__name__).strip().splitlines()[0]
+            try:
+                console.print(f"[bold]{docstring}...")
+                test(console, engine)
+            except Exception as ex:  # pylint: disable=broad-except
+                console.print(f"[red]Test failed: {ex}")
+                console.print("[bold]Exiting...")
+                sys.exit(1)
