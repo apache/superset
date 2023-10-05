@@ -155,11 +155,13 @@ const globalStyles = (theme: SupersetTheme) => css`
     }
   }
   .ant-menu-item-selected {
-    color: inherit !important;
     background-color: transparent !important;
-    border-bottom-color: transparent !important;
-    & > a {
+    &:not(.ant-menu-item-active) {
       color: inherit !important;
+      border-bottom-color: transparent !important;
+      & > a {
+        color: inherit !important;
+      }
     }
   }
   .ant-menu-horizontal > .ant-menu-item:has(> .is-active) {
