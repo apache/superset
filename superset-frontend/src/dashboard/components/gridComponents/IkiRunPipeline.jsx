@@ -264,9 +264,9 @@ class IkiRunPipeline extends React.PureComponent {
               widgetUrlQuery.set('pipeline_log_type', messageData.logLevel);
               widgetUrlQuery.set('edit_variables', messageData.variable);
               console.log('selectedCharts', messageData.selectedCharts);
-              let jsonString = JSON.stringify(messageData.selectedCharts);
+              const jsonString = JSON.stringify(messageData.selectedCharts);
               console.log('jsonString', jsonString);
-              let base64String = Buffer.from(jsonString).toString('base64');
+              const base64String = Buffer.from(jsonString).toString('base64');
               console.log('base64String', base64String);
               widgetUrlQuery.set('selected_charts', base64String);
               widgetUrl.search = widgetUrlQuery.toString();
@@ -351,9 +351,9 @@ class IkiRunPipeline extends React.PureComponent {
     const widgetUrlQuery = new URLSearchParams(widgetUrl.search);
     widgetUrlQuery.set('mode', mode);
     console.log('chartsList', chartsList);
-    let jsonString2 = JSON.stringify(chartsList);
+    const jsonString2 = JSON.stringify(chartsList);
     console.log('jsonString2', jsonString2);
-    let base64String2 = Buffer.from(jsonString2).toString('base64');
+    const base64String2 = Buffer.from(jsonString2).toString('base64');
     console.log('base64String2', base64String2);
     widgetUrlQuery.set('charts_list', base64String2);
     widgetUrl.search = widgetUrlQuery.toString();
@@ -491,9 +491,9 @@ class IkiRunPipeline extends React.PureComponent {
         chartsList.push({ id: tempChartID, name: tempChartName });
       });
       console.log('chartsList', chartsList);
-      let jsonString3 = JSON.stringify(chartsList);
+      const jsonString3 = JSON.stringify(chartsList);
       console.log('jsonString3', jsonString3);
-      let base64String3 = Buffer.from(jsonString3).toString('base64');
+      const base64String3 = Buffer.from(jsonString3).toString('base64');
       console.log('base64String3', base64String3);
       iframeSrc = `${iframeSrc}&charts_list=${base64String3}`;
 
