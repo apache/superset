@@ -610,6 +610,25 @@ Then put this:
 export NODE_OPTIONS=--no-experimental-fetch
 ```
 
+If this type of error comes while building assets(i.e using above commands):
+
+```bash
+Error: ENOSPC: System limit for number of file watchers reached
+```
+The meaning of this error is that the number of files monitored by the system has reached the limit!
+
+Do the following to Modify the number of system monitoring files :
+```bash
+sudo gedit /etc/sysctl.conf
+```
+Add a line at the bottom
+```bash
+fs.inotify.max_user_watches=524288
+```
+save and exit
+```bash
+sudo sysctl -p
+```
 #### Webpack dev server
 
 The dev server by default starts at `http://localhost:9000` and proxies the backend requests to `http://localhost:8088`.
