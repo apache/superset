@@ -610,7 +610,7 @@ Then put this:
 export NODE_OPTIONS=--no-experimental-fetch
 ```
 
-If this type of error comes while building assets(i.e using above commands):
+If Following type of error comes while running dev server(i.e using above commands):
 
 ```bash
 Error: ENOSPC: System limit for number of file watchers reached
