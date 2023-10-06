@@ -927,7 +927,9 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
 
         mock_execute = mock.MagicMock(side_effect=DatabaseError())
         database = mock.MagicMock()
-        database.get_raw_connection().__enter__().cursor().execute.fetch_data = mock_execute
+        database.get_raw_connection().__enter__().cursor().execute.fetch_data = (
+            mock_execute
+        )
         schema = "schema"
         table = "table"
         result = PrestoEngineSpec.get_create_view(database, schema=schema, table=table)

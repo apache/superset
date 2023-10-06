@@ -1274,7 +1274,6 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             except DatabaseError:  # not a VIEW
                 return None
 
-
     @classmethod
     def get_tracking_url(cls, cursor: Cursor) -> str | None:
         with contextlib.suppress(AttributeError):
