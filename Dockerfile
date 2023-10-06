@@ -57,13 +57,13 @@ ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
     SUPERSET_ENV=production \
     FLASK_APP="superset.app:create_app()" \
-    PYTHONPATH="/app/pythonpath" \
+    PYTHONPATH="/app/docker/pythonpath_dev" \
     SUPERSET_HOME="/app/superset_home" \
     SUPERSET_PORT=8088
 
 RUN --mount=target=/var/lib/apt/lists,type=cache \
     --mount=target=/var/cache/apt,type=cache \
-    mkdir -p ${PYTHONPATH} superset/static superset-frontend apache_superset.egg-info requirements \
+    mkdir -p superset/static superset-frontend apache_superset.egg-info requirements \
     && useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset \
     && apt-get update -qq && apt-get install -yqq --no-install-recommends \
         build-essential \
@@ -76,6 +76,9 @@ RUN --mount=target=/var/lib/apt/lists,type=cache \
         libldap2-dev \
     && touch superset/static/version_info.json \
     && chown -R superset:superset ./*
+
+# copy docker-init.sh, docker-bootstrap.sh etc
+COPY --chown=superset:superset ./docker /app/docker
 
 COPY --chown=superset:superset setup.py MANIFEST.in README.md ./
 # setup.py uses the version information in package.json

@@ -18,38 +18,33 @@ x-superset-image: &superset-image apachesuperset.docker.scarf.sh/apache/superset
 x-superset-depends-on: &superset-depends-on
   - db
   - redis
-x-superset-volumes:
-  &superset-volumes # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
-  - ./docker:/app/docker
+x-superset-volumes: &superset-volumes
   - superset_home:/app/superset_home
+  ### uncomment the line below if you want to add your local config
+  # - ./docker/pythonpath_dev:/app/docker/pythonpath_dev
+x-superset-environment: &superset-environment
+  ### settings for meta database:
+  POSTGRES_PASSWORD: superset
+  POSTGRES_USER: superset
+  ### settings for examples database:
+  SUPERSET_LOAD_EXAMPLES: yes
+  EXAMPLES_USER: examples
+  EXAMPLES_PASSWORD: examples
+  EXAMPLES_DB: examples
+  ### generate your SUPERSET_SECRET_KEY with "openssl rand -base64 42"
+  SUPERSET_SECRET_KEY: ""
 
 version: "3.7"
 services:
-  redis:
-    image: redis:7
-    container_name: superset_cache
-    restart: unless-stopped
-    volumes:
-      - redis:/data
-
-  db:
-    env_file: docker/.env-non-dev
-    image: postgres:15
-    container_name: superset_db
-    restart: unless-stopped
-    volumes:
-      - db_home:/var/lib/postgresql/data
-      - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
-
   superset:
-    env_file: docker/.env-non-dev
     image: *superset-image
     container_name: superset_app
     command: ["/app/docker/docker-bootstrap.sh", "app-gunicorn"]
     user: "root"
     restart: unless-stopped
     ports:
-      - 8088:8088
+      - "8088:8088"
+    environment: *superset-environment
     depends_on: *superset-depends-on
     volumes: *superset-volumes
 
@@ -57,9 +52,9 @@ services:
     image: *superset-image
     container_name: superset_init
     command: ["/app/docker/docker-init.sh"]
-    env_file: docker/.env-non-dev
-    depends_on: *superset-depends-on
     user: "root"
+    environment: *superset-environment
+    depends_on: *superset-depends-on
     volumes: *superset-volumes
     healthcheck:
       disable: true
@@ -68,29 +63,41 @@ services:
     image: *superset-image
     container_name: superset_worker
     command: ["/app/docker/docker-bootstrap.sh", "worker"]
-    env_file: docker/.env-non-dev
-    restart: unless-stopped
-    depends_on: *superset-depends-on
     user: "root"
+    restart: unless-stopped
+    environment: *superset-environment
+    depends_on: *superset-depends-on
     volumes: *superset-volumes
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "celery -A superset.tasks.celery_app:app inspect ping -d celery@$$HOSTNAME",
-        ]
+      test: ["CMD-SHELL", "celery -A superset.tasks.celery_app:app inspect ping -d celery@$$HOSTNAME"]
 
   superset-worker-beat:
     image: *superset-image
     container_name: superset_worker_beat
     command: ["/app/docker/docker-bootstrap.sh", "beat"]
-    env_file: docker/.env-non-dev
-    restart: unless-stopped
-    depends_on: *superset-depends-on
     user: "root"
+    restart: unless-stopped
+    environment: *superset-environment
+    depends_on: *superset-depends-on
     volumes: *superset-volumes
     healthcheck:
       disable: true
+
+  redis:
+    image: redis:7
+    container_name: superset_cache
+    restart: unless-stopped
+    volumes:
+      - redis:/data
+
+  db:
+    image: postgres:15
+    container_name: superset_db
+    restart: unless-stopped
+    environment: *superset-environment
+    volumes:
+      - db_home:/var/lib/postgresql/data
+      - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
 
 volumes:
   superset_home:
