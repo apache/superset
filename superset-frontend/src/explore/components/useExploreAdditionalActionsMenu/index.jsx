@@ -33,12 +33,14 @@ import Button from 'src/components/Button';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { exportChart, getChartKey } from 'src/explore/exploreUtils';
 import downloadAsImage from 'src/utils/downloadAsImage';
+import downloadAsPdf from 'src/utils/downloadAsPdf';
 import { getChartPermalink } from 'src/utils/urlUtils';
 import copyTextToClipboard from 'src/utils/copy';
 import HeaderReportDropDown from 'src/features/reports/ReportModal/HeaderReportDropdown';
 import { logEvent } from 'src/logger/actions';
 import {
-  LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE,
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_JPG,
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF,
   LOG_ACTIONS_CHART_DOWNLOAD_AS_JSON,
   LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV,
   LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV_PIVOTED,
@@ -56,7 +58,8 @@ const MENU_KEYS = {
   EXPORT_TO_CSV_PIVOTED: 'export_to_csv_pivoted',
   EXPORT_TO_JSON: 'export_to_json',
   EXPORT_TO_XLSX: 'export_to_xlsx',
-  DOWNLOAD_AS_IMAGE: 'download_as_image',
+  DOWNLOAD_AS_JPG: 'download_as_jpg',
+  DOWNLOAD_AS_PDF: 'download_as_pdf',
   SHARE_SUBMENU: 'share_submenu',
   COPY_PERMALINK: 'copy_permalink',
   EMBED_CODE: 'embed_code',
@@ -250,7 +253,7 @@ export const useExploreAdditionalActionsMenu = (
             }),
           );
           break;
-        case MENU_KEYS.DOWNLOAD_AS_IMAGE:
+        case MENU_KEYS.DOWNLOAD_AS_JPG:
           downloadAsImage(
             '.panel-body .chart-container',
             // eslint-disable-next-line camelcase
@@ -259,7 +262,22 @@ export const useExploreAdditionalActionsMenu = (
           )(domEvent);
           setIsDropdownVisible(false);
           dispatch(
-            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE, {
+            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_JPG, {
+              chartId: slice?.slice_id,
+              chartName: slice?.slice_name,
+            }),
+          );
+          break;
+        case MENU_KEYS.DOWNLOAD_AS_PDF:
+          downloadAsPdf(
+            '.panel-body .chart-container',
+            // eslint-disable-next-line camelcase
+            slice?.slice_name ?? t('New chart'),
+            true,
+          )(domEvent);
+          setIsDropdownVisible(false);
+          dispatch(
+            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF, {
               chartId: slice?.slice_id,
               chartName: slice?.slice_name,
             }),
@@ -328,14 +346,14 @@ export const useExploreAdditionalActionsMenu = (
                 icon={<Icons.FileOutlined css={iconReset} />}
                 disabled={!canDownloadCSV}
               >
-                {t('Export to original .CSV')}
+                {t('Export to original CSV')}
               </Menu.Item>
               <Menu.Item
                 key={MENU_KEYS.EXPORT_TO_CSV_PIVOTED}
                 icon={<Icons.FileOutlined css={iconReset} />}
                 disabled={!canDownloadCSV}
               >
-                {t('Export to pivoted .CSV')}
+                {t('Export to pivoted CSV')}
               </Menu.Item>
             </>
           ) : (
@@ -344,26 +362,32 @@ export const useExploreAdditionalActionsMenu = (
               icon={<Icons.FileOutlined css={iconReset} />}
               disabled={!canDownloadCSV}
             >
-              {t('Export to .CSV')}
+              {t('Export to CSV')}
             </Menu.Item>
           )}
-          <Menu.Item
-            key={MENU_KEYS.EXPORT_TO_JSON}
-            icon={<Icons.FileOutlined css={iconReset} />}
-          >
-            {t('Export to .JSON')}
-          </Menu.Item>
-          <Menu.Item
-            key={MENU_KEYS.DOWNLOAD_AS_IMAGE}
-            icon={<Icons.FileImageOutlined css={iconReset} />}
-          >
-            {t('Download as image')}
-          </Menu.Item>
           <Menu.Item
             key={MENU_KEYS.EXPORT_TO_XLSX}
             icon={<Icons.FileOutlined css={iconReset} />}
           >
             {t('Export to Excel')}
+          </Menu.Item>
+          <Menu.Item
+            key={MENU_KEYS.EXPORT_TO_JSON}
+            icon={<Icons.FileOutlined css={iconReset} />}
+          >
+            {t('Export to JSON')}
+          </Menu.Item>
+          <Menu.Item
+            key={MENU_KEYS.DOWNLOAD_AS_PDF}
+            icon={<Icons.FilePdfOutlined css={iconReset} />}
+          >
+            {t('Download as PDF')}
+          </Menu.Item>
+          <Menu.Item
+            key={MENU_KEYS.DOWNLOAD_AS_JPG}
+            icon={<Icons.FileImageOutlined css={iconReset} />}
+          >
+            {t('Download as JPG')}
           </Menu.Item>
         </Menu.SubMenu>
         <Menu.SubMenu title={t('Share')} key={MENU_KEYS.SHARE_SUBMENU}>

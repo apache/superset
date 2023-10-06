@@ -20,6 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { isEmpty } from 'lodash';
 import {
+  css,
   isFeatureEnabled,
   FeatureFlag,
   SupersetClient,
@@ -27,6 +28,7 @@ import {
 } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { URL_PARAMS } from 'src/constants';
+import Icons from 'src/components/Icons';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import CssEditor from 'src/dashboard/components/CssEditor';
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
@@ -41,7 +43,7 @@ import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { getUrlParam } from 'src/utils/urlUtils';
 import {
-  LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE,
+  LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_JPG,
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF,
 } from 'src/logger/LogUtils';
 
@@ -94,8 +96,9 @@ const MENU_KEYS = {
   SET_FILTER_MAPPING: 'set-filter-mapping',
   EDIT_PROPERTIES: 'edit-properties',
   EDIT_CSS: 'edit-css',
-  DOWNLOAD_AS_IMAGE: 'download-as-image',
+  DOWNLOAD_AS_JPG: 'download-as-jpg',
   DOWNLOAD_AS_PDF: 'download-as-pdf',
+  DOWNLOAD_SUBMENU: 'download_submenu',
   TOGGLE_FULLSCREEN: 'toggle-fullscreen',
   MANAGE_EMBEDDED: 'manage-embedded',
   MANAGE_EMAIL_REPORT: 'manage-email-report',
@@ -103,6 +106,12 @@ const MENU_KEYS = {
 
 const SCREENSHOT_NODE_SELECTOR = '.dashboard';
 
+const iconReset = css`
+  .ant-dropdown-menu-item > & > .anticon:first-child {
+    margin-right: 0;
+    vertical-align: 0;
+  }
+`;
 class HeaderActionsDropdown extends React.PureComponent {
   static discardChanges() {
     window.location.reload();
@@ -172,7 +181,7 @@ class HeaderActionsDropdown extends React.PureComponent {
       case MENU_KEYS.EDIT_PROPERTIES:
         this.props.showPropertiesModal();
         break;
-      case MENU_KEYS.DOWNLOAD_AS_IMAGE: {
+      case MENU_KEYS.DOWNLOAD_AS_JPG: {
         // menu closes with a delay, we need to hide it manually,
         // so that we don't capture it on the screenshot
         const menu = document.querySelector(
@@ -186,7 +195,7 @@ class HeaderActionsDropdown extends React.PureComponent {
         )(domEvent).then(() => {
           menu.style.visibility = 'visible';
         });
-        this.props.logEvent?.(LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE);
+        this.props.logEvent?.(LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_JPG);
         break;
       }
       case MENU_KEYS.DOWNLOAD_AS_PDF: {
@@ -333,22 +342,26 @@ class HeaderActionsDropdown extends React.PureComponent {
             />
           </Menu.Item>
         )}
-        {!editMode && (
-          <Menu.Item
-            key={MENU_KEYS.DOWNLOAD_AS_IMAGE}
-            onClick={this.handleMenuClick}
-          >
-            {t('Download as image')}
-          </Menu.Item>
-        )}
-        {!editMode && (
-          <Menu.Item
-            key={MENU_KEYS.DOWNLOAD_AS_PDF}
-            onClick={this.handleMenuClick}
-          >
-            {t('Download as PDF')}
-          </Menu.Item>
-        )}
+        <Menu.SubMenu title={t('Download')} key={MENU_KEYS.DOWNLOAD_SUBMENU}>
+          {!editMode && (
+            <Menu.Item
+              key={MENU_KEYS.DOWNLOAD_AS_PDF}
+              icon={<Icons.FilePdfOutlined css={iconReset} />}
+              onClick={this.handleMenuClick}
+            >
+              {t('Download as PDF')}
+            </Menu.Item>
+          )}
+          {!editMode && (
+            <Menu.Item
+              key={MENU_KEYS.DOWNLOAD_AS_JPG}
+              icon={<Icons.FileImageOutlined css={iconReset} />}
+              onClick={this.handleMenuClick}
+            >
+              {t('Download as JPG')}
+            </Menu.Item>
+          )}
+        </Menu.SubMenu>
         {userCanShare && (
           <Menu.SubMenu
             key={MENU_KEYS.SHARE_DASHBOARD}

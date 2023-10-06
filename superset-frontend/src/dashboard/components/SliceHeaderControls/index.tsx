@@ -46,6 +46,7 @@ import { Menu } from 'src/components/Menu';
 import { NoAnimationDropdown } from 'src/components/Dropdown';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import downloadAsImage from 'src/utils/downloadAsImage';
+import downloadAsPdf from 'src/utils/downloadAsPdf';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
@@ -55,12 +56,16 @@ import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
 import { ResultsPaneOnDashboard } from 'src/explore/components/DataTablesPane';
 import Modal from 'src/components/Modal';
 import { DrillDetailMenuItems } from 'src/components/Chart/DrillDetail';
-import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
+import {
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_JPG,
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF,
+} from 'src/logger/LogUtils';
 import { RootState } from 'src/dashboard/types';
 import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 
 const MENU_KEYS = {
-  DOWNLOAD_AS_IMAGE: 'download_as_image',
+  DOWNLOAD_AS_JPG: 'download_as_jpg',
+  DOWNLOAD_AS_PDF: 'download_as_pdf',
   EXPLORE_CHART: 'explore_chart',
   EXPORT_CSV: 'export_csv',
   EXPORT_FULL_CSV: 'export_full_csv',
@@ -305,7 +310,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         // eslint-disable-next-line no-unused-expressions
         props.exportXLSX?.(props.slice.slice_id);
         break;
-      case MENU_KEYS.DOWNLOAD_AS_IMAGE: {
+      case MENU_KEYS.DOWNLOAD_AS_JPG: {
         // menu closes with a delay, we need to hide it manually,
         // so that we don't capture it on the screenshot
         const menu = document.querySelector(
@@ -320,7 +325,27 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         )(domEvent).then(() => {
           menu.style.visibility = 'visible';
         });
-        props.logEvent?.(LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE, {
+        props.logEvent?.(LOG_ACTIONS_CHART_DOWNLOAD_AS_JPG, {
+          chartId: props.slice.slice_id,
+        });
+        break;
+      }
+      case MENU_KEYS.DOWNLOAD_AS_PDF: {
+        // menu closes with a delay, we need to hide it manually,
+        // so that we don't capture it on the screenshot
+        const menu = document.querySelector(
+          '.ant-dropdown:not(.ant-dropdown-hidden)',
+        ) as HTMLElement;
+        menu.style.visibility = 'hidden';
+        downloadAsPdf(
+          getScreenshotNodeSelector(props.slice.slice_id),
+          props.slice.slice_name,
+          true,
+          // @ts-ignore
+        )(domEvent).then(() => {
+          menu.style.visibility = 'visible';
+        });
+        props.logEvent?.(LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF, {
           chartId: props.slice.slice_id,
         });
         break;
@@ -489,7 +514,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
             key={MENU_KEYS.EXPORT_CSV}
             icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
           >
-            {t('Export to .CSV')}
+            {t('Export to CSV')}
           </Menu.Item>
           <Menu.Item
             key={MENU_KEYS.EXPORT_XLSX}
@@ -507,7 +532,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
                   key={MENU_KEYS.EXPORT_FULL_CSV}
                   icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
                 >
-                  {t('Export to full .CSV')}
+                  {t('Export to full CSV')}
                 </Menu.Item>
                 <Menu.Item
                   key={MENU_KEYS.EXPORT_FULL_XLSX}
@@ -517,12 +542,17 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
                 </Menu.Item>
               </>
             )}
-
           <Menu.Item
-            key={MENU_KEYS.DOWNLOAD_AS_IMAGE}
+            key={MENU_KEYS.DOWNLOAD_AS_JPG}
             icon={<Icons.FileImageOutlined css={dropdownIconsStyles} />}
           >
-            {t('Download as image')}
+            {t('Download as JPG')}
+          </Menu.Item>
+          <Menu.Item
+            key={MENU_KEYS.DOWNLOAD_AS_PDF}
+            icon={<Icons.FilePdfOutlined css={dropdownIconsStyles} />}
+          >
+            {t('Download as PDF')}
           </Menu.Item>
         </Menu.SubMenu>
       )}
