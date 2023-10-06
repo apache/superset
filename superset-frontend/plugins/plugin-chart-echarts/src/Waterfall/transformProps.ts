@@ -223,18 +223,22 @@ export default function transformProps(
       return prev;
     }, 0);
 
-    const joinedName = extractGroupbyLabel({
-      datum,
-      groupby: columnLabels,
-      coltypeMapping,
-    });
+    const isTotal =
+      datum[breakdown] === TOTAL_MARK || datum[series] === TOTAL_MARK;
+    const joinedName = isTotal
+      ? TOTAL_MARK
+      : extractGroupbyLabel({
+          datum,
+          groupby: columnLabels,
+          coltypeMapping,
+        });
     columnsLabelMap.set(
       joinedName,
       columnLabels.map(col => datum[col] as string),
     );
     const value = datum[metricLabel] as number;
     const isNegative = value < 0;
-    if (datum[breakdown] === TOTAL_MARK || datum[series] === TOTAL_MARK) {
+    if (isTotal) {
       increaseData.push(TOKEN);
       decreaseData.push(TOKEN);
       assistData.push(TOKEN);
