@@ -45,7 +45,8 @@ SqlResults = dict[str, Any]
 class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
     database_id: int
     schema: str
-    sql: str
+    sql: str | None
+    nl_query: str | None
     template_params: dict[str, Any]
     async_flag: bool
     limit: int
@@ -71,10 +72,14 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
     def set_query(self, query: Query) -> None:
         self.query = query
 
+    def set_sql(self, sql: str) -> None:
+        self.sql = sql
+
     def _init_from_query_params(self, query_params: dict[str, Any]) -> None:
         self.database_id = cast(int, query_params.get("database_id"))
         self.schema = cast(str, query_params.get("schema"))
         self.sql = cast(str, query_params.get("sql"))
+        self.nl_query = cast(str, query_params.get("nlQuery"))
         self.template_params = self._get_template_params(query_params)
         self.async_flag = cast(bool, query_params.get("runAsync"))
         self.limit = self._get_limit_param(query_params)
@@ -148,6 +153,7 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
             return Query(
                 database_id=self.database_id,
                 sql=self.sql,
+                nl_query=self.nl_query,
                 schema=self.schema,
                 select_as_cta=True,
                 ctas_method=self.create_table_as_select.ctas_method,  # type: ignore
@@ -164,6 +170,7 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
         return Query(
             database_id=self.database_id,
             sql=self.sql,
+            nl_query=self.nl_query,
             schema=self.schema,
             select_as_cta=False,
             start_time=start_time,

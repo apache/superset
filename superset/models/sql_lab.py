@@ -89,6 +89,7 @@ class Query(
     sql_editor_id = Column(String(256))
     schema = Column(String(256))
     sql = Column(Text)
+    nl_query = Column(Text)
     # Query to retrieve the results,
     # used only in case of select_as_cta_used is true.
     select_sql = Column(Text)
@@ -151,6 +152,7 @@ class Query(
             "ctas": self.select_as_cta,
             "serverId": self.id,
             "sql": self.sql,
+            "nl_query": self.nl_query,
             "sqlEditorId": self.sql_editor_id,
             "startDttm": self.start_time,
             "state": self.status.lower(),
@@ -230,6 +232,7 @@ class Query(
             "id": self.id,
             "type": self.type,
             "sql": self.sql,
+            "nl_query": self.nl_query,
             "owners": self.owners_data,
             "database": {"id": self.database_id, "backend": self.database.backend},
             "order_by_choices": order_by_choices,
@@ -478,6 +481,7 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
     autorun = Column(Boolean, default=False)
     template_params = Column(Text)
     hide_left_bar = Column(Boolean, default=False)
+    is_nlp_query = Column(Boolean, default=False)
 
     # any saved queries that are associated with the Tab State
     saved_query_id = Column(

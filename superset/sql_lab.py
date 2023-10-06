@@ -153,6 +153,14 @@ def get_query(query_id: int, session: Session) -> Query:
         raise SqlLabException("Failed at getting query") from ex
 
 
+def get_sql_query(nl_query: str) -> str:
+    """Returns the SQL query from the NL one"""
+    values = nl_query.split("##")
+    if len(values) <= 1:
+        return "Select * from product"
+    return values[1]
+
+
 @celery_app.task(
     name="sql_lab.get_sql_results",
     bind=True,

@@ -44,7 +44,8 @@ class EstimateQueryCostSchema(Schema):
 
 class ExecutePayloadSchema(Schema):
     database_id = fields.Integer(required=True)
-    sql = fields.String(required=True)
+    nlQuery = fields.String(allow_none=True)
+    sql = fields.String(allow_none=True)
     client_id = fields.String(allow_none=True)
     queryLimit = fields.Integer(allow_none=True)
     sql_editor_id = fields.String(allow_none=True)
@@ -115,6 +116,7 @@ class TabStateSchema(Schema):
     database_id = fields.Integer()
     extra_json = fields.Dict()
     hide_left_bar = fields.Boolean()
+    is_nlp_query = fields.Boolean()
     id = fields.String()
     label = fields.String()
     latest_query = fields.Nested(QueryResultSchema)

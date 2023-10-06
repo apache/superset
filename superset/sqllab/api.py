@@ -30,7 +30,7 @@ from superset.daos.query import QueryDAO
 from superset.extensions import event_logger
 from superset.jinja_context import get_template_processor
 from superset.models.sql_lab import Query
-from superset.sql_lab import get_sql_results
+from superset.sql_lab import get_sql_query, get_sql_results
 from superset.sqllab.command_status import SqlJsonExecutionStatus
 from superset.sqllab.commands.estimate import QueryEstimationCommand
 from superset.sqllab.commands.execute import CommandResult, ExecuteSqlCommand
@@ -351,6 +351,7 @@ class SqlLabRestApi(BaseSupersetApi):
                 "user_agent": cast(Optional[str], request.headers.get("USER_AGENT"))
             }
             execution_context = SqlJsonExecutionContext(request.json)
+            SqlLabRestApi._update_execution_context(execution_context)
             command = self._create_sql_json_command(execution_context, log_params)
             command_result: CommandResult = command.run()
 
@@ -408,3 +409,11 @@ class SqlLabRestApi(BaseSupersetApi):
                 is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE"),
             )
         return sql_json_executor
+
+    @staticmethod
+    def _update_execution_context(execution_context: SqlJsonExecutionContext) -> None:
+        nl_query = execution_context.nl_query
+        if not nl_query:
+            return
+        sql = get_sql_query(nl_query)
+        execution_context.set_sql(sql)
