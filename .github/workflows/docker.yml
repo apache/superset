@@ -35,7 +35,10 @@ jobs:
         uses: actions/checkout@v3
         with:
           persist-credentials: false
-
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
       - shell: bash
         env:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
@@ -49,7 +52,14 @@ jobs:
           mkdir -p ./build
           echo ${{ github.sha }} > ./build/SHA
           echo ${{ github.event.pull_request.number }} > ./build/PR-NUM
-          DOCKER_BUILDKIT=1 docker build --target ci -t ${{ github.sha }} -t "pr-${{ github.event.pull_request.number }}" .
+          docker buildx build --target ci \
+            --load \
+            --cache-from=type=local,src=/tmp/superset \
+            -t ${{ github.sha }} \
+            -t "pr-${{ github.event.pull_request.number }}" \
+            --platform linux/amd64 \
+            --label "build_actor=${GITHUB_ACTOR}" \
+            .
           docker save ${{ github.sha }} | gzip > ./build/${{ github.sha }}.tar.gz
 
       - name: Upload build artifacts

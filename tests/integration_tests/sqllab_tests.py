@@ -259,7 +259,7 @@ class TestSqlLab(SupersetTestCase):
     def test_sqllab_has_access(self):
         for username in ("admin", "gamma_sqllab"):
             self.login(username)
-            for endpoint in ("/superset/sqllab/", "/superset/sqllab/history/"):
+            for endpoint in ("/sqllab/", "/sqllab/history/"):
                 resp = self.client.get(endpoint)
                 self.assertEqual(200, resp.status_code)
 
@@ -267,7 +267,7 @@ class TestSqlLab(SupersetTestCase):
 
     def test_sqllab_no_access(self):
         self.login("gamma")
-        for endpoint in ("/superset/sqllab/", "/superset/sqllab/history/"):
+        for endpoint in ("/sqllab/", "/sqllab/history/"):
             resp = self.client.get(endpoint)
             # Redirects to the main page
             self.assertEqual(302, resp.status_code)

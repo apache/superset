@@ -74,13 +74,13 @@ type DatabaseValue = {
   value: number;
   id: number;
   database_name: string;
-  backend: string;
+  backend?: string;
 };
 
 export type DatabaseObject = {
   id: number;
   database_name: string;
-  backend: string;
+  backend?: string;
 };
 
 export interface DatabaseSelectorProps {
@@ -102,11 +102,11 @@ const SelectLabel = ({
   backend,
   databaseName,
 }: {
-  backend: string;
+  backend?: string;
   databaseName: string;
 }) => (
   <LabelStyle>
-    <Label className="backend">{backend}</Label>
+    <Label className="backend">{backend || ''}</Label>
     <span className="name" title={databaseName}>
       {databaseName}
     </span>

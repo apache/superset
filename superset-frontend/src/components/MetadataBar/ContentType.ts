@@ -51,7 +51,7 @@ export type LastModified = {
 export type Owner = {
   type: MetadataType.OWNER;
   createdBy: string;
-  owners: string[];
+  owners?: string[];
   createdOn: string;
   onClick?: (type: string) => void;
 };

@@ -16,17 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { combineReducers } from 'redux';
-import messageToasts from 'src/components/MessageToasts/reducers';
-import sqlLab from './sqlLab';
-import localStorageUsageInKilobytes from './localStorageUsage';
-import common from './common';
+import React from 'react';
+import { BubbleChartTransformedProps } from './types';
+import Echart from '../components/Echart';
 
-export const reducers = {
-  sqlLab,
-  localStorageUsageInKilobytes,
-  messageToasts,
-  common,
-};
-
-export default combineReducers(reducers);
+export default function EchartsBubble(props: BubbleChartTransformedProps) {
+  const { height, width, echartOptions, refs } = props;
+  return (
+    <Echart
+      height={height}
+      width={width}
+      echartOptions={echartOptions}
+      refs={refs}
+    />
+  );
+}

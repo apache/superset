@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from marshmallow import fields, Schema
+from marshmallow.validate import Range
 
 from superset.dashboards.schemas import UserSchema
 
@@ -38,6 +39,12 @@ openapi_spec_methods_override = {
 }
 
 
+class TagGetResponseSchema(Schema):
+    id = fields.Int()
+    name = fields.String()
+    type = fields.String()
+
+
 class TaggedObjectEntityResponseSchema(Schema):
     id = fields.Int()
     type = fields.String()
@@ -46,27 +53,26 @@ class TaggedObjectEntityResponseSchema(Schema):
     changed_on = fields.DateTime()
     created_by = fields.Nested(UserSchema(exclude=["username"]))
     creator = fields.String()
+    tags = fields.List(fields.Nested(TagGetResponseSchema))
+    owners = fields.List(fields.Nested(UserSchema))
 
 
-class TagGetResponseSchema(Schema):
-    id = fields.Int()
+class TagObjectSchema(Schema):
     name = fields.String()
-    type = fields.String()
-
-
-class TagPostSchema(Schema):
-    name = fields.String()
-    description = fields.String(required=False)
-    # resource id's to tag with tag
+    description = fields.String(required=False, allow_none=True)
     objects_to_tag = fields.List(
-        fields.Tuple((fields.String(), fields.Int())), required=False
+        fields.Tuple((fields.String(), fields.Int(validate=Range(min=1)))),
+        required=False,
     )
 
 
-class TagPutSchema(Schema):
-    name = fields.String()
-    description = fields.String(required=False)
-    # resource id's to tag with tag
-    objects_to_tag = fields.List(
-        fields.Tuple((fields.String(), fields.Int())), required=False
-    )
+class TagPostBulkSchema(Schema):
+    tags = fields.List(fields.Nested(TagObjectSchema))
+
+
+class TagPostSchema(TagObjectSchema):
+    pass
+
+
+class TagPutSchema(TagObjectSchema):
+    pass

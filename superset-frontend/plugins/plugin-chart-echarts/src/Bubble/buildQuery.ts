@@ -16,24 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { styledMount as mount } from 'spec/helpers/theming';
-import Label from 'src/components/Label';
-import QueryStateLabel from 'src/SqlLab/components/QueryStateLabel';
+import {
+  buildQueryContext,
+  ensureIsArray,
+  QueryFormData,
+} from '@superset-ui/core';
 
-describe('SavedQuery', () => {
-  const mockedProps = {
-    query: {
-      state: 'running',
+export default function buildQuery(formData: QueryFormData) {
+  const columns = [
+    ...ensureIsArray(formData.entity),
+    ...ensureIsArray(formData.series),
+  ];
+
+  return buildQueryContext(formData, baseQueryObject => [
+    {
+      ...baseQueryObject,
+      columns,
+      orderby: baseQueryObject.orderby
+        ? [[baseQueryObject.orderby[0], !baseQueryObject.order_desc]]
+        : undefined,
     },
-  };
-  it('is valid', () => {
-    expect(React.isValidElement(<QueryStateLabel {...mockedProps} />)).toBe(
-      true,
-    );
-  });
-  it('has an Overlay and a Popover', () => {
-    const wrapper = mount(<QueryStateLabel {...mockedProps} />);
-    expect(wrapper.find(Label)).toExist();
-  });
-});
+  ]);
+}

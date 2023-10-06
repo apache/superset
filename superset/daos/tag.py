@@ -175,16 +175,6 @@ class TagDAO(BaseDAO[Tag]):
         returns a list of tagged objects filtered by tag names and object types
         if no filters applied returns all tagged objects
         """
-        # id = fields.Int()
-        # type = fields.String()
-        # name = fields.String()
-        # url = fields.String()
-        # changed_on = fields.DateTime()
-        # created_by = fields.Nested(UserSchema)
-        # creator = fields.String(
-
-        # filter types
-
         results: list[dict[str, Any]] = []
 
         # dashboards
@@ -211,6 +201,8 @@ class TagDAO(BaseDAO[Tag]):
                     "changed_on": obj.changed_on,
                     "created_by": obj.created_by_fk,
                     "creator": obj.creator(),
+                    "tags": obj.tags,
+                    "owners": obj.owners,
                 }
                 for obj in dashboards
             )
@@ -238,6 +230,8 @@ class TagDAO(BaseDAO[Tag]):
                     "changed_on": obj.changed_on,
                     "created_by": obj.created_by_fk,
                     "creator": obj.creator(),
+                    "tags": obj.tags,
+                    "owners": obj.owners,
                 }
                 for obj in charts
             )
@@ -265,6 +259,8 @@ class TagDAO(BaseDAO[Tag]):
                     "changed_on": obj.changed_on,
                     "created_by": obj.created_by_fk,
                     "creator": obj.creator(),
+                    "tags": obj.tags,
+                    "owners": [obj.creator()],
                 }
                 for obj in saved_queries
             )
@@ -367,7 +363,9 @@ class TagDAO(BaseDAO[Tag]):
 
     @staticmethod
     def create_tag_relationship(
-        objects_to_tag: list[tuple[ObjectTypes, int]], tag: Tag
+        objects_to_tag: list[tuple[ObjectTypes, int]],
+        tag: Tag,
+        bulk_create: bool = False,
     ) -> None:
         """
         Creates a tag relationship between the given objects and the specified tag.
@@ -392,7 +390,12 @@ class TagDAO(BaseDAO[Tag]):
         updated_tagged_objects = {
             (to_object_type(obj[0]), obj[1]) for obj in objects_to_tag
         }
-        tagged_objects_to_delete = current_tagged_objects - updated_tagged_objects
+
+        tagged_objects_to_delete = (
+            current_tagged_objects
+            if not objects_to_tag
+            else current_tagged_objects - updated_tagged_objects
+        )
 
         for object_type, object_id in updated_tagged_objects:
             # create rows for new objects, and skip tags that already exist
@@ -401,9 +404,12 @@ class TagDAO(BaseDAO[Tag]):
                     TaggedObject(object_id=object_id, object_type=object_type, tag=tag)
                 )
 
-        for object_type, object_id in tagged_objects_to_delete:
-            # delete objects that were removed
-            TagDAO.delete_tagged_object(object_type, object_id, tag.name)  # type: ignore
+        if not bulk_create:
+            # delete relationships that aren't retained from single tag create
+            for object_type, object_id in tagged_objects_to_delete:
+                # delete objects that were removed
+                TagDAO.delete_tagged_object(
+                    object_type, object_id, tag.name  # type: ignore
+                )
 
         db.session.add_all(tagged_objects)
-        db.session.commit()

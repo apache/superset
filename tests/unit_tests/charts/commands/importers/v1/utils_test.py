@@ -32,6 +32,7 @@ def test_migrate_chart_area() -> None:
         "certified_by": None,
         "certification_details": None,
         "viz_type": "area",
+        "query_context": None,
         "params": json.dumps(
             {
                 "adhoc_filters": [],

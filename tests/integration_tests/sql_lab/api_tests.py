@@ -63,6 +63,35 @@ class TestSqlLabApi(SupersetTestCase):
 
     @mock.patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
+        {"SQLLAB_BACKEND_PERSISTENCE": False},
+        clear=True,
+    )
+    def test_get_from_bootstrap_data_for_non_persisted_tab_state(self):
+        self.login("admin")
+        # create a tab
+        data = {
+            "queryEditor": json.dumps(
+                {
+                    "title": "Untitled Query 1",
+                    "dbId": 1,
+                    "schema": None,
+                    "autorun": False,
+                    "sql": "SELECT ...",
+                    "queryLimit": 1000,
+                }
+            )
+        }
+        self.get_json_resp("/tabstateview/", data=data)
+        resp = self.client.get("/api/v1/sqllab/")
+        assert resp.status_code == 200
+        data = json.loads(resp.data.decode("utf-8"))
+        result = data.get("result")
+        assert result["active_tab"] == None
+        assert result["queries"] == {}
+        assert result["tab_state_ids"] == []
+
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
         {"SQLLAB_BACKEND_PERSISTENCE": True},
         clear=True,
     )

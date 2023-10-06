@@ -51,6 +51,8 @@ import {
   mapValues,
   mapOptions,
   hasCustomLabels,
+  getOption,
+  isObject,
 } from './utils';
 import { RawValue, SelectOptionsType, SelectProps } from './types';
 import {
@@ -208,13 +210,13 @@ const Select = forwardRef(
       () =>
         !isSingleMode &&
         allowSelectAll &&
-        fullSelectOptions.length > 0 &&
+        selectOptions.length > 0 &&
         enabledOptions.length > 1 &&
         !inputValue,
       [
         isSingleMode,
         allowSelectAll,
-        fullSelectOptions.length,
+        selectOptions.length,
         enabledOptions.length,
         inputValue,
       ],
@@ -530,27 +532,42 @@ const Select = forwardRef(
       actualMaxTagCount -= 1;
     }
 
+    const getPastedTextValue = useCallback(
+      (text: string) => {
+        const option = getOption(text, fullSelectOptions, true);
+        if (labelInValue) {
+          const value: AntdLabeledValue = {
+            label: text,
+            value: text,
+          };
+          if (option) {
+            value.label = isObject(option) ? option.label : option;
+            value.value = isObject(option) ? option.value! : option;
+          }
+          return value;
+        }
+        return option ? (isObject(option) ? option.value! : option) : text;
+      },
+      [fullSelectOptions, labelInValue],
+    );
+
     const onPaste = (e: ClipboardEvent<HTMLInputElement>) => {
       const pastedText = e.clipboardData.getData('text');
       if (isSingleMode) {
-        setSelectValue(
-          labelInValue ? { label: pastedText, value: pastedText } : pastedText,
-        );
+        setSelectValue(getPastedTextValue(pastedText));
       } else {
         const token = tokenSeparators.find(token => pastedText.includes(token));
         const array = token ? uniq(pastedText.split(token)) : [pastedText];
+        const values = array.map(item => getPastedTextValue(item));
         if (labelInValue) {
           setSelectValue(previous => [
             ...((previous || []) as AntdLabeledValue[]),
-            ...array.map<AntdLabeledValue>(value => ({
-              label: value,
-              value,
-            })),
+            ...(values as AntdLabeledValue[]),
           ]);
         } else {
           setSelectValue(previous => [
             ...((previous || []) as string[]),
-            ...array,
+            ...(values as string[]),
           ]);
         }
       }

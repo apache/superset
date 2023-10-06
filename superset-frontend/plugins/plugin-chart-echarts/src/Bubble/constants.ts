@@ -16,6 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export default function commonReducer(state = {}) {
-  return state;
-}
+import { DEFAULT_LEGEND_FORM_DATA } from '../constants';
+import { EchartsBubbleFormData } from './types';
+
+export const DEFAULT_FORM_DATA: Partial<EchartsBubbleFormData> = {
+  ...DEFAULT_LEGEND_FORM_DATA,
+  emitFilter: false,
+  logXAis: false,
+  logYAxis: false,
+  xAxisTitleMargin: 30,
+  yAxisTitleMargin: 30,
+  truncateYAxis: false,
+  yAxisBounds: [null, null],
+  xAxisLabelRotation: 0,
+  opacity: 0.6,
+};
+
+export const MINIMUM_BUBBLE_SIZE = 5;

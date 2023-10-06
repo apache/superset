@@ -23,15 +23,11 @@ type TooltipRowProps = {
   value: string;
 };
 
-export default class TooltipRow extends React.PureComponent<TooltipRowProps> {
-  render() {
-    const { label, value } = this.props;
+const TooltipRow = ({ label, value }: TooltipRowProps) => (
+  <div>
+    {label}
+    <strong>{value}</strong>
+  </div>
+);
 
-    return (
-      <div>
-        {label}
-        <strong>{value}</strong>
-      </div>
-    );
-  }
-}
+export default TooltipRow;

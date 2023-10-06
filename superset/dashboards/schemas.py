@@ -110,7 +110,7 @@ class DashboardJSONMetadataSchema(Schema):
     # chart_configuration for now keeps data about cross-filter scoping for charts
     chart_configuration = fields.Dict()
     # global_chart_configuration keeps data about global cross-filter scoping
-    # for charts - can be overriden by chart_configuration for each chart
+    # for charts - can be overridden by chart_configuration for each chart
     global_chart_configuration = fields.Dict()
     # filter_sets_configuration is for dashboard-native filters
     filter_sets_configuration = fields.List(fields.Dict(), allow_none=True)
@@ -245,6 +245,7 @@ class DashboardDatasetSchema(Schema):
     time_grain_sqla = fields.List(fields.List(fields.Str()))
     granularity_sqla = fields.List(fields.List(fields.Str()))
     normalize_columns = fields.Bool()
+    always_filter_main_dttm = fields.Bool()
 
 
 class BaseDashboardSchema(Schema):

@@ -637,7 +637,11 @@ export default function sqlLabReducer(state = {}, action) {
             // when it started fetching or finished rendering results
             state:
               currentState === QueryState.SUCCESS &&
-              [QueryState.FETCHING, QueryState.SUCCESS].includes(prevState)
+              [
+                QueryState.FETCHING,
+                QueryState.SUCCESS,
+                QueryState.RUNNING,
+              ].includes(prevState)
                 ? prevState
                 : currentState,
           };

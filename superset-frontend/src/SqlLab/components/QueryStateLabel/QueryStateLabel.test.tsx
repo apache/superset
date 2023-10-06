@@ -17,7 +17,21 @@
  * under the License.
  */
 import React from 'react';
-import ReactDOM from 'react-dom';
-import App from './App';
+import type { QueryState } from '@superset-ui/core';
+import { render } from 'spec/helpers/testing-library';
+import QueryStateLabel from '.';
 
-ReactDOM.render(<App />, document.getElementById('app'));
+jest.mock('src/components/Label', () => () => <div data-test="mock-label" />);
+
+const mockedProps = {
+  query: {
+    state: 'running' as QueryState,
+  },
+};
+test('is valid', () => {
+  expect(React.isValidElement(<QueryStateLabel {...mockedProps} />)).toBe(true);
+});
+test('has an Overlay and a Popover', () => {
+  const { getByTestId } = render(<QueryStateLabel {...mockedProps} />);
+  expect(getByTestId('mock-label')).toBeInTheDocument();
+});
