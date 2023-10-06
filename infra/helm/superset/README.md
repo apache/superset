@@ -69,17 +69,25 @@ helm install my-superset superset/superset
 | extraVolumes | list | `[]` |  |
 | fullnameOverride | string | `nil` | Provide a name to override the full names of resources |
 | hostAliases | list | `[]` | Custom hostAliases for all superset pods # https://kubernetes.io/docs/tasks/network/customize-hosts-file-for-pods/ |
-| image.pullPolicy | string | `"IfNotPresent"` |  |
-| image.repository | string | `"apachesuperset.docker.scarf.sh/apache/superset"` |  |
-| image.tag | string | `""` |  |
+| image.pullPolicy | string | `"Always"` |  |
+| image.repository | string | `"975226449092.dkr.ecr.ap-southeast-1.amazonaws.com/superset"` |  |
+| image.tag | string | `"alpha-0.0.1"` |  |
 | imagePullSecrets | list | `[]` |  |
-| ingress.annotations | object | `{}` |  |
-| ingress.enabled | bool | `false` |  |
+| ingress.annotations."alb.ingress.kubernetes.io/certificate-arn" | string | `"arn:aws:acm:ap-southeast-1:975226449092:certificate/459450f6-8a78-403a-9819-cbc94e9e2d5b"` |  |
+| ingress.annotations."alb.ingress.kubernetes.io/group.name" | string | `"kuwago"` |  |
+| ingress.annotations."alb.ingress.kubernetes.io/listen-ports" | string | `"[{\"HTTPS\":443}, {\"HTTP\":80}]"` |  |
+| ingress.annotations."alb.ingress.kubernetes.io/load-balancer-name" | string | `"kuwago-alb"` |  |
+| ingress.annotations."alb.ingress.kubernetes.io/scheme" | string | `"internet-facing"` |  |
+| ingress.annotations."alb.ingress.kubernetes.io/ssl-redirect" | string | `"443"` |  |
+| ingress.annotations."alb.ingress.kubernetes.io/target-type" | string | `"ip"` |  |
+| ingress.annotations."external-dns.alpha.kubernetes.io/hostname" | string | `"app.kuwago.onebyzero.ai"` |  |
+| ingress.annotations."kubernetes.io/ingress.class" | string | `"alb"` |  |
+| ingress.enabled | bool | `true` |  |
 | ingress.extraHostsRaw | list | `[]` |  |
-| ingress.hosts[0] | string | `"chart-example.local"` |  |
-| ingress.ingressClassName | string | `nil` |  |
+| ingress.hosts[0] | string | `"app.kuwago.onebyzero.ai"` |  |
+| ingress.ingressClassName | string | `"alb"` |  |
 | ingress.path | string | `"/"` |  |
-| ingress.pathType | string | `"ImplementationSpecific"` |  |
+| ingress.pathType | string | `"Prefix"` |  |
 | ingress.tls | list | `[]` |  |
 | init.adminUser.email | string | `"admin@superset.com"` |  |
 | init.adminUser.firstname | string | `"Superset"` |  |
@@ -95,14 +103,14 @@ helm install my-superset superset/superset
 | init.initscript | string | a script to create admin user and initailize roles | A Superset init script |
 | init.jobAnnotations."helm.sh/hook" | string | `"post-install,post-upgrade"` |  |
 | init.jobAnnotations."helm.sh/hook-delete-policy" | string | `"before-hook-creation"` |  |
-| init.loadExamples | bool | `false` |  |
+| init.loadExamples | bool | `true` |  |
 | init.podAnnotations | object | `{}` |  |
 | init.podSecurityContext | object | `{}` |  |
 | init.resources | object | `{}` |  |
 | init.tolerations | list | `[]` |  |
 | init.topologySpreadConstraints | list | `[]` | TopologySpreadConstrains to be added to init job |
-| initImage.pullPolicy | string | `"IfNotPresent"` |  |
-| initImage.repository | string | `"apache/superset"` |  |
+| initImage.pullPolicy | string | `"Always"` |  |
+| initImage.repository | string | `"975226449092.dkr.ecr.ap-southeast-1.amazonaws.com/superset"` |  |
 | initImage.tag | string | `"dockerize"` |  |
 | nameOverride | string | `nil` | Provide a name to override the name of the chart |
 | nodeSelector | object | `{}` |  |
@@ -118,11 +126,12 @@ helm install my-superset superset/superset
 | serviceAccount.annotations | object | `{}` |  |
 | serviceAccount.create | bool | `false` | Create custom service account for Superset. If create: true and serviceAccountName is not provided, `superset.fullname` will be used. |
 | serviceAccountName | string | `nil` | Specify service account name to be used |
+| superset.dbInit.enabled | bool | `false` |  |
 | supersetCeleryBeat.affinity | object | `{}` | Affinity to be added to supersetCeleryBeat deployment |
 | supersetCeleryBeat.command | list | a `celery beat` command | Command |
 | supersetCeleryBeat.containerSecurityContext | object | `{}` |  |
 | supersetCeleryBeat.deploymentAnnotations | object | `{}` | Annotations to be added to supersetCeleryBeat deployment |
-| supersetCeleryBeat.enabled | bool | `false` | This is only required if you intend to use alerts and reports |
+| supersetCeleryBeat.enabled | bool | `true` | This is only required if you intend to use alerts and reports |
 | supersetCeleryBeat.forceReload | bool | `false` | If true, forces deployment to reload on each upgrade |
 | supersetCeleryBeat.initContainers | list | a container waiting for postgres | List of init containers |
 | supersetCeleryBeat.podAnnotations | object | `{}` | Annotations to be added to supersetCeleryBeat pods |
@@ -134,7 +143,7 @@ helm install my-superset superset/superset
 | supersetCeleryFlower.command | list | a `celery flower` command | Command |
 | supersetCeleryFlower.containerSecurityContext | object | `{}` |  |
 | supersetCeleryFlower.deploymentAnnotations | object | `{}` | Annotations to be added to supersetCeleryFlower deployment |
-| supersetCeleryFlower.enabled | bool | `false` | Enables a Celery flower deployment (management UI to monitor celery jobs) WARNING: on superset 1.x, this requires a Superset image that has `flower<1.0.0` installed (which is NOT the case of the default images) flower>=1.0.0 requires Celery 5+ which Superset 1.5 does not support |
+| supersetCeleryFlower.enabled | bool | `true` | Enables a Celery flower deployment (management UI to monitor celery jobs) WARNING: on superset 1.x, this requires a Superset image that has `flower<1.0.0` installed (which is NOT the case of the default images) flower>=1.0.0 requires Celery 5+ which Superset 1.5 does not support |
 | supersetCeleryFlower.initContainers | list | a container waiting for postgres and redis | List of init containers |
 | supersetCeleryFlower.livenessProbe.failureThreshold | int | `3` |  |
 | supersetCeleryFlower.livenessProbe.httpGet.path | string | `"/api/workers"` |  |
@@ -174,12 +183,12 @@ helm install my-superset superset/superset
 | supersetNode.autoscaling.minReplicas | int | `1` |  |
 | supersetNode.autoscaling.targetCPUUtilizationPercentage | int | `80` |  |
 | supersetNode.command | list | See `values.yaml` | Startup command |
-| supersetNode.connections.db_host | string | `"{{ .Release.Name }}-postgresql"` |  |
-| supersetNode.connections.db_name | string | `"superset"` |  |
-| supersetNode.connections.db_pass | string | `"superset"` |  |
+| supersetNode.connections.db_host | string | `"kuwago-dev-database.cc35mla5pq1x.ap-southeast-1.rds.amazonaws.com"` |  |
+| supersetNode.connections.db_name | string | `"superset-default"` |  |
+| supersetNode.connections.db_pass | string | `"Tal!n0|2023"` |  |
 | supersetNode.connections.db_port | string | `"5432"` |  |
-| supersetNode.connections.db_user | string | `"superset"` |  |
-| supersetNode.connections.redis_host | string | `"{{ .Release.Name }}-redis-headless"` | Change in case of bringing your own redis and then also set redis.enabled:false |
+| supersetNode.connections.db_user | string | `"postgres"` |  |
+| supersetNode.connections.redis_host | string | `"kuwago-test-2.qucvhf.ng.0001.apse1.cache.amazonaws.com"` | Change in case of bringing your own redis and then also set redis.enabled:false |
 | supersetNode.connections.redis_port | string | `"6379"` |  |
 | supersetNode.containerSecurityContext | object | `{}` |  |
 | supersetNode.deploymentAnnotations | object | `{}` | Annotations to be added to supersetNode deployment |
@@ -221,10 +230,10 @@ helm install my-superset superset/superset
 | supersetWebsockets.config | object | see `values.yaml` | The config.json to pass to the server, see https://github.com/apache/superset/tree/master/superset-websocket Note that the configuration can also read from environment variables (which will have priority), see https://github.com/apache/superset/blob/master/superset-websocket/src/config.ts for a list of supported variables |
 | supersetWebsockets.containerSecurityContext | object | `{}` |  |
 | supersetWebsockets.deploymentAnnotations | object | `{}` |  |
-| supersetWebsockets.enabled | bool | `false` | This is only required if you intend to use `GLOBAL_ASYNC_QUERIES` in `ws` mode see https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries |
-| supersetWebsockets.image.pullPolicy | string | `"IfNotPresent"` |  |
-| supersetWebsockets.image.repository | string | `"oneacrefund/superset-websocket"` | There is no official image (yet), this one is community-supported |
-| supersetWebsockets.image.tag | string | `"latest"` |  |
+| supersetWebsockets.enabled | bool | `true` | This is only required if you intend to use `GLOBAL_ASYNC_QUERIES` in `ws` mode see https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries |
+| supersetWebsockets.image.pullPolicy | string | `"Always"` |  |
+| supersetWebsockets.image.repository | string | `"975226449092.dkr.ecr.ap-southeast-1.amazonaws.com/superset"` | There is no official image (yet), this one is community-supported |
+| supersetWebsockets.image.tag | string | `"alpha-0.0.1-websocket"` |  |
 | supersetWebsockets.ingress.path | string | `"/ws"` |  |
 | supersetWebsockets.ingress.pathType | string | `"Prefix"` |  |
 | supersetWebsockets.livenessProbe.failureThreshold | int | `3` |  |

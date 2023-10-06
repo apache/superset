@@ -200,7 +200,7 @@ service:
 ingress:
   enabled: true
   ingressClassName: alb
-  annotations: 
+  annotations:
     kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/load-balancer-name: kuwago-alb
     alb.ingress.kubernetes.io/target-type: ip
@@ -653,7 +653,7 @@ init:
   jobAnnotations:
     "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-delete-policy": "before-hook-creation"
-  loadExamples: false
+  loadExamples: true
   createAdmin: true
   adminUser:
     username: admin

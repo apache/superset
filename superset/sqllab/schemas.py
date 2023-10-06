@@ -44,7 +44,8 @@ class EstimateQueryCostSchema(Schema):
 
 class ExecutePayloadSchema(Schema):
     database_id = fields.Integer(required=True)
-    sql = fields.String(required=True)
+    nlQuery = fields.String(allow_none=True)
+    sql = fields.String(allow_none=True)
     client_id = fields.String(allow_none=True)
     queryLimit = fields.Integer(allow_none=True)
     sql_editor_id = fields.String(allow_none=True)
@@ -57,7 +58,6 @@ class ExecutePayloadSchema(Schema):
     json = fields.Boolean(allow_none=True)
     runAsync = fields.Boolean(allow_none=True)
     expand_data = fields.Boolean(allow_none=True)
-    isNlpQuery = fields.Boolean(allow_none=True)
 
 
 class QueryResultSchema(Schema):

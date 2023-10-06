@@ -26,19 +26,20 @@ export interface NlpQueryToggleProps {
   queryEditorId: string;
 }
 
-
-const NlpQueryToggle = ({
-  queryEditorId
-}: NlpQueryToggleProps) => {
+const NlpQueryToggle = ({ queryEditorId }: NlpQueryToggleProps) => {
   const dispatch = useDispatch();
 
   const queryEditor = useQueryEditor(queryEditorId, ['id', 'isNlpQuery']);
-  const isNlpQuery = queryEditor.isNlpQuery;
+  const isNlpQuery = queryEditor?.isNlpQuery;
   const setIsNlpQuery = (updatedIsNlpQuery: boolean) =>
     dispatch(toggleIsNlpQuery(queryEditor, updatedIsNlpQuery));
 
   return (
-    <Switch checkedChildren="NL" unCheckedChildren="SQL" onChange={() => setIsNlpQuery(!isNlpQuery)} />
+    <Switch
+      checkedChildren="NL"
+      unCheckedChildren="SQL"
+      onChange={() => setIsNlpQuery(!isNlpQuery)}
+    />
   );
 };
 

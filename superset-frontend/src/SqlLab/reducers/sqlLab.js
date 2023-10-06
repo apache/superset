@@ -390,14 +390,14 @@ export default function sqlLabReducer(state = {}, action) {
         return {
           ...(action.queryEditor.id === state.unsavedQueryEditor.id
             ? alterInArr(
-              mergeUnsavedState,
-              'queryEditors',
-              action.queryEditor,
-              {
-                ...action.queryEditor,
-                ...state.unsavedQueryEditor,
-              },
-            )
+                mergeUnsavedState,
+                'queryEditors',
+                action.queryEditor,
+                {
+                  ...action.queryEditor,
+                  ...state.unsavedQueryEditor,
+                },
+              )
             : mergeUnsavedState),
           tabHistory: [...state.tabHistory, action.queryEditor.id],
         };
@@ -650,7 +650,7 @@ export default function sqlLabReducer(state = {}, action) {
             // when it started fetching or finished rendering results
             state:
               currentState === QueryState.SUCCESS &&
-                [QueryState.FETCHING, QueryState.SUCCESS].includes(prevState)
+              [QueryState.FETCHING, QueryState.SUCCESS].includes(prevState)
                 ? prevState
                 : currentState,
           };
