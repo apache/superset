@@ -164,9 +164,7 @@ class TabStateView(BaseSupersetView):
         if client_id := fields.get("latest_query_id"):
             query = db.session.query(Query).filter_by(client_id=client_id).one_or_none()
             if not query:
-                return self.json_response(
-                    {"error": f"Unknown client_id: {client_id}"}, status=400
-                )
+                return self.json_response({"error": "Bad request"}, status=400)
         db.session.query(TabState).filter_by(id=tab_state_id).update(fields)
         db.session.commit()
         return json_success(json.dumps(tab_state_id))
