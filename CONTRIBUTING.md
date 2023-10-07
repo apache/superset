@@ -615,17 +615,23 @@ If Following type of error comes while running dev server(i.e using above comman
 ```bash
 Error: ENOSPC: System limit for number of file watchers reached
 ```
-The meaning of this error is that the number of files monitored by the system has reached the limit!
+The error is thrown because the number of files monitored by the system has reached the limit.
+The error can be fixed by increasing the amount of inotify watchers.
 
 Do the following to Modify the number of system monitoring files :
+
+
+The current value of max watches can be checked by below command.
 ```bash
-sudo gedit /etc/sysctl.conf
+cat /proc/sys/fs/inotify/max_user_watches
 ```
-Add a line at the bottom
+Edit the file /etc/sysctl.conf to change this value.
+
+Open the file in editor and add a line at the bottom specifying the max watches values. 524288 is the limit.
 ```bash
 fs.inotify.max_user_watches=524288
 ```
-save and exit
+save the file  and exit
 ```bash
 sudo sysctl -p
 ```
