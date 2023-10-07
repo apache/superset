@@ -36,7 +36,7 @@ fi
 
 
 if [[ "${REFSPEC}" == "master" ]]; then
-  LATEST_TAG="latest"
+  LATEST_TAG="master"
 fi
 
 # get the latest release tag
@@ -44,7 +44,7 @@ if [ -n "${GITHUB_RELEASE_TAG_NAME}" ]; then
   output=$(source ./scripts/tag_latest_release.sh "${GITHUB_RELEASE_TAG_NAME}" --dry-run) || true
   SKIP_TAG=$(echo "${output}" | grep "SKIP_TAG" | cut -d'=' -f2)
   if [[ "${SKIP_TAG}" == "SKIP_TAG::false" ]]; then
-    LATEST_TAG="latest-official"
+    LATEST_TAG="latest"
   fi
 fi
 
@@ -77,6 +77,14 @@ else
 fi
 set -x
 
+# for the dev image, it's ok to tag master as latest-dev
+# for production, we only want to tag the latest official release as latest
+if [ "${LATEST_TAG}" = "master" ]; then
+  DEV_TAG="${REPO_NAME}:latest-dev"
+else
+  DEV_TAG="${REPO_NAME}:${LATEST_TAG}-dev"
+fi
+
 #
 # Build the dev image
 #
@@ -87,7 +95,7 @@ docker buildx build --target dev \
   --cache-to=type=local,ignore-error=true,dest=/tmp/superset \
   -t "${REPO_NAME}:${SHA}-dev" \
   -t "${REPO_NAME}:${REFSPEC}-dev" \
-  -t "${REPO_NAME}:${LATEST_TAG}-dev" \
+  -t "${DEV_TAG}" \
   --platform linux/amd64 \
   --label "sha=${SHA}" \
   --label "built_at=$(date)" \

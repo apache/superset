@@ -32,13 +32,13 @@ class BashMock:
         return result
 
     @staticmethod
-    def docker_build_push(tag):
+    def docker_build_push(tag, branch):
         bash_command = f"./scripts/docker_build_push.sh {tag}"
         result = subprocess.run(
             bash_command,
             shell=True,
             capture_output=True,
             text=True,
-            env={"TEST_ENV": "true", "GITHUB_REF": "refs/heads/master"},
+            env={"TEST_ENV": "true", "GITHUB_REF": f"refs/heads/{branch}"},
         )
         return result
