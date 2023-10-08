@@ -163,7 +163,7 @@ export function updateQueryEditor(alterations) {
 export function scheduleQuery(query) {
   return dispatch =>
     SupersetClient.post({
-      endpoint: '/savedqueryviewapi/api/create',
+      endpoint: '/savedqueryview/api/create',
       postPayload: query,
       stringify: false,
     })
@@ -1352,7 +1352,7 @@ export function popStoredQuery(urlId) {
 export function popSavedQuery(saveQueryId) {
   return function (dispatch) {
     return SupersetClient.get({
-      endpoint: `/savedqueryviewapi/api/get/${saveQueryId}`,
+      endpoint: `/savedqueryview/api/get/${saveQueryId}`,
     })
       .then(({ json }) => {
         const queryEditorProps = {
