@@ -67,10 +67,21 @@ tables in the **Permissions** dropdown. To select the data sources you want to a
 You can then confirm with users assigned to the **Gamma** role that they see the
 objects (dashboards and slices) associated with the tables you just extended them.
 
+### REST API for user & role management
+
+FAB has all the REST API for user CRUD, but they are not enabled by default in Superset.
+To enable this (beta) feature in Flask AppBuilder, you need to set the following configuration setting in your Superset configuration.
+
+```python
+FAB_ADD_SECURITY_API = True
+```
+
+Once configured, the documentation for additional "Security" endpoints will be visible in Swagger for you to explore.
+
 ### Customizing Permissions
 
 The permissions exposed by FAB are very granular and allow for a great level of
-customization. FAB creates many permissions automagically for each model that is
+customization. FAB creates many permissions automatically for each model that is
 created (can_add, can_delete, can_show, can_edit, …) as well as for each view.
 On top of that, Superset can expose more granular permissions like **all_datasource_access**.
 

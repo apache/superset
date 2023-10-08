@@ -64,7 +64,11 @@ We don't recommend using the system installed Python. Instead, first install the
 brew install readline pkg-config libffi openssl mysql postgresql@14
 ```
 
-You should install a recent version of Python (the official docker image uses 3.8.16). We'd recommend using a Python version manager like [pyenv](https://github.com/pyenv/pyenv) (and also [pyenv-virtualenv](https://github.com/pyenv/pyenv-virtualenv)).
+You should install a recent version of Python. Please refer (setup.py)[https://github.com/apache/superset/blob/master/setup.py] for list of python versions officially supported by Superset. We'd recommend using a Python version manager like [pyenv](https://github.com/pyenv/pyenv) (and also [pyenv-virtualenv](https://github.com/pyenv/pyenv-virtualenv)).
+
+:::tip
+To identify the Python version used by Official docker image, please refer [Dockerfile](https://github.com/apache/superset/blob/master/Dockerfile). There are additional docker images published which you can identify from [this file](https://github.com/apache/superset/blob/master/.github/workflows/docker_build_push.sh).
+:::
 
 Let's also make sure we have the latest version of `pip` and `setuptools`:
 
