@@ -1,11 +1,14 @@
 name: Docker
 
 on:
+  release:
+    types: [ published ]
   push:
     branches:
       - 'master'
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
+
 
 jobs:
   config:
@@ -25,29 +28,205 @@ jobs:
             echo "no secrets!"
           fi
 
-  docker-build:
+
+  build-lean-image:
+    name: Build ${{ matrix.image.version }} lean image
     needs: config
     if: needs.config.outputs.has-secrets
-    name: docker-build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - {version: "3.9-slim-bookworm", suffix: ""}
+          - {version: "3.10-slim-bookworm", suffix: "-py310"}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ github.repository }}
+          flavor: |
+            latest=false
+            suffix=${{ matrix.image.suffix }}
+          tags: |
+            type=sha,prefix=,format=long
+            type=ref,event=pr
+            type=raw,value=master,enable={{is_default_branch}}
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=pep440,pattern={{version}}
+          labels: |
+            target=lean
+            build_actor=${{ github.actor }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          target: lean
+          build-args: |
+            PY_VER=${{ matrix.image.version }}
+
+
+  build-dev-image:
+    name: Build dev image
+    needs: config
+    if: needs.config.outputs.has-secrets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ github.repository }}
+          flavor: |
+            latest=false
+            suffix=dev
+          tags: |
+            type=sha,prefix=,format=long
+            type=ref,event=pr
+            type=raw,value=master,enable={{is_default_branch}}
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=pep440,pattern={{version}}
+          labels: |
+            target=dev
+            build_actor=${{ github.actor }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          target: dev
+
+
+  build-websocket-image:
+    name: Build websocket image
+    needs: config
+    if: needs.config.outputs.has-secrets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ github.repository }}
+          flavor: |
+            latest=false
+            suffix=websocket
+          tags: |
+            type=sha,prefix=,format=long
+            type=ref,event=pr
+            type=raw,value=master,enable={{is_default_branch}}
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=pep440,pattern={{version}}
+          labels: |
+            build_actor=${{ github.actor }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./superset-websocket
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+
+  build-dockerize-image:
+    name: Build Dockerize image
+    needs: config
+    if: needs.config.outputs.has-secrets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ github.repository }}
+          flavor: |
+            latest=false
+          tags: |
+            type=raw,value=dockerize,enable={{is_default_branch}}
+          labels: |
+            build_actor=${{ github.actor }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: dockerize.Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+
+  # build Dockerfile 'ci' target, save to archive and upload as artifact
+  build-ephemeral-image:
+    name: Build ephemeral env image
+    needs: config
+    if: needs.config.outputs.has-secrets && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v3
         with:
           persist-credentials: false
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-      - shell: bash
-        env:
-          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        run: |
-          ./scripts/docker_build_push.sh
-
+        uses: docker/setup-buildx-action@v3
       - name: Build ephemeral env image
-        if: github.event_name == 'pull_request'
         run: |
           mkdir -p ./build
           echo ${{ github.sha }} > ./build/SHA
@@ -61,9 +240,7 @@ jobs:
             --label "build_actor=${GITHUB_ACTOR}" \
             .
           docker save ${{ github.sha }} | gzip > ./build/${{ github.sha }}.tar.gz
-
       - name: Upload build artifacts
-        if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v3
         with:
           name: build
