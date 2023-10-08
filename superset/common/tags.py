@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import contextlib
 from typing import Any
 
 from sqlalchemy import MetaData
@@ -221,14 +222,8 @@ def add_types(metadata: MetaData) -> None:
     # add a tag for each object type
     insert = tag.insert()
     for type_ in ObjectTypes.__members__:
-        try:
-            db.session.execute(
-                insert,
-                name=f"type:{type_}",
-                type=TagTypes.type,
-            )
-        except IntegrityError:
-            pass  # already exists
+        with contextlib.suppress(IntegrityError):  # already exists
+            db.session.execute(insert, name=f"type:{type_}", type=TagTypes.type)
 
     add_types_to_charts(metadata, tag, tagged_object, columns)
     add_types_to_dashboards(metadata, tag, tagged_object, columns)
@@ -448,11 +443,8 @@ def add_owners(metadata: MetaData) -> None:
     ids = select([users.c.id])
     insert = tag.insert()
     for (id_,) in db.session.execute(ids):
-        try:
+        with contextlib.suppress(IntegrityError):  # already exists
             db.session.execute(insert, name=f"owner:{id_}", type=TagTypes.owner)
-        except IntegrityError:
-            pass  # already exists
-
     add_owners_to_charts(metadata, tag, tagged_object, columns)
     add_owners_to_dashboards(metadata, tag, tagged_object, columns)
     add_owners_to_saved_queries(metadata, tag, tagged_object, columns)
@@ -489,15 +481,8 @@ def add_favorites(metadata: MetaData) -> None:
     ids = select([users.c.id])
     insert = tag.insert()
     for (id_,) in db.session.execute(ids):
-        try:
-            db.session.execute(
-                insert,
-                name=f"favorited_by:{id_}",
-                type=TagTypes.type,
-            )
-        except IntegrityError:
-            pass  # already exists
-
+        with contextlib.suppress(IntegrityError):  # already exists
+            db.session.execute(insert, name=f"favorited_by:{id_}", type=TagTypes.type)
     favstars = (
         select(
             [

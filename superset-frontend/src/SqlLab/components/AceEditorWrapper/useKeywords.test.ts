@@ -28,7 +28,7 @@ import { schemaApiUtil } from 'src/hooks/apiResources/schemas';
 import { tableApiUtil } from 'src/hooks/apiResources/tables';
 import { addTable } from 'src/SqlLab/actions/sqlLab';
 import { initialState } from 'src/SqlLab/fixtures';
-import { reducers } from 'src/SqlLab/reducers';
+import reducers from 'spec/helpers/reducerIndex';
 import {
   SCHEMA_AUTOCOMPLETE_SCORE,
   TABLE_AUTOCOMPLETE_SCORE,
@@ -263,6 +263,52 @@ test('returns column keywords among selected tables', async () => {
     expect(result.current).toContainEqual(
       expect.objectContaining({
         name: unexpectedColumn,
+      }),
+    ),
+  );
+});
+
+test('returns long keywords with docText', async () => {
+  const expectLongKeywordDbId = 2;
+  const longKeyword = 'veryveryveryveryverylongtablename';
+  const dbFunctionNamesApiRoute = `glob:*/api/v1/database/${expectLongKeywordDbId}/function_names/`;
+  fetchMock.get(dbFunctionNamesApiRoute, { function_names: [] });
+
+  act(() => {
+    store.dispatch(
+      schemaApiUtil.upsertQueryData(
+        'schemas',
+        {
+          dbId: expectLongKeywordDbId,
+          forceRefresh: false,
+        },
+        ['short', longKeyword].map(value => ({
+          value,
+          label: value,
+          title: value,
+        })),
+      ),
+    );
+  });
+  const { result, waitFor } = renderHook(
+    () =>
+      useKeywords({
+        queryEditorId: 'testqueryid',
+        dbId: expectLongKeywordDbId,
+      }),
+    {
+      wrapper: createWrapper({
+        useRedux: true,
+        store,
+      }),
+    },
+  );
+  await waitFor(() =>
+    expect(result.current).toContainEqual(
+      expect.objectContaining({
+        name: longKeyword,
+        value: longKeyword,
+        docText: longKeyword,
       }),
     ),
   );

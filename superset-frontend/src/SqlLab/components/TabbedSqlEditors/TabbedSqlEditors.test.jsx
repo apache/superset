@@ -110,23 +110,17 @@ describe('TabbedSqlEditors', () => {
     it('should handle id', async () => {
       uriStub.returns({ id: 1 });
       await mountWithAct();
-      expect(window.history.replaceState.getCall(0).args[2]).toBe(
-        '/superset/sqllab',
-      );
+      expect(window.history.replaceState.getCall(0).args[2]).toBe('/sqllab');
     });
     it('should handle savedQueryId', async () => {
       uriStub.returns({ savedQueryId: 1 });
       await mountWithAct();
-      expect(window.history.replaceState.getCall(0).args[2]).toBe(
-        '/superset/sqllab',
-      );
+      expect(window.history.replaceState.getCall(0).args[2]).toBe('/sqllab');
     });
     it('should handle sql', async () => {
       uriStub.returns({ sql: 1, dbid: 1 });
       await mountWithAct();
-      expect(window.history.replaceState.getCall(0).args[2]).toBe(
-        '/superset/sqllab',
-      );
+      expect(window.history.replaceState.getCall(0).args[2]).toBe('/sqllab');
     });
     it('should handle custom url params', async () => {
       uriStub.returns({
@@ -137,7 +131,7 @@ describe('TabbedSqlEditors', () => {
       });
       await mountWithAct();
       expect(window.history.replaceState.getCall(0).args[2]).toBe(
-        '/superset/sqllab?custom_value=str&extra_attr1=true',
+        '/sqllab?custom_value=str&extra_attr1=true',
       );
     });
   });

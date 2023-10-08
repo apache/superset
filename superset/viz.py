@@ -1374,7 +1374,7 @@ class SunburstViz(BaseViz):
         metric = utils.get_metric_name(form_data["metric"])
         secondary_metric = (
             utils.get_metric_name(form_data["secondary_metric"])
-            if "secondary_metric" in form_data
+            if form_data.get("secondary_metric")
             else None
         )
         if metric == secondary_metric or secondary_metric is None:
@@ -1582,7 +1582,7 @@ class WorldMapViz(BaseViz):
         metric = utils.get_metric_name(self.form_data["metric"])
         secondary_metric = (
             utils.get_metric_name(self.form_data["secondary_metric"])
-            if "secondary_metric" in self.form_data
+            if self.form_data.get("secondary_metric")
             else None
         )
         columns = ["country", "m1", "m2"]
@@ -1653,6 +1653,7 @@ class FilterBoxViz(BaseViz):
                 query_obj["orderby"] = [(metric, asc)]
             self.get_query_context_factory().create(
                 datasource={"id": self.datasource.id, "type": self.datasource.type},
+                form_data=self.form_data,
                 queries=[query_obj],
             ).raise_for_access()
             df = self.get_df_payload(query_obj=query_obj).get("df")
@@ -2018,15 +2019,15 @@ class BaseDeckGLViz(BaseViz):
 
     @staticmethod
     @deprecated(deprecated_in="3.0")
-    def parse_coordinates(latlog: Any) -> tuple[float, float] | None:
-        if not latlog:
+    def parse_coordinates(latlong: Any) -> tuple[float, float] | None:
+        if not latlong:
             return None
         try:
-            point = Point(latlog)
+            point = Point(latlong)
             return (point.latitude, point.longitude)
         except Exception as ex:
             raise SpatialException(
-                _(f"Invalid spatial point encountered: {latlog}")
+                _(f"Invalid spatial point encountered: {latlong}")
             ) from ex
 
     @staticmethod
@@ -2543,7 +2544,7 @@ class PairedTTestViz(BaseViz):
         metrics = self.metric_labels
         df = df.pivot_table(index=DTTM_ALIAS, columns=groups, values=metrics)
         cols = []
-        # Be rid of falsey keys
+        # Be rid of falsy keys
         for col in df.columns:
             if col == "":
                 cols.append("N/A")

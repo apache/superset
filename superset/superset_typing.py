@@ -16,9 +16,9 @@
 # under the License.
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, Literal, Optional, TYPE_CHECKING, Union
+from typing import Any, Literal, Optional, TYPE_CHECKING, TypedDict, Union
 
-from typing_extensions import NotRequired, TypedDict
+from typing_extensions import NotRequired
 from werkzeug.wrappers import Response
 
 if TYPE_CHECKING:

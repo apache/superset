@@ -142,6 +142,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "schema",
         "description",
         "main_dttm_col",
+        "normalize_columns",
+        "always_filter_main_dttm",
         "offset",
         "default_endpoint",
         "cache_timeout",
@@ -219,6 +221,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "schema",
         "description",
         "main_dttm_col",
+        "normalize_columns",
+        "always_filter_main_dttm",
         "offset",
         "default_endpoint",
         "cache_timeout",
@@ -328,7 +332,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
     @expose("/<pk>", methods=("PUT",))
     @protect()
-    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",

@@ -337,6 +337,9 @@ function RowLevelSecurityList(props: RLSProps) {
                 filters={filters}
                 initialSort={initialSort}
                 loading={loading}
+                addDangerToast={addDangerToast}
+                addSuccessToast={addSuccessToast}
+                refreshData={() => {}}
                 pageSize={PAGE_SIZE}
               />
             </>

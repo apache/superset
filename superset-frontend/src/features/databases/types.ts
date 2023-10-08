@@ -47,11 +47,12 @@ export type DatabaseObject = {
   driver: string;
   engine?: string;
   extra?: string;
-  id?: number;
+  id: number;
   uuid?: null | string;
   name: string; // synonym to database_name
   paramProperties?: Record<string, any>;
   sqlalchemy_uri?: string;
+  sqlalchemy_uri_placeholder?: string;
   parameters?: {
     access_token?: string;
     database_name?: string;
@@ -77,11 +78,14 @@ export type DatabaseObject = {
   allow_run_async?: boolean;
 
   // SQL Lab
+  allows_cost_estimate?: boolean;
   allow_ctas?: boolean;
   allow_cvas?: boolean;
   allow_dml?: boolean;
+  allows_virtual_table_explore?: boolean;
   expose_in_sqllab?: boolean;
   force_ctas_schema?: string;
+  extra_json?: ExtraJson;
 
   // Security
   allow_file_upload?: boolean;

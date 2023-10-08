@@ -19,9 +19,14 @@
 /* eslint no-undef: 'error' */
 /* eslint no-param-reassign: ["error", { "props": false }] */
 import moment from 'moment';
-import { FeatureFlag, isDefined, SupersetClient, t } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  isDefined,
+  SupersetClient,
+  t,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import { getControlsState } from 'src/explore/store';
-import { isFeatureEnabled } from 'src/featureFlags';
 import {
   getAnnotationJsonUrl,
   getExploreUrl,
@@ -30,13 +35,10 @@ import {
   getQuerySettings,
   getChartDataUri,
 } from 'src/explore/exploreUtils';
-import { requiresQuery } from 'src/modules/AnnotationTypes';
-
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { logEvent } from 'src/logger/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { safeStringify } from 'src/utils/safeStringify';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
 import { updateDataMask } from 'src/dataMask/actions';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
@@ -223,7 +225,6 @@ export async function getChartDataRequest({
       credentials: 'include',
     };
   }
-
   const [useLegacyApi, parseMethod] = getQuerySettings(formData);
   if (useLegacyApi) {
     return legacyChartDataRequest(
@@ -263,7 +264,7 @@ export function runAnnotationQuery({
       ...(formData || getState().charts[sliceKey].latestQueryFormData),
     };
 
-    if (!requiresQuery(annotation.sourceType)) {
+    if (!annotation.sourceType) {
       return Promise.resolve();
     }
 
@@ -569,17 +570,20 @@ export function postChartFormData(
   );
 }
 
-export function redirectSQLLab(formData) {
+export function redirectSQLLab(formData, history) {
   return dispatch => {
     getChartDataRequest({ formData, resultFormat: 'json', resultType: 'query' })
       .then(({ json }) => {
-        const redirectUrl = '/superset/sqllab/';
+        const redirectUrl = '/sqllab/';
         const payload = {
           datasourceKey: formData.datasource,
           sql: json.result[0].query,
         };
-        SupersetClient.postForm(redirectUrl, {
-          form_data: safeStringify(payload),
+        history.push({
+          pathname: redirectUrl,
+          state: {
+            requestedQuery: payload,
+          },
         });
       })
       .catch(() =>

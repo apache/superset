@@ -20,7 +20,7 @@ import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
-import * as featureFlags from 'src/featureFlags';
+import * as uiCore from '@superset-ui/core';
 import { Provider } from 'react-redux';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { render, screen, act } from '@testing-library/react';
@@ -108,7 +108,7 @@ describe('ShareSqlLabQuery', () => {
   describe('via /kv/store', () => {
     beforeAll(() => {
       isFeatureEnabledMock = jest
-        .spyOn(featureFlags, 'isFeatureEnabled')
+        .spyOn(uiCore, 'isFeatureEnabled')
         .mockImplementation(() => true);
     });
 
@@ -150,7 +150,7 @@ describe('ShareSqlLabQuery', () => {
   describe('via saved query', () => {
     beforeAll(() => {
       isFeatureEnabledMock = jest
-        .spyOn(featureFlags, 'isFeatureEnabled')
+        .spyOn(uiCore, 'isFeatureEnabled')
         .mockImplementation(() => false);
     });
 

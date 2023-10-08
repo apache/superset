@@ -138,7 +138,7 @@ The best way to report a bug is to file an issue on GitHub. Please include:
 When posting Python stack traces, please quote them using
 [Markdown blocks](https://help.github.com/articles/creating-and-highlighting-code-blocks/).
 
-_Please note that feature requests opened as Github Issues will be moved to Discussions._
+_Please note that feature requests opened as GitHub Issues will be moved to Discussions._
 
 ### Submit Ideas or Feature Requests
 
@@ -170,7 +170,7 @@ articles. See [Documentation](#documentation) for more details.
 ### Add Translations
 
 If you are proficient in a non-English language, you can help translate
-text strings from Superset's UI. You can jump in to the existing
+text strings from Superset's UI. You can jump into the existing
 language dictionaries at
 `superset/translations/<language_code>/LC_MESSAGES/messages.po`, or
 even create a dictionary for a new language altogether.
@@ -329,16 +329,16 @@ Triaging goals
 
 First, add **Category labels (a.k.a. hash labels)**. Every issue/PR must have one hash label (except spam entry). Labels that begin with `#` defines issue/PR type:
 
-| Label           | for Issue                                                                                                                               | for PR                                                                                                                                            |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `#bug`          | Bug report                                                                                                                              | Bug fix                                                                                                                                           |
-| `#code-quality` | Describe problem with code, architecture or productivity                                                                                | Refactor, tests, tooling                                                                                                                          |
-| `#feature`      | New feature request                                                                                                                     | New feature implementation                                                                                                                        |
-| `#refine`       | Propose improvement that does not provide new features and is also not a bug fix nor refactor, such as adjust padding, refine UI style. | Implementation of improvement that does not provide new features and is also not a bug fix nor refactor, such as adjust padding, refine UI style. |
-| `#doc`          | Documentation                                                                                                                           | Documentation                                                                                                                                     |
-| `#question`     | Troubleshooting: Installation, Running locally, Ask how to do something. Can be changed to `#bug` later.                                | N/A                                                                                                                                               |
-| `#SIP`          | Superset Improvement Proposal                                                                                                           | N/A                                                                                                                                               |
-| `#ASF`          | Tasks related to Apache Software Foundation policy                                                                                      | Tasks related to Apache Software Foundation policy                                                                                                |
+| Label           | for Issue                                                                                                               | for PR                                                                                                                                            |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `#bug`          | Bug report                                                                                                              | Bug fix                                                                                                                           |
+| `#code-quality` | Describe problem with code, architecture or productivity                                                                | Refactor, tests, tooling                                                                                                          |
+| `#feature`      | New feature request                                                                                                     | New feature implementation                                                                                                        |
+| `#refine`       | Propose improvement such as adjusting padding or refining UI style, excluding new features, bug fixes, and refactoring. | Implementation of improvement such as adjusting padding or refining UI style, excluding new features, bug fixes, and refactoring. |
+| `#doc`          | Documentation                                                                                                           | Documentation                                                                                                                     |
+| `#question`     | Troubleshooting: Installation, Running locally, Ask how to do something. Can be changed to `#bug` later.                | N/A                                                                                                                               |
+| `#SIP`          | Superset Improvement Proposal                                                                                           | N/A                                                                                                                               |
+| `#ASF`          | Tasks related to Apache Software Foundation policy                                                                      | Tasks related to Apache Software Foundation policy                                                                                |
 
 Then add other types of labels as appropriate.
 
@@ -578,6 +578,7 @@ npm ci
 ```
 
 Note that Superset uses [Scarf](https://docs.scarf.sh) to capture telemetry/analytics about versions being installed, including the `scarf-js` npm package. As noted elsewhere in this documentation, Scarf gathers aggregated stats for the sake of security/release strategy, and does not capture/retain PII. [You can read here](https://docs.scarf.sh/package-analytics/) about the package, and various means to opt out of it, but one easy way to opt out is to add this setting in `superset-frontent/package.json`:
+
 ```json
 // your-package/package.json
 {
@@ -598,10 +599,13 @@ There are three types of assets you can build:
 3. `npm run build-instrumented`: instrumented application code for collecting code coverage from Cypress tests
 
 If this type of error comes while building assets(i.e using above commands):
+
 ```bash
 Error: You must provide the URL of lib/mappings.wasm by calling SourceMapConsumer.initialize
 ```
+
 Then put this:
+
 ```bash
 export NODE_OPTIONS=--no-experimental-fetch
 ```
@@ -716,7 +720,7 @@ We use [Pylint](https://pylint.org/) for linting which can be invoked via:
 tox -e pylint
 ```
 
-In terms of best practices please avoid blanket disablement of Pylint messages globally (via `.pylintrc`) or top-level within the file header, albeit there being a few exceptions. Disablement should occur inline as it prevents masking issues and provides context as to why said message is disabled.
+In terms of best practices please avoid blanket disabling of Pylint messages globally (via `.pylintrc`) or top-level within the file header, albeit there being a few exceptions. Disabling should occur inline as it prevents masking issues and provides context as to why said message is disabled.
 
 Additionally, the Python code is auto-formatted using [Black](https://github.com/python/black) which
 is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/integrations/editors.html)
@@ -925,28 +929,22 @@ For debugging locally using VSCode, you can configure a launch configuration fil
 
 ```json
 {
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Python: Flask",
-            "type": "python",
-            "request": "launch",
-            "module": "flask",
-            "env": {
-                "FLASK_APP": "superset",
-                "SUPERSET_ENV": "development"
-            },
-            "args": [
-                "run",
-                "-p 8088",
-                "--with-threads",
-                "--reload",
-                "--debugger"
-            ],
-            "jinja": true,
-            "justMyCode": true
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: Flask",
+      "type": "python",
+      "request": "launch",
+      "module": "flask",
+      "env": {
+        "FLASK_APP": "superset",
+        "SUPERSET_ENV": "development"
+      },
+      "args": ["run", "-p 8088", "--with-threads", "--reload", "--debugger"],
+      "jinja": true,
+      "justMyCode": true
+    }
+  ]
 }
 ```
 
@@ -1031,24 +1029,24 @@ You are now ready to attach a debugger to the process. Using VSCode you can conf
 
 ```json
 {
-    "version": "0.2.0",
-    "configurations": [
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Attach to Superset App in Docker Container",
+      "type": "python",
+      "request": "attach",
+      "connect": {
+        "host": "127.0.0.1",
+        "port": 5678
+      },
+      "pathMappings": [
         {
-            "name": "Attach to Superset App in Docker Container",
-            "type": "python",
-            "request": "attach",
-            "connect": {
-                "host": "127.0.0.1",
-                "port": 5678
-            },
-            "pathMappings": [
-                {
-                    "localRoot": "${workspaceFolder}",
-                    "remoteRoot": "/app"
-                }
-            ]
-        },
-    ]
+          "localRoot": "${workspaceFolder}",
+          "remoteRoot": "/app"
+        }
+      ]
+    }
+  ]
 }
 ```
 
@@ -1213,7 +1211,7 @@ To contribute a plugin to Superset, your plugin must meet the following criteria
 - The plugin should contain sufficient unit/e2e tests
 - The plugin should use appropriate namespacing, e.g. a folder name of `plugin-chart-whatever` and a package name of `@superset-ui/plugin-chart-whatever`
 - The plugin should use them variables via Emotion, as passed in by the ThemeProvider
-- The plugin should provide adequate error handling (no data returned, malformatted data, invalid controls, etc.)
+- The plugin should provide adequate error handling (no data returned, malformed data, invalid controls, etc.)
 - The plugin should contain documentation in the form of a populated `README.md` file
 - The plugin should have a meaningful and unique icon
 - Above all else, the plugin should come with a _commitment to maintenance_ from the original author(s)
@@ -1349,7 +1347,7 @@ To do this, you'll need to:
   but perfect for testing (stores cache in `/tmp`)
 
   ```python
-  from cachelib.file import FileSystemCache
+  from flask_caching.backends.filesystemcache import FileSystemCache
   RESULTS_BACKEND = FileSystemCache('/tmp/sqllab')
   ```
 
@@ -1415,11 +1413,11 @@ Note not all fields are correctly categorized. The fields vary based on visualiz
 
 ### Time
 
-| Field              | Type     | Notes                                 |
-| ------------------ | -------- | ------------------------------------- |
-| `granularity_sqla` | _string_ | The SQLA **Time Column** widget       |
-| `time_grain_sqla`  | _string_ | The SQLA **Time Grain** widget        |
-| `time_range`       | _string_ | The **Time range** widget             |
+| Field              | Type     | Notes                           |
+| ------------------ | -------- | ------------------------------- |
+| `granularity_sqla` | _string_ | The SQLA **Time Column** widget |
+| `time_grain_sqla`  | _string_ | The SQLA **Time Grain** widget  |
+| `time_range`       | _string_ | The **Time range** widget       |
 
 ### GROUP BY
 

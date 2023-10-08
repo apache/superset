@@ -17,6 +17,9 @@
  * under the License.
  */
 
+// timezone for unit tests
+process.env.TZ = 'America/New_York';
+
 module.exports = {
   testRegex:
     '\\/superset-frontend\\/(spec|src|plugins|packages|tools)\\/.*(_spec|\\.test)\\.[jt]sx?$',

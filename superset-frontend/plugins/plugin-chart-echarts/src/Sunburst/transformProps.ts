@@ -32,7 +32,7 @@ import {
 } from '@superset-ui/core';
 import { EChartsCoreOption } from 'echarts';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
-import { OpacityEnum } from '../constants';
+import { NULL_STRING, OpacityEnum } from '../constants';
 import { defaultGrid } from '../defaults';
 import { Refs } from '../types';
 import { formatSeriesName, getColtypesMapping } from '../utils/series';
@@ -138,7 +138,10 @@ export function formatTooltip({
       color: ${theme.colors.grayscale.base}"
      >`,
     `<div style="font-weight: ${theme.typography.weights.bold}">
-      ${node.name}
+      ${(node.name || NULL_STRING)
+        .toString()
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')}
      </div>`,
     `<div">
       ${absolutePercentage} of total
@@ -195,6 +198,7 @@ export default function transformProps(
     linearColorScheme,
     labelType,
     numberFormat,
+    currencyFormat,
     dateFormat,
     showLabels,
     showLabelsThreshold,
@@ -208,6 +212,7 @@ export default function transformProps(
     currencyFormats,
     columnFormats,
     numberFormat,
+    currencyFormat,
   );
   const secondaryValueFormatter = secondaryMetric
     ? getValueFormatter(
@@ -215,6 +220,7 @@ export default function transformProps(
         currencyFormats,
         columnFormats,
         numberFormat,
+        currencyFormat,
       )
     : undefined;
 

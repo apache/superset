@@ -10121,7 +10121,7 @@ msgid "One or more parameters needed to configure a database are missing."
 msgstr ""
 
 #: superset/errors.py:133
-msgid "One or more parameters specified in the query are malformatted."
+msgid "One or more parameters specified in the query are malformed."
 msgstr ""
 
 #: superset/errors.py:107
@@ -19207,4 +19207,25 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/transformProps.ts:521
 msgid "zoom area"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-pivot-table/src/react-pivottable/TableRenderers.jsx:28
+#: superset-frontend/src/explore/components/controls/FixedOrMetricControl/index.jsx:136
+msgid "metric"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:29
+msgid "10 seconds"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:29
+msgid "6 hours"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:29
+msgid "12 hours"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:29
+msgid "24 hours"
 msgstr ""

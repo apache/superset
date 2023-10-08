@@ -24,6 +24,7 @@ import React, {
   useMemo,
   useRef,
   useState,
+  PropsWithChildren,
 } from 'react';
 import { t, isFeatureEnabled, FeatureFlag, css } from '@superset-ui/core';
 import ImageLoader from 'src/components/ListViewCard/ImageLoader';
@@ -34,8 +35,15 @@ import { Theme } from '@emotion/react';
 
 const FALLBACK_THUMBNAIL_URL = '/static/assets/images/chart-card-fallback.svg';
 
-const TruncatedTextWithTooltip: React.FC = ({ children, ...props }) => {
-  const [isTruncated, setIsTruncated] = useState(false);
+const TruncatedTextWithTooltip = ({
+  children,
+  tooltipText,
+  ...props
+}: PropsWithChildren<{
+  tooltipText?: string;
+}>) => {
+  // Uses React.useState for testing purposes
+  const [isTruncated, setIsTruncated] = React.useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     setIsTruncated(
@@ -58,13 +66,18 @@ const TruncatedTextWithTooltip: React.FC = ({ children, ...props }) => {
     </div>
   );
 
-  return isTruncated ? <Tooltip title={children}>{div}</Tooltip> : div;
+  return isTruncated ? (
+    <Tooltip title={tooltipText || children}>{div}</Tooltip>
+  ) : (
+    div
+  );
 };
 
 const MetadataItem: React.FC<{
   label: ReactNode;
   value: ReactNode;
-}> = ({ label, value }) => (
+  tooltipText?: string;
+}> = ({ label, value, tooltipText }) => (
   <div
     css={(theme: Theme) => css`
       font-size: ${theme.typography.sizes.s}px;
@@ -89,7 +102,9 @@ const MetadataItem: React.FC<{
         min-width: 0;
       `}
     >
-      <TruncatedTextWithTooltip>{value}</TruncatedTextWithTooltip>
+      <TruncatedTextWithTooltip tooltipText={tooltipText}>
+        {value}
+      </TruncatedTextWithTooltip>
     </span>
   </div>
 );
@@ -273,6 +288,7 @@ const AddSliceCard: React.FC<{
                     datasourceName
                   )
                 }
+                tooltipText={datasourceName}
               />
               <MetadataItem label={t('Modified')} value={lastModified} />
             </div>

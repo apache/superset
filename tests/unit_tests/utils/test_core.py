@@ -17,10 +17,14 @@
 import os
 from typing import Any, Optional
 
+import pandas as pd
 import pytest
 
 from superset.utils.core import (
+    cast_to_boolean,
+    DateColumn,
     is_test,
+    normalize_dttm_col,
     parse_boolean_string,
     QueryObjectFilterClause,
     remove_extra_adhoc_filters,
@@ -132,3 +136,68 @@ def test_is_test():
 )
 def test_parse_boolean_string(test_input: Optional[str], expected: bool):
     assert parse_boolean_string(test_input) == expected
+
+
+def test_int_values():
+    assert cast_to_boolean(1) is True
+    assert cast_to_boolean(0) is False
+    assert cast_to_boolean(-1) is True
+    assert cast_to_boolean(42) is True
+    assert cast_to_boolean(0) is False
+
+
+def test_float_values():
+    assert cast_to_boolean(0.5) is True
+    assert cast_to_boolean(3.14) is True
+    assert cast_to_boolean(-2.71) is True
+    assert cast_to_boolean(0.0) is False
+
+
+def test_string_values():
+    assert cast_to_boolean("true") is True
+    assert cast_to_boolean("TruE") is True
+    assert cast_to_boolean("false") is False
+    assert cast_to_boolean("FaLsE") is False
+    assert cast_to_boolean("") is False
+
+
+def test_none_value():
+    assert cast_to_boolean(None) is None
+
+
+def test_boolean_values():
+    assert cast_to_boolean(True) is True
+    assert cast_to_boolean(False) is False
+
+
+def test_other_values():
+    assert cast_to_boolean([]) is False
+    assert cast_to_boolean({}) is False
+    assert cast_to_boolean(object()) is False
+
+
+def test_normalize_dttm_col() -> None:
+    """
+    Tests for the ``normalize_dttm_col`` function.
+
+    In particular, this covers a regression when Pandas was upgraded from 1.5.3 to
+    2.0.3 and the behavior of ``pd.to_datetime`` changed.
+    """
+    df = pd.DataFrame({"__time": ["2017-07-01T00:00:00.000Z"]})
+    assert (
+        df.to_markdown()
+        == """
+|    | __time                   |
+|---:|:-------------------------|
+|  0 | 2017-07-01T00:00:00.000Z |
+    """.strip()
+    )
+
+    # in 1.5.3 this would return a datetime64[ns] dtype, but in 2.0.3 we had to
+    # add ``exact=False`` since there is a leftover after parsing the format
+    dttm_cols = (DateColumn("__time", "%Y-%m-%d"),)
+
+    # the function modifies the dataframe in place
+    normalize_dttm_col(df, dttm_cols)
+
+    assert df["__time"].astype(str).tolist() == ["2017-07-01"]

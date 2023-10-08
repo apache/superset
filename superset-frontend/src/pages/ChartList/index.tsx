@@ -18,6 +18,7 @@
  */
 import {
   ensureIsArray,
+  isFeatureEnabled,
   FeatureFlag,
   getChartMetadataRegistry,
   JsonResponse,
@@ -29,7 +30,6 @@ import React, { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
 import moment from 'moment';
-import { isFeatureEnabled } from 'src/featureFlags';
 import {
   createErrorHandler,
   createFetchRelated,
@@ -410,6 +410,27 @@ function ChartList(props: ChartListProps) {
       {
         Cell: ({
           row: {
+            original: { tags = [] },
+          },
+        }: any) => (
+          // Only show custom type tags
+          <TagsList
+            tags={tags.filter((tag: Tag) =>
+              tag.type
+                ? tag.type === 1 || tag.type === 'TagTypes.custom'
+                : true,
+            )}
+            maxTags={3}
+          />
+        ),
+        Header: t('Tags'),
+        accessor: 'tags',
+        disableSortBy: true,
+        hidden: !isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM),
+      },
+      {
+        Cell: ({
+          row: {
             original: { last_saved_by: lastSavedBy },
           },
         }: any) => <>{changedByName(lastSavedBy)}</>,
@@ -447,27 +468,6 @@ function ChartList(props: ChartListProps) {
         accessor: 'created_by',
         disableSortBy: true,
         size: 'xl',
-      },
-      {
-        Cell: ({
-          row: {
-            original: { tags = [] },
-          },
-        }: any) => (
-          // Only show custom type tags
-          <TagsList
-            tags={tags.filter((tag: Tag) =>
-              tag.type
-                ? tag.type === 1 || tag.type === 'TagTypes.custom'
-                : true,
-            )}
-            maxTags={3}
-          />
-        ),
-        Header: t('Tags'),
-        accessor: 'tags',
-        disableSortBy: true,
-        hidden: !isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM),
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -590,6 +590,13 @@ function ChartList(props: ChartListProps) {
   const filters: Filters = useMemo(() => {
     const filters_list = [
       {
+        Header: t('Search'),
+        key: 'search',
+        id: 'slice_name',
+        input: 'search',
+        operator: FilterOperator.chartAllText,
+      },
+      {
         Header: t('Owner'),
         key: 'owner',
         id: 'owners',
@@ -705,13 +712,6 @@ function ChartList(props: ChartListProps) {
         fetchSelects: loadTags,
       });
     }
-    filters_list.push({
-      Header: t('Search'),
-      key: 'search',
-      id: 'slice_name',
-      input: 'search',
-      operator: FilterOperator.chartAllText,
-    });
     return filters_list;
   }, [addDangerToast, favoritesFilter, props.user]);
 
@@ -851,12 +851,17 @@ function ChartList(props: ChartListProps) {
               count={chartCount}
               data={charts}
               disableBulkSelect={toggleBulkSelect}
+              refreshData={refreshData}
               fetchData={fetchData}
               filters={filters}
               initialSort={initialSort}
               loading={loading}
               pageSize={PAGE_SIZE}
               renderCard={renderCard}
+              enableBulkTag
+              bulkTagResourceName="chart"
+              addSuccessToast={addSuccessToast}
+              addDangerToast={addDangerToast}
               showThumbnails={
                 userSettings
                   ? userSettings.thumbnails

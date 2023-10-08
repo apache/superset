@@ -53,7 +53,12 @@ def create_table_metadata(
 
     table = get_table(table_name, database, schema)
     if not table:
-        table = SqlaTable(schema=schema, table_name=table_name)
+        table = SqlaTable(
+            schema=schema,
+            table_name=table_name,
+            normalize_columns=False,
+            always_filter_main_dttm=False,
+        )
     if fetch_values_predicate:
         table.fetch_values_predicate = fetch_values_predicate
     table.database = database

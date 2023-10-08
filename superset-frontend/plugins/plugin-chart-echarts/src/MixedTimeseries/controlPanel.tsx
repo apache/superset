@@ -389,6 +389,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['currency_format'],
         [
           {
             name: 'logAxis',
@@ -424,6 +425,15 @@ const config: ControlPanelConfig = {
             config: {
               ...sharedControls.y_axis_format,
               label: t('Secondary y-axis format'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'currency_format_secondary',
+            config: {
+              ...sharedControls.currency_format,
+              label: t('Secondary currency format'),
             },
           },
         ],
