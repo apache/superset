@@ -24,7 +24,6 @@ jobs:
             echo "has-secrets=1" >> "$GITHUB_OUTPUT"
             echo "has secrets!"
           else
-            echo "has-secrets=0" >> "$GITHUB_OUTPUT"
             echo "no secrets!"
           fi
 
@@ -64,12 +63,25 @@ jobs:
             build_actor=${{ github.actor }}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+      - name: Build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          target: lean
+          build-args: |
+            PY_VER=${{ matrix.image.version }}
       - name: Login to Docker Hub
+        if: needs.config.outputs.has-secrets
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build and push
+      - name: Push
+        if: needs.config.outputs.has-secrets
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -111,12 +123,23 @@ jobs:
             build_actor=${{ github.actor }}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+      - name: Build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          target: dev
       - name: Login to Docker Hub
+        if: needs.config.outputs.has-secrets
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build and push
+      - name: Push
+        if: needs.config.outputs.has-secrets
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -157,12 +180,22 @@ jobs:
             build_actor=${{ github.actor }}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+      - name: Build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./superset-websocket
+          platforms: linux/amd64,linux/arm64
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
       - name: Login to Docker Hub
+        if: needs.config.outputs.has-secrets
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build and push
+      - name: Push
+        if: needs.config.outputs.has-secrets
         uses: docker/build-push-action@v5
         with:
           context: ./superset-websocket
@@ -197,12 +230,23 @@ jobs:
             build_actor=${{ github.actor }}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+      - name: Build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: dockerize.Dockerfile
+          platforms: linux/amd64,linux/arm64
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
       - name: Login to Docker Hub
+        if: needs.config.outputs.has-secrets
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build and push
+      - name: Push
+        if: needs.config.outputs.has-secrets
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -217,7 +261,7 @@ jobs:
   build-ephemeral-image:
     name: Build ephemeral env image
     needs: config
-    if: needs.config.outputs.has-secrets && github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
