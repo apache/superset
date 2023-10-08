@@ -109,7 +109,7 @@ jobs:
           images: ${{ github.repository }}
           flavor: |
             latest=false
-            suffix=dev
+            suffix=-dev
           tags: |
             type=sha,prefix=,format=long
             type=ref,event=pr
@@ -166,7 +166,7 @@ jobs:
           images: ${{ github.repository }}
           flavor: |
             latest=false
-            suffix=websocket
+            suffix=-websocket
           tags: |
             type=sha,prefix=,format=long
             type=ref,event=pr
