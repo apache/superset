@@ -103,6 +103,7 @@ import {
 } from './utils';
 import { FILTER_SUPPORTED_TYPES, INPUT_WIDTH } from './constants';
 import DependencyList from './DependencyList';
+import { newLabel } from './DatasetLabel';
 
 const TabPane = styled(Tabs.TabPane)`
   padding: ${({ theme }) => theme.gridUnit * 4}px 0px;
@@ -689,6 +690,21 @@ const FiltersConfigForm = (
           // modify the response to fit structure expected by AdhocFilterControl
           dataset.type = dataset.datasource_type;
           dataset.filter_select = true;
+          setNativeFilterFieldValues(form, filterId, {
+            dataset: {
+              value: dataset.id,
+              label: newLabel({
+                id: dataset.id,
+                table_name: dataset.table_name,
+                schema: dataset.schema,
+                database: {
+                  database_name: dataset.database.database_name,
+                },
+              }),
+            },
+            defaultDataMask: null,
+            column: null,
+          });
           setDatasetDetails(dataset);
         })
         .catch((response: SupersetApiError) => {

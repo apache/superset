@@ -43,11 +43,16 @@ import { findPermission } from 'src/utils/findPermission';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
+type Database = {
+  database_name: string;
+};
+
 type Dataset = {
   id: number;
   table_name: string;
-  description: string;
   datasource_type: string;
+  schema: string;
+  database: Database;
 };
 
 export interface ChartCreationProps extends RouteComponentProps {
@@ -169,20 +174,18 @@ const StyledContainer = styled.div`
     &&&& .ant-select-selection-placeholder {
       padding-left: ${theme.gridUnit * 3}px;
     }
+
+    &&&& .ant-select-selection-item {
+      padding-left: ${theme.gridUnit * 3}px;
+    }
   `}
 `;
 
-const TooltipContent = styled.div<{ hasDescription: boolean }>`
-  ${({ theme, hasDescription }) => `
+const TooltipContent = styled.div`
+  ${({ theme }) => `
     .tooltip-header {
-      font-size: ${
-        hasDescription ? theme.typography.sizes.l : theme.typography.sizes.s
-      }px;
-      font-weight: ${
-        hasDescription
-          ? theme.typography.weights.bold
-          : theme.typography.weights.normal
-      };
+      font-size: ${theme.typography.sizes.m}px;
+      font-weight: ${theme.typography.weights.bold};
     }
 
     .tooltip-description {
@@ -198,7 +201,31 @@ const TooltipContent = styled.div<{ hasDescription: boolean }>`
 
 const StyledLabel = styled.span`
   ${({ theme }) => `
-    position: absolute;
+    display: block;
+    left: ${theme.gridUnit * 3}px;
+    right: ${theme.gridUnit * 3}px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  `}
+`;
+
+const StyledLabelDetail = styled.span`
+  ${({
+    theme: {
+      typography: { sizes, weights },
+    },
+  }) => `
+    overflow: hidden;
+    display: inline-block;
+    text-overflow: ellipsis;
+    font-size: ${sizes.m}px;
+    font-weight: ${weights.light};
+    max-width: 50%;
+  `}
+`;
+
+const StyledLabelContainer = styled.div`
+  ${({ theme }) => `
     left: ${theme.gridUnit * 3}px;
     right: ${theme.gridUnit * 3}px;
     overflow: hidden;
@@ -299,22 +326,44 @@ export class ChartCreation extends React.PureComponent<
         mouseEnterDelay={1}
         placement="right"
         title={
-          <TooltipContent hasDescription={!!item.description}>
+          <TooltipContent>
             <div className="tooltip-header">{item.table_name}</div>
-            {item.description && (
-              <div className="tooltip-description">{item.description}</div>
-            )}
+            <div className="tooltip-description">
+              <div>Database: {item.database.database_name}</div>
+              <div>
+                Schema:{' '}
+                {item.schema &&
+                !['null', 'none'].includes(item.schema.toLowerCase())
+                  ? item.schema
+                  : 'Not defined'}
+              </div>
+            </div>
           </TooltipContent>
         }
       >
-        <StyledLabel>{item.table_name}</StyledLabel>
+        <StyledLabelContainer>
+          <StyledLabel>{item.table_name}</StyledLabel>
+          <StyledLabel>
+            <StyledLabelDetail>{item.database.database_name}</StyledLabelDetail>
+            {item.schema &&
+              !['null', 'none'].includes(item.schema.toLowerCase()) && (
+                <StyledLabelDetail>&nbsp;- {item.schema}</StyledLabelDetail>
+              )}
+          </StyledLabel>
+        </StyledLabelContainer>
       </Tooltip>
     );
   }
 
   loadDatasources(search: string, page: number, pageSize: number) {
     const query = rison.encode({
-      columns: ['id', 'table_name', 'description', 'datasource_type'],
+      columns: [
+        'id',
+        'table_name',
+        'datasource_type',
+        'database.database_name',
+        'schema',
+      ],
       filters: [{ col: 'table_name', opr: 'ct', value: search }],
       page,
       page_size: pageSize,
