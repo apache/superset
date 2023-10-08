@@ -64,7 +64,6 @@ github:
           - cypress-matrix (1, chrome)
           - cypress-matrix (2, chrome)
           - cypress-matrix (3, chrome)
-          - docker-build
           - frontend-build
           - pre-commit (3.9)
           - python-lint (3.9)
@@ -72,6 +71,13 @@ github:
           - test-postgres (3.9)
           - test-postgres (3.10)
           - test-sqlite (3.9)
+          # Build workflow jobs - docker.yml
+          - 3.9-slim-bookworm lean image
+          - 3.10-slim-bookworm lean image
+          - dev image
+          - dockerize image
+          - ephemeral env image
+          - websocket image
 
       required_pull_request_reviews:
         dismiss_stale_reviews: false
