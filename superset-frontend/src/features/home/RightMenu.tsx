@@ -111,17 +111,17 @@ const styledChildMenu = (theme: SupersetTheme) => css`
 const { SubMenu } = Menu;
 
 const RightMenu = ({
-                     align,
-                     settings,
-                     navbarRight,
-                     isFrontendRoute,
-                     environmentTag,
-                     setQuery,
-                   }: RightMenuProps & {
+  align,
+  settings,
+  navbarRight,
+  isFrontendRoute,
+  environmentTag,
+  setQuery,
+}: RightMenuProps & {
   setQuery: ({
-               databaseAdded,
-               datasetAdded,
-             }: {
+    databaseAdded,
+    datasetAdded,
+  }: {
     databaseAdded?: boolean;
     datasetAdded?: boolean;
   }) => void;
@@ -356,8 +356,8 @@ const RightMenu = ({
             /^#(?:[0-9a-f]{3}){1,2}$/i.test(environmentTag.color)
               ? environmentTag.color
               : environmentTag.color
-                .split('.')
-                .reduce((o, i) => o[i], theme.colors)
+                  .split('.')
+                  .reduce((o, i) => o[i], theme.colors)
           }
         >
           <span css={tagStyles}>{environmentTag.text}</span>
