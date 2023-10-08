@@ -1,4 +1,4 @@
-name: Docker
+name: Build
 
 on:
   release:
@@ -29,9 +29,8 @@ jobs:
 
 
   build-lean-image:
-    name: Build ${{ matrix.image.version }} lean image
+    name: ${{ matrix.image.version }} lean image
     needs: config
-    if: needs.config.outputs.has-secrets
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -95,9 +94,8 @@ jobs:
 
 
   build-dev-image:
-    name: Build dev image
+    name: dev image
     needs: config
-    if: needs.config.outputs.has-secrets
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -151,9 +149,8 @@ jobs:
 
 
   build-websocket-image:
-    name: Build websocket image
+    name: websocket image
     needs: config
-    if: needs.config.outputs.has-secrets
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -206,9 +203,8 @@ jobs:
 
 
   build-dockerize-image:
-    name: Build Dockerize image
+    name: dockerize image
     needs: config
-    if: needs.config.outputs.has-secrets
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -259,7 +255,7 @@ jobs:
 
   # build Dockerfile 'ci' target, save to archive and upload as artifact
   build-ephemeral-image:
-    name: Build ephemeral env image
+    name: ephemeral env image
     needs: config
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
