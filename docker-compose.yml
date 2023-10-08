@@ -86,7 +86,7 @@ services:
     # This is necessary because host and container need to have
     # their own, separate versions of these files. .dockerignore
     # does not seem to work when starting the service through
-    # docker-compose.
+    # docker compose.
     #
     # For example, node_modules may contain libs with native bindings.
     # Those bindings need to be compiled for each OS and the container
