@@ -294,12 +294,12 @@ class BaseSupersetView(BaseView):
         )
 
     def render_app_template(
-        self, extra_bootstrap_data: dict[str, Any] = {}
+        self, extra_bootstrap_data: dict[str, Any] = None
     ) -> FlaskResponse:
         payload = {
             "user": bootstrap_user_data(g.user, include_perms=True),
             "common": common_bootstrap_payload(g.user),
-            **extra_bootstrap_data,
+            **(extra_bootstrap_data or {}),
         }
         return self.render_template(
             "superset/spa.html",
