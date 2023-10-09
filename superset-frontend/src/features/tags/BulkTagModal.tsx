@@ -67,8 +67,8 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({
       },
     })
       .then(({ json = {} }) => {
-        const skipped = json.objects_skipped;
-        const tagged = json.objects_tagged;
+        const skipped = json.result.objects_skipped;
+        const tagged = json.result.objects_tagged;
         if (skipped.length > 0) {
           addSuccessToast(
             t(
