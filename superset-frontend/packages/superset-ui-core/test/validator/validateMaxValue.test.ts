@@ -17,9 +17,19 @@
  * under the License.
  */
 
-export { default as legacyValidateInteger } from './legacyValidateInteger';
-export { default as legacyValidateNumber } from './legacyValidateNumber';
-export { default as validateInteger } from './validateInteger';
-export { default as validateNumber } from './validateNumber';
-export { default as validateNonEmpty } from './validateNonEmpty';
-export { default as validateMaxValue } from './validateMaxValue';
+import { validateMaxValue } from '@superset-ui/core';
+import './setup';
+
+describe('validateInteger()', () => {
+  it('returns the warning message if invalid', () => {
+    expect(validateMaxValue(10.1, 10)).toBeTruthy();
+    expect(validateMaxValue(1, 0)).toBeTruthy();
+  });
+  it('returns false if the input is valid', () => {
+    expect(validateMaxValue(0, 1)).toBeFalsy();
+    expect(validateMaxValue(10, 10)).toBeFalsy();
+    expect(validateMaxValue(undefined, undefined)).toBeFalsy();
+    expect(validateMaxValue(NaN, NaN)).toBeFalsy();
+    expect(validateMaxValue(null, null)).toBeFalsy();
+  });
+});
