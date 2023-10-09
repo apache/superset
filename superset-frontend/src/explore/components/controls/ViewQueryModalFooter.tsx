@@ -55,7 +55,7 @@ const ViewQueryModalFooter: React.FC<ViewQueryModalFooterProps> = (props: {
       sql,
     };
     if (openInNewWindow) {
-      SupersetClient.postForm('/superset/sqllab/', payload);
+      SupersetClient.postForm('/sqllab/', payload);
     } else {
       history.push({
         pathname: '/sqllab',
