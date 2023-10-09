@@ -213,8 +213,12 @@ function SavedQueryList({
   menuData.buttons = subMenuButtons;
 
   // Action methods
-  const openInSqlLab = (id: number) => {
-    history.push(`/sqllab?savedQueryId=${id}`);
+  const openInSqlLab = (id: number, openInNewWindow: boolean) => {
+    if (openInNewWindow) {
+      window.open(`/sqllab?savedQueryId=${id}`);
+    } else {
+      history.push(`/sqllab?savedQueryId=${id}`);
+    }
   };
 
   const copyQueryLink = useCallback(
@@ -389,7 +393,8 @@ function SavedQueryList({
           const handlePreview = () => {
             handleSavedQueryPreview(original.id);
           };
-          const handleEdit = () => openInSqlLab(original.id);
+          const handleEdit = ({ metaKey }: React.MouseEvent) =>
+            openInSqlLab(original.id, Boolean(metaKey));
           const handleCopy = () => copyQueryLink(original.id);
           const handleExport = () => handleBulkSavedQueryExport([original]);
           const handleDelete = () => setQueryCurrentlyDeleting(original);
