@@ -294,7 +294,7 @@ class BaseSupersetView(BaseView):
         )
 
     def render_app_template(
-        self, extra_bootstrap_data: dict[str, Any] = None
+        self, extra_bootstrap_data: Optional[dict[str, Any]] = None
     ) -> FlaskResponse:
         payload = {
             "user": bootstrap_user_data(g.user, include_perms=True),
