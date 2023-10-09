@@ -12,7 +12,7 @@
     #   -r requirements/development.in
 appnope==0.1.3
     # via ipython
-astroid==2.15.6
+astroid==2.15.8
     # via pylint
 asttokens==2.2.1
     # via stack-data
@@ -100,7 +100,7 @@ pyhive[hive_pure_sasl]==0.7.0
     # via apache-superset
 pyinstrument==4.4.0
     # via -r requirements/development.in
-pylint==2.17.4
+pylint==2.17.7
     # via -r requirements/development.in
 python-ldap==3.4.3
     # via -r requirements/development.in
