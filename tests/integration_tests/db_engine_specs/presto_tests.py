@@ -929,7 +929,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         mock_fetch_data = mock.MagicMock(side_effect=DatabaseError())
         database = mock.MagicMock()
         database.get_raw_connection().__enter__().cursor().execute = mock_execute
-        mock_execute.fetch_data = mock_fetch_data
+        database.get_raw_connection().__enter__().cursor().fetchall = mock_fetch_data
         schema = "schema"
         table = "table"
         result = PrestoEngineSpec.get_create_view(database, schema=schema, table=table)
