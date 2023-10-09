@@ -258,8 +258,8 @@ class TagRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
-            all_tagged_objects = []
-            all_skipped_tagged_objects = []
+            all_tagged_objects: set[tuple[str, int]] = set()
+            all_skipped_tagged_objects: set[tuple[str, int]] = set()
             for tag in item.get("tags"):
                 tagged_item: dict[str, Any] = self.add_model_schema.load(
                     {
@@ -273,13 +273,15 @@ class TagRestApi(BaseSupersetModelRestApi):
                 ) = CreateCustomTagWithRelationshipsCommand(
                     tagged_item, bulk_create=True
                 ).run()
-                all_tagged_objects += objects_tagged
-                all_skipped_tagged_objects += objects_skipped
+                all_tagged_objects = all_tagged_objects | objects_tagged
+                all_skipped_tagged_objects = (
+                    all_skipped_tagged_objects | objects_skipped
+                )
             return self.response(
                 200,
                 result={
                     "objects_tagged": list(
-                        set(all_tagged_objects) - set(all_skipped_tagged_objects)
+                        all_tagged_objects - all_skipped_tagged_objects
                     ),
                     "objects_skipped": list(all_skipped_tagged_objects),
                 },

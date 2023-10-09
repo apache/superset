@@ -71,7 +71,7 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
         self._bulk_create = bulk_create
         self._skipped_tagged_objects: set[tuple[str, int]] = set()
 
-    def run(self) -> tuple[list[tuple[str, int]], list[tuple[str, int]]]:
+    def run(self) -> tuple[set[tuple[str, int]], set[tuple[str, int]]]:
         self.validate()
 
         try:
@@ -87,7 +87,7 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
 
             db.session.commit()
 
-            return self._properties["objects_to_tag"], self._skipped_tagged_objects
+            return set(self._properties["objects_to_tag"]), self._skipped_tagged_objects
 
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)
@@ -114,7 +114,9 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
                     # skip the object if the user doesn't have access
                     self._skipped_tagged_objects.add((obj_type, obj_id))
 
-            self._properties["objects_to_tag"] = set(objects_to_tag) - self._skipped_tagged_objects
+            self._properties["objects_to_tag"] = (
+                set(objects_to_tag) - self._skipped_tagged_objects
+            )
 
         if exceptions:
             raise TagInvalidError(exceptions=exceptions)
