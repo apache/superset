@@ -255,7 +255,7 @@ const row_limit: SharedControlConfig<'SelectControl'> = {
   ],
   default: 10000,
   choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
-  description: t('Limits the number of rows that get displayed!.'),
+  description: t('Limits the number of rows that get displayed.'),
 };
 
 const order_desc: SharedControlConfig<'CheckboxControl'> = {
