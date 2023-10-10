@@ -34,6 +34,7 @@ export const IKI_TABLE_TYPE = 'IKI_TABLE';
 export const IKI_PROCESS_BUILDER_TYPE = 'IKI_PROCESS_BUILDER';
 export const IKI_RUN_PIPELINE_TYPE = 'IKI_RUN_PIPELINE';
 export const IKI_DEEPCAST_TYPE = 'IKI_DEEPCAST';
+export const IKI_EITL_ROW_TYPE = 'IKI_EITL_ROW';
 
 export default {
   CHART_TYPE,
@@ -52,4 +53,5 @@ export default {
   IKI_TABLE_TYPE,
   IKI_PROCESS_BUILDER_TYPE,
   IKI_RUN_PIPELINE_TYPE,
+  IKI_EITL_ROW_TYPE,
 };

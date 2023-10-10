@@ -36,6 +36,7 @@ export const NEW_IKI_TABLE_ID = 'NEW_IKI_TABLE_ID';
 export const NEW_IKI_PROCESS_BUILDER_ID = 'NEW_IKI_PROCESS_BUILDER_ID';
 export const NEW_IKI_RUN_PIPELINE_ID = 'NEW_IKI_RUN_PIPELINE_ID';
 export const NEW_IKI_DEEPCAST_ID = 'NEW_IKI_DEEPCAST_ID';
+export const NEW_IKI_EITL_ROW_ID = 'NEW_IKI_EITL_ROW_ID';
 // grid constants
 export const DASHBOARD_ROOT_DEPTH = 0;
 export const GRID_BASE_UNIT = 8;
