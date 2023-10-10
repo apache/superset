@@ -28,9 +28,6 @@ x-superset-environment: &superset-environment
   POSTGRES_USER: superset
   ### settings for examples database:
   SUPERSET_LOAD_EXAMPLES: yes
-  EXAMPLES_USER: examples
-  EXAMPLES_PASSWORD: examples
-  EXAMPLES_DB: examples
   ### generate your SUPERSET_SECRET_KEY with "openssl rand -base64 42"
   SUPERSET_SECRET_KEY: ""
 
@@ -97,12 +94,21 @@ services:
     environment: *superset-environment
     volumes:
       - db_home:/var/lib/postgresql/data
-      - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+
+  examples:
+    image: postgres:15
+    container_name: superset_examples
+    restart: unless-stopped
+    environment: *superset-environment
+    volumes:
+      - examples_db_home:/var/lib/postgresql/data
 
 volumes:
   superset_home:
     external: false
   db_home:
+    external: false
+  examples_db_home:
     external: false
   redis:
     external: false
