@@ -132,7 +132,7 @@ jobs:
         run: sudo chown -R $USER:$USER /tmp/.superset
       - name: Start hadoop and hive
         if: steps.check.outcome == 'failure'
-        run: docker-compose -f scripts/databases/hive/docker-compose.yml up -d
+        run: docker compose -f scripts/databases/hive/docker-compose.yml up -d
       - name: Setup Python
         if: steps.check.outcome == 'failure'
         uses: actions/setup-python@v4
