@@ -336,7 +336,9 @@ export default function DataSourcePanel({
   );
 
   const showInfoboxCheck = () => {
-    if (sessionStorage.getItem('showInfobox') === 'false') return false;
+    try {
+      if (sessionStorage.getItem('showInfobox') === 'false') return false;
+    } catch {}
     return true;
   };
 
@@ -366,7 +368,11 @@ export default function DataSourcePanel({
             <StyledInfoboxWrapper>
               <Alert
                 closable
-                onClose={() => sessionStorage.setItem('showInfobox', 'false')}
+                onClose={() => {
+                  try {
+                    sessionStorage.setItem('showInfobox', 'false');
+                  } catch {}
+                }}
                 type="info"
                 message=""
                 description={
