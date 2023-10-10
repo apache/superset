@@ -7,7 +7,7 @@ import requests
 class AIClient:
     _SQL_URL_ENDPOINT = "/api/v1/sql"
     _DEFAULT_HEADERS = {"Content-Type": "application/json"}
-    _DEFAULT_AI_SERVICE_URL = "http://localhost:8081"
+    _DEFAULT_AI_SERVICE_URL = "https://ai.kuwago.onebyzero.ai"
 
     def __init__(self) -> None:
         self._base_url = os.environ.get(
@@ -24,7 +24,8 @@ class AIClient:
             "database_schema": database_schema,
             "database_type": database_type,
         }
-        response = requests.post(url, json=data, headers=AIClient._DEFAULT_HEADERS)
+        response = requests.post(
+            url, json=data, headers=AIClient._DEFAULT_HEADERS)
         if response.status_code != 200:
             if response.headers["Content-Type"] == "application/json":
                 raise Exception(response.json())
