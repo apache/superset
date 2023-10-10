@@ -122,5 +122,5 @@ set-kubectl-context-dev:
 build-push-all-dev: set-kubectl-context-dev
 	./infra/docker/docker_build_push.sh
 
-deploy-all-dev:
+deploy-all-dev: set-kubectl-context-dev
 	cd ./infra && make deploy-superset
