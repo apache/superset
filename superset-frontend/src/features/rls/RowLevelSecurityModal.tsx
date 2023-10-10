@@ -39,10 +39,13 @@ import { FilterType, RLSObject, RoleObject, TableObject } from './types';
 
 const StyledModal = styled(Modal)`
   max-width: 1200px;
-  min-width: 352px;
+  min-width: min-content;
   width: 100%;
   .ant-modal-body {
     overflow: initial;
+  }
+  .ant-modal-footer {
+    white-space: nowrap;
   }
 `;
 const StyledIcon = (theme: SupersetTheme) => css`
