@@ -24,6 +24,12 @@ export default function buildQuery(formData: QueryFormData) {
     {
       ...baseQueryObject,
       columns: columns?.length ? [series, columns] : [series],
+      orderby: columns?.length
+        ? [
+            [series, true],
+            [columns, true],
+          ]
+        : [[series, true]],
     },
   ]);
 }

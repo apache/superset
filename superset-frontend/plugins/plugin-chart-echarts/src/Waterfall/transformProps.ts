@@ -38,17 +38,16 @@ import { defaultGrid, defaultYAxis } from '../defaults';
 import { ASSIST_MARK, LEGEND, TOKEN, TOTAL_MARK } from './constants';
 import { extractGroupbyLabel, getColtypesMapping } from '../utils/series';
 import { Refs } from '../types';
+import { NULL_STRING } from '../constants';
 
 function formatTooltip({
   theme,
   params,
   numberFormatter,
-  richTooltip,
 }: {
   theme: SupersetTheme;
   params: any;
   numberFormatter: NumberFormatter;
-  richTooltip: boolean;
 }) {
   const htmlMaker = (params: any) =>
     `
@@ -70,26 +69,23 @@ function formatTooltip({
         color:${theme.colors.grayscale.base};
         font-weight:${theme.typography.weights.bold}"
       >
-        ${numberFormatter(params.data)}
+        ${
+          params.data ? numberFormatter(params.data.originalValue) : NULL_STRING
+        }
       </span>
     </div>
   `;
-
-  if (richTooltip) {
-    const [, increaseParams, decreaseParams, totalParams] = params;
-    if (increaseParams.data !== TOKEN || increaseParams.data === null) {
-      return htmlMaker(increaseParams);
-    }
-    if (decreaseParams.data !== TOKEN) {
-      return htmlMaker(decreaseParams);
-    }
-    if (totalParams.data !== TOKEN) {
-      return htmlMaker(totalParams);
-    }
-  } else if (params.seriesName !== ASSIST_MARK) {
-    return htmlMaker(params);
+  const [, increaseParams, decreaseParams, totalParams] = params;
+  if (increaseParams.data !== TOKEN || increaseParams.data === null) {
+    return htmlMaker(increaseParams);
   }
-  return '';
+  if (decreaseParams.data !== TOKEN) {
+    return htmlMaker(decreaseParams);
+  }
+  if (totalParams.data !== TOKEN) {
+    return htmlMaker(totalParams);
+  }
+  return NULL_STRING;
 }
 
 function transformer({
@@ -179,19 +175,15 @@ export default function transformProps(
     yAxisLabel,
     xAxisLabel,
     yAxisFormat,
-    richTooltip,
     showValue,
     sliceId,
   } = formData as EchartsWaterfallFormData;
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(yAxisFormat);
   const formatter = (params: CallbackDataParams) => {
-    const { value, seriesName } = params;
-    let formattedValue = numberFormatter(value as number);
-    if (seriesName === LEGEND.DECREASE) {
-      formattedValue = `-${formattedValue}`;
-    }
-    return formattedValue;
+    const { data } = params;
+    const { originalValue } = data as { originalValue?: number };
+    return numberFormatter(originalValue as number);
   };
   const breakdown = columns?.length ? columns : '';
   const groupby = breakdown ? [series, breakdown] : [series];
@@ -210,6 +202,8 @@ export default function transformProps(
   const increaseData: ISeriesData[] = [];
   const decreaseData: ISeriesData[] = [];
   const totalData: ISeriesData[] = [];
+
+  let previousTotal = 0;
 
   transformedData.forEach((datum, index, self) => {
     const totalSum = self.slice(0, index + 1).reduce((prev, cur, i) => {
@@ -236,24 +230,60 @@ export default function transformProps(
       joinedName,
       columnLabels.map(col => datum[col] as string),
     );
-    const value = datum[metricLabel] as number;
-    const isNegative = value < 0;
+
+    const originalValue = datum[metricLabel] as number;
+    let value = originalValue;
+    const oppositeSigns = Math.sign(previousTotal) !== Math.sign(totalSum);
+    if (oppositeSigns) {
+      value = Math.sign(value) * (Math.abs(value) - Math.abs(previousTotal));
+    }
+
     if (isTotal) {
       increaseData.push(TOKEN);
       decreaseData.push(TOKEN);
-      assistData.push(TOKEN);
-      totalData.push(totalSum);
-    } else if (isNegative) {
+      totalData.push({ value: totalSum, originalValue: totalSum });
+    } else if (value < 0) {
       increaseData.push(TOKEN);
-      decreaseData.push(Math.abs(value));
-      assistData.push(totalSum);
+      decreaseData.push(
+        totalSum < 0
+          ? { value, originalValue }
+          : { value: -value, originalValue },
+      );
       totalData.push(TOKEN);
     } else {
-      increaseData.push(value);
+      increaseData.push(
+        totalSum > 0
+          ? { value, originalValue }
+          : { value: -value, originalValue },
+      );
       decreaseData.push(TOKEN);
-      assistData.push(totalSum - value);
       totalData.push(TOKEN);
     }
+
+    const color = oppositeSigns
+      ? value > 0
+        ? colorFn(LEGEND.INCREASE, sliceId)
+        : colorFn(LEGEND.DECREASE, sliceId)
+      : 'transparent';
+    if (isTotal) {
+      assistData.push({ value: TOKEN });
+    } else if (index === 0) {
+      assistData.push({
+        value: 0,
+      });
+    } else if (oppositeSigns || Math.abs(totalSum) > Math.abs(previousTotal)) {
+      assistData.push({
+        value: previousTotal,
+        itemStyle: { color },
+      });
+    } else {
+      assistData.push({
+        value: totalSum,
+        itemStyle: { color },
+      });
+    }
+
+    previousTotal = totalSum;
   });
 
   let axisLabel;
@@ -286,16 +316,6 @@ export default function transformProps(
       name: ASSIST_MARK,
       type: 'bar',
       stack: 'stack',
-      itemStyle: {
-        borderColor: 'transparent',
-        color: 'transparent',
-      },
-      emphasis: {
-        itemStyle: {
-          borderColor: 'transparent',
-          color: 'transparent',
-        },
-      },
       data: assistData,
     },
     {
@@ -377,14 +397,13 @@ export default function transformProps(
     tooltip: {
       ...getDefaultTooltip(refs),
       appendToBody: true,
-      trigger: richTooltip ? 'axis' : 'item',
+      trigger: 'axis',
       show: !inContextMenu,
       formatter: (params: any) =>
         formatTooltip({
           theme,
           params,
           numberFormatter,
-          richTooltip,
         }),
     },
     series: barSeries,

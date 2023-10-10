@@ -58,20 +58,6 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [
-          {
-            name: 'rich_tooltip',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Rich tooltip'),
-              renderTrigger: true,
-              default: true,
-              description: t(
-                'Shows a list of all series available at that point in time',
-              ),
-            },
-          },
-        ],
         [<div className="section-header">{t('X Axis')}</div>],
         [
           {

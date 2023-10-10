@@ -37,10 +37,11 @@ export type WaterfallFormXTicksLayout =
   | 'flat'
   | 'staggered';
 
-export type ISeriesData =
+export type ISeriesData = { originalValue?: number } & (
   | BarDataItemOption
   | OptionDataValue
-  | OptionDataValue[];
+  | OptionDataValue[]
+);
 
 export type EchartsWaterfallFormData = QueryFormData &
   LegendFormData & {
