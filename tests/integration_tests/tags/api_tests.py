@@ -572,6 +572,8 @@ class TestTagApi(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_post_bulk_tag_skipped_tags_perm(self):
+        alpha = self.get_user("alpha")
+        self.insert_dashboard("titletag", "slugtag", [alpha.id])
         self.login(username="alpha")
         uri = "api/v1/tag/bulk_create"
         dashboard = (
