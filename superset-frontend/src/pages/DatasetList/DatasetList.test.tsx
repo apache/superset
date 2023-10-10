@@ -289,50 +289,50 @@ describe('Prevent unsafe URLs', () => {
   let wrapper: any;
 
   it('Check prevent unsafe is on renders relative links', async () => {
-    const tdColumnsNumber = 9;
+    const tdColumnsNumber = 10;
     useSelectorMock.mockReturnValue(true);
     wrapper = await mountAndWait(mockedProps);
     const tdElements = wrapper.find(ListView).find('td');
     expect(
       tdElements
-        .at(0 * tdColumnsNumber + 1)
+        .at(0 * tdColumnsNumber + 2)
         .find('a')
         .prop('href'),
     ).toBe('/https://www.google.com?0');
     expect(
       tdElements
-        .at(1 * tdColumnsNumber + 1)
+        .at(1 * tdColumnsNumber + 2)
         .find('a')
         .prop('href'),
     ).toBe('/https://www.google.com?1');
     expect(
       tdElements
-        .at(2 * tdColumnsNumber + 1)
+        .at(2 * tdColumnsNumber + 2)
         .find('a')
         .prop('href'),
     ).toBe('/https://www.google.com?2');
   });
 
   it('Check prevent unsafe is off renders absolute links', async () => {
-    const tdColumnsNumber = 9;
+    const tdColumnsNumber = 10;
     useSelectorMock.mockReturnValue(false);
     wrapper = await mountAndWait(mockedProps);
     const tdElements = wrapper.find(ListView).find('td');
     expect(
       tdElements
-        .at(0 * tdColumnsNumber + 1)
+        .at(0 * tdColumnsNumber + 2)
         .find('a')
         .prop('href'),
     ).toBe('https://www.google.com?0');
     expect(
       tdElements
-        .at(1 * tdColumnsNumber + 1)
+        .at(1 * tdColumnsNumber + 2)
         .find('a')
         .prop('href'),
     ).toBe('https://www.google.com?1');
     expect(
       tdElements
-        .at(2 * tdColumnsNumber + 1)
+        .at(2 * tdColumnsNumber + 2)
         .find('a')
         .prop('href'),
     ).toBe('https://www.google.com?2');
