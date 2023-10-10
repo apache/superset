@@ -16,14 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// range and point actually have different value ranges
-// and also are different concept-wise
+import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import transformProps from '../../transformProps';
+import controlPanel from './controlPanel';
+import thumbnail from './images/thumbnail.png';
 
-export type Range = [number, number];
-export type Point = [number, number];
-export interface ColorType {
-  r: number;
-  g: number;
-  b: number;
-  a: number;
+const metadata = new ChartMetadata({
+  category: t('Map'),
+  credits: ['https://uber.github.io/deck.gl'],
+  description: t(
+    'Uses Gaussian Kernel Density Estimation to visualize spatial distribution of data',
+  ),
+  name: t('deck.gl Countour'),
+  thumbnail,
+  useLegacyApi: true,
+  tags: [t('deckGL'), t('Spatial'), t('Comparison'), t('Experimental')],
+});
+
+export default class ContourChartPlugin extends ChartPlugin {
+  constructor() {
+    super({
+      loadChart: () => import('./Contour'),
+      controlPanel,
+      metadata,
+      transformProps,
+    });
+  }
 }
