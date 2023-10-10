@@ -46,6 +46,8 @@ export interface QueryEditor {
   description?: string;
   loaded?: boolean;
   inLocalStorage?: boolean;
+  northPercent?: number;
+  southPercent?: number;
 }
 
 export type toastState = {

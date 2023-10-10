@@ -32,7 +32,9 @@ const percentMetrics: typeof sharedControls.metrics = {
   type: 'MetricsControl',
   label: t('Percentage metrics'),
   description: t(
-    'Metrics for which percentage of total are to be displayed. Calculated from only data within the row limit.',
+    'Select one or many metrics to display, that will be displayed in the percentages of total. ' +
+      'Percentage metrics will be calculated only from data within the row limit. ' +
+      'You can use an aggregation function on a column or write custom SQL to create a percentage metric.',
   ),
   multi: true,
   visibility: isAggMode,

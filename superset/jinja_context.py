@@ -157,7 +157,7 @@ class ExtraCache:
 
         When in SQL Lab, it's possible to add arbitrary URL "query string" parameters,
         and use those in your SQL code. For instance you can alter your url and add
-        `?foo=bar`, as in `{domain}/superset/sqllab?foo=bar`. Then if your query is
+        `?foo=bar`, as in `{domain}/sqllab?foo=bar`. Then if your query is
         something like SELECT * FROM foo = '{{ url_param('foo') }}', it will be parsed
         at runtime and replaced by the value in the URL.
 

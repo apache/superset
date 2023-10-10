@@ -17,7 +17,17 @@
  * under the License.
  */
 import React from 'react';
-import ReactDOM from 'react-dom';
-import App from './App';
+import { BubbleChartTransformedProps } from './types';
+import Echart from '../components/Echart';
 
-ReactDOM.render(<App />, document.getElementById('app'));
+export default function EchartsBubble(props: BubbleChartTransformedProps) {
+  const { height, width, echartOptions, refs } = props;
+  return (
+    <Echart
+      height={height}
+      width={width}
+      echartOptions={echartOptions}
+      refs={refs}
+    />
+  );
+}

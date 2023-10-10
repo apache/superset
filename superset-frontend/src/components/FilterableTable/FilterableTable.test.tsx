@@ -25,11 +25,11 @@ import userEvent from '@testing-library/user-event';
 
 describe('FilterableTable', () => {
   const mockedProps = {
-    orderedColumnKeys: ['a', 'b', 'c'],
+    orderedColumnKeys: ['a', 'b', 'c', 'children'],
     data: [
-      { a: 'a1', b: 'b1', c: 'c1', d: 0 },
-      { a: 'a2', b: 'b2', c: 'c2', d: 100 },
-      { a: null, b: 'b3', c: 'c3', d: 50 },
+      { a: 'a1', b: 'b1', c: 'c1', d: 0, children: 0 },
+      { a: 'a2', b: 'b2', c: 'c2', d: 100, children: 2 },
+      { a: null, b: 'b3', c: 'c3', d: 50, children: 1 },
     ],
     height: 500,
   };

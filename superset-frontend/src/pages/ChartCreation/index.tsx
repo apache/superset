@@ -70,7 +70,7 @@ const denyList: string[] = bootstrapData.common.conf.VIZ_TYPE_DENYLIST || [];
 
 if (
   isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
-  !('filter_box' in denyList)
+  !denyList.includes('filter_box')
 ) {
   denyList.push('filter_box');
 }

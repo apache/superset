@@ -16,24 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { styledMount as mount } from 'spec/helpers/theming';
-import Label from 'src/components/Label';
-import QueryStateLabel from 'src/SqlLab/components/QueryStateLabel';
 
-describe('SavedQuery', () => {
-  const mockedProps = {
-    query: {
-      state: 'running',
-    },
-  };
-  it('is valid', () => {
-    expect(React.isValidElement(<QueryStateLabel {...mockedProps} />)).toBe(
-      true,
-    );
-  });
-  it('has an Overlay and a Popover', () => {
-    const wrapper = mount(<QueryStateLabel {...mockedProps} />);
-    expect(wrapper.find(Label)).toExist();
-  });
-});
+import { t } from '@superset-ui/core';
+
+export const TOTAL_MARK = t('Total');
+export const ASSIST_MARK = t('Assist');
+export const LEGEND = {
+  INCREASE: t('Increase'),
+  DECREASE: t('Decrease'),
+  TOTAL: t('Total'),
+};
+export const TOKEN = '-';

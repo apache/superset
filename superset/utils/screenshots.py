@@ -22,12 +22,15 @@ from typing import TYPE_CHECKING
 
 from flask import current_app
 
+from superset import feature_flag_manager
 from superset.utils.hashing import md5_sha_from_dict
 from superset.utils.urls import modify_url_query
 from superset.utils.webdriver import (
     ChartStandaloneMode,
     DashboardStandaloneMode,
-    WebDriverProxy,
+    WebDriver,
+    WebDriverPlaywright,
+    WebDriverSelenium,
     WindowSize,
 )
 
@@ -61,9 +64,11 @@ class BaseScreenshot:
         self.url = url
         self.screenshot: bytes | None = None
 
-    def driver(self, window_size: WindowSize | None = None) -> WebDriverProxy:
+    def driver(self, window_size: WindowSize | None = None) -> WebDriver:
         window_size = window_size or self.window_size
-        return WebDriverProxy(self.driver_type, window_size)
+        if feature_flag_manager.is_feature_enabled("PLAYWRIGHT_REPORTS_AND_THUMBNAILS"):
+            return WebDriverPlaywright(self.driver_type, window_size)
+        return WebDriverSelenium(self.driver_type, window_size)
 
     def cache_key(
         self,

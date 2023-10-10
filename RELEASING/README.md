@@ -238,7 +238,7 @@ Similar to `cherrytree`, the change log script requires a github token, either a
 
 #### Initial release (e.g. 1.5.0)
 
-When generating the changelog for an initial minor relese, you should compare with
+When generating the changelog for an initial minor release, you should compare with
 the previous release (in the example, the previous release branch is `1.4`, so remember to
 update it accordingly):
 
@@ -343,7 +343,7 @@ To build and run the recently created tarball **from SVN**:
 # login using admin/admin
 ```
 
-## Create a release on Github
+## Create a release on GitHub
 
 After submitting the tag and testing the release candidate, follow the steps [here](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) to create the release on GitHub. Use the vote email text as the content for the release description. Make sure to check the "This is a pre-release" checkbox for release candidates. You can check previous releases if you need an example.
 

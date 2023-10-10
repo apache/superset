@@ -56,6 +56,7 @@ export function getInitialDataMask(
   }
   return {
     ...otherProps,
+    __cache: {},
     extraFormData: {},
     filterState: {},
     ownState: {},
