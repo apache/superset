@@ -79,7 +79,7 @@ docker build --target lean \
 #   --label "sha=${SHA}" \
 #   --label "built_at=$(date)" \
 #   --label "target=dev" \
-  .
+#  .
 
 #
 # Build the dockerize image
