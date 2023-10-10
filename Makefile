@@ -116,5 +116,8 @@ report-celery-beat:
 admin-user:
 	superset fab create-admin
 
-build-all:
+build-push-all-dev:
 	./infra/docker/docker_build_push.sh
+
+deploy-all-dev:
+	cd ./infra && make deploy-superset

@@ -1,0 +1,86 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# permission can be added at job level or workflow level    
+permissions:
+  id-token: write   # This is required for requesting the JWT
+  contents: read    # This is required for actions/checkout
+
+jobs:
+  diff-check:
+    runs-on: ubuntu-latest
+    # outputs:
+    #   api-integration-service-updated: ${{ steps.api-integration-service-changed-files.outputs.any_changed }}
+    #   api-service-updated: ${{ steps.api-service-changed-files.outputs.any_changed }}
+    #   auth-service-updated: ${{ steps.auth-service-changed-files.outputs.any_changed }}
+    #   frontend-service-updated: ${{ steps.frontend-service-changed-files.outputs.any_changed }}
+    #   messaging-service-updated: ${{ steps.messaging-service-changed-files.outputs.any_changed }}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # - name: Get changed files
+    #   id: query-analyzer-service-changed-files
+    #   uses: tj-actions/changed-files@v35
+    #   with:
+    #     files: |
+    #       query_analyzer_service/**
+    #       common/**
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [diff-check]
+    # if: |
+    #   needs.diff-check.outputs.frontend-service-updated == 'true' ||
+    #   needs.diff-check.outputs.frontend-service-updated == null
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v3
+      with:
+        role-to-assume: arn:aws:iam::975226449092:role/OneByZeroGithubActions
+        aws-region: ap-southeast-1
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+      with:
+        mask-password: 'true'
+
+    - name: Build, tag, and push docker image to Amazon ECR
+      env:
+        RELEASE_VERSION: ${{ github.sha }}-alpha
+      run: |
+        make build-push-all-dev
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [diff-check, build]
+    # if: |
+    #   needs.diff-check.outputs.frontend-service-updated == 'true' ||
+    #   needs.diff-check.outputs.frontend-service-updated == null
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v3
+      with:
+        role-to-assume: arn:aws:iam::975226449092:role/OneByZeroGithubActions
+        aws-region: ap-southeast-1
+
+    - name: Deploy services to EKS
+      env:
+        RELEASE_VERSION: ${{ github.sha }}-alpha
+      run: |
+        make deploy-all-dev
