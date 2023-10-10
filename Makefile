@@ -116,7 +116,10 @@ report-celery-beat:
 admin-user:
 	superset fab create-admin
 
-build-push-all-dev:
+set-kubectl-context-dev:
+	aws eks update-kubeconfig --region ap-southeast-1 --name kuwago-dev-eks
+
+build-push-all-dev: set-kubectl-context-dev
 	./infra/docker/docker_build_push.sh
 
 deploy-all-dev:
