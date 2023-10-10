@@ -17,7 +17,7 @@ set-kubectl-context-dev:
 
 deploy-superset:
 	cd helm/superset && helm dependency update && cd ../..
-	helm upgrade -i superset helm/superset -f helm/superset/values.yaml --debug --wait
+	helm upgrade -i superset helm/superset -f helm/superset/values.yaml --debug --wait --timeout 15m
 
 generate-template-superset:
 	cd helm/superset && helm dependency update && cd ../..

@@ -38,6 +38,7 @@ from superset import (
     results_backend_use_msgpack,
     security_manager,
 )
+from superset.ai_client import AIClient
 from superset.common.db_query_status import QueryStatus
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
 from superset.dataframe import df_to_records
@@ -153,12 +154,10 @@ def get_query(query_id: int, session: Session) -> Query:
         raise SqlLabException("Failed at getting query") from ex
 
 
-def get_sql_query(nl_query: str) -> str:
+def get_sql_query(nl_query: str, database_schema: str) -> str:
     """Returns the SQL query from the NL one"""
-    values = nl_query.split("##")
-    if len(values) <= 1:
-        return "Select * from product"
-    return values[1]
+    ai_client = AIClient()
+    return ai_client.sql(nl_query, database_schema)
 
 
 @celery_app.task(
