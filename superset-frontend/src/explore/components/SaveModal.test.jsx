@@ -64,9 +64,6 @@ const defaultProps = {
     return arg;
   }),
   form_data: { datasource: '107__table', url_params: { foo: 'bar' } },
-  history: {
-    replace: jest.fn(),
-  },
 };
 
 const mockEvent = {
@@ -106,8 +103,8 @@ const fetchDashboardsEndpoint = `glob:*/dashboardasync/api/read?_flt_0_owners=${
 const fetchChartEndpoint = `glob:*/api/v1/chart/${1}*`;
 
 beforeAll(() => {
-  fetchMock.get(fetchDashboardsEndpoint, mockDashboardData);
-  fetchMock.get(fetchChartEndpoint, { dashboards: [1] });
+  fetchMock.get(fetchDashboardsEndpoint, { results: { dashboards: {} } });
+  fetchMock.get(fetchChartEndpoint, { id: 1, dashboards: [1] });
 });
 
 afterAll(() => fetchMock.restore());
@@ -235,7 +232,19 @@ test('set dataset name when chart source is query', () => {
 });
 
 test('make sure saveOverwrite function always has slice_id attached to the url', () => {
-  const wrapper = getWrapper();
+  const myProps = {
+    ...defaultProps,
+    slice: { slice_id: 1, slice_name: 'title', owners: [1] },
+    actions: {
+      setFormData: jest.fn(),
+      updateSlice: jest.fn(() => Promise.resolve({ id: 1 })),
+      getSliceDashboards: jest.fn(),
+    },
+    history: {
+      replace: jest.fn(),
+    },
+  };
+  const wrapper = getWrapper(myProps);
   const footerWrapper = shallow(wrapper.find(StyledModal).props().footer);
   wrapper.setState({
     action: 'overwrite',
@@ -246,5 +255,5 @@ test('make sure saveOverwrite function always has slice_id attached to the url',
   expect(wrapper.state().action).toBe('overwrite');
   const save = footerWrapper.find('#btn_modal_save');
   save.simulate('click');
-  expect(defaultProps.history.replace).toHaveBeenCalled();
+  expect(myProps.history.replace).toHaveBeenCalled();
 });
