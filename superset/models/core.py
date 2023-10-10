@@ -663,6 +663,21 @@ class Database(
         return self.sqlalchemy_uri
 
     @cache_util.memoized_func(
+        key="db:{self.id}:schema:all:table:all",
+        cache=cache_manager.cache,
+    )
+    def get_all_metadata(self, ssh_tunnel: SSHTunnel | None = None) -> str:
+        """Returns all tables from inspector."""
+        metadata = ""
+        schemas = self.get_all_schema_names(ssh_tunnel=ssh_tunnel)
+        for schema in schemas:
+            metadata += f"Schema: {schema}\n"
+            for table_name, _ in self.get_all_table_names_in_schema(schema):
+                table = self.get_table(table_name, schema)
+                metadata += f"{table.__repr__()}\n"
+        return metadata
+
+    @cache_util.memoized_func(
         key="db:{self.id}:schema:{schema}:table_list",
         cache=cache_manager.cache,
     )

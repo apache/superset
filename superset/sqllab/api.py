@@ -351,10 +351,8 @@ class SqlLabRestApi(BaseSupersetApi):
                 "user_agent": cast(Optional[str], request.headers.get("USER_AGENT"))
             }
             execution_context = SqlJsonExecutionContext(request.json)
-            SqlLabRestApi._update_execution_context(execution_context)
             command = self._create_sql_json_command(execution_context, log_params)
             command_result: CommandResult = command.run()
-
             response_status = (
                 202
                 if command_result["status"] == SqlJsonExecutionStatus.QUERY_IS_RUNNING
@@ -392,6 +390,7 @@ class SqlLabRestApi(BaseSupersetApi):
             execution_context_convertor,
             config["SQLLAB_CTAS_NO_LIMIT"],
             log_params,
+            get_sql_query,
         )
 
     @staticmethod
@@ -409,11 +408,3 @@ class SqlLabRestApi(BaseSupersetApi):
                 is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE"),
             )
         return sql_json_executor
-
-    @staticmethod
-    def _update_execution_context(execution_context: SqlJsonExecutionContext) -> None:
-        nl_query = execution_context.nl_query
-        if not nl_query:
-            return
-        sql = get_sql_query(nl_query)
-        execution_context.set_sql(sql)
