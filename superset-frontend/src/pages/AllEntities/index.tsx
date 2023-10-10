@@ -203,7 +203,7 @@ function AllEntities() {
         addDangerToast={addDangerToast}
         refreshData={() => {
           fetchTaggedObjects();
-          fetchTag(tagId);
+          if (tagId) fetchTag(tagId);
         }}
       />
       <AllEntitiesNav>
