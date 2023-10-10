@@ -23,7 +23,7 @@ import {
   QueryFormMetric,
 } from '@superset-ui/core';
 import { BarDataItemOption } from 'echarts/types/src/chart/bar/BarSeries';
-import { OptionDataValue } from 'echarts/types/src/util/types';
+import { CallbackDataParams } from 'echarts/types/src/util/types';
 import {
   BaseTransformedProps,
   CrossFilterTransformedProps,
@@ -37,11 +37,12 @@ export type WaterfallFormXTicksLayout =
   | 'flat'
   | 'staggered';
 
-export type ISeriesData = { originalValue?: number } & (
-  | BarDataItemOption
-  | OptionDataValue
-  | OptionDataValue[]
-);
+export type ISeriesData = {
+  originalValue?: number;
+  totalSum?: number;
+} & BarDataItemOption;
+
+export type ICallbackDataParams = CallbackDataParams & { data: ISeriesData };
 
 export type EchartsWaterfallFormData = QueryFormData &
   LegendFormData & {

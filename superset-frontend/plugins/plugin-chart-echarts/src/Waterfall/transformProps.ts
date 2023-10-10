@@ -26,12 +26,12 @@ import {
   SupersetTheme,
 } from '@superset-ui/core';
 import { EChartsOption, BarSeriesOption } from 'echarts';
-import { CallbackDataParams } from 'echarts/types/src/util/types';
 import {
   EchartsWaterfallFormData,
   EchartsWaterfallChartProps,
   ISeriesData,
   WaterfallChartTransformedProps,
+  ICallbackDataParams,
 } from './types';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { defaultGrid, defaultYAxis } from '../defaults';
@@ -46,21 +46,35 @@ function formatTooltip({
   numberFormatter,
 }: {
   theme: SupersetTheme;
-  params: any;
+  params: ICallbackDataParams[];
   numberFormatter: NumberFormatter;
 }) {
-  const htmlMaker = (params: any) =>
-    `
-    <div>${params.name}</div>
+  const [, increaseSeries, decreaseSeries, totalSeries] = params;
+  let series;
+  let isTotal = false;
+  if (increaseSeries.data.value !== TOKEN) {
+    series = increaseSeries;
+  }
+  if (decreaseSeries.data.value !== TOKEN) {
+    series = decreaseSeries;
+  }
+  if (totalSeries.data.value !== TOKEN) {
+    series = totalSeries;
+    isTotal = true;
+  }
+  if (!series) {
+    return NULL_STRING;
+  }
+
+  const createRow = (name: string, value: string) => `
     <div>
-      ${params.marker}
       <span style="
         font-size:${theme.typography.sizes.m}px;
         color:${theme.colors.grayscale.base};
         font-weight:${theme.typography.weights.normal};
         margin-left:${theme.gridUnit * 0.5}px;"
       >
-        ${params.seriesName}:
+        ${name}:
       </span>
       <span style="
         float:right;
@@ -69,23 +83,23 @@ function formatTooltip({
         color:${theme.colors.grayscale.base};
         font-weight:${theme.typography.weights.bold}"
       >
-        ${
-          params.data ? numberFormatter(params.data.originalValue) : NULL_STRING
-        }
+        ${value}
       </span>
     </div>
   `;
-  const [, increaseParams, decreaseParams, totalParams] = params;
-  if (increaseParams.data !== TOKEN || increaseParams.data === null) {
-    return htmlMaker(increaseParams);
+
+  if (isTotal) {
+    return createRow(series.seriesName!, numberFormatter(series.data.totalSum));
   }
-  if (decreaseParams.data !== TOKEN) {
-    return htmlMaker(decreaseParams);
-  }
-  if (totalParams.data !== TOKEN) {
-    return htmlMaker(totalParams);
-  }
-  return NULL_STRING;
+
+  return `
+    <div>${series.name}</div>
+    ${createRow(
+      series.seriesName!,
+      series.data ? numberFormatter(series.data.originalValue) : NULL_STRING,
+    )}
+    ${createRow(TOTAL_MARK, numberFormatter(series.data.totalSum))}
+`;
 }
 
 function transformer({
@@ -180,9 +194,9 @@ export default function transformProps(
   } = formData as EchartsWaterfallFormData;
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(yAxisFormat);
-  const formatter = (params: CallbackDataParams) => {
+  const formatter = (params: ICallbackDataParams) => {
     const { data } = params;
-    const { originalValue } = data as { originalValue?: number };
+    const { originalValue } = data;
     return numberFormatter(originalValue as number);
   };
   const breakdown = columns?.length ? columns : '';
@@ -239,25 +253,25 @@ export default function transformProps(
     }
 
     if (isTotal) {
-      increaseData.push(TOKEN);
-      decreaseData.push(TOKEN);
-      totalData.push({ value: totalSum, originalValue: totalSum });
+      increaseData.push({ value: TOKEN });
+      decreaseData.push({ value: TOKEN });
+      totalData.push({ value: totalSum, originalValue: totalSum, totalSum });
     } else if (value < 0) {
-      increaseData.push(TOKEN);
-      decreaseData.push(
-        totalSum < 0
-          ? { value, originalValue }
-          : { value: -value, originalValue },
-      );
-      totalData.push(TOKEN);
+      increaseData.push({ value: TOKEN });
+      decreaseData.push({
+        value: totalSum < 0 ? value : -value,
+        originalValue,
+        totalSum,
+      });
+      totalData.push({ value: TOKEN });
     } else {
-      increaseData.push(
-        totalSum > 0
-          ? { value, originalValue }
-          : { value: -value, originalValue },
-      );
-      decreaseData.push(TOKEN);
-      totalData.push(TOKEN);
+      increaseData.push({
+        value: totalSum > 0 ? value : -value,
+        originalValue,
+        totalSum,
+      });
+      decreaseData.push({ value: TOKEN });
+      totalData.push({ value: TOKEN });
     }
 
     const color = oppositeSigns
