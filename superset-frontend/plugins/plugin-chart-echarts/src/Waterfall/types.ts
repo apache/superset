@@ -19,6 +19,7 @@
 import {
   ChartDataResponseResult,
   ChartProps,
+  QueryFormColumn,
   QueryFormData,
   QueryFormMetric,
 } from '@superset-ui/core';
@@ -46,13 +47,12 @@ export type ICallbackDataParams = CallbackDataParams & { data: ISeriesData };
 
 export type EchartsWaterfallFormData = QueryFormData &
   LegendFormData & {
+    xAxis: QueryFormColumn;
     metric: QueryFormMetric;
     yAxisLabel: string;
     xAxisLabel: string;
     yAxisFormat: string;
     xTicksLayout?: WaterfallFormXTicksLayout;
-    series: string;
-    columns?: string;
   };
 
 export const DEFAULT_FORM_DATA: Partial<EchartsWaterfallFormData> = {

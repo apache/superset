@@ -19,15 +19,16 @@
 import {
   CategoricalColorNamespace,
   DataRecord,
+  ensureIsArray,
   getColumnLabel,
   getMetricLabel,
   getNumberFormatter,
+  isAdhocColumn,
   NumberFormatter,
   SupersetTheme,
 } from '@superset-ui/core';
 import { EChartsOption, BarSeriesOption } from 'echarts';
 import {
-  EchartsWaterfallFormData,
   EchartsWaterfallChartProps,
   ISeriesData,
   WaterfallChartTransformedProps,
@@ -104,18 +105,18 @@ function formatTooltip({
 
 function transformer({
   data,
-  breakdown,
-  series,
+  xAxis,
   metric,
+  breakdown,
 }: {
   data: DataRecord[];
-  breakdown: string;
-  series: string;
+  xAxis: string;
   metric: string;
+  breakdown?: string;
 }) {
   // Group by series (temporary map)
   const groupedData = data.reduce((acc, cur) => {
-    const categoryLabel = cur[series] as string;
+    const categoryLabel = cur[xAxis] as string;
     const categoryData = acc.get(categoryLabel) || [];
     categoryData.push(cur);
     acc.set(categoryLabel, categoryData);
@@ -124,7 +125,7 @@ function transformer({
 
   const transformedData: DataRecord[] = [];
 
-  if (breakdown?.length) {
+  if (breakdown) {
     groupedData.forEach((value, key) => {
       const tempValue = value;
       // Calc total per period
@@ -134,7 +135,7 @@ function transformer({
       );
       // Push total per period to the end of period values array
       tempValue.push({
-        [series]: key,
+        [xAxis]: key,
         [breakdown]: TOTAL_MARK,
         [metric]: sum,
       });
@@ -148,13 +149,13 @@ function transformer({
         0,
       );
       transformedData.push({
-        [series]: key,
+        [xAxis]: key,
         [metric]: sum,
       });
       total += sum;
     });
     transformedData.push({
-      [series]: TOTAL_MARK,
+      [xAxis]: TOTAL_MARK,
       [metric]: total,
     });
   }
@@ -181,9 +182,9 @@ export default function transformProps(
   const { setDataMask = () => {}, onContextMenu } = hooks;
   const {
     colorScheme,
+    groupby,
     metric = '',
-    columns,
-    series,
+    xAxis,
     xTicksLayout,
     showLegend,
     yAxisLabel,
@@ -191,7 +192,7 @@ export default function transformProps(
     yAxisFormat,
     showValue,
     sliceId,
-  } = formData as EchartsWaterfallFormData;
+  } = formData;
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(yAxisFormat);
   const formatter = (params: ICallbackDataParams) => {
@@ -199,16 +200,21 @@ export default function transformProps(
     const { originalValue } = data;
     return numberFormatter(originalValue as number);
   };
-  const breakdown = columns?.length ? columns : '';
-  const groupby = breakdown ? [series, breakdown] : [series];
+  const groupbyArray = ensureIsArray(groupby);
+  const breakdownColumn = groupbyArray.length ? groupbyArray[0] : undefined;
+  const breakdownName = isAdhocColumn(breakdownColumn)
+    ? breakdownColumn.label!
+    : breakdownColumn;
+  const xAxisName = isAdhocColumn(xAxis) ? xAxis.label! : xAxis;
   const metricLabel = getMetricLabel(metric);
-  const columnLabels = groupby.map(getColumnLabel);
+  const columns = breakdownColumn ? [xAxis, breakdownColumn] : [xAxis];
+  const columnLabels = columns.map(getColumnLabel);
   const columnsLabelMap = new Map<string, string[]>();
 
   const transformedData = transformer({
     data,
-    breakdown,
-    series,
+    breakdown: breakdownName,
+    xAxis: xAxisName,
     metric: metricLabel,
   });
 
@@ -221,18 +227,19 @@ export default function transformProps(
 
   transformedData.forEach((datum, index, self) => {
     const totalSum = self.slice(0, index + 1).reduce((prev, cur, i) => {
-      if (breakdown?.length) {
-        if (cur[breakdown] !== TOTAL_MARK || i === 0) {
+      if (breakdownName) {
+        if (cur[breakdownName] !== TOTAL_MARK || i === 0) {
           return prev + ((cur[metricLabel] as number) ?? 0);
         }
-      } else if (cur[series] !== TOTAL_MARK) {
+      } else if (cur[xAxisName] !== TOTAL_MARK) {
         return prev + ((cur[metricLabel] as number) ?? 0);
       }
       return prev;
     }, 0);
 
     const isTotal =
-      datum[breakdown] === TOTAL_MARK || datum[series] === TOTAL_MARK;
+      (breakdownName && datum[breakdownName] === TOTAL_MARK) ||
+      datum[xAxisName] === TOTAL_MARK;
     const joinedName = isTotal
       ? TOTAL_MARK
       : extractGroupbyLabel({
@@ -314,15 +321,15 @@ export default function transformProps(
   }
 
   let xAxisData: string[] = [];
-  if (breakdown?.length) {
+  if (breakdownName) {
     xAxisData = transformedData.map(row => {
-      if (row[breakdown] === TOTAL_MARK) {
-        return row[series] as string;
+      if (row[breakdownName] === TOTAL_MARK) {
+        return row[xAxisName] as string;
       }
-      return row[breakdown] as string;
+      return row[breakdownName] as string;
     });
   } else {
-    xAxisData = transformedData.map(row => row[series] as string);
+    xAxisData = transformedData.map(row => row[xAxisName] as string);
   }
 
   const barSeries: BarSeriesOption[] = [
@@ -431,7 +438,7 @@ export default function transformProps(
     echartOptions,
     setDataMask,
     labelMap: Object.fromEntries(columnsLabelMap),
-    groupby,
+    groupby: columns,
     selectedValues: filterState.selectedValues || [],
     onContextMenu,
   };

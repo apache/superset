@@ -16,20 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext, QueryFormData } from '@superset-ui/core';
+import {
+  buildQueryContext,
+  ensureIsArray,
+  getXAxisColumn,
+  isXAxisSet,
+  QueryFormData,
+} from '@superset-ui/core';
 
 export default function buildQuery(formData: QueryFormData) {
-  const { series, columns } = formData;
+  const columns = [
+    ...(isXAxisSet(formData) ? ensureIsArray(getXAxisColumn(formData)) : []),
+    ...ensureIsArray(formData.groupby),
+  ];
   return buildQueryContext(formData, baseQueryObject => [
     {
       ...baseQueryObject,
-      columns: columns?.length ? [series, columns] : [series],
-      orderby: columns?.length
-        ? [
-            [series, true],
-            [columns, true],
-          ]
-        : [[series, true]],
+      columns,
+      orderby: columns?.map(column => [column, true]),
     },
   ]);
 }

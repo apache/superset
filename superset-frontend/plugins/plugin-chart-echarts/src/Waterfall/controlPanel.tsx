@@ -17,24 +17,22 @@
  * under the License.
  */
 import React from 'react';
-import { ensureIsArray, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   formatSelectOptions,
-  getStandardizedControls,
-  sections,
 } from '@superset-ui/chart-controls';
 import { showValueControl } from '../controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyTimeseriesTime,
     {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['series'],
-        ['columns'],
+        ['x_axis'],
+        ['time_grain_sqla'],
+        ['groupby'],
         ['metric'],
         ['adhoc_filters'],
         ['row_limit'],
@@ -107,21 +105,13 @@ const config: ControlPanelConfig = {
     },
   ],
   controlOverrides: {
-    columns: {
+    groupby: {
       label: t('Breakdowns'),
-      description: t('Defines how each series is broken down'),
+      description:
+        t(`Breaks down the series by the category specified in this control.
+      This can help viewers understand how each category affects the overall value.`),
       multi: false,
     },
-  },
-  formDataOverrides: formData => {
-    const series = getStandardizedControls()
-      .popAllColumns()
-      .filter(col => !ensureIsArray(formData.columns).includes(col));
-    return {
-      ...formData,
-      series,
-      metric: getStandardizedControls().shiftMetric(),
-    };
   },
 };
 
