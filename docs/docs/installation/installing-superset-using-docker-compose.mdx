@@ -16,7 +16,7 @@ below.
 **Mac OSX**
 
 [Install Docker for Mac](https://docs.docker.com/docker-for-mac/install/), which includes the Docker
-engine and a recent version of `docker-compose` out of the box.
+engine and a recent version of `docker compose` out of the box.
 
 Once you have Docker for Mac installed, open up the preferences pane for Docker, go to the
 "Resources" section and increase the allocated memory to 6GB. With only the 2GB of RAM allocated by
@@ -25,9 +25,9 @@ default, Superset will fail to start.
 **Linux**
 
 [Install Docker on Linux](https://docs.docker.com/engine/install/) by following Docker’s
-instructions for whichever flavor of Linux suits you. Because `docker-compose` is not installed as
+instructions for whichever flavor of Linux suits you. Because `docker compose` is not installed as
 part of the base Docker installation on Linux, once you have a working engine, follow the
-[docker-compose installation instructions](https://docs.docker.com/compose/install/) for Linux.
+[docker compose installation instructions](https://docs.docker.com/compose/install/) for Linux.
 
 **Windows**
 
@@ -69,18 +69,18 @@ When running in development mode the `superset-node` container needs to finish b
 When working on master branch, run the following commands to run `production` mode using `docker compose`:
 
 ```bash
-docker-compose -f docker-compose-non-dev.yml pull
-docker-compose -f docker-compose-non-dev.yml up
+docker compose -f docker-compose-non-dev.yml pull
+docker compose -f docker-compose-non-dev.yml up
 ```
 
 Alternatively, you can also run a specific version of Superset by first checking out
-the branch/tag, and then starting `docker-compose` with the `TAG` variable.
+the branch/tag, and then starting `docker compose` with the `TAG` variable.
 For example, to run the 3.0.0 version, run the following commands on Linux-based systems:
 
 ```bash
 git checkout 3.0.0
-TAG=3.0.0 docker-compose -f docker-compose-non-dev.yml pull
-TAG=3.0.0 docker-compose -f docker-compose-non-dev.yml up
+TAG=3.0.0 docker compose -f docker-compose-non-dev.yml pull
+TAG=3.0.0 docker compose -f docker-compose-non-dev.yml up
 ```
 
 If you are using Docker Desktop for Windows then run the following commands:
@@ -88,8 +88,8 @@ If you are using Docker Desktop for Windows then run the following commands:
 ```bash
 git checkout 3.0.0
 set TAG=3.0.0
-docker-compose -f docker-compose-non-dev.yml pull
-docker-compose -f docker-compose-non-dev.yml up
+docker compose -f docker-compose-non-dev.yml pull
+docker compose -f docker-compose-non-dev.yml up
 ```
 
 :::tip
@@ -97,14 +97,14 @@ Note that some configuration is mandatory for production instances of Superset. 
 :::
 :::caution
 All of the content belonging to a Superset instance - charts, dashboards, users, etc. - is stored in its metadata database. In production, this database should be backed up.
-The default installation with docker-compose will store that data in a PostgreSQL database contained in a Docker [volume](https://docs.docker.com/storage/volumes/),
+The default installation with docker compose will store that data in a PostgreSQL database contained in a Docker [volume](https://docs.docker.com/storage/volumes/),
 which is not backed up.  To avoid risking data loss, either use a managed database for your metadata (recommended) or perform your own regular backups by extracting
 and storing the contents of the default PostgreSQL database from its volume (here's an
 [example of how to dump and restore](https://stackoverflow.com/questions/24718706/backup-restore-a-dockerized-postgresql-database)).
 :::
 You should see a wall of logging output from the containers being launched on your machine. Once
 this output slows, you should have a running instance of Superset on your local machine!  To
-avoid the wall of text on future runs, add the `-d` option to the end of the `docker-compose up` command.
+avoid the wall of text on future runs, add the `-d` option to the end of the `docker compose up` command.
 
 #### Configuring Docker Compose
 
@@ -124,7 +124,7 @@ Users often want to connect to other databases from Superset. Currently, the eas
 :::note
 Superset uses [Scarf Gateway](https://about.scarf.sh/scarf-gateway) to collect telemetry data. Knowing the installation counts for different Superset versions informs the project's decisions about patching and long-term support. Scarf purges personally identifiable information (PII) and provides only aggregated statistics.
 
-To opt-out of this data collection in your docker-compose based installation, edit the `x-superset-image:` line in your `docker-compose.yml` and `docker-compose-non-dev.yml` files, replacing `apachesuperset.docker.scarf.sh/apache/superset` with `apache/superset` to pull the image directly from Docker Hub.
+To opt-out of this data collection in your docker compose based installation, edit the `x-superset-image:` line in your `docker-compose.yml` and `docker-compose-non-dev.yml` files, replacing `apachesuperset.docker.scarf.sh/apache/superset` with `apache/superset` to pull the image directly from Docker Hub.
 :::
 
 ### 4. Log in to Superset
@@ -146,7 +146,7 @@ password: admin
 
 ### 5. Connecting Superset to your local database instance
 
-When running Superset using `docker` or `docker-compose` it runs in its own docker container, as if the Superset was running in a separate machine entirely. Therefore attempts to connect to your local database with the hostname `localhost` won't work as `localhost` refers to the docker container Superset is running in, and not your actual host machine. Fortunately, docker provides an easy way to access network resources in the host machine from inside a container, and we will leverage this capability to connect to our local database instance.
+When running Superset using `docker` or `docker compose` it runs in its own docker container, as if the Superset was running in a separate machine entirely. Therefore attempts to connect to your local database with the hostname `localhost` won't work as `localhost` refers to the docker container Superset is running in, and not your actual host machine. Fortunately, docker provides an easy way to access network resources in the host machine from inside a container, and we will leverage this capability to connect to our local database instance.
 
 Here the instructions are for connecting to postgresql (which is running on your host machine) from Superset (which is running in its docker container). Other databases may have slightly different configurations but gist would be same and boils down to 2 steps -
 

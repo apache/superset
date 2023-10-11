@@ -329,7 +329,6 @@ def test_sqlalchemy_dialect(
     return engine
 
 
-# pylint: disable=too-many-statements
 def test_database_connectivity(console: Console, engine: Engine) -> None:
     """
     Tests the DB API 2.0 driver.
