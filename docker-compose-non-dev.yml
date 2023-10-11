@@ -21,12 +21,12 @@ x-superset-depends-on: &superset-depends-on
 x-superset-volumes: &superset-volumes
   - superset_home:/app/superset_home
   ### uncomment the line below if you want to add your local config
-  # - ./docker/pythonpath_dev:/app/docker/pythonpath_dev
+  # - ./superset_config.py:/app/docker/pythonpath_dev/superset_config.py
 x-superset-environment: &superset-environment
-  ### settings for meta database:
+  ### settings for Superset's database
   POSTGRES_PASSWORD: superset
   POSTGRES_USER: superset
-  ### settings for examples database:
+  ### enable examples
   SUPERSET_LOAD_EXAMPLES: yes
   ### generate your SUPERSET_SECRET_KEY with "openssl rand -base64 42"
   SUPERSET_SECRET_KEY: ""
