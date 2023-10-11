@@ -135,10 +135,10 @@ def test_datetime(console: Console, engine: Engine) -> None:
 @click.option(
     "--connect-args",
     "-c",
-    "raw_connect_args",
+    "raw_engine_kwargs",
     help="Connect args as JSON or YAML",
 )
-def test_db(sqlalchemy_uri: str, raw_connect_args: str | None = None) -> None:
+def test_db(sqlalchemy_uri: str, raw_engine_kwargs: str | None = None) -> None:
     """
     Run a series of tests against an analytical database.
 
@@ -161,13 +161,13 @@ def test_db(sqlalchemy_uri: str, raw_connect_args: str | None = None) -> None:
     console.clear()
 
     console.print("[bold]Collecting additional connection information...")
-    connect_args = collect_connection_info(console, sqlalchemy_uri, raw_connect_args)
+    engine_kwargs = collect_connection_info(console, sqlalchemy_uri, raw_engine_kwargs)
 
     console.print("[bold]\nChecking for a DB engine spec...")
     test_db_engine_spec(console, sqlalchemy_uri)
 
     console.print("[bold]\nTesting the SQLAlchemy dialect...")
-    engine = test_sqlalchemy_dialect(console, sqlalchemy_uri, connect_args)
+    engine = test_sqlalchemy_dialect(console, sqlalchemy_uri, engine_kwargs)
 
     console.print("[bold]\nTesting the database connectivity...")
     test_database_connectivity(console, engine)
@@ -176,26 +176,26 @@ def test_db(sqlalchemy_uri: str, raw_connect_args: str | None = None) -> None:
 def collect_connection_info(
     console: Console,
     sqlalchemy_uri: str,
-    raw_connect_args: str | None = None,
+    raw_engine_kwargs: str | None = None,
 ) -> dict[str, Any]:
     """
-    Collect ``connect_args`` if needed.
+    Collect ``engine_kwargs`` if needed.
     """
     console.print(f"[green]SQLAlchemy URI: [bold]{sqlalchemy_uri}")
-    if raw_connect_args is None:
-        configure_connect_args = input(
+    if raw_engine_kwargs is None:
+        configure_engine_kwargs = input(
             "> Do you want to configure connection arguments? [y/N] "
         )
-        if configure_connect_args.strip().lower() == "y":
+        if configure_engine_kwargs.strip().lower() == "y":
             console.print(
-                "Please paste the connect_args as JSON or YAML and press CTRL-D when "
+                "Please paste the engine_kwargs as JSON or YAML and press CTRL-D when "
                 "finished"
             )
-            raw_connect_args = sys.stdin.read()
+            raw_engine_kwargs = sys.stdin.read()
         else:
-            raw_connect_args = "{}"
+            raw_engine_kwargs = "{}"
 
-    return yaml.safe_load(raw_connect_args)
+    return yaml.safe_load(raw_engine_kwargs)
 
 
 def test_db_engine_spec(
@@ -272,12 +272,12 @@ def test_db_engine_spec(
 def test_sqlalchemy_dialect(
     console: Console,
     sqlalchemy_uri: str,
-    connect_args: dict[str, Any],
+    engine_kwargs: dict[str, Any],
 ) -> Engine:
     """
     Test the SQLAlchemy dialect, making sure it supports everything Superset needs.
     """
-    engine = create_engine(sqlalchemy_uri, connect_args=connect_args)
+    engine = create_engine(sqlalchemy_uri, **engine_kwargs)
     dialect = engine.dialect
 
     console.print("[bold]Checking functions used by the inspector...")
