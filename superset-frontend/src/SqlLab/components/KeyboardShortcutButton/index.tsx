@@ -80,7 +80,7 @@ const ShortcutWrapper = styled.div`
 `;
 
 const ShortcutCode = styled.code`
-  font-size: ${({ theme }) => theme.typography.sizes.m}px;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
   color: ${({ theme }) => theme.colors.grayscale.dark1};
   border-radius: ${({ theme }) => theme.borderRadius}px;
   padding: ${({ theme }) => `${theme.gridUnit}px ${theme.gridUnit * 2}px`};
@@ -101,7 +101,6 @@ const KeyboardShortcutButton: React.FC<{}> = ({ children }) => (
             <div
               css={css`
                 display: table-cell;
-                text-align: right;
                 max-width: 200px;
                 vertical-align: middle;
               `}
