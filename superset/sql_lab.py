@@ -405,7 +405,9 @@ def execute_sql_statements(
 
     # Breaking down into multiple statements
     parsed_query = ParsedQuery(rendered_query, strip_comments=True)
-    if not db_engine_spec.run_multiple_statements_as_one:
+    raw_statement_count = len(ParsedQuery(rendered_query).get_statements())
+
+    if not db_engine_spec.run_multiple_statements_as_one and raw_statement_count > 1:
         statements = parsed_query.get_statements()
         logger.info(
             "Query %s: Executing %i statement(s)", str(query_id), len(statements)

@@ -618,6 +618,45 @@ class TestSqlLab(SupersetTestCase):
             ]
         )
 
+    @mock.patch("superset.sql_lab.get_query")
+    @mock.patch("superset.sql_lab.execute_sql_statement")
+    def test_execute_sql_statements_single_statement_with_original(
+        self, mock_execute_sql_statement, mock_get_query
+    ):
+        sql = "SELECT 1 AS foo -- comment;"
+        mock_session = mock.MagicMock()
+        mock_query = mock.MagicMock()
+        mock_query.database.allow_run_async = False
+        mock_cursor = mock.MagicMock()
+        mock_query.database.get_raw_connection().__enter__().cursor.return_value = (
+            mock_cursor
+        )
+        mock_query.database.db_engine_spec.run_multiple_statements_as_one = False
+        mock_get_query.return_value = mock_query
+
+        execute_sql_statements(
+            query_id=1,
+            rendered_query=sql,
+            return_results=True,
+            store_results=False,
+            session=mock_session,
+            start_time=None,
+            expand_data=False,
+            log_params=None,
+        )
+        mock_execute_sql_statement.assert_has_calls(
+            [
+                mock.call(
+                    "SELECT 1 AS foo -- comment;",
+                    mock_query,
+                    mock_session,
+                    mock_cursor,
+                    None,
+                    False,
+                ),
+            ]
+        )
+
     @mock.patch("superset.sql_lab.results_backend", None)
     @mock.patch("superset.sql_lab.get_query")
     @mock.patch("superset.sql_lab.execute_sql_statement")
