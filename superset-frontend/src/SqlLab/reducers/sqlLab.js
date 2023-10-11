@@ -430,7 +430,9 @@ export default function sqlLabReducer(state = {}, action) {
           qe => qe.id !== action.oldQueryEditor.id,
         );
         localStorage.setItem('redux', JSON.stringify({ sqlLab }));
-      } catch {}
+      } catch (error) {
+        // continue regardless of error
+      }
       // replace localStorage query editor with the server backed one
       return addToArr(
         removeFromArr(state, 'queryEditors', action.oldQueryEditor),
@@ -446,7 +448,9 @@ export default function sqlLabReducer(state = {}, action) {
           table => table.id !== action.oldTable.id,
         );
         localStorage.setItem('redux', JSON.stringify({ sqlLab }));
-      } catch {}
+      } catch (error) {
+        // continue regardless of error
+      }
 
       // replace localStorage table with the server backed one
       return addToArr(
@@ -463,7 +467,9 @@ export default function sqlLabReducer(state = {}, action) {
           tabId => tabId !== action.oldId,
         );
         localStorage.setItem('redux', JSON.stringify({ sqlLab }));
-      } catch {}
+      } catch (error) {
+        // continue regardless of error
+      }
       const tabHistory = state.tabHistory.filter(
         tabId => tabId !== action.oldId,
       );

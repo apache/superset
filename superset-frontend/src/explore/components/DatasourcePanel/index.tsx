@@ -338,7 +338,9 @@ export default function DataSourcePanel({
   const showInfoboxCheck = () => {
     try {
       if (sessionStorage.getItem('showInfobox') === 'false') return false;
-    } catch {}
+    } catch (error) {
+      // continue regardless of error
+    }
     return true;
   };
 
@@ -371,7 +373,9 @@ export default function DataSourcePanel({
                 onClose={() => {
                   try {
                     sessionStorage.setItem('showInfobox', 'false');
-                  } catch {}
+                  } catch (error) {
+                    // continue regardless of error
+                  }
                 }}
                 type="info"
                 message=""

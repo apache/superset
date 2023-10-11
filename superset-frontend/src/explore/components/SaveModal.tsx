@@ -119,10 +119,12 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
   async componentDidMount() {
     let { dashboardId } = this.props;
     if (!dashboardId) {
-      let lastDashboard;
+      let lastDashboard = null;
       try {
         lastDashboard = sessionStorage.getItem(SK_DASHBOARD_ID);
-      } catch {}
+      } catch (error) {
+        // continue regardless of error
+      }
       dashboardId = lastDashboard && parseInt(lastDashboard, 10);
     }
     if (dashboardId) {
@@ -258,7 +260,9 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
         } else {
           sessionStorage.removeItem(SK_DASHBOARD_ID);
         }
-      } catch {}
+      } catch (error) {
+        // continue regardless of error
+      }
 
       // Go to new dashboard url
       if (gotodash && dashboard) {

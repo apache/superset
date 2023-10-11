@@ -52,20 +52,26 @@ export function useTabId() {
       let lastTabId;
       try {
         lastTabId = window.localStorage.getItem('last_tab_id');
-      } catch {}
+      } catch (error) {
+        // continue regardless of error
+      }
       const newTabId = String(
         lastTabId ? Number.parseInt(lastTabId, 10) + 1 : 1,
       );
       try {
         window.sessionStorage.setItem('tab_id', newTabId);
         window.localStorage.setItem('last_tab_id', newTabId);
-      } catch {}
+      } catch (error) {
+        // continue regardless of error
+      }
       setTabId(newTabId);
     };
     let storedTabId;
     try {
       storedTabId = window.sessionStorage.getItem('tab_id');
-    } catch {}
+    } catch (error) {
+      // continue regardless of error
+    }
     if (storedTabId) {
       channel.postMessage({
         type: 'REQUESTING_TAB_ID',

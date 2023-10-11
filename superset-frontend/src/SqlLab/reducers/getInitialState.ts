@@ -186,7 +186,9 @@ export default function getInitialState({
         tabHistory.push(...sqlLab.tabHistory);
       }
     }
-  } catch {}
+  } catch (error) {
+    // continue regardless of error
+  }
 
   return {
     sqlLab: {
