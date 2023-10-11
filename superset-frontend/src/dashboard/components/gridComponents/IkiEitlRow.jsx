@@ -131,10 +131,12 @@ class IkiEitlRow extends React.PureComponent {
     });
 
     var crossWindowMessage = {
-      data: 'widget-to-parent/get-project-id',
+      info: 'widget-to-parent/get-project-id',
+      dataType: 'object',
     };
-    var crossBrowserInfoString = JSON.stringify(crossWindowMessage2);
-    window.parent.postMessage(crossBrowserInfoString);
+    var crossBrowserInfoString = JSON.stringify(crossWindowMessage);
+    console.log(window.parent);
+    window.parent.postMessage(crossBrowserInfoString, 'http://localhost:3000');
 
     this.handleIncomingWindowMsg();
   }
@@ -206,8 +208,11 @@ class IkiEitlRow extends React.PureComponent {
     window.addEventListener('message', event => {
       // console.log('event.origin', event.origin, this.props.ikigaiOrigin);
       //   if (event.origin === this.props.ikigaiOrigin) {
+      console.log('event', event);
+      console.log('event.data', event.data);
       if (event.origin === 'http://localhost:3000') {
         const messageObject = JSON.parse(event.data);
+        console.log('messageObject', messageObject);
         if (messageObject.info && messageObject.dataType) {
           const { dataType } = messageObject;
 
@@ -238,11 +243,16 @@ class IkiEitlRow extends React.PureComponent {
           }
 
           if (messageObject.info === 'eitlr-to-superset/sending-model-data') {
-            if (widgetUrlQueryMode === 'edit') {
-              widgetUrlQuery = new URLSearchParams(widgetUrl.search);
-              widgetUrlQuery.set('mode', 'preview');
-              widgetUrl.search = widgetUrlQuery.toString();
-              const tempIframe = `<iframe
+            console.log('messageData', messageData);
+            console.log('messageObject', messageObject);
+            widgetUrlQuery = new URLSearchParams(widgetUrl.search);
+            // widgetUrlQuery.set('mode', 'preview');
+            console.log('widgetUrlQuery before', widgetUrlQuery.toString());
+            widgetUrlQuery.set('model', JSON.stringify(messageData.model));
+            widgetUrlQuery.set('version', JSON.stringify(messageData.version));
+            console.log('widgetUrlQuery after', widgetUrlQuery.toString());
+            widgetUrl.search = widgetUrlQuery.toString();
+            const tempIframe = `<iframe
                       id="ikieitlrow-widget-${this.props.component.id}"
                       name="eitl-row-component"
                       src="${widgetUrl}"
@@ -250,13 +260,24 @@ class IkiEitlRow extends React.PureComponent {
                       className="ikieitlrow-widget"
                       style="min-height: 100%;"
                     />`;
-              this.handleIkiEitlRowChange(tempIframe);
-            }
+            this.handleIkiEitlRowChange(tempIframe);
           } else if (
             messageObject.info === 'top-window-to-widget/sending-project-id'
           ) {
-            const { projectId } = messageData;
-            console.log('PROJECT ID INSIDE SUPERSET', projectId);
+            console.log('received project id from top window', messageData);
+            const projectId = messageData;
+            widgetUrlQuery = new URLSearchParams(widgetUrl.search);
+            widgetUrlQuery.set('project_id', projectId);
+            widgetUrl.search = widgetUrlQuery.toString();
+            const tempIframe = `<iframe
+                      id="ikieitlrow-widget-${this.props.component.id}"
+                      name="eitl-row-component"
+                      src="${widgetUrl}"
+                      title="IkiEitlRow Component"
+                      className="ikieitlrow-widget"
+                      style="min-height: 100%;"
+                    />`;
+            this.handleIkiEitlRowChange(tempIframe);
           }
         }
       }
@@ -406,7 +427,6 @@ class IkiEitlRow extends React.PureComponent {
           : '';
 
         const newIframeSrc = `${ikigaiOrigin}/widget/eitl/row?project_id=${paramProjectId}&model_id=${paramModelId}&version_id=${paramVersionId}`;
-        console.log('iframe', newIframeSrcUrl, iframeHtml);
         iframeSrc = newIframeSrc;
       } else {
         iframeSrc = `${ikigaiOrigin}/widget/eitl/row`;
@@ -520,6 +540,7 @@ class IkiEitlRow extends React.PureComponent {
                   ref={dragSourceRef}
                   className="dashboard-component-inner"
                   data-test="dashboard-component-chart-holder"
+                  style={{ height: '100%' }}
                 >
                   {
                     // editMode && isEditing
