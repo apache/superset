@@ -21,7 +21,9 @@ import { fireEvent, render } from 'spec/helpers/testing-library';
 import KeyboardShortcutButton, { KEY_MAP } from '.';
 
 test('renders shortcut description', () => {
-  const { getByText, getByRole } = render(<KeyboardShortcutButton />);
+  const { getByText, getByRole } = render(
+    <KeyboardShortcutButton>Show shortcuts</KeyboardShortcutButton>,
+  );
   fireEvent.click(getByRole('button'));
   expect(getByText('Keyboard shortcuts')).toBeInTheDocument();
   Object.keys(KEY_MAP)

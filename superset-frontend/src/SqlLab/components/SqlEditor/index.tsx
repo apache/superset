@@ -636,6 +636,11 @@ const SqlEditor: React.FC<Props> = ({
             />
           </Menu.Item>
         )}
+        <Menu.Item>
+          <KeyboardShortcutButton>
+            {t('Keyboard shortcuts')}
+          </KeyboardShortcutButton>
+        </Menu.Item>
       </Menu>
     );
   };
@@ -716,7 +721,6 @@ const SqlEditor: React.FC<Props> = ({
           )}
         </div>
         <div className="rightItems">
-          <KeyboardShortcutButton />
           <span>
             <SaveQuery
               queryEditorId={queryEditor.id}

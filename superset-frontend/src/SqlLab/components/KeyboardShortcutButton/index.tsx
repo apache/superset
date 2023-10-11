@@ -20,7 +20,6 @@ import React from 'react';
 import { styled, t, css } from '@superset-ui/core';
 import ModalTrigger from 'src/components/ModalTrigger';
 import { detectOS } from 'src/utils/common';
-import Icons from 'src/components/Icons';
 
 const userOS = detectOS();
 
@@ -68,8 +67,6 @@ const KeyMapByCommand = Object.entries(KEY_MAP).reduce(
 );
 
 const ShortcutDescription = styled.span`
-  display: table-cell;
-  vertical-align: middle;
   font-size: ${({ theme }) => theme.typography.sizes.m}px;
   color: ${({ theme }) => theme.colors.text.help};
   padding-left: ${({ theme }) => theme.gridUnit * 2}px;
@@ -77,7 +74,6 @@ const ShortcutDescription = styled.span`
 
 const ShortcutWrapper = styled.div`
   display: flex;
-  justify-content: flex-end;
   flex-wrap: wrap;
   gap: ${({ theme }) => theme.gridUnit}px;
   padding: ${({ theme }) => theme.gridUnit * 2}px;
@@ -90,7 +86,7 @@ const ShortcutCode = styled.code`
   padding: ${({ theme }) => `${theme.gridUnit}px ${theme.gridUnit * 2}px`};
 `;
 
-const KeyboardShortcutButton: React.FC<{}> = () => (
+const KeyboardShortcutButton: React.FC<{}> = ({ children }) => (
   <ModalTrigger
     modalTitle={t('Keyboard shortcuts')}
     modalBody={
@@ -107,6 +103,14 @@ const KeyboardShortcutButton: React.FC<{}> = () => (
                 display: table-cell;
                 text-align: right;
                 max-width: 200px;
+                vertical-align: middle;
+              `}
+            >
+              <ShortcutDescription>{description}</ShortcutDescription>
+            </div>
+            <div
+              css={css`
+                display: table-cell;
               `}
             >
               <ShortcutWrapper>
@@ -115,14 +119,11 @@ const KeyboardShortcutButton: React.FC<{}> = () => (
                 ))}
               </ShortcutWrapper>
             </div>
-            <ShortcutDescription>{description}</ShortcutDescription>
           </div>
         ))}
       </div>
     }
-    triggerNode={
-      <Icons.Keyboard iconSize="l" aria-label={t('Show keyboard shortcuts')} />
-    }
+    triggerNode={children}
   />
 );
 
