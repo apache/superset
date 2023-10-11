@@ -302,7 +302,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         accessor: 'kind_icon',
         disableSortBy: true,
         size: 'xs',
+        id: 'icon',
+      },
+      {
+        Header: t('Id'),
+        accessor: 'id',
         id: 'id',
+        disableSortBy: true,
       },
       {
         Cell: ({

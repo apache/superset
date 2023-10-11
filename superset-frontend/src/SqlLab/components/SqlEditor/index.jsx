@@ -41,6 +41,7 @@ import {
 } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
+import Label from 'src/components/Label';
 import Modal from 'src/components/Modal';
 import Mousetrap from 'mousetrap';
 import Button from 'src/components/Button';
@@ -50,6 +51,7 @@ import { AntdDropdown, AntdSwitch } from 'src/components';
 import { Input } from 'src/components/Input';
 import { Menu } from 'src/components/Menu';
 import Icons from 'src/components/Icons';
+import { Tooltip } from 'src/components/Tooltip';
 import { detectOS } from 'src/utils/common';
 import {
   addNewQueryEditor,
@@ -647,6 +649,22 @@ const SqlEditor = ({
               overlayCreateAsMenu={showMenu ? runMenuBtn : null}
             />
           </span>
+          <Tooltip
+            title={
+              <div>
+                <div>
+                  {
+                    'Use {{ dataset(DATASET_ID) }} in from clause to select from virtal Dataset.'
+                  }
+                </div>
+                <div>
+                  Example: SELECT * from <b>{'{{ dataset(6) }}'}</b> limit 10;
+                </div>
+              </div>
+            }
+          >
+            <Label type="warning">Query Tips</Label>
+          </Tooltip>
           {isFeatureEnabled(FeatureFlag.ESTIMATE_QUERY_COST) &&
             database?.allows_cost_estimate && (
               <span>
