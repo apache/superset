@@ -26,7 +26,7 @@ import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
 import { table, initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import { api } from 'src/hooks/apiResources/queryApi';
 import { setupStore } from 'src/views/store';
-import { reducers } from 'src/SqlLab/reducers';
+import reducers from 'spec/helpers/reducerIndex';
 
 const mockedProps = {
   tables: [table],

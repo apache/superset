@@ -82,6 +82,9 @@ class AsyncQueryManager:
         self._jwt_cookie_domain: Optional[str]
         self._jwt_cookie_samesite: Optional[Literal["None", "Lax", "Strict"]] = None
         self._jwt_secret: str
+        self._load_chart_data_into_cache_job: Any = None
+        # pylint: disable=invalid-name
+        self._load_explore_json_into_cache_job: Any = None
 
     def init_app(self, app: Flask) -> None:
         config = app.config
@@ -115,6 +118,19 @@ class AsyncQueryManager:
         self._jwt_cookie_domain = config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN"]
         self._jwt_secret = config["GLOBAL_ASYNC_QUERIES_JWT_SECRET"]
 
+        if config["GLOBAL_ASYNC_QUERIES_REGISTER_REQUEST_HANDLERS"]:
+            self.register_request_handlers(app)
+
+        # pylint: disable=import-outside-toplevel
+        from superset.tasks.async_queries import (
+            load_chart_data_into_cache,
+            load_explore_json_into_cache,
+        )
+
+        self._load_chart_data_into_cache_job = load_chart_data_into_cache
+        self._load_explore_json_into_cache_job = load_explore_json_into_cache
+
+    def register_request_handlers(self, app: Flask) -> None:
         @app.after_request
         def validate_session(response: Response) -> Response:
             user_id = get_user_id()
@@ -149,13 +165,13 @@ class AsyncQueryManager:
 
             return response
 
-    def parse_jwt_from_request(self, req: Request) -> dict[str, Any]:
+    def parse_channel_id_from_request(self, req: Request) -> str:
         token = req.cookies.get(self._jwt_cookie_name)
         if not token:
             raise AsyncQueryTokenException("Token not preset")
 
         try:
-            return jwt.decode(token, self._jwt_secret, algorithms=["HS256"])
+            return jwt.decode(token, self._jwt_secret, algorithms=["HS256"])["channel"]
         except Exception as ex:
             logger.warning("Parse jwt failed", exc_info=True)
             raise AsyncQueryTokenException("Failed to parse token") from ex
@@ -165,6 +181,31 @@ class AsyncQueryManager:
         return build_job_metadata(
             channel_id, job_id, user_id, status=self.STATUS_PENDING
         )
+
+    # pylint: disable=too-many-arguments
+    def submit_explore_json_job(
+        self,
+        channel_id: str,
+        form_data: dict[str, Any],
+        response_type: str,
+        force: Optional[bool] = False,
+        user_id: Optional[int] = None,
+    ) -> dict[str, Any]:
+        job_metadata = self.init_job(channel_id, user_id)
+        self._load_explore_json_into_cache_job.delay(
+            job_metadata,
+            form_data,
+            response_type,
+            force,
+        )
+        return job_metadata
+
+    def submit_chart_data_job(
+        self, channel_id: str, form_data: dict[str, Any], user_id: Optional[int]
+    ) -> dict[str, Any]:
+        job_metadata = self.init_job(channel_id, user_id)
+        self._load_chart_data_into_cache_job.delay(job_metadata, form_data)
+        return job_metadata
 
     def read_events(
         self, channel: str, last_id: Optional[str]

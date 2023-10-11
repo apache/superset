@@ -16,8 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import ReactDOM from 'react-dom';
-import App from './App';
 
-ReactDOM.render(<App />, document.getElementById('app'));
+import { t } from '@superset-ui/core';
+
+export const TOTAL_MARK = t('Total');
+export const ASSIST_MARK = t('Assist');
+export const LEGEND = {
+  INCREASE: t('Increase'),
+  DECREASE: t('Decrease'),
+  TOTAL: t('Total'),
+};
+export const TOKEN = '-';

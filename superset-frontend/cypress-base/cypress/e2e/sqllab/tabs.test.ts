@@ -18,7 +18,7 @@
  */
 describe('SqlLab query tabs', () => {
   beforeEach(() => {
-    cy.visit('/superset/sqllab');
+    cy.visit('/sqllab');
   });
 
   const tablistSelector = '[data-test="sql-editor-tabs"] > [role="tablist"]';

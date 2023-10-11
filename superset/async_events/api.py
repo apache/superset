@@ -88,9 +88,9 @@ class AsyncEventsRestApi(BaseSupersetApi):
               $ref: '#/components/responses/500'
         """
         try:
-            async_channel_id = async_query_manager.parse_jwt_from_request(request)[
-                "channel"
-            ]
+            async_channel_id = async_query_manager.parse_channel_id_from_request(
+                request
+            )
             last_event_id = request.args.get("last_id")
             events = async_query_manager.read_events(async_channel_id, last_event_id)
 

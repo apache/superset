@@ -19,7 +19,9 @@
 import React, { useEffect, useState } from 'react';
 import { styled, t, css, SupersetTheme } from '@superset-ui/core';
 import { NumberParam, useQueryParam } from 'use-query-params';
-import AllEntitiesTable from 'src/features/allEntities/AllEntitiesTable';
+import AllEntitiesTable, {
+  TaggedObjects,
+} from 'src/features/allEntities/AllEntitiesTable';
 import Button from 'src/components/Button';
 import MetadataBar, {
   MetadataType,
@@ -28,10 +30,23 @@ import MetadataBar, {
   LastModified,
 } from 'src/components/MetadataBar';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
-import { fetchSingleTag } from 'src/features/tags/tags';
 import { Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
 import withToasts, { useToasts } from 'src/components/MessageToasts/withToasts';
+import { fetchObjects, fetchSingleTag } from 'src/features/tags/tags';
+import Loading from 'src/components/Loading';
+
+interface TaggedObject {
+  id: number;
+  type: string;
+  name: string;
+  url: string;
+  changed_on: moment.MomentInput;
+  created_by: number | undefined;
+  creator: string;
+  owners: Owner[];
+  tags: Tag[];
+}
 
 const additionalItemsStyles = (theme: SupersetTheme) => css`
   display: flex;
@@ -58,6 +73,9 @@ const AllEntitiesContainer = styled.div`
   }
   .entities {
     margin: ${theme.gridUnit * 6}px; 0px;
+  }
+  .pagination-container {
+    background-color: transparent;
   }
   `}
 `;
@@ -88,6 +106,12 @@ function AllEntities() {
   const [tag, setTag] = useState<Tag | null>(null);
   const [showTagModal, setShowTagModal] = useState<boolean>(false);
   const { addSuccessToast, addDangerToast } = useToasts();
+  const [isLoading, setLoading] = useState<boolean>(false);
+  const [objects, setObjects] = useState<TaggedObjects>({
+    dashboard: [],
+    chart: [],
+    query: [],
+  });
 
   const editableTitleProps = {
     title: tag?.name || '',
@@ -97,38 +121,72 @@ function AllEntities() {
     label: t('dataset name'),
   };
 
-  const description: Description = {
-    type: MetadataType.DESCRIPTION,
-    value: tag?.description || '',
-  };
+  const items = [];
+  if (tag?.description) {
+    const description: Description = {
+      type: MetadataType.DESCRIPTION,
+      value: tag?.description || '',
+    };
+    items.push(description);
+  }
 
   const owner: Owner = {
     type: MetadataType.OWNER,
     createdBy: `${tag?.created_by.first_name} ${tag?.created_by.last_name}`,
     createdOn: tag?.created_on_delta_humanized || '',
   };
+  items.push(owner);
+
   const lastModified: LastModified = {
     type: MetadataType.LAST_MODIFIED,
     value: tag?.changed_on_delta_humanized || '',
     modifiedBy: `${tag?.changed_by.first_name} ${tag?.changed_by.last_name}`,
   };
-  const items = [description, owner, lastModified];
+  items.push(lastModified);
+
+  const fetchTaggedObjects = () => {
+    setLoading(true);
+    fetchObjects(
+      { tags: tag?.name || '', types: null },
+      (data: TaggedObject[]) => {
+        const objects = { dashboard: [], chart: [], query: [] };
+        data.forEach(function (object) {
+          const object_type = object.type;
+          objects[object_type].push(object);
+        });
+        setObjects(objects);
+        setLoading(false);
+      },
+      (error: Response) => {
+        addDangerToast('Error Fetching Tagged Objects');
+        setLoading(false);
+      },
+    );
+  };
 
   useEffect(() => {
     // fetch single tag met
     if (tagId) {
+      setLoading(true);
       fetchSingleTag(
         tagId,
         (tag: Tag) => {
           setTag(tag);
+          setLoading(false);
         },
         (error: Response) => {
           addDangerToast(t('Error Fetching Tagged Objects'));
+          setLoading(false);
         },
       );
     }
   }, [tagId]);
 
+  useEffect(() => {
+    if (tag) fetchTaggedObjects();
+  }, [tag]);
+
+  if (isLoading) return <Loading />;
   return (
     <AllEntitiesContainer>
       <TagModal
@@ -139,7 +197,7 @@ function AllEntities() {
         editTag={tag}
         addSuccessToast={addSuccessToast}
         addDangerToast={addDangerToast}
-        refreshData={() => {}} // todo(hugh): implement refreshData on table reload
+        refreshData={fetchTaggedObjects}
       />
       <AllEntitiesNav>
         <PageHeaderWithActions
@@ -159,6 +217,7 @@ function AllEntities() {
                 data-test="bulk-select-action"
                 buttonStyle="secondary"
                 onClick={() => setShowTagModal(true)}
+                showMarginRight={false}
               >
                 {t('Edit Tag')}{' '}
               </Button>
@@ -174,6 +233,7 @@ function AllEntities() {
         <AllEntitiesTable
           search={tag?.name || ''}
           setShowTagModal={setShowTagModal}
+          objects={objects}
         />
       </div>
     </AllEntitiesContainer>
