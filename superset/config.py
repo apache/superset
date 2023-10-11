@@ -1355,7 +1355,6 @@ WEBDRIVER_WINDOW = {
 # webdriver (when using Selenium) or browser context (when using Playwright - see
 # PLAYWRIGHT_REPORTS_AND_THUMBNAILS feature flag)
 WEBDRIVER_AUTH_FUNC = None
-BROWSER_CONTEXT_AUTH_FUNC = None
 
 # Any config options to be passed as-is to the webdriver
 WEBDRIVER_CONFIGURATION: dict[Any, Any] = {"service_log_path": "/dev/null"}
