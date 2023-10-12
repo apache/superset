@@ -24,7 +24,7 @@ COPY --chown=superset superset_config.py /app/
 ENV SUPERSET_CONFIG_PATH /app/superset_config.py
 ```
 
-If your application was installed using docker-compose an alternative configuration is required. See [https://github.com/apache/superset/tree/master/docker#readme](https://github.com/apache/superset/tree/master/docker#readme) for details.
+Docker compose deployments handle application configuration differently.  See [https://github.com/apache/superset/tree/master/docker#readme](https://github.com/apache/superset/tree/master/docker#readme) for details.
 
 The following is an example of just a few of the parameters you can set in your `superset_config.py` file:
 ```
