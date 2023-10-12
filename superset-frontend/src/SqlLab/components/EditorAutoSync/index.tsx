@@ -19,13 +19,12 @@
 
 import React, { useRef, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { FeatureFlag, t } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
 import {
   SqlLabRootState,
   QueryEditor,
   UnsavedQueryEditor,
 } from 'src/SqlLab/types';
-import { isFeatureEnabled } from 'src/featureFlags';
 import { useUpdateSqlEditorTabMutation } from 'src/hooks/apiResources/sqlEditorTabs';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
 import {

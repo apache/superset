@@ -36,8 +36,7 @@
  */
 import React from 'react';
 import fetchMock from 'fetch-mock';
-import * as featureFlags from 'src/featureFlags';
-import { FeatureFlag } from '@superset-ui/core';
+import * as uiCore from '@superset-ui/core';
 import { render, act } from 'spec/helpers/testing-library';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
@@ -65,9 +64,10 @@ test('sync the unsaved editor tab state when there are new changes since the las
   const updateEditorTabState = `glob:*/tabstateview/${defaultQueryEditor.id}`;
   fetchMock.put(updateEditorTabState, 200);
   const isFeatureEnabledMock = jest
-    .spyOn(featureFlags, 'isFeatureEnabled')
+    .spyOn(uiCore, 'isFeatureEnabled')
     .mockImplementation(
-      featureFlag => featureFlag === FeatureFlag.SQLLAB_BACKEND_PERSISTENCE,
+      featureFlag =>
+        featureFlag === uiCore.FeatureFlag.SQLLAB_BACKEND_PERSISTENCE,
     );
   expect(fetchMock.calls(updateEditorTabState)).toHaveLength(0);
   render(<EditorAutoSync />, {
@@ -89,9 +89,10 @@ test('skip syncing the unsaved editor tab state when the updates are already syn
   const updateEditorTabState = `glob:*/tabstateview/${defaultQueryEditor.id}`;
   fetchMock.put(updateEditorTabState, 200);
   const isFeatureEnabledMock = jest
-    .spyOn(featureFlags, 'isFeatureEnabled')
+    .spyOn(uiCore, 'isFeatureEnabled')
     .mockImplementation(
-      featureFlag => featureFlag === FeatureFlag.SQLLAB_BACKEND_PERSISTENCE,
+      featureFlag =>
+        featureFlag === uiCore.FeatureFlag.SQLLAB_BACKEND_PERSISTENCE,
     );
   expect(fetchMock.calls(updateEditorTabState)).toHaveLength(0);
   render(<EditorAutoSync />, {
@@ -123,9 +124,10 @@ test('renders an error toast when the sync failed', async () => {
     throws: new Error('errorMessage'),
   });
   const isFeatureEnabledMock = jest
-    .spyOn(featureFlags, 'isFeatureEnabled')
+    .spyOn(uiCore, 'isFeatureEnabled')
     .mockImplementation(
-      featureFlag => featureFlag === FeatureFlag.SQLLAB_BACKEND_PERSISTENCE,
+      featureFlag =>
+        featureFlag === uiCore.FeatureFlag.SQLLAB_BACKEND_PERSISTENCE,
     );
   expect(fetchMock.calls(updateEditorTabState)).toHaveLength(0);
   const { findByText } = render(
@@ -157,9 +159,10 @@ test('skip syncing the unsaved editor tab stat when SQLLAB_BACKEND_PERSISTENCE i
   const updateEditorTabState = `glob:*/tabstateview/${defaultQueryEditor.id}`;
   fetchMock.put(updateEditorTabState, 200);
   const isFeatureEnabledMock = jest
-    .spyOn(featureFlags, 'isFeatureEnabled')
+    .spyOn(uiCore, 'isFeatureEnabled')
     .mockImplementation(
-      featureFlag => featureFlag !== FeatureFlag.SQLLAB_BACKEND_PERSISTENCE,
+      featureFlag =>
+        featureFlag !== uiCore.FeatureFlag.SQLLAB_BACKEND_PERSISTENCE,
     );
   expect(fetchMock.calls(updateEditorTabState)).toHaveLength(0);
   render(<EditorAutoSync />, {
