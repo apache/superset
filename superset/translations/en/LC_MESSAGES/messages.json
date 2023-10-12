@@ -2398,7 +2398,7 @@
       "One or more parameters needed to configure a database are missing.": [
         ""
       ],
-      "One or more parameters specified in the query are malformatted.": [""],
+      "One or more parameters specified in the query are malformed.": [""],
       "One or more parameters specified in the query are missing.": [""],
       "One or more required fields are missing in the request. Please try again, and if the problem persists contact your administrator.": [
         ""

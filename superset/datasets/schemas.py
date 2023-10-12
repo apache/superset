@@ -24,6 +24,7 @@ from marshmallow.validate import Length
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 
 from superset.datasets.models import Dataset
+from superset.exceptions import SupersetMarshmallowValidationError
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -124,6 +125,17 @@ class DatasetPutSchema(Schema):
     extra = fields.String(allow_none=True)
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+
+    def handle_error(
+        self,
+        error: ValidationError,
+        data: dict[str, Any],
+        **kwargs: Any,
+    ) -> None:
+        """
+        Return SIP-40 error.
+        """
+        raise SupersetMarshmallowValidationError(error, data)
 
 
 class DatasetDuplicateSchema(Schema):

@@ -1268,11 +1268,11 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             sql = f"SHOW CREATE VIEW {schema}.{table}"
             try:
                 cls.execute(cursor, sql)
+                rows = cls.fetch_data(cursor, 1)
+
+                return rows[0][0]
             except DatabaseError:  # not a VIEW
                 return None
-            rows = cls.fetch_data(cursor, 1)
-
-            return rows[0][0]
 
     @classmethod
     def get_tracking_url(cls, cursor: Cursor) -> str | None:

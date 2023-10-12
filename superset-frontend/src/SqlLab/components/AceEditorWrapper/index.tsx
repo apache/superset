@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { useState, useEffect, useRef } from 'react';
+import type { IAceEditor } from 'react-ace/lib/types';
 import { useDispatch } from 'react-redux';
 import { css, styled, usePrevious } from '@superset-ui/core';
 
@@ -30,7 +31,7 @@ type HotKey = {
   key: string;
   descr: string;
   name: string;
-  func: () => void;
+  func: (aceEditor: IAceEditor) => void;
 };
 
 type AceEditorWrapperProps = {

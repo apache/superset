@@ -66,7 +66,7 @@ export const loadTags = async (
   const getErrorMessage = ({ error, message }: ClientErrorObject) => {
     let errorText = message || error || t('An error has occurred');
     if (message === 'Forbidden') {
-      errorText = t('You do not have permission to edit this dashboard');
+      errorText = t('You do not have permission to read tags');
     }
     return errorText;
   };

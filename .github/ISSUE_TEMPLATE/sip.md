@@ -3,7 +3,7 @@ name: SIP
 about: "Superset Improvement Proposal. See [here](https://github.com/apache/superset/issues/5602) for details."
 labels: sip
 title: "[SIP] Your Title Here (do not add SIP number)"
-asignees: "apache/superset-committers"
+assignees: "apache/superset-committers"
 ---
 
 *Please make sure you are familiar with the SIP process documented*

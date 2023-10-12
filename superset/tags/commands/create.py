@@ -67,25 +67,22 @@ class CreateCustomTagCommand(CreateMixin, BaseCommand):
 
 class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
     def __init__(self, data: dict[str, Any], bulk_create: bool = False):
-        self._tag = data["name"]
-        self._objects_to_tag = data.get("objects_to_tag")
-        self._description = data.get("description")
+        self._properties = data.copy()
         self._bulk_create = bulk_create
 
     def run(self) -> None:
         self.validate()
 
         try:
-            tag = TagDAO.get_by_name(self._tag.strip(), TagTypes.custom)
-            if self._objects_to_tag:
-                TagDAO.create_tag_relationship(
-                    objects_to_tag=self._objects_to_tag,
-                    tag=tag,
-                    bulk_create=self._bulk_create,
-                )
+            tag_name = self._properties["name"]
+            tag = TagDAO.get_by_name(tag_name.strip(), TagTypes.custom)
+            TagDAO.create_tag_relationship(
+                objects_to_tag=self._properties.get("objects_to_tag", []),
+                tag=tag,
+                bulk_create=self._bulk_create,
+            )
 
-            if self._description:
-                tag.description = self._description
+            tag.description = self._properties.get("description", "")
 
             db.session.commit()
 
@@ -95,31 +92,21 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
 
     def validate(self) -> None:
         exceptions = []
-        # Validate object_id
-        if self._objects_to_tag:
-            if any(obj_id == 0 for obj_type, obj_id in self._objects_to_tag):
-                exceptions.append(TagInvalidError())
+        objects_to_tag = set(self._properties.get("objects_to_tag", []))
+        skipped_tagged_objects: set[tuple[str, int]] = set()
+        for obj_type, obj_id in objects_to_tag:
+            object_type = to_object_type(obj_type)
 
-            # Validate object type
-            skipped_tagged_objects: list[tuple[str, int]] = []
-            for obj_type, obj_id in self._objects_to_tag:
-                skipped_tagged_objects = []
-                object_type = to_object_type(obj_type)
+            if not object_type:
+                exceptions.append(TagInvalidError(f"invalid object type {object_type}"))
+            try:
+                model = to_object_model(object_type, obj_id)  # type: ignore
+                security_manager.raise_for_ownership(model)
+            except SupersetSecurityException:
+                # skip the object if the user doesn't have access
+                skipped_tagged_objects.add((obj_type, obj_id))
 
-                if not object_type:
-                    exceptions.append(
-                        TagInvalidError(f"invalid object type {object_type}")
-                    )
-                try:
-                    model = to_object_model(object_type, obj_id)  # type: ignore
-                    security_manager.raise_for_ownership(model)
-                except SupersetSecurityException:
-                    # skip the object if the user doesn't have access
-                    skipped_tagged_objects.append((obj_type, obj_id))
-
-            self._objects_to_tag = set(self._objects_to_tag) - set(
-                skipped_tagged_objects
-            )
+        self._properties["objects_to_tag"] = objects_to_tag - skipped_tagged_objects
 
         if exceptions:
             raise TagInvalidError(exceptions=exceptions)

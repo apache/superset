@@ -201,7 +201,7 @@ def deprecated(
 
     def _deprecated(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
         def wraps(self: "BaseSupersetView", *args: Any, **kwargs: Any) -> FlaskResponse:
-            messsage = (
+            message = (
                 "%s.%s "
                 "This API endpoint is deprecated and will be removed in version %s"
             )
@@ -211,9 +211,9 @@ def deprecated(
                 eol_version,
             ]
             if new_target:
-                messsage += " . Use the following API endpoint instead: %s"
+                message += " . Use the following API endpoint instead: %s"
                 logger_args.append(new_target)
-            logger.warning(messsage, *logger_args)
+            logger.warning(message, *logger_args)
             return f(self, *args, **kwargs)
 
         return functools.update_wrapper(wraps, f)

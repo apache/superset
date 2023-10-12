@@ -28,7 +28,7 @@ import { schemaApiUtil } from 'src/hooks/apiResources/schemas';
 import { tableApiUtil } from 'src/hooks/apiResources/tables';
 import { addTable } from 'src/SqlLab/actions/sqlLab';
 import { initialState } from 'src/SqlLab/fixtures';
-import { reducers } from 'src/SqlLab/reducers';
+import reducers from 'spec/helpers/reducerIndex';
 import {
   SCHEMA_AUTOCOMPLETE_SCORE,
   TABLE_AUTOCOMPLETE_SCORE,
