@@ -68,9 +68,10 @@ const StyledLabelDetail = styled.span`
     overflow: hidden;
     display: inline-block;
     text-overflow: ellipsis;
-    font-size: ${sizes.m}px;
+    font-size: ${sizes.s}px;
     font-weight: ${weights.light};
     max-width: 50%;
+    line-height: 1.4;
   `}
 `;
 
@@ -84,7 +85,7 @@ const StyledLabelContainer = styled.div`
   `}
 `;
 
-export const newLabel = (item: Dataset) => (
+export const newLabel = (item: Dataset | Record<string, any>) => (
   <Tooltip
     mouseEnterDelay={1}
     placement="right"

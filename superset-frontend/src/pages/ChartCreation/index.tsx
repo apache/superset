@@ -206,6 +206,7 @@ const StyledLabel = styled.span`
     right: ${theme.gridUnit * 3}px;
     overflow: hidden;
     text-overflow: ellipsis;
+    line-height: 1.4;
   `}
 `;
 
@@ -218,7 +219,7 @@ const StyledLabelDetail = styled.span`
     overflow: hidden;
     display: inline-block;
     text-overflow: ellipsis;
-    font-size: ${sizes.m}px;
+    font-size: ${sizes.s}px;
     font-weight: ${weights.light};
     max-width: 50%;
   `}

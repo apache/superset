@@ -690,21 +690,6 @@ const FiltersConfigForm = (
           // modify the response to fit structure expected by AdhocFilterControl
           dataset.type = dataset.datasource_type;
           dataset.filter_select = true;
-          setNativeFilterFieldValues(form, filterId, {
-            dataset: {
-              value: dataset.id,
-              label: newLabel({
-                id: dataset.id,
-                table_name: dataset.table_name,
-                schema: dataset.schema,
-                database: {
-                  database_name: dataset.database.database_name,
-                },
-              }),
-            },
-            defaultDataMask: null,
-            column: null,
-          });
           setDatasetDetails(dataset);
         })
         .catch((response: SupersetApiError) => {
@@ -899,7 +884,7 @@ const FiltersConfigForm = (
                 initialValue={
                   datasetDetails
                     ? {
-                        label: datasetDetails.table_name,
+                        label: newLabel(datasetDetails),
                         value: datasetDetails.id,
                       }
                     : undefined
