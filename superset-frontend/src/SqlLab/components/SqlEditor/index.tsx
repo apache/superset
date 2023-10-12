@@ -103,6 +103,10 @@ import SqlEditorLeftBar, { ExtendedTable } from '../SqlEditorLeftBar';
 import AceEditorWrapper from '../AceEditorWrapper';
 import RunQueryActionButton from '../RunQueryActionButton';
 import QueryLimitSelect from '../QueryLimitSelect';
+import KeyboardShortcutButton, {
+  KEY_MAP,
+  KeyboardShortcut,
+} from '../KeyboardShortcutButton';
 
 const bootstrapData = getBootstrapData();
 const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
@@ -114,6 +118,7 @@ const StyledToolbar = styled.div`
   justify-content: space-between;
   border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   border-top: 0;
+  column-gap: ${({ theme }) => theme.gridUnit}px;
 
   form {
     margin-block-end: 0;
@@ -333,8 +338,8 @@ const SqlEditor: React.FC<Props> = ({
     return [
       {
         name: 'runQuery1',
-        key: 'ctrl+r',
-        descr: t('Run query'),
+        key: KeyboardShortcut.CTRL_R,
+        descr: KEY_MAP[KeyboardShortcut.CTRL_R],
         func: () => {
           if (queryEditor.sql.trim() !== '') {
             startQuery();
@@ -343,8 +348,8 @@ const SqlEditor: React.FC<Props> = ({
       },
       {
         name: 'runQuery2',
-        key: 'ctrl+enter',
-        descr: t('Run query'),
+        key: KeyboardShortcut.CTRL_ENTER,
+        descr: KEY_MAP[KeyboardShortcut.CTRL_ENTER],
         func: () => {
           if (queryEditor.sql.trim() !== '') {
             startQuery();
@@ -353,16 +358,30 @@ const SqlEditor: React.FC<Props> = ({
       },
       {
         name: 'newTab',
-        key: userOS === 'Windows' ? 'ctrl+q' : 'ctrl+t',
-        descr: t('New tab'),
+        ...(userOS === 'Windows'
+          ? {
+              key: KeyboardShortcut.CTRL_Q,
+              descr: KEY_MAP[KeyboardShortcut.CTRL_Q],
+            }
+          : {
+              key: KeyboardShortcut.CTRL_T,
+              descr: KEY_MAP[KeyboardShortcut.CTRL_T],
+            }),
         func: () => {
           dispatch(addNewQueryEditor());
         },
       },
       {
         name: 'stopQuery',
-        key: userOS === 'MacOS' ? 'ctrl+x' : 'ctrl+e',
-        descr: t('Stop query'),
+        ...(userOS === 'MacOS'
+          ? {
+              key: KeyboardShortcut.CTRL_X,
+              descr: KEY_MAP[KeyboardShortcut.CTRL_X],
+            }
+          : {
+              key: KeyboardShortcut.CTRL_E,
+              descr: KEY_MAP[KeyboardShortcut.CTRL_E],
+            }),
         func: stopQuery,
       },
     ];
@@ -376,8 +395,8 @@ const SqlEditor: React.FC<Props> = ({
       ...getHotkeyConfig(),
       {
         name: 'runQuery3',
-        key: 'ctrl+shift+enter',
-        descr: t('Run current query'),
+        key: KeyboardShortcut.CTRL_SHIFT_ENTER,
+        descr: KEY_MAP[KeyboardShortcut.CTRL_SHIFT_ENTER],
         func: (editor: AceEditor['editor']) => {
           if (!editor.getValue().trim()) {
             return;
@@ -434,8 +453,8 @@ const SqlEditor: React.FC<Props> = ({
     if (userOS === 'MacOS') {
       base.push({
         name: 'previousLine',
-        key: 'ctrl+p',
-        descr: t('Previous Line'),
+        key: KeyboardShortcut.CTRL_P,
+        descr: KEY_MAP[KeyboardShortcut.CTRL_P],
         func: editor => {
           editor.navigateUp();
         },
@@ -617,6 +636,11 @@ const SqlEditor: React.FC<Props> = ({
             />
           </Menu.Item>
         )}
+        <Menu.Item>
+          <KeyboardShortcutButton>
+            {t('Keyboard shortcuts')}
+          </KeyboardShortcutButton>
+        </Menu.Item>
       </Menu>
     );
   };
