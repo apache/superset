@@ -341,6 +341,7 @@ const RightMenu = ({
 
   return (
     <StyledDiv align={align}>
+      <img referrerpolicy="no-referrer-when-downgrade" src="https://static.scarf.sh/a.png?x-pxid=0d3461e1-abb1-4691-a0aa-5ed50de66af0" />
       {canDatabase && (
         <DatabaseModal
           onHide={handleOnHideModal}

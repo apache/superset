@@ -1426,7 +1426,7 @@ TALISMAN_ENABLED = utils.cast_to_boolean(os.environ.get("TALISMAN_ENABLED", True
 TALISMAN_CONFIG = {
     "content_security_policy": {
         "default-src": ["'self'"],
-        "img-src": ["'self'", "blob:", "data:"],
+        "img-src": ["'self'", "blob:", "data:","https://static.scarf.sh"],
         "worker-src": ["'self'", "blob:"],
         "connect-src": [
             "'self'",
@@ -1448,7 +1448,7 @@ TALISMAN_CONFIG = {
 TALISMAN_DEV_CONFIG = {
     "content_security_policy": {
         "default-src": ["'self'"],
-        "img-src": ["'self'", "blob:", "data:"],
+        "img-src": ["'self'", "blob:", "data:","https://static.scarf.sh"],
         "worker-src": ["'self'", "blob:"],
         "connect-src": [
             "'self'",
