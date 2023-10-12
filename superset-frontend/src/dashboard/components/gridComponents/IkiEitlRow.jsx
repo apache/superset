@@ -121,11 +121,11 @@ class IkiEitlRow extends React.PureComponent {
       duration: Logger.getTimestamp() - this.renderStartTime,
     });
 
-    let crossWindowMessage = {
+    const crossWindowMessage = {
       info: 'widget-to-parent/get-project-id',
       dataType: 'object',
     };
-    let crossBrowserInfoString = JSON.stringify(crossWindowMessage);
+    const crossBrowserInfoString = JSON.stringify(crossWindowMessage);
     window.parent.postMessage(crossBrowserInfoString);
 
     this.handleIncomingWindowMsg();
