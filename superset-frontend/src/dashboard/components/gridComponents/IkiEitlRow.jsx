@@ -135,7 +135,6 @@ class IkiEitlRow extends React.PureComponent {
       dataType: 'object',
     };
     var crossBrowserInfoString = JSON.stringify(crossWindowMessage);
-    console.log(window.parent);
     window.parent.postMessage(crossBrowserInfoString, 'http://localhost:3000');
 
     this.handleIncomingWindowMsg();
@@ -206,7 +205,6 @@ class IkiEitlRow extends React.PureComponent {
   // eslint-disable-next-line class-methods-use-this
   handleIncomingWindowMsg() {
     window.addEventListener('message', event => {
-      // console.log('event.origin', event.origin, this.props.ikigaiOrigin);
       //   if (event.origin === this.props.ikigaiOrigin) {
       console.log('event', event);
       console.log('event.data', event.data);
@@ -248,10 +246,19 @@ class IkiEitlRow extends React.PureComponent {
             widgetUrlQuery = new URLSearchParams(widgetUrl.search);
             // widgetUrlQuery.set('mode', 'preview');
             console.log('widgetUrlQuery before', widgetUrlQuery.toString());
-            widgetUrlQuery.set('model', JSON.stringify(messageData.model));
-            widgetUrlQuery.set('version', JSON.stringify(messageData.version));
+            widgetUrlQuery.set(
+              'model',
+              Buffer.from(JSON.stringify(messageData.model)).toString('base64'),
+            );
+            widgetUrlQuery.set(
+              'version',
+              Buffer.from(JSON.stringify(messageData.version)).toString(
+                'base64',
+              ),
+            );
             console.log('widgetUrlQuery after', widgetUrlQuery.toString());
             widgetUrl.search = widgetUrlQuery.toString();
+            console.log('widgetUrl', widgetUrl);
             const tempIframe = `<iframe
                       id="ikieitlrow-widget-${this.props.component.id}"
                       name="eitl-row-component"
@@ -419,14 +426,14 @@ class IkiEitlRow extends React.PureComponent {
         const paramProjectId = iframeSrcUrl.searchParams.get('project_id')
           ? iframeSrcUrl.searchParams.get('project_id')
           : '';
-        const paramModelId = iframeSrcUrl.searchParams.get('model_id')
-          ? iframeSrcUrl.searchParams.get('project_id')
+        const paramModel = iframeSrcUrl.searchParams.get('model')
+          ? iframeSrcUrl.searchParams.get('model')
           : '';
-        const paramVersionId = iframeSrcUrl.searchParams.get('version_id')
-          ? iframeSrcUrl.searchParams.get('project_id')
+        const paramVersion = iframeSrcUrl.searchParams.get('version')
+          ? iframeSrcUrl.searchParams.get('version')
           : '';
 
-        const newIframeSrc = `${ikigaiOrigin}/widget/eitl/row?project_id=${paramProjectId}&model_id=${paramModelId}&version_id=${paramVersionId}`;
+        const newIframeSrc = `${ikigaiOrigin}/widget/eitl/row?project_id=${paramProjectId}&model=${paramModel}&version=${paramVersion}`;
         iframeSrc = newIframeSrc;
       } else {
         iframeSrc = `${ikigaiOrigin}/widget/eitl/row`;
