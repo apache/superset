@@ -192,7 +192,7 @@ export function Menu({
     CHART = '/chart',
     DATASETS = '/tablemodelview',
   }
-  const [activeTabs, setActiveTabs] = useState(['']);
+  const [activeTabs, setActiveTabs] = useState(Array<string>);
   const location = useLocation();
   useEffect(() => {
     const path = location.pathname;
@@ -207,7 +207,7 @@ export function Menu({
         setActiveTabs(['Datasets']);
         break;
       default:
-        setActiveTabs(['']);
+        setActiveTabs([]);
     }
   }, [location.pathname]);
 
