@@ -18,38 +18,35 @@
  */
 /**
  * COMPONENT: EiTL Row Component
- * WIDGET FRONTEND URL EXAMPLE: http://localhost:3000/widget/eitl/row
+ * WIDGET FRONTEND URL EXAMPLE: http://localhost:3000/widget/eitl/row?project_id=1wti9gbaxqmOi7Gm9e2Tcd4e5Mf&model=eyJtb2RlbF9pZCI6IjJXMXdRUWpNdjY4MWZoY2JHalpzRFQ3S0lsbCIsIm5hbWUiOiJhaU1hdGNoIiwicHJvamVjdF9pZCI6IjF3dGk5Z2JheHFtT2k3R205ZTJUY2Q0ZTVNZiIsImxhdGVzdF92ZXJzaW9uX2lkIjoiMlcxd2hJamh0RXk3cmNWcXRzNXRoUGNFcTFZIiwibW9kZWxfdHlwZSI6IkFpIE1hdGNoIiwic3ViX21vZGVsX3R5cGUiOiJTdXBlcnZpc2VkIiwiZGVzY3JpcHRpb24iOiIiLCJkaXJlY3RvcnlfaWQiOiIiLCJjcmVhdGVkX2F0IjoiMTY5NTkxMzM3NyIsIm1vZGlmaWVkX2F0IjoiMTY5NzExODQ3NSJ9&version=eyJ2ZXJzaW9uX2lkIjoiMlcxd2hJamh0RXk3cmNWcXRzNXRoUGNFcTFZIiwidmVyc2lvbiI6InYxIiwibW9kZWxfaWQiOiIyVzF3UVFqTXY2ODFmaGNiR2pac0RUN0tJbGwiLCJoeXBlcnBhcmFtZXRlcnMiOnsiY29sdW1uX21hcHBpbmciOnRydWUsImNvbHVtbl9tYXBwaW5nX3RocmVzaG9sZCI6MC43LCJpbmNsdWRlX3NpbWlsYXJpdHkiOnRydWUsImxlZnRfZXhjbHVkZSI6W10sImxlZnRfaW5jbHVkZSI6W10sIm1hdGNoaW5nX3RocmVzaG9sZCI6MC41LCJyaWdodF9leGNsdWRlIjpbXSwicmlnaHRfaW5jbHVkZSI6W10sInNhbXBsaW5nX2Ftb3VudCI6MC4xfSwibWV0cmljcyI6e30sImNyZWF0ZWRfYXQiOiIxNjk1OTEzNTExIiwibW9kaWZpZWRfYXQiOiIxNjk3MTE4NDc1In0=
  * PARAMETERS:
+ * project_id: string
+ * model: b64 encoded object
+ * version: b64 encoded object
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import cx from 'classnames';
 
 import { t, SafeMarkdown } from '@superset-ui/core';
-import {
-  Logger,
-  LOG_ACTIONS_RENDER_CHART,
-  LOG_ACTIONS_FORCE_REFRESH_CHART,
-} from 'src/logger/LogUtils';
+import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { MarkdownEditor } from 'src/components/AsyncAceEditor';
 
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
 import MarkdownModeDropdown from 'src/dashboard/components/menu/MarkdownModeDropdown';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import { componentShape } from 'src/dashboard/util/propShapes';
 import { ROW_TYPE, COLUMN_TYPE } from 'src/dashboard/util/componentTypes';
+const { Buffer } = require('buffer');
 import {
   GRID_MIN_COLUMN_COUNT,
   GRID_MIN_ROW_UNITS,
   GRID_BASE_UNIT,
 } from 'src/dashboard/util/constants';
-import { refreshChart } from 'src/components/Chart/chartAction';
-// import { chart } from 'src/components/Chart/chartReducer';
-const { Buffer } = require('buffer');
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -91,20 +88,19 @@ class IkiEitlRow extends React.PureComponent {
     super(props);
     this.state = {
       isFocused: false,
-      // markdownSource: props.component.meta.code,
-      markdownSource: `<iframe
-                      id="ikieitlrow-widget-${this.props.component.id}"
-                      name="eitl-row-component"
-                      src="http://localhost:3000/widget/eitl/row"
-                      title="IkiEitlRow Component"
-                      className="ikieitlrow-widget"
-                      style="min-height: 100%;"
-                    />`,
+      markdownSource: props.component.meta.code,
+      // markdownSource: `<iframe
+      //                 id="ikieitlrow-widget-${this.props.component.id}"
+      //                 name="eitl-row-component"
+      //                 src="http://localhost:3000/widget/eitl/row"
+      //                 title="IkiEitlRow Component"
+      //                 className="ikieitlrow-widget"
+      //                 style="min-height: 100%;"
+      //               />`,
       editor: null,
       editorMode: 'edit',
       undoLength: props.undoLength,
       redoLength: props.redoLength,
-      dashboardId: null,
     };
     this.renderStartTime = Logger.getTimestamp();
 
@@ -117,12 +113,6 @@ class IkiEitlRow extends React.PureComponent {
   }
 
   componentDidMount() {
-    this.setState({
-      dashboardId: parseInt(
-        window.location.pathname.split('/dashboard/')[1].split('/')[0],
-        10,
-      ),
-    });
     this.props.logEvent(LOG_ACTIONS_RENDER_CHART, {
       viz_type: 'markdown',
       start_offset: this.renderStartTime,
@@ -135,7 +125,7 @@ class IkiEitlRow extends React.PureComponent {
       dataType: 'object',
     };
     var crossBrowserInfoString = JSON.stringify(crossWindowMessage);
-    window.parent.postMessage(crossBrowserInfoString, 'http://localhost:3000');
+    window.parent.postMessage(crossBrowserInfoString);
 
     this.handleIncomingWindowMsg();
   }
@@ -205,10 +195,9 @@ class IkiEitlRow extends React.PureComponent {
   // eslint-disable-next-line class-methods-use-this
   handleIncomingWindowMsg() {
     window.addEventListener('message', event => {
-      //   if (event.origin === this.props.ikigaiOrigin) {
-      console.log('event', event);
-      console.log('event.data', event.data);
-      if (event.origin === 'http://localhost:3000') {
+      if (event.origin === this.props.ikigaiOrigin) {
+        console.log('event', event);
+        // if (event.origin === 'http://localhost:3000') {
         const messageObject = JSON.parse(event.data);
         console.log('messageObject', messageObject);
         if (messageObject.info && messageObject.dataType) {
@@ -316,35 +305,6 @@ class IkiEitlRow extends React.PureComponent {
     }
 
     this.setState(nextState);
-
-    let widgetUrl;
-
-    if (
-      document.getElementById(`ikieitlrow-widget-${this.props.component.id}`)
-    ) {
-      widgetUrl = new URL(
-        document.getElementById(
-          `ikieitlrow-widget-${this.props.component.id}`,
-        ).src,
-      );
-    } else {
-      // widgetUrl = `${this.props.ikigaiOrigin}/widget/eitl/row`;
-      widgetUrl = new URL(
-        `http://localhost:3000/widget/eitl/row?project_id=1wti9gbaxqmOi7Gm9e2Tcd4e5Mf`,
-      );
-    }
-    // const widgetUrlQuery = new URLSearchParams(widgetUrl.search);
-    // widgetUrlQuery.set('mode', mode);
-    // widgetUrl.search = widgetUrlQuery.toString();
-    const tempIframe = `<iframe
-                      id="ikieitlrow-widget-${this.props.component.id}"
-                      name="eitl-row-component"
-                      src="${widgetUrl}"
-                      title="IkiEitlRow Component"
-                      className="ikieitlrow-widget"
-                      style="min-height: 100%;"
-                    />`;
-    this.handleIkiEitlRowChange(tempIframe);
   }
 
   updateMarkdownContent() {
@@ -409,8 +369,8 @@ class IkiEitlRow extends React.PureComponent {
 
   renderIframe() {
     const { markdownSource, hasError } = this.state;
-    // const { ikigaiOrigin } = this.props;
-    const ikigaiOrigin = 'http://localhost:3000';
+    const { ikigaiOrigin } = this.props;
+    // const ikigaiOrigin = 'http://localhost:3000';
     let iframe = '';
     let iframeSrc = '';
     if (ikigaiOrigin) {
@@ -459,14 +419,6 @@ class IkiEitlRow extends React.PureComponent {
 
   renderPreviewMode() {
     return this.renderIframe();
-  }
-
-  refreshChart(chartId, dashboardId, isCached) {
-    this.props.logEvent(LOG_ACTIONS_FORCE_REFRESH_CHART, {
-      slice_id: chartId,
-      is_cached: isCached,
-    });
-    return this.props.refreshChart(chartId, true, dashboardId);
   }
 
   render() {
@@ -549,6 +501,13 @@ class IkiEitlRow extends React.PureComponent {
                   data-test="dashboard-component-chart-holder"
                   style={{ height: '100%' }}
                 >
+                  {editMode && (
+                    <HoverMenu position="top">
+                      <DeleteComponentButton
+                        onDelete={this.handleDeleteComponent}
+                      />
+                    </HoverMenu>
+                  )}
                   {
                     // editMode && isEditing
                     editMode && isEditing
@@ -576,13 +535,4 @@ function mapStateToProps(state) {
   };
 }
 
-function mapDispatchToProps(dispatch) {
-  return bindActionCreators(
-    {
-      refreshChart,
-    },
-    dispatch,
-  );
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(IkiEitlRow);
+export default connect(mapStateToProps)(IkiEitlRow);
