@@ -47,7 +47,6 @@ import IkiProcessBuilder from './IkiProcessBuilder';
 import IkiRunPipeline from './IkiRunPipeline';
 import IkiDeepcast from './IkiDeepcast';
 import IkiEitlRow from './IkiEitlRow';
-import { fr } from 'chrono-node';
 
 export { default as ChartHolder } from './ChartHolder';
 export { default as Markdown } from './Markdown';

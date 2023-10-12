@@ -41,12 +41,13 @@ import MarkdownModeDropdown from 'src/dashboard/components/menu/MarkdownModeDrop
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import { componentShape } from 'src/dashboard/util/propShapes';
 import { ROW_TYPE, COLUMN_TYPE } from 'src/dashboard/util/componentTypes';
-const { Buffer } = require('buffer');
 import {
   GRID_MIN_COLUMN_COUNT,
   GRID_MIN_ROW_UNITS,
   GRID_BASE_UNIT,
 } from 'src/dashboard/util/constants';
+
+const { Buffer } = require('buffer');
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -120,11 +121,11 @@ class IkiEitlRow extends React.PureComponent {
       duration: Logger.getTimestamp() - this.renderStartTime,
     });
 
-    var crossWindowMessage = {
+    let crossWindowMessage = {
       info: 'widget-to-parent/get-project-id',
       dataType: 'object',
     };
-    var crossBrowserInfoString = JSON.stringify(crossWindowMessage);
+    let crossBrowserInfoString = JSON.stringify(crossWindowMessage);
     window.parent.postMessage(crossBrowserInfoString);
 
     this.handleIncomingWindowMsg();
@@ -206,7 +207,7 @@ class IkiEitlRow extends React.PureComponent {
           let messageData;
           let widgetUrl;
           let widgetUrlQuery;
-          let widgetUrlQueryMode;
+          // let widgetUrlQueryMode;
 
           if (dataType === 'object') {
             messageData = JSON.parse(messageObject.data);
@@ -224,7 +225,7 @@ class IkiEitlRow extends React.PureComponent {
                 `ikieitlrow-widget-${this.props.component.id}`,
               ).src,
             );
-            widgetUrlQueryMode = widgetUrl.searchParams.get('mode');
+            // widgetUrlQueryMode = widgetUrl.searchParams.get('mode');
           } else {
             widgetUrl = `${this.props.ikigaiOrigin}/widget/eitl/row`;
           }
