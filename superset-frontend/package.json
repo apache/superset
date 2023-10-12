@@ -38,9 +38,9 @@
   "scripts": {
     "_lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx,.ts,tsx .",
     "_prettier": "prettier './({src,spec,cypress-base,plugins,packages,.storybook}/**/*{.js,.jsx,.ts,.tsx,.css,.less,.scss,.sass}|package.json)'",
-    "build": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=production BABEL_ENV=\"${BABEL_ENV:=production}\" webpack --mode=production --color",
-    "build-dev": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=development webpack --mode=development --color",
-    "build-instrumented": "cross-env NODE_ENV=production BABEL_ENV=instrumented webpack --mode=production --color",
+    "build": "cross-env NODE_OPTIONS=--max_old_space_size=8192 --no-experimental-fetch NODE_ENV=production BABEL_ENV=\"${BABEL_ENV:=production}\" webpack --mode=production --color",
+    "build-dev": "cross-env NODE_OPTIONS=--max_old_space_size=8192 --no-experimental-fetch NODE_ENV=development webpack --mode=development --color",
+    "build-instrumented": "cross-env NODE_OPTIONS=--no-experimental-fetch NODE_ENV=production BABEL_ENV=instrumented webpack --mode=production --color",
     "build-storybook": "build-storybook",
     "check-translation": "prettier --check ../superset/translations/**/LC_MESSAGES/*.json",
     "chromatic": "npx chromatic --skip 'dependabot/**'  --only-changed",
