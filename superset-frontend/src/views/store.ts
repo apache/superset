@@ -38,7 +38,6 @@ import logger from 'src/middleware/loggerMiddleware';
 import saveModal from 'src/explore/reducers/saveModalReducer';
 import explore from 'src/explore/reducers/exploreReducer';
 import exploreDatasources from 'src/explore/reducers/datasourcesReducer';
-import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 
 import { persistSqlLabStateEnhancer } from 'src/SqlLab/middlewares/persistSqlLabStateEnhancer';
 import sqlLabReducer from 'src/SqlLab/reducers/sqlLab';

@@ -282,6 +282,7 @@ describe('getInitialState', () => {
       const apiDataWithLocalStorage = {
         ...apiData,
         active_tab: {
+          ...apiDataWithTabState.active_tab,
           id: 1,
           label: 'persisted tab',
           table_schemas: [],
@@ -289,7 +290,7 @@ describe('getInitialState', () => {
             updatedAt: lastUpdatedTime,
           },
         },
-        tab_state_ids: [{ id: 1 }],
+        tab_state_ids: [{ id: 1, label: '' }],
       };
       expect(
         getInitialState(apiDataWithLocalStorage).sqlLab.queryEditors[0],
@@ -305,6 +306,7 @@ describe('getInitialState', () => {
       const apiDataWithLocalStorage = {
         ...apiData,
         active_tab: {
+          ...apiDataWithTabState.active_tab,
           id: 2,
           label: 'persisted tab',
           table_schemas: [],
@@ -312,7 +314,7 @@ describe('getInitialState', () => {
             updatedAt: lastUpdatedTime,
           },
         },
-        tab_state_ids: [{ id: 2 }],
+        tab_state_ids: [{ id: 2, label: '' }],
       };
       expect(
         getInitialState(apiDataWithLocalStorage).sqlLab.queryEditors[1],
@@ -328,6 +330,7 @@ describe('getInitialState', () => {
       const apiDataWithLocalStorage = {
         ...apiData,
         active_tab: {
+          ...apiDataWithTabState.active_tab,
           id: 3,
           label: 'persisted tab',
           table_schemas: [],
@@ -335,7 +338,7 @@ describe('getInitialState', () => {
             updatedAt: lastUpdatedTime,
           },
         },
-        tab_state_ids: [{ id: 3 }],
+        tab_state_ids: [{ id: 3, label: '' }],
       };
       expect(
         getInitialState(apiDataWithLocalStorage).sqlLab.queryEditors[2],
