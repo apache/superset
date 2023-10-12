@@ -93,7 +93,6 @@ import {
 } from 'src/utils/localStorageHelpers';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import getBootstrapData from 'src/utils/getBootstrapData';
-import Badge from 'src/components/Badge';
 import { isEmpty } from 'lodash';
 import TemplateParamsEditor from '../TemplateParamsEditor';
 import SouthPane from '../SouthPane';
@@ -231,8 +230,6 @@ const elementStyle = (
     gutterSize + SQL_EDITOR_GUTTER_MARGIN
   }px)`,
 });
-
-const KEYBOARD_SHORTCUT_FOR_FORMAT = 'ctrl+shift+f';
 
 const SqlEditor: React.FC<Props> = ({
   tables,
@@ -394,8 +391,8 @@ const SqlEditor: React.FC<Props> = ({
       },
       {
         name: 'formatQuery',
-        key: KEYBOARD_SHORTCUT_FOR_FORMAT,
-        descr: t('Format query'),
+        key: KeyboardShortcut.CTRL_SHIFT_F,
+        descr: KEY_MAP[KeyboardShortcut.CTRL_SHIFT_F],
         func: () => {
           formatCurrentQuery();
         },
@@ -638,17 +635,7 @@ const SqlEditor: React.FC<Props> = ({
             />
           </Menu.Item>
         )}
-        <Menu.Item
-          onClick={formatCurrentQuery}
-          css={{ display: 'flex', justifyContent: 'space-between' }}
-        >
-          <span>{t('Format SQL')}</span>
-          <Badge
-            count={KEYBOARD_SHORTCUT_FOR_FORMAT}
-            color={theme.colors.grayscale.light2}
-            textColor={theme.colors.grayscale.dark1}
-          />
-        </Menu.Item>
+        <Menu.Item onClick={formatCurrentQuery}>{t('Format SQL')}</Menu.Item>
         {!isEmpty(scheduledQueriesConf) && (
           <Menu.Item>
             <ScheduleQueryButton
