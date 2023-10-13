@@ -21,14 +21,18 @@ import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { bindActionCreators } from 'redux';
 
-import { shallow } from 'enzyme';
+import { shallow, render } from 'enzyme';
 import { Radio } from 'src/components/Radio';
 import Button from 'src/components/Button';
 import fetchMock from 'fetch-mock';
+import { createMemoryHistory } from 'history';
 
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
-import SaveModal, { StyledModal } from 'src/explore/components/SaveModal';
-import { BrowserRouter } from 'react-router-dom';
+import SaveModal, {
+  PureSaveModal,
+  StyledModal,
+} from 'src/explore/components/SaveModal';
+import { BrowserRouter, Router } from 'react-router-dom';
 
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
@@ -231,7 +235,7 @@ test('set dataset name when chart source is query', () => {
   expect(wrapper.state().datasetName).toBe('test');
 });
 
-test('make sure saveOverwrite function always has slice_id attached to the url', () => {
+test('make sure slice_id in the URLSearchParams before the redirect', () => {
   const myProps = {
     ...defaultProps,
     slice: { slice_id: 1, slice_name: 'title', owners: [1] },
@@ -240,20 +244,18 @@ test('make sure saveOverwrite function always has slice_id attached to the url',
       updateSlice: jest.fn(() => Promise.resolve({ id: 1 })),
       getSliceDashboards: jest.fn(),
     },
+    user: { userId: 1 },
     history: {
       replace: jest.fn(),
     },
+    dispatch: jest.fn(),
   };
-  const wrapper = getWrapper(myProps);
-  const footerWrapper = shallow(wrapper.find(StyledModal).props().footer);
-  wrapper.setState({
-    action: 'overwrite',
-  });
 
-  const overwriteRadio = wrapper.find('#overwrite-radio');
-  overwriteRadio.simulate('click');
-  expect(wrapper.state().action).toBe('overwrite');
-  const save = footerWrapper.find('#btn_modal_save');
-  save.simulate('click');
-  expect(myProps.history.replace).toHaveBeenCalled();
+  const saveModal = new PureSaveModal(myProps);
+  saveModal.setState = jest.fn();
+  const result = saveModal.handleRedirect(
+    'https://example.com/?name=John&age=30',
+    { id: 1 },
+  );
+  expect(result.get('slice_id')).toEqual('1');
 });

@@ -159,6 +159,19 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     this.props.dispatch(setSaveChartModalVisibility(false));
   }
 
+  handleRedirect = (windowLocationSearch: string, chart: any) => {
+    console.log(windowLocationSearch);
+    const searchParams = new URLSearchParams(windowLocationSearch);
+    searchParams.set('save_action', this.state.action);
+    if (this.state.action !== 'overwrite') {
+      searchParams.delete('form_data_key');
+    }
+
+    searchParams.set('slice_id', chart.id.toString());
+    console.log(searchParams);
+    return searchParams;
+  };
+
   async saveOrOverwrite(gotodash: boolean) {
     this.setState({ isLoading: true });
 
@@ -261,14 +274,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
         return;
       }
 
-      const searchParams = new URLSearchParams(window.location.search);
-      searchParams.set('save_action', this.state.action);
-      if (this.state.action !== 'overwrite') {
-        searchParams.delete('form_data_key');
-      }
-
-      searchParams.set('slice_id', value.id.toString());
-
+      const searchParams = this.handleRedirect(window.location.search, value);
       this.props.history.replace(`/explore/?${searchParams.toString()}`);
 
       this.setState({ isLoading: false });
@@ -518,3 +524,7 @@ function mapStateToProps({
 }
 
 export default withRouter(connect(mapStateToProps)(SaveModal));
+
+// todo(hughhhh): For testing
+// - need to revisit once we convert this to functional component
+export { SaveModal as PureSaveModal };
