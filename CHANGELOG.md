@@ -19,7 +19,7 @@ under the License.
 
 ## Change Log
 
-- [3.0.1](#301-tue-oct-2-143221-2023--0700)
+- [3.0.1](#301-tue-oct-13-103221-2023--0700)
 - [3.0.0](#300-thu-aug-24-133627-2023--0600)
 - [2.1.1](#211-sun-apr-23-154421-2023-0100)
 - [2.1.0](#210-thu-mar-16-211305-2023--0700)
@@ -32,15 +32,27 @@ under the License.
 - [1.4.2](#142-sat-mar-19-000806-2022-0200)
 - [1.4.1](#141)
 
-### 3.0.1 (Tue Oct 2 14:32:21 2023 -0700)
+### 3.0.1 (Tue Oct 13 10:32:21 2023 -0700)
 
 **Database Migrations**
 
-- [#25318](https://github.com/apache/superset/pull/25318) fix: datetime with timezone excel export (@betodealmeida)
 - [#25320](https://github.com/apache/superset/pull/25320) fix: Add explicit ON DELETE CASCADE for dashboard_roles (@john-bodley)
 
 **Fixes**
 
+- [#25541](https://github.com/apache/superset/pull/25541) fix: revert fix(sqllab): Force trino client async execution (#24859) (@villebro)
+- [#25618](https://github.com/apache/superset/pull/25618) fix: finestTemporalGrainFormatter (@betodealmeida)
+- [#25599](https://github.com/apache/superset/pull/25599) fix(window): unavailable localStorage and sessionStorage (@frassinier)
+- [#25579](https://github.com/apache/superset/pull/25579) fix(Charts): Set max row limit + removed the option to use an empty row limit value (@CorbinBullard)
+- [#25559](https://github.com/apache/superset/pull/25559) fix(Presto): catch DatabaseError when testing Presto views (@zhaorui2022)
+- [#25486](https://github.com/apache/superset/pull/25486) fix: thubmnails loading - Talisman default config (@Khrol)
+- [#25400](https://github.com/apache/superset/pull/25400) fix(RLS): Fix Info Tooltip + Button Alignment on RLS Modal (@CorbinBullard)
+- [#25590](https://github.com/apache/superset/pull/25590) fix: REST API CSRF exempt list (@dpgaspar)
+- [#25147](https://github.com/apache/superset/pull/25147) fix: Apply normalization to all dttm columns (@kgabryje)
+- [#25516](https://github.com/apache/superset/pull/25516) fix: tags permissions error message (@Khrol)
+- [#25519](https://github.com/apache/superset/pull/25519) fix: Expand error detail on screencapture (@justinpark)
+- [#25490](https://github.com/apache/superset/pull/25490) fix(sqllab): Broken query containing 'children' (@justinpark)
+- [#25390](https://github.com/apache/superset/pull/25390) fix: Unable to sync columns when database or dataset name contains `+` (@mapledan)
 - [#25494](https://github.com/apache/superset/pull/25494) fix: Address Mypy issue which is causing CI to fail (@john-bodley)
 - [#25469](https://github.com/apache/superset/pull/25469) fix(sqllab): error with lazy_gettext for tab titles (@nytai)
 - [#25468](https://github.com/apache/superset/pull/25468) fix: Styles not loading because of faulty CSP setting (@kgabryje)
@@ -58,6 +70,7 @@ under the License.
 - [#25424](https://github.com/apache/superset/pull/25424) fix: Rename on_delete parameter to ondelete (@john-bodley)
 - [#25398](https://github.com/apache/superset/pull/25398) fix(sqllab): invalid persisted tab state (#25308) (@justinpark)
 - [#25399](https://github.com/apache/superset/pull/25399) fix: Workaround for Cypress ECONNRESET error (@michael-s-molina)
+- [#25318](https://github.com/apache/superset/pull/25318) fix: datetime with timezone excel export (@betodealmeida)
 - [#25349](https://github.com/apache/superset/pull/25349) fix: DashboardRoles cascade operation (@michael-s-molina)
 - [#25239](https://github.com/apache/superset/pull/25239) fix: Improve the reliability of alerts & reports (@jfrag1)
 - [#25229](https://github.com/apache/superset/pull/25229) fix: Use RLS clause instead of ID for cache key (@jfrag1)
