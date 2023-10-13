@@ -129,7 +129,7 @@ describe('SavedQueryPreviewModal', () => {
 
   it('handle open in sql lab', async () => {
     act(() => {
-      wrapper.find('[data-test="open-in-sql-lab"]').first().props().onClick();
+      wrapper.find('[data-test="open-in-sql-lab"]').first().props().onClick({});
     });
     expect(mockedProps.openInSqlLab).toHaveBeenCalled();
     expect(mockedProps.openInSqlLab.mock.calls[0][0]).toEqual(1);
