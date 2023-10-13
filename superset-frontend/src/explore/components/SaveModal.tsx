@@ -167,7 +167,6 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     }
 
     searchParams.set('slice_id', chart.id.toString());
-    console.log(searchParams);
     return searchParams;
   };
 
