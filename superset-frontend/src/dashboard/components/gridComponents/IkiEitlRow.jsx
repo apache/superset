@@ -126,7 +126,7 @@ class IkiEitlRow extends React.PureComponent {
       dataType: 'object',
     };
     const crossBrowserInfoString = JSON.stringify(crossWindowMessage);
-    window.parent.postMessage(crossBrowserInfoString);
+    window.top?.location.href.postMessage(crossBrowserInfoString);
 
     this.handleIncomingWindowMsg();
   }
