@@ -21,18 +21,17 @@ import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { bindActionCreators } from 'redux';
 
-import { shallow, render } from 'enzyme';
+import { shallow } from 'enzyme';
 import { Radio } from 'src/components/Radio';
 import Button from 'src/components/Button';
 import fetchMock from 'fetch-mock';
-import { createMemoryHistory } from 'history';
 
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import SaveModal, {
   PureSaveModal,
   StyledModal,
 } from 'src/explore/components/SaveModal';
-import { BrowserRouter, Router } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
 
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
@@ -107,7 +106,7 @@ const fetchDashboardsEndpoint = `glob:*/dashboardasync/api/read?_flt_0_owners=${
 const fetchChartEndpoint = `glob:*/api/v1/chart/${1}*`;
 
 beforeAll(() => {
-  fetchMock.get(fetchDashboardsEndpoint, { results: { dashboards: {} } });
+  fetchMock.get(fetchDashboardsEndpoint, mockDashboardData);
   fetchMock.get(fetchChartEndpoint, { id: 1, dashboards: [1] });
 });
 
