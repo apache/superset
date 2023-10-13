@@ -160,7 +160,6 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
   }
 
   handleRedirect = (windowLocationSearch: string, chart: any) => {
-    console.log(windowLocationSearch);
     const searchParams = new URLSearchParams(windowLocationSearch);
     searchParams.set('save_action', this.state.action);
     if (this.state.action !== 'overwrite') {
