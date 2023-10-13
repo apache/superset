@@ -18,6 +18,7 @@
  */
 import {
   CategoricalColorNamespace,
+  CurrencyFormatter,
   DataRecord,
   ensureIsArray,
   GenericDataType,
@@ -50,12 +51,12 @@ import {
 function formatTooltip({
   theme,
   params,
-  numberFormatter,
+  defaultFormatter,
   tooltipFormatter,
 }: {
   theme: SupersetTheme;
   params: ICallbackDataParams[];
-  numberFormatter: NumberFormatter;
+  defaultFormatter: NumberFormatter | CurrencyFormatter;
   tooltipFormatter: TimeFormatter | StringConstructor;
 }) {
   const [, increaseSeries, decreaseSeries, totalSeries] = params;
@@ -98,13 +99,19 @@ function formatTooltip({
   `;
 
   if (isTotal) {
-    return createRow(series.seriesName!, numberFormatter(series.data.totalSum));
+    return createRow(
+      series.seriesName!,
+      defaultFormatter(series.data.totalSum),
+    );
   }
 
   return `
     <div>${tooltipFormatter(series.data.value?.[0])}</div>
-    ${createRow(series.seriesName!, numberFormatter(series.data.originalValue))}
-    ${createRow(TOTAL_MARK, numberFormatter(series.data.totalSum))}
+    ${createRow(
+      series.seriesName!,
+      defaultFormatter(series.data.originalValue),
+    )}
+    ${createRow(TOTAL_MARK, defaultFormatter(series.data.totalSum))}
 `;
 }
 
@@ -187,6 +194,7 @@ export default function transformProps(
   const { setDataMask = () => {}, onContextMenu } = hooks;
   const {
     colorScheme,
+    currencyFormat,
     groupby,
     metric = '',
     xAxis,
@@ -200,11 +208,14 @@ export default function transformProps(
     sliceId,
   } = formData;
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
-  const numberFormatter = getNumberFormatter(yAxisFormat);
-  const formatter = (params: ICallbackDataParams) => {
+  const defaultFormatter = currencyFormat?.symbol
+    ? new CurrencyFormatter({ d3Format: yAxisFormat, currency: currencyFormat })
+    : getNumberFormatter(yAxisFormat);
+
+  const seriesformatter = (params: ICallbackDataParams) => {
     const { data } = params;
     const { originalValue } = data;
-    return numberFormatter(originalValue as number);
+    return defaultFormatter(originalValue as number);
   };
   const groupbyArray = ensureIsArray(groupby);
   const breakdownColumn = groupbyArray.length ? groupbyArray[0] : undefined;
@@ -367,7 +378,7 @@ export default function transformProps(
       label: {
         show: showValue,
         position: 'top',
-        formatter,
+        formatter: seriesformatter,
       },
       itemStyle: {
         color: colorFn(LEGEND.INCREASE, sliceId),
@@ -381,7 +392,7 @@ export default function transformProps(
       label: {
         show: showValue,
         position: 'bottom',
-        formatter,
+        formatter: seriesformatter,
       },
       itemStyle: {
         color: colorFn(LEGEND.DECREASE, sliceId),
@@ -395,7 +406,7 @@ export default function transformProps(
       label: {
         show: showValue,
         position: 'top',
-        formatter,
+        formatter: seriesformatter,
       },
       itemStyle: {
         color: colorFn(LEGEND.TOTAL, sliceId),
@@ -433,7 +444,7 @@ export default function transformProps(
       },
       nameLocation: 'middle',
       name: yAxisLabel,
-      axisLabel: { formatter: numberFormatter },
+      axisLabel: { formatter: defaultFormatter },
     },
     tooltip: {
       ...getDefaultTooltip(refs),
@@ -444,7 +455,7 @@ export default function transformProps(
         formatTooltip({
           theme,
           params,
-          numberFormatter,
+          defaultFormatter,
           tooltipFormatter,
         }),
     },

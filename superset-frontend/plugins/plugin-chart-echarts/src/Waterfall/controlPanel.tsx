@@ -114,6 +114,7 @@ const config: ControlPanelConfig = {
           },
         ],
         ['y_axis_format'],
+        ['currency_format'],
       ],
     },
   ],
