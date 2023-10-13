@@ -33,6 +33,7 @@ import {
   createFetchDistinct,
   createErrorHandler,
 } from 'src/views/CRUD/utils';
+import { useSelector } from 'react-redux';
 import Popover from 'src/components/Popover';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
@@ -55,8 +56,12 @@ import copyTextToClipboard from 'src/utils/copy';
 import Tag from 'src/types/TagType';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import Icons from 'src/components/Icons';
-import { BootstrapUser } from 'src/types/bootstrapTypes';
+import {
+  BootstrapUser,
+  UserWithPermissionsAndRoles,
+} from 'src/types/bootstrapTypes';
 import SavedQueryPreviewModal from 'src/features/queries/SavedQueryPreviewModal';
+import { findPermission } from 'src/utils/findPermission';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -111,6 +116,10 @@ function SavedQueryList({
     t('Saved queries'),
     addDangerToast,
   );
+  const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
+    state => state.user,
+  );
+  const canReadTag = findPermission('can_read', 'Tag', roles);
   const [queryCurrentlyDeleting, setQueryCurrentlyDeleting] =
     useState<SavedQueryObject | null>(null);
   const [savedQueryCurrentlyPreviewing, setSavedQueryCurrentlyPreviewing] =
@@ -488,13 +497,7 @@ function SavedQueryList({
         ),
         paginate: true,
       },
-      {
-        Header: t('Tags'),
-        id: 'tags',
-        key: 'tags',
-        input: 'search',
-        operator: FilterOperator.savedQueryTags,
-      },
+
       {
         Header: t('Search'),
         id: 'label',
@@ -505,6 +508,16 @@ function SavedQueryList({
     ],
     [addDangerToast],
   );
+
+  if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && canReadTag) {
+    filters.push({
+      Header: t('Tags'),
+      id: 'tags',
+      key: 'tags',
+      input: 'search',
+      operator: FilterOperator.savedQueryTags,
+    });
+  }
 
   return (
     <>

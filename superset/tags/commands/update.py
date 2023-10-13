@@ -38,14 +38,12 @@ class UpdateTagCommand(UpdateMixin, BaseCommand):
     def run(self) -> Model:
         self.validate()
         if self._model:
+            self._model.name = self._properties["name"]
             TagDAO.create_tag_relationship(
                 objects_to_tag=self._properties.get("objects_to_tag", []),
                 tag=self._model,
             )
-            if description := self._properties.get("description"):
-                self._model.description = description
-            if tag_name := self._properties.get("name"):
-                self._model.name = tag_name
+            self._model.description = self._properties.get("description")
 
             db.session.add(self._model)
             db.session.commit()
