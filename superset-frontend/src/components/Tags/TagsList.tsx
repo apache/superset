@@ -21,7 +21,6 @@ import React, { useMemo, useState } from 'react';
 import { styled } from '@superset-ui/core';
 import TagType from 'src/types/TagType';
 import Tag from './Tag';
-import { Tooltip } from 'src/components/Tooltip';
 
 export type TagsListProps = {
   tags: TagType[];

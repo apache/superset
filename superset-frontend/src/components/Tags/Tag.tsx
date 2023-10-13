@@ -38,12 +38,11 @@ const Tag = ({
   onDelete = undefined,
   editable = false,
   onClick = undefined,
-  toolTipTitle = undefined,
+  toolTipTitle = name,
 }: TagType) => {
   const isLongTag = useMemo(() => name.length > 20, [name]);
 
   const handleClose = () => (index ? onDelete?.(index) : null);
-  toolTipTitle = toolTipTitle ? toolTipTitle : name;
 
   const tagElem = (
     <>
