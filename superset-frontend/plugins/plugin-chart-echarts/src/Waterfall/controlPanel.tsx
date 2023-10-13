@@ -20,7 +20,10 @@ import React from 'react';
 import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
+  D3_TIME_FORMAT_DOCS,
+  DEFAULT_TIME_FORMAT,
   formatSelectOptions,
+  sharedControls,
 } from '@superset-ui/chart-controls';
 import { showValueControl } from '../controls';
 
@@ -65,6 +68,16 @@ const config: ControlPanelConfig = {
               label: t('X Axis Label'),
               renderTrigger: true,
               default: '',
+            },
+          },
+        ],
+        [
+          {
+            name: 'x_axis_time_format',
+            config: {
+              ...sharedControls.x_axis_time_format,
+              default: DEFAULT_TIME_FORMAT,
+              description: `${D3_TIME_FORMAT_DOCS}.`,
             },
           },
         ],

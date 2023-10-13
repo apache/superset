@@ -21,8 +21,12 @@ import {
   CurrencyFormatter,
   ensureIsArray,
   getNumberFormatter,
+  getTimeFormatter,
   isSavedMetric,
   QueryFormMetric,
+  smartDateDetailedFormatter,
+  smartDateFormatter,
+  TimeFormatter,
   ValueFormatter,
 } from '@superset-ui/core';
 
@@ -51,3 +55,27 @@ export const getYAxisFormatter = (
   }
   return defaultFormatter ?? getNumberFormatter();
 };
+
+export function getTooltipTimeFormatter(
+  format?: string,
+): TimeFormatter | StringConstructor {
+  if (format === smartDateFormatter.id) {
+    return smartDateDetailedFormatter;
+  }
+  if (format) {
+    return getTimeFormatter(format);
+  }
+  return String;
+}
+
+export function getXAxisFormatter(
+  format?: string,
+): TimeFormatter | StringConstructor | undefined {
+  if (format === smartDateFormatter.id || !format) {
+    return undefined;
+  }
+  if (format) {
+    return getTimeFormatter(format);
+  }
+  return String;
+}

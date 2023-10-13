@@ -43,16 +43,20 @@ export type ISeriesData = {
   totalSum?: number;
 } & BarDataItemOption;
 
-export type ICallbackDataParams = CallbackDataParams & { data: ISeriesData };
+export type ICallbackDataParams = CallbackDataParams & {
+  axisValueLabel: string;
+  data: ISeriesData;
+};
 
 export type EchartsWaterfallFormData = QueryFormData &
   LegendFormData & {
-    xAxis: QueryFormColumn;
     metric: QueryFormMetric;
-    yAxisLabel: string;
+    xAxis: QueryFormColumn;
     xAxisLabel: string;
-    yAxisFormat: string;
+    xAxisTimeFormat?: string;
     xTicksLayout?: WaterfallFormXTicksLayout;
+    yAxisLabel: string;
+    yAxisFormat: string;
   };
 
 export const DEFAULT_FORM_DATA: Partial<EchartsWaterfallFormData> = {

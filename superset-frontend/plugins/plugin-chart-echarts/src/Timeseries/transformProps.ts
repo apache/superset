@@ -80,8 +80,6 @@ import { defaultGrid, defaultYAxis } from '../defaults';
 import {
   getBaselineSeriesForStream,
   getPadding,
-  getTooltipTimeFormatter,
-  getXAxisFormatter,
   transformEventAnnotation,
   transformFormulaAnnotation,
   transformIntervalAnnotation,
@@ -94,7 +92,11 @@ import {
   TIMEGRAIN_TO_TIMESTAMP,
 } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
-import { getYAxisFormatter } from '../utils/getYAxisFormatter';
+import {
+  getTooltipTimeFormatter,
+  getXAxisFormatter,
+  getYAxisFormatter,
+} from '../utils/formatters';
 
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
