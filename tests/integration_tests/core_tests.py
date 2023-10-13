@@ -49,7 +49,6 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
-from superset.sqllab.utils import bootstrap_sqllab_data
 from superset.utils import core as utils
 from superset.utils.core import backend
 from superset.utils.database import get_example_database
@@ -956,7 +955,6 @@ class TestCore(SupersetTestCase):
         dash_id = db.session.query(Dashboard.id).first()[0]
         tbl_id = self.table_ids.get("wb_health_population")
         urls = [
-            "/superset/sqllab",
             "/superset/welcome",
             f"/superset/dashboard/{dash_id}/",
             "/superset/profile/",
@@ -1159,6 +1157,25 @@ class TestCore(SupersetTestCase):
     def test_redirect_new_profile(self):
         self.login(username="admin")
         resp = self.client.get("/superset/profile/")
+        assert resp.status_code == 302
+
+    def test_redirect_new_sqllab(self):
+        self.login(username="admin")
+        resp = self.client.get(
+            "/superset/sqllab?savedQueryId=1&testParams=2",
+            follow_redirects=True,
+        )
+        assert resp.request.path == "/sqllab/"
+        assert (
+            resp.request.query_string.decode("utf-8") == "savedQueryId=1&testParams=2"
+        )
+
+        resp = self.client.post("/superset/sqllab/")
+        assert resp.status_code == 302
+
+    def test_redirect_new_sqllab_history(self):
+        self.login(username="admin")
+        resp = self.client.get("/superset/sqllab/history/")
         assert resp.status_code == 302
 
 

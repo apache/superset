@@ -18,8 +18,9 @@
  */
 import React from 'react';
 import { isObject } from 'lodash';
-import { t, SupersetClient } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import Button from 'src/components/Button';
+import { useHistory } from 'react-router-dom';
 
 interface SimpleDataSource {
   id: string;
@@ -42,12 +43,18 @@ const ViewQueryModalFooter: React.FC<ViewQueryModalFooterProps> = (props: {
   changeDatasource: () => void;
   datasource: SimpleDataSource;
 }) => {
+  const history = useHistory();
   const viewInSQLLab = (id: string, type: string, sql: string) => {
     const payload = {
       datasourceKey: `${id}__${type}`,
       sql,
     };
-    SupersetClient.postForm('/superset/sqllab/', payload);
+    history.push({
+      pathname: '/sqllab',
+      state: {
+        requestedQuery: payload,
+      },
+    });
   };
 
   const openSQL = () => {

@@ -25,6 +25,7 @@ import {
   t,
 } from '@superset-ui/core';
 import React, { useState, useMemo, useCallback } from 'react';
+import { Link, useHistory } from 'react-router-dom';
 import rison from 'rison';
 import moment from 'moment';
 import {
@@ -127,6 +128,7 @@ function SavedQueryList({
     sshTunnelPrivateKeyPasswordFields,
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
+  const history = useHistory();
 
   const openSavedQueryImportModal = () => {
     showImportModal(true);
@@ -147,10 +149,6 @@ function SavedQueryList({
   const canDelete = hasPerm('can_write');
   const canExport =
     hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
-
-  const openNewQuery = () => {
-    window.open(`${window.location.origin}/superset/sqllab?new=true`);
-  };
 
   const handleSavedQueryPreview = useCallback(
     (id: number) => {
@@ -187,11 +185,10 @@ function SavedQueryList({
 
   subMenuButtons.push({
     name: (
-      <>
+      <Link to="/sqllab?new=true">
         <i className="fa fa-plus" /> {t('Query')}
-      </>
+      </Link>
     ),
-    onClick: openNewQuery,
     buttonStyle: 'primary',
   });
 
@@ -217,15 +214,13 @@ function SavedQueryList({
 
   // Action methods
   const openInSqlLab = (id: number) => {
-    window.open(`${window.location.origin}/superset/sqllab?savedQueryId=${id}`);
+    history.push(`/sqllab?savedQueryId=${id}`);
   };
 
   const copyQueryLink = useCallback(
     (id: number) => {
       copyTextToClipboard(() =>
-        Promise.resolve(
-          `${window.location.origin}/superset/sqllab?savedQueryId=${id}`,
-        ),
+        Promise.resolve(`${window.location.origin}/sqllab?savedQueryId=${id}`),
       )
         .then(() => {
           addSuccessToast(t('Link Copied!'));

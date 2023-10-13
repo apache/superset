@@ -211,7 +211,6 @@ const config = {
     menu: addPreamble('src/views/menu.tsx'),
     spa: addPreamble('/src/views/index.tsx'),
     embedded: addPreamble('/src/embedded/index.tsx'),
-    sqllab: addPreamble('/src/SqlLab/index.tsx'),
   },
   output,
   stats: 'minimal',

@@ -117,9 +117,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const labelFormatter = useMemo(
     () =>
       getDataRecordFormatter({
-        timeFormatter: finestTemporalGrainFormatter(data.map(el => el.col)),
+        timeFormatter: finestTemporalGrainFormatter(data.map(el => el[col])),
       }),
-    [data],
+    [data, col],
   );
 
   const updateDataMask = useCallback(

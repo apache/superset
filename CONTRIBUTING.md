@@ -66,7 +66,7 @@ little bit helps, and credit will always be given.
       - [Build assets](#build-assets)
       - [Webpack dev server](#webpack-dev-server)
       - [Other npm commands](#other-npm-commands)
-      - [Docker (docker-compose)](#docker-docker-compose)
+      - [Docker (docker compose)](#docker-docker-compose)
       - [Updating NPM packages](#updating-npm-packages)
       - [Feature flags](#feature-flags)
   - [Git Hooks](#git-hooks)
@@ -652,7 +652,7 @@ Alternatively, there are other NPM commands you may find useful:
 1. `npm run build-dev`: build assets in development mode.
 2. `npm run dev`: built dev assets in watch mode, will automatically rebuild when a file changes
 
-#### Docker (docker-compose)
+#### Docker (docker compose)
 
 See docs [here](docker/README.md)
 
@@ -899,17 +899,17 @@ CYPRESS_BASE_URL=<your url> npm run cypress open
 
 See [`superset-frontend/cypress_build.sh`](https://github.com/apache/superset/blob/master/superset-frontend/cypress_build.sh).
 
-As an alternative you can use docker-compose environment for testing:
+As an alternative you can use docker compose environment for testing:
 
 Make sure you have added below line to your /etc/hosts file:
 `127.0.0.1 db`
 
 If you already have launched Docker environment please use the following command to assure a fresh database instance:
-`docker-compose down -v`
+`docker compose down -v`
 
 Launch environment:
 
-`CYPRESS_CONFIG=true docker-compose up`
+`CYPRESS_CONFIG=true docker compose up`
 
 It will serve backend and frontend on port 8088.
 
@@ -976,7 +976,7 @@ superset:
 Start Superset as usual
 
 ```bash
-docker-compose up
+docker compose up
 ```
 
 Install the required libraries and packages to the docker container

@@ -137,53 +137,57 @@ export default function getInitialState({
    * hasn't used SQL Lab after it has been turned on, the state will be stored
    * in the browser's local storage.
    */
-  const localStorageData = localStorage.getItem('redux');
-  const sqlLabCacheData = localStorageData
-    ? (JSON.parse(localStorageData) as Pick<SqlLabRootState, 'sqlLab'>)
-    : undefined;
-  if (localStorageData && sqlLabCacheData?.sqlLab) {
-    const { sqlLab } = sqlLabCacheData;
+  try {
+    const localStorageData = localStorage.getItem('redux');
+    const sqlLabCacheData = localStorageData
+      ? (JSON.parse(localStorageData) as Pick<SqlLabRootState, 'sqlLab'>)
+      : undefined;
+    if (localStorageData && sqlLabCacheData?.sqlLab) {
+      const { sqlLab } = sqlLabCacheData;
 
-    if (sqlLab.queryEditors.length === 0) {
-      // migration was successful
-      localStorage.removeItem('redux');
-    } else {
-      unsavedQueryEditor = sqlLab.unsavedQueryEditor || unsavedQueryEditor;
-      // add query editors and tables to state with a special flag so they can
-      // be migrated if the `SQLLAB_BACKEND_PERSISTENCE` feature flag is on
-      sqlLab.queryEditors.forEach(qe => {
-        queryEditors = {
-          ...queryEditors,
-          [qe.id]: {
-            ...queryEditors[qe.id],
-            ...qe,
-            name: qe.title || qe.name,
-            ...(unsavedQueryEditor.id === qe.id && unsavedQueryEditor),
-            inLocalStorage: true,
-            loaded: true,
-          },
-        };
-      });
-      const expandedTables = new Set();
-      tables = sqlLab.tables.reduce((merged, table) => {
-        const expanded = !expandedTables.has(table.queryEditorId);
-        if (expanded) {
-          expandedTables.add(table.queryEditorId);
-        }
-        return {
-          ...merged,
-          [table.id]: {
-            ...tables[table.id],
-            ...table,
-            expanded,
-          },
-        };
-      }, tables);
-      Object.values(sqlLab.queries).forEach(query => {
-        queries[query.id] = { ...query, inLocalStorage: true };
-      });
-      tabHistory.push(...sqlLab.tabHistory);
+      if (sqlLab.queryEditors.length === 0) {
+        // migration was successful
+        localStorage.removeItem('redux');
+      } else {
+        unsavedQueryEditor = sqlLab.unsavedQueryEditor || unsavedQueryEditor;
+        // add query editors and tables to state with a special flag so they can
+        // be migrated if the `SQLLAB_BACKEND_PERSISTENCE` feature flag is on
+        sqlLab.queryEditors.forEach(qe => {
+          queryEditors = {
+            ...queryEditors,
+            [qe.id]: {
+              ...queryEditors[qe.id],
+              ...qe,
+              name: qe.title || qe.name,
+              ...(unsavedQueryEditor.id === qe.id && unsavedQueryEditor),
+              inLocalStorage: true,
+              loaded: true,
+            },
+          };
+        });
+        const expandedTables = new Set();
+        tables = sqlLab.tables.reduce((merged, table) => {
+          const expanded = !expandedTables.has(table.queryEditorId);
+          if (expanded) {
+            expandedTables.add(table.queryEditorId);
+          }
+          return {
+            ...merged,
+            [table.id]: {
+              ...tables[table.id],
+              ...table,
+              expanded,
+            },
+          };
+        }, tables);
+        Object.values(sqlLab.queries).forEach(query => {
+          queries[query.id] = { ...query, inLocalStorage: true };
+        });
+        tabHistory.push(...sqlLab.tabHistory);
+      }
     }
+  } catch (error) {
+    // continue regardless of error
   }
 
   return {
