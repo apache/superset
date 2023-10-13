@@ -251,7 +251,6 @@ test('make sure slice_id in the URLSearchParams before the redirect', () => {
   };
 
   const saveModal = new PureSaveModal(myProps);
-  saveModal.setState = jest.fn();
   const result = saveModal.handleRedirect(
     'https://example.com/?name=John&age=30',
     { id: 1 },
