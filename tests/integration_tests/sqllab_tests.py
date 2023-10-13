@@ -515,6 +515,13 @@ class TestSqlLab(SupersetTestCase):
         assert data["status"] == "success"
 
         data = self.run_sql(
+            "SELECT * FROM birth_names WHERE state = '{{ state }}' -- blabblah {{ extra1 }} {{fake.fn()}}\nLIMIT 10",
+            "3",
+            template_params=json.dumps({"state": "CA"}),
+        )
+        assert data["status"] == "success"
+
+        data = self.run_sql(
             "SELECT * FROM birth_names WHERE state = '{{ stat }}' LIMIT 10",
             "2",
             template_params=json.dumps({"state": "CA"}),
