@@ -440,7 +440,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         (config.showCellBars === undefined
           ? showCellBars
           : config.showCellBars) &&
-        (isMetric || isRawRecords || key[0] == '%') &&
+        (isMetric || isRawRecords || key[0] === '%') &&
         getValueRange(key, alignPositiveNegative);
 
       let className = '';
