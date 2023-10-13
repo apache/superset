@@ -138,7 +138,9 @@ Want to add support for your datastore or data engine? Read more [here](https://
 - Ask and answer questions on [StackOverflow](https://stackoverflow.com/questions/tagged/apache-superset) using the **apache-superset** tag
 - [Join our community's Slack](http://bit.ly/join-superset-slack)
   and please read our [Slack Community Guidelines](https://github.com/apache/superset/blob/master/CODE_OF_CONDUCT.md#slack-community-guidelines)
-- [Join our dev@superset.apache.org Mailing list](https://lists.apache.org/list.html?dev@superset.apache.org)
+- [Join our dev@superset.apache.org Mailing list](https://lists.apache.org/list.html?dev@superset.apache.org). To join, simply send an email to [dev-subscribe@superset.apache.org](mailto:dev-subscribe@superset.apache.org)
+- If you want to help troubleshoot GitHub Issues involving the numerous database drivers that Superset supports, please consider adding your name and the databases you have access to on the [Superset Database Familiarity Rolodex](https://docs.google.com/spreadsheets/d/1U1qxiLvOX0kBTUGME1AHHi6Ywel6ECF8xk_Qy-V9R8c/edit#gid=0)
+- Join Superset's Town Hall and [Operational Model](https://preset.io/blog/the-superset-operational-model-wants-you/) recurring meetings.  Meeting info is available on the [Superset Community Calendar](https://superset.apache.org/community)
 
 ## Contributor Guide
 
@@ -148,6 +150,12 @@ to find resources around contributing along with a detailed guide on
 how to set up a development environment.
 
 ## Resources
+
+- [Superset "In the Wild"](RESOURCES/INTHEWILD.md) - open a PR to add your org to the list!
+- [Feature Flags](RESOURCES/FEATURE_FLAGS.md) - the status of Superset's Feature Flags.
+- [Standard Roles](RESOURCES/STANDARD_ROLES.md) - How RBAC permissions map to roles.
+- [Superset Wiki](https://github.com/apache/superset/wiki) - Tons of additional community resources: best practices, community content and other information.
+- [Superset SIPs](https://github.com/orgs/apache/projects/170) - The status of Superset's SIPs (Superset Improvment Proposals) for both consensus and implementation status.
 
 Superset 2.0!
 - [Superset 2.0 Meetup](https://preset.io/events/superset-2-0-meetup/)
