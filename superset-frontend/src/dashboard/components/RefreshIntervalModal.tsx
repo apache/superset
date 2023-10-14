@@ -49,6 +49,9 @@ type RefreshIntervalModalProps = {
 
 type RefreshIntervalModalState = {
   refreshFrequency: number;
+  custom_hour: number;
+  custom_min: number;
+  custom_sec: number;
 };
 
 class RefreshIntervalModal extends React.PureComponent<
@@ -67,6 +70,9 @@ class RefreshIntervalModal extends React.PureComponent<
     this.modalRef = React.createRef() as ModalTriggerRef;
     this.state = {
       refreshFrequency: props.refreshFrequency,
+      custom_hour: 0,
+      custom_min: 0,
+      custom_sec: 0,
     };
     this.handleFrequencyChange = this.handleFrequencyChange.bind(this);
     this.onSave = this.onSave.bind(this);
@@ -127,16 +133,14 @@ class RefreshIntervalModal extends React.PureComponent<
     return refresh_options;
   }
 
-  update_data_list() {
-    const datalist_element = document.getElementById('valid_min_and_sec');
-    if (datalist_element) {
-      for (let i = 0; i < 60; i += 1) {
-        const option = document.createElement('option');
-        option.className = 'value';
-        option.innerHTML = i.toString();
-        datalist_element.appendChild(option);
-      }
-    }
+  min_sec_options(min_or_sec: string) {
+    const options = [];
+    for (let i = 0; i < 60; i += 1)
+      options.push({
+        value: i,
+        label: `${i} ${min_or_sec}`,
+      });
+    return options;
   }
 
   render() {
@@ -146,7 +150,12 @@ class RefreshIntervalModal extends React.PureComponent<
       editMode,
       refreshIntervalOptions,
     } = this.props;
-    const { refreshFrequency = 0 } = this.state;
+    const {
+      refreshFrequency = 0,
+      custom_hour = 0,
+      custom_min = 0,
+      custom_sec = 0,
+    } = this.state;
     const showRefreshWarning =
       !!refreshFrequency && !!refreshWarning && refreshFrequency < refreshLimit;
 
@@ -178,7 +187,7 @@ class RefreshIntervalModal extends React.PureComponent<
               }}
               id="custom_block_view"
             >
-              <div style={{ minWidth: 0, margin: 'auto' }}>
+              <div style={{ width: '30%', margin: 'auto' }}>
                 <FormLabel>
                   <b>{t('HOUR')}</b>
                 </FormLabel>{' '}
@@ -194,50 +203,47 @@ class RefreshIntervalModal extends React.PureComponent<
                   }}
                   id="custom_refresh_frequency_hour"
                   placeholder="Type a number"
+                  onChange={event => {
+                    this.setState({
+                      custom_hour: Number(event.target.value),
+                    });
+                  }}
+                  value={custom_hour}
                 />
               </div>
-              <div style={{ minWidth: 0, margin: 'auto' }}>
+              <div style={{ width: '30%', margin: 'auto' }}>
                 <FormLabel>
                   <b>{t('MINUTE')}</b>
                 </FormLabel>{' '}
                 <br />
-                <input
-                  type="number"
-                  min="0"
-                  style={{
-                    border: '1px solid lightgrey',
-                    borderRadius: '3px',
-                    maxWidth: '100%',
-                    padding: '5px',
+                <Select
+                  ariaLabel={t('Minutes value')}
+                  options={this.min_sec_options('minutes')}
+                  value={custom_min}
+                  onChange={(value: number) => {
+                    this.setState({
+                      custom_min: value,
+                    });
                   }}
-                  id="custom_refresh_frequency_minute"
-                  placeholder="Type a number"
-                  list="valid_min_and_sec"
+                  sortComparator={propertyComparator('value')}
                 />
               </div>
-              <div style={{ minWidth: 0, margin: 'auto' }}>
+              <div style={{ width: '30%', margin: 'auto' }}>
                 <FormLabel>
                   <b>{t('SECOND')}</b>
                 </FormLabel>{' '}
                 <br />
-                <input
-                  type="number"
-                  min="0"
-                  style={{
-                    border: '1px solid lightgrey',
-                    borderRadius: '3px',
-                    maxWidth: '100%',
-                    padding: '5px',
+                <Select
+                  ariaLabel={t('Seconds value')}
+                  options={this.min_sec_options('seconds')}
+                  value={custom_sec}
+                  onChange={(value: number) => {
+                    this.setState({
+                      custom_sec: value,
+                    });
                   }}
-                  id="custom_refresh_frequency_second"
-                  placeholder="Type a number"
-                  list="valid_min_and_sec"
+                  sortComparator={propertyComparator('value')}
                 />
-                <datalist
-                  id="valid_min_and_sec"
-                  aria-label="List Minute/Seconds"
-                />
-                {this.update_data_list()}
               </div>
             </div>
             {showRefreshWarning && (
@@ -272,28 +278,13 @@ class RefreshIntervalModal extends React.PureComponent<
                   custom_block.style.visibility === 'visible'
                 ) {
                   // Get hour value
-                  const hour = document.getElementById(
-                    'custom_refresh_frequency_hour',
-                  );
-                  const hour_value = Number(
-                    (hour as HTMLInputElement).value || 0,
-                  );
+                  const hour_value = custom_hour;
 
                   // Get minutes value
-                  const minute = document.getElementById(
-                    'custom_refresh_frequency_minute',
-                  );
-                  const minute_value = Number(
-                    (minute as HTMLInputElement).value || 0,
-                  );
+                  const minute_value = custom_min;
 
                   // Get seconds value
-                  const second = document.getElementById(
-                    'custom_refresh_frequency_second',
-                  );
-                  const second_value = Number(
-                    (second as HTMLInputElement).value || 0,
-                  );
+                  const second_value = custom_sec;
 
                   if (
                     hour_value < 0 ||
@@ -307,16 +298,6 @@ class RefreshIntervalModal extends React.PureComponent<
                         'Put positive values and valid minute and second value less than 60',
                       ),
                     );
-                    if (hour) {
-                      (hour as HTMLInputElement).value = '';
-                    }
-                    if (minute) {
-                      (minute as HTMLInputElement).value = '';
-                    }
-                    if (second) {
-                      (second as HTMLInputElement).value = '';
-                    }
-                    return;
                   }
                   // Convert given input to seconds
                   const value =
