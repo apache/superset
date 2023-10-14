@@ -16,9 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Registry, makeSingleton, OverwritePolicy } from '@superset-ui/core';
+import {
+  Registry,
+  makeSingleton,
+  OverwritePolicy,
+  ErrorTypeEnum,
+  ErrorLevel,
+} from '@superset-ui/core';
 import { ErrorMessageComponent } from './types';
 
+/* Generic error to be returned when the backend returns an error response that is not
+ * SIP-41 compliant. */
+const genericSupersetError = (extra: object) => ({
+  error_type: ErrorTypeEnum.GENERIC_BACKEND_ERROR,
+  extra,
+  level: 'error' as ErrorLevel,
+  message: 'An error occurred',
+});
 class ErrorMessageComponentRegistry extends Registry<
   ErrorMessageComponent,
   ErrorMessageComponent
@@ -27,6 +41,7 @@ class ErrorMessageComponentRegistry extends Registry<
     super({
       name: 'ErrorMessageComponent',
       overwritePolicy: OverwritePolicy.ALLOW,
+      defaultValue: genericSupersetError,
     });
   }
 }
