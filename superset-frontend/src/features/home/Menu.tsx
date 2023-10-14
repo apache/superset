@@ -192,7 +192,9 @@ export function Menu({
     CHART = '/chart',
     DATASETS = '/tablemodelview',
   }
-  const [activeTabs, setActiveTabs] = useState(Array<string>);
+
+  const defaultSelection: string[] = [];
+  const [activeTabs, setActiveTabs] = useState(defaultSelection);
   const location = useLocation();
   useEffect(() => {
     const path = location.pathname;
