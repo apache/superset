@@ -95,7 +95,7 @@ setup(
         "geopy",
         "gunicorn>=21.2.0, <22.0; sys_platform != 'win32'",
         "hashids>=1.3.1, <2",
-        "holidays>=0.23, <0.24",
+        "holidays>=0.25, <0.26",
         "humanize",
         "importlib_metadata",
         "isodate",
