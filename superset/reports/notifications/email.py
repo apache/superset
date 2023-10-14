@@ -167,7 +167,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         )
 
         if self._content.csv:
-            csv_data = {__("%(name)s.csv", name=self._content.name): self._content.csv}
+            csv_data = {__("%(name)s.zip", name=self._content.name): self._content.csv}
         return EmailContent(
             body=body,
             images=images,
