@@ -12,8 +12,6 @@
     #   -r requirements/base.in
     #   -r requirements/development.in
     #   -r requirements/testing.in
-apsw==3.42.0.1
-    # via shillelagh
 cmdstanpy==1.1.0
     # via prophet
 contourpy==1.0.7
