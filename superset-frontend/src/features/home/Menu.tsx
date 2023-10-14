@@ -193,8 +193,8 @@ export function Menu({
     DATASETS = '/tablemodelview',
   }
 
-  const defaultSelection: string[] = [];
-  const [activeTabs, setActiveTabs] = useState(defaultSelection);
+  const defaultTabSelection: string[] = [];
+  const [activeTabs, setActiveTabs] = useState(defaultTabSelection);
   const location = useLocation();
   useEffect(() => {
     const path = location.pathname;
@@ -209,7 +209,7 @@ export function Menu({
         setActiveTabs(['Datasets']);
         break;
       default:
-        setActiveTabs([]);
+        setActiveTabs(defaultTabSelection);
     }
   }, [location.pathname]);
 
