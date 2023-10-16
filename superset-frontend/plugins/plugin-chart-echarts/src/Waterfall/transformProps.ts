@@ -25,10 +25,10 @@ import {
   getColumnLabel,
   getMetricLabel,
   getNumberFormatter,
+  getTimeFormatter,
   isAdhocColumn,
   NumberFormatter,
   SupersetTheme,
-  TimeFormatter,
 } from '@superset-ui/core';
 import { EChartsOption, BarSeriesOption } from 'echarts';
 import {
@@ -43,32 +43,30 @@ import { ASSIST_MARK, LEGEND, TOKEN, TOTAL_MARK } from './constants';
 import { extractGroupbyLabel, getColtypesMapping } from '../utils/series';
 import { Refs } from '../types';
 import { NULL_STRING } from '../constants';
-import {
-  getTooltipTimeFormatter,
-  getXAxisFormatter,
-} from '../utils/formatters';
 
 function formatTooltip({
   theme,
   params,
+  breakdownName,
   defaultFormatter,
-  tooltipFormatter,
+  xAxisFormatter,
 }: {
   theme: SupersetTheme;
   params: ICallbackDataParams[];
+  breakdownName?: string;
   defaultFormatter: NumberFormatter | CurrencyFormatter;
-  tooltipFormatter: TimeFormatter | StringConstructor;
+  xAxisFormatter: (value: number | string, index: number) => string;
 }) {
   const [, increaseSeries, decreaseSeries, totalSeries] = params;
   let series;
   let isTotal = false;
-  if (increaseSeries.data.value?.[1] !== TOKEN) {
+  if (increaseSeries.data.value !== TOKEN) {
     series = increaseSeries;
   }
-  if (decreaseSeries.data.value?.[1] !== TOKEN) {
+  if (decreaseSeries.data.value !== TOKEN) {
     series = decreaseSeries;
   }
-  if (totalSeries.data.value?.[1] !== TOKEN) {
+  if (totalSeries.data.value !== TOKEN) {
     series = totalSeries;
     isTotal = true;
   }
@@ -98,21 +96,18 @@ function formatTooltip({
     </div>
   `;
 
-  if (isTotal) {
-    return createRow(
-      series.seriesName!,
-      defaultFormatter(series.data.totalSum),
-    );
+  let result = '';
+  if (!isTotal || breakdownName) {
+    result = xAxisFormatter(series.name, series.dataIndex);
   }
-
-  return `
-    <div>${tooltipFormatter(series.data.value?.[0])}</div>
-    ${createRow(
+  if (!isTotal) {
+    result += createRow(
       series.seriesName!,
       defaultFormatter(series.data.originalValue),
-    )}
-    ${createRow(TOTAL_MARK, defaultFormatter(series.data.totalSum))}
-`;
+    );
+  }
+  result += createRow(TOTAL_MARK, defaultFormatter(series.data.totalSum));
+  return result;
 }
 
 function transformer({
@@ -223,20 +218,10 @@ export default function transformProps(
     ? breakdownColumn.label!
     : breakdownColumn;
   const xAxisName = isAdhocColumn(xAxis) ? xAxis.label! : xAxis;
-  const xAxisType = coltypeMapping[xAxisName];
   const metricLabel = getMetricLabel(metric);
   const columns = breakdownColumn ? [xAxis, breakdownColumn] : [xAxis];
   const columnLabels = columns.map(getColumnLabel);
   const columnsLabelMap = new Map<string, string[]>();
-
-  const tooltipFormatter =
-    xAxisType === GenericDataType.TEMPORAL
-      ? getTooltipTimeFormatter(xAxisTimeFormat)
-      : String;
-  const xAxisFormatter =
-    xAxisType === GenericDataType.TEMPORAL
-      ? getXAxisFormatter(xAxisTimeFormat)
-      : String;
 
   const transformedData = transformer({
     data,
@@ -264,15 +249,10 @@ export default function transformProps(
       return prev;
     }, 0);
 
-    const xAxisValue = (
-      breakdownName && datum[breakdownName] !== TOTAL_MARK
-        ? datum[breakdownName]
-        : datum[xAxisName]
-    ) as string;
-
     const isTotal =
       (breakdownName && datum[breakdownName] === TOTAL_MARK) ||
       datum[xAxisName] === TOTAL_MARK;
+
     const joinedName = isTotal
       ? TOTAL_MARK
       : extractGroupbyLabel({
@@ -280,6 +260,7 @@ export default function transformProps(
           groupby: columnLabels,
           coltypeMapping,
         });
+
     columnsLabelMap.set(
       joinedName,
       columnLabels.map(col => datum[col] as string),
@@ -293,29 +274,29 @@ export default function transformProps(
     }
 
     if (isTotal) {
-      increaseData.push({ value: [xAxisValue, TOKEN] });
-      decreaseData.push({ value: [xAxisValue, TOKEN] });
+      increaseData.push({ value: TOKEN });
+      decreaseData.push({ value: TOKEN });
       totalData.push({
-        value: [xAxisValue, totalSum],
+        value: totalSum,
         originalValue: totalSum,
         totalSum,
       });
     } else if (value < 0) {
-      increaseData.push({ value: [xAxisValue, TOKEN] });
+      increaseData.push({ value: TOKEN });
       decreaseData.push({
-        value: totalSum < 0 ? [xAxisValue, value] : [xAxisValue, -value],
+        value: totalSum < 0 ? value : -value,
         originalValue,
         totalSum,
       });
-      totalData.push({ value: [xAxisValue, TOKEN] });
+      totalData.push({ value: TOKEN });
     } else {
       increaseData.push({
-        value: totalSum > 0 ? [xAxisValue, value] : [xAxisValue, -value],
+        value: totalSum > 0 ? value : -value,
         originalValue,
         totalSum,
       });
-      decreaseData.push({ value: [xAxisValue, TOKEN] });
-      totalData.push({ value: [xAxisValue, TOKEN] });
+      decreaseData.push({ value: TOKEN });
+      totalData.push({ value: TOKEN });
     }
 
     const color = oppositeSigns
@@ -324,19 +305,19 @@ export default function transformProps(
         : colorFn(LEGEND.DECREASE, sliceId)
       : 'transparent';
     if (isTotal) {
-      assistData.push({ value: [xAxisValue, TOKEN] });
+      assistData.push({ value: TOKEN });
     } else if (index === 0) {
       assistData.push({
-        value: [xAxisValue, 0],
+        value: 0,
       });
     } else if (oppositeSigns || Math.abs(totalSum) > Math.abs(previousTotal)) {
       assistData.push({
-        value: [xAxisValue, previousTotal],
+        value: previousTotal,
         itemStyle: { color },
       });
     } else {
       assistData.push({
-        value: [xAxisValue, totalSum],
+        value: totalSum,
         itemStyle: { color },
       });
     }
@@ -344,11 +325,42 @@ export default function transformProps(
     previousTotal = totalSum;
   });
 
+  const xAxisColumns: string[] = [];
+  const xAxisData = transformedData.map(row => {
+    let column = xAxisName;
+    let value = row[xAxisName];
+    if (breakdownName && row[breakdownName] !== TOTAL_MARK) {
+      column = breakdownName;
+      value = row[breakdownName];
+    }
+    if (!value) {
+      value = NULL_STRING;
+    }
+    if (typeof value !== 'string' && typeof value !== 'number') {
+      value = String(value);
+    }
+    xAxisColumns.push(column);
+    return value;
+  });
+
+  const xAxisFormatter = (value: number | string, index: number) => {
+    if (value === TOTAL_MARK) {
+      return TOTAL_MARK;
+    }
+    if (coltypeMapping[xAxisColumns[index]] === GenericDataType.TEMPORAL) {
+      if (typeof value === 'string') {
+        return getTimeFormatter(xAxisTimeFormat)(Number.parseInt(value, 10));
+      }
+      return getTimeFormatter(xAxisTimeFormat)(value);
+    }
+    return String(value);
+  };
+
   let axisLabel: {
     rotate?: number;
     hideOverlap?: boolean;
     show?: boolean;
-    formatter?: TimeFormatter | StringConstructor;
+    formatter?: typeof xAxisFormatter;
   };
   if (xTicksLayout === '45°') {
     axisLabel = { rotate: -45 };
@@ -362,7 +374,7 @@ export default function transformProps(
     axisLabel = { show: true };
   }
   axisLabel.formatter = xAxisFormatter;
-  axisLabel.hideOverlap = true;
+  axisLabel.hideOverlap = false;
 
   const barSeries: BarSeriesOption[] = [
     {
@@ -428,7 +440,8 @@ export default function transformProps(
       data: [LEGEND.INCREASE, LEGEND.DECREASE, LEGEND.TOTAL],
     },
     xAxis: {
-      type: xAxisType === GenericDataType.TEMPORAL ? 'time' : 'category',
+      data: xAxisData,
+      type: 'category',
       name: xAxisLabel,
       nameTextStyle: {
         padding: [theme.gridUnit * 4, 0, 0, 0],
@@ -455,8 +468,9 @@ export default function transformProps(
         formatTooltip({
           theme,
           params,
+          breakdownName,
           defaultFormatter,
-          tooltipFormatter,
+          xAxisFormatter,
         }),
     },
     series: barSeries,
