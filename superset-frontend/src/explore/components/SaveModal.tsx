@@ -523,6 +523,5 @@ function mapStateToProps({
 
 export default withRouter(connect(mapStateToProps)(SaveModal));
 
-// todo(hughhhh): For testing
-// - need to revisit once we convert this to functional component
+// User for testing purposes need to revisit once we convert this to functional component
 export { SaveModal as PureSaveModal };
