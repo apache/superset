@@ -1600,6 +1600,10 @@ WELCOME_PAGE_LAST_TAB: (
     Literal["examples", "all"] | tuple[str, list[dict[str, Any]]]
 ) = "all"
 
+#
+ZIPPED_FILE_MAX_SIZE = 100 * 1024 * 1024  # 100MB
+ZIP_FILE_MAX_COMPRESS_RATIO = 200.0
+
 # Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.
 # 'color' can either be a hex color code, or a dot-indexed theme color (e.g. error.base)
 ENVIRONMENT_TAG_CONFIG = {
