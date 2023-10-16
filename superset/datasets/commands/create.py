@@ -31,6 +31,7 @@ from superset.datasets.commands.exceptions import (
     DatasetInvalidError,
     TableNotFoundValidationError,
 )
+from superset.exceptions import SupersetSecurityException
 from superset.extensions import db
 
 logger = logging.getLogger(__name__)
@@ -53,6 +54,9 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
             logger.warning(ex, exc_info=True)
             db.session.rollback()
             raise DatasetCreateFailedError() from ex
+        except SupersetSecurityException as ex:
+            db.session.rollback()
+            raise DatasetCreateFailedError(message=str(ex))
         return dataset
 
     def validate(self) -> None:
