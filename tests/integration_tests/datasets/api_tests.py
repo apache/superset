@@ -725,7 +725,7 @@ class TestDatasetApi(SupersetTestCase):
         self.login(username="admin")
         table_data = {
             "database": energy_usage_ds.database_id,
-            "table_name": energy_usage_ds.table_name,
+            "table_name": "energy_usage_virtual",
             "sql": "insert into energy_usage select * from energy_usage",
         }
         if schema := get_example_default_schema():
