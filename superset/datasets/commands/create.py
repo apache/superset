@@ -56,7 +56,7 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
             raise DatasetCreateFailedError() from ex
         except SupersetSecurityException as ex:
             db.session.rollback()
-            raise DatasetCreateFailedError(message=str(ex))
+            raise DatasetCreateFailedError(message=str(ex)) from ex
         return dataset
 
     def validate(self) -> None:
