@@ -84,7 +84,7 @@ const config: ControlPanelConfig = {
             name: 'label_type',
             config: {
               type: 'SelectControl',
-              label: t('Label Type'),
+              label: t('Label Contents'),
               default: labelType,
               renderTrigger: true,
               choices: [
@@ -102,6 +102,32 @@ const config: ControlPanelConfig = {
                 ],
               ],
               description: t('What should be shown on the label?'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'tooltip_label_type',
+            config: {
+              type: 'SelectControl',
+              label: t('Tooltip Contents'),
+              default: labelType,
+              renderTrigger: true,
+              choices: [
+                [EchartsFunnelLabelTypeType.Key, t('Category Name')],
+                [EchartsFunnelLabelTypeType.Value, t('Value')],
+                [EchartsFunnelLabelTypeType.Percent, t('Percentage')],
+                [EchartsFunnelLabelTypeType.KeyValue, t('Category and Value')],
+                [
+                  EchartsFunnelLabelTypeType.KeyPercent,
+                  t('Category and Percentage'),
+                ],
+                [
+                  EchartsFunnelLabelTypeType.KeyValuePercent,
+                  t('Category, Value and Percentage'),
+                ],
+              ],
+              description: t('What should be shown on the tooltip Label?'),
             },
           },
         ],
@@ -129,6 +155,18 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: showLabels,
               description: t('Whether to display the labels.'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'show_tooltip_labels',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Tooltip Labels'),
+              renderTrigger: true,
+              default: showLabels,
+              description: t('Whether to display the tooltip labels.'),
             },
           },
         ],

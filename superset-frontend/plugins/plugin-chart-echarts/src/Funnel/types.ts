@@ -34,8 +34,10 @@ export type EchartsFunnelFormData = QueryFormData &
     groupby: QueryFormData[];
     labelLine: boolean;
     labelType: EchartsFunnelLabelTypeType;
+    tooltipLabelType: EchartsFunnelLabelTypeType;
     metric?: string;
     showLabels: boolean;
+    showTooltipLabels: boolean;
     numberFormat: string;
     gap: number;
     sort: 'descending' | 'ascending' | 'none' | undefined;
