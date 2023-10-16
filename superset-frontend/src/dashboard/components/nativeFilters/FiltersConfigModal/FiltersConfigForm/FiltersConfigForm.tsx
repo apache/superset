@@ -82,7 +82,7 @@ import {
   getFormData,
   mergeExtraFormData,
 } from 'src/dashboard/components/nativeFilters/utils';
-import { NewLabel } from 'src/features/datasets/DatasetLabel';
+import { DatasetLabel } from 'src/features/datasets/DatasetLabel';
 import {
   ALLOW_DEPENDENCIES as TYPES_SUPPORT_DEPENDENCIES,
   getFiltersConfigModalTestId,
@@ -884,7 +884,7 @@ const FiltersConfigForm = (
                 initialValue={
                   datasetDetails
                     ? {
-                        label: NewLabel(datasetDetails),
+                        label: DatasetLabel(datasetDetails),
                         value: datasetDetails.id,
                       }
                     : undefined

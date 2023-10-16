@@ -41,7 +41,7 @@ import VizTypeGallery, {
 import { findPermission } from 'src/utils/findPermission';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import getBootstrapData from 'src/utils/getBootstrapData';
-import { NewLabel } from 'src/features/datasets/DatasetLabel';
+import { DatasetLabel } from 'src/features/datasets/DatasetLabel';
 
 type Database = {
   database_name: string;
@@ -293,7 +293,7 @@ export class ChartCreation extends React.PureComponent<
       }[] = response.json.result.map((item: Dataset) => ({
         id: item.id,
         value: `${item.id}__${item.datasource_type}`,
-        customLabel: NewLabel(item),
+        customLabel: DatasetLabel(item),
         label: item.table_name,
       }));
       return {

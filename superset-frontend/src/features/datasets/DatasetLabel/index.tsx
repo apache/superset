@@ -90,7 +90,7 @@ const StyledLabelDetail = styled.span`
   `}
 `;
 
-export const NewLabel = (item: Dataset | Record<string, any>) => (
+export const DatasetLabel = (item: Dataset | Record<string, any>) => (
   <Tooltip
     mouseEnterDelay={0.2}
     placement="right"
