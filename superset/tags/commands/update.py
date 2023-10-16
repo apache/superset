@@ -38,16 +38,12 @@ class UpdateTagCommand(UpdateMixin, BaseCommand):
     def run(self) -> Model:
         self.validate()
         if self._model:
-            if self._properties.get("objects_to_tag"):
-                # todo(hugh): can this manage duplication
-                TagDAO.create_tag_relationship(
-                    objects_to_tag=self._properties["objects_to_tag"],
-                    tag=self._model,
-                )
-            if description := self._properties.get("description"):
-                self._model.description = description
-            if tag_name := self._properties.get("name"):
-                self._model.name = tag_name
+            self._model.name = self._properties["name"]
+            TagDAO.create_tag_relationship(
+                objects_to_tag=self._properties.get("objects_to_tag", []),
+                tag=self._model,
+            )
+            self._model.description = self._properties.get("description")
 
             db.session.add(self._model)
             db.session.commit()
@@ -63,11 +59,8 @@ class UpdateTagCommand(UpdateMixin, BaseCommand):
 
         # Validate object_id
         if objects_to_tag := self._properties.get("objects_to_tag"):
-            if any(obj_id == 0 for obj_type, obj_id in objects_to_tag):
-                exceptions.append(TagInvalidError(" invalid object_id"))
-
             # Validate object type
-            for obj_type, obj_id in objects_to_tag:
+            for obj_type, _ in objects_to_tag:
                 object_type = to_object_type(obj_type)
                 if not object_type:
                     exceptions.append(

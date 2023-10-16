@@ -227,7 +227,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         """
         Construct a TableColumn object.
 
-        Historically a TableColumn object (from an ORM perspective) was tighly bound to
+        Historically a TableColumn object (from an ORM perspective) was tightly bound to
         a SqlaTable object, however with the introduction of the Query datasource this
         is no longer true, i.e., the SqlaTable relationship is optional.
 

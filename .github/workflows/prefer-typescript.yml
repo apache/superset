@@ -1,4 +1,4 @@
-name: Prefer Typescript
+name: Prefer TypeScript
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 jobs:
   prefer_typescript:
     if: github.ref == 'ref/heads/master' && github.event_name == 'pull_request'
-    name: Prefer Typescript
+    name: Prefer TypeScript
     runs-on: ubuntu-latest
     permissions:
       contents: read

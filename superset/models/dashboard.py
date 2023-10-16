@@ -206,7 +206,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
 
     @staticmethod
     def get_url(id_: int, slug: str | None = None) -> str:
-        # To be able to generate URL's without instanciating a Dashboard object
+        # To be able to generate URL's without instantiating a Dashboard object
         return f"/superset/dashboard/{slug or id_}/"
 
     @property

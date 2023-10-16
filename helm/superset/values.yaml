@@ -671,7 +671,7 @@ init:
         - -c
         - dockerize -wait "tcp://$DB_HOST:$DB_PORT" -timeout 120s
   # -- A Superset init script
-  # @default -- a script to create admin user and initailize roles
+  # @default -- a script to create admin user and initialize roles
   initscript: |-
     #!/bin/sh
     set -eu

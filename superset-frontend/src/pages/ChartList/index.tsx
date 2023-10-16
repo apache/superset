@@ -30,6 +30,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
 import moment from 'moment';
+import { useSelector } from 'react-redux';
 import {
   createErrorHandler,
   createFetchRelated,
@@ -71,6 +72,8 @@ import { GenericLink } from 'src/components/GenericLink/GenericLink';
 import Owner from 'src/types/Owner';
 import { loadTags } from 'src/components/Tags/utils';
 import ChartCard from 'src/features/charts/ChartCard';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { findPermission } from 'src/utils/findPermission';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -179,6 +182,10 @@ function ChartList(props: ChartListProps) {
   } = useListViewResource<Chart>('chart', t('chart'), addDangerToast);
 
   const chartIds = useMemo(() => charts.map(c => c.id), [charts]);
+  const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
+    state => state.user,
+  );
+  const canReadTag = findPermission('can_read', 'Tag', roles);
 
   const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
     'chart',
@@ -410,6 +417,27 @@ function ChartList(props: ChartListProps) {
       {
         Cell: ({
           row: {
+            original: { tags = [] },
+          },
+        }: any) => (
+          // Only show custom type tags
+          <TagsList
+            tags={tags.filter((tag: Tag) =>
+              tag.type
+                ? tag.type === 1 || tag.type === 'TagTypes.custom'
+                : true,
+            )}
+            maxTags={3}
+          />
+        ),
+        Header: t('Tags'),
+        accessor: 'tags',
+        disableSortBy: true,
+        hidden: !isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM),
+      },
+      {
+        Cell: ({
+          row: {
             original: { last_saved_by: lastSavedBy },
           },
         }: any) => <>{changedByName(lastSavedBy)}</>,
@@ -447,27 +475,6 @@ function ChartList(props: ChartListProps) {
         accessor: 'created_by',
         disableSortBy: true,
         size: 'xl',
-      },
-      {
-        Cell: ({
-          row: {
-            original: { tags = [] },
-          },
-        }: any) => (
-          // Only show custom type tags
-          <TagsList
-            tags={tags.filter((tag: Tag) =>
-              tag.type
-                ? tag.type === 1 || tag.type === 'TagTypes.custom'
-                : true,
-            )}
-            maxTags={3}
-          />
-        ),
-        Header: t('Tags'),
-        accessor: 'tags',
-        disableSortBy: true,
-        hidden: !isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM),
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -701,7 +708,7 @@ function ChartList(props: ChartListProps) {
         ],
       },
     ] as Filters;
-    if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) {
+    if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && canReadTag) {
       filters_list.push({
         Header: t('Tags'),
         key: 'tags',

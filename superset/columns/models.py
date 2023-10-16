@@ -32,7 +32,7 @@ from superset.models.helpers import (
     ImportExportMixin,
 )
 
-UNKOWN_TYPE = "UNKNOWN"
+UNKNOWN_TYPE = "UNKNOWN"
 
 
 class Column(
@@ -92,9 +92,9 @@ class Column(
     # [1] https://www.postgresql.org/docs/9.1/datatype-character.html
     name = sa.Column(sa.Text)
     # Raw type as returned and used by db engine.
-    type = sa.Column(sa.Text, default=UNKOWN_TYPE)
+    type = sa.Column(sa.Text, default=UNKNOWN_TYPE)
 
-    # Assigns column advnaced type to determine custom behavior
+    # Assigns column advanced type to determine custom behavior
     # does nothing unless feature flag ENABLE_ADVANCED_DATA_TYPES in true
     advanced_data_type = sa.Column(sa.Text)
 
