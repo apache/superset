@@ -94,7 +94,6 @@ export default function transformProps(
     queriesData,
     width,
     theme,
-    inContextMenu,
     emitCrossFilters,
     datasource,
   } = chartProps;
