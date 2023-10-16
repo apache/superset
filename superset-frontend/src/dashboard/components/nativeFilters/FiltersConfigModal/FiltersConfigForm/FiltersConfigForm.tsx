@@ -82,6 +82,7 @@ import {
   getFormData,
   mergeExtraFormData,
 } from 'src/dashboard/components/nativeFilters/utils';
+import { NewLabel } from 'src/features/datasets/DatasetLabel';
 import {
   ALLOW_DEPENDENCIES as TYPES_SUPPORT_DEPENDENCIES,
   getFiltersConfigModalTestId,
@@ -103,7 +104,6 @@ import {
 } from './utils';
 import { FILTER_SUPPORTED_TYPES, INPUT_WIDTH } from './constants';
 import DependencyList from './DependencyList';
-import { newLabel } from './DatasetLabel';
 
 const TabPane = styled(Tabs.TabPane)`
   padding: ${({ theme }) => theme.gridUnit * 4}px 0px;
@@ -884,7 +884,7 @@ const FiltersConfigForm = (
                 initialValue={
                   datasetDetails
                     ? {
-                        label: newLabel(datasetDetails),
+                        label: NewLabel(datasetDetails),
                         value: datasetDetails.id,
                       }
                     : undefined

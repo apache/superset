@@ -33,7 +33,6 @@ import { URL_PARAMS } from 'src/constants';
 import { Link, withRouter, RouteComponentProps } from 'react-router-dom';
 import Button from 'src/components/Button';
 import { AsyncSelect, Steps } from 'src/components';
-import { Tooltip } from 'src/components/Tooltip';
 import withToasts from 'src/components/MessageToasts/withToasts';
 
 import VizTypeGallery, {
@@ -42,6 +41,7 @@ import VizTypeGallery, {
 import { findPermission } from 'src/utils/findPermission';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { NewLabel } from 'src/features/datasets/DatasetLabel';
 
 type Database = {
   database_name: string;
@@ -181,59 +181,6 @@ const StyledContainer = styled.div`
   `}
 `;
 
-const TooltipContent = styled.div`
-  ${({ theme }) => `
-    .tooltip-header {
-      font-size: ${theme.typography.sizes.m}px;
-      font-weight: ${theme.typography.weights.bold};
-    }
-
-    .tooltip-description {
-      margin-top: ${theme.gridUnit * 2}px;
-      display: -webkit-box;
-      -webkit-line-clamp: 20;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-  `}
-`;
-
-const StyledLabel = styled.span`
-  ${({ theme }) => `
-    display: block;
-    left: ${theme.gridUnit * 3}px;
-    right: ${theme.gridUnit * 3}px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 1.4;
-  `}
-`;
-
-const StyledLabelDetail = styled.span`
-  ${({
-    theme: {
-      typography: { sizes, weights },
-    },
-  }) => `
-    overflow: hidden;
-    display: inline-block;
-    text-overflow: ellipsis;
-    font-size: ${sizes.s}px;
-    font-weight: ${weights.light};
-    max-width: 50%;
-  `}
-`;
-
-const StyledLabelContainer = styled.div`
-  ${({ theme }) => `
-    left: ${theme.gridUnit * 3}px;
-    right: ${theme.gridUnit * 3}px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  `}
-`;
-
 const StyledStepTitle = styled.span`
   ${({
     theme: {
@@ -270,7 +217,6 @@ export class ChartCreation extends React.PureComponent<
     this.changeDatasource = this.changeDatasource.bind(this);
     this.changeVizType = this.changeVizType.bind(this);
     this.gotoSlice = this.gotoSlice.bind(this);
-    this.newLabel = this.newLabel.bind(this);
     this.loadDatasources = this.loadDatasources.bind(this);
     this.onVizTypeDoubleClick = this.onVizTypeDoubleClick.bind(this);
   }
@@ -321,41 +267,6 @@ export class ChartCreation extends React.PureComponent<
     }
   }
 
-  newLabel(item: Dataset) {
-    return (
-      <Tooltip
-        mouseEnterDelay={1}
-        placement="right"
-        title={
-          <TooltipContent>
-            <div className="tooltip-header">{item.table_name}</div>
-            <div className="tooltip-description">
-              <div>Database: {item.database.database_name}</div>
-              <div>
-                Schema:{' '}
-                {item.schema &&
-                !['null', 'none'].includes(item.schema.toLowerCase())
-                  ? item.schema
-                  : 'Not defined'}
-              </div>
-            </div>
-          </TooltipContent>
-        }
-      >
-        <StyledLabelContainer>
-          <StyledLabel>{item.table_name}</StyledLabel>
-          <StyledLabel>
-            <StyledLabelDetail>{item.database.database_name}</StyledLabelDetail>
-            {item.schema &&
-              !['null', 'none'].includes(item.schema.toLowerCase()) && (
-                <StyledLabelDetail>&nbsp;- {item.schema}</StyledLabelDetail>
-              )}
-          </StyledLabel>
-        </StyledLabelContainer>
-      </Tooltip>
-    );
-  }
-
   loadDatasources(search: string, page: number, pageSize: number) {
     const query = rison.encode({
       columns: [
@@ -382,7 +293,7 @@ export class ChartCreation extends React.PureComponent<
       }[] = response.json.result.map((item: Dataset) => ({
         id: item.id,
         value: `${item.id}__${item.datasource_type}`,
-        customLabel: this.newLabel(item),
+        customLabel: NewLabel(item),
         label: item.table_name,
       }));
       return {
