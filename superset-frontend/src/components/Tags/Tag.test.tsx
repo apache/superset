@@ -35,22 +35,24 @@ test('should render', () => {
   expect(container).toBeInTheDocument();
 });
 
-test('should render shortname properly ', () => {
+test('should render shortname properly', () => {
   const { container } = render(<Tag {...mockedProps} />);
   expect(container).toBeInTheDocument();
-  expect(screen.getByTestId('tag')).toBeDefined();
-  expect(screen.getByTestId('tag').textContent).toBe(mockedProps.name);
+  expect(screen.getByTestId('tag')).toBeInTheDocument();
+  expect(screen.getByTestId('tag').textContent).toHaveTextContent(
+    mockedProps.name,
+  );
 });
 
-test('should render longname properly ', () => {
+test('should render longname properly', () => {
   const longNameProps = {
     ...mockedProps,
     name: 'very-long-tag-name-that-truncates',
   };
   const { container } = render(<Tag {...longNameProps} />);
   expect(container).toBeInTheDocument();
-  expect(screen.getByTestId('tag')).toBeDefined();
-  expect(screen.getByTestId('tag').textContent).toBe(
+  expect(screen.getByTestId('tag')).toBeInTheDocument();
+  expect(screen.getByTestId('tag').textContent).toHaveTextContent(
     `${longNameProps.name.slice(0, 20)}...`,
   );
 });
