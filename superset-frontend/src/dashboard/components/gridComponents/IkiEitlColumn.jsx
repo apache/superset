@@ -531,15 +531,7 @@ class IkiEitlColumn extends React.PureComponent {
                   ref={dragSourceRef}
                   className="dashboard-component-inner"
                   data-test="dashboard-component-chart-holder"
-                  style={{ height: '100%' }}
                 >
-                  {editMode && (
-                    <HoverMenu position="top">
-                      <DeleteComponentButton
-                        onDelete={this.handleDeleteComponent}
-                      />
-                    </HoverMenu>
-                  )}
                   {
                     // editMode && isEditing
                     editMode && isEditing
