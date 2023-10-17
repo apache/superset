@@ -401,14 +401,20 @@ class IkiEitlColumn extends React.PureComponent {
         const paramProjectId = iframeSrcUrl.searchParams.get('project_id')
           ? iframeSrcUrl.searchParams.get('project_id')
           : '';
+        const paramPipeline = iframeSrcUrl.searchParams.get('pipeline')
+          ? iframeSrcUrl.searchParams.get('pipeline')
+          : '';
         const paramModel = iframeSrcUrl.searchParams.get('model')
           ? iframeSrcUrl.searchParams.get('model')
           : '';
         const paramVersion = iframeSrcUrl.searchParams.get('version')
           ? iframeSrcUrl.searchParams.get('version')
           : '';
+        const paramFacets = iframeSrcUrl.searchParams.get('facets')
+          ? iframeSrcUrl.searchParams.get('facets')
+          : '';
 
-        const newIframeSrc = `${ikigaiOrigin}/widget/eitl/column?project_id=${paramProjectId}&model=${paramModel}&version=${paramVersion}`;
+        const newIframeSrc = `${ikigaiOrigin}/widget/eitl/column?project_id=${paramProjectId}&pipeline=${paramPipeline}&model=${paramModel}&version=${paramVersion}&facets=${paramFacets}`;
         iframeSrc = newIframeSrc;
       } else {
         iframeSrc = `${ikigaiOrigin}/widget/eitl/column`;
