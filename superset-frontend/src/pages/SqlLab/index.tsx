@@ -32,12 +32,12 @@ import useEffectEvent from 'src/hooks/useEffectEvent';
 import { LocationProvider } from './LocationContext';
 
 export default function SqlLab() {
-  const editorTabLastUpdatedAt = useSelector<SqlLabRootState, number>(
-    state => state.sqlLab.editorTabLastUpdatedAt || 0,
+  const lastInitializedAt = useSelector<SqlLabRootState, number>(
+    state => state.sqlLab.queriesLastUpdate || 0,
   );
   const { data, isLoading, isError, error, fulfilledTimeStamp } =
     useSqlLabInitialState();
-  const shouldInitialize = editorTabLastUpdatedAt <= (fulfilledTimeStamp || 0);
+  const shouldInitialize = lastInitializedAt <= (fulfilledTimeStamp || 0);
   const dispatch = useDispatch();
 
   const initBootstrapData = useEffectEvent(
