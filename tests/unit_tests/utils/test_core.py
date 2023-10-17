@@ -15,12 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 import os
+from dataclasses import dataclass
 from typing import Any, Optional
+from unittest.mock import MagicMock
 
 import pytest
 
+from superset.exceptions import SupersetException
 from superset.utils.core import (
     cast_to_boolean,
+    check_is_safe_zip,
     is_test,
     parse_boolean_string,
     QueryObjectFilterClause,
@@ -39,6 +43,12 @@ EXTRA_FILTER: QueryObjectFilterClause = {
     "val": "bar",
     "isExtra": True,
 }
+
+
+@dataclass
+class MockZipInfo:
+    file_size: int
+    compress_size: int
 
 
 @pytest.mark.parametrize(
@@ -171,3 +181,50 @@ def test_other_values():
     assert cast_to_boolean([]) is False
     assert cast_to_boolean({}) is False
     assert cast_to_boolean(object()) is False
+
+
+def test_check_if_safe_zip_success(app_context: None) -> None:
+    """
+    Test if ZIP files are safe
+    """
+    ZipFile = MagicMock()
+    ZipFile.infolist.return_value = [
+        MockZipInfo(file_size=1000, compress_size=10),
+        MockZipInfo(file_size=1000, compress_size=10),
+        MockZipInfo(file_size=1000, compress_size=10),
+        MockZipInfo(file_size=1000, compress_size=10),
+        MockZipInfo(file_size=1000, compress_size=10),
+    ]
+    check_is_safe_zip(ZipFile)
+
+
+def test_check_if_safe_zip_high_rate(app_context: None) -> None:
+    """
+    Test if ZIP files is not highly compressed
+    """
+    ZipFile = MagicMock()
+    ZipFile.infolist.return_value = [
+        MockZipInfo(file_size=1000, compress_size=1),
+        MockZipInfo(file_size=1000, compress_size=1),
+        MockZipInfo(file_size=1000, compress_size=1),
+        MockZipInfo(file_size=1000, compress_size=1),
+        MockZipInfo(file_size=1000, compress_size=1),
+    ]
+    with pytest.raises(SupersetException):
+        check_is_safe_zip(ZipFile)
+
+
+def test_check_if_safe_zip_hidden_bomb(app_context: None) -> None:
+    """
+    Test if ZIP file does not contain a big file highly compressed
+    """
+    ZipFile = MagicMock()
+    ZipFile.infolist.return_value = [
+        MockZipInfo(file_size=1000, compress_size=100),
+        MockZipInfo(file_size=1000, compress_size=100),
+        MockZipInfo(file_size=1000, compress_size=100),
+        MockZipInfo(file_size=1000, compress_size=100),
+        MockZipInfo(file_size=1000 * (1024 * 1024), compress_size=100),
+    ]
+    with pytest.raises(SupersetException):
+        check_is_safe_zip(ZipFile)
