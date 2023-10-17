@@ -20,6 +20,7 @@ import React from 'react';
 import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
+  ControlSubSectionHeader,
   D3_TIME_FORMAT_DOCS,
   DEFAULT_TIME_FORMAT,
   formatSelectOptions,
@@ -45,7 +46,6 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
-        ['color_scheme'],
         [showValueControl],
         [
           {
@@ -59,7 +59,41 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<div className="section-header">{t('X Axis')}</div>],
+        [
+          <ControlSubSectionHeader>
+            {t('Series colors')}
+          </ControlSubSectionHeader>,
+        ],
+        [
+          {
+            name: 'increase_color',
+            config: {
+              label: t('Increase'),
+              type: 'ColorPickerControl',
+              default: { r: 90, g: 193, b: 137, a: 1 },
+              renderTrigger: true,
+            },
+          },
+          {
+            name: 'decrease_color',
+            config: {
+              label: t('Decrease'),
+              type: 'ColorPickerControl',
+              default: { r: 224, g: 67, b: 85, a: 1 },
+              renderTrigger: true,
+            },
+          },
+          {
+            name: 'total_color',
+            config: {
+              label: t('Total'),
+              type: 'ColorPickerControl',
+              default: { r: 102, g: 102, b: 102, a: 1 },
+              renderTrigger: true,
+            },
+          },
+        ],
+        [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         [
           {
             name: 'x_axis_label',
@@ -101,7 +135,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<div className="section-header">{t('Y Axis')}</div>],
+        [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
         [
           {
             name: 'y_axis_label',

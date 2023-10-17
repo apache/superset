@@ -17,7 +17,6 @@
  * under the License.
  */
 import {
-  CategoricalColorNamespace,
   CurrencyFormatter,
   DataRecord,
   ensureIsArray,
@@ -28,6 +27,7 @@ import {
   getTimeFormatter,
   isAdhocColumn,
   NumberFormatter,
+  rgbToHex,
   SupersetTheme,
 } from '@superset-ui/core';
 import { EChartsOption, BarSeriesOption } from 'echarts';
@@ -57,19 +57,16 @@ function formatTooltip({
   defaultFormatter: NumberFormatter | CurrencyFormatter;
   xAxisFormatter: (value: number | string, index: number) => string;
 }) {
-  const [, increaseSeries, decreaseSeries, totalSeries] = params;
-  let series;
-  let isTotal = false;
-  if (increaseSeries.data.value !== TOKEN) {
-    series = increaseSeries;
+  const series = params.find(
+    param => param.seriesName !== ASSIST_MARK && param.data.value !== TOKEN,
+  );
+
+  // We may have no matching series depending on the legend state
+  if (!series) {
+    return '';
   }
-  if (decreaseSeries.data.value !== TOKEN) {
-    series = decreaseSeries;
-  }
-  if (totalSeries.data.value !== TOKEN) {
-    series = totalSeries;
-    isTotal = true;
-  }
+
+  const isTotal = series?.seriesName === LEGEND.TOTAL;
   if (!series) {
     return NULL_STRING;
   }
@@ -177,6 +174,7 @@ export default function transformProps(
     width,
     height,
     formData,
+    legendState,
     queriesData,
     hooks,
     filterState,
@@ -186,11 +184,13 @@ export default function transformProps(
   const refs: Refs = {};
   const { data = [] } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
-  const { setDataMask = () => {}, onContextMenu } = hooks;
+  const { setDataMask = () => {}, onContextMenu, onLegendStateChanged } = hooks;
   const {
-    colorScheme,
     currencyFormat,
     groupby,
+    increaseColor,
+    decreaseColor,
+    totalColor,
     metric = '',
     xAxis,
     xTicksLayout,
@@ -200,9 +200,7 @@ export default function transformProps(
     xAxisLabel,
     yAxisFormat,
     showValue,
-    sliceId,
   } = formData;
-  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const defaultFormatter = currencyFormat?.symbol
     ? new CurrencyFormatter({ d3Format: yAxisFormat, currency: currencyFormat })
     : getNumberFormatter(yAxisFormat);
@@ -301,9 +299,17 @@ export default function transformProps(
 
     const color = oppositeSigns
       ? value > 0
-        ? colorFn(LEGEND.INCREASE, sliceId)
-        : colorFn(LEGEND.DECREASE, sliceId)
+        ? rgbToHex(increaseColor.r, increaseColor.g, increaseColor.b)
+        : rgbToHex(decreaseColor.r, decreaseColor.g, decreaseColor.b)
       : 'transparent';
+
+    let opacity = 1;
+    if (legendState?.[LEGEND.INCREASE] === false && value > 0) {
+      opacity = 0;
+    } else if (legendState?.[LEGEND.DECREASE] === false && value < 0) {
+      opacity = 0;
+    }
+
     if (isTotal) {
       assistData.push({ value: TOKEN });
     } else if (index === 0) {
@@ -313,12 +319,12 @@ export default function transformProps(
     } else if (oppositeSigns || Math.abs(totalSum) > Math.abs(previousTotal)) {
       assistData.push({
         value: previousTotal,
-        itemStyle: { color },
+        itemStyle: { color, opacity },
       });
     } else {
       assistData.push({
         value: totalSum,
-        itemStyle: { color },
+        itemStyle: { color, opacity },
       });
     }
 
@@ -376,52 +382,56 @@ export default function transformProps(
   axisLabel.formatter = xAxisFormatter;
   axisLabel.hideOverlap = false;
 
+  const seriesProps: Pick<BarSeriesOption, 'type' | 'stack' | 'emphasis'> = {
+    type: 'bar',
+    stack: 'stack',
+    emphasis: {
+      disabled: true,
+    },
+  };
+
   const barSeries: BarSeriesOption[] = [
     {
+      ...seriesProps,
       name: ASSIST_MARK,
-      type: 'bar',
-      stack: 'stack',
       data: assistData,
     },
     {
+      ...seriesProps,
       name: LEGEND.INCREASE,
-      type: 'bar',
-      stack: 'stack',
       label: {
         show: showValue,
         position: 'top',
         formatter: seriesformatter,
       },
       itemStyle: {
-        color: colorFn(LEGEND.INCREASE, sliceId),
+        color: rgbToHex(increaseColor.r, increaseColor.g, increaseColor.b),
       },
       data: increaseData,
     },
     {
+      ...seriesProps,
       name: LEGEND.DECREASE,
-      type: 'bar',
-      stack: 'stack',
       label: {
         show: showValue,
         position: 'bottom',
         formatter: seriesformatter,
       },
       itemStyle: {
-        color: colorFn(LEGEND.DECREASE, sliceId),
+        color: rgbToHex(decreaseColor.r, decreaseColor.g, decreaseColor.b),
       },
       data: decreaseData,
     },
     {
+      ...seriesProps,
       name: LEGEND.TOTAL,
-      type: 'bar',
-      stack: 'stack',
       label: {
         show: showValue,
         position: 'top',
         formatter: seriesformatter,
       },
       itemStyle: {
-        color: colorFn(LEGEND.TOTAL, sliceId),
+        color: rgbToHex(totalColor.r, totalColor.g, totalColor.b),
       },
       data: totalData,
     },
@@ -437,6 +447,7 @@ export default function transformProps(
     },
     legend: {
       show: showLegend,
+      selected: legendState,
       data: [LEGEND.INCREASE, LEGEND.DECREASE, LEGEND.TOTAL],
     },
     xAxis: {
@@ -487,5 +498,6 @@ export default function transformProps(
     groupby: columns,
     selectedValues: filterState.selectedValues || [],
     onContextMenu,
+    onLegendStateChanged,
   };
 }

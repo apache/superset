@@ -20,6 +20,7 @@ import React, { useCallback } from 'react';
 import Echart from '../components/Echart';
 import { allEventHandlers } from '../utils/eventHandlers';
 import { WaterfallChartTransformedProps } from './types';
+import { EventHandlers } from '../types';
 
 export default function EchartsWaterfall(
   props: WaterfallChartTransformedProps,
@@ -33,6 +34,7 @@ export default function EchartsWaterfall(
     groupby,
     refs,
     selectedValues,
+    onLegendStateChanged,
   } = props;
   const handleChange = useCallback(
     (values: string[]) => {
@@ -66,8 +68,17 @@ export default function EchartsWaterfall(
     [setDataMask, groupby, labelMap],
   );
 
-  const eventHandlers = {
+  const eventHandlers: EventHandlers = {
     ...allEventHandlers(props),
+    legendselectchanged: payload => {
+      onLegendStateChanged?.(payload.selected);
+    },
+    legendselectall: payload => {
+      onLegendStateChanged?.(payload.selected);
+    },
+    legendinverseselect: payload => {
+      onLegendStateChanged?.(payload.selected);
+    },
     handleChange,
   };
 

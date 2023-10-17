@@ -22,6 +22,7 @@ import {
   QueryFormColumn,
   QueryFormData,
   QueryFormMetric,
+  RgbaColor,
 } from '@superset-ui/core';
 import { BarDataItemOption } from 'echarts/types/src/chart/bar/BarSeries';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
@@ -50,6 +51,9 @@ export type ICallbackDataParams = CallbackDataParams & {
 
 export type EchartsWaterfallFormData = QueryFormData &
   LegendFormData & {
+    increaseColor: RgbaColor;
+    decreaseColor: RgbaColor;
+    totalColor: RgbaColor;
     metric: QueryFormMetric;
     xAxis: QueryFormColumn;
     xAxisLabel: string;
