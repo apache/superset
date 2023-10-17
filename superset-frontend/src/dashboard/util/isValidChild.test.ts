@@ -33,6 +33,7 @@ import {
   IKI_PROCESS_BUILDER_TYPE as IKI_PROCESS_BUILDER,
   IKI_RUN_PIPELINE_TYPE as IKI_RUN_PIPELINE,
   IKI_EITL_ROW_TYPE as IKI_EITL_ROW,
+  IKI_EITL_COLUMN_TYPE as IKI_EITL_COLUMN,
 } from 'src/dashboard/util/componentTypes';
 
 const getIndentation = (depth: number) =>
@@ -54,7 +55,8 @@ describe('isValidChild', () => {
       [ROOT, GRID, IKI_TABLE], // iki table is valid because it is wrapped in a row
       [ROOT, GRID, IKI_PROCESS_BUILDER], // iki process builder is valid because it is wrapped in a row
       [ROOT, GRID, IKI_RUN_PIPELINE], // iki run pipeline is valid because it is wrapped in a row
-      [ROOT, GRID, IKI_EITL_ROW], // iki run pipeline is valid because it is wrapped in a row
+      [ROOT, GRID, IKI_EITL_ROW],
+      [ROOT, GRID, IKI_EITL_COLUMN],
       [ROOT, GRID, COLUMN], // column is valid because it is wrapped in a row
       [ROOT, GRID, HEADER],
       [ROOT, GRID, ROW, MARKDOWN],
@@ -62,6 +64,7 @@ describe('isValidChild', () => {
       [ROOT, GRID, ROW, IKI_PROCESS_BUILDER],
       [ROOT, GRID, ROW, IKI_RUN_PIPELINE],
       [ROOT, GRID, ROW, IKI_EITL_ROW],
+      [ROOT, GRID, ROW, IKI_EITL_COLUMN],
       [ROOT, GRID, ROW, CHART],
 
       [ROOT, GRID, ROW, COLUMN, HEADER],
@@ -72,6 +75,7 @@ describe('isValidChild', () => {
       [ROOT, GRID, ROW, COLUMN, IKI_PROCESS_BUILDER],
       [ROOT, GRID, ROW, COLUMN, IKI_RUN_PIPELINE],
       [ROOT, GRID, ROW, COLUMN, IKI_EITL_ROW],
+      [ROOT, GRID, ROW, COLUMN, IKI_EITL_COLUMN],
 
       [ROOT, GRID, ROW, COLUMN, ROW, CHART],
       [ROOT, GRID, ROW, COLUMN, ROW, MARKDOWN],
@@ -79,6 +83,7 @@ describe('isValidChild', () => {
       [ROOT, GRID, ROW, COLUMN, ROW, IKI_PROCESS_BUILDER],
       [ROOT, GRID, ROW, COLUMN, ROW, IKI_RUN_PIPELINE],
       [ROOT, GRID, ROW, COLUMN, ROW, IKI_EITL_ROW],
+      [ROOT, GRID, ROW, COLUMN, ROW, IKI_EITL_COLUMN],
 
       [ROOT, GRID, ROW, COLUMN, ROW, COLUMN, CHART],
       [ROOT, GRID, ROW, COLUMN, ROW, COLUMN, MARKDOWN],
@@ -86,11 +91,13 @@ describe('isValidChild', () => {
       [ROOT, GRID, ROW, COLUMN, ROW, COLUMN, IKI_PROCESS_BUILDER],
       [ROOT, GRID, ROW, COLUMN, ROW, COLUMN, IKI_RUN_PIPELINE],
       [ROOT, GRID, ROW, COLUMN, ROW, COLUMN, IKI_EITL_ROW],
+      [ROOT, GRID, ROW, COLUMN, ROW, COLUMN, IKI_EITL_COLUMN],
       [ROOT, GRID, TABS, TAB, ROW, COLUMN, ROW, COLUMN, MARKDOWN],
       [ROOT, GRID, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_TABLE],
       [ROOT, GRID, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_PROCESS_BUILDER],
       [ROOT, GRID, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_RUN_PIPELINE],
       [ROOT, GRID, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_EITL_ROW],
+      [ROOT, GRID, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_EITL_COLUMN],
 
       // tab equivalents
       [ROOT, TABS, TAB, CHART],
@@ -99,6 +106,7 @@ describe('isValidChild', () => {
       [ROOT, TABS, TAB, ROW, IKI_PROCESS_BUILDER],
       [ROOT, TABS, TAB, IKI_RUN_PIPELINE],
       [ROOT, TABS, TAB, IKI_EITL_ROW],
+      [ROOT, TABS, TAB, IKI_EITL_COLUMN],
       [ROOT, TABS, TAB, COLUMN],
       [ROOT, TABS, TAB, HEADER],
       [ROOT, TABS, TAB, ROW, MARKDOWN],
@@ -106,6 +114,7 @@ describe('isValidChild', () => {
       [ROOT, TABS, TAB, IKI_PROCESS_BUILDER],
       [ROOT, TABS, TAB, IKI_RUN_PIPELINE],
       [ROOT, TABS, TAB, IKI_EITL_ROW],
+      [ROOT, TABS, TAB, IKI_EITL_COLUMN],
       [ROOT, TABS, TAB, ROW, CHART],
 
       [ROOT, TABS, TAB, ROW, COLUMN, HEADER],
@@ -116,6 +125,7 @@ describe('isValidChild', () => {
       [ROOT, TABS, TAB, ROW, COLUMN, IKI_PROCESS_BUILDER],
       [ROOT, TABS, TAB, ROW, COLUMN, IKI_RUN_PIPELINE],
       [ROOT, TABS, TAB, ROW, COLUMN, IKI_EITL_ROW],
+      [ROOT, TABS, TAB, ROW, COLUMN, IKI_EITL_COLUMN],
 
       [ROOT, TABS, TAB, ROW, COLUMN, ROW, CHART],
       [ROOT, TABS, TAB, ROW, COLUMN, ROW, MARKDOWN],
@@ -123,6 +133,7 @@ describe('isValidChild', () => {
       [ROOT, TABS, TAB, ROW, COLUMN, ROW, IKI_PROCESS_BUILDER],
       [ROOT, TABS, TAB, ROW, COLUMN, ROW, IKI_RUN_PIPELINE],
       [ROOT, TABS, TAB, ROW, COLUMN, ROW, IKI_EITL_ROW],
+      [ROOT, TABS, TAB, ROW, COLUMN, ROW, IKI_EITL_COLUMN],
 
       [ROOT, TABS, TAB, ROW, COLUMN, ROW, COLUMN, CHART],
       [ROOT, TABS, TAB, ROW, COLUMN, ROW, COLUMN, MARKDOWN],
@@ -130,6 +141,7 @@ describe('isValidChild', () => {
       [ROOT, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_PROCESS_BUILDER],
       [ROOT, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_RUN_PIPELINE],
       [ROOT, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_EITL_ROW],
+      [ROOT, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_EITL_COLUMN],
       [ROOT, TABS, TAB, TABS, TAB, ROW, COLUMN, ROW, COLUMN, MARKDOWN],
       [ROOT, TABS, TAB, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_TABLE],
       [
@@ -146,6 +158,7 @@ describe('isValidChild', () => {
       ],
       [ROOT, TABS, TAB, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_RUN_PIPELINE],
       [ROOT, TABS, TAB, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_EITL_ROW],
+      [ROOT, TABS, TAB, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_EITL_COLUMN],
       [ROOT, GRID, ROW, COLUMN, TABS],
     ];
 

@@ -17,12 +17,14 @@
  * under the License.
  */
 /**
- * COMPONENT: EiTL Row Component
- * WIDGET FRONTEND URL EXAMPLE: http://localhost:3000/widget/eitl/row?project_id=1wti9gbaxqmOi7Gm9e2Tcd4e5Mf&model=eyJtb2RlbF9pZCI6IjJXMXdRUWpNdjY4MWZoY2JHalpzRFQ3S0lsbCIsIm5hbWUiOiJhaU1hdGNoIiwicHJvamVjdF9pZCI6IjF3dGk5Z2JheHFtT2k3R205ZTJUY2Q0ZTVNZiIsImxhdGVzdF92ZXJzaW9uX2lkIjoiMlcxd2hJamh0RXk3cmNWcXRzNXRoUGNFcTFZIiwibW9kZWxfdHlwZSI6IkFpIE1hdGNoIiwic3ViX21vZGVsX3R5cGUiOiJTdXBlcnZpc2VkIiwiZGVzY3JpcHRpb24iOiIiLCJkaXJlY3RvcnlfaWQiOiIiLCJjcmVhdGVkX2F0IjoiMTY5NTkxMzM3NyIsIm1vZGlmaWVkX2F0IjoiMTY5NzExODQ3NSJ9&version=eyJ2ZXJzaW9uX2lkIjoiMlcxd2hJamh0RXk3cmNWcXRzNXRoUGNFcTFZIiwidmVyc2lvbiI6InYxIiwibW9kZWxfaWQiOiIyVzF3UVFqTXY2ODFmaGNiR2pac0RUN0tJbGwiLCJoeXBlcnBhcmFtZXRlcnMiOnsiY29sdW1uX21hcHBpbmciOnRydWUsImNvbHVtbl9tYXBwaW5nX3RocmVzaG9sZCI6MC43LCJpbmNsdWRlX3NpbWlsYXJpdHkiOnRydWUsImxlZnRfZXhjbHVkZSI6W10sImxlZnRfaW5jbHVkZSI6W10sIm1hdGNoaW5nX3RocmVzaG9sZCI6MC41LCJyaWdodF9leGNsdWRlIjpbXSwicmlnaHRfaW5jbHVkZSI6W10sInNhbXBsaW5nX2Ftb3VudCI6MC4xfSwibWV0cmljcyI6e30sImNyZWF0ZWRfYXQiOiIxNjk1OTEzNTExIiwibW9kaWZpZWRfYXQiOiIxNjk3MTE4NDc1In0=
+ * COMPONENT: EiTL Column Component
+ * WIDGET FRONTEND URL EXAMPLE: http://localhost:3000/widget/eitl/column?project_id=1wti9gbaxqmOi7Gm9e2Tcd4e5Mf&model=eyJtb2RlbF9pZCI6IjJXMXdRUWpNdjY4MWZoY2JHalpzRFQ3S0lsbCIsIm5hbWUiOiJhaU1hdGNoIiwicHJvamVjdF9pZCI6IjF3dGk5Z2JheHFtT2k3R205ZTJUY2Q0ZTVNZiIsImxhdGVzdF92ZXJzaW9uX2lkIjoiMlcxd2hJamh0RXk3cmNWcXRzNXRoUGNFcTFZIiwibW9kZWxfdHlwZSI6IkFpIE1hdGNoIiwic3ViX21vZGVsX3R5cGUiOiJTdXBlcnZpc2VkIiwiZGVzY3JpcHRpb24iOiIiLCJkaXJlY3RvcnlfaWQiOiIiLCJjcmVhdGVkX2F0IjoiMTY5NTkxMzM3NyIsIm1vZGlmaWVkX2F0IjoiMTY5NzExODQ3NSJ9&version=eyJ2ZXJzaW9uX2lkIjoiMlcxd2hJamh0RXk3cmNWcXRzNXRoUGNFcTFZIiwidmVyc2lvbiI6InYxIiwibW9kZWxfaWQiOiIyVzF3UVFqTXY2ODFmaGNiR2pac0RUN0tJbGwiLCJoeXBlcnBhcmFtZXRlcnMiOnsiY29sdW1uX21hcHBpbmciOnRydWUsImNvbHVtbl9tYXBwaW5nX3RocmVzaG9sZCI6MC43LCJpbmNsdWRlX3NpbWlsYXJpdHkiOnRydWUsImxlZnRfZXhjbHVkZSI6W10sImxlZnRfaW5jbHVkZSI6W10sIm1hdGNoaW5nX3RocmVzaG9sZCI6MC41LCJyaWdodF9leGNsdWRlIjpbXSwicmlnaHRfaW5jbHVkZSI6W10sInNhbXBsaW5nX2Ftb3VudCI6MC4xfSwibWV0cmljcyI6e30sImNyZWF0ZWRfYXQiOiIxNjk1OTEzNTExIiwibW9kaWZpZWRfYXQiOiIxNjk3MTE4NDc1In0=
  * PARAMETERS:
  * project_id: string
+ * pipeline?: b64 encoded object
  * model?: b64 encoded object
  * version?: b64 encoded object
+ * facets?: b64 encoded object
  */
 import React from 'react';
 import PropTypes from 'prop-types';
@@ -84,18 +86,18 @@ const defaultProps = {};
 
 const MARKDOWN_ERROR_MESSAGE = t('This component has an error.');
 
-class IkiEitlRow extends React.PureComponent {
+class IkiEitlColumn extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
       isFocused: false,
       markdownSource: props.component.meta.code,
       // markdownSource: `<iframe
-      //                 id="ikieitlrow-widget-${this.props.component.id}"
-      //                 name="eitl-row-component"
-      //                 src="http://localhost:3000/widget/eitl/row"
-      //                 title="IkiEitlRow Component"
-      //                 className="ikieitlrow-widget"
+      //                 id="ikieitlcolumn-widget-${this.props.component.id}"
+      //                 name="eitl-column-component"
+      //                 src="http://localhost:3000/widget/eitl/column"
+      //                 title="IkiEitlColumn Component"
+      //                 className="ikieitlcolumn-widget"
       //                 style="min-height: 100%;"
       //               />`,
       editor: null,
@@ -217,25 +219,31 @@ class IkiEitlRow extends React.PureComponent {
 
           if (
             document.getElementById(
-              `ikieitlrow-widget-${this.props.component.id}`,
+              `ikieitlcolumn-widget-${this.props.component.id}`,
             )
           ) {
             widgetUrl = new URL(
               document.getElementById(
-                `ikieitlrow-widget-${this.props.component.id}`,
+                `ikieitlcolumn-widget-${this.props.component.id}`,
               ).src,
             );
             // widgetUrlQueryMode = widgetUrl.searchParams.get('mode');
           } else {
-            widgetUrl = `${this.props.ikigaiOrigin}/widget/eitl/row`;
+            widgetUrl = `${this.props.ikigaiOrigin}/widget/eitl/column`;
           }
 
-          if (messageObject.info === 'eitlr-to-superset/sending-model-data') {
+          if (messageObject.info === 'eitlc-to-superset/sending-setup-data') {
             console.log('messageData', messageData);
             console.log('messageObject', messageObject);
             widgetUrlQuery = new URLSearchParams(widgetUrl.search);
             // widgetUrlQuery.set('mode', 'preview');
             console.log('widgetUrlQuery before', widgetUrlQuery.toString());
+            widgetUrlQuery.set(
+              'pipeline',
+              Buffer.from(JSON.stringify(messageData.pipeline)).toString(
+                'base64',
+              ),
+            );
             widgetUrlQuery.set(
               'model',
               Buffer.from(JSON.stringify(messageData.model)).toString('base64'),
@@ -246,18 +254,24 @@ class IkiEitlRow extends React.PureComponent {
                 'base64',
               ),
             );
+            widgetUrlQuery.set(
+              'facets',
+              Buffer.from(JSON.stringify(messageData.facets)).toString(
+                'base64',
+              ),
+            );
             console.log('widgetUrlQuery after', widgetUrlQuery.toString());
             widgetUrl.search = widgetUrlQuery.toString();
             console.log('widgetUrl', widgetUrl);
             const tempIframe = `<iframe
-                      id="ikieitlrow-widget-${this.props.component.id}"
-                      name="eitl-row-component"
+                      id="ikieitlcolumn-widget-${this.props.component.id}"
+                      name="eitl-column-component"
                       src="${widgetUrl}"
-                      title="IkiEitlRow Component"
-                      className="ikieitlrow-widget"
+                      title="IkiEitlColumn Component"
+                      className="ikieitlcolumn-widget"
                       style="min-height: 100%;"
                     />`;
-            this.handleIkiEitlRowChange(tempIframe);
+            this.handleIkiEitlColumnChange(tempIframe);
           } else if (
             messageObject.info === 'top-window-to-widget/sending-project-id'
           ) {
@@ -267,14 +281,14 @@ class IkiEitlRow extends React.PureComponent {
             widgetUrlQuery.set('project_id', projectId);
             widgetUrl.search = widgetUrlQuery.toString();
             const tempIframe = `<iframe
-                      id="ikieitlrow-widget-${this.props.component.id}"
-                      name="eitl-row-component"
+                      id="ikieitlcolumn-widget-${this.props.component.id}"
+                      name="eitl-column-component"
                       src="${widgetUrl}"
-                      title="IkiEitlRow Component"
-                      className="ikieitlrow-widget"
+                      title="IkiEitlColumn Component"
+                      className="ikieitlcolumn-widget"
                       style="min-height: 100%;"
                     />`;
-            this.handleIkiEitlRowChange(tempIframe);
+            this.handleIkiEitlColumnChange(tempIframe);
           }
         }
       }
@@ -329,7 +343,7 @@ class IkiEitlRow extends React.PureComponent {
     });
   }
 
-  handleIkiEitlRowChange(nextValue) {
+  handleIkiEitlColumnChange(nextValue) {
     this.setState(
       {
         markdownSource: nextValue,
@@ -394,18 +408,18 @@ class IkiEitlRow extends React.PureComponent {
           ? iframeSrcUrl.searchParams.get('version')
           : '';
 
-        const newIframeSrc = `${ikigaiOrigin}/widget/eitl/row?project_id=${paramProjectId}&model=${paramModel}&version=${paramVersion}`;
+        const newIframeSrc = `${ikigaiOrigin}/widget/eitl/column?project_id=${paramProjectId}&model=${paramModel}&version=${paramVersion}`;
         iframeSrc = newIframeSrc;
       } else {
-        iframeSrc = `${ikigaiOrigin}/widget/eitl/row`;
+        iframeSrc = `${ikigaiOrigin}/widget/eitl/column`;
       }
 
       iframe = `<iframe
-                    id="ikieitlrow-widget-${this.props.component.id}"
-                    name="eitl-row-component-${timestamp}"
+                    id="ikieitlcolumn-widget-${this.props.component.id}"
+                    name="eitl-column-component-${timestamp}"
                     src="${iframeSrc}"
-                    title="IkiEitlRow Component"
-                    className="ikieitlrow-widget"
+                    title="IkiEitlColumn Component"
+                    className="ikieitlcolumn-widget"
                     style="height: 100%;"
                   />`;
     } else {
@@ -475,8 +489,8 @@ class IkiEitlRow extends React.PureComponent {
             <div
               data-test="dashboard-markdown-editor"
               className={cx(
-                'dashboard-component-ikieitlrow',
-                isEditing && 'dashboard-component-ikieitlrow--editing',
+                'dashboard-component-ikieitlcolumn',
+                isEditing && 'dashboard-component-ikieitlcolumn--editing',
               )}
               id={component.id}
             >
@@ -526,8 +540,8 @@ class IkiEitlRow extends React.PureComponent {
   }
 }
 
-IkiEitlRow.propTypes = propTypes;
-IkiEitlRow.defaultProps = defaultProps;
+IkiEitlColumn.propTypes = propTypes;
+IkiEitlColumn.defaultProps = defaultProps;
 
 function mapStateToProps(state) {
   return {
@@ -536,4 +550,4 @@ function mapStateToProps(state) {
   };
 }
 
-export default connect(mapStateToProps)(IkiEitlRow);
+export default connect(mapStateToProps)(IkiEitlColumn);

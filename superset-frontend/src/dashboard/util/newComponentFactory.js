@@ -34,6 +34,7 @@ import {
   IKI_RUN_PIPELINE_TYPE,
   IKI_DEEPCAST_TYPE,
   IKI_EITL_ROW_TYPE,
+  IKI_EITL_COLUMN_TYPE,
 } from './componentTypes';
 
 import {
@@ -61,6 +62,7 @@ const typeToDefaultMetaData = {
   [IKI_RUN_PIPELINE_TYPE]: { width: GRID_DEFAULT_CHART_WIDTH, height: 50 },
   [IKI_DEEPCAST_TYPE]: { width: GRID_DEFAULT_CHART_WIDTH, height: 75 },
   [IKI_EITL_ROW_TYPE]: { width: GRID_DEFAULT_CHART_WIDTH, height: 50 },
+  [IKI_EITL_COLUMN_TYPE]: { width: GRID_DEFAULT_CHART_WIDTH, height: 50 },
   [ROW_TYPE]: { background: BACKGROUND_TRANSPARENT },
   [TABS_TYPE]: null,
   [TAB_TYPE]: {
