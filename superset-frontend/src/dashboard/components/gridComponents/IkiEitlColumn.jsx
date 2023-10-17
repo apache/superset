@@ -425,7 +425,7 @@ class IkiEitlColumn extends React.PureComponent {
           ? iframeSrcUrl.searchParams.get('version')
           : '';
 
-        const newIframeSrc = `${ikigaiOrigin}/widget/eitl/column?mode=${paramMode}project_id=${paramProjectId}&pipeline_id=${paramPipelineId}&model=${paramModel}&version=${paramVersion}`;
+        const newIframeSrc = `${ikigaiOrigin}/widget/eitl/column?mode=${paramMode}&project_id=${paramProjectId}&pipeline_id=${paramPipelineId}&model=${paramModel}&version=${paramVersion}`;
         iframeSrc = newIframeSrc;
       } else {
         iframeSrc = `${ikigaiOrigin}/widget/eitl/column`;
