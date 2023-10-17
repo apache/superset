@@ -46,6 +46,7 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
         TimeGrain.MINUTE: "HISTOGRAM({col}, INTERVAL 1 MINUTE)",
         TimeGrain.HOUR: "HISTOGRAM({col}, INTERVAL 1 HOUR)",
         TimeGrain.DAY: "HISTOGRAM({col}, INTERVAL 1 DAY)",
+        TimeGrain.WEEK: "DATE_TRUNC('week', {col})",
         TimeGrain.MONTH: "HISTOGRAM({col}, INTERVAL 1 MONTH)",
         TimeGrain.YEAR: "HISTOGRAM({col}, INTERVAL 1 YEAR)",
     }
