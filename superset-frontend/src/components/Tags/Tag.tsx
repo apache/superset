@@ -31,6 +31,8 @@ const StyledTag = styled(AntdTag)`
   `};
 `;
 
+const MAX_DISPLAY_CHAR = 20
+
 const Tag = ({
   name,
   id,
@@ -40,7 +42,8 @@ const Tag = ({
   onClick = undefined,
   toolTipTitle = name,
 }: TagType) => {
-  const isLongTag = useMemo(() => name.length > 20, [name]);
+  const isLongTag = useMemo(() => name.length > MAX_DISPLAY_CHAR, [name]);
+  const tagDisplay = isLongTag ? `${name.slice(0, MAX_DISPLAY_CHAR)}...`: name;
 
   const handleClose = () => (index ? onDelete?.(index) : null);
 
@@ -54,25 +57,21 @@ const Tag = ({
             onClose={handleClose}
             color="blue"
           >
-            {isLongTag ? `${name.slice(0, 20)}...` : name}
+           {tagDisplay}
           </StyledTag>
         </Tooltip>
       ) : (
         <Tooltip title={toolTipTitle} key={toolTipTitle}>
-          <StyledTag role="link" key={id} onClick={onClick}>
+          <StyledTag data-test="tag" role="link" key={id} onClick={onClick}>
             {id ? (
               <a
                 href={`/superset/all_entities/?id=${id}`}
                 target="_blank"
                 rel="noreferrer"
               >
-                {isLongTag ? `${name.slice(0, 20)}...` : name}
+                {tagDisplay}
               </a>
-            ) : isLongTag ? (
-              `${name.slice(0, 20)}...`
-            ) : (
-              name
-            )}
+            ) : tagDisplay}
           </StyledTag>
         </Tooltip>
       )}
