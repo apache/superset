@@ -699,6 +699,8 @@ init:
     fi
   ## Annotations to be added to init job pods
   podAnnotations: {}
+  ## Labels to be added to init job pods
+  podLabels: {}
   podSecurityContext: {}
   containerSecurityContext: {}
   ## Tolerations to be added to init job pods
