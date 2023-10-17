@@ -46,7 +46,7 @@ const StyledDropdownButton = styled(
   button.ant-btn:first-of-type {
     display: none;
   }
-  > button.ant-btn:nth-child(2) {
+  > button.ant-btn:nth-of-type(2) {
     display: inline-flex;
     background-color: transparent !important;
     height: unset;
