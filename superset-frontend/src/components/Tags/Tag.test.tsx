@@ -39,9 +39,7 @@ test('should render shortname properly', () => {
   const { container } = render(<Tag {...mockedProps} />);
   expect(container).toBeInTheDocument();
   expect(screen.getByTestId('tag')).toBeInTheDocument();
-  expect(screen.getByTestId('tag').textContent).toHaveTextContent(
-    mockedProps.name,
-  );
+  expect(screen.getByTestId('tag').textContent).toBe(mockedProps.name);
 });
 
 test('should render longname properly', () => {
@@ -52,7 +50,7 @@ test('should render longname properly', () => {
   const { container } = render(<Tag {...longNameProps} />);
   expect(container).toBeInTheDocument();
   expect(screen.getByTestId('tag')).toBeInTheDocument();
-  expect(screen.getByTestId('tag').textContent).toHaveTextContent(
+  expect(screen.getByTestId('tag').textContent).toBe(
     `${longNameProps.name.slice(0, 20)}...`,
   );
 });
