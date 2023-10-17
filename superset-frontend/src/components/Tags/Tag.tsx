@@ -31,7 +31,7 @@ const StyledTag = styled(AntdTag)`
   `};
 `;
 
-const MAX_DISPLAY_CHAR = 20
+const MAX_DISPLAY_CHAR = 20;
 
 const Tag = ({
   name,
@@ -43,7 +43,7 @@ const Tag = ({
   toolTipTitle = name,
 }: TagType) => {
   const isLongTag = useMemo(() => name.length > MAX_DISPLAY_CHAR, [name]);
-  const tagDisplay = isLongTag ? `${name.slice(0, MAX_DISPLAY_CHAR)}...`: name;
+  const tagDisplay = isLongTag ? `${name.slice(0, MAX_DISPLAY_CHAR)}...` : name;
 
   const handleClose = () => (index ? onDelete?.(index) : null);
 
@@ -57,7 +57,7 @@ const Tag = ({
             onClose={handleClose}
             color="blue"
           >
-           {tagDisplay}
+            {tagDisplay}
           </StyledTag>
         </Tooltip>
       ) : (
@@ -71,7 +71,9 @@ const Tag = ({
               >
                 {tagDisplay}
               </a>
-            ) : tagDisplay}
+            ) : (
+              tagDisplay
+            )}
           </StyledTag>
         </Tooltip>
       )}

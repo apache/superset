@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { render } from 'spec/helpers/testing-library';
-import { screen } from "@testing-library/react"
+import { screen } from '@testing-library/react';
 import TagType from 'src/types/TagType';
 import Tag from './Tag';
 
@@ -38,14 +38,19 @@ test('should render', () => {
 test('should render shortname properly ', () => {
   const { container } = render(<Tag {...mockedProps} />);
   expect(container).toBeInTheDocument();
-  expect(screen.getByTestId('tag')).toBeDefined()
+  expect(screen.getByTestId('tag')).toBeDefined();
   expect(screen.getByTestId('tag').textContent).toBe(mockedProps.name);
 });
 
 test('should render longname properly ', () => {
-  const longNameProps = {...mockedProps, name: 'very-long-tag-name-that-truncates'}
+  const longNameProps = {
+    ...mockedProps,
+    name: 'very-long-tag-name-that-truncates',
+  };
   const { container } = render(<Tag {...longNameProps} />);
   expect(container).toBeInTheDocument();
-  expect(screen.getByTestId('tag')).toBeDefined()
-  expect(screen.getByTestId('tag').textContent).toBe(`${longNameProps.name.slice(0, 20)}...`);
+  expect(screen.getByTestId('tag')).toBeDefined();
+  expect(screen.getByTestId('tag').textContent).toBe(
+    `${longNameProps.name.slice(0, 20)}...`,
+  );
 });
