@@ -234,7 +234,7 @@ class IkiEitlRow extends React.PureComponent {
             console.log('messageData', messageData);
             console.log('messageObject', messageObject);
             widgetUrlQuery = new URLSearchParams(widgetUrl.search);
-            // widgetUrlQuery.set('mode', 'preview');
+            widgetUrlQuery.set('mode', 'preview');
             console.log('widgetUrlQuery before', widgetUrlQuery.toString());
             widgetUrlQuery.set(
               'model',
@@ -306,6 +306,34 @@ class IkiEitlRow extends React.PureComponent {
     }
 
     this.setState(nextState);
+
+    let widgetUrl;
+
+    if (
+      document.getElementById(
+        `ikirunpipeline-widget-${this.props.component.id}`,
+      )
+    ) {
+      widgetUrl = new URL(
+        document.getElementById(
+          `ikirunpipeline-widget-${this.props.component.id}`,
+        ).src,
+      );
+    } else {
+      widgetUrl = `${this.props.ikigaiOrigin}/widget/eitl/column`;
+    }
+    const widgetUrlQuery = new URLSearchParams(widgetUrl.search);
+    widgetUrlQuery.set('mode', mode);
+    widgetUrl.search = widgetUrlQuery.toString();
+    const tempIframe = `<iframe
+                      id="ikirunpipeline-widget-${this.props.component.id}"
+                      name="run-flow-component"
+                      src="${widgetUrl}"
+                      title="IkiRunPipeline Component"
+                      className="ikirunpipeline-widget"
+                      style="min-height: 100%;"
+                    />`;
+    this.handleIkiRunPipelineChange(tempIframe);
   }
 
   updateMarkdownContent() {
@@ -381,9 +409,9 @@ class IkiEitlRow extends React.PureComponent {
         iframeWrapper.innerHTML = markdownSource;
         const iframeHtml = iframeWrapper.firstChild;
         const iframeSrcUrl = new URL(iframeHtml.src);
-        // const paramMode = iframeSrcUrl.searchParams.get('mode')
-        //   ? iframeSrcUrl.searchParams.get('mode')
-        //   : '';
+        const paramMode = iframeSrcUrl.searchParams.get('mode')
+          ? iframeSrcUrl.searchParams.get('mode')
+          : '';
         const paramProjectId = iframeSrcUrl.searchParams.get('project_id')
           ? iframeSrcUrl.searchParams.get('project_id')
           : '';
@@ -394,7 +422,7 @@ class IkiEitlRow extends React.PureComponent {
           ? iframeSrcUrl.searchParams.get('version')
           : '';
 
-        const newIframeSrc = `${ikigaiOrigin}/widget/eitl/row?project_id=${paramProjectId}&model=${paramModel}&version=${paramVersion}`;
+        const newIframeSrc = `${ikigaiOrigin}/widget/eitl/row?mode=${paramMode}&project_id=${paramProjectId}&model=${paramModel}&version=${paramVersion}`;
         iframeSrc = newIframeSrc;
       } else {
         iframeSrc = `${ikigaiOrigin}/widget/eitl/row`;

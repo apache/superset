@@ -227,7 +227,6 @@ class IkiEitlColumn extends React.PureComponent {
                 `ikieitlcolumn-widget-${this.props.component.id}`,
               ).src,
             );
-            // widgetUrlQueryMode = widgetUrl.searchParams.get('mode');
           } else {
             widgetUrl = `${this.props.ikigaiOrigin}/widget/eitl/column`;
           }
@@ -236,14 +235,8 @@ class IkiEitlColumn extends React.PureComponent {
             console.log('messageData', messageData);
             console.log('messageObject', messageObject);
             widgetUrlQuery = new URLSearchParams(widgetUrl.search);
-            // widgetUrlQuery.set('mode', 'preview');
-            console.log('widgetUrlQuery before', widgetUrlQuery.toString());
-            widgetUrlQuery.set(
-              'pipeline',
-              Buffer.from(JSON.stringify(messageData.pipeline)).toString(
-                'base64',
-              ),
-            );
+            widgetUrlQuery.set('mode', messageData.mode);
+            widgetUrlQuery.set('pipeline_id', messageData.pipeline_id);
             widgetUrlQuery.set(
               'model',
               Buffer.from(JSON.stringify(messageData.model)).toString('base64'),
@@ -254,13 +247,6 @@ class IkiEitlColumn extends React.PureComponent {
                 'base64',
               ),
             );
-            widgetUrlQuery.set(
-              'facets',
-              Buffer.from(JSON.stringify(messageData.facets)).toString(
-                'base64',
-              ),
-            );
-            console.log('widgetUrlQuery after', widgetUrlQuery.toString());
             widgetUrl.search = widgetUrlQuery.toString();
             console.log('widgetUrl', widgetUrl);
             const tempIframe = `<iframe
@@ -320,6 +306,34 @@ class IkiEitlColumn extends React.PureComponent {
     }
 
     this.setState(nextState);
+
+    let widgetUrl;
+
+    if (
+      document.getElementById(
+        `ikirunpipeline-widget-${this.props.component.id}`,
+      )
+    ) {
+      widgetUrl = new URL(
+        document.getElementById(
+          `ikirunpipeline-widget-${this.props.component.id}`,
+        ).src,
+      );
+    } else {
+      widgetUrl = `${this.props.ikigaiOrigin}/widget/eitl/column`;
+    }
+    const widgetUrlQuery = new URLSearchParams(widgetUrl.search);
+    widgetUrlQuery.set('mode', mode);
+    widgetUrl.search = widgetUrlQuery.toString();
+    const tempIframe = `<iframe
+                      id="ikirunpipeline-widget-${this.props.component.id}"
+                      name="run-flow-component"
+                      src="${widgetUrl}"
+                      title="IkiRunPipeline Component"
+                      className="ikirunpipeline-widget"
+                      style="min-height: 100%;"
+                    />`;
+    this.handleIkiRunPipelineChange(tempIframe);
   }
 
   updateMarkdownContent() {
@@ -395,14 +409,14 @@ class IkiEitlColumn extends React.PureComponent {
         iframeWrapper.innerHTML = markdownSource;
         const iframeHtml = iframeWrapper.firstChild;
         const iframeSrcUrl = new URL(iframeHtml.src);
-        // const paramMode = iframeSrcUrl.searchParams.get('mode')
-        //   ? iframeSrcUrl.searchParams.get('mode')
-        //   : '';
+        const paramMode = iframeSrcUrl.searchParams.get('mode')
+          ? iframeSrcUrl.searchParams.get('mode')
+          : '';
         const paramProjectId = iframeSrcUrl.searchParams.get('project_id')
           ? iframeSrcUrl.searchParams.get('project_id')
           : '';
-        const paramPipeline = iframeSrcUrl.searchParams.get('pipeline')
-          ? iframeSrcUrl.searchParams.get('pipeline')
+        const paramPipelineId = iframeSrcUrl.searchParams.get('pipeline_id')
+          ? iframeSrcUrl.searchParams.get('pipeline_id')
           : '';
         const paramModel = iframeSrcUrl.searchParams.get('model')
           ? iframeSrcUrl.searchParams.get('model')
@@ -410,11 +424,8 @@ class IkiEitlColumn extends React.PureComponent {
         const paramVersion = iframeSrcUrl.searchParams.get('version')
           ? iframeSrcUrl.searchParams.get('version')
           : '';
-        const paramFacets = iframeSrcUrl.searchParams.get('facets')
-          ? iframeSrcUrl.searchParams.get('facets')
-          : '';
 
-        const newIframeSrc = `${ikigaiOrigin}/widget/eitl/column?project_id=${paramProjectId}&pipeline=${paramPipeline}&model=${paramModel}&version=${paramVersion}&facets=${paramFacets}`;
+        const newIframeSrc = `${ikigaiOrigin}/widget/eitl/column?mode=${paramMode}project_id=${paramProjectId}&pipeline_id=${paramPipelineId}&model=${paramModel}&version=${paramVersion}`;
         iframeSrc = newIframeSrc;
       } else {
         iframeSrc = `${ikigaiOrigin}/widget/eitl/column`;
