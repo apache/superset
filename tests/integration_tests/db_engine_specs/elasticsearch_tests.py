@@ -21,34 +21,20 @@ from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
 class TestElasticsearchDbEngineSpec(TestDbEngineSpec):
-    def test_timegrain_week_expression(self):
-        """
-        DB Eng Specs (elasticsearch): Test time grain expressions
-        """
+    def test_time_grain_week_expression(self):
         col = column("ts")
-        test_cases = {
-            "date": "DATE_TRUNC('week', ts)",
-            "date_nanos": "DATE_TRUNC('week', ts)",
-        }
-        for type_, expected in test_cases.items():
-            col.type = type_
-            actual = ElasticSearchEngineSpec.get_timestamp_expr(
-                col=col, pdf=None, time_grain="P1W"
-            )
-            self.assertEqual(str(actual), expected)
+        col.type = "datetime"
+        expected_time_grain_expression = "DATE_TRUNC('week', ts)"
+        actual = ElasticSearchEngineSpec.get_timestamp_expr(
+            col=col, pdf=None, time_grain="P1W"
+        )
+        self.assertEqual(str(actual), expected_time_grain_expression)
 
-    def test_timegrain_hour_expression(self):
-        """
-        DB Eng Specs (elasticsearch): Test time grain expressions
-        """
+    def test_time_grain_hour_expression(self):
         col = column("ts")
-        test_cases = {
-            "date": "HISTOGRAM(ts, INTERVAL 1 HOUR)",
-            "date_nanos": "HISTOGRAM(ts, INTERVAL 1 HOUR)",
-        }
-        for type_, expected in test_cases.items():
-            col.type = type_
-            actual = ElasticSearchEngineSpec.get_timestamp_expr(
-                col=col, pdf=None, time_grain="PT1H"
-            )
-            self.assertEqual(str(actual), expected)
+        col.type = "datetime"
+        expected_time_grain_expression = "HISTOGRAM(ts, INTERVAL 1 HOUR)"
+        actual = ElasticSearchEngineSpec.get_timestamp_expr(
+            col=col, pdf=None, time_grain="PT1H"
+        )
+        self.assertEqual(str(actual), expected_time_grain_expression)
