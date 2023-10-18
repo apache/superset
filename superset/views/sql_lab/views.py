@@ -214,7 +214,7 @@ class TabStateView(BaseSupersetView):
 
     @has_access_api
     @expose("<int:tab_state_id>", methods=("PUT",))
-    def put(self, tab_state_id: int) -> FlaskResponse:  # pylint: disable=no-self-use
+    def put(self, tab_state_id: int) -> FlaskResponse:
         if _get_owner_id(tab_state_id) != get_user_id():
             return Response(status=403)
 
