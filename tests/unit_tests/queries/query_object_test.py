@@ -59,6 +59,7 @@ def test_default_query_object_to_dict():
         "series_limit_metric": None,
         "time_shift": None,
         "to_dttm": None,
+        "slice_id": None,
     }
 
 

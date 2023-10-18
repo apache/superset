@@ -821,7 +821,7 @@ class SqlaTable(
             df = pd.read_sql_query(sql=sql, con=engine)
             return df[column_name].to_list()
 
-    def mutate_query_from_config(self, sql: str) -> str:
+    def mutate_query_from_config(self, sql: str, **kwargs: Any) -> str:
         """Apply config's SQL_QUERY_MUTATOR
 
         Typically adds comments to the query with context"""
@@ -830,6 +830,8 @@ class SqlaTable(
         if sql_query_mutator and not mutate_after_split:
             sql = sql_query_mutator(
                 sql,
+                chart_id=f"{kwargs.get('query_obj', {}).get('slice_id', None)}",
+                dataset_id=self.id,
                 security_manager=security_manager,
                 database=self.database,
             )
@@ -848,7 +850,7 @@ class SqlaTable(
         sql = self._apply_cte(sql, sqlaq.cte)
         sql = sqlparse.format(sql, reindent=True)
         if mutate:
-            sql = self.mutate_query_from_config(sql)
+            sql = self.mutate_query_from_config(sql, query_obj=query_obj)
         return QueryStringExtended(
             applied_template_filters=sqlaq.applied_template_filters,
             applied_filter_columns=sqlaq.applied_filter_columns,
