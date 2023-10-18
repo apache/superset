@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from sqlalchemy import column
+
 from superset.db_engine_specs.elasticsearch import ElasticSearchEngineSpec
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 
