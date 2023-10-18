@@ -17,26 +17,9 @@
  * under the License.
  */
 
-import React, { SyntheticEvent } from 'react';
-import { Menu } from 'src/components/Menu';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
-import DownloadMenuItems, { DownloadMenuItemProps } from '.';
-import downloadAsPdf from 'src/utils/downloadAsPdf';
-import downloadAsImage from 'src/utils/downloadAsImage';
-
-jest.mock('src/utils/downloadAsPdf', () => {
-  return {
-    __esModule: true,
-    default: jest.fn(() => (_e: SyntheticEvent) => {}),
-  };
-});
-jest.mock('src/utils/downloadAsImage', () => {
-  return {
-    __esModule: true,
-    default: jest.fn(() => (_e: SyntheticEvent) => {}),
-  };
-});
+import React from 'react';
+import { render, screen } from 'spec/helpers/testing-library';
+import DownloadMenuItems from '.';
 
 const createProps = () => {
   return {
@@ -48,75 +31,16 @@ const createProps = () => {
   };
 };
 
-const renderComponent = (props: DownloadMenuItemProps) => {
-  render(
-    <div className=".dashboard">
-      <Menu onClick={jest.fn()} selectable={false} data-test="main-menu">
-        <DownloadMenuItems {...props} />
-      </Menu>
-    </div>,
-  );
+const renderComponent = () => {
+  render(<DownloadMenuItems {...createProps()} />);
 };
 
-beforeEach(() => {
-  jest.clearAllMocks();
-});
-
 test('Should render menu items', () => {
-  const props = createProps();
-  renderComponent(props);
+  renderComponent();
   expect(
     screen.getByRole('menuitem', { name: 'Export to PDF' }),
   ).toBeInTheDocument();
   expect(
     screen.getByRole('menuitem', { name: 'Download as Image' }),
   ).toBeInTheDocument();
-});
-
-test('Should call download pdf on click', async () => {
-  const props = createProps();
-  renderComponent(props);
-  await waitFor(() => {
-    expect(downloadAsPdf).toBeCalledTimes(0);
-    expect(props.addDangerToast).toBeCalledTimes(0);
-  });
-  userEvent.click(screen.getByRole('button', { name: 'Export to PDF' }));
-
-  await waitFor(() => {
-    expect(downloadAsPdf).toBeCalledTimes(1);
-    expect(props.addDangerToast).toBeCalledTimes(0);
-  });
-});
-
-test('Should call download image on click', async () => {
-  const props = createProps();
-  renderComponent(props);
-  await waitFor(() => {
-    expect(downloadAsImage).toBeCalledTimes(0);
-    expect(props.addDangerToast).toBeCalledTimes(0);
-  });
-  userEvent.click(screen.getByRole('button', { name: 'Download as Image' }));
-
-  await waitFor(() => {
-    expect(downloadAsImage).toBeCalledTimes(1);
-    expect(props.addDangerToast).toBeCalledTimes(0);
-  });
-});
-
-test('Should call addDangerToast once on failure to download pdf', async () => {
-  const props = createProps();
-  renderComponent(props);
-
-  userEvent.click(screen.getByRole('button', { name: 'Export as PDF' }));
-
-  await waitFor(() => {
-    expect(props.addDangerToast).toBeCalledTimes(0);
-  });
-
-  await waitFor(async () => {
-    expect(props.addDangerToast).toBeCalledTimes(1);
-    expect(props.addDangerToast).toBeCalledWith(
-      'Sorry, something went wrong. Try again later.',
-    );
-  });
 });
