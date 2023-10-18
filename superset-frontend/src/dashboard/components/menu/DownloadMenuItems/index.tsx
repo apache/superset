@@ -35,6 +35,7 @@ const DownloadMenuItems = (props: DownloadMenuItemProps) => {
     addDangerToast,
     dashboardTitle,
     logEvent,
+    ...rest
   } = props;
 
   return (
@@ -44,12 +45,14 @@ const DownloadMenuItems = (props: DownloadMenuItemProps) => {
         addDangerToast={addDangerToast}
         dashboardTitle={dashboardTitle}
         logEvent={logEvent}
+        {...rest}
       />
       <DownloadAsImage
         text={imageMenuItemTitle}
         addDangerToast={addDangerToast}
         dashboardTitle={dashboardTitle}
         logEvent={logEvent}
+        {...rest}
       />
     </Menu>
   );

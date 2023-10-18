@@ -9,6 +9,7 @@ export default function DownloadAsPdf({
   logEvent,
   dashboardTitle,
   addDangerToast,
+  ...rest
 }: {
   text: string;
   addDangerToast: Function;
@@ -27,7 +28,7 @@ export default function DownloadAsPdf({
   };
 
   return (
-    <Menu.Item key="download-pdf">
+    <Menu.Item key="download-pdf" {...rest}>
       <div onClick={onDownloadPdf} role="button" tabIndex={0}>
         {text}
       </div>

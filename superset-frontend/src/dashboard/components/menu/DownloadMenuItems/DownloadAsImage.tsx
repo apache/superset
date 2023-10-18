@@ -9,6 +9,7 @@ export default function DownloadAsImage({
   logEvent,
   dashboardTitle,
   addDangerToast,
+  ...rest
 }: {
   text: string;
   addDangerToast: Function;
@@ -27,7 +28,7 @@ export default function DownloadAsImage({
   };
 
   return (
-    <Menu.Item key="download-image">
+    <Menu.Item key="download-image" {...rest}>
       <div onClick={onDownloadImage} role="button" tabIndex={0}>
         {text}
       </div>
