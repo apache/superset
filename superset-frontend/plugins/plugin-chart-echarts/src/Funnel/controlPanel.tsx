@@ -85,7 +85,7 @@ const config: ControlPanelConfig = {
             config: {
               type: 'SelectControl',
               label: t('Label Contents'),
-              default: labelType,
+              default: EchartsFunnelLabelTypeType.KeyValuePercent,
               renderTrigger: true,
               choices: [
                 [EchartsFunnelLabelTypeType.Key, t('Category Name')],
