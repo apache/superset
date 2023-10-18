@@ -463,4 +463,19 @@ describe('Registry', () => {
       });
     });
   });
+  describe('defaultValue', () => {
+    it('will return the default value if no value is registered', () => {
+      const registry = new Registry({
+        defaultValue: 'default',
+      });
+      expect(registry.get('a')).toBe('default');
+    });
+    it('will return a value if a value is registered', () => {
+      const registry = new Registry({
+        defaultValue: 'default',
+      });
+      registry.registerValue('a', 'testValue');
+      expect(registry.get('a')).toBe('testValue');
+    });
+  });
 });

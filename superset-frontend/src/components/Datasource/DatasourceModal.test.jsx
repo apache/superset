@@ -18,30 +18,35 @@
  */
 import React from 'react';
 import { act } from 'react-dom/test-utils';
-import { mount } from 'enzyme';
-import { Provider } from 'react-redux';
+import {
+  render,
+  screen,
+  waitFor,
+  fireEvent,
+  cleanup,
+} from '@testing-library/react';
 import fetchMock from 'fetch-mock';
+import { Provider } from 'react-redux';
 import sinon from 'sinon';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
+import {
+  supersetTheme,
+  ThemeProvider,
+  SupersetClient,
+} from '@superset-ui/core';
 import { defaultStore as store } from 'spec/helpers/testing-library';
-import Modal from 'src/components/Modal';
 import { DatasourceModal } from 'src/components/Datasource';
-import DatasourceEditor from 'src/components/Datasource/DatasourceEditor';
 import * as uiCore from '@superset-ui/core';
 import mockDatasource from 'spec/fixtures/mockDatasource';
-import { api } from 'src/hooks/apiResources/queryApi';
 
-const datasource = mockDatasource['7__table'];
-
+// Define your constants here
 const SAVE_ENDPOINT = 'glob:*/api/v1/dataset/7';
 const SAVE_PAYLOAD = { new: 'data' };
 const SAVE_DATASOURCE_ENDPOINT = 'glob:*/api/v1/dataset/7';
 const GET_DATASOURCE_ENDPOINT = SAVE_DATASOURCE_ENDPOINT;
+const GET_DATABASE_ENDPOINT = 'glob:*/api/v1/database/?q=*';
 
 const mockedProps = {
-  datasource,
+  datasource: mockDatasource['7__table'],
   addSuccessToast: () => {},
   addDangerToast: () => {},
   onChange: () => {},
@@ -50,80 +55,101 @@ const mockedProps = {
   onDatasourceSave: sinon.spy(),
 };
 
-async function mountAndWait(props = mockedProps) {
-  const mounted = mount(
-    <Provider store={store}>
-      <DatasourceModal {...props} />
-    </Provider>,
-    {
-      wrappingComponent: ThemeProvider,
-      wrappingComponentProps: { theme: supersetTheme },
-    },
-  );
-  await waitForComponentToPaint(mounted);
+let container;
+let isFeatureEnabledMock;
 
-  return mounted;
+async function renderAndWait(props = mockedProps) {
+  const { container: renderedContainer } = render(
+    <Provider store={store}>
+      <ThemeProvider theme={supersetTheme}>
+        <DatasourceModal {...props} />
+      </ThemeProvider>
+    </Provider>,
+  );
+
+  container = renderedContainer;
 }
 
+beforeEach(() => {
+  fetchMock.reset();
+  cleanup();
+  isFeatureEnabledMock = jest.spyOn(uiCore, 'isFeatureEnabled');
+  renderAndWait();
+  fetchMock.post(SAVE_ENDPOINT, SAVE_PAYLOAD);
+  fetchMock.put(SAVE_DATASOURCE_ENDPOINT, {});
+  fetchMock.get(GET_DATASOURCE_ENDPOINT, { result: {} });
+  fetchMock.get(GET_DATABASE_ENDPOINT, { result: [] });
+});
+
+afterEach(() => {
+  isFeatureEnabledMock.mockRestore();
+});
+
 describe('DatasourceModal', () => {
-  let wrapper;
-  let isFeatureEnabledMock;
-  beforeEach(async () => {
-    isFeatureEnabledMock = jest.spyOn(uiCore, 'isFeatureEnabled');
-    fetchMock.reset();
-    wrapper = await mountAndWait();
+  it('renders', async () => {
+    expect(container).toBeDefined();
   });
 
-  afterAll(() => {
-    isFeatureEnabledMock.restore();
-    act(() => {
-      store.dispatch(api.util.resetApiState());
-    });
+  it('renders the component', () => {
+    expect(screen.getByText('Edit Dataset')).toBeInTheDocument();
   });
 
-  it('renders', () => {
-    expect(wrapper.find(DatasourceModal)).toExist();
+  it('renders a Modal', async () => {
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
-  it('renders a Modal', () => {
-    expect(wrapper.find(Modal)).toExist();
-  });
-
-  it('renders a DatasourceEditor', () => {
-    expect(wrapper.find(DatasourceEditor)).toExist();
-  });
-
-  it('saves on confirm', async () => {
-    const callsP = fetchMock.post(SAVE_ENDPOINT, SAVE_PAYLOAD);
-    fetchMock.put(SAVE_DATASOURCE_ENDPOINT, {});
-    fetchMock.get(GET_DATASOURCE_ENDPOINT, { result: {} });
-    act(() => {
-      wrapper
-        .find('button[data-test="datasource-modal-save"]')
-        .props()
-        .onClick();
-    });
-    await waitForComponentToPaint(wrapper);
-    act(() => {
-      const okButton = wrapper.find(
-        '.ant-modal-confirm .ant-modal-confirm-btns .ant-btn-primary',
-      );
-      okButton.simulate('click');
-    });
-    await waitForComponentToPaint(wrapper);
-    // one call to PUT, then one to GET
-    const expected = [
-      'http://localhost/api/v1/dataset/7',
-      'http://localhost/api/v1/dataset/7',
-    ];
-    expect(callsP._calls.map(call => call[0])).toEqual(
-      expected,
-    ); /* eslint no-underscore-dangle: 0 */
+  it('renders a DatasourceEditor', async () => {
+    expect(screen.getByTestId('datasource-editor')).toBeInTheDocument();
   });
 
   it('renders a legacy data source btn', () => {
-    expect(
-      wrapper.find('button[data-test="datasource-modal-legacy-edit"]'),
-    ).toExist();
+    const button = screen.getByTestId('datasource-modal-legacy-edit');
+    expect(button).toBeInTheDocument();
+  });
+
+  it('disables the save button when the datasource is managed externally', () => {
+    // the render is currently in a before operation, so it needs to be cleaned up
+    // we could alternatively move all the renders back into the tests or find a better
+    // way to automatically render but still allow to pass in props with the tests
+    cleanup();
+
+    renderAndWait({
+      ...mockedProps,
+      datasource: { ...mockedProps.datasource, is_managed_externally: true },
+    });
+    const saveButton = screen.getByTestId('datasource-modal-save');
+    expect(saveButton).toBeDisabled();
+  });
+
+  it('calls the onDatasourceSave function when the save button is clicked', async () => {
+    cleanup();
+    const onDatasourceSave = jest.fn();
+
+    renderAndWait({ ...mockedProps, onDatasourceSave });
+    const saveButton = screen.getByTestId('datasource-modal-save');
+    await act(async () => {
+      fireEvent.click(saveButton);
+      const okButton = await screen.findByRole('button', { name: 'OK' });
+      okButton.click();
+    });
+    await waitFor(() => {
+      expect(onDatasourceSave).toHaveBeenCalled();
+    });
+  });
+
+  it('should render error dialog', async () => {
+    jest
+      .spyOn(SupersetClient, 'put')
+      .mockRejectedValue(new Error('Something went wrong'));
+    await act(async () => {
+      const saveButton = screen.getByTestId('datasource-modal-save');
+      fireEvent.click(saveButton);
+      const okButton = await screen.findByRole('button', { name: 'OK' });
+      okButton.click();
+    });
+    await act(async () => {
+      const errorTitle = await screen.findByText('Error saving dataset');
+      expect(errorTitle).toBeInTheDocument();
+    });
   });
 });
