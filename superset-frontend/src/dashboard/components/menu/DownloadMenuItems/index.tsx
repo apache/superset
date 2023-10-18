@@ -16,91 +16,43 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SyntheticEvent } from 'react';
-import { t, logging } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
-import downloadAsImage from 'src/utils/downloadAsImage';
-import downloadAsPdf from 'src/utils/downloadAsPdf';
+import DownloadAsImage from './DownloadAsImage';
+import DownloadAsPdf from './DownloadAsPdf';
 
-import {
-  LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE,
-  LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF,
-} from 'src/logger/LogUtils';
-
-interface DownloadMenuItemProps {
-  url?: string;
+export interface DownloadMenuItemProps {
   pdfMenuItemTitle: string;
   imageMenuItemTitle: string;
   addDangerToast: Function;
-  addSuccessToast: Function;
   dashboardTitle: string;
   logEvent?: Function;
 }
 
-const SCREENSHOT_NODE_SELECTOR = '.dashboard';
-
-const ShareMenuItems = (props: DownloadMenuItemProps) => {
+const DownloadMenuItems = (props: DownloadMenuItemProps) => {
   const {
     pdfMenuItemTitle,
     imageMenuItemTitle,
     addDangerToast,
-    addSuccessToast,
     dashboardTitle,
     logEvent,
-    ...rest
   } = props;
-
-  const onDownloadPDF = async (e: SyntheticEvent) => {
-    addSuccessToast(t('You attempted to download the PDF.'));
-    try {
-      downloadAsPdf(SCREENSHOT_NODE_SELECTOR, dashboardTitle, true)(e);
-    } catch (error) {
-      logging.error(error);
-      addDangerToast(t('Sorry, something went wrong. Try again later.'));
-    }
-    logEvent?.(LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF);
-  };
-  // case MENU_KEYS.DOWNLOAD_DASHBOARD: {
-  //   // menu closes with a delay, we need to hide it manually,
-  //   // so that we don't capture it on the screenshot
-  //   const menu = document.querySelector(
-  //     '.ant-dropdown:not(.ant-dropdown-hidden)',
-  //   );
-  //   menu.style.visibility = 'hidden';
-  //   downloadAsImage(
-  //     SCREENSHOT_NODE_SELECTOR,
-  //     this.props.dashboardTitle,
-  //     true,
-  //   )(domEvent).then(() => {
-  //     menu.style.visibility = 'visible';
-  //   });
-  //   this.props.logEvent?.(LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE);
-  //   break;
-  // }
-  const onDownloadImage = async (e: SyntheticEvent) => {
-    try {
-      downloadAsImage(SCREENSHOT_NODE_SELECTOR, dashboardTitle, true)(e);
-    } catch (error) {
-      logging.error(error);
-      addDangerToast(t('Sorry, something went wrong. Try again later.'));
-    }
-    logEvent?.(LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE);
-  };
 
   return (
     <Menu selectable={false}>
-      <Menu.Item key="download-pdf" {...rest}>
-        <div onClick={onDownloadPDF} role="button" tabIndex={0}>
-          {pdfMenuItemTitle}
-        </div>
-      </Menu.Item>
-      <Menu.Item key="download-image" {...rest}>
-        <div onClick={onDownloadImage} role="button" tabIndex={0}>
-          {imageMenuItemTitle}
-        </div>
-      </Menu.Item>
+      <DownloadAsPdf
+        text={pdfMenuItemTitle}
+        addDangerToast={addDangerToast}
+        dashboardTitle={dashboardTitle}
+        logEvent={logEvent}
+      />
+      <DownloadAsImage
+        text={imageMenuItemTitle}
+        addDangerToast={addDangerToast}
+        dashboardTitle={dashboardTitle}
+        logEvent={logEvent}
+      />
     </Menu>
   );
 };
 
-export default ShareMenuItems;
+export default DownloadMenuItems;

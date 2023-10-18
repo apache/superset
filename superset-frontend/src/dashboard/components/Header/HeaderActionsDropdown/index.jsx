@@ -303,7 +303,6 @@ class HeaderActionsDropdown extends React.PureComponent {
               pdfMenuItemTitle={t('Export to PDF')}
               imageMenuItemTitle={t('Download as Image')}
               dashboardTitle={dashboardTitle}
-              addSuccessToast={addSuccessToast}
               addDangerToast={addDangerToast}
             />
           </Menu.SubMenu>

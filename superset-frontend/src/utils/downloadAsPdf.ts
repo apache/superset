@@ -19,7 +19,7 @@
 import { SyntheticEvent } from 'react';
 import domToPdf from 'dom-to-pdf';
 import kebabCase from 'lodash/kebabCase';
-import { t } from '@superset-ui/core';
+import { logging, t } from '@superset-ui/core';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
 
 /**
@@ -59,16 +59,15 @@ export default function downloadAsPdf(
     const options = {
       margin: 10,
       filename: `${generateFileStem(description)}.pdf`,
-      image: { type: 'jpeg', quality: 0.95 },
+      image: { type: 'jpeg', quality: 1 },
       html2canvas: { scale: 2 },
     };
-    console.log('in downloadAsPdf');
     return domToPdf(elementToPrint, options)
       .then(() => {
         // nothing to be done
       })
       .catch((e: Error) => {
-        console.error('PDF generation failed', e);
+        logging.error('PDF generation failed', e);
       });
   };
 }
