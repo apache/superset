@@ -83,7 +83,11 @@ const TagsList = ({
             />
           ))}
           {tags.length > tempMaxTags ? (
-            <Tag name={`+${extraTags}...`} onClick={expand} />
+            <Tag
+              name={`+${extraTags}...`}
+              onClick={expand}
+              toolTipTitle={tags.map(t => t.name).join(', ')}
+            />
           ) : null}
         </>
       ) : (
