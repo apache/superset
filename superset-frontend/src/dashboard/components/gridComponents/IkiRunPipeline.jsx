@@ -55,7 +55,7 @@ import {
   GRID_BASE_UNIT,
 } from 'src/dashboard/util/constants';
 import { refreshChart } from 'src/components/Chart/chartAction';
-// import { chart } from 'src/components/Chart/chartReducer';
+
 const { Buffer } = require('buffer');
 
 const propTypes = {

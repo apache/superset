@@ -505,8 +505,8 @@ class IkiEitlColumn extends React.PureComponent {
             <div
               data-test="dashboard-markdown-editor"
               className={cx(
-                'dashboard-component-ikieitlcolumn',
-                isEditing && 'dashboard-component-ikieitlcolumn--editing',
+                'dashboard-component-ikirunpipeline',
+                isEditing && 'dashboard-component-ikirunpipeline--editing',
               )}
               id={component.id}
             >
