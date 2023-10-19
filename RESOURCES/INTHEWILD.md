@@ -43,6 +43,7 @@ Join our growing community!
 - [KarrotPay](https://www.daangnpay.com/)
 - [Wise](https://wise.com) [@koszti]
 - [Xendit](http://xendit.co/) [@LieAlbertTriAdrian]
+- [Taveo](https://www.taveo.com) [@codek]
 
 ### Gaming
 - [Digit Game Studios](https://www.digitgaming.com/)
