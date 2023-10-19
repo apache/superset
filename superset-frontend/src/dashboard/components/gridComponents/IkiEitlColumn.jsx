@@ -234,7 +234,7 @@ class IkiEitlColumn extends React.PureComponent {
             console.log('messageData', messageData);
             console.log('messageObject', messageObject);
             widgetUrlQuery = new URLSearchParams(widgetUrl.search);
-            widgetUrlQuery.set('mode', messageData.mode);
+            widgetUrlQuery.set('mode', 'preview');
             widgetUrlQuery.set('pipeline_id', messageData.pipeline_id);
             widgetUrlQuery.set(
               'model',

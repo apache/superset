@@ -320,7 +320,7 @@ class IkiEitlRow extends React.PureComponent {
         ).src,
       );
     } else {
-      widgetUrl = `${this.props.ikigaiOrigin}/widget/eitl/column`;
+      widgetUrl = `${this.props.ikigaiOrigin}/widget/eitl/row`;
     }
     const widgetUrlQuery = new URLSearchParams(widgetUrl.search);
     widgetUrlQuery.set('mode', mode);
