@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from marshmallow import fields, Schema
+from marshmallow.validate import Range
 
 from superset.dashboards.schemas import UserSchema
 
@@ -60,7 +61,8 @@ class TagObjectSchema(Schema):
     name = fields.String()
     description = fields.String(required=False, allow_none=True)
     objects_to_tag = fields.List(
-        fields.Tuple((fields.String(), fields.Int())), required=False
+        fields.Tuple((fields.String(), fields.Int(validate=Range(min=1)))),
+        required=False,
     )
 
 

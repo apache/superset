@@ -119,7 +119,12 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
   async componentDidMount() {
     let { dashboardId } = this.props;
     if (!dashboardId) {
-      const lastDashboard = sessionStorage.getItem(SK_DASHBOARD_ID);
+      let lastDashboard = null;
+      try {
+        lastDashboard = sessionStorage.getItem(SK_DASHBOARD_ID);
+      } catch (error) {
+        // continue regardless of error
+      }
       dashboardId = lastDashboard && parseInt(lastDashboard, 10);
     }
     if (dashboardId) {
@@ -158,6 +163,17 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
   onHide() {
     this.props.dispatch(setSaveChartModalVisibility(false));
   }
+
+  handleRedirect = (windowLocationSearch: string, chart: any) => {
+    const searchParams = new URLSearchParams(windowLocationSearch);
+    searchParams.set('save_action', this.state.action);
+    if (this.state.action !== 'overwrite') {
+      searchParams.delete('form_data_key');
+    }
+
+    searchParams.set('slice_id', chart.id.toString());
+    return searchParams;
+  };
 
   async saveOrOverwrite(gotodash: boolean) {
     this.setState({ isLoading: true });
@@ -249,10 +265,14 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
         );
       }
 
-      if (dashboard) {
-        sessionStorage.setItem(SK_DASHBOARD_ID, `${dashboard.id}`);
-      } else {
-        sessionStorage.removeItem(SK_DASHBOARD_ID);
+      try {
+        if (dashboard) {
+          sessionStorage.setItem(SK_DASHBOARD_ID, `${dashboard.id}`);
+        } else {
+          sessionStorage.removeItem(SK_DASHBOARD_ID);
+        }
+      } catch (error) {
+        // continue regardless of error
       }
 
       // Go to new dashboard url
@@ -261,14 +281,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
         return;
       }
 
-      const searchParams = new URLSearchParams(window.location.search);
-      searchParams.set('save_action', this.state.action);
-      if (this.state.action !== 'overwrite') {
-        searchParams.delete('form_data_key');
-      }
-      if (this.state.action === 'saveas') {
-        searchParams.set('slice_id', value.id.toString());
-      }
+      const searchParams = this.handleRedirect(window.location.search, value);
       this.props.history.replace(`/explore/?${searchParams.toString()}`);
 
       this.setState({ isLoading: false });
@@ -518,3 +531,6 @@ function mapStateToProps({
 }
 
 export default withRouter(connect(mapStateToProps)(SaveModal));
+
+// User for testing purposes need to revisit once we convert this to functional component
+export { SaveModal as PureSaveModal };

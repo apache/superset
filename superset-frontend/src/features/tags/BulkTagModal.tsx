@@ -67,7 +67,18 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({
       },
     })
       .then(({ json = {} }) => {
-        addSuccessToast(t('Tagged %s %ss', selected.length, resourceName));
+        const skipped = json.result.objects_skipped;
+        const tagged = json.result.objects_tagged;
+        if (skipped.length > 0) {
+          addSuccessToast(
+            t(
+              '%s items could not be tagged because you don’t have edit permissions to all selected objects.',
+              skipped.length,
+              resourceName,
+            ),
+          );
+        }
+        addSuccessToast(t('Tagged %s %ss', tagged.length, resourceName));
       })
       .catch(err => {
         addDangerToast(t('Failed to tag items'));

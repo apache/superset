@@ -24,7 +24,7 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { Row, Col, Grid } from 'src/components';
 import { MainNav as DropdownMenu, MenuMode } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { GenericLink } from 'src/components/GenericLink/GenericLink';
 import Icons from 'src/components/Icons';
 import { useUiConfig } from 'src/components/UiConfigContext';
@@ -209,6 +209,33 @@ export function Menu({
     return () => window.removeEventListener('resize', windowResize);
   }, []);
 
+  enum paths {
+    EXPLORE = '/explore',
+    DASHBOARD = '/dashboard',
+    CHART = '/chart',
+    DATASETS = '/tablemodelview',
+  }
+
+  const defaultTabSelection: string[] = [];
+  const [activeTabs, setActiveTabs] = useState(defaultTabSelection);
+  const location = useLocation();
+  useEffect(() => {
+    const path = location.pathname;
+    switch (true) {
+      case path.startsWith(paths.DASHBOARD):
+        setActiveTabs(['Dashboards']);
+        break;
+      case path.startsWith(paths.CHART) || path.startsWith(paths.EXPLORE):
+        setActiveTabs(['Charts']);
+        break;
+      case path.startsWith(paths.DATASETS):
+        setActiveTabs(['Datasets']);
+        break;
+      default:
+        setActiveTabs(defaultTabSelection);
+    }
+  }, [location.pathname]);
+
   const standalone = getUrlParam(URL_PARAMS.standalone);
   if (standalone || uiConfig.hideNav) return <></>;
 
@@ -297,6 +324,7 @@ export function Menu({
             mode={showMenu}
             data-test="navbar-top"
             className="main-nav"
+            selectedKeys={activeTabs}
           >
             {menu.map((item, index) => {
               const props = {

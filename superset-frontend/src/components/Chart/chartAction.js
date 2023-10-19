@@ -42,6 +42,7 @@ import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
 import { updateDataMask } from 'src/dataMask/actions';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
+import { safeStringify } from 'src/utils/safeStringify';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
@@ -579,12 +580,18 @@ export function redirectSQLLab(formData, history) {
           datasourceKey: formData.datasource,
           sql: json.result[0].query,
         };
-        history.push({
-          pathname: redirectUrl,
-          state: {
-            requestedQuery: payload,
-          },
-        });
+        if (history) {
+          history.push({
+            pathname: redirectUrl,
+            state: {
+              requestedQuery: payload,
+            },
+          });
+        } else {
+          SupersetClient.postForm(redirectUrl, {
+            form_data: safeStringify(payload),
+          });
+        }
       })
       .catch(() =>
         dispatch(addDangerToast(t('An error occurred while loading the SQL'))),
