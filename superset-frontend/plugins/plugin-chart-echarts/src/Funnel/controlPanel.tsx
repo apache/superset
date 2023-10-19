@@ -128,7 +128,7 @@ const config: ControlPanelConfig = {
                   t('Category, Value and Percentage'),
                 ],
               ],
-              description: t('What should be shown as the tooltip Label'),
+              description: t('What should be shown as the tooltip label'),
             },
           },
         ],
