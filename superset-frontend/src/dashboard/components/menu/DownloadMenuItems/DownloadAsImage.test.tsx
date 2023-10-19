@@ -1,26 +1,22 @@
+import React from 'react';
 import { SyntheticEvent } from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
-import 'jest-canvas-mock';
-import DownloadAsImage from './DownloadAsImage';
-import downloadAsImage from 'src/utils/downloadAsImage';
 import { Menu } from 'src/components/Menu';
+import DownloadAsImage from './DownloadAsImage';
+import userEvent from '@testing-library/user-event';
+import downloadAsImage from 'src/utils/downloadAsImage';
 
-jest.mock('src/utils/downloadAsImage', () => {
-  return {
-    __esModule: true,
-    default: jest.fn(() => (_e: SyntheticEvent) => {}),
-  };
+jest.mock('src/utils/downloadAsImage', () => ({
+  __esModule: true,
+  default: jest.fn(() => (_e: SyntheticEvent) => {}),
+}));
+
+const createProps = () => ({
+  addDangerToast: jest.fn(),
+  text: 'Download as Image',
+  dashboardTitle: 'Test Dashboard',
+  logEvent: jest.fn(),
 });
-
-const createProps = () => {
-  return {
-    addDangerToast: jest.fn(),
-    text: 'Download as Image',
-    dashboardTitle: 'Test Dashboard',
-    logEvent: jest.fn(),
-  };
-};
 
 const renderComponent = () => {
   render(
@@ -37,6 +33,7 @@ test('Should call download image on click', async () => {
     expect(downloadAsImage).toBeCalledTimes(0);
     expect(props.addDangerToast).toBeCalledTimes(0);
   });
+
   userEvent.click(screen.getByRole('button', { name: 'Download as Image' }));
 
   await waitFor(() => {

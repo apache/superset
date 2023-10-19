@@ -1,8 +1,8 @@
 import React, { SyntheticEvent } from 'react';
 import { logging, t } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
-import downloadAsImage from 'src/utils/downloadAsImage';
 import { LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
+import downloadAsImage from 'src/utils/downloadAsImage';
 
 export default function DownloadAsImage({
   text,

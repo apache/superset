@@ -1,26 +1,22 @@
+import React from 'react';
 import { SyntheticEvent } from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { Menu } from 'src/components/Menu';
 import DownloadAsPdf from './DownloadAsPdf';
 import userEvent from '@testing-library/user-event';
-// import 'jest-canvas-mock';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
-import { Menu } from 'src/components/Menu';
 
-jest.mock('src/utils/downloadAsPdf', () => {
-  return {
-    __esModule: true,
-    default: jest.fn(() => (_e: SyntheticEvent) => {}),
-  };
+jest.mock('src/utils/downloadAsPdf', () => ({
+  __esModule: true,
+  default: jest.fn(() => (_e: SyntheticEvent) => {}),
+}));
+
+const createProps = () => ({
+  addDangerToast: jest.fn(),
+  text: 'Export as PDF',
+  dashboardTitle: 'Test Dashboard',
+  logEvent: jest.fn(),
 });
-
-const createProps = () => {
-  return {
-    addDangerToast: jest.fn(),
-    text: 'Export as PDF',
-    dashboardTitle: 'Test Dashboard',
-    logEvent: jest.fn(),
-  };
-};
 
 const renderComponent = () => {
   render(
