@@ -311,12 +311,12 @@ class IkiEitlRow extends React.PureComponent {
 
     if (
       document.getElementById(
-        `ikirunpipeline-widget-${this.props.component.id}`,
+        `ikieitlrow-widget-${this.props.component.id}`,
       )
     ) {
       widgetUrl = new URL(
         document.getElementById(
-          `ikirunpipeline-widget-${this.props.component.id}`,
+          `ikieitlrow-widget-${this.props.component.id}`,
         ).src,
       );
     } else {
@@ -326,11 +326,11 @@ class IkiEitlRow extends React.PureComponent {
     widgetUrlQuery.set('mode', mode);
     widgetUrl.search = widgetUrlQuery.toString();
     const tempIframe = `<iframe
-                      id="ikirunpipeline-widget-${this.props.component.id}"
+                      id="ikieitlrow-widget-${this.props.component.id}"
                       name="run-flow-component"
                       src="${widgetUrl}"
                       title="IkiRunPipeline Component"
-                      className="ikirunpipeline-widget"
+                      className="ikieitlrow-widget"
                       style="min-height: 100%;"
                     />`;
     this.handleIkiRunPipelineChange(tempIframe);
