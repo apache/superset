@@ -26,11 +26,7 @@ import {
 } from '@superset-ui/core';
 import { BarDataItemOption } from 'echarts/types/src/chart/bar/BarSeries';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
-import {
-  BaseTransformedProps,
-  CrossFilterTransformedProps,
-  LegendFormData,
-} from '../types';
+import { BaseTransformedProps, LegendFormData } from '../types';
 
 export type WaterfallFormXTicksLayout =
   | '45°'
@@ -73,4 +69,4 @@ export interface EchartsWaterfallChartProps extends ChartProps {
 }
 
 export type WaterfallChartTransformedProps =
-  BaseTransformedProps<EchartsWaterfallFormData> & CrossFilterTransformedProps;
+  BaseTransformedProps<EchartsWaterfallFormData>;

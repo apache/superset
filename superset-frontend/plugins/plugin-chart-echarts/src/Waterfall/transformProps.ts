@@ -21,7 +21,6 @@ import {
   DataRecord,
   ensureIsArray,
   GenericDataType,
-  getColumnLabel,
   getMetricLabel,
   getNumberFormatter,
   getTimeFormatter,
@@ -40,7 +39,7 @@ import {
 import { getDefaultTooltip } from '../utils/tooltip';
 import { defaultGrid, defaultYAxis } from '../defaults';
 import { ASSIST_MARK, LEGEND, TOKEN, TOTAL_MARK } from './constants';
-import { extractGroupbyLabel, getColtypesMapping } from '../utils/series';
+import { getColtypesMapping } from '../utils/series';
 import { Refs } from '../types';
 import { NULL_STRING } from '../constants';
 
@@ -177,7 +176,6 @@ export default function transformProps(
     legendState,
     queriesData,
     hooks,
-    filterState,
     theme,
     inContextMenu,
   } = chartProps;
@@ -217,9 +215,6 @@ export default function transformProps(
     : breakdownColumn;
   const xAxisName = isAdhocColumn(xAxis) ? xAxis.label! : xAxis;
   const metricLabel = getMetricLabel(metric);
-  const columns = breakdownColumn ? [xAxis, breakdownColumn] : [xAxis];
-  const columnLabels = columns.map(getColumnLabel);
-  const columnsLabelMap = new Map<string, string[]>();
 
   const transformedData = transformer({
     data,
@@ -250,19 +245,6 @@ export default function transformProps(
     const isTotal =
       (breakdownName && datum[breakdownName] === TOTAL_MARK) ||
       datum[xAxisName] === TOTAL_MARK;
-
-    const joinedName = isTotal
-      ? TOTAL_MARK
-      : extractGroupbyLabel({
-          datum,
-          groupby: columnLabels,
-          coltypeMapping,
-        });
-
-    columnsLabelMap.set(
-      joinedName,
-      columnLabels.map(col => datum[col] as string),
-    );
 
     const originalValue = datum[metricLabel] as number;
     let value = originalValue;
@@ -494,9 +476,6 @@ export default function transformProps(
     height,
     echartOptions,
     setDataMask,
-    labelMap: Object.fromEntries(columnsLabelMap),
-    groupby: columns,
-    selectedValues: filterState.selectedValues || [],
     onContextMenu,
     onLegendStateChanged,
   };
