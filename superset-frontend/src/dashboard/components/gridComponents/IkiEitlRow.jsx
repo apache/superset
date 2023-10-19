@@ -206,7 +206,6 @@ class IkiEitlRow extends React.PureComponent {
           let messageData;
           let widgetUrl;
           let widgetUrlQuery;
-          // let widgetUrlQueryMode;
 
           if (dataType === 'object') {
             messageData = JSON.parse(messageObject.data);
@@ -224,17 +223,20 @@ class IkiEitlRow extends React.PureComponent {
                 `ikieitlrow-widget-${this.props.component.id}`,
               ).src,
             );
-            // widgetUrlQueryMode = widgetUrl.searchParams.get('mode');
           } else {
             widgetUrl = `${this.props.ikigaiOrigin}/widget/eitl/row`;
           }
 
           if (messageObject.info === 'eitlr-to-superset/sending-model-data') {
-            console.log('messageData', messageData);
-            console.log('messageObject', messageObject);
             widgetUrlQuery = new URLSearchParams(widgetUrl.search);
             widgetUrlQuery.set('mode', 'preview');
             console.log('widgetUrlQuery before', widgetUrlQuery.toString());
+            widgetUrlQuery.set(
+              'pipeline',
+              Buffer.from(JSON.stringify(messageData.pipeline)).toString(
+                'base64',
+              ),
+            );
             widgetUrlQuery.set(
               'model',
               Buffer.from(JSON.stringify(messageData.model)).toString('base64'),
@@ -260,7 +262,6 @@ class IkiEitlRow extends React.PureComponent {
           } else if (
             messageObject.info === 'top-window-to-widget/sending-project-id'
           ) {
-            console.log('received project id from top window', messageData);
             const projectId = messageData;
             widgetUrlQuery = new URLSearchParams(widgetUrl.search);
             widgetUrlQuery.set('project_id', projectId);
@@ -414,6 +415,9 @@ class IkiEitlRow extends React.PureComponent {
         const paramProjectId = iframeSrcUrl.searchParams.get('project_id')
           ? iframeSrcUrl.searchParams.get('project_id')
           : '';
+        const paramPipeline = iframeSrcUrl.searchParams.get('pipeline')
+          ? iframeSrcUrl.searchParams.get('pipeline')
+          : '';
         const paramModel = iframeSrcUrl.searchParams.get('model')
           ? iframeSrcUrl.searchParams.get('model')
           : '';
@@ -421,7 +425,7 @@ class IkiEitlRow extends React.PureComponent {
           ? iframeSrcUrl.searchParams.get('version')
           : '';
 
-        const newIframeSrc = `${ikigaiOrigin}/widget/eitl/row?mode=${paramMode}&project_id=${paramProjectId}&model=${paramModel}&version=${paramVersion}`;
+        const newIframeSrc = `${ikigaiOrigin}/widget/eitl/row?mode=${paramMode}&project_id=${paramProjectId}&pipeline=${paramPipeline}&model=${paramModel}&version=${paramVersion}`;
         iframeSrc = newIframeSrc;
       } else {
         iframeSrc = `${ikigaiOrigin}/widget/eitl/row`;
