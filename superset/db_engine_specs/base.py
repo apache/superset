@@ -1548,7 +1548,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if cls.arraysize:
             cursor.arraysize = cls.arraysize
         try:
-            print(query)
             cursor.execute(query)
         except Exception as ex:
             raise cls.get_dbapi_mapped_exception(ex) from ex
