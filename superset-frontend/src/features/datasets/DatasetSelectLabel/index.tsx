@@ -24,9 +24,10 @@ type Database = {
   database_name: string;
 };
 
-type Dataset = {
+export type Dataset = {
   id: number;
   table_name: string;
+  datasource_type?: string;
   schema: string;
   database: Database;
 };
@@ -90,21 +91,28 @@ const StyledLabelDetail = styled.span`
   `}
 `;
 
-export const DatasetLabel = (item: Dataset | Record<string, any>) => (
+const isValidValue = (value: string): boolean => {
+  return !['null', 'none'].includes(value.toLowerCase()) && value.trim() !== '';
+};
+
+export const DatasetSelectLabel = (item: Dataset) => (
   <Tooltip
     mouseEnterDelay={0.2}
     placement="right"
     title={
       <TooltipContent>
-        <div className="tooltip-header">{item.table_name}</div>
+        <div className="tooltip-header">
+          {item.table_name && isValidValue(item.table_name)
+            ? item.table_name
+            : t('Not defined')}
+        </div>
         <div className="tooltip-description">
           <div>
             {t('Database')}: {item.database.database_name}
           </div>
           <div>
             {t('Schema')}:{' '}
-            {item.schema &&
-            !['null', 'none'].includes(item.schema.toLowerCase())
+            {item.schema && isValidValue(item.schema)
               ? item.schema
               : t('Not defined')}
           </div>
@@ -113,13 +121,16 @@ export const DatasetLabel = (item: Dataset | Record<string, any>) => (
     }
   >
     <StyledLabelContainer>
-      <StyledLabel>{item.table_name}</StyledLabel>
+      <StyledLabel>
+        {item.table_name && isValidValue(item.table_name)
+          ? item.table_name
+          : item.database.database_name}
+      </StyledLabel>
       <StyledDetailWrapper>
         <StyledLabelDetail>{item.database.database_name}</StyledLabelDetail>
-        {item.schema &&
-          !['null', 'none'].includes(item.schema.toLowerCase()) && (
-            <StyledLabelDetail>&nbsp;- {item.schema}</StyledLabelDetail>
-          )}
+        {item.schema && isValidValue(item.schema) && (
+          <StyledLabelDetail>&nbsp;- {item.schema}</StyledLabelDetail>
+        )}
       </StyledDetailWrapper>
     </StyledLabelContainer>
   </Tooltip>

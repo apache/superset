@@ -25,18 +25,10 @@ import {
   getClientErrorObject,
 } from 'src/utils/getClientErrorObject';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
-import { DatasetLabel } from 'src/features/datasets/DatasetLabel';
-
-type Database = {
-  database_name: string;
-};
-
-type Dataset = {
-  id: number;
-  table_name: string;
-  schema: string;
-  database: Database;
-};
+import {
+  Dataset,
+  DatasetSelectLabel,
+} from 'src/features/datasets/DatasetSelectLabel';
 
 interface DatasetSelectProps {
   onChange: (value: { label: string; value: number }) => void;
@@ -77,7 +69,7 @@ const DatasetSelect = ({ onChange, value }: DatasetSelectProps) => {
           label: string;
           value: string | number;
         }[] = response.json.result.map((item: Dataset) => ({
-          customLabel: DatasetLabel(item),
+          customLabel: DatasetSelectLabel(item),
           label: item.table_name,
           value: item.id,
         }));
