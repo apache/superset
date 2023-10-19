@@ -32,7 +32,8 @@ import {
 import { DEFAULT_FORM_DATA, EchartsFunnelLabelTypeType } from './types';
 import { legendSection } from '../controls';
 
-const { labelType, numberFormat, showLabels } = DEFAULT_FORM_DATA;
+const { labelType, numberFormat, showLabels, defaultTooltipLabel } =
+  DEFAULT_FORM_DATA;
 
 const funnelLegendSection = [...legendSection];
 funnelLegendSection.splice(2, 1);
@@ -85,32 +86,6 @@ const config: ControlPanelConfig = {
             config: {
               type: 'SelectControl',
               label: t('Label Contents'),
-              default: EchartsFunnelLabelTypeType.KeyValuePercent,
-              renderTrigger: true,
-              choices: [
-                [EchartsFunnelLabelTypeType.Key, t('Category Name')],
-                [EchartsFunnelLabelTypeType.Value, t('Value')],
-                [EchartsFunnelLabelTypeType.Percent, t('Percentage')],
-                [EchartsFunnelLabelTypeType.KeyValue, t('Category and Value')],
-                [
-                  EchartsFunnelLabelTypeType.KeyPercent,
-                  t('Category and Percentage'),
-                ],
-                [
-                  EchartsFunnelLabelTypeType.KeyValuePercent,
-                  t('Category, Value and Percentage'),
-                ],
-              ],
-              description: t('What should be shown on the label?'),
-            },
-          },
-        ],
-        [
-          {
-            name: 'tooltip_label_type',
-            config: {
-              type: 'SelectControl',
-              label: t('Tooltip Contents'),
               default: labelType,
               renderTrigger: true,
               choices: [
@@ -127,7 +102,33 @@ const config: ControlPanelConfig = {
                   t('Category, Value and Percentage'),
                 ],
               ],
-              description: t('What should be shown on the tooltip Label?'),
+              description: t('What should be shown on the label'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'tooltip_label_type',
+            config: {
+              type: 'SelectControl',
+              label: t('Tooltip Contents'),
+              default: defaultTooltipLabel,
+              renderTrigger: true,
+              choices: [
+                [EchartsFunnelLabelTypeType.Key, t('Category Name')],
+                [EchartsFunnelLabelTypeType.Value, t('Value')],
+                [EchartsFunnelLabelTypeType.Percent, t('Percentage')],
+                [EchartsFunnelLabelTypeType.KeyValue, t('Category and Value')],
+                [
+                  EchartsFunnelLabelTypeType.KeyPercent,
+                  t('Category and Percentage'),
+                ],
+                [
+                  EchartsFunnelLabelTypeType.KeyValuePercent,
+                  t('Category, Value and Percentage'),
+                ],
+              ],
+              description: t('What should be shown on the tooltip Label'),
             },
           },
         ],

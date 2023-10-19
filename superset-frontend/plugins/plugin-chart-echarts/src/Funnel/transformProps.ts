@@ -115,6 +115,7 @@ export default function transformProps(
     numberFormat,
     currencyFormat,
     showLabels,
+    inContextMenu,
     showTooltipLabels,
     showLegend,
     sliceId,
@@ -229,7 +230,7 @@ export default function transformProps(
     },
     tooltip: {
       ...getDefaultTooltip(refs),
-      show: showTooltipLabels,
+      show: !inContextMenu && showTooltipLabels,
       trigger: 'item',
       formatter: (params: any) =>
         formatFunnelLabel({

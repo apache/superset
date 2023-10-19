@@ -64,6 +64,7 @@ export const DEFAULT_FORM_DATA: EchartsFunnelFormData = {
   groupby: [],
   labelLine: false,
   labelType: EchartsFunnelLabelTypeType.Key,
+  defaultTooltipLabel: EchartsFunnelLabelTypeType.KeyValuePercent,
   legendOrientation: LegendOrientation.Top,
   legendType: LegendType.Scroll,
   numberFormat: 'SMART_NUMBER',
