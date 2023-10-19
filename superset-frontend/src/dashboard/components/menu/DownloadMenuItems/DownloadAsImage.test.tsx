@@ -2,9 +2,9 @@ import React from 'react';
 import { SyntheticEvent } from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import { Menu } from 'src/components/Menu';
+import downloadAsImage from 'src/utils/downloadAsImage';
 import DownloadAsImage from './DownloadAsImage';
 import userEvent from '@testing-library/user-event';
-import downloadAsImage from 'src/utils/downloadAsImage';
 
 jest.mock('src/utils/downloadAsImage', () => ({
   __esModule: true,
