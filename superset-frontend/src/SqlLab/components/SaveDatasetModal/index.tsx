@@ -257,7 +257,7 @@ export const SaveDatasetModal = ({
       });
 
       return SupersetClient.get({
-        endpoint: `/api/v1/dataset?q=${queryParams}`,
+        endpoint: `/api/v1/dataset/?q=${queryParams}`,
       }).then(response => ({
         data: response.json.result.map(
           (r: { table_name: string; id: number; owners: [DatasetOwner] }) => ({
