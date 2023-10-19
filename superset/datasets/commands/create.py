@@ -54,7 +54,7 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
             logger.warning(ex, exc_info=True)
             db.session.rollback()
             raise DatasetCreateFailedError(
-                *{"message": str(ex)}
+                *{"message": str(ex), "exception": ex}
                 if isinstance(ex, SupersetSecurityException)
                 else {"exception": ex}
             ) from ex
