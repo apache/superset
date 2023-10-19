@@ -163,7 +163,7 @@ how to set up a development environment.
 - [Feature Flags](RESOURCES/FEATURE_FLAGS.md) - the status of Superset's Feature Flags.
 - [Standard Roles](RESOURCES/STANDARD_ROLES.md) - How RBAC permissions map to roles.
 - [Superset Wiki](https://github.com/apache/superset/wiki) - Tons of additional community resources: best practices, community content and other information.
-- [Superset SIPs](https://github.com/orgs/apache/projects/170) - The status of Superset's SIPs (Superset Improvment Proposals) for both consensus and implementation status.
+- [Superset SIPs](https://github.com/orgs/apache/projects/170) - The status of Superset's SIPs (Superset Improvement Proposals) for both consensus and implementation status.
 
 Superset 2.0!
 - [Superset 2.0 Meetup](https://preset.io/events/superset-2-0-meetup/)
