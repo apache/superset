@@ -91,9 +91,8 @@ const StyledLabelDetail = styled.span`
   `}
 `;
 
-const isValidValue = (value: string): boolean => {
-  return !['null', 'none'].includes(value.toLowerCase()) && value.trim() !== '';
-};
+const isValidValue = (value: string): boolean =>
+  !['null', 'none'].includes(value.toLowerCase()) && value.trim() !== '';
 
 export const DatasetSelectLabel = (item: Dataset) => (
   <Tooltip
