@@ -42,8 +42,6 @@ import {
   DatasetRadioState,
   EXPLORE_CHART_DEFAULT,
   DatasetOwner,
-  SqlLabExploreRootState,
-  getInitialState,
   SqlLabRootState,
 } from 'src/SqlLab/types';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
@@ -163,7 +161,7 @@ export const SaveDatasetModal = ({
   );
 
   const getDefaultDatasetName = () =>
-    `${datasource?.name || UNTITLED} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
+    `${datasource?.name || UNTITLED} ${moment().format('L HH:mm:ss')}`;
   const [datasetName, setDatasetName] = useState(getDefaultDatasetName());
   const [newOrOverwrite, setNewOrOverwrite] = useState(
     DatasetRadioState.SAVE_NEW,
@@ -177,9 +175,7 @@ export const SaveDatasetModal = ({
   >(undefined);
   const [loading, setLoading] = useState<boolean>(false);
 
-  const user = useSelector<SqlLabExploreRootState, User>(user =>
-    getInitialState(user),
-  );
+  const user = useSelector<SqlLabRootState, User>(state => state.user);
   const dispatch = useDispatch<(dispatch: any) => Promise<JsonObject>>();
 
   const createWindow = (url: string) => {
@@ -296,6 +292,7 @@ export const SaveDatasetModal = ({
       createDatasource({
         sql: datasource.sql,
         dbId: datasource.dbId || datasource?.database?.id,
+        schema: datasource?.schema,
         templateParams,
         datasourceName: datasetName,
       }),

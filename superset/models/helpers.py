@@ -98,6 +98,7 @@ config = app.config
 logger = logging.getLogger(__name__)
 
 VIRTUAL_TABLE_ALIAS = "virtual_table"
+SERIES_LIMIT_SUBQ_ALIAS = "series_limit"
 ADVANCED_DATA_TYPES = config["ADVANCED_DATA_TYPES"]
 
 
@@ -182,7 +183,7 @@ class ImportExportMixin:
     __mapper__: Mapper
 
     @classmethod
-    def _unique_constrains(cls) -> list[set[str]]:
+    def _unique_constraints(cls) -> list[set[str]]:
         """Get all (single column and multi column) unique constraints"""
         unique = [
             {c.name for c in u.columns}
@@ -244,6 +245,7 @@ class ImportExportMixin:
         parent: Optional[Any] = None,
         recursive: bool = True,
         sync: Optional[list[str]] = None,
+        allow_reparenting: bool = False,
     ) -> Any:
         """Import obj from a dictionary"""
         if sync is None:
@@ -256,7 +258,7 @@ class ImportExportMixin:
             | {"uuid"}
         )
         new_children = {c: dict_rep[c] for c in cls.export_children if c in dict_rep}
-        unique_constrains = cls._unique_constrains()
+        unique_constraints = cls._unique_constraints()
 
         filters = []  # Using these filters to check if obj already exists
 
@@ -275,8 +277,11 @@ class ImportExportMixin:
             for k, v in parent_refs.items():
                 dict_rep[k] = getattr(parent, v)
 
-        # Add filter for parent obj
-        filters.extend([getattr(cls, k) == dict_rep.get(k) for k in parent_refs.keys()])
+        if not allow_reparenting:
+            # Add filter for parent obj
+            filters.extend(
+                [getattr(cls, k) == dict_rep.get(k) for k in parent_refs.keys()]
+            )
 
         # Add filter for unique constraints
         ucs = [
@@ -287,7 +292,7 @@ class ImportExportMixin:
                     if dict_rep.get(k) is not None
                 ]
             )
-            for cs in unique_constrains
+            for cs in unique_constraints
         ]
         filters.append(or_(*ucs))
 
@@ -455,7 +460,7 @@ def _user_link(user: User) -> Union[Markup, str]:
     if not user:
         return ""
     url = f"/superset/profile/{user.username}/"
-    return Markup('<a href="{}">{}</a>'.format(url, escape(user) or ""))
+    return Markup(f"<a href=\"{url}\">{escape(user) or ''}</a>")
 
 
 class AuditMixinNullable(AuditMixin):
@@ -470,7 +475,7 @@ class AuditMixinNullable(AuditMixin):
     )
 
     @declared_attr
-    def created_by_fk(self) -> sa.Column:
+    def created_by_fk(self) -> sa.Column:  # pylint: disable=arguments-renamed
         return sa.Column(
             sa.Integer,
             sa.ForeignKey("ab_user.id"),
@@ -479,7 +484,7 @@ class AuditMixinNullable(AuditMixin):
         )
 
     @declared_attr
-    def changed_by_fk(self) -> sa.Column:
+    def changed_by_fk(self) -> sa.Column:  # pylint: disable=arguments-renamed
         return sa.Column(
             sa.Integer,
             sa.ForeignKey("ab_user.id"),
@@ -598,7 +603,7 @@ class ExtraJSONMixin:
         self.extra_json = json.dumps(extra)
 
     @validates("extra_json")
-    def ensure_extra_json_is_not_none(  # pylint: disable=no-self-use
+    def ensure_extra_json_is_not_none(
         self,
         _: str,
         value: Optional[dict[str, Any]],
@@ -748,6 +753,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         raise NotImplementedError()
 
     @property
+    def always_filter_main_dttm(self) -> Optional[bool]:
+        return False
+
+    @property
     def dttm_cols(self) -> list[str]:
         raise NotImplementedError()
 
@@ -824,7 +833,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
             ) from ex
 
-    def _process_sql_expression(  # pylint: disable=no-self-use
+    def _process_sql_expression(
         self,
         expression: Optional[str],
         database_id: int,
@@ -1459,7 +1468,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         groupby = groupby or []
         rejected_adhoc_filters_columns: list[Union[str, ColumnTyping]] = []
         applied_adhoc_filters_columns: list[Union[str, ColumnTyping]] = []
-        series_column_names = utils.get_column_names(series_columns or [])
+        db_engine_spec = self.db_engine_spec
+        series_column_labels = [
+            db_engine_spec.make_label_compatible(column)
+            for column in utils.get_column_names(
+                columns=series_columns or [],
+            )
+        ]
         # deprecated, to be removed in 2.0
         if is_timeseries and timeseries_limit:
             series_limit = timeseries_limit
@@ -1472,7 +1487,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         template_kwargs["removed_filters"] = removed_filters
         template_kwargs["applied_filters"] = applied_template_filters
         template_processor = self.get_template_processor(**template_kwargs)
-        db_engine_spec = self.db_engine_spec
         prequeries: list[str] = []
         orderby = orderby or []
         need_groupby = bool(metrics is not None or groupby)
@@ -1616,8 +1630,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
                 groupby_all_columns[outer.name] = outer
                 if (
-                    is_timeseries and not series_column_names
-                ) or outer.name in series_column_names:
+                    is_timeseries and not series_column_labels
+                ) or outer.name in series_column_labels:
                     groupby_series_columns[outer.name] = outer
                 select_exprs.append(outer)
         elif columns:
@@ -1666,7 +1680,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
             # Use main dttm column to support index with secondary dttm columns.
             if (
-                db_engine_spec.time_secondary_columns
+                self.always_filter_main_dttm
                 and self.main_dttm_col in self.dttm_cols
                 and self.main_dttm_col != dttm_col.column_name
             ):
@@ -2008,7 +2022,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     col_name = db_engine_spec.make_label_compatible(gby_name + "__")
                     on_clause.append(gby_obj == sa.column(col_name))
 
-                tbl = tbl.join(subq.alias(), and_(*on_clause))
+                tbl = tbl.join(subq.alias(SERIES_LIMIT_SUBQ_ALIAS), and_(*on_clause))
             else:
                 if series_limit_metric:
                     orderby = [

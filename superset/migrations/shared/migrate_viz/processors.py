@@ -35,6 +35,15 @@ class MigrateTreeMap(MigrateViz):
 
 
 class MigrateAreaChart(MigrateViz):
+    """
+    Migrate area charts.
+
+    This migration is incomplete, see https://github.com/apache/superset/pull/24703#discussion_r1265222611
+    for more details. If you fix this migration, please update the ``migrate_chart``
+    function in ``superset/charts/commands/importers/v1/utils.py`` so that it gets
+    applied in chart imports.
+    """
+
     source_viz_type = "area"
     target_viz_type = "echarts_area"
     remove_keys = {"contribution", "stacked_style", "x_axis_label"}
@@ -50,6 +59,9 @@ class MigrateAreaChart(MigrateViz):
             }
             self.data["show_extra_controls"] = True
             self.data["stack"] = stacked_map.get(stacked)
+
+        if x_axis := self.data.get("granularity_sqla"):
+            self.data["x_axis"] = x_axis
 
         if x_axis_label := self.data.get("x_axis_label"):
             self.data["x_axis_title"] = x_axis_label
@@ -83,6 +95,7 @@ class MigratePivotTable(MigrateViz):
     def _pre_action(self) -> None:
         if pivot_margins := self.data.get("pivot_margins"):
             self.data["colTotals"] = pivot_margins
+            self.data["colSubTotals"] = pivot_margins
 
         if pandas_aggfunc := self.data.get("pandas_aggfunc"):
             self.data["pandas_aggfunc"] = self.aggregation_mapping[pandas_aggfunc]
@@ -112,3 +125,9 @@ class MigrateDualLine(MigrateViz):
     def _migrate_temporal_filter(self, rv_data: dict[str, Any]) -> None:
         super()._migrate_temporal_filter(rv_data)
         rv_data["adhoc_filters_b"] = rv_data.get("adhoc_filters") or []
+
+
+class MigrateSunburst(MigrateViz):
+    source_viz_type = "sunburst"
+    target_viz_type = "sunburst_v2"
+    rename_keys = {"groupby": "columns"}

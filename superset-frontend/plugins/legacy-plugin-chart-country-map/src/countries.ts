@@ -53,9 +53,11 @@ import italy from './countries/italy.geojson';
 import italy_regions from './countries/italy_regions.geojson';
 import japan from './countries/japan.geojson';
 import jordan from './countries/jordan.geojson';
+import kazakhstan from './countries/kazakhstan.geojson';
 import kenya from './countries/kenya.geojson';
 import korea from './countries/korea.geojson';
 import kuwait from './countries/kuwait.geojson';
+import kyrgyzstan from './countries/kyrgyzstan.geojson';
 import latvia from './countries/latvia.geojson';
 import liechtenstein from './countries/liechtenstein.geojson';
 import lithuania from './countries/lithuania.geojson';
@@ -90,16 +92,19 @@ import spain from './countries/spain.geojson';
 import srilanka from './countries/srilanka.geojson';
 import switzerland from './countries/switzerland.geojson';
 import syria from './countries/syria.geojson';
+import tajikistan from './countries/tajikistan.geojson';
 import tanzania from './countries/tanzania.geojson';
 import thailand from './countries/thailand.geojson';
 import timorleste from './countries/timorleste.geojson';
 import turkey from './countries/turkey.geojson';
+import turkmenistan from './countries/turkmenistan.geojson';
 import united_arab_emirates from './countries/united_arab_emirates.geojson';
 import uganda from './countries/uganda.geojson';
 import uk from './countries/uk.geojson';
 import ukraine from './countries/ukraine.geojson';
 import uruguay from './countries/uruguay.geojson';
 import usa from './countries/usa.geojson';
+import uzbekistan from './countries/uzbekistan.geojson';
 import zambia from './countries/zambia.geojson';
 import venezuela from './countries/venezuela.geojson';
 import vietnam from './countries/vietnam.geojson';
@@ -141,9 +146,11 @@ export const countries = {
   italy_regions,
   japan,
   jordan,
+  kazakhstan,
   kenya,
   korea,
   kuwait,
+  kyrgyzstan,
   latvia,
   liechtenstein,
   lithuania,
@@ -178,16 +185,19 @@ export const countries = {
   sweden,
   switzerland,
   syria,
+  tajikistan,
   tanzania,
   thailand,
   timorleste,
   turkey,
+  turkmenistan,
   united_arab_emirates,
   uganda,
   uk,
   ukraine,
   uruguay,
   usa,
+  uzbekistan,
   zambia,
   venezuela,
   vietnam,

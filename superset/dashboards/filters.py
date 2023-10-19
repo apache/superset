@@ -24,7 +24,7 @@ from sqlalchemy.orm.query import Query
 
 from superset import db, is_feature_enabled, security_manager
 from superset.connectors.sqla.models import SqlaTable
-from superset.models.core import Database, FavStar
+from superset.models.core import Database
 from superset.models.dashboard import Dashboard, is_uuid
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.slice import Slice
@@ -92,8 +92,8 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
     """
     List dashboards with the following criteria:
         1. Those which the user owns
-        2. Those which the user has favorited
-        3. Those which have been published (if they have access to at least one slice)
+        2. Those which have been published (if they have access to at least one slice)
+        3. Those that they have access to via a role (if `DASHBOARD_RBAC` is enabled)
 
     If the user is an admin then show all dashboards.
     This means they do not get curation but can still sort by "published"
@@ -126,12 +126,6 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
             )
         )
 
-        users_favorite_dash_query = db.session.query(FavStar.obj_id).filter(
-            and_(
-                FavStar.user_id == get_user_id(),
-                FavStar.class_name == "Dashboard",
-            )
-        )
         owner_ids_query = (
             db.session.query(Dashboard.id)
             .join(Dashboard.owners)
@@ -179,7 +173,6 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
             or_(
                 Dashboard.id.in_(owner_ids_query),
                 Dashboard.id.in_(datasource_perm_query),
-                Dashboard.id.in_(users_favorite_dash_query),
                 *feature_flagged_filters,
             )
         )

@@ -564,10 +564,15 @@ const favoriteApis = {
     method: 'GET',
     endpoint: '/api/v1/dashboard/favorite_status/',
   }),
+  tag: makeApi<Array<string | number>, FavoriteStatusResponse>({
+    requestType: 'rison',
+    method: 'GET',
+    endpoint: '/api/v1/tag/favorite_status/',
+  }),
 };
 
 export function useFavoriteStatus(
-  type: 'chart' | 'dashboard',
+  type: 'chart' | 'dashboard' | 'tag',
   ids: Array<string | number>,
   handleErrorMsg: (message: string) => void,
 ) {
@@ -669,9 +674,7 @@ export const copyQueryLink = (
   addSuccessToast: (arg0: string) => void,
 ) => {
   copyTextToClipboard(() =>
-    Promise.resolve(
-      `${window.location.origin}/superset/sqllab?savedQueryId=${id}`,
-    ),
+    Promise.resolve(`${window.location.origin}/sqllab?savedQueryId=${id}`),
   )
     .then(() => {
       addSuccessToast(t('Link Copied!'));

@@ -27,7 +27,7 @@ import {
   ValueFormatter,
 } from '@superset-ui/core';
 
-it('buildCustomFormatters without saved metrics returns empty object', () => {
+test('buildCustomFormatters without saved metrics returns empty object', () => {
   expect(
     buildCustomFormatters(
       [
@@ -42,6 +42,7 @@ it('buildCustomFormatters without saved metrics returns empty object', () => {
       },
       {},
       ',.1f',
+      undefined,
     ),
   ).toEqual({});
 
@@ -53,11 +54,12 @@ it('buildCustomFormatters without saved metrics returns empty object', () => {
       },
       {},
       ',.1f',
+      undefined,
     ),
   ).toEqual({});
 });
 
-it('buildCustomFormatters with saved metrics returns custom formatters object', () => {
+test('buildCustomFormatters with saved metrics returns custom formatters object', () => {
   const customFormatters: Record<string, ValueFormatter> =
     buildCustomFormatters(
       [
@@ -74,6 +76,7 @@ it('buildCustomFormatters with saved metrics returns custom formatters object', 
       },
       { sum__num: ',.2' },
       ',.1f',
+      undefined,
     );
 
   expect(customFormatters).toEqual({
@@ -88,7 +91,7 @@ it('buildCustomFormatters with saved metrics returns custom formatters object', 
   );
 });
 
-it('buildCustomFormatters uses dataset d3 format if not provided in control panel', () => {
+test('buildCustomFormatters uses dataset d3 format if not provided in control panel', () => {
   const customFormatters: Record<string, ValueFormatter> =
     buildCustomFormatters(
       [
@@ -105,6 +108,7 @@ it('buildCustomFormatters uses dataset d3 format if not provided in control pane
       },
       { sum__num: ',.2' },
       undefined,
+      undefined,
     );
 
   expect((customFormatters.sum__num as CurrencyFormatter).d3Format).toEqual(
@@ -112,7 +116,7 @@ it('buildCustomFormatters uses dataset d3 format if not provided in control pane
   );
 });
 
-it('getCustomFormatter', () => {
+test('getCustomFormatter', () => {
   const customFormatters = {
     sum__num: new CurrencyFormatter({
       currency: { symbol: 'USD', symbolPosition: 'prefix' },
@@ -130,13 +134,20 @@ it('getCustomFormatter', () => {
   );
 });
 
-it('getValueFormatter', () => {
+test('getValueFormatter', () => {
   expect(
-    getValueFormatter(['count', 'sum__num'], {}, {}, ',.1f'),
+    getValueFormatter(['count', 'sum__num'], {}, {}, ',.1f', undefined),
   ).toBeInstanceOf(NumberFormatter);
 
   expect(
-    getValueFormatter(['count', 'sum__num'], {}, {}, ',.1f', 'count'),
+    getValueFormatter(
+      ['count', 'sum__num'],
+      {},
+      {},
+      ',.1f',
+      undefined,
+      'count',
+    ),
   ).toBeInstanceOf(NumberFormatter);
 
   expect(
@@ -145,7 +156,52 @@ it('getValueFormatter', () => {
       { count: { symbol: 'USD', symbolPosition: 'prefix' } },
       {},
       ',.1f',
+      undefined,
       'count',
     ),
   ).toBeInstanceOf(CurrencyFormatter);
+});
+
+test('getValueFormatter with currency from control panel', () => {
+  const countFormatter = getValueFormatter(
+    ['count', 'sum__num'],
+    { count: { symbol: 'USD', symbolPosition: 'prefix' } },
+    {},
+    ',.1f',
+    { symbol: 'EUR', symbolPosition: 'suffix' },
+    'count',
+  );
+  expect(countFormatter).toBeInstanceOf(CurrencyFormatter);
+  expect((countFormatter as CurrencyFormatter).currency).toEqual({
+    symbol: 'EUR',
+    symbolPosition: 'suffix',
+  });
+});
+
+test('getValueFormatter with currency from control panel when no saved currencies', () => {
+  const formatter = getValueFormatter(
+    ['count', 'sum__num'],
+    {},
+    {},
+    ',.1f',
+    { symbol: 'EUR', symbolPosition: 'suffix' },
+    undefined,
+  );
+  expect(formatter).toBeInstanceOf(CurrencyFormatter);
+  expect((formatter as CurrencyFormatter).currency).toEqual({
+    symbol: 'EUR',
+    symbolPosition: 'suffix',
+  });
+});
+
+test('getValueFormatter return NumberFormatter when no currency formatters', () => {
+  const formatter = getValueFormatter(
+    ['count', 'sum__num'],
+    {},
+    {},
+    ',.1f',
+    undefined,
+    undefined,
+  );
+  expect(formatter).toBeInstanceOf(NumberFormatter);
 });

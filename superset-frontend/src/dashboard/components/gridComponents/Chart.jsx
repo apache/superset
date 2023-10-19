@@ -20,7 +20,7 @@ import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
 import { styled, t, logging } from '@superset-ui/core';
-import { isEqual } from 'lodash';
+import { debounce, isEqual } from 'lodash';
 import { withRouter } from 'react-router-dom';
 
 import { exportChart, mountExploreUrl } from 'src/explore/exploreUtils';
@@ -95,7 +95,7 @@ const defaultProps = {
 
 // we use state + shouldComponentUpdate() logic to prevent perf-wrecking
 // resizing across all slices on a dashboard on every update
-const RESIZE_TIMEOUT = 350;
+const RESIZE_TIMEOUT = 500;
 const SHOULD_UPDATE_ON_PROP_CHANGES = Object.keys(propTypes).filter(
   prop =>
     prop !== 'width' && prop !== 'height' && prop !== 'isComponentVisible',
@@ -142,7 +142,7 @@ class Chart extends React.Component {
     this.exportXLSX = this.exportXLSX.bind(this);
     this.exportFullXLSX = this.exportFullXLSX.bind(this);
     this.forceRefresh = this.forceRefresh.bind(this);
-    this.resize = this.resize.bind(this);
+    this.resize = debounce(this.resize.bind(this), RESIZE_TIMEOUT);
     this.setDescriptionRef = this.setDescriptionRef.bind(this);
     this.setHeaderRef = this.setHeaderRef.bind(this);
     this.getChartHeight = this.getChartHeight.bind(this);
@@ -178,8 +178,7 @@ class Chart extends React.Component {
       }
 
       if (nextProps.isFullSize !== this.props.isFullSize) {
-        clearTimeout(this.resizeTimeout);
-        this.resizeTimeout = setTimeout(this.resize, RESIZE_TIMEOUT);
+        this.resize();
         return false;
       }
 
@@ -189,8 +188,7 @@ class Chart extends React.Component {
         nextProps.width !== this.state.width ||
         nextProps.height !== this.state.height
       ) {
-        clearTimeout(this.resizeTimeout);
-        this.resizeTimeout = setTimeout(this.resize, RESIZE_TIMEOUT);
+        this.resize();
       }
 
       for (let i = 0; i < SHOULD_UPDATE_ON_PROP_CHANGES.length; i += 1) {
@@ -224,7 +222,7 @@ class Chart extends React.Component {
   }
 
   componentWillUnmount() {
-    clearTimeout(this.resizeTimeout);
+    this.resize.cancel();
   }
 
   componentDidUpdate(prevProps) {

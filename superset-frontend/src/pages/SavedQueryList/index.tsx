@@ -17,8 +17,15 @@
  * under the License.
  */
 
-import { FeatureFlag, styled, SupersetClient, t } from '@superset-ui/core';
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  styled,
+  SupersetClient,
+  t,
+} from '@superset-ui/core';
 import React, { useState, useMemo, useCallback } from 'react';
+import { Link, useHistory } from 'react-router-dom';
 import rison from 'rison';
 import moment from 'moment';
 import {
@@ -26,6 +33,7 @@ import {
   createFetchDistinct,
   createErrorHandler,
 } from 'src/views/CRUD/utils';
+import { useSelector } from 'react-redux';
 import Popover from 'src/components/Popover';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
@@ -46,11 +54,14 @@ import { commonMenuData } from 'src/features/home/commonMenuData';
 import { SavedQueryObject } from 'src/views/CRUD/types';
 import copyTextToClipboard from 'src/utils/copy';
 import Tag from 'src/types/TagType';
-import { isFeatureEnabled } from 'src/featureFlags';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import Icons from 'src/components/Icons';
-import { BootstrapUser } from 'src/types/bootstrapTypes';
+import {
+  BootstrapUser,
+  UserWithPermissionsAndRoles,
+} from 'src/types/bootstrapTypes';
 import SavedQueryPreviewModal from 'src/features/queries/SavedQueryPreviewModal';
+import { findPermission } from 'src/utils/findPermission';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -105,6 +116,10 @@ function SavedQueryList({
     t('Saved queries'),
     addDangerToast,
   );
+  const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
+    state => state.user,
+  );
+  const canReadTag = findPermission('can_read', 'Tag', roles);
   const [queryCurrentlyDeleting, setQueryCurrentlyDeleting] =
     useState<SavedQueryObject | null>(null);
   const [savedQueryCurrentlyPreviewing, setSavedQueryCurrentlyPreviewing] =
@@ -122,6 +137,7 @@ function SavedQueryList({
     sshTunnelPrivateKeyPasswordFields,
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
+  const history = useHistory();
 
   const openSavedQueryImportModal = () => {
     showImportModal(true);
@@ -142,10 +158,6 @@ function SavedQueryList({
   const canDelete = hasPerm('can_write');
   const canExport =
     hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
-
-  const openNewQuery = () => {
-    window.open(`${window.location.origin}/superset/sqllab?new=true`);
-  };
 
   const handleSavedQueryPreview = useCallback(
     (id: number) => {
@@ -182,11 +194,10 @@ function SavedQueryList({
 
   subMenuButtons.push({
     name: (
-      <>
+      <Link to="/sqllab?new=true">
         <i className="fa fa-plus" /> {t('Query')}
-      </>
+      </Link>
     ),
-    onClick: openNewQuery,
     buttonStyle: 'primary',
   });
 
@@ -211,16 +222,18 @@ function SavedQueryList({
   menuData.buttons = subMenuButtons;
 
   // Action methods
-  const openInSqlLab = (id: number) => {
-    window.open(`${window.location.origin}/superset/sqllab?savedQueryId=${id}`);
+  const openInSqlLab = (id: number, openInNewWindow: boolean) => {
+    if (openInNewWindow) {
+      window.open(`/sqllab?savedQueryId=${id}`);
+    } else {
+      history.push(`/sqllab?savedQueryId=${id}`);
+    }
   };
 
   const copyQueryLink = useCallback(
     (id: number) => {
       copyTextToClipboard(() =>
-        Promise.resolve(
-          `${window.location.origin}/superset/sqllab?savedQueryId=${id}`,
-        ),
+        Promise.resolve(`${window.location.origin}/sqllab?savedQueryId=${id}`),
       )
         .then(() => {
           addSuccessToast(t('Link Copied!'));
@@ -389,7 +402,8 @@ function SavedQueryList({
           const handlePreview = () => {
             handleSavedQueryPreview(original.id);
           };
-          const handleEdit = () => openInSqlLab(original.id);
+          const handleEdit = ({ metaKey }: React.MouseEvent) =>
+            openInSqlLab(original.id, Boolean(metaKey));
           const handleCopy = () => copyQueryLink(original.id);
           const handleExport = () => handleBulkSavedQueryExport([original]);
           const handleDelete = () => setQueryCurrentlyDeleting(original);
@@ -483,13 +497,7 @@ function SavedQueryList({
         ),
         paginate: true,
       },
-      {
-        Header: t('Tags'),
-        id: 'tags',
-        key: 'tags',
-        input: 'search',
-        operator: FilterOperator.savedQueryTags,
-      },
+
       {
         Header: t('Search'),
         id: 'label',
@@ -500,6 +508,16 @@ function SavedQueryList({
     ],
     [addDangerToast],
   );
+
+  if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && canReadTag) {
+    filters.push({
+      Header: t('Tags'),
+      id: 'tags',
+      key: 'tags',
+      input: 'search',
+      operator: FilterOperator.savedQueryTags,
+    });
+  }
 
   return (
     <>
@@ -564,9 +582,14 @@ function SavedQueryList({
               loading={loading}
               pageSize={PAGE_SIZE}
               bulkActions={bulkActions}
+              addSuccessToast={addSuccessToast}
+              addDangerToast={addDangerToast}
               bulkSelectEnabled={bulkSelectEnabled}
               disableBulkSelect={toggleBulkSelect}
               highlightRowId={savedQueryCurrentlyPreviewing?.id}
+              enableBulkTag
+              bulkTagResourceName="query"
+              refreshData={refreshData}
             />
           );
         }}

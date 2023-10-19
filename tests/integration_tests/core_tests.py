@@ -14,72 +14,61 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# isort:skip_file
 """Unit tests for Superset"""
 import datetime
 import doctest
 import html
 import json
 import logging
-from urllib.parse import quote
-
-import prison
-import superset.utils.database
-from superset.utils.core import backend
-from tests.integration_tests.fixtures.public_role import public_role_like_gamma
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
-)
-from sqlalchemy import Table
-
-import pytest
-import pytz
 import random
 import unittest
 from unittest import mock
+from urllib.parse import quote
 
 import pandas as pd
+import pytest
+import pytz
 import sqlalchemy as sqla
+from flask_babel import lazy_gettext as _
 from sqlalchemy.exc import SQLAlchemyError
-from superset.models.cache import CacheKey
-from superset.utils.database import get_example_database
-from tests.integration_tests.conftest import with_feature_flags
-from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_with_slice,
-    load_energy_table_data,
-)
-from tests.integration_tests.insert_chart_mixin import InsertChartMixin
-from tests.integration_tests.test_app import app
+
+import superset.utils.database
 import superset.views.utils
-from superset import (
-    dataframe,
-    db,
-    security_manager,
-    sql_lab,
-)
+from superset import dataframe, db, security_manager, sql_lab
+from superset.charts.commands.exceptions import ChartDataQueryFailedError
+from superset.charts.data.commands.get_data_command import ChartDataCommand
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
 from superset.exceptions import SupersetException
-from superset.extensions import async_query_manager, cache_manager
+from superset.extensions import async_query_manager_factory, cache_manager
 from superset.models import core as models
-from superset.models.annotations import Annotation, AnnotationLayer
+from superset.models.cache import CacheKey
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
 from superset.utils import core as utils
-from superset.views import core as views
+from superset.utils.core import backend
+from superset.utils.database import get_example_database
 from superset.views.database.views import DatabaseView
-
-from .base_tests import SupersetTestCase
+from tests.integration_tests.conftest import with_feature_flags
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
+)
+from tests.integration_tests.fixtures.energy_dashboard import (
+    load_energy_table_data,
+    load_energy_table_with_slice,
+)
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
     load_world_bank_data,
 )
-from tests.integration_tests.conftest import CTAS_SCHEMA_NAME
+from tests.integration_tests.test_app import app
+
+from .base_tests import SupersetTestCase
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +81,7 @@ def cleanup():
     yield
 
 
-class TestCore(SupersetTestCase, InsertChartMixin):
+class TestCore(SupersetTestCase):
     def setUp(self):
         self.table_ids = {
             tbl.table_name: tbl.id for tbl in (db.session.query(SqlaTable).all())
@@ -113,39 +102,12 @@ class TestCore(SupersetTestCase, InsertChartMixin):
         )
         return dashboard
 
-    def insert_chart_created_by(self, username: str) -> Slice:
-        user = self.get_user(username)
-        dataset = db.session.query(SqlaTable).first()
-        chart = self.insert_chart(
-            f"create_title_test",
-            [user.id],
-            dataset.id,
-            created_by=user,
-        )
-        return chart
-
-    @pytest.fixture()
-    def insert_dashboard_created_by_admin(self):
-        with self.create_app().app_context():
-            dashboard = self.insert_dashboard_created_by("admin")
-            yield dashboard
-            db.session.delete(dashboard)
-            db.session.commit()
-
     @pytest.fixture()
     def insert_dashboard_created_by_gamma(self):
         dashboard = self.insert_dashboard_created_by("gamma")
         yield dashboard
         db.session.delete(dashboard)
         db.session.commit()
-
-    @pytest.fixture()
-    def insert_chart_created_by_admin(self):
-        with self.create_app().app_context():
-            chart = self.insert_chart_created_by("admin")
-            yield chart
-            db.session.delete(chart)
-            db.session.commit()
 
     def test_login(self):
         resp = self.get_resp("/login/", data=dict(username="admin", password="general"))
@@ -173,7 +135,7 @@ class TestCore(SupersetTestCase, InsertChartMixin):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_viz_cache_key(self):
         self.login(username="admin")
-        slc = self.get_slice("Girls", db.session)
+        slc = self.get_slice("Top 10 Girl Name Share", db.session)
 
         viz = slc.viz
         qobj = viz.query_obj()
@@ -279,7 +241,9 @@ class TestCore(SupersetTestCase, InsertChartMixin):
         # slice data should have some required attributes
         self.login(username="admin")
         slc = self.get_slice(
-            slice_name="Girls", session=db.session, expunge_from_session=False
+            slice_name="Top 10 Girl Name Share",
+            session=db.session,
+            expunge_from_session=False,
         )
         slc_data_attributes = slc.data.keys()
         assert "changed_on" in slc_data_attributes
@@ -387,11 +351,12 @@ class TestCore(SupersetTestCase, InsertChartMixin):
         db.session.commit()
 
     @pytest.mark.usefixtures(
-        "load_energy_table_with_slice", "load_birth_names_dashboard_with_slices"
+        "load_birth_names_dashboard_with_slices",
+        "load_energy_table_with_slice",
     )
     def test_warm_up_cache(self):
         self.login()
-        slc = self.get_slice("Girls", db.session)
+        slc = self.get_slice("Top 10 Girl Name Share", db.session)
         data = self.get_json_resp(f"/superset/warm_up_cache?slice_id={slc.id}")
         self.assertEqual(
             data, [{"slice_id": slc.id, "viz_error": None, "viz_status": "success"}]
@@ -414,14 +379,38 @@ class TestCore(SupersetTestCase, InsertChartMixin):
         ) == [{"slice_id": slc.id, "viz_error": None, "viz_status": "success"}]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_warm_up_cache_error(self) -> None:
+        self.login()
+        slc = self.get_slice("Pivot Table v2", db.session)
+
+        with mock.patch.object(
+            ChartDataCommand,
+            "run",
+            side_effect=ChartDataQueryFailedError(
+                _(
+                    "Error: %(error)s",
+                    error=_("Empty query?"),
+                )
+            ),
+        ):
+            assert self.get_json_resp(f"/superset/warm_up_cache?slice_id={slc.id}") == [
+                {
+                    "slice_id": slc.id,
+                    "viz_error": "Error: Empty query?",
+                    "viz_status": None,
+                }
+            ]
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_cache_logging(self):
         self.login("admin")
         store_cache_keys = app.config["STORE_CACHE_KEYS_IN_METADATA_DB"]
         app.config["STORE_CACHE_KEYS_IN_METADATA_DB"] = True
-        girls_slice = self.get_slice("Girls", db.session)
-        self.get_json_resp(f"/superset/warm_up_cache?slice_id={girls_slice.id}")
+        slc = self.get_slice("Top 10 Girl Name Share", db.session)
+        self.get_json_resp(f"/superset/warm_up_cache?slice_id={slc.id}")
         ck = db.session.query(CacheKey).order_by(CacheKey.id.desc()).first()
-        assert ck.datasource_uid == f"{girls_slice.table.id}__table"
+        assert ck.datasource_uid == f"{slc.table.id}__table"
+        db.session.delete(ck)
         app.config["STORE_CACHE_KEYS_IN_METADATA_DB"] = store_cache_keys
 
     def test_redirect_invalid(self):
@@ -492,100 +481,6 @@ class TestCore(SupersetTestCase, InsertChartMixin):
         ]
         for k in keys:
             self.assertIn(k, resp.keys())
-
-    @pytest.mark.usefixtures("insert_dashboard_created_by_admin")
-    @pytest.mark.usefixtures("insert_chart_created_by_admin")
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_user_profile(self, username="admin"):
-        self.login(username=username)
-        slc = self.get_slice("Girls", db.session)
-        dashboard = db.session.query(Dashboard).filter_by(slug="births").first()
-        # Set a favorite dashboard
-        self.client.post(f"/api/v1/dashboard/{dashboard.id}/favorites/", json={})
-        # Set a favorite chart
-        self.client.post(f"/api/v1/chart/{slc.id}/favorites/", json={})
-
-        # Get favorite dashboards:
-        request_query = {
-            "columns": ["created_on_delta_humanized", "dashboard_title", "url"],
-            "filters": [{"col": "id", "opr": "dashboard_is_favorite", "value": True}],
-            "keys": ["none"],
-            "order_column": "changed_on",
-            "order_direction": "desc",
-            "page": 0,
-            "page_size": 100,
-        }
-        url = f"/api/v1/dashboard/?q={prison.dumps(request_query)}"
-        resp = self.client.get(url)
-        assert resp.json["count"] == 1
-        assert resp.json["result"][0]["dashboard_title"] == "USA Births Names"
-
-        # Get Favorite Charts
-        request_query = {
-            "filters": [{"col": "id", "opr": "chart_is_favorite", "value": True}],
-            "order_column": "slice_name",
-            "order_direction": "asc",
-            "page": 0,
-            "page_size": 25,
-        }
-        url = f"api/v1/chart/?q={prison.dumps(request_query)}"
-        resp = self.client.get(url)
-        assert resp.json["count"] == 1
-        assert resp.json["result"][0]["id"] == slc.id
-
-        # Get recent activity
-        url = "/api/v1/log/recent_activity/?q=(page_size:50)"
-        resp = self.client.get(url)
-        # TODO data for recent activity varies for sqlite, we should be able to assert
-        # the returned data
-        assert resp.status_code == 200
-
-        # Get dashboards created by the user
-        request_query = {
-            "columns": ["created_on_delta_humanized", "dashboard_title", "url"],
-            "filters": [
-                {"col": "created_by", "opr": "dashboard_created_by_me", "value": "me"}
-            ],
-            "keys": ["none"],
-            "order_column": "changed_on",
-            "order_direction": "desc",
-            "page": 0,
-            "page_size": 100,
-        }
-        url = f"/api/v1/dashboard/?q={prison.dumps(request_query)}"
-        resp = self.client.get(url)
-        assert resp.json["result"][0]["dashboard_title"] == "create_title_test"
-
-        # Get charts created by the user
-        request_query = {
-            "columns": ["created_on_delta_humanized", "slice_name", "url"],
-            "filters": [
-                {"col": "created_by", "opr": "chart_created_by_me", "value": "me"}
-            ],
-            "keys": ["none"],
-            "order_column": "changed_on_delta_humanized",
-            "order_direction": "desc",
-            "page": 0,
-            "page_size": 100,
-        }
-        url = f"/api/v1/chart/?q={prison.dumps(request_query)}"
-        resp = self.client.get(url)
-        assert resp.json["count"] == 1
-        assert resp.json["result"][0]["slice_name"] == "create_title_test"
-
-        resp = self.get_resp(f"/superset/profile/")
-        self.assertIn('"app"', resp)
-
-    def test_user_profile_gamma(self):
-        self.login(username="gamma")
-        resp = self.get_resp(f"/superset/profile/")
-        self.assertIn('"app"', resp)
-
-    @pytest.mark.usefixtures("public_role_like_gamma")
-    def test_user_profile_anonymous(self):
-        self.logout()
-        resp = self.client.get("/superset/profile/")
-        assert resp.status_code == 404
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_slice_id_is_always_logged_correctly_on_web_request(self):
@@ -809,7 +704,7 @@ class TestCore(SupersetTestCase, InsertChartMixin):
             "row_limit": 100,
         }
         app._got_first_request = False
-        async_query_manager.init_app(app)
+        async_query_manager_factory.init_app(app)
         self.login(username="admin")
         rv = self.client.post(
             "/superset/explore_json/",
@@ -841,7 +736,7 @@ class TestCore(SupersetTestCase, InsertChartMixin):
             "row_limit": 100,
         }
         app._got_first_request = False
-        async_query_manager.init_app(app)
+        async_query_manager_factory.init_app(app)
         self.login(username="admin")
         rv = self.client.post(
             "/superset/explore_json/?results=true",
@@ -1060,7 +955,6 @@ class TestCore(SupersetTestCase, InsertChartMixin):
         dash_id = db.session.query(Dashboard.id).first()[0]
         tbl_id = self.table_ids.get("wb_health_population")
         urls = [
-            "/superset/sqllab",
             "/superset/welcome",
             f"/superset/dashboard/{dash_id}/",
             "/superset/profile/",
@@ -1069,53 +963,6 @@ class TestCore(SupersetTestCase, InsertChartMixin):
         for url in urls:
             data = self.get_resp(url)
             self.assertTrue(html_string in data)
-
-    @mock.patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        {"SQLLAB_BACKEND_PERSISTENCE": True},
-        clear=True,
-    )
-    def test_sqllab_backend_persistence_payload(self):
-        username = "admin"
-        self.login(username)
-        user_id = security_manager.find_user(username).id
-
-        # create a tab
-        data = {
-            "queryEditor": json.dumps(
-                {
-                    "title": "Untitled Query 1",
-                    "dbId": 1,
-                    "schema": None,
-                    "autorun": False,
-                    "sql": "SELECT ...",
-                    "queryLimit": 1000,
-                }
-            )
-        }
-        resp = self.get_json_resp("/tabstateview/", data=data)
-        tab_state_id = resp["id"]
-
-        # run a query in the created tab
-        self.run_sql(
-            "SELECT name FROM birth_names",
-            "client_id_1",
-            username=username,
-            raise_on_error=True,
-            sql_editor_id=str(tab_state_id),
-        )
-        # run an orphan query (no tab)
-        self.run_sql(
-            "SELECT name FROM birth_names",
-            "client_id_2",
-            username=username,
-            raise_on_error=True,
-        )
-
-        # we should have only 1 query returned, since the second one is not
-        # associated with any tabs
-        payload = views.Superset._get_sqllab_tabs(user_id=user_id)
-        self.assertEqual(len(payload["queries"]), 1)
 
     @mock.patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
@@ -1148,6 +995,41 @@ class TestCore(SupersetTestCase, InsertChartMixin):
         payload = self.get_json_resp(f"/tabstateview/{tab_state_id}")
 
         self.assertEqual(payload["label"], "Untitled Query foo")
+
+    def test_tabstate_update(self):
+        username = "admin"
+        self.login(username)
+        # create a tab
+        data = {
+            "queryEditor": json.dumps(
+                {
+                    "name": "Untitled Query foo",
+                    "dbId": 1,
+                    "schema": None,
+                    "autorun": False,
+                    "sql": "SELECT ...",
+                    "queryLimit": 1000,
+                }
+            )
+        }
+        resp = self.get_json_resp("/tabstateview/", data=data)
+        tab_state_id = resp["id"]
+        # update tab state with non-existing client_id
+        client_id = "asdfasdf"
+        data = {"sql": json.dumps("select 1"), "latest_query_id": json.dumps(client_id)}
+        response = self.client.put(f"/tabstateview/{tab_state_id}", data=data)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["error"], "Bad request")
+        # generate query
+        db.session.add(Query(client_id=client_id, database_id=1))
+        db.session.commit()
+        # update tab state with a valid client_id
+        response = self.client.put(f"/tabstateview/{tab_state_id}", data=data)
+        self.assertEqual(response.status_code, 200)
+        # nulls should be ok too
+        data["latest_query_id"] = "null"
+        response = self.client.put(f"/tabstateview/{tab_state_id}", data=data)
+        self.assertEqual(response.status_code, 200)
 
     def test_virtual_table_explore_visibility(self):
         # test that default visibility it set to True
@@ -1306,6 +1188,30 @@ class TestCore(SupersetTestCase, InsertChartMixin):
             example_db.has_table_by_name(table_name="birth_names", schema="public")
             is True
         )
+
+    def test_redirect_new_profile(self):
+        self.login(username="admin")
+        resp = self.client.get("/superset/profile/")
+        assert resp.status_code == 302
+
+    def test_redirect_new_sqllab(self):
+        self.login(username="admin")
+        resp = self.client.get(
+            "/superset/sqllab?savedQueryId=1&testParams=2",
+            follow_redirects=True,
+        )
+        assert resp.request.path == "/sqllab/"
+        assert (
+            resp.request.query_string.decode("utf-8") == "savedQueryId=1&testParams=2"
+        )
+
+        resp = self.client.post("/superset/sqllab/")
+        assert resp.status_code == 302
+
+    def test_redirect_new_sqllab_history(self):
+        self.login(username="admin")
+        resp = self.client.get("/superset/sqllab/history/")
+        assert resp.status_code == 302
 
 
 if __name__ == "__main__":

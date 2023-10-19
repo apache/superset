@@ -20,6 +20,7 @@
 import React from 'react';
 import { t, styled } from '@superset-ui/core';
 import { EmptyStateBig } from 'src/components/EmptyState';
+import { Link } from 'react-router-dom';
 
 const StyledContainer = styled.div`
   padding: ${({ theme }) => theme.gridUnit * 8}px
@@ -50,15 +51,11 @@ export const VIEW_DATASET_MESSAGE = t(
 const renderEmptyDescription = () => (
   <>
     {SELECT_MESSAGE}
-    <span
-      role="button"
-      onClick={() => {
-        window.location.href = `/superset/sqllab`;
-      }}
-      tabIndex={0}
-    >
-      {CREATE_MESSAGE}
-    </span>
+    <Link to="/sqllab">
+      <span role="button" tabIndex={0}>
+        {CREATE_MESSAGE}
+      </span>
+    </Link>
     {VIEW_DATASET_MESSAGE}
   </>
 );

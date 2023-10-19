@@ -17,6 +17,12 @@
 
 from typing import Optional, Union
 
+from superset.daos.chart import ChartDAO
+from superset.daos.dashboard import DashboardDAO
+from superset.daos.query import SavedQueryDAO
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
+from superset.models.sql_lab import SavedQuery
 from superset.tags.models import ObjectTypes
 
 
@@ -26,4 +32,16 @@ def to_object_type(object_type: Union[ObjectTypes, int, str]) -> Optional[Object
     for type_ in ObjectTypes:
         if object_type in [type_.value, type_.name]:
             return type_
+    return None
+
+
+def to_object_model(
+    object_type: ObjectTypes, object_id: int
+) -> Optional[Union[Dashboard, SavedQuery, Slice]]:
+    if ObjectTypes.dashboard == object_type:
+        return DashboardDAO.find_by_id(object_id)
+    if ObjectTypes.query == object_type:
+        return SavedQueryDAO.find_by_id(object_id)
+    if ObjectTypes.chart == object_type:
+        return ChartDAO.find_by_id(object_id)
     return None

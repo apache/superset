@@ -118,6 +118,7 @@ export default function transformProps(
     colorScheme,
     fontSize,
     numberFormat,
+    currencyFormat,
     animation,
     showProgress,
     overlap,
@@ -141,6 +142,7 @@ export default function transformProps(
     currencyFormats,
     columnFormats,
     numberFormat,
+    currencyFormat,
   );
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const axisLineWidth = calculateAxisLineWidth(data, fontSize, overlap);

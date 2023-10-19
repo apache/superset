@@ -61,7 +61,7 @@ interface QueryTableProps {
 }
 
 const openQuery = (id: number) => {
-  const url = `/superset/sqllab?queryId=${id}`;
+  const url = `/sqllab?queryId=${id}`;
   window.open(url);
 };
 
@@ -105,7 +105,7 @@ const QueryTable = ({
     [columns],
   );
 
-  const user = useSelector<SqlLabRootState, User>(state => state.sqlLab.user);
+  const user = useSelector<SqlLabRootState, User>(state => state.user);
 
   const data = useMemo(() => {
     const restoreSql = (query: QueryResponse) => {
@@ -213,7 +213,7 @@ const QueryTable = ({
             {q.db}
           </Button>
         );
-        q.started = moment(q.startDttm).format('HH:mm:ss');
+        q.started = moment(q.startDttm).format('L HH:mm:ss');
         q.querylink = (
           <Button
             buttonSize="small"

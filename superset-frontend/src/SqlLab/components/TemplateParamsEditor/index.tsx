@@ -37,7 +37,7 @@ const StyledConfigEditor = styled(ConfigEditor)`
 export type TemplateParamsEditorProps = {
   queryEditorId: string;
   language: 'yaml' | 'json';
-  onChange: () => void;
+  onChange: (params: any) => void;
 };
 
 const TemplateParamsEditor = ({

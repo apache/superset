@@ -29,7 +29,7 @@ import { defaultStore as store } from 'spec/helpers/testing-library';
 import Modal from 'src/components/Modal';
 import { DatasourceModal } from 'src/components/Datasource';
 import DatasourceEditor from 'src/components/Datasource/DatasourceEditor';
-import * as featureFlags from 'src/featureFlags';
+import * as uiCore from '@superset-ui/core';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import { api } from 'src/hooks/apiResources/queryApi';
 
@@ -69,7 +69,7 @@ describe('DatasourceModal', () => {
   let wrapper;
   let isFeatureEnabledMock;
   beforeEach(async () => {
-    isFeatureEnabledMock = jest.spyOn(featureFlags, 'isFeatureEnabled');
+    isFeatureEnabledMock = jest.spyOn(uiCore, 'isFeatureEnabled');
     fetchMock.reset();
     wrapper = await mountAndWait();
   });
@@ -96,7 +96,7 @@ describe('DatasourceModal', () => {
   it('saves on confirm', async () => {
     const callsP = fetchMock.post(SAVE_ENDPOINT, SAVE_PAYLOAD);
     fetchMock.put(SAVE_DATASOURCE_ENDPOINT, {});
-    fetchMock.get(GET_DATASOURCE_ENDPOINT, {});
+    fetchMock.get(GET_DATASOURCE_ENDPOINT, { result: {} });
     act(() => {
       wrapper
         .find('button[data-test="datasource-modal-save"]')
@@ -122,7 +122,6 @@ describe('DatasourceModal', () => {
   });
 
   it('renders a legacy data source btn', () => {
-    featureFlags.DISABLE_LEGACY_DATASOURCE_EDITOR = false;
     expect(
       wrapper.find('button[data-test="datasource-modal-legacy-edit"]'),
     ).toExist();

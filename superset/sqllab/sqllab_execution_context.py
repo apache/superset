@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 from dataclasses import dataclass
@@ -95,7 +96,7 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
             template_params = json.loads(query_params.get("templateParams") or "{}")
         except json.JSONDecodeError:
             logger.warning(
-                "Invalid template parameter %s" " specified. Defaulting to empty dict",
+                "Invalid template parameter %s specified. Defaulting to empty dict",
                 str(query_params.get("templateParams")),
             )
             template_params = {}
@@ -175,12 +176,10 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
         )
 
     def get_query_details(self) -> str:
-        try:
+        with contextlib.suppress(DetachedInstanceError):
             if hasattr(self, "query"):
                 if self.query.id:
                     return f"query '{self.query.id}' - '{self.query.sql}'"
-        except DetachedInstanceError:
-            pass
         return f"query '{self.sql}'"
 
 

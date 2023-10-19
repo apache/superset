@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import contextlib
 import logging
 from typing import Any, TYPE_CHECKING
 
@@ -35,10 +36,8 @@ from superset.utils import core as utils
 if TYPE_CHECKING:
     from superset.models.core import Database
 
-    try:
+    with contextlib.suppress(ImportError):  # trino may not be installed
         from trino.dbapi import Cursor
-    except ImportError:
-        pass
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +58,11 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
         if indexes := database.get_indexes(table_name, schema_name):
             col_names, latest_parts = cls.latest_partition(
-                table_name, schema_name, database, show_first=True
+                table_name,
+                schema_name,
+                database,
+                show_first=True,
+                indexes=indexes,
             )
 
             if not latest_parts:
@@ -86,9 +89,10 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             }
 
         if database.has_view_by_name(table_name, schema_name):
-            metadata["view"] = database.inspector.get_view_definition(
-                table_name, schema_name
-            )
+            with database.get_inspector_with_context() as inspector:
+                metadata["view"] = inspector.get_view_definition(
+                    table_name, schema_name
+                )
 
         return metadata
 
@@ -139,12 +143,10 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         try:
             return cursor.info_uri
         except AttributeError:
-            try:
+            with contextlib.suppress(AttributeError):
                 conn = cursor.connection
                 # pylint: disable=protected-access, line-too-long
                 return f"{conn.http_scheme}://{conn.host}:{conn.port}/ui/query.html?{cursor._query.query_id}"
-            except AttributeError:
-                pass
         return None
 
     @classmethod

@@ -133,6 +133,7 @@ export default function transformProps(
     labelType,
     labelPosition,
     numberFormat,
+    currencyFormat,
     dateFormat,
     showLabels,
     showUpperLabels,
@@ -149,6 +150,7 @@ export default function transformProps(
     currencyFormats,
     columnFormats,
     numberFormat,
+    currencyFormat,
   );
 
   const formatter = (params: TreemapSeriesCallbackDataParams) =>
@@ -166,7 +168,6 @@ export default function transformProps(
     treeNodes.map(treeNode => {
       const { name: nodeName, value, groupBy } = treeNode;
       const name = formatSeriesName(nodeName, {
-        numberFormatter,
         timeFormatter: getTimeFormatter(dateFormat),
         ...(coltypeMapping[groupBy] && {
           coltype: coltypeMapping[groupBy],

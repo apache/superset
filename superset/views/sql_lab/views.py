@@ -17,11 +17,11 @@
 import logging
 
 import simplejson as json
-from flask import g, redirect, request, Response
+from flask import redirect, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
-from flask_babel import lazy_gettext as _
+from flask_babel import gettext as __
 from sqlalchemy import and_
 
 from superset import db
@@ -40,67 +40,24 @@ from superset.views.base import (
 logger = logging.getLogger(__name__)
 
 
-class SavedQueryView(  # pylint: disable=too-many-ancestors
-    SupersetModelView,
-    DeleteMixin,
-):
-    datamodel = SQLAInterface(SavedQuery)
-    include_route_methods = RouteMethod.CRUD_SET
-
+class SavedQueryView(BaseSupersetView):
+    route_base = "/savedqueryview"
     class_permission_name = "SavedQuery"
-    method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
-    list_title = _("List Saved Query")
-    show_title = _("Show Saved Query")
-    add_title = _("Add Saved Query")
-    edit_title = _("Edit Saved Query")
-
-    list_columns = [
-        "label",
-        "user",
-        "database",
-        "schema",
-        "description",
-        "modified",
-        "pop_tab_link",
-    ]
-    order_columns = ["label", "schema", "description", "modified"]
-    show_columns = [
-        "id",
-        "label",
-        "user",
-        "database",
-        "description",
-        "sql",
-        "pop_tab_link",
-    ]
-    search_columns = ("label", "user", "database", "schema", "changed_on")
-    add_columns = ["label", "database", "description", "sql"]
-    edit_columns = add_columns
-    base_order = ("changed_on", "desc")
-    label_columns = {
-        "label": _("Label"),
-        "user": _("User"),
-        "database": _("Database"),
-        "description": _("Description"),
-        "modified": _("Modified"),
-        "end_time": _("End Time"),
-        "pop_tab_link": _("Pop Tab Link"),
-        "changed_on": _("Changed on"),
-    }
 
     @expose("/list/")
     @has_access
     def list(self) -> FlaskResponse:
         return super().render_app_template()
 
-    def pre_add(self, item: "SavedQueryView") -> None:
-        item.user = g.user
 
-    def pre_update(self, item: "SavedQueryView") -> None:
-        self.pre_add(item)
+class SavedQueryViewApi(
+    SupersetModelView, DeleteMixin
+):  # pylint: disable=too-many-ancestors
+    datamodel = SQLAInterface(SavedQuery)
+    include_route_methods = RouteMethod.CRUD_SET
+    route_base = "/savedqueryviewapi"
+    class_permission_name = "SavedQuery"
 
-
-class SavedQueryViewApi(SavedQueryView):  # pylint: disable=too-many-ancestors
     include_route_methods = {
         RouteMethod.API_READ,
         RouteMethod.API_CREATE,
@@ -108,20 +65,8 @@ class SavedQueryViewApi(SavedQueryView):  # pylint: disable=too-many-ancestors
         RouteMethod.API_GET,
     }
 
-    class_permission_name = "SavedQuery"
     method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
 
-    list_columns = [
-        "id",
-        "label",
-        "sqlalchemy_uri",
-        "user_email",
-        "schema",
-        "description",
-        "sql",
-        "extra_json",
-        "extra",
-    ]
     add_columns = ["label", "db_id", "schema", "description", "sql", "extra_json"]
     edit_columns = add_columns
     show_columns = add_columns + ["id"]
@@ -139,13 +84,13 @@ def _get_owner_id(tab_state_id: int) -> int:
 class TabStateView(BaseSupersetView):
     @has_access_api
     @expose("/", methods=("POST",))
-    def post(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def post(self) -> FlaskResponse:
         query_editor = json.loads(request.form["queryEditor"])
         tab_state = TabState(
             user_id=get_user_id(),
             # This is for backward compatibility
             label=query_editor.get("name")
-            or query_editor.get("title", _("Untitled Query")),
+            or query_editor.get("title", __("Untitled Query")),
             active=True,
             database_id=query_editor["dbId"],
             schema=query_editor.get("schema"),
@@ -166,7 +111,7 @@ class TabStateView(BaseSupersetView):
 
     @has_access_api
     @expose("/<int:tab_state_id>", methods=("DELETE",))
-    def delete(self, tab_state_id: int) -> FlaskResponse:  # pylint: disable=no-self-use
+    def delete(self, tab_state_id: int) -> FlaskResponse:
         if _get_owner_id(tab_state_id) != get_user_id():
             return Response(status=403)
 
@@ -181,7 +126,7 @@ class TabStateView(BaseSupersetView):
 
     @has_access_api
     @expose("/<int:tab_state_id>", methods=("GET",))
-    def get(self, tab_state_id: int) -> FlaskResponse:  # pylint: disable=no-self-use
+    def get(self, tab_state_id: int) -> FlaskResponse:
         if _get_owner_id(tab_state_id) != get_user_id():
             return Response(status=403)
 
@@ -194,9 +139,7 @@ class TabStateView(BaseSupersetView):
 
     @has_access_api
     @expose("<int:tab_state_id>/activate", methods=("POST",))
-    def activate(  # pylint: disable=no-self-use
-        self, tab_state_id: int
-    ) -> FlaskResponse:
+    def activate(self, tab_state_id: int) -> FlaskResponse:
         owner_id = _get_owner_id(tab_state_id)
         if owner_id is None:
             return Response(status=404)
@@ -213,20 +156,22 @@ class TabStateView(BaseSupersetView):
 
     @has_access_api
     @expose("<int:tab_state_id>", methods=("PUT",))
-    def put(self, tab_state_id: int) -> FlaskResponse:  # pylint: disable=no-self-use
+    def put(self, tab_state_id: int) -> FlaskResponse:
         if _get_owner_id(tab_state_id) != get_user_id():
             return Response(status=403)
 
         fields = {k: json.loads(v) for k, v in request.form.to_dict().items()}
+        if client_id := fields.get("latest_query_id"):
+            query = db.session.query(Query).filter_by(client_id=client_id).one_or_none()
+            if not query:
+                return self.json_response({"error": "Bad request"}, status=400)
         db.session.query(TabState).filter_by(id=tab_state_id).update(fields)
         db.session.commit()
         return json_success(json.dumps(tab_state_id))
 
     @has_access_api
     @expose("<int:tab_state_id>/migrate_query", methods=("POST",))
-    def migrate_query(  # pylint: disable=no-self-use
-        self, tab_state_id: int
-    ) -> FlaskResponse:
+    def migrate_query(self, tab_state_id: int) -> FlaskResponse:
         if _get_owner_id(tab_state_id) != get_user_id():
             return Response(status=403)
 
@@ -239,9 +184,7 @@ class TabStateView(BaseSupersetView):
 
     @has_access_api
     @expose("<int:tab_state_id>/query/<client_id>", methods=("DELETE",))
-    def delete_query(  # pylint: disable=no-self-use
-        self, tab_state_id: int, client_id: str
-    ) -> FlaskResponse:
+    def delete_query(self, tab_state_id: int, client_id: str) -> FlaskResponse:
         # Before deleting the query, ensure it's not tied to any
         # active tab as the last query. If so, replace the query
         # with the latest one created in that tab
@@ -277,7 +220,7 @@ class TabStateView(BaseSupersetView):
 class TableSchemaView(BaseSupersetView):
     @has_access_api
     @expose("/", methods=("POST",))
-    def post(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def post(self) -> FlaskResponse:
         table = json.loads(request.form["table"])
 
         # delete any existing table schema
@@ -302,9 +245,7 @@ class TableSchemaView(BaseSupersetView):
 
     @has_access_api
     @expose("/<int:table_schema_id>", methods=("DELETE",))
-    def delete(  # pylint: disable=no-self-use
-        self, table_schema_id: int
-    ) -> FlaskResponse:
+    def delete(self, table_schema_id: int) -> FlaskResponse:
         db.session.query(TableSchema).filter(TableSchema.id == table_schema_id).delete(
             synchronize_session=False
         )
@@ -313,9 +254,7 @@ class TableSchemaView(BaseSupersetView):
 
     @has_access_api
     @expose("/<int:table_schema_id>/expanded", methods=("POST",))
-    def expanded(  # pylint: disable=no-self-use
-        self, table_schema_id: int
-    ) -> FlaskResponse:
+    def expanded(self, table_schema_id: int) -> FlaskResponse:
         payload = json.loads(request.form["expanded"])
         (
             db.session.query(TableSchema)
@@ -332,7 +271,7 @@ class SqlLab(BaseSupersetView):
 
     @expose("/my_queries/")
     @has_access
-    def my_queries(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def my_queries(self) -> FlaskResponse:
         """Assigns a list of found users to the given role."""
         logger.warning(
             "This endpoint is deprecated and will be removed in the next major release"

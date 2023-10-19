@@ -96,12 +96,15 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     rowSubtotalPosition,
     colSubtotalPosition,
     colTotals,
+    colSubTotals,
     rowTotals,
+    rowSubTotals,
     valueFormat,
     dateFormat,
     metricsLayout,
     conditionalFormatting,
     timeGrainSqla,
+    currencyFormat,
   } = formData;
   const { selectedFilters } = filterState;
   const granularity = extractTimegrain(rawFormData);
@@ -155,8 +158,11 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     rowSubtotalPosition,
     colSubtotalPosition,
     colTotals,
+    colSubTotals,
     rowTotals,
+    rowSubTotals,
     valueFormat,
+    currencyFormat,
     emitCrossFilters,
     setDataMask,
     selectedFilters,

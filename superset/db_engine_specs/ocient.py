@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import contextlib
 import re
 import threading
 from re import Pattern
@@ -24,8 +25,7 @@ from flask_babel import gettext as __
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.orm import Session
 
-# Need to try-catch here because pyocient may not be installed
-try:
+with contextlib.suppress(ImportError, RuntimeError):  # pyocient may not be installed
     # Ensure pyocient inherits Superset's logging level
     import geojson
     import pyocient
@@ -35,8 +35,6 @@ try:
 
     superset_log_level = app.config["LOG_LEVEL"]
     pyocient.logger.setLevel(superset_log_level)
-except (ImportError, RuntimeError):
-    pass
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -238,7 +236,7 @@ class OcientEngineSpec(BaseEngineSpec):
     # Store mapping of superset Query id -> Ocient ID
     # These are inserted into the cache when executing the query
     # They are then removed, either upon cancellation or query completion
-    query_id_mapping: dict[str, str] = dict()
+    query_id_mapping: dict[str, str] = {}
     query_id_mapping_lock = threading.Lock()
 
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {

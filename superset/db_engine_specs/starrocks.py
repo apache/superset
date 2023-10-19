@@ -63,7 +63,7 @@ class PERCENTILE(Numeric):
     __visit_name__ = "PERCENTILE"
 
 
-class ARRAY(TypeEngine):  # pylint: disable=no-init
+class ARRAY(TypeEngine):
     __visit_name__ = "ARRAY"
 
     @property
@@ -71,7 +71,7 @@ class ARRAY(TypeEngine):  # pylint: disable=no-init
         return list
 
 
-class MAP(TypeEngine):  # pylint: disable=no-init
+class MAP(TypeEngine):
     __visit_name__ = "MAP"
 
     @property
@@ -79,7 +79,7 @@ class MAP(TypeEngine):  # pylint: disable=no-init
         return dict
 
 
-class STRUCT(TypeEngine):  # pylint: disable=no-init
+class STRUCT(TypeEngine):
     __visit_name__ = "STRUCT"
 
     @property

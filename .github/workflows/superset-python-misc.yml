@@ -86,7 +86,12 @@ jobs:
           echo "HOMEBREW_REPOSITORY=$HOMEBREW_REPOSITORY" >>"${GITHUB_ENV}"
           brew install norwoodj/tap/helm-docs
       - name: pre-commit
-        run: pre-commit run --all-files
+        run: |
+          if ! pre-commit run --all-files; then
+            git status
+            git diff
+            exit 1
+          fi
 
   babel-extract:
     runs-on: ubuntu-20.04

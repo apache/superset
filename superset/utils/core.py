@@ -49,7 +49,7 @@ from enum import Enum, IntEnum
 from io import BytesIO
 from timeit import default_timer
 from types import TracebackType
-from typing import Any, Callable, cast, NamedTuple, TYPE_CHECKING, TypeVar
+from typing import Any, Callable, cast, NamedTuple, TYPE_CHECKING, TypedDict, TypeVar
 from urllib.parse import unquote_plus
 from zipfile import ZipFile
 
@@ -73,7 +73,7 @@ from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql.type_api import Variant
 from sqlalchemy.types import TEXT, TypeDecorator, TypeEngine
-from typing_extensions import TypedDict, TypeGuard
+from typing_extensions import TypeGuard
 
 from superset.constants import (
     EXTRA_FORM_DATA_APPEND_KEYS,
@@ -98,6 +98,7 @@ from superset.superset_typing import (
     FormData,
     Metric,
 )
+from superset.utils.backports import StrEnum
 from superset.utils.database import get_example_database
 from superset.utils.date_parser import parse_human_timedelta
 from superset.utils.dates import datetime_to_epoch, EPOCH
@@ -116,7 +117,7 @@ TIME_COMPARISON = "__"
 
 JS_MAX_INTEGER = 9007199254740991  # Largest int Java Script can handle 2^53-1
 
-InputType = TypeVar("InputType")
+InputType = TypeVar("InputType")  # pylint: disable=invalid-name
 
 ADHOC_FILTERS_REGEX = re.compile("^adhoc_filters")
 
@@ -133,12 +134,12 @@ class LenientEnum(Enum):
             return None
 
 
-class AdhocMetricExpressionType(str, Enum):
+class AdhocMetricExpressionType(StrEnum):
     SIMPLE = "SIMPLE"
     SQL = "SQL"
 
 
-class AnnotationType(str, Enum):
+class AnnotationType(StrEnum):
     FORMULA = "FORMULA"
     INTERVAL = "INTERVAL"
     EVENT = "EVENT"
@@ -160,7 +161,7 @@ class GenericDataType(IntEnum):
     # ROW = 7
 
 
-class DatasourceType(str, Enum):
+class DatasourceType(StrEnum):
     SLTABLE = "sl_table"
     TABLE = "table"
     DATASET = "dataset"
@@ -169,7 +170,7 @@ class DatasourceType(str, Enum):
     VIEW = "view"
 
 
-class LoggerLevel(str, Enum):
+class LoggerLevel(StrEnum):
     INFO = "info"
     WARNING = "warning"
     EXCEPTION = "exception"
@@ -208,19 +209,19 @@ class QueryObjectFilterClause(TypedDict, total=False):
     isExtra: bool | None
 
 
-class ExtraFiltersTimeColumnType(str, Enum):
+class ExtraFiltersTimeColumnType(StrEnum):
     TIME_COL = "__time_col"
     TIME_GRAIN = "__time_grain"
     TIME_ORIGIN = "__time_origin"
     TIME_RANGE = "__time_range"
 
 
-class ExtraFiltersReasonType(str, Enum):
+class ExtraFiltersReasonType(StrEnum):
     NO_TEMPORAL_COLUMN = "no_temporal_column"
     COL_NOT_IN_DATASOURCE = "not_in_datasource"
 
 
-class FilterOperator(str, Enum):
+class FilterOperator(StrEnum):
     """
     Operators used filter controls
     """
@@ -242,7 +243,7 @@ class FilterOperator(str, Enum):
     TEMPORAL_RANGE = "TEMPORAL_RANGE"
 
 
-class FilterStringOperators(str, Enum):
+class FilterStringOperators(StrEnum):
     EQUALS = ("EQUALS",)
     NOT_EQUALS = ("NOT_EQUALS",)
     LESS_THAN = ("LESS_THAN",)
@@ -260,7 +261,7 @@ class FilterStringOperators(str, Enum):
     IS_FALSE = ("IS_FALSE",)
 
 
-class PostProcessingBoxplotWhiskerType(str, Enum):
+class PostProcessingBoxplotWhiskerType(StrEnum):
     """
     Calculate cell contribution to row/column total
     """
@@ -270,7 +271,7 @@ class PostProcessingBoxplotWhiskerType(str, Enum):
     PERCENTILE = "percentile"
 
 
-class PostProcessingContributionOrientation(str, Enum):
+class PostProcessingContributionOrientation(StrEnum):
     """
     Calculate cell contribution to row/column total
     """
@@ -298,7 +299,7 @@ class QuerySource(Enum):
     SQL_LAB = 2
 
 
-class QueryStatus(str, Enum):
+class QueryStatus(StrEnum):
     """Enum-type class for query statuses"""
 
     STOPPED: str = "stopped"
@@ -311,14 +312,14 @@ class QueryStatus(str, Enum):
     TIMED_OUT: str = "timed_out"
 
 
-class DashboardStatus(str, Enum):
+class DashboardStatus(StrEnum):
     """Dashboard status used for frontend filters"""
 
     PUBLISHED = "published"
     DRAFT = "draft"
 
 
-class ReservedUrlParameters(str, Enum):
+class ReservedUrlParameters(StrEnum):
     """
     Reserved URL parameters that are used internally by Superset. These will not be
     passed to chart queries, as they control the behavior of the UI.
@@ -336,7 +337,7 @@ class ReservedUrlParameters(str, Enum):
         return standalone
 
 
-class RowLevelSecurityFilterType(str, Enum):
+class RowLevelSecurityFilterType(StrEnum):
     REGULAR = "Regular"
     BASE = "Base"
 
@@ -367,9 +368,9 @@ def flasher(msg: str, severity: str = "message") -> None:
 def parse_js_uri_path_item(
     item: str | None, unquote: bool = True, eval_undefined: bool = False
 ) -> str | None:
-    """Parse a uri path item made with js.
+    """Parse an uri path item made with js.
 
-    :param item: a uri path component
+    :param item: an uri path component
     :param unquote: Perform unquoting of string using urllib.parse.unquote_plus()
     :param eval_undefined: When set to True and item is either 'null' or 'undefined',
     assume item is undefined and return None.
@@ -438,6 +439,8 @@ def cast_to_boolean(value: Any) -> bool | None:
     """
     if value is None:
         return None
+    if isinstance(value, bool):
+        return value
     if isinstance(value, (int, float)):
         return value != 0
     if isinstance(value, str):
@@ -920,7 +923,7 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
             msg.attach(
                 MIMEApplication(
                     f.read(),
-                    Content_Disposition="attachment; filename='%s'" % basename,
+                    Content_Disposition=f"attachment; filename='{basename}'",
                     Name=basename,
                 )
             )
@@ -929,7 +932,7 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     for name, body in (data or {}).items():
         msg.attach(
             MIMEApplication(
-                body, Content_Disposition="attachment; filename='%s'" % name, Name=name
+                body, Content_Disposition=f"attachment; filename='{name}'", Name=name
             )
         )
 
@@ -939,7 +942,7 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
         formatted_time = formatdate(localtime=True)
         file_name = f"{subject} {formatted_time}"
         image = MIMEImage(imgdata, name=file_name)
-        image.add_header("Content-ID", "<%s>" % msgid)
+        image.add_header("Content-ID", f"<{msgid}>")
         image.add_header("Content-Disposition", "inline")
         msg.attach(image)
     msg_mutator = config["EMAIL_HEADER_MUTATOR"]
@@ -1140,9 +1143,9 @@ def merge_extra_filters(form_data: dict[str, Any]) -> None:
 
         def get_filter_key(f: dict[str, Any]) -> str:
             if "expressionType" in f:
-                return "{}__{}".format(f["subject"], f["operator"])
+                return f"{f['subject']}__{f['operator']}"
 
-            return "{}__{}".format(f["col"], f["op"])
+            return f"{f['col']}__{f['op']}"
 
         existing_filters = {}
         for existing in adhoc_filters:
@@ -1159,16 +1162,14 @@ def merge_extra_filters(form_data: dict[str, Any]) -> None:
             filtr["isExtra"] = True
             # Pull out time filters/options and merge into form data
             filter_column = filtr["col"]
-            time_extra = date_options.get(filter_column)
-            if time_extra:
+            if time_extra := date_options.get(filter_column):
                 time_extra_value = filtr.get("val")
                 if time_extra_value and time_extra_value != NO_TIME_RANGE:
                     form_data[time_extra] = time_extra_value
                     form_data["applied_time_extras"][filter_column] = time_extra_value
             elif filtr["val"]:
                 # Merge column filters
-                filter_key = get_filter_key(filtr)
-                if filter_key in existing_filters:
+                if (filter_key := get_filter_key(filtr)) in existing_filters:
                     # Check if the filter already exists
                     if isinstance(filtr["val"], list):
                         if isinstance(existing_filters[filter_key], list):
@@ -1192,7 +1193,7 @@ def merge_extra_filters(form_data: dict[str, Any]) -> None:
 def merge_request_params(form_data: dict[str, Any], params: dict[str, Any]) -> None:
     """
     Merge request parameters to the key `url_params` in form_data. Only updates
-    or appends parameters to `form_data` that are defined in `params; pre-existing
+    or appends parameters to `form_data` that are defined in `params; preexisting
     parameters not defined in params are left unchanged.
 
     :param form_data: object to be updated
@@ -1265,11 +1266,9 @@ def get_column_name(column: Column, verbose_map: dict[str, Any] | None = None) -
     :raises ValueError: if metric object is invalid
     """
     if isinstance(column, dict):
-        label = column.get("label")
-        if label:
+        if label := column.get("label"):
             return label
-        expr = column.get("sqlExpression")
-        if expr:
+        if expr := column.get("sqlExpression"):
             return expr
 
     if isinstance(column, str):
@@ -1290,13 +1289,10 @@ def get_metric_name(metric: Metric, verbose_map: dict[str, Any] | None = None) -
     :raises ValueError: if metric object is invalid
     """
     if is_adhoc_metric(metric):
-        label = metric.get("label")
-        if label:
+        if label := metric.get("label"):
             return label
-        expression_type = metric.get("expressionType")
-        if expression_type == "SQL":
-            sql_expression = metric.get("sqlExpression")
-            if sql_expression:
+        if (expression_type := metric.get("expressionType")) == "SQL":
+            if sql_expression := metric.get("sqlExpression"):
                 return sql_expression
         if expression_type == "SIMPLE":
             column: AdhocMetricColumn = metric.get("column") or {}
@@ -1456,7 +1452,6 @@ def override_user(user: User | None, force: bool = True) -> Iterator[Any]:
     :param force: Whether to override the current user if set
     """
 
-    # pylint: disable=assigning-non-slot
     if hasattr(g, "user"):
         if force or g.user is None:
             current = g.user
@@ -1576,12 +1571,15 @@ def split(
     yield string[i:]
 
 
-def get_iterable(x: Any) -> list[Any]:
+T = TypeVar("T")
+
+
+def as_list(x: T | list[T]) -> list[T]:
     """
-    Get an iterable (list) representation of the object.
+    Wrap an object in a list if it's not a list.
 
     :param x: The object
-    :returns: An iterable representation
+    :returns: A list wrapping the object if it's not already a list
     """
     return x if isinstance(x, list) else [x]
 
@@ -1748,9 +1746,8 @@ def get_time_filter_status(
                 }
             )
 
-    time_range = applied_time_extras.get(ExtraFiltersTimeColumnType.TIME_RANGE)
-    if time_range:
-        # are there any temporal columns to assign the time grain to?
+    if applied_time_extras.get(ExtraFiltersTimeColumnType.TIME_RANGE):
+        # are there any temporal columns to assign the time range to?
         if temporal_columns:
             applied.append({"column": ExtraFiltersTimeColumnType.TIME_RANGE})
         else:
@@ -1832,7 +1829,12 @@ def normalize_dttm_col(
                 # Column is formatted as a numeric value
                 unit = _col.timestamp_format.replace("epoch_", "")
                 df[_col.col_label] = pd.to_datetime(
-                    dttm_series, utc=False, unit=unit, origin="unix", errors="coerce"
+                    dttm_series,
+                    utc=False,
+                    unit=unit,
+                    origin="unix",
+                    errors="raise",
+                    exact=False,
                 )
             else:
                 # Column has already been formatted as a timestamp.
@@ -1842,7 +1844,8 @@ def normalize_dttm_col(
                 df[_col.col_label],
                 utc=False,
                 format=_col.timestamp_format,
-                errors="coerce",
+                errors="raise",
+                exact=False,
             )
         if _col.offset:
             df[_col.col_label] += timedelta(hours=_col.offset)
@@ -1912,6 +1915,25 @@ def create_zip(files: dict[str, Any]) -> BytesIO:
                 fp.write(contents)
     buf.seek(0)
     return buf
+
+
+def check_is_safe_zip(zip_file: ZipFile) -> None:
+    """
+    Checks whether a ZIP file is safe, raises SupersetException if not.
+
+    :param zip_file:
+    :return:
+    """
+    uncompress_size = 0
+    compress_size = 0
+    for zip_file_element in zip_file.infolist():
+        if zip_file_element.file_size > current_app.config["ZIPPED_FILE_MAX_SIZE"]:
+            raise SupersetException("Found file with size above allowed threshold")
+        uncompress_size += zip_file_element.file_size
+        compress_size += zip_file_element.compress_size
+    compress_ratio = uncompress_size / compress_size
+    if compress_ratio > current_app.config["ZIP_FILE_MAX_COMPRESS_RATIO"]:
+        raise SupersetException("Zip compress ratio above allowed threshold")
 
 
 def remove_extra_adhoc_filters(form_data: dict[str, Any]) -> None:

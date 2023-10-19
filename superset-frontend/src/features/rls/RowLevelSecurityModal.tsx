@@ -31,7 +31,7 @@ import Select from 'src/components/Select/Select';
 import AsyncSelect from 'src/components/Select/AsyncSelect';
 import rison from 'rison';
 import { LabeledErrorBoundInput } from 'src/components/Form';
-import { noBottomMargin } from 'src/components/ReportModal/styles';
+import { noBottomMargin } from 'src/features/reports/ReportModal/styles';
 import InfoTooltip from 'src/components/InfoTooltip';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { FilterOptions } from './constants';
@@ -39,9 +39,13 @@ import { FilterType, RLSObject, RoleObject, TableObject } from './types';
 
 const StyledModal = styled(Modal)`
   max-width: 1200px;
+  min-width: min-content;
   width: 100%;
   .ant-modal-body {
     overflow: initial;
+  }
+  .ant-modal-footer {
+    white-space: nowrap;
   }
 `;
 const StyledIcon = (theme: SupersetTheme) => css`

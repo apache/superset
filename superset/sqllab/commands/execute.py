@@ -177,7 +177,7 @@ class ExecuteSqlCommand(BaseCommand):
 
     def _save_new_query(self, query: Query) -> None:
         try:
-            self._query_dao.save(query)
+            self._query_dao.create(query)
         except DAOCreateFailedError as ex:
             raise SqlLabException(
                 self._execution_context,

@@ -64,7 +64,7 @@ class DeleteChartCommand(BaseCommand):
         if reports := ReportScheduleDAO.find_by_chart_ids(self._model_ids):
             report_names = [report.name for report in reports]
             raise ChartDeleteFailedReportsExistError(
-                _("There are associated alerts or reports: %s" % ",".join(report_names))
+                _(f"There are associated alerts or reports: {','.join(report_names)}")
             )
         # Check ownership
         for model in self._models:

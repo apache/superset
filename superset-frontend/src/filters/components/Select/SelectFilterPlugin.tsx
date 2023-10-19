@@ -26,7 +26,7 @@ import {
   GenericDataType,
   getColumnLabel,
   JsonObject,
-  smartDateDetailedFormatter,
+  finestTemporalGrainFormatter,
   t,
   tn,
 } from '@superset-ui/core';
@@ -117,9 +117,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const labelFormatter = useMemo(
     () =>
       getDataRecordFormatter({
-        timeFormatter: smartDateDetailedFormatter,
+        timeFormatter: finestTemporalGrainFormatter(data.map(el => el[col])),
       }),
-    [],
+    [data, col],
   );
 
   const updateDataMask = useCallback(
@@ -185,23 +185,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     [dispatchDataMask, initialColtypeMap, searchAllOptions],
   );
 
-  const clearSuggestionSearch = useCallback(() => {
-    setSearch('');
-    if (searchAllOptions) {
-      dispatchDataMask({
-        type: 'ownState',
-        ownState: {
-          coltypeMap: initialColtypeMap,
-          search: null,
-        },
-      });
-    }
-  }, [dispatchDataMask, initialColtypeMap, searchAllOptions]);
-
   const handleBlur = useCallback(() => {
-    clearSuggestionSearch();
     unsetFocusedFilter();
-  }, [clearSuggestionSearch, unsetFocusedFilter]);
+  }, [unsetFocusedFilter]);
 
   const handleChange = useCallback(
     (value?: SelectValue | number | string) => {
@@ -323,7 +309,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           mode={multiSelect ? 'multiple' : 'single'}
           placeholder={placeholderText}
           onSearch={onSearch}
-          onSelect={clearSuggestionSearch}
           onBlur={handleBlur}
           onFocus={setFocusedFilter}
           onMouseEnter={setHoveredFilter}

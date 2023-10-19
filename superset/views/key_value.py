@@ -44,7 +44,7 @@ class KV(BaseSupersetView):
     @event_logger.log_this
     @has_access_api
     @expose("/store/", methods=("POST",))
-    def store(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def store(self) -> FlaskResponse:
         try:
             value = request.form.get("data")
             obj = models.KeyValue(value=value)
@@ -57,7 +57,7 @@ class KV(BaseSupersetView):
     @event_logger.log_this
     @has_access_api
     @expose("/<int:key_id>/", methods=("GET",))
-    def get_value(self, key_id: int) -> FlaskResponse:  # pylint: disable=no-self-use
+    def get_value(self, key_id: int) -> FlaskResponse:
         try:
             kv = db.session.query(models.KeyValue).filter_by(id=key_id).scalar()
             if not kv:

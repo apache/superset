@@ -49,6 +49,7 @@ export const hostField = ({
     onChange={changeMethods.onParametersChange}
   />
 );
+
 export const portField = ({
   required,
   changeMethods,
@@ -255,6 +256,7 @@ export const forceSSLField = ({
 export const SSHTunnelSwitch = ({
   isEditMode,
   changeMethods,
+  clearValidationErrors,
   db,
 }: FieldPropTypes) => (
   <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
@@ -270,6 +272,7 @@ export const SSHTunnelSwitch = ({
             value: changed,
           },
         });
+        clearValidationErrors();
       }}
       data-test="ssh-tunnel-switch"
     />

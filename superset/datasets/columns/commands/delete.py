@@ -20,7 +20,7 @@ from typing import Optional
 from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import TableColumn
-from superset.daos.dataset import DatasetDAO
+from superset.daos.dataset import DatasetColumnDAO, DatasetDAO
 from superset.daos.exceptions import DAODeleteFailedError
 from superset.datasets.columns.commands.exceptions import (
     DatasetColumnDeleteFailedError,
@@ -43,7 +43,7 @@ class DeleteDatasetColumnCommand(BaseCommand):
         assert self._model
 
         try:
-            DatasetDAO.delete_column(self._model)
+            DatasetColumnDAO.delete(self._model)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
             raise DatasetColumnDeleteFailedError() from ex
