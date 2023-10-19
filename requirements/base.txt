@@ -96,7 +96,7 @@ flask==2.2.5
     #   flask-migrate
     #   flask-sqlalchemy
     #   flask-wtf
-flask-appbuilder==4.3.7
+flask-appbuilder==4.3.9
     # via apache-superset
 flask-babel==1.0.0
     # via flask-appbuilder
