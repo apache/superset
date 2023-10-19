@@ -111,3 +111,4 @@ messages.mo
 docker/requirements-local.txt
 
 cache/
+.aider*
