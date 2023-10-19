@@ -41,21 +41,3 @@ test('Should call download pdf on click', async () => {
     expect(props.addDangerToast).toBeCalledTimes(0);
   });
 });
-
-// test('Should call addDangerToast once on failure to download pdf', async () => {
-//   const props = createProps();
-//   renderComponent();
-
-//   userEvent.click(screen.getByRole('button', { name: 'Export as PDF' }));
-
-//   await waitFor(() => {
-//     expect(props.addDangerToast).toBeCalledTimes(0);
-//   });
-
-//   await waitFor(async () => {
-//     expect(props.addDangerToast).toBeCalledTimes(1);
-//     expect(props.addDangerToast).toBeCalledWith(
-//       'Sorry, something went wrong. Try again later.',
-//     );
-//   });
-// });
