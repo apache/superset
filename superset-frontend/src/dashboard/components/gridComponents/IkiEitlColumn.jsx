@@ -324,13 +324,13 @@ class IkiEitlColumn extends React.PureComponent {
     widgetUrl.search = widgetUrlQuery.toString();
     const tempIframe = `<iframe
                       id="ikieitlcolumn-widget-${this.props.component.id}"
-                      name="run-flow-component"
+                      name="eitl-column-component"
                       src="${widgetUrl}"
-                      title="IkiRunPipeline Component"
+                      title="IkiEitlColumn Component"
                       className="ikieitlcolumn-widget"
                       style="min-height: 100%;"
                     />`;
-    this.handleIkiRunPipelineChange(tempIframe);
+    this.handleIkiEitlColumnChange(tempIframe);
   }
 
   updateMarkdownContent() {

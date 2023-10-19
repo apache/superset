@@ -325,13 +325,13 @@ class IkiEitlRow extends React.PureComponent {
     widgetUrl.search = widgetUrlQuery.toString();
     const tempIframe = `<iframe
                       id="ikieitlrow-widget-${this.props.component.id}"
-                      name="run-flow-component"
+                      name="eitl-row-component"
                       src="${widgetUrl}"
-                      title="IkiRunPipeline Component"
+                      title="IkiEitlRow Component"
                       className="ikieitlrow-widget"
                       style="min-height: 100%;"
                     />`;
-    this.handleIkiRunPipelineChange(tempIframe);
+    this.handleIkiEitlRowChange(tempIframe);
   }
 
   updateMarkdownContent() {
