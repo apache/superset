@@ -131,9 +131,7 @@ geographiclib==1.52
 geopy==2.2.0
     # via apache-superset
 greenlet==2.0.2
-    # via
-    #   shillelagh
-    #   sqlalchemy
+    # via shillelagh
 gunicorn==21.2.0
     # via apache-superset
 hashids==1.3.1
@@ -149,10 +147,7 @@ idna==3.2
     #   email-validator
     #   requests
 importlib-metadata==6.6.0
-    # via
-    #   apache-superset
-    #   flask
-    #   shillelagh
+    # via apache-superset
 importlib-resources==5.12.0
     # via limits
 isodate==0.6.0
@@ -220,6 +215,7 @@ packaging==23.1
     #   apache-superset
     #   apispec
     #   deprecation
+    #   gunicorn
     #   limits
     #   marshmallow
     #   shillelagh
@@ -362,9 +358,7 @@ wtforms-json==0.3.5
 xlsxwriter==3.0.7
     # via apache-superset
 zipp==3.15.0
-    # via
-    #   importlib-metadata
-    #   importlib-resources
+    # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

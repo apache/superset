@@ -38,4 +38,5 @@ jobs:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          .github/workflows/docker_build_push.sh
+          GITHUB_RELEASE_TAG_NAME="${{ github.event.release.tag_name }}"
+          ./scripts/docker_build_push.sh "$GITHUB_RELEASE_TAG_NAME"
