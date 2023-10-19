@@ -40,6 +40,7 @@ import el_salvador from './countries/el salvador.geojson';
 import estonia from './countries/estonia.geojson';
 import ethiopia from './countries/ethiopia.geojson';
 import france from './countries/france.geojson';
+import france_regions from './countries/france_regions.geojson';
 import finland from './countries/finland.geojson';
 import germany from './countries/germany.geojson';
 import guatemala from './countries/guatemala.geojson';
@@ -133,6 +134,7 @@ export const countries = {
   estonia,
   ethiopia,
   france,
+  france_regions,
   finland,
   germany,
   guatemala,
@@ -209,6 +211,9 @@ export const countryOptions = Object.keys(countries).map(x => {
   }
   if (x === 'italy_regions') {
     return [x, 'Italy (regions)'];
+  }
+  if (x === 'france_regions') {
+    return [x, 'France (regions)'];
   }
   return [x, x[0].toUpperCase() + x.slice(1)];
 });
