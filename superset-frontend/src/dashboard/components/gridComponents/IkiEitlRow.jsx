@@ -310,9 +310,7 @@ class IkiEitlRow extends React.PureComponent {
     let widgetUrl;
 
     if (
-      document.getElementById(
-        `ikieitlrow-widget-${this.props.component.id}`,
-      )
+      document.getElementById(`ikieitlrow-widget-${this.props.component.id}`)
     ) {
       widgetUrl = new URL(
         document.getElementById(
