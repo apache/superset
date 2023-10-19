@@ -56,7 +56,7 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
             raise DatasetCreateFailedError(
                 *{"message": str(ex)}
                 if isinstance(ex, SupersetSecurityException)
-                else {}
+                else {"exception": ex}
             ) from ex
         return dataset
 
