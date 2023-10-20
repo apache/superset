@@ -291,10 +291,10 @@ class HeaderActionsDropdown extends React.PureComponent {
             />
           </Menu.Item>
         )}
-        {!editMode && (
+        {
           <Menu.SubMenu
-            key={MENU_KEYS.DOWNLOAD_AS_IMAGE}
-            onClick={this.handleMenuClick}
+            key={MENU_KEYS.DOWNLOAD_DASHBOARD}
+            disabled={isLoading}
             title={t('Download')}
             logEvent={this.props.logEvent}
           >
@@ -305,7 +305,7 @@ class HeaderActionsDropdown extends React.PureComponent {
               addDangerToast={addDangerToast}
             />
           </Menu.SubMenu>
-        )}
+        }
         {userCanShare && (
           <Menu.SubMenu
             key={MENU_KEYS.SHARE_DASHBOARD}
