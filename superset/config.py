@@ -1421,7 +1421,6 @@ TALISMAN_CONFIG = {
         "style-src": [
             "'self'",
             "'unsafe-inline'",
-            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
         ],
         "script-src": ["'self'", "'strict-dynamic'"],
     },
@@ -1443,7 +1442,6 @@ TALISMAN_DEV_CONFIG = {
         "style-src": [
             "'self'",
             "'unsafe-inline'",
-            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
         ],
         "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
     },
