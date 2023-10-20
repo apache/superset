@@ -73,7 +73,7 @@ class Api(BaseSupersetView):
     @handle_api_exception
     @has_access_api
     @expose("/v1/form_data/", methods=["GET"])
-    def query_form_data(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def query_form_data(self) -> FlaskResponse:
         """
         Get the formdata stored in the database for existing slice.
         params: slice_id: integer

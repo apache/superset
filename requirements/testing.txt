@@ -137,8 +137,3 @@ trino==0.319.0
     # via apache-superset
 websocket-client==1.2.0
     # via docker
-wrapt==1.12.1
-    # via astroid
-# The following packages are considered to be unsafe in a requirements file:
-# pip
-# setuptools

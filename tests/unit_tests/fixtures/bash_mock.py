@@ -16,11 +16,12 @@
 # under the License.
 
 import subprocess
+from typing import Any
 
 
 class BashMock:
     @staticmethod
-    def tag_latest_release(tag):
+    def tag_latest_release(tag: str) -> Any:
         bash_command = f"./scripts/tag_latest_release.sh {tag} --dry-run"
         result = subprocess.run(
             bash_command,
@@ -32,7 +33,7 @@ class BashMock:
         return result
 
     @staticmethod
-    def docker_build_push(tag, branch):
+    def docker_build_push(tag, branch) -> Any:
         bash_command = f"./scripts/docker_build_push.sh {tag}"
         result = subprocess.run(
             bash_command,

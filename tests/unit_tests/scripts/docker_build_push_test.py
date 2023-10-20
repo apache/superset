@@ -16,6 +16,7 @@
 # under the License.
 import re
 import subprocess
+from typing import Any, Dict, List, Optional, Union
 from unittest import mock
 from unittest.mock import patch
 
@@ -26,8 +27,8 @@ from tests.unit_tests.fixtures.bash_mock import BashMock
 original_run = subprocess.run
 
 
-def wrapped(*args, **kwargs):
-    return original_run(*args, **kwargs)
+def wrapped(*args: List[str], **kwargs: Optional[Dict[str, Any]]) -> Any:
+    return original_run(*args, **kwargs)  # type: ignore
 
 
 @pytest.mark.parametrize(
@@ -43,7 +44,7 @@ def wrapped(*args, **kwargs):
         ("does_not_exist", "LATEST_TAG is does-not-exist", "does_not_exist"),
     ],
 )
-def test_tag_latest_release(tag, expected_output, branch):
+def test_tag_latest_release(tag: str, expected_output: str, branch: str) -> None:
     with mock.patch(
         "tests.unit_tests.fixtures.bash_mock.subprocess.run", wraps=wrapped
     ) as subprocess_mock:
