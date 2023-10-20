@@ -185,7 +185,7 @@ class ImportExportMixin:
     __mapper__: Mapper
 
     @classmethod
-    def _unique_constraints(cls) -> list[set[str]]:
+    def _unique_constraints(cls) -> List[Set[str]]:
         """Get all (single column and multi column) unique constraints"""
         unique = [
             {c.name for c in u.columns}
@@ -246,7 +246,7 @@ class ImportExportMixin:
         dict_rep: Dict[Any, Any],
         parent: Optional[Any] = None,
         recursive: bool = True,
-        sync: Optional[list[str]] = None,
+        sync: Optional[List[str]] = None,
         allow_reparenting: bool = False,
     ) -> Any:
         """Import obj from a dictionary"""
@@ -1407,7 +1407,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         template_kwargs["removed_filters"] = removed_filters
         template_kwargs["applied_filters"] = applied_template_filters
         template_processor = self.get_template_processor(**template_kwargs)
-        prequeries: list[str] = []
+        prequeries: List[str] = []
         orderby = orderby or []
         need_groupby = bool(metrics is not None or groupby)
         metrics = metrics or []

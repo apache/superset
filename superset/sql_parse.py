@@ -18,7 +18,7 @@ import logging
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, cast, Iterator, List, Optional, Set, Tuple
+from typing import Any, cast, Dict, Iterator, List, Optional, Set, Tuple
 from urllib import parse
 
 import sqlparse
@@ -216,12 +216,14 @@ class ParsedQuery:
     def limit(self) -> Optional[int]:
         return self._limit
 
-    def _get_cte_tables(self, parsed: dict[str, Any]) -> list[dict[str, Any]]:
+    def _get_cte_tables(  # pylint: disable=no-self-use
+        self, parsed: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
         if "with" not in parsed:
             return []
         return parsed["with"].get("cte_tables", [])
 
-    def _check_cte_is_select(self, oxide_parse: list[dict[str, Any]]) -> bool:
+    def _check_cte_is_select(self, oxide_parse: List[Dict[str, Any]]) -> bool:
         """
         Check if a oxide parsed CTE contains only SELECT statements
 
@@ -822,10 +824,10 @@ def extract_table_references(
         """
         Find all nodes in a SQL tree matching a given key.
         """
-        if isinstance(element, list):
+        if isinstance(element, List):
             for child in element:
                 yield from find_nodes_by_key(child, target)
-        elif isinstance(element, dict):
+        elif isinstance(element, Dict):
             for key, value in element.items():
                 if key == target:
                     yield value
