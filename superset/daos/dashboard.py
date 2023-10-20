@@ -65,8 +65,6 @@ class DashboardDAO(BaseDAO[Dashboard]):
             query = (
                 db.session.query(Dashboard)
                 .filter(id_or_slug_filter(id_or_slug))
-                .outerjoin(Slice, Dashboard.slices)
-                .outerjoin(Slice.table)
                 .outerjoin(Dashboard.owners)
                 .outerjoin(Dashboard.roles)
             )
