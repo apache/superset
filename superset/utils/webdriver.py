@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import logging
+from abc import ABC, abstractmethod
 from enum import Enum
 from time import sleep
 from typing import Any, TYPE_CHECKING
@@ -34,15 +35,25 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
+from superset import feature_flag_manager
 from superset.extensions import machine_auth_provider_factory
 from superset.utils.retries import retry_call
 
 WindowSize = tuple[int, int]
 logger = logging.getLogger(__name__)
 
-
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla.models import User
+
+if feature_flag_manager.is_feature_enabled("PLAYWRIGHT_REPORTS_AND_THUMBNAILS"):
+    from playwright.sync_api import (
+        BrowserContext,
+        ElementHandle,
+        Error,
+        Page,
+        sync_playwright,
+        TimeoutError as PlaywrightTimeout,
+    )
 
 
 class DashboardStandaloneMode(Enum):
@@ -56,67 +67,188 @@ class ChartStandaloneMode(Enum):
     SHOW_NAV = 0
 
 
-def find_unexpected_errors(driver: WebDriver) -> list[str]:
-    error_messages = []
-
-    try:
-        alert_divs = driver.find_elements(By.XPATH, "//div[@role = 'alert']")
-        logger.debug(
-            "%i alert elements have been found in the screenshot", len(alert_divs)
-        )
-
-        for alert_div in alert_divs:
-            # See More button
-            alert_div.find_element(By.XPATH, ".//*[@role = 'button']").click()
-
-            # wait for modal to show up
-            modal = WebDriverWait(
-                driver, current_app.config["SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE"]
-            ).until(
-                EC.visibility_of_any_elements_located(
-                    (By.CLASS_NAME, "ant-modal-content")
-                )
-            )[
-                0
-            ]
-
-            err_msg_div = modal.find_element(By.CLASS_NAME, "ant-modal-body")
-
-            # collect error message
-            error_messages.append(err_msg_div.text)
-
-            # close modal after collecting error messages
-            modal.find_element(By.CLASS_NAME, "ant-modal-close").click()
-
-            # wait until the modal becomes invisible
-            WebDriverWait(
-                driver, current_app.config["SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE"]
-            ).until(EC.invisibility_of_element(modal))
-
-            # Use HTML so that error messages are shown in the same style (color)
-            error_as_html = err_msg_div.get_attribute("innerHTML").replace("'", "\\'")
-
-            try:
-                # Even if some errors can't be updated in the screenshot,
-                # keep all the errors in the server log and do not fail the loop
-                driver.execute_script(
-                    f"arguments[0].innerHTML = '{error_as_html}'", alert_div
-                )
-            except WebDriverException:
-                logger.exception("Failed to update error messages using alert_div")
-    except WebDriverException:
-        logger.exception("Failed to capture unexpected errors")
-
-    return error_messages
-
-
-class WebDriverProxy:
+# pylint: disable=too-few-public-methods
+class WebDriverProxy(ABC):
     def __init__(self, driver_type: str, window: WindowSize | None = None):
         self._driver_type = driver_type
         self._window: WindowSize = window or (800, 600)
         self._screenshot_locate_wait = current_app.config["SCREENSHOT_LOCATE_WAIT"]
         self._screenshot_load_wait = current_app.config["SCREENSHOT_LOAD_WAIT"]
 
+    @abstractmethod
+    def get_screenshot(self, url: str, element_name: str, user: User) -> bytes | None:
+        """
+        Run webdriver and return a screenshot
+        """
+
+
+class WebDriverPlaywright(WebDriverProxy):
+    @staticmethod
+    def auth(user: User, context: BrowserContext) -> BrowserContext:
+        return machine_auth_provider_factory.instance.authenticate_browser_context(
+            context, user
+        )
+
+    @staticmethod
+    def find_unexpected_errors(page: Page) -> list[str]:
+        error_messages = []
+
+        try:
+            alert_divs = page.get_by_role("alert").all()
+
+            logger.debug(
+                "%i alert elements have been found in the screenshot", len(alert_divs)
+            )
+
+            for alert_div in alert_divs:
+                # See More button
+                alert_div.get_by_role("button").click()
+
+                # wait for modal to show up
+                page.wait_for_selector(
+                    ".ant-modal-content",
+                    timeout=current_app.config[
+                        "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE"
+                    ]
+                    * 1000,
+                    state="visible",
+                )
+                err_msg_div = page.locator(".ant-modal-content .ant-modal-body")
+                #
+                # # collect error message
+                error_messages.append(err_msg_div.text_content())
+                #
+                # # Use HTML so that error messages are shown in the same style (color)
+                error_as_html = err_msg_div.inner_html().replace("'", "\\'")
+                #
+                # # close modal after collecting error messages
+                page.locator(".ant-modal-content .ant-modal-close").click()
+                #
+                # # wait until the modal becomes invisible
+                page.wait_for_selector(
+                    ".ant-modal-content",
+                    timeout=current_app.config[
+                        "SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE"
+                    ]
+                    * 1000,
+                    state="detached",
+                )
+                try:
+                    # Even if some errors can't be updated in the screenshot,
+                    # keep all the errors in the server log and do not fail the loop
+                    alert_div.evaluate(
+                        "(node, error_html) => node.innerHtml = error_html",
+                        [error_as_html],
+                    )
+                except Error:
+                    logger.exception("Failed to update error messages using alert_div")
+        except Error:
+            logger.exception("Failed to capture unexpected errors")
+
+        return error_messages
+
+    def get_screenshot(self, url: str, element_name: str, user: User) -> bytes | None:
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch()
+            pixel_density = current_app.config["WEBDRIVER_WINDOW"].get(
+                "pixel_density", 1
+            )
+            context = browser.new_context(
+                bypass_csp=True,
+                viewport={
+                    "height": self._window[1],
+                    "width": self._window[0],
+                },
+                device_scale_factor=pixel_density,
+            )
+            self.auth(user, context)
+            page = context.new_page()
+            page.goto(url)
+            img: bytes | None = None
+            selenium_headstart = current_app.config["SCREENSHOT_SELENIUM_HEADSTART"]
+            logger.debug("Sleeping for %i seconds", selenium_headstart)
+            page.wait_for_timeout(selenium_headstart * 1000)
+            element: ElementHandle
+            try:
+                try:
+                    # page didn't load
+                    logger.debug(
+                        "Wait for the presence of %s at url: %s", element_name, url
+                    )
+                    element = page.wait_for_selector(
+                        f".{element_name}",
+                        timeout=self._screenshot_locate_wait * 1000,
+                    )
+                except PlaywrightTimeout as ex:
+                    logger.exception("Timed out requesting url %s", url)
+                    raise ex
+
+                try:
+                    # chart containers didn't render
+                    logger.debug("Wait for chart containers to draw at url: %s", url)
+                    page.wait_for_selector(
+                        ".slice_container", timeout=self._screenshot_locate_wait * 1000
+                    )
+                except PlaywrightTimeout as ex:
+                    logger.exception(
+                        "Timed out waiting for chart containers to draw at url %s",
+                        url,
+                    )
+                    raise ex
+                try:
+                    # charts took too long to load
+                    logger.debug(
+                        "Wait for loading element of charts to be gone at url: %s", url
+                    )
+                    page.wait_for_selector(
+                        ".loading",
+                        timeout=self._screenshot_locate_wait * 1000,
+                        state="detached",
+                    )
+                except PlaywrightTimeout as ex:
+                    logger.exception(
+                        "Timed out waiting for charts to load at url %s", url
+                    )
+                    raise ex
+
+                selenium_animation_wait = current_app.config[
+                    "SCREENSHOT_SELENIUM_ANIMATION_WAIT"
+                ]
+                logger.debug(
+                    "Wait %i seconds for chart animation", selenium_animation_wait
+                )
+                page.wait_for_timeout(selenium_animation_wait * 1000)
+                logger.debug(
+                    "Taking a PNG screenshot of url %s as user %s",
+                    url,
+                    user.username,
+                )
+                if current_app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"]:
+                    unexpected_errors = WebDriverPlaywright.find_unexpected_errors(page)
+                    if unexpected_errors:
+                        logger.warning(
+                            "%i errors found in the screenshot. URL: %s. Errors are: %s",
+                            len(unexpected_errors),
+                            url,
+                            unexpected_errors,
+                        )
+                img = element.screenshot()
+            except PlaywrightTimeout:
+                # raise again for the finally block, but handled above
+                pass
+            except StaleElementReferenceException:
+                logger.exception(
+                    "Selenium got a stale element while requesting url %s",
+                    url,
+                )
+            except WebDriverException:
+                logger.exception(
+                    "Encountered an unexpected error when requeating url %s", url
+                )
+            return img
+
+
+class WebDriverSelenium(WebDriverProxy):
     def create(self) -> WebDriver:
         pixel_density = current_app.config["WEBDRIVER_WINDOW"].get("pixel_density", 1)
         if self._driver_type == "firefox":
@@ -124,15 +256,17 @@ class WebDriverProxy:
             options = firefox.options.Options()
             profile = FirefoxProfile()
             profile.set_preference("layout.css.devPixelsPerPx", str(pixel_density))
-            kwargs: dict[Any, Any] = dict(options=options, firefox_profile=profile)
+            kwargs: dict[Any, Any] = {"options": options, "firefox_profile": profile}
         elif self._driver_type == "chrome":
             driver_class = chrome.webdriver.WebDriver
             options = chrome.options.Options()
             options.add_argument(f"--force-device-scale-factor={pixel_density}")
             options.add_argument(f"--window-size={self._window[0]},{self._window[1]}")
-            kwargs = dict(options=options)
+            kwargs = {"options": options}
         else:
-            raise Exception(f"Webdriver name ({self._driver_type}) not supported")
+            raise Exception(  # pylint: disable=broad-exception-raised
+                f"Webdriver name ({self._driver_type}) not supported"
+            )
         # Prepare args for the webdriver init
 
         # Add additional configured options
@@ -163,6 +297,64 @@ class WebDriverProxy:
             driver.quit()
         except Exception:  # pylint: disable=broad-except
             pass
+
+    @staticmethod
+    def find_unexpected_errors(driver: WebDriver) -> list[str]:
+        error_messages = []
+
+        try:
+            alert_divs = driver.find_elements(By.XPATH, "//div[@role = 'alert']")
+            logger.debug(
+                "%i alert elements have been found in the screenshot", len(alert_divs)
+            )
+
+            for alert_div in alert_divs:
+                # See More button
+                alert_div.find_element(By.XPATH, ".//*[@role = 'button']").click()
+
+                # wait for modal to show up
+                modal = WebDriverWait(
+                    driver,
+                    current_app.config["SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE"],
+                ).until(
+                    EC.visibility_of_any_elements_located(
+                        (By.CLASS_NAME, "ant-modal-content")
+                    )
+                )[
+                    0
+                ]
+
+                err_msg_div = modal.find_element(By.CLASS_NAME, "ant-modal-body")
+
+                # collect error message
+                error_messages.append(err_msg_div.text)
+
+                # close modal after collecting error messages
+                modal.find_element(By.CLASS_NAME, "ant-modal-close").click()
+
+                # wait until the modal becomes invisible
+                WebDriverWait(
+                    driver,
+                    current_app.config["SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE"],
+                ).until(EC.invisibility_of_element(modal))
+
+                # Use HTML so that error messages are shown in the same style (color)
+                error_as_html = err_msg_div.get_attribute("innerHTML").replace(
+                    "'", "\\'"
+                )
+
+                try:
+                    # Even if some errors can't be updated in the screenshot,
+                    # keep all the errors in the server log and do not fail the loop
+                    driver.execute_script(
+                        f"arguments[0].innerHTML = '{error_as_html}'", alert_div
+                    )
+                except WebDriverException:
+                    logger.exception("Failed to update error messages using alert_div")
+        except WebDriverException:
+            logger.exception("Failed to capture unexpected errors")
+
+        return error_messages
 
     def get_screenshot(self, url: str, element_name: str, user: User) -> bytes | None:
         driver = self.auth(user)
@@ -227,7 +419,7 @@ class WebDriverProxy:
             )
 
             if current_app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"]:
-                unexpected_errors = find_unexpected_errors(driver)
+                unexpected_errors = WebDriverSelenium.find_unexpected_errors(driver)
                 if unexpected_errors:
                     logger.warning(
                         "%i errors found in the screenshot. URL: %s. Errors are: %s",
@@ -247,7 +439,7 @@ class WebDriverProxy:
             )
         except WebDriverException:
             logger.exception(
-                "Encountered an unexpected error when requeating url %s", url
+                "Encountered an unexpected error when requesting url %s", url
             )
         finally:
             self.destroy(driver, current_app.config["SCREENSHOT_SELENIUM_RETRIES"])

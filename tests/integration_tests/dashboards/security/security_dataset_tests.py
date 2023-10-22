@@ -23,7 +23,6 @@ from flask import escape
 
 from superset import app
 from superset.daos.dashboard import DashboardDAO
-from superset.models import core as models
 from tests.integration_tests.dashboards.base_case import DashboardTestCase
 from tests.integration_tests.dashboards.consts import *
 from tests.integration_tests.dashboards.dashboard_test_utils import *
@@ -123,48 +122,6 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
 
         # assert
         self.assertNotIn(dashboard_url, get_dashboards_response)
-
-    def test_get_dashboards__users_can_view_favorites_dashboards(self):
-        # arrange
-        user = security_manager.find_user("gamma")
-        fav_dash_slug = f"my_favorite_dash_{random_slug()}"
-        regular_dash_slug = f"regular_dash_{random_slug()}"
-
-        favorite_dash = Dashboard()
-        favorite_dash.dashboard_title = "My Favorite Dashboard"
-        favorite_dash.slug = fav_dash_slug
-
-        regular_dash = Dashboard()
-        regular_dash.dashboard_title = "A Plain Ol Dashboard"
-        regular_dash.slug = regular_dash_slug
-
-        db.session.add(favorite_dash)
-        db.session.add(regular_dash)
-        db.session.commit()
-
-        dash = db.session.query(Dashboard).filter_by(slug=fav_dash_slug).first()
-
-        favorites = models.FavStar()
-        favorites.obj_id = dash.id
-        favorites.class_name = "Dashboard"
-        favorites.user_id = user.id
-
-        db.session.add(favorites)
-        db.session.commit()
-
-        self.login(user.username)
-
-        # act
-        get_dashboards_response = self.get_resp(DASHBOARDS_API_URL)
-
-        # cleanup
-        db.session.delete(favorites)
-        db.session.delete(favorite_dash)
-        db.session.delete(regular_dash)
-        db.session.commit()
-
-        # assert
-        self.assertIn(f"/superset/dashboard/{fav_dash_slug}/", get_dashboards_response)
 
     def test_get_dashboards__user_can_not_view_unpublished_dash(self):
         # arrange

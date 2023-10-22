@@ -129,6 +129,11 @@ const config: ControlPanelConfig = {
         ['color_scheme'],
       ],
     },
+    {
+      label: t('Chart Options'),
+      expanded: true,
+      controlSetRows: [['y_axis_format'], ['currency_format']],
+    },
   ],
   controlOverrides: {
     entity: {

@@ -139,6 +139,8 @@ export const {
   useTablesQuery,
   useTableMetadataQuery,
   useTableExtendedMetadataQuery,
+  endpoints: tableEndpoints,
+  util: tableApiUtil,
 } = tableApi;
 
 export function useTables(options: Params) {

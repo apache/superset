@@ -20,6 +20,8 @@
 # string to use when None values *need* to be converted to/from strings
 from enum import Enum
 
+from superset.utils.backports import StrEnum
+
 USER_AGENT = "Apache Superset"
 
 NULL_STRING = "<NULL>"
@@ -185,7 +187,7 @@ EXTRA_FORM_DATA_OVERRIDE_KEYS = (
 )
 
 
-class TimeGrain(str, Enum):
+class TimeGrain(StrEnum):
     SECOND = "PT1S"
     FIVE_SECONDS = "PT5S"
     THIRTY_SECONDS = "PT30S"
@@ -214,13 +216,13 @@ class PandasAxis(int, Enum):
     COLUMN = 1
 
 
-class PandasPostprocessingCompare(str, Enum):
+class PandasPostprocessingCompare(StrEnum):
     DIFF = "difference"
     PCT = "percentage"
     RAT = "ratio"
 
 
-class CacheRegion(str, Enum):
+class CacheRegion(StrEnum):
     DEFAULT = "default"
     DATA = "data"
     THUMBNAIL = "thumbnail"

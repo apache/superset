@@ -200,6 +200,10 @@ class DatabaseNotFound(SupersetException):
     status = 400
 
 
+class MissingUserContextException(SupersetException):
+    status = 422
+
+
 class QueryObjectValidationError(SupersetException):
     status = 400
 
@@ -274,3 +278,20 @@ class QueryNotFoundException(SupersetException):
 
 class ColumnNotFoundException(SupersetException):
     status = 404
+
+
+class SupersetMarshmallowValidationError(SupersetErrorException):
+    """
+    Exception to be raised for Marshmallow validation errors.
+    """
+
+    status = 422
+
+    def __init__(self, exc: ValidationError, payload: dict[str, Any]):
+        error = SupersetError(
+            message=_("The schema of the submitted payload is invalid."),
+            error_type=SupersetErrorType.MARSHMALLOW_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={"messages": exc.messages, "payload": payload},
+        )
+        super().__init__(error)

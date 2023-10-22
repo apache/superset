@@ -47,6 +47,8 @@ import {
   isDefined,
   hasGenericChartAxes,
   NO_TIME_RANGE,
+  validateNonEmpty,
+  validateMaxValue,
 } from '@superset-ui/core';
 
 import {
@@ -198,11 +200,9 @@ const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
       : 'P1D';
   },
   description: t(
-    'The time granularity for the visualization. This ' +
-      'applies a date transformation to alter ' +
-      'your time column and defines a new time granularity. ' +
-      'The options here are defined on a per database ' +
-      'engine basis in the Superset source code.',
+    'Select a time grain for the visualization. The ' +
+      'grain is the time interval represented by a ' +
+      'single point on the chart.',
   ),
   mapStateToProps: ({ datasource }) => ({
     choices: (datasource as Dataset)?.time_grain_sqla || [],
@@ -232,7 +232,7 @@ const time_range: SharedControlConfig<'DateFilterControl'> = {
   label: TIME_FILTER_LABELS.time_range,
   default: NO_TIME_RANGE, // this value is an empty filter constant so shouldn't translate it.
   description: t(
-    'The time range for the visualization. All relative times, e.g. "Last month", ' +
+    'This control filters the whole chart based on the selected time range. All relative times, e.g. "Last month", ' +
       '"Last 7 days", "now", etc. are evaluated on the server using the server\'s ' +
       'local time (sans timezone). All tooltips and placeholder times are expressed ' +
       'in UTC (sans timezone). The timestamps are then evaluated by the database ' +
@@ -245,17 +245,26 @@ const row_limit: SharedControlConfig<'SelectControl'> = {
   type: 'SelectControl',
   freeForm: true,
   label: t('Row limit'),
-  validators: [legacyValidateInteger],
+  clearable: false,
+  validators: [
+    validateNonEmpty,
+    legacyValidateInteger,
+    v => validateMaxValue(v, 100000),
+  ],
   default: 10000,
   choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
-  description: t('Limits the number of rows that get displayed.'),
+  description: t(
+    'Limits the number of the rows that are computed in the query that is the source of the data used for this chart.',
+  ),
 };
 
 const order_desc: SharedControlConfig<'CheckboxControl'> = {
   type: 'CheckboxControl',
   label: t('Sort Descending'),
   default: true,
-  description: t('Whether to sort descending or ascending'),
+  description: t(
+    'If enabled, this control sorts the results/values descending, otherwise it sorts the results ascending.',
+  ),
   visibility: ({ controls }) =>
     Boolean(
       controls?.timeseries_limit_metric.value &&
@@ -316,6 +325,12 @@ const y_axis_format: SharedControlConfig<'SelectControl', SelectDefaultOption> =
       };
     },
   };
+
+const currency_format: SharedControlConfig<'CurrencyControl'> = {
+  type: 'CurrencyControl',
+  label: t('Currency format'),
+  renderTrigger: true,
+};
 
 const x_axis_time_format: SharedControlConfig<
   'SelectControl',
@@ -406,4 +421,5 @@ export default {
   x_axis: dndXAxisControl,
   show_empty_columns,
   temporal_columns_lookup,
+  currency_format,
 };

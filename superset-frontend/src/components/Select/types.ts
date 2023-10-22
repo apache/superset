@@ -40,6 +40,7 @@ export type AntdProps = AntdSelectProps<AntdSelectValue>;
 export type AntdExposedProps = Pick<
   AntdProps,
   | 'allowClear'
+  | 'autoClearSearchValue'
   | 'autoFocus'
   | 'disabled'
   | 'filterOption'

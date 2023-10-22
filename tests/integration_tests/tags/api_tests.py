@@ -18,12 +18,17 @@
 """Unit tests for Superset"""
 import json
 
+from flask import g
 import pytest
 import prison
 from sqlalchemy.sql import func
+from sqlalchemy import and_
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
+from superset.tags.models import user_favorite_tag_table
+from unittest.mock import patch
+
 
 import tests.integration_tests.test_app
 from superset import db, security_manager
@@ -41,6 +46,8 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
 )
 from tests.integration_tests.fixtures.tags import with_tagging_system_feature
 from tests.integration_tests.base_tests import SupersetTestCase
+from superset.daos.tag import TagDAO
+from superset.tags.models import ObjectTypes
 
 TAGS_FIXTURE_COUNT = 10
 
@@ -48,9 +55,11 @@ TAGS_LIST_COLUMNS = [
     "id",
     "name",
     "type",
+    "description",
     "changed_by.first_name",
     "changed_by.last_name",
     "changed_on_delta_humanized",
+    "created_on_delta_humanized",
     "created_by.first_name",
     "created_by.last_name",
 ]
@@ -372,3 +381,235 @@ class TestTagApi(SupersetTestCase):
         # check that tags are all gone
         tags = db.session.query(Tag).filter(Tag.name.in_(example_tag_names))
         self.assertEqual(tags.count(), 0)
+
+    @pytest.mark.usefixtures("create_tags")
+    def test_delete_favorite_tag(self):
+        self.login(username="admin")
+        user_id = self.get_user(username="admin").get_id()
+        tag = db.session.query(Tag).first()
+        uri = f"api/v1/tag/{tag.id}/favorites/"
+        tag = db.session.query(Tag).first()
+        rv = self.client.post(uri, follow_redirects=True)
+
+        self.assertEqual(rv.status_code, 200)
+        from sqlalchemy import and_
+        from superset.tags.models import user_favorite_tag_table
+        from flask import g
+
+        association_row = (
+            db.session.query(user_favorite_tag_table)
+            .filter(
+                and_(
+                    user_favorite_tag_table.c.tag_id == tag.id,
+                    user_favorite_tag_table.c.user_id == user_id,
+                )
+            )
+            .one_or_none()
+        )
+
+        assert association_row is not None
+
+        uri = f"api/v1/tag/{tag.id}/favorites/"
+        rv = self.client.delete(uri, follow_redirects=True)
+
+        self.assertEqual(rv.status_code, 200)
+        association_row = (
+            db.session.query(user_favorite_tag_table)
+            .filter(
+                and_(
+                    user_favorite_tag_table.c.tag_id == tag.id,
+                    user_favorite_tag_table.c.user_id == user_id,
+                )
+            )
+            .one_or_none()
+        )
+
+        assert association_row is None
+
+    @pytest.mark.usefixtures("create_tags")
+    def test_add_tag_not_found(self):
+        self.login(username="admin")
+        uri = f"api/v1/tag/123/favorites/"
+        rv = self.client.post(uri, follow_redirects=True)
+
+        self.assertEqual(rv.status_code, 404)
+
+    @pytest.mark.usefixtures("create_tags")
+    def test_delete_favorite_tag_not_found(self):
+        self.login(username="admin")
+        uri = f"api/v1/tag/123/favorites/"
+        rv = self.client.delete(uri, follow_redirects=True)
+
+        self.assertEqual(rv.status_code, 404)
+
+    @pytest.mark.usefixtures("create_tags")
+    @patch("superset.daos.tag.g")
+    def test_add_tag_user_not_found(self, flask_g):
+        self.login(username="admin")
+        flask_g.user = None
+        uri = f"api/v1/tag/123/favorites/"
+        rv = self.client.post(uri, follow_redirects=True)
+
+        self.assertEqual(rv.status_code, 422)
+
+    @pytest.mark.usefixtures("create_tags")
+    @patch("superset.daos.tag.g")
+    def test_delete_favorite_tag_user_not_found(self, flask_g):
+        self.login(username="admin")
+        flask_g.user = None
+        uri = f"api/v1/tag/123/favorites/"
+        rv = self.client.delete(uri, follow_redirects=True)
+
+        self.assertEqual(rv.status_code, 422)
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_post_tag(self):
+        self.login(username="admin")
+        uri = f"api/v1/tag/"
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "World Bank's Data")
+            .first()
+        )
+        rv = self.client.post(
+            uri,
+            json={"name": "my_tag", "objects_to_tag": [["dashboard", dashboard.id]]},
+        )
+
+        self.assertEqual(rv.status_code, 201)
+        user_id = self.get_user(username="admin").get_id()
+        tag = (
+            db.session.query(Tag)
+            .filter(Tag.name == "my_tag", Tag.type == TagTypes.custom)
+            .one_or_none()
+        )
+        assert tag is not None
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @pytest.mark.usefixtures("create_tags")
+    def test_put_tag(self):
+        self.login(username="admin")
+
+        tag_to_update = db.session.query(Tag).first()
+        uri = f"api/v1/tag/{tag_to_update.id}"
+        rv = self.client.put(
+            uri, json={"name": "new_name", "description": "new description"}
+        )
+
+        self.assertEqual(rv.status_code, 200)
+
+        tag = (
+            db.session.query(Tag)
+            .filter(Tag.name == "new_name", Tag.description == "new description")
+            .one_or_none()
+        )
+        assert tag is not None
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @pytest.mark.usefixtures("create_tags")
+    def test_failed_put_tag(self):
+        self.login(username="admin")
+
+        tag_to_update = db.session.query(Tag).first()
+        uri = f"api/v1/tag/{tag_to_update.id}"
+        rv = self.client.put(uri, json={"foo": "bar"})
+
+        self.assertEqual(rv.status_code, 400)
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_post_bulk_tag(self):
+        self.login(username="admin")
+        uri = "api/v1/tag/bulk_create"
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "World Bank's Data")
+            .first()
+        )
+        chart = db.session.query(Slice).first()
+        tags = ["tag1", "tag2", "tag3"]
+        rv = self.client.post(
+            uri,
+            json={
+                "tags": [
+                    {
+                        "name": "tag1",
+                        "objects_to_tag": [
+                            ["dashboard", dashboard.id],
+                            ["chart", chart.id],
+                        ],
+                    },
+                    {
+                        "name": "tag2",
+                        "objects_to_tag": [["dashboard", dashboard.id]],
+                    },
+                    {
+                        "name": "tag3",
+                        "objects_to_tag": [["chart", chart.id]],
+                    },
+                ]
+            },
+        )
+
+        self.assertEqual(rv.status_code, 200)
+
+        result = TagDAO.get_tagged_objects_for_tags(tags, ["dashboard"])
+        assert len(result) == 1
+
+        result = TagDAO.get_tagged_objects_for_tags(tags, ["chart"])
+        assert len(result) == 1
+
+        tagged_objects = db.session.query(TaggedObject).filter(
+            TaggedObject.object_id == dashboard.id,
+            TaggedObject.object_type == ObjectTypes.dashboard,
+        )
+        assert tagged_objects.count() == 2
+
+        tagged_objects = db.session.query(TaggedObject).filter(
+            TaggedObject.object_id == chart.id,
+            TaggedObject.object_type == ObjectTypes.chart,
+        )
+        assert tagged_objects.count() == 2
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_post_bulk_tag_skipped_tags_perm(self):
+        alpha = self.get_user("alpha")
+        self.insert_dashboard("titletag", "slugtag", [alpha.id])
+        self.login(username="alpha")
+        uri = "api/v1/tag/bulk_create"
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "World Bank's Data")
+            .first()
+        )
+        alpha_dash = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "titletag")
+            .first()
+        )
+        chart = db.session.query(Slice).first()
+        rv = self.client.post(
+            uri,
+            json={
+                "tags": [
+                    {
+                        "name": "tag1",
+                        "objects_to_tag": [
+                            ["dashboard", alpha_dash.id],
+                        ],
+                    },
+                    {
+                        "name": "tag2",
+                        "objects_to_tag": [["dashboard", dashboard.id]],
+                    },
+                    {
+                        "name": "tag3",
+                        "objects_to_tag": [["chart", chart.id]],
+                    },
+                ]
+            },
+        )
+
+        self.assertEqual(rv.status_code, 200)
+        result = rv.json["result"]
+        assert len(result["objects_tagged"]) == 2
+        assert len(result["objects_skipped"]) == 1

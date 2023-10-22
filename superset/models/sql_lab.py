@@ -299,14 +299,13 @@ class Query(
     def default_endpoint(self) -> str:
         return ""
 
-    @staticmethod
-    def get_extra_cache_keys(query_obj: dict[str, Any]) -> list[Hashable]:
+    def get_extra_cache_keys(self, query_obj: dict[str, Any]) -> list[Hashable]:
         return []
 
     @property
     def tracking_url(self) -> Optional[str]:
         """
-        Transfrom tracking url at run time because the exact URL may depends
+        Transform tracking url at run time because the exact URL may depend
         on query properties such as execution and finish time.
         """
         transform = current_app.config.get("TRACKING_URL_TRANSFORMER")
@@ -409,7 +408,7 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     def pop_tab_link(self) -> Markup:
         return Markup(
             f"""
-            <a href="/superset/sqllab?savedQueryId={self.id}">
+            <a href="/sqllab?savedQueryId={self.id}">
                 <i class="fa fa-link"></i>
             </a>
         """
@@ -424,7 +423,7 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
         return self.database.sqlalchemy_uri
 
     def url(self) -> str:
-        return f"/superset/sqllab?savedQueryId={self.id}"
+        return f"/sqllab?savedQueryId={self.id}"
 
     @property
     def sql_tables(self) -> list[Table]:

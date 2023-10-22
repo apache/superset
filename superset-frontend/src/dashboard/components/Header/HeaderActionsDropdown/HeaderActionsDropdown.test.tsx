@@ -25,7 +25,7 @@ import fetchMock from 'fetch-mock';
 import { HeaderDropdownProps } from 'src/dashboard/components/Header/types';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 import { FeatureFlag } from '@superset-ui/core';
-import * as featureFlags from 'src/featureFlags';
+import * as uiCore from '@superset-ui/core';
 import HeaderActionsDropdown from '.';
 
 let isFeatureEnabledMock: jest.MockInstance<boolean, [feature: FeatureFlag]>;
@@ -136,7 +136,7 @@ test('should render the menu items in edit mode', async () => {
 describe('with native filters feature flag disabled', () => {
   beforeAll(() => {
     isFeatureEnabledMock = jest
-      .spyOn(featureFlags, 'isFeatureEnabled')
+      .spyOn(uiCore, 'isFeatureEnabled')
       .mockImplementation(
         (featureFlag: FeatureFlag) =>
           featureFlag !== FeatureFlag.DASHBOARD_NATIVE_FILTERS,
@@ -162,7 +162,7 @@ describe('with native filters feature flag disabled', () => {
 describe('with native filters feature flag enabled', () => {
   beforeAll(() => {
     isFeatureEnabledMock = jest
-      .spyOn(featureFlags, 'isFeatureEnabled')
+      .spyOn(uiCore, 'isFeatureEnabled')
       .mockImplementation(
         (featureFlag: FeatureFlag) =>
           featureFlag === FeatureFlag.DASHBOARD_NATIVE_FILTERS,
@@ -196,7 +196,7 @@ test('should show the share actions', async () => {
   expect(screen.getByText('Share')).toBeInTheDocument();
 });
 
-test('should render the "Save Modal" when user can save', async () => {
+test('should render the "Save as" menu item when user can save', async () => {
   const mockedProps = createProps();
   const canSaveProps = {
     ...mockedProps,
@@ -206,7 +206,7 @@ test('should render the "Save Modal" when user can save', async () => {
   expect(screen.getByText('Save as')).toBeInTheDocument();
 });
 
-test('should NOT render the "Save Modal" menu item when user cannot save', async () => {
+test('should NOT render the "Save as" menu item when user cannot save', async () => {
   const mockedProps = createProps();
   setup(mockedProps);
   expect(screen.queryByText('Save as')).not.toBeInTheDocument();

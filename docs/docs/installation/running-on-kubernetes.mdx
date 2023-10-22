@@ -121,6 +121,12 @@ init:
       . {{ .Values.configMountPath }}/superset_init.sh
 ```
 
+:::note
+Superset uses [Scarf Gateway](https://about.scarf.sh/scarf-gateway) to collect telemetry data.  Knowing the installation counts for different Superset versions informs the  project's decisions about patching and long-term support. Scarf purges personally identifiable information (PII) and provides only aggregated statistics.
+
+To opt-out of this data collection in your Helm-based installation, edit the `repository:` line in your `helm/superset/values.yaml` file, replacing `apachesuperset.docker.scarf.sh/apache/superset` with `apache/superset` to pull the image directly from Docker Hub.
+:::
+
 #### Dependencies
 
 Install additional packages and do any other bootstrap configuration in the bootstrap script.
@@ -131,7 +137,7 @@ For production clusters it's recommended to build own image with this step done 
 Superset requires a Python DB-API database driver and a SQLAlchemy
 dialect to be installed for each datastore you want to connect to.
 
-See [Install Database Drivers](/docs/databases/installing-database-drivers) for more information
+See [Install Database Drivers](/docs/databases/installing-database-drivers) for more information.
 
 :::
 
@@ -413,4 +419,11 @@ configOverrides:
         "--disable-setuid-sandbox",
         "--disable-extensions",
     ]
+```
+#### Load the Examples data and dashboards
+If you are trying Superset out and want some data and dashboards to explore, you can load some examples by creating a `my_values.yaml` and deploying it as described above in the **Configure your setting overrides** step of the **Running** section.
+To load the examples, add the following to the `my_values.yaml` file:
+```yaml
+init:
+  loadExamples: true
 ```

@@ -97,6 +97,8 @@ REDIS_CELERY_DB = os.environ.get("REDIS_CELERY_DB", 2)
 REDIS_RESULTS_DB = os.environ.get("REDIS_RESULTS_DB", 3)
 REDIS_CACHE_DB = os.environ.get("REDIS_CACHE_DB", 4)
 
+RATELIMIT_ENABLED = False
+
 
 CACHE_CONFIG = {
     "CACHE_TYPE": "RedisCache",

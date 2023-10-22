@@ -51,14 +51,14 @@ class CacheRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(log_to_statsd=False)
     def invalidate(self) -> Response:
         """
-        Takes a list of datasources, finds the associated cache records and
-        invalidates them and removes the database records
-
+        Take a list of datasources, find and invalidate the associated cache records
+        and remove the database records.
         ---
         post:
+          summary: Invalidate cache records and remove the database records
           description: >-
-            Takes a list of datasources, finds the associated cache records and
-            invalidates them and removes the database records
+            Takes a list of datasources, finds and invalidates the associated cache
+            records and removes the database records.
           requestBody:
             description: >-
               A list of datasources uuid or the tuples of database and datasource names

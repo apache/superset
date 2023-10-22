@@ -127,7 +127,7 @@ def get_query_backoff_handler(details: dict[Any, Any]) -> None:
     logger.error(
         "Query with id `%s` could not be retrieved", str(query_id), exc_info=True
     )
-    stats_logger.incr("error_attempting_orm_query_{}".format(details["tries"] - 1))
+    stats_logger.incr(f"error_attempting_orm_query_{details['tries'] - 1}")
     logger.error(
         "Query %s: Sleeping for a sec before retrying...", str(query_id), exc_info=True
     )
@@ -191,7 +191,7 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                 return handle_query_error(ex, query, session)
 
 
-def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statements
+def execute_sql_statement(  # pylint: disable=too-many-arguments
     sql_statement: str,
     query: Query,
     session: Session,
@@ -217,6 +217,7 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
         )
 
     sql = parsed_query.stripped()
+
     # This is a test to see if the query is being
     # limited by either the dropdown or the sql.
     # We are testing to see if more rows exist than the limit.
@@ -233,8 +234,8 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
     if apply_ctas:
         if not query.tmp_table_name:
             start_dttm = datetime.fromtimestamp(query.start_time)
-            query.tmp_table_name = "tmp_{}_table_{}".format(
-                query.user_id, start_dttm.strftime("%Y_%m_%d_%H_%M_%S")
+            query.tmp_table_name = (
+                f'tmp_{query.user_id}_table_{start_dttm.strftime("%Y_%m_%d_%H_%M_%S")}'
             )
         sql = parsed_query.as_create_table(
             query.tmp_table_name,
@@ -270,10 +271,7 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
             )
         session.commit()
         with stats_timing("sqllab.query.time_executing_query", stats_logger):
-            logger.debug("Query %d: Running query: %s", query.id, sql)
-            db_engine_spec.execute(cursor, sql, async_=True)
-            logger.debug("Query %d: Handling cursor", query.id)
-            db_engine_spec.handle_cursor(cursor, query, session)
+            db_engine_spec.execute_with_cursor(cursor, sql, query, session)
 
         with stats_timing("sqllab.query.time_fetching_results", stats_logger):
             logger.debug(
@@ -391,7 +389,7 @@ def execute_sql_statements(
         stats_logger.timing("sqllab.query.time_pending", now_as_float() - start_time)
 
     query = get_query(query_id, session)
-    payload: dict[str, Any] = dict(query_id=query_id)
+    payload: dict[str, Any] = {"query_id": query_id}
     database = query.database
     db_engine_spec = database.db_engine_spec
     db_engine_spec.patch()
@@ -512,8 +510,13 @@ def execute_sql_statements(
                     ex, query, session, payload, prefix_message
                 )
                 return payload
-        # Commit the connection so CTA queries will create the table.
-        if apply_ctas:
+
+        # Commit the connection so CTA queries will create the table and any DML.
+        should_commit = (
+            not db_engine_spec.is_select_query(parsed_query)  # check if query is DML
+            or apply_ctas
+        )
+        if should_commit:
             conn.commit()
 
     # Success, updating the query entry in database

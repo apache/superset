@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import importlib
 import logging
 from io import StringIO
 from typing import TYPE_CHECKING
@@ -25,6 +24,7 @@ from flask import Flask
 from paramiko import RSAKey
 
 from superset.databases.utils import make_url_safe
+from superset.utils.class_utils import load_class_from_name
 
 if TYPE_CHECKING:
     from superset.databases.ssh_tunnel.models import SSHTunnel
@@ -37,7 +37,7 @@ class SSHManager:
         sshtunnel.TUNNEL_TIMEOUT = app.config["SSH_TUNNEL_TIMEOUT_SEC"]
         sshtunnel.SSH_TIMEOUT = app.config["SSH_TUNNEL_PACKET_TIMEOUT_SEC"]
 
-    def build_sqla_url(  # pylint: disable=no-self-use
+    def build_sqla_url(
         self, sqlalchemy_url: str, server: sshtunnel.SSHTunnelForwarder
     ) -> str:
         # override any ssh tunnel configuration object
@@ -78,18 +78,9 @@ class SSHManagerFactory:
         self._ssh_manager = None
 
     def init_app(self, app: Flask) -> None:
-        ssh_manager_fqclass = app.config["SSH_TUNNEL_MANAGER_CLASS"]
-        ssh_manager_classname = ssh_manager_fqclass[
-            ssh_manager_fqclass.rfind(".") + 1 :
-        ]
-        ssh_manager_module_name = ssh_manager_fqclass[
-            0 : ssh_manager_fqclass.rfind(".")
-        ]
-        ssh_manager_class = getattr(
-            importlib.import_module(ssh_manager_module_name), ssh_manager_classname
-        )
-
-        self._ssh_manager = ssh_manager_class(app)
+        self._ssh_manager = load_class_from_name(
+            app.config["SSH_TUNNEL_MANAGER_CLASS"]
+        )(app)
 
     @property
     def instance(self) -> SSHManager:

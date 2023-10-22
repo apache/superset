@@ -10,7 +10,6 @@ on:
 
 jobs:
   python-lint:
-    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -50,7 +49,6 @@ jobs:
         run: pylint -j 0 superset
 
   pre-commit:
-    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -88,10 +86,14 @@ jobs:
           echo "HOMEBREW_REPOSITORY=$HOMEBREW_REPOSITORY" >>"${GITHUB_ENV}"
           brew install norwoodj/tap/helm-docs
       - name: pre-commit
-        run: pre-commit run --all-files
+        run: |
+          if ! pre-commit run --all-files; then
+            git status
+            git diff
+            exit 1
+          fi
 
   babel-extract:
-    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       matrix:

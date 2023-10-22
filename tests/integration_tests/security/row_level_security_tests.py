@@ -305,6 +305,21 @@ class TestRowLevelSecurity(SupersetTestCase):
         assert not self.NAMES_Q_REGEX.search(sql)
         assert not self.BASE_FILTER_REGEX.search(sql)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_get_rls_cache_key(self):
+        g.user = self.get_user(username="admin")
+        tbl = self.get_table(name="birth_names")
+        clauses = security_manager.get_rls_cache_key(tbl)
+        assert clauses == []
+
+        g.user = self.get_user(username="gamma")
+        clauses = security_manager.get_rls_cache_key(tbl)
+        assert clauses == [
+            "name like 'A%' or name like 'B%'-name",
+            "name like 'Q%'-name",
+            "gender = 'boy'-gender",
+        ]
+
 
 class TestRowLevelSecurityCreateAPI(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -483,7 +498,7 @@ class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
         db.session.commit()
 
 
-class TestRowLevelSecurityBulkDeleteAPI(SupersetTestCase):
+class TestRowLevelSecurityDeleteAPI(SupersetTestCase):
     def test_invalid_id_failure(self):
         self.login("Admin")
 

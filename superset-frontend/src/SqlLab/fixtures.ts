@@ -660,10 +660,10 @@ export const initialState = {
     workspaceQueries: [],
     queriesLastUpdate: 0,
     activeSouthPaneTab: 'Results',
-    user: { user },
     unsavedQueryEditor: {},
   },
   messageToasts: [],
+  user,
   common: {
     conf: {
       DEFAULT_SQLLAB_LIMIT: 1000,
@@ -689,6 +689,7 @@ export const queryId = 'clientId2353';
 export const testQuery: ISaveableDatasource = {
   name: 'unimportant',
   dbId: 1,
+  schema: 'main',
   sql: 'SELECT *',
   columns: [
     {

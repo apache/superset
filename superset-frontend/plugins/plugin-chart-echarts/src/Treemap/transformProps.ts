@@ -24,6 +24,7 @@ import {
   getTimeFormatter,
   NumberFormats,
   ValueFormatter,
+  getValueFormatter,
 } from '@superset-ui/core';
 import { TreemapSeriesNodeItemOption } from 'echarts/types/src/chart/treemap/TreemapSeries';
 import { EChartsCoreOption, TreemapSeriesOption } from 'echarts';
@@ -48,7 +49,6 @@ import { OpacityEnum } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 import { treeBuilder, TreeNode } from '../utils/treeBuilder';
-import { getValueFormatter } from '../utils/valueFormatter';
 
 export function formatLabel({
   params,
@@ -133,6 +133,7 @@ export default function transformProps(
     labelType,
     labelPosition,
     numberFormat,
+    currencyFormat,
     dateFormat,
     showLabels,
     showUpperLabels,
@@ -149,6 +150,7 @@ export default function transformProps(
     currencyFormats,
     columnFormats,
     numberFormat,
+    currencyFormat,
   );
 
   const formatter = (params: TreemapSeriesCallbackDataParams) =>
@@ -166,7 +168,6 @@ export default function transformProps(
     treeNodes.map(treeNode => {
       const { name: nodeName, value, groupBy } = treeNode;
       const name = formatSeriesName(nodeName, {
-        numberFormatter,
         timeFormatter: getTimeFormatter(dateFormat),
         ...(coltypeMapping[groupBy] && {
           coltype: coltypeMapping[groupBy],

@@ -10,7 +10,6 @@ on:
 
 jobs:
   test-postgres-presto:
-    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -23,7 +22,7 @@ jobs:
       SUPERSET__SQLALCHEMY_EXAMPLES_URI: presto://localhost:15433/memory/default
     services:
       postgres:
-        image: postgres:14-alpine
+        image: postgres:15-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -87,7 +86,6 @@ jobs:
           bash .github/workflows/codecov.sh -c -F python -F presto
 
   test-postgres-hive:
-    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -101,7 +99,7 @@ jobs:
       UPLOAD_FOLDER: /tmp/.superset/uploads/
     services:
       postgres:
-        image: postgres:14-alpine
+        image: postgres:15-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -134,7 +132,7 @@ jobs:
         run: sudo chown -R $USER:$USER /tmp/.superset
       - name: Start hadoop and hive
         if: steps.check.outcome == 'failure'
-        run: docker-compose -f scripts/databases/hive/docker-compose.yml up -d
+        run: docker compose -f scripts/databases/hive/docker-compose.yml up -d
       - name: Setup Python
         if: steps.check.outcome == 'failure'
         uses: actions/setup-python@v4

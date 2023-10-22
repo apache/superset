@@ -91,7 +91,7 @@ query_context_description = (
 )
 query_context_generation_description = (
     "The query context generation represents whether the query_context"
-    "is user generated or not so that it does not update user modfied"
+    "is user generated or not so that it does not update user modified"
     "state."
 )
 cache_timeout_description = (
@@ -101,12 +101,12 @@ cache_timeout_description = (
 )
 datasource_id_description = (
     "The id of the dataset/datasource this new chart will use. "
-    "A complete datasource identification needs `datasouce_id` "
+    "A complete datasource identification needs `datasource_id` "
     "and `datasource_type`."
 )
 datasource_uid_description = (
     "The uid of the dataset/datasource this new chart will use. "
-    "A complete datasource identification needs `datasouce_uid` "
+    "A complete datasource identification needs `datasource_uid` "
 )
 datasource_type_description = (
     "The type of dataset/datasource identified on `datasource_id`."
@@ -123,23 +123,17 @@ owners_name_description = "Name of an owner of the chart."
 certified_by_description = "Person or group that has certified this chart"
 certification_details_description = "Details of the certification"
 
-#
-# OpenAPI method specification overrides
-#
 openapi_spec_methods_override = {
-    "get": {"get": {"description": "Get a chart detail information."}},
+    "get": {"get": {"summary": "Get a chart detail information"}},
     "get_list": {
         "get": {
-            "description": "Get a list of charts, use Rison or JSON query "
+            "summary": "Get a list of charts",
+            "description": "Gets a list of charts, use Rison or JSON query "
             "parameters for filtering, sorting, pagination and "
             " for selecting specific columns and metadata.",
         }
     },
-    "info": {
-        "get": {
-            "description": "Several metadata information about chart API endpoints.",
-        }
-    },
+    "info": {"get": {"summary": "Get metadata information about this API resource"}},
     "related": {
         "get": {
             "description": "Get a list of all possible owners for a chart. "
@@ -1599,7 +1593,7 @@ CHART_SCHEMAS = (
     ChartDataResponseSchema,
     ChartDataAsyncResponseSchema,
     # TODO: These should optimally be included in the QueryContext schema as an `anyOf`
-    #  in ChartDataPostPricessingOperation.options, but since `anyOf` is not
+    #  in ChartDataPostProcessingOperation.options, but since `anyOf` is not
     #  by Marshmallow<3, this is not currently possible.
     ChartDataAdhocMetricSchema,
     ChartDataAggregateOptionsSchema,

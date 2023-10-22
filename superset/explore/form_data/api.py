@@ -57,11 +57,10 @@ class ExploreFormDataRestApi(BaseSupersetApi):
     )
     @requires_json
     def post(self) -> Response:
-        """Stores a new form_data.
+        """Create a new form_data.
         ---
         post:
-          description: >-
-            Stores a new form_data.
+          summary: Create a new form_data
           parameters:
           - in: query
             schema:
@@ -122,11 +121,10 @@ class ExploreFormDataRestApi(BaseSupersetApi):
     )
     @requires_json
     def put(self, key: str) -> Response:
-        """Updates an existing form_data.
+        """Update an existing form_data.
         ---
         put:
-          description: >-
-            Updates an existing form_data.
+          summary: Update an existing form_data
           parameters:
           - in: path
             schema:
@@ -195,11 +193,10 @@ class ExploreFormDataRestApi(BaseSupersetApi):
         log_to_statsd=True,
     )
     def get(self, key: str) -> Response:
-        """Retrives a form_data.
+        """Get a form_data.
         ---
         get:
-          description: >-
-            Retrives a form_data.
+          summary: Get a form_data
           parameters:
           - in: path
             schema:
@@ -247,11 +244,10 @@ class ExploreFormDataRestApi(BaseSupersetApi):
         log_to_statsd=True,
     )
     def delete(self, key: str) -> Response:
-        """Deletes a form_data.
+        """Delete a form_data.
         ---
         delete:
-          description: >-
-            Deletes a form_data.
+          summary: Delete a form_data
           parameters:
           - in: path
             schema:

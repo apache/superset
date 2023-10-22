@@ -170,6 +170,8 @@ class TestExportDatasetsCommand(SupersetTestCase):
                     "warning_text": None,
                 },
             ],
+            "normalize_columns": False,
+            "always_filter_main_dttm": False,
             "offset": 0,
             "params": None,
             "schema": get_example_default_schema(),
@@ -229,6 +231,8 @@ class TestExportDatasetsCommand(SupersetTestCase):
             "filter_select_enabled",
             "fetch_values_predicate",
             "extra",
+            "normalize_columns",
+            "always_filter_main_dttm",
             "uuid",
             "metrics",
             "columns",
@@ -400,7 +404,6 @@ class TestImportDatasetsCommand(SupersetTestCase):
         assert column.description is None
         assert column.python_date_format is None
 
-        dataset.database.owners = []
         db.session.delete(dataset)
         db.session.delete(dataset.database)
         db.session.commit()
@@ -528,7 +531,6 @@ class TestImportDatasetsCommand(SupersetTestCase):
         )
         assert len(database.tables) == 1
 
-        database.owners = []
         db.session.delete(database.tables[0])
         db.session.delete(database)
         db.session.commit()

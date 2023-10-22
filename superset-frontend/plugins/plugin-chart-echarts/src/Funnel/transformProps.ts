@@ -24,6 +24,7 @@ import {
   NumberFormats,
   ValueFormatter,
   getColumnLabel,
+  getValueFormatter,
 } from '@superset-ui/core';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
 import { EChartsCoreOption, FunnelSeriesOption } from 'echarts';
@@ -45,7 +46,6 @@ import { defaultGrid } from '../defaults';
 import { OpacityEnum, DEFAULT_LEGEND_FORM_DATA } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
-import { getValueFormatter } from '../utils/valueFormatter';
 
 const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
 
@@ -64,6 +64,7 @@ export function formatFunnelLabel({
   const name = sanitizeName ? sanitizeHtml(rawName) : rawName;
   const formattedValue = numberFormatter(value as number);
   const formattedPercent = percentFormatter((percent as number) / 100);
+
   switch (labelType) {
     case EchartsFunnelLabelTypeType.Key:
       return name;
@@ -93,7 +94,6 @@ export default function transformProps(
     queriesData,
     width,
     theme,
-    inContextMenu,
     emitCrossFilters,
     datasource,
   } = chartProps;
@@ -107,12 +107,16 @@ export default function transformProps(
     gap,
     labelLine,
     labelType,
+    tooltipLabelType,
     legendMargin,
     legendOrientation,
     legendType,
     metric = '',
     numberFormat,
+    currencyFormat,
     showLabels,
+    inContextMenu,
+    showTooltipLabels,
     showLegend,
     sliceId,
   }: EchartsFunnelFormData = {
@@ -147,6 +151,7 @@ export default function transformProps(
     currencyFormats,
     columnFormats,
     numberFormat,
+    currencyFormat,
   );
 
   const transformedData: FunnelSeriesOption[] = data.map(datum => {
@@ -225,13 +230,13 @@ export default function transformProps(
     },
     tooltip: {
       ...getDefaultTooltip(refs),
-      show: !inContextMenu,
+      show: !inContextMenu && showTooltipLabels,
       trigger: 'item',
       formatter: (params: any) =>
         formatFunnelLabel({
           params,
           numberFormatter,
-          labelType: EchartsFunnelLabelTypeType.KeyValuePercent,
+          labelType: tooltipLabelType,
         }),
     },
     legend: {

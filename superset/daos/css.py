@@ -14,30 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import logging
-from typing import Optional
-
-from sqlalchemy.exc import SQLAlchemyError
-
 from superset.daos.base import BaseDAO
-from superset.daos.exceptions import DAODeleteFailedError
-from superset.extensions import db
 from superset.models.core import CssTemplate
-
-logger = logging.getLogger(__name__)
 
 
 class CssTemplateDAO(BaseDAO[CssTemplate]):
-    @staticmethod
-    def bulk_delete(models: Optional[list[CssTemplate]], commit: bool = True) -> None:
-        item_ids = [model.id for model in models] if models else []
-        try:
-            db.session.query(CssTemplate).filter(CssTemplate.id.in_(item_ids)).delete(
-                synchronize_session="fetch"
-            )
-            if commit:
-                db.session.commit()
-        except SQLAlchemyError as ex:
-            if commit:
-                db.session.rollback()
-            raise DAODeleteFailedError() from ex
+    pass

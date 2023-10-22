@@ -16,13 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { configureStore, ConfigureStoreOptions, Store } from '@reduxjs/toolkit';
+import {
+  configureStore,
+  ConfigureStoreOptions,
+  StoreEnhancer,
+} from '@reduxjs/toolkit';
 import thunk from 'redux-thunk';
 import { api } from 'src/hooks/apiResources/queryApi';
 import messageToastReducer from 'src/components/MessageToasts/reducers';
 import charts from 'src/components/Chart/chartReducer';
 import dataMask from 'src/dataMask/reducer';
-import reports from 'src/reports/reducers/reports';
+import reports from 'src/features/reports/ReportModal/reducer';
 import dashboardInfo from 'src/dashboard/reducers/dashboardInfo';
 import dashboardState from 'src/dashboard/reducers/dashboardState';
 import dashboardFilters from 'src/dashboard/reducers/dashboardFilters';
@@ -34,6 +38,11 @@ import logger from 'src/middleware/loggerMiddleware';
 import saveModal from 'src/explore/reducers/saveModalReducer';
 import explore from 'src/explore/reducers/exploreReducer';
 import exploreDatasources from 'src/explore/reducers/datasourcesReducer';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+
+import { persistSqlLabStateEnhancer } from 'src/SqlLab/middlewares/persistSqlLabStateEnhancer';
+import sqlLabReducer from 'src/SqlLab/reducers/sqlLab';
+import getInitialState from 'src/SqlLab/reducers/getInitialState';
 import { DatasourcesState } from 'src/dashboard/types';
 import {
   DatasourcesActionPayload,
@@ -66,7 +75,7 @@ export type UserLoadedAction = {
   user: UserWithPermissionsAndRoles;
 };
 
-const userReducer = (
+export const userReducer = (
   user = bootstrapData.user || {},
   action: UserLoadedAction,
 ): BootstrapUser | UndefinedUser => {
@@ -113,6 +122,8 @@ const CombinedDatasourceReducers = (
 };
 
 const reducers = {
+  sqlLab: sqlLabReducer,
+  localStorageUsageInKilobytes: noopReducer(0),
   messageToasts: messageToastReducer,
   common: noopReducer(bootstrapData.common),
   user: userReducer,
@@ -140,14 +151,14 @@ const reducers = {
  */
 export function setupStore({
   disableDebugger = false,
-  initialState = {},
+  initialState = getInitialState(bootstrapData),
   rootReducers = reducers,
   ...overrides
 }: {
   disableDebugger?: boolean;
   initialState?: ConfigureStoreOptions['preloadedState'];
   rootReducers?: ConfigureStoreOptions['reducer'];
-} & Partial<ConfigureStoreOptions> = {}): Store {
+} & Partial<ConfigureStoreOptions> = {}) {
   return configureStore({
     preloadedState: initialState,
     reducer: {
@@ -156,8 +167,12 @@ export function setupStore({
     },
     middleware: getMiddleware,
     devTools: process.env.WEBPACK_MODE === 'development' && !disableDebugger,
+    ...(!isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) && {
+      enhancers: [persistSqlLabStateEnhancer as StoreEnhancer],
+    }),
     ...overrides,
   });
 }
 
-export const store: Store = setupStore();
+export const store = setupStore();
+export type RootState = ReturnType<typeof store.getState>;

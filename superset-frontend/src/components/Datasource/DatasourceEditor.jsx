@@ -26,6 +26,7 @@ import Badge from 'src/components/Badge';
 import shortid from 'shortid';
 import {
   css,
+  isFeatureEnabled,
   getCurrencySymbol,
   ensureIsArray,
   FeatureFlag,
@@ -51,8 +52,8 @@ import TextControl from 'src/explore/components/controls/TextControl';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { isFeatureEnabled } from 'src/featureFlags';
 import Icons from 'src/components/Icons';
+import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
 import Field from './Field';
@@ -147,11 +148,6 @@ const DATA_TYPES = [
   { value: 'NUMERIC', label: t('NUMERIC') },
   { value: 'DATETIME', label: t('DATETIME') },
   { value: 'BOOLEAN', label: t('BOOLEAN') },
-];
-
-const CURRENCY_SYMBOL_POSITION = [
-  { value: 'prefix', label: t('Prefix') },
-  { value: 'suffix', label: t('Suffix') },
 ];
 
 const DATASOURCE_TYPES_ARR = [
@@ -580,43 +576,6 @@ function OwnersSelector({ datasource, onChange }) {
   );
 }
 
-const CurrencyControlContainer = styled.div`
-  ${({ theme }) => css`
-    display: flex;
-    align-items: center;
-
-    & > :first-child {
-      width: 25%;
-      margin-right: ${theme.gridUnit * 4}px;
-    }
-  `}
-`;
-const CurrencyControl = ({ onChange, value: currency = {}, currencies }) => (
-  <CurrencyControlContainer>
-    <Select
-      ariaLabel={t('Currency prefix or suffix')}
-      options={CURRENCY_SYMBOL_POSITION}
-      placeholder={t('Prefix or suffix')}
-      onChange={symbolPosition => {
-        onChange({ ...currency, symbolPosition });
-      }}
-      value={currency?.symbolPosition}
-      allowClear
-    />
-    <Select
-      ariaLabel={t('Currency symbol')}
-      options={currencies}
-      placeholder={t('Select or type currency symbol')}
-      onChange={symbol => {
-        onChange({ ...currency, symbol });
-      }}
-      value={currency?.symbol}
-      allowClear
-      allowNewOptions
-    />
-  </CurrencyControlContainer>
-);
-
 class DatasourceEditor extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -803,9 +762,9 @@ class DatasourceEditor extends React.PureComponent {
       database_name:
         datasource.database.database_name || datasource.database.name,
       schema_name: datasource.schema,
-      table_name: datasource.table_name
-        ? encodeURIComponent(datasource.table_name)
-        : datasource.table_name,
+      table_name: datasource.table_name,
+      normalize_columns: datasource.normalize_columns,
+      always_filter_main_dttm: datasource.always_filter_main_dttm,
     };
     Object.entries(params).forEach(([key, value]) => {
       // rison can't encode the undefined value
@@ -813,7 +772,7 @@ class DatasourceEditor extends React.PureComponent {
         params[key] = null;
       }
     });
-    const endpoint = `/datasource/external_metadata_by_name/?q=${rison.encode(
+    const endpoint = `/datasource/external_metadata_by_name/?q=${rison.encode_uri(
       params,
     )}`;
     this.setState({ metadataLoading: true });
@@ -1034,6 +993,24 @@ class DatasourceEditor extends React.PureComponent {
             control={<TextControl controlId="template_params" />}
           />
         )}
+        <Field
+          inline
+          fieldKey="normalize_columns"
+          label={t('Normalize column names')}
+          description={t(
+            'Allow column names to be changed to case insensitive format, if supported (e.g. Oracle, Snowflake).',
+          )}
+          control={<CheckboxControl controlId="normalize_columns" />}
+        />
+        <Field
+          inline
+          fieldKey="always_filter_main_dttm"
+          label={t('Always filter main datetime column')}
+          description={t(
+            `When the secondary temporal columns are filtered, apply the same filter to the main datetime column.`,
+          )}
+          control={<CheckboxControl controlId="always_filter_main_dttm" />}
+        />
       </Fieldset>
     );
   }
@@ -1296,7 +1273,16 @@ class DatasourceEditor extends React.PureComponent {
               <Field
                 fieldKey="currency"
                 label={t('Metric currency')}
-                control={<CurrencyControl currencies={this.currencies} />}
+                control={
+                  <CurrencyControl
+                    currencySelectOverrideProps={{
+                      placeholder: t('Select or type currency symbol'),
+                    }}
+                    symbolSelectAdditionalStyles={css`
+                      max-width: 30%;
+                    `}
+                  />
+                }
               />
               <Field
                 label={t('Certified by')}

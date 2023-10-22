@@ -14,12 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=arguments-renamed
+from __future__ import annotations
+
 import logging
 from datetime import datetime
-from typing import Optional, TYPE_CHECKING
-
-from sqlalchemy.exc import SQLAlchemyError
+from typing import TYPE_CHECKING
 
 from superset.charts.filters import ChartFilter
 from superset.daos.base import BaseDAO
@@ -36,38 +35,6 @@ logger = logging.getLogger(__name__)
 
 class ChartDAO(BaseDAO[Slice]):
     base_filter = ChartFilter
-
-    @staticmethod
-    def bulk_delete(models: Optional[list[Slice]], commit: bool = True) -> None:
-        item_ids = [model.id for model in models] if models else []
-        # bulk delete, first delete related data
-        if models:
-            for model in models:
-                model.owners = []
-                model.dashboards = []
-                db.session.merge(model)
-        # bulk delete itself
-        try:
-            db.session.query(Slice).filter(Slice.id.in_(item_ids)).delete(
-                synchronize_session="fetch"
-            )
-            if commit:
-                db.session.commit()
-        except SQLAlchemyError as ex:
-            db.session.rollback()
-            raise ex
-
-    @staticmethod
-    def save(slc: Slice, commit: bool = True) -> None:
-        db.session.add(slc)
-        if commit:
-            db.session.commit()
-
-    @staticmethod
-    def overwrite(slc: Slice, commit: bool = True) -> None:
-        db.session.merge(slc)
-        if commit:
-            db.session.commit()
 
     @staticmethod
     def favorited_ids(charts: list[Slice]) -> list[FavStar]:

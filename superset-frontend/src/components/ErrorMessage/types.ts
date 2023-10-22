@@ -55,6 +55,7 @@ export const ErrorTypeEnum = {
   DATABASE_SECURITY_ACCESS_ERROR: 'DATABASE_SECURITY_ACCESS_ERROR',
   QUERY_SECURITY_ACCESS_ERROR: 'QUERY_SECURITY_ACCESS_ERROR',
   MISSING_OWNERSHIP_ERROR: 'MISSING_OWNERSHIP_ERROR',
+  DASHBOARD_SECURITY_ACCESS_ERROR: 'DASHBOARD_SECURITY_ACCESS_ERROR',
 
   // Other errors
   BACKEND_TIMEOUT_ERROR: 'BACKEND_TIMEOUT_ERROR',
@@ -78,6 +79,7 @@ export const ErrorTypeEnum = {
   // API errors
   INVALID_PAYLOAD_FORMAT_ERROR: 'INVALID_PAYLOAD_FORMAT_ERROR',
   INVALID_PAYLOAD_SCHEMA_ERROR: 'INVALID_PAYLOAD_SCHEMA_ERROR',
+  MARSHMALLOW_ERROR: 'MARSHMALLOW_ERROR',
 } as const;
 
 type ValueOf<T> = T[keyof T];
@@ -87,7 +89,7 @@ export type ErrorType = ValueOf<typeof ErrorTypeEnum>;
 // Keep in sync with superset/views/errors.py
 export type ErrorLevel = 'info' | 'warning' | 'error';
 
-export type ErrorSource = 'dashboard' | 'explore' | 'sqllab';
+export type ErrorSource = 'dashboard' | 'explore' | 'sqllab' | 'crud';
 
 export type SupersetError<ExtraType = Record<string, any> | null> = {
   error_type: ErrorType;
@@ -105,3 +107,12 @@ export type ErrorMessageComponentProps<ExtraType = Record<string, any> | null> =
 
 export type ErrorMessageComponent =
   React.ComponentType<ErrorMessageComponentProps>;
+
+/* Generic error to be returned when the backend returns an error response that is not
+ * SIP-41 compliant. */
+export const genericSupersetError = (extra: object) => ({
+  error_type: ErrorTypeEnum.GENERIC_BACKEND_ERROR,
+  extra,
+  level: 'error' as ErrorLevel,
+  message: 'An error occurred',
+});

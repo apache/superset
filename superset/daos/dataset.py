@@ -14,12 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset import security_manager
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.daos.base import BaseDAO
 from superset.extensions import db
@@ -32,11 +33,11 @@ from superset.views.base import DatasourceFilter
 logger = logging.getLogger(__name__)
 
 
-class DatasetDAO(BaseDAO[SqlaTable]):  # pylint: disable=too-many-public-methods
+class DatasetDAO(BaseDAO[SqlaTable]):
     base_filter = DatasourceFilter
 
     @staticmethod
-    def get_database_by_id(database_id: int) -> Optional[Database]:
+    def get_database_by_id(database_id: int) -> Database | None:
         try:
             return db.session.query(Database).filter_by(id=database_id).one_or_none()
         except SQLAlchemyError as ex:  # pragma: no cover
@@ -64,11 +65,11 @@ class DatasetDAO(BaseDAO[SqlaTable]):  # pylint: disable=too-many-public-methods
             .distinct()
             .all()
         )
-        return dict(charts=charts, dashboards=dashboards)
+        return {"charts": charts, "dashboards": dashboards}
 
     @staticmethod
     def validate_table_exists(
-        database: Database, table_name: str, schema: Optional[str]
+        database: Database, table_name: str, schema: str | None
     ) -> bool:
         try:
             database.get_table(table_name, schema=schema)
@@ -80,9 +81,9 @@ class DatasetDAO(BaseDAO[SqlaTable]):  # pylint: disable=too-many-public-methods
     @staticmethod
     def validate_uniqueness(
         database_id: int,
-        schema: Optional[str],
+        schema: str | None,
         name: str,
-        dataset_id: Optional[int] = None,
+        dataset_id: int | None = None,
     ) -> bool:
         dataset_query = db.session.query(SqlaTable).filter(
             SqlaTable.table_name == name,
@@ -148,26 +149,27 @@ class DatasetDAO(BaseDAO[SqlaTable]):  # pylint: disable=too-many-public-methods
     @classmethod
     def update(
         cls,
-        model: SqlaTable,
-        properties: dict[str, Any],
+        item: SqlaTable | None = None,
+        attributes: dict[str, Any] | None = None,
         commit: bool = True,
     ) -> SqlaTable:
         """
         Updates a Dataset model on the metadata DB
         """
 
-        if "columns" in properties:
-            cls.update_columns(
-                model,
-                properties.pop("columns"),
-                commit=commit,
-                override_columns=bool(properties.get("override_columns")),
-            )
+        if item and attributes:
+            if "columns" in attributes:
+                cls.update_columns(
+                    item,
+                    attributes.pop("columns"),
+                    commit=commit,
+                    override_columns=bool(attributes.get("override_columns")),
+                )
 
-        if "metrics" in properties:
-            cls.update_metrics(model, properties.pop("metrics"), commit=commit)
+            if "metrics" in attributes:
+                cls.update_metrics(item, attributes.pop("metrics"), commit=commit)
 
-        return super().update(model, properties, commit=commit)
+        return super().update(item, attributes, commit=commit)
 
     @classmethod
     def update_columns(
@@ -287,9 +289,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):  # pylint: disable=too-many-public-methods
             db.session.commit()
 
     @classmethod
-    def find_dataset_column(
-        cls, dataset_id: int, column_id: int
-    ) -> Optional[TableColumn]:
+    def find_dataset_column(cls, dataset_id: int, column_id: int) -> TableColumn | None:
         # We want to apply base dataset filters
         dataset = DatasetDAO.find_by_id(dataset_id)
         if not dataset:
@@ -301,94 +301,15 @@ class DatasetDAO(BaseDAO[SqlaTable]):  # pylint: disable=too-many-public-methods
         )
 
     @classmethod
-    def update_column(
-        cls,
-        model: TableColumn,
-        properties: dict[str, Any],
-        commit: bool = True,
-    ) -> TableColumn:
-        return DatasetColumnDAO.update(model, properties, commit=commit)
-
-    @classmethod
-    def create_column(
-        cls, properties: dict[str, Any], commit: bool = True
-    ) -> TableColumn:
-        """
-        Creates a Dataset model on the metadata DB
-        """
-        return DatasetColumnDAO.create(properties, commit=commit)
-
-    @classmethod
-    def delete_column(cls, model: TableColumn, commit: bool = True) -> TableColumn:
-        """
-        Deletes a Dataset column
-        """
-        return cls.delete(model, commit=commit)
-
-    @classmethod
-    def find_dataset_metric(
-        cls, dataset_id: int, metric_id: int
-    ) -> Optional[SqlMetric]:
+    def find_dataset_metric(cls, dataset_id: int, metric_id: int) -> SqlMetric | None:
         # We want to apply base dataset filters
         dataset = DatasetDAO.find_by_id(dataset_id)
         if not dataset:
             return None
         return db.session.query(SqlMetric).get(metric_id)
 
-    @classmethod
-    def delete_metric(cls, model: SqlMetric, commit: bool = True) -> SqlMetric:
-        """
-        Deletes a Dataset metric
-        """
-        return cls.delete(model, commit=commit)
-
-    @classmethod
-    def update_metric(
-        cls,
-        model: SqlMetric,
-        properties: dict[str, Any],
-        commit: bool = True,
-    ) -> SqlMetric:
-        return DatasetMetricDAO.update(model, properties, commit=commit)
-
-    @classmethod
-    def create_metric(
-        cls,
-        properties: dict[str, Any],
-        commit: bool = True,
-    ) -> SqlMetric:
-        """
-        Creates a Dataset model on the metadata DB
-        """
-        return DatasetMetricDAO.create(properties, commit=commit)
-
-    @classmethod
-    def bulk_delete(
-        cls, models: Optional[list[SqlaTable]], commit: bool = True
-    ) -> None:
-        item_ids = [model.id for model in models] if models else []
-        # bulk delete itself
-        try:
-            db.session.query(SqlaTable).filter(SqlaTable.id.in_(item_ids)).delete(
-                synchronize_session="fetch"
-            )
-
-            if models:
-                connection = db.session.connection()
-                mapper = next(iter(cls.model_cls.registry.mappers))  # type: ignore
-
-                for model in models:
-                    security_manager.dataset_after_delete(mapper, connection, model)
-
-            if commit:
-                db.session.commit()
-        except SQLAlchemyError as ex:
-            if commit:
-                db.session.rollback()
-            raise ex
-
     @staticmethod
-    def get_table_by_name(database_id: int, table_name: str) -> Optional[SqlaTable]:
+    def get_table_by_name(database_id: int, table_name: str) -> SqlaTable | None:
         return (
             db.session.query(SqlaTable)
             .filter_by(database_id=database_id, table_name=table_name)

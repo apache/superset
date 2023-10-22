@@ -45,6 +45,7 @@ export {
   SMART_DATE_VERBOSE_ID,
   createSmartDateVerboseFormatter,
 } from './formatters/smartDateVerbose';
+export { default as finestTemporalGrainFormatter } from './formatters/finestTemporalGrain';
 
 export { default as normalizeTimestamp } from './utils/normalizeTimestamp';
 export { default as denormalizeTimestamp } from './utils/denormalizeTimestamp';

@@ -150,4 +150,5 @@ export type EchartsMixedTimeseriesChartTransformedProps =
         label: string;
         type: AxisType;
       };
+      onFocusedSeries: (series: string | null) => void;
     };

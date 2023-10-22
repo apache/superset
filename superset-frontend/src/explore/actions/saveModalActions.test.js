@@ -366,7 +366,6 @@ describe('getSlicePayload', () => {
           operator: 'TEMPORAL_RANGE',
           comparator: 'No filter',
           expressionType: 'SIMPLE',
-          isExtra: true,
         },
       ],
     };

@@ -273,5 +273,21 @@ describe('CategoricalColorScale', () => {
       expect(scale.range()).toEqual(['blue', 'green', 'red']);
       sharedLabelColor.clear();
     });
+
+    it('should remove parentForcedColors from range', () => {
+      const parentForcedColors = { house: 'blue', cow: 'red' };
+      const scale = new CategoricalColorScale(
+        ['blue', 'red', 'green'],
+        parentForcedColors,
+      );
+      const sharedLabelColor = getSharedLabelColor();
+      sharedLabelColor.clear();
+      const colorMap = sharedLabelColor.getColorMap();
+      scale.removeSharedLabelColorFromRange(colorMap, 'pig');
+      expect(scale.range()).toEqual(['green']);
+      scale.removeSharedLabelColorFromRange(colorMap, 'cow');
+      expect(scale.range()).toEqual(['red', 'green']);
+      sharedLabelColor.clear();
+    });
   });
 });

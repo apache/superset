@@ -54,7 +54,7 @@ from superset.utils.core import (
     format_timedelta,
     GenericDataType,
     get_form_data_token,
-    get_iterable,
+    as_list,
     get_email_address_list,
     get_stacktrace,
     json_int_dttm_ser,
@@ -749,10 +749,10 @@ class TestUtils(SupersetTestCase):
         database = get_or_create_db("test_db", "sqlite:///superset.db")
         assert database.sqlalchemy_uri == "sqlite:///superset.db"
 
-    def test_get_iterable(self):
-        self.assertListEqual(get_iterable(123), [123])
-        self.assertListEqual(get_iterable([123]), [123])
-        self.assertListEqual(get_iterable("foo"), ["foo"])
+    def test_as_list(self):
+        self.assertListEqual(as_list(123), [123])
+        self.assertListEqual(as_list([123]), [123])
+        self.assertListEqual(as_list("foo"), ["foo"])
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_build_extra_filters(self):
@@ -974,7 +974,7 @@ class TestUtils(SupersetTestCase):
     def test_log_this(self) -> None:
         # TODO: Add additional scenarios.
         self.login(username="admin")
-        slc = self.get_slice("Girls", db.session)
+        slc = self.get_slice("Top 10 Girl Name Share", db.session)
         dashboard_id = 1
 
         assert slc.viz is not None
@@ -1114,7 +1114,7 @@ class TestUtils(SupersetTestCase):
         df = pd.DataFrame([{"__timestamp": ts.timestamp() * 1000, "a": 1}])
         assert normalize_col(df, "epoch_ms", 0, None)[DTTM_ALIAS][0] == ts
 
-        # test that out of bounds timestamps are coerced to None instead of
-        # erroring out
+        # test that we raise an error when we can't convert
         df = pd.DataFrame([{"__timestamp": "1677-09-21 00:00:00", "a": 1}])
-        assert pd.isnull(normalize_col(df, None, 0, None)[DTTM_ALIAS][0])
+        with pytest.raises(pd.errors.OutOfBoundsDatetime):
+            normalize_col(df, None, 0, None)

@@ -312,6 +312,8 @@ dashboard_export: dict[str, Any] = {
                 "sql": None,
                 "table_name": "birth_names_2",
                 "template_params": None,
+                "normalize_columns": False,
+                "always_filter_main_dttm": False,
             }
         }
     ],
@@ -346,7 +348,7 @@ saved_queries_metadata_config: dict[str, Any] = {
     "type": "SavedQuery",
     "timestamp": "2021-03-30T20:37:54.791187+00:00",
 }
-database_config: dict[str, Any] = {
+database_config_sqlite: dict[str, Any] = {
     "allow_csv_upload": True,
     "allow_ctas": True,
     "allow_cvas": True,
@@ -361,6 +363,21 @@ database_config: dict[str, Any] = {
     "version": "1.0.0",
 }
 
+database_config: dict[str, Any] = {
+    "allow_csv_upload": True,
+    "allow_ctas": True,
+    "allow_cvas": True,
+    "allow_dml": True,
+    "allow_run_async": False,
+    "cache_timeout": None,
+    "database_name": "imported_database",
+    "expose_in_sqllab": True,
+    "extra": {},
+    "sqlalchemy_uri": "someengine://user:pass@host1",
+    "uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89",
+    "version": "1.0.0",
+}
+
 database_with_ssh_tunnel_config_private_key: dict[str, Any] = {
     "allow_csv_upload": True,
     "allow_ctas": True,
@@ -371,7 +388,7 @@ database_with_ssh_tunnel_config_private_key: dict[str, Any] = {
     "database_name": "imported_database",
     "expose_in_sqllab": True,
     "extra": {},
-    "sqlalchemy_uri": "sqlite:///test.db",
+    "sqlalchemy_uri": "someengine://user:pass@host1",
     "uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89",
     "ssh_tunnel": {
         "server_address": "localhost",
@@ -393,7 +410,7 @@ database_with_ssh_tunnel_config_password: dict[str, Any] = {
     "database_name": "imported_database",
     "expose_in_sqllab": True,
     "extra": {},
-    "sqlalchemy_uri": "sqlite:///test.db",
+    "sqlalchemy_uri": "someengine://user:pass@host1",
     "uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89",
     "ssh_tunnel": {
         "server_address": "localhost",
@@ -479,6 +496,8 @@ dataset_config: dict[str, Any] = {
     "sql": "",
     "params": None,
     "template_params": {},
+    "normalize_columns": False,
+    "always_filter_main_dttm": False,
     "filter_select_enabled": True,
     "fetch_values_predicate": None,
     "extra": '{ "certification": { "certified_by": "Data Platform Team", "details": "This table is the source of truth." }, "warning_markdown": "This is a warning." }',
