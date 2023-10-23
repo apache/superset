@@ -56,7 +56,6 @@ Some of the recommended packages are shown below. Please refer to [setup.py](htt
 | [SAP Hana](/docs/databases/hana)                          | `pip install hdbcli sqlalchemy-hana or pip install apache-superset[hana]`          | `hana://{username}:{password}@{host}:{port}`                                                                |
 | [StarRocks](/docs/databases/starrocks)                    | `pip install starrocks`                                                            | `starrocks://<User>:<Password>@<Host>:<Port>/<Catalog>.<Database>`                                          |
 | [Snowflake](/docs/databases/snowflake)                    | `pip install snowflake-sqlalchemy`                                                 | `snowflake://{user}:{password}@{account}.{region}/{database}?role={role}&warehouse={warehouse}`             |
-| [Doris](/docs/databases/doris)                            | `pip install pydoris`                                                                | `doris://<User>:<Password>@<Host>:<Port>/<Catalog>.<Database>`              |
 | SQLite                                                    | No additional library needed                                                       | `sqlite://`                                                                                                 |
 | [SQL Server](/docs/databases/sql-server)                  | `pip install pymssql`                                                              | `mssql+pymssql://`                                                                                                  |
 | [Teradata](/docs/databases/teradata)                      | `pip install teradatasqlalchemy`                                                   | `teradatasql://{user}:{password}@{host}`                                                                    |
@@ -64,6 +63,7 @@ Some of the recommended packages are shown below. Please refer to [setup.py](htt
 | [Trino](/docs/databases/trino)                            | `pip install trino`                                                                | `trino://{username}:{password}@{hostname}:{port}/{catalog}`                                                 |
 | [Vertica](/docs/databases/vertica)                        | `pip install sqlalchemy-vertica-python`                                            | `vertica+vertica_python://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                          |
 | [YugabyteDB](/docs/databases/yugabytedb)                  | `pip install psycopg2`                                                             | `postgresql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                      |
+| [Doris](/docs/databases/doris)                            | `pip install pydoris`                                                                | `doris://<User>:<Password>@<Host>:<Port>/<Catalog>.<Database>`                                            |
 ---
 
 Note that many other databases are supported, the main criteria being the existence of a functional
