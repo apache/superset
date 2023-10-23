@@ -1397,6 +1397,7 @@ export function popDatasourceQuery(datasourceKey, sql) {
     const datasetId = datasourceKey.split('__')[0];
 
     const queryParams = rison.encode({
+      keys: ['none'],
       columns: ['name', 'schema', 'database.id', 'select_star'],
     });
 
