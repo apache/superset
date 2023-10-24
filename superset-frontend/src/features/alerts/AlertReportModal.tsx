@@ -93,6 +93,7 @@ const DEFAULT_RETENTION = 90;
 
 const DEFAULT_NOTIFICATION_METHODS: NotificationMethodOption[] = ['Email'];
 const DEFAULT_NOTIFICATION_FORMAT = 'PNG';
+const DEFAULT_ORIENTATION = 'portrait';
 const CONDITIONS = [
   {
     label: t('< (Smaller than)'),
@@ -414,8 +415,11 @@ export const TRANSLATIONS = {
   DASHBOARD_TEXT: t('Dashboard'),
   CHART_TEXT: t('Chart'),
   SEND_AS_PNG_TEXT: t('Send as PNG'),
+  SEND_AS_PDF_TEXT: t('Send as PDF'),
   SEND_AS_CSV_TEXT: t('Send as CSV'),
   SEND_AS_TEXT: t('Send as text'),
+  PORTRAIT_ORIENTATION: t('Portrait'),
+  LANDSCAPE_ORIENTATION: t('Landscape'),
   IGNORE_CACHE_TEXT: t('Ignore cache when generating report'),
   CUSTOM_SCREENSHOT_WIDTH_TEXT: t('Screenshot width'),
   CUSTOM_SCREENSHOT_WIDTH_PLACEHOLDER_TEXT: t('Input custom width in pixels'),
@@ -476,15 +480,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [reportFormat, setReportFormat] = useState<string>(
     DEFAULT_NOTIFICATION_FORMAT,
   );
+  const [pdfOrientation, setPdfOrientation] =
+    useState<string>(DEFAULT_ORIENTATION);
   const [forceScreenshot, setForceScreenshot] = useState<boolean>(false);
 
   const [isScreenshot, setIsScreenshot] = useState<boolean>(false);
+  const [isPdf, setIsPdf] = useState<boolean>(false);
+
   useEffect(() => {
-    setIsScreenshot(
-      contentType === 'dashboard' ||
-        (contentType === 'chart' && reportFormat === 'PNG'),
-    );
-  }, [contentType, reportFormat]);
+    setIsScreenshot(reportFormat === 'PNG');
+    setIsPdf(reportFormat === 'PDF');
+  }, [reportFormat]);
 
   // Dropdown options
   const [conditionNotNull, setConditionNotNull] = useState<boolean>(false);
@@ -497,8 +503,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const isEditMode = alert !== null;
   const formatOptionEnabled =
-    contentType === 'chart' &&
-    (isFeatureEnabled(FeatureFlag.ALERTS_ATTACH_REPORTS) || isReport);
+    isFeatureEnabled(FeatureFlag.ALERTS_ATTACH_REPORTS) || isReport;
 
   const [notificationAddState, setNotificationAddState] =
     useState<NotificationAddStatus>('active');
@@ -972,6 +977,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const { target } = event;
 
     setReportFormat(target.value);
+  };
+
+  const onOrientationChange = (event: any) => {
+    const { target } = event;
+    setPdfOrientation(target.value);
   };
 
   const onForceScreenshotChange = (event: any) => {
@@ -1482,6 +1492,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     <StyledRadio value="PNG">
                       {TRANSLATIONS.SEND_AS_PNG_TEXT}
                     </StyledRadio>
+                    <StyledRadio value="PDF">
+                      {TRANSLATIONS.SEND_AS_PDF_TEXT}
+                    </StyledRadio>
                     <StyledRadio value="CSV">
                       {TRANSLATIONS.SEND_AS_CSV_TEXT}
                     </StyledRadio>
@@ -1491,6 +1504,19 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       </StyledRadio>
                     )}
                   </StyledRadioGroup>
+                  {isPdf && (
+                    <StyledRadioGroup
+                      value={pdfOrientation}
+                      onChange={onOrientationChange}
+                    >
+                      <StyledRadio value={'portrait'}>
+                        {TRANSLATIONS.PORTRAIT_ORIENTATION}
+                      </StyledRadio>
+                      <StyledRadio value={'landscape'}>
+                        {TRANSLATIONS.LANDSCAPE_ORIENTATION}
+                      </StyledRadio>
+                    </StyledRadioGroup>
+                  )}
                 </div>
               </>
             )}
