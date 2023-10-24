@@ -736,6 +736,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   // Updating alert/report state
   const updateAlertState = (name: string, value: any) => {
+    console.log(currentAlert);
     setCurrentAlert(currentAlertData => ({
       ...currentAlertData,
       [name]: value,
