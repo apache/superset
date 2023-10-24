@@ -173,7 +173,7 @@ setup(
         "impala": ["impyla>0.16.2, <0.17"],
         "kusto": ["sqlalchemy-kusto>=2.0.0, <3"],
         "kylin": ["kylinpy>=2.8.1, <2.9"],
-        "mssql": ["pymssql>=2.1.4, <2.2"],
+        "mssql": ["pymssql>=2.2.8, <3"],
         "mysql": ["mysqlclient>=2.1.0, <3"],
         "ocient": [
             "sqlalchemy-ocient>=1.0.0",
