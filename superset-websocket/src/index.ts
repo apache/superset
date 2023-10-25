@@ -20,7 +20,7 @@ import * as http from 'http';
 import * as net from 'net';
 import WebSocket from 'ws';
 import { v4 as uuidv4 } from 'uuid';
-import jwt from 'jsonwebtoken';
+import jwt, { Algorithm } from 'jsonwebtoken';
 import cookie from 'cookie';
 import Redis from 'ioredis';
 import StatsD from 'hot-shots';
@@ -261,7 +261,10 @@ const readChannelId = (request: http.IncomingMessage): string => {
   const token = cookies[opts.jwtCookieName];
 
   if (!token) throw new Error('JWT not present');
-  const jwtPayload = jwt.verify(token, opts.jwtSecret) as JwtPayload;
+  const jwtPayload = jwt.verify(token, opts.jwtSecret, {
+    algorithms: opts.jwtAlgorithms as Algorithm[],
+    complete: false,
+  }) as JwtPayload;
   const channelId = jwtPayload[opts.jwtChannelIdKey];
 
   if (!channelId) throw new Error('Channel ID not present in JWT');
