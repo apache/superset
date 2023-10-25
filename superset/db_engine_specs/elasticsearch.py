@@ -40,15 +40,19 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
     allows_subqueries = True
     allows_sql_comments = False
 
+    _date_trunc_functions = {
+        "DATETIME": "DATE_TRUNC",
+    }
+
     _time_grain_expressions = {
         None: "{col}",
-        TimeGrain.SECOND: "HISTOGRAM({col}, INTERVAL 1 SECOND)",
-        TimeGrain.MINUTE: "HISTOGRAM({col}, INTERVAL 1 MINUTE)",
-        TimeGrain.HOUR: "HISTOGRAM({col}, INTERVAL 1 HOUR)",
-        TimeGrain.DAY: "HISTOGRAM({col}, INTERVAL 1 DAY)",
-        TimeGrain.WEEK: "DATE_TRUNC('week', {col})",
-        TimeGrain.MONTH: "HISTOGRAM({col}, INTERVAL 1 MONTH)",
-        TimeGrain.YEAR: "HISTOGRAM({col}, INTERVAL 1 YEAR)",
+        TimeGrain.SECOND: "{func}('second', {col})",
+        TimeGrain.MINUTE: "{func}('minute', {col})",
+        TimeGrain.HOUR: "{func}('hour', {col})",
+        TimeGrain.DAY: "{func}('day', {col})",
+        TimeGrain.WEEK: "{func}('week', {col})",
+        TimeGrain.MONTH: "{func}('month', {col})",
+        TimeGrain.YEAR: "{func}('year', {col})",
     }
 
     type_code_map: dict[int, str] = {}  # loaded from get_datatype only if needed

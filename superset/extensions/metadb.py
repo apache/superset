@@ -155,6 +155,15 @@ def has_rowid(method: F) -> F:
     return cast(F, wrapper)
 
 
+class Duration(Field[datetime.timedelta, datetime.timedelta]):
+    """
+    Shillelagh field used for representing durations as `timedelta` objects.
+    """
+
+    type = "DURATION"
+    db_api_type = "DATETIME"
+
+
 # pylint: disable=too-many-instance-attributes
 class SupersetShillelaghAdapter(Adapter):
 
@@ -180,6 +189,7 @@ class SupersetShillelaghAdapter(Adapter):
         datetime.date: Date,
         datetime.datetime: DateTime,
         datetime.time: Time,
+        datetime.timedelta: Duration,
     }
 
     @staticmethod
