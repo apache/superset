@@ -34,6 +34,8 @@ import {
   IKI_PROCESS_BUILDER_TYPE,
   IKI_RUN_PIPELINE_TYPE,
   IKI_DEEPCAST_TYPE,
+  IKI_EITL_ROW_TYPE,
+  IKI_EITL_COLUMN_TYPE,
 } from 'src/dashboard/util/componentTypes';
 
 const types = [
@@ -52,6 +54,8 @@ const types = [
   IKI_PROCESS_BUILDER_TYPE,
   IKI_RUN_PIPELINE_TYPE,
   IKI_DEEPCAST_TYPE,
+  IKI_EITL_ROW_TYPE,
+  IKI_EITL_COLUMN_TYPE,
 ];
 
 describe('newEntityFactory', () => {

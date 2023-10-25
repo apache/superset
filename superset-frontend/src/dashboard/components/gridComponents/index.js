@@ -30,6 +30,8 @@ import {
   IKI_PROCESS_BUILDER_TYPE,
   IKI_RUN_PIPELINE_TYPE,
   IKI_DEEPCAST_TYPE,
+  IKI_EITL_ROW_TYPE,
+  IKI_EITL_COLUMN_TYPE,
 } from '../../util/componentTypes';
 
 import ChartHolder from './ChartHolder';
@@ -45,6 +47,8 @@ import IkiTable from './IkiTable';
 import IkiProcessBuilder from './IkiProcessBuilder';
 import IkiRunPipeline from './IkiRunPipeline';
 import IkiDeepcast from './IkiDeepcast';
+import IkiEitlRow from './IkiEitlRow';
+import IkiEitlColumn from './IkiEitlColumn';
 
 export { default as ChartHolder } from './ChartHolder';
 export { default as Markdown } from './Markdown';
@@ -59,6 +63,8 @@ export { default as IkiTable } from './IkiTable';
 export { default as IkiProcessBuilder } from './IkiProcessBuilder';
 export { default as IkiRunPipeline } from './IkiRunPipeline';
 export { default as IkiDeepcast } from './IkiDeepcast';
+export { default as IkiEitlRow } from './IkiEitlRow';
+export { default as IkiEitlColumn } from './IkiEitlColumn';
 
 export const componentLookup = {
   [CHART_TYPE]: ChartHolder,
@@ -74,4 +80,6 @@ export const componentLookup = {
   [IKI_PROCESS_BUILDER_TYPE]: IkiProcessBuilder,
   [IKI_RUN_PIPELINE_TYPE]: IkiRunPipeline,
   [IKI_DEEPCAST_TYPE]: IkiDeepcast,
+  [IKI_EITL_ROW_TYPE]: IkiEitlRow,
+  [IKI_EITL_COLUMN_TYPE]: IkiEitlColumn,
 };
