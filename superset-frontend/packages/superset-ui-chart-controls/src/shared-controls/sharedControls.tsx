@@ -47,8 +47,6 @@ import {
   isDefined,
   hasGenericChartAxes,
   NO_TIME_RANGE,
-  validateNonEmpty,
-  validateMaxValue,
 } from '@superset-ui/core';
 
 import {
@@ -247,12 +245,7 @@ const row_limit: SharedControlConfig<'SelectControl'> = {
   type: 'SelectControl',
   freeForm: true,
   label: t('Row limit'),
-  clearable: false,
-  validators: [
-    validateNonEmpty,
-    legacyValidateInteger,
-    v => validateMaxValue(v, 100000),
-  ],
+  validators: [legacyValidateInteger],
   default: 10000,
   choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
   description: t('Limits the number of rows that get displayed.'),
