@@ -100,11 +100,15 @@ class DatasetDAO(BaseDAO[SqlaTable]):  # pylint: disable=too-many-public-methods
 
     @staticmethod
     def validate_update_uniqueness(
-        database_id: int, dataset_id: int, name: str
+        database_id: int,
+        schema: str | None,
+        dataset_id: int,
+        name: str,
     ) -> bool:
         dataset_query = db.session.query(SqlaTable).filter(
             SqlaTable.table_name == name,
             SqlaTable.database_id == database_id,
+            SqlaTable.schema == schema,
             SqlaTable.id != dataset_id,
         )
         return not db.session.query(dataset_query.exists()).scalar()
