@@ -28,7 +28,7 @@ export default function DraggableNewDivider() {
     <DraggableNewComponent
       id={NEW_IKI_EITL_COLUMN_ID}
       type={IKI_EITL_COLUMN_TYPE}
-      label={t('Expert in the loop (Columns)')}
+      label={t('aiMatch Expert in the Loop (Columns)')}
       className="fa fa-bars fa-rotate-90"
     />
   );
