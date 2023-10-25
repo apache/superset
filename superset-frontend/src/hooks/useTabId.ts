@@ -49,16 +49,29 @@ export function useTabId() {
     }
 
     const updateTabId = () => {
-      const lastTabId = window.localStorage.getItem('last_tab_id');
+      let lastTabId;
+      try {
+        lastTabId = window.localStorage.getItem('last_tab_id');
+      } catch (error) {
+        // continue regardless of error
+      }
       const newTabId = String(
         lastTabId ? Number.parseInt(lastTabId, 10) + 1 : 1,
       );
-      window.sessionStorage.setItem('tab_id', newTabId);
-      window.localStorage.setItem('last_tab_id', newTabId);
+      try {
+        window.sessionStorage.setItem('tab_id', newTabId);
+        window.localStorage.setItem('last_tab_id', newTabId);
+      } catch (error) {
+        // continue regardless of error
+      }
       setTabId(newTabId);
     };
-
-    const storedTabId = window.sessionStorage.getItem('tab_id');
+    let storedTabId;
+    try {
+      storedTabId = window.sessionStorage.getItem('tab_id');
+    } catch (error) {
+      // continue regardless of error
+    }
     if (storedTabId) {
       channel.postMessage({
         type: 'REQUESTING_TAB_ID',

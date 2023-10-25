@@ -607,7 +607,12 @@ export function addNewQueryEditor() {
           '-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.\n\n',
         );
 
-    const name = newQueryTabName(queryEditors || []);
+    const name = newQueryTabName(
+      queryEditors?.map(qe => ({
+        ...qe,
+        ...(qe.id === unsavedQueryEditor.id && unsavedQueryEditor),
+      })) || [],
+    );
 
     return dispatch(
       addQueryEditor({
@@ -625,10 +630,12 @@ export function addNewQueryEditor() {
 export function cloneQueryToNewTab(query, autorun) {
   return function (dispatch, getState) {
     const state = getState();
-    const { queryEditors, tabHistory } = state.sqlLab;
-    const sourceQueryEditor = queryEditors.find(
-      qe => qe.id === tabHistory[tabHistory.length - 1],
-    );
+    const { queryEditors, unsavedQueryEditor, tabHistory } = state.sqlLab;
+    const sourceQueryEditor = {
+      ...queryEditors.find(qe => qe.id === tabHistory[tabHistory.length - 1]),
+      ...(tabHistory[tabHistory.length - 1] === unsavedQueryEditor.id &&
+        unsavedQueryEditor),
+    };
     const queryEditor = {
       name: t('Copy of %s', sourceQueryEditor.name),
       dbId: query.dbId ? query.dbId : null,

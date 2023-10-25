@@ -24,6 +24,6 @@
 
 /superset-frontend/cypress-base/ @jinghua-qa @geido @eschutho @rusackas @betodealmeida
 
-# Notify PMC members of changes to Github Actions
+# Notify PMC members of changes to GitHub Actions
 
 /.github/ @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @craig-rueda @john-bodley @kgabryje

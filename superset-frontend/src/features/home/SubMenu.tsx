@@ -180,7 +180,7 @@ type MenuChild = {
 
 export interface ButtonProps {
   name: ReactNode;
-  onClick: OnClickHandler;
+  onClick?: OnClickHandler;
   'data-test'?: string;
   buttonStyle:
     | 'primary'

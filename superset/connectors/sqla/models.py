@@ -227,7 +227,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         """
         Construct a TableColumn object.
 
-        Historically a TableColumn object (from an ORM perspective) was tighly bound to
+        Historically a TableColumn object (from an ORM perspective) was tightly bound to
         a SqlaTable object, however with the introduction of the Query datasource this
         is no longer true, i.e., the SqlaTable relationship is optional.
 
@@ -545,6 +545,7 @@ class SqlaTable(
     template_params = Column(Text)
     extra = Column(Text)
     normalize_columns = Column(Boolean, default=False)
+    always_filter_main_dttm = Column(Boolean, default=False)
 
     baselink = "tablemodelview"
 
@@ -564,6 +565,7 @@ class SqlaTable(
         "fetch_values_predicate",
         "extra",
         "normalize_columns",
+        "always_filter_main_dttm",
     ]
     update_from_object_fields = [f for f in export_fields if f != "database_id"]
     export_parent = "database"
@@ -761,6 +763,8 @@ class SqlaTable(
             data_["health_check_message"] = self.health_check_message
             data_["extra"] = self.extra
             data_["owners"] = self.owners_data
+            data_["always_filter_main_dttm"] = self.always_filter_main_dttm
+            data_["normalize_columns"] = self.normalize_columns
         return data_
 
     @property
@@ -1007,6 +1011,8 @@ class SqlaTable(
                     qry = sa.select([sqla_column]).limit(1).select_from(tbl)
                     sql = self.database.compile_sqla_query(qry)
                     col_desc = get_columns_description(self.database, self.schema, sql)
+                    if not col_desc:
+                        raise SupersetGenericDBErrorException("Column not found")
                     is_dttm = col_desc[0]["is_dttm"]  # type: ignore
                 except SupersetGenericDBErrorException as ex:
                     raise ColumnNotFoundException(message=str(ex)) from ex

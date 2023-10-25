@@ -58,6 +58,6 @@ class DashboardPermalinkSchema(Schema):
     dashboardId = fields.String(
         required=True,
         allow_none=False,
-        metadata={"description": "The id or slug of the dasbhoard"},
+        metadata={"description": "The id or slug of the dashboard"},
     )
     state = fields.Nested(DashboardPermalinkStateSchema())

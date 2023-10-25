@@ -9,8 +9,22 @@ version: 1
 
 ### Configuration
 
-To configure your application, you need to create a file `superset_config.py` and add it to your
-`PYTHONPATH`. If your application was installed using docker-compose an alternative configuration is required. See [https://github.com/apache/superset/tree/master/docker#readme](https://github.com/apache/superset/tree/master/docker#readme) for details.
+To configure your application, you need to create a file `superset_config.py`.  Add this file to your
+
+`PYTHONPATH` or create an environment variable `SUPERSET_CONFIG_PATH` specifying the full path of the `superset_config.py`.
+
+For example, if deploying on Superset directly on a Linux-based system where your `superset_config.py` is under `/app` directory, you can run:
+```bash
+export SUPERSET_CONFIG_PATH=/app/superset_config.py
+```
+
+If you are using your own custom Dockerfile with official Superset image as base image, then you can add your overrides as shown below:
+```bash
+COPY --chown=superset superset_config.py /app/
+ENV SUPERSET_CONFIG_PATH /app/superset_config.py
+```
+
+Docker compose deployments handle application configuration differently.  See [https://github.com/apache/superset/tree/master/docker#readme](https://github.com/apache/superset/tree/master/docker#readme) for details.
 
 The following is an example of just a few of the parameters you can set in your `superset_config.py` file:
 ```
@@ -31,7 +45,9 @@ SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
 # superset metadata (slices, connections, tables, dashboards, ...).
 # Note that the connection information to connect to the datasources
 # you want to explore are managed directly in the web UI
-SQLALCHEMY_DATABASE_URI = 'sqlite:////path/to/superset.db'
+# The check_same_thread=false property ensures the sqlite client does not attempt
+# to enforce single-threaded access, which may be problematic in some edge cases
+SQLALCHEMY_DATABASE_URI = 'sqlite:////path/to/superset.db?check_same_thread=false'
 
 # Flask-WTF flag for CSRF
 WTF_CSRF_ENABLED = True
@@ -149,6 +165,11 @@ If you're not using Gunicorn, you may want to disable the use of `flask-compress
 Currently, Google BigQuery python sdk is not compatible with `gevent`, due to some dynamic monkeypatching on python core library by `gevent`.
 So, when you use `BigQuery` datasource on Superset, you have to use `gunicorn` worker type except `gevent`.
 
+### HTTPS Configuration
+
+You can configure HTTPS upstream via a load balancer or a reverse proxy (such as nginx) and do SSL/TLS Offloading before traffic reaches the Superset application.  In this setup, local traffic from a Celery worker taking a snapshot of a chart for Alerts & Reports can access Superset at a `http://` URL, from behind the ingress point.
+You can also configure [SSL in Gunicorn](https://docs.gunicorn.org/en/stable/settings.html#ssl) (the Python webserver) if you are using an official Superset Docker image.
+
 ### Configuration Behind a Load Balancer
 
 If you are running superset behind a load balancer or reverse proxy (e.g. NGINX or ELB on AWS), you
@@ -169,8 +190,9 @@ RequestHeader set X-Forwarded-Proto "https"
 
 ### Custom OAuth2 Configuration
 
-Beyond FAB supported providers (GitHub, Twitter, LinkedIn, Google, Azure, etc), its easy to connect
-Superset with other OAuth2 Authorization Server implementations that support “code” authorization.
+Superset is built on Flask-AppBuilder (FAB), which supports many providers out of the box
+(GitHub, Twitter, LinkedIn, Google, Azure, etc).  Beyond those, Superset can be configured to connect
+with other OAuth2 Authorization Server implementations that support “code” authorization.
 
 Make sure the pip package [`Authlib`](https://authlib.org/) is installed on the webserver.
 
@@ -196,6 +218,7 @@ OAUTH_PROVIDERS = [
             'access_token_params':{        # Additional parameters for calls to access_token_url
                 'client_id':'myClientId'
             },
+            'jwks_uri':'https://myAuthorizationServe/adfs/discovery/keys', # may be required to generate token
             'access_token_headers':{    # Additional headers for calls to access_token_url
                 'Authorization': 'Basic Base64EncodedClientIdAndSecret'
             },
@@ -263,6 +286,42 @@ CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
     }
   ]
   ```
+
+### LDAP Authentication
+
+FAB supports authenticating user credentials against an LDAP server.
+To use LDAP you must install the [python-ldap](https://www.python-ldap.org/en/latest/installing.html) package.
+See [FAB's LDAP documentation](https://flask-appbuilder.readthedocs.io/en/latest/security.html#authentication-ldap)
+for details.
+
+### Mapping LDAP or OAUTH groups to Superset roles
+
+AUTH_ROLES_MAPPING in Flask-AppBuilder is a dictionary that maps from LDAP/OAUTH group names to FAB roles.
+It is used to assign roles to users who authenticate using LDAP or OAuth.
+
+#### Mapping OAUTH groups to Superset roles
+
+The following AUTH_ROLES_MAPPING dictionary would map the OAUTH group "superset_users" to the Superset roles "Gamma" as well as "Alpha", and the OAUTH group "superset_admins" to the Superset role "Admin".
+
+AUTH_ROLES_MAPPING = {
+"superset_users": ["Gamma","Alpha"],
+"superset_admins": ["Admin"],
+}
+
+#### Mapping LDAP groups to Superset roles
+
+The following AUTH_ROLES_MAPPING dictionary would map the LDAP DN "cn=superset_users,ou=groups,dc=example,dc=com" to the Superset roles "Gamma" as well as "Alpha", and the LDAP DN "cn=superset_admins,ou=groups,dc=example,dc=com" to the Superset role "Admin".
+
+AUTH_ROLES_MAPPING = {
+"cn=superset_users,ou=groups,dc=example,dc=com": ["Gamma","Alpha"],
+"cn=superset_admins,ou=groups,dc=example,dc=com": ["Admin"],
+}
+
+Note: This requires AUTH_LDAP_SEARCH to be set. For more details, Please refer (FAB Security documentation)[https://flask-appbuilder.readthedocs.io/en/latest/security.html].
+
+#### Syncing roles at login
+
+You can also use the AUTH_ROLES_SYNC_AT_LOGIN configuration variable to control how often Flask-AppBuilder syncs the user's roles with the LDAP/OAUTH groups. If AUTH_ROLES_SYNC_AT_LOGIN is set to True, Flask-AppBuilder will sync the user's roles each time they log in. If AUTH_ROLES_SYNC_AT_LOGIN is set to False, Flask-AppBuilder will only sync the user's roles when they first register.
 
 ### Flask app Configuration Hook
 
