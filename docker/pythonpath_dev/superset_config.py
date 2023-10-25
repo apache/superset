@@ -92,13 +92,46 @@ class CeleryConfig:
 
 CELERY_CONFIG = CeleryConfig
 
-FEATURE_FLAGS = {"ALERT_REPORTS": True}
+FEATURE_FLAGS = {"ALERT_REPORTS": True,
+    "EMBEDDED_SUPERSET": True,
+    "EMBEDDABLE_CHARTS": True,
+    "DASHBOARD_RBAC": True,
+    "ENABLE_TEMPLATE_PROCESSING": True,
+    "MENU_HIDE_USER_INFO": False,
+    "DRILL_TO_DETAIL": True,
+    "DASHBOARD_CROSS_FILTERS": True
+    }
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
 WEBDRIVER_BASEURL = "http://superset:8088/"
 # The base URL for the email report hyperlinks.
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 
 SQLLAB_CTAS_NO_LIMIT = True
+
+# Custom config
+#WTF_CSRF_ENABLED = False
+SESSION_COOKIE_HTTPONLY = False
+SESSION_COOKIE_SECURE = False
+SESSION_COOKIE_SAMESITE = 'None' # One of [None, 'None', 'Lax', 'Strict']
+SESSION_COOKIE_DOMAIN = False
+PUBLIC_ROLE_LIKE = 'Gamma'
+
+GUEST_ROLE_NAME = "Gamma"
+GUEST_TOKEN_JWT_SECRET = "faPgrWF58eOBxOioSwyLPeq9Cp9uvxNyzxdLtc4tTl8VRlxfYglGJpRA"
+GUEST_TOKEN_JWT_ALGO = "HS256"
+GUEST_TOKEN_HEADER_NAME = "X-GuestToken"
+GUEST_TOKEN_JWT_EXP_SECONDS = 3600  # 60 minutes
+
+ENABLE_PROXY_FIX = True
+ENABLE_CORS = True
+CORS_OPTIONS = {
+    'supports_credentials': True,
+    'allow_headers': ['*'],
+    'resources':['*'],
+    'origins': ['*']
+}
+OVERRIDE_HTTP_HEADERS = {'X-Frame-Options': 'ALLOWALL'}
+TALISMAN_ENABLED = False
 
 #
 # Optionally import superset_config_docker.py (which will have been included on
