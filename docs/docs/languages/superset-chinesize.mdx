@@ -1,0 +1,62 @@
+# 1 汉化前准备
+- 按照[官网教程](https://superset.apache.org/docs/installation/installing-superset-using-docker-compose)，使用docker安装好superset
+- 安装成功后，会有几个容器：superset_app、superset_cache、superset_init、superset_worker、superset_worker_beat、superset_db
+
+# 2 汉化
+1.进入容器superset_app
+```
+sudo docker exec -i -t superset_app /bin/bash
+```
+
+2.安装环境
+```
+1.更新软件源列表
+apt update
+
+2.安装软件包
+apt-get install vim
+apt-get install wget
+apt-get install gettext
+```
+
+3.编译语言包
+```
+1.进入语言包目录
+cd /app/superset/translations/zh/LC_MESSAGES/
+
+2.开始编译
+msgfmt ./messages.po -o ./messages.mo
+
+3.注意事项：编译过程，如果报错，如何解决
+    报错1:
+    ./messages.po:39: 'msgid' and 'msgstr' entries do not both begin with '\n'
+    msgfmt: found 1 fatal error
+
+    ./messages.po:39: "msgid"和"msgstr"项并非都以"\n"开始
+    msgfmt: 发现 1 处致命错误
+
+    解决方案：注释掉34到39行（如果是报的其他行，则注释掉对应行的数据即可）
+
+4.编译成功后，语言包目录会出现messages.mo文件，则表示编译成功了
+```
+
+4.修改配置文件的语言配置
+```
+vim /app/docker/pythonpath_dev/superset_config.py
+
+    # 新增如下配置
+    BABEL_DEFAULT_LOCALE='zh'
+    BABEL_DEFAULT_FOLDER='superset/translations'
+    # 这儿是可选的多种语言
+    LANGUAGES  = {
+         'zh' : { 'flag' : 'cn' , 'name' : 'Chinese' },
+         'en' : { 'flag' : 'us' , 'name' : 'English' }
+    }
+```
+
+5.修改完成，重启容器superset_app
+```
+sudo docker restart superset_app
+```
+
+6.浏览器重新打开superset登录页面，登录后验证汉化是否成功
