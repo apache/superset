@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import threading
+import time
 from typing import Any, TYPE_CHECKING
 
 import simplejson as json
@@ -151,14 +153,21 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
     @classmethod
     def handle_cursor(cls, cursor: Cursor, query: Query, session: Session) -> None:
-        if tracking_url := cls.get_tracking_url(cursor):
-            query.tracking_url = tracking_url
+        """
+        Handle a trino client cursor.
+
+        WARNING: if you execute a query, it will block until complete and you
+        will not be able to handle the cursor until complete. Use
+        `execute_with_cursor` instead, to handle this asynchronously.
+        """
 
         # Adds the executed query id to the extra payload so the query can be cancelled
-        query.set_extra_json_key(
-            key=QUERY_CANCEL_KEY,
-            value=(cancel_query_id := cursor.stats["queryId"]),
-        )
+        cancel_query_id = cursor.query_id
+        logger.debug("Query %d: queryId %s found in cursor", query.id, cancel_query_id)
+        query.set_extra_json_key(key=QUERY_CANCEL_KEY, value=cancel_query_id)
+
+        if tracking_url := cls.get_tracking_url(cursor):
+            query.tracking_url = tracking_url
 
         session.commit()
 
@@ -172,6 +181,51 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             )
 
         super().handle_cursor(cursor=cursor, query=query, session=session)
+
+    @classmethod
+    def execute_with_cursor(
+        cls, cursor: Any, sql: str, query: Query, session: Session
+    ) -> None:
+        """
+        Trigger execution of a query and handle the resulting cursor.
+
+        Trino's client blocks until the query is complete, so we need to run it
+        in another thread and invoke `handle_cursor` to poll for the query ID
+        to appear on the cursor in parallel.
+        """
+        execute_result: dict[str, Any] = {}
+
+        def _execute(results: dict[str, Any]) -> None:
+            logger.debug("Query %d: Running query: %s", query.id, sql)
+
+            # Pass result / exception information back to the parent thread
+            try:
+                cls.execute(cursor, sql)
+                results["complete"] = True
+            except Exception as ex:  # pylint: disable=broad-except
+                results["complete"] = True
+                results["error"] = ex
+
+        execute_thread = threading.Thread(target=_execute, args=(execute_result,))
+        execute_thread.start()
+
+        # Wait for a query ID to be available before handling the cursor, as
+        # it's required by that method; it may never become available on error.
+        while not cursor.query_id and not execute_result.get("complete"):
+            time.sleep(0.1)
+
+        logger.debug("Query %d: Handling cursor", query.id)
+        cls.handle_cursor(cursor, query, session)
+
+        # Block until the query completes; same behaviour as the client itself
+        logger.debug("Query %d: Waiting for query to complete", query.id)
+        while not execute_result.get("complete"):
+            time.sleep(0.5)
+
+        # Unfortunately we'll mangle the stack trace due to the thread, but
+        # throwing the original exception allows mapping database errors as normal
+        if err := execute_result.get("error"):
+            raise err
 
     @classmethod
     def prepare_cancel_query(cls, query: Query, session: Session) -> None:
