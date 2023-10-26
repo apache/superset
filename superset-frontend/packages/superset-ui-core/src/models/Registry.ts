@@ -54,7 +54,6 @@ export type Listener = (keys: string[]) => void;
 export interface RegistryConfig {
   name?: string;
   overwritePolicy?: OverwritePolicy;
-  defaultValue?: any;
 }
 
 /**
@@ -89,20 +88,13 @@ export default class Registry<
 
   listeners: Set<Listener>;
 
-  defaultValue?: V;
-
   constructor(config: RegistryConfig = {}) {
-    const {
-      name = '',
-      overwritePolicy = OverwritePolicy.ALLOW,
-      defaultValue,
-    } = config;
+    const { name = '', overwritePolicy = OverwritePolicy.ALLOW } = config;
     this.name = name;
     this.overwritePolicy = overwritePolicy;
     this.items = {};
     this.promises = {};
     this.listeners = new Set();
-    this.defaultValue = defaultValue;
   }
 
   clear() {
@@ -182,9 +174,7 @@ export default class Registry<
 
       return item.value;
     }
-    if (this.defaultValue) {
-      return this.defaultValue;
-    }
+
     return undefined;
   }
 
