@@ -306,13 +306,18 @@ class DatasetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
+            logger.info("trying validate data to add new dataset")
             item = self.add_model_schema.load(request.json)
+            logger.info("validated data to add new dataset")
         # This validates custom Schema with custom validations
         except ValidationError as error:
+            logger.warning("validate data failed to add new dataset")
             return self.response_400(message=error.messages)
 
         try:
+            logger.info("trying add new dataset")
             new_model = CreateDatasetCommand(item).run()
+            logger.info("added new dataset, id=", new_model.id)
             return self.response(201, id=new_model.id, result=item, data=new_model.data)
         except DatasetInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
@@ -387,14 +392,18 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             else False
         )
         try:
+            logger.info("trying validate data to edit dataset, id=", pk)
             item = self.edit_model_schema.load(request.json)
+            logger.info("validated data to edit datasset, id=", pk)
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
+            logger.info("trying edit dataset, id=", pk)
             changed_model = UpdateDatasetCommand(pk, item, override_columns).run()
             if override_columns:
                 RefreshDatasetCommand(pk).run()
+            logger.info("edited dataset, id=", pk)
             response = self.response(200, id=changed_model.id, result=item)
         except DatasetNotFoundError:
             response = self.response_404()
@@ -453,7 +462,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
+            logger.info("trying delete dataset, id=", pk)
             DeleteDatasetCommand([pk]).run()
+            logger.info("deleted dataset, id=", pk)
             return self.response(200, message="OK")
         except DatasetNotFoundError:
             return self.response_404()
