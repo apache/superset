@@ -19,6 +19,7 @@
 .resizable-container {
   background-color: transparent;
   position: relative;
+  border-radius: 10px;
 
   /* re-resizable sets an empty div to 100% width and height, which doesn't
   play well with many 100% height containers we need
@@ -92,14 +93,14 @@
 
 .dragdroppable-column .resizable-container-handle--right {
   /* override the default because the inner column's handle's mouse target is very small */
-  right: 0 !important;
+  right: -2px !important;
 }
 
 .dragdroppable-column .dragdroppable-column .resizable-container-handle--right {
   /* override the default because the inner column's handle's mouse target is very small */
-  right: 0 !important;
+  right: -2px !important;
 }
 
 .resizable-container-handle--bottom {
-  bottom: 0 !important;
+  bottom: -2px !important;
 }

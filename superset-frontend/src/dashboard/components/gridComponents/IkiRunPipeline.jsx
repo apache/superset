@@ -189,6 +189,28 @@ class IkiRunPipeline extends React.PureComponent {
     if (this.props.editMode) {
       MarkdownEditor.preload();
     }
+    if (this.props.editMode && this.props.editMode !== prevProps.editMode) {
+      setTimeout(() => {
+        this.handleChangeEditorMode('edit');
+      }, 500);
+    } else if (
+      !this.props.editMode &&
+      this.props.editMode !== prevProps.editMode
+    ) {
+      setTimeout(() => {
+        const iframe = document.getElementById(
+          `ikirunpipeline-widget-${this.props.component.id}`,
+        );
+        if (iframe && iframe !== undefined) {
+          iframe.contentWindow.postMessage(
+            JSON.stringify({
+              data: 'superset-to-widget/confirm-pipeline-selection',
+            }),
+            this.props.ikigaiOrigin,
+          );
+        }
+      }, 500);
+    }
   }
 
   componentDidCatch() {
@@ -215,7 +237,7 @@ class IkiRunPipeline extends React.PureComponent {
           let messageData;
           let widgetUrl;
           let widgetUrlQuery;
-          let widgetUrlQueryMode;
+          // let widgetUrlQueryMode;
 
           const allChartElements = document.querySelectorAll(
             '[data-test-chart-id]',
@@ -244,7 +266,7 @@ class IkiRunPipeline extends React.PureComponent {
                 `ikirunpipeline-widget-${this.props.component.id}`,
               ).src,
             );
-            widgetUrlQueryMode = widgetUrl.searchParams.get('mode');
+            // widgetUrlQueryMode = widgetUrl.searchParams.get('mode');
           } else {
             widgetUrl = `${this.props.ikigaiOrigin}/widget/pipeline/run?mode=edit&v=1&run_flow_times=${timestamp}`;
           }
@@ -252,7 +274,10 @@ class IkiRunPipeline extends React.PureComponent {
           if (
             messageObject.info === 'widget-to-superset/sending-pipeline-data'
           ) {
-            if (widgetUrlQueryMode === 'edit') {
+            if (
+              // widgetUrlQueryMode === 'edit' &&
+              JSON.parse(messageObject.data).scId === this.props.component.id
+            ) {
               widgetUrlQuery = new URLSearchParams(widgetUrl.search);
               widgetUrlQuery.set('mode', 'preview');
               widgetUrlQuery.set('pipeline_id', messageData.pipeline.id);
@@ -266,15 +291,16 @@ class IkiRunPipeline extends React.PureComponent {
               const jsonString = JSON.stringify(messageData.selectedCharts);
               const base64String = Buffer.from(jsonString).toString('base64');
               widgetUrlQuery.set('selected_charts', base64String);
+              widgetUrlQuery.set('scid', this.props.component.id);
               widgetUrl.search = widgetUrlQuery.toString();
               const tempIframe = `<iframe
-                      id="ikirunpipeline-widget-${this.props.component.id}"
-                      name="run-flow-component"
-                      src="${widgetUrl}"
-                      title="IkiRunPipeline Component"
-                      className="ikirunpipeline-widget"
-                      style="min-height: 100%;"
-                    />`;
+                          id="ikirunpipeline-widget-${this.props.component.id}"
+                          name="run-flow-component"
+                          src="${widgetUrl}"
+                          title="IkiRunPipeline Component"
+                          className="ikirunpipeline-widget"
+                          style="min-height: 100%;"
+                        />`;
               this.handleIkiRunPipelineChange(tempIframe);
             }
           } else if (
@@ -303,10 +329,11 @@ class IkiRunPipeline extends React.PureComponent {
   }
 
   handleChangeFocus(nextFocus) {
-    const nextFocused = !!nextFocus;
-    const nextEditMode = nextFocused ? 'edit' : 'preview';
-    this.setState(() => ({ isFocused: nextFocused }));
-    this.handleChangeEditorMode(nextEditMode);
+    console.log(nextFocus);
+    // const nextFocused = !!nextFocus;
+    // const nextEditMode = nextFocused ? 'edit' : 'preview';
+    // this.setState(() => ({ isFocused: nextFocused }));
+    // this.handleChangeEditorMode(nextEditMode);
   }
 
   handleChangeEditorMode(mode) {
@@ -343,6 +370,7 @@ class IkiRunPipeline extends React.PureComponent {
     } else {
       widgetUrl = `${this.props.ikigaiOrigin}/widget/pipeline/run?mode=edit&v=1&run_flow_times=${timestamp}`;
     }
+
     const widgetUrlQuery = new URLSearchParams(widgetUrl.search);
     widgetUrlQuery.set('mode', mode);
     const jsonString2 = JSON.stringify(chartsList);
@@ -387,22 +415,20 @@ class IkiRunPipeline extends React.PureComponent {
         markdownSource: nextValue,
       },
       () => {
-        // this.handleMarkdownChange();
-        // this.updateMarkdownContent();
+        const { updateComponents, component } = this.props;
+        if (component.meta.code !== nextValue) {
+          updateComponents({
+            [component.id]: {
+              ...component,
+              meta: {
+                ...component.meta,
+                code: nextValue,
+              },
+            },
+          });
+        }
       },
     );
-    const { updateComponents, component } = this.props;
-    if (component.meta.code !== nextValue) {
-      updateComponents({
-        [component.id]: {
-          ...component,
-          meta: {
-            ...component.meta,
-            code: nextValue,
-          },
-        },
-      });
-    }
   }
 
   handleDeleteComponent() {
@@ -484,7 +510,7 @@ class IkiRunPipeline extends React.PureComponent {
       });
       const jsonString3 = JSON.stringify(chartsList);
       const base64String3 = Buffer.from(jsonString3).toString('base64');
-      iframeSrc = `${iframeSrc}&charts_list=${base64String3}`;
+      iframeSrc = `${iframeSrc}&charts_list=${base64String3}&scid=${this.props.component.id}`;
 
       iframe = `<iframe
                     id="ikirunpipeline-widget-${this.props.component.id}"
@@ -602,9 +628,9 @@ class IkiRunPipeline extends React.PureComponent {
                       : this.renderPreviewMode()
                   }
                 </div>
+                {dropIndicatorProps && <div {...dropIndicatorProps} />}
               </ResizableContainer>
             </div>
-            {dropIndicatorProps && <div {...dropIndicatorProps} />}
           </WithPopoverMenu>
         )}
       </DragDroppable>
