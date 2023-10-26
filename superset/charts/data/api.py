@@ -16,10 +16,12 @@
 # under the License.
 from __future__ import annotations
 
+import io
 import json
 import logging
-from typing import Any, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING, Optional
 
+import pandas as pd
 import simplejson
 from flask import current_app, g, make_response, request, Response
 from flask_appbuilder.api import expose, protect
@@ -40,6 +42,7 @@ from superset.charts.data.query_context_cache_loader import QueryContextCacheLoa
 from superset.charts.post_processing import apply_post_process
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.common.utils.dataframe_utils import delete_tz_from_df
 from superset.connectors.base.models import BaseDatasource
 from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError
@@ -347,7 +350,7 @@ class ChartDataRestApi(ChartRestApi):
         result: dict[Any, Any],
         form_data: dict[str, Any] | None = None,
         datasource: BaseDatasource | Query | None = None,
-    ) -> Response:
+    ) -> Optional[Response, io.BytesIO]:
         result_type = result["query_context"].result_type
         result_format = result["query_context"].result_format
 
@@ -365,15 +368,68 @@ class ChartDataRestApi(ChartRestApi):
             if not result["queries"]:
                 return self.response_400(_("Empty query result"))
 
-            is_csv_format = result_format == ChartDataResultFormat.CSV
+            if result_format == ChartDataResultFormat.XLSX:
+                # Verify user has permission to export XLSX file
+                if not security_manager.can_access("can_csv", "Superset"):
+                    return self.response_403()
 
-            if len(result["queries"]) == 1:
-                # return single query results
-                data = result["queries"][0]["data"]
-                if is_csv_format:
-                    return CsvResponse(data, headers=generate_download_headers("csv"))
+                if not result["queries"]:
+                    return self.response_400(_("Empty query result"))
 
-                return XlsxResponse(data, headers=generate_download_headers("xlsx"))
+                if list_of_data := result["queries"]:
+                    df = pd.DataFrame()
+                    for data in list_of_data:
+                        try:
+                            # return query results xlsx format
+                            new_df = delete_tz_from_df(data)
+                            keys_of_new_df = new_df.keys()
+                            exist_df = df.keys()
+                            for key in keys_of_new_df:
+                                if key in exist_df:
+                                    new_df.pop(key)
+                            if not new_df.empty:
+                                df = df.join(new_df, how='right', rsuffix='2')
+                        except IndexError:
+                            return self.response_500(
+                                _("Server error occurred while exporting the file")
+                            )
+
+                    excel_writer = io.BytesIO()
+                    writer = pd.ExcelWriter(excel_writer, mode="w", engine="xlsxwriter")
+                    df.to_excel(writer, startrow=0, merge_cells=False,
+                                sheet_name="Sheet_1", index_label=None, index=False)
+                    writer.save()
+                    excel_writer.seek(0)
+                    return excel_writer
+
+            if result_format == ChartDataResultFormat.CSV:
+                # Verify user has permission to export CSV file
+                if not security_manager.can_access("can_csv", "Superset"):
+                    return self.response_403()
+
+                if not result["queries"]:
+                    return self.response_400(_("Empty query result"))
+                logger.error(result)
+                if list_of_data := result["queries"]:
+                    df = pd.DataFrame()
+                    for data in list_of_data:
+                        try:
+                            # return query results csv format
+                            new_df = delete_tz_from_df(data)
+                            keys_of_new_df = new_df.keys()
+                            exist_df = df.keys()
+                            for key in keys_of_new_df:
+                                if key in exist_df:
+                                    new_df.pop(key)
+                            if not new_df.empty:
+                                df = df.join(new_df, how='right', rsuffix='2')
+                        except IndexError:
+                            return self.response_500(
+                                _("Server error occurred while exporting the file")
+                            )
+                    config_csv = current_app.config["CSV_EXPORT"]
+                    return CsvResponse(df.to_csv(**config_csv),
+                                       headers=generate_download_headers("csv"))
 
             # return multi-query results bundled as a zip file
             def _process_data(query_data: Any) -> Any:

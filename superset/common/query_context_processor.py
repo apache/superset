@@ -141,7 +141,7 @@ class QueryContextProcessor:
                 invalid_columns = [
                     col
                     for col in get_column_names_from_columns(query_obj.columns)
-                    + get_column_names_from_metrics(query_obj.metrics or [])
+                               + get_column_names_from_metrics(query_obj.metrics or [])
                     if (
                         col not in self._qc_datasource.column_names
                         and col != DTTM_ALIAS
@@ -561,20 +561,14 @@ class QueryContextProcessor:
         return row[column_index].strftime("%Y")
 
     def get_data(self, df: pd.DataFrame) -> str | list[dict[str, Any]]:
-        if self._query_context.result_format in ChartDataResultFormat.table_like():
-            include_index = not isinstance(df.index, pd.RangeIndex)
+        if self._query_context.result_format == ChartDataResultFormat.CSV or \
+                self._query_context.result_format == ChartDataResultFormat.XLSX:
             columns = list(df.columns)
             verbose_map = self._qc_datasource.data.get("verbose_map", {})
             if verbose_map:
                 df.columns = [verbose_map.get(column, column) for column in columns]
-
-            result = None
-            if self._query_context.result_format == ChartDataResultFormat.CSV:
-                result = csv.df_to_escaped_csv(
-                    df, index=include_index, **config["CSV_EXPORT"]
-                )
-            elif self._query_context.result_format == ChartDataResultFormat.XLSX:
-                result = excel.df_to_excel(df, **config["EXCEL_EXPORT"])
+            result = csv.df_to_escaped_csv(df)
+            logger.error(result)
             return result or ""
 
         return df.to_dict(orient="records")
