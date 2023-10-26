@@ -62,7 +62,7 @@ class BaseDAO(Generic[T]):
         model_id: str | int,
         session: Session = None,
         skip_base_filter: bool = False,
-    ) -> Model | None:
+    ) -> T | None:
         """
         Find a model by id, if defined applies `base_filter`
         """
