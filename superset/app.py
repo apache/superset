@@ -19,8 +19,10 @@ import logging
 import os
 
 from flask import Flask
+from flask_http_middleware import MiddlewareManager
 
 from superset.initialization import SupersetAppInitializer
+from superset.middleware.middleware_logs import LogRoutersMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +34,9 @@ def create_app() -> Flask:
         # Allow user to override our config completely
         config_module = os.environ.get("SUPERSET_CONFIG", "superset.config")
         app.config.from_object(config_module)
+
+        app.wsgi_app = MiddlewareManager(app)
+        app.wsgi_app.add_middleware(LogRoutersMiddleware)
 
         app_initializer = app.config.get("APP_INITIALIZER", SupersetAppInitializer)(app)
         app_initializer.init_app()
