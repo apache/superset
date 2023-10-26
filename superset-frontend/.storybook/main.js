@@ -25,7 +25,7 @@ module.exports = {
   },
   stories: [
     '../src/@(components|common|filters|explore|views|dashboard|features)/**/*.stories.@(tsx|jsx)',
-    '../src/@(components|common|filters|explore|views|dashboard|features)/**/*.*.@(mdx)',
+    '../src/@(components|common|filters|explore|views|dashboard|features)/**/*.*.mdx',
   ],
   addons: [
     '@storybook/addon-essentials',
