@@ -1395,8 +1395,14 @@ export function popDatasourceQuery(datasourceKey, sql) {
   return function (dispatch) {
     const QUERY_TEXT = t('Query');
     const datasetId = datasourceKey.split('__')[0];
+
+    const queryParams = rison.encode({
+      keys: ['none'],
+      columns: ['name', 'schema', 'database.id', 'select_star'],
+    });
+
     return SupersetClient.get({
-      endpoint: `/api/v1/dataset/${datasetId}?q=(keys:!(none))`,
+      endpoint: `/api/v1/dataset/${datasetId}?q=${queryParams}`,
     })
       .then(({ json }) =>
         dispatch(
