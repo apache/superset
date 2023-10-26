@@ -682,6 +682,11 @@ SCREENSHOT_REPLACE_UNEXPECTED_ERRORS = False
 SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE = 5
 # Max time to wait for error message modal to close, in seconds
 SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE = 5
+# event that Playwright waits for when loading a new page
+# possible values: "load", "commit", "domcontentloaded", "networkidle"
+SCREENSHOT_PLAYWRIGHT_WAIT_UNTIL = "load"
+# default timeout for Playwright browser context for all operations
+SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT = 10000
 
 # ---------------------------------------------------
 # Image and file configuration
