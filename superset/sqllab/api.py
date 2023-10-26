@@ -189,7 +189,7 @@ class SqlLabRestApi(BaseSupersetApi):
         result = command.run()
         return self.response(200, result=result)
 
-    @expose("/format/", methods=("POST",))
+    @expose("/format_sql/", methods=("POST",))
     @statsd_metrics
     @protect()
     @permission_name("read")
@@ -197,7 +197,7 @@ class SqlLabRestApi(BaseSupersetApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".format",
         log_to_statsd=False,
     )
-    def format(self) -> FlaskResponse:
+    def format_sql(self) -> FlaskResponse:
         """Format the SQL query.
         ---
         post:

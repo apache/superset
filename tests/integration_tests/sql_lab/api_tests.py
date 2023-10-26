@@ -228,7 +228,7 @@ class TestSqlLabApi(SupersetTestCase):
 
         data = {"sql": "select 1 from my_table"}
         rv = self.client.post(
-            "/api/v1/sqllab/format/",
+            "/api/v1/sqllab/format_sql/",
             json=data,
         )
         success_resp = {"result": "SELECT 1\nFROM my_table"}
