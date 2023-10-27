@@ -1386,7 +1386,7 @@ class DatasourceEditor extends React.PureComponent {
     const { theme } = this.props;
 
     return (
-      <DatasourceContainer>
+      <DatasourceContainer data-test="datasource-editor">
         {this.renderErrors()}
         <Alert
           css={theme => ({ marginBottom: theme.gridUnit * 4 })}
