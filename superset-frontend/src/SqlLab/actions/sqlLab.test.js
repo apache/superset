@@ -129,7 +129,7 @@ describe('async actions', () => {
   });
 
   describe('formatQuery', () => {
-    const formatQueryEndpoint = 'glob:*/api/v1/sqllab/format/';
+    const formatQueryEndpoint = 'glob:*/api/v1/sqllab/format_sql/';
     const expectedSql = 'SELECT 1';
     fetchMock.post(formatQueryEndpoint, { result: expectedSql });
 
