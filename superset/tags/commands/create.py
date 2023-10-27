@@ -69,8 +69,9 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
     def __init__(self, data: dict[str, Any], bulk_create: bool = False):
         self._properties = data.copy()
         self._bulk_create = bulk_create
+        self._skipped_tagged_objects: set[tuple[str, int]] = set()
 
-    def run(self) -> None:
+    def run(self) -> tuple[set[tuple[str, int]], set[tuple[str, int]]]:
         self.validate()
 
         try:
@@ -86,6 +87,8 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
 
             db.session.commit()
 
+            return set(self._properties["objects_to_tag"]), self._skipped_tagged_objects
+
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)
             raise TagCreateFailedError() from ex
@@ -93,20 +96,27 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
     def validate(self) -> None:
         exceptions = []
         objects_to_tag = set(self._properties.get("objects_to_tag", []))
-        skipped_tagged_objects: set[tuple[str, int]] = set()
         for obj_type, obj_id in objects_to_tag:
             object_type = to_object_type(obj_type)
 
-            if not object_type:
-                exceptions.append(TagInvalidError(f"invalid object type {object_type}"))
-            try:
-                model = to_object_model(object_type, obj_id)  # type: ignore
-                security_manager.raise_for_ownership(model)
-            except SupersetSecurityException:
-                # skip the object if the user doesn't have access
-                skipped_tagged_objects.add((obj_type, obj_id))
+            # Validate object type
+            for obj_type, obj_id in objects_to_tag:
+                object_type = to_object_type(obj_type)
 
-        self._properties["objects_to_tag"] = objects_to_tag - skipped_tagged_objects
+                if not object_type:
+                    exceptions.append(
+                        TagInvalidError(f"invalid object type {object_type}")
+                    )
+                try:
+                    if model := to_object_model(object_type, obj_id):  # type: ignore
+                        security_manager.raise_for_ownership(model)
+                except SupersetSecurityException:
+                    # skip the object if the user doesn't have access
+                    self._skipped_tagged_objects.add((obj_type, obj_id))
+
+            self._properties["objects_to_tag"] = (
+                set(objects_to_tag) - self._skipped_tagged_objects
+            )
 
         if exceptions:
             raise TagInvalidError(exceptions=exceptions)

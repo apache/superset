@@ -550,7 +550,7 @@ class TestTagApi(SupersetTestCase):
             },
         )
 
-        self.assertEqual(rv.status_code, 201)
+        self.assertEqual(rv.status_code, 200)
 
         result = TagDAO.get_tagged_objects_for_tags(tags, ["dashboard"])
         assert len(result) == 1
@@ -569,3 +569,47 @@ class TestTagApi(SupersetTestCase):
             TaggedObject.object_type == ObjectTypes.chart,
         )
         assert tagged_objects.count() == 2
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_post_bulk_tag_skipped_tags_perm(self):
+        alpha = self.get_user("alpha")
+        self.insert_dashboard("titletag", "slugtag", [alpha.id])
+        self.login(username="alpha")
+        uri = "api/v1/tag/bulk_create"
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "World Bank's Data")
+            .first()
+        )
+        alpha_dash = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "titletag")
+            .first()
+        )
+        chart = db.session.query(Slice).first()
+        rv = self.client.post(
+            uri,
+            json={
+                "tags": [
+                    {
+                        "name": "tag1",
+                        "objects_to_tag": [
+                            ["dashboard", alpha_dash.id],
+                        ],
+                    },
+                    {
+                        "name": "tag2",
+                        "objects_to_tag": [["dashboard", dashboard.id]],
+                    },
+                    {
+                        "name": "tag3",
+                        "objects_to_tag": [["chart", chart.id]],
+                    },
+                ]
+            },
+        )
+
+        self.assertEqual(rv.status_code, 200)
+        result = rv.json["result"]
+        assert len(result["objects_tagged"]) == 2
+        assert len(result["objects_skipped"]) == 1

@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { isObject } from 'lodash';
-import { t } from '@superset-ui/core';
+import { t, SupersetClient } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import { useHistory } from 'react-router-dom';
 
@@ -44,24 +44,33 @@ const ViewQueryModalFooter: React.FC<ViewQueryModalFooterProps> = (props: {
   datasource: SimpleDataSource;
 }) => {
   const history = useHistory();
-  const viewInSQLLab = (id: string, type: string, sql: string) => {
+  const viewInSQLLab = (
+    openInNewWindow: boolean,
+    id: string,
+    type: string,
+    sql: string,
+  ) => {
     const payload = {
       datasourceKey: `${id}__${type}`,
       sql,
     };
-    history.push({
-      pathname: '/sqllab',
-      state: {
-        requestedQuery: payload,
-      },
-    });
+    if (openInNewWindow) {
+      SupersetClient.postForm('/sqllab/', payload);
+    } else {
+      history.push({
+        pathname: '/sqllab',
+        state: {
+          requestedQuery: payload,
+        },
+      });
+    }
   };
 
-  const openSQL = () => {
+  const openSQL = (openInNewWindow: boolean) => {
     const { datasource } = props;
     if (isObject(datasource)) {
       const { id, type, sql } = datasource;
-      viewInSQLLab(id, type, sql);
+      viewInSQLLab(openInNewWindow, id, type, sql);
     }
   };
   return (
@@ -74,7 +83,9 @@ const ViewQueryModalFooter: React.FC<ViewQueryModalFooterProps> = (props: {
       >
         {SAVE_AS_DATASET}
       </Button>
-      <Button onClick={() => openSQL()}>{OPEN_IN_SQL_LAB}</Button>
+      <Button onClick={({ metaKey }) => openSQL(Boolean(metaKey))}>
+        {OPEN_IN_SQL_LAB}
+      </Button>
       <Button
         buttonStyle="primary"
         onClick={() => {

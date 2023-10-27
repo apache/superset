@@ -95,6 +95,6 @@ class ImportChartsCommand(ImportModelsCommand):
                 config["params"].update({"datasource": dataset.uid})
 
                 if "query_context" in config:
-                    del config["query_context"]
+                    config["query_context"] = None
 
                 import_chart(session, config, overwrite=overwrite)

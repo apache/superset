@@ -142,7 +142,7 @@ Another workaround is to change where superset stores the sqlite database by add
 `superset_config.py`:
 
 ```
-SQLALCHEMY_DATABASE_URI = 'sqlite:////new/location/superset.db'
+SQLALCHEMY_DATABASE_URI = 'sqlite:////new/location/superset.db?check_same_thread=false'
 ```
 
 You can read more about customizing Superset using the configuration file

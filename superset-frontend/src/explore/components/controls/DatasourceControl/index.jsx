@@ -20,7 +20,13 @@
 
 import React from 'react';
 import PropTypes from 'prop-types';
-import { DatasourceType, styled, t, withTheme } from '@superset-ui/core';
+import {
+  DatasourceType,
+  SupersetClient,
+  styled,
+  t,
+  withTheme,
+} from '@superset-ui/core';
 import { getTemporalColumns } from '@superset-ui/chart-controls';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { AntdDropdown } from 'src/components';
@@ -44,6 +50,7 @@ import ModalTrigger from 'src/components/ModalTrigger';
 import ViewQueryModalFooter from 'src/explore/components/controls/ViewQueryModalFooter';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
+import { safeStringify } from 'src/utils/safeStringify';
 import { isString } from 'lodash';
 import { Link } from 'react-router-dom';
 
@@ -120,6 +127,7 @@ const Styles = styled.div`
 `;
 
 const CHANGE_DATASET = 'change_dataset';
+const VIEW_IN_SQL_LAB = 'view_in_sql_lab';
 const EDIT_DATASET = 'edit_dataset';
 const QUERY_PREVIEW = 'query_preview';
 const SAVE_AS_DATASET = 'save_as_dataset';
@@ -153,6 +161,14 @@ export const renderDatasourceTitle = (displayString, tooltip) =>
 export const getDatasourceTitle = datasource => {
   if (datasource?.type === 'query') return datasource?.sql;
   return datasource?.name || '';
+};
+
+const preventRouterLinkWhileMetaClicked = evt => {
+  if (evt.metaKey) {
+    evt.preventDefault();
+  } else {
+    evt.stopPropagation();
+  }
 };
 
 class DatasourceControl extends React.PureComponent {
@@ -231,6 +247,19 @@ class DatasourceControl extends React.PureComponent {
         this.toggleEditDatasourceModal();
         break;
 
+      case VIEW_IN_SQL_LAB:
+        {
+          const { datasource } = this.props;
+          const payload = {
+            datasourceKey: `${datasource.id}__${datasource.type}`,
+            sql: datasource.sql,
+          };
+          SupersetClient.postForm('/sqllab/', {
+            form_data: safeStringify(payload),
+          });
+        }
+        break;
+
       case SAVE_AS_DATASET:
         this.toggleSaveDatasetModal();
         break;
@@ -294,12 +323,13 @@ class DatasourceControl extends React.PureComponent {
         )}
         <Menu.Item key={CHANGE_DATASET}>{t('Swap dataset')}</Menu.Item>
         {!isMissingDatasource && canAccessSqlLab && (
-          <Menu.Item>
+          <Menu.Item key={VIEW_IN_SQL_LAB}>
             <Link
               to={{
                 pathname: '/sqllab',
                 state: { requestedQuery },
               }}
+              onClick={preventRouterLinkWhileMetaClicked}
             >
               {t('View in SQL Lab')}
             </Link>
@@ -333,12 +363,13 @@ class DatasourceControl extends React.PureComponent {
           />
         </Menu.Item>
         {canAccessSqlLab && (
-          <Menu.Item>
+          <Menu.Item key={VIEW_IN_SQL_LAB}>
             <Link
               to={{
                 pathname: '/sqllab',
                 state: { requestedQuery },
               }}
+              onClick={preventRouterLinkWhileMetaClicked}
             >
               {t('View in SQL Lab')}
             </Link>
