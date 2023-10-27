@@ -17,11 +17,10 @@
 import json
 import logging
 from datetime import datetime, timedelta
+from io import BytesIO, StringIO
 from typing import Any, Optional, Union
 from uuid import UUID
 
-from io import StringIO
-from io import BytesIO
 import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
 from sqlalchemy.orm import Session
@@ -265,9 +264,11 @@ class BaseReportState:
             if csv_data:
                 buf = BytesIO()
                 temp_df = pd.read_csv(StringIO(csv_data.decode("utf-8")))
-                if temp_df.columns[0] == "" :
+                if temp_df.columns[0] == "":
                     csv_data = temp_df.iloc[:, 1:]
-                    csv_data.to_csv(buf,encoding="utf-8",index=app.config["CSV_INDEX"])
+                    csv_data.to_csv(
+                        buf, encoding="utf-8", index=app.config["CSV_INDEX"]
+                    )
                     buf.seek(0)
                     csv_data = buf.getvalue()
         except SoftTimeLimitExceeded as ex:
