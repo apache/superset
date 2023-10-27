@@ -220,6 +220,27 @@ class ReportSchedulePostSchema(Schema):
         required=False,
         default=None,
     )
+    pdf_orientation = fields.String(
+        metadata={
+            "description": _("Page orientation of PDF printout"),
+            "example": "portrait",
+        },
+        allow_none=True,
+        required=False,
+        default=None,
+    )
+
+    @validates("pdf_orientation")
+    def validate_pdf_orientation(
+        self,
+        value: Optional[str],
+    ) -> None:
+        if value is None:
+            return
+        if value not in set(['portrait', 'landscape']):
+            raise ValidationError(
+                    _("PDF orientation must be either portrait or landscape")
+                )
 
     @validates("custom_width")
     def validate_custom_width(
@@ -369,3 +390,24 @@ class ReportSchedulePutSchema(Schema):
                     max=max_width,
                 )
             )
+    pdf_orientation = fields.String(
+        metadata={
+            "description": _("Page orientation of PDF printout"),
+            "example": "portrait",
+        },
+        allow_none=True,
+        required=False,
+        default=None,
+    )
+
+    @validates("pdf_orientation")
+    def validate_pdf_orientation(
+        self,
+        value: Optional[str],
+    ) -> None:
+        if value is None:
+            return
+        if value not in set(['portrait', 'landscape']):
+            raise ValidationError(
+                    _("PDF orientation must be either portrait or landscape")
+                )

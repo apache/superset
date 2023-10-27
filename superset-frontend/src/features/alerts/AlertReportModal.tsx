@@ -59,6 +59,7 @@ import {
   Operator,
   Recipient,
   AlertsReportsConfig,
+  AlertState,
 } from 'src/features/alerts/types';
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -93,7 +94,6 @@ const DEFAULT_RETENTION = 90;
 
 const DEFAULT_NOTIFICATION_METHODS: NotificationMethodOption[] = ['Email'];
 const DEFAULT_NOTIFICATION_FORMAT = 'PNG';
-const DEFAULT_ORIENTATION = 'portrait';
 const CONDITIONS = [
   {
     label: t('< (Smaller than)'),
@@ -482,10 +482,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [reportFormat, setReportFormat] = useState<string>(
     DEFAULT_NOTIFICATION_FORMAT,
   );
-  const [pdfOrientation, setPdfOrientation] =
-    useState<string>(DEFAULT_ORIENTATION);
   const [forceScreenshot, setForceScreenshot] = useState<boolean>(false);
-
   const [isScreenshot, setIsScreenshot] = useState<boolean>(false);
   const [isPdf, setIsPdf] = useState<boolean>(false);
 
@@ -738,7 +735,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   // Updating alert/report state
   const updateAlertState = (name: string, value: any) => {
-    console.log(currentAlert);
     setCurrentAlert(currentAlertData => ({
       ...currentAlertData,
       [name]: value,
@@ -978,12 +974,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const onFormatChange = (event: any) => {
     const { target } = event;
-
     setReportFormat(target.value);
-  };
-
-  const onOrientationChange = (value: string) => {
-    setPdfOrientation(value);
   };
 
   const onForceScreenshotChange = (event: any) => {
@@ -1517,8 +1508,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 <Select
                   ariaLabel={TRANSLATIONS.PORTRAIT_ORIENTATION}
                   placeholder="PDF Orientation"
-                  value={pdfOrientation}
-                  onChange={onOrientationChange}
+                  value={currentAlert?.pdf_orientation || undefined}
+                  onChange={newVal =>
+                    updateAlertState('pdf_orientation', newVal)
+                  }
                   options={[
                     { label: t('Portrait'), value: 'portrait' },
                     { label: t('Landscape'), value: 'landscape' },
@@ -1535,7 +1528,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   <Input
                     type="number"
                     name="custom_width"
-                    value={currentAlert?.custom_width || ''}
+                    value={currentAlert?.custom_width || undefined}
                     placeholder={
                       TRANSLATIONS.CUSTOM_SCREENSHOT_WIDTH_PLACEHOLDER_TEXT
                     }

@@ -169,6 +169,9 @@ class ReportSchedule(Model, AuditMixinNullable, ExtraJSONMixin):
     custom_width = Column(Integer, nullable=True)
     custom_height = Column(Integer, nullable=True)
 
+    # (Reports) When generating a PDF
+    pdf_orientation = Column(String(50), nullable=True)
+
     extra: ReportScheduleExtra  # type: ignore
 
     def __repr__(self) -> str:

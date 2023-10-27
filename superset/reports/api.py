@@ -109,6 +109,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "owners.first_name",
         "owners.id",
         "owners.last_name",
+        "pdf_orientation",
         "recipients.id",
         "recipients.recipient_config_json",
         "recipients.type",
@@ -168,6 +169,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "log_retention",
         "name",
         "owners",
+        "pdf_orientation",
         "recipients",
         "report_format",
         "sql",
@@ -412,6 +414,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        print(self.edit_model_schema.load(request.json))
         try:
             item = self.edit_model_schema.load(request.json)
             # normally this would be covered by a decorator, however
