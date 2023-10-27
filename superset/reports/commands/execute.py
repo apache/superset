@@ -264,10 +264,12 @@ class BaseReportState:
             csv_data = get_chart_csv_data(chart_url=url, auth_cookies=auth_cookies)
             if csv_data:
                 buf = BytesIO()
-                csv_data = pd.read_csv(StringIO(csv_data.decode("utf-8"))).iloc[:, 1:]
-                csv_data.to_csv(buf,encoding="utf-8",index=app.config["CSV_INDEX"])
-                buf.seek(0)
-                csv_data = buf.getvalue()
+                temp_df = pd.read_csv(StringIO(csv_data.decode("utf-8")))
+                if temp_df.columns[0] == "" :
+                    csv_data = temp_df.iloc[:, 1:]
+                    csv_data.to_csv(buf,encoding="utf-8",index=app.config["CSV_INDEX"])
+                    buf.seek(0)
+                    csv_data = buf.getvalue()
         except SoftTimeLimitExceeded as ex:
             raise ReportScheduleCsvTimeout() from ex
         except Exception as ex:
