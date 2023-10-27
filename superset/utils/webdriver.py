@@ -167,7 +167,7 @@ class WebDriverPlaywright(WebDriverProxy):
             self.auth(user, context)
             page = context.new_page()
             page.goto(
-                url, wait_until=current_app.config["SCREENSHOT_PLAYWRIGHT_WAIT_UNTIL"]
+                url, wait_until=current_app.config["SCREENSHOT_PLAYWRIGHT_WAIT_EVENT"]
             )
             img: bytes | None = None
             selenium_headstart = current_app.config["SCREENSHOT_SELENIUM_HEADSTART"]
@@ -207,7 +207,7 @@ class WebDriverPlaywright(WebDriverProxy):
                     )
                     page.wait_for_selector(
                         ".loading",
-                        timeout=self._screenshot_locate_wait * 1000,
+                        timeout=self._screenshot_load_wait * 1000,
                         state="detached",
                     )
                 except PlaywrightTimeout as ex:
