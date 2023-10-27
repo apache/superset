@@ -70,7 +70,8 @@ class ReportState(StrEnum):
 
 
 class ReportDataFormat(StrEnum):
-    VISUALIZATION = "PNG"
+    IMAGE = "PNG"
+    PDF = "PDF"
     DATA = "CSV"
     TEXT = "TEXT"
 
@@ -126,7 +127,7 @@ class ReportSchedule(Model, AuditMixinNullable, ExtraJSONMixin):
         String(255), server_default=ReportCreationMethod.ALERTS_REPORTS
     )
     timezone = Column(String(100), default="UTC", nullable=False)
-    report_format = Column(String(50), default=ReportDataFormat.VISUALIZATION)
+    report_format = Column(String(50), default=ReportDataFormat.IMAGE)
     sql = Column(Text())
     # (Alerts/Reports) M-O to chart
     chart_id = Column(Integer, ForeignKey("slices.id"), nullable=True)

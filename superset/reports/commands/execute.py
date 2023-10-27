@@ -357,7 +357,11 @@ class BaseReportState:
             feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
             or self._report_schedule.type == ReportScheduleType.REPORT
         ):
-            if self._report_schedule.report_format == ReportDataFormat.VISUALIZATION:
+            if self._report_schedule.report_format == ReportDataFormat.IMAGE:
+                screenshot_data = self._get_screenshots()
+                if not screenshot_data:
+                    error_text = "Unexpected missing screenshot"
+            elif self._report_schedule.report_format == ReportDataFormat.PDF:
                 screenshot_data = self._get_screenshots()
                 if not screenshot_data:
                     error_text = "Unexpected missing screenshot"
