@@ -184,6 +184,7 @@ Understanding the Superset Points of View
 - Deploying Superset
   - [Official Docker image](https://hub.docker.com/r/apache/superset)
   - [Helm Chart](https://github.com/apache/superset/tree/master/helm/superset)
+  - [Elestio](https://elest.io/open-source/superset)
 
 - Recordings of Past [Superset Community Events](https://preset.io/events)
   - [Mixed Time Series Charts](https://preset.io/events/mixed-time-series-visualization-in-superset-workshop/)
