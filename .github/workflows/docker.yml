@@ -44,7 +44,7 @@ jobs:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          .github/workflows/docker_build_push.sh
+          ./scripts/docker_build_push.sh
 
       - name: Build ephemeral env image
         if: github.event_name == 'pull_request'

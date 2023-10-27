@@ -389,8 +389,11 @@ describe('async actions', () => {
       const state = {
         sqlLab: {
           tabHistory: [id],
-          queryEditors: [{ id, name: 'Dummy query editor' }],
-          unsavedQueryEditor: {},
+          queryEditors: [{ id, name: 'out of updated title' }],
+          unsavedQueryEditor: {
+            id,
+            name: 'Dummy query editor',
+          },
         },
       };
       const store = mockStore(state);
@@ -444,16 +447,23 @@ describe('async actions', () => {
 
     describe('addNewQueryEditor', () => {
       it('creates new query editor with new tab name', () => {
-        const store = mockStore(initialState);
+        const store = mockStore({
+          ...initialState,
+          sqlLab: {
+            ...initialState.sqlLab,
+            unsavedQueryEditor: {
+              id: defaultQueryEditor.id,
+              name: 'Untitled Query 6',
+            },
+          },
+        });
         const expectedActions = [
           {
             type: actions.ADD_QUERY_EDITOR,
             queryEditor: {
               id: 'abcd',
               sql: expect.stringContaining('SELECT ...'),
-              name: `Untitled Query ${
-                store.getState().sqlLab.queryEditors.length + 1
-              }`,
+              name: `Untitled Query 7`,
               dbId: defaultQueryEditor.dbId,
               schema: defaultQueryEditor.schema,
               autorun: false,
