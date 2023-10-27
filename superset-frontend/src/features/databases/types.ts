@@ -226,5 +226,8 @@ export interface ExtraJson {
     table_cache_timeout?: number; // in Performance
   }; // No field, holds schema and table timeout
   schemas_allowed_for_file_upload?: string[]; // in Security
+  schema_options?: {
+    expand_rows?: boolean;
+  };
   version?: string;
 }

@@ -410,9 +410,13 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def get_columns(
-        cls, inspector: Inspector, table_name: str, schema: str | None
+        cls,
+        inspector: Inspector,
+        table_name: str,
+        schema: str | None,
+        options: dict[str, Any] | None = None,
     ) -> list[ResultSetColumnType]:
-        return BaseEngineSpec.get_columns(inspector, table_name, schema)
+        return BaseEngineSpec.get_columns(inspector, table_name, schema, options)
 
     @classmethod
     def where_latest_partition(  # pylint: disable=too-many-arguments

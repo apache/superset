@@ -23,14 +23,12 @@ from datetime import datetime
 from typing import Any, TYPE_CHECKING
 
 from sqlalchemy import types
-from sqlalchemy.engine.reflection import Inspector
 
 from superset import is_feature_enabled
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.exceptions import SupersetException
-from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
@@ -129,15 +127,6 @@ class DruidEngineSpec(BaseEngineSpec):
         Convert from number of milliseconds since the epoch to a timestamp.
         """
         return "MILLIS_TO_TIMESTAMP({col})"
-
-    @classmethod
-    def get_columns(
-        cls, inspector: Inspector, table_name: str, schema: str | None
-    ) -> list[ResultSetColumnType]:
-        """
-        Update the Druid type map.
-        """
-        return super().get_columns(inspector, table_name, schema)
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:

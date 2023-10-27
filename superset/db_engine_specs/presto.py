@@ -981,7 +981,11 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
 
     @classmethod
     def get_columns(
-        cls, inspector: Inspector, table_name: str, schema: str | None
+        cls,
+        inspector: Inspector,
+        table_name: str,
+        schema: str | None,
+        options: dict[str, Any] | None = None,
     ) -> list[ResultSetColumnType]:
         """
         Get columns from a Presto data source. This includes handling row and
@@ -989,6 +993,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         :param inspector: object that performs database schema inspection
         :param table_name: table name
         :param schema: schema name
+        :param options: Extra configuration options, not used by this backend
         :return: a list of results that contain column info
                 (i.e. column name and data type)
         """

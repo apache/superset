@@ -84,6 +84,8 @@ class ResultSetColumnType(TypedDict):
     scale: NotRequired[Any]
     max_length: NotRequired[Any]
 
+    query_as: NotRequired[Any]
+
 
 CacheConfig = dict[str, Any]
 DbapiDescriptionRow = tuple[
