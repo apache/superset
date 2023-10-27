@@ -20,6 +20,8 @@ from datetime import datetime, timedelta
 from typing import Any, Optional, Union
 from uuid import UUID
 
+from io import StringIO
+from io import BytesIO
 import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
 from sqlalchemy.orm import Session
@@ -75,9 +77,6 @@ from superset.utils.core import HeaderDataType, override_user
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
-from io import StringIO
-import pandas as pd
-from io import BytesIO
 
 logger = logging.getLogger(__name__)
 
