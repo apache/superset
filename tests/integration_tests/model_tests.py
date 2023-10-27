@@ -482,6 +482,7 @@ class TestSqlaTableModel(SupersetTestCase):
             to_dttm=None,
             extras=dict(time_grain_sqla="P1Y"),
             series_limit=15 if inner_join and is_timeseries else None,
+            slice_id=None,
         )
         qr = tbl.query(query_obj)
         self.assertEqual(qr.status, QueryStatus.SUCCESS)
@@ -532,6 +533,7 @@ class TestSqlaTableModel(SupersetTestCase):
             from_dttm=None,
             to_dttm=None,
             extras={},
+            slice_id=None,
         )
         sql = tbl.get_query_str(query_obj)
         self.assertNotIn("-- COMMENT", sql)
@@ -558,6 +560,7 @@ class TestSqlaTableModel(SupersetTestCase):
             from_dttm=None,
             to_dttm=None,
             extras={},
+            slice_id=None,
         )
         sql = tbl.get_query_str(query_obj)
         self.assertNotIn("-- COMMENT", sql)
@@ -572,6 +575,44 @@ class TestSqlaTableModel(SupersetTestCase):
 
         app.config["SQL_QUERY_MUTATOR"] = None
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_mutate_query_from_config_with_additional_params(self):
+        # Arrange
+        tbl = self.get_table(name="birth_names")
+        query_obj = dict(
+            groupby=[],
+            metrics=None,
+            filter=[],
+            is_timeseries=False,
+            columns=["name"],
+            granularity=None,
+            from_dttm=None,
+            to_dttm=None,
+            extras={},
+            slice_id=None,
+        )
+        sql = tbl.get_query_str(query_obj)
+        self.assertNotIn("-- COMMENT", sql)
+
+        def mutator(sql, database=None, **kwargs):
+            comment = "-- COMMENT\n--" + "\n" + str(database) + "\n"
+            for key, value in kwargs.items():
+                comment += f"-- {key}: {value}\n"
+            return comment + sql
+
+        # Act
+        app.config["SQL_QUERY_MUTATOR"] = mutator
+        app.config["MUTATE_AFTER_SPLIT"] = False
+        mutated_sql = tbl.mutate_query_from_config(sql, query_obj=query_obj)
+
+        # Assert
+        self.assertIn("-- COMMENT", mutated_sql)
+        self.assertIn(str(tbl.database), mutated_sql)
+
+        # Cleanup
+        app.config["SQL_QUERY_MUTATOR"] = None
+        app.config["MUTATE_AFTER_SPLIT"] = None
+
     def test_query_with_non_existent_metrics(self):
         tbl = self.get_table(name="birth_names")
 
@@ -585,6 +626,7 @@ class TestSqlaTableModel(SupersetTestCase):
             from_dttm=None,
             to_dttm=None,
             extras={},
+            slice_id=None,
         )
 
         with self.assertRaises(Exception) as context:
