@@ -421,6 +421,8 @@ export const TRANSLATIONS = {
   PORTRAIT_ORIENTATION: t('Portrait'),
   LANDSCAPE_ORIENTATION: t('Landscape'),
   IGNORE_CACHE_TEXT: t('Ignore cache when generating report'),
+  PDF_ORIENTATION_TEXT: t('PDF orientation'),
+  PDF_ORIENTATION_PLACEHOLDER_TEXT: t('Select page orientation of PDF'),
   CUSTOM_SCREENSHOT_WIDTH_TEXT: t('Screenshot width'),
   CUSTOM_SCREENSHOT_WIDTH_PLACEHOLDER_TEXT: t('Input custom width in pixels'),
   NOTIFICATION_METHOD_TEXT: t('Notification method'),
@@ -980,9 +982,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setReportFormat(target.value);
   };
 
-  const onOrientationChange = (event: any) => {
-    const { target } = event;
-    setPdfOrientation(target.value);
+  const onOrientationChange = (value: string) => {
+    setPdfOrientation(value);
   };
 
   const onForceScreenshotChange = (event: any) => {
@@ -1505,21 +1506,25 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       </StyledRadio>
                     )}
                   </StyledRadioGroup>
-                  {isPdf && (
-                    <StyledRadioGroup
-                      value={pdfOrientation}
-                      onChange={onOrientationChange}
-                    >
-                      <StyledRadio value={'portrait'}>
-                        {TRANSLATIONS.PORTRAIT_ORIENTATION}
-                      </StyledRadio>
-                      <StyledRadio value={'landscape'}>
-                        {TRANSLATIONS.LANDSCAPE_ORIENTATION}
-                      </StyledRadio>
-                    </StyledRadioGroup>
-                  )}
                 </div>
               </>
+            )}
+            {isPdf && (
+              <StyledInputContainer>
+                <div className="control-label" css={CustomWidthHeaderStyle}>
+                  {TRANSLATIONS.PDF_ORIENTATION_TEXT}
+                </div>
+                <Select
+                  ariaLabel={TRANSLATIONS.PORTRAIT_ORIENTATION}
+                  placeholder="PDF Orientation"
+                  value={pdfOrientation}
+                  onChange={onOrientationChange}
+                  options={[
+                    { label: t('Portrait'), value: 'portrait' },
+                    { label: t('Landscape'), value: 'landscape' },
+                  ]}
+                />
+              </StyledInputContainer>
             )}
             {isScreenshot && (
               <StyledInputContainer>
