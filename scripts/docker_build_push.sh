@@ -20,7 +20,7 @@ set -eo pipefail
 GITHUB_RELEASE_TAG_NAME="$1"
 
 SHA=$(git rev-parse HEAD)
-REPO_NAME="apache/superset"
+REPO_NAME="dataport"
 
 if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
   REFSPEC=$(echo "${GITHUB_HEAD_REF}" | sed 's/[^a-zA-Z0-9]/-/g' | head -c 40)
@@ -71,7 +71,7 @@ if [ -z "${DOCKERHUB_TOKEN}" ]; then
 else
   # Login and push
   docker logout
-  docker login --username "${DOCKERHUB_USER}" --password "${DOCKERHUB_TOKEN}"
+  docker login --username "${DOCKERHUB_USER}" --password "${DOCKERHUB_TOKEN}" "${REGISTRY}"
   DOCKER_ARGS="--push"
   ARCHITECTURE_FOR_BUILD="linux/amd64,linux/arm64"
 fi
@@ -90,9 +90,9 @@ fi
 #
 docker buildx build --target dev \
   $DOCKER_ARGS \
-  --cache-from=type=registry,ref=apache/superset:master-dev \
-  --cache-from=type=local,src=/tmp/superset \
-  --cache-to=type=local,ignore-error=true,dest=/tmp/superset \
+  --cache-from=type=registry,ref=propeldata/dataport:master-dev \
+  --cache-from=type=local,src=/tmp/dataport \
+  --cache-to=type=local,ignore-error=true,dest=/tmp/dataport \
   -t "${REPO_NAME}:${SHA}-dev" \
   -t "${REPO_NAME}:${REFSPEC}-dev" \
   -t "${DEV_TAG}" \
@@ -108,8 +108,8 @@ docker buildx build --target dev \
 #
 docker buildx build --target lean \
   $DOCKER_ARGS \
-  --cache-from=type=local,src=/tmp/superset \
-  --cache-to=type=local,ignore-error=true,dest=/tmp/superset \
+  --cache-from=type=local,src=/tmp/dataport \
+  --cache-to=type=local,ignore-error=true,dest=/tmp/dataport \
   -t "${REPO_NAME}:${SHA}" \
   -t "${REPO_NAME}:${REFSPEC}" \
   -t "${REPO_NAME}:${LATEST_TAG}" \
@@ -125,8 +125,8 @@ docker buildx build --target lean \
 #
 docker buildx build --target lean \
   $DOCKER_ARGS \
-  --cache-from=type=local,src=/tmp/superset \
-  --cache-to=type=local,ignore-error=true,dest=/tmp/superset \
+  --cache-from=type=local,src=/tmp/dataport \
+  --cache-to=type=local,ignore-error=true,dest=/tmp/dataport \
   -t "${REPO_NAME}:${SHA}-py310" \
   -t "${REPO_NAME}:${REFSPEC}-py310" \
   -t "${REPO_NAME}:${LATEST_TAG}-py310" \
@@ -143,8 +143,8 @@ docker buildx build --target lean \
 #
 docker buildx build --target lean \
   $DOCKER_ARGS \
-  --cache-from=type=local,src=/tmp/superset \
-  --cache-to=type=local,ignore-error=true,dest=/tmp/superset \
+  --cache-from=type=local,src=/tmp/dataport \
+  --cache-to=type=local,ignore-error=true,dest=/tmp/dataport \
   -t "${REPO_NAME}:${SHA}-py39" \
   -t "${REPO_NAME}:${REFSPEC}-py39" \
   -t "${REPO_NAME}:${LATEST_TAG}-py39" \
@@ -163,7 +163,7 @@ for BUILD_PLATFORM in $ARCHITECTURE_FOR_BUILD; do
 #
 docker buildx build \
   $DOCKER_ARGS \
-  --cache-from=type=registry,ref=apache/superset:master-websocket \
+  --cache-from=type=registry,ref=propeldata/dataport:master-websocket \
   -t "${REPO_NAME}:${SHA}-websocket" \
   -t "${REPO_NAME}:${REFSPEC}-websocket" \
   -t "${REPO_NAME}:${LATEST_TAG}-websocket" \
@@ -172,14 +172,14 @@ docker buildx build \
   --label "built_at=$(date)" \
   --label "target=websocket" \
   --label "build_actor=${GITHUB_ACTOR}" \
-  superset-websocket
+  dataport-websocket
 
 #
 # Build the dockerize image
 #
 docker buildx build \
   $DOCKER_ARGS \
-  --cache-from=type=registry,ref=apache/superset:dockerize \
+  --cache-from=type=registry,ref=propeldata/dataport:dockerize \
   -t "${REPO_NAME}:dockerize" \
   --platform ${BUILD_PLATFORM} \
   --label "sha=${SHA}" \

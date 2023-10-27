@@ -8,25 +8,28 @@ on:
     types: [synchronize, opened, reopened, ready_for_review]
 
 jobs:
-  config:
+  login-to-amazon-ecr:
     runs-on: "ubuntu-latest"
     outputs:
-      has-secrets: ${{ steps.check.outputs.has-secrets }}
+      registry: ${{ steps.login-ecr.outputs.registry }}
+      docker_username: ${{ steps.login-ecr.outputs.docker_username_123456789012_dkr_ecr_us_east_1_amazonaws_com }} # More information on these outputs can be found below in the 'Docker Credentials' section
+      docker_password: ${{ steps.login-ecr.outputs.docker_password_123456789012_dkr_ecr_us_east_1_amazonaws_com }}
+
     steps:
-      - name: "Check for secrets"
-        id: check
-        shell: bash
-        run: |
-          if [ -n "${{ (secrets.DOCKERHUB_USER != '' && secrets.DOCKERHUB_TOKEN != '') || '' }}" ]; then
-            echo "has-secrets=1" >> "$GITHUB_OUTPUT"
-            echo "has secrets!"
-          else
-            echo "has-secrets=0" >> "$GITHUB_OUTPUT"
-            echo "no secrets!"
-          fi
+      - name: "Configure AWS Credentials"
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::607392822524:role/propel-git-workflow
+          aws-region: us-east-2
+          mask-aws-account-id: 'false'
+      - name: "Lpgin to Amazon ECR"
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          mask-password: 'false'
 
   docker-build:
-    needs: config
+    needs: login-to-amazon-ecr
     if: needs.config.outputs.has-secrets
     name: docker-build
     runs-on: ubuntu-latest
@@ -41,8 +44,10 @@ jobs:
         uses: docker/setup-buildx-action@v1
       - shell: bash
         env:
-          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          DOCKERHUB_USER: ${{ needs.login-to-amazon-ecr.output.docker_username }}
+          DOCKERHUB_TOKEN: ${{ needs.login-to-amazon-ecr.output.docker_password }}
+          REGISTRY: ${{ needs.login-to-amazon-ecr.output.registry }}
+          REPOSITORY: dataport
         run: |
           ./scripts/docker_build_push.sh
 
