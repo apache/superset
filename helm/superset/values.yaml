@@ -27,7 +27,7 @@ nameOverride: ~
 # -- Provide a name to override the full names of resources
 fullnameOverride: ~
 
-# -- Enable if you're using Istio.  Adds a label to init-jb to disable istio injection.
+# -- Enable if you're using Istio.  Adds a label to init-db to disable istio injection.
 istio:
   enabled: "false"
 
