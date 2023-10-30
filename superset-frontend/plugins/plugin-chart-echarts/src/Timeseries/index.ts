@@ -19,8 +19,6 @@
 import {
   AnnotationType,
   Behavior,
-  ChartMetadata,
-  ChartPlugin,
   hasGenericChartAxes,
   t,
 } from '@superset-ui/core';
@@ -33,8 +31,9 @@ import {
   EchartsTimeseriesFormData,
 } from './types';
 import example from './images/Time-series_Chart.jpg';
+import { EchartsChartPlugin } from '../types';
 
-export default class EchartsTimeseriesChartPlugin extends ChartPlugin<
+export default class EchartsTimeseriesChartPlugin extends EchartsChartPlugin<
   EchartsTimeseriesFormData,
   EchartsTimeseriesChartProps
 > {
@@ -43,8 +42,12 @@ export default class EchartsTimeseriesChartPlugin extends ChartPlugin<
       buildQuery,
       controlPanel,
       loadChart: () => import('./EchartsTimeseries'),
-      metadata: new ChartMetadata({
-        behaviors: [Behavior.INTERACTIVE_CHART, Behavior.DRILL_TO_DETAIL],
+      metadata: {
+        behaviors: [
+          Behavior.INTERACTIVE_CHART,
+          Behavior.DRILL_TO_DETAIL,
+          Behavior.DRILL_BY,
+        ],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
         description: hasGenericChartAxes
@@ -71,7 +74,7 @@ export default class EchartsTimeseriesChartPlugin extends ChartPlugin<
           t('Transformable'),
         ],
         thumbnail,
-      }),
+      },
       transformProps,
     });
   }

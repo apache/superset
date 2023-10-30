@@ -23,6 +23,8 @@ from superset.commands.exceptions import (
     CommandInvalidError,
     CreateFailedError,
     DeleteFailedError,
+    ObjectNotFoundError,
+    UpdateFailedError,
 )
 
 
@@ -34,6 +36,10 @@ class TagCreateFailedError(CreateFailedError):
     message = _("Tag could not be created.")
 
 
+class TagUpdateFailedError(UpdateFailedError):
+    message = _("Tag could not be updated.")
+
+
 class TagDeleteFailedError(DeleteFailedError):
     message = _("Tag could not be deleted.")
 
@@ -42,7 +48,7 @@ class TaggedObjectDeleteFailedError(DeleteFailedError):
     message = _("Tagged Object could not be deleted.")
 
 
-class TagNotFoundError(CommandException):
+class TagNotFoundError(ObjectNotFoundError):
     def __init__(self, tag_name: Optional[str] = None) -> None:
         message = "Tag not found."
         if tag_name:

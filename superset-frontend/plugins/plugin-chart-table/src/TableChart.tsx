@@ -41,6 +41,7 @@ import {
   DTTM_ALIAS,
   ensureIsArray,
   GenericDataType,
+  getSelectedText,
   getTimeFormatterForGranularity,
   BinaryQueryObjectFilterClause,
   styled,
@@ -390,6 +391,18 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             crossFilter: cellPoint.isMetric
               ? undefined
               : getCrossFilterDataMask(cellPoint.key, cellPoint.value),
+            drillBy: cellPoint.isMetric
+              ? undefined
+              : {
+                  filters: [
+                    {
+                      col: cellPoint.key,
+                      op: '==',
+                      val: cellPoint.value as string | number | boolean,
+                    },
+                  ],
+                  groupbyFieldName: 'groupby',
+                },
           });
         }
       : undefined;
@@ -448,9 +461,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             columnColorFormatters!
               .filter(formatter => formatter.column === column.key)
               .forEach(formatter => {
-                const formatterResult = value
-                  ? formatter.getColorFromValue(value as number)
-                  : false;
+                const formatterResult =
+                  value || value === 0
+                    ? formatter.getColorFromValue(value as number)
+                    : false;
                 if (formatterResult) {
                   backgroundColor = formatterResult;
                 }
@@ -493,7 +507,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             title: typeof value === 'number' ? String(value) : undefined,
             onClick:
               emitCrossFilters && !valueRange && !isMetric
-                ? () => toggleFilter(key, value)
+                ? () => {
+                    // allow selecting text in a cell
+                    if (!getSelectedText()) {
+                      toggleFilter(key, value);
+                    }
+                  }
                 : undefined,
             onContextMenu: (e: MouseEvent) => {
               if (handleContextMenu) {

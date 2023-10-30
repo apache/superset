@@ -17,37 +17,44 @@
  * under the License.
  */
 
-import { DataMaskStateWithId } from '@superset-ui/core';
-import { DashboardInfo, DashboardLayout } from 'src/dashboard/types';
-import { CrossFilterIndicator, selectChartCrossFilters } from '../../selectors';
+import {
+  DataMaskStateWithId,
+  getColumnLabel,
+  isDefined,
+  JsonObject,
+} from '@superset-ui/core';
+import { DashboardLayout } from 'src/dashboard/types';
+import { CrossFilterIndicator, getCrossFilterIndicator } from '../../selectors';
 
 export const crossFiltersSelector = (props: {
   dataMask: DataMaskStateWithId;
-  dashboardInfo: DashboardInfo;
+  chartConfiguration: JsonObject;
   dashboardLayout: DashboardLayout;
+  verboseMaps: { [key: string]: Record<string, string> };
 }): CrossFilterIndicator[] => {
-  const { dataMask, dashboardInfo, dashboardLayout } = props;
-  const chartConfiguration = dashboardInfo.metadata?.chart_configuration;
+  const { dataMask, chartConfiguration, dashboardLayout, verboseMaps } = props;
   const chartsIds = Object.keys(chartConfiguration);
-  const shouldFilterEmitters = true;
 
-  let selectedCrossFilters: CrossFilterIndicator[] = [];
-
-  for (let i = 0; i < chartsIds.length; i += 1) {
-    const chartId = Number(chartsIds[i]);
-    const crossFilters = selectChartCrossFilters(
-      dataMask,
-      chartId,
-      dashboardLayout,
-      chartConfiguration,
-      shouldFilterEmitters,
-    );
-    selectedCrossFilters = [
-      ...selectedCrossFilters,
-      ...(crossFilters as CrossFilterIndicator[]),
-    ];
-  }
-  return selectedCrossFilters;
+  return chartsIds
+    .map(chartId => {
+      const id = Number(chartId);
+      const filterIndicator = getCrossFilterIndicator(
+        id,
+        dataMask[id],
+        dashboardLayout,
+      );
+      if (
+        isDefined(filterIndicator.column) &&
+        isDefined(filterIndicator.value)
+      ) {
+        const verboseColName =
+          verboseMaps[id]?.[getColumnLabel(filterIndicator.column)] ||
+          filterIndicator.column;
+        return { ...filterIndicator, column: verboseColName, emitterId: id };
+      }
+      return null;
+    })
+    .filter(Boolean) as CrossFilterIndicator[];
 };
 
 export default crossFiltersSelector;

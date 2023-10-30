@@ -18,16 +18,20 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-
-import { SupersetClient, t } from '@superset-ui/core';
-
+import { isEmpty } from 'lodash';
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  SupersetClient,
+  t,
+} from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { URL_PARAMS } from 'src/constants';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import CssEditor from 'src/dashboard/components/CssEditor';
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
 import SaveModal from 'src/dashboard/components/SaveModal';
-import HeaderReportDropdown from 'src/components/ReportModal/HeaderReportDropdown';
+import HeaderReportDropdown from 'src/features/reports/ReportModal/HeaderReportDropdown';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 import { SAVE_TYPE_NEWDASHBOARD } from 'src/dashboard/util/constants';
 import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
@@ -370,14 +374,18 @@ class HeaderActionsDropdown extends React.PureComponent {
             </Menu>
           )
         ) : null}
-        {editMode && (
-          <Menu.Item key={MENU_KEYS.SET_FILTER_MAPPING}>
-            <FilterScopeModal
-              className="m-r-5"
-              triggerNode={t('Set filter mapping')}
-            />
-          </Menu.Item>
-        )}
+        {editMode &&
+          !(
+            isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
+            isEmpty(dashboardInfo?.metadata?.filter_scopes)
+          ) && (
+            <Menu.Item key={MENU_KEYS.SET_FILTER_MAPPING}>
+              <FilterScopeModal
+                className="m-r-5"
+                triggerNode={t('Set filter mapping')}
+              />
+            </Menu.Item>
+          )}
 
         <Menu.Item key={MENU_KEYS.AUTOREFRESH_MODAL}>
           <RefreshIntervalModal

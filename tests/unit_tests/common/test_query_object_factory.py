@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 from unittest.mock import Mock, patch
 
 from pytest import fixture, mark
@@ -23,7 +23,7 @@ from superset.common.query_object_factory import QueryObjectFactory
 from tests.common.query_context_generator import QueryContextGenerator
 
 
-def create_app_config() -> Dict[str, Any]:
+def create_app_config() -> dict[str, Any]:
     return {
         "ROW_LIMIT": 5000,
         "DEFAULT_RELATIVE_START_TIME": "today",
@@ -34,7 +34,7 @@ def create_app_config() -> Dict[str, Any]:
 
 
 @fixture
-def app_config() -> Dict[str, Any]:
+def app_config() -> dict[str, Any]:
     return create_app_config().copy()
 
 
@@ -43,9 +43,45 @@ def session_factory() -> Mock:
     return Mock()
 
 
+class SimpleDatasetColumn:
+    def __init__(self, col_params: dict[str, Any]):
+        self.__dict__.update(col_params)
+
+
+TEMPORAL_COLUMN_NAMES = ["temporal_column", "temporal_column_with_python_date_format"]
+TEMPORAL_COLUMNS = {
+    TEMPORAL_COLUMN_NAMES[0]: SimpleDatasetColumn(
+        {
+            "column_name": TEMPORAL_COLUMN_NAMES[0],
+            "is_dttm": True,
+            "python_date_format": None,
+            "type": "string",
+            "num_types": ["BIGINT"],
+        }
+    ),
+    TEMPORAL_COLUMN_NAMES[1]: SimpleDatasetColumn(
+        {
+            "column_name": TEMPORAL_COLUMN_NAMES[1],
+            "type": "BIGINT",
+            "is_dttm": True,
+            "python_date_format": "%Y",
+            "num_types": ["BIGINT"],
+        }
+    ),
+}
+
+
 @fixture
 def connector_registry() -> Mock:
-    return Mock(spec=["get_datasource"])
+    datasource_dao_mock = Mock(spec=["get_datasource"])
+    datasource_dao_mock.get_datasource.return_value = Mock()
+    datasource_dao_mock.get_datasource().get_column = Mock(
+        side_effect=lambda col_name: TEMPORAL_COLUMNS[col_name]
+        if col_name in TEMPORAL_COLUMN_NAMES
+        else Mock()
+    )
+    datasource_dao_mock.get_datasource().db_extra = None
+    return datasource_dao_mock
 
 
 def apply_max_row_limit(limit: int, max_limit: Optional[int] = None) -> int:
@@ -58,7 +94,7 @@ def apply_max_row_limit(limit: int, max_limit: Optional[int] = None) -> int:
 
 @fixture
 def query_object_factory(
-    app_config: Dict[str, Any], connector_registry: Mock, session_factory: Mock
+    app_config: dict[str, Any], connector_registry: Mock, session_factory: Mock
 ) -> QueryObjectFactory:
     import superset.common.query_object_factory as mod
 
@@ -67,7 +103,7 @@ def query_object_factory(
 
 
 @fixture
-def raw_query_context() -> Dict[str, Any]:
+def raw_query_context() -> dict[str, Any]:
     return QueryContextGenerator().generate("birth_names")
 
 
@@ -75,7 +111,7 @@ class TestQueryObjectFactory:
     def test_query_context_limit_and_offset_defaults(
         self,
         query_object_factory: QueryObjectFactory,
-        raw_query_context: Dict[str, Any],
+        raw_query_context: dict[str, Any],
     ):
         raw_query_object = raw_query_context["queries"][0]
         raw_query_object.pop("row_limit", None)
@@ -89,7 +125,7 @@ class TestQueryObjectFactory:
     def test_query_context_limit(
         self,
         query_object_factory: QueryObjectFactory,
-        raw_query_context: Dict[str, Any],
+        raw_query_context: dict[str, Any],
     ):
         raw_query_object = raw_query_context["queries"][0]
         raw_query_object["row_limit"] = 100
@@ -104,7 +140,7 @@ class TestQueryObjectFactory:
     def test_query_context_null_post_processing_op(
         self,
         query_object_factory: QueryObjectFactory,
-        raw_query_context: Dict[str, Any],
+        raw_query_context: dict[str, Any],
     ):
         raw_query_object = raw_query_context["queries"][0]
         raw_query_object["post_processing"] = [None]
@@ -112,3 +148,55 @@ class TestQueryObjectFactory:
             raw_query_context["result_type"], **raw_query_object
         )
         assert query_object.post_processing == []
+
+    def test_query_context_no_python_date_format_filters(
+        self,
+        query_object_factory: QueryObjectFactory,
+        raw_query_context: dict[str, Any],
+    ):
+        raw_query_object = raw_query_context["queries"][0]
+        raw_query_object["filters"].append(
+            {"col": TEMPORAL_COLUMN_NAMES[0], "op": "==", "val": 315532800000}
+        )
+        query_object = query_object_factory.create(
+            raw_query_context["result_type"],
+            raw_query_context["datasource"],
+            **raw_query_object
+        )
+        assert query_object.filter[3]["val"] == 315532800000
+
+    def test_query_context_python_date_format_filters(
+        self,
+        query_object_factory: QueryObjectFactory,
+        raw_query_context: dict[str, Any],
+    ):
+        raw_query_object = raw_query_context["queries"][0]
+        raw_query_object["filters"].append(
+            {"col": TEMPORAL_COLUMN_NAMES[1], "op": "==", "val": 315532800000}
+        )
+        query_object = query_object_factory.create(
+            raw_query_context["result_type"],
+            raw_query_context["datasource"],
+            **raw_query_object
+        )
+        assert query_object.filter[3]["val"] == 1980
+
+    def test_query_context_python_date_format_filters_list_of_values(
+        self,
+        query_object_factory: QueryObjectFactory,
+        raw_query_context: dict[str, Any],
+    ):
+        raw_query_object = raw_query_context["queries"][0]
+        raw_query_object["filters"].append(
+            {
+                "col": TEMPORAL_COLUMN_NAMES[1],
+                "op": "==",
+                "val": [315532800000, 631152000000],
+            }
+        )
+        query_object = query_object_factory.create(
+            raw_query_context["result_type"],
+            raw_query_context["datasource"],
+            **raw_query_object
+        )
+        assert query_object.filter[3]["val"] == [1980, 1990]

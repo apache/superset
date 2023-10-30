@@ -38,6 +38,7 @@ import DropdownSelectableIcon, {
 } from 'src/components/DropdownSelectableIcon';
 import Checkbox from 'src/components/Checkbox';
 import { clearDataMaskState } from 'src/dataMask/actions';
+import { useCrossFiltersScopingModal } from '../CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 
 type SelectedKey = FilterBarOrientation | string | number;
 
@@ -62,6 +63,12 @@ const StyledCheckbox = styled(Checkbox)`
 `}
 `;
 
+const CROSS_FILTERS_MENU_KEY = 'cross-filters-menu-key';
+const CROSS_FILTERS_SCOPING_MENU_KEY = 'cross-filters-scoping-menu-key';
+
+const isOrientation = (o: SelectedKey): o is FilterBarOrientation =>
+  o === FilterBarOrientation.VERTICAL || o === FilterBarOrientation.HORIZONTAL;
+
 const FilterBarSettings = () => {
   const dispatch = useDispatch();
   const theme = useTheme();
@@ -77,7 +84,7 @@ const FilterBarSettings = () => {
     FeatureFlag.DASHBOARD_CROSS_FILTERS,
   );
   const shouldEnableCrossFilters =
-    !!isCrossFiltersEnabled && isCrossFiltersFeatureEnabled;
+    isCrossFiltersEnabled && isCrossFiltersFeatureEnabled;
   const [crossFiltersEnabled, setCrossFiltersEnabled] = useState<boolean>(
     shouldEnableCrossFilters,
   );
@@ -86,10 +93,9 @@ const FilterBarSettings = () => {
   );
   const canSetHorizontalFilterBar =
     canEdit && isFeatureEnabled(FeatureFlag.HORIZONTAL_FILTER_BAR);
-  const crossFiltersMenuKey = 'cross-filters-menu-key';
-  const isOrientation = (o: SelectedKey): o is FilterBarOrientation =>
-    o === FilterBarOrientation.VERTICAL ||
-    o === FilterBarOrientation.HORIZONTAL;
+
+  const [openScopingModal, scopingModal] = useCrossFiltersScopingModal();
+
   const updateCrossFiltersSetting = useCallback(
     async isEnabled => {
       if (!isEnabled) {
@@ -97,36 +103,50 @@ const FilterBarSettings = () => {
       }
       await dispatch(saveCrossFiltersSetting(isEnabled));
     },
-    [dispatch, crossFiltersEnabled],
+    [dispatch],
   );
-  const changeFilterBarSettings = useCallback(
-    async (
+
+  const toggleCrossFiltering = useCallback(() => {
+    setCrossFiltersEnabled(!crossFiltersEnabled);
+    updateCrossFiltersSetting(!crossFiltersEnabled);
+  }, [crossFiltersEnabled, updateCrossFiltersSetting]);
+
+  const toggleFilterBarOrientation = useCallback(
+    async (orientation: FilterBarOrientation) => {
+      if (orientation === filterBarOrientation) {
+        return;
+      }
+      // set displayed selection in local state for immediate visual response after clicking
+      setSelectedFilterBarOrientation(orientation);
+      try {
+        // save selection in Redux and backend
+        await dispatch(saveFilterBarOrientation(orientation));
+      } catch {
+        // revert local state in case of error when saving
+        setSelectedFilterBarOrientation(filterBarOrientation);
+      }
+    },
+    [dispatch, filterBarOrientation],
+  );
+
+  const handleSelect = useCallback(
+    (
       selection: Parameters<
         Required<Pick<MenuProps, 'onSelect'>>['onSelect']
       >[0],
     ) => {
       const selectedKey: SelectedKey = selection.key;
-      if (selectedKey === crossFiltersMenuKey) {
-        setCrossFiltersEnabled(!crossFiltersEnabled);
-        updateCrossFiltersSetting(!crossFiltersEnabled);
-        return;
-      }
-      if (isOrientation(selectedKey) && selectedKey !== filterBarOrientation) {
-        // set displayed selection in local state for immediate visual response after clicking
-        setSelectedFilterBarOrientation(selectedKey as FilterBarOrientation);
-        try {
-          // save selection in Redux and backend
-          await dispatch(
-            saveFilterBarOrientation(selection.key as FilterBarOrientation),
-          );
-        } catch {
-          // revert local state in case of error when saving
-          setSelectedFilterBarOrientation(filterBarOrientation);
-        }
+      if (selectedKey === CROSS_FILTERS_MENU_KEY) {
+        toggleCrossFiltering();
+      } else if (isOrientation(selectedKey)) {
+        toggleFilterBarOrientation(selectedKey);
+      } else if (selectedKey === CROSS_FILTERS_SCOPING_MENU_KEY) {
+        openScopingModal();
       }
     },
-    [dispatch, crossFiltersEnabled, filterBarOrientation],
+    [openScopingModal, toggleCrossFiltering, toggleFilterBarOrientation],
   );
+
   const crossFiltersMenuItem = useMemo(
     () => (
       <StyledMenuLabel>
@@ -142,50 +162,66 @@ const FilterBarSettings = () => {
     ),
     [crossFiltersEnabled],
   );
-  const menuItems: DropDownSelectableProps['menuItems'] = [];
 
-  if (isCrossFiltersFeatureEnabled && canEdit) {
-    menuItems.unshift({
-      key: crossFiltersMenuKey,
-      label: crossFiltersMenuItem,
-      divider: canSetHorizontalFilterBar,
-    });
-  }
+  const menuItems = useMemo(() => {
+    const items: DropDownSelectableProps['menuItems'] = [];
 
-  if (canSetHorizontalFilterBar) {
-    menuItems.push({
-      key: 'placement',
-      label: t('Orientation of filter bar'),
-      children: [
-        {
-          key: FilterBarOrientation.VERTICAL,
-          label: t('Vertical (Left)'),
-        },
-        {
-          key: FilterBarOrientation.HORIZONTAL,
-          label: t('Horizontal (Top)'),
-        },
-      ],
-    });
-  }
+    if (isCrossFiltersFeatureEnabled && canEdit) {
+      items.push({
+        key: CROSS_FILTERS_MENU_KEY,
+        label: crossFiltersMenuItem,
+      });
+      items.push({
+        key: CROSS_FILTERS_SCOPING_MENU_KEY,
+        label: t('Cross-filtering scoping'),
+        divider: canSetHorizontalFilterBar,
+      });
+    }
+
+    if (canSetHorizontalFilterBar) {
+      items.push({
+        key: 'placement',
+        label: t('Orientation of filter bar'),
+        children: [
+          {
+            key: FilterBarOrientation.VERTICAL,
+            label: t('Vertical (Left)'),
+          },
+          {
+            key: FilterBarOrientation.HORIZONTAL,
+            label: t('Horizontal (Top)'),
+          },
+        ],
+      });
+    }
+    return items;
+  }, [
+    canEdit,
+    canSetHorizontalFilterBar,
+    crossFiltersMenuItem,
+    isCrossFiltersFeatureEnabled,
+  ]);
 
   if (!menuItems.length) {
     return null;
   }
 
   return (
-    <DropdownSelectableIcon
-      onSelect={changeFilterBarSettings}
-      icon={
-        <Icons.Gear
-          name="gear"
-          iconColor={theme.colors.grayscale.base}
-          data-test="filterbar-orientation-icon"
-        />
-      }
-      menuItems={menuItems}
-      selectedKeys={[selectedFilterBarOrientation]}
-    />
+    <>
+      <DropdownSelectableIcon
+        onSelect={handleSelect}
+        icon={
+          <Icons.Gear
+            name="gear"
+            iconColor={theme.colors.grayscale.base}
+            data-test="filterbar-orientation-icon"
+          />
+        }
+        menuItems={menuItems}
+        selectedKeys={[selectedFilterBarOrientation]}
+      />
+      {scopingModal}
+    </>
   );
 };
 

@@ -29,7 +29,7 @@ export const useBackendFormUpdate = (
   filterId: string,
 ) => {
   const forceUpdate = useForceUpdate();
-  const formFilter = (form.getFieldValue('filters') || {})[filterId];
+  const formFilter = form.getFieldValue('filters')?.[filterId];
   useEffect(() => {
     setNativeFilterFieldValues(form, filterId, {
       isDataDirty: true,

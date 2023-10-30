@@ -18,9 +18,14 @@
  */
 
 import React from 'react';
-import { t, css, styled, useTheme } from '@superset-ui/core';
+import {
+  t,
+  css,
+  styled,
+  useTheme,
+  useCSSTextTruncation,
+} from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
-import useCSSTextTruncation from 'src/hooks/useTruncation/useCSSTextTruncation';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import Icons from 'src/components/Icons';
 import { ellipsisCss } from './styles';

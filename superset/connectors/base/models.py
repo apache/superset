@@ -16,10 +16,13 @@
 # under the License.
 from __future__ import annotations
 
+import builtins
 import json
+import logging
+from collections.abc import Hashable
 from datetime import datetime
-from enum import Enum
-from typing import Any, Dict, Hashable, List, Optional, Set, Type, TYPE_CHECKING, Union
+from json.decoder import JSONDecodeError
+from typing import Any, TYPE_CHECKING
 
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
@@ -28,17 +31,25 @@ from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import foreign, Query, relationship, RelationshipProperty, Session
 from sqlalchemy.sql import literal_column
 
-from superset import is_feature_enabled, security_manager
+from superset import security_manager
 from superset.constants import EMPTY_STRING, NULL_STRING
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin, QueryResult
 from superset.models.slice import Slice
-from superset.superset_typing import FilterValue, FilterValues, QueryObjectDict
+from superset.superset_typing import (
+    FilterValue,
+    FilterValues,
+    QueryObjectDict,
+    ResultSetColumnType,
+)
 from superset.utils import core as utils
+from superset.utils.backports import StrEnum
 from superset.utils.core import GenericDataType, MediumText
 
 if TYPE_CHECKING:
     from superset.db_engine_specs.base import BaseEngineSpec
+
+logger = logging.getLogger(__name__)
 
 METRIC_FORM_DATA_PARAMS = [
     "metric",
@@ -64,7 +75,7 @@ COLUMN_FORM_DATA_PARAMS = [
 ]
 
 
-class DatasourceKind(str, Enum):
+class DatasourceKind(StrEnum):
     VIRTUAL = "virtual"
     PHYSICAL = "physical"
 
@@ -78,23 +89,23 @@ class BaseDatasource(
     # ---------------------------------------------------------------
     # class attributes to define when deriving BaseDatasource
     # ---------------------------------------------------------------
-    __tablename__: Optional[str] = None  # {connector_name}_datasource
-    baselink: Optional[str] = None  # url portion pointing to ModelView endpoint
+    __tablename__: str | None = None  # {connector_name}_datasource
+    baselink: str | None = None  # url portion pointing to ModelView endpoint
 
     @property
-    def column_class(self) -> Type["BaseColumn"]:
+    def column_class(self) -> type[BaseColumn]:
         # link to derivative of BaseColumn
         raise NotImplementedError()
 
     @property
-    def metric_class(self) -> Type["BaseMetric"]:
+    def metric_class(self) -> type[BaseMetric]:
         # link to derivative of BaseMetric
         raise NotImplementedError()
 
-    owner_class: Optional[User] = None
+    owner_class: User | None = None
 
     # Used to do code highlighting when displaying the query in the UI
-    query_language: Optional[str] = None
+    query_language: str | None = None
 
     # Only some datasources support Row Level Security
     is_rls_supported: bool = False
@@ -111,7 +122,7 @@ class BaseDatasource(
     description = Column(Text)
     default_endpoint = Column(Text)
     is_featured = Column(Boolean, default=False)  # TODO deprecating
-    filter_select_enabled = Column(Boolean, default=is_feature_enabled("UX_BETA"))
+    filter_select_enabled = Column(Boolean, default=True)
     offset = Column(Integer, default=0)
     cache_timeout = Column(Integer)
     params = Column(String(1000))
@@ -120,9 +131,9 @@ class BaseDatasource(
     is_managed_externally = Column(Boolean, nullable=False, default=False)
     external_url = Column(Text, nullable=True)
 
-    sql: Optional[str] = None
-    owners: List[User]
-    update_from_object_fields: List[str]
+    sql: str | None = None
+    owners: list[User]
+    update_from_object_fields: list[str]
 
     extra_import_fields = ["is_managed_externally", "external_url"]
 
@@ -131,7 +142,7 @@ class BaseDatasource(
         return DatasourceKind.VIRTUAL if self.sql else DatasourceKind.PHYSICAL
 
     @property
-    def owners_data(self) -> List[Dict[str, Any]]:
+    def owners_data(self) -> list[dict[str, Any]]:
         return [
             {
                 "first_name": o.first_name,
@@ -150,14 +161,15 @@ class BaseDatasource(
     def slices(self) -> RelationshipProperty:
         return relationship(
             "Slice",
+            overlaps="table",
             primaryjoin=lambda: and_(
                 foreign(Slice.datasource_id) == self.id,
                 foreign(Slice.datasource_type) == self.type,
             ),
         )
 
-    columns: List["BaseColumn"] = []
-    metrics: List["BaseMetric"] = []
+    columns: list[BaseColumn] = []
+    metrics: list[BaseMetric] = []
 
     @property
     def type(self) -> str:
@@ -169,11 +181,11 @@ class BaseDatasource(
         return f"{self.id}__{self.type}"
 
     @property
-    def column_names(self) -> List[str]:
+    def column_names(self) -> list[str]:
         return sorted([c.column_name for c in self.columns], key=lambda x: x or "")
 
     @property
-    def columns_types(self) -> Dict[str, str]:
+    def columns_types(self) -> dict[str, str]:
         return {c.column_name: c.type for c in self.columns}
 
     @property
@@ -185,26 +197,26 @@ class BaseDatasource(
         raise NotImplementedError()
 
     @property
-    def connection(self) -> Optional[str]:
+    def connection(self) -> str | None:
         """String representing the context of the Datasource"""
         return None
 
     @property
-    def schema(self) -> Optional[str]:
+    def schema(self) -> str | None:
         """String representing the schema of the Datasource (if it applies)"""
         return None
 
     @property
-    def filterable_column_names(self) -> List[str]:
+    def filterable_column_names(self) -> list[str]:
         return sorted([c.column_name for c in self.columns if c.filterable])
 
     @property
-    def dttm_cols(self) -> List[str]:
+    def dttm_cols(self) -> list[str]:
         return []
 
     @property
     def url(self) -> str:
-        return "/{}/edit/{}".format(self.baselink, self.id)
+        return f"/{self.baselink}/edit/{self.id}"
 
     @property
     def explore_url(self) -> str:
@@ -213,10 +225,14 @@ class BaseDatasource(
         return f"/explore/?datasource_type={self.type}&datasource_id={self.id}"
 
     @property
-    def column_formats(self) -> Dict[str, Optional[str]]:
+    def column_formats(self) -> dict[str, str | None]:
         return {m.metric_name: m.d3format for m in self.metrics if m.d3format}
 
-    def add_missing_metrics(self, metrics: List["BaseMetric"]) -> None:
+    @property
+    def currency_formats(self) -> dict[str, dict[str, str | None] | None]:
+        return {m.metric_name: m.currency_json for m in self.metrics if m.currency_json}
+
+    def add_missing_metrics(self, metrics: list[BaseMetric]) -> None:
         existing_metrics = {m.metric_name for m in self.metrics}
         for metric in metrics:
             if metric.metric_name not in existing_metrics:
@@ -224,7 +240,7 @@ class BaseDatasource(
                 self.metrics.append(metric)
 
     @property
-    def short_data(self) -> Dict[str, Any]:
+    def short_data(self) -> dict[str, Any]:
         """Data representation of the datasource sent to the frontend"""
         return {
             "edit_url": self.url,
@@ -238,35 +254,43 @@ class BaseDatasource(
         }
 
     @property
-    def select_star(self) -> Optional[str]:
+    def select_star(self) -> str | None:
         pass
 
     @property
-    def data(self) -> Dict[str, Any]:
-        """Data representation of the datasource sent to the frontend"""
-        order_by_choices = []
+    def order_by_choices(self) -> list[tuple[str, str]]:
+        choices = []
         # self.column_names return sorted column_names
         for column_name in self.column_names:
             column_name = str(column_name or "")
-            order_by_choices.append(
+            choices.append(
                 (json.dumps([column_name, True]), f"{column_name} " + __("[asc]"))
             )
-            order_by_choices.append(
+            choices.append(
                 (json.dumps([column_name, False]), f"{column_name} " + __("[desc]"))
             )
+        return choices
 
-        verbose_map = {"__timestamp": "Time"}
-        verbose_map.update(
+    @property
+    def verbose_map(self) -> dict[str, str]:
+        verb_map = {"__timestamp": "Time"}
+        verb_map.update(
             {o.metric_name: o.verbose_name or o.metric_name for o in self.metrics}
         )
-        verbose_map.update(
+        verb_map.update(
             {o.column_name: o.verbose_name or o.column_name for o in self.columns}
         )
+        return verb_map
+
+    @property
+    def data(self) -> dict[str, Any]:
+        """Data representation of the datasource sent to the frontend"""
         return {
             # simple fields
             "id": self.id,
             "uid": self.uid,
             "column_formats": self.column_formats,
+            "currency_formats": self.currency_formats,
             "description": self.description,
             "database": self.database.data,  # pylint: disable=no-member
             "default_endpoint": self.default_endpoint,
@@ -288,15 +312,15 @@ class BaseDatasource(
             "columns": [o.data for o in self.columns],
             "metrics": [o.data for o in self.metrics],
             # TODO deprecate, move logic to JS
-            "order_by_choices": order_by_choices,
+            "order_by_choices": self.order_by_choices,
             "owners": [owner.id for owner in self.owners],
-            "verbose_map": verbose_map,
+            "verbose_map": self.verbose_map,
             "select_star": self.select_star,
         }
 
     def data_for_slices(  # pylint: disable=too-many-locals
-        self, slices: List[Slice]
-    ) -> Dict[str, Any]:
+        self, slices: list[Slice]
+    ) -> dict[str, Any]:
         """
         The representation of the datasource containing only the required data
         to render the provided slices.
@@ -310,7 +334,7 @@ class BaseDatasource(
             form_data = slc.form_data
             # pull out all required metrics from the form_data
             for metric_param in METRIC_FORM_DATA_PARAMS:
-                for metric in utils.get_iterable(form_data.get(metric_param) or []):
+                for metric in utils.as_list(form_data.get(metric_param) or []):
                     metric_names.add(utils.get_metric_name(metric))
                     if utils.is_adhoc_metric(metric):
                         column = metric.get("column") or {}
@@ -353,7 +377,7 @@ class BaseDatasource(
                     if utils.is_adhoc_column(column)
                     else column
                     for column_param in COLUMN_FORM_DATA_PARAMS
-                    for column in utils.get_iterable(form_data.get(column_param) or [])
+                    for column in utils.as_list(form_data.get(column_param) or [])
                 ]
                 column_names.update(_columns)
 
@@ -363,8 +387,8 @@ class BaseDatasource(
             if metric["metric_name"] in metric_names
         ]
 
-        filtered_columns: List[Column] = []
-        column_types: Set[GenericDataType] = set()
+        filtered_columns: list[Column] = []
+        column_types: set[GenericDataType] = set()
         for column in data["columns"]:
             generic_type = column.get("type_generic")
             if generic_type is not None:
@@ -395,18 +419,18 @@ class BaseDatasource(
 
     @staticmethod
     def filter_values_handler(  # pylint: disable=too-many-arguments
-        values: Optional[FilterValues],
+        values: FilterValues | None,
         operator: str,
         target_generic_type: GenericDataType,
-        target_native_type: Optional[str] = None,
+        target_native_type: str | None = None,
         is_list_target: bool = False,
-        db_engine_spec: Optional[Type[BaseEngineSpec]] = None,
-        db_extra: Optional[Dict[str, Any]] = None,
-    ) -> Optional[FilterValues]:
+        db_engine_spec: builtins.type[BaseEngineSpec] | None = None,
+        db_extra: dict[str, Any] | None = None,
+    ) -> FilterValues | None:
         if values is None:
             return None
 
-        def handle_single_value(value: Optional[FilterValue]) -> Optional[FilterValue]:
+        def handle_single_value(value: FilterValue | None) -> FilterValue | None:
             if operator == utils.FilterOperator.TEMPORAL_RANGE:
                 return value
             if (
@@ -424,7 +448,14 @@ class BaseDatasource(
             if isinstance(value, str):
                 value = value.strip("\t\n")
 
-                if target_generic_type == utils.GenericDataType.NUMERIC:
+                if (
+                    target_generic_type == utils.GenericDataType.NUMERIC
+                    and operator
+                    not in {
+                        utils.FilterOperator.ILIKE,
+                        utils.FilterOperator.LIKE,
+                    }
+                ):
                     # For backwards compatibility and edge cases
                     # where a column data type might have changed
                     return utils.cast_to_num(value)
@@ -446,7 +477,7 @@ class BaseDatasource(
             values = values[0] if values else None
         return values
 
-    def external_metadata(self) -> List[Dict[str, str]]:
+    def external_metadata(self) -> list[ResultSetColumnType]:
         """Returns column information from the external system"""
         raise NotImplementedError()
 
@@ -465,7 +496,7 @@ class BaseDatasource(
         """
         raise NotImplementedError()
 
-    def values_for_column(self, column_name: str, limit: int = 10000) -> List[Any]:
+    def values_for_column(self, column_name: str, limit: int = 10000) -> list[Any]:
         """Given a column, returns an iterable of distinct values
 
         This is used to populate the dropdown showing a list of
@@ -476,7 +507,7 @@ class BaseDatasource(
     def default_query(qry: Query) -> Query:
         return qry
 
-    def get_column(self, column_name: Optional[str]) -> Optional["BaseColumn"]:
+    def get_column(self, column_name: str | None) -> BaseColumn | None:
         if not column_name:
             return None
         for col in self.columns:
@@ -486,11 +517,11 @@ class BaseDatasource(
 
     @staticmethod
     def get_fk_many_from_list(
-        object_list: List[Any],
-        fkmany: List[Column],
-        fkmany_class: Type[Union["BaseColumn", "BaseMetric"]],
+        object_list: list[Any],
+        fkmany: list[Column],
+        fkmany_class: builtins.type[BaseColumn | BaseMetric],
         key_attr: str,
-    ) -> List[Column]:
+    ) -> list[Column]:
         """Update ORM one-to-many list from object list
 
         Used for syncing metrics and columns using the same code"""
@@ -523,7 +554,7 @@ class BaseDatasource(
         fkmany += new_fks
         return fkmany
 
-    def update_from_object(self, obj: Dict[str, Any]) -> None:
+    def update_from_object(self, obj: dict[str, Any]) -> None:
         """Update datasource from a data structure
 
         The UI's table editor crafts a complex data structure that
@@ -558,9 +589,9 @@ class BaseDatasource(
             else []
         )
 
-    def get_extra_cache_keys(  # pylint: disable=no-self-use
+    def get_extra_cache_keys(
         self, query_obj: QueryObjectDict  # pylint: disable=unused-argument
-    ) -> List[Hashable]:
+    ) -> list[Hashable]:
         """If a datasource needs to provide additional keys for calculation of
         cache keys, those can be provided via this method
 
@@ -589,14 +620,14 @@ class BaseDatasource(
     @classmethod
     def get_datasource_by_name(
         cls, session: Session, datasource_name: str, schema: str, database_name: str
-    ) -> Optional["BaseDatasource"]:
+    ) -> BaseDatasource | None:
         raise NotImplementedError()
 
 
 class BaseColumn(AuditMixinNullable, ImportExportMixin):
     """Interface for column"""
 
-    __tablename__: Optional[str] = None  # {connector_name}_column
+    __tablename__: str | None = None  # {connector_name}_column
 
     id = Column(Integer, primary_key=True)
     column_name = Column(String(255), nullable=False)
@@ -610,7 +641,7 @@ class BaseColumn(AuditMixinNullable, ImportExportMixin):
     is_dttm = None
 
     # [optional] Set this to support import/export functionality
-    export_fields: List[Any] = []
+    export_fields: list[Any] = []
 
     def __repr__(self) -> str:
         return str(self.column_name)
@@ -648,7 +679,7 @@ class BaseColumn(AuditMixinNullable, ImportExportMixin):
         return self.type and any(map(lambda t: t in self.type.upper(), self.bool_types))
 
     @property
-    def type_generic(self) -> Optional[utils.GenericDataType]:
+    def type_generic(self) -> utils.GenericDataType | None:
         if self.is_string:
             return utils.GenericDataType.STRING
         if self.is_boolean:
@@ -668,7 +699,7 @@ class BaseColumn(AuditMixinNullable, ImportExportMixin):
         raise NotImplementedError()
 
     @property
-    def data(self) -> Dict[str, Any]:
+    def data(self) -> dict[str, Any]:
         attrs = (
             "id",
             "column_name",
@@ -687,7 +718,7 @@ class BaseColumn(AuditMixinNullable, ImportExportMixin):
 class BaseMetric(AuditMixinNullable, ImportExportMixin):
     """Interface for Metrics"""
 
-    __tablename__: Optional[str] = None  # {connector_name}_metric
+    __tablename__: str | None = None  # {connector_name}_metric
 
     id = Column(Integer, primary_key=True)
     metric_name = Column(String(255), nullable=False)
@@ -695,6 +726,7 @@ class BaseMetric(AuditMixinNullable, ImportExportMixin):
     metric_type = Column(String(32))
     description = Column(MediumText())
     d3format = Column(String(128))
+    currency = Column(String(128))
     warning_text = Column(Text)
 
     """
@@ -712,7 +744,17 @@ class BaseMetric(AuditMixinNullable, ImportExportMixin):
     """
 
     @property
-    def perm(self) -> Optional[str]:
+    def currency_json(self) -> dict[str, str | None] | None:
+        try:
+            return json.loads(self.currency or "{}") or None
+        except (TypeError, JSONDecodeError) as exc:
+            logger.error(
+                "Unable to load currency json: %r. Leaving empty.", exc, exc_info=True
+            )
+            return None
+
+    @property
+    def perm(self) -> str | None:
         raise NotImplementedError()
 
     @property
@@ -720,7 +762,7 @@ class BaseMetric(AuditMixinNullable, ImportExportMixin):
         raise NotImplementedError()
 
     @property
-    def data(self) -> Dict[str, Any]:
+    def data(self) -> dict[str, Any]:
         attrs = (
             "id",
             "metric_name",
@@ -729,5 +771,6 @@ class BaseMetric(AuditMixinNullable, ImportExportMixin):
             "expression",
             "warning_text",
             "d3format",
+            "currency",
         )
         return {s: getattr(self, s) for s in attrs}

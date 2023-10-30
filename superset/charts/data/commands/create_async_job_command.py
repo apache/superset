@@ -15,12 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from flask import Request
 
 from superset.extensions import async_query_manager
-from superset.tasks.async_queries import load_chart_data_into_cache
 
 logger = logging.getLogger(__name__)
 
@@ -29,10 +28,11 @@ class CreateAsyncChartDataJobCommand:
     _async_channel_id: str
 
     def validate(self, request: Request) -> None:
-        jwt_data = async_query_manager.parse_jwt_from_request(request)
-        self._async_channel_id = jwt_data["channel"]
+        self._async_channel_id = async_query_manager.parse_channel_id_from_request(
+            request
+        )
 
-    def run(self, form_data: Dict[str, Any], user_id: Optional[int]) -> Dict[str, Any]:
-        job_metadata = async_query_manager.init_job(self._async_channel_id, user_id)
-        load_chart_data_into_cache.delay(job_metadata, form_data)
-        return job_metadata
+    def run(self, form_data: dict[str, Any], user_id: Optional[int]) -> dict[str, Any]:
+        return async_query_manager.submit_chart_data_job(
+            self._async_channel_id, form_data, user_id
+        )

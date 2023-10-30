@@ -18,11 +18,16 @@
  */
 
 import React from 'react';
-import { styled, css, useTheme, getColumnLabel } from '@superset-ui/core';
+import {
+  styled,
+  css,
+  useTheme,
+  getColumnLabel,
+  useCSSTextTruncation,
+} from '@superset-ui/core';
 import { CrossFilterIndicator } from 'src/dashboard/components/nativeFilters/selectors';
 import { Tag } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
-import useCSSTextTruncation from 'src/hooks/useTruncation/useCSSTextTruncation';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { ellipsisCss } from './styles';
 

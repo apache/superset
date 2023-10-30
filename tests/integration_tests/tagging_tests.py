@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from unittest import mock
 
 import pytest
 
@@ -137,7 +136,6 @@ class TestTagging(SupersetTestCase):
         test_dashboard = Dashboard()
         test_dashboard.dashboard_title = "test_dashboard"
         test_dashboard.slug = "test_slug"
-        test_dashboard.slices = []
         test_dashboard.published = True
 
         db.session.add(test_dashboard)
@@ -265,7 +263,6 @@ class TestTagging(SupersetTestCase):
         test_dashboard = Dashboard()
         test_dashboard.dashboard_title = "test_dashboard"
         test_dashboard.slug = "test_slug"
-        test_dashboard.slices = []
         test_dashboard.published = True
 
         # Create a saved query and add it to the db

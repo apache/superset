@@ -101,6 +101,7 @@ Join our growing community!
 - [Preset, Inc.](https://preset.io)
 - [Pronto Tools](http://www.prontotools.io) [@zkan]
 - [PubNub](https://pubnub.com) [@jzucker2]
+- [ReadyTech](https://www.readytech.io)
 - [Reward Gateway](https://www.rewardgateway.com)
 - [ScopeAI](https://www.getscopeai.com) [@iloveluce]
 - [Showmax](https://tech.showmax.com) [@bobek]
@@ -116,15 +117,19 @@ Join our growing community!
 - [Windsor.ai](https://www.windsor.ai/) [@octaviancorlade]
 - [Zeta](https://www.zeta.tech/) [@shaikidris]
 
-### Entertainment
+### Media & Entertainment
 - [6play](https://www.6play.fr) [@CoryChaplin]
 - [bilibili](https://www.bilibili.com) [@Moinheart]
+- [BurdaForward](https://www.burda-forward.de/en/)
 - [Douban](https://www.douban.com/) [@luchuan]
 - [Kuaishou](https://www.kuaishou.com/) [@zhaoyu89730105]
 - [Netflix](https://www.netflix.com/)
+- [Prensa Iberica](https://www.prensaiberica.es/) [@zamar-roura]
 - [TME QQMUSIC/WESING](https://www.tencentmusic.com/)[@shenyuanli,@marklaw]
 - [Xite](https://xite.com/) [@shashankkoppar]
 - [Zaihang](http://www.zaih.com/)
+
+
 
 ### Education
 - [Brilliant.org](https://brilliant.org/)
@@ -140,6 +145,7 @@ Join our growing community!
 - [DouroECI](https://www.douroeci.com/) [@nunohelibeires]
 - [Safaricom](https://www.safaricom.co.ke/) [@mmutiso]
 - [Scoot](https://scoot.co/) [@haaspt]
+- [Wattbewerb](https://wattbewerb.de/) [@wattbewerb]
 
 ### Healthcare
 - [Amino](https://amino.com) [@shkr]
@@ -156,9 +162,6 @@ Join our growing community!
 - [Swile](https://www.swile.co/) [@PaoloTerzi]
 - [Symmetrics](https://www.symmetrics.fyi)
 
-### News
-- [Prensa Iberica](https://www.prensaiberica.es/) [@zamar-roura]
-
 ### Government
 - [City of Ann Arbor, MI](https://www.a2gov.org/) [@sfirke]
 
@@ -167,6 +170,7 @@ Join our growing community!
 
 ### Others
 - [AI inside](https://inside.ai/en/)
+- [Automattic](https://automattic.com/) [@Khrol, @Usiel]
 - [Dropbox](https://www.dropbox.com/) [@bkyryliuk]
 - [Grassroot](https://www.grassrootinstitute.org/)
 - [komoot](https://www.komoot.com/) [@christophlingg]

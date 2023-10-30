@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from flask import current_app
 
@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 # TODO: duplicate code with DatabaseDao, below function should be moved or use dao
 def get_or_create_db(
-    database_name: str, sqlalchemy_uri: str, always_create: Optional[bool] = True
+    database_name: str, sqlalchemy_uri: str, always_create: bool | None = True
 ) -> Database:
     # pylint: disable=import-outside-toplevel
     from superset import db
@@ -65,11 +65,7 @@ def get_or_create_db(
 
 
 def get_example_database() -> Database:
-    db_uri = (
-        current_app.config.get("SQLALCHEMY_EXAMPLES_URI")
-        or current_app.config["SQLALCHEMY_DATABASE_URI"]
-    )
-    return get_or_create_db("examples", db_uri)
+    return get_or_create_db("examples", current_app.config["SQLALCHEMY_EXAMPLES_URI"])
 
 
 def get_main_database() -> Database:

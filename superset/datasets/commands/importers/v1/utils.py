@@ -18,7 +18,7 @@ import gzip
 import json
 import logging
 import re
-from typing import Any, Dict
+from typing import Any
 from urllib import request
 
 import pandas as pd
@@ -28,6 +28,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.sql.visitors import VisitableType
 
+from superset import security_manager
+from superset.commands.exceptions import ImportFailedError
 from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.commands.exceptions import DatasetForbiddenDataURI
 from superset.models.core import Database
@@ -60,15 +62,16 @@ def get_sqla_type(native_type: str) -> VisitableType:
     if native_type.upper() in type_map:
         return type_map[native_type.upper()]
 
-    match = VARCHAR.match(native_type)
-    if match:
+    if match := VARCHAR.match(native_type):
         size = int(match.group(1))
         return String(size)
 
-    raise Exception(f"Unknown type: {native_type}")
+    raise Exception(  # pylint: disable=broad-exception-raised
+        f"Unknown type: {native_type}"
+    )
 
 
-def get_dtype(df: pd.DataFrame, dataset: SqlaTable) -> Dict[str, VisitableType]:
+def get_dtype(df: pd.DataFrame, dataset: SqlaTable) -> dict[str, VisitableType]:
     return {
         column.column_name: get_sqla_type(column.type)
         for column in dataset.columns
@@ -100,15 +103,24 @@ def validate_data_uri(data_uri: str) -> None:
 
 def import_dataset(
     session: Session,
-    config: Dict[str, Any],
+    config: dict[str, Any],
     overwrite: bool = False,
     force_data: bool = False,
+    ignore_permissions: bool = False,
 ) -> SqlaTable:
+    can_write = ignore_permissions or security_manager.can_access(
+        "can_write",
+        "Dataset",
+    )
     existing = session.query(SqlaTable).filter_by(uuid=config["uuid"]).first()
     if existing:
-        if not overwrite:
+        if not overwrite or not can_write:
             return existing
         config["id"] = existing.id
+    elif not can_write:
+        raise ImportFailedError(
+            "Dataset doesn't exist and user doesn't have permission to create datasets"
+        )
 
     # TODO (betodealmeida): move this logic to import_from_dict
     config = config.copy()

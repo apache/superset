@@ -20,7 +20,12 @@ import {
   emptyQueryResults,
   clearQueryEditors,
 } from 'src/SqlLab/utils/reduxStateToLocalStorageHelper';
-import { LOCALSTORAGE_MAX_QUERY_AGE_MS } from 'src/SqlLab/constants';
+import {
+  KB_STORAGE,
+  BYTES_PER_CHAR,
+  LOCALSTORAGE_MAX_QUERY_AGE_MS,
+  LOCALSTORAGE_MAX_QUERY_RESULTS_KB,
+} from 'src/SqlLab/constants';
 import { queries, defaultQueryEditor } from '../fixtures';
 
 describe('reduxStateToLocalStorageHelper', () => {
@@ -45,11 +50,43 @@ describe('reduxStateToLocalStorageHelper', () => {
     expect(emptiedQuery[id].results).toEqual({});
   });
 
+  it('should empty query.results if query,.results size is greater than LOCALSTORAGE_MAX_QUERY_RESULTS_KB', () => {
+    const reasonableSizeQuery = {
+      ...queries[0],
+      startDttm: Date.now(),
+      results: { data: [{ a: 1 }] },
+    };
+    const largeQuery = {
+      ...queries[1],
+      startDttm: Date.now(),
+      results: {
+        data: [
+          {
+            jsonValue: `{"str":"${new Array(
+              (LOCALSTORAGE_MAX_QUERY_RESULTS_KB / BYTES_PER_CHAR) * KB_STORAGE,
+            )
+              .fill(0)
+              .join('')}"}`,
+          },
+        ],
+      },
+    };
+    expect(Object.keys(largeQuery.results)).toContain('data');
+    const emptiedQuery = emptyQueryResults({
+      [reasonableSizeQuery.id]: reasonableSizeQuery,
+      [largeQuery.id]: largeQuery,
+    });
+    expect(emptiedQuery[largeQuery.id].results).toEqual({});
+    expect(emptiedQuery[reasonableSizeQuery.id].results).toEqual(
+      reasonableSizeQuery.results,
+    );
+  });
+
   it('should only return selected keys for query editor', () => {
     const queryEditors = [defaultQueryEditor];
-    expect(Object.keys(queryEditors[0])).toContain('schemaOptions');
+    expect(Object.keys(queryEditors[0])).toContain('schema');
 
     const clearedQueryEditors = clearQueryEditors(queryEditors);
-    expect(Object.keys(clearedQueryEditors)[0]).not.toContain('schemaOptions');
+    expect(Object.keys(clearedQueryEditors)[0]).not.toContain('schema');
   });
 });

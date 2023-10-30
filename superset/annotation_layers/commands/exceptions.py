@@ -29,10 +29,6 @@ class AnnotationLayerInvalidError(CommandInvalidError):
     message = _("Annotation layer parameters are invalid.")
 
 
-class AnnotationLayerBulkDeleteFailedError(DeleteFailedError):
-    message = _("Annotation layer could not be deleted.")
-
-
 class AnnotationLayerCreateFailedError(CreateFailedError):
     message = _("Annotation layer could not be created.")
 
@@ -45,15 +41,11 @@ class AnnotationLayerNotFoundError(CommandException):
     message = _("Annotation layer not found.")
 
 
-class AnnotationLayerDeleteFailedError(CommandException):
-    message = _("Annotation layer delete failed.")
+class AnnotationLayerDeleteFailedError(DeleteFailedError):
+    message = _("Annotation layers could not be deleted.")
 
 
 class AnnotationLayerDeleteIntegrityError(CommandException):
-    message = _("Annotation layer has associated annotations.")
-
-
-class AnnotationLayerBulkDeleteIntegrityError(CommandException):
     message = _("Annotation layer has associated annotations.")
 
 

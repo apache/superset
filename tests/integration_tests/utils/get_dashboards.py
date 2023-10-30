@@ -14,14 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import List
 
 from flask_appbuilder import SQLA
 
 from superset.models.dashboard import Dashboard
 
 
-def get_dashboards_ids(db: SQLA, dashboard_slugs: List[str]) -> List[int]:
+def get_dashboards_ids(db: SQLA, dashboard_slugs: list[str]) -> list[int]:
     result = (
         db.session.query(Dashboard.id).filter(Dashboard.slug.in_(dashboard_slugs)).all()
     )

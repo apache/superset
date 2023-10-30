@@ -17,7 +17,7 @@
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import Any, List, Optional, Union
+from typing import Any, Optional, Union
 from uuid import UUID
 
 import pandas as pd
@@ -28,6 +28,10 @@ from superset import app, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import CommandException
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.daos.report import (
+    REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
+    ReportScheduleDAO,
+)
 from superset.dashboards.permalink.commands.create import (
     CreateDashboardPermalinkCommand,
 )
@@ -51,10 +55,6 @@ from superset.reports.commands.exceptions import (
     ReportScheduleSystemErrorsException,
     ReportScheduleUnexpectedError,
     ReportScheduleWorkingTimeoutError,
-)
-from superset.reports.dao import (
-    REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
-    ReportScheduleDAO,
 )
 from superset.reports.models import (
     ReportDataFormat,
@@ -80,7 +80,7 @@ logger = logging.getLogger(__name__)
 
 
 class BaseReportState:
-    current_states: List[ReportState] = []
+    current_states: list[ReportState] = []
     initial: bool = False
 
     def __init__(
@@ -176,23 +176,26 @@ class BaseReportState:
             )
 
         # If we need to render dashboard in a specific state, use stateful permalink
-        dashboard_state = self._report_schedule.extra.get("dashboard")
-        if dashboard_state:
+        if dashboard_state := self._report_schedule.extra.get("dashboard"):
             permalink_key = CreateDashboardPermalinkCommand(
-                dashboard_id=str(self._report_schedule.dashboard_id),
+                dashboard_id=str(self._report_schedule.dashboard.uuid),
                 state=dashboard_state,
             ).run()
             return get_url_path("Superset.dashboard_permalink", key=permalink_key)
 
+        dashboard = self._report_schedule.dashboard
+        dashboard_id_or_slug = (
+            dashboard.uuid if dashboard and dashboard.uuid else dashboard.id
+        )
         return get_url_path(
             "Superset.dashboard",
             user_friendly=user_friendly,
-            dashboard_id_or_slug=self._report_schedule.dashboard_id,
+            dashboard_id_or_slug=dashboard_id_or_slug,
             force=force,
             **kwargs,
         )
 
-    def _get_screenshots(self) -> List[bytes]:
+    def _get_screenshots(self) -> list[bytes]:
         """
         Get chart or dashboard screenshots
         :raises: ReportScheduleScreenshotFailedError
@@ -203,18 +206,29 @@ class BaseReportState:
             model=self._report_schedule,
         )
         user = security_manager.find_user(username)
+
         if self._report_schedule.chart:
+            window_width, window_height = app.config["WEBDRIVER_WINDOW"]["slice"]
+            window_size = (
+                self._report_schedule.custom_width or window_width,
+                self._report_schedule.custom_height or window_height,
+            )
             screenshot: Union[ChartScreenshot, DashboardScreenshot] = ChartScreenshot(
                 url,
                 self._report_schedule.chart.digest,
-                window_size=app.config["WEBDRIVER_WINDOW"]["slice"],
+                window_size=window_size,
                 thumb_size=app.config["WEBDRIVER_WINDOW"]["slice"],
             )
         else:
+            window_width, window_height = app.config["WEBDRIVER_WINDOW"]["dashboard"]
+            window_size = (
+                self._report_schedule.custom_width or window_width,
+                self._report_schedule.custom_height or window_height,
+            )
             screenshot = DashboardScreenshot(
                 url,
                 self._report_schedule.dashboard.digest,
-                window_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
+                window_size=window_size,
                 thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
             )
         try:
@@ -391,20 +405,22 @@ class BaseReportState:
     def _send(
         self,
         notification_content: NotificationContent,
-        recipients: List[ReportRecipients],
+        recipients: list[ReportRecipients],
     ) -> None:
         """
         Sends a notification to all recipients
 
         :raises: CommandException
         """
-        notification_errors: List[SupersetError] = []
+        notification_errors: list[SupersetError] = []
         for recipient in recipients:
             notification = create_notification(recipient, notification_content)
             try:
                 if app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"]:
                     logger.info(
-                        "Would send notification for alert %s, to %s",
+                        "Would send notification for alert %s, to %s. "
+                        "ALERT_REPORTS_NOTIFICATION_DRY_RUN is enabled, "
+                        "set it to False to send notifications.",
                         self._report_schedule.name,
                         recipient.recipient_config_json,
                     )
@@ -665,7 +681,6 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
         self._scheduled_dttm = scheduled_dttm
 
     def run(self) -> None:
-        state_found = False
         for state_cls in self.states_cls:
             if (self._report_schedule.last_state is None and state_cls.initial) or (
                 self._report_schedule.last_state in state_cls.current_states
@@ -676,9 +691,8 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
                     self._scheduled_dttm,
                     self._execution_id,
                 ).next()
-                state_found = True
                 break
-        if not state_found:
+        else:
             raise ReportScheduleStateNotFoundError()
 
 
@@ -720,9 +734,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             except Exception as ex:
                 raise ReportScheduleUnexpectedError(str(ex)) from ex
 
-    def validate(  # pylint: disable=arguments-differ
-        self, session: Session = None
-    ) -> None:
+    def validate(self, session: Session = None) -> None:
         # Validate/populate model exists
         logger.info(
             "session is validated: id %s, executionid: %s",

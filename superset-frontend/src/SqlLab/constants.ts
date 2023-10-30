@@ -17,8 +17,9 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
+import type { Type } from 'src/components/Label';
 
-export const STATE_TYPE_MAP = {
+export const STATE_TYPE_MAP: Record<string, Type> = {
   offline: 'danger',
   failed: 'danger',
   pending: 'info',
@@ -83,6 +84,7 @@ export const BYTES_PER_CHAR = 2;
 // browser's localStorage max usage constants
 export const LOCALSTORAGE_MAX_QUERY_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
 export const LOCALSTORAGE_MAX_USAGE_KB = 5 * 1024; // 5M
+export const LOCALSTORAGE_MAX_QUERY_RESULTS_KB = 1 * 1024; // 1M
 export const LOCALSTORAGE_WARNING_THRESHOLD = 0.9;
 export const LOCALSTORAGE_WARNING_MESSAGE_THROTTLE_MS = 8000; // danger type toast duration
 

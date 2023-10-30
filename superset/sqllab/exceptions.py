@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import os
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from flask_babel import lazy_gettext as _
 
@@ -31,15 +31,15 @@ if TYPE_CHECKING:
 class SqlLabException(SupersetException):
     sql_json_execution_context: SqlJsonExecutionContext
     failed_reason_msg: str
-    suggestion_help_msg: Optional[str]
+    suggestion_help_msg: str | None
 
     def __init__(  # pylint: disable=too-many-arguments
         self,
         sql_json_execution_context: SqlJsonExecutionContext,
-        error_type: Optional[SupersetErrorType] = None,
-        reason_message: Optional[str] = None,
-        exception: Optional[Exception] = None,
-        suggestion_help_msg: Optional[str] = None,
+        error_type: SupersetErrorType | None = None,
+        reason_message: str | None = None,
+        exception: Exception | None = None,
+        suggestion_help_msg: str | None = None,
     ) -> None:
         self.sql_json_execution_context = sql_json_execution_context
         self.failed_reason_msg = self._get_reason(reason_message, exception)
@@ -48,13 +48,13 @@ class SqlLabException(SupersetException):
             if exception is not None:
                 if (
                     hasattr(exception, "error_type")
-                    and exception.error_type is not None  # type: ignore
+                    and exception.error_type is not None
                 ):
-                    error_type = exception.error_type  # type: ignore
+                    error_type = exception.error_type
                 elif hasattr(exception, "error") and isinstance(
-                    exception.error, SupersetError  # type: ignore
+                    exception.error, SupersetError
                 ):
-                    error_type = exception.error.error_type  # type: ignore
+                    error_type = exception.error.error_type
             else:
                 error_type = SupersetErrorType.GENERIC_BACKEND_ERROR
 
@@ -68,21 +68,21 @@ class SqlLabException(SupersetException):
         if self.failed_reason_msg:
             msg = msg + self.failed_reason_msg
         if self.suggestion_help_msg is not None:
-            msg = "{} {} {}".format(msg, os.linesep, self.suggestion_help_msg)
+            msg = f"{msg} {os.linesep} {self.suggestion_help_msg}"
         return msg
 
     @classmethod
     def _get_reason(
-        cls, reason_message: Optional[str] = None, exception: Optional[Exception] = None
+        cls, reason_message: str | None = None, exception: Exception | None = None
     ) -> str:
         if reason_message is not None:
-            return ": {}".format(reason_message)
+            return f": {reason_message}"
         if exception is not None:
             if hasattr(exception, "get_message"):
-                return ": {}".format(exception.get_message())  # type: ignore
+                return f": {exception.get_message()}"
             if hasattr(exception, "message"):
-                return ": {}".format(exception.message)  # type: ignore
-            return ": {}".format(str(exception))
+                return f": {exception.message}"
+            return f": {str(exception)}"
         return ""
 
 
@@ -93,7 +93,7 @@ class QueryIsForbiddenToAccessException(SqlLabException):
     def __init__(
         self,
         sql_json_execution_context: SqlJsonExecutionContext,
-        exception: Optional[Exception] = None,
+        exception: Exception | None = None,
     ) -> None:
         super().__init__(
             sql_json_execution_context,

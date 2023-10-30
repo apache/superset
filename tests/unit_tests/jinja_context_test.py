@@ -83,22 +83,25 @@ def test_dataset_macro(mocker: MockFixture) -> None:
         schema_perm=None,
         extra=json.dumps({"warning_markdown": "*WARNING*"}),
     )
-    DatasetDAO = mocker.patch("superset.datasets.dao.DatasetDAO")
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")
     DatasetDAO.find_by_id.return_value = dataset
 
     assert (
         dataset_macro(1)
-        == """(SELECT ds AS ds,
+        == """(
+SELECT ds AS ds,
        num_boys AS num_boys,
        revenue AS revenue,
        expenses AS expenses,
        revenue-expenses AS profit
-FROM my_schema.old_dataset) AS dataset_1"""
+FROM my_schema.old_dataset
+) AS dataset_1"""
     )
 
     assert (
         dataset_macro(1, include_metrics=True)
-        == """(SELECT ds AS ds,
+        == """(
+SELECT ds AS ds,
        num_boys AS num_boys,
        revenue AS revenue,
        expenses AS expenses,
@@ -109,18 +112,44 @@ GROUP BY ds,
          num_boys,
          revenue,
          expenses,
-         revenue-expenses) AS dataset_1"""
+         revenue-expenses
+) AS dataset_1"""
     )
 
     assert (
         dataset_macro(1, include_metrics=True, columns=["ds"])
-        == """(SELECT ds AS ds,
+        == """(
+SELECT ds AS ds,
        COUNT(*) AS cnt
 FROM my_schema.old_dataset
-GROUP BY ds) AS dataset_1"""
+GROUP BY ds
+) AS dataset_1"""
     )
 
     DatasetDAO.find_by_id.return_value = None
     with pytest.raises(DatasetNotFoundError) as excinfo:
         dataset_macro(1)
     assert str(excinfo.value) == "Dataset 1 not found!"
+
+
+def test_dataset_macro_mutator_with_comments(mocker: MockFixture) -> None:
+    """
+    Test ``dataset_macro`` when the mutator adds comment.
+    """
+
+    def mutator(sql: str) -> str:
+        """
+        A simple mutator that wraps the query in comments.
+        """
+        return f"-- begin\n{sql}\n-- end"
+
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")
+    DatasetDAO.find_by_id().get_query_str_extended().sql = mutator("SELECT 1")
+    assert (
+        dataset_macro(1)
+        == """(
+-- begin
+SELECT 1
+-- end
+) AS dataset_1"""
+    )

@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/embedded-sdk",
-  "version": "0.1.0-alpha.8",
+  "version": "0.1.0-alpha.10",
   "description": "SDK for embedding resources from Superset into your own application",
   "access": "public",
   "keywords": [
@@ -51,7 +51,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/apache/superset.git"
+    "url": "https://github.com/apache/superset.git",
+    "directory": "superset-embedded-sdk"
   },
   "homepage": "https://github.com/apache/superset#readme",
   "bugs": {

@@ -33,8 +33,8 @@ import {
   isNeedsSSHPrivateKeyPassword,
 } from 'src/views/CRUD/utils';
 import { User } from 'src/types/bootstrapTypes';
+import { WelcomeTable } from 'src/features/home/types';
 import { Filter, TableTab } from './types';
-import { WelcomeTable } from './welcome/types';
 
 const terminalErrors = {
   errors: [

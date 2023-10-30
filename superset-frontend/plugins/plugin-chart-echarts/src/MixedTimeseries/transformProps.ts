@@ -17,6 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
+import { invert } from 'lodash';
 import {
   AnnotationLayer,
   CategoricalColorNamespace,
@@ -32,7 +33,14 @@ import {
   getXAxisLabel,
   isPhysicalColumn,
   isDefined,
+  ensureIsArray,
+  buildCustomFormatters,
+  ValueFormatter,
+  QueryFormMetric,
+  getCustomFormatter,
+  CurrencyFormatter,
 } from '@superset-ui/core';
+import { getOriginalSeries } from '@superset-ui/chart-controls';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
 import {
   DEFAULT_FORM_DATA,
@@ -48,7 +56,6 @@ import {
 import { parseYAxisBound } from '../utils/controls';
 import {
   getOverMaxHiddenFormatter,
-  currentSeries,
   dedupSeries,
   extractSeries,
   getAxisType,
@@ -81,6 +88,23 @@ import {
 } from '../Timeseries/transformers';
 import { TIMESERIES_CONSTANTS, TIMEGRAIN_TO_TIMESTAMP } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
+import { getYAxisFormatter } from '../utils/getYAxisFormatter';
+
+const getFormatter = (
+  customFormatters: Record<string, ValueFormatter>,
+  defaultFormatter: ValueFormatter,
+  metrics: QueryFormMetric[],
+  formatterKey: string,
+  forcePercentFormat: boolean,
+) => {
+  if (forcePercentFormat) {
+    return getNumberFormatter(',.0%');
+  }
+  return (
+    getCustomFormatter(customFormatters, metrics, formatterKey) ??
+    defaultFormatter
+  );
+};
 
 export default function transformProps(
   chartProps: EchartsMixedTimeseriesProps,
@@ -97,7 +121,14 @@ export default function transformProps(
     inContextMenu,
     emitCrossFilters,
   } = chartProps;
-  const { verboseMap = {} } = datasource;
+
+  let focusedSeries: string | null = null;
+
+  const {
+    verboseMap = {},
+    currencyFormats = {},
+    columnFormats = {},
+  } = datasource;
   const { label_map: labelMap } =
     queriesData[0] as TimeseriesChartDataResponseResult;
   const { label_map: labelMapB } =
@@ -105,7 +136,10 @@ export default function transformProps(
   const data1 = (queriesData[0].data || []) as TimeseriesDataRecord[];
   const data2 = (queriesData[1].data || []) as TimeseriesDataRecord[];
   const annotationData = getAnnotationData(chartProps);
-
+  const coltypeMapping = {
+    ...getColtypesMapping(queriesData[0]),
+    ...getColtypesMapping(queriesData[1]),
+  };
   const {
     area,
     areaB,
@@ -133,9 +167,12 @@ export default function transformProps(
     truncateYAxis,
     tooltipTimeFormat,
     yAxisFormat,
+    currencyFormat,
     yAxisFormatSecondary,
+    currencyFormatSecondary,
     xAxisTimeFormat,
     yAxisBounds,
+    yAxisBoundsSecondary,
     yAxisIndex,
     yAxisIndexB,
     yAxisTitleSecondary,
@@ -154,6 +191,8 @@ export default function transformProps(
     sliceId,
     timeGrainSqla,
     percentageThreshold,
+    metrics = [],
+    metricsB = [],
   }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
   const refs: Refs = {};
@@ -170,12 +209,12 @@ export default function transformProps(
   }
 
   const rebasedDataA = rebaseForecastDatum(data1, verboseMap);
-  const rawSeriesA = extractSeries(rebasedDataA, {
+  const [rawSeriesA] = extractSeries(rebasedDataA, {
     fillNeighborValue: stack ? 0 : undefined,
     xAxis: xAxisLabel,
   });
   const rebasedDataB = rebaseForecastDatum(data2, verboseMap);
-  const rawSeriesB = extractSeries(rebasedDataB, {
+  const [rawSeriesB] = extractSeries(rebasedDataB, {
     fillNeighborValue: stackB ? 0 : undefined,
     xAxis: xAxisLabel,
   });
@@ -184,9 +223,32 @@ export default function transformProps(
   const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
   const xAxisType = getAxisType(xAxisDataType);
   const series: SeriesOption[] = [];
-  const formatter = getNumberFormatter(contributionMode ? ',.0%' : yAxisFormat);
-  const formatterSecondary = getNumberFormatter(
-    contributionMode ? ',.0%' : yAxisFormatSecondary,
+  const formatter = contributionMode
+    ? getNumberFormatter(',.0%')
+    : currencyFormat?.symbol
+    ? new CurrencyFormatter({ d3Format: yAxisFormat, currency: currencyFormat })
+    : getNumberFormatter(yAxisFormat);
+  const formatterSecondary = contributionMode
+    ? getNumberFormatter(',.0%')
+    : currencyFormatSecondary?.symbol
+    ? new CurrencyFormatter({
+        d3Format: yAxisFormatSecondary,
+        currency: currencyFormatSecondary,
+      })
+    : getNumberFormatter(yAxisFormatSecondary);
+  const customFormatters = buildCustomFormatters(
+    [...ensureIsArray(metrics), ...ensureIsArray(metricsB)],
+    currencyFormats,
+    columnFormats,
+    yAxisFormat,
+    currencyFormat,
+  );
+  const customFormattersSecondary = buildCustomFormatters(
+    [...ensureIsArray(metrics), ...ensureIsArray(metricsB)],
+    currencyFormats,
+    columnFormats,
+    yAxisFormatSecondary,
+    currencyFormatSecondary,
   );
 
   const primarySeries = new Set<string>();
@@ -282,62 +344,102 @@ export default function transformProps(
 
   // yAxisBounds need to be parsed to replace incompatible values with undefined
   let [min, max] = (yAxisBounds || []).map(parseYAxisBound);
+  let [minSecondary, maxSecondary] = (yAxisBoundsSecondary || []).map(
+    parseYAxisBound,
+  );
 
-  const maxLabelFormatter = getOverMaxHiddenFormatter({ max, formatter });
-  const maxLabelFormatterSecondary = getOverMaxHiddenFormatter({
-    max,
-    formatter: formatterSecondary,
-  });
+  const array = ensureIsArray(chartProps.rawFormData?.time_compare);
+  const inverted = invert(verboseMap);
 
   rawSeriesA.forEach(entry => {
-    const transformedSeries = transformSeries(entry, colorScale, {
-      area,
-      markerEnabled,
-      markerSize,
-      areaOpacity: opacity,
-      seriesType,
-      showValue,
-      stack: Boolean(stack),
-      yAxisIndex,
-      filterState,
-      seriesKey: entry.name,
-      sliceId,
-      queryIndex: 0,
-      formatter:
-        seriesType === EchartsTimeseriesSeriesType.Bar
-          ? maxLabelFormatter
-          : formatter,
-      showValueIndexes: showValueIndexesA,
-      totalStackedValues,
-      thresholdValues,
-    });
+    const entryName = String(entry.name || '');
+    const seriesName = inverted[entryName] || entryName;
+    const colorScaleKey = getOriginalSeries(seriesName, array);
+
+    const seriesFormatter = getFormatter(
+      customFormatters,
+      formatter,
+      metrics,
+      labelMap[seriesName]?.[0],
+      !!contributionMode,
+    );
+
+    const transformedSeries = transformSeries(
+      entry,
+      colorScale,
+      colorScaleKey,
+      {
+        area,
+        markerEnabled,
+        markerSize,
+        areaOpacity: opacity,
+        seriesType,
+        showValue,
+        stack: Boolean(stack),
+        yAxisIndex,
+        filterState,
+        seriesKey: entry.name,
+        sliceId,
+        queryIndex: 0,
+        formatter:
+          seriesType === EchartsTimeseriesSeriesType.Bar
+            ? getOverMaxHiddenFormatter({
+                max,
+                formatter: seriesFormatter,
+              })
+            : seriesFormatter,
+        showValueIndexes: showValueIndexesA,
+        totalStackedValues,
+        thresholdValues,
+      },
+    );
     if (transformedSeries) series.push(transformedSeries);
   });
 
   rawSeriesB.forEach(entry => {
-    const transformedSeries = transformSeries(entry, colorScale, {
-      area: areaB,
-      markerEnabled: markerEnabledB,
-      markerSize: markerSizeB,
-      areaOpacity: opacityB,
-      seriesType: seriesTypeB,
-      showValue: showValueB,
-      stack: Boolean(stackB),
-      yAxisIndex: yAxisIndexB,
-      filterState,
-      seriesKey: primarySeries.has(entry.name as string)
-        ? `${entry.name} (1)`
-        : entry.name,
-      sliceId,
-      queryIndex: 1,
-      formatter:
-        seriesTypeB === EchartsTimeseriesSeriesType.Bar
-          ? maxLabelFormatterSecondary
-          : formatterSecondary,
-      showValueIndexes: showValueIndexesB,
-      totalStackedValues: totalStackedValuesB,
-      thresholdValues: thresholdValuesB,
-    });
+    const entryName = String(entry.name || '');
+    const seriesName = `${inverted[entryName] || entryName} (1)`;
+    const colorScaleKey = getOriginalSeries(seriesName, array);
+
+    const seriesFormatter = getFormatter(
+      customFormattersSecondary,
+      formatterSecondary,
+      metricsB,
+      labelMapB[seriesName]?.[0],
+      !!contributionMode,
+    );
+
+    const transformedSeries = transformSeries(
+      entry,
+      colorScale,
+      colorScaleKey,
+      {
+        area: areaB,
+        markerEnabled: markerEnabledB,
+        markerSize: markerSizeB,
+        areaOpacity: opacityB,
+        seriesType: seriesTypeB,
+        showValue: showValueB,
+        stack: Boolean(stackB),
+        yAxisIndex: yAxisIndexB,
+        filterState,
+        seriesKey: primarySeries.has(entry.name as string)
+          ? `${entry.name} (1)`
+          : entry.name,
+        sliceId,
+        queryIndex: 1,
+        formatter:
+          seriesTypeB === EchartsTimeseriesSeriesType.Bar
+            ? getOverMaxHiddenFormatter({
+                max: maxSecondary,
+                formatter: seriesFormatter,
+              })
+            : seriesFormatter,
+        showValueIndexes: showValueIndexesB,
+        totalStackedValues: totalStackedValuesB,
+        thresholdValues: thresholdValuesB,
+      },
+    );
     if (transformedSeries) series.push(transformedSeries);
   });
 
@@ -345,6 +447,8 @@ export default function transformProps(
   if (contributionMode === 'row' && stack) {
     if (min === undefined) min = 0;
     if (max === undefined) max = 1;
+    if (minSecondary === undefined) minSecondary = 0;
+    if (maxSecondary === undefined) maxSecondary = 1;
   }
 
   const tooltipFormatter =
@@ -402,7 +506,14 @@ export default function transformProps(
         max,
         minorTick: { show: true },
         minorSplitLine: { show: minorSplitLine },
-        axisLabel: { formatter },
+        axisLabel: {
+          formatter: getYAxisFormatter(
+            metrics,
+            !!contributionMode,
+            customFormatters,
+            formatter,
+          ),
+        },
         scale: truncateYAxis,
         name: yAxisTitle,
         nameGap: convertInteger(yAxisTitleMargin),
@@ -412,12 +523,19 @@ export default function transformProps(
       {
         ...defaultYAxis,
         type: logAxisSecondary ? 'log' : 'value',
-        min,
-        max,
+        min: minSecondary,
+        max: maxSecondary,
         minorTick: { show: true },
         splitLine: { show: false },
         minorSplitLine: { show: minorSplitLine },
-        axisLabel: { formatter: formatterSecondary },
+        axisLabel: {
+          formatter: getYAxisFormatter(
+            metricsB,
+            !!contributionMode,
+            customFormattersSecondary,
+            formatterSecondary,
+          ),
+        },
         scale: truncateYAxis,
         name: yAxisTitleSecondary,
         alignTicks,
@@ -443,22 +561,52 @@ export default function transformProps(
 
         Object.keys(forecastValues).forEach(key => {
           const value = forecastValues[key];
+          // if there are no dimensions, key is a verbose name of a metric,
+          // otherwise it is a comma separated string where the first part is metric name
+          let formatterKey;
+          if (primarySeries.has(key)) {
+            formatterKey =
+              groupby.length === 0 ? inverted[key] : labelMap[key]?.[0];
+          } else {
+            formatterKey =
+              groupbyB.length === 0 ? inverted[key] : labelMapB[key]?.[0];
+          }
+          const tooltipFormatter = getFormatter(
+            customFormatters,
+            formatter,
+            metrics,
+            formatterKey,
+            !!contributionMode,
+          );
+          const tooltipFormatterSecondary = getFormatter(
+            customFormattersSecondary,
+            formatterSecondary,
+            metricsB,
+            formatterKey,
+            !!contributionMode,
+          );
           const content = formatForecastTooltipSeries({
             ...value,
             seriesName: key,
-            formatter: primarySeries.has(key) ? formatter : formatterSecondary,
+            formatter: primarySeries.has(key)
+              ? tooltipFormatter
+              : tooltipFormatterSecondary,
           });
-          if (currentSeries.name === key) {
-            rows.push(`<span style="font-weight: 700">${content}</span>`);
-          } else {
-            rows.push(`<span style="opacity: 0.7">${content}</span>`);
-          }
+          const contentStyle =
+            key === focusedSeries ? 'font-weight: 700' : 'opacity: 0.7';
+          rows.push(`<span style="${contentStyle}">${content}</span>`);
         });
         return rows.join('<br />');
       },
     },
     legend: {
-      ...getLegendProps(legendType, legendOrientation, showLegend, zoomable),
+      ...getLegendProps(
+        legendType,
+        legendOrientation,
+        showLegend,
+        theme,
+        zoomable,
+      ),
       // @ts-ignore
       data: rawSeriesA
         .concat(rawSeriesB)
@@ -497,6 +645,10 @@ export default function transformProps(
       : [],
   };
 
+  const onFocusedSeries = (seriesName: string | null) => {
+    focusedSeries = seriesName;
+  };
+
   return {
     formData,
     width,
@@ -511,11 +663,13 @@ export default function transformProps(
     seriesBreakdown: rawSeriesA.length,
     selectedValues: filterState.selectedValues || [],
     onContextMenu,
+    onFocusedSeries,
     xValueFormatter: tooltipFormatter,
     xAxis: {
       label: xAxisLabel,
       type: xAxisType,
     },
     refs,
+    coltypeMapping,
   };
 }

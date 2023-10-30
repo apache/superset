@@ -18,6 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import { t } from '@superset-ui/core';
+import { omit } from 'lodash';
 import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
 import { DatasourcesAction } from 'src/dashboard/actions/datasources';
 import { ChartState } from 'src/explore/types';
@@ -180,8 +181,7 @@ export default function chartReducer(
 
   /* eslint-disable no-param-reassign */
   if (action.type === actions.REMOVE_CHART) {
-    delete charts[action.key];
-    return charts;
+    return omit(charts, [action.key]);
   }
   if (action.type === actions.UPDATE_CHART_ID) {
     const { newId, key } = action;

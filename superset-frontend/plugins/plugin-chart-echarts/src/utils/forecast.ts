@@ -17,7 +17,7 @@
  * under the License.
  */
 import { isNumber } from 'lodash';
-import { DataRecord, DTTM_ALIAS, NumberFormatter } from '@superset-ui/core';
+import { DataRecord, DTTM_ALIAS, ValueFormatter } from '@superset-ui/core';
 import { OptionName } from 'echarts/types/src/util/types';
 import { TooltipMarker } from 'echarts/types/src/util/format';
 import {
@@ -91,7 +91,7 @@ export const formatForecastTooltipSeries = ({
 }: ForecastValue & {
   seriesName: string;
   marker: TooltipMarker;
-  formatter: NumberFormatter;
+  formatter: ValueFormatter;
 }): string => {
   let row = `${marker}${sanitizeHtml(seriesName)}: `;
   let isObservation = false;

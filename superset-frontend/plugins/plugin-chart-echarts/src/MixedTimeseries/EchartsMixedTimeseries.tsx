@@ -19,14 +19,17 @@
 import React, { useCallback } from 'react';
 import {
   AxisType,
-  DataRecordValue,
-  DTTM_ALIAS,
   BinaryQueryObjectFilterClause,
+  DTTM_ALIAS,
+  DataRecordValue,
+  getColumnLabel,
+  getNumberFormatter,
+  getTimeFormatter,
 } from '@superset-ui/core';
 import { EchartsMixedTimeseriesChartTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers } from '../types';
-import { currentSeries } from '../utils/series';
+import { formatSeriesName } from '../utils/series';
 
 export default function EchartsMixedTimeseries({
   height,
@@ -42,9 +45,11 @@ export default function EchartsMixedTimeseries({
   emitCrossFilters,
   seriesBreakdown,
   onContextMenu,
+  onFocusedSeries,
   xValueFormatter,
   xAxis,
   refs,
+  coltypeMapping,
 }: EchartsMixedTimeseriesChartTransformedProps) {
   const isFirstQuery = useCallback(
     (seriesIndex: number) => seriesIndex < seriesBreakdown,
@@ -120,53 +125,68 @@ export default function EchartsMixedTimeseries({
       handleChange(seriesName, seriesIndex);
     },
     mouseout: () => {
-      currentSeries.name = '';
+      onFocusedSeries(null);
     },
     mouseover: params => {
-      currentSeries.name = params.seriesName;
+      onFocusedSeries(params.seriesName);
     },
-    contextmenu: eventParams => {
+    contextmenu: async eventParams => {
       if (onContextMenu) {
         eventParams.event.stop();
         const { data, seriesName, seriesIndex } = eventParams;
         const pointerEvent = eventParams.event.event;
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
-        if (data) {
-          const values = [
-            ...(eventParams.name ? [eventParams.name] : []),
-            ...(isFirstQuery(seriesIndex) ? labelMap : labelMapB)[
-              eventParams.seriesName
-            ],
-          ];
-          if (xAxis.type === AxisType.time) {
-            drillToDetailFilters.push({
-              col:
-                xAxis.label === DTTM_ALIAS
-                  ? formData.granularitySqla
-                  : xAxis.label,
-              grain: formData.timeGrainSqla,
-              op: '==',
-              val: data[0],
-              formattedVal: xValueFormatter(data[0]),
-            });
-          }
-          [
-            ...(xAxis.type === AxisType.category ? [xAxis.label] : []),
-            ...(isFirstQuery(seriesIndex)
-              ? formData.groupby
-              : formData.groupbyB),
-          ].forEach((dimension, i) =>
-            drillToDetailFilters.push({
+        const drillByFilters: BinaryQueryObjectFilterClause[] = [];
+        const isFirst = isFirstQuery(seriesIndex);
+        const values = [
+          ...(eventParams.name ? [eventParams.name] : []),
+          ...(isFirst ? labelMap : labelMapB)[eventParams.seriesName],
+        ];
+        if (data && xAxis.type === AxisType.time) {
+          drillToDetailFilters.push({
+            col:
+              xAxis.label === DTTM_ALIAS
+                ? formData.granularitySqla
+                : xAxis.label,
+            grain: formData.timeGrainSqla,
+            op: '==',
+            val: data[0],
+            formattedVal: xValueFormatter(data[0]),
+          });
+        }
+        [
+          ...(data && xAxis.type === AxisType.category ? [xAxis.label] : []),
+          ...(isFirst ? formData.groupby : formData.groupbyB),
+        ].forEach((dimension, i) =>
+          drillToDetailFilters.push({
+            col: dimension,
+            op: '==',
+            val: values[i],
+            formattedVal: String(values[i]),
+          }),
+        );
+
+        [...(isFirst ? formData.groupby : formData.groupbyB)].forEach(
+          (dimension, i) =>
+            drillByFilters.push({
               col: dimension,
               op: '==',
               val: values[i],
-              formattedVal: String(values[i]),
+              formattedVal: formatSeriesName(values[i], {
+                timeFormatter: getTimeFormatter(formData.dateFormat),
+                numberFormatter: getNumberFormatter(formData.numberFormat),
+                coltype: coltypeMapping?.[getColumnLabel(dimension)],
+              }),
             }),
-          );
-        }
+        );
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
           drillToDetail: drillToDetailFilters,
           crossFilter: getCrossFilterDataMask(seriesName, seriesIndex),
+          drillBy: {
+            filters: drillByFilters,
+            groupbyFieldName: isFirst ? 'groupby' : 'groupby_b',
+            adhocFilterFieldName: isFirst ? 'adhoc_filters' : 'adhoc_filters_b',
+          },
         });
       }
     },

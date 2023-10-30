@@ -20,7 +20,8 @@ import { useEffect, useState } from 'react';
 import { NO_TIME_RANGE } from '@superset-ui/core';
 import { fetchTimeRange } from 'src/explore/components/controls/DateFilterControl';
 import { Operators } from 'src/explore/constants';
-import AdhocFilter, { EXPRESSION_TYPES } from '../AdhocFilter';
+import AdhocFilter from '../AdhocFilter';
+import { EXPRESSION_TYPES } from '../types';
 
 interface Results {
   actualTimeRange?: string;

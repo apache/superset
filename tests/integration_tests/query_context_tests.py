@@ -16,7 +16,7 @@
 # under the License.
 import re
 import time
-from typing import Any, Dict
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -30,7 +30,7 @@ from superset.common.query_context import QueryContext
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlMetric
-from superset.datasource.dao import DatasourceDAO
+from superset.daos.datasource import DatasourceDAO
 from superset.extensions import cache_manager
 from superset.superset_typing import AdhocColumn
 from superset.utils.core import (
@@ -49,7 +49,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 from tests.integration_tests.fixtures.query_context import get_query_context
 
 
-def get_sql_text(payload: Dict[str, Any]) -> str:
+def get_sql_text(payload: dict[str, Any]) -> str:
     payload["result_type"] = ChartDataResultType.QUERY.value
     query_context = ChartDataQueryContextSchema().load(payload)
     responses = query_context.get_payload()
@@ -836,11 +836,9 @@ def test_special_chars_in_column_name(app_context, physical_dataset):
 
     query_object = qc.queries[0]
     df = qc.get_df_payload(query_object)["df"]
-    if query_object.datasource.database.backend == "sqlite":
-        # sqlite returns string as timestamp column
-        assert df["time column with spaces"][0] == "2002-01-03 00:00:00"
-        assert df["I_AM_A_TRUNC_COLUMN"][0] == "2002-01-01 00:00:00"
-    else:
+
+    # sqlite doesn't have timestamp columns
+    if query_object.datasource.database.backend != "sqlite":
         assert df["time column with spaces"][0].strftime("%Y-%m-%d") == "2002-01-03"
         assert df["I_AM_A_TRUNC_COLUMN"][0].strftime("%Y-%m-%d") == "2002-01-01"
 

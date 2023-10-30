@@ -27,7 +27,7 @@ import {
   SET_OVERRIDE_CONFIRM,
 } from 'src/dashboard/actions/dashboardState';
 import { REMOVE_FILTER } from 'src/dashboard/actions/dashboardFilters';
-import * as featureFlags from 'src/featureFlags';
+import * as uiCore from '@superset-ui/core';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from 'src/dashboard/actions/dashboardLayout';
 import {
   DASHBOARD_GRID_ID,
@@ -134,17 +134,18 @@ describe('dashboardState actions', () => {
       const thunk = saveDashboardRequest(newDashboardData, 1, 'save_dash');
       thunk(dispatch, getState);
       expect(postStub.callCount).toBe(1);
-      const { postPayload } = postStub.getCall(0).args[0];
-      expect(postPayload.data.positions[DASHBOARD_GRID_ID].parents).toBe(
-        mockParentsList,
-      );
+      const { jsonPayload } = postStub.getCall(0).args[0];
+      const parsedJsonMetadata = JSON.parse(jsonPayload.json_metadata);
+      expect(
+        parsedJsonMetadata.positions[DASHBOARD_GRID_ID].parents,
+      ).toStrictEqual(mockParentsList);
     });
 
     describe('FeatureFlag.CONFIRM_DASHBOARD_DIFF', () => {
       let isFeatureEnabledMock;
       beforeEach(() => {
         isFeatureEnabledMock = jest
-          .spyOn(featureFlags, 'isFeatureEnabled')
+          .spyOn(uiCore, 'isFeatureEnabled')
           .mockImplementation(feature => feature === 'CONFIRM_DASHBOARD_DIFF');
       });
 

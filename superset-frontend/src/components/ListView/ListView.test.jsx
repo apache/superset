@@ -470,7 +470,7 @@ describe('ListView', () => {
     });
 
     await act(async () => {
-      wrapper2.find('[aria-label="Sort"]').first().props().onChange({
+      wrapper2.find('[aria-label="Sort"]').first().props().onSelect({
         desc: false,
         id: 'something',
         label: 'Alphabetical',

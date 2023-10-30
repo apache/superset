@@ -19,8 +19,6 @@
 import {
   AnnotationType,
   Behavior,
-  ChartMetadata,
-  ChartPlugin,
   hasGenericChartAxes,
   t,
 } from '@superset-ui/core';
@@ -35,6 +33,7 @@ import transformProps from '../../transformProps';
 import thumbnail from './images/thumbnail.png';
 import example1 from './images/Line1.png';
 import example2 from './images/Line2.png';
+import { EchartsChartPlugin } from '../../../types';
 
 const lineTransformProps = (chartProps: EchartsTimeseriesChartProps) =>
   transformProps({
@@ -45,7 +44,7 @@ const lineTransformProps = (chartProps: EchartsTimeseriesChartProps) =>
     },
   });
 
-export default class EchartsTimeseriesLineChartPlugin extends ChartPlugin<
+export default class EchartsTimeseriesLineChartPlugin extends EchartsChartPlugin<
   EchartsTimeseriesFormData,
   EchartsTimeseriesChartProps
 > {
@@ -54,8 +53,12 @@ export default class EchartsTimeseriesLineChartPlugin extends ChartPlugin<
       buildQuery,
       controlPanel,
       loadChart: () => import('../../EchartsTimeseries'),
-      metadata: new ChartMetadata({
-        behaviors: [Behavior.INTERACTIVE_CHART, Behavior.DRILL_TO_DETAIL],
+      metadata: {
+        behaviors: [
+          Behavior.INTERACTIVE_CHART,
+          Behavior.DRILL_TO_DETAIL,
+          Behavior.DRILL_BY,
+        ],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
         description: hasGenericChartAxes
@@ -84,7 +87,7 @@ export default class EchartsTimeseriesLineChartPlugin extends ChartPlugin<
           t('Popular'),
         ],
         thumbnail,
-      }),
+      },
       transformProps: lineTransformProps,
     });
   }

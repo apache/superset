@@ -27,7 +27,7 @@ describe('columnChoices()', () => {
         metrics: [],
         type: DatasourceType.Table,
         main_dttm_col: 'test',
-        time_grain_sqla: 'P1D',
+        time_grain_sqla: [],
         columns: [
           {
             column_name: 'fiz',
@@ -42,7 +42,8 @@ describe('columnChoices()', () => {
           },
         ],
         verbose_map: {},
-        column_format: { fiz: 'NUMERIC', about: 'STRING', foo: 'DATE' },
+        column_formats: { fiz: 'NUMERIC', about: 'STRING', foo: 'DATE' },
+        currency_formats: {},
         datasource_name: 'my_datasource',
         description: 'this is my datasource',
       }),

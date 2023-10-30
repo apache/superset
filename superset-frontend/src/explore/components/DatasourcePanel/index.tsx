@@ -19,11 +19,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   css,
-  styled,
-  t,
   DatasourceType,
+  isFeatureEnabled,
+  FeatureFlag,
   Metric,
   QueryFormData,
+  styled,
+  t,
 } from '@superset-ui/core';
 
 import { ControlConfig, ColumnMeta } from '@superset-ui/chart-controls';
@@ -36,7 +38,6 @@ import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { Input } from 'src/components/Input';
 import { FAST_DEBOUNCE } from 'src/constants';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import Control from 'src/explore/components/Control';
 import DatasourcePanelDragOption from './DatasourcePanelDragOption';
@@ -335,7 +336,11 @@ export default function DataSourcePanel({
   );
 
   const showInfoboxCheck = () => {
-    if (sessionStorage.getItem('showInfobox') === 'false') return false;
+    try {
+      if (sessionStorage.getItem('showInfobox') === 'false') return false;
+    } catch (error) {
+      // continue regardless of error
+    }
     return true;
   };
 
@@ -365,7 +370,13 @@ export default function DataSourcePanel({
             <StyledInfoboxWrapper>
               <Alert
                 closable
-                onClose={() => sessionStorage.setItem('showInfobox', 'false')}
+                onClose={() => {
+                  try {
+                    sessionStorage.setItem('showInfobox', 'false');
+                  } catch (error) {
+                    // continue regardless of error
+                  }
+                }}
                 type="info"
                 message=""
                 description={

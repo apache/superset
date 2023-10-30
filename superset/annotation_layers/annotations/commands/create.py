@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
@@ -27,30 +27,28 @@ from superset.annotation_layers.annotations.commands.exceptions import (
     AnnotationInvalidError,
     AnnotationUniquenessValidationError,
 )
-from superset.annotation_layers.annotations.dao import AnnotationDAO
 from superset.annotation_layers.commands.exceptions import AnnotationLayerNotFoundError
-from superset.annotation_layers.dao import AnnotationLayerDAO
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAOCreateFailedError
+from superset.daos.annotation import AnnotationDAO, AnnotationLayerDAO
+from superset.daos.exceptions import DAOCreateFailedError
 
 logger = logging.getLogger(__name__)
 
 
 class CreateAnnotationCommand(BaseCommand):
-    def __init__(self, data: Dict[str, Any]):
+    def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
 
     def run(self) -> Model:
         self.validate()
         try:
-            annotation = AnnotationDAO.create(self._properties)
+            return AnnotationDAO.create(attributes=self._properties)
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)
             raise AnnotationCreateFailedError() from ex
-        return annotation
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = []
+        exceptions: list[ValidationError] = []
         layer_id: Optional[int] = self._properties.get("layer")
         start_dttm: Optional[datetime] = self._properties.get("start_dttm")
         end_dttm: Optional[datetime] = self._properties.get("end_dttm")
@@ -73,6 +71,4 @@ class CreateAnnotationCommand(BaseCommand):
             exceptions.append(AnnotationDatesValidationError())
 
         if exceptions:
-            exception = AnnotationInvalidError()
-            exception.add_list(exceptions)
-            raise exception
+            raise AnnotationInvalidError(exceptions=exceptions)

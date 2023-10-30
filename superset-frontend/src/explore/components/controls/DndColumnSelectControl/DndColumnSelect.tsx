@@ -19,8 +19,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   AdhocColumn,
-  FeatureFlag,
-  isFeatureEnabled,
   tn,
   QueryFormColumn,
   t,
@@ -54,7 +52,6 @@ function DndColumnSelect(props: DndColumnSelectProps) {
     onChange,
     canDelete = true,
     ghostButtonText,
-    clickEnabledGhostButtonText,
     name,
     label,
     isTemporal,
@@ -108,11 +105,6 @@ function DndColumnSelect(props: DndColumnSelectProps) {
     [onChange, optionSelector],
   );
 
-  const clickEnabled = useMemo(
-    () => isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX),
-    [],
-  );
-
   const valuesRenderer = useCallback(
     () =>
       optionSelector.values.map((column, idx) => {
@@ -120,7 +112,7 @@ function DndColumnSelect(props: DndColumnSelectProps) {
           isAdhocColumn(column) && column.datasourceWarning
             ? t('This column might be incompatible with current dataset')
             : undefined;
-        return clickEnabled ? (
+        return (
           <ColumnSelectPopoverTrigger
             key={idx}
             columns={options}
@@ -147,22 +139,10 @@ function DndColumnSelect(props: DndColumnSelectProps) {
               withCaret
             />
           </ColumnSelectPopoverTrigger>
-        ) : (
-          <OptionWrapper
-            key={idx}
-            index={idx}
-            clickClose={onClickClose}
-            onShiftOptions={onShiftOptions}
-            type={`${DndItemType.ColumnOption}_${name}_${label}`}
-            canDelete={canDelete}
-            column={column}
-            datasourceWarningMessage={datasourceWarningMessage}
-          />
         );
       }),
     [
       canDelete,
-      clickEnabled,
       isTemporal,
       label,
       name,
@@ -198,24 +178,16 @@ function DndColumnSelect(props: DndColumnSelectProps) {
     togglePopover(true);
   }, [togglePopover]);
 
-  const labelGhostButtonText = useMemo(() => {
-    if (clickEnabled) {
-      return (
-        clickEnabledGhostButtonText ??
-        ghostButtonText ??
-        tn(
-          'Drop a column here or click',
-          'Drop columns here or click',
-          multi ? 2 : 1,
-        )
-      );
-    }
-
-    return (
+  const labelGhostButtonText = useMemo(
+    () =>
       ghostButtonText ??
-      tn('Drop column here', 'Drop columns here', multi ? 2 : 1)
-    );
-  }, [clickEnabled, clickEnabledGhostButtonText, ghostButtonText, multi]);
+      tn(
+        'Drop a column here or click',
+        'Drop columns here or click',
+        multi ? 2 : 1,
+      ),
+    [ghostButtonText, multi],
+  );
 
   return (
     <div>
@@ -226,7 +198,7 @@ function DndColumnSelect(props: DndColumnSelectProps) {
         accept={DndItemType.Column}
         displayGhostButton={multi || optionSelector.values.length === 0}
         ghostButtonText={labelGhostButtonText}
-        onClickGhostButton={clickEnabled ? openPopover : undefined}
+        onClickGhostButton={openPopover}
         {...props}
       />
       <ColumnSelectPopoverTrigger
