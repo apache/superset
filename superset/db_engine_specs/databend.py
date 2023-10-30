@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import re
 from datetime import datetime
-from typing import Any, cast, Dict, List, Optional, Type, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Type, TYPE_CHECKING
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
@@ -166,8 +166,8 @@ class DatabendEngineSpec(DatabendBaseEngineSpec):
                 'SELECT name FROM system.functions;')['name'].tolist()
             cls._function_names = names
             return names
-        except Exception:
-            logger.exception('Error retrieving system.functions')
+        except Exception as ex:
+            logger.exception('Error retrieving system.functions, error is: %s', str(ex))
             return []
 
 
@@ -192,7 +192,8 @@ class DatabendConnectEngineSpec(DatabendEngineSpec, BasicParametersMixin):
 
     _function_names: List[str] = []
 
-    sqlalchemy_uri_placeholder = 'databend://user:password@host[:port][/dbname][?secure=value&=value...]'
+    sqlalchemy_uri_placeholder = 'databend://user:password@host[:port][/dbname][' \
+                                 '?secure=value&=value...] '
     parameters_schema = DatabendParametersSchema()
     encryption_parameters = {'secure': True}
 
@@ -218,8 +219,8 @@ class DatabendConnectEngineSpec(DatabendEngineSpec, BasicParametersMixin):
                 'SELECT name FROM system.functions;')['name'].tolist()
             cls._function_names = names
             return names
-        except Exception:
-            logger.exception('Error retrieving system.functions')
+        except Exception as ex:
+            logger.exception('Error retrieving system.functions, error is: %s',str(ex))
             return []
 
     @classmethod
@@ -258,16 +259,15 @@ class DatabendConnectEngineSpec(DatabendEngineSpec, BasicParametersMixin):
             encryption=encryption)
 
     @classmethod
-    def default_port(interface: str, secure: bool):
+    def default_port(cls, interface: str, secure: bool):
         if interface.startswith('http'):
             return 443 if secure else 8000
         raise ValueError('Unrecognized Databend interface')
 
     @classmethod
-    # pylint: disable=arguments-renamed
     def validate_parameters(cls, properties) -> List[SupersetError]:
-        # The newest versions of superset send a "properties" object with a parameters key, instead of just
-        # the parameters, so we hack to be compatible
+        # The newest versions of superset send a "properties" object with a
+        # parameters key, instead of just the parameters, so we hack to be compatible
         parameters = properties.get('parameters', properties)
         host = parameters.get('host', None)
         if not host:
@@ -286,7 +286,7 @@ class DatabendConnectEngineSpec(DatabendEngineSpec, BasicParametersMixin):
             )]
         port = parameters.get('port')
         if port is None:
-            port = cls.default_port('http', parameters.get('encryption', False))
+            port = cls.default_port('http', parameters.get("encryption", False))
         try:
             port = int(port)
         except (ValueError, TypeError):
