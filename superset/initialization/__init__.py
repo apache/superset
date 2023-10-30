@@ -482,7 +482,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def configure_session(self) -> None:
         if self.config["SESSION_SERVER_SIDE"]:
-            Session(self.flask_app)
+            Session(self.superset_app)
 
     def init_app(self) -> None:
         """
