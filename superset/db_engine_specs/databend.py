@@ -166,7 +166,7 @@ class DatabendEngineSpec(DatabendBaseEngineSpec):
                 'SELECT name FROM system.functions;')['name'].tolist()
             cls._function_names = names
             return names
-        except Exception as ex:
+        except Exception as ex: # pylint: disable=broad-except
             logger.exception('Error retrieving system.functions: %s', str(ex))
             return []
 
@@ -219,7 +219,7 @@ class DatabendConnectEngineSpec(DatabendEngineSpec, BasicParametersMixin):
                 'SELECT name FROM system.functions;')['name'].tolist()
             cls._function_names = names
             return names
-        except Exception as ex:
+        except Exception as ex: # pylint: disable=broad-except
             logger.exception('Error retrieving system.functions: %s', str(ex))
             return []
 
