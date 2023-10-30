@@ -90,6 +90,7 @@ setup(
         "flask-talisman>=1.0.0, <2.0",
         "flask-login>=0.6.0, < 1.0",
         "flask-migrate>=3.1.0, <4.0",
+        "flask-session>=0.4.0, <1.0",
         "flask-wtf>=1.1.0, <2.0",
         "func_timeout",
         "geopy",
