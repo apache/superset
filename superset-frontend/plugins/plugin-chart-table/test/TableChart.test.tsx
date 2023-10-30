@@ -260,7 +260,7 @@ describe('plugin-chart-table', () => {
     );
     let cells = document.querySelectorAll('div.cell-bar');
     cells.forEach(cell => {
-      expect(cell.classList.contains('positive')).toBe(true);
+      expect(cell).toHaveClass('positive');
     });
     props.columns[0].isMetric = false;
     props.columns[0].isPercentMetric = true;
@@ -272,7 +272,7 @@ describe('plugin-chart-table', () => {
     );
     cells = document.querySelectorAll('div.cell-bar');
     cells.forEach(cell => {
-      expect(cell.classList.contains('positive')).toBe(true);
+      expect(cell).toHaveClass('positive');
     });
 
     props.showCellBars = false;
@@ -285,7 +285,7 @@ describe('plugin-chart-table', () => {
     cells = document.querySelectorAll('td');
 
     cells.forEach(cell => {
-      expect(cell.classList.contains('test-c7w8t3')).toBe(true);
+      expect(cell).toHaveClass('test-c7w8t3');
     });
 
     props.columns[0].isPercentMetric = false;
@@ -298,7 +298,7 @@ describe('plugin-chart-table', () => {
     );
     cells = document.querySelectorAll('td');
     cells.forEach(cell => {
-      expect(cell.classList.contains('test-c7w8t3')).toBe(true);
+      expect(cell).toHaveClass('test-c7w8t3');
     });
   });
 });
