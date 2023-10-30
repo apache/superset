@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import re
 from datetime import datetime
-from typing import Any, TYPE_CHECKING, Optional
+from typing import Any, TYPE_CHECKING, Optional, Dict, cast
 
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
@@ -22,6 +22,7 @@ from superset.db_engine_specs.base import (
     BaseEngineSpec,
     BasicParametersMixin,
     BasicParametersType,
+    BasicPropertiesType
 )
 from superset.db_engine_specs.exceptions import SupersetDBAPIDatabaseError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -141,7 +142,6 @@ class DatabendEngineSpec(DatabendBaseEngineSpec):
 
     engine = "databend"
     engine_name = "Databend"
-    default_driver = "databend"
     _function_names: list[str] = []
 
     _show_functions_column = "name"
@@ -199,6 +199,7 @@ class DatabendConnectEngineSpec(DatabendEngineSpec, BasicParametersMixin):
     engine = "databend"
     engine_name = "Databend"
 
+    default_driver = "databend"
     _function_names: list[str] = []
 
     sqlalchemy_uri_placeholder = (
@@ -240,7 +241,7 @@ class DatabendConnectEngineSpec(DatabendEngineSpec, BasicParametersMixin):
 
     @classmethod
     def build_sqlalchemy_uri(cls, parameters: BasicParametersType,
-                             *_args: dict[str, Any]) -> str:
+                             *_args: Optional[Dict[str, str]]) -> str:
         url_params = parameters.copy()
         if url_params.get("encryption"):
             query = parameters.get("query", {}).copy()
@@ -253,7 +254,7 @@ class DatabendConnectEngineSpec(DatabendEngineSpec, BasicParametersMixin):
 
     @classmethod
     def get_parameters_from_uri(
-        cls, uri: str, *_args: dict[str, Any]
+        cls, uri: str, *_args: Optional[Dict[str, Any]]
     ) -> BasicParametersType:
         url = make_url(uri)
         query = url.query
@@ -267,8 +268,7 @@ class DatabendConnectEngineSpec(DatabendEngineSpec, BasicParametersMixin):
             password=url.password,
             host=url.host,
             port=url.port,
-            database=None if url.database == Optional["__default__"] else Optional[
-                url.database],
+            database="" if url.database == "__default__" else cast(str, url.database),
             query=query,
             encryption=encryption,
         )
@@ -280,7 +280,7 @@ class DatabendConnectEngineSpec(DatabendEngineSpec, BasicParametersMixin):
         raise ValueError("Unrecognized Databend interface")
 
     @classmethod
-    def validate_parameters(cls, properties: dict[str, Any]) -> list[SupersetError]:
+    def validate_parameters(cls, properties: BasicPropertiesType) -> list[SupersetError]:
         # The newest versions of superset send a "properties" object with a
         # parameters key, instead of just the parameters, so we hack to be compatible
         parameters = properties.get("parameters", properties)
