@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Type, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
@@ -200,7 +200,7 @@ class DatabendConnectEngineSpec(DatabendEngineSpec, BasicParametersMixin):
     _function_names: list[str] = []
 
     sqlalchemy_uri_placeholder = (
-        "databend://user:password@host[:port][/dbname][" "?secure=value&=value...] "
+        "databend://user:password@host[:port][/dbname][?secure=value&=value...]"
     )
     parameters_schema = DatabendParametersSchema()
     encryption_parameters = {"secure": True}
