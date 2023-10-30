@@ -167,7 +167,7 @@ class DatabendEngineSpec(DatabendBaseEngineSpec):
             cls._function_names = names
             return names
         except Exception as ex:
-            logger.exception('Error retrieving system.functions, error is: %s', str(ex))
+            logger.exception('Error retrieving system.functions: %s', str(ex))
             return []
 
 
@@ -220,7 +220,7 @@ class DatabendConnectEngineSpec(DatabendEngineSpec, BasicParametersMixin):
             cls._function_names = names
             return names
         except Exception as ex:
-            logger.exception('Error retrieving system.functions, error is: %s',str(ex))
+            logger.exception('Error retrieving system.functions: %s', str(ex))
             return []
 
     @classmethod
