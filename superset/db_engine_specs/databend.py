@@ -10,11 +10,12 @@ import logging
 import re
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Type, TYPE_CHECKING
+
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
 from sqlalchemy import types
-from sqlalchemy.engine.url import URL, make_url
+from sqlalchemy.engine.url import make_url, URL
 from urllib3.exceptions import NewConnectionError
 
 from superset.db_engine_specs.base import (
@@ -41,18 +42,18 @@ class DatabendBaseEngineSpec(BaseEngineSpec):
     time_groupby_inline = True
 
     _time_grain_expressions = {
-        None: '{col}',
-        'PT1M': 'to_start_of_minute(TO_DATETIME({col}))',
-        'PT5M': 'to_start_of_five_minutes(TO_DATETIME({col}))',
-        'PT10M': 'to_start_of_ten_minutes(TO_DATETIME({col}))',
-        'PT15M': 'to_start_of_fifteen_minutes(TO_DATETIME({col}))',
-        'PT30M': 'TO_DATETIME(intDiv(toUInt32(TO_DATETIME({col})), 1800)*1800)',
-        'PT1H': 'to_start_of_hour(TO_DATETIME({col}))',
-        'P1D': 'to_start_of_day(TO_DATETIME({col}))',
-        'P1W': 'to_monday(TO_DATETIME({col}))',
-        'P1M': 'to_start_of_month(TO_DATETIME({col}))',
-        'P3M': 'to_start_of_quarter(TO_DATETIME({col}))',
-        'P1Y': 'to_start_of_year(TO_DATETIME({col}))',
+        None: "{col}",
+        "PT1M": "to_start_of_minute(TO_DATETIME({col}))",
+        "PT5M": "to_start_of_five_minutes(TO_DATETIME({col}))",
+        "PT10M": "to_start_of_ten_minutes(TO_DATETIME({col}))",
+        "PT15M": "to_start_of_fifteen_minutes(TO_DATETIME({col}))",
+        "PT30M": "TO_DATETIME(intDiv(toUInt32(TO_DATETIME({col})), 1800)*1800)",
+        "PT1H": "to_start_of_hour(TO_DATETIME({col}))",
+        "P1D": "to_start_of_day(TO_DATETIME({col}))",
+        "P1W": "to_monday(TO_DATETIME({col}))",
+        "P1M": "to_start_of_month(TO_DATETIME({col}))",
+        "P3M": "to_start_of_quarter(TO_DATETIME({col}))",
+        "P1Y": "to_start_of_year(TO_DATETIME({col}))",
     }
 
     column_type_mappings = (
@@ -120,12 +121,12 @@ class DatabendBaseEngineSpec(BaseEngineSpec):
 
     @classmethod
     def epoch_to_dttm(cls) -> str:
-        return '{col}'
+        return "{col}"
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
-    ) -> Optional[str]:
+        cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
+    ) -> str | None:
         sqla_type = cls.get_sqla_column_type(target_type)
 
         if isinstance(sqla_type, types.Date):
@@ -145,7 +146,7 @@ class DatabendEngineSpec(DatabendBaseEngineSpec):
     supports_file_upload = False
 
     @classmethod
-    def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
+    def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
         return {NewConnectionError: SupersetDBAPIDatabaseError}
 
     @classmethod
@@ -158,30 +159,36 @@ class DatabendEngineSpec(DatabendBaseEngineSpec):
         return new_exception(str(exception))
 
     @classmethod
-    def get_function_names(cls, database: Database) -> List[str]:
+    def get_function_names(cls, database: Database) -> list[str]:
         if cls._function_names:
             return cls._function_names
         try:
-            names = database.get_df(
-                'SELECT name FROM system.functions;')['name'].tolist()
+            names = database.get_df("SELECT name FROM system.functions;")[
+                "name"
+            ].tolist()
             cls._function_names = names
             return names
-        except Exception as ex: # pylint: disable=broad-except
-            logger.exception('Error retrieving system.functions: %s', str(ex))
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.exception("Error retrieving system.functions: %s", str(ex))
             return []
 
 
 class DatabendParametersSchema(Schema):
-    username = fields.String(allow_none=True, description=__('Username'))
-    password = fields.String(allow_none=True, description=__('Password'))
-    host = fields.String(required=True, description=__('Hostname or IP address'))
-    port = fields.Integer(allow_none=True, description=__('Database port'),
-                          validate=Range(min=0, max=65535), )
-    database = fields.String(allow_none=True, description=__('Database name'))
-    encryption = fields.Boolean(default=True, description=__(
-        'Use an encrypted connection to the database'))
-    query = fields.Dict(keys=fields.Str(), values=fields.Raw(),
-                        description=__('Additional parameters'))
+    username = fields.String(allow_none=True, description=__("Username"))
+    password = fields.String(allow_none=True, description=__("Password"))
+    host = fields.String(required=True, description=__("Hostname or IP address"))
+    port = fields.Integer(
+        allow_none=True,
+        description=__("Database port"),
+        validate=Range(min=0, max=65535),
+    )
+    database = fields.String(allow_none=True, description=__("Database name"))
+    encryption = fields.Boolean(
+        default=True, description=__("Use an encrypted connection to the database")
+    )
+    query = fields.Dict(
+        keys=fields.Str(), values=fields.Raw(), description=__("Additional parameters")
+    )
 
 
 class DatabendConnectEngineSpec(DatabendEngineSpec, BasicParametersMixin):
@@ -190,15 +197,16 @@ class DatabendConnectEngineSpec(DatabendEngineSpec, BasicParametersMixin):
     engine = "databend"
     engine_name = "Databend"
 
-    _function_names: List[str] = []
+    _function_names: list[str] = []
 
-    sqlalchemy_uri_placeholder = 'databend://user:password@host[:port][/dbname][' \
-                                 '?secure=value&=value...] '
+    sqlalchemy_uri_placeholder = (
+        "databend://user:password@host[:port][/dbname][" "?secure=value&=value...] "
+    )
     parameters_schema = DatabendParametersSchema()
-    encryption_parameters = {'secure': True}
+    encryption_parameters = {"secure": True}
 
     @classmethod
-    def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
+    def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
         return {}
 
     @classmethod
@@ -211,16 +219,17 @@ class DatabendConnectEngineSpec(DatabendEngineSpec, BasicParametersMixin):
         return new_exception(str(exception))
 
     @classmethod
-    def get_function_names(cls, database: Database) -> List[str]:
+    def get_function_names(cls, database: Database) -> list[str]:
         if cls._function_names:
             return cls._function_names
         try:
-            names = database.get_df(
-                'SELECT name FROM system.functions;')['name'].tolist()
+            names = database.get_df("SELECT name FROM system.functions;")[
+                "name"
+            ].tolist()
             cls._function_names = names
             return names
-        except Exception as ex: # pylint: disable=broad-except
-            logger.exception('Error retrieving system.functions: %s', str(ex))
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.exception("Error retrieving system.functions: %s", str(ex))
             return []
 
     @classmethod
@@ -230,23 +239,24 @@ class DatabendConnectEngineSpec(DatabendEngineSpec, BasicParametersMixin):
     @classmethod
     def build_sqlalchemy_uri(cls, parameters: BasicParametersType, *_args):
         url_params = parameters.copy()
-        if url_params.get('encryption'):
-            query = parameters.get('query', {}).copy()
+        if url_params.get("encryption"):
+            query = parameters.get("query", {}).copy()
             query.update(cls.encryption_parameters)
-            url_params['query'] = query
-        if not url_params.get('database'):
-            url_params['database'] = '__default__'
-        url_params.pop('encryption', None)
-        return str(URL(f'{cls.engine}', **url_params))
+            url_params["query"] = query
+        if not url_params.get("database"):
+            url_params["database"] = "__default__"
+        url_params.pop("encryption", None)
+        return str(URL(f"{cls.engine}", **url_params))
 
     @classmethod
-    def get_parameters_from_uri(cls, uri: str, *_args,
-                                **_kwargs) -> BasicParametersType:
+    def get_parameters_from_uri(
+        cls, uri: str, *_args, **_kwargs
+    ) -> BasicParametersType:
         url = make_url(uri)
         query = url.query
-        if 'secure' in query:
-            encryption = url.query.get('secure') == 'true'
-            query.pop('secure')
+        if "secure" in query:
+            encryption = url.query.get("secure") == "true"
+            query.pop("secure")
         else:
             encryption = False
         return BasicParametersType(
@@ -254,55 +264,66 @@ class DatabendConnectEngineSpec(DatabendEngineSpec, BasicParametersMixin):
             password=url.password,
             host=url.host,
             port=url.port,
-            database=None if url.database == '__default__' else url.database,
+            database=None if url.database == "__default__" else url.database,
             query=query,
-            encryption=encryption)
+            encryption=encryption,
+        )
 
     @classmethod
     def default_port(cls, interface: str, secure: bool):
-        if interface.startswith('http'):
+        if interface.startswith("http"):
             return 443 if secure else 8000
-        raise ValueError('Unrecognized Databend interface')
+        raise ValueError("Unrecognized Databend interface")
 
     @classmethod
-    def validate_parameters(cls, properties) -> List[SupersetError]:
+    def validate_parameters(cls, properties) -> list[SupersetError]:
         # The newest versions of superset send a "properties" object with a
         # parameters key, instead of just the parameters, so we hack to be compatible
-        parameters = properties.get('parameters', properties)
-        host = parameters.get('host', None)
+        parameters = properties.get("parameters", properties)
+        host = parameters.get("host", None)
         if not host:
-            return [SupersetError(
-                'Hostname is required',
-                SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
-                ErrorLevel.WARNING,
-                {'missing': ['host']},
-            )]
+            return [
+                SupersetError(
+                    "Hostname is required",
+                    SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+                    ErrorLevel.WARNING,
+                    {"missing": ["host"]},
+                )
+            ]
         if not is_hostname_valid(host):
-            return [SupersetError(
-                "The hostname provided can't be resolved.",
-                SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
-                ErrorLevel.ERROR,
-                {'invalid': ['host']},
-            )]
-        port = parameters.get('port')
+            return [
+                SupersetError(
+                    "The hostname provided can't be resolved.",
+                    SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
+                    ErrorLevel.ERROR,
+                    {"invalid": ["host"]},
+                )
+            ]
+        port = parameters.get("port")
         if port is None:
-            port = cls.default_port('http', parameters.get("encryption", False))
+            port = cls.default_port("http", parameters.get("encryption", False))
         try:
             port = int(port)
         except (ValueError, TypeError):
             port = -1
         if port <= 0 or port >= 65535:
-            return [SupersetError(
-                'Port must be a valid integer between 0 and 65535 (inclusive).',
-                SupersetErrorType.CONNECTION_INVALID_PORT_ERROR,
-                ErrorLevel.ERROR,
-                {'invalid': ['port']})]
+            return [
+                SupersetError(
+                    "Port must be a valid integer between 0 and 65535 (inclusive).",
+                    SupersetErrorType.CONNECTION_INVALID_PORT_ERROR,
+                    ErrorLevel.ERROR,
+                    {"invalid": ["port"]},
+                )
+            ]
         if not is_port_open(host, port):
-            return [SupersetError(
-                'The port is closed.',
-                SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
-                ErrorLevel.ERROR,
-                {'invalid': ['port']})]
+            return [
+                SupersetError(
+                    "The port is closed.",
+                    SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
+                    ErrorLevel.ERROR,
+                    {"invalid": ["port"]},
+                )
+            ]
         return []
 
     @staticmethod

@@ -105,8 +105,8 @@ def test_execute_connection_error() -> None:
 )
 def test_get_column_spec(
     native_type: str,
-    sqla_type: Type[TypeEngine],
-    attrs: Optional[Dict[str, Any]],
+    sqla_type: type[TypeEngine],
+    attrs: Optional[dict[str, Any]],
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
