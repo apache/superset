@@ -246,7 +246,7 @@ const config = {
           <img class="footer__divider" src="/img/community/line.png" alt="Divider" />
           <p>
             <small>
-              <a href="https://www.apache.org/security/" target="_blank" rel="noreferrer">Security</a>&nbsp;|&nbsp;
+              <a href="https://superset.apache.org/docs/security/" target="_blank" rel="noreferrer">Security</a>&nbsp;|&nbsp;
               <a href="https://www.apache.org/foundation/sponsorship.html" target="_blank" rel="noreferrer">Donate</a>&nbsp;|&nbsp;
               <a href="https://www.apache.org/foundation/thanks.html" target="_blank" rel="noreferrer">Thanks</a>&nbsp;|&nbsp;
               <a href="https://apache.org/events/current-event" target="_blank" rel="noreferrer">Events</a>&nbsp;|&nbsp;

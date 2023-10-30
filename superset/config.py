@@ -184,7 +184,10 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 SECRET_KEY = os.environ.get("SUPERSET_SECRET_KEY") or CHANGE_ME_SECRET_KEY
 
 # The SQLAlchemy connection string.
-SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")
+SQLALCHEMY_DATABASE_URI = (
+    f"""sqlite:///{os.path.join(DATA_DIR, "superset.db")}?check_same_thread=false"""
+)
+
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
@@ -679,6 +682,14 @@ SCREENSHOT_REPLACE_UNEXPECTED_ERRORS = False
 SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE = 5
 # Max time to wait for error message modal to close, in seconds
 SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE = 5
+# Event that Playwright waits for when loading a new page
+# Possible values: "load", "commit", "domcontentloaded", "networkidle"
+# Docs: https://playwright.dev/python/docs/api/class-page#page-goto-option-wait-until
+SCREENSHOT_PLAYWRIGHT_WAIT_EVENT = "load"
+# Default timeout for Playwright browser context for all operations
+SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT = int(
+    timedelta(seconds=30).total_seconds() * 1000
+)
 
 # ---------------------------------------------------
 # Image and file configuration
@@ -1434,7 +1445,6 @@ TALISMAN_CONFIG = {
         "style-src": [
             "'self'",
             "'unsafe-inline'",
-            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
         ],
         "script-src": ["'self'", "'strict-dynamic'"],
     },
@@ -1456,7 +1466,6 @@ TALISMAN_DEV_CONFIG = {
         "style-src": [
             "'self'",
             "'unsafe-inline'",
-            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
         ],
         "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
     },
@@ -1600,8 +1609,9 @@ WELCOME_PAGE_LAST_TAB: (
     Literal["examples", "all"] | tuple[str, list[dict[str, Any]]]
 ) = "all"
 
-#
+# Max allowed size for a zipped file
 ZIPPED_FILE_MAX_SIZE = 100 * 1024 * 1024  # 100MB
+# Max allowed compression ratio for a zipped file
 ZIP_FILE_MAX_COMPRESS_RATIO = 200.0
 
 # Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.
