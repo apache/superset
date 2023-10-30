@@ -506,6 +506,7 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
             "hide_left_bar": self.hide_left_bar,
             "saved_query": self.saved_query.to_dict() if self.saved_query else None,
             "extra_json": self.extra,
+            "is_nlp_query": self.is_nlp_query
         }
 
 

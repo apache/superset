@@ -36,6 +36,7 @@ const NlpQueryToggle = ({ queryEditorId }: NlpQueryToggleProps) => {
 
   return (
     <Switch
+      defaultChecked={isNlpQuery}
       checkedChildren="NL"
       unCheckedChildren="SQL"
       onChange={() => setIsNlpQuery(!isNlpQuery)}
