@@ -27,6 +27,10 @@ nameOverride: ~
 # -- Provide a name to override the full names of resources
 fullnameOverride: ~
 
+# -- Enable if you're using Istio.  Adds a label to init-jb to disable istio injection.
+istio:
+  enabled: "false"
+
 # -- User ID directive. This user must have enough permissions to run the bootstrap script
 # Running containers as root is not recommended in production. Change this to another UID - e.g. 1000 to be more secure
 runAsUser: 0
