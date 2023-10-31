@@ -137,7 +137,7 @@ describe('DatasourceModal', () => {
     });
   });
 
-  it.only('should render error dialog', async () => {
+  it('should render error dialog', async () => {
     jest
       .spyOn(SupersetClient, 'put')
       .mockRejectedValue(new Error('Something went wrong'));
