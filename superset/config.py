@@ -1487,6 +1487,8 @@ SESSION_SERVER_SIDE = False
 # Example config using Redis as the backend for server side sessions
 # from flask_session import RedisSessionInterface
 #
+# SESSION_SERVER_SIDE = True
+# SESSION_USE_SIGNER = True
 # SESSION_TYPE = "redis"
 # SESSION_REDIS = Redis(host="localhost", port=6379, db=0)
 #
