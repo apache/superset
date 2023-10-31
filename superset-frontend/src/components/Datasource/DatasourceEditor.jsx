@@ -1141,7 +1141,7 @@ class DatasourceEditor extends React.PureComponent {
                         language="sql"
                         offerEditInModal={false}
                         minLines={20}
-                        maxLines={20}
+                        maxLines={Infinity}
                         readOnly={!this.state.isEditMode}
                         resize="both"
                       />
