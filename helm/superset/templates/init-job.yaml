@@ -26,10 +26,6 @@ metadata:
   {{- if .Values.init.jobAnnotations }}
   annotations: {{- toYaml .Values.init.jobAnnotations | nindent 4 }}
   {{- end }}
-  {{- if .Values.istio.enabled }}
-  labels:
-    sidecar.istio.io/inject: "false"
-  {{- end }}
 spec:
   template:
     metadata:
