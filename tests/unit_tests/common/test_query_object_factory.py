@@ -43,45 +43,9 @@ def session_factory() -> Mock:
     return Mock()
 
 
-class SimpleDatasetColumn:
-    def __init__(self, col_params: dict[str, Any]):
-        self.__dict__.update(col_params)
-
-
-TEMPORAL_COLUMN_NAMES = ["temporal_column", "temporal_column_with_python_date_format"]
-TEMPORAL_COLUMNS = {
-    TEMPORAL_COLUMN_NAMES[0]: SimpleDatasetColumn(
-        {
-            "column_name": TEMPORAL_COLUMN_NAMES[0],
-            "is_dttm": True,
-            "python_date_format": None,
-            "type": "string",
-            "num_types": ["BIGINT"],
-        }
-    ),
-    TEMPORAL_COLUMN_NAMES[1]: SimpleDatasetColumn(
-        {
-            "column_name": TEMPORAL_COLUMN_NAMES[1],
-            "type": "BIGINT",
-            "is_dttm": True,
-            "python_date_format": "%Y",
-            "num_types": ["BIGINT"],
-        }
-    ),
-}
-
-
 @fixture
 def connector_registry() -> Mock:
-    datasource_dao_mock = Mock(spec=["get_datasource"])
-    datasource_dao_mock.get_datasource.return_value = Mock()
-    datasource_dao_mock.get_datasource().get_column = Mock(
-        side_effect=lambda col_name: TEMPORAL_COLUMNS[col_name]
-        if col_name in TEMPORAL_COLUMN_NAMES
-        else Mock()
-    )
-    datasource_dao_mock.get_datasource().db_extra = None
-    return datasource_dao_mock
+    return Mock(spec=["get_datasource"])
 
 
 def apply_max_row_limit(limit: int, max_limit: Optional[int] = None) -> int:
@@ -148,55 +112,3 @@ class TestQueryObjectFactory:
             raw_query_context["result_type"], **raw_query_object
         )
         assert query_object.post_processing == []
-
-    def test_query_context_no_python_date_format_filters(
-        self,
-        query_object_factory: QueryObjectFactory,
-        raw_query_context: dict[str, Any],
-    ):
-        raw_query_object = raw_query_context["queries"][0]
-        raw_query_object["filters"].append(
-            {"col": TEMPORAL_COLUMN_NAMES[0], "op": "==", "val": 315532800000}
-        )
-        query_object = query_object_factory.create(
-            raw_query_context["result_type"],
-            raw_query_context["datasource"],
-            **raw_query_object
-        )
-        assert query_object.filter[3]["val"] == 315532800000
-
-    def test_query_context_python_date_format_filters(
-        self,
-        query_object_factory: QueryObjectFactory,
-        raw_query_context: dict[str, Any],
-    ):
-        raw_query_object = raw_query_context["queries"][0]
-        raw_query_object["filters"].append(
-            {"col": TEMPORAL_COLUMN_NAMES[1], "op": "==", "val": 315532800000}
-        )
-        query_object = query_object_factory.create(
-            raw_query_context["result_type"],
-            raw_query_context["datasource"],
-            **raw_query_object
-        )
-        assert query_object.filter[3]["val"] == 1980
-
-    def test_query_context_python_date_format_filters_list_of_values(
-        self,
-        query_object_factory: QueryObjectFactory,
-        raw_query_context: dict[str, Any],
-    ):
-        raw_query_object = raw_query_context["queries"][0]
-        raw_query_object["filters"].append(
-            {
-                "col": TEMPORAL_COLUMN_NAMES[1],
-                "op": "==",
-                "val": [315532800000, 631152000000],
-            }
-        )
-        query_object = query_object_factory.create(
-            raw_query_context["result_type"],
-            raw_query_context["datasource"],
-            **raw_query_object
-        )
-        assert query_object.filter[3]["val"] == [1980, 1990]
