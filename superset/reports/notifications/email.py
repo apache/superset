@@ -93,12 +93,14 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         )
 
     def _get_content(self) -> EmailContent:
+        logger.info('---------',self,'------------')
         if self._content.text:
             return EmailContent(body=self._error_template(self._content.text))
         # Get the domain from the 'From' address ..
         # and make a message id without the < > in the end
         csv_data = None
         domain = self._get_smtp_domain()
+        pdf = None
         images = {}
 
         if self._content.screenshots:

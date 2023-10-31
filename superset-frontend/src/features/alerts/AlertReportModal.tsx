@@ -631,10 +631,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         owner => (owner as MetaObject).value || owner.id,
       ),
       recipients,
-      report_format:
-        contentType === 'dashboard'
-          ? DEFAULT_NOTIFICATION_FORMAT
-          : reportFormat || DEFAULT_NOTIFICATION_FORMAT,
+      report_format: reportFormat || DEFAULT_NOTIFICATION_FORMAT,
     };
 
     if (data.recipients && !data.recipients.length) {
@@ -975,6 +972,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const onFormatChange = (event: any) => {
     const { target } = event;
     setReportFormat(target.value);
+    if (target.value !== 'PNG') {
+      updateAlertState('custom_width', undefined);
+    } else if (target.value !== 'PDF') {
+      updateAlertState('pdf_orientation', undefined);
+    }
   };
 
   const onForceScreenshotChange = (event: any) => {
@@ -1079,11 +1081,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           : 'active',
       );
       setContentType(resource.chart ? 'chart' : 'dashboard');
-      setReportFormat(
-        resource.chart
-          ? resource.report_format || DEFAULT_NOTIFICATION_FORMAT
-          : DEFAULT_NOTIFICATION_FORMAT,
-      );
+      setReportFormat(resource.report_format || DEFAULT_NOTIFICATION_FORMAT);
       const validatorConfig =
         typeof resource.validator_config_json === 'string'
           ? JSON.parse(resource.validator_config_json)

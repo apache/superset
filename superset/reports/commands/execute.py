@@ -17,6 +17,8 @@
 import json
 import logging
 from datetime import datetime, timedelta
+from io import BytesIO
+from PIL import Image
 from typing import Any, Optional, Union
 from uuid import UUID
 
@@ -200,6 +202,7 @@ class BaseReportState:
         Get chart or dashboard screenshots
         :raises: ReportScheduleScreenshotFailedError
         """
+        logger.warning('-------------getting screenshots-----------------')
         url = self._get_url()
         _, username = get_executor(
             executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
@@ -243,6 +246,20 @@ class BaseReportState:
         if not image:
             raise ReportScheduleScreenshotFailedError()
         return [image]
+
+    def _get_pdf(self) -> Optional[bytes]:
+        images = []
+        snapshots = self._get_screenshots()
+
+        for snap in snapshots:
+            img = Image.open(BytesIO(snap))
+            if img.mode == "RGBA":
+                img = img.convert("RGB")
+            images.append(img)
+        new_pdf = BytesIO()
+        images[0].save(new_pdf, "PDF", save_all=True, append_images=images[1:])
+        new_pdf.seek(0)
+        return new_pdf.read()
 
     def _get_csv_data(self) -> bytes:
         url = self._get_url(result_format=ChartDataResultFormat.CSV)
@@ -351,6 +368,7 @@ class BaseReportState:
         embedded_data = None
         error_text = None
         screenshot_data = []
+        pdf_data= None
         header_data = self._get_log_data()
         url = self._get_url(user_friendly=True)
         if (
@@ -362,9 +380,9 @@ class BaseReportState:
                 if not screenshot_data:
                     error_text = "Unexpected missing screenshot"
             elif self._report_schedule.report_format == ReportDataFormat.PDF:
-                screenshot_data = self._get_screenshots()
-                if not screenshot_data:
-                    error_text = "Unexpected missing screenshot"
+                pdf_data = self._get_pdf()
+                if not pdf_data:
+                    error_text = "Unexpected missing pdf"
             elif (
                 self._report_schedule.chart
                 and self._report_schedule.report_format == ReportDataFormat.DATA
@@ -402,6 +420,7 @@ class BaseReportState:
             screenshots=screenshot_data,
             description=self._report_schedule.description,
             csv=csv_data,
+            pdf=pdf_data,
             embedded_data=embedded_data,
             header_data=header_data,
         )

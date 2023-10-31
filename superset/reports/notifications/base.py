@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, Optional, Literal
 
 import pandas as pd
 
@@ -27,8 +27,9 @@ from superset.utils.core import HeaderDataType
 class NotificationContent:
     name: str
     header_data: HeaderDataType  # this is optional to account for error states
-    csv: Optional[bytes] = None  # bytes for csv file
+    csv: Optional[bytes] = None  # bytes for csv data
     screenshots: Optional[list[bytes]] = None  # bytes for a list of screenshots
+    pdf: Optional[bytes] = None # bytes for pdf data
     text: Optional[str] = None
     description: Optional[str] = ""
     url: Optional[str] = None  # url to chart/dashboard for this screenshot
