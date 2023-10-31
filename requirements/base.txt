@@ -87,6 +87,7 @@ flask==2.2.5
     #   flask-limiter
     #   flask-login
     #   flask-migrate
+    #   flask-session
     #   flask-sqlalchemy
     #   flask-wtf
 flask-appbuilder==4.3.10
@@ -106,6 +107,8 @@ flask-login==0.6.0
     #   apache-superset
     #   flask-appbuilder
 flask-migrate==3.1.0
+    # via apache-superset
+flask-session==0.5.0
     # via apache-superset
 flask-sqlalchemy==2.5.1
     # via

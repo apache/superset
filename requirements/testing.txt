@@ -117,6 +117,8 @@ protobuf==4.23.0
     #   proto-plus
 pydata-google-auth==1.7.0
     # via pandas-gbq
+pyee==9.0.4
+    # via playwright
 pyfakefs==5.2.2
     # via -r requirements/testing.in
 pyhive[presto]==0.6.5
