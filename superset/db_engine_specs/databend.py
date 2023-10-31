@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import re
 from datetime import datetime
-from typing import Any, TYPE_CHECKING, Optional, Dict, cast
+from typing import Any, cast, Dict, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
@@ -22,7 +22,7 @@ from superset.db_engine_specs.base import (
     BaseEngineSpec,
     BasicParametersMixin,
     BasicParametersType,
-    BasicPropertiesType
+    BasicPropertiesType,
 )
 from superset.db_engine_specs.exceptions import SupersetDBAPIDatabaseError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -240,8 +240,9 @@ class DatabendConnectEngineSpec(DatabendEngineSpec, BasicParametersMixin):
         return type_code
 
     @classmethod
-    def build_sqlalchemy_uri(cls, parameters: BasicParametersType,
-                             *_args: Optional[Dict[str, str]]) -> str:
+    def build_sqlalchemy_uri(
+        cls, parameters: BasicParametersType, *_args: dict[str, str] | None
+    ) -> str:
         url_params = parameters.copy()
         if url_params.get("encryption"):
             query = parameters.get("query", {}).copy()
@@ -254,7 +255,7 @@ class DatabendConnectEngineSpec(DatabendEngineSpec, BasicParametersMixin):
 
     @classmethod
     def get_parameters_from_uri(
-        cls, uri: str, *_args: Optional[Dict[str, Any]]
+        cls, uri: str, *_args: dict[str, Any] | None
     ) -> BasicParametersType:
         url = make_url(uri)
         query = url.query
@@ -280,7 +281,9 @@ class DatabendConnectEngineSpec(DatabendEngineSpec, BasicParametersMixin):
         raise ValueError("Unrecognized Databend interface")
 
     @classmethod
-    def validate_parameters(cls, properties: BasicPropertiesType) -> list[SupersetError]:
+    def validate_parameters(
+        cls, properties: BasicPropertiesType
+    ) -> list[SupersetError]:
         # The newest versions of superset send a "properties" object with a
         # parameters key, instead of just the parameters, so we hack to be compatible
         parameters = properties.get("parameters", properties)
