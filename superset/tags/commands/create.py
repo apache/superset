@@ -17,12 +17,13 @@
 import logging
 from typing import Any
 
-from superset import db
+from superset import db, security_manager
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.daos.exceptions import DAOCreateFailedError
 from superset.daos.tag import TagDAO
+from superset.exceptions import SupersetSecurityException
 from superset.tags.commands.exceptions import TagCreateFailedError, TagInvalidError
-from superset.tags.commands.utils import to_object_type
+from superset.tags.commands.utils import to_object_model, to_object_type
 from superset.tags.models import ObjectTypes, TagTypes
 
 logger = logging.getLogger(__name__)
@@ -66,25 +67,27 @@ class CreateCustomTagCommand(CreateMixin, BaseCommand):
 
 class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
     def __init__(self, data: dict[str, Any], bulk_create: bool = False):
-        self._tag = data["name"]
-        self._objects_to_tag = data.get("objects_to_tag")
-        self._description = data.get("description")
+        self._properties = data.copy()
         self._bulk_create = bulk_create
+        self._skipped_tagged_objects: set[tuple[str, int]] = set()
 
-    def run(self) -> None:
+    def run(self) -> tuple[set[tuple[str, int]], set[tuple[str, int]]]:
         self.validate()
-        try:
-            tag = TagDAO.get_by_name(self._tag.strip(), TagTypes.custom)
-            if self._objects_to_tag:
-                TagDAO.create_tag_relationship(
-                    objects_to_tag=self._objects_to_tag,
-                    tag=tag,
-                    bulk_create=self._bulk_create,
-                )
 
-            if self._description:
-                tag.description = self._description
-                db.session.commit()
+        try:
+            tag_name = self._properties["name"]
+            tag = TagDAO.get_by_name(tag_name.strip(), TagTypes.custom)
+            TagDAO.create_tag_relationship(
+                objects_to_tag=self._properties.get("objects_to_tag", []),
+                tag=tag,
+                bulk_create=self._bulk_create,
+            )
+
+            tag.description = self._properties.get("description", "")
+
+            db.session.commit()
+
+            return set(self._properties["objects_to_tag"]), self._skipped_tagged_objects
 
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)
@@ -92,18 +95,28 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
 
     def validate(self) -> None:
         exceptions = []
-        # Validate object_id
-        if self._objects_to_tag:
-            if any(obj_id == 0 for obj_type, obj_id in self._objects_to_tag):
-                exceptions.append(TagInvalidError())
+        objects_to_tag = set(self._properties.get("objects_to_tag", []))
+        for obj_type, obj_id in objects_to_tag:
+            object_type = to_object_type(obj_type)
 
             # Validate object type
-            for obj_type, obj_id in self._objects_to_tag:
+            for obj_type, obj_id in objects_to_tag:
                 object_type = to_object_type(obj_type)
+
                 if not object_type:
                     exceptions.append(
                         TagInvalidError(f"invalid object type {object_type}")
                     )
+                try:
+                    if model := to_object_model(object_type, obj_id):  # type: ignore
+                        security_manager.raise_for_ownership(model)
+                except SupersetSecurityException:
+                    # skip the object if the user doesn't have access
+                    self._skipped_tagged_objects.add((obj_type, obj_id))
+
+            self._properties["objects_to_tag"] = (
+                set(objects_to_tag) - self._skipped_tagged_objects
+            )
 
         if exceptions:
             raise TagInvalidError(exceptions=exceptions)

@@ -259,6 +259,11 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
           display: flex;
           column-gap: ${theme.gridUnit * 1.5}px;
           margin-right: ${theme.gridUnit}px;
+          & span {
+            display: flex;
+            justify-content: center;
+            width: ${theme.gridUnit * 4}px;
+          }
         `}
       >
         {keyLink}

@@ -127,8 +127,18 @@ DashboardRoles = Table(
     "dashboard_roles",
     metadata,
     Column("id", Integer, primary_key=True),
-    Column("dashboard_id", Integer, ForeignKey("dashboards.id"), nullable=False),
-    Column("role_id", Integer, ForeignKey("ab_role.id"), nullable=False),
+    Column(
+        "dashboard_id",
+        Integer,
+        ForeignKey("dashboards.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    Column(
+        "role_id",
+        Integer,
+        ForeignKey("ab_role.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
 )
 
 
@@ -196,7 +206,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
 
     @staticmethod
     def get_url(id_: int, slug: str | None = None) -> str:
-        # To be able to generate URL's without instanciating a Dashboard object
+        # To be able to generate URL's without instantiating a Dashboard object
         return f"/superset/dashboard/{slug or id_}/"
 
     @property

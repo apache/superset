@@ -49,6 +49,8 @@ import {
   dropDownRenderHelper,
   handleFilterOptionHelper,
   mapOptions,
+  getOption,
+  isObject,
 } from './utils';
 import {
   AsyncSelectProps,
@@ -523,19 +525,33 @@ const AsyncSelect = forwardRef(
       [ref],
     );
 
+    const getPastedTextValue = useCallback(
+      (text: string) => {
+        const option = getOption(text, fullSelectOptions, true);
+        const value: AntdLabeledValue = {
+          label: text,
+          value: text,
+        };
+        if (option) {
+          value.label = isObject(option) ? option.label : option;
+          value.value = isObject(option) ? option.value! : option;
+        }
+        return value;
+      },
+      [fullSelectOptions],
+    );
+
     const onPaste = (e: ClipboardEvent<HTMLInputElement>) => {
       const pastedText = e.clipboardData.getData('text');
       if (isSingleMode) {
-        setSelectValue({ label: pastedText, value: pastedText });
+        setSelectValue(getPastedTextValue(pastedText));
       } else {
         const token = tokenSeparators.find(token => pastedText.includes(token));
         const array = token ? uniq(pastedText.split(token)) : [pastedText];
+        const values = array.map(item => getPastedTextValue(item));
         setSelectValue(previous => [
           ...((previous || []) as AntdLabeledValue[]),
-          ...array.map<AntdLabeledValue>(value => ({
-            label: value,
-            value,
-          })),
+          ...values,
         ]);
       }
     };

@@ -42,14 +42,13 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
 from superset.exceptions import SupersetException
-from superset.extensions import async_query_manager, cache_manager
+from superset.extensions import async_query_manager_factory, cache_manager
 from superset.models import core as models
 from superset.models.cache import CacheKey
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
-from superset.sqllab.utils import bootstrap_sqllab_data
 from superset.utils import core as utils
 from superset.utils.core import backend
 from superset.utils.database import get_example_database
@@ -705,7 +704,7 @@ class TestCore(SupersetTestCase):
             "row_limit": 100,
         }
         app._got_first_request = False
-        async_query_manager.init_app(app)
+        async_query_manager_factory.init_app(app)
         self.login(username="admin")
         rv = self.client.post(
             "/superset/explore_json/",
@@ -737,7 +736,7 @@ class TestCore(SupersetTestCase):
             "row_limit": 100,
         }
         app._got_first_request = False
-        async_query_manager.init_app(app)
+        async_query_manager_factory.init_app(app)
         self.login(username="admin")
         rv = self.client.post(
             "/superset/explore_json/?results=true",
@@ -956,7 +955,6 @@ class TestCore(SupersetTestCase):
         dash_id = db.session.query(Dashboard.id).first()[0]
         tbl_id = self.table_ids.get("wb_health_population")
         urls = [
-            "/superset/sqllab",
             "/superset/welcome",
             f"/superset/dashboard/{dash_id}/",
             "/superset/profile/",
@@ -997,6 +995,41 @@ class TestCore(SupersetTestCase):
         payload = self.get_json_resp(f"/tabstateview/{tab_state_id}")
 
         self.assertEqual(payload["label"], "Untitled Query foo")
+
+    def test_tabstate_update(self):
+        username = "admin"
+        self.login(username)
+        # create a tab
+        data = {
+            "queryEditor": json.dumps(
+                {
+                    "name": "Untitled Query foo",
+                    "dbId": 1,
+                    "schema": None,
+                    "autorun": False,
+                    "sql": "SELECT ...",
+                    "queryLimit": 1000,
+                }
+            )
+        }
+        resp = self.get_json_resp("/tabstateview/", data=data)
+        tab_state_id = resp["id"]
+        # update tab state with non-existing client_id
+        client_id = "asdfasdf"
+        data = {"sql": json.dumps("select 1"), "latest_query_id": json.dumps(client_id)}
+        response = self.client.put(f"/tabstateview/{tab_state_id}", data=data)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["error"], "Bad request")
+        # generate query
+        db.session.add(Query(client_id=client_id, database_id=1))
+        db.session.commit()
+        # update tab state with a valid client_id
+        response = self.client.put(f"/tabstateview/{tab_state_id}", data=data)
+        self.assertEqual(response.status_code, 200)
+        # nulls should be ok too
+        data["latest_query_id"] = "null"
+        response = self.client.put(f"/tabstateview/{tab_state_id}", data=data)
+        self.assertEqual(response.status_code, 200)
 
     def test_virtual_table_explore_visibility(self):
         # test that default visibility it set to True
@@ -1159,6 +1192,25 @@ class TestCore(SupersetTestCase):
     def test_redirect_new_profile(self):
         self.login(username="admin")
         resp = self.client.get("/superset/profile/")
+        assert resp.status_code == 302
+
+    def test_redirect_new_sqllab(self):
+        self.login(username="admin")
+        resp = self.client.get(
+            "/superset/sqllab?savedQueryId=1&testParams=2",
+            follow_redirects=True,
+        )
+        assert resp.request.path == "/sqllab/"
+        assert (
+            resp.request.query_string.decode("utf-8") == "savedQueryId=1&testParams=2"
+        )
+
+        resp = self.client.post("/superset/sqllab/")
+        assert resp.status_code == 302
+
+    def test_redirect_new_sqllab_history(self):
+        self.login(username="admin")
+        resp = self.client.get("/superset/sqllab/history/")
         assert resp.status_code == 302
 
 

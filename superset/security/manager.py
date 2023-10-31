@@ -48,7 +48,7 @@ from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
 from sqlalchemy import and_, inspect, or_
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import eagerload, Session
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 
@@ -79,7 +79,7 @@ from superset.utils.urls import get_url_host
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.connectors.base.models import BaseDatasource
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
     from superset.models.core import Database
     from superset.models.dashboard import Dashboard
     from superset.models.sql_lab import Query
@@ -732,7 +732,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         logger.info("Fetching a set of all perms to lookup which ones are missing")
         all_pvs = set()
-        for pv in self.get_session.query(self.permissionview_model).all():
+        for pv in self._get_all_pvms():
             if pv.permission and pv.view_menu:
                 all_pvs.add((pv.permission.name, pv.view_menu.name))
 
@@ -780,11 +780,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         self.create_custom_permissions()
 
+        pvms = self._get_all_pvms()
+
         # Creating default roles
-        self.set_role("Admin", self._is_admin_pvm)
-        self.set_role("Alpha", self._is_alpha_pvm)
-        self.set_role("Gamma", self._is_gamma_pvm)
-        self.set_role("sql_lab", self._is_sql_lab_pvm)
+        self.set_role("Admin", self._is_admin_pvm, pvms)
+        self.set_role("Alpha", self._is_alpha_pvm, pvms)
+        self.set_role("Gamma", self._is_gamma_pvm, pvms)
+        self.set_role("sql_lab", self._is_sql_lab_pvm, pvms)
 
         # Configure public role
         if current_app.config["PUBLIC_ROLE_LIKE"]:
@@ -799,6 +801,20 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # commit role and view menu updates
         self.get_session.commit()
         self.clean_perms()
+
+    def _get_all_pvms(self) -> list[PermissionView]:
+        """
+        Gets list of all PVM
+        """
+        pvms = (
+            self.get_session.query(self.permissionview_model)
+            .options(
+                eagerload(self.permissionview_model.permission),
+                eagerload(self.permissionview_model.view_menu),
+            )
+            .all()
+        )
+        return [p for p in pvms if p.permission and p.view_menu]
 
     def _get_pvms_from_builtin_role(self, role_name: str) -> list[PermissionView]:
         """
@@ -860,7 +876,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.get_session.commit()
 
     def set_role(
-        self, role_name: str, pvm_check: Callable[[PermissionView], bool]
+        self,
+        role_name: str,
+        pvm_check: Callable[[PermissionView], bool],
+        pvms: list[PermissionView],
     ) -> None:
         """
         Set the FAB permission/views for the role.
@@ -870,8 +889,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         logger.info("Syncing %s perms", role_name)
-        pvms = self.get_session.query(PermissionView).all()
-        pvms = [p for p in pvms if p.permission and p.view_menu]
         role = self.add_role(role_name)
         role_pvms = [
             permission_view for permission_view in pvms if pvm_check(permission_view)
@@ -1339,7 +1356,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.connectors.sqla.models import SqlaTable
 
         # Check if watched fields have changed
-        table = SqlaTable.__table__
+        table = SqlaTable.__table__  # pylint: disable=no-member
         current_dataset = connection.execute(
             table.select().where(table.c.id == target.id)
         ).one()
@@ -2083,28 +2100,30 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
         return query.all()
 
-    def get_rls_ids(self, table: "BaseDatasource") -> list[int]:
+    def get_rls_sorted(self, table: "BaseDatasource") -> list["RowLevelSecurityFilter"]:
         """
-        Retrieves the appropriate row level security filters IDs for the current user
-        and the passed table.
+        Retrieves a list RLS filters sorted by ID for
+        the current user and the passed table.
 
         :param table: The table to check against
-        :returns: A list of IDs
+        :returns: A list RLS filters
         """
-        ids = [f.id for f in self.get_rls_filters(table)]
-        ids.sort()  # Combinations rather than permutations
-        return ids
+        filters = self.get_rls_filters(table)
+        filters.sort(key=lambda f: f.id)
+        return filters
 
     def get_guest_rls_filters_str(self, table: "BaseDatasource") -> list[str]:
         return [f.get("clause", "") for f in self.get_guest_rls_filters(table)]
 
     def get_rls_cache_key(self, datasource: "BaseDatasource") -> list[str]:
-        rls_ids = []
+        rls_clauses_with_group_key = []
         if datasource.is_rls_supported:
-            rls_ids = self.get_rls_ids(datasource)
-        rls_str = [str(rls_id) for rls_id in rls_ids]
+            rls_clauses_with_group_key = [
+                f"{f.clause}-{f.group_key or ''}"
+                for f in self.get_rls_sorted(datasource)
+            ]
         guest_rls = self.get_guest_rls_filters_str(datasource)
-        return guest_rls + rls_str
+        return guest_rls + rls_clauses_with_group_key
 
     @staticmethod
     def _get_current_epoch_time() -> float:
@@ -2257,7 +2276,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         Note admins are deemed owners of all resources.
 
-        :param resource: The dashboard, dataste, chart, etc. resource
+        :param resource: The dashboard, dataset, chart, etc. resource
         :raises SupersetSecurityException: If the current user is not an owner
         """
 

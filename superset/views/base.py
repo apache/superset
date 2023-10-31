@@ -201,7 +201,7 @@ def deprecated(
 
     def _deprecated(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
         def wraps(self: "BaseSupersetView", *args: Any, **kwargs: Any) -> FlaskResponse:
-            messsage = (
+            message = (
                 "%s.%s "
                 "This API endpoint is deprecated and will be removed in version %s"
             )
@@ -211,9 +211,9 @@ def deprecated(
                 eol_version,
             ]
             if new_target:
-                messsage += " . Use the following API endpoint instead: %s"
+                message += " . Use the following API endpoint instead: %s"
                 logger_args.append(new_target)
-            logger.warning(messsage, *logger_args)
+            logger.warning(message, *logger_args)
             return f(self, *args, **kwargs)
 
         return functools.update_wrapper(wraps, f)
@@ -293,10 +293,13 @@ class BaseSupersetView(BaseView):
             mimetype="application/json",
         )
 
-    def render_app_template(self) -> FlaskResponse:
+    def render_app_template(
+        self, extra_bootstrap_data: Optional[dict[str, Any]] = None
+    ) -> FlaskResponse:
         payload = {
             "user": bootstrap_user_data(g.user, include_perms=True),
             "common": common_bootstrap_payload(g.user),
+            **(extra_bootstrap_data or {}),
         }
         return self.render_template(
             "superset/spa.html",

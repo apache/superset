@@ -1193,7 +1193,7 @@ def merge_extra_filters(form_data: dict[str, Any]) -> None:
 def merge_request_params(form_data: dict[str, Any], params: dict[str, Any]) -> None:
     """
     Merge request parameters to the key `url_params` in form_data. Only updates
-    or appends parameters to `form_data` that are defined in `params; pre-existing
+    or appends parameters to `form_data` that are defined in `params; preexisting
     parameters not defined in params are left unchanged.
 
     :param form_data: object to be updated
@@ -1915,6 +1915,25 @@ def create_zip(files: dict[str, Any]) -> BytesIO:
                 fp.write(contents)
     buf.seek(0)
     return buf
+
+
+def check_is_safe_zip(zip_file: ZipFile) -> None:
+    """
+    Checks whether a ZIP file is safe, raises SupersetException if not.
+
+    :param zip_file:
+    :return:
+    """
+    uncompress_size = 0
+    compress_size = 0
+    for zip_file_element in zip_file.infolist():
+        if zip_file_element.file_size > current_app.config["ZIPPED_FILE_MAX_SIZE"]:
+            raise SupersetException("Found file with size above allowed threshold")
+        uncompress_size += zip_file_element.file_size
+        compress_size += zip_file_element.compress_size
+    compress_ratio = uncompress_size / compress_size
+    if compress_ratio > current_app.config["ZIP_FILE_MAX_COMPRESS_RATIO"]:
+        raise SupersetException("Zip compress ratio above allowed threshold")
 
 
 def remove_extra_adhoc_filters(form_data: dict[str, Any]) -> None:
