@@ -30,6 +30,7 @@ type ConfigType = {
     port: number;
     host: string;
     password: string;
+    username: string;
     db: number;
     ssl: boolean;
   };
@@ -70,6 +71,7 @@ function defaultConfig(): ConfigType {
       host: '127.0.0.1',
       port: 6379,
       password: '',
+      username: 'default',
       db: 0,
       ssl: false,
     },
@@ -114,6 +116,7 @@ function applyEnvOverrides(config: ConfigType): ConfigType {
     REDIS_HOST: val => (config.redis.host = val),
     REDIS_PORT: val => (config.redis.port = toNumber(val)),
     REDIS_PASSWORD: val => (config.redis.password = val),
+    REDIS_USERNAME: val => (config.redis.username = val),
     REDIS_DB: val => (config.redis.db = toNumber(val)),
     REDIS_SSL: val => (config.redis.ssl = toBoolean(val)),
     STATSD_HOST: val => (config.statsd.host = val),

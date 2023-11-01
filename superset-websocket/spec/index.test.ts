@@ -152,11 +152,12 @@ describe('server', () => {
         server.redisUrlFromConfig({
           port: 6380,
           host: 'redis.local',
+          username: 'cool-user',
           password: 'foo',
           db: 1,
           ssl: false,
         }),
-      ).toEqual('redis://:foo@redis.local:6380/1');
+      ).toEqual('redis://cool-user:foo@redis.local:6380/1');
     });
     test('it builds a valid Redis URL with SSL', () => {
       expect(
