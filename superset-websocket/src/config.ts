@@ -16,6 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import * as _ from 'lodash';
+
+export interface RedisConfig {
+  port: number;
+  host: string;
+  password: string;
+  username: string;
+  db: number;
+  ssl: boolean;
+  validateHostname: boolean;
+}
+
 type ConfigType = {
   port: number;
   logLevel: string;
@@ -26,14 +39,7 @@ type ConfigType = {
     port: number;
     globalTags: Array<string>;
   };
-  redis: {
-    port: number;
-    host: string;
-    password: string;
-    username: string;
-    db: number;
-    ssl: boolean;
-  };
+  redis: RedisConfig;
   redisStreamPrefix: string;
   redisStreamReadCount: number;
   redisStreamReadBlockMs: number;
@@ -74,6 +80,7 @@ function defaultConfig(): ConfigType {
       username: 'default',
       db: 0,
       ssl: false,
+      validateHostname: true,
     },
   };
 }
@@ -135,6 +142,6 @@ function applyEnvOverrides(config: ConfigType): ConfigType {
 }
 
 export function buildConfig(): ConfigType {
-  const config = Object.assign(defaultConfig(), configFromFile());
+  const config = _.merge(defaultConfig(), configFromFile());
   return applyEnvOverrides(config);
 }

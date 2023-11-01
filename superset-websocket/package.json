@@ -16,10 +16,12 @@
   },
   "license": "Apache-2.0",
   "dependencies": {
+    "@types/lodash": "^4.14.200",
     "cookie": "^0.5.0",
     "hot-shots": "^10.0.0",
     "ioredis": "^4.28.0",
     "jsonwebtoken": "^9.0.2",
+    "lodash": "^4.17.21",
     "uuid": "^9.0.1",
     "winston": "^3.11.0",
     "ws": "^8.14.2"
