@@ -69,6 +69,7 @@ class EmailContent:
     body: str
     header_data: Optional[HeaderDataType] = None
     data: Optional[dict[str, Any]] = None
+    pdf: Optional[dict[str,bytes]] = None
     images: Optional[dict[str, bytes]] = None
 
 
@@ -93,21 +94,11 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         )
 
     def _get_content(self) -> EmailContent:
-        logger.info('---------',self,'------------')
         if self._content.text:
             return EmailContent(body=self._error_template(self._content.text))
         # Get the domain from the 'From' address ..
         # and make a message id without the < > in the end
-        csv_data = None
         domain = self._get_smtp_domain()
-        pdf = None
-        images = {}
-
-        if self._content.screenshots:
-            images = {
-                make_msgid(domain)[1:-1]: screenshot
-                for screenshot in self._content.screenshots
-            }
 
         # Strip any malicious HTML from the description
         # pylint: disable=no-member
@@ -132,6 +123,15 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             html_table = ""
 
         call_to_action = __(app.config["EMAIL_REPORTS_CTA"])
+
+        images = {}
+
+        if self._content.screenshots:
+            images = {
+                make_msgid(domain)[1:-1]: screenshot
+                for screenshot in self._content.screenshots
+            }
+
         img_tags = []
         for msgid in images.keys():
             img_tags.append(
@@ -167,12 +167,17 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             </html>
             """
         )
-
+        pdf_data = None
+        if self._content.pdf:
+            pdf_data = {__("%(name)s.pdf", name=self._content.name): self.
+            _content.pdf}
+        csv_data = None
         if self._content.csv:
             csv_data = {__("%(name)s.csv", name=self._content.name): self._content.csv}
         return EmailContent(
             body=body,
             images=images,
+            pdf=pdf_data,
             data=csv_data,
             header_data=self._content.header_data,
         )
@@ -200,6 +205,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 app.config,
                 files=[],
                 data=content.data,
+                pdf=content.pdf,
                 images=content.images,
                 bcc="",
                 mime_subtype="related",

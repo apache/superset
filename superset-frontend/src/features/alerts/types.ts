@@ -82,7 +82,6 @@ export type AlertObject = {
   log_retention?: number;
   name?: string;
   owners?: Array<Owner | MetaObject>;
-  pdf_orientation?: string;
   sql?: string;
   timezone?: string;
   recipients?: Array<Recipient>;

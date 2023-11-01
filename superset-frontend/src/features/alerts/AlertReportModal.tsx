@@ -421,8 +421,6 @@ export const TRANSLATIONS = {
   PORTRAIT_ORIENTATION: t('Portrait'),
   LANDSCAPE_ORIENTATION: t('Landscape'),
   IGNORE_CACHE_TEXT: t('Ignore cache when generating report'),
-  PDF_ORIENTATION_TEXT: t('PDF orientation'),
-  PDF_ORIENTATION_PLACEHOLDER_TEXT: t('Select page orientation of PDF'),
   CUSTOM_SCREENSHOT_WIDTH_TEXT: t('Screenshot width'),
   CUSTOM_SCREENSHOT_WIDTH_PLACEHOLDER_TEXT: t('Input custom width in pixels'),
   NOTIFICATION_METHOD_TEXT: t('Notification method'),
@@ -484,11 +482,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   );
   const [forceScreenshot, setForceScreenshot] = useState<boolean>(false);
   const [isScreenshot, setIsScreenshot] = useState<boolean>(false);
-  const [isPdf, setIsPdf] = useState<boolean>(false);
 
   useEffect(() => {
     setIsScreenshot(reportFormat === 'PNG');
-    setIsPdf(reportFormat === 'PDF');
   }, [reportFormat]);
 
   // Dropdown options
@@ -974,8 +970,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setReportFormat(target.value);
     if (target.value !== 'PNG') {
       updateAlertState('custom_width', undefined);
-    } else if (target.value !== 'PDF') {
-      updateAlertState('pdf_orientation', undefined);
     }
   };
 
@@ -1497,25 +1491,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   </StyledRadioGroup>
                 </div>
               </>
-            )}
-            {isPdf && (
-              <StyledInputContainer>
-                <div className="control-label" css={CustomWidthHeaderStyle}>
-                  {TRANSLATIONS.PDF_ORIENTATION_TEXT}
-                </div>
-                <Select
-                  ariaLabel={TRANSLATIONS.PORTRAIT_ORIENTATION}
-                  placeholder="PDF Orientation"
-                  value={currentAlert?.pdf_orientation || undefined}
-                  onChange={newVal =>
-                    updateAlertState('pdf_orientation', newVal)
-                  }
-                  options={[
-                    { label: t('Portrait'), value: 'portrait' },
-                    { label: t('Landscape'), value: 'landscape' },
-                  ]}
-                />
-              </StyledInputContainer>
             )}
             {isScreenshot && (
               <StyledInputContainer>

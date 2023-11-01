@@ -50,6 +50,7 @@ from superset.reports.commands.exceptions import (
     ReportScheduleDataFrameTimeout,
     ReportScheduleExecuteUnexpectedError,
     ReportScheduleNotFoundError,
+    ReportSchedulePdfFailedError,
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
@@ -202,14 +203,12 @@ class BaseReportState:
         Get chart or dashboard screenshots
         :raises: ReportScheduleScreenshotFailedError
         """
-        logger.warning('-------------getting screenshots-----------------')
         url = self._get_url()
         _, username = get_executor(
             executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
             model=self._report_schedule,
         )
         user = security_manager.find_user(username)
-
         if self._report_schedule.chart:
             window_width, window_height = app.config["WEBDRIVER_WINDOW"]["slice"]
             window_size = (
@@ -224,6 +223,7 @@ class BaseReportState:
             )
         else:
             window_width, window_height = app.config["WEBDRIVER_WINDOW"]["dashboard"]
+
             window_size = (
                 self._report_schedule.custom_width or window_width,
                 self._report_schedule.custom_height or window_height,
@@ -248,6 +248,10 @@ class BaseReportState:
         return [image]
 
     def _get_pdf(self) -> Optional[bytes]:
+        """
+        Get chart or dashboard pdf
+        :raises: ReportSchedulePdfFailedError
+        """
         images = []
         snapshots = self._get_screenshots()
 
@@ -256,10 +260,13 @@ class BaseReportState:
             if img.mode == "RGBA":
                 img = img.convert("RGB")
             images.append(img)
+
         new_pdf = BytesIO()
         images[0].save(new_pdf, "PDF", save_all=True, append_images=images[1:])
         new_pdf.seek(0)
         return new_pdf.read()
+
+
 
     def _get_csv_data(self) -> bytes:
         url = self._get_url(result_format=ChartDataResultFormat.CSV)
