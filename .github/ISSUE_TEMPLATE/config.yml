@@ -4,6 +4,9 @@ contact_links:
   - name: Feature Request
     url: https://github.com/apache/superset/discussions/new?category=ideas
     about: Propose a feature request to the Superset community
-  # - name: Questions on Stack Overflow
-  #   url: https://stackoverflow.com/questions/tagged/superset
-  #   about: Look at questions/answers at Stack Overflow
+  - name: Q&A
+    url: https://github.com/apache/superset/discussions/new?category=q-a-help
+    about: Open a community Q&A thread on GitHub Discussions
+  - name: Slack
+    url: bit.ly/join-superset-slack
+    about: Join the Superset Community on Slack for other discussions/assistance
