@@ -140,7 +140,7 @@ class TimeseriesChart(MigrateViz):
 
     def _pre_action(self) -> None:
         self.data["contributionMode"] = "row" if self.data.get("contribution") else None
-        self.data["zoomable"] = False if self.data.get("show_brush") == "no" else True
+        self.data["zoomable"] = self.data.get("show_brush") != "no"
         self.data["markerEnabled"] = self.data.get("show_markers") or False
         self.data["y_axis_showminmax"] = True
 
