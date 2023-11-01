@@ -4,6 +4,3 @@ contact_links:
   - name: Feature Request
     url: https://github.com/apache/superset/discussions/new?category=ideas
     about: Propose a feature request to the Superset community
-  # - name: Questions on Stack Overflow
-  #   url: https://stackoverflow.com/questions/tagged/superset
-  #   about: Look at questions/answers at Stack Overflow
