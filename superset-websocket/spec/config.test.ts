@@ -67,7 +67,7 @@ test('buildConfig() builds configuration and applies env var overrides', () => {
 });
 
 test('buildConfig() performs deep merge between configs', () => {
-  let config = buildConfig();
+  const config = buildConfig();
   // We left the ssl setting the default
   expect(config.redis.ssl).toEqual(false);
   // We overrode the pwd
