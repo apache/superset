@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import re
 from datetime import datetime
-from typing import Any, cast, Dict, Optional, TYPE_CHECKING
+from typing import Any, cast, TYPE_CHECKING
 
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
@@ -288,6 +288,7 @@ class DatabendConnectEngineSpec(DatabendEngineSpec, BasicParametersMixin):
         # parameters key, instead of just the parameters, so we hack to be compatible
         parameters = properties.get("parameters", properties)
         host = parameters.get("host", None)
+        host = str(host) if host is not None else None
         if not host:
             return [
                 SupersetError(
@@ -307,8 +308,11 @@ class DatabendConnectEngineSpec(DatabendEngineSpec, BasicParametersMixin):
                 )
             ]
         port = parameters.get("port")
+        port = int(port) if port is not None else None
+        encryption = parameters.get("encryption", False)
         if port is None:
-            port = cls.default_port("http", parameters.get("encryption", False))
+            encryption = bool(encryption)
+            port = cls.default_port("http", encryption)
         try:
             port = int(port)
         except (ValueError, TypeError):
