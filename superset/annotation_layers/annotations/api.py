@@ -50,11 +50,8 @@ from superset.annotation_layers.annotations.schemas import (
 from superset.annotation_layers.commands.exceptions import AnnotationLayerNotFoundError
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.annotations import Annotation
-from superset.views.base_api import (
-    BaseSupersetModelRestApi,
-    requires_json,
-    statsd_metrics,
-)
+from superset.views.base import statsd_metrics
+from superset.views.base_api import BaseSupersetModelRestApi, requires_json
 
 logger = logging.getLogger(__name__)
 

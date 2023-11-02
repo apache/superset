@@ -28,7 +28,8 @@ from superset.datasets.columns.commands.exceptions import (
     DatasetColumnForbiddenError,
     DatasetColumnNotFoundError,
 )
-from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
+from superset.views.base import statsd_metrics
+from superset.views.base_api import BaseSupersetModelRestApi
 
 logger = logging.getLogger(__name__)
 

@@ -29,7 +29,8 @@ from superset.embedded_dashboard.commands.exceptions import (
 )
 from superset.extensions import event_logger
 from superset.security.guest_token import GuestTokenResourceType
-from superset.views.base_api import BaseSupersetApi, statsd_metrics
+from superset.views.base import statsd_metrics
+from superset.views.base_api import BaseSupersetApi
 
 logger = logging.getLogger(__name__)
 
