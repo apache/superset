@@ -93,8 +93,6 @@ function TagList(props: TagListProps) {
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
   function handleTagsDelete(tags: Tag[]) {
-    // TODO what permissions need to be checked here?
-    console.log(tags);
     deleteTags(
       tags,
       (msg: string) => {
