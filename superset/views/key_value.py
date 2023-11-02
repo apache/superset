@@ -25,7 +25,7 @@ from superset import db, event_logger, is_feature_enabled
 from superset.models import core as models
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
-from superset.views.base import BaseSupersetView, json_error_response
+from superset.views.base import BaseSupersetView, json_error_response, statsd_metrics
 
 
 class KV(BaseSupersetView):
@@ -41,6 +41,7 @@ class KV(BaseSupersetView):
         if not self.is_enabled():
             raise NotFound()
 
+    @statsd_metrics
     @event_logger.log_this
     @has_access_api
     @expose("/store/", methods=("POST",))
@@ -54,6 +55,7 @@ class KV(BaseSupersetView):
             return json_error_response(utils.error_msg_from_exception(ex))
         return Response(json.dumps({"id": obj.id}), status=200)
 
+    @statsd_metrics
     @event_logger.log_this
     @has_access_api
     @expose("/<int:key_id>/", methods=("GET",))

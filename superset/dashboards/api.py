@@ -86,13 +86,12 @@ from superset.tasks.utils import get_current_user
 from superset.utils.cache import etag_cache
 from superset.utils.screenshots import DashboardScreenshot
 from superset.utils.urls import get_url_path
-from superset.views.base import generate_download_headers
+from superset.views.base import generate_download_headers, statsd_metrics
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
     requires_form_data,
     requires_json,
-    statsd_metrics,
 )
 from superset.views.filters import (
     BaseFilterRelatedRoles,
@@ -363,7 +362,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_datasets",
-        log_to_statsd=False,
     )
     def get_datasets(self, id_or_slug: str) -> Response:
         """Get dashboard's datasets.
@@ -433,7 +431,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_charts",
-        log_to_statsd=False,
     )
     def get_charts(self, id_or_slug: str) -> Response:
         """Get a dashboard's chart definitions.
@@ -489,7 +486,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
-        log_to_statsd=False,
     )
     @requires_json
     def post(self) -> Response:
@@ -550,7 +546,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
-        log_to_statsd=False,
     )
     @requires_json
     def put(self, pk: int) -> Response:
@@ -635,7 +630,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
-        log_to_statsd=False,
     )
     def delete(self, pk: int) -> Response:
         """Delete a dashboard.
@@ -691,7 +685,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @rison(get_delete_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
-        log_to_statsd=False,
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
         """Bulk delete dashboards.
@@ -751,7 +744,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @rison(get_export_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
-        log_to_statsd=False,
     )
     def export(self, **kwargs: Any) -> Response:  # pylint: disable=too-many-locals
         """Download multiple dashboards as YAML files.
@@ -835,7 +827,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @rison(thumbnail_query_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.thumbnail",
-        log_to_statsd=False,
     )
     def thumbnail(self, pk: int, digest: str, **kwargs: Any) -> WerkzeugResponse:
         """Compute async or get already computed dashboard thumbnail from cache.
@@ -940,7 +931,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".favorite_status",
-        log_to_statsd=False,
     )
     def favorite_status(self, **kwargs: Any) -> Response:
         """Check favorited dashboards for current user.
@@ -989,7 +979,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".add_favorite",
-        log_to_statsd=False,
     )
     def add_favorite(self, pk: int) -> Response:
         """Mark the dashboard as favorite for the current user.
@@ -1032,7 +1021,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".remove_favorite",
-        log_to_statsd=False,
     )
     def remove_favorite(self, pk: int) -> Response:
         """Remove the dashboard from the user favorite list.
@@ -1073,7 +1061,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
-        log_to_statsd=False,
     )
     @requires_form_data
     def import_(self) -> Response:
@@ -1200,7 +1187,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_embedded",
-        log_to_statsd=False,
     )
     @with_dashboard
     def get_embedded(self, dashboard: Dashboard) -> Response:
@@ -1241,7 +1227,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.set_embedded",
-        log_to_statsd=False,
     )
     @with_dashboard
     def set_embedded(self, dashboard: Dashboard) -> Response:
@@ -1320,7 +1305,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete_embedded",
-        log_to_statsd=False,
     )
     @with_dashboard
     def delete_embedded(self, dashboard: Dashboard) -> Response:
@@ -1360,7 +1344,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.copy_dash",
-        log_to_statsd=False,
     )
     @with_dashboard
     def copy_dash(self, original_dash: Dashboard) -> Response:

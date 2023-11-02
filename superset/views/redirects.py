@@ -24,7 +24,7 @@ from werkzeug.utils import redirect
 from superset import db, event_logger
 from superset.models import core as models
 from superset.superset_typing import FlaskResponse
-from superset.views.base import BaseSupersetView
+from superset.views.base import BaseSupersetView, statsd_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +53,7 @@ class R(BaseSupersetView):  # pylint: disable=invalid-name
 
         return None
 
+    @statsd_metrics
     @event_logger.log_this
     @expose("/<int:url_id>")
     def index(self, url_id: int) -> FlaskResponse:

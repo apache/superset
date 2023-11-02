@@ -60,8 +60,13 @@ from superset.sqllab.utils import bootstrap_sqllab_data
 from superset.sqllab.validators import CanAccessQueryValidatorImpl
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
-from superset.views.base import CsvResponse, generate_download_headers, json_success
-from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
+from superset.views.base import (
+    CsvResponse,
+    generate_download_headers,
+    json_success,
+    statsd_metrics,
+)
+from superset.views.base_api import BaseSupersetApi, requires_json
 
 config = app.config
 logger = logging.getLogger(__name__)
@@ -96,7 +101,6 @@ class SqlLabRestApi(BaseSupersetApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
-        log_to_statsd=False,
     )
     def get(self) -> Response:
         """Get the bootstrap data for SqlLab
@@ -143,7 +147,6 @@ class SqlLabRestApi(BaseSupersetApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".estimate_query_cost",
-        log_to_statsd=False,
     )
     def estimate_query_cost(self) -> Response:
         """Estimate the SQL query execution cost.
@@ -191,7 +194,6 @@ class SqlLabRestApi(BaseSupersetApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".export_csv",
-        log_to_statsd=False,
     )
     def export_csv(self, client_id: str) -> CsvResponse:
         """Export the SQL query results to a CSV.
@@ -252,7 +254,6 @@ class SqlLabRestApi(BaseSupersetApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".get_results",
-        log_to_statsd=False,
     )
     def get_results(self, **kwargs: Any) -> FlaskResponse:
         """Get the result of a SQL query execution.
@@ -305,7 +306,6 @@ class SqlLabRestApi(BaseSupersetApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".get_results",
-        log_to_statsd=False,
     )
     def execute_sql_query(self) -> FlaskResponse:
         """Execute a SQL query.

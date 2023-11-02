@@ -17,7 +17,7 @@
 import json
 from typing import Callable
 
-from flask import abort, g, request
+from flask import abort, g, make_response, request
 from flask_appbuilder import expose
 from flask_login import AnonymousUserMixin, login_user
 from flask_wtf.csrf import same_origin
@@ -26,7 +26,11 @@ from superset import event_logger, is_feature_enabled
 from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
-from superset.views.base import BaseSupersetView, common_bootstrap_payload
+from superset.views.base import (
+    BaseSupersetView,
+    common_bootstrap_payload,
+    statsd_metrics,
+)
 
 
 class EmbeddedView(BaseSupersetView):
@@ -35,6 +39,7 @@ class EmbeddedView(BaseSupersetView):
     route_base = "/embedded"
 
     @expose("/<uuid>")
+    @statsd_metrics
     @event_logger.log_this_with_extra_payload
     def embedded(
         self,
@@ -84,10 +89,12 @@ class EmbeddedView(BaseSupersetView):
             },
         }
 
-        return self.render_template(
-            "superset/spa.html",
-            entry="embedded",
-            bootstrap_data=json.dumps(
-                bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
-            ),
+        return make_response(
+            self.render_template(
+                "superset/spa.html",
+                entry="embedded",
+                bootstrap_data=json.dumps(
+                    bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
+                ),
+            )
         )

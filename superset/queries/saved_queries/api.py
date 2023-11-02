@@ -56,11 +56,8 @@ from superset.queries.saved_queries.schemas import (
     get_export_ids_schema,
     openapi_spec_methods_override,
 )
-from superset.views.base_api import (
-    BaseSupersetModelRestApi,
-    requires_form_data,
-    statsd_metrics,
-)
+from superset.views.base import statsd_metrics
+from superset.views.base_api import BaseSupersetModelRestApi, requires_form_data
 
 logger = logging.getLogger(__name__)
 
@@ -290,7 +287,6 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
-        log_to_statsd=False,
     )
     @requires_form_data
     def import_(self) -> Response:

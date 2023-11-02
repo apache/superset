@@ -31,7 +31,8 @@ from superset.temporary_cache.commands.exceptions import (
     TemporaryCacheAccessDeniedError,
     TemporaryCacheResourceNotFoundError,
 )
-from superset.views.base_api import BaseSupersetApi, statsd_metrics
+from superset.views.base import statsd_metrics
+from superset.views.base_api import BaseSupersetApi
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,6 @@ class ExploreRestApi(BaseSupersetApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
-        log_to_statsd=True,
     )
     def get(self) -> Response:
         """Assemble Explore related information (form_data, slice, dataset)

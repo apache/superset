@@ -57,7 +57,6 @@ class AdvancedDataTypeRestApi(BaseSupersetApi):
     @permission_name("read")
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
-        log_to_statsd=False,  # pylint: disable-arguments-renamed
     )
     @rison(advanced_data_type_convert_schema)
     def get(self, **kwargs: Any) -> Response:
@@ -116,7 +115,6 @@ class AdvancedDataTypeRestApi(BaseSupersetApi):
     @permission_name("read")
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
-        log_to_statsd=False,  # pylint: disable-arguments-renamed
     )
     def get_types(self) -> Response:
         """Return a list of available advanced data types.

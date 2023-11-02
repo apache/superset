@@ -44,11 +44,8 @@ from superset.annotation_layers.schemas import (
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.extensions import event_logger
 from superset.models.annotations import AnnotationLayer
-from superset.views.base_api import (
-    BaseSupersetModelRestApi,
-    requires_json,
-    statsd_metrics,
-)
+from superset.views.base import statsd_metrics
+from superset.views.base_api import BaseSupersetModelRestApi, requires_json
 
 logger = logging.getLogger(__name__)
 
@@ -113,7 +110,6 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
-        log_to_statsd=False,
     )
     @permission_name("delete")
     def delete(self, pk: int) -> Response:
@@ -167,7 +163,6 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
     @permission_name("post")
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
-        log_to_statsd=False,
     )
     @requires_json
     def post(self) -> Response:
@@ -231,7 +226,6 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
     @permission_name("put")
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
-        log_to_statsd=False,
     )
     @requires_json
     def put(self, pk: int) -> Response:
@@ -302,7 +296,6 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
     @rison(get_delete_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
-        log_to_statsd=False,
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
         """Bulk delete annotation layers.

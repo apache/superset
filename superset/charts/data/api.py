@@ -48,8 +48,12 @@ from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
 from superset.models.sql_lab import Query
 from superset.utils.core import create_zip, get_user_id, json_int_dttm_ser
-from superset.views.base import CsvResponse, generate_download_headers, XlsxResponse
-from superset.views.base_api import statsd_metrics
+from superset.views.base import (
+    CsvResponse,
+    generate_download_headers,
+    statsd_metrics,
+    XlsxResponse,
+)
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -65,7 +69,6 @@ class ChartDataRestApi(ChartRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
-        log_to_statsd=False,
     )
     def get_data(self, pk: int) -> Response:
         """
@@ -178,7 +181,6 @@ class ChartDataRestApi(ChartRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
-        log_to_statsd=False,
     )
     def data(self) -> Response:
         """
@@ -263,7 +265,6 @@ class ChartDataRestApi(ChartRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".data_from_cache",
-        log_to_statsd=False,
     )
     def data_from_cache(self, cache_key: str) -> Response:
         """

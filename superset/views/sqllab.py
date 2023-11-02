@@ -26,7 +26,7 @@ from superset import event_logger
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.superset_typing import FlaskResponse
 
-from .base import BaseSupersetView
+from .base import BaseSupersetView, statsd_metrics
 
 
 class SqllabView(BaseSupersetView):
@@ -38,6 +38,7 @@ class SqllabView(BaseSupersetView):
     @expose("/", methods=["GET", "POST"])
     @has_access
     @permission_name("read")
+    @statsd_metrics
     @event_logger.log_this
     def root(self) -> FlaskResponse:
         payload = {}
@@ -49,6 +50,7 @@ class SqllabView(BaseSupersetView):
     @expose("/history/", methods=("GET",))
     @has_access
     @permission_name("read")
+    @statsd_metrics
     @event_logger.log_this
     def history(self) -> FlaskResponse:
         return self.render_app_template()

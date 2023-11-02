@@ -22,7 +22,7 @@ from flask_appbuilder.security.decorators import has_access
 from superset import event_logger, security_manager
 from superset.superset_typing import FlaskResponse
 
-from .base import BaseSupersetView
+from .base import BaseSupersetView, statsd_metrics
 
 
 class ProfileView(BaseSupersetView):
@@ -32,6 +32,7 @@ class ProfileView(BaseSupersetView):
     @expose("/")
     @has_access
     @permission_name("read")
+    @statsd_metrics
     @event_logger.log_this
     def root(self) -> FlaskResponse:
         user = g.user if hasattr(g, "user") and g.user else None

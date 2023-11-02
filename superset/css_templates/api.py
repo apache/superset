@@ -35,7 +35,8 @@ from superset.css_templates.schemas import (
 )
 from superset.extensions import event_logger
 from superset.models.core import CssTemplate
-from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
+from superset.views.base import statsd_metrics
+from superset.views.base_api import BaseSupersetModelRestApi
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +94,6 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
-        log_to_statsd=False,
     )
     @rison(get_delete_ids_schema)
     def bulk_delete(self, **kwargs: Any) -> Response:

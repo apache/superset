@@ -49,11 +49,11 @@ from superset.reports.schemas import (
     ReportSchedulePostSchema,
     ReportSchedulePutSchema,
 )
+from superset.views.base import statsd_metrics
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
     requires_json,
-    statsd_metrics,
 )
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
@@ -242,7 +242,6 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
-        log_to_statsd=False,
     )
     def delete(self, pk: int) -> Response:
         """Delete a report schedule.
@@ -452,7 +451,6 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @rison(get_delete_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
-        log_to_statsd=False,
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
         """Bulk delete report schedules.

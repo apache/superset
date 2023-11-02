@@ -44,12 +44,8 @@ from superset.row_level_security.schemas import (
     RLSPutSchema,
     RLSShowSchema,
 )
-from superset.views.base import DatasourceFilter
-from superset.views.base_api import (
-    BaseSupersetModelRestApi,
-    requires_json,
-    statsd_metrics,
-)
+from superset.views.base import DatasourceFilter, statsd_metrics
+from superset.views.base_api import BaseSupersetModelRestApi, requires_json
 from superset.views.filters import BaseFilterRelatedRoles
 
 logger = logging.getLogger(__name__)
@@ -139,7 +135,6 @@ class RLSRestApi(BaseSupersetModelRestApi):
     @requires_json
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
-        log_to_statsd=False,
     )
     def post(self) -> Response:
         """Create a new RLS rule.
@@ -216,7 +211,6 @@ class RLSRestApi(BaseSupersetModelRestApi):
     @requires_json
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
-        log_to_statsd=False,
     )
     def put(self, pk: int) -> Response:
         """Update an RLS rule.
@@ -304,7 +298,6 @@ class RLSRestApi(BaseSupersetModelRestApi):
     @rison(get_delete_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
-        log_to_statsd=False,
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
         """Bulk delete RLS rules.

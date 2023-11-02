@@ -35,7 +35,12 @@ from superset.models.slice import Slice
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.utils.date_parser import get_since_until
-from superset.views.base import api, BaseSupersetView, handle_api_exception
+from superset.views.base import (
+    api,
+    BaseSupersetView,
+    handle_api_exception,
+    statsd_metrics,
+)
 
 if TYPE_CHECKING:
     from superset.common.query_context_factory import QueryContextFactory
@@ -46,6 +51,7 @@ get_time_range_schema = {"type": "string"}
 class Api(BaseSupersetView):
     query_context_factory = None
 
+    @statsd_metrics
     @event_logger.log_this
     @api
     @handle_api_exception
@@ -68,6 +74,7 @@ class Api(BaseSupersetView):
             payload_json, default=utils.json_int_dttm_ser, ignore_nan=True
         )
 
+    @statsd_metrics
     @event_logger.log_this
     @api
     @handle_api_exception

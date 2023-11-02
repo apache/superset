@@ -64,7 +64,6 @@ class Datasource(BaseSupersetView):
     @expose("/save/", methods=("POST",))
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.save",
-        log_to_statsd=False,
     )
     @has_access_api
     @api

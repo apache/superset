@@ -27,7 +27,8 @@ from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.daos.log import LogDAO
 from superset.exceptions import SupersetSecurityException
 from superset.superset_typing import FlaskResponse
-from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
+from superset.views.base import statsd_metrics
+from superset.views.base_api import BaseSupersetModelRestApi
 from superset.views.log import LogMixin
 from superset.views.log.schemas import (
     get_recent_activity_schema,
@@ -93,7 +94,6 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".recent_activity",
-        log_to_statsd=False,
     )
     def recent_activity(self, **kwargs: Any) -> FlaskResponse:
         """Get recent activity data for a user.

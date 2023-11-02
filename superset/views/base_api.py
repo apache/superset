@@ -33,16 +33,19 @@ from sqlalchemy.orm.query import Query
 
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import InvalidPayloadFormatError
-from superset.extensions import db, event_logger, security_manager, stats_logger_manager
+from superset.extensions import db, event_logger, security_manager
 from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.schemas import error_payload_content
 from superset.sql_lab import Query as SqllabQuery
 from superset.superset_typing import FlaskResponse
 from superset.tags.models import Tag
 from superset.utils.core import get_user_id, time_function
-from superset.views.base import handle_api_exception
+from superset.views.base import (
+    BaseSupersetViewMixin,
+    handle_api_exception,
+    statsd_metrics,
+)
 
 logger = logging.getLogger(__name__)
 get_related_schema = {
@@ -100,34 +103,12 @@ def requires_form_data(f: Callable[..., Any]) -> Callable[..., Any]:
     Require 'multipart/form-data' as request MIME type
     """
 
-    def wraps(self: BaseSupersetApiMixin, *args: Any, **kwargs: Any) -> Response:
+    def wraps(self: BaseSupersetViewMixin, *args: Any, **kwargs: Any) -> Response:
         if not request.mimetype == "multipart/form-data":
             raise InvalidPayloadFormatError(
                 message="Request MIME type is not 'multipart/form-data'"
             )
         return f(self, *args, **kwargs)
-
-    return functools.update_wrapper(wraps, f)
-
-
-def statsd_metrics(f: Callable[..., Any]) -> Callable[..., Any]:
-    """
-    Handle sending all statsd metrics from the REST API
-    """
-
-    def wraps(self: BaseSupersetApiMixin, *args: Any, **kwargs: Any) -> Response:
-        func_name = f.__name__
-        try:
-            duration, response = time_function(f, self, *args, **kwargs)
-        except Exception as ex:
-            if hasattr(ex, "status") and ex.status < 500:  # pylint: disable=no-member
-                self.incr_stats("warning", func_name)
-            else:
-                self.incr_stats("error", func_name)
-            raise ex
-
-        self.send_stats_metrics(response, func_name, duration)
-        return response
 
     return functools.update_wrapper(wraps, f)
 
@@ -191,67 +172,11 @@ class BaseTagFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         return query.filter(self.model.id.in_(tags_query))
 
 
-class BaseSupersetApiMixin:
-    csrf_exempt = False
-
-    responses = {
-        "400": {"description": "Bad request", "content": error_payload_content},
-        "401": {"description": "Unauthorized", "content": error_payload_content},
-        "403": {"description": "Forbidden", "content": error_payload_content},
-        "404": {"description": "Not found", "content": error_payload_content},
-        "410": {"description": "Gone", "content": error_payload_content},
-        "422": {
-            "description": "Could not process entity",
-            "content": error_payload_content,
-        },
-        "500": {"description": "Fatal error", "content": error_payload_content},
-    }
-
-    def incr_stats(self, action: str, func_name: str) -> None:
-        """
-        Proxy function for statsd.incr to impose a key structure for REST API's
-        :param action: String with an action name eg: error, success
-        :param func_name: The function name
-        """
-        stats_logger_manager.instance.incr(
-            f"{self.__class__.__name__}.{func_name}.{action}"
-        )
-
-    def timing_stats(self, action: str, func_name: str, value: float) -> None:
-        """
-        Proxy function for statsd.incr to impose a key structure for REST API's
-        :param action: String with an action name eg: error, success
-        :param func_name: The function name
-        :param value: A float with the time it took for the endpoint to execute
-        """
-        stats_logger_manager.instance.timing(
-            f"{self.__class__.__name__}.{func_name}.{action}", value
-        )
-
-    def send_stats_metrics(
-        self, response: Response, key: str, time_delta: float | None = None
-    ) -> None:
-        """
-        Helper function to handle sending statsd metrics
-        :param response: flask response object, will evaluate if it was an error
-        :param key: The function name
-        :param time_delta: Optional time it took for the endpoint to execute
-        """
-        if 200 <= response.status_code < 400:
-            self.incr_stats("success", key)
-        elif 400 <= response.status_code < 500:
-            self.incr_stats("warning", key)
-        else:
-            self.incr_stats("error", key)
-        if time_delta:
-            self.timing_stats("time", key, time_delta)
-
-
-class BaseSupersetApi(BaseSupersetApiMixin, BaseApi):
+class BaseSupersetApi(BaseSupersetViewMixin, BaseApi):
     ...
 
 
-class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
+class BaseSupersetModelRestApi(BaseSupersetViewMixin, ModelRestApi):
     """
     Extends FAB's ModelResApi to implement specific superset generic functionality
     """
@@ -449,7 +374,6 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.info",
         object_ref=False,
-        log_to_statsd=False,
     )
     @handle_api_exception
     def info_headless(self, **kwargs: Any) -> Response:
@@ -463,7 +387,6 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         object_ref=False,
-        log_to_statsd=False,
     )
     @handle_api_exception
     def get_headless(self, pk: int, **kwargs: Any) -> Response:
@@ -477,7 +400,6 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_list",
         object_ref=False,
-        log_to_statsd=False,
     )
     @handle_api_exception
     def get_list_headless(self, **kwargs: Any) -> Response:
@@ -491,7 +413,6 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         object_ref=False,
-        log_to_statsd=False,
     )
     @handle_api_exception
     def post_headless(self) -> Response:
@@ -505,7 +426,6 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         object_ref=False,
-        log_to_statsd=False,
     )
     @handle_api_exception
     def put_headless(self, pk: int) -> Response:
@@ -519,7 +439,6 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
         object_ref=False,
-        log_to_statsd=False,
     )
     @handle_api_exception
     def delete_headless(self, pk: int) -> Response:
@@ -533,7 +452,7 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
     @expose("/related/<column_name>", methods=("GET",))
     @protect()
     @safe
-    @statsd_metrics
+    # @statsd_metrics
     @rison(get_related_schema)
     @handle_api_exception
     def related(self, column_name: str, **kwargs: Any) -> FlaskResponse:
@@ -612,7 +531,7 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
     @expose("/distinct/<column_name>", methods=("GET",))
     @protect()
     @safe
-    @statsd_metrics
+    # @statsd_metrics
     @rison(get_related_schema)
     @handle_api_exception
     def distinct(self, column_name: str, **kwargs: Any) -> FlaskResponse:

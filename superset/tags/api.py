@@ -50,11 +50,8 @@ from superset.tags.schemas import (
     TagPostSchema,
     TagPutSchema,
 )
-from superset.views.base_api import (
-    BaseSupersetModelRestApi,
-    RelatedFieldFilter,
-    statsd_metrics,
-)
+from superset.views.base import statsd_metrics
+from superset.views.base_api import BaseSupersetModelRestApi, RelatedFieldFilter
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
@@ -150,7 +147,6 @@ class TagRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
-        log_to_statsd=False,
     )
     def post(self) -> Response:
         """Creates a new Tags and tag items
@@ -202,7 +198,6 @@ class TagRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_create",
-        log_to_statsd=False,
     )
     def bulk_create(self) -> Response:
         """Bulk create tags and tagged objects
@@ -297,7 +292,6 @@ class TagRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
-        log_to_statsd=False,
     )
     def put(self, pk: int) -> Response:
         """Changes a Tag
@@ -362,7 +356,6 @@ class TagRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.add_objects",
-        log_to_statsd=False,
     )
     def add_objects(self, object_type: ObjectTypes, object_id: int) -> Response:
         """Add tags to an object. Create new tags if they do not already exist.
@@ -426,7 +419,6 @@ class TagRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete_object",
-        log_to_statsd=True,
     )
     def delete_object(
         self, object_type: ObjectTypes, object_id: int, tag: str
@@ -494,7 +486,6 @@ class TagRestApi(BaseSupersetModelRestApi):
     @rison(delete_tags_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
-        log_to_statsd=False,
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
         """Bulk delete tags. This will remove all tagged objects with this tag.
@@ -549,7 +540,6 @@ class TagRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_objects",
-        log_to_statsd=False,
     )
     def get_objects(self) -> Response:
         """Get all objects associated with a tag.
@@ -606,7 +596,6 @@ class TagRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".favorite_status",
-        log_to_statsd=False,
     )
     def favorite_status(self, **kwargs: Any) -> Response:
         """Favorite Stars for Dashboards
@@ -658,7 +647,6 @@ class TagRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".add_favorite",
-        log_to_statsd=False,
     )
     def add_favorite(self, pk: int) -> Response:
         """Marks the tag as favorite
@@ -705,7 +693,6 @@ class TagRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".remove_favorite",
-        log_to_statsd=False,
     )
     def remove_favorite(self, pk: int) -> Response:
         """Remove the tag from the user favorite list

@@ -32,7 +32,8 @@ from superset.embedded_dashboard.commands.exceptions import (
 from superset.extensions import event_logger
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.reports.logs.schemas import openapi_spec_methods_override
-from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
+from superset.views.base import statsd_metrics
+from superset.views.base_api import BaseSupersetModelRestApi
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +65,6 @@ class EmbeddedDashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_embedded",
-        log_to_statsd=False,
     )
     # pylint: disable=arguments-differ, arguments-renamed)
     def get(self, uuid: str) -> Response:

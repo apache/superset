@@ -28,7 +28,8 @@ from superset.cachekeys.schemas import CacheInvalidationRequestSchema
 from superset.connectors.sqla.models import SqlaTable
 from superset.extensions import cache_manager, db, event_logger, stats_logger_manager
 from superset.models.cache import CacheKey
-from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
+from superset.views.base import statsd_metrics
+from superset.views.base_api import BaseSupersetModelRestApi
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,7 @@ class CacheRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @event_logger.log_this_with_context(log_to_statsd=False)
+    @event_logger.log_this
     def invalidate(self) -> Response:
         """
         Take a list of datasources, find and invalidate the associated cache records

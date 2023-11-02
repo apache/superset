@@ -62,11 +62,8 @@ from superset.dashboards.filter_sets.schemas import (
 )
 from superset.extensions import event_logger
 from superset.models.filter_set import FilterSet
-from superset.views.base_api import (
-    BaseSupersetModelRestApi,
-    requires_json,
-    statsd_metrics,
-)
+from superset.views.base import statsd_metrics
+from superset.views.base_api import BaseSupersetModelRestApi, requires_json
 
 logger = logging.getLogger(__name__)
 
@@ -192,7 +189,6 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
-        log_to_statsd=False,
     )
     @requires_json
     def post(self, dashboard_id: int) -> Response:
@@ -257,7 +253,6 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
-        log_to_statsd=False,
     )
     @requires_json
     def put(self, dashboard_id: int, pk: int) -> Response:
@@ -328,7 +323,6 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
-        log_to_statsd=False,
     )
     def delete(self, dashboard_id: int, pk: int) -> Response:
         """Delete a dashboard's filter set.

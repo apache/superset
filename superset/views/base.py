@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import dataclasses
 import functools
 import logging
@@ -21,7 +23,7 @@ import os
 import traceback
 from datetime import datetime
 from importlib.resources import files
-from typing import Any, Callable, cast, Optional, Union
+from typing import Any, Callable, cast
 
 import simplejson as json
 import yaml
@@ -30,6 +32,7 @@ from flask import (
     flash,
     g,
     get_flashed_messages,
+    make_response,
     redirect,
     request,
     Response,
@@ -71,12 +74,14 @@ from superset.exceptions import (
     SupersetException,
     SupersetSecurityException,
 )
-from superset.extensions import cache_manager
+from superset.extensions import cache_manager, stats_logger_manager
 from superset.models.helpers import ImportExportMixin
 from superset.reports.models import ReportRecipientType
+from superset.schemas import error_payload_content
 from superset.superset_typing import FlaskResponse
 from superset.translations.utils import get_language_pack
 from superset.utils import core as utils
+from superset.utils.core import time_function
 from superset.utils.filters import get_dataset_access_filters
 
 from .utils import bootstrap_user_data
@@ -139,10 +144,10 @@ def get_error_msg() -> str:
 
 
 def json_error_response(
-    msg: Optional[str] = None,
+    msg: str | None = None,
     status: int = 500,
-    payload: Optional[dict[str, Any]] = None,
-    link: Optional[str] = None,
+    payload: dict[str, Any] | None = None,
+    link: str | None = None,
 ) -> FlaskResponse:
     if not payload:
         payload = {"error": f"{msg}"}
@@ -159,7 +164,7 @@ def json_error_response(
 def json_errors_response(
     errors: list[SupersetError],
     status: int = 500,
-    payload: Optional[dict[str, Any]] = None,
+    payload: dict[str, Any] | None = None,
 ) -> FlaskResponse:
     if not payload:
         payload = {}
@@ -182,7 +187,7 @@ def data_payload_response(payload_json: str, has_error: bool = False) -> FlaskRe
 
 
 def generate_download_headers(
-    extension: str, filename: Optional[str] = None
+    extension: str, filename: str | None = None
 ) -> dict[str, Any]:
     filename = filename if filename else datetime.now().strftime("%Y%m%d_%H%M%S")
     content_disp = f"attachment; filename={filename}.{extension}"
@@ -192,7 +197,7 @@ def generate_download_headers(
 
 def deprecated(
     eol_version: str = "4.0.0",
-    new_target: Optional[str] = None,
+    new_target: str | None = None,
 ) -> Callable[[Callable[..., FlaskResponse]], Callable[..., FlaskResponse]]:
     """
     A decorator to set an API endpoint from SupersetView has deprecated.
@@ -200,7 +205,7 @@ def deprecated(
     """
 
     def _deprecated(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
-        def wraps(self: "BaseSupersetView", *args: Any, **kwargs: Any) -> FlaskResponse:
+        def wraps(self: BaseSupersetView, *args: Any, **kwargs: Any) -> FlaskResponse:
             message = (
                 "%s.%s "
                 "This API endpoint is deprecated and will be removed in version %s"
@@ -227,7 +232,7 @@ def api(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
     return the response in the JSON format
     """
 
-    def wraps(self: "BaseSupersetView", *args: Any, **kwargs: Any) -> FlaskResponse:
+    def wraps(self: BaseSupersetView, *args: Any, **kwargs: Any) -> FlaskResponse:
         try:
             return f(self, *args, **kwargs)
         except NoAuthorizationError:
@@ -249,7 +254,7 @@ def handle_api_exception(
     exceptions.
     """
 
-    def wraps(self: "BaseSupersetView", *args: Any, **kwargs: Any) -> FlaskResponse:
+    def wraps(self: BaseSupersetView, *args: Any, **kwargs: Any) -> FlaskResponse:
         try:
             return f(self, *args, **kwargs)
         except SupersetSecurityException as ex:
@@ -284,7 +289,91 @@ def handle_api_exception(
     return functools.update_wrapper(wraps, f)
 
 
-class BaseSupersetView(BaseView):
+class BaseSupersetViewMixin:
+    csrf_exempt = False
+
+    responses = {
+        "400": {"description": "Bad request", "content": error_payload_content},
+        "401": {"description": "Unauthorized", "content": error_payload_content},
+        "403": {"description": "Forbidden", "content": error_payload_content},
+        "404": {"description": "Not found", "content": error_payload_content},
+        "410": {"description": "Gone", "content": error_payload_content},
+        "422": {
+            "description": "Could not process entity",
+            "content": error_payload_content,
+        },
+        "500": {"description": "Fatal error", "content": error_payload_content},
+    }
+
+    def incr_stats(self, action_name: str, func_name: str) -> None:
+        """
+        Proxy function for statsd.incr to impose a key structure for REST API's
+        :param action_name: String with an action name eg: error, success
+        :param func_name: The function name
+        """
+        stats_logger_manager.instance.incr(
+            f"{self.__class__.__name__}.{func_name}.{action_name}"
+        )
+
+    def timing_stats(self, action_name: str, func_name: str, value: float) -> None:
+        """
+        Proxy function for statsd.incr to impose a key structure for REST API's
+        :param action_name: String with an action name eg: error, success
+        :param func_name: The function name
+        :param value: A float with the time it took for the endpoint to execute
+        """
+        stats_logger_manager.instance.timing(
+            f"{self.__class__.__name__}.{func_name}.{action_name}", value
+        )
+
+    def send_stats_metrics(
+        self, response: Response | str, key: str, time_delta: float | None = None
+    ) -> None:
+        """
+        Helper function to handle sending statsd metrics
+        :param response: flask response object, will evaluate if it was an error
+        :param key: The function name
+        :param time_delta: Optional time it took for the endpoint to execute
+        """
+        # TODO: not all endpoints return Response
+        if isinstance(response, str):
+            print(f"debug {response}")
+            print(f"debug {key}")
+            return
+
+        if 200 <= response.status_code < 400:
+            self.incr_stats("success", key)
+        elif 400 <= response.status_code < 500:
+            self.incr_stats("warning", key)
+        else:
+            self.incr_stats("error", key)
+        if time_delta:
+            self.timing_stats("time", key, time_delta)
+
+
+def statsd_metrics(f: Callable[..., Any]) -> Callable[..., Any]:
+    """
+    Handle sending all statsd metrics from the REST API
+    """
+
+    def wraps(self: BaseSupersetViewMixin, *args: Any, **kwargs: Any) -> Response | str:
+        func_name = f.__name__
+        try:
+            duration, response = time_function(f, self, *args, **kwargs)
+        except Exception as ex:
+            if hasattr(ex, "status") and ex.status < 500:  # pylint: disable=no-member
+                self.incr_stats("warning", func_name)
+            else:
+                self.incr_stats("error", func_name)
+            raise ex
+
+        self.send_stats_metrics(response, func_name, duration)
+        return response
+
+    return functools.update_wrapper(wraps, f)
+
+
+class BaseSupersetView(BaseSupersetViewMixin, BaseView):
     @staticmethod
     def json_response(obj: Any, status: int = 200) -> FlaskResponse:
         return Response(
@@ -294,19 +383,21 @@ class BaseSupersetView(BaseView):
         )
 
     def render_app_template(
-        self, extra_bootstrap_data: Optional[dict[str, Any]] = None
+        self, extra_bootstrap_data: dict[str, Any] | None = None
     ) -> FlaskResponse:
         payload = {
             "user": bootstrap_user_data(g.user, include_perms=True),
             "common": common_bootstrap_payload(g.user),
             **(extra_bootstrap_data or {}),
         }
-        return self.render_template(
-            "superset/spa.html",
-            entry="spa",
-            bootstrap_data=json.dumps(
-                payload, default=utils.pessimistic_json_iso_dttm_ser
-            ),
+        return make_response(
+            self.render_template(
+                "superset/spa.html",
+                entry="spa",
+                bootstrap_data=json.dumps(
+                    payload, default=utils.pessimistic_json_iso_dttm_ser
+                ),
+            )
         )
 
 
@@ -595,11 +686,11 @@ class YamlExportMixin:  # pylint: disable=too-few-public-methods
     Used on DatabaseView for cli compatibility
     """
 
-    yaml_dict_key: Optional[str] = None
+    yaml_dict_key: str | None = None
 
     @action("yaml_export", __("Export to YAML"), __("Export to YAML?"), "fa-download")
     def yaml_export(
-        self, items: Union[ImportExportMixin, list[ImportExportMixin]]
+        self, items: ImportExportMixin | list[ImportExportMixin]
     ) -> FlaskResponse:
         if not isinstance(items, list):
             items = [items]

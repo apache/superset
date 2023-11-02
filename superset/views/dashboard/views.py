@@ -37,6 +37,7 @@ from superset.views.base import (
     common_bootstrap_payload,
     DeleteMixin,
     generate_download_headers,
+    statsd_metrics,
     SupersetModelView,
 )
 from superset.views.dashboard.mixin import DashboardMixin
@@ -73,6 +74,7 @@ class DashboardModelView(
         ids = "".join(f"&id={d.id}" for d in items)
         return redirect(f"/dashboard/export_dashboards_form?{ids[1:]}")
 
+    @statsd_metrics
     @event_logger.log_this
     @has_access
     @expose("/export_dashboards_form")
@@ -125,6 +127,7 @@ class Dashboard(BaseSupersetView):
         return redirect(f"/superset/dashboard/{new_dashboard.id}/?edit=true")
 
     @expose("/<dashboard_id_or_slug>/embedded")
+    @statsd_metrics
     @event_logger.log_this_with_extra_payload
     def embedded(
         self,

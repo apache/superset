@@ -94,12 +94,11 @@ from superset.models.core import Database
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item
 from superset.utils.ssh_tunnel import mask_password_info
-from superset.views.base import json_errors_response
+from superset.views.base import json_errors_response, statsd_metrics
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     requires_form_data,
     requires_json,
-    statsd_metrics,
 )
 
 logger = logging.getLogger(__name__)
@@ -327,7 +326,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
-        log_to_statsd=False,
     )
     @requires_json
     def post(self) -> FlaskResponse:
@@ -412,7 +410,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
-        log_to_statsd=False,
     )
     @requires_json
     def put(self, pk: int) -> Response:
@@ -495,7 +492,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".delete",
-        log_to_statsd=False,
     )
     def delete(self, pk: int) -> Response:
         """Delete a database.
@@ -551,7 +547,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".schemas",
-        log_to_statsd=False,
     )
     def schemas(self, pk: int, **kwargs: Any) -> FlaskResponse:
         """Get all schemas from a database.
@@ -611,7 +606,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".tables",
-        log_to_statsd=False,
     )
     def tables(self, pk: int, **kwargs: Any) -> FlaskResponse:
         """Get a list of tables for given database.
@@ -679,7 +673,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".table_metadata",
-        log_to_statsd=False,
     )
     def table_metadata(
         self, database: Database, table_name: str, schema_name: str
@@ -742,7 +735,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".table_extra_metadata",
-        log_to_statsd=False,
     )
     def table_extra_metadata(
         self, database: Database, table_name: str, schema_name: str
@@ -804,7 +796,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.select_star",
-        log_to_statsd=False,
     )
     def select_star(
         self, database: Database, table_name: str, schema_name: Optional[str] = None
@@ -864,7 +855,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".test_connection",
-        log_to_statsd=False,
     )
     @requires_json
     def test_connection(self) -> FlaskResponse:
@@ -914,7 +904,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".related_objects",
-        log_to_statsd=False,
     )
     def related_objects(self, pk: int) -> Response:
         """Get charts and dashboards count associated to a database.
@@ -980,7 +969,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.validate_sql",
-        log_to_statsd=False,
     )
     def validate_sql(self, pk: int) -> FlaskResponse:
         """Validate that arbitrary SQL is acceptable for the given database.
@@ -1041,7 +1029,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @rison(get_export_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
-        log_to_statsd=False,
     )
     def export(self, **kwargs: Any) -> Response:
         """Download database(s) and associated dataset(s) as a zip file.
@@ -1102,7 +1089,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
-        log_to_statsd=False,
     )
     @requires_form_data
     def import_(self) -> Response:
@@ -1226,7 +1212,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".function_names",
-        log_to_statsd=False,
     )
     def function_names(self, pk: int) -> Response:
         """Get function names supported by a database.
@@ -1265,7 +1250,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".available",
-        log_to_statsd=False,
     )
     def available(self) -> Response:
         """Get names of databases currently available.
@@ -1380,7 +1364,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".validate_parameters",
-        log_to_statsd=False,
     )
     @requires_json
     def validate_parameters(self) -> FlaskResponse:
@@ -1436,7 +1419,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".delete_ssh_tunnel",
-        log_to_statsd=False,
     )
     def delete_ssh_tunnel(self, pk: int) -> Response:
         """Delete a SSH tunnel.
@@ -1498,7 +1480,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".schemas_access_for_file_upload",
-        log_to_statsd=False,
     )
     def schemas_access_for_file_upload(self, pk: int) -> Response:
         """The list of the database schemas where to upload information.

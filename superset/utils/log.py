@@ -91,7 +91,7 @@ class AbstractEventLogger(ABC):
         self,
         action: str,
         object_ref: str | None = None,
-        log_to_statsd: bool = True,
+        log_to_statsd: bool = False,
         duration: timedelta | None = None,
         **payload_override: dict[str, Any],
     ) -> object:
@@ -135,7 +135,7 @@ class AbstractEventLogger(ABC):
         action: str,
         duration: timedelta | None = None,
         object_ref: str | None = None,
-        log_to_statsd: bool = True,
+        log_to_statsd: bool = False,
         **payload_override: dict[str, Any] | None,
     ) -> None:
         # pylint: disable=import-outside-toplevel
@@ -208,7 +208,7 @@ class AbstractEventLogger(ABC):
         self,
         action: str,
         object_ref: str | None = None,
-        log_to_statsd: bool = True,
+        log_to_statsd: bool = False,
     ) -> Iterator[Callable[..., None]]:
         """
         Log an event with additional information from the request context.

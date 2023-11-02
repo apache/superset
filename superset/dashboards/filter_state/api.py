@@ -51,7 +51,6 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
     @safe
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
-        log_to_statsd=False,
     )
     def post(self, pk: int) -> Response:
         """Create a dashboard's filter state.
@@ -100,7 +99,6 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
     @safe
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
-        log_to_statsd=False,
     )
     def put(self, pk: int, key: str) -> Response:
         """Update a dashboard's filter state value.
@@ -155,7 +153,6 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
     @safe
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
-        log_to_statsd=False,
     )
     def get(self, pk: int, key: str) -> Response:
         """Get a dashboard's filter state value.
@@ -200,7 +197,6 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
     @safe
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
-        log_to_statsd=False,
     )
     def delete(self, pk: int, key: str) -> Response:
         """Delete a dashboard's filter state value.

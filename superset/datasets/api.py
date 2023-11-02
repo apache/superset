@@ -68,13 +68,16 @@ from superset.datasets.schemas import (
     openapi_spec_methods_override,
 )
 from superset.utils.core import parse_boolean_string
-from superset.views.base import DatasourceFilter, generate_download_headers
+from superset.views.base import (
+    DatasourceFilter,
+    generate_download_headers,
+    statsd_metrics,
+)
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
     requires_form_data,
     requires_json,
-    statsd_metrics,
 )
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
@@ -274,7 +277,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
-        log_to_statsd=False,
     )
     @requires_json
     def post(self) -> Response:
@@ -335,7 +337,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
-        log_to_statsd=False,
     )
     @requires_json
     def put(self, pk: int) -> Response:
@@ -421,7 +422,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
-        log_to_statsd=False,
     )
     def delete(self, pk: int) -> Response:
         """Delete a Dataset.
@@ -477,7 +477,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @rison(get_export_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
-        log_to_statsd=False,
     )
     def export(self, **kwargs: Any) -> Response:  # pylint: disable=too-many-locals
         """Download multiple datasets as YAML files.
@@ -559,7 +558,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".duplicate",
-        log_to_statsd=False,
     )
     @requires_json
     def duplicate(self) -> Response:
@@ -629,7 +627,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".refresh",
-        log_to_statsd=False,
     )
     def refresh(self, pk: int) -> Response:
         """Refresh and update columns of a dataset.
@@ -685,7 +682,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".related_objects",
-        log_to_statsd=False,
     )
     def related_objects(self, pk: int) -> Response:
         """Get charts and dashboards count associated to a dataset.
@@ -746,7 +742,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @rison(get_delete_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
-        log_to_statsd=False,
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
         """Bulk delete datasets.
@@ -806,7 +801,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
-        log_to_statsd=False,
     )
     @requires_form_data
     def import_(self) -> Response:
@@ -942,7 +936,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".get_or_create_dataset",
-        log_to_statsd=False,
     )
     def get_or_create_dataset(self) -> Response:
         """Retrieve a dataset by name, or create it if it does not exist.
@@ -1008,7 +1001,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".warm_up_cache",
-        log_to_statsd=False,
     )
     def warm_up_cache(self) -> Response:
         """Warm up the cache for each chart powered by the given table.

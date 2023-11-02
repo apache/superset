@@ -35,11 +35,11 @@ from superset.queries.schemas import (
     StopQuerySchema,
 )
 from superset.superset_typing import FlaskResponse
+from superset.views.base import statsd_metrics
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
     requires_json,
-    statsd_metrics,
 )
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
@@ -156,7 +156,6 @@ class QueryRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".get_updated_since",
-        log_to_statsd=False,
     )
     def get_updated_since(self, **kwargs: Any) -> FlaskResponse:
         """Get a list of queries that changed after last_updated_ms.
@@ -208,7 +207,6 @@ class QueryRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".stop_query",
-        log_to_statsd=False,
     )
     @backoff.on_exception(
         backoff.constant,

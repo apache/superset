@@ -24,7 +24,8 @@ from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSuppor
 from superset.exceptions import SupersetSecurityException
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import apply_max_row_limit, DatasourceType
-from superset.views.base_api import BaseSupersetApi, statsd_metrics
+from superset.views.base import statsd_metrics
+from superset.views.base_api import BaseSupersetApi
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,6 @@ class DatasourceRestApi(BaseSupersetApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".get_column_values",
-        log_to_statsd=False,
     )
     def get_column_values(
         self, datasource_type: str, datasource_id: int, column_name: str

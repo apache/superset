@@ -52,7 +52,6 @@ class DashboardPermalinkRestApi(BaseSupersetApi):
     @safe
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
-        log_to_statsd=False,
     )
     @requires_json
     def post(self, pk: str) -> Response:
@@ -118,7 +117,6 @@ class DashboardPermalinkRestApi(BaseSupersetApi):
     @safe
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
-        log_to_statsd=False,
     )
     def get(self, key: str) -> Response:
         """Get dashboard's permanent link state.

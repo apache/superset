@@ -23,7 +23,8 @@ from superset import conf
 from superset.available_domains.schemas import AvailableDomainsSchema
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.extensions import event_logger
-from superset.views.base_api import BaseSupersetApi, statsd_metrics
+from superset.views.base import statsd_metrics
+from superset.views.base_api import BaseSupersetApi
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +45,6 @@ class AvailableDomainsRestApi(BaseSupersetApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
-        log_to_statsd=True,
     )
     def get(self) -> Response:
         """

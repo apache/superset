@@ -24,7 +24,16 @@ from typing import Any, Callable, cast
 from urllib import parse
 
 import simplejson as json
-from flask import abort, flash, g, redirect, render_template, request, Response
+from flask import (
+    abort,
+    flash,
+    g,
+    make_response,
+    redirect,
+    render_template,
+    request,
+    Response,
+)
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import (
     has_access,
@@ -93,6 +102,7 @@ from superset.views.base import (
     handle_api_exception,
     json_error_response,
     json_success,
+    statsd_metrics,
 )
 from superset.views.utils import (
     bootstrap_user_data,
@@ -130,6 +140,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     logger = logging.getLogger(__name__)
 
     @has_access
+    @statsd_metrics
     @event_logger.log_this
     @expose("/slice/<int:slice_id>/")
     def slice(self, slice_id: int) -> FlaskResponse:
@@ -341,6 +352,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return json_error_response(utils.error_msg_from_exception(ex), 400)
 
     @has_access
+    @statsd_metrics
     @event_logger.log_this
     @expose(
         "/import_dashboards/",
@@ -385,8 +397,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 return redirect("/dashboard/list/")
 
         databases = db.session.query(Database).all()
-        return self.render_template(
-            "superset/import_dashboards.html", databases=databases
+        return make_response(
+            self.render_template("superset/import_dashboards.html", databases=databases)
         )
 
     @staticmethod
@@ -424,6 +436,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return f"{url.path}?{url.query}" if url.query else url.path
 
     @has_access
+    @statsd_metrics
     @event_logger.log_this
     @expose(
         "/explore/<datasource_type>/<int:datasource_id>/",
@@ -619,14 +632,16 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         else:
             title = _("Explore")
 
-        return self.render_template(
-            "superset/basic.html",
-            bootstrap_data=json.dumps(
-                bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
-            ),
-            entry="explore",
-            title=title,
-            standalone_mode=standalone_mode,
+        return make_response(
+            self.render_template(
+                "superset/basic.html",
+                bootstrap_data=json.dumps(
+                    bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
+                ),
+                entry="explore",
+                title=title,
+                standalone_mode=standalone_mode,
+            )
         )
 
     @staticmethod
@@ -817,6 +832,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access
     @expose("/dashboard/<dashboard_id_or_slug>/")
+    @statsd_metrics
     @event_logger.log_this_with_extra_payload
     def dashboard(
         self,
@@ -856,18 +872,20 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             ),
         )
 
-        return self.render_template(
-            "superset/spa.html",
-            entry="spa",
-            title=dashboard.dashboard_title,  # dashboard title is always visible
-            bootstrap_data=json.dumps(
-                {
-                    "user": bootstrap_user_data(g.user, include_perms=True),
-                    "common": common_bootstrap_payload(g.user),
-                },
-                default=utils.pessimistic_json_iso_dttm_ser,
-            ),
-            standalone_mode=ReservedUrlParameters.is_standalone_mode(),
+        return make_response(
+            self.render_template(
+                "superset/spa.html",
+                entry="spa",
+                title=dashboard.dashboard_title,  # dashboard title is always visible
+                bootstrap_data=json.dumps(
+                    {
+                        "user": bootstrap_user_data(g.user, include_perms=True),
+                        "common": common_bootstrap_payload(g.user),
+                    },
+                    default=utils.pessimistic_json_iso_dttm_ser,
+                ),
+                standalone_mode=ReservedUrlParameters.is_standalone_mode(),
+            )
         )
 
     @has_access
@@ -894,6 +912,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @api
     @has_access
+    @statsd_metrics
     @event_logger.log_this
     @expose("/log/", methods=("POST",))
     def log(self) -> FlaskResponse:
@@ -936,6 +955,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             500,
         )
 
+    @statsd_metrics
     @event_logger.log_this
     @expose("/welcome/")
     def welcome(self) -> FlaskResponse:
@@ -957,12 +977,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "common": common_bootstrap_payload(g.user),
         }
 
-        return self.render_template(
-            "superset/spa.html",
-            entry="spa",
-            bootstrap_data=json.dumps(
-                payload, default=utils.pessimistic_json_iso_dttm_ser
-            ),
+        return make_response(
+            self.render_template(
+                "superset/spa.html",
+                entry="spa",
+                bootstrap_data=json.dumps(
+                    payload, default=utils.pessimistic_json_iso_dttm_ser
+                ),
+            )
         )
 
     @has_access
