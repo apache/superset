@@ -15,9 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 from marshmallow import fields, Schema
-from marshmallow.validate import Range
+from marshmallow.validate import Range, OneOf
 
 from superset.dashboards.schemas import UserSchema
+
 
 delete_tags_schema = {"type": "array", "items": {"type": "string"}}
 object_type_description = "A title for the tag."
@@ -27,9 +28,7 @@ openapi_spec_methods_override = {
     "get_list": {
         "get": {
             "summary": "Get a list of tags",
-            "description": "Get a list of tags, use Rison or JSON query "
-            "parameters for filtering, sorting, pagination and "
-            " for selecting specific columns and metadata.",
+            "description": "Get a list of tags, use Rison or JSON query parameters for filtering, sorting, pagination, and for selecting specific columns and metadata.",
         }
     },
     "put": {"put": {"summary": "Update a tag"}},
@@ -58,7 +57,7 @@ class TaggedObjectEntityResponseSchema(Schema):
 
 
 class TagObjectSchema(Schema):
-    name = fields.String()
+    name = fields.String(required=True)
     description = fields.String(required=False, allow_none=True)
     objects_to_tag = fields.List(
         fields.Tuple((fields.String(), fields.Int(validate=Range(min=1)))),
@@ -67,12 +66,12 @@ class TagObjectSchema(Schema):
 
 
 class TagPostBulkSchema(Schema):
-    tags = fields.List(fields.Nested(TagObjectSchema))
+    tags = fields.List(fields.Nested(TagObjectSchema), required=True)
 
 
 class TagPostSchema(TagObjectSchema):
-    pass
+    action = fields.String(required=True, validate=OneOf(["create"]))
 
 
 class TagPutSchema(TagObjectSchema):
-    pass
+    action = fields.String(required=True, validate=OneOf(["update", "delete"]))
