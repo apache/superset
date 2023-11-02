@@ -15,9 +15,10 @@ from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
 from sqlalchemy import types
-from sqlalchemy.engine.url import make_url, URL
+from sqlalchemy.engine.url import URL
 from urllib3.exceptions import NewConnectionError
 
+from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import (
     BaseEngineSpec,
     BasicParametersMixin,
@@ -257,7 +258,7 @@ class DatabendConnectEngineSpec(DatabendEngineSpec, BasicParametersMixin):
     def get_parameters_from_uri(
         cls, uri: str, *_args: dict[str, Any] | None
     ) -> BasicParametersType:
-        url = make_url(uri)
+        url = make_url_safe(uri)
         query = url.query
         if "secure" in query:
             encryption = url.query.get("secure") == "true"
@@ -308,33 +309,36 @@ class DatabendConnectEngineSpec(DatabendEngineSpec, BasicParametersMixin):
                 )
             ]
         port = parameters.get("port")
-        port = int(port) if port is not None else None
+        if port is not None:
+            if isinstance(port, (int, str)):
+                try:
+                    port = int(port)
+                    if port <= 0 or port >= 65535:
+                        port = -1
+                except (ValueError, TypeError):
+                    port = -1
         encryption = parameters.get("encryption", False)
-        if port is None:
+        if port is None or port == -1:
             encryption = bool(encryption)
             port = cls.default_port("http", encryption)
-        try:
-            port = int(port)
-        except (ValueError, TypeError):
-            port = -1
-        if port <= 0 or port >= 65535:
-            return [
-                SupersetError(
-                    "Port must be a valid integer between 0 and 65535 (inclusive).",
-                    SupersetErrorType.CONNECTION_INVALID_PORT_ERROR,
-                    ErrorLevel.ERROR,
-                    {"invalid": ["port"]},
-                )
-            ]
-        if not is_port_open(host, port):
-            return [
-                SupersetError(
-                    "The port is closed.",
-                    SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
-                    ErrorLevel.ERROR,
-                    {"invalid": ["port"]},
-                )
-            ]
+            if port <= 0 or port >= 65535:
+                return [
+                    SupersetError(
+                        "Port must be a valid integer between 0 and 65535 (inclusive).",
+                        SupersetErrorType.CONNECTION_INVALID_PORT_ERROR,
+                        ErrorLevel.ERROR,
+                        {"invalid": ["port"]},
+                    )
+                ]
+            if not is_port_open(host, port):
+                return [
+                    SupersetError(
+                        "The port is closed.",
+                        SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
+                        ErrorLevel.ERROR,
+                        {"invalid": ["port"]},
+                    )
+                ]
         return []
 
     @staticmethod
