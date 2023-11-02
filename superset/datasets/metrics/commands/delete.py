@@ -43,7 +43,7 @@ class DeleteDatasetMetricCommand(BaseCommand):
         assert self._model
 
         try:
-            DatasetMetricDAO.delete(self._model)
+            DatasetMetricDAO.delete([self._model])
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
             raise DatasetMetricDeleteFailedError() from ex

@@ -192,4 +192,4 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         self.assert200(rv)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(0, data["count"])
-        DashboardDAO.delete(dashboard)
+        DashboardDAO.delete([dashboard])

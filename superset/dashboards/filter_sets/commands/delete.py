@@ -38,7 +38,7 @@ class DeleteFilterSetCommand(BaseFilterSetCommand):
         assert self._filter_set
 
         try:
-            FilterSetDAO.delete(self._filter_set)
+            FilterSetDAO.delete([self._filter_set])
         except DAODeleteFailedError as err:
             raise FilterSetDeleteFailedError(str(self._filter_set_id), "") from err
 

@@ -43,7 +43,7 @@ class DeleteSSHTunnelCommand(BaseCommand):
         assert self._model
 
         try:
-            SSHTunnelDAO.delete(self._model)
+            SSHTunnelDAO.delete([self._model])
         except DAODeleteFailedError as ex:
             raise SSHTunnelDeleteFailedError() from ex
 

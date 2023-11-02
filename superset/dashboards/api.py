@@ -1349,8 +1349,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        for embedded in dashboard.embedded:
-            EmbeddedDashboardDAO.delete(embedded)
+        EmbeddedDashboardDAO.delete(dashboard.embedded)
         return self.response(200, message="OK")
 
     @expose("/<id_or_slug>/copy/", methods=("POST",))

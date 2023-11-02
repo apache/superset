@@ -43,7 +43,7 @@ class DeleteDatasetColumnCommand(BaseCommand):
         assert self._model
 
         try:
-            DatasetColumnDAO.delete(self._model)
+            DatasetColumnDAO.delete([self._model])
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
             raise DatasetColumnDeleteFailedError() from ex

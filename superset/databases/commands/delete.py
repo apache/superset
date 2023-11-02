@@ -44,7 +44,7 @@ class DeleteDatabaseCommand(BaseCommand):
         assert self._model
 
         try:
-            DatabaseDAO.delete(self._model)
+            DatabaseDAO.delete([self._model])
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
             raise DatabaseDeleteFailedError() from ex
