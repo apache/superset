@@ -230,9 +230,7 @@ class SqlLabRestApi(BaseSupersetApi):
         """
         try:
             model = self.format_model_schema.load(request.json)
-            result = sqlparse.format(
-                model["sql"], reindent=True, keyword_case="upper"
-            )
+            result = sqlparse.format(model["sql"], reindent=True, keyword_case="upper")
             return self.response(200, result=result)
         except ValidationError as error:
             return self.response_400(message=error.messages)
