@@ -17,17 +17,22 @@
  * under the License.
  */
 import {
+  CategoricalColorNamespace,
+  ColorSchemeRegistry,
   GenericDataType,
+  SequentialScheme,
+  getSequentialSchemeRegistry,
   getTimeFormatter,
   getValueFormatter,
 } from '@superset-ui/core';
 import { maxBy, minBy } from 'lodash';
-import { EChartsCoreOption } from 'echarts';
+import { EChartsOption, HeatmapSeriesOption } from 'echarts';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
 import { HeatmapChartProps, HeatmapTransformedProps } from './types';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 import { parseYAxisBound } from '../utils/controls';
+import { NULL_STRING } from '../constants';
 
 export default function transformProps(
   chartProps: HeatmapChartProps,
@@ -68,33 +73,23 @@ export default function transformProps(
   );
   // yAxisBounds need to be parsed to replace incompatible values with undefined
   const [min, max] = (yAxisBounds || []).map(parseYAxisBound);
-  const xAxisFormatter =
-    coltypes[0] === GenericDataType.TEMPORAL
-      ? getTimeFormatter(timeFormat)
-      : String;
-  const yAxisFormatter =
-    coltypes[1] === GenericDataType.TEMPORAL
-      ? getTimeFormatter(timeFormat)
-      : String;
-  const xAxis = {
-    type: 'category',
-    axisLabel: {
-      formatter: xAxisFormatter,
-    },
-  };
-  const yAxis = {
-    type: 'category',
-    min,
-    max,
-    axisLabel: {
-      formatter: yAxisFormatter,
-    },
-  };
-  const series = [
+
+  const series: HeatmapSeriesOption[] = [
     {
       name: metricName,
       type: 'heatmap',
-      data: data.map(row => colnames.map(col => row[col])),
+      data: data.map(row =>
+        colnames.map(col => {
+          const value = row[col];
+          if (!value) {
+            return NULL_STRING;
+          }
+          if (typeof value === 'boolean') {
+            return String(value);
+          }
+          return value;
+        }),
+      ),
       label: {
         show: true,
         formatter: (params: CallbackDataParams) =>
@@ -103,7 +98,20 @@ export default function transformProps(
     },
   ];
 
-  const echartOptions: EChartsCoreOption = {
+  const getAxisFormatter =
+    (colType: GenericDataType) => (value: number | string) => {
+      if (colType === GenericDataType.TEMPORAL) {
+        if (typeof value === 'string') {
+          return getTimeFormatter(timeFormat)(Number.parseInt(value, 10));
+        }
+        return getTimeFormatter(timeFormat)(value);
+      }
+      return String(value);
+    };
+
+  const colors = getSequentialSchemeRegistry().get(linearColorScheme)?.colors;
+
+  const echartOptions: EChartsOption = {
     grid: {
       bottom: 20,
     },
@@ -119,18 +127,33 @@ export default function transformProps(
     },
     visualMap: {
       type: legendType,
-      min: minBy(data, row => row[metricName])?.[metricName],
-      max: maxBy(data, row => row[metricName])?.[metricName],
+      min: minBy(data, row => row[metricName])?.[metricName] as number,
+      max: maxBy(data, row => row[metricName])?.[metricName] as number,
       calculable: true,
       orient: 'horizontal',
       right: 0,
       top: 0,
       itemHeight: legendType === 'continuous' ? 300 : 14,
       itemWidth: 15,
-      formatter: valueFormatter,
+      formatter: min => valueFormatter(min as number),
+      inRange: {
+        color: colors,
+      },
     },
-    xAxis,
-    yAxis,
+    xAxis: {
+      type: 'category',
+      axisLabel: {
+        formatter: getAxisFormatter(coltypes[0]),
+      },
+    },
+    yAxis: {
+      type: 'category',
+      min,
+      max,
+      axisLabel: {
+        formatter: getAxisFormatter(coltypes[1]),
+      },
+    },
   };
   return {
     refs,
