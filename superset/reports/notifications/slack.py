@@ -154,6 +154,8 @@ Error: %(text)s
     def _get_inline_files(self) -> Sequence[Union[str, IOBase, bytes]]:
         if self._content.csv:
             return [self._content.csv]
+        if self._content.pdf:
+            return self._content.pdf
         if self._content.screenshots:
             return self._content.screenshots
         return []
