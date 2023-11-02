@@ -1,7 +1,7 @@
 name: Build and Push Agent Image
 on:
   push:
-    branches: [main]
+    branches: [master]
     tags:
       - '**'
   pull_request:
