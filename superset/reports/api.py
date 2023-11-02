@@ -414,6 +414,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         """
         try:
             item = self.edit_model_schema.load(request.json)
+            logger.info(item)
             # normally this would be covered by a decorator, however
             # due to this model being formatted incorrectly the data
             # needed some manipulation.

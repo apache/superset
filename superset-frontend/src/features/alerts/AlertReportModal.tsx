@@ -59,7 +59,6 @@ import {
   Operator,
   Recipient,
   AlertsReportsConfig,
-  AlertState,
 } from 'src/features/alerts/types';
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';

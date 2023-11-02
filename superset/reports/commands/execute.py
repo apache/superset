@@ -209,11 +209,19 @@ class BaseReportState:
             model=self._report_schedule,
         )
         user = security_manager.find_user(username)
+
+
+        custom_width, custom_height = None, None
+        if self._report_schedule.report_format == 'PNG':
+            custom_width = self._report_schedule.custom_width
+            custom_height = self._report_schedule.custom_height
+
         if self._report_schedule.chart:
             window_width, window_height = app.config["WEBDRIVER_WINDOW"]["slice"]
+
             window_size = (
-                self._report_schedule.custom_width or window_width,
-                self._report_schedule.custom_height or window_height,
+                custom_width or window_width,
+                custom_height or window_height,
             )
             screenshot: Union[ChartScreenshot, DashboardScreenshot] = ChartScreenshot(
                 url,
@@ -225,8 +233,8 @@ class BaseReportState:
             window_width, window_height = app.config["WEBDRIVER_WINDOW"]["dashboard"]
 
             window_size = (
-                self._report_schedule.custom_width or window_width,
-                self._report_schedule.custom_height or window_height,
+                custom_width or window_width,
+                custom_height or window_height,
             )
             screenshot = DashboardScreenshot(
                 url,
