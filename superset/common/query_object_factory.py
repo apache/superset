@@ -36,7 +36,7 @@ from superset.utils.core import (
 if TYPE_CHECKING:
     from sqlalchemy.orm import sessionmaker
 
-    from superset.connectors.base.models import BaseColumn, BaseDatasource
+    from superset.connectors.base.models import BaseDatasource
     from superset.daos.datasource import DatasourceDAO
 
 
@@ -79,10 +79,6 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         )
         kwargs["from_dttm"] = from_dttm
         kwargs["to_dttm"] = to_dttm
-        if datasource_model_instance and kwargs.get("filters", []):
-            kwargs["filters"] = self._process_filters(
-                datasource_model_instance, kwargs["filters"]
-            )
         return QueryObject(
             datasource=datasource_model_instance,
             extras=extras,
@@ -143,54 +139,3 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
     # light version of the view.utils.core
     # import view.utils require application context
     # Todo: move it and the view.utils.core to utils package
-
-    def _process_filters(
-        self, datasource: BaseDatasource, query_filters: list[QueryObjectFilterClause]
-    ) -> list[QueryObjectFilterClause]:
-        def get_dttm_filter_value(
-            value: Any, col: BaseColumn, date_format: str
-        ) -> int | str:
-            if not isinstance(value, int):
-                return value
-            if date_format in {"epoch_ms", "epoch_s"}:
-                if date_format == "epoch_s":
-                    value = str(value)
-                else:
-                    value = str(value * 1000)
-            else:
-                dttm = datetime.utcfromtimestamp(value / 1000)
-                value = dttm.strftime(date_format)
-
-            if col.type in col.num_types:
-                value = int(value)
-            return value
-
-        for query_filter in query_filters:
-            if query_filter.get("op") == FilterOperator.TEMPORAL_RANGE:
-                continue
-            filter_col = query_filter.get("col")
-            if not isinstance(filter_col, str):
-                continue
-            column = datasource.get_column(filter_col)
-            if not column:
-                continue
-            filter_value = query_filter.get("val")
-
-            date_format = column.python_date_format
-            if not date_format and datasource.db_extra:
-                date_format = datasource.db_extra.get(
-                    "python_date_format_by_column_name", {}
-                ).get(column.column_name)
-
-            if column.is_dttm and date_format:
-                if isinstance(filter_value, list):
-                    query_filter["val"] = [
-                        get_dttm_filter_value(value, column, date_format)
-                        for value in filter_value
-                    ]
-                else:
-                    query_filter["val"] = get_dttm_filter_value(
-                        filter_value, column, date_format
-                    )
-
-        return query_filters
