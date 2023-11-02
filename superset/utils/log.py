@@ -25,17 +25,13 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime, timedelta
-from typing import Any, Callable, cast, Literal, TYPE_CHECKING
+from typing import Any, Callable, cast, Literal
 
 from flask import current_app, g, request
 from flask_appbuilder.const import API_URI_RIS_KEY
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset.extensions import stats_logger_manager
 from superset.utils.core import get_user_id, LoggerLevel
-
-if TYPE_CHECKING:
-    from superset.stats_logger import BaseStatsLogger
 
 logger = logging.getLogger(__name__)
 
@@ -91,14 +87,12 @@ class AbstractEventLogger(ABC):
         self,
         action: str,
         object_ref: str | None = None,
-        log_to_statsd: bool = False,
         duration: timedelta | None = None,
         **payload_override: dict[str, Any],
     ) -> object:
         # pylint: disable=W0201
         self.action = action
         self.object_ref = object_ref
-        self.log_to_statsd = log_to_statsd
         self.payload_override = payload_override
         return self
 
@@ -111,7 +105,6 @@ class AbstractEventLogger(ABC):
         self.log_with_context(
             action=self.action,
             object_ref=self.object_ref,
-            log_to_statsd=self.log_to_statsd,
             duration=datetime.now() - self.start,
             **self.payload_override,
         )
@@ -135,7 +128,6 @@ class AbstractEventLogger(ABC):
         action: str,
         duration: timedelta | None = None,
         object_ref: str | None = None,
-        log_to_statsd: bool = False,
         **payload_override: dict[str, Any] | None,
     ) -> None:
         # pylint: disable=import-outside-toplevel
@@ -183,9 +175,6 @@ class AbstractEventLogger(ABC):
         except (TypeError, ValueError):
             slice_id = 0
 
-        if log_to_statsd:
-            stats_logger_manager.instance.incr(action)
-
         try:
             # bulk insert
             explode_by = payload.get("explode")
@@ -208,13 +197,11 @@ class AbstractEventLogger(ABC):
         self,
         action: str,
         object_ref: str | None = None,
-        log_to_statsd: bool = False,
     ) -> Iterator[Callable[..., None]]:
         """
         Log an event with additional information from the request context.
         :param action: a name to identify the event
         :param object_ref: reference to the Python object that triggered this action
-        :param log_to_statsd: whether to update statsd counter for the action
         """
         payload_override = {}
         start = datetime.now()
@@ -224,9 +211,7 @@ class AbstractEventLogger(ABC):
 
         # take the action from payload_override else take the function param action
         action_str = payload_override.pop("action", action)
-        self.log_with_context(
-            action_str, duration, object_ref, log_to_statsd, **payload_override
-        )
+        self.log_with_context(action_str, duration, object_ref, **payload_override)
 
     def _wrapper(
         self,
@@ -234,7 +219,6 @@ class AbstractEventLogger(ABC):
         action: str | Callable[..., str] | None = None,
         object_ref: str | Callable[..., str] | Literal[False] | None = None,
         allow_extra_payload: bool | None = False,
-        **wrapper_kwargs: Any,
     ) -> Callable[..., Any]:
         @functools.wraps(f)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -244,9 +228,7 @@ class AbstractEventLogger(ABC):
             object_ref_str = (
                 object_ref(*args, **kwargs) if callable(object_ref) else object_ref
             ) or (f.__qualname__ if object_ref is not False else None)
-            with self.log_context(
-                action=action_str, object_ref=object_ref_str, **wrapper_kwargs
-            ) as log:
+            with self.log_context(action=action_str, object_ref=object_ref_str) as log:
                 log(**kwargs)
                 if allow_extra_payload:
                     # add a payload updater to the decorated function

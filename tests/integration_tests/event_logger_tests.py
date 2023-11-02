@@ -178,7 +178,6 @@ class TestEventLogger(unittest.TestCase):
                 action="foo",
                 duration=timedelta(days=64, seconds=29156, microseconds=10),
                 object_ref={"baz": "food"},
-                log_to_statsd=False,
                 payload_override={"engine": "sqlite"},
             )
 
@@ -225,7 +224,6 @@ class TestEventLogger(unittest.TestCase):
                 action="foo",
                 duration=timedelta(days=64, seconds=29156, microseconds=10),
                 object_ref={"baz": "food"},
-                log_to_statsd=False,
                 payload_override={"engine": "sqlite"},
             )
 
