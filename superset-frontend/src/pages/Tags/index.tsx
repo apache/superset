@@ -92,14 +92,20 @@ function TagList(props: TagListProps) {
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
-  function handleTagsDelete(
-    tags: Tag[],
-    callback: (text: string) => void,
-    error: (text: string) => void,
-  ) {
+  function handleTagsDelete(tags: Tag[]) {
     // TODO what permissions need to be checked here?
-    deleteTags(tags, callback, error);
-    refreshData();
+    console.log(tags);
+    deleteTags(
+      tags,
+      (msg: string) => {
+        addSuccessToast(msg);
+        refreshData();
+      },
+      msg => {
+        addDangerToast(msg);
+        refreshData();
+      },
+    );
   }
 
   const handleTagEdit = (tag: Tag) => {
@@ -178,8 +184,6 @@ function TagList(props: TagListProps) {
       },
       {
         Cell: ({ row: { original } }: any) => {
-          const handleDelete = () =>
-            handleTagsDelete([original], addSuccessToast, addDangerToast);
           const handleEdit = () => handleTagEdit(original);
           return (
             <Actions className="actions">
@@ -192,7 +196,7 @@ function TagList(props: TagListProps) {
                       <b>{original.dashboard_title}</b>?
                     </>
                   }
-                  onConfirm={handleDelete}
+                  onConfirm={() => handleTagsDelete([original])}
                 >
                   {confirmDelete => (
                     <Tooltip
@@ -318,7 +322,7 @@ function TagList(props: TagListProps) {
   });
 
   const handleBulkDelete = (tagsToDelete: Tag[]) =>
-    handleTagsDelete(tagsToDelete, addSuccessToast, addDangerToast);
+    handleTagsDelete(tagsToDelete);
 
   return (
     <>
