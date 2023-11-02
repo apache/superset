@@ -452,7 +452,6 @@ class BaseSupersetModelRestApi(BaseSupersetViewMixin, ModelRestApi):
     @expose("/related/<column_name>", methods=("GET",))
     @protect()
     @safe
-    # @statsd_metrics
     @rison(get_related_schema)
     @handle_api_exception
     def related(self, column_name: str, **kwargs: Any) -> FlaskResponse:
@@ -531,7 +530,6 @@ class BaseSupersetModelRestApi(BaseSupersetViewMixin, ModelRestApi):
     @expose("/distinct/<column_name>", methods=("GET",))
     @protect()
     @safe
-    # @statsd_metrics
     @rison(get_related_schema)
     @handle_api_exception
     def distinct(self, column_name: str, **kwargs: Any) -> FlaskResponse:

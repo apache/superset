@@ -19,7 +19,7 @@ import json
 import re
 from typing import Callable, Union
 
-from flask import g, redirect, request, Response
+from flask import g, make_response, redirect, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -34,6 +34,7 @@ from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import (
     BaseSupersetView,
+    BaseSupersetViewMixin,
     common_bootstrap_payload,
     DeleteMixin,
     generate_download_headers,
@@ -44,7 +45,7 @@ from superset.views.dashboard.mixin import DashboardMixin
 
 
 class DashboardModelView(
-    DashboardMixin, SupersetModelView, DeleteMixin
+    DashboardMixin, SupersetModelView, DeleteMixin, BaseSupersetViewMixin
 ):  # pylint: disable=too-many-ancestors
     route_base = "/dashboard"
     datamodel = SQLAInterface(DashboardModel)
@@ -86,8 +87,10 @@ class DashboardModelView(
                 headers=generate_download_headers("json"),
                 mimetype="application/text",
             )
-        return self.render_template(
-            "superset/export_dashboards.html", dashboards_url="/dashboard/list"
+        return make_response(
+            self.render_template(
+                "superset/export_dashboards.html", dashboards_url="/dashboard/list"
+            )
         )
 
     def pre_add(self, item: "DashboardModelView") -> None:
@@ -158,12 +161,14 @@ class Dashboard(BaseSupersetView):
             "embedded": {"dashboard_id": dashboard_id_or_slug},
         }
 
-        return self.render_template(
-            "superset/spa.html",
-            entry="embedded",
-            bootstrap_data=json.dumps(
-                bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
-            ),
+        return make_response(
+            self.render_template(
+                "superset/spa.html",
+                entry="embedded",
+                bootstrap_data=json.dumps(
+                    bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
+                ),
+            )
         )
 
 

@@ -327,7 +327,7 @@ class BaseSupersetViewMixin:
         )
 
     def send_stats_metrics(
-        self, response: Response | str, key: str, time_delta: float | None = None
+        self, response: Response, key: str, time_delta: float | None = None
     ) -> None:
         """
         Helper function to handle sending statsd metrics
@@ -335,12 +335,6 @@ class BaseSupersetViewMixin:
         :param key: The function name
         :param time_delta: Optional time it took for the endpoint to execute
         """
-        # TODO: not all endpoints return Response
-        if isinstance(response, str):
-            print(f"debug {response}")
-            print(f"debug {key}")
-            return
-
         if 200 <= response.status_code < 400:
             self.incr_stats("success", key)
         elif 400 <= response.status_code < 500:

@@ -210,6 +210,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         payload = viz_obj.get_payload()
         return self.send_data_payload_response(viz_obj, payload)
 
+    @statsd_metrics
     @event_logger.log_this
     @api
     @has_access_api
@@ -257,6 +258,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @handle_api_exception
+    @statsd_metrics
     @event_logger.log_this
     @expose(
         "/explore_json/<datasource_type>/<int:datasource_id>/",
@@ -754,6 +756,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         return json_success(json.dumps(response))
 
+    @statsd_metrics
     @event_logger.log_this
     @api
     @has_access_api
@@ -925,6 +928,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @handle_api_exception
     @has_access
+    @statsd_metrics
     @event_logger.log_this
     @expose("/fetch_datasource_metadata")
     @deprecated(
@@ -988,6 +992,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
 
     @has_access
+    @statsd_metrics
     @event_logger.log_this
     @expose("/profile/")
     @deprecated(new_target="/profile")
@@ -995,6 +1000,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return redirect("/profile/")
 
     @has_access
+    @statsd_metrics
     @event_logger.log_this
     @expose(
         "/sqllab/",
@@ -1013,6 +1019,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return redirect(url)
 
     @has_access
+    @statsd_metrics
     @event_logger.log_this
     @expose("/sqllab/history/", methods=("GET",))
     @deprecated(new_target="/sqllab/history")
