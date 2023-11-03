@@ -228,7 +228,7 @@ const TagModal: React.FC<TagModalProps> = ({
           addSuccessToast(t('Tag updated'));
         })
         .catch(err => {
-          addDangerToast(err.message ? err.message : 'Error Updating Tag');
+          addDangerToast(err.message || 'Error Updating Tag');
         });
     } else {
       SupersetClient.post({
