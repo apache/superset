@@ -17,27 +17,41 @@
  * under the License.
  */
 import { ChartProps, supersetTheme } from '@superset-ui/core';
-import { EchartsWaterfallChartProps } from '../../src/Waterfall/types';
+import {
+  EchartsWaterfallChartProps,
+  WaterfallChartTransformedProps,
+} from '../../src/Waterfall/types';
 import transformProps from '../../src/Waterfall/transformProps';
+
+const extractSeries = (props: WaterfallChartTransformedProps) => {
+  const { echartOptions } = props;
+  const { series } = echartOptions as unknown as {
+    series: [{ data: [{ value: number }] }];
+  };
+  return series.map(item => item.data).map(item => item.map(i => i.value));
+};
 
 describe('Waterfall tranformProps', () => {
   const data = [
-    { foo: 'Sylvester', bar: '2019', sum: 10 },
-    { foo: 'Arnold', bar: '2019', sum: 3 },
-    { foo: 'Sylvester', bar: '2020', sum: -10 },
-    { foo: 'Arnold', bar: '2020', sum: 5 },
+    { year: '2019', name: 'Sylvester', sum: 10 },
+    { year: '2019', name: 'Arnold', sum: 3 },
+    { year: '2020', name: 'Sylvester', sum: -10 },
+    { year: '2020', name: 'Arnold', sum: 5 },
   ];
 
+  const formData = {
+    colorScheme: 'bnbColors',
+    datasource: '3__table',
+    x_axis: 'year',
+    metric: 'sum',
+    increaseColor: { r: 0, b: 0, g: 0 },
+    decreaseColor: { r: 0, b: 0, g: 0 },
+    totalColor: { r: 0, b: 0, g: 0 },
+  };
+
   it('should tranform chart props for viz when breakdown not exist', () => {
-    const formData1 = {
-      colorScheme: 'bnbColors',
-      datasource: '3__table',
-      granularity_sqla: 'ds',
-      metric: 'sum',
-      series: 'bar',
-    };
     const chartProps = new ChartProps({
-      formData: formData1,
+      formData: { ...formData, series: 'bar' },
       width: 800,
       height: 600,
       queriesData: [
@@ -47,43 +61,20 @@ describe('Waterfall tranformProps', () => {
       ],
       theme: supersetTheme,
     });
-    expect(
-      transformProps(chartProps as unknown as EchartsWaterfallChartProps),
-    ).toEqual(
-      expect.objectContaining({
-        width: 800,
-        height: 600,
-        echartOptions: expect.objectContaining({
-          series: [
-            expect.objectContaining({
-              data: [0, 8, '-'],
-            }),
-            expect.objectContaining({
-              data: [13, '-', '-'],
-            }),
-            expect.objectContaining({
-              data: ['-', 5, '-'],
-            }),
-            expect.objectContaining({
-              data: ['-', '-', 8],
-            }),
-          ],
-        }),
-      }),
+    const transformedProps = transformProps(
+      chartProps as unknown as EchartsWaterfallChartProps,
     );
+    expect(extractSeries(transformedProps)).toEqual([
+      [0, 8, '-'],
+      [13, '-', '-'],
+      ['-', 5, '-'],
+      ['-', '-', 8],
+    ]);
   });
 
   it('should tranform chart props for viz when breakdown exist', () => {
-    const formData1 = {
-      colorScheme: 'bnbColors',
-      datasource: '3__table',
-      granularity_sqla: 'ds',
-      metric: 'sum',
-      series: 'bar',
-      columns: 'foo',
-    };
     const chartProps = new ChartProps({
-      formData: formData1,
+      formData: { ...formData, groupby: 'name' },
       width: 800,
       height: 600,
       queriesData: [
@@ -93,29 +84,14 @@ describe('Waterfall tranformProps', () => {
       ],
       theme: supersetTheme,
     });
-    expect(
-      transformProps(chartProps as unknown as EchartsWaterfallChartProps),
-    ).toEqual(
-      expect.objectContaining({
-        width: 800,
-        height: 600,
-        echartOptions: expect.objectContaining({
-          series: [
-            expect.objectContaining({
-              data: [0, 10, '-', 3, 3, '-'],
-            }),
-            expect.objectContaining({
-              data: [10, 3, '-', '-', 5, '-'],
-            }),
-            expect.objectContaining({
-              data: ['-', '-', '-', 10, '-', '-'],
-            }),
-            expect.objectContaining({
-              data: ['-', '-', 13, '-', '-', 8],
-            }),
-          ],
-        }),
-      }),
+    const transformedProps = transformProps(
+      chartProps as unknown as EchartsWaterfallChartProps,
     );
+    expect(extractSeries(transformedProps)).toEqual([
+      [0, 10, '-', 3, 3, '-'],
+      [10, 3, '-', '-', 5, '-'],
+      ['-', '-', '-', 10, '-', '-'],
+      ['-', '-', 13, '-', '-', 8],
+    ]);
   });
 });

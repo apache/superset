@@ -17,51 +17,68 @@
  * under the License.
  */
 import {
-  CategoricalColorNamespace,
+  CurrencyFormatter,
   DataRecord,
-  getColumnLabel,
+  ensureIsArray,
+  GenericDataType,
   getMetricLabel,
   getNumberFormatter,
+  getTimeFormatter,
+  isAdhocColumn,
   NumberFormatter,
+  rgbToHex,
   SupersetTheme,
 } from '@superset-ui/core';
 import { EChartsOption, BarSeriesOption } from 'echarts';
-import { CallbackDataParams } from 'echarts/types/src/util/types';
 import {
-  EchartsWaterfallFormData,
   EchartsWaterfallChartProps,
   ISeriesData,
   WaterfallChartTransformedProps,
+  ICallbackDataParams,
 } from './types';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { defaultGrid, defaultYAxis } from '../defaults';
 import { ASSIST_MARK, LEGEND, TOKEN, TOTAL_MARK } from './constants';
-import { extractGroupbyLabel, getColtypesMapping } from '../utils/series';
+import { getColtypesMapping } from '../utils/series';
 import { Refs } from '../types';
+import { NULL_STRING } from '../constants';
 
 function formatTooltip({
   theme,
   params,
-  numberFormatter,
-  richTooltip,
+  breakdownName,
+  defaultFormatter,
+  xAxisFormatter,
 }: {
   theme: SupersetTheme;
-  params: any;
-  numberFormatter: NumberFormatter;
-  richTooltip: boolean;
+  params: ICallbackDataParams[];
+  breakdownName?: string;
+  defaultFormatter: NumberFormatter | CurrencyFormatter;
+  xAxisFormatter: (value: number | string, index: number) => string;
 }) {
-  const htmlMaker = (params: any) =>
-    `
-    <div>${params.name}</div>
+  const series = params.find(
+    param => param.seriesName !== ASSIST_MARK && param.data.value !== TOKEN,
+  );
+
+  // We may have no matching series depending on the legend state
+  if (!series) {
+    return '';
+  }
+
+  const isTotal = series?.seriesName === LEGEND.TOTAL;
+  if (!series) {
+    return NULL_STRING;
+  }
+
+  const createRow = (name: string, value: string) => `
     <div>
-      ${params.marker}
       <span style="
         font-size:${theme.typography.sizes.m}px;
         color:${theme.colors.grayscale.base};
         font-weight:${theme.typography.weights.normal};
         margin-left:${theme.gridUnit * 0.5}px;"
       >
-        ${params.seriesName}:
+        ${name}:
       </span>
       <span style="
         float:right;
@@ -70,42 +87,39 @@ function formatTooltip({
         color:${theme.colors.grayscale.base};
         font-weight:${theme.typography.weights.bold}"
       >
-        ${numberFormatter(params.data)}
+        ${value}
       </span>
     </div>
   `;
 
-  if (richTooltip) {
-    const [, increaseParams, decreaseParams, totalParams] = params;
-    if (increaseParams.data !== TOKEN || increaseParams.data === null) {
-      return htmlMaker(increaseParams);
-    }
-    if (decreaseParams.data !== TOKEN) {
-      return htmlMaker(decreaseParams);
-    }
-    if (totalParams.data !== TOKEN) {
-      return htmlMaker(totalParams);
-    }
-  } else if (params.seriesName !== ASSIST_MARK) {
-    return htmlMaker(params);
+  let result = '';
+  if (!isTotal || breakdownName) {
+    result = xAxisFormatter(series.name, series.dataIndex);
   }
-  return '';
+  if (!isTotal) {
+    result += createRow(
+      series.seriesName!,
+      defaultFormatter(series.data.originalValue),
+    );
+  }
+  result += createRow(TOTAL_MARK, defaultFormatter(series.data.totalSum));
+  return result;
 }
 
 function transformer({
   data,
-  breakdown,
-  series,
+  xAxis,
   metric,
+  breakdown,
 }: {
   data: DataRecord[];
-  breakdown: string;
-  series: string;
+  xAxis: string;
   metric: string;
+  breakdown?: string;
 }) {
   // Group by series (temporary map)
   const groupedData = data.reduce((acc, cur) => {
-    const categoryLabel = cur[series] as string;
+    const categoryLabel = cur[xAxis] as string;
     const categoryData = acc.get(categoryLabel) || [];
     categoryData.push(cur);
     acc.set(categoryLabel, categoryData);
@@ -114,7 +128,7 @@ function transformer({
 
   const transformedData: DataRecord[] = [];
 
-  if (breakdown?.length) {
+  if (breakdown) {
     groupedData.forEach((value, key) => {
       const tempValue = value;
       // Calc total per period
@@ -124,7 +138,7 @@ function transformer({
       );
       // Push total per period to the end of period values array
       tempValue.push({
-        [series]: key,
+        [xAxis]: key,
         [breakdown]: TOTAL_MARK,
         [metric]: sum,
       });
@@ -138,13 +152,13 @@ function transformer({
         0,
       );
       transformedData.push({
-        [series]: key,
+        [xAxis]: key,
         [metric]: sum,
       });
       total += sum;
     });
     transformedData.push({
-      [series]: TOTAL_MARK,
+      [xAxis]: TOTAL_MARK,
       [metric]: total,
     });
   }
@@ -159,50 +173,53 @@ export default function transformProps(
     width,
     height,
     formData,
+    legendState,
     queriesData,
     hooks,
-    filterState,
     theme,
     inContextMenu,
   } = chartProps;
   const refs: Refs = {};
   const { data = [] } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
-  const { setDataMask = () => {}, onContextMenu } = hooks;
+  const { setDataMask = () => {}, onContextMenu, onLegendStateChanged } = hooks;
   const {
-    colorScheme,
+    currencyFormat,
+    groupby,
+    increaseColor,
+    decreaseColor,
+    totalColor,
     metric = '',
-    columns,
-    series,
+    xAxis,
     xTicksLayout,
+    xAxisTimeFormat,
     showLegend,
     yAxisLabel,
     xAxisLabel,
     yAxisFormat,
-    richTooltip,
     showValue,
-    sliceId,
-  } = formData as EchartsWaterfallFormData;
-  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
-  const numberFormatter = getNumberFormatter(yAxisFormat);
-  const formatter = (params: CallbackDataParams) => {
-    const { value, seriesName } = params;
-    let formattedValue = numberFormatter(value as number);
-    if (seriesName === LEGEND.DECREASE) {
-      formattedValue = `-${formattedValue}`;
-    }
-    return formattedValue;
+  } = formData;
+  const defaultFormatter = currencyFormat?.symbol
+    ? new CurrencyFormatter({ d3Format: yAxisFormat, currency: currencyFormat })
+    : getNumberFormatter(yAxisFormat);
+
+  const seriesformatter = (params: ICallbackDataParams) => {
+    const { data } = params;
+    const { originalValue } = data;
+    return defaultFormatter(originalValue as number);
   };
-  const breakdown = columns?.length ? columns : '';
-  const groupby = breakdown ? [series, breakdown] : [series];
+  const groupbyArray = ensureIsArray(groupby);
+  const breakdownColumn = groupbyArray.length ? groupbyArray[0] : undefined;
+  const breakdownName = isAdhocColumn(breakdownColumn)
+    ? breakdownColumn.label!
+    : breakdownColumn;
+  const xAxisName = isAdhocColumn(xAxis) ? xAxis.label! : xAxis;
   const metricLabel = getMetricLabel(metric);
-  const columnLabels = groupby.map(getColumnLabel);
-  const columnsLabelMap = new Map<string, string[]>();
 
   const transformedData = transformer({
     data,
-    breakdown,
-    series,
+    breakdown: breakdownName,
+    xAxis: xAxisName,
     metric: metricLabel,
   });
 
@@ -211,48 +228,128 @@ export default function transformProps(
   const decreaseData: ISeriesData[] = [];
   const totalData: ISeriesData[] = [];
 
+  let previousTotal = 0;
+
   transformedData.forEach((datum, index, self) => {
     const totalSum = self.slice(0, index + 1).reduce((prev, cur, i) => {
-      if (breakdown?.length) {
-        if (cur[breakdown] !== TOTAL_MARK || i === 0) {
+      if (breakdownName) {
+        if (cur[breakdownName] !== TOTAL_MARK || i === 0) {
           return prev + ((cur[metricLabel] as number) ?? 0);
         }
-      } else if (cur[series] !== TOTAL_MARK) {
+      } else if (cur[xAxisName] !== TOTAL_MARK) {
         return prev + ((cur[metricLabel] as number) ?? 0);
       }
       return prev;
     }, 0);
 
-    const joinedName = extractGroupbyLabel({
-      datum,
-      groupby: columnLabels,
-      coltypeMapping,
-    });
-    columnsLabelMap.set(
-      joinedName,
-      columnLabels.map(col => datum[col] as string),
-    );
-    const value = datum[metricLabel] as number;
-    const isNegative = value < 0;
-    if (datum[breakdown] === TOTAL_MARK || datum[series] === TOTAL_MARK) {
-      increaseData.push(TOKEN);
-      decreaseData.push(TOKEN);
-      assistData.push(TOKEN);
-      totalData.push(totalSum);
-    } else if (isNegative) {
-      increaseData.push(TOKEN);
-      decreaseData.push(Math.abs(value));
-      assistData.push(totalSum);
-      totalData.push(TOKEN);
-    } else {
-      increaseData.push(value);
-      decreaseData.push(TOKEN);
-      assistData.push(totalSum - value);
-      totalData.push(TOKEN);
+    const isTotal =
+      (breakdownName && datum[breakdownName] === TOTAL_MARK) ||
+      datum[xAxisName] === TOTAL_MARK;
+
+    const originalValue = datum[metricLabel] as number;
+    let value = originalValue;
+    const oppositeSigns = Math.sign(previousTotal) !== Math.sign(totalSum);
+    if (oppositeSigns) {
+      value = Math.sign(value) * (Math.abs(value) - Math.abs(previousTotal));
     }
+
+    if (isTotal) {
+      increaseData.push({ value: TOKEN });
+      decreaseData.push({ value: TOKEN });
+      totalData.push({
+        value: totalSum,
+        originalValue: totalSum,
+        totalSum,
+      });
+    } else if (value < 0) {
+      increaseData.push({ value: TOKEN });
+      decreaseData.push({
+        value: totalSum < 0 ? value : -value,
+        originalValue,
+        totalSum,
+      });
+      totalData.push({ value: TOKEN });
+    } else {
+      increaseData.push({
+        value: totalSum > 0 ? value : -value,
+        originalValue,
+        totalSum,
+      });
+      decreaseData.push({ value: TOKEN });
+      totalData.push({ value: TOKEN });
+    }
+
+    const color = oppositeSigns
+      ? value > 0
+        ? rgbToHex(increaseColor.r, increaseColor.g, increaseColor.b)
+        : rgbToHex(decreaseColor.r, decreaseColor.g, decreaseColor.b)
+      : 'transparent';
+
+    let opacity = 1;
+    if (legendState?.[LEGEND.INCREASE] === false && value > 0) {
+      opacity = 0;
+    } else if (legendState?.[LEGEND.DECREASE] === false && value < 0) {
+      opacity = 0;
+    }
+
+    if (isTotal) {
+      assistData.push({ value: TOKEN });
+    } else if (index === 0) {
+      assistData.push({
+        value: 0,
+      });
+    } else if (oppositeSigns || Math.abs(totalSum) > Math.abs(previousTotal)) {
+      assistData.push({
+        value: previousTotal,
+        itemStyle: { color, opacity },
+      });
+    } else {
+      assistData.push({
+        value: totalSum,
+        itemStyle: { color, opacity },
+      });
+    }
+
+    previousTotal = totalSum;
   });
 
-  let axisLabel;
+  const xAxisColumns: string[] = [];
+  const xAxisData = transformedData.map(row => {
+    let column = xAxisName;
+    let value = row[xAxisName];
+    if (breakdownName && row[breakdownName] !== TOTAL_MARK) {
+      column = breakdownName;
+      value = row[breakdownName];
+    }
+    if (!value) {
+      value = NULL_STRING;
+    }
+    if (typeof value !== 'string' && typeof value !== 'number') {
+      value = String(value);
+    }
+    xAxisColumns.push(column);
+    return value;
+  });
+
+  const xAxisFormatter = (value: number | string, index: number) => {
+    if (value === TOTAL_MARK) {
+      return TOTAL_MARK;
+    }
+    if (coltypeMapping[xAxisColumns[index]] === GenericDataType.TEMPORAL) {
+      if (typeof value === 'string') {
+        return getTimeFormatter(xAxisTimeFormat)(Number.parseInt(value, 10));
+      }
+      return getTimeFormatter(xAxisTimeFormat)(value);
+    }
+    return String(value);
+  };
+
+  let axisLabel: {
+    rotate?: number;
+    hideOverlap?: boolean;
+    show?: boolean;
+    formatter?: typeof xAxisFormatter;
+  };
   if (xTicksLayout === '45°') {
     axisLabel = { rotate: -45 };
   } else if (xTicksLayout === '90°') {
@@ -264,75 +361,59 @@ export default function transformProps(
   } else {
     axisLabel = { show: true };
   }
+  axisLabel.formatter = xAxisFormatter;
+  axisLabel.hideOverlap = false;
 
-  let xAxisData: string[] = [];
-  if (breakdown?.length) {
-    xAxisData = transformedData.map(row => {
-      if (row[breakdown] === TOTAL_MARK) {
-        return row[series] as string;
-      }
-      return row[breakdown] as string;
-    });
-  } else {
-    xAxisData = transformedData.map(row => row[series] as string);
-  }
+  const seriesProps: Pick<BarSeriesOption, 'type' | 'stack' | 'emphasis'> = {
+    type: 'bar',
+    stack: 'stack',
+    emphasis: {
+      disabled: true,
+    },
+  };
 
   const barSeries: BarSeriesOption[] = [
     {
+      ...seriesProps,
       name: ASSIST_MARK,
-      type: 'bar',
-      stack: 'stack',
-      itemStyle: {
-        borderColor: 'transparent',
-        color: 'transparent',
-      },
-      emphasis: {
-        itemStyle: {
-          borderColor: 'transparent',
-          color: 'transparent',
-        },
-      },
       data: assistData,
     },
     {
+      ...seriesProps,
       name: LEGEND.INCREASE,
-      type: 'bar',
-      stack: 'stack',
       label: {
         show: showValue,
         position: 'top',
-        formatter,
+        formatter: seriesformatter,
       },
       itemStyle: {
-        color: colorFn(LEGEND.INCREASE, sliceId),
+        color: rgbToHex(increaseColor.r, increaseColor.g, increaseColor.b),
       },
       data: increaseData,
     },
     {
+      ...seriesProps,
       name: LEGEND.DECREASE,
-      type: 'bar',
-      stack: 'stack',
       label: {
         show: showValue,
         position: 'bottom',
-        formatter,
+        formatter: seriesformatter,
       },
       itemStyle: {
-        color: colorFn(LEGEND.DECREASE, sliceId),
+        color: rgbToHex(decreaseColor.r, decreaseColor.g, decreaseColor.b),
       },
       data: decreaseData,
     },
     {
+      ...seriesProps,
       name: LEGEND.TOTAL,
-      type: 'bar',
-      stack: 'stack',
       label: {
         show: showValue,
         position: 'top',
-        formatter,
+        formatter: seriesformatter,
       },
       itemStyle: {
-        color: colorFn(LEGEND.TOTAL, sliceId),
+        color: rgbToHex(totalColor.r, totalColor.g, totalColor.b),
       },
       data: totalData,
     },
@@ -348,11 +429,12 @@ export default function transformProps(
     },
     legend: {
       show: showLegend,
+      selected: legendState,
       data: [LEGEND.INCREASE, LEGEND.DECREASE, LEGEND.TOTAL],
     },
     xAxis: {
-      type: 'category',
       data: xAxisData,
+      type: 'category',
       name: xAxisLabel,
       nameTextStyle: {
         padding: [theme.gridUnit * 4, 0, 0, 0],
@@ -368,19 +450,20 @@ export default function transformProps(
       },
       nameLocation: 'middle',
       name: yAxisLabel,
-      axisLabel: { formatter: numberFormatter },
+      axisLabel: { formatter: defaultFormatter },
     },
     tooltip: {
       ...getDefaultTooltip(refs),
       appendToBody: true,
-      trigger: richTooltip ? 'axis' : 'item',
+      trigger: 'axis',
       show: !inContextMenu,
       formatter: (params: any) =>
         formatTooltip({
           theme,
           params,
-          numberFormatter,
-          richTooltip,
+          breakdownName,
+          defaultFormatter,
+          xAxisFormatter,
         }),
     },
     series: barSeries,
@@ -393,9 +476,7 @@ export default function transformProps(
     height,
     echartOptions,
     setDataMask,
-    labelMap: Object.fromEntries(columnsLabelMap),
-    groupby,
-    selectedValues: filterState.selectedValues || [],
     onContextMenu,
+    onLegendStateChanged,
   };
 }
