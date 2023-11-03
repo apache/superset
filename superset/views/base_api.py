@@ -41,7 +41,11 @@ from superset.sql_lab import Query as SqllabQuery
 from superset.superset_typing import FlaskResponse
 from superset.tags.models import Tag
 from superset.utils.core import get_user_id, time_function
-from superset.views.base import BaseSupersetViewMixin, handle_api_exception
+from superset.views.base import (
+    BaseSupersetViewMixin,
+    handle_api_exception,
+    statsd_metrics,
+)
 
 logger = logging.getLogger(__name__)
 get_related_schema = {
@@ -448,6 +452,7 @@ class BaseSupersetModelRestApi(BaseSupersetViewMixin, ModelRestApi):
     @expose("/related/<column_name>", methods=("GET",))
     @protect()
     @safe
+    @statsd_metrics
     @rison(get_related_schema)
     @handle_api_exception
     def related(self, column_name: str, **kwargs: Any) -> FlaskResponse:
@@ -526,6 +531,7 @@ class BaseSupersetModelRestApi(BaseSupersetViewMixin, ModelRestApi):
     @expose("/distinct/<column_name>", methods=("GET",))
     @protect()
     @safe
+    @statsd_metrics
     @rison(get_related_schema)
     @handle_api_exception
     def distinct(self, column_name: str, **kwargs: Any) -> FlaskResponse:
