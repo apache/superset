@@ -50,7 +50,7 @@ export default function transformProps(
     metric,
     normalized,
     showLegend,
-    showPercentage,
+    showPercentage, // TODO: Logic is in viz.py
     showValues,
     sortXAxis,
     sortYAxis,
@@ -58,12 +58,26 @@ export default function transformProps(
     yscaleInterval,
     yAxisBounds,
     yAxisFormat,
-    timeFormat,
+    xAxisTimeFormat,
     currencyFormat,
   } = formData;
   const metricName = typeof metric === 'string' ? metric : metric.label || '';
   const { data, colnames, coltypes } = queriesData[0];
   const { columnFormats = {}, currencyFormats = {} } = datasource;
+
+  const getAxisFormatter =
+    (colType: GenericDataType) => (value: number | string) => {
+      if (colType === GenericDataType.TEMPORAL) {
+        if (typeof value === 'string') {
+          return getTimeFormatter(xAxisTimeFormat)(Number.parseInt(value, 10));
+        }
+        return getTimeFormatter(xAxisTimeFormat)(value);
+      }
+      return String(value);
+    };
+
+  const xAxisFormatter = getAxisFormatter(coltypes[0]);
+  const yAxisFormatter = getAxisFormatter(coltypes[1]);
   const valueFormatter = getValueFormatter(
     metric,
     currencyFormats,
@@ -98,17 +112,6 @@ export default function transformProps(
     },
   ];
 
-  const getAxisFormatter =
-    (colType: GenericDataType) => (value: number | string) => {
-      if (colType === GenericDataType.TEMPORAL) {
-        if (typeof value === 'string') {
-          return getTimeFormatter(timeFormat)(Number.parseInt(value, 10));
-        }
-        return getTimeFormatter(timeFormat)(value);
-      }
-      return String(value);
-    };
-
   const colors = getSequentialSchemeRegistry().get(linearColorScheme)?.colors;
 
   const echartOptions: EChartsOption = {
@@ -120,7 +123,7 @@ export default function transformProps(
       ...getDefaultTooltip(refs),
       formatter: (params: CallbackDataParams) => `
         <div>
-          <div>${colnames[0]}: <b>${params.value[0]}</b></div>
+          <div>${colnames[0]}: <b>${xAxisFormatter(params.value[0])}</b></div>
           <div>${colnames[1]}: <b>${params.value[1]}</b></div>
           <div>${colnames[2]}: <b>${valueFormatter(params.value[2])}</b></div>
         </div>`,
@@ -143,7 +146,7 @@ export default function transformProps(
     xAxis: {
       type: 'category',
       axisLabel: {
-        formatter: getAxisFormatter(coltypes[0]),
+        formatter: xAxisFormatter,
       },
     },
     yAxis: {
@@ -151,7 +154,7 @@ export default function transformProps(
       min,
       max,
       axisLabel: {
-        formatter: getAxisFormatter(coltypes[1]),
+        formatter: yAxisFormatter,
       },
     },
   };

@@ -16,15 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext } from '@superset-ui/core';
+import {
+  buildQueryContext,
+  ensureIsArray,
+  getXAxisColumn,
+} from '@superset-ui/core';
 import { HeatmapFormData } from './types';
 
 export default function buildQuery(formData: HeatmapFormData) {
-  const { metric, sort_by_metric } = formData;
+  const columns = [
+    ...ensureIsArray(getXAxisColumn(formData)),
+    ...ensureIsArray(formData.groupby),
+  ];
   return buildQueryContext(formData, baseQueryObject => [
     {
       ...baseQueryObject,
-      ...(sort_by_metric && { orderby: [[metric, false]] }),
+      columns,
+      orderby: columns?.map(column => [column, true]),
     },
   ]);
 }

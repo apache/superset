@@ -17,21 +17,12 @@
  * under the License.
  */
 import React from 'react';
+import { t, validateNonEmpty } from '@superset-ui/core';
 import {
-  FeatureFlag,
-  isFeatureEnabled,
-  t,
-  validateNonEmpty,
-} from '@superset-ui/core';
-import {
-  columnChoices,
   ControlPanelConfig,
-  ControlPanelState,
   formatSelectOptionsForRange,
   sections,
-  sharedControls,
   getStandardizedControls,
-  D3_TIME_FORMAT_DOCS,
 } from '@superset-ui/chart-controls';
 
 const sortAxisChoices = [
@@ -41,25 +32,6 @@ const sortAxisChoices = [
   ['value_desc', t('Metric descending')],
 ];
 
-const columns = {
-  type: 'SelectControl',
-  default: null,
-  description: t('Columns to display'),
-  mapStateToProps: (state: ControlPanelState) => ({
-    choices: columnChoices(state.datasource),
-  }),
-  validators: [validateNonEmpty],
-};
-
-const dndColumns = {
-  ...sharedControls.entity,
-  description: t('Columns to display'),
-};
-
-const columnsConfig = isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
-  ? dndColumns
-  : columns;
-
 const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.legacyRegularTime,
@@ -67,39 +39,12 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        [
-          {
-            name: 'columns',
-            config: {
-              ...columnsConfig,
-              label: t('X Axis'),
-            },
-          },
-        ],
-        [
-          {
-            name: 'groupby',
-            config: {
-              ...columnsConfig,
-              label: t('Y Axis'),
-            },
-          },
-        ],
+        ['x_axis'],
+        ['time_grain_sqla'],
+        ['groupby'],
         ['metric'],
         ['adhoc_filters'],
         ['row_limit'],
-        [
-          {
-            name: 'sort_by_metric',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Sort by metric'),
-              description: t(
-                'Whether to sort results by the selected metric in descending order.',
-              ),
-            },
-          },
-        ],
       ],
     },
     {
@@ -274,16 +219,7 @@ const config: ControlPanelConfig = {
           },
         ],
         ['y_axis_format'],
-        [
-          {
-            name: 'time_format',
-            config: {
-              ...sharedControls.x_axis_time_format,
-              default: '%d/%m/%Y',
-              description: `${D3_TIME_FORMAT_DOCS}.`,
-            },
-          },
-        ],
+        ['x_axis_time_format'],
         ['currency_format'],
         [
           {
@@ -369,6 +305,12 @@ const config: ControlPanelConfig = {
     },
   ],
   controlOverrides: {
+    groupby: {
+      label: t('Y-Axis'),
+      description: t('Dimension to use on y-axis.'),
+      multi: false,
+      validators: [validateNonEmpty],
+    },
     y_axis_format: {
       label: t('Value Format'),
     },
