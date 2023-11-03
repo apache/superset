@@ -23,7 +23,7 @@ from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session
 
 from superset import db
-from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
+from superset.commands.dashboard.exceptions import DashboardAccessDeniedError
 from superset.key_value.models import KeyValueEntry
 from superset.key_value.types import KeyValueResource
 from superset.key_value.utils import decode_permalink_id

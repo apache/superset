@@ -59,8 +59,8 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
 
 from superset import app, db_engine_specs
+from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.constants import LRU_CACHE_MAX_SIZE, PASSWORD_MASK
-from superset.databases.commands.exceptions import DatabaseInvalidError
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import MetricType, TimeGrain
 from superset.extensions import (

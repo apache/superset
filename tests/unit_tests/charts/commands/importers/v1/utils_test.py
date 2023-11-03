@@ -17,7 +17,7 @@
 
 import json
 
-from superset.charts.commands.importers.v1.utils import migrate_chart
+from superset.commands.chart.importers.v1.utils import migrate_chart
 
 
 def test_migrate_chart_area() -> None:

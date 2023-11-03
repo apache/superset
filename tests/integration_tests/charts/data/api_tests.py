@@ -42,7 +42,7 @@ from tests.integration_tests.fixtures.energy_dashboard import (
 import pytest
 from superset.models.slice import Slice
 
-from superset.charts.data.commands.get_data_command import ChartDataCommand
+from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.connectors.sqla.models import TableColumn, SqlaTable
 from superset.errors import SupersetErrorType
 from superset.extensions import async_query_manager_factory, db

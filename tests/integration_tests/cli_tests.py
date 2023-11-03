@@ -137,7 +137,7 @@ def test_export_dashboards_versioned_export(app_context, fs):
     "superset.cli.lib.feature_flags", {"VERSIONED_EXPORT": True}, clear=True
 )
 @mock.patch(
-    "superset.dashboards.commands.export.ExportDashboardsCommand.run",
+    "superset.commands.dashboard.export.ExportDashboardsCommand.run",
     side_effect=Exception(),
 )
 def test_failing_export_dashboards_versioned_export(
@@ -191,7 +191,7 @@ def test_export_datasources_versioned_export(app_context, fs):
     "superset.cli.lib.feature_flags", {"VERSIONED_EXPORT": True}, clear=True
 )
 @mock.patch(
-    "superset.dashboards.commands.export.ExportDatasetsCommand.run",
+    "superset.commands.dashboard.export.ExportDatasetsCommand.run",
     side_effect=Exception(),
 )
 def test_failing_export_datasources_versioned_export(
@@ -217,7 +217,7 @@ def test_failing_export_datasources_versioned_export(
 @mock.patch.dict(
     "superset.cli.lib.feature_flags", {"VERSIONED_EXPORT": True}, clear=True
 )
-@mock.patch("superset.dashboards.commands.importers.dispatcher.ImportDashboardsCommand")
+@mock.patch("superset.commands.dashboard.importers.dispatcher.ImportDashboardsCommand")
 def test_import_dashboards_versioned_export(import_dashboards_command, app_context, fs):
     """
     Test that both ZIP and JSON can be imported.
@@ -261,7 +261,7 @@ def test_import_dashboards_versioned_export(import_dashboards_command, app_conte
     "superset.cli.lib.feature_flags", {"VERSIONED_EXPORT": True}, clear=True
 )
 @mock.patch(
-    "superset.dashboards.commands.importers.dispatcher.ImportDashboardsCommand.run",
+    "superset.commands.dashboard.importers.dispatcher.ImportDashboardsCommand.run",
     side_effect=Exception(),
 )
 def test_failing_import_dashboards_versioned_export(
@@ -304,7 +304,7 @@ def test_failing_import_dashboards_versioned_export(
 @mock.patch.dict(
     "superset.cli.lib.feature_flags", {"VERSIONED_EXPORT": True}, clear=True
 )
-@mock.patch("superset.datasets.commands.importers.dispatcher.ImportDatasetsCommand")
+@mock.patch("superset.commands.dataset.importers.dispatcher.ImportDatasetsCommand")
 def test_import_datasets_versioned_export(import_datasets_command, app_context, fs):
     """
     Test that both ZIP and YAML can be imported.
@@ -347,7 +347,7 @@ def test_import_datasets_versioned_export(import_datasets_command, app_context, 
 @mock.patch.dict(
     "superset.cli.lib.feature_flags", {"VERSIONED_EXPORT": False}, clear=True
 )
-@mock.patch("superset.datasets.commands.importers.v0.ImportDatasetsCommand")
+@mock.patch("superset.commands.dataset.importers.v0.ImportDatasetsCommand")
 def test_import_datasets_sync_argument_columns_metrics(
     import_datasets_command, app_context, fs
 ):
@@ -384,7 +384,7 @@ def test_import_datasets_sync_argument_columns_metrics(
 @mock.patch.dict(
     "superset.cli.lib.feature_flags", {"VERSIONED_EXPORT": False}, clear=True
 )
-@mock.patch("superset.datasets.commands.importers.v0.ImportDatasetsCommand")
+@mock.patch("superset.commands.dataset.importers.v0.ImportDatasetsCommand")
 def test_import_datasets_sync_argument_columns(
     import_datasets_command, app_context, fs
 ):
@@ -421,7 +421,7 @@ def test_import_datasets_sync_argument_columns(
 @mock.patch.dict(
     "superset.cli.lib.feature_flags", {"VERSIONED_EXPORT": False}, clear=True
 )
-@mock.patch("superset.datasets.commands.importers.v0.ImportDatasetsCommand")
+@mock.patch("superset.commands.dataset.importers.v0.ImportDatasetsCommand")
 def test_import_datasets_sync_argument_metrics(
     import_datasets_command, app_context, fs
 ):
@@ -459,7 +459,7 @@ def test_import_datasets_sync_argument_metrics(
     "superset.cli.lib.feature_flags", {"VERSIONED_EXPORT": True}, clear=True
 )
 @mock.patch(
-    "superset.datasets.commands.importers.dispatcher.ImportDatasetsCommand.run",
+    "superset.commands.dataset.importers.dispatcher.ImportDatasetsCommand.run",
     side_effect=Exception(),
 )
 def test_failing_import_datasets_versioned_export(
