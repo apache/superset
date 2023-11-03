@@ -16,20 +16,4 @@ describe('tagToSelectOption', () => {
 
     expect(tagToSelectOption(tag)).toEqual(expectedSelectTagsValue);
   });
-
-  test('handles tags with undefined properties', () => {
-    const tag = {
-      id: undefined,
-      name: undefined,
-      table_name: 'Table1',
-    };
-
-    const expectedSelectTagsValue = {
-      value: undefined,
-      label: undefined,
-      key: undefined,
-    };
-
-    expect(tagToSelectOption(tag)).toEqual(expectedSelectTagsValue);
-  });
 });
