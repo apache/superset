@@ -244,7 +244,7 @@ const TagModal: React.FC<TagModalProps> = ({
           addSuccessToast(t('Tag created'));
         })
         .catch(err =>
-          addDangerToast(err.message ? err.message : 'Error Creating Tag'),
+          addDangerToast(err.message || 'Error Creating Tag'),
         );
     }
     onHide();
