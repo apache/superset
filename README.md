@@ -128,7 +128,7 @@ Here are some of the major database solutions that are supported:
   <img src="superset-frontend/src/assets/images/pinot.png" alt="pinot" border="0" width="200" height="80"/>
   <img src="superset-frontend/src/assets/images/teradata.png" alt="teradata" border="0" width="200" height="80"/>
   <img src="superset-frontend/src/assets/images/yugabyte.png" alt="yugabyte" border="0" width="200" height="80"/>
-  <img src="superset-frontend/src/assets/images/databend.svg" alt="databend" border="0" width="200" height="80"/>
+  <img src="superset-frontend/src/assets/images/databend.png" alt="databend" border="0" width="200" height="80"/>
   <img src="superset-frontend/src/assets/images/starrocks.png" alt="starrocks" border="0" width="200" height="80"/>
 </p>
 
