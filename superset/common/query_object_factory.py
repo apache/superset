@@ -16,7 +16,6 @@
 # under the License.
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any, cast, TYPE_CHECKING
 
 from superset.common.chart_data import ChartDataResultType
@@ -112,11 +111,11 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         )
         return apply_max_row_limit(row_limit or default_row_limit)
 
+    @staticmethod
     def _process_time_range(
-        self,
         time_range: str | None,
-        filters: list[QueryObjectFilterClause] | None,
-        columns: list[Column] | None,
+        filters: list[QueryObjectFilterClause] | None = None,
+        columns: list[Column] | None = None,
     ) -> str:
         if time_range is None:
             time_range = NO_TIME_RANGE
@@ -126,6 +125,9 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
                 if flt.get("op") == FilterOperator.TEMPORAL_RANGE
             ]
             if temporal_flt:
+                # Use the temporal filter as the time range.
+                # if the temporal filters uses x-axis as the temporal filter
+                # then use it or use the first temporal filter
                 xaxis_label = get_xaxis_label(columns or [])
                 match_flt = [
                     flt for flt in temporal_flt if flt.get("col") == xaxis_label
