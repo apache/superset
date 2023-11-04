@@ -34,7 +34,7 @@ import {
 } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import Label, { Type } from 'src/components/Label';
+import Label from 'src/components/Label';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import Popover from 'src/components/Popover';
 import { commonMenuData } from 'src/features/home/commonMenuData';
