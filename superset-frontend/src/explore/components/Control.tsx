@@ -27,7 +27,6 @@ import {
   JsonValue,
   QueryFormData,
   usePrevious,
-  Metric,
 } from '@superset-ui/core';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
@@ -53,7 +52,6 @@ export type ControlProps = {
   default?: JsonValue;
   isVisible?: boolean;
   resetOnHide?: boolean;
-  savedMetrics?: Metric[] | null;
   form_data?: QueryFormData;
 };
 
@@ -78,7 +76,12 @@ export default function Control(props: ControlProps) {
     form_data,
   } = props;
 
-  const { overlapProps } = useOverlapOptions(name, props, form_data);
+  const { overlapProps } = useOverlapOptions({
+    name,
+    props,
+    form_data,
+    setControlValue,
+  });
 
   const [hovered, setHovered] = useState(false);
   const wasVisible = usePrevious(isVisible);
