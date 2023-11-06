@@ -2851,15 +2851,15 @@
       "Scatter Plot has the horizontal axis in linear units, and the points are connected in order. It shows a statistical relationship between two variables.": [
         ""
       ],
-      "Schedule": ["Plannifeir"],
+      "Schedule": ["Planification"],
+      "Schedule a new email report": ["Planifier un nouveau rapport par e-mail"],
       "Schedule email report": ["Planifier un rapport par e-mail"],
-      "Schedule query": ["Plannifier une requête"],
+      "Schedule query": ["Planifier une requête"],
       "Schedule settings": ["Paramètres de planification"],
-      "Schedule the query periodically": [
-        "Planifier la requête de façon périodique"
-      ],
+      "Schedule the query periodically": ["Planifier la requête de façon périodique"],
       "Scheduled": ["Programmé"],
-      "Scheduled at (UTC)": ["Plannifié à (UTC)"],
+      "Scheduled at (UTC)": ["Planifié à (UTC)"],
+      "Scheduled task executor not found": ["Exécuteur de tâches planifiées introuvable"],
       "Schema": ["Schéma"],
       "Schema cache timeout": ["Timeout du cache de schéma"],
       "Schema, as used only in some databases like Postgres, Redshift and DB2": [
