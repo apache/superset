@@ -33,7 +33,7 @@ from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
-from superset import is_feature_enabled, thumbnail_cache
+from superset import is_feature_enabled, security_manager, thumbnail_cache
 from superset.charts.schemas import ChartEntityResponseSchema
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
@@ -342,6 +342,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/404'
         """
         result = self.dashboard_get_response_schema.dump(dash)
+        if security_manager.is_guest_user():
+            # We don't want to expose personal information to guest users
+            result["owners"] = []
+            del result["changed_by_name"]
+            del result["changed_by"]
         add_extra_log_payload(
             dashboard_id=dash.id, action=f"{self.__class__.__name__}.get"
         )
@@ -405,6 +410,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             result = [
                 self.dashboard_dataset_schema.dump(dataset) for dataset in datasets
             ]
+            if security_manager.is_guest_user():
+                # We don't want to expose personal/db information to guest users
+                for dataset in result:
+                    dataset["owners"] = []
+                    del dataset["database"]
             return self.response(200, result=result)
         except (TypeError, ValueError) as err:
             return self.response_400(
