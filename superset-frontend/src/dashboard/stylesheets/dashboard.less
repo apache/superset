@@ -910,6 +910,8 @@ td.rdtYear:hover {
 }
 .dashboard-builder-sidepane .new-component-label {
   flex-grow: 1;
+  font-weight: 900;
+  color: #626262;
 }
 .dashboard-builder-sidepane .chart-card-container .chart-card {
   border: 1px solid #e0e0e0;
@@ -2527,14 +2529,14 @@ a:hover {
 }
 
 .ant-tabs-nav-list {
-  width: auto !important;
-  max-width: max-content;
+  width: 100% !important;
+  // max-width: max-content;
 }
 
 .ant-tabs-tab {
-  width: auto !important;
-  max-width: max-content;
-  margin-right: 16px !important;
+  width: 100% !important;
+  // max-width: max-content;
+  // margin-right: 16px !important;
 }
 
 .ant-tabs-tab.ant-tabs-tab-active::after {
@@ -2544,10 +2546,10 @@ a:hover {
 
 .ant-tabs-tab-btn {
   text-transform: capitalize !important;
-  font-size: 16px !important;
+  font-size: 14px !important;
   justify-content: flex-start;
   width: auto !important;
-  max-width: max-content;
+  // max-width: max-content;
 }
 
 .ant-tabs-tab:hover,
@@ -2585,13 +2587,19 @@ a:hover {
 /* - */
 
 .ant-tabs-tabpane .new-component {
-  padding: 4px 0;
+  padding: 8px 0;
   margin-bottom: 11px;
   background: #fff;
   border: 1px solid #fff;
   border-radius: 4px !important;
   color: var(--txtColor);
   transition: all 0.2s ease;
+}
+
+.ant-tabs-tabpane .new-component-description {
+  font-size: 14px;
+  margin-top: 4px;
+  color: rgb(184, 184, 184);
 }
 
 .ant-tabs-tabpane .new-component:hover {
@@ -2602,15 +2610,18 @@ a:hover {
 }
 
 .ant-tabs-tabpane .new-component .new-component-placeholder {
-  background: transparent !important;
+  // background: #f7f7f7 !important;
+  background-color: #eee;
+  border-radius: 4px;
   border: none !important;
-  width: 30px;
-  height: 30px;
+  width: 40px;
+  height: 40px;
 }
 
 .ant-tabs-tabpane .new-component .new-component-placeholder::before {
   font-size: 16px;
-  color: var(--txtColor2);
+  // color: var(--txtColor2);
+  color: #824fe0;
   transition: all 0.2s ease;
 }
 

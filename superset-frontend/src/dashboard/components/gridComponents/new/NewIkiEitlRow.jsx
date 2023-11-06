@@ -29,6 +29,7 @@ export default function DraggableNewDivider() {
       id={NEW_IKI_EITL_ROW_ID}
       type={IKI_EITL_ROW_TYPE}
       label={t('aiMatch Expert in the Loop (Rows)')}
+      description="aiMatch model component"
       className="fa fa-bars"
     />
   );

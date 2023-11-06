@@ -29,6 +29,7 @@ export default function DraggableNewTabs() {
       id={NEW_TABS_ID}
       type={TABS_TYPE}
       label={t('Tabs')}
+      description={t('Separate dashboard content')}
       className="fa fa-window-restore"
     />
   );

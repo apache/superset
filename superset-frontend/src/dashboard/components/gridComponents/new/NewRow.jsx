@@ -29,7 +29,8 @@ export default function DraggableNewRow() {
       id={NEW_ROW_ID}
       type={ROW_TYPE}
       label={t('Row')}
-      className="fa fa-long-arrow-right"
+      description={t('Horizontal content placeholder')}
+      className="fa fa-ellipsis-h"
     />
   );
 }

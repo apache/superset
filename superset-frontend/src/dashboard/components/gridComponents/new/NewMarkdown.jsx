@@ -28,6 +28,7 @@ export default function DraggableNewDivider() {
       id={NEW_MARKDOWN_ID}
       type={MARKDOWN_TYPE}
       label="Markdown"
+      description="HTML/CSS editor"
       className="fa fa-code"
     />
   );

@@ -29,6 +29,7 @@ export default function DraggableNewDivider() {
       id={NEW_IKI_PROCESS_BUILDER_ID}
       type={IKI_PROCESS_BUILDER_TYPE}
       label={t('Process Diagram')}
+      description="Visualize workflows and processes"
       className="fa fa-columns"
     />
   );

@@ -11,7 +11,8 @@ export default function DraggableNewDivider() {
       id={NEW_IKI_DEEPCAST_ID}
       type={IKI_DEEPCAST_TYPE}
       label={t('aiCast')}
-      className="fa fa-eye"
+      description="aiCast model component"
+      className="fa fa-line-chart"
     />
   );
 }

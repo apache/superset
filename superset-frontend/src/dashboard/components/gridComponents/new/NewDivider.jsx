@@ -29,7 +29,8 @@ export default function DraggableNewDivider() {
       id={NEW_DIVIDER_ID}
       type={DIVIDER_TYPE}
       label={t('Divider')}
-      className="divider-placeholder"
+      description="Separate your content with a divider"
+      className="fa fa-minus"
     />
   );
 }

@@ -29,6 +29,7 @@ export default function DraggableNewDivider() {
       id={NEW_IKI_RUN_PIPELINE_ID}
       type={IKI_RUN_PIPELINE_TYPE}
       label={t('Run Flow')}
+      description={t('Trigger a Flow to run with a single click')}
       className="fa fa-bolt"
     />
   );
