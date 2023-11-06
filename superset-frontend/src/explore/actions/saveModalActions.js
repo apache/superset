@@ -50,7 +50,7 @@ export function saveSliceSuccess(data) {
   return { type: SAVE_SLICE_SUCCESS, data };
 }
 
-const extractAddHocFiltersFromFormData = formDataToHandle =>
+const extractAdhocFiltersFromFormData = formDataToHandle =>
   Object.entries(formDataToHandle).reduce(
     (acc, [key, value]) =>
       ADHOC_FILTER_REGEX.test(key)
@@ -71,7 +71,7 @@ export const getSlicePayload = (
   owners,
   formDataFromSlice = {},
 ) => {
-  const adhocFilters = extractAddHocFiltersFromFormData(
+  const adhocFilters = extractAdhocFiltersFromFormData(
     formDataWithNativeFilters,
   );
 
@@ -80,10 +80,17 @@ export const getSlicePayload = (
   // to filter the chart. Before, any time range filter applied in the dashboard
   // would end up as an extra filter and when overwriting the chart the original
   // time range adhoc_filter was lost
-  if (isEmpty(adhocFilters?.adhoc_filters) && !isEmpty(formDataFromSlice)) {
-    formDataFromSlice?.adhoc_filters?.forEach(filter => {
-      if (filter.operator === Operators.TEMPORAL_RANGE && !filter.isExtra) {
-        adhocFilters.adhoc_filters.push({ ...filter, comparator: 'No filter' });
+  if (!isEmpty(formDataFromSlice)) {
+    Object.keys(adhocFilters || {}).forEach(adhocFilterKey => {
+      if (isEmpty(adhocFilters[adhocFilterKey])) {
+        formDataFromSlice?.[adhocFilterKey]?.forEach(filter => {
+          if (filter.operator === Operators.TEMPORAL_RANGE && !filter.isExtra) {
+            adhocFilters[adhocFilterKey].push({
+              ...filter,
+              comparator: 'No filter',
+            });
+          }
+        });
       }
     });
   }
