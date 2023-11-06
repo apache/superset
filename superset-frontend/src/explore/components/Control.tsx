@@ -30,6 +30,7 @@ import {
 } from '@superset-ui/core';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
+import { useOverlapOptions } from 'src/hooks/useOverlapOptions';
 import controlMap from './controls';
 
 export type ControlProps = {
@@ -51,6 +52,7 @@ export type ControlProps = {
   default?: JsonValue;
   isVisible?: boolean;
   resetOnHide?: boolean;
+  form_data?: QueryFormData;
 };
 
 /**
@@ -71,7 +73,10 @@ export default function Control(props: ControlProps) {
     hidden,
     isVisible,
     resetOnHide = true,
+    form_data,
   } = props;
+
+  const { overlapProps } = useOverlapOptions(name, props, form_data);
 
   const [hovered, setHovered] = useState(false);
   const wasVisible = usePrevious(isVisible);
@@ -109,6 +114,11 @@ export default function Control(props: ControlProps) {
     return null;
   }
 
+  const updProps = {
+    ...props,
+    ...overlapProps,
+  };
+
   return (
     <StyledControl
       className="Control"
@@ -118,7 +128,7 @@ export default function Control(props: ControlProps) {
       onMouseLeave={() => setHovered(false)}
     >
       <ErrorBoundary>
-        <ControlComponent onChange={onChange} hovered={hovered} {...props} />
+        <ControlComponent onChange={onChange} hovered={hovered} {...updProps} />
       </ErrorBoundary>
     </StyledControl>
   );
