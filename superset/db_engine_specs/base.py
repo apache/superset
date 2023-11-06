@@ -400,8 +400,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def get_allows_alias_in_select(
-        cls, database: Database
-    ) -> bool:  # pylint: disable=unused-argument
+        cls, database: Database  # pylint: disable=unused-argument
+    ) -> bool:
         """
         Method for dynamic `allows_alias_in_select`.
 
