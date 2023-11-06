@@ -32,7 +32,7 @@ const fetchOverlapOptions = async (metrics: string[]) => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `APIKEY df35d168def6c26f2f88a79de95a5da04301d947      `,
+      Authorization: `APIKEY df35d168def6c26f2f88a79de95a5da04301d947`,
     },
     body: JSON.stringify({ query: mutation, variables }),
   };
@@ -134,10 +134,10 @@ const getSetOverlappingOptionsColumns = async ({
 
       let validSelectedFilters: string[] = form_data[name];
 
-      const overlapOptionsFilters = filterArrByOverlap(
-        columns,
-        respResult.filters,
-      );
+      const overlapOptionsFilters = filterArrByOverlap(columns, [
+        ...respResult.filters,
+        'date',
+      ]);
       const overlapOptionsFiltersColNames = overlapOptionsFilters.map(
         opt => opt.column_name,
       );
