@@ -185,7 +185,7 @@ class Database(
         "is_managed_externally",
         "external_url",
         "encrypted_extra",
-        "impersonate_user"
+        "impersonate_user",
     ]
     export_children = ["tables"]
 
