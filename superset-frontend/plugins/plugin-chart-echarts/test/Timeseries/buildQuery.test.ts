@@ -120,7 +120,7 @@ describe('GENERIC_CHART_AXES is enabled', () => {
       expect.objectContaining({
         granularity: 'time_column',
         time_range: '1 year ago : 2013',
-        extras: { having: '', where: '' },
+        extras: { having: '', where: '', time_grain_sqla: 'P1Y' },
         columns: [
           {
             columnType: 'BASE_AXIS',
@@ -209,7 +209,7 @@ describe('GENERIC_CHART_AXES is disabled', () => {
       expect.objectContaining({
         granularity: 'time_column',
         time_range: '1 year ago : 2013',
-        extras: { having: '', where: '' },
+        extras: { having: '', where: '', time_grain_sqla: 'P1Y' },
         columns: [
           {
             columnType: 'BASE_AXIS',
