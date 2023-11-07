@@ -45,9 +45,7 @@ SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
 # superset metadata (slices, connections, tables, dashboards, ...).
 # Note that the connection information to connect to the datasources
 # you want to explore are managed directly in the web UI
-# The check_same_thread=false property ensures the sqlite client does not attempt
-# to enforce single-threaded access, which may be problematic in some edge cases
-SQLALCHEMY_DATABASE_URI = 'sqlite:////path/to/superset.db?check_same_thread=false'
+SQLALCHEMY_DATABASE_URI = 'sqlite:////path/to/superset.db'
 
 # Flask-WTF flag for CSRF
 WTF_CSRF_ENABLED = True
