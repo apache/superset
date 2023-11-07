@@ -19,7 +19,6 @@ from __future__ import annotations
 import contextlib
 import logging
 import threading
-import time
 from typing import Any, TYPE_CHECKING
 
 import simplejson as json
@@ -152,7 +151,13 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         return None
 
     @classmethod
-    def handle_cursor(cls, cursor: Cursor, query: Query, session: Session) -> None:
+    def handle_cursor_with_query_id(
+        cls,
+        cursor: Cursor,
+        query: Query,
+        session: Session,
+        cancel_query_id: str,
+    ) -> None:
         """
         Handle a trino client cursor.
 
@@ -162,7 +167,6 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         """
 
         # Adds the executed query id to the extra payload so the query can be cancelled
-        cancel_query_id = cursor.query_id
         logger.debug("Query %d: queryId %s found in cursor", query.id, cancel_query_id)
         query.set_extra_json_key(key=QUERY_CANCEL_KEY, value=cancel_query_id)
 
@@ -180,11 +184,15 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 cancel_query_id=cancel_query_id,
             )
 
-        super().handle_cursor(cursor=cursor, query=query, session=session)
+        cls.handle_cursor(cursor=cursor, query=query, session=session)
 
     @classmethod
     def execute_with_cursor(
-        cls, cursor: Any, sql: str, query: Query, session: Session
+        cls,
+        cursor: Cursor,
+        sql: str,
+        query: Query,
+        session: Session,
     ) -> None:
         """
         Trigger execution of a query and handle the resulting cursor.
@@ -193,34 +201,32 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         in another thread and invoke `handle_cursor` to poll for the query ID
         to appear on the cursor in parallel.
         """
+        # Fetch the query ID before hand, since it might fail inside the thread due to
+        # how the SQLAlchemy session is handled.
+        query_id = query.id
+
         execute_result: dict[str, Any] = {}
+        execute_event = threading.Event()
 
-        def _execute(results: dict[str, Any]) -> None:
-            logger.debug("Query %d: Running query: %s", query.id, sql)
+        def _execute(results: dict[str, Any], event: threading.Event) -> None:
+            logger.debug("Query %d: Running query: %s", query_id, sql)
 
-            # Pass result / exception information back to the parent thread
             try:
                 cls.execute(cursor, sql)
-                results["complete"] = True
             except Exception as ex:  # pylint: disable=broad-except
-                results["complete"] = True
                 results["error"] = ex
+            finally:
+                event.set()
 
-        execute_thread = threading.Thread(target=_execute, args=(execute_result,))
+        execute_thread = threading.Thread(
+            target=_execute,
+            args=(execute_result, execute_event),
+        )
         execute_thread.start()
+        execute_event.wait()
 
-        # Wait for a query ID to be available before handling the cursor, as
-        # it's required by that method; it may never become available on error.
-        while not cursor.query_id and not execute_result.get("complete"):
-            time.sleep(0.1)
-
-        logger.debug("Query %d: Handling cursor", query.id)
-        cls.handle_cursor(cursor, query, session)
-
-        # Block until the query completes; same behaviour as the client itself
-        logger.debug("Query %d: Waiting for query to complete", query.id)
-        while not execute_result.get("complete"):
-            time.sleep(0.5)
+        logger.debug("Query %d: Handling cursor", query_id)
+        cls.handle_cursor_with_query_id(cursor, query, session, query_id)
 
         # Unfortunately we'll mangle the stack trace due to the thread, but
         # throwing the original exception allows mapping database errors as normal
@@ -234,7 +240,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             session.commit()
 
     @classmethod
-    def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
+    def cancel_query(cls, cursor: Cursor, query: Query, cancel_query_id: str) -> bool:
         """
         Cancel query in the underlying database.
 
