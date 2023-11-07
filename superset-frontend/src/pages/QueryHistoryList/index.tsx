@@ -235,13 +235,13 @@ function QueryList({ addDangerToast }: QueryListProps) {
             original: { status, start_time, end_time },
           },
         }: any) => {
-          const timer_type = status === QueryState.FAILED ? 'danger' : status;
-          const timer_time = end_time
+          const timerType = status === QueryState.FAILED ? 'danger' : status;
+          const timerTime = end_time
             ? moment(moment.utc(end_time - start_time)).format(TIME_WITH_MS)
             : '00:00:00.000';
           return (
-            <TimerLabel type={timer_type} role="timer">
-              {timer_time}
+            <TimerLabel type={timerType} role="timer">
+              {timerTime}
             </TimerLabel>
           );
         },
