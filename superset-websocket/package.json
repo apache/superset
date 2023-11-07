@@ -17,7 +17,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@types/lodash": "^4.14.200",
-    "cookie": "^0.5.0",
+    "cookie": "^0.6.0",
     "hot-shots": "^10.0.0",
     "ioredis": "^4.28.0",
     "jsonwebtoken": "^9.0.2",
