@@ -18,7 +18,7 @@
  */
 import { SupersetClient, logging, ClientConfig } from '@superset-ui/core';
 import parseCookie from 'src/utils/parseCookie';
-import getBootstrapData from '../utils/getBootstrapData';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 const bootstrapData = getBootstrapData();
 
