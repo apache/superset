@@ -114,11 +114,7 @@ def on_security_exception(self: Any, ex: Exception) -> Response:
     return self.response(403, **{"message": utils.error_msg_from_exception(ex)})
 
 
-def context(
-    slice_id: int | None = None,
-    dashboard_id: int | None = None,
-    execution_id: str | UUID | None = None,
-) -> Callable[..., Any]:
+def context(**ctx_kwargs: int | str | UUID | None) -> Callable[..., Any]:
     """
     Takes arguments and adds them to the global context.
     This is for logging purposes only and values should not be relied on or mutated
@@ -128,7 +124,12 @@ def context(
         def wrapped(*args: Any, **kwargs: Any) -> Any:
             if not hasattr(g, "context"):
                 g.context = {}
-            available_context_values = ["slice_id", "dashboard_id", "execution_id"]
+            available_context_values = [
+                "slice_id",
+                "dashboard_id",
+                "execution_id",
+                "report_schedule_id",
+            ]
             context_data = {
                 key: val
                 for key, val in kwargs.items()
@@ -138,7 +139,7 @@ def context(
             # if values are passed in to decorator directly, add them to context
             # by overriding values from kwargs
             for val in available_context_values:
-                if locals().get(val) is not None:
+                if ctx_kwargs.get(val) is not None:
                     context_data[val] = locals()[val]
 
             g.context.update(context_data)

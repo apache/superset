@@ -45,17 +45,17 @@ from superset.models.core import Database, Log
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import (
+    DTTM_ALIAS,
+    DateColumn,
+    GenericDataType,
+    as_list,
     base_json_conv,
     cast_to_num,
     convert_legacy_filters_into_adhoc,
     create_ssl_cert_file,
-    DTTM_ALIAS,
     extract_dataframe_dtypes,
     format_timedelta,
-    GenericDataType,
     get_form_data_token,
-    as_list,
-    get_email_address_list,
     get_stacktrace,
     json_int_dttm_ser,
     json_iso_dttm_ser,
@@ -63,14 +63,14 @@ from superset.utils.core import (
     merge_extra_form_data,
     merge_request_params,
     normalize_dttm_col,
-    parse_ssl_cert,
     parse_js_uri_path_item,
+    parse_ssl_cert,
     split,
     validate_json,
     zlib_compress,
     zlib_decompress,
-    DateColumn,
 )
+
 from superset.utils.database import get_or_create_db
 from superset.utils import schema
 from superset.utils.hashing import md5_sha_from_str
@@ -892,16 +892,6 @@ class TestUtils(SupersetTestCase):
         expected_filename = md5_sha_from_str(ssl_certificate)
         self.assertIn(expected_filename, path)
         self.assertTrue(os.path.exists(path))
-
-    def test_get_email_address_list(self):
-        self.assertEqual(get_email_address_list("a@a"), ["a@a"])
-        self.assertEqual(get_email_address_list(" a@a "), ["a@a"])
-        self.assertEqual(get_email_address_list("a@a\n"), ["a@a"])
-        self.assertEqual(get_email_address_list(",a@a;"), ["a@a"])
-        self.assertEqual(
-            get_email_address_list(",a@a; b@b c@c a-c@c; d@d, f@f"),
-            ["a@a", "b@b", "c@c", "a-c@c", "d@d", "f@f"],
-        )
 
     def test_get_form_data_default(self) -> None:
         with app.test_request_context():

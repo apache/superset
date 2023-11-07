@@ -20,13 +20,11 @@ from typing import Any, Optional
 import pandas as pd
 
 from superset.reports.models import ReportRecipients, ReportRecipientType
-from superset.utils.core import HeaderDataType
 
 
 @dataclass
 class NotificationContent:
     name: str
-    header_data: HeaderDataType  # this is optional to account for error states
     csv: Optional[bytes] = None  # bytes for csv file
     screenshots: Optional[list[bytes]] = None  # bytes for a list of screenshots
     text: Optional[str] = None

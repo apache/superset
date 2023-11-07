@@ -43,14 +43,6 @@ def test_send_slack(
             }
         ),
         description='<p>This is <a href="#">a test</a> alert</p><br />',
-        header_data={
-            "notification_format": "PNG",
-            "notification_type": "Alert",
-            "owners": [1],
-            "notification_source": None,
-            "chart_id": None,
-            "dashboard_id": None,
-        },
     )
     with patch.object(
         WebClient, "chat_postMessage", return_value=True

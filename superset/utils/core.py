@@ -28,9 +28,7 @@ import os
 import platform
 import re
 import signal
-import smtplib
 import sqlite3
-import ssl
 import tempfile
 import threading
 import traceback
@@ -162,15 +160,6 @@ class LoggerLevel(StrEnum):
     INFO = "info"
     WARNING = "warning"
     EXCEPTION = "exception"
-
-
-class HeaderDataType(TypedDict):
-    notification_format: str
-    owners: list[int]
-    notification_type: str
-    notification_source: str | None
-    chart_id: int | None
-    dashboard_id: int | None
 
 
 class DatasourceDict(TypedDict):
@@ -813,129 +802,6 @@ def pessimistic_connection_handling(some_engine: Engine) -> None:
 
             with closing(connection.cursor()) as cursor:
                 cursor.execute("PRAGMA foreign_keys=ON")
-
-
-def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many-locals
-    to: str,
-    subject: str,
-    html_content: str,
-    config: dict[str, Any],
-    files: list[str] | None = None,
-    data: dict[str, str] | None = None,
-    images: dict[str, bytes] | None = None,
-    dryrun: bool = False,
-    cc: str | None = None,
-    bcc: str | None = None,
-    mime_subtype: str = "mixed",
-    header_data: HeaderDataType | None = None,
-) -> None:
-    """
-    Send an email with html content, eg:
-    send_email_smtp(
-        'test@example.com', 'foo', '<b>Foo</b> bar',['/dev/null'], dryrun=True)
-    """
-    smtp_mail_from = config["SMTP_MAIL_FROM"]
-    smtp_mail_to = get_email_address_list(to)
-
-    msg = MIMEMultipart(mime_subtype)
-    msg["Subject"] = subject
-    msg["From"] = smtp_mail_from
-    msg["To"] = ", ".join(smtp_mail_to)
-
-    msg.preamble = "This is a multi-part message in MIME format."
-
-    recipients = smtp_mail_to
-    if cc:
-        smtp_mail_cc = get_email_address_list(cc)
-        msg["CC"] = ", ".join(smtp_mail_cc)
-        recipients = recipients + smtp_mail_cc
-
-    if bcc:
-        # don't add bcc in header
-        smtp_mail_bcc = get_email_address_list(bcc)
-        recipients = recipients + smtp_mail_bcc
-
-    msg["Date"] = formatdate(localtime=True)
-    mime_text = MIMEText(html_content, "html")
-    msg.attach(mime_text)
-
-    # Attach files by reading them from disk
-    for fname in files or []:
-        basename = os.path.basename(fname)
-        with open(fname, "rb") as f:
-            msg.attach(
-                MIMEApplication(
-                    f.read(),
-                    Content_Disposition=f"attachment; filename='{basename}'",
-                    Name=basename,
-                )
-            )
-
-    # Attach any files passed directly
-    for name, body in (data or {}).items():
-        msg.attach(
-            MIMEApplication(
-                body, Content_Disposition=f"attachment; filename='{name}'", Name=name
-            )
-        )
-
-    # Attach any inline images, which may be required for display in
-    # HTML content (inline)
-    for msgid, imgdata in (images or {}).items():
-        formatted_time = formatdate(localtime=True)
-        file_name = f"{subject} {formatted_time}"
-        image = MIMEImage(imgdata, name=file_name)
-        image.add_header("Content-ID", f"<{msgid}>")
-        image.add_header("Content-Disposition", "inline")
-        msg.attach(image)
-    msg_mutator = config["EMAIL_HEADER_MUTATOR"]
-    # the base notification returns the message without any editing.
-    new_msg = msg_mutator(msg, **(header_data or {}))
-    send_mime_email(smtp_mail_from, recipients, new_msg, config, dryrun=dryrun)
-
-
-def send_mime_email(
-    e_from: str,
-    e_to: list[str],
-    mime_msg: MIMEMultipart,
-    config: dict[str, Any],
-    dryrun: bool = False,
-) -> None:
-    smtp_host = config["SMTP_HOST"]
-    smtp_port = config["SMTP_PORT"]
-    smtp_user = config["SMTP_USER"]
-    smtp_password = config["SMTP_PASSWORD"]
-    smtp_starttls = config["SMTP_STARTTLS"]
-    smtp_ssl = config["SMTP_SSL"]
-    smtp_ssl_server_auth = config["SMTP_SSL_SERVER_AUTH"]
-
-    if dryrun:
-        logger.info("Dryrun enabled, email notification content is below:")
-        logger.info(mime_msg.as_string())
-        return
-
-    # Default ssl context is SERVER_AUTH using the default system
-    # root CA certificates
-    ssl_context = ssl.create_default_context() if smtp_ssl_server_auth else None
-    smtp = (
-        smtplib.SMTP_SSL(smtp_host, smtp_port, context=ssl_context)
-        if smtp_ssl
-        else smtplib.SMTP(smtp_host, smtp_port)
-    )
-    if smtp_starttls:
-        smtp.starttls(context=ssl_context)
-    if smtp_user and smtp_password:
-        smtp.login(smtp_user, smtp_password)
-    logger.debug("Sent an email to %s", str(e_to))
-    smtp.sendmail(e_from, e_to, mime_msg.as_string())
-    smtp.quit()
-
-
-def get_email_address_list(address_string: str) -> list[str]:
-    address_string_list: list[str] = []
-    if isinstance(address_string, str):
-        address_string_list = re.split(r",|\s|;", address_string)
-    return [x.strip() for x in address_string_list if x.strip()]
 
 
 def choicify(values: Iterable[Any]) -> list[tuple[Any, Any]]:

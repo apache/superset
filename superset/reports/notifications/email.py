@@ -30,7 +30,7 @@ from superset.exceptions import SupersetErrorsException
 from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import NotificationError
-from superset.utils.core import HeaderDataType, send_email_smtp
+from superset.reports.notifications.utils import send_email_smtp
 from superset.utils.decorators import statsd_gauge
 
 logger = logging.getLogger(__name__)
@@ -68,7 +68,6 @@ ALLOWED_ATTRIBUTES = {
 @dataclass
 class EmailContent:
     body: str
-    header_data: Optional[HeaderDataType] = None
     data: Optional[dict[str, Any]] = None
     images: Optional[dict[str, bytes]] = None
 
@@ -173,7 +172,6 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             body=body,
             images=images,
             data=csv_data,
-            header_data=self._content.header_data,
         )
 
     def _get_subject(self) -> str:
@@ -204,13 +202,13 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 bcc="",
                 mime_subtype="related",
                 dryrun=False,
-                header_data=content.header_data,
             )
             logger.info(
-                "Report sent to email, notification content is %s",
-                content.header_data,
+                "Report sent to email",
                 extra={
                     "execution_id": global_context.get("execution_id"),
+                    "dashboard_id": global_context.get("dashboard_id"),
+                    "chart_id": global_context.get("chart_id"),
                 },
             )
         except SupersetErrorsException as ex:

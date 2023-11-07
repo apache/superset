@@ -89,7 +89,6 @@ def test_statsd_gauge(
             mock.assert_called_once_with(expected_result, 1)
 
 
-# write a TDD test for a decorator that will log context to a global scope. It will write dashboard_id, slice_id, and execution_id to a global scope.
 def test_context_decorator() -> None:
     @decorators.context()
     def myfunc(*args, **kwargs) -> str:

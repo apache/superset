@@ -14,19 +14,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Optional, TypedDict
 
-from superset.dashboards.permalink.types import DashboardPermalinkState
-
-
-class ReportScheduleExtra(TypedDict):
-    dashboard: DashboardPermalinkState
+from superset.reports.notifications.utils import get_email_address_list
 
 
-class HeaderDataType(TypedDict):
-    notification_format: str
-    owners: list[int]
-    notification_type: str
-    notification_source: Optional[str]
-    chart_id: Optional[int]
-    dashboard_id: Optional[int]
+def test_get_email_address_list():
+    assert get_email_address_list("a@a") == ["a@a"]
+    assert get_email_address_list(" a@a ") == ["a@a"]
+    assert get_email_address_list("a@a\n") == ["a@a"]
+    assert get_email_address_list(",a@a;") == ["a@a"]
+    assert get_email_address_list(",a@a; b@b c@c a-c@c; d@d, f@f") == [
+        "a@a",
+        "b@b",
+        "c@c",
+        "a-c@c",
+        "d@d",
+        "f@f",
+    ]

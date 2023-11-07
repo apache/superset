@@ -38,14 +38,6 @@ def test_render_description_with_html() -> None:
             }
         ),
         description='<p>This is <a href="#">a test</a> alert</p><br />',
-        header_data={
-            "notification_format": "PNG",
-            "notification_type": "Alert",
-            "owners": [1],
-            "notification_source": None,
-            "chart_id": None,
-            "dashboard_id": None,
-        },
     )
     email_body = (
         EmailNotification(
@@ -85,14 +77,6 @@ def test_send_email(
             }
         ),
         description='<p>This is <a href="#">a test</a> alert</p><br />',
-        header_data={
-            "notification_format": "PNG",
-            "notification_type": "Alert",
-            "owners": [1],
-            "notification_source": None,
-            "chart_id": None,
-            "dashboard_id": None,
-        },
     )
     EmailNotification(
         recipient=ReportRecipients(
@@ -103,16 +87,12 @@ def test_send_email(
     ).send()
 
     logger_mock.info.assert_called_with(
-        "Report sent to email, notification content is %s",
-        {
-            "notification_format": "PNG",
-            "notification_type": "Alert",
-            "owners": [1],
-            "notification_source": None,
+        "Report sent to email",
+        extra={
+            "execution_id": execution_id,
             "chart_id": None,
             "dashboard_id": None,
         },
-        extra={"execution_id": execution_id},
     )
     # clear logger_mock and g.context
     logger_mock.reset_mock()
@@ -127,14 +107,10 @@ def test_send_email(
         content=content,
     ).send()
     logger_mock.info.assert_called_with(
-        "Report sent to email, notification content is %s",
-        {
-            "notification_format": "PNG",
-            "notification_type": "Alert",
-            "owners": [1],
-            "notification_source": None,
+        "Report sent to email",
+        extra={
+            "execution_id": None,
             "chart_id": None,
             "dashboard_id": None,
         },
-        extra={"execution_id": None},
     )

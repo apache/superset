@@ -31,6 +31,7 @@ from superset.stats_logger import BaseStatsLogger
 from superset.tasks.cron_util import cron_schedule_window
 from superset.utils.celery import session_scope
 from superset.utils.core import LoggerLevel
+from superset.utils.decorators import context
 from superset.utils.log import get_logger_from_status
 
 logger = logging.getLogger(__name__)
@@ -78,6 +79,7 @@ def scheduler() -> None:
 
 
 @celery_app.task(name="reports.execute", bind=True)
+@context()
 def execute(self: Celery.task, report_schedule_id: int) -> None:
     stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
     stats_logger.incr("reports.execute")
@@ -90,6 +92,7 @@ def execute(self: Celery.task, report_schedule_id: int) -> None:
             "Executing alert/report, task id: %s, scheduled_dttm: %s",
             task_id,
             scheduled_dttm,
+            extra={"execution_id": task_id},
         )
         AsyncExecuteReportScheduleCommand(
             task_id,
@@ -98,7 +101,9 @@ def execute(self: Celery.task, report_schedule_id: int) -> None:
         ).run()
     except ReportScheduleUnexpectedError:
         logger.exception(
-            "An unexpected occurred while executing the report: %s", task_id
+            "An unexpected occurred while executing the report: %s",
+            task_id,
+            extra={"execution_id": task_id},
         )
         self.update_state(state="FAILURE")
     except CommandException as ex:
@@ -107,6 +112,7 @@ def execute(self: Celery.task, report_schedule_id: int) -> None:
             f"A downstream {level} occurred "
             f"while generating a report: {task_id}. {ex.message}",
             exc_info=True,
+            extra={"execution_id": task_id},
         )
         if level == LoggerLevel.EXCEPTION:
             self.update_state(state="FAILURE")

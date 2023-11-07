@@ -25,7 +25,7 @@ from email.mime.multipart import MIMEMultipart
 from unittest import mock
 
 from superset import app
-from superset.utils import core as utils
+from superset.reports.notifications import utils
 from tests.integration_tests.base_tests import SupersetTestCase
 
 from .utils import read_fixture
