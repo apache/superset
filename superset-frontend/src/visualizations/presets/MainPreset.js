@@ -79,6 +79,7 @@ import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/p
 import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable';
+import { EchartsPieChartJTDPlugin } from 'superset-plugin-charts-with-jump-to-dashboard';
 
 export default class MainPreset extends Preset {
   constructor() {
@@ -162,6 +163,7 @@ export default class MainPreset extends Preset {
         new EchartsSunburstChartPlugin().configure({ key: 'sunburst_v2' }),
         new HandlebarsChartPlugin().configure({ key: 'handlebars' }),
         new EchartsBubbleChartPlugin().configure({ key: 'bubble_v2' }),
+        new EchartsPieChartJTDPlugin().configure({ key: 'pie-jtd' }),
         ...experimentalplugins,
       ],
     });
