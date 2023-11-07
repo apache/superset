@@ -16,12 +16,14 @@
 # under the License.
 
 
+import uuid
 from contextlib import nullcontext
 from inspect import isclass
 from typing import Any, Optional
 from unittest.mock import call, Mock, patch
 
 import pytest
+from flask import g
 
 from superset import app
 from superset.utils import decorators
@@ -85,3 +87,50 @@ def test_statsd_gauge(
         with cm:
             my_func(response_value, 1, 2)
             mock.assert_called_once_with(expected_result, 1)
+
+
+# write a TDD test for a decorator that will log context to a global scope. It will write dashboard_id, slice_id, and execution_id to a global scope.
+def test_context_decorator() -> None:
+    @decorators.context()
+    def myfunc(*args, **kwargs) -> str:
+        return "test"
+
+    # should be able to add values to the decorator function directly
+    @decorators.context(slice_id=1, dashboard_id=1, execution_id=uuid.uuid4())
+    def myfunc_with_kwargs(*args, **kwargs) -> str:
+        return "test"
+
+    # should not add any data to the global.context scope
+    myfunc(1, 1)
+    assert g.context == {}
+
+    # should add dashboard_id to the global.context scope
+    myfunc(1, 1, dashboard_id=1)
+    assert g.context == {"dashboard_id": 1}
+    g.context = {}
+
+    # should add slice_id to the global.context scope
+    myfunc(1, 1, slice_id=1)
+    assert g.context == {"slice_id": 1}
+    g.context = {}
+
+    # should add execution_id to the global.context scope
+    myfunc(1, 1, execution_id=1)
+    assert g.context == {"execution_id": 1}
+    g.context = {}
+
+    # should add all three to the global.context scope
+    myfunc(1, 1, dashboard_id=1, slice_id=1, execution_id=1)
+    assert g.context == {"dashboard_id": 1, "slice_id": 1, "execution_id": 1}
+    g.context = {}
+
+    # should overwrite existing values in the global.context scope
+    g.context = {"dashboard_id": 2, "slice_id": 2, "execution_id": 2}
+    myfunc(1, 1, dashboard_id=3, slice_id=3, execution_id=3)
+    assert g.context == {"dashboard_id": 3, "slice_id": 3, "execution_id": 3}
+    g.context = {}
+
+    # should be able to add values to the decorator function directly
+    myfunc_with_kwargs(slice_id=1, dashboard_id=1, execution_id=1)
+    assert g.context == {"dashboard_id": 1, "slice_id": 1, "execution_id": 1}
+    g.context = {}

@@ -14,7 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import uuid
+from unittest.mock import MagicMock, patch, PropertyMock
+
 import pandas as pd
+from flask import g
 
 
 def test_render_description_with_html() -> None:
@@ -55,3 +59,82 @@ def test_render_description_with_html() -> None:
         in email_body
     )
     assert '<td>&lt;a href="http://www.example.com"&gt;333&lt;/a&gt;</td>' in email_body
+
+
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.reports.notifications.email.logger")
+def test_send_email(
+    logger_mock: MagicMock,
+    send_email_mock: MagicMock,
+) -> None:
+    # `superset.models.helpers`, a dependency of following imports,
+    # requires app context
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.email import EmailNotification
+
+    execution_id = uuid.uuid4()
+    g.context = {"execution_id": execution_id}
+    content = NotificationContent(
+        name="test alert",
+        embedded_data=pd.DataFrame(
+            {
+                "A": [1, 2, 3],
+                "B": [4, 5, 6],
+                "C": ["111", "222", '<a href="http://www.example.com">333</a>'],
+            }
+        ),
+        description='<p>This is <a href="#">a test</a> alert</p><br />',
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Alert",
+            "owners": [1],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+        },
+    )
+    EmailNotification(
+        recipient=ReportRecipients(
+            type=ReportRecipientType.EMAIL,
+            recipient_config_json='{"target": "foo@bar.com"}',
+        ),
+        content=content,
+    ).send()
+
+    logger_mock.info.assert_called_with(
+        "Report sent to email, notification content is %s",
+        {
+            "notification_format": "PNG",
+            "notification_type": "Alert",
+            "owners": [1],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+        },
+        extra={"execution_id": execution_id},
+    )
+    # clear logger_mock and g.context
+    logger_mock.reset_mock()
+    g.context = None
+
+    # test with no execution_id
+    EmailNotification(
+        recipient=ReportRecipients(
+            type=ReportRecipientType.EMAIL,
+            recipient_config_json='{"target": "foo@bar.com"}',
+        ),
+        content=content,
+    ).send()
+    logger_mock.info.assert_called_with(
+        "Report sent to email, notification content is %s",
+        {
+            "notification_format": "PNG",
+            "notification_type": "Alert",
+            "owners": [1],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+        },
+        extra={"execution_id": None},
+    )

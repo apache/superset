@@ -23,7 +23,7 @@ from enum import Enum
 from time import sleep
 from typing import Any, TYPE_CHECKING
 
-from flask import current_app
+from flask import current_app, g
 from selenium.common.exceptions import (
     StaleElementReferenceException,
     TimeoutException,
@@ -227,6 +227,9 @@ class WebDriverPlaywright(WebDriverProxy):
                     "Taking a PNG screenshot of url %s as user %s",
                     url,
                     user.username,
+                    extra={
+                        "execution_id": getattr(g, "context", {}).get("execution_id"),
+                    },
                 )
                 if current_app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"]:
                     unexpected_errors = WebDriverPlaywright.find_unexpected_errors(page)

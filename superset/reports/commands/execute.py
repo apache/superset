@@ -73,6 +73,7 @@ from superset.tasks.utils import get_executor
 from superset.utils.celery import session_scope
 from superset.utils.core import HeaderDataType, override_user
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
+from superset.utils.decorators import context
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
 
@@ -83,6 +84,7 @@ class BaseReportState:
     current_states: list[ReportState] = []
     initial: bool = False
 
+    @context()
     def __init__(
         self,
         session: Session,
@@ -234,7 +236,12 @@ class BaseReportState:
         try:
             image = screenshot.get_screenshot(user=user)
         except SoftTimeLimitExceeded as ex:
-            logger.warning("A timeout occurred while taking a screenshot.")
+            logger.warning(
+                "A timeout occurred while taking a screenshot.",
+                extra={
+                    "execution_id": self._execution_id,
+                },
+            )
             raise ReportScheduleScreenshotTimeout() from ex
         except Exception as ex:
             raise ReportScheduleScreenshotFailedError(
@@ -254,11 +261,23 @@ class BaseReportState:
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
 
         if self._report_schedule.chart.query_context is None:
-            logger.warning("No query context found, taking a screenshot to generate it")
+            logger.warning(
+                "No query context found, taking a screenshot to generate it",
+                extra={
+                    "execution_id": self._execution_id,
+                },
+            )
             self._update_query_context()
 
         try:
-            logger.info("Getting chart from %s as user %s", url, user.username)
+            logger.info(
+                "Getting chart from %s as user %s",
+                url,
+                user.username,
+                extra={
+                    "execution_id": self._execution_id,
+                },
+            )
             csv_data = get_chart_csv_data(chart_url=url, auth_cookies=auth_cookies)
         except SoftTimeLimitExceeded as ex:
             raise ReportScheduleCsvTimeout() from ex
@@ -283,11 +302,23 @@ class BaseReportState:
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
 
         if self._report_schedule.chart.query_context is None:
-            logger.warning("No query context found, taking a screenshot to generate it")
+            logger.warning(
+                "No query context found, taking a screenshot to generate it",
+                extra={
+                    "execution_id": self._execution_id,
+                },
+            )
             self._update_query_context()
 
         try:
-            logger.info("Getting chart from %s as user %s", url, user.username)
+            logger.info(
+                "Getting chart from %s as user %s",
+                url,
+                user.username,
+                extra={
+                    "execution_id": self._execution_id,
+                },
+            )
             dataframe = get_chart_dataframe(url, auth_cookies)
         except SoftTimeLimitExceeded as ex:
             raise ReportScheduleDataFrameTimeout() from ex
@@ -440,7 +471,12 @@ class BaseReportState:
         if notification_errors:
             # log all errors but raise based on the most severe
             for error in notification_errors:
-                logger.warning(str(error))
+                logger.warning(
+                    str(error),
+                    extra={
+                        "execution_id": self._execution_id,
+                    },
+                )
 
             if any(error.level == ErrorLevel.ERROR for error in notification_errors):
                 raise ReportScheduleSystemErrorsException(errors=notification_errors)
@@ -466,7 +502,9 @@ class BaseReportState:
         logger.info(
             "header_data in notifications for alerts and reports %s, taskid, %s",
             header_data,
-            self._execution_id,
+            extra={
+                "execution_id": self._execution_id,
+            },
         )
         notification_content = NotificationContent(
             name=name, text=message, header_data=header_data
@@ -725,6 +763,9 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                         "Running report schedule %s as user %s",
                         self._execution_id,
                         username,
+                        extra={
+                            "execution_id": self._execution_id,
+                        },
                     )
                     ReportScheduleStateMachine(
                         session, self._execution_id, self._model, self._scheduled_dttm
@@ -740,6 +781,9 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             "session is validated: id %s, executionid: %s",
             self._model_id,
             self._execution_id,
+            extra={
+                "execution_id": self._execution_id,
+            },
         )
         self._model = (
             session.query(ReportSchedule).filter_by(id=self._model_id).one_or_none()

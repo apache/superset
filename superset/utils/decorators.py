@@ -20,8 +20,9 @@ import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Any, Callable, TYPE_CHECKING
+from uuid import UUID
 
-from flask import current_app, Response
+from flask import current_app, g, Response
 
 from superset.utils import core as utils
 from superset.utils.dates import now_as_float
@@ -111,3 +112,38 @@ def debounce(duration: float | int = 0.1) -> Callable[..., Any]:
 
 def on_security_exception(self: Any, ex: Exception) -> Response:
     return self.response(403, **{"message": utils.error_msg_from_exception(ex)})
+
+
+def context(
+    slice_id: int | None = None,
+    dashboard_id: int | None = None,
+    execution_id: str | UUID | None = None,
+) -> Callable[..., Any]:
+    """
+    Takes arguments and adds them to the global context.
+    This is for logging purposes only and values should not be relied on or mutated
+    """
+
+    def decorate(f: Callable[..., Any]) -> Callable[..., Any]:
+        def wrapped(*args: Any, **kwargs: Any) -> Any:
+            if not hasattr(g, "context"):
+                g.context = {}
+            available_context_values = ["slice_id", "dashboard_id", "execution_id"]
+            context_data = {
+                key: val
+                for key, val in kwargs.items()
+                if key in available_context_values
+            }
+
+            # if values are passed in to decorator directly, add them to context
+            # by overriding values from kwargs
+            for val in available_context_values:
+                if locals().get(val) is not None:
+                    context_data[val] = locals()[val]
+
+            g.context.update(context_data)
+            return f(*args, **kwargs)
+
+        return wrapped
+
+    return decorate

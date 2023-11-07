@@ -22,6 +22,7 @@ from email.utils import make_msgid, parseaddr
 from typing import Any, Optional
 
 import nh3
+from flask import g
 from flask_babel import gettext as __
 
 from superset import app
@@ -190,6 +191,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         subject = self._get_subject()
         content = self._get_content()
         to = self._get_to()
+        global_context = getattr(g, "context", {}) or {}
         try:
             send_email_smtp(
                 to,
@@ -205,7 +207,11 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 header_data=content.header_data,
             )
             logger.info(
-                "Report sent to email, notification content is %s", content.header_data
+                "Report sent to email, notification content is %s",
+                content.header_data,
+                extra={
+                    "execution_id": global_context.get("execution_id"),
+                },
             )
         except SupersetErrorsException as ex:
             raise NotificationError(
