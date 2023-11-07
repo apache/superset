@@ -32,7 +32,9 @@ bottleneck==1.3.7
 brotli==1.0.9
     # via flask-compress
 cachelib==0.6.0
-    # via flask-caching
+    # via
+    #   flask-caching
+    #   flask-session
 celery==5.2.2
     # via apache-superset
 certifi==2023.7.22
@@ -94,6 +96,7 @@ flask==2.2.5
     #   flask-limiter
     #   flask-login
     #   flask-migrate
+    #   flask-session
     #   flask-sqlalchemy
     #   flask-wtf
 flask-appbuilder==4.3.9
@@ -113,6 +116,8 @@ flask-login==0.6.0
     #   apache-superset
     #   flask-appbuilder
 flask-migrate==3.1.0
+    # via apache-superset
+flask-session==0.5.0
     # via apache-superset
 flask-sqlalchemy==2.5.1
     # via

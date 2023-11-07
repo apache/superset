@@ -486,6 +486,22 @@ class TestTagApi(SupersetTestCase):
         assert tag is not None
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_post_tag_no_name_400(self):
+        self.login(username="admin")
+        uri = f"api/v1/tag/"
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "World Bank's Data")
+            .first()
+        )
+        rv = self.client.post(
+            uri,
+            json={"name": "", "objects_to_tag": [["dashboard", dashboard.id]]},
+        )
+
+        self.assertEqual(rv.status_code, 400)
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @pytest.mark.usefixtures("create_tags")
     def test_put_tag(self):
         self.login(username="admin")

@@ -16,59 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback } from 'react';
+import React from 'react';
 import Echart from '../components/Echart';
-import { allEventHandlers } from '../utils/eventHandlers';
 import { WaterfallChartTransformedProps } from './types';
+import { EventHandlers } from '../types';
 
 export default function EchartsWaterfall(
   props: WaterfallChartTransformedProps,
 ) {
-  const {
-    height,
-    width,
-    echartOptions,
-    setDataMask,
-    labelMap,
-    groupby,
-    refs,
-    selectedValues,
-  } = props;
-  const handleChange = useCallback(
-    (values: string[]) => {
-      const groupbyValues = values.map(value => labelMap[value]);
+  const { height, width, echartOptions, refs, onLegendStateChanged } = props;
 
-      setDataMask({
-        extraFormData: {
-          filters:
-            values.length === 0
-              ? []
-              : groupby.map((col, idx) => {
-                  const val = groupbyValues.map(v => v[idx]);
-                  if (val === null || val === undefined)
-                    return {
-                      col,
-                      op: 'IS NULL',
-                    };
-                  return {
-                    col,
-                    op: 'IN',
-                    val: val as (string | number | boolean)[],
-                  };
-                }),
-        },
-        filterState: {
-          value: groupbyValues.length ? groupbyValues : null,
-          selectedValues: values.length ? values : null,
-        },
-      });
+  const eventHandlers: EventHandlers = {
+    legendselectchanged: payload => {
+      onLegendStateChanged?.(payload.selected);
     },
-    [setDataMask, groupby, labelMap],
-  );
-
-  const eventHandlers = {
-    ...allEventHandlers(props),
-    handleChange,
+    legendselectall: payload => {
+      onLegendStateChanged?.(payload.selected);
+    },
+    legendinverseselect: payload => {
+      onLegendStateChanged?.(payload.selected);
+    },
   };
 
   return (
@@ -78,7 +45,6 @@ export default function EchartsWaterfall(
       width={width}
       echartOptions={echartOptions}
       eventHandlers={eventHandlers}
-      selectedValues={selectedValues}
     />
   );
 }
