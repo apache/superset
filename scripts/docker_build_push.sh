@@ -20,7 +20,8 @@ set -eo pipefail
 GITHUB_RELEASE_TAG_NAME="$1"
 
 SHA=$(git rev-parse HEAD)
-REPO_NAME="apache/superset"
+REPO_NAME=${2:-apache/superset}
+REGISTRY_URL=${3}
 
 if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
   REFSPEC=$(echo "${GITHUB_HEAD_REF}" | sed 's/[^a-zA-Z0-9]/-/g' | head -c 40)
@@ -71,7 +72,7 @@ if [ -z "${DOCKERHUB_TOKEN}" ]; then
 else
   # Login and push
   docker logout
-  docker login --username "${DOCKERHUB_USER}" --password "${DOCKERHUB_TOKEN}"
+  docker login "${REGISTRY_URL}" --username "${DOCKERHUB_USER}" --password "${DOCKERHUB_TOKEN}"
   DOCKER_ARGS="--push"
   ARCHITECTURE_FOR_BUILD="linux/amd64,linux/arm64"
 fi
