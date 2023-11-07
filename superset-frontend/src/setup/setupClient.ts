@@ -28,7 +28,7 @@ function getDefaultConfiguration(): ClientConfig {
 
   // when using flask-jwt-extended csrf is set in cookies
   const JWTAccessCSRFCookieName =
-    bootstrapData.common.conf['JWT_ACCESS_CSRF_COOKIE_NAME'];
+    bootstrapData.common.conf.JWT_ACCESS_CSRF_COOKIE_NAME;
   const cookieCSRFToken = parseCookie()[JWTAccessCSRFCookieName] || '';
 
   return {
