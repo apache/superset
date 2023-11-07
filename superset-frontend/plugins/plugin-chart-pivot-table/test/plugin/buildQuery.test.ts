@@ -121,3 +121,16 @@ test('should fallback to formData.time_grain_sqla if extra_form_data.time_grain_
     expressionType: 'SQL',
   });
 });
+
+test('should not omit extras.time_grain_sqla from queryContext so dashboards apply them', () => {
+  Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
+    value: true,
+  });
+  const modifiedFormData = {
+    ...formData,
+    extra_form_data: { time_grain_sqla: TimeGranularity.QUARTER },
+  };
+  const queryContext = buildQuery(modifiedFormData);
+  const [query] = queryContext.queries;
+  expect(query.extras?.time_grain_sqla).toEqual(TimeGranularity.QUARTER);
+});

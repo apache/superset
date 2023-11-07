@@ -16,12 +16,21 @@
 # under the License.
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING
+from typing import Any, cast, TYPE_CHECKING
 
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object import QueryObject
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
-from superset.utils.core import apply_max_row_limit, DatasourceDict, DatasourceType
+from superset.constants import NO_TIME_RANGE
+from superset.superset_typing import Column
+from superset.utils.core import (
+    apply_max_row_limit,
+    DatasourceDict,
+    DatasourceType,
+    FilterOperator,
+    get_xaxis_label,
+    QueryObjectFilterClause,
+)
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import sessionmaker
@@ -61,8 +70,11 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         processed_extras = self._process_extras(extras)
         result_type = kwargs.setdefault("result_type", parent_result_type)
         row_limit = self._process_row_limit(row_limit, result_type)
+        processed_time_range = self._process_time_range(
+            time_range, kwargs.get("filters"), kwargs.get("columns")
+        )
         from_dttm, to_dttm = get_since_until_from_time_range(
-            time_range, time_shift, processed_extras
+            processed_time_range, time_shift, processed_extras
         )
         kwargs["from_dttm"] = from_dttm
         kwargs["to_dttm"] = to_dttm
@@ -98,6 +110,33 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
             else self._config["ROW_LIMIT"]
         )
         return apply_max_row_limit(row_limit or default_row_limit)
+
+    @staticmethod
+    def _process_time_range(
+        time_range: str | None,
+        filters: list[QueryObjectFilterClause] | None = None,
+        columns: list[Column] | None = None,
+    ) -> str:
+        if time_range is None:
+            time_range = NO_TIME_RANGE
+            temporal_flt = [
+                flt
+                for flt in filters or []
+                if flt.get("op") == FilterOperator.TEMPORAL_RANGE
+            ]
+            if temporal_flt:
+                # Use the temporal filter as the time range.
+                # if the temporal filters uses x-axis as the temporal filter
+                # then use it or use the first temporal filter
+                xaxis_label = get_xaxis_label(columns or [])
+                match_flt = [
+                    flt for flt in temporal_flt if flt.get("col") == xaxis_label
+                ]
+                if match_flt:
+                    time_range = cast(str, match_flt[0].get("val"))
+                else:
+                    time_range = cast(str, temporal_flt[0].get("val"))
+        return time_range
 
     # light version of the view.utils.core
     # import view.utils require application context

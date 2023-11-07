@@ -44,7 +44,7 @@ const SaveDatasetActionButton = ({
       font-weight: ${theme.gridUnit * 150};
       background-color: ${theme.colors.primary.light4};
       color: ${theme.colors.primary.dark1};
-      &:nth-child(2) {
+      &:nth-of-type(2) {
         &:before,
         &:hover:before {
           border-left: 2px solid ${theme.colors.primary.dark2};

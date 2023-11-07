@@ -50,7 +50,6 @@ VERSION_INFO_FILE = os.path.join(BASE_DIR, "superset", "static", "version_info.j
 with open(VERSION_INFO_FILE, "w") as version_file:
     json.dump(version_info, version_file)
 
-
 setup(
     name="apache-superset",
     description="A modern, enterprise-ready business intelligence web application",
@@ -81,15 +80,16 @@ setup(
         "colorama",
         "croniter>=0.3.28",
         "cron-descriptor",
-        "cryptography>=41.0.0, <41.0.2",
+        "cryptography>=41.0.2, <41.1.0",
         "deprecation>=2.1.0, <2.2.0",
         "flask>=2.2.5, <3.0.0",
-        "flask-appbuilder>=4.3.6, <5.0.0",
+        "flask-appbuilder>=4.3.9, <5.0.0",
         "flask-caching>=1.11.1, <2.0",
         "flask-compress>=1.13, <2.0",
         "flask-talisman>=1.0.0, <2.0",
         "flask-login>=0.6.0, < 1.0",
         "flask-migrate>=3.1.0, <4.0",
+        "flask-session>=0.4.0, <1.0",
         "flask-wtf>=1.1.0, <2.0",
         "func_timeout",
         "geopy",
@@ -154,7 +154,7 @@ setup(
         "dremio": ["sqlalchemy-dremio>=1.1.5, <1.3"],
         "drill": ["sqlalchemy-drill==0.1.dev"],
         "druid": ["pydruid>=0.6.5,<0.7"],
-        "duckdb": ["duckdb-engine==0.8.1"],
+        "duckdb": ["duckdb-engine==0.9.2"],
         "dynamodb": ["pydynamodb>=0.4.2"],
         "solr": ["sqlalchemy-solr >= 0.2.0"],
         "elasticsearch": ["elasticsearch-dbapi>=0.2.9, <0.3.0"],
@@ -173,7 +173,7 @@ setup(
         "impala": ["impyla>0.16.2, <0.17"],
         "kusto": ["sqlalchemy-kusto>=2.0.0, <3"],
         "kylin": ["kylinpy>=2.8.1, <2.9"],
-        "mssql": ["pymssql>=2.1.4, <2.2"],
+        "mssql": ["pymssql>=2.2.8, <3"],
         "mysql": ["mysqlclient>=2.1.0, <3"],
         "ocient": [
             "sqlalchemy-ocient>=1.0.0",
@@ -183,6 +183,7 @@ setup(
         ],
         "oracle": ["cx-Oracle>8.0.0, <8.1"],
         "pinot": ["pinotdb>=0.3.3, <0.4"],
+        "playwright": ["playwright>=1.37.0, <2"],
         "postgres": ["psycopg2-binary==2.9.6"],
         "presto": ["pyhive[presto]>=0.6.5"],
         "trino": ["trino>=0.324.0"],

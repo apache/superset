@@ -409,7 +409,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const getColumnConfigs = useCallback(
     (column: DataColumnMeta, i: number): ColumnWithLooseAccessor<D> => {
-      const { key, label, isNumeric, dataType, isMetric, config = {} } = column;
+      const {
+        key,
+        label,
+        isNumeric,
+        dataType,
+        isMetric,
+        isPercentMetric,
+        config = {},
+      } = column;
       const columnWidth = Number.isNaN(Number(config.columnWidth))
         ? config.columnWidth
         : Number(config.columnWidth);
@@ -438,7 +446,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         (config.showCellBars === undefined
           ? showCellBars
           : config.showCellBars) &&
-        (isMetric || isRawRecords) &&
+        (isMetric || isRawRecords || isPercentMetric) &&
         getValueRange(key, alignPositiveNegative);
 
       let className = '';

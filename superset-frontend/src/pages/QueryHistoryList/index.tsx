@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { useMemo, useState, useCallback, ReactElement } from 'react';
+import { Link, useHistory } from 'react-router-dom';
 import {
   QueryState,
   styled,
@@ -102,6 +103,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
     useState<QueryObject>();
 
   const theme = useTheme();
+  const history = useHistory();
 
   const handleQueryPreview = useCallback(
     (id: number) => {
@@ -334,9 +336,9 @@ function QueryList({ addDangerToast }: QueryListProps) {
           },
         }: any) => (
           <Tooltip title={t('Open query in SQL Lab')} placement="bottom">
-            <a href={`/superset/sqllab?queryId=${id}`}>
+            <Link to={`/sqllab?queryId=${id}`}>
               <Icons.Full iconColor={theme.colors.grayscale.base} />
-            </a>
+            </Link>
           </Tooltip>
         ),
       },
@@ -427,9 +429,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
           query={queryCurrentlyPreviewing}
           queries={queries}
           fetchData={handleQueryPreview}
-          openInSqlLab={(id: number) =>
-            window.location.assign(`/superset/sqllab?queryId=${id}`)
-          }
+          openInSqlLab={(id: number) => history.push(`/sqllab?queryId=${id}`)}
           show
         />
       )}

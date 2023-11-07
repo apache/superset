@@ -86,7 +86,7 @@ grace_period_description = (
     "Superset nags you again. (in seconds)"
 )
 working_timeout_description = (
-    "If an alert is staled at a working state, how long until it's state is reseted to"
+    "If an alert is staled at a working state, how long until it's state is reset to"
     " error"
 )
 creation_method_description = (

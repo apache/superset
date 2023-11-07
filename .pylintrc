@@ -75,7 +75,6 @@ enable=
 # --disable=W"
 disable=
     cyclic-import,  # re-enable once this no longer raises false positives
-    no-member,  # re-enable once this no longer raises false positives. This will become redundant after the min required version is 3.11
     missing-docstring,
     duplicate-code,
     unspecified-encoding,
