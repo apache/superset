@@ -347,7 +347,6 @@ export const useExploreAdditionalActionsMenu = (
               {t('Export to .CSV')}
             </Menu.Item>
           )}
-          <Menu.Item key={MENU_KEYS.EXPORT_TO_JSON} icon={<FileOutlined />} disabled={!canDownloadCSV}>
           <Menu.Item
             key={MENU_KEYS.EXPORT_TO_JSON}
             icon={<Icons.FileOutlined css={iconReset} />}
