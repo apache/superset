@@ -70,7 +70,7 @@ interface ChartPluginConfig<
  * which require the value to be extracted as `module.default`
  * */
 function sanitizeLoader<T>(
-  loader: PromiseOrValueLoader<ValueOrModuleWithValue<T>>,
+  loader: PromiseOrValueLoader<ValueOrModuleWithValue<any>>,
 ): PromiseOrValueLoader<T> {
   return () => {
     const loaded = loader();

@@ -34,7 +34,7 @@ export interface LoadableRenderer<Props>
     Loadable.LoadableComponent {}
 
 export default function createLoadableRenderer<Props, Exports>(
-  options: Loadable.OptionsWithMap<Props, Exports>,
+  options: Loadable.OptionsWithMap<Props, any>,
 ): LoadableRenderer<Props> {
   const LoadableRenderer = Loadable.Map(options) as LoadableRenderer<Props>;
 

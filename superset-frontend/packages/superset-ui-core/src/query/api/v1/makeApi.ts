@@ -100,7 +100,7 @@ export default function makeApi<
   }
 
   async function request(
-    payload: Payload,
+    payload: SupersetPayload,
     { client = SupersetClient }: SupersetApiRequestOptions = {
       client: SupersetClient,
     },
