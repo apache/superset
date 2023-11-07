@@ -76,7 +76,12 @@ export default function Control(props: ControlProps) {
     form_data,
   } = props;
 
-  const { overlapProps } = useOverlapOptions(name, props, form_data);
+  const { overlapProps } = useOverlapOptions({
+    name,
+    props,
+    form_data,
+    setControlValue,
+  });
 
   const [hovered, setHovered] = useState(false);
   const wasVisible = usePrevious(isVisible);

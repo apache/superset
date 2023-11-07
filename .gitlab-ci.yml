@@ -1,0 +1,64 @@
+include:
+  - project: devops/gitlab-ci
+    file: docker-v2.yml
+
+variables:
+  REPO_NAME: "bw-superset"
+  GOOGLE_PREFIX: "europe-docker.pkg.dev/brightwrite-211800/bw-docker"
+  NEXUS_PREFIX: "nexus.xcover.covergenius.biz/infrastructure"
+  IMAGE_NAME: "bw-superset"
+  DOCKER_RELEASE_TAG: "${CI_COMMIT_REF_NAME}__${CI_COMMIT_SHORT_SHA}"
+  NEXUS_IMAGE_NAME: "${NEXUS_PREFIX}/${IMAGE_NAME}:${DOCKER_RELEASE_TAG}"
+
+stages:
+  - build
+  - push_to_gar
+
+.login_to_gcp: &login_to_gcp
+  - gcloud iam workload-identity-pools create-cred-config
+    projects/197906452930/locations/global/workloadIdentityPools/aws-pool/providers/aws-provider
+    --service-account=gitlab-ci-sa@brightwrite-211800.iam.gserviceaccount.com
+    --enable-imdsv2
+    --output-file=.gcp_temp_cred.json
+    --aws
+  - gcloud config set project brightwrite-211800
+  - export GOOGLE_APPLICATION_CREDENTIALS=`pwd`/.gcp_temp_cred.json
+  - gcloud auth login --cred-file=`pwd`/.gcp_temp_cred.json
+
+.docker_login: &docker_login
+  - docker login -u "${NEXUS_USERNAME}" -p "${NEXUS_PASSWORD}" "${NEXUS_HOST}"
+
+build_superset:
+  stage: build
+  image: google/cloud-sdk:alpine
+  services:
+    - name: docker:23-dind
+      alias: docker
+      command: ["--tls=false"]
+  before_script:
+    - *docker_login
+  script:
+    - docker build -t ${NEXUS_IMAGE_NAME} .
+    - docker push ${NEXUS_IMAGE_NAME}
+  rules:
+    - if: $CI_COMMIT_BRANCH # Branch push, not tag push
+
+push_to_gar:
+  stage: push_to_gar
+  image: google/cloud-sdk:alpine
+  services:
+    - name: docker:23-dind
+      alias: docker
+      command: ["--tls=false"]
+  before_script:
+    - *docker_login
+    - *login_to_gcp
+    - gcloud auth configure-docker -q europe-docker.pkg.dev
+  script:
+    - docker pull "${NEXUS_IMAGE_NAME}"
+    - docker tag "${NEXUS_IMAGE_NAME}" "${GOOGLE_PREFIX}/${IMAGE_NAME}:${DOCKER_RELEASE_TAG}"
+    - docker tag "${NEXUS_IMAGE_NAME}" "${GOOGLE_PREFIX}/${IMAGE_NAME}:latest"
+    - docker tag "${NEXUS_IMAGE_NAME}" "${GOOGLE_PREFIX}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
+    - docker push --all-tags "${GOOGLE_PREFIX}/${IMAGE_NAME}"
+  rules:
+    - if: $CI_COMMIT_BRANCH # Branch push, not tag push
