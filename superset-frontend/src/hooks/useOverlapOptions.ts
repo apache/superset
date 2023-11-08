@@ -13,7 +13,10 @@ const fetchOverlapOptions = async (metrics: string[]) => {
         dimensions
         filters
         defaultDimensions
-        defaultFilters
+        defaultFilters {
+          name
+          sql
+        }
     }
       errors {
         message
@@ -51,13 +54,13 @@ const filterArrByOverlap = (
 ): any[] =>
   defaultOptions.filter(opt => overlapOptions.includes(opt.column_name)) ?? [];
 
-const createDefaultFilter = (filterVal: string) => {
+const createDefaultFilter = (defaultFilter: defaultFilter) => {
   const ahFilter = new AdhocFilter({
-    sqlExpression: filterVal,
+    sqlExpression: defaultFilter.name,
     expressionType: 'SQL',
   });
 
-  ahFilter.subject = 'metricDefaultFilter';
+  ahFilter.subject = `metricDefaultFilter_${defaultFilter.sql}`;
 
   return ahFilter;
 };
@@ -76,6 +79,18 @@ interface IGetSetOverlappingOptions {
   >;
   setControlValue: TSetControlValue;
 }
+
+interface defaultFilter {
+  name: string;
+  sql: string;
+}
+
+const sortDateFirst = (a: any) => {
+  if (a.subject === 'date') {
+    return -1;
+  }
+  return 1;
+};
 
 const getSetOverlappingOptionsColumns = async ({
   name,
@@ -132,7 +147,7 @@ const getSetOverlappingOptionsColumns = async ({
         return;
       }
 
-      let validSelectedFilters: string[] = form_data[name];
+      let validSelectedFilters: any[] = form_data[name];
 
       const overlapOptionsFilters = filterArrByOverlap(
         columns,
@@ -156,13 +171,15 @@ const getSetOverlappingOptionsColumns = async ({
 
       if (respResult.defaultFilters.length) {
         const newDefaultFilters = respResult.defaultFilters.map(
-          (sqlName: string) => createDefaultFilter(sqlName),
+          (defaultFilter: defaultFilter) => createDefaultFilter(defaultFilter),
         );
 
         validSelectedFilters = [...validSelectedFilters, ...newDefaultFilters];
       }
 
-      setControlValue(name, validSelectedFilters);
+      const sorterArray = validSelectedFilters.sort(sortDateFirst);
+
+      setControlValue(name, sorterArray);
 
       break;
     default:
