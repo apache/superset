@@ -1422,6 +1422,7 @@ TALISMAN_CONFIG = {
         ],
         "script-src": ["'self'", "'strict-dynamic'"],
     },
+    "content_security_policy_nonce_in": ["script-src"],
     "force_https": False,
 }
 # React requires `eval` to work correctly in dev mode
