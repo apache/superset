@@ -26,6 +26,8 @@ module.exports = {
   stories: [
     '../src/@(components|common|filters|explore|views|dashboard|features)/**/*.stories.@(tsx|jsx)',
     '../src/@(components|common|filters|explore|views|dashboard|features)/**/*.*.@(mdx)',
+    '../src/@(dvt-components|common|filters|explore|views|dashboard|features)/**/*.stories.@(tsx|jsx)',
+    '../src/@(dvt-components|common|filters|explore|views|dashboard|features)/**/*.*.@(mdx)',
   ],
   addons: [
     '@storybook/addon-essentials',
