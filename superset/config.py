@@ -1444,7 +1444,6 @@ TALISMAN_DEV_CONFIG = {
         ],
         "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
     },
-    "content_security_policy_nonce_in": ["script-src"],
     "force_https": False,
 }
 
