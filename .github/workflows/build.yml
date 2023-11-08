@@ -1,11 +1,10 @@
 name: Build and Push Agent Image
 on:
+  pull_request:
   push:
-    branches: [master]
+    branches: [ortege]
     tags:
       - '**'
-  pull_request:
-    types: [synchronize, opened, reopened, ready_for_review]
 
 concurrency:
   group: build-push-agents-${{ github.ref }}
@@ -48,10 +47,16 @@ jobs:
           username: ${{ secrets.CR_USERNAME }}
           password: ${{ secrets.CR_PASSWORD }}
 
-      - shell: bash
+
+      - name: Set container registry token
+        if: github.event_name == 'push'
+        run: |
+          echo "DOCKERHUB_TOKEN=${{ secrets.CR_PASSWORD }}" >> $GITHUB_ENV
+
+      - name: Build and push images
+        shell: bash
         env:
           DOCKERHUB_USER: ${{ secrets.CR_USERNAME }}
-          DOCKERHUB_TOKEN: ${{ secrets.CR_PASSWORD }}
         run: |
           GITHUB_RELEASE_TAG_NAME="${{ github.event.release.tag_name }}"
           ./scripts/docker_build_push.sh "$GITHUB_RELEASE_TAG_NAME"  "${{ secrets.CR_ENDPOINT }}/ortege/superset" ""${{ secrets.CR_ENDPOINT }}
