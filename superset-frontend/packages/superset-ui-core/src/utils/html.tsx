@@ -28,7 +28,7 @@ export function sanitizeHtml(htmlString: string) {
 }
 
 export function isProbablyHTML(text: string) {
-  return /<[^>]+>/.test(text);
+  return /<\/?[a-z][\s\S]*>/i.test(text);
 }
 
 export function sanitizeHtmlIfNeeded(htmlString: string) {
