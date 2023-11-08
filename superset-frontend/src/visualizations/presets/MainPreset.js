@@ -44,7 +44,7 @@ import {
   LineChartPlugin,
   TimePivotChartPlugin,
 } from '@superset-ui/legacy-preset-chart-nvd3';
-import { DeckGLChartPreset } from '@superset-ui/legacy-preset-chart-deckgl';
+// import { DeckGLChartPreset } from '@superset-ui/legacy-preset-chart-deckgl';
 import {
   BigNumberChartPlugin,
   BigNumberTotalChartPlugin,
@@ -76,7 +76,7 @@ import {
   GroupByFilterPlugin,
 } from 'src/filters/components';
 import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/plugin-chart-pivot-table';
-import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
+// import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable';
 
@@ -90,7 +90,7 @@ export default class MainPreset extends Preset {
 
     super({
       name: 'Legacy charts',
-      presets: [new DeckGLChartPreset()],
+      presets: [/* new DeckGLChartPreset() */],
       plugins: [
         new AreaChartPlugin().configure({ key: 'area' }),
         new BarChartPlugin().configure({ key: 'bar' }),
@@ -160,7 +160,7 @@ export default class MainPreset extends Preset {
         new TimeGrainFilterPlugin().configure({ key: 'filter_timegrain' }),
         new EchartsTreeChartPlugin().configure({ key: 'tree_chart' }),
         new EchartsSunburstChartPlugin().configure({ key: 'sunburst_v2' }),
-        new HandlebarsChartPlugin().configure({ key: 'handlebars' }),
+        // new HandlebarsChartPlugin().configure({ key: 'handlebars' }),
         new EchartsBubbleChartPlugin().configure({ key: 'bubble_v2' }),
         ...experimentalplugins,
       ],
