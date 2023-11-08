@@ -1,0 +1,88 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+x-superset-volumes: &superset-volumes
+  # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
+  - ./docker:/app/docker
+  - superset_home:/app/superset_home
+
+version: "3.7"
+services:
+
+  superset:
+    env_file: docker/.env
+    build:
+       context: .
+       dockerfile: ./cloudadmin.Dockerfile
+    container_name: superset_app
+    command: >
+      bash -c "apt-get update
+      && apt-get install git -y
+      && pip install --upgrade pip
+      && pip install --force-reinstall git+https://github.com/benoitc/gunicorn.git@master
+      && pip install --upgrade google-api-python-client
+      && pip install --upgrade google-cloud-bigquery
+      && pip install --upgrade google-cloud-storage
+      && /app/docker/docker-bootstrap.sh app-gunicorn"
+    user: "root"
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    volumes: *superset-volumes
+
+  superset-init:
+    build:
+       context: .
+       dockerfile: ./cloudadmin.Dockerfile
+    container_name: superset_init
+    command: ["/app/docker/docker-init.sh"]
+    env_file: docker/.env
+    user: "root"
+    volumes: *superset-volumes
+    healthcheck:
+      disable: true
+
+  superset-worker:
+    build:
+       context: .
+       dockerfile: ./cloudadmin.Dockerfile
+    container_name: superset_worker
+    command: ["/app/docker/docker-bootstrap.sh", "worker"]
+    env_file: docker/.env
+    restart: unless-stopped
+    user: "root"
+    volumes: *superset-volumes
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A superset.tasks.celery_app:app inspect ping -d celery@$$HOSTNAME"]
+
+  superset-worker-beat:
+    build:
+       context: .
+       dockerfile: ./cloudadmin.Dockerfile
+    container_name: superset_worker_beat
+    command: ["/app/docker/docker-bootstrap.sh", "beat"]
+    env_file: docker/.env
+    restart: unless-stopped
+    user: "root"
+    volumes: *superset-volumes
+    healthcheck:
+      disable: true
+
+volumes:
+  superset_home:
+    external: false
+  redis:
+    external: false
