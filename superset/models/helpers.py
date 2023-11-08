@@ -765,7 +765,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         raise NotImplementedError()
 
     @property
-    def database(self) -> builtins.type["Database"]:
+    def database(self) -> "Database":
         raise NotImplementedError()
 
     @property
@@ -865,7 +865,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         label_expected = label or sqla_col.name
         db_engine_spec = self.db_engine_spec
         # add quotes to tables
-        if db_engine_spec.allows_alias_in_select:
+        if db_engine_spec.get_allows_alias_in_select(self.database):
             label = db_engine_spec.make_label_compatible(label_expected)
             sqla_col = sqla_col.label(label)
         sqla_col.key = label_expected
@@ -900,7 +900,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         self, query_obj: QueryObjectDict, mutate: bool = True
     ) -> QueryStringExtended:
         sqlaq = self.get_sqla_query(**query_obj)
-        sql = self.database.compile_sqla_query(sqlaq.sqla_query)  # type: ignore
+        sql = self.database.compile_sqla_query(sqlaq.sqla_query)
         sql = self._apply_cte(sql, sqlaq.cte)
         sql = sqlparse.format(sql, reindent=True)
         if mutate:
@@ -939,7 +939,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             value = value.item()
 
         column_ = columns_by_name[dimension]
-        db_extra: dict[str, Any] = self.database.get_extra()  # type: ignore
+        db_extra: dict[str, Any] = self.database.get_extra()
 
         if isinstance(column_, dict):
             if (
@@ -1024,9 +1024,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             return df
 
         try:
-            df = self.database.get_df(
-                sql, self.schema, mutator=assign_column_label  # type: ignore
-            )
+            df = self.database.get_df(sql, self.schema, mutator=assign_column_label)
         except Exception as ex:  # pylint: disable=broad-except
             df = pd.DataFrame()
             status = QueryStatus.FAILED
@@ -1361,7 +1359,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if limit:
             qry = qry.limit(limit)
 
-        with self.database.get_sqla_engine_with_context() as engine:  # type: ignore
+        with self.database.get_sqla_engine_with_context() as engine:
             sql = qry.compile(engine, compile_kwargs={"literal_binds": True})
             sql = self._apply_cte(sql, cte)
             sql = self.mutate_query_from_config(sql)
@@ -1958,7 +1956,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 col = col.element
 
             if (
-                db_engine_spec.allows_alias_in_select
+                db_engine_spec.get_allows_alias_in_select(self.database)
                 and db_engine_spec.allows_hidden_cc_in_orderby
                 and col.name in [select_col.name for select_col in select_exprs]
             ):

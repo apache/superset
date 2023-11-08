@@ -4,7 +4,7 @@ hide_title: true
 sidebar_position: 1
 ---
 
-Security in Superset is handled by Flask AppBuilder (FAB), an application development framework
+Authentication and authorization in Superset is handled by Flask AppBuilder (FAB), an application development framework
 built on top of Flask. FAB provides authentication, user management, permissions and roles.
 Please read its [Security documentation](https://flask-appbuilder.readthedocs.io/en/latest/security.html).
 
@@ -67,7 +67,9 @@ objects (dashboards and slices) associated with the tables you just extended the
 
 ### REST API for user & role management
 
-Flask-AppBuilder supports a REST API for user CRUD, but this feature is in beta and is not enabled by default in Superset.  To enable this feature, set the following in your Superset configuration:
+Flask-AppBuilder supports a REST API for user CRUD,
+but this feature is in beta and is not enabled by default in Superset.
+To enable this feature, set the following in your Superset configuration:
 
 ```python
 FAB_ADD_SECURITY_API = True
@@ -164,6 +166,34 @@ HTTPS if the cookie is marked “secure”. The application must be served over 
 `SESSION_COOKIE_SAMESITE`: (default: "Lax") Prevents the browser from sending this cookie along with cross-site requests.
 
 `PERMANENT_SESSION_LIFETIME`: (default: "31 days") The lifetime of a permanent session as a `datetime.timedelta` object.
+
+#### Switching to server side sessions
+
+Server side sessions offer benefits over client side sessions on security and performance.
+By enabling server side sessions, the session data is stored server side and only a session ID
+is sent to the client. When a user logs in, a session is created server side and the session ID
+is sent to the client in a cookie. The client will send the session ID with each request and the
+server will use it to retrieve the session data.
+On logout, the session is destroyed server side and the session cookie is deleted on the client side.
+This reduces the risk for replay attacks and session hijacking.
+
+Superset uses [Flask-Session](https://flask-session.readthedocs.io/en/latest/) to manage server side sessions.
+To enable this extension you have to set:
+
+``` python
+SESSION_SERVER_SIDE = True
+```
+
+Flask-Session offers multiple backend session interfaces for Flask, here's an example for Redis:
+
+``` python
+from redis import Redis
+
+SESSION_TYPE = "redis"
+SESSION_REDIS = Redis(host="redis", port=6379, db=0)
+# sign the session cookie sid
+SESSION_USE_SIGNER = True
+```
 
 ### Content Security Policy (CSP)
 

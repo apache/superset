@@ -25,6 +25,7 @@ from flask_babel import gettext as _
 from jinja2 import DebugUndefined
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy.engine.interfaces import Dialect
+from sqlalchemy.sql.expression import bindparam
 from sqlalchemy.types import String
 
 from superset.constants import LRU_CACHE_MAX_SIZE
@@ -396,23 +397,39 @@ def validate_template_context(
     return validate_context_types(context)
 
 
-def where_in(values: list[Any], mark: str = "'") -> str:
-    """
-    Given a list of values, build a parenthesis list suitable for an IN expression.
+class WhereInMacro:  # pylint: disable=too-few-public-methods
+    def __init__(self, dialect: Dialect):
+        self.dialect = dialect
 
-        >>> where_in([1, "b", 3])
-        (1, 'b', 3)
+    def __call__(self, values: list[Any], mark: Optional[str] = None) -> str:
+        """
+        Given a list of values, build a parenthesis list suitable for an IN expression.
 
-    """
+            >>> from sqlalchemy.dialects import mysql
+            >>> where_in = WhereInMacro(dialect=mysql.dialect())
+            >>> where_in([1, "Joe's", 3])
+            (1, 'Joe''s', 3)
 
-    def quote(value: Any) -> str:
-        if isinstance(value, str):
-            value = value.replace(mark, mark * 2)
-            return f"{mark}{value}{mark}"
-        return str(value)
+        """
+        binds = [bindparam(f"value_{i}", value) for i, value in enumerate(values)]
+        string_representations = [
+            str(
+                bind.compile(
+                    dialect=self.dialect, compile_kwargs={"literal_binds": True}
+                )
+            )
+            for bind in binds
+        ]
+        joined_values = ", ".join(string_representations)
+        result = f"({joined_values})"
 
-    joined_values = ", ".join(quote(value) for value in values)
-    return f"({joined_values})"
+        if mark:
+            result += (
+                "\n-- WARNING: the `mark` parameter was removed from the `where_in` "
+                "macro for security reasons\n"
+            )
+
+        return result
 
 
 class BaseTemplateProcessor:
@@ -448,7 +465,7 @@ class BaseTemplateProcessor:
         self.set_context(**kwargs)
 
         # custom filters
-        self._env.filters["where_in"] = where_in
+        self._env.filters["where_in"] = WhereInMacro(database.get_dialect())
 
     def set_context(self, **kwargs: Any) -> None:
         self._context.update(kwargs)

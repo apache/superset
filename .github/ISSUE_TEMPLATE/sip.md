@@ -1,6 +1,6 @@
 ---
 name: SIP
-about: "Superset Improvement Proposal. See [here](https://github.com/apache/superset/issues/5602) for details."
+about: "Superset Improvement Proposal. See https://github.com/apache/superset/issues/5602 for details. The purpose of a Superset Improvement Proposal (SIP) is to introduce any major change into Apache Superset, such as a major new feature, subsystem, or piece of functionality, or any change that impacts the public interfaces of the project"
 labels: sip
 title: "[SIP] Your Title Here (do not add SIP number)"
 assignees: "apache/superset-committers"

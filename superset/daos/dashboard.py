@@ -179,15 +179,6 @@ class DashboardDAO(BaseDAO[Dashboard]):
         return True
 
     @staticmethod
-    def update_charts_owners(model: Dashboard, commit: bool = True) -> Dashboard:
-        owners = list(model.owners)
-        for slc in model.slices:
-            slc.owners = list(set(owners) | set(slc.owners))
-        if commit:
-            db.session.commit()
-        return model
-
-    @staticmethod
     def set_dash_metadata(  # pylint: disable=too-many-locals
         dashboard: Dashboard,
         data: dict[Any, Any],

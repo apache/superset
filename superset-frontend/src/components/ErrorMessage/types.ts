@@ -107,12 +107,3 @@ export type ErrorMessageComponentProps<ExtraType = Record<string, any> | null> =
 
 export type ErrorMessageComponent =
   React.ComponentType<ErrorMessageComponentProps>;
-
-/* Generic error to be returned when the backend returns an error response that is not
- * SIP-41 compliant. */
-export const genericSupersetError = (extra: object) => ({
-  error_type: ErrorTypeEnum.GENERIC_BACKEND_ERROR,
-  extra,
-  level: 'error' as ErrorLevel,
-  message: 'An error occurred',
-});

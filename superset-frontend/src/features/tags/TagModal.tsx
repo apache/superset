@@ -222,10 +222,14 @@ const TagModal: React.FC<TagModalProps> = ({
           name: tagName,
           objects_to_tag: [...dashboards, ...charts, ...savedQueries],
         },
-      }).then(({ json = {} }) => {
-        refreshData();
-        addSuccessToast(t('Tag updated'));
-      });
+      })
+        .then(({ json = {} }) => {
+          refreshData();
+          addSuccessToast(t('Tag updated'));
+        })
+        .catch(err => {
+          addDangerToast(err.message || 'Error Updating Tag');
+        });
     } else {
       SupersetClient.post({
         endpoint: `/api/v1/tag/`,
@@ -234,10 +238,12 @@ const TagModal: React.FC<TagModalProps> = ({
           name: tagName,
           objects_to_tag: [...dashboards, ...charts, ...savedQueries],
         },
-      }).then(({ json = {} }) => {
-        refreshData();
-        addSuccessToast(t('Tag created'));
-      });
+      })
+        .then(({ json = {} }) => {
+          refreshData();
+          addSuccessToast(t('Tag created'));
+        })
+        .catch(err => addDangerToast(err.message || 'Error Creating Tag'));
     }
     onHide();
   };

@@ -24,14 +24,12 @@ import {
   EventAnnotationLayer,
   FilterState,
   FormulaAnnotationLayer,
-  getTimeFormatter,
   IntervalAnnotationLayer,
   isTimeseriesAnnotationResult,
   SMART_DATE_DETAILED_ID,
   SMART_DATE_ID,
   LegendState,
   SupersetTheme,
-  TimeFormatter,
   TimeseriesAnnotationLayer,
   TimeseriesDataRecord,
   ValueFormatter,
@@ -581,28 +579,4 @@ export function getPadding(
         ? 0
         : TIMESERIES_CONSTANTS.gridOffsetRight,
   });
-}
-
-export function getTooltipTimeFormatter(
-  format?: string,
-): TimeFormatter | StringConstructor {
-  if (format === SMART_DATE_ID) {
-    return getTimeFormatter(SMART_DATE_DETAILED_ID);
-  }
-  if (format) {
-    return getTimeFormatter(format);
-  }
-  return String;
-}
-
-export function getXAxisFormatter(
-  format?: string,
-): TimeFormatter | StringConstructor | undefined {
-  if (format === SMART_DATE_ID || !format) {
-    return getTimeFormatter(SMART_DATE_ID);
-  }
-  if (format) {
-    return getTimeFormatter(format);
-  }
-  return String;
 }

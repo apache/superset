@@ -957,6 +957,34 @@ test('does not fire onChange when searching but no selection', async () => {
   expect(onChange).toHaveBeenCalledTimes(1);
 });
 
+test('fires onChange when clearing the selection in single mode', async () => {
+  const onChange = jest.fn();
+  render(
+    <Select
+      {...defaultProps}
+      onChange={onChange}
+      mode="single"
+      value={OPTIONS[0]}
+    />,
+  );
+  clearAll();
+  expect(onChange).toHaveBeenCalledTimes(1);
+});
+
+test('fires onChange when clearing the selection in multiple mode', async () => {
+  const onChange = jest.fn();
+  render(
+    <Select
+      {...defaultProps}
+      onChange={onChange}
+      mode="multiple"
+      value={OPTIONS[0]}
+    />,
+  );
+  clearAll();
+  expect(onChange).toHaveBeenCalledTimes(1);
+});
+
 test('does not duplicate options when using numeric values', async () => {
   render(
     <Select
