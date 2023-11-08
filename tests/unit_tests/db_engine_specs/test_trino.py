@@ -360,12 +360,7 @@ def test_handle_cursor_early_cancel(
     if cancel_early:
         TrinoEngineSpec.prepare_cancel_query(query=query, session=session_mock)
 
-    TrinoEngineSpec.handle_cursor_with_query_id(
-        cursor=cursor_mock,
-        query=query,
-        session=session_mock,
-        cancel_query_id=query_id,
-    )
+    TrinoEngineSpec.handle_cursor(cursor=cursor_mock, query=query, session=session_mock)
 
     if cancel_early:
         assert cancel_query_mock.call_args[1]["cancel_query_id"] == query_id
@@ -383,7 +378,6 @@ def test_execute_with_cursor_in_parallel(mocker: MockerFixture):
     mock_cursor.query_id = None
 
     mock_query = mocker.MagicMock()
-    mock_query.id = query_id
     mock_session = mocker.MagicMock()
 
     def _mock_execute(*args, **kwargs):
@@ -399,6 +393,5 @@ def test_execute_with_cursor_in_parallel(mocker: MockerFixture):
     )
 
     mock_query.set_extra_json_key.assert_called_once_with(
-        key=QUERY_CANCEL_KEY,
-        value=query_id,
+        key=QUERY_CANCEL_KEY, value=query_id
     )
