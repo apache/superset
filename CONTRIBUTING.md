@@ -188,8 +188,8 @@ Apache Superset has the following types of contributors
 ### PMC Member
 
 A Project Management Committee (PMC) member is a person who has been elected by the PMC to help manage the project.
-PMC members are responsible for the overall health of the project, 
-including community development, release management, and project governance. 
+PMC members are responsible for the overall health of the project,
+including community development, release management, and project governance.
 PMC members are also responsible for the technical direction of the project.
 
 For more details on PMC members, please refer to https://www.apache.org/foundation/governance/pmcs.html
@@ -208,7 +208,7 @@ including but not limited to code, tests, documentation, issues, and discussions
 
 ### Security Team
 
-The security team is a selected subset of PMC members, committers and non committers 
+The security team is a selected subset of PMC members, committers and non committers
 who are responsible for handling security issues.
 
 New members of the security team are selected by the PMC members in a vote.
@@ -219,7 +219,7 @@ limited to only actively security-focused contributors.
 
 This security team must ensure the process follows the [ASF vulnerability handling process](https://apache.org/security/committers.html#asf-project-security-for-committers).
 
-Additionally, every new security issue is tracked as a JIRA ticket 
+Additionally, every new security issue is tracked as a JIRA ticket
 on the [ASF JIRA Superset security project](https://issues.apache.org/jira/secure/RapidBoard.jspa?rapidView=588&projectKey=SUPERSETSEC)
 
 Requirements from the security team members:
@@ -228,7 +228,7 @@ Requirements from the security team members:
 - They are not supposed to reveal the information about pending and unfixed security issues to anyone
 (including their employers) unless specifically authorised by the security team members,
 specifically if diagnosing and solving the issue might involve the need of external experts.
-- Release managers are by default members of the security team. 
+- Release managers are by default members of the security team.
 Yet they are not expected to be active in assessing, discussing and fixing security issues in Superset.
 
 Additional expectations from the security team members working on a security issue:
