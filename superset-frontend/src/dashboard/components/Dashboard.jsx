@@ -25,9 +25,8 @@ import Loading from 'src/components/Loading';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import getChartIdsFromLayout from '../util/getChartIdsFromLayout';
 import getLayoutComponentFromChartId from '../util/getLayoutComponentFromChartId';
-import DashboardBuilder from './DashboardBuilder/DashboardBuilder';
+
 import {
-  chartPropShape,
   slicePropShape,
   dashboardInfoPropShape,
   dashboardStatePropShape,
@@ -53,7 +52,6 @@ const propTypes = {
   }).isRequired,
   dashboardInfo: dashboardInfoPropShape.isRequired,
   dashboardState: dashboardStatePropShape.isRequired,
-  charts: PropTypes.objectOf(chartPropShape).isRequired,
   slices: PropTypes.objectOf(slicePropShape).isRequired,
   activeFilters: PropTypes.object.isRequired,
   chartConfiguration: PropTypes.object,
@@ -213,11 +211,6 @@ class Dashboard extends React.PureComponent {
     }
   }
 
-  // return charts in array
-  getAllCharts() {
-    return Object.values(this.props.charts);
-  }
-
   applyFilters() {
     const { appliedFilters } = this;
     const { activeFilters, ownDataCharts } = this.props;
@@ -288,11 +281,7 @@ class Dashboard extends React.PureComponent {
     if (this.context.loading) {
       return <Loading />;
     }
-    return (
-      <>
-        <DashboardBuilder />
-      </>
-    );
+    return this.props.children;
   }
 }
 
