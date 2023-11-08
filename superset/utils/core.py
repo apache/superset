@@ -60,7 +60,7 @@ import pandas as pd
 import sqlalchemy as sa
 from cryptography.hazmat.backends import default_backend
 from cryptography.x509 import Certificate, load_pem_x509_certificate
-from flask import current_app, flash, g, Markup, request
+from flask import current_app, g, Markup, request
 from flask_appbuilder import SQLA
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
@@ -354,17 +354,6 @@ class ColumnSpec(NamedTuple):
     python_date_format: str | None = None
 
 
-def flasher(msg: str, severity: str = "message") -> None:
-    """Flask's flash if available, logging call if not"""
-    try:
-        flash(msg, severity)
-    except RuntimeError:
-        if severity == "danger":
-            logger.error(msg, exc_info=True)
-        else:
-            logger.info(msg)
-
-
 def parse_js_uri_path_item(
     item: str | None, unquote: bool = True, eval_undefined: bool = False
 ) -> str | None:
@@ -446,15 +435,6 @@ def cast_to_boolean(value: Any) -> bool | None:
     if isinstance(value, str):
         return value.strip().lower() == "true"
     return False
-
-
-def list_minus(l: list[Any], minus: list[Any]) -> list[Any]:
-    """Returns l without what is in minus
-
-    >>> list_minus([1, 2, 3], [2])
-    [1, 3]
-    """
-    return [o for o in l if o not in minus]
 
 
 class DashboardEncoder(json.JSONEncoder):
@@ -993,13 +973,6 @@ def get_email_address_list(address_string: str) -> list[str]:
     if isinstance(address_string, str):
         address_string_list = re.split(r",|\s|;", address_string)
     return [x.strip() for x in address_string_list if x.strip()]
-
-
-def get_email_address_str(address_string: str) -> str:
-    address_list = get_email_address_list(address_string)
-    address_list_str = ", ".join(address_list)
-
-    return address_list_str
 
 
 def choicify(values: Iterable[Any]) -> list[tuple[Any, Any]]:
@@ -1699,15 +1672,6 @@ def extract_column_dtype(col: BaseColumn) -> GenericDataType:
         return GenericDataType.NUMERIC
     # TODO: add check for boolean data type when proper support is added
     return GenericDataType.STRING
-
-
-def indexed(items: list[Any], key: str | Callable[[Any], Any]) -> dict[Any, list[Any]]:
-    """Build an index for a list of objects"""
-    idx: dict[Any, Any] = {}
-    for item in items:
-        key_ = getattr(item, key) if isinstance(key, str) else key(item)
-        idx.setdefault(key_, []).append(item)
-    return idx
 
 
 def is_test() -> bool:
