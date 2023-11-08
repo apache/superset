@@ -1365,7 +1365,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             sql = qry.compile(engine, compile_kwargs={"literal_binds": True})
             sql = self._apply_cte(sql, cte)
             sql = self.mutate_query_from_config(sql)
-
             df = pd.read_sql_query(sql=sql, con=engine)
             return df[column_name].to_list()
 
