@@ -37,7 +37,6 @@ import { Select } from 'src/components';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { hasOption, propertyComparator } from 'src/components/Select/utils';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import { uniqWith, isEqual } from 'lodash';
 import { PluginFilterSelectProps, SelectValue } from './types';
 import { FilterPluginStyle, StatusMessage, StyledFormItem } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
@@ -219,16 +218,13 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   }, [filterState.validateMessage, filterState.validateStatus]);
 
   const uniqueOptions = useMemo(() => {
-    const allOptions = [...data];
-    return uniqWith(allOptions, isEqual).map(row => {
-      const [value] = groupby.map(col => row[col]);
-      return {
-        label: labelFormatter(value, datatype),
-        value,
-        isNewOption: false,
-      };
-    });
-  }, [data, datatype, groupby, labelFormatter]);
+    const allOptions = new Set([...data.map(el => el[col])]);
+    return [...allOptions].map((value: string) => ({
+      label: labelFormatter(value, datatype),
+      value,
+      isNewOption: false,
+    }));
+  }, [data, datatype, col, labelFormatter]);
 
   const options = useMemo(() => {
     if (search && !multiSelect && !hasOption(search, uniqueOptions, true)) {
