@@ -1,8 +1,6 @@
 FROM python:3.10-bullseye
 
-RUN apt-get update --fix-missing && DEBIAN_FRONTEND="noninteractive" apt install -y build-essential libssl-dev libffi-dev python3-dev python3-pip libsasl2-dev libldap2-dev default-libmysqlclient-dev
-RUN mkdir /srv/superset
-WORKDIR /srv/superset
+RUN apt update --fix-missing && DEBIAN_FRONTEND="noninteractive" apt install -y build-essential libssl-dev libffi-dev python3-dev python3-pip libsasl2-dev libldap2-dev default-libmysqlclient-dev
 RUN python3 -m pip install -r requirements/development.txt
 RUN python3 -m pip install -r requirements-local.txt
 
