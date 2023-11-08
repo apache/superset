@@ -182,8 +182,7 @@ There is a dedicated [`apache-superset` tag](https://stackoverflow.com/questions
 
 ## Types of Contributors
 
-Following Apache Software Foundation's project governance,
-Apache Superset has the following types of contributors
+Following Apache Software Foundation's project governance, Apache Superset has the following types of contributors
 
 ### PMC Member
 
@@ -208,34 +207,27 @@ including but not limited to code, tests, documentation, issues, and discussions
 
 ### Security Team
 
-The security team is a selected subset of PMC members, committers and non committers
-who are responsible for handling security issues.
+The security team is a selected subset of PMC members, committers and non committers who are responsible for handling security issues.
 
 New members of the security team are selected by the PMC members in a vote.
 You can request to be added to the team by sending a message to private@superset.apache.org.
-However, the team should be small and focused on solving security issues,
-so the requests will be evaluated on a case-by-case basis and the team size will be kept relatively small,
-limited to only actively security-focused contributors.
+However, the team should be small and focused on solving security issues, so the requests will be evaluated on a case-by-case basis and the team size will be kept relatively small, limited to only actively security-focused contributors.
 
 This security team must ensure the process follows the [ASF vulnerability handling process](https://apache.org/security/committers.html#asf-project-security-for-committers).
 
-Additionally, every new security issue is tracked as a JIRA ticket
-on the [ASF JIRA Superset security project](https://issues.apache.org/jira/secure/RapidBoard.jspa?rapidView=588&projectKey=SUPERSETSEC)
+Additionally, every new security issue is tracked as a JIRA ticket on the [ASF JIRA Superset security project](https://issues.apache.org/jira/secure/RapidBoard.jspa?rapidView=588&projectKey=SUPERSETSEC)
 
 Requirements from the security team members:
 
 - They have an ICLA signed with Apache Software Foundation.
 - They are not supposed to reveal the information about pending and unfixed security issues to anyone
-(including their employers) unless specifically authorised by the security team members,
-specifically if diagnosing and solving the issue might involve the need of external experts.
-- Release managers are by default members of the security team.
-Yet they are not expected to be active in assessing, discussing and fixing security issues in Superset.
+(including their employers) unless specifically authorised by the security team members, specifically if diagnosing and solving the issue might involve the need of external experts.
+- Release managers are by default members of the security team. Yet they are not expected to be active in assessing, discussing and fixing security issues in Superset.
 
 Additional expectations from the security team members working on a security issue:
 
 - They are supposed to be active in assessing, discussing, fixing and releasing the security issues in Superset.
-- Security fixes are not supposed to be discussed in public forums, and PR descriptions should not contain any information about the security issue.
-The corresponding JIRA ticket should contain a link to the PR.
+- Security fixes are not supposed to be discussed in public forums, and PR descriptions should not contain any information about the security issue. The corresponding JIRA ticket should contain a link to the PR.
 - The security team members working on the fix might be mentioned as remediation developers in the CVE including their job affiliation if they want to.
 
 ## Pull Request Guidelines
