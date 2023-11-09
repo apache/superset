@@ -48,7 +48,6 @@ google-auth==2.17.3
     #   google-cloud-core
     #   pandas-gbq
     #   pydata-google-auth
-    #   shillelagh
     #   sqlalchemy-bigquery
 google-auth-oauthlib==1.0.0
     # via
@@ -120,6 +119,8 @@ protobuf==4.23.0
     #   proto-plus
 pydata-google-auth==1.7.0
     # via pandas-gbq
+pyee==9.0.4
+    # via playwright
 pyfakefs==5.2.2
     # via -r requirements/testing.in
 pyhive[presto]==0.7.0

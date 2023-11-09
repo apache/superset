@@ -541,7 +541,7 @@ const ExtraOptions = ({
           </div>
           <div className="input-container" data-test="version-spinbutton-test">
             <input
-              type="number"
+              type="text"
               name="version"
               placeholder={t('Version number')}
               onChange={onExtraInputChange}
@@ -550,8 +550,8 @@ const ExtraOptions = ({
           </div>
           <div className="helper">
             {t(
-              'Specify the database version. This should be used with ' +
-                'Presto in order to enable query cost estimation.',
+              'Specify the database version. This is used with Presto for query cost ' +
+                'estimation, and Dremio for syntax changes, among others.',
             )}
           </div>
         </StyledInputContainer>

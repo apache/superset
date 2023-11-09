@@ -281,8 +281,8 @@ const Select = forwardRef(
                 : option.value,
             ),
         );
-        fireOnChange();
       }
+      fireOnChange();
     };
 
     const handleOnDeselect: SelectProps['onDeselect'] = (value, option) => {

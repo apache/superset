@@ -146,8 +146,10 @@ const AceEditorWrapper = ({
   };
 
   const onChangeText = (text: string) => {
-    setSql(text);
-    onChange(text);
+    if (text !== sql) {
+      setSql(text);
+      onChange(text);
+    }
   };
 
   const { data: annotations } = useAnnotations({

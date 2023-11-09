@@ -28,6 +28,7 @@ from flask import Flask, redirect
 from flask_appbuilder import expose, IndexView
 from flask_babel import gettext as __
 from flask_compress import Compress
+from flask_session import Session
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from superset.constants import CHANGE_ME_SECRET_KEY
@@ -479,6 +480,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             logger.error("Refusing to start due to insecure SECRET_KEY")
             sys.exit(1)
 
+    def configure_session(self) -> None:
+        if self.config["SESSION_SERVER_SIDE"]:
+            Session(self.superset_app)
+
     def init_app(self) -> None:
         """
         Main entry point which will delegate to other methods in
@@ -486,6 +491,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         """
         self.pre_init()
         self.check_secret_key()
+        self.configure_session()
         # Configuration of logging must be done first to apply the formatter properly
         self.configure_logging()
         # Configuration of feature_flags must be done first to allow init features
