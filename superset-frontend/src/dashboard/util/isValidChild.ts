@@ -90,6 +90,7 @@ const parentMaxDepthLookup = {
     [MARKDOWN_TYPE]: depthFour,
     [COLUMN_TYPE]: depthFour,
     [IKI_DEEPCAST_TYPE]: depthFour,
+    [IKI_RUN_PIPELINE_TYPE]: depthFour,
   },
 
   [TABS_TYPE]: {
