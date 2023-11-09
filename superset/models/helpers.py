@@ -708,10 +708,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     fetch_values_predicate = None
 
     @property
-    def fetch_value_predicate(self) -> Optional[str]:
-        return None
-
-    @property
     def type(self) -> str:
         raise NotImplementedError()
 
@@ -786,16 +782,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def columns(self) -> list[Any]:
         raise NotImplementedError()
 
-    def get_fetch_values_predicate(
-        self, template_processor: Optional[BaseTemplateProcessor] = None
-    ) -> TextClause:
-        raise NotImplementedError()
-
     def get_extra_cache_keys(self, query_obj: dict[str, Any]) -> list[Hashable]:
         raise NotImplementedError()
 
     def get_template_processor(self, **kwargs: Any) -> BaseTemplateProcessor:
         raise NotImplementedError()
+
+    def get_fetch_values_predicate(
+        self, template_processor: Optional[BaseTemplateProcessor] = None
+    ) -> TextClause:
+        return self.fetch_values_predicate
 
     def get_sqla_row_level_filters(
         self,
