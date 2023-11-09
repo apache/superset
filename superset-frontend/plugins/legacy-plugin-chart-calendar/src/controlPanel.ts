@@ -80,7 +80,7 @@ const config: ControlPanelConfig = {
     {
       label: t('Chart Options'),
       expanded: true,
-      tabOverride: 'customize',
+      description: t('Options'),
       controlSetRows: [
         ['linear_color_scheme'],
         [
@@ -136,6 +136,32 @@ const config: ControlPanelConfig = {
           },
         ],
         [
+          {
+            name: 'color_range_start',
+            config: {
+              type: 'TextControl',
+              isInt: true,
+              validators: [legacyValidateInteger],
+              renderTrigger: true,
+              default: undefined,
+              label: t('Color Range Start'),
+              description: t('test'),
+            },
+          },
+          {
+            name: 'color_range_end',
+            config: {
+              type: 'TextControl',
+              isInt: true,
+              validators: [legacyValidateInteger],
+              renderTrigger: true,
+              default: undefined,
+              label: t('Color Range End'),
+              description: t('test'),
+            },
+          },
+        ],
+        [
           'y_axis_format',
           {
             name: 'x_axis_time_format',
@@ -180,7 +206,6 @@ const config: ControlPanelConfig = {
             config: {
               type: 'CheckboxControl',
               label: t('Show Metric Names'),
-              renderTrigger: true,
               default: true,
               description: t('Whether to display the metric name as a title'),
             },
