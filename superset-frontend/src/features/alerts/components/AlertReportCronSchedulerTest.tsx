@@ -131,7 +131,7 @@ export const AlertReportCronSchedulerTest: React.FC<AlertReportCronSchedulerProp
           </div>
         </Radio.Group> */}
         {scheduleFormat === 'input' ? (
-          <div className="inline-container add-margin">
+         <>
             {/* <span className="input-label">{t('CRON Schedule')}</span> */}
             <StyledInputContainer
               data-test="input-content"
@@ -150,9 +150,9 @@ export const AlertReportCronSchedulerTest: React.FC<AlertReportCronSchedulerProp
                 />
               </div>
             </StyledInputContainer>
-          </div>
+          </>
         ) : (
-          <div className="inline-container add-margin">
+          <div className="inline-container">
             <CronPicker
               clearButton={false}
               value={value}

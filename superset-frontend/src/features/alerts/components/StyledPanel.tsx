@@ -29,6 +29,7 @@ const antdPanelStyles = (theme: SupersetTheme) => css`
       font-weight: ${theme.typography.weights.normal};
       line-height: 150%;
       margin-bottom: 0;
+      padding-top: ${theme.gridUnit}px;
     }
 
     .collapse-panel-asterisk {

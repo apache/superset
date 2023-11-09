@@ -39,6 +39,7 @@ import { Input } from 'src/components/Input';
 import { Switch } from 'src/components/Switch';
 import Modal from 'src/components/Modal';
 import Collapse from 'src/components/Collapse';
+import Collapse from 'src/components/Collapse';
 import TimezoneSelector from 'src/components/TimezoneSelector';
 import { Radio } from 'src/components/Radio';
 import { propertyComparator } from 'src/components/Select/utils';
@@ -66,6 +67,7 @@ import { AlertReportCronScheduler } from './components/AlertReportCronScheduler'
 import { NotificationMethod } from './components/NotificationMethod';
 import StyledPanel from './components/StyledPanel';
 import ValidatedPanelHeader from './components/ValidatedPanelHeader';
+import { AlertReportCronSchedulerTest } from './components/AlertReportCronSchedulerTest';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -145,28 +147,11 @@ const RETENTION_OPTIONS = [
   },
 ];
 
-// Style Constants
 const MODAL_BODY_HEIGHT = 180.5;
 
-// Apply to collapse panels as 'style' prop value
-const panelBorder = {
-  borderBottom: 'none',
-};
-
-// Apply to final text input components of each collapse panel
-const no_margin_bottom = css`
-  margin-bottom: 0;
-`;
-
-// Styled Components
-
-/* Height of modal body defined here, total width defined at component invocation as antd prop
- */
 const StyledModal = styled(Modal)`
-  .ant-modal-header {
-    border-bottom: none;
-  }
   .ant-modal-body {
+    height: ${({ theme }) => theme.gridUnit * MODAL_BODY_HEIGHT}px;
     height: ${({ theme }) => theme.gridUnit * MODAL_BODY_HEIGHT}px;
   }
 `;
@@ -182,7 +167,9 @@ const StyledSectionContainer = styled.div`
   .header-section {
     display: flex;
     flex-flow: column nowrap;
+    flex-flow: column nowrap;
     flex: 0 0 auto;
+    align-items: stretch;
     align-items: stretch;
     width: 100%;
   }
@@ -192,8 +179,14 @@ const StyledSectionContainer = styled.div`
     font-size: ${({ theme }) => theme.typography.sizes.s}px;
   }
 
+  .helper {
+    color: ${({ theme }) => theme.colors.grayscale.base};
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  }
+
   .column-section {
     display: flex;
+    flex-flow: column nowrap;
     flex-flow: column nowrap;
     flex: 1 1 auto;
 
@@ -261,6 +254,8 @@ const StyledSwitchContainer = styled.div`
 
 export const StyledInputContainer = styled.div`
   flex: 1;
+  margin-top: 0px;
+  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
   margin-top: 0px;
   margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
 
@@ -402,19 +397,19 @@ export const TRANSLATIONS = {
   ADD_ALERT_TEXT: t('Add Alert'),
   REPORT_NAME_TEXT: t('Report name'),
   REPORT_NAME_PLACEHOLDER: t('Enter report name'),
+  REPORT_NAME_PLACEHOLDER: t('Enter report name'),
   ALERT_NAME_TEXT: t('Alert name'),
+  ALERT_NAME_PLACEHOLDER: t('Enter alert name'),
   ALERT_NAME_PLACEHOLDER: t('Enter alert name'),
   OWNERS_TEXT: t('Owners'),
   OWNERS_PLACEHOLDER: t('Select owners'),
+  OWNERS_PLACEHOLDER: t('Select owners'),
   DESCRIPTION_TEXT: t('Description'),
-  REPORT_DESCRIPTION_PLACEHOLDER: t(
-    'Include description to be sent with report',
-  ),
-  ALERT_DESCRIPTION_PLACEHOLDER: t('Include description to be sent with alert'),
-  ACTIVE_REPORT_TEXT: t('Report is active'),
-  ACTIVE_ALERT_TEXT: t('Alert is active'),
+  DESCRIPTION_PLACEHOLDER: t('Include description to be sent with your report'),
+  ACTIVE_TEXT: t('Active'),
   ALERT_CONDITION_TEXT: t('Alert condition'),
   DATABASE_TEXT: t('Database'),
+  DATABASE_PLACEHOLDER: t('Select database'),
   DATABASE_PLACEHOLDER: t('Select database'),
   SQL_QUERY_TEXT: t('SQL Query'),
   SQL_QUERY_TOOLTIP: t(
@@ -422,6 +417,7 @@ export const TRANSLATIONS = {
   ),
   TRIGGER_ALERT_IF_TEXT: t('Trigger Alert If...'),
   CONDITION_TEXT: t('Condition'),
+  CONDITION_PLACEHOLDER: t('Condition'),
   CONDITION_PLACEHOLDER: t('Condition'),
   VALUE_TEXT: t('Value'),
   REPORT_SCHEDULE_TEXT: t('Report schedule'),
@@ -1189,6 +1185,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       }
       show={show}
       width="500px"
+      width="500px"
       title={
         <h4 data-test="alert-report-modal-title">
           {isEditMode && isReport
@@ -1215,9 +1212,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 required
                 validateCheckStatus={false}
               />
+              // <div>
+              //   <h4>{t('General Information')}</h4>
+              //   <p className="helper">
+              //     {t(
+              //       'Set up basic alert details, such as name and description.',
+              //     )}
+              //   </p>
+              // </div>
             }
             key="1"
-            style={panelBorder}
+            style={{ borderBottom: 'none' }}
           >
             <div className="header-section">
               <StyledInputContainer>
@@ -1273,11 +1278,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     type="text"
                     name="description"
                     value={currentAlert ? currentAlert.description || '' : ''}
-                    placeholder={
-                      isReport
-                        ? TRANSLATIONS.REPORT_DESCRIPTION_PLACEHOLDER
-                        : TRANSLATIONS.ALERT_DESCRIPTION_PLACEHOLDER
-                    }
+                    placeholder={TRANSLATIONS.DESCRIPTION_PLACEHOLDER}
                     onChange={onInputChange}
                   />
                 </div>
@@ -1287,11 +1288,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   onChange={onActiveSwitch}
                   checked={currentAlert ? currentAlert.active : true}
                 />
-                <div className="switch-label">
-                  {isReport
-                    ? TRANSLATIONS.ACTIVE_REPORT_TEXT
-                    : TRANSLATIONS.ACTIVE_ALERT_TEXT}
-                </div>
+                <div className="switch-label">{TRANSLATIONS.ACTIVE_TEXT}</div>
               </StyledSwitchContainer>
             </div>
           </StyledPanel>
@@ -1304,6 +1301,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   required={false}
                   validateCheckStatus
                 />
+                // <div>
+                //   <h4>{TRANSLATIONS.ALERT_CONDITION_TEXT}</h4>
+                //   <p className="helper">
+                //     {t(
+                //       'Define the database, SQL query, and triggering conditions for alerts.',
+                //     )}
+                //   </p>
+                // </div>
               }
               key="2"
               style={{ borderBottom: 'none' }}
@@ -1351,7 +1356,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   />
                 </StyledInputContainer>
                 <div className="inline-container wrap">
-                  <StyledInputContainer css={no_margin_bottom}>
+                  <StyledInputContainer>
                     <div className="control-label" css={inputSpacer}>
                       {TRANSLATIONS.TRIGGER_ALERT_IF_TEXT}
                       <span className="required">*</span>
@@ -1369,7 +1374,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       />
                     </div>
                   </StyledInputContainer>
-                  <StyledInputContainer css={no_margin_bottom}>
+                  <StyledInputContainer>
                     <div className="control-label">
                       {TRANSLATIONS.VALUE_TEXT}{' '}
                       <InfoTooltipWithTrigger
@@ -1410,7 +1415,15 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             style={{ borderBottom: 'none' }}
           >
             <div className="column schedule">
-              <AlertReportCronScheduler
+              <StyledSectionTitle>
+                <h4>
+                  {isReport
+                    ? TRANSLATIONS.REPORT_SCHEDULE_TEXT
+                    : TRANSLATIONS.ALERT_CONDITION_SCHEDULE_TEXT}
+                </h4>
+                <span className="required">*</span>
+              </StyledSectionTitle>
+              <AlertReportCronSchedulerTest
                 value={
                   currentAlert?.crontab || ALERT_REPORTS_DEFAULT_CRON_VALUE
                 }
@@ -1470,7 +1483,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 </div>
               </StyledInputContainer>
               {!isReport && (
-                <StyledInputContainer css={no_margin_bottom}>
+                <StyledInputContainer>
                   <div className="control-label">
                     {TRANSLATIONS.GRACE_PERIOD_TEXT}
                   </div>
@@ -1504,6 +1517,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             style={{ borderBottom: 'none' }}
           >
             <div className="column message">
+              <StyledSectionTitle>
+                <h4>{TRANSLATIONS.MESSAGE_CONTENT_TEXT}</h4>
+                <span className="required">*</span>
+              </StyledSectionTitle>
               <Radio.Group onChange={onContentTypeChange} value={contentType}>
                 <StyledRadio value="dashboard">
                   {TRANSLATIONS.DASHBOARD_TEXT}
@@ -1613,6 +1630,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             style={{ borderBottom: 'none' }}
           >
             <div>
+              <StyledSectionTitle>
+                <h4>{TRANSLATIONS.NOTIFICATION_METHOD_TEXT}</h4>
+                <span className="required">*</span>
+              </StyledSectionTitle>
               {notificationSettings.map((notificationSetting, i) => (
                 <StyledNotificationMethodWrapper>
                   <NotificationMethod
