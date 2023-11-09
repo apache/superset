@@ -250,7 +250,8 @@ class WebDriverSelenium(WebDriverProxy):
             options = firefox.options.Options()
             profile = FirefoxProfile()
             profile.set_preference("layout.css.devPixelsPerPx", str(pixel_density))
-            kwargs: dict[Any, Any] = {"options": options, "firefox_profile": profile}
+            options.profile = profile
+            kwargs: dict[Any, Any] = {"options": options}
         elif self._driver_type == "chrome":
             driver_class = chrome.webdriver.WebDriver
             options = chrome.options.Options()
