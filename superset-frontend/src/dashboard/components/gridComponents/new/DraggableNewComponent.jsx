@@ -37,7 +37,7 @@ const defaultProps = {
 
 export default class DraggableNewComponent extends React.PureComponent {
   render() {
-    const { label, id, type, className, meta } = this.props;
+    const { label, id, type, className, meta, description } = this.props;
     return (
       <DragDroppable
         component={{ type, id, meta }}
@@ -56,7 +56,10 @@ export default class DraggableNewComponent extends React.PureComponent {
             data-test="new-component"
           >
             <div className={cx('new-component-placeholder', className)} />
-            {label}
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <div className="new-component-label">{label}</div>
+              <div className="new-component-description">{description}</div>
+            </div>
           </div>
         )}
       </DragDroppable>

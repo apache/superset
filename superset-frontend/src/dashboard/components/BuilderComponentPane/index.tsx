@@ -107,13 +107,15 @@ const BuilderComponentPane: React.FC<BCPProps> = ({
                     className="tabs-components"
                     data-test="dashboard-builder-component-pane-tabs-navigation"
                   >
-                    <Tabs.TabPane key={1} tab={t('Components')}>
+                    <Tabs.TabPane key={1} tab={t('Layout')}>
                       <NewTabs />
                       <NewRow />
                       <NewColumn />
                       <NewHeader />
                       <NewMarkdown />
                       <NewDivider />
+                    </Tabs.TabPane>
+                    <Tabs.TabPane key={2} tab={t('Components')}>
                       <NewIkiTable />
                       <NewIkiProcessBuilder />
                       <NewIkiRunPipeline />
@@ -130,7 +132,7 @@ const BuilderComponentPane: React.FC<BCPProps> = ({
                         ))}
                     </Tabs.TabPane>
                     <Tabs.TabPane
-                      key={2}
+                      key={3}
                       tab={t('Charts')}
                       className="tab-charts"
                     >

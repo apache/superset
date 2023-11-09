@@ -29,6 +29,7 @@ export default function DraggableNewDivider() {
       id={NEW_IKI_TABLE_ID}
       type={IKI_TABLE_TYPE}
       label={t('Editable Dataset')}
+      description="Edit your data from the dashboard"
       className="fa fa-table"
     />
   );
