@@ -116,14 +116,8 @@ class DatasourceRestApi(BaseSupersetApi):
 
         row_limit = apply_max_row_limit(app.config["FILTER_SELECT_ROW_LIMIT"])
         try:
-            # always denormalize column name before querying for values
-            db_engine_spec = datasource.database.db_engine_spec
-            db_dialect = datasource.database.get_dialect()
-            denomalized_col_name = db_engine_spec.denormalize_name(
-                db_dialect, column_name
-            )
             payload = datasource.values_for_column(
-                column_name=denomalized_col_name, limit=row_limit
+                column_name=column_name, limit=row_limit
             )
             return self.response(200, result=payload)
         except KeyError:

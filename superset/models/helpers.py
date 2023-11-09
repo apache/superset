@@ -700,6 +700,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         "MIN": sa.func.MIN,
         "MAX": sa.func.MAX,
     }
+    fetch_values_predicate = None
 
     @property
     def fetch_value_predicate(self) -> Optional[str]:
@@ -1339,8 +1340,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
     def values_for_column(self, column_name: str, limit: int = 10000) -> list[Any]:
         # always denormalize column name before querying for values
-        db_dialect = self.database.get_dialect()
-        denomalized_col_name = self.database.db_engine_spec.denormalize_name(
+        db_dialect = self.database.get_dialect()  # type: ignore
+        denomalized_col_name = self.database.db_engine_spec.denormalize_name(  # type: ignore
             db_dialect, column_name
         )
         cols = {col.column_name: col for col in self.columns}
@@ -1359,7 +1360,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if self.fetch_values_predicate:
             qry = qry.where(self.get_fetch_values_predicate(template_processor=tp))
 
-        with self.database.get_sqla_engine_with_context() as engine:
+        with self.database.get_sqla_engine_with_context() as engine:  # type: ignore
             sql = qry.compile(engine, compile_kwargs={"literal_binds": True})
             sql = self._apply_cte(sql, cte)
             sql = self.mutate_query_from_config(sql)
@@ -1937,7 +1938,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
                 having_clause_and += [self.text(having)]
 
-        if apply_fetch_values_predicate and self.fetch_values_predicate:  # type: ignore
+        if self.fetch_values_predicate:
             qry = qry.where(
                 self.get_fetch_values_predicate(template_processor=template_processor)
             )
