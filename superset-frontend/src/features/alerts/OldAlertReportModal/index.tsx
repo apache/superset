@@ -39,7 +39,6 @@ import Icons from 'src/components/Icons';
 import { Input } from 'src/components/Input';
 import { Switch } from 'src/components/Switch';
 import Modal from 'src/components/Modal';
-import Collapse from 'src/components/Collapse';
 import TimezoneSelector from 'src/components/TimezoneSelector';
 import { Radio } from 'src/components/Radio';
 import { propertyComparator } from 'src/components/Select/utils';
@@ -63,11 +62,8 @@ import {
 } from 'src/features/alerts/types';
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
-import { NotificationMethod } from './components/NotificationMethod';
-import StyledPanel from './components/StyledPanel';
-import ValidatedPanelHeader from './components/ValidatedPanelHeader';
-import { AlertReportCronSchedulerTest } from './components/AlertReportCronSchedulerTest';
+import { AlertReportCronScheduler } from '../components/AlertReportCronScheduler';
+import { NotificationMethod } from '../components/NotificationMethod';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -147,12 +143,18 @@ const RETENTION_OPTIONS = [
   },
 ];
 
-const MODAL_BODY_HEIGHT = 180.5;
-
 const StyledModal = styled(Modal)`
+  max-width: 1200px;
+  width: 100%;
+
   .ant-modal-body {
-    height: ${({ theme }) => theme.gridUnit * MODAL_BODY_HEIGHT}px;
+    overflow: initial;
   }
+`;
+
+const StyledIcon = (theme: SupersetTheme) => css`
+  margin: auto ${theme.gridUnit * 2}px auto 0;
+  color: ${theme.colors.grayscale.base};
 `;
 
 const StyledSectionContainer = styled.div`
@@ -165,28 +167,32 @@ const StyledSectionContainer = styled.div`
 
   .header-section {
     display: flex;
-    flex-flow: column nowrap;
     flex: 0 0 auto;
-    align-items: stretch;
+    align-items: center;
     width: 100%;
-  }
-
-  .helper {
-    color: ${({ theme }) => theme.colors.grayscale.base};
-    font-size: ${({ theme }) => theme.typography.sizes.s}px;
+    padding: ${({ theme }) => theme.gridUnit * 4}px;
+    border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   }
 
   .column-section {
     display: flex;
-    flex-flow: column nowrap;
     flex: 1 1 auto;
 
     .column {
       flex: 1 1 auto;
       min-width: calc(33.33% - ${({ theme }) => theme.gridUnit * 8}px);
+      padding: ${({ theme }) => theme.gridUnit * 4}px;
 
       .async-select {
         margin: 10px 0 20px;
+      }
+
+      &.condition {
+        border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+      }
+
+      &.message {
+        border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
       }
     }
   }
@@ -245,8 +251,7 @@ const StyledSwitchContainer = styled.div`
 
 export const StyledInputContainer = styled.div`
   flex: 1;
-  margin-top: 0px;
-  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+  margin-top: 0;
 
   input::-webkit-outer-spin-button,
   input::-webkit-inner-spin-button {
@@ -385,21 +390,15 @@ export const TRANSLATIONS = {
   ADD_REPORT_TEXT: t('Add Report'),
   ADD_ALERT_TEXT: t('Add Alert'),
   REPORT_NAME_TEXT: t('Report name'),
-  REPORT_NAME_PLACEHOLDER: t('Enter report name'),
   ALERT_NAME_TEXT: t('Alert name'),
-  ALERT_NAME_PLACEHOLDER: t('Enter alert name'),
   OWNERS_TEXT: t('Owners'),
-  OWNERS_PLACEHOLDER: t('Select owners'),
   DESCRIPTION_TEXT: t('Description'),
-  DESCRIPTION_PLACEHOLDER: t('Include description to be sent with your report'),
   ACTIVE_TEXT: t('Active'),
   ALERT_CONDITION_TEXT: t('Alert condition'),
   DATABASE_TEXT: t('Database'),
-  DATABASE_PLACEHOLDER: t('Select database'),
   SQL_QUERY_TEXT: t('SQL Query'),
   TRIGGER_ALERT_IF_TEXT: t('Trigger Alert If...'),
   CONDITION_TEXT: t('Condition'),
-  CONDITION_PLACEHOLDER: t('Condition'),
   VALUE_TEXT: t('Value'),
   VALUE_TOOLTIP: t('Threshold value should be double precision number'),
   REPORT_SCHEDULE_TEXT: t('Report schedule'),
@@ -1166,9 +1165,15 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         isEditMode ? TRANSLATIONS.SAVE_TEXT : TRANSLATIONS.ADD_TEXT
       }
       show={show}
-      width="500px"
+      width="100%"
+      maxWidth="1450px"
       title={
         <h4 data-test="alert-report-modal-title">
+          {isEditMode ? (
+            <Icons.EditAlt css={StyledIcon} />
+          ) : (
+            <Icons.PlusLarge css={StyledIcon} />
+          )}
           {isEditMode && isReport
             ? TRANSLATIONS.EDIT_REPORT_TEXT
             : isEditMode
@@ -1180,281 +1185,240 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       }
     >
       <StyledSectionContainer>
-        <Collapse
-          expandIconPosition="right"
-          accordion
-          style={{ border: 'none' }}
-        >
-          <StyledPanel
-            header={
-              <ValidatedPanelHeader
-                title="General Information"
-                subtitle="Set up basic alert details, such as name and description"
-                required
-                validateCheckStatus={false}
-              />
-              // <div>
-              //   <h4>{t('General Information')}</h4>
-              //   <p className="helper">
-              //     {t(
-              //       'Set up basic alert details, such as name and description.',
-              //     )}
-              //   </p>
-              // </div>
-            }
-            key="1"
-            style={{ borderBottom: 'none' }}
-          >
-            <div className="header-section">
-              <StyledInputContainer>
-                <div className="control-label">
-                  {isReport
-                    ? TRANSLATIONS.REPORT_NAME_TEXT
-                    : TRANSLATIONS.ALERT_NAME_TEXT}
-                  <span className="required">*</span>
-                </div>
-                <div className="input-container">
-                  <input
-                    type="text"
-                    name="name"
-                    value={currentAlert ? currentAlert.name : ''}
-                    placeholder={
-                      isReport
-                        ? TRANSLATIONS.REPORT_NAME_PLACEHOLDER
-                        : TRANSLATIONS.ALERT_NAME_PLACEHOLDER
-                    }
-                    onChange={onInputChange}
-                  />
-                </div>
-              </StyledInputContainer>
-              <StyledInputContainer>
-                <div className="control-label">
-                  {TRANSLATIONS.OWNERS_TEXT}
-                  <span className="required">*</span>
-                </div>
-                <div data-test="owners-select" className="input-container">
-                  <AsyncSelect
-                    ariaLabel={TRANSLATIONS.OWNERS_TEXT}
-                    allowClear
-                    name="owners"
-                    mode="multiple"
-                    placeholder={TRANSLATIONS.OWNERS_PLACEHOLDER}
-                    value={
-                      (currentAlert?.owners as {
-                        label: string;
-                        value: number;
-                      }[]) || []
-                    }
-                    options={loadOwnerOptions}
-                    onChange={onOwnersChange}
-                  />
-                </div>
-              </StyledInputContainer>
-              <StyledInputContainer>
-                <div className="control-label">
-                  {TRANSLATIONS.DESCRIPTION_TEXT}
-                </div>
-                <div className="input-container">
-                  <input
-                    type="text"
-                    name="description"
-                    value={currentAlert ? currentAlert.description || '' : ''}
-                    placeholder={TRANSLATIONS.DESCRIPTION_PLACEHOLDER}
-                    onChange={onInputChange}
-                  />
-                </div>
-              </StyledInputContainer>
-              <StyledSwitchContainer>
-                <Switch
-                  onChange={onActiveSwitch}
-                  checked={currentAlert ? currentAlert.active : true}
-                />
-                <div className="switch-label">{TRANSLATIONS.ACTIVE_TEXT}</div>
-              </StyledSwitchContainer>
+        <div className="header-section">
+          <StyledInputContainer>
+            <div className="control-label">
+              {isReport
+                ? TRANSLATIONS.REPORT_NAME_TEXT
+                : TRANSLATIONS.ALERT_NAME_TEXT}
+              <span className="required">*</span>
             </div>
-          </StyledPanel>
+            <div className="input-container">
+              <input
+                type="text"
+                name="name"
+                value={currentAlert ? currentAlert.name : ''}
+                placeholder={
+                  isReport
+                    ? TRANSLATIONS.REPORT_NAME_TEXT
+                    : TRANSLATIONS.ALERT_NAME_TEXT
+                }
+                onChange={onInputChange}
+                css={inputSpacer}
+              />
+            </div>
+          </StyledInputContainer>
+          <StyledInputContainer>
+            <div className="control-label">
+              {TRANSLATIONS.OWNERS_TEXT}
+              <span className="required">*</span>
+            </div>
+            <div data-test="owners-select" className="input-container">
+              <AsyncSelect
+                ariaLabel={TRANSLATIONS.OWNERS_TEXT}
+                allowClear
+                name="owners"
+                mode="multiple"
+                value={
+                  (currentAlert?.owners as {
+                    label: string;
+                    value: number;
+                  }[]) || []
+                }
+                options={loadOwnerOptions}
+                onChange={onOwnersChange}
+                css={inputSpacer}
+              />
+            </div>
+          </StyledInputContainer>
+          <StyledInputContainer>
+            <div className="control-label">{TRANSLATIONS.DESCRIPTION_TEXT}</div>
+            <div className="input-container">
+              <input
+                type="text"
+                name="description"
+                value={currentAlert ? currentAlert.description || '' : ''}
+                placeholder={TRANSLATIONS.DESCRIPTION_TEXT}
+                onChange={onInputChange}
+                css={inputSpacer}
+              />
+            </div>
+          </StyledInputContainer>
+          <StyledSwitchContainer>
+            <Switch
+              onChange={onActiveSwitch}
+              checked={currentAlert ? currentAlert.active : true}
+            />
+            <div className="switch-label">{TRANSLATIONS.ACTIVE_TEXT}</div>
+          </StyledSwitchContainer>
+        </div>
+        <div className="column-section">
           {!isReport && (
-            <StyledPanel
-              header={
-                <ValidatedPanelHeader
-                  title={TRANSLATIONS.ALERT_CONDITION_TEXT}
-                  subtitle="Define the database, SQL query, and triggering conditions for alert."
-                  required={false}
-                  validateCheckStatus
+            <div className="column condition">
+              <StyledSectionTitle>
+                <h4>{TRANSLATIONS.ALERT_CONDITION_TEXT}</h4>
+              </StyledSectionTitle>
+              <StyledInputContainer>
+                <div className="control-label">
+                  {TRANSLATIONS.DATABASE_TEXT}
+                  <span className="required">*</span>
+                </div>
+                <div className="input-container">
+                  <AsyncSelect
+                    ariaLabel={TRANSLATIONS.DATABASE_TEXT}
+                    name="source"
+                    value={
+                      currentAlert?.database?.label &&
+                      currentAlert?.database?.value
+                        ? {
+                            value: currentAlert.database.value,
+                            label: currentAlert.database.label,
+                          }
+                        : undefined
+                    }
+                    options={loadSourceOptions}
+                    onChange={onSourceChange}
+                  />
+                </div>
+              </StyledInputContainer>
+              <StyledInputContainer>
+                <div className="control-label">
+                  {TRANSLATIONS.SQL_QUERY_TEXT}
+                  <span className="required">*</span>
+                </div>
+                <TextAreaControl
+                  name="sql"
+                  language="sql"
+                  offerEditInModal={false}
+                  minLines={15}
+                  maxLines={15}
+                  onChange={onSQLChange}
+                  readOnly={false}
+                  initialValue={resource?.sql}
+                  key={currentAlert?.id}
                 />
-                // <div>
-                //   <h4>{TRANSLATIONS.ALERT_CONDITION_TEXT}</h4>
-                //   <p className="helper">
-                //     {t(
-                //       'Define the database, SQL query, and triggering conditions for alerts.',
-                //     )}
-                //   </p>
-                // </div>
-              }
-              key="2"
-              style={{ borderBottom: 'none' }}
-            >
-              <div className="column condition">
+              </StyledInputContainer>
+              <div className="inline-container wrap">
                 <StyledInputContainer>
-                  <div className="control-label">
-                    {TRANSLATIONS.DATABASE_TEXT}
+                  <div className="control-label" css={inputSpacer}>
+                    {TRANSLATIONS.TRIGGER_ALERT_IF_TEXT}
                     <span className="required">*</span>
                   </div>
                   <div className="input-container">
-                    <AsyncSelect
-                      ariaLabel={TRANSLATIONS.DATABASE_TEXT}
-                      name="source"
-                      placeholder={TRANSLATIONS.DATABASE_PLACEHOLDER}
+                    <Select
+                      ariaLabel={TRANSLATIONS.CONDITION_TEXT}
+                      onChange={onConditionChange}
+                      placeholder="Condition"
                       value={
-                        currentAlert?.database?.label &&
-                        currentAlert?.database?.value
-                          ? {
-                              value: currentAlert.database.value,
-                              label: currentAlert.database.label,
-                            }
-                          : undefined
+                        currentAlert?.validator_config_json?.op || undefined
                       }
-                      options={loadSourceOptions}
-                      onChange={onSourceChange}
+                      options={CONDITIONS}
+                      css={inputSpacer}
                     />
                   </div>
                 </StyledInputContainer>
                 <StyledInputContainer>
                   <div className="control-label">
-                    {TRANSLATIONS.SQL_QUERY_TEXT}
+                    {TRANSLATIONS.VALUE_TEXT}{' '}
+                    <InfoTooltipWithTrigger
+                      tooltip={TRANSLATIONS.VALUE_TOOLTIP}
+                    />
                     <span className="required">*</span>
                   </div>
-                  <TextAreaControl
-                    name="sql"
-                    language="sql"
-                    offerEditInModal={false}
-                    minLines={15}
-                    maxLines={15}
-                    onChange={onSQLChange}
-                    readOnly={false}
-                    initialValue={resource?.sql}
-                    key={currentAlert?.id}
-                  />
+                  <div className="input-container">
+                    <input
+                      type="number"
+                      name="threshold"
+                      disabled={conditionNotNull}
+                      value={
+                        currentAlert?.validator_config_json?.threshold !==
+                        undefined
+                          ? currentAlert.validator_config_json.threshold
+                          : ''
+                      }
+                      placeholder={TRANSLATIONS.VALUE_TEXT}
+                      onChange={onThresholdChange}
+                    />
+                  </div>
                 </StyledInputContainer>
-                <div className="inline-container wrap">
-                  <StyledInputContainer>
-                    <div className="control-label" css={inputSpacer}>
-                      {TRANSLATIONS.TRIGGER_ALERT_IF_TEXT}
-                      <span className="required">*</span>
-                    </div>
-                    <div className="input-container">
-                      <Select
-                        ariaLabel={TRANSLATIONS.CONDITION_TEXT}
-                        onChange={onConditionChange}
-                        placeholder={TRANSLATIONS.CONDITION_PLACEHOLDER}
-                        value={
-                          currentAlert?.validator_config_json?.op || undefined
-                        }
-                        options={CONDITIONS}
-                        css={inputSpacer}
-                      />
-                    </div>
-                  </StyledInputContainer>
-                  <StyledInputContainer>
-                    <div className="control-label">
-                      {TRANSLATIONS.VALUE_TEXT}{' '}
-                      <InfoTooltipWithTrigger
-                        tooltip={TRANSLATIONS.VALUE_TOOLTIP}
-                      />
-                      <span className="required">*</span>
-                    </div>
-                    <div className="input-container">
-                      <input
-                        type="number"
-                        name="threshold"
-                        disabled={conditionNotNull}
-                        value={
-                          currentAlert?.validator_config_json?.threshold !==
-                          undefined
-                            ? currentAlert.validator_config_json.threshold
-                            : ''
-                        }
-                        placeholder={TRANSLATIONS.VALUE_TEXT}
-                        onChange={onThresholdChange}
-                      />
-                    </div>
-                  </StyledInputContainer>
-                </div>
               </div>
-            </StyledPanel>
+            </div>
           )}
-          <StyledPanel
-            header={
-              <ValidatedPanelHeader
-                title="Schedule"
-                subtitle="Define delivery schedule, timezone, and frequency settings for alerts."
-                required
-                validateCheckStatus={false}
+          <div className="column schedule">
+            <StyledSectionTitle>
+              <h4>
+                {isReport
+                  ? TRANSLATIONS.REPORT_SCHEDULE_TEXT
+                  : TRANSLATIONS.ALERT_CONDITION_SCHEDULE_TEXT}
+              </h4>
+              <span className="required">*</span>
+            </StyledSectionTitle>
+            <AlertReportCronScheduler
+              value={currentAlert?.crontab || ALERT_REPORTS_DEFAULT_CRON_VALUE}
+              onChange={newVal => updateAlertState('crontab', newVal)}
+            />
+            <div className="control-label">{TRANSLATIONS.TIMEZONE_TEXT}</div>
+            <div
+              className="input-container"
+              css={(theme: SupersetTheme) => timezoneHeaderStyle(theme)}
+            >
+              <TimezoneSelector
+                onTimezoneChange={onTimezoneChange}
+                timezone={currentAlert?.timezone}
+                minWidth="100%"
               />
-            }
-            key="3"
-            style={{ borderBottom: 'none' }}
-          >
-            <div className="column schedule">
-              <StyledSectionTitle>
-                <h4>
-                  {isReport
-                    ? TRANSLATIONS.REPORT_SCHEDULE_TEXT
-                    : TRANSLATIONS.ALERT_CONDITION_SCHEDULE_TEXT}
-                </h4>
+            </div>
+            <StyledSectionTitle>
+              <h4>{TRANSLATIONS.SCHEDULE_SETTINGS_TEXT}</h4>
+            </StyledSectionTitle>
+            <StyledInputContainer>
+              <div className="control-label">
+                {TRANSLATIONS.LOG_RETENTION_TEXT}
                 <span className="required">*</span>
-              </StyledSectionTitle>
-              <AlertReportCronSchedulerTest
-                value={
-                  currentAlert?.crontab || ALERT_REPORTS_DEFAULT_CRON_VALUE
-                }
-                onChange={newVal => updateAlertState('crontab', newVal)}
-              />
-              <div className="control-label">{TRANSLATIONS.TIMEZONE_TEXT}</div>
-              <div
-                className="input-container"
-                css={(theme: SupersetTheme) => timezoneHeaderStyle(theme)}
-              >
-                <TimezoneSelector
-                  onTimezoneChange={onTimezoneChange}
-                  timezone={currentAlert?.timezone}
-                  minWidth="100%"
+              </div>
+              <div className="input-container">
+                <Select
+                  ariaLabel={TRANSLATIONS.LOG_RETENTION_TEXT}
+                  placeholder={TRANSLATIONS.LOG_RETENTION_TEXT}
+                  onChange={onLogRetentionChange}
+                  value={
+                    typeof currentAlert?.log_retention === 'number'
+                      ? currentAlert?.log_retention
+                      : ALERT_REPORTS_DEFAULT_RETENTION
+                  }
+                  options={RETENTION_OPTIONS}
+                  sortComparator={propertyComparator('value')}
                 />
               </div>
-              <StyledSectionTitle>
-                <h4>{TRANSLATIONS.SCHEDULE_SETTINGS_TEXT}</h4>
-              </StyledSectionTitle>
+            </StyledInputContainer>
+            <StyledInputContainer>
+              <div className="control-label">
+                {TRANSLATIONS.WORKING_TIMEOUT_TEXT}
+                <span className="required">*</span>
+              </div>
+              <div className="input-container">
+                <input
+                  type="number"
+                  min="1"
+                  name="working_timeout"
+                  value={currentAlert?.working_timeout || ''}
+                  placeholder={TRANSLATIONS.TIME_IN_SECONDS_TEXT}
+                  onChange={onTimeoutVerifyChange}
+                />
+                <span className="input-label">{TRANSLATIONS.SECONDS_TEXT}</span>
+              </div>
+            </StyledInputContainer>
+            {!isReport && (
               <StyledInputContainer>
                 <div className="control-label">
-                  {TRANSLATIONS.LOG_RETENTION_TEXT}
-                  <span className="required">*</span>
-                </div>
-                <div className="input-container">
-                  <Select
-                    ariaLabel={TRANSLATIONS.LOG_RETENTION_TEXT}
-                    placeholder={TRANSLATIONS.LOG_RETENTION_TEXT}
-                    onChange={onLogRetentionChange}
-                    value={
-                      typeof currentAlert?.log_retention === 'number'
-                        ? currentAlert?.log_retention
-                        : ALERT_REPORTS_DEFAULT_RETENTION
-                    }
-                    options={RETENTION_OPTIONS}
-                    sortComparator={propertyComparator('value')}
-                  />
-                </div>
-              </StyledInputContainer>
-              <StyledInputContainer>
-                <div className="control-label">
-                  {TRANSLATIONS.WORKING_TIMEOUT_TEXT}
-                  <span className="required">*</span>
+                  {TRANSLATIONS.GRACE_PERIOD_TEXT}
                 </div>
                 <div className="input-container">
                   <input
                     type="number"
                     min="1"
-                    name="working_timeout"
-                    value={currentAlert?.working_timeout || ''}
+                    name="grace_period"
+                    value={currentAlert?.grace_period || ''}
                     placeholder={TRANSLATIONS.TIME_IN_SECONDS_TEXT}
                     onChange={onTimeoutVerifyChange}
                   />
@@ -1463,177 +1427,125 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   </span>
                 </div>
               </StyledInputContainer>
-              {!isReport && (
-                <StyledInputContainer>
-                  <div className="control-label">
-                    {TRANSLATIONS.GRACE_PERIOD_TEXT}
-                  </div>
-                  <div className="input-container">
-                    <input
-                      type="number"
-                      min="1"
-                      name="grace_period"
-                      value={currentAlert?.grace_period || ''}
-                      placeholder={TRANSLATIONS.TIME_IN_SECONDS_TEXT}
-                      onChange={onTimeoutVerifyChange}
-                    />
-                    <span className="input-label">
-                      {TRANSLATIONS.SECONDS_TEXT}
-                    </span>
-                  </div>
-                </StyledInputContainer>
-              )}
-            </div>
-          </StyledPanel>
-          <StyledPanel
-            header={
-              <ValidatedPanelHeader
-                title="Report Contents"
-                subtitle="Customize data source, filters, and layout for alert content."
-                required
-                validateCheckStatus={false}
-              />
-            }
-            key="4"
-            style={{ borderBottom: 'none' }}
-          >
-            <div className="column message">
-              <StyledSectionTitle>
-                <h4>{TRANSLATIONS.MESSAGE_CONTENT_TEXT}</h4>
-                <span className="required">*</span>
-              </StyledSectionTitle>
-              <Radio.Group onChange={onContentTypeChange} value={contentType}>
-                <StyledRadio value="dashboard">
-                  {TRANSLATIONS.DASHBOARD_TEXT}
-                </StyledRadio>
-                <StyledRadio value="chart">
-                  {TRANSLATIONS.CHART_TEXT}
-                </StyledRadio>
-              </Radio.Group>
-              {contentType === 'chart' ? (
-                <AsyncSelect
-                  ariaLabel={TRANSLATIONS.CHART_TEXT}
-                  name="chart"
-                  value={
-                    currentAlert?.chart?.label && currentAlert?.chart?.value
-                      ? {
-                          value: currentAlert.chart.value,
-                          label: currentAlert.chart.label,
-                        }
-                      : undefined
-                  }
-                  options={loadChartOptions}
-                  onChange={onChartChange}
-                />
-              ) : (
-                <AsyncSelect
-                  ariaLabel={TRANSLATIONS.DASHBOARD_TEXT}
-                  name="dashboard"
-                  value={
-                    currentAlert?.dashboard?.label &&
-                    currentAlert?.dashboard?.value
-                      ? {
-                          value: currentAlert.dashboard.value,
-                          label: currentAlert.dashboard.label,
-                        }
-                      : undefined
-                  }
-                  options={loadDashboardOptions}
-                  onChange={onDashboardChange}
-                />
-              )}
-              {formatOptionEnabled && (
-                <>
-                  <div className="inline-container">
-                    <StyledRadioGroup
-                      onChange={onFormatChange}
-                      value={reportFormat}
-                    >
-                      <StyledRadio value="PNG">
-                        {TRANSLATIONS.SEND_AS_PNG_TEXT}
-                      </StyledRadio>
-                      <StyledRadio value="CSV">
-                        {TRANSLATIONS.SEND_AS_CSV_TEXT}
-                      </StyledRadio>
-                      {TEXT_BASED_VISUALIZATION_TYPES.includes(
-                        chartVizType,
-                      ) && (
-                        <StyledRadio value="TEXT">
-                          {TRANSLATIONS.SEND_AS_TEXT}
-                        </StyledRadio>
-                      )}
-                    </StyledRadioGroup>
-                  </div>
-                </>
-              )}
-              {isScreenshot && (
-                <StyledInputContainer>
-                  <div className="control-label" css={CustomWidthHeaderStyle}>
-                    {TRANSLATIONS.CUSTOM_SCREENSHOT_WIDTH_TEXT}
-                  </div>
-                  <div className="input-container">
-                    <Input
-                      type="number"
-                      name="custom_width"
-                      value={currentAlert?.custom_width || ''}
-                      placeholder={
-                        TRANSLATIONS.CUSTOM_SCREENSHOT_WIDTH_PLACEHOLDER_TEXT
+            )}
+          </div>
+          <div className="column message">
+            <StyledSectionTitle>
+              <h4>{TRANSLATIONS.MESSAGE_CONTENT_TEXT}</h4>
+              <span className="required">*</span>
+            </StyledSectionTitle>
+            <Radio.Group onChange={onContentTypeChange} value={contentType}>
+              <StyledRadio value="dashboard">
+                {TRANSLATIONS.DASHBOARD_TEXT}
+              </StyledRadio>
+              <StyledRadio value="chart">{TRANSLATIONS.CHART_TEXT}</StyledRadio>
+            </Radio.Group>
+            {contentType === 'chart' ? (
+              <AsyncSelect
+                ariaLabel={TRANSLATIONS.CHART_TEXT}
+                name="chart"
+                value={
+                  currentAlert?.chart?.label && currentAlert?.chart?.value
+                    ? {
+                        value: currentAlert.chart.value,
+                        label: currentAlert.chart.label,
                       }
-                      onChange={onInputChange}
-                    />
-                  </div>
-                </StyledInputContainer>
-              )}
-              {(isReport || contentType === 'dashboard') && (
+                    : undefined
+                }
+                options={loadChartOptions}
+                onChange={onChartChange}
+              />
+            ) : (
+              <AsyncSelect
+                ariaLabel={TRANSLATIONS.DASHBOARD_TEXT}
+                name="dashboard"
+                value={
+                  currentAlert?.dashboard?.label &&
+                  currentAlert?.dashboard?.value
+                    ? {
+                        value: currentAlert.dashboard.value,
+                        label: currentAlert.dashboard.label,
+                      }
+                    : undefined
+                }
+                options={loadDashboardOptions}
+                onChange={onDashboardChange}
+              />
+            )}
+            {formatOptionEnabled && (
+              <>
                 <div className="inline-container">
-                  <StyledCheckbox
-                    data-test="bypass-cache"
-                    className="checkbox"
-                    checked={forceScreenshot}
-                    onChange={onForceScreenshotChange}
+                  <StyledRadioGroup
+                    onChange={onFormatChange}
+                    value={reportFormat}
                   >
-                    {TRANSLATIONS.IGNORE_CACHE_TEXT}
-                  </StyledCheckbox>
+                    <StyledRadio value="PNG">
+                      {TRANSLATIONS.SEND_AS_PNG_TEXT}
+                    </StyledRadio>
+                    <StyledRadio value="CSV">
+                      {TRANSLATIONS.SEND_AS_CSV_TEXT}
+                    </StyledRadio>
+                    {TEXT_BASED_VISUALIZATION_TYPES.includes(chartVizType) && (
+                      <StyledRadio value="TEXT">
+                        {TRANSLATIONS.SEND_AS_TEXT}
+                      </StyledRadio>
+                    )}
+                  </StyledRadioGroup>
                 </div>
-              )}
-            </div>
-          </StyledPanel>
-          <StyledPanel
-            header={
-              <ValidatedPanelHeader
-                title="Notification Method"
-                subtitle="Choose the notification method and recipients for alert sharing."
-                required
-                validateCheckStatus={false}
-              />
-            }
-            key="5"
-            style={{ borderBottom: 'none' }}
-          >
-            <div>
-              <StyledSectionTitle>
-                <h4>{TRANSLATIONS.NOTIFICATION_METHOD_TEXT}</h4>
-                <span className="required">*</span>
-              </StyledSectionTitle>
-              {notificationSettings.map((notificationSetting, i) => (
-                <StyledNotificationMethodWrapper>
-                  <NotificationMethod
-                    setting={notificationSetting}
-                    index={i}
-                    key={`NotificationMethod-${i}`}
-                    onUpdate={updateNotificationSetting}
-                    onRemove={removeNotificationSetting}
+              </>
+            )}
+            {isScreenshot && (
+              <StyledInputContainer>
+                <div className="control-label" css={CustomWidthHeaderStyle}>
+                  {TRANSLATIONS.CUSTOM_SCREENSHOT_WIDTH_TEXT}
+                </div>
+                <div className="input-container">
+                  <Input
+                    type="number"
+                    name="custom_width"
+                    value={currentAlert?.custom_width || ''}
+                    placeholder={
+                      TRANSLATIONS.CUSTOM_SCREENSHOT_WIDTH_PLACEHOLDER_TEXT
+                    }
+                    onChange={onInputChange}
                   />
-                </StyledNotificationMethodWrapper>
-              ))}
-              <NotificationMethodAdd
-                data-test="notification-add"
-                status={notificationAddState}
-                onClick={onNotificationAdd}
-              />
-            </div>
-          </StyledPanel>
-        </Collapse>
+                </div>
+              </StyledInputContainer>
+            )}
+            {(isReport || contentType === 'dashboard') && (
+              <div className="inline-container">
+                <StyledCheckbox
+                  data-test="bypass-cache"
+                  className="checkbox"
+                  checked={forceScreenshot}
+                  onChange={onForceScreenshotChange}
+                >
+                  {TRANSLATIONS.IGNORE_CACHE_TEXT}
+                </StyledCheckbox>
+              </div>
+            )}
+            <StyledSectionTitle>
+              <h4>{TRANSLATIONS.NOTIFICATION_METHOD_TEXT}</h4>
+              <span className="required">*</span>
+            </StyledSectionTitle>
+            {notificationSettings.map((notificationSetting, i) => (
+              <StyledNotificationMethodWrapper>
+                <NotificationMethod
+                  setting={notificationSetting}
+                  index={i}
+                  key={`NotificationMethod-${i}`}
+                  onUpdate={updateNotificationSetting}
+                  onRemove={removeNotificationSetting}
+                />
+              </StyledNotificationMethodWrapper>
+            ))}
+            <NotificationMethodAdd
+              data-test="notification-add"
+              status={notificationAddState}
+              onClick={onNotificationAdd}
+            />
+          </div>
+        </div>
       </StyledSectionContainer>
     </StyledModal>
   );

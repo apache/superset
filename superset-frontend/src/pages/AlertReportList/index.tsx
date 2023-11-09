@@ -551,7 +551,7 @@ function AlertList({
           <LastUpdated updatedAt={lastFetched} update={() => refreshData()} />
         </RefreshContainer>
       </SubMenu>
-      <AlertReportModal_test
+      <AlertReportModal
         alert={currentAlert}
         addDangerToast={addDangerToast}
         layer={currentAlert}
