@@ -702,8 +702,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     }
 
     @property
-    def fetch_value_predicate(self) -> str:
-        return "fix this!"
+    def fetch_value_predicate(self) -> Optional[str]:
+        return None
 
     @property
     def type(self) -> str:
@@ -1338,35 +1338,34 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         return and_(*l)
 
     def values_for_column(self, column_name: str, limit: int = 10000) -> list[Any]:
-        """Runs query against sqla to retrieve some
-        sample values for the given column.
-        """
-        cols = {}
-        for col in self.columns:
-            if isinstance(col, dict):
-                cols[col.get("column_name")] = col
-            else:
-                cols[col.column_name] = col
-
-        target_col = cols[column_name]
-        tp = None  # todo(hughhhh): add back self.get_template_processor()
+        # always denormalize column name before querying for values
+        db_dialect = self.database.get_dialect()
+        denomalized_col_name = self.database.db_engine_spec.denormalize_name(
+            db_dialect, column_name
+        )
+        cols = {col.column_name: col for col in self.columns}
+        target_col = cols[denomalized_col_name]
+        tp = self.get_template_processor()
         tbl, cte = self.get_from_clause(tp)
 
-        if isinstance(target_col, dict):
-            sql_column = sa.column(target_col.get("name"))
-        else:
-            sql_column = target_col
-
-        qry = sa.select([sql_column]).select_from(tbl).distinct()
+        qry = (
+            sa.select([target_col.get_sqla_col(template_processor=tp)])
+            .select_from(tbl)
+            .distinct()
+        )
         if limit:
             qry = qry.limit(limit)
 
-        with self.database.get_sqla_engine_with_context() as engine:  # type: ignore
+        if self.fetch_values_predicate:
+            qry = qry.where(self.get_fetch_values_predicate(template_processor=tp))
+
+        with self.database.get_sqla_engine_with_context() as engine:
             sql = qry.compile(engine, compile_kwargs={"literal_binds": True})
             sql = self._apply_cte(sql, cte)
             sql = self.mutate_query_from_config(sql)
+
             df = pd.read_sql_query(sql=sql, con=engine)
-            return df[column_name].to_list()
+            return df[denomalized_col_name].to_list()
 
     def get_timestamp_expression(
         self,
