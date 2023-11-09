@@ -263,13 +263,7 @@ const TagModal: React.FC<TagModalProps> = ({
     <Modal
       title={modalTitle}
       onHide={() => {
-        if (clearOnHide) {
-          setTagName('');
-          setDescription('');
-          setDashboardsToTag([]);
-          setChartsToTag([]);
-          setSavedQueriesToTag([]);
-        }
+        if (clearOnHide) clearTagForm();
         onHide();
       }}
       show={show}
