@@ -1,3 +1,4 @@
+import React from 'react';
 import { StyledDvtCard } from './dvt-card.module';
 
 export interface DvtCardProps {

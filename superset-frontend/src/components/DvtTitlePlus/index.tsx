@@ -1,3 +1,4 @@
+import React from 'react';
 import { StyledDvtTitlePlus } from './dvt-title-plus.module';
 
 export interface DvtTitlePlusProps {

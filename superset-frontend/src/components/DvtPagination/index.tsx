@@ -1,3 +1,4 @@
+import React from 'react';
 import { StyledDvtPagination } from './dvt-pagination.module';
 
 export interface DvtPaginationProps {
