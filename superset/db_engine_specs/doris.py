@@ -19,14 +19,15 @@ import re
 from re import Pattern
 from typing import Any, Optional
 from urllib import parse
+
 from flask_babel import gettext as __
-from sqlalchemy import Float, Integer, Numeric, types, String, TEXT
+from sqlalchemy import Float, Integer, Numeric, String, TEXT, types
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.type_api import TypeEngine
+
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.errors import SupersetErrorType
 from superset.utils.core import GenericDataType
-
 
 # Regular expressions to catch custom errors
 CONNECTION_ACCESS_DENIED_REGEX = re.compile(
@@ -35,9 +36,7 @@ CONNECTION_ACCESS_DENIED_REGEX = re.compile(
 CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
     "Unknown Doris server host '(?P<hostname>.*?)'"
 )
-CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile(
-    "Unknown database '(?P<database>.*?)'"
-)
+CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile("Unknown database '(?P<database>.*?)'")
 CONNECTION_HOST_DOWN_REGEX = re.compile(
     "Can't connect to Doris server on '(?P<hostname>.*?)'"
 )
@@ -72,8 +71,10 @@ class BITMAP(Numeric):
 class QUANTILE_STATE(Numeric):
     __visit_name__ = "QUANTILE_STATE"
 
+
 class AGG_STATE(Numeric):
     __visit_name__ = "AGG_STATE"
+
 
 class ARRAY(TypeEngine):  # pylint: disable=no-init
     __visit_name__ = "ARRAY"
@@ -101,7 +102,7 @@ class STRUCT(TypeEngine):  # pylint: disable=no-init
 
 class DorisEngineSpec(MySQLEngineSpec):
     engine = "pydoris"
-    engine_aliases = "doris"
+    engine_aliases = {"doris"}
     engine_name = "Apache Doris"
     max_column_name_length = 64
     default_driver = "pydoris"
@@ -162,11 +163,7 @@ class DorisEngineSpec(MySQLEngineSpec):
             AGG_STATE(),
             GenericDataType.STRING,
         ),
-        (
-            re.compile(r"^hll", re.IGNORECASE),
-            HLL(),
-            GenericDataType.STRING
-        ),
+        (re.compile(r"^hll", re.IGNORECASE), HLL(), GenericDataType.STRING),
         (
             re.compile(r"^bitmap", re.IGNORECASE),
             BITMAP(),
@@ -207,11 +204,7 @@ class DorisEngineSpec(MySQLEngineSpec):
             String(),
             GenericDataType.STRING,
         ),
-
-
-
     )
-
 
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         CONNECTION_ACCESS_DENIED_REGEX: (

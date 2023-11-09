@@ -16,21 +16,22 @@
 # under the License.
 
 from typing import Any, Optional
+
 import pytest
 from sqlalchemy import JSON, types
 from sqlalchemy.engine.url import make_url
 
 from superset.db_engine_specs.doris import (
-    TINYINT,
-    LARGEINT,
-    DOUBLE,
-    BITMAP,
-    HLL,
-    QUANTILE_STATE,
-    ARRAY,
-    MAP,
-    STRUCT,
     AGG_STATE,
+    ARRAY,
+    BITMAP,
+    DOUBLE,
+    HLL,
+    LARGEINT,
+    MAP,
+    QUANTILE_STATE,
+    STRUCT,
+    TINYINT,
 )
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import assert_column_spec
@@ -52,8 +53,8 @@ from tests.unit_tests.db_engine_specs.utils import assert_column_spec
         ("text", types.TEXT, None, GenericDataType.STRING, False),
         ("string", types.String, None, GenericDataType.STRING, False),
         # Date
-        ("datetimev2",types.DateTime,None,GenericDataType.STRING,False),
-        ("datev2",types.Date,None,GenericDataType.STRING,False),
+        ("datetimev2", types.DateTime, None, GenericDataType.STRING, False),
+        ("datev2", types.Date, None, GenericDataType.STRING, False),
         # Complex type
         ("array<varchar(65533)>", ARRAY, None, GenericDataType.STRING, False),
         ("map<string,int>", MAP, None, GenericDataType.STRING, False),
@@ -87,7 +88,7 @@ def test_get_column_spec(
             "db1",
             {"param1": "some_value"},
         ),
-(
+        (
             "pydoris://user:password@host/db1",
             {"param1": "some_value"},
             "db1",
@@ -99,7 +100,7 @@ def test_get_column_spec(
             "catalog1.db1",
             {"param1": "some_value"},
         ),
-(
+        (
             "pydoris://user:password@host/catalog1.db1",
             {"param1": "some_value"},
             "catalog1.db1",
