@@ -91,15 +91,6 @@ describe('SelectFilterPlugin', () => {
   test('Add multiple values with first render', async () => {
     getWrapper();
     expect(setDataMask).toHaveBeenCalledWith({
-      extraFormData: {},
-      filterState: {
-        value: ['boy'],
-      },
-    });
-    expect(setDataMask).toHaveBeenCalledWith({
-      __cache: {
-        value: ['boy'],
-      },
       extraFormData: {
         filters: [
           {
@@ -118,9 +109,6 @@ describe('SelectFilterPlugin', () => {
     userEvent.click(screen.getByTitle('girl'));
     expect(await screen.findByTitle(/girl/i)).toBeInTheDocument();
     expect(setDataMask).toHaveBeenCalledWith({
-      __cache: {
-        value: ['boy'],
-      },
       extraFormData: {
         filters: [
           {
@@ -146,9 +134,6 @@ describe('SelectFilterPlugin', () => {
       }),
     );
     expect(setDataMask).toHaveBeenCalledWith({
-      __cache: {
-        value: ['boy'],
-      },
       extraFormData: {
         adhoc_filters: [
           {
@@ -174,9 +159,6 @@ describe('SelectFilterPlugin', () => {
       }),
     );
     expect(setDataMask).toHaveBeenCalledWith({
-      __cache: {
-        value: ['boy'],
-      },
       extraFormData: {},
       filterState: {
         label: undefined,
@@ -191,9 +173,6 @@ describe('SelectFilterPlugin', () => {
     expect(await screen.findByTitle('girl')).toBeInTheDocument();
     userEvent.click(screen.getByTitle('girl'));
     expect(setDataMask).toHaveBeenCalledWith({
-      __cache: {
-        value: ['boy'],
-      },
       extraFormData: {
         filters: [
           {
@@ -216,9 +195,6 @@ describe('SelectFilterPlugin', () => {
     expect(await screen.findByRole('combobox')).toBeInTheDocument();
     userEvent.click(screen.getByTitle(NULL_STRING));
     expect(setDataMask).toHaveBeenLastCalledWith({
-      __cache: {
-        value: ['boy'],
-      },
       extraFormData: {
         filters: [
           {

@@ -45,15 +45,11 @@ type DataMaskAction =
   | { type: 'ownState'; ownState: JsonObject }
   | {
       type: 'filterState';
-      __cache: JsonObject;
       extraFormData: ExtraFormData;
       filterState: { value: SelectValue; label?: string };
     };
 
-function reducer(
-  draft: DataMask & { __cache?: JsonObject },
-  action: DataMaskAction,
-) {
+function reducer(draft: DataMask, action: DataMaskAction) {
   switch (action.type) {
     case 'ownState':
       draft.ownState = {
@@ -62,10 +58,18 @@ function reducer(
       };
       return draft;
     case 'filterState':
-      draft.extraFormData = action.extraFormData;
-      // eslint-disable-next-line no-underscore-dangle
-      draft.__cache = action.__cache;
-      draft.filterState = { ...draft.filterState, ...action.filterState };
+      if (
+        JSON.stringify(draft.extraFormData) !==
+        JSON.stringify(action.extraFormData)
+      ) {
+        draft.extraFormData = action.extraFormData;
+      }
+      if (
+        JSON.stringify(draft.filterState) !== JSON.stringify(action.filterState)
+      ) {
+        draft.filterState = { ...draft.filterState, ...action.filterState };
+      }
+
       return draft;
     default:
       return draft;
@@ -129,7 +133,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       const suffix = inverseSelection && values?.length ? t(' (excluded)') : '';
       dispatchDataMask({
         type: 'filterState',
-        __cache: filterState,
         extraFormData: getSelectExtraFormData(
           col,
           values,
