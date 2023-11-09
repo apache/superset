@@ -88,6 +88,14 @@ const TagModal: React.FC<TagModalProps> = ({
     setSavedQueriesToTag([]);
   };
 
+  const clearTagForm = () => {
+    setTagName('');
+    setDescription('');
+    setDashboardsToTag([]);
+    setChartsToTag([]);
+    setSavedQueriesToTag([]);
+  };
+
   useEffect(() => {
     const resourceMap: { [key: string]: TaggableResourceOption[] } = {
       [TaggableResources.Dashboard]: [],
@@ -225,7 +233,9 @@ const TagModal: React.FC<TagModalProps> = ({
       })
         .then(({ json = {} }) => {
           refreshData();
+          clearTagForm();
           addSuccessToast(t('Tag updated'));
+          onHide();
         })
         .catch(err => {
           addDangerToast(err.message || 'Error Updating Tag');
@@ -241,11 +251,12 @@ const TagModal: React.FC<TagModalProps> = ({
       })
         .then(({ json = {} }) => {
           refreshData();
+          clearTagForm();
           addSuccessToast(t('Tag created'));
+          onHide();
         })
         .catch(err => addDangerToast(err.message || 'Error Creating Tag'));
     }
-    onHide();
   };
 
   return (
