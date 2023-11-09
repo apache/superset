@@ -68,7 +68,12 @@ from superset.exceptions import (
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
-from superset.sql_parse import has_table_query, insert_rls, ParsedQuery, sanitize_clause
+from superset.sql_parse import (
+    has_table_query,
+    insert_rls_in_predicate,
+    ParsedQuery,
+    sanitize_clause,
+)
 from superset.superset_typing import (
     AdhocMetric,
     Column as ColumnTyping,
@@ -128,7 +133,7 @@ def validate_adhoc_subquery(
                         level=ErrorLevel.ERROR,
                     )
                 )
-            statement = insert_rls(statement, database_id, default_schema)
+            statement = insert_rls_in_predicate(statement, database_id, default_schema)
         statements.append(statement)
 
     return ";\n".join(str(statement) for statement in statements)

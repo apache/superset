@@ -16,6 +16,8 @@
 # under the License.
 from typing import Any
 
+from superset.utils.core import as_list
+
 from .base import MigrateViz
 
 
@@ -131,3 +133,59 @@ class MigrateSunburst(MigrateViz):
     source_viz_type = "sunburst"
     target_viz_type = "sunburst_v2"
     rename_keys = {"groupby": "columns"}
+
+
+class TimeseriesChart(MigrateViz):
+    has_x_axis_control = True
+
+    def _pre_action(self) -> None:
+        self.data["contributionMode"] = "row" if self.data.get("contribution") else None
+        self.data["zoomable"] = self.data.get("show_brush") != "no"
+        self.data["markerEnabled"] = self.data.get("show_markers") or False
+        self.data["y_axis_showminmax"] = True
+
+        bottom_margin = self.data.get("bottom_margin")
+        if self.data.get("x_axis_label") and (
+            not bottom_margin or bottom_margin == "auto"
+        ):
+            self.data["bottom_margin"] = 30
+
+        if (rolling_type := self.data.get("rolling_type")) and rolling_type != "None":
+            self.data["rolling_type"] = rolling_type
+
+        if time_compare := self.data.get("time_compare"):
+            self.data["time_compare"] = [
+                value + " ago" for value in as_list(time_compare) if value
+            ]
+
+        comparison_type = self.data.get("comparison_type") or "values"
+        self.data["comparison_type"] = (
+            "difference" if comparison_type == "absolute" else comparison_type
+        )
+
+
+class MigrateLineChart(TimeseriesChart):
+    source_viz_type = "line"
+    target_viz_type = "echarts_timeseries_line"
+    rename_keys = {
+        "x_axis_label": "x_axis_title",
+        "bottom_margin": "x_axis_title_margin",
+        "x_axis_format": "x_axis_time_format",
+        "y_axis_label": "y_axis_title",
+        "left_margin": "y_axis_title_margin",
+        "y_axis_showminmax": "truncateYAxis",
+        "y_log_scale": "logAxis",
+    }
+
+    def _pre_action(self) -> None:
+        super()._pre_action()
+
+        line_interpolation = self.data.get("line_interpolation")
+        if line_interpolation == "cardinal":
+            self.target_viz_type = "echarts_timeseries_smooth"
+        elif line_interpolation == "step-before":
+            self.target_viz_type = "echarts_timeseries_step"
+            self.data["seriesType"] = "start"
+        elif line_interpolation == "step-after":
+            self.target_viz_type = "echarts_timeseries_step"
+            self.data["seriesType"] = "end"
