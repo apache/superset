@@ -32,10 +32,10 @@ from superset.tags.commands.exceptions import TagNotFoundError
 from superset.tags.commands.utils import to_object_type
 from superset.tags.models import (
     get_tag,
-    ObjectTypes,
+    ObjectType,
     Tag,
     TaggedObject,
-    TagTypes,
+    TagType,
     user_favorite_tag_table,
 )
 from superset.utils.core import get_user_id
@@ -56,7 +56,7 @@ class TagDAO(BaseDAO[Tag]):
 
     @staticmethod
     def create_custom_tagged_objects(
-        object_type: ObjectTypes, object_id: int, tag_names: list[str]
+        object_type: ObjectType, object_id: int, tag_names: list[str]
     ) -> None:
         tagged_objects = []
         for name in tag_names:
@@ -64,7 +64,7 @@ class TagDAO(BaseDAO[Tag]):
                 raise DAOCreateFailedError(
                     message="Invalid Tag Name (cannot contain ':' or ',')"
                 )
-            type_ = TagTypes.custom
+            type_ = TagType.custom
             tag_name = name.strip()
             tag = TagDAO.get_by_name(tag_name, type_)
             tagged_objects.append(
@@ -76,7 +76,7 @@ class TagDAO(BaseDAO[Tag]):
 
     @staticmethod
     def delete_tagged_object(
-        object_type: ObjectTypes, object_id: int, tag_name: str
+        object_type: ObjectType, object_id: int, tag_name: str
     ) -> None:
         """
         deletes a tagged object by the object_id, object_type, and tag_name
@@ -128,7 +128,7 @@ class TagDAO(BaseDAO[Tag]):
                 raise DAODeleteFailedError(exception=ex) from ex
 
     @staticmethod
-    def get_by_name(name: str, type_: TagTypes = TagTypes.custom) -> Tag:
+    def get_by_name(name: str, type_: TagType = TagType.custom) -> Tag:
         """
         returns a tag if one exists by that name, none otherwise.
         important!: Creates a tag by that name if the tag is not found.
@@ -152,7 +152,7 @@ class TagDAO(BaseDAO[Tag]):
 
     @staticmethod
     def find_tagged_object(
-        object_type: ObjectTypes, object_id: int, tag_id: int
+        object_type: ObjectType, object_id: int, tag_id: int
     ) -> TaggedObject:
         """
         returns a tagged object if one exists by that name, none otherwise.
@@ -185,7 +185,7 @@ class TagDAO(BaseDAO[Tag]):
                     TaggedObject,
                     and_(
                         TaggedObject.object_id == Dashboard.id,
-                        TaggedObject.object_type == ObjectTypes.dashboard,
+                        TaggedObject.object_type == ObjectType.dashboard,
                     ),
                 )
                 .join(Tag, TaggedObject.tag_id == Tag.id)
@@ -195,7 +195,7 @@ class TagDAO(BaseDAO[Tag]):
             results.extend(
                 {
                     "id": obj.id,
-                    "type": ObjectTypes.dashboard.name,
+                    "type": ObjectType.dashboard.name,
                     "name": obj.dashboard_title,
                     "url": obj.url,
                     "changed_on": obj.changed_on,
@@ -215,7 +215,7 @@ class TagDAO(BaseDAO[Tag]):
                     TaggedObject,
                     and_(
                         TaggedObject.object_id == Slice.id,
-                        TaggedObject.object_type == ObjectTypes.chart,
+                        TaggedObject.object_type == ObjectType.chart,
                     ),
                 )
                 .join(Tag, TaggedObject.tag_id == Tag.id)
@@ -224,7 +224,7 @@ class TagDAO(BaseDAO[Tag]):
             results.extend(
                 {
                     "id": obj.id,
-                    "type": ObjectTypes.chart.name,
+                    "type": ObjectType.chart.name,
                     "name": obj.slice_name,
                     "url": obj.url,
                     "changed_on": obj.changed_on,
@@ -244,7 +244,7 @@ class TagDAO(BaseDAO[Tag]):
                     TaggedObject,
                     and_(
                         TaggedObject.object_id == SavedQuery.id,
-                        TaggedObject.object_type == ObjectTypes.query,
+                        TaggedObject.object_type == ObjectType.query,
                     ),
                 )
                 .join(Tag, TaggedObject.tag_id == Tag.id)
@@ -253,7 +253,7 @@ class TagDAO(BaseDAO[Tag]):
             results.extend(
                 {
                     "id": obj.id,
-                    "type": ObjectTypes.query.name,
+                    "type": ObjectType.query.name,
                     "name": obj.label,
                     "url": obj.url(),
                     "changed_on": obj.changed_on,
@@ -363,7 +363,7 @@ class TagDAO(BaseDAO[Tag]):
 
     @staticmethod
     def create_tag_relationship(
-        objects_to_tag: list[tuple[ObjectTypes, int]],
+        objects_to_tag: list[tuple[ObjectType, int]],
         tag: Tag,
         bulk_create: bool = False,
     ) -> None:
@@ -373,7 +373,7 @@ class TagDAO(BaseDAO[Tag]):
         and an id, and creates a TaggedObject for each one, associating it with
         the provided tag. All created TaggedObjects are collected in a list.
         Args:
-            objects_to_tag (List[Tuple[ObjectTypes, int]]): A list of tuples, each
+            objects_to_tag (List[Tuple[ObjectType, int]]): A list of tuples, each
             containing an ObjectType and an id, representing the objects to be tagged.
 
             tag (Tag): The tag to be associated with the specified objects.
