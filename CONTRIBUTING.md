@@ -186,32 +186,25 @@ Following Apache Software Foundation's project governance, Apache Superset has t
 
 ### PMC Member
 
-A Project Management Committee (PMC) member is a person who has been elected by the PMC to help manage the project.
-PMC members are responsible for the overall health of the project,
-including community development, release management, and project governance.
-PMC members are also responsible for the technical direction of the project.
+A Project Management Committee (PMC) member is a person who has been elected by the PMC to help manage the project. PMC members are responsible for the overall health of the project, including community development, release management, and project governance. PMC members are also responsible for the technical direction of the project.
 
 For more details on PMC members, please refer to https://www.apache.org/foundation/governance/pmcs.html
 
 ### Committer
 
-A committer is a person who has been elected by the PMC to have write access (commit access) to the code repository.
-they can modify the code, documentation, and website by themselves and also accept other contributions.
+A committer is a person who has been elected by the PMC to have write access (commit access) to the code repository. they can modify the code, documentation, and website by themselves and also accept other contributions.
 
 The official list of committers and PMCs can be found [here](https://projects.apache.org/committee.html?superset).
 
 ### Contributor
 
-A contributor is a person who has contributed to the project in any way,
-including but not limited to code, tests, documentation, issues, and discussions.
+A contributor is a person who has contributed to the project in any way, including but not limited to code, tests, documentation, issues, and discussions.
 
 ### Security Team
 
 The security team is a selected subset of PMC members, committers and non committers who are responsible for handling security issues.
 
-New members of the security team are selected by the PMC members in a vote.
-You can request to be added to the team by sending a message to private@superset.apache.org.
-However, the team should be small and focused on solving security issues, so the requests will be evaluated on a case-by-case basis and the team size will be kept relatively small, limited to only actively security-focused contributors.
+New members of the security team are selected by the PMC members in a vote. You can request to be added to the team by sending a message to private@superset.apache.org. However, the team should be small and focused on solving security issues, so the requests will be evaluated on a case-by-case basis and the team size will be kept relatively small, limited to only actively security-focused contributors.
 
 This security team must ensure the process follows the [ASF vulnerability handling process](https://apache.org/security/committers.html#asf-project-security-for-committers).
 
