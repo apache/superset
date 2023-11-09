@@ -185,6 +185,7 @@ class Database(
         "is_managed_externally",
         "external_url",
         "encrypted_extra",
+        "impersonate_user",
     ]
     export_children = ["tables"]
 
@@ -965,7 +966,7 @@ class Database(
         """
         label_expected = label or sqla_col.name
         # add quotes to tables
-        if self.db_engine_spec.allows_alias_in_select:
+        if self.db_engine_spec.get_allows_alias_in_select(self):
             label = self.db_engine_spec.make_label_compatible(label_expected)
             sqla_col = sqla_col.label(label)
         sqla_col.key = label_expected

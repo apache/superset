@@ -23,30 +23,17 @@ and web server processes should have the same configuration.
 
 ```python
 class CeleryConfig(object):
-    broker_url = 'redis://localhost:6379/0'
+    broker_url = "redis://localhost:6379/0"
     imports = (
-        'superset.sql_lab',
-        'superset.tasks',
+        "superset.sql_lab",
+        "superset.tasks.scheduler",
     )
-    result_backend = 'redis://localhost:6379/0'
-    worker_log_level = 'DEBUG'
+    result_backend = "redis://localhost:6379/0"
     worker_prefetch_multiplier = 10
     task_acks_late = True
     task_annotations = {
-        'sql_lab.get_sql_results': {
-            'rate_limit': '100/s',
-        },
-        'email_reports.send': {
-            'rate_limit': '1/s',
-            'time_limit': 120,
-            'soft_time_limit': 150,
-            'ignore_result': True,
-        },
-    }
-    beat_schedule = {
-        'email_reports.schedule_hourly': {
-            'task': 'email_reports.schedule_hourly',
-            'schedule': crontab(minute=1, hour='*'),
+        "sql_lab.get_sql_results": {
+            "rate_limit": "100/s",
         },
     }
 

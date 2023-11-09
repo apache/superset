@@ -1033,6 +1033,19 @@ export function queryEditorSetSql(queryEditor, sql) {
   return { type: QUERY_EDITOR_SET_SQL, queryEditor, sql };
 }
 
+export function formatQuery(queryEditor) {
+  return function (dispatch, getState) {
+    const { sql } = getUpToDateQuery(getState(), queryEditor);
+    return SupersetClient.post({
+      endpoint: `/api/v1/sqllab/format_sql/`,
+      body: JSON.stringify({ sql }),
+      headers: { 'Content-Type': 'application/json' },
+    }).then(({ json }) => {
+      dispatch(queryEditorSetSql(queryEditor, json.result));
+    });
+  };
+}
+
 export function queryEditorSetAndSaveSql(targetQueryEditor, sql) {
   return function (dispatch, getState) {
     const queryEditor = getUpToDateQuery(getState(), targetQueryEditor);
@@ -1395,8 +1408,14 @@ export function popDatasourceQuery(datasourceKey, sql) {
   return function (dispatch) {
     const QUERY_TEXT = t('Query');
     const datasetId = datasourceKey.split('__')[0];
+
+    const queryParams = rison.encode({
+      keys: ['none'],
+      columns: ['name', 'schema', 'database.id', 'select_star'],
+    });
+
     return SupersetClient.get({
-      endpoint: `/api/v1/dataset/${datasetId}?q=(keys:!(none))`,
+      endpoint: `/api/v1/dataset/${datasetId}?q=${queryParams}`,
     })
       .then(({ json }) =>
         dispatch(

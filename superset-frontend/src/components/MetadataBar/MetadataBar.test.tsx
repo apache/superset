@@ -20,8 +20,7 @@ import React from 'react';
 import { render, screen, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import * as resizeDetector from 'react-resize-detector';
-import { supersetTheme } from '@superset-ui/core';
-import { hexToRgb } from 'src/utils/colorUtils';
+import { supersetTheme, hexToRgb } from '@superset-ui/core';
 import MetadataBar, {
   MIN_NUMBER_ITEMS,
   MAX_NUMBER_ITEMS,

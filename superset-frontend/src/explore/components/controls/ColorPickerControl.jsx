@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { SketchPicker } from 'react-color';
-import { getCategoricalSchemeRegistry, styled } from '@superset-ui/core';
+import { getCategoricalSchemeRegistry, styled, css } from '@superset-ui/core';
 import Popover from 'src/components/Popover';
 import ControlHeader from '../ControlHeader';
 
@@ -82,6 +82,11 @@ export default class ColorPickerControl extends React.Component {
     return (
       <div id="filter-popover" className="color-popover">
         <SketchPicker
+          css={css`
+            // We need to use important here as these are element level styles
+            padding: 0 !important;
+            box-shadow: none !important;
+          `}
           color={this.props.value}
           onChange={this.onChange}
           presetColors={presetColors}
