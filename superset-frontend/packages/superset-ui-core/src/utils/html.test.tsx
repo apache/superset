@@ -44,6 +44,9 @@ describe('isProbablyHTML', () => {
     const plainText = 'Just a plain text';
     const isHTML = isProbablyHTML(plainText);
     expect(isHTML).toBe(false);
+
+    const trickyText = 'a <= 10 and b > 10';
+    expect(isProbablyHTML(trickyText)).toBe(false);
   });
 });
 
