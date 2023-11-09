@@ -20,7 +20,8 @@
 import React from 'react';
 import { styled } from '@superset-ui/core';
 import cls from 'classnames';
-import Loader from 'src/assets/images/loading.gif';
+import 'animate.css';
+import Loader from 'src/assets/images/ortege-logo.png';
 
 export type PositionOption =
   | 'floating'
@@ -35,8 +36,9 @@ export interface Props {
 
 const LoaderImg = styled.img`
   z-index: 99;
-  width: 50px;
-  height: unset;
+  height: 100px;
+  animation-duration: 1s;
+  animation-iteration-count: infinite;
   position: relative;
   margin: 10px;
   &.inline {
@@ -64,7 +66,13 @@ export default function Loading({
 }: Props) {
   return (
     <LoaderImg
-      className={cls('loading', position, className)}
+      className={cls(
+        'loading',
+        position,
+        className,
+        'animate__animated',
+        'animate__pulse',
+      )}
       alt="Loading..."
       src={image || Loader}
       role="status"
