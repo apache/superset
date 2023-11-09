@@ -1,0 +1,23 @@
+---
+title: Databend
+hide_title: true
+sidebar_position: 39
+version: 1
+---
+
+## Databend
+
+The recommended connector library for Databend is [databend-sqlalchemy](https://pypi.org/project/databend-sqlalchemy/).
+Superset has been tested on `databend-sqlalchemy>=0.2.3`.
+
+The recommended connection string is:
+
+```
+databend://{username}:{password}@{host}:{port}/{database_name}
+```
+
+Here's a connection string example of Superset connecting to a Databend database:
+
+```
+databend://user:password@localhost:8000/default?secure=false
+```

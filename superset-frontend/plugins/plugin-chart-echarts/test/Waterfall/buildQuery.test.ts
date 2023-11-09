@@ -24,15 +24,18 @@ describe('Waterfall buildQuery', () => {
     datasource: '5__table',
     granularity_sqla: 'ds',
     metric: 'foo',
-    series: 'bar',
-    columns: 'baz',
-    viz_type: 'my_chart',
+    x_axis: 'bar',
+    groupby: ['baz'],
+    viz_type: 'waterfall',
   };
 
   it('should build query fields from form data', () => {
     const queryContext = buildQuery(formData as unknown as SqlaFormData);
     const [query] = queryContext.queries;
     expect(query.metrics).toEqual(['foo']);
-    expect(query.columns).toEqual(['bar', 'baz']);
+    expect(query.columns?.[0]).toEqual(
+      expect.objectContaining({ sqlExpression: 'bar' }),
+    );
+    expect(query.columns?.[1]).toEqual('baz');
   });
 });

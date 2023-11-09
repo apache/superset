@@ -50,7 +50,6 @@ VERSION_INFO_FILE = os.path.join(BASE_DIR, "superset", "static", "version_info.j
 with open(VERSION_INFO_FILE, "w") as version_file:
     json.dump(version_info, version_file)
 
-
 setup(
     name="apache-superset",
     description="A modern, enterprise-ready business intelligence web application",
@@ -90,6 +89,7 @@ setup(
         "flask-talisman>=1.0.0, <2.0",
         "flask-login>=0.6.0, < 1.0",
         "flask-migrate>=3.1.0, <4.0",
+        "flask-session>=0.4.0, <1.0",
         "flask-wtf>=1.1.0, <2.0",
         "func_timeout",
         "geopy",
@@ -173,7 +173,7 @@ setup(
         "impala": ["impyla>0.16.2, <0.17"],
         "kusto": ["sqlalchemy-kusto>=2.0.0, <3"],
         "kylin": ["kylinpy>=2.8.1, <2.9"],
-        "mssql": ["pymssql>=2.1.4, <2.2"],
+        "mssql": ["pymssql>=2.2.8, <3"],
         "mysql": ["mysqlclient>=2.1.0, <3"],
         "ocient": [
             "sqlalchemy-ocient>=1.0.0",

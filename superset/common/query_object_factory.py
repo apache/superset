@@ -16,24 +16,26 @@
 # under the License.
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any, TYPE_CHECKING
+from typing import Any, cast, TYPE_CHECKING
 
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object import QueryObject
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
+from superset.constants import NO_TIME_RANGE
+from superset.superset_typing import Column
 from superset.utils.core import (
     apply_max_row_limit,
     DatasourceDict,
     DatasourceType,
     FilterOperator,
+    get_xaxis_label,
     QueryObjectFilterClause,
 )
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import sessionmaker
 
-    from superset.connectors.base.models import BaseColumn, BaseDatasource
+    from superset.connectors.base.models import BaseDatasource
     from superset.daos.datasource import DatasourceDAO
 
 
@@ -68,15 +70,14 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         processed_extras = self._process_extras(extras)
         result_type = kwargs.setdefault("result_type", parent_result_type)
         row_limit = self._process_row_limit(row_limit, result_type)
+        processed_time_range = self._process_time_range(
+            time_range, kwargs.get("filters"), kwargs.get("columns")
+        )
         from_dttm, to_dttm = get_since_until_from_time_range(
-            time_range, time_shift, processed_extras
+            processed_time_range, time_shift, processed_extras
         )
         kwargs["from_dttm"] = from_dttm
         kwargs["to_dttm"] = to_dttm
-        if datasource_model_instance and kwargs.get("filters", []):
-            kwargs["filters"] = self._process_filters(
-                datasource_model_instance, kwargs["filters"]
-            )
         return QueryObject(
             datasource=datasource_model_instance,
             extras=extras,
@@ -110,57 +111,33 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         )
         return apply_max_row_limit(row_limit or default_row_limit)
 
+    @staticmethod
+    def _process_time_range(
+        time_range: str | None,
+        filters: list[QueryObjectFilterClause] | None = None,
+        columns: list[Column] | None = None,
+    ) -> str:
+        if time_range is None:
+            time_range = NO_TIME_RANGE
+            temporal_flt = [
+                flt
+                for flt in filters or []
+                if flt.get("op") == FilterOperator.TEMPORAL_RANGE
+            ]
+            if temporal_flt:
+                # Use the temporal filter as the time range.
+                # if the temporal filters uses x-axis as the temporal filter
+                # then use it or use the first temporal filter
+                xaxis_label = get_xaxis_label(columns or [])
+                match_flt = [
+                    flt for flt in temporal_flt if flt.get("col") == xaxis_label
+                ]
+                if match_flt:
+                    time_range = cast(str, match_flt[0].get("val"))
+                else:
+                    time_range = cast(str, temporal_flt[0].get("val"))
+        return time_range
+
     # light version of the view.utils.core
     # import view.utils require application context
     # Todo: move it and the view.utils.core to utils package
-
-    def _process_filters(
-        self, datasource: BaseDatasource, query_filters: list[QueryObjectFilterClause]
-    ) -> list[QueryObjectFilterClause]:
-        def get_dttm_filter_value(
-            value: Any, col: BaseColumn, date_format: str
-        ) -> int | str:
-            if not isinstance(value, int):
-                return value
-            if date_format in {"epoch_ms", "epoch_s"}:
-                if date_format == "epoch_s":
-                    value = str(value)
-                else:
-                    value = str(value * 1000)
-            else:
-                dttm = datetime.utcfromtimestamp(value / 1000)
-                value = dttm.strftime(date_format)
-
-            if col.type in col.num_types:
-                value = int(value)
-            return value
-
-        for query_filter in query_filters:
-            if query_filter.get("op") == FilterOperator.TEMPORAL_RANGE:
-                continue
-            filter_col = query_filter.get("col")
-            if not isinstance(filter_col, str):
-                continue
-            column = datasource.get_column(filter_col)
-            if not column:
-                continue
-            filter_value = query_filter.get("val")
-
-            date_format = column.python_date_format
-            if not date_format and datasource.db_extra:
-                date_format = datasource.db_extra.get(
-                    "python_date_format_by_column_name", {}
-                ).get(column.column_name)
-
-            if column.is_dttm and date_format:
-                if isinstance(filter_value, list):
-                    query_filter["val"] = [
-                        get_dttm_filter_value(value, column, date_format)
-                        for value in filter_value
-                    ]
-                else:
-                    query_filter["val"] = get_dttm_filter_value(
-                        filter_value, column, date_format
-                    )
-
-        return query_filters
