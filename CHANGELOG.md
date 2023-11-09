@@ -19,7 +19,8 @@ under the License.
 
 ## Change Log
 
-- [2.1.1](#211-sun-apr-23-154421-2023-0100)
+- [2.1.2](#212-wed-oct-18-165930-2023--0700)
+- [2.1.1](#211-sun-apr-23-154421-2023--0100)
 - [2.1.0](#210-thu-mar-16-211305-2023--0700)
 - [2.0.1](#201-fri-nov-4-103402-2022--0400)
 - [2.0.0](#200-tue-jun-28-085302-2022--0400)
@@ -29,6 +30,25 @@ under the License.
 - [1.5.0](#150-fri-apr-22-172330-2022--0400)
 - [1.4.2](#142-sat-mar-19-000806-2022-0200)
 - [1.4.1](#141)
+
+### 2.1.2 (Wed Oct 18 16:59:30 2023 -0700)
+**Database Migrations**
+
+**Features**
+
+**Fixes**
+- [#25150](https://github.com/apache/superset/pull/25150) fix: Chart series limit doesn't work for some databases (@KSPT-taylorjohn)
+- [#25014](https://github.com/apache/superset/pull/25014) fix: CTE queries with non-SELECT statements (@dpgaspar)
+- [#24849](https://github.com/apache/superset/pull/24849) fix: validation errors appearing after ssh tunnel switch (@hughhhh)
+- [#24196](https://github.com/apache/superset/pull/24196) fix: SSH Tunnel creation with dynamic form (@hughhhh)
+- [#24821](https://github.com/apache/superset/pull/24821) fix: Allow chart import to update the dataset an existing chart points to (@jfrag1)
+- [#24317](https://github.com/apache/superset/pull/24317) fix: update order of build for testing a release (@eschutho)
+
+**Others**
+- [#24826](https://github.com/apache/superset/pull/24826) chore: remove CssTemplate and Annotation access from gamma role (@lilykuang)
+- [#23680](https://github.com/apache/superset/pull/23680) chore: bump wtforms and add missing flask-limiter (@dpgaspar)
+- [#24758](https://github.com/apache/superset/pull/24758) chore(view_api): return application/json as content-type for api/v1/form_data endpoint (@zephyring)
+
 
 
 ### 2.1.1 (Sun Apr 23 15:44:21 2023 +0100)
