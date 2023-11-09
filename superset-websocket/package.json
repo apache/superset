@@ -32,7 +32,7 @@
     "@types/jest": "^27.0.2",
     "@types/jsonwebtoken": "^9.0.4",
     "@types/node": "^20.9.0",
-    "@types/uuid": "^9.0.6",
+    "@types/uuid": "^9.0.7",
     "@types/ws": "^8.5.9",
     "@typescript-eslint/eslint-plugin": "^5.61.0",
     "@typescript-eslint/parser": "^5.62.0",
