@@ -11,8 +11,6 @@ const antdPanelStyles = (theme: SupersetTheme) => css`
     justify-content: center;
     align-items: flex-start;
     padding: 0px ${theme.gridUnit * 4}px;
-    background-color: ${theme.colors.grayscale.light4};
-    border-bottom: 1px solid ${theme.colors.grayscale.light2};
 
     .anticon.anticon-right.ant-collapse-arrow {
       padding: 0;
@@ -31,7 +29,6 @@ const antdPanelStyles = (theme: SupersetTheme) => css`
       font-weight: ${theme.typography.weights.normal};
       line-height: 150%;
       margin-bottom: 0;
-      padding-top: ${theme.gridUnit}px;
     }
 
     .collapse-panel-asterisk {
@@ -43,10 +40,6 @@ const antdPanelStyles = (theme: SupersetTheme) => css`
       margin-left: ${theme.gridUnit}px;
       color: ${theme.colors.success.base};
     }
-  }
-
-  .ant-collapse-content-box {
-    padding-top: ${theme.gridUnit * 2}px;
   }
 `;
 
