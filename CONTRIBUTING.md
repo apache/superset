@@ -213,8 +213,7 @@ Additionally, every new security issue is tracked as a JIRA ticket on the [ASF J
 Requirements from the security team members:
 
 - They have an ICLA signed with Apache Software Foundation.
-- They are not supposed to reveal the information about pending and unfixed security issues to anyone
-(including their employers) unless specifically authorised by the security team members, specifically if diagnosing and solving the issue might involve the need of external experts.
+- They are not supposed to reveal the information about pending and unfixed security issues to anyone (including their employers) unless specifically authorised by the security team members, specifically if diagnosing and solving the issue might involve the need of external experts.
 - Release managers are by default members of the security team. Yet they are not expected to be active in assessing, discussing and fixing security issues in Superset.
 
 Additional expectations from the security team members working on a security issue:
