@@ -87,7 +87,7 @@ def test_execute_sql_statement_with_rls(
     cursor = mocker.MagicMock()
     SupersetResultSet = mocker.patch("superset.sql_lab.SupersetResultSet")
     mocker.patch(
-        "superset.sql_lab.insert_rls",
+        "superset.sql_lab.insert_rls_as_subquery",
         return_value=sqlparse.parse("SELECT * FROM sales WHERE organization_id=42")[0],
     )
     mocker.patch("superset.sql_lab.is_feature_enabled", return_value=True)
@@ -112,12 +112,12 @@ def test_execute_sql_statement_with_rls(
     SupersetResultSet.assert_called_with([(42,)], cursor.description, db_engine_spec)
 
 
-def test_sql_lab_insert_rls(
+def test_sql_lab_insert_rls_as_subquery(
     mocker: MockerFixture,
     session: Session,
 ) -> None:
     """
-    Integration test for `insert_rls`.
+    Integration test for `insert_rls_as_subquery`.
     """
     from flask_appbuilder.security.sqla.models import Role, User
 
@@ -213,4 +213,7 @@ def test_sql_lab_insert_rls(
 |  2 |   8 |
 |  3 |   9 |""".strip()
     )
-    assert query.executed_sql == "SELECT c FROM t WHERE (t.c > 5)\nLIMIT 6"
+    assert (
+        query.executed_sql
+        == "SELECT c FROM (SELECT * FROM t WHERE (t.c > 5)) AS t\nLIMIT 6"
+    )

@@ -399,6 +399,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     supports_dynamic_catalog = False
 
     @classmethod
+    def get_allows_alias_in_select(
+        cls, database: Database  # pylint: disable=unused-argument
+    ) -> bool:
+        """
+        Method for dynamic `allows_alias_in_select`.
+
+        In Dremio this atribute is version-dependent, so Superset needs to inspect the
+        database configuration in order to determine it. This method allows engine-specs
+        to define dynamic values for the attribute.
+        """
+        return cls.allows_alias_in_select
+
+    @classmethod
     def supports_url(cls, url: URL) -> bool:
         """
         Returns true if the DB engine spec supports a given SQLAlchemy URL.
