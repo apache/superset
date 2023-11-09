@@ -21,9 +21,8 @@ from typing import Any, Union
 from marshmallow import fields, post_load, pre_load, Schema
 from marshmallow.validate import Length, ValidationError
 
-from superset.exceptions import SupersetException
 from superset.tags.models import TagTypes
-from superset.utils import core as utils
+from superset.utils.schema import validate_json
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -83,13 +82,6 @@ openapi_spec_methods_override = {
         "get": {"description": "Get a list of all possible owners for a dashboard."}
     },
 }
-
-
-def validate_json(value: Union[bytes, bytearray, str]) -> None:
-    try:
-        utils.validate_json(value)
-    except SupersetException as ex:
-        raise ValidationError("JSON not valid") from ex
 
 
 def validate_json_metadata(value: Union[bytes, bytearray, str]) -> None:

@@ -42,14 +42,13 @@ from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.security.sqla.models import User
 from flask_appbuilder.widgets import ListWidget
-from flask_babel import get_locale, gettext as __, lazy_gettext as _
+from flask_babel import get_locale, gettext as __
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_wtf.csrf import CSRFError
 from flask_wtf.form import FlaskForm
 from sqlalchemy import exc
 from sqlalchemy.orm import Query
 from werkzeug.exceptions import HTTPException
-from wtforms import Form
 from wtforms.fields.core import Field, UnboundField
 
 from superset import (
@@ -577,16 +576,6 @@ class ListWidgetWithCheckboxes(ListWidget):  # pylint: disable=too-few-public-me
     Works in conjunction with the `checkbox` view."""
 
     template = "superset/fab_overrides/list_with_checkboxes.html"
-
-
-def validate_json(form: Form, field: Field) -> None:  # pylint: disable=unused-argument
-    try:
-        json.loads(field.data)
-    except Exception as ex:
-        logger.exception(ex)
-        raise Exception(  # pylint: disable=broad-exception-raised
-            _("json isn't valid")
-        ) from ex
 
 
 class YamlExportMixin:  # pylint: disable=too-few-public-methods
