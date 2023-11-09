@@ -123,6 +123,12 @@ First, start by installing `apache-superset`:
 pip install apache-superset
 ```
 
+Export the FLASK_APP environnement variable in order to be able to execute any `superset` command:
+
+```
+export FLASK_APP=superset
+```
+
 Then, you need to initialize the database:
 
 ```
@@ -133,11 +139,16 @@ superset db upgrade
 Note that some configuration is mandatory for production instances of Superset. In particular, Superset will not start without a user-specified value of SECRET_KEY. Please see [Configuring Superset](https://superset.apache.org/docs/installation/configuring-superset).
 :::
 
+In order to make the configuration file available to `superset` you need to execute the following command:
+
+```
+export SUPERSET_CONFIG_PATH=/path/to/your/superset_config.py
+```
+
 Finish installing by running through the following commands:
 
 ```
 # Create an admin user in your metadata database (use `admin` as username to be able to load the examples)
-export FLASK_APP=superset
 superset fab create-admin
 
 # Load some data to play with
