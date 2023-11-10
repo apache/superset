@@ -4,7 +4,10 @@ export const createJumpToDashboardHandler = (chartProps: any) => {
     const jumpTo = jumpToDashboard[e.name];
     if (jumpTo) {
       // eslint-disable-next-line no-restricted-globals
-      location.replace(`${location.origin}/superset/dashboard/${jumpTo}`);
+      if (location.href.indexOf('embedded') > -1) {
+        // eslint-disable-next-line no-restricted-globals
+        location.replace(`${location.origin}/embedded/${jumpTo}${location.search}`);
+      }
     }
   };
 };
