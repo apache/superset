@@ -19,11 +19,8 @@ WORKDIR /app/superset-frontend
 RUN --mount=type=bind,target=/frontend-mem-nag.sh,src=./docker/frontend-mem-nag.sh \
     /frontend-mem-nag.sh
 
-RUN --mount=type=bind,target=./package.json,src=./superset-frontend/package.json \
-    --mount=type=bind,target=./package-lock.json,src=./superset-frontend/package-lock.json \
-    npm i
-
 COPY ./superset-frontend ./
+RUN npm i
 # This seems to be the most expensive step
 RUN npm run ${BUILD_CMD}
 
@@ -63,8 +60,10 @@ COPY --chown=superset:superset superset-frontend/package.json superset-frontend/
 RUN --mount=type=bind,target=./requirements/local.txt,src=./requirements/local.txt \
     --mount=type=bind,target=./requirements/development.txt,src=./requirements/development.txt \
     --mount=type=bind,target=./requirements/base.txt,src=./requirements/base.txt \
+    --mount=type=bind,target=./requirements/cloudadmin.txt,src=./requirements/cloudadmin.txt \
     --mount=type=cache,target=/root/.cache/pip \
-    pip install -r requirements/local.txt
+    pip install -r requirements/local.txt \
+    pip install -r requirements/cloudadmin.txt
 
 COPY --chown=superset:superset --from=superset-node /app/superset/static/assets superset/static/assets
 ## Lastly, let's install superset itself
