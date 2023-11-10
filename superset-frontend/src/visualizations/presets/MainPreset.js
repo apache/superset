@@ -77,9 +77,9 @@ import {
 } from 'src/filters/components';
 import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/plugin-chart-pivot-table';
 // import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
+import { EchartsPieChartJTDPlugin } from '@superset-ui/charts-with-jump-to-dashboard';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable';
-import { EchartsPieChartJTDPlugin } from 'superset-plugin-charts-with-jump-to-dashboard';
 
 export default class MainPreset extends Preset {
   constructor() {
@@ -91,7 +91,9 @@ export default class MainPreset extends Preset {
 
     super({
       name: 'Legacy charts',
-      presets: [/* new DeckGLChartPreset() */],
+      presets: [
+        /* new DeckGLChartPreset() */
+      ],
       plugins: [
         new AreaChartPlugin().configure({ key: 'area' }),
         new BarChartPlugin().configure({ key: 'bar' }),
