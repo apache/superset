@@ -192,7 +192,7 @@ For more details on PMC members, please refer to https://www.apache.org/foundati
 
 ### Committer
 
-A committer is a person who has been elected by the PMC to have write access (commit access) to the code repository. they can modify the code, documentation, and website by themselves and also accept other contributions.
+A committer is a person who has been elected by the PMC to have write access (commit access) to the code repository. They can modify the code, documentation, and website and accept contributions from others.
 
 The official list of committers and PMCs can be found [here](https://projects.apache.org/committee.html?superset).
 
