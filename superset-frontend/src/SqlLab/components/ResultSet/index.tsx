@@ -18,6 +18,7 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
+import { useHistory } from 'react-router-dom';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
@@ -67,7 +68,6 @@ import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
 import QueryStateLabel from '../QueryStateLabel';
-import { useHistory } from 'react-router-dom';
 
 enum LIMITING_FACTOR {
   QUERY = 'QUERY',
