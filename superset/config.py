@@ -1420,7 +1420,7 @@ TALISMAN_CONFIG = {
             "'unsafe-inline'",
             "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
         ],
-        "script-src": ["'self'", "'strict-dynamic'"],
+        "script-src": ["'self'", "'strict-dynamic'", "'unsafe-inline'"],
     },
     "content_security_policy_nonce_in": ["script-src"],
     "force_https": False,
