@@ -80,6 +80,17 @@ const defaultTheme = {
       light4: '#ECEEF2',
       light5: '#F5F5F8',
     },
+    secondary2: {
+      base: '#444E7C',
+      dark1: '#363E63',
+      dark2: '#282E4A',
+      dark3: '#1B1F31',
+      light1: '#8E94B0',
+      light2: '#B4B8CA',
+      light3: '#D9DBE4',
+      light4: '#ECEEF2',
+      light5: '#F5F5F8',
+    },
     grayscale: {
       base: '#666666',
       dark1: '#323232',
@@ -155,6 +166,11 @@ const defaultTheme = {
     },
   },
   zIndex: {
+    aboveDashboardCharts: 10,
+    dropdown: 11,
+    max: 3000,
+  },
+  zIndex2: {
     aboveDashboardCharts: 10,
     dropdown: 11,
     max: 3000,
