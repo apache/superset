@@ -206,7 +206,7 @@ The security team is a selected subset of PMC members, committers and non-commit
 
 New members of the security team are selected by the PMC members in a vote. You can request to be added to the team by sending a message to private@superset.apache.org. However, the team should be small and focused on solving security issues, so the requests will be evaluated on a case-by-case basis and the team size will be kept relatively small, limited to only actively security-focused contributors.
 
-This security team must ensure the process follows the [ASF vulnerability handling process](https://apache.org/security/committers.html#asf-project-security-for-committers).
+This security team must follow the [ASF vulnerability handling process](https://apache.org/security/committers.html#asf-project-security-for-committers).
 
 Additionally, every new security issue is tracked as a JIRA ticket on the [ASF JIRA Superset security project](https://issues.apache.org/jira/secure/RapidBoard.jspa?rapidView=588&projectKey=SUPERSETSEC)
 
