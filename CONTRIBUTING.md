@@ -202,7 +202,7 @@ A contributor is a person who has contributed to the project in any way, includi
 
 ### Security Team
 
-The security team is a selected subset of PMC members, committers and non committers who are responsible for handling security issues.
+The security team is a selected subset of PMC members, committers and non-committers who are responsible for handling security issues.
 
 New members of the security team are selected by the PMC members in a vote. You can request to be added to the team by sending a message to private@superset.apache.org. However, the team should be small and focused on solving security issues, so the requests will be evaluated on a case-by-case basis and the team size will be kept relatively small, limited to only actively security-focused contributors.
 
