@@ -182,7 +182,7 @@ There is a dedicated [`apache-superset` tag](https://stackoverflow.com/questions
 
 ## Types of Contributors
 
-Following Apache Software Foundation's project governance, Apache Superset has the following types of contributors
+Following the project governance model of the Apache Software Foundation (ASF), Apache Superset has a specific set of contributor roles:
 
 ### PMC Member
 
