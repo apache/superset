@@ -131,7 +131,7 @@ class TestTagApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         expected_result = {
             "changed_by": None,
-            "changed_on_delta_humanized": "now",
+            "changed_on_delta_humanized": ["now", "a second ago", "two seconds ago"],
             "created_by": None,
             "id": tag.id,
             "name": "test get tag",
@@ -139,6 +139,11 @@ class TestTagApi(SupersetTestCase):
         }
         data = json.loads(rv.data.decode("utf-8"))
         for key, value in expected_result.items():
+            if key == "changed_on_delta_humanized":
+                # 'changed_on_delta_humanized' sometimes fluctuates between 'now' and
+                # 'X second ago' which leads to flaky tests
+                self.assertIn(data["result"][key], value)
+                continue
             self.assertEqual(value, data["result"][key])
         # rollback changes
         db.session.delete(tag)
