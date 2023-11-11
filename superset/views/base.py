@@ -674,14 +674,18 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
 
 
 class CsvResponse(Response):
-    """Override Response to take into account csv encoding from config.py"""
+    """
+    Override Response to take into account csv encoding from config.py
+    """
 
     charset = conf["CSV_EXPORT"].get("encoding", "utf-8")
     default_mimetype = "text/csv"
 
 
 class XlsxResponse(Response):
-    """Override Response to use xlsx mimetype"""
+    """
+    Override Response to use xlsx mimetype
+    """
 
     charset = "utf-8"
     default_mimetype = (
@@ -692,7 +696,8 @@ class XlsxResponse(Response):
 def bind_field(
     _: Any, form: DynamicForm, unbound_field: UnboundField, options: dict[Any, Any]
 ) -> Field:
-    """Customize how fields are bound by stripping all whitespace.
+    """
+    Customize how fields are bound by stripping all whitespace.
 
     :param form: The form
     :param unbound_field: The unbound field
