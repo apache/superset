@@ -138,36 +138,53 @@ describe('server', () => {
   describe('redisUrlFromConfig', () => {
     test('it builds a valid Redis URL from defaults', () => {
       expect(
-        server.redisUrlFromConfig({
+        server.buildRedisOpts({
           port: 6379,
           host: '127.0.0.1',
+          username: 'test-user',
           password: '',
           db: 0,
           ssl: false,
+          validateHostname: false,
         }),
-      ).toEqual('redis://127.0.0.1:6379/0');
+      ).toEqual({ db: 0, host: '127.0.0.1', port: 6379 });
     });
     test('it builds a valid Redis URL with a password', () => {
       expect(
-        server.redisUrlFromConfig({
+        server.buildRedisOpts({
           port: 6380,
           host: 'redis.local',
+          username: 'cool-user',
           password: 'foo',
           db: 1,
           ssl: false,
+          validateHostname: false,
         }),
-      ).toEqual('redis://:foo@redis.local:6380/1');
+      ).toEqual({
+        db: 1,
+        host: 'redis.local',
+        password: 'foo',
+        port: 6380,
+        username: 'cool-user',
+      });
     });
     test('it builds a valid Redis URL with SSL', () => {
       expect(
-        server.redisUrlFromConfig({
+        server.buildRedisOpts({
           port: 6379,
           host: '127.0.0.1',
           password: '',
+          username: 'cool-user',
           db: 0,
           ssl: true,
+          validateHostname: false,
         }),
-      ).toEqual('rediss://127.0.0.1:6379/0');
+      ).toEqual({
+        db: 0,
+        host: '127.0.0.1',
+        port: 6379,
+        tls: { checkServerIdentity: expect.anything() },
+      });
     });
   });
 

@@ -16,7 +16,7 @@
 # under the License.
 from __future__ import annotations
 
-from typing import Any, Dict, List, Set, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from tests.integration_tests.dashboards.filter_sets.consts import (
     DASHBOARD_OWNER_USERNAME,
@@ -66,12 +66,12 @@ class TestGetFilterSetsApi:
     def test_when_caller_admin__200(
         self,
         dashboard_id: int,
-        filtersets: Dict[str, List[FilterSet]],
+        filtersets: dict[str, list[FilterSet]],
         client: FlaskClient[Any],
     ):
         # arrange
         login(client, "admin")
-        expected_ids: Set[int] = collect_all_ids(filtersets)
+        expected_ids: set[int] = collect_all_ids(filtersets)
 
         # act
         response = call_get_filter_sets(client, dashboard_id)
@@ -83,7 +83,7 @@ class TestGetFilterSetsApi:
     def test_when_caller_dashboard_owner__200(
         self,
         dashboard_id: int,
-        filtersets: Dict[str, List[FilterSet]],
+        filtersets: dict[str, list[FilterSet]],
         client: FlaskClient[Any],
     ):
         # arrange
@@ -100,7 +100,7 @@ class TestGetFilterSetsApi:
     def test_when_caller_filterset_owner__200(
         self,
         dashboard_id: int,
-        filtersets: Dict[str, List[FilterSet]],
+        filtersets: dict[str, list[FilterSet]],
         client: FlaskClient[Any],
     ):
         # arrange
@@ -117,12 +117,12 @@ class TestGetFilterSetsApi:
     def test_when_caller_regular_user__200(
         self,
         dashboard_id: int,
-        filtersets: Dict[str, List[int]],
+        filtersets: dict[str, list[int]],
         client: FlaskClient[Any],
     ):
         # arrange
         login(client, REGULAR_USER)
-        expected_ids: Set[int] = set()
+        expected_ids: set[int] = set()
 
         # act
         response = call_get_filter_sets(client, dashboard_id)

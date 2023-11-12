@@ -717,7 +717,7 @@ metadata:
   color_scheme: supersetColors
   filter_scopes:
     '1387':
-      Ethnic Minority:
+      ethnic_minority:
         scope:
         - TAB-AsMaxdYL_t
         immune: []
@@ -725,7 +725,7 @@ metadata:
         scope:
         - ROOT_ID
         immune: []
-      Developer Type:
+      developer_type:
         scope:
         - ROOT_ID
         immune: []

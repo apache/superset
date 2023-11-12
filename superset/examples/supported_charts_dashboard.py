@@ -19,7 +19,6 @@
 
 import json
 import textwrap
-from typing import List
 
 from sqlalchemy import inspect
 
@@ -40,7 +39,7 @@ from .helpers import (
 DASH_SLUG = "supported_charts_dash"
 
 
-def create_slices(tbl: SqlaTable) -> List[Slice]:
+def create_slices(tbl: SqlaTable) -> list[Slice]:
     slice_kwargs = {
         "datasource_id": tbl.id,
         "datasource_type": DatasourceType.TABLE,
@@ -335,7 +334,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
                 viz_type="mixed_timeseries",
                 metrics=["sum__num"],
                 groupby=["gender"],
-                metrics_b=["count"],
+                metrics_b=["sum__num"],
                 groupby_b=["state"],
             ),
         ),
@@ -404,17 +403,6 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
                 viz_type="sunburst",
                 metric="sum__num",
                 groupby=["gender", "state"],
-            ),
-        ),
-        Slice(
-            **slice_kwargs,
-            slice_name="Treemap Chart",
-            viz_type="treemap",
-            params=get_slice_json(
-                defaults,
-                viz_type="treemap",
-                metrics=["sum__num"],
-                groupby=["gender"],
             ),
         ),
         Slice(

@@ -45,7 +45,7 @@ class DatasetMetricRestApi(BaseSupersetModelRestApi):
 
     openapi_spec_tag = "Datasets"
 
-    @expose("/<int:pk>/metric/<int:metric_id>", methods=["DELETE"])
+    @expose("/<int:pk>/metric/<int:metric_id>", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics
@@ -53,11 +53,10 @@ class DatasetMetricRestApi(BaseSupersetModelRestApi):
     def delete(  # pylint: disable=arguments-differ
         self, pk: int, metric_id: int
     ) -> Response:
-        """Deletes a Dataset metric
+        """Delete a dataset metric.
         ---
         delete:
-          description: >-
-            Delete a Dataset metric
+          summary: Delete a dataset metric
           parameters:
           - in: path
             schema:

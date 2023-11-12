@@ -74,7 +74,7 @@ the repo directly from the main `apache/superset` repo to a new directory `super
 
 ```bash
 cd <MY PROJECTS PATH>
-git clone git@github.com:apache/superset.git superset-release
+git clone https://github.com/apache/superset.git superset-release
 cd superset-release
 ```
 
@@ -102,7 +102,7 @@ the same terminal session won't be used for crafting the release candidate and t
 final release. Therefore, it's a good idea to do the following every time you
 work on a new phase of the release process to make sure you aren't releasing
 the wrong files/using wrong names. There's a script to help you set correctly all the
-necessary environment variables. Change your current directory to `superset/RELEASING`
+necessary environment variables. Change your current directory to `RELEASING`
 and execute the `set_release_env.sh` script with the relevant parameters:
 
 Usage (MacOS/ZSH):
@@ -238,7 +238,7 @@ Similar to `cherrytree`, the change log script requires a github token, either a
 
 #### Initial release (e.g. 1.5.0)
 
-When generating the changelog for an initial minor relese, you should compare with
+When generating the changelog for an initial minor release, you should compare with
 the previous release (in the example, the previous release branch is `1.4`, so remember to
 update it accordingly):
 
@@ -343,7 +343,7 @@ To build and run the recently created tarball **from SVN**:
 # login using admin/admin
 ```
 
-## Create a release on Github
+## Create a release on GitHub
 
 After submitting the tag and testing the release candidate, follow the steps [here](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) to create the release on GitHub. Use the vote email text as the content for the release description. Make sure to check the "This is a pre-release" checkbox for release candidates. You can check previous releases if you need an example.
 

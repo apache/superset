@@ -17,7 +17,14 @@
  * under the License.
  */
 /* eslint-disable no-param-reassign */
-import { css, styled, t, useTheme } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  css,
+  isFeatureEnabled,
+  styled,
+  t,
+  useTheme,
+} from '@superset-ui/core';
 import React, { FC, useMemo } from 'react';
 import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
@@ -117,7 +124,7 @@ const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
           <Icons.Expand iconColor={theme.colors.grayscale.base} />
         </HeaderButton>
       </TitleArea>
-      {canEdit && (
+      {canEdit && isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) && (
         <AddFiltersButtonContainer>
           <FilterConfigurationLink
             dashboardId={dashboardId}

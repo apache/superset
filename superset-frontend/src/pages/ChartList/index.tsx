@@ -18,6 +18,8 @@
  */
 import {
   ensureIsArray,
+  isFeatureEnabled,
+  FeatureFlag,
   getChartMetadataRegistry,
   JsonResponse,
   styled,
@@ -28,7 +30,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
 import moment from 'moment';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { useSelector } from 'react-redux';
 import {
   createErrorHandler,
   createFetchRelated,
@@ -42,7 +44,7 @@ import {
 import handleResourceExport from 'src/utils/export';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import { TagsList } from 'src/components/Tags';
-import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
+import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import FaveStar from 'src/components/FaveStar';
 import { Link, useHistory } from 'react-router-dom';
 import ListView, {
@@ -67,11 +69,12 @@ import setupPlugins from 'src/setup/setupPlugins';
 import InfoTooltip from 'src/components/InfoTooltip';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import { GenericLink } from 'src/components/GenericLink/GenericLink';
-import getBootstrapData from 'src/utils/getBootstrapData';
 import Owner from 'src/types/Owner';
 import { loadTags } from 'src/components/Tags/utils';
 import FacePile from 'src/components/FacePile';
-import ChartCard from './ChartCard';
+import ChartCard from 'src/features/charts/ChartCard';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { findPermission } from 'src/utils/findPermission';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -156,8 +159,6 @@ const StyledActions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
-const bootstrapData = getBootstrapData();
-
 function ChartList(props: ChartListProps) {
   const {
     addDangerToast,
@@ -182,6 +183,10 @@ function ChartList(props: ChartListProps) {
   } = useListViewResource<Chart>('chart', t('chart'), addDangerToast);
 
   const chartIds = useMemo(() => charts.map(c => c.id), [charts]);
+  const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
+    state => state.user,
+  );
+  const canReadTag = findPermission('can_read', 'Tag', roles);
 
   const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
     'chart',
@@ -234,8 +239,6 @@ function ChartList(props: ChartListProps) {
   const canExport =
     hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
-  const enableBroadUserAccess =
-    bootstrapData.common.conf.ENABLE_BROAD_ACTIVITY_ACCESS;
   const handleBulkChartExport = (chartsToExport: Chart[]) => {
     const ids = chartsToExport.map(({ id }) => id);
     handleResourceExport('chart', ids, () => {
@@ -275,8 +278,8 @@ function ChartList(props: ChartListProps) {
       ? {
           filters: [
             {
-              col: 'dashboards',
-              opr: FilterOperator.relationManyMany,
+              col: 'dashboard_title',
+              opr: FilterOperator.startsWith,
               value: filterValue,
             },
           ],
@@ -292,9 +295,7 @@ function ChartList(props: ChartListProps) {
       ...filters,
     });
     const response: void | JsonResponse = await SupersetClient.get({
-      endpoint: !filterValue
-        ? `/api/v1/dashboard/?q=${queryParams}`
-        : `/api/v1/chart/?q=${queryParams}`,
+      endpoint: `/api/v1/dashboard/?q=${queryParams}`,
     }).catch(() =>
       addDangerToast(t('An error occurred while fetching dashboards')),
     );
@@ -417,49 +418,6 @@ function ChartList(props: ChartListProps) {
       {
         Cell: ({
           row: {
-            original: {
-              last_saved_by: lastSavedBy,
-              changed_by_url: changedByUrl,
-            },
-          },
-        }: any) =>
-          enableBroadUserAccess ? (
-            <a href={changedByUrl}>{changedByName(lastSavedBy)}</a>
-          ) : (
-            <>{changedByName(lastSavedBy)}</>
-          ),
-        Header: t('Modified by'),
-        accessor: 'last_saved_by.first_name',
-        size: 'xl',
-      },
-      {
-        Cell: ({
-          row: {
-            original: { last_saved_at: lastSavedAt },
-          },
-        }: any) => (
-          <span className="no-wrap">
-            {lastSavedAt ? moment.utc(lastSavedAt).fromNow() : null}
-          </span>
-        ),
-        Header: t('Last modified'),
-        accessor: 'last_saved_at',
-        size: 'xl',
-      },
-      {
-        Cell: ({
-          row: {
-            original: { owners = [] },
-          },
-        }: any) => <FacePile users={owners} />,
-        Header: t('Owners'),
-        accessor: 'owners',
-        disableSortBy: true,
-        size: 'xl',
-      },
-      {
-        Cell: ({
-          row: {
             original: { tags = [] },
           },
         }: any) => (
@@ -477,6 +435,40 @@ function ChartList(props: ChartListProps) {
         accessor: 'tags',
         disableSortBy: true,
         hidden: !isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM),
+      },
+      {
+        Cell: ({
+          row: {
+            original: {
+              last_saved_at: lastSavedAt,
+              last_saved_by: lastSavedBy,
+            },
+          },
+        }: any) => (
+          <Tooltip
+            id="delete-action-tooltip"
+            title={t('Modified by: %s', changedByName(lastSavedBy))}
+            placement="bottom"
+          >
+            <span className="no-wrap">
+              {lastSavedAt ? moment.utc(lastSavedAt).fromNow() : null}
+            </span>
+          </Tooltip>
+        ),
+        Header: t('Last modified'),
+        accessor: 'last_saved_at',
+        size: 'xl',
+      },
+      {
+        Cell: ({
+          row: {
+            original: { owners = [] },
+          },
+        }: any) => <FacePile users={owners} />,
+        Header: t('Owners'),
+        accessor: 'owners',
+        disableSortBy: true,
+        size: 'xl',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -688,7 +680,7 @@ function ChartList(props: ChartListProps) {
         ],
       },
     ] as Filters;
-    if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) {
+    if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && canReadTag) {
       filters_list.push({
         Header: t('Tags'),
         key: 'tags',
@@ -838,12 +830,17 @@ function ChartList(props: ChartListProps) {
               count={chartCount}
               data={charts}
               disableBulkSelect={toggleBulkSelect}
+              refreshData={refreshData}
               fetchData={fetchData}
               filters={filters}
               initialSort={initialSort}
               loading={loading}
               pageSize={PAGE_SIZE}
               renderCard={renderCard}
+              enableBulkTag
+              bulkTagResourceName="chart"
+              addSuccessToast={addSuccessToast}
+              addDangerToast={addDangerToast}
               showThumbnails={
                 userSettings
                   ? userSettings.thumbnails

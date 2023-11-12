@@ -12,7 +12,7 @@ version: 1
 Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/installing-superset-from-scratch#os-dependencies) before following these steps.
 You also need to install MySQL or [MariaDB](https://mariadb.com/downloads).
 
-Ensure that you are using Python version 3.8 or 3.9, then proceed with:
+Ensure that you are using Python version 3.9 or 3.10, then proceed with:
 
 ```bash
 # Create a virtual environment and activate it (recommended)
@@ -26,6 +26,8 @@ pip install -r requirements/testing.txt
 pip install -e .
 
 # Initialize the database
+# Note: For generating a SECRET_KEY if you haven't done already, you can use the command:
+# echo "SECRET_KEY='$(openssl rand -base64 42)'" | tee -a superset_config.py
 superset db upgrade
 
 # Create an admin user in your metadata database (use `admin` as username to be able to load the examples)
@@ -40,7 +42,7 @@ superset load-examples
 
 # Start the Flask dev web server from inside your virtualenv.
 # Note that your page may not have CSS at this point.
-FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
+superset run -p 8088 --with-threads --reload --debugger --debug
 ```
 
 Or you can install via our Makefile
@@ -64,7 +66,7 @@ make pre-commit
 via `.flaskenv`, however if needed, it should be set to `superset.app:create_app()`**
 
 If you have made changes to the FAB-managed templates, which are not built the same way as the newer, React-powered front-end assets, you need to start the app without the `--with-threads` argument like so:
-`FLASK_ENV=development superset run -p 8088 --reload --debugger`
+`superset run -p 8088 --reload --debugger --debug`
 
 #### Dependencies
 
@@ -91,7 +93,7 @@ def FLASK_APP_MUTATOR(app):
 Then make sure you run your WSGI server using the right worker type:
 
 ```bash
-FLASK_ENV=development gunicorn "superset.app:create_app()" -k "geventwebsocket.gunicorn.workers.GeventWebSocketWorker" -b 127.0.0.1:8088 --reload
+SUPERSET_ENV=development gunicorn "superset.app:create_app()" -k "geventwebsocket.gunicorn.workers.GeventWebSocketWorker" -b 127.0.0.1:8088 --reload
 ```
 
 You can log anything to the browser console, including objects:

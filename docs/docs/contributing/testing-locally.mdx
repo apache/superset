@@ -93,8 +93,8 @@ export SUPERSET_TESTENV=true
 export CYPRESS_BASE_URL="http://localhost:8081"
 superset db upgrade
 superset load_test_users
-superset load-examples --load-test-data
 superset init
+superset load-examples --load-test-data
 superset run --port 8081
 ```
 
@@ -111,10 +111,10 @@ npm install
 npm run cypress-run-chrome
 
 # run tests from a specific file
-npm run cypress-run-chrome -- --spec cypress/integration/explore/link.test.ts
+npm run cypress-run-chrome -- --spec cypress/e2e/explore/link.test.ts
 
 # run specific file with video capture
-npm run cypress-run-chrome -- --spec cypress/integration/dashboard/index.test.js --config video=true
+npm run cypress-run-chrome -- --spec cypress/e2e/dashboard/index.test.js --config video=true
 
 # to open the cypress ui
 npm run cypress-debug
@@ -126,17 +126,17 @@ CYPRESS_BASE_URL=<your url> npm run cypress open
 
 See [`superset-frontend/cypress_build.sh`](https://github.com/apache/superset/blob/master/superset-frontend/cypress_build.sh).
 
-As an alternative you can use docker-compose environment for testing:
+As an alternative you can use docker compose environment for testing:
 
 Make sure you have added below line to your /etc/hosts file:
 `127.0.0.1 db`
 
 If you already have launched Docker environment please use the following command to assure a fresh database instance:
-`docker-compose down -v`
+`docker compose down -v`
 
 Launch environment:
 
-`CYPRESS_CONFIG=true docker-compose up`
+`CYPRESS_CONFIG=true docker compose up`
 
 It will serve backend and frontend on port 8088.
 
@@ -176,7 +176,7 @@ superset:
 Start Superset as usual
 
 ```bash
-docker-compose up
+docker compose up
 ```
 
 Install the required libraries and packages to the docker container

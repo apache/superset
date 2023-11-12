@@ -16,7 +16,7 @@
 # under the License.
 import re
 from datetime import date, datetime, timedelta
-from typing import Optional, Tuple
+from typing import Optional
 from unittest.mock import Mock, patch
 
 import pytest
@@ -60,18 +60,22 @@ def mock_parse_human_datetime(s: str) -> Optional[datetime]:
         return datetime(2017, 4, 7)
     elif s in ["5 days", "5 days ago"]:
         return datetime(2016, 11, 2)
+    elif s == "2000-01-01T00:00:00":
+        return datetime(2000, 1, 1)
     elif s == "2018-01-01T00:00:00":
         return datetime(2018, 1, 1)
     elif s == "2018-12-31T23:59:59":
         return datetime(2018, 12, 31, 23, 59, 59)
+    elif s == "2022-01-01T00:00:00":
+        return datetime(2022, 1, 1)
     else:
         return None
 
 
 @patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
 def test_get_since_until() -> None:
-    result: Tuple[Optional[datetime], Optional[datetime]]
-    expected: Tuple[Optional[datetime], Optional[datetime]]
+    result: tuple[Optional[datetime], Optional[datetime]]
+    expected: tuple[Optional[datetime], Optional[datetime]]
 
     result = get_since_until()
     expected = None, datetime(2016, 11, 7)
@@ -261,9 +265,27 @@ def test_datetime_eval() -> None:
     assert result == expected
 
     result = datetime_eval(
+        "holiday('Eid al-Fitr', datetime('2000-01-01T00:00:00'), 'SA')"
+    )
+    expected = datetime(2000, 1, 8, 0, 0, 0)
+    assert result == expected
+
+    result = datetime_eval(
         "holiday('Boxing day', datetime('2018-01-01T00:00:00'), 'UK')"
     )
     expected = datetime(2018, 12, 26, 0, 0, 0)
+    assert result == expected
+
+    result = datetime_eval(
+        "holiday('Juneteenth', datetime('2022-01-01T00:00:00'), 'US')"
+    )
+    expected = datetime(2022, 6, 19, 0, 0, 0)
+    assert result == expected
+
+    result = datetime_eval(
+        "holiday('Independence Day', datetime('2022-01-01T00:00:00'), 'US')"
+    )
+    expected = datetime(2022, 7, 4, 0, 0, 0)
     assert result == expected
 
     result = datetime_eval(

@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from sqlalchemy.engine.url import make_url, URL
 
@@ -25,7 +25,7 @@ def get_foreign_keys_metadata(
     database: Any,
     table_name: str,
     schema_name: Optional[str],
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     foreign_keys = database.get_foreign_keys(table_name, schema_name)
     for fk in foreign_keys:
         fk["column_names"] = fk.pop("constrained_columns")
@@ -35,14 +35,14 @@ def get_foreign_keys_metadata(
 
 def get_indexes_metadata(
     database: Any, table_name: str, schema_name: Optional[str]
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     indexes = database.get_indexes(table_name, schema_name)
     for idx in indexes:
         idx["type"] = "index"
     return indexes
 
 
-def get_col_type(col: Dict[Any, Any]) -> str:
+def get_col_type(col: dict[Any, Any]) -> str:
     try:
         dtype = f"{col['type']}"
     except Exception:  # pylint: disable=broad-except
@@ -53,7 +53,7 @@ def get_col_type(col: Dict[Any, Any]) -> str:
 
 def get_table_metadata(
     database: Any, table_name: str, schema_name: Optional[str]
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get table metadata information, including type, pk, fks.
     This function raises SQLAlchemyError when a schema is not found.
@@ -73,16 +73,16 @@ def get_table_metadata(
     foreign_keys = get_foreign_keys_metadata(database, table_name, schema_name)
     indexes = get_indexes_metadata(database, table_name, schema_name)
     keys += foreign_keys + indexes
-    payload_columns: List[Dict[str, Any]] = []
+    payload_columns: list[dict[str, Any]] = []
     table_comment = database.get_table_comment(table_name, schema_name)
     for col in columns:
         dtype = get_col_type(col)
         payload_columns.append(
             {
-                "name": col["name"],
+                "name": col["column_name"],
                 "type": dtype.split("(")[0] if "(" in dtype else dtype,
                 "longType": dtype,
-                "keys": [k for k in keys if col["name"] in k["column_names"]],
+                "keys": [k for k in keys if col["column_name"] in k["column_names"]],
                 "comment": col.get("comment"),
             }
         )

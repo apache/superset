@@ -15,16 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 slice_name: Vaccine Candidates per Country
-viz_type: treemap
+viz_type: treemap_v2
 params:
   adhoc_filters: []
   color_scheme: presetColors
   datasource: 69__table
   groupby:
-  - country_name
+    - country_name
   label_colors: {}
-  metrics:
-  - count
+  metric: count
   number_format: SMART_NUMBER
   queryFields:
     groupby: groupby
@@ -33,7 +32,7 @@ params:
   time_range: No filter
   treemap_ratio: 1.618033988749895
   url_params: {}
-  viz_type: treemap
+  viz_type: treemap_v2
 cache_timeout: null
 uuid: e2f5a8a7-feb0-4f79-bc6b-01fe55b98b3c
 version: 1.0.0

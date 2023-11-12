@@ -31,6 +31,7 @@ export enum Behavior {
    * when dimensions are right-clicked on.
    */
   DRILL_TO_DETAIL = 'DRILL_TO_DETAIL',
+  DRILL_BY = 'DRILL_BY',
 }
 
 export interface ContextMenuFilters {
@@ -39,6 +40,11 @@ export interface ContextMenuFilters {
     isCurrentValueSelected?: boolean;
   };
   drillToDetail?: BinaryQueryObjectFilterClause[];
+  drillBy?: {
+    filters: BinaryQueryObjectFilterClause[];
+    groupbyFieldName: string;
+    adhocFilterFieldName?: string;
+  };
 }
 
 export enum AppSection {
@@ -52,6 +58,7 @@ export enum AppSection {
 export type FilterState = { value?: any; [key: string]: any };
 
 export type DataMask = {
+  __cache?: FilterState;
   extraFormData?: ExtraFormData;
   filterState?: FilterState;
   ownState?: JsonObject;
@@ -92,6 +99,10 @@ export enum AxisType {
   value = 'value',
   time = 'time',
   log = 'log',
+}
+
+export interface LegendState {
+  [key: string]: boolean;
 }
 
 export default {};

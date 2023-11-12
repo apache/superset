@@ -17,10 +17,16 @@
  * under the License.
  */
 import React, { useCallback } from 'react';
-import { BinaryQueryObjectFilterClause } from '@superset-ui/core';
+import {
+  BinaryQueryObjectFilterClause,
+  getColumnLabel,
+  getNumberFormatter,
+  getTimeFormatter,
+} from '@superset-ui/core';
 import { SunburstTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers, TreePathInfo } from '../types';
+import { formatSeriesName } from '../utils/series';
 
 export const extractTreePathInfo = (treePathInfo: TreePathInfo[] | undefined) =>
   (treePathInfo ?? [])
@@ -39,8 +45,8 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
     onContextMenu,
     refs,
     emitCrossFilters,
+    coltypeMapping,
   } = props;
-
   const { columns } = formData;
 
   const getCrossFilterDataMask = useCallback(
@@ -62,7 +68,7 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
             filters:
               values.length === 0 || !columns
                 ? []
-                : columns.map((col, idx) => {
+                : columns.slice(0, treePath.length).map((col, idx) => {
                     const val = labels.map(v => v[idx]);
                     if (val === null || val === undefined)
                       return {
@@ -103,7 +109,7 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
       const { treePathInfo } = props;
       handleChange(treePathInfo);
     },
-    contextmenu: eventParams => {
+    contextmenu: async eventParams => {
       if (onContextMenu) {
         eventParams.event.stop();
         const { data, treePathInfo } = eventParams;
@@ -111,6 +117,7 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
         const treePath = extractTreePathInfo(eventParams.treePathInfo);
         const pointerEvent = eventParams.event.event;
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
+        const drillByFilters: BinaryQueryObjectFilterClause[] = [];
         if (columns?.length) {
           treePath.forEach((path, i) =>
             drillToDetailFilters.push({
@@ -120,10 +127,23 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
               formattedVal: path,
             }),
           );
+          const val = treePath[treePath.length - 1];
+          drillByFilters.push({
+            col: columns[treePath.length - 1],
+            op: '==',
+            val,
+            formattedVal: formatSeriesName(val, {
+              timeFormatter: getTimeFormatter(formData.dateFormat),
+              numberFormatter: getNumberFormatter(formData.numberFormat),
+              coltype:
+                coltypeMapping?.[getColumnLabel(columns[treePath.length - 1])],
+            }),
+          });
         }
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
           drillToDetail: drillToDetailFilters,
           crossFilter: getCrossFilterDataMask(treePathInfo),
+          drillBy: { filters: drillByFilters, groupbyFieldName: 'columns' },
         });
       }
     },

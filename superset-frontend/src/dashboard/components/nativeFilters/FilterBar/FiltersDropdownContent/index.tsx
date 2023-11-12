@@ -34,6 +34,7 @@ export interface FiltersDropdownContentProps {
     last: CrossFilterIndicator,
   ) => ReactNode;
   showCollapsePanel?: boolean;
+  forceRenderOutOfScope?: boolean;
 }
 
 export const FiltersDropdownContent = ({
@@ -43,14 +44,13 @@ export const FiltersDropdownContent = ({
   renderer,
   rendererCrossFilter,
   showCollapsePanel,
+  forceRenderOutOfScope,
 }: FiltersDropdownContentProps) => (
   <div
-    css={(theme: SupersetTheme) =>
-      css`
-        width: ${theme.gridUnit * 56}px;
-        padding: ${theme.gridUnit}px 0;
-      `
-    }
+    css={(theme: SupersetTheme) => css`
+      width: ${theme.gridUnit * 56}px;
+      padding: ${theme.gridUnit}px 0;
+    `}
   >
     {overflowedCrossFilters.map(crossFilter =>
       rendererCrossFilter(
@@ -64,6 +64,7 @@ export const FiltersDropdownContent = ({
       <FiltersOutOfScopeCollapsible
         filtersOutOfScope={filtersOutOfScope}
         renderer={renderer}
+        forceRender={forceRenderOutOfScope}
         horizontalOverflow
       />
     )}

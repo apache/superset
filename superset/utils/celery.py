@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Iterator
 
 from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
@@ -26,6 +26,7 @@ from sqlalchemy.pool import NullPool
 from superset import app, db
 
 logger = logging.getLogger(__name__)
+
 
 # Null pool is used for the celery workers due process forking side effects.
 # For more info see: https://github.com/apache/superset/issues/10530

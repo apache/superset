@@ -18,7 +18,7 @@
 
 import json
 import logging
-from typing import Iterator, Tuple
+from collections.abc import Iterator
 
 import yaml
 from werkzeug.utils import secure_filename
@@ -26,21 +26,20 @@ from werkzeug.utils import secure_filename
 from superset.commands.export.models import ExportModelsCommand
 from superset.models.sql_lab import SavedQuery
 from superset.queries.saved_queries.commands.exceptions import SavedQueryNotFoundError
-from superset.queries.saved_queries.dao import SavedQueryDAO
+from superset.daos.query import SavedQueryDAO
 from superset.utils.dict_import_export import EXPORT_VERSION
 
 logger = logging.getLogger(__name__)
 
 
 class ExportSavedQueriesCommand(ExportModelsCommand):
-
     dao = SavedQueryDAO
     not_found = SavedQueryNotFoundError
 
     @staticmethod
     def _export(
         model: SavedQuery, export_related: bool = True
-    ) -> Iterator[Tuple[str, str]]:
+    ) -> Iterator[tuple[str, str]]:
         # build filename based on database, optional schema, and label
         database_slug = secure_filename(model.database.database_name)
         schema_slug = secure_filename(model.schema)

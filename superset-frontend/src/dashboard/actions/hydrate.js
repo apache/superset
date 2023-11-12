@@ -17,16 +17,21 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { Behavior, getChartMetadataRegistry } from '@superset-ui/core';
-
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { chart } from 'src/components/Chart/chartReducer';
 import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
 import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/reducers/nativeFilters';
 import { applyDefaultFormData } from 'src/explore/store';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { findPermission } from 'src/utils/findPermission';
-import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
-import { isCrossFiltersEnabled } from 'src/dashboard/util/crossFilters';
+import {
+  canUserEditDashboard,
+  canUserSaveAsDashboard,
+} from 'src/dashboard/util/permissionUtils';
+import {
+  getCrossFiltersConfiguration,
+  isCrossFiltersEnabled,
+} from 'src/dashboard/util/crossFilters';
 import {
   DASHBOARD_FILTER_SCOPE_GLOBAL,
   dashboardFilter,
@@ -51,10 +56,8 @@ import { TIME_RANGE } from 'src/visualizations/FilterBox/FilterBox';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
-import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 import extractUrlParams from '../util/extractUrlParams';
 import { updateColorSchema } from './dashboardInfo';
-import { getChartIdsInFilterScope } from '../util/getChartIdsInFilterScope';
 import updateComponentParentsList from '../util/updateComponentParentsList';
 import { FilterBarOrientation } from '../types';
 
@@ -124,7 +127,7 @@ export const hydrateDashboard =
 
     charts.forEach(slice => {
       const key = slice.slice_id;
-      const form_data = {
+      const formData = {
         ...slice.form_data,
         url_params: {
           ...slice.form_data.url_params,
@@ -134,7 +137,7 @@ export const hydrateDashboard =
       chartQueries[key] = {
         ...chart,
         id: key,
-        form_data: applyDefaultFormData(form_data),
+        form_data: applyDefaultFormData(formData),
       };
 
       slices[key] = {
@@ -306,59 +309,16 @@ export const hydrateDashboard =
     const nativeFilters = getInitialNativeFilterState({
       filterConfig: metadata?.native_filter_configuration || [],
     });
-    metadata.show_native_filters = isFeatureEnabled(
-      FeatureFlag.DASHBOARD_NATIVE_FILTERS,
-    );
 
     if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
-      // If user just added cross filter to dashboard it's not saving it scope on server,
-      // so we tweak it until user will update scope and will save it in server
-      Object.values(dashboardLayout.present).forEach(layoutItem => {
-        const chartId = layoutItem.meta?.chartId;
-        const behaviors =
-          (
-            getChartMetadataRegistry().get(
-              chartQueries[chartId]?.form_data?.viz_type,
-            ) ?? {}
-          )?.behaviors ?? [];
-
-        if (!metadata.chart_configuration) {
-          metadata.chart_configuration = {};
-        }
-        if (behaviors.includes(Behavior.INTERACTIVE_CHART)) {
-          if (!metadata.chart_configuration[chartId]) {
-            metadata.chart_configuration[chartId] = {
-              id: chartId,
-              crossFilters: {
-                scope: {
-                  rootPath: [DASHBOARD_ROOT_ID],
-                  excluded: [chartId], // By default it doesn't affects itself
-                },
-              },
-            };
-          }
-          metadata.chart_configuration[chartId].crossFilters.chartsInScope =
-            getChartIdsInFilterScope(
-              metadata.chart_configuration[chartId].crossFilters.scope,
-              chartQueries,
-              dashboardLayout.present,
-            );
-        }
-        if (
-          behaviors.includes(Behavior.INTERACTIVE_CHART) &&
-          !metadata.chart_configuration[chartId]
-        ) {
-          metadata.chart_configuration[chartId] = {
-            id: chartId,
-            crossFilters: {
-              scope: {
-                rootPath: [DASHBOARD_ROOT_ID],
-                excluded: [chartId], // By default it doesn't affects itself
-              },
-            },
-          };
-        }
-      });
+      const { chartConfiguration, globalChartConfiguration } =
+        getCrossFiltersConfiguration(
+          dashboardLayout.present,
+          metadata,
+          chartQueries,
+        );
+      metadata.chart_configuration = chartConfiguration;
+      metadata.global_chart_configuration = globalChartConfiguration;
     }
 
     const { roles } = user;
@@ -378,7 +338,7 @@ export const hydrateDashboard =
           metadata,
           userId: user.userId ? String(user.userId) : null, // legacy, please use state.user instead
           dash_edit_perm: canEdit,
-          dash_save_perm: findPermission('can_save_dash', 'Superset', roles),
+          dash_save_perm: canUserSaveAsDashboard(dashboard, user),
           dash_share_perm: findPermission(
             'can_share_dashboard',
             'Superset',
@@ -395,7 +355,6 @@ export const hydrateDashboard =
             roles,
           ),
           superset_can_csv: findPermission('can_csv', 'Superset', roles),
-          slice_can_edit: findPermission('can_slice', 'Superset', roles),
           common: {
             // legacy, please use state.common instead
             flash_messages: common?.flash_messages,

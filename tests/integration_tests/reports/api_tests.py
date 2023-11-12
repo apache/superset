@@ -88,7 +88,6 @@ class TestReportSchedulesApi(SupersetTestCase):
     @pytest.fixture()
     def create_working_admin_report_schedule(self):
         with self.create_app().app_context():
-
             admin_user = self.get_user("admin")
             chart = db.session.query(Slice).first()
             example_db = get_example_database()
@@ -114,7 +113,6 @@ class TestReportSchedulesApi(SupersetTestCase):
     @pytest.fixture()
     def create_working_gamma_report_schedule(self, gamma_user_with_alerts_role):
         with self.create_app().app_context():
-
             chart = db.session.query(Slice).first()
             example_db = get_example_database()
 
@@ -139,7 +137,6 @@ class TestReportSchedulesApi(SupersetTestCase):
     @pytest.fixture()
     def create_working_shared_report_schedule(self, gamma_user_with_alerts_role):
         with self.create_app().app_context():
-
             admin_user = self.get_user("admin")
             alpha_user = self.get_user("alpha")
             chart = db.session.query(Slice).first()
@@ -213,7 +210,6 @@ class TestReportSchedulesApi(SupersetTestCase):
     @pytest.fixture()
     def create_alpha_users(self):
         with self.create_app().app_context():
-
             users = [
                 self.create_user(
                     "alpha1", "password", "Alpha", email="alpha1@superset.org"
@@ -1253,7 +1249,11 @@ class TestReportSchedulesApi(SupersetTestCase):
         rv = self.post_assert_metric(uri, report_schedule_data, "post")
         response = json.loads(rv.data.decode("utf-8"))
         assert response == {
-            "message": {"creation_method": ["Invalid enum value BAD_CREATION_METHOD"]}
+            "message": {
+                "creation_method": [
+                    "Must be one of: charts, dashboards, alerts_reports."
+                ]
+            }
         }
         assert rv.status_code == 400
 

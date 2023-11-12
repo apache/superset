@@ -79,7 +79,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     rawFormData,
     hooks: { setDataMask = () => {}, onContextMenu },
     filterState,
-    datasource: { verboseMap = {}, columnFormats = {} },
+    datasource: { verboseMap = {}, columnFormats = {}, currencyFormats = {} },
     emitCrossFilters,
   } = chartProps;
   const { data, colnames, coltypes } = queriesData[0];
@@ -96,12 +96,15 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     rowSubtotalPosition,
     colSubtotalPosition,
     colTotals,
+    colSubTotals,
     rowTotals,
+    rowSubTotals,
     valueFormat,
     dateFormat,
     metricsLayout,
     conditionalFormatting,
     timeGrainSqla,
+    currencyFormat,
   } = formData;
   const { selectedFilters } = filterState;
   const granularity = extractTimegrain(rawFormData);
@@ -155,13 +158,17 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     rowSubtotalPosition,
     colSubtotalPosition,
     colTotals,
+    colSubTotals,
     rowTotals,
+    rowSubTotals,
     valueFormat,
+    currencyFormat,
     emitCrossFilters,
     setDataMask,
     selectedFilters,
     verboseMap,
     columnFormats,
+    currencyFormats,
     metricsLayout,
     metricColorFormatters,
     dateFormatters,

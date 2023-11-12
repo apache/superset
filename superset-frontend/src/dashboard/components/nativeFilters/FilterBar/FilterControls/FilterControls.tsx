@@ -35,6 +35,7 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   isNativeFilterWithDataMask,
+  JsonObject,
 } from '@superset-ui/core';
 import {
   createHtmlPortalNode,
@@ -47,7 +48,6 @@ import {
   useSelectFiltersInScope,
 } from 'src/dashboard/components/nativeFilters/state';
 import {
-  DashboardInfo,
   DashboardLayout,
   FilterBarOrientation,
   RootState,
@@ -62,6 +62,7 @@ import { FiltersDropdownContent } from '../FiltersDropdownContent';
 import crossFiltersSelector from '../CrossFilters/selectors';
 import CrossFilter from '../CrossFilters/CrossFilter';
 import { useFilterOutlined } from '../useFilterOutlined';
+import { useChartsVerboseMaps } from '../utils';
 
 type FilterControlsProps = {
   dataMaskSelected: DataMaskStateWithId;
@@ -87,12 +88,14 @@ const FilterControls: FC<FilterControlsProps> = ({
   const dataMask = useSelector<RootState, DataMaskStateWithId>(
     state => state.dataMask,
   );
-  const dashboardInfo = useSelector<RootState, DashboardInfo>(
-    state => state.dashboardInfo,
+  const chartConfiguration = useSelector<RootState, JsonObject>(
+    state => state.dashboardInfo.metadata?.chart_configuration,
   );
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
+  const verboseMaps = useChartsVerboseMaps();
+
   const isCrossFiltersEnabled = isFeatureEnabled(
     FeatureFlag.DASHBOARD_CROSS_FILTERS,
   );
@@ -101,11 +104,12 @@ const FilterControls: FC<FilterControlsProps> = ({
       isCrossFiltersEnabled
         ? crossFiltersSelector({
             dataMask,
-            dashboardInfo,
+            chartConfiguration,
             dashboardLayout,
+            verboseMaps,
           })
         : [],
-    [dashboardInfo, dashboardLayout, dataMask, isCrossFiltersEnabled],
+    [chartConfiguration, dashboardLayout, dataMask, isCrossFiltersEnabled],
   );
   const { filterControlFactory, filtersWithValues } = useFilterControlFactory(
     dataMaskSelected,
@@ -123,6 +127,11 @@ const FilterControls: FC<FilterControlsProps> = ({
 
   const [filtersInScope, filtersOutOfScope] =
     useSelectFiltersInScope(filtersWithValues);
+
+  const hasRequiredFirst = useMemo(
+    () => filtersWithValues.some(filter => filter.requiredFirst),
+    [filtersWithValues],
+  );
 
   const dashboardHasTabs = useDashboardHasTabs();
   const showCollapsePanel = dashboardHasTabs && filtersWithValues.length > 0;
@@ -149,6 +158,7 @@ const FilterControls: FC<FilterControlsProps> = ({
       {showCollapsePanel && (
         <FiltersOutOfScopeCollapsible
           filtersOutOfScope={filtersOutOfScope}
+          forceRender={hasRequiredFirst}
           hasTopMargin={filtersInScope.length > 0}
           renderer={renderer}
         />
@@ -202,31 +212,32 @@ const FilterControls: FC<FilterControlsProps> = ({
         selectedCrossFilters.at(-1),
       ),
     }));
-    const nativeFiltersInScope = filtersInScope.map((filter, index) => ({
-      id: filter.id,
-      element: (
-        <div
-          className="filter-item-wrapper"
-          css={css`
-            flex-shrink: 0;
-          `}
-        >
-          {renderer(filter, index)}
-        </div>
-      ),
-    }));
-    return [...crossFilters, ...nativeFiltersInScope];
+    if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS)) {
+      const nativeFiltersInScope = filtersInScope.map((filter, index) => ({
+        id: filter.id,
+        element: (
+          <div
+            className="filter-item-wrapper"
+            css={css`
+              flex-shrink: 0;
+            `}
+          >
+            {renderer(filter, index)}
+          </div>
+        ),
+      }));
+      return [...crossFilters, ...nativeFiltersInScope];
+    }
+    return [...crossFilters];
   }, [filtersInScope, renderer, rendererCrossFilter, selectedCrossFilters]);
 
   const renderHorizontalContent = () => (
     <div
-      css={(theme: SupersetTheme) =>
-        css`
-          padding: 0 ${theme.gridUnit * 4}px;
-          min-width: 0;
-          flex: 1;
-        `
-      }
+      css={(theme: SupersetTheme) => css`
+        padding: 0 ${theme.gridUnit * 4}px;
+        min-width: 0;
+        flex: 1;
+      `}
     >
       <DropdownContainer
         items={items}
@@ -264,10 +275,12 @@ const FilterControls: FC<FilterControlsProps> = ({
                   renderer={renderer}
                   rendererCrossFilter={rendererCrossFilter}
                   showCollapsePanel={showCollapsePanel}
+                  forceRenderOutOfScope={hasRequiredFirst}
                 />
               )
             : undefined
         }
+        forceRender={hasRequiredFirst}
         ref={popoverRef}
         onOverflowingStateChange={({ overflowed: nextOverflowedIds }) => {
           if (

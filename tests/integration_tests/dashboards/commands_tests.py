@@ -92,6 +92,9 @@ class TestExportDashboardsCommand(SupersetTestCase):
             "description": None,
             "css": None,
             "slug": "world_health",
+            "certified_by": None,
+            "certification_details": None,
+            "published": False,
             "uuid": str(example_dashboard.uuid),
             "position": {
                 "CHART-36bfc934": {
@@ -279,6 +282,9 @@ class TestExportDashboardsCommand(SupersetTestCase):
             "description",
             "css",
             "slug",
+            "certified_by",
+            "certification_details",
+            "published",
             "uuid",
             "position",
             "metadata",
@@ -485,9 +491,10 @@ class TestImportDashboardsCommand(SupersetTestCase):
         db.session.commit()
 
     @patch("superset.dashboards.commands.importers.v1.utils.g")
-    def test_import_v1_dashboard(self, mock_g):
+    @patch("superset.security.manager.g")
+    def test_import_v1_dashboard(self, sm_g, utils_g):
         """Test that we can import a dashboard"""
-        mock_g.user = security_manager.find_user("admin")
+        admin = sm_g.user = utils_g.user = security_manager.find_user("admin")
         contents = {
             "metadata.yaml": yaml.safe_dump(dashboard_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
@@ -564,23 +571,25 @@ class TestImportDashboardsCommand(SupersetTestCase):
         dataset = chart.table
         assert str(dataset.uuid) == dataset_config["uuid"]
 
+        assert chart.query_context is None
+        assert json.loads(chart.params)["datasource"] == dataset.uid
+
         database = dataset.database
         assert str(database.uuid) == database_config["uuid"]
 
-        assert dashboard.owners == [mock_g.user]
+        assert dashboard.owners == [admin]
 
-        dashboard.owners = []
-        chart.owners = []
-        dataset.owners = []
-        database.owners = []
         db.session.delete(dashboard)
         db.session.delete(chart)
         db.session.delete(dataset)
         db.session.delete(database)
         db.session.commit()
 
-    def test_import_v1_dashboard_multiple(self):
+    @patch("superset.security.manager.g")
+    def test_import_v1_dashboard_multiple(self, mock_g):
         """Test that a dashboard can be imported multiple times"""
+        mock_g.user = security_manager.find_user("admin")
+
         num_dashboards = db.session.query(Dashboard).count()
 
         contents = {

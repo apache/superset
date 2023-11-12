@@ -14,8 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
-from typing import Iterator
+from collections.abc import Iterator
 from unittest.mock import patch
 from uuid import uuid3
 
@@ -66,7 +65,7 @@ def permalink_salt() -> Iterator[str]:
 
 
 def test_post(
-    test_client, login_as_admin, dashboard_id: int, permalink_salt: str
+    dashboard_id: int, permalink_salt: str, test_client, login_as_admin
 ) -> None:
     resp = test_client.post(f"api/v1/dashboard/{dashboard_id}/permalink", json=STATE)
     assert resp.status_code == 201
@@ -93,21 +92,22 @@ def test_post_access_denied(test_client, login_as, dashboard_id: int):
     assert resp.status_code == 404
 
 
-def test_post_invalid_schema(test_client, login_as_admin, dashboard_id: int):
+def test_post_invalid_schema(dashboard_id: int, test_client, login_as_admin):
     resp = test_client.post(
         f"api/v1/dashboard/{dashboard_id}/permalink", json={"foo": "bar"}
     )
     assert resp.status_code == 400
 
 
-def test_get(test_client, login_as_admin, dashboard_id: int, permalink_salt: str):
+def test_get(dashboard_id: int, permalink_salt: str, test_client, login_as_admin):
     key = test_client.post(
         f"api/v1/dashboard/{dashboard_id}/permalink", json=STATE
     ).json["key"]
     resp = test_client.get(f"api/v1/dashboard/permalink/{key}")
     assert resp.status_code == 200
     result = resp.json
-    assert result["dashboardId"] == str(dashboard_id)
+    dashboard_uuid = result["dashboardId"]
+    assert Dashboard.get(dashboard_uuid).id == dashboard_id
     assert result["state"] == STATE
     id_ = decode_permalink_id(key, permalink_salt)
     db.session.query(KeyValueEntry).filter_by(id=id_).delete()

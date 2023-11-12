@@ -27,7 +27,7 @@ import { initialState, databases } from 'src/SqlLab/fixtures';
 const mockedProps = {
   queryEditorId: '123',
   animation: false,
-  database: databases.result[0],
+  database: { ...databases.result[0], allows_virtual_table_explore: false },
   onUpdate: () => {},
   onSave: () => {},
   saveQueryWarning: null,
@@ -61,6 +61,25 @@ const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 
 describe('SavedQuery', () => {
+  it('doesnt render save button when allows_virtual_table_explore is undefined', async () => {
+    const noRenderProps = {
+      ...mockedProps,
+      database: {
+        ...mockedProps.database,
+        allows_virtual_table_explore: undefined,
+      },
+    };
+    render(<SaveQuery {...noRenderProps} />, {
+      useRedux: true,
+      store: mockStore(mockState),
+    });
+    expect(() => {
+      screen.getByRole('button', { name: /save/i });
+    }).toThrow(
+      'Unable to find an accessible element with the role "button" and name `/save/i`',
+    );
+  });
+
   it('renders a non-split save button when allows_virtual_table_explore is not enabled', () => {
     render(<SaveQuery {...mockedProps} />, {
       useRedux: true,

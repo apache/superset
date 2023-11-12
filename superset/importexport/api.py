@@ -42,7 +42,7 @@ class ImportExportRestApi(BaseSupersetApi):
     openapi_spec_tag = "Import/export"
     allow_browser_login = True
 
-    @expose("/export/", methods=["GET"])
+    @expose("/export/", methods=("GET",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -50,12 +50,12 @@ class ImportExportRestApi(BaseSupersetApi):
         log_to_statsd=False,
     )
     def export(self) -> Response:
-        """
-        Export all assets.
+        """Export all assets.
         ---
         get:
+          summary: Export all assets
           description: >-
-            Returns a ZIP file with all the Superset assets (databases, datasets, charts,
+            Gets a ZIP file with all the Superset assets (databases, datasets, charts,
             dashboards, saved queries) as YAML files.
           responses:
             200:
@@ -87,11 +87,11 @@ class ImportExportRestApi(BaseSupersetApi):
             buf,
             mimetype="application/zip",
             as_attachment=True,
-            attachment_filename=filename,
+            download_name=filename,
         )
         return response
 
-    @expose("/import/", methods=["POST"])
+    @expose("/import/", methods=("POST",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -100,9 +100,10 @@ class ImportExportRestApi(BaseSupersetApi):
     )
     @requires_form_data
     def import_(self) -> Response:
-        """Import multiple assets
+        """Import multiple assets.
         ---
         post:
+          summary: Import multiple assets
           requestBody:
             required: true
             content:

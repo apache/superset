@@ -16,8 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataMask, FilterConfiguration, Filters } from '@superset-ui/core';
-import { FeatureFlag, isFeatureEnabled } from '../featureFlags';
+import {
+  DataMask,
+  isFeatureEnabled,
+  FeatureFlag,
+  FilterConfiguration,
+  Filters,
+} from '@superset-ui/core';
 import { getInitialDataMask } from './reducer';
 
 export const CLEAR_DATA_MASK_STATE = 'CLEAR_DATA_MASK_STATE';

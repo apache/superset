@@ -1,7 +1,7 @@
 ---
 title: Additional Networking Settings
 hide_title: true
-sidebar_position: 4
+sidebar_position: 5
 version: 1
 ---
 
@@ -32,6 +32,15 @@ cross-domain request).
 Add the following setting in your `superset_config.py` file:
 
 - `SUPERSET_WEBSERVER_DOMAINS`: list of allowed hostnames for domain sharding feature.
+
+Please create your domain shards as subdomains of your main domain for authorization to
+work properly on new domains. For Example:
+
+- `SUPERSET_WEBSERVER_DOMAINS=['superset-1.mydomain.com','superset-2.mydomain.com','superset-3.mydomain.com','superset-4.mydomain.com']`
+
+or add the following setting in your `superset_config.py` file if domain shards are not subdomains of main domain.
+
+- `SESSION_COOKIE_DOMAIN = '.mydomain.com'`
 
 ### Middleware
 

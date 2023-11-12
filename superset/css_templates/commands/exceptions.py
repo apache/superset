@@ -19,8 +19,8 @@ from flask_babel import lazy_gettext as _
 from superset.commands.exceptions import CommandException, DeleteFailedError
 
 
-class CssTemplateBulkDeleteFailedError(DeleteFailedError):
-    message = _("CSS template could not be deleted.")
+class CssTemplateDeleteFailedError(DeleteFailedError):
+    message = _("CSS templates could not be deleted.")
 
 
 class CssTemplateNotFoundError(CommandException):

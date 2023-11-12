@@ -27,7 +27,6 @@ revision = "60dc453f4e2e"
 down_revision = "3ebe0993c770"
 
 import json
-import re
 
 from alembic import op
 from sqlalchemy import and_, Column, Integer, String, Text

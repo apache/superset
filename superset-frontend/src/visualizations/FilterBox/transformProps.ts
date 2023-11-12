@@ -41,8 +41,6 @@ export default function transformProps(chartProps: FilterBoxChartProps) {
     sliceId,
     dateFilter,
     instantFiltering,
-    showDruidTimeGranularity,
-    showDruidTimeOrigin,
     showSqlaTimeColumn,
     showSqlaTimeGranularity,
   } = formData;
@@ -68,8 +66,6 @@ export default function transformProps(chartProps: FilterBoxChartProps) {
     onFilterMenuClose,
     origSelectedValues: initialValues || {},
     showDateFilter: dateFilter,
-    showDruidTimeGrain: showDruidTimeGranularity,
-    showDruidTimeOrigin,
     showSqlaTimeColumn,
     showSqlaTimeGrain: showSqlaTimeGranularity,
     // the original form data, needed for async select options

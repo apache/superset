@@ -18,12 +18,13 @@
 
 import json
 import logging
-from typing import Any, Dict, Iterator, Tuple
+from typing import Any
+from collections.abc import Iterator
 
 import yaml
 
 from superset.databases.commands.exceptions import DatabaseNotFoundError
-from superset.databases.dao import DatabaseDAO
+from superset.daos.database import DatabaseDAO
 from superset.commands.export.models import ExportModelsCommand
 from superset.models.core import Database
 from superset.utils.dict_import_export import EXPORT_VERSION
@@ -33,7 +34,7 @@ from superset.utils.ssh_tunnel import mask_password_info
 logger = logging.getLogger(__name__)
 
 
-def parse_extra(extra_payload: str) -> Dict[str, Any]:
+def parse_extra(extra_payload: str) -> dict[str, Any]:
     try:
         extra = json.loads(extra_payload)
     except json.decoder.JSONDecodeError:
@@ -51,14 +52,13 @@ def parse_extra(extra_payload: str) -> Dict[str, Any]:
 
 
 class ExportDatabasesCommand(ExportModelsCommand):
-
     dao = DatabaseDAO
     not_found = DatabaseNotFoundError
 
     @staticmethod
     def _export(
         model: Database, export_related: bool = True
-    ) -> Iterator[Tuple[str, str]]:
+    ) -> Iterator[tuple[str, str]]:
         db_file_name = get_filename(model.database_name, model.id, skip_id=True)
         file_path = f"databases/{db_file_name}.yaml"
 
