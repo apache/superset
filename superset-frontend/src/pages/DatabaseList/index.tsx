@@ -29,6 +29,7 @@ import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { useQueryParams, BooleanParam } from 'use-query-params';
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
+import getOwnerName from 'src/utils/getOwnerName';
 
 import Loading from 'src/components/Loading';
 import { useListViewResource } from 'src/views/CRUD/hooks';
@@ -380,23 +381,29 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         size: 'md',
       },
       {
-        accessor: 'created_by',
-        disableSortBy: true,
-        Header: t('Created by'),
         Cell: ({
           row: {
-            original: { created_by: createdBy },
+            original: {
+              changed_by: changedBy,
+              changed_on_delta_humanized: changedOn,
+            },
           },
-        }: any) =>
-          createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
-        size: 'xl',
-      },
-      {
-        Cell: ({
-          row: {
-            original: { changed_on_delta_humanized: changedOn },
-          },
-        }: any) => changedOn,
+        }: any) => {
+          const changed = <span className="no-wrap">{changedOn}</span>;
+          const changedbyName = getOwnerName(changedBy);
+          if (changedbyName) {
+            return (
+              <Tooltip
+                id="delete-action-tooltip"
+                title={t('Modified by: %s', changedbyName)}
+                placement="bottom"
+              >
+                {changed}
+              </Tooltip>
+            );
+          }
+          return changed;
+        },
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',

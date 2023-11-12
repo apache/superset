@@ -36,6 +36,7 @@ import DeleteModal from 'src/components/DeleteModal';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import AnnotationLayerModal from 'src/features/annotationLayers/AnnotationLayerModal';
 import { AnnotationLayerObject } from 'src/features/annotationLayers/types';
+import getOwnerName from 'src/utils/getOwnerName';
 
 const PAGE_SIZE = 25;
 const MOMENT_FORMAT = 'MMM DD, YYYY';
@@ -211,8 +212,7 @@ function AnnotationLayersList({
           row: {
             original: { created_by: createdBy },
           },
-        }: any) =>
-          createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
+        }: any) => getOwnerName(createdBy),
         size: 'xl',
       },
       {

@@ -69,12 +69,12 @@ import setupPlugins from 'src/setup/setupPlugins';
 import InfoTooltip from 'src/components/InfoTooltip';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import { GenericLink } from 'src/components/GenericLink/GenericLink';
-import Owner from 'src/types/Owner';
 import { loadTags } from 'src/components/Tags/utils';
 import FacePile from 'src/components/FacePile';
 import ChartCard from 'src/features/charts/ChartCard';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
+import getOwnerName from 'src/utils/getOwnerName';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -246,10 +246,6 @@ function ChartList(props: ChartListProps) {
     });
     setPreparingExport(true);
   };
-  const changedByName = (lastSavedBy: Owner) =>
-    lastSavedBy?.first_name
-      ? `${lastSavedBy?.first_name} ${lastSavedBy?.last_name}`
-      : null;
 
   function handleBulkChartDelete(chartsToDelete: Chart[]) {
     SupersetClient.delete({
@@ -447,7 +443,7 @@ function ChartList(props: ChartListProps) {
         }: any) => (
           <Tooltip
             id="delete-action-tooltip"
-            title={t('Modified by: %s', changedByName(lastSavedBy))}
+            title={t('Modified by: %s', getOwnerName(lastSavedBy))}
             placement="bottom"
           >
             <span className="no-wrap">

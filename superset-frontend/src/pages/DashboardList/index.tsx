@@ -361,18 +361,6 @@ function DashboardList(props: DashboardListProps) {
       {
         Cell: ({
           row: {
-            original: { created_by: createdBy },
-          },
-        }: any) =>
-          createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
-        Header: t('Created by'),
-        accessor: 'created_by',
-        disableSortBy: true,
-        size: 'xl',
-      },
-      {
-        Cell: ({
-          row: {
             original: { owners = [] },
           },
         }: any) => <FacePile users={owners} />,
@@ -518,28 +506,6 @@ function DashboardList(props: DashboardListProps) {
             addDangerToast(
               t(
                 'An error occurred while fetching dashboard owner values: %s',
-                errMsg,
-              ),
-            ),
-          ),
-          props.user,
-        ),
-        paginate: true,
-      },
-      {
-        Header: t('Created by'),
-        key: 'created_by',
-        id: 'created_by',
-        input: 'select',
-        operator: FilterOperator.relationOneMany,
-        unfilteredLabel: t('All'),
-        fetchSelects: createFetchRelated(
-          'dashboard',
-          'created_by',
-          createErrorHandler(errMsg =>
-            addDangerToast(
-              t(
-                'An error occurred while fetching dashboard created by values: %s',
                 errMsg,
               ),
             ),

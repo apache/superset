@@ -35,13 +35,13 @@ import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
-import FacePile from 'src/components/FacePile';
 import { Link } from 'react-router-dom';
 import { deleteTags } from 'src/features/tags/tags';
 import { Tag as AntdTag } from 'antd';
 import { Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
 import FaveStar from 'src/components/FaveStar';
+import getOwnerName from 'src/utils/getOwnerName';
 
 const PAGE_SIZE = 25;
 
@@ -162,22 +162,22 @@ function TagList(props: TagListProps) {
       {
         Cell: ({
           row: {
-            original: { changed_on_delta_humanized: changedOn },
+            original: {
+              changed_on_delta_humanized: changedOn,
+              changed_by: changedBy,
+            },
           },
-        }: any) => <span className="no-wrap">{changedOn}</span>,
+        }: any) => (
+          <Tooltip
+            id="delete-action-tooltip"
+            title={t('Modified by: %s', getOwnerName(changedBy))}
+            placement="bottom"
+          >
+            <span className="no-wrap">{changedOn}</span>
+          </Tooltip>
+        ),
         Header: t('Modified'),
         accessor: 'changed_on_delta_humanized',
-        size: 'xl',
-      },
-      {
-        Cell: ({
-          row: {
-            original: { created_by: createdBy },
-          },
-        }: any) => (createdBy ? <FacePile users={[createdBy]} /> : ''),
-        Header: t('Created by'),
-        accessor: 'created_by',
-        disableSortBy: true,
         size: 'xl',
       },
       {
@@ -244,27 +244,6 @@ function TagList(props: TagListProps) {
 
   const filters: Filters = useMemo(() => {
     const filters_list = [
-      {
-        Header: t('Created by'),
-        id: 'created_by',
-        input: 'select',
-        operator: FilterOperator.relationOneMany,
-        unfilteredLabel: t('All'),
-        fetchSelects: createFetchRelated(
-          'tag',
-          'created_by',
-          createErrorHandler(errMsg =>
-            addDangerToast(
-              t(
-                'An error occurred while fetching tag created by values: %s',
-                errMsg,
-              ),
-            ),
-          ),
-          props.user,
-        ),
-        paginate: true,
-      },
       {
         Header: t('Search'),
         id: 'name',

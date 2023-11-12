@@ -383,21 +383,22 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       {
         Cell: ({
           row: {
-            original: { changed_on_delta_humanized: changedOn },
+            original: {
+              changed_on_delta_humanized: changedOn,
+              changed_by_name: changedByName,
+            },
           },
-        }: any) => <span className="no-wrap">{changedOn}</span>,
+        }: any) => (
+          <Tooltip
+            id="delete-action-tooltip"
+            title={t('Modified by: %s', changedByName)}
+            placement="bottom"
+          >
+            <span className="no-wrap">{changedOn}</span>
+          </Tooltip>
+        ),
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        size: 'xl',
-      },
-      {
-        Cell: ({
-          row: {
-            original: { changed_by_name: changedByName },
-          },
-        }: any) => changedByName,
-        Header: t('Modified by'),
-        accessor: 'changed_by.first_name',
         size: 'xl',
       },
       {

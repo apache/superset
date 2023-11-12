@@ -37,6 +37,7 @@ import ListView, {
 } from 'src/components/ListView';
 import CssTemplateModal from 'src/features/cssTemplates/CssTemplateModal';
 import { TemplateObject } from 'src/features/cssTemplates/types';
+import getOwnerName from 'src/utils/getOwnerName';
 
 const PAGE_SIZE = 25;
 
@@ -142,7 +143,7 @@ function CssTemplatesList({
           let name = 'null';
 
           if (changedBy) {
-            name = `${changedBy.first_name} ${changedBy.last_name}`;
+            name = getOwnerName(changedBy);
           }
 
           return (
@@ -194,8 +195,7 @@ function CssTemplatesList({
           row: {
             original: { created_by: createdBy },
           },
-        }: any) =>
-          createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
+        }: any) => getOwnerName(createdBy),
         size: 'xl',
       },
       {

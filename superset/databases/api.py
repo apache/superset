@@ -162,6 +162,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "backend",
         "changed_on",
         "changed_on_delta_humanized",
+        "changed_by.first_name",
+        "changed_by.last_name",
         "created_by.first_name",
         "created_by.last_name",
         "database_name",
