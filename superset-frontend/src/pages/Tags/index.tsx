@@ -18,11 +18,7 @@
  */
 import React, { useMemo, useState } from 'react';
 import { isFeatureEnabled, FeatureFlag, t } from '@superset-ui/core';
-import {
-  createFetchRelated,
-  createErrorHandler,
-  Actions,
-} from 'src/views/CRUD/utils';
+import { Actions } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
