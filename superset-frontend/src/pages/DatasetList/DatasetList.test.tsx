@@ -285,11 +285,11 @@ describe('RTL', () => {
 });
 
 describe('Prevent unsafe URLs', () => {
+  const tdColumnsNumber = 8;
   const mockedProps = {};
   let wrapper: any;
 
   it('Check prevent unsafe is on renders relative links', async () => {
-    const tdColumnsNumber = 9;
     useSelectorMock.mockReturnValue(true);
     wrapper = await mountAndWait(mockedProps);
     const tdElements = wrapper.find(ListView).find('td');
@@ -314,7 +314,6 @@ describe('Prevent unsafe URLs', () => {
   });
 
   it('Check prevent unsafe is off renders absolute links', async () => {
-    const tdColumnsNumber = 9;
     useSelectorMock.mockReturnValue(false);
     wrapper = await mountAndWait(mockedProps);
     const tdElements = wrapper.find(ListView).find('td');
