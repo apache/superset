@@ -19,6 +19,7 @@ under the License.
 
 ## Change Log
 
+- [3.0.2](#302-wed-nov-8-073838-2023--0500)
 - [3.0.1](#301-tue-oct-13-103221-2023--0700)
 - [3.0.0](#300-thu-aug-24-133627-2023--0600)
 - [2.1.1](#211-sun-apr-23-154421-2023-0100)
@@ -31,6 +32,42 @@ under the License.
 - [1.5.0](#150-fri-apr-22-172330-2022--0400)
 - [1.4.2](#142-sat-mar-19-000806-2022-0200)
 - [1.4.1](#141)
+
+### 3.0.2 (Wed Nov 8 07:38:38 2023 -0500)
+
+**Fixes**
+
+- [#25897](https://github.com/apache/superset/pull/25897) fix: trino cursor (@betodealmeida)
+- [#25898](https://github.com/apache/superset/pull/25898) fix: database version field (@betodealmeida)
+- [#25877](https://github.com/apache/superset/pull/25877) fix: Saving Mixed Chart with dashboard filter applied breaks adhoc_filter_b (@kgabryje)
+- [#25842](https://github.com/apache/superset/pull/25842) fix(charts): Time grain is None when dataset uses Jinja (@Antonio-RiveroMartnez)
+- [#25843](https://github.com/apache/superset/pull/25843) fix: remove `update_charts_owners` (@betodealmeida)
+- [#25707](https://github.com/apache/superset/pull/25707) fix(table chart): Show Cell Bars correctly #25625 (@SA-Ark)
+- [#25429](https://github.com/apache/superset/pull/25429) fix: the temporal x-axis results in a none time_range. (@mapledan)
+- [#25853](https://github.com/apache/superset/pull/25853) fix: Fires onChange when clearing all values of single select (@michael-s-molina)
+- [#25814](https://github.com/apache/superset/pull/25814) fix(sqllab): infinite fetching status after results are landed (@justinpark)
+- [#25768](https://github.com/apache/superset/pull/25768) fix(SQL field in edit dataset modal): display full sql query (@rtexelm)
+- [#25804](https://github.com/apache/superset/pull/25804) fix: Resolve issue #24195 (@john-bodley)
+- [#25801](https://github.com/apache/superset/pull/25801) fix: Revert "fix: Apply normalization to all dttm columns (#25147)" (@john-bodley)
+- [#25779](https://github.com/apache/superset/pull/25779) fix: DB-specific quoting in Jinja macro (@betodealmeida)
+- [#25640](https://github.com/apache/superset/pull/25640) fix: allow for backward compatible errors (@eschutho)
+- [#25741](https://github.com/apache/superset/pull/25741) fix(sqllab): slow pop datasource query (@justinpark)
+- [#25756](https://github.com/apache/superset/pull/25756) fix: dataset update uniqueness (@betodealmeida)
+- [#25753](https://github.com/apache/superset/pull/25753) fix: Revert "fix(Charts): Set max row limit + removed the option to use an empty row limit value" (@geido)
+- [#25732](https://github.com/apache/superset/pull/25732) fix(horizontal filter label): show full tooltip with ellipsis (@rtexelm)
+- [#25712](https://github.com/apache/superset/pull/25712) fix: bump to FAB 4.3.9 remove CSP exception (@dpgaspar)
+- [#24709](https://github.com/apache/superset/pull/24709) fix(chore): dashboard requests to database equal the number of slices it has (@Always-prog)
+- [#25679](https://github.com/apache/superset/pull/25679) fix: remove unnecessary redirect (@Khrol)
+- [#25680](https://github.com/apache/superset/pull/25680) fix(sqllab): reinstate "Force trino client async execution" (@giftig)
+- [#25657](https://github.com/apache/superset/pull/25657) fix(dremio): Fixes issue with Dremio SQL generation for Charts with Series Limit (@OskarNS)
+- [#23638](https://github.com/apache/superset/pull/23638) fix: warning of nth-child (@justinpark)
+- [#25658](https://github.com/apache/superset/pull/25658) fix: improve upload ZIP file validation (@dpgaspar)
+- [#25495](https://github.com/apache/superset/pull/25495) fix(header navlinks): link navlinks to path prefix (@fisjac)
+- [#25112](https://github.com/apache/superset/pull/25112) fix: permalink save/overwrites in explore (@hughhhh)
+- [#25493](https://github.com/apache/superset/pull/25493) fix(import): Make sure query context is overwritten for overwriting imports (@jfrag1)
+- [#25553](https://github.com/apache/superset/pull/25553) fix: avoid 500 errors with SQLLAB_BACKEND_PERSISTENCE (@Khrol)
+- [#25626](https://github.com/apache/superset/pull/25626) fix(sqllab): template validation error within comments (@justinpark)
+- [#25523](https://github.com/apache/superset/pull/25523) fix(sqllab): Mistitled for new tab after rename (@justinpark)
 
 ### 3.0.1 (Tue Oct 13 10:32:21 2023 -0700)
 
