@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Union
+from typing import List, Union
 
 import click
 from celery.utils.abstract import CallableTask
@@ -62,7 +62,7 @@ def compute_thumbnails(
     dashboards_only: bool,
     charts_only: bool,
     force: bool,
-    model_id: int,
+    model_id: List[int],
 ) -> None:
     """Compute thumbnails"""
     # pylint: disable=import-outside-toplevel
@@ -76,7 +76,7 @@ def compute_thumbnails(
     def compute_generic_thumbnail(
         friendly_type: str,
         model_cls: Union[type[Dashboard], type[Slice]],
-        model_id: int,
+        model_id: List[int],
         compute_func: CallableTask,
     ) -> None:
         query = db.session.query(model_cls)
