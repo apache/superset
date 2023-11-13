@@ -17,10 +17,12 @@
 # isort:skip_file
 """Unit tests for Superset"""
 import json
+from datetime import datetime
 
 from flask import g
 import pytest
 import prison
+from freezegun import freeze_time
 from sqlalchemy.sql import func
 from sqlalchemy import and_
 from superset.models.dashboard import Dashboard
@@ -121,17 +123,18 @@ class TestTagApi(SupersetTestCase):
         """
         Query API: Test get query
         """
-        tag = self.insert_tag(
-            name="test get tag",
-            tag_type="custom",
-        )
-        self.login(username="admin")
-        uri = f"api/v1/tag/{tag.id}"
-        rv = self.client.get(uri)
+        with freeze_time(datetime.now()):
+            tag = self.insert_tag(
+                name="test get tag",
+                tag_type="custom",
+            )
+            self.login(username="admin")
+            uri = f"api/v1/tag/{tag.id}"
+            rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
         expected_result = {
             "changed_by": None,
-            "changed_on_delta_humanized": ["now", "a second ago", "two seconds ago"],
+            "changed_on_delta_humanized": "now",
             "created_by": None,
             "id": tag.id,
             "name": "test get tag",
@@ -139,11 +142,6 @@ class TestTagApi(SupersetTestCase):
         }
         data = json.loads(rv.data.decode("utf-8"))
         for key, value in expected_result.items():
-            if key == "changed_on_delta_humanized":
-                # 'changed_on_delta_humanized' sometimes fluctuates between 'now' and
-                # 'X second ago' which leads to flaky tests
-                self.assertIn(data["result"][key], value)
-                continue
             self.assertEqual(value, data["result"][key])
         # rollback changes
         db.session.delete(tag)
