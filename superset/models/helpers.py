@@ -1343,11 +1343,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def values_for_column(self, column_name: str, limit: int = 10000) -> list[Any]:
         # always denormalize column name before querying for values
         db_dialect = self.database.get_dialect()
-        denomalized_col_name = self.database.db_engine_spec.denormalize_name(
+        denormalized_col_name = self.database.db_engine_spec.denormalize_name(
             db_dialect, column_name
         )
         cols = {col.column_name: col for col in self.columns}
-        target_col = cols[denomalized_col_name]
+        target_col = cols[denormalized_col_name]
         tp = self.get_template_processor()
         tbl, cte = self.get_from_clause(tp)
 
@@ -1368,7 +1368,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             sql = self.mutate_query_from_config(sql)
 
             df = pd.read_sql_query(sql=sql, con=engine)
-            return df[denomalized_col_name].to_list()
+            return df[denormalized_col_name].to_list()
 
     def get_timestamp_expression(
         self,
