@@ -50,7 +50,6 @@ VERSION_INFO_FILE = os.path.join(BASE_DIR, "superset", "static", "version_info.j
 with open(VERSION_INFO_FILE, "w") as version_file:
     json.dump(version_info, version_file)
 
-
 setup(
     name="apache-superset",
     description="A modern, enterprise-ready business intelligence web application",
@@ -85,11 +84,12 @@ setup(
         "deprecation>=2.1.0, <2.2.0",
         "flask>=2.2.5, <3.0.0",
         "flask-appbuilder>=4.3.9, <5.0.0",
-        "flask-caching>=1.11.1, <2.0",
+        "flask-caching>=2.1.0, <3",
         "flask-compress>=1.13, <2.0",
         "flask-talisman>=1.0.0, <2.0",
         "flask-login>=0.6.0, < 1.0",
         "flask-migrate>=3.1.0, <4.0",
+        "flask-session>=0.4.0, <1.0",
         "flask-wtf>=1.1.0, <2.0",
         "func_timeout",
         "geopy",

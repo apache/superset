@@ -223,6 +223,19 @@ class TestSqlLabApi(SupersetTestCase):
         self.assertDictEqual(resp_data, success_resp)
         self.assertEqual(rv.status_code, 200)
 
+    def test_format_sql_request(self):
+        self.login()
+
+        data = {"sql": "select 1 from my_table"}
+        rv = self.client.post(
+            "/api/v1/sqllab/format_sql/",
+            json=data,
+        )
+        success_resp = {"result": "SELECT 1\nFROM my_table"}
+        resp_data = json.loads(rv.data.decode("utf-8"))
+        self.assertDictEqual(resp_data, success_resp)
+        self.assertEqual(rv.status_code, 200)
+
     @mock.patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
     def test_execute_required_params(self):
         self.login()

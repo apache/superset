@@ -282,11 +282,10 @@ class QueryContextProcessor:
         datasource = self._qc_datasource
         labels = tuple(
             label
-            for label in {
+            for label in [
                 *get_base_axis_labels(query_object.columns),
-                *[col for col in query_object.columns or [] if isinstance(col, str)],
                 query_object.granularity,
-            }
+            ]
             if datasource
             # Query datasource didn't support `get_column`
             and hasattr(datasource, "get_column")

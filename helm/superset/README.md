@@ -91,7 +91,6 @@ helm install my-superset superset/superset
 | ingress.pathType | string | `"ImplementationSpecific"` |  |
 | ingress.hosts[0] | string | `"chart-example.local"` |  |
 | ingress.tls | list | `[]` |  |
-| ingress.extraHostsRaw | list | `[]` |  |
 | resources | object | `{}` |  |
 | hostAliases | list | `[]` | Custom hostAliases for all superset pods # https://kubernetes.io/docs/tasks/network/customize-hosts-file-for-pods/ |
 | supersetNode.replicaCount | int | `1` |  |

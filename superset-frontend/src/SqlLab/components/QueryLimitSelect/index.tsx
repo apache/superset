@@ -31,8 +31,6 @@ export interface QueryLimitSelectProps {
   defaultQueryLimit: number;
 }
 
-export const LIMIT_DROPDOWN = [10, 100, 1000, 10000, 100000];
-
 export function convertToNumWithSpaces(num: number) {
   return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ');
 }
@@ -63,12 +61,17 @@ function renderQueryLimit(
   maxRow: number,
   setQueryLimit: (limit: number) => void,
 ) {
-  // Adding SQL_MAX_ROW value to dropdown
-  LIMIT_DROPDOWN.push(maxRow);
+  const limitDropdown = [];
+
+  // Construct limit dropdown as increasing powers of ten until we reach SQL_MAX_ROW
+  for (let i = 10; i < maxRow; i *= 10) {
+    limitDropdown.push(i);
+  }
+  limitDropdown.push(maxRow);
 
   return (
     <Menu>
-      {[...new Set(LIMIT_DROPDOWN)].map(limit => (
+      {[...new Set(limitDropdown)].map(limit => (
         <Menu.Item key={`${limit}`} onClick={() => setQueryLimit(limit)}>
           {/* // eslint-disable-line no-use-before-define */}
           <a role="button">{convertToNumWithSpaces(limit)}</a>{' '}

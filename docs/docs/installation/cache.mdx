@@ -114,7 +114,10 @@ from s3cache.s3cache import S3Cache
 
 class CeleryConfig(object):
     broker_url = "redis://localhost:6379/0"
-    imports = ("superset.sql_lab", "superset.tasks", "superset.tasks.thumbnails")
+    imports = (
+        "superset.sql_lab",
+        "superset.tasks.thumbnails",
+    )
     result_backend = "redis://localhost:6379/0"
     worker_prefetch_multiplier = 10
     task_acks_late = True

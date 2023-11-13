@@ -1033,6 +1033,19 @@ export function queryEditorSetSql(queryEditor, sql) {
   return { type: QUERY_EDITOR_SET_SQL, queryEditor, sql };
 }
 
+export function formatQuery(queryEditor) {
+  return function (dispatch, getState) {
+    const { sql } = getUpToDateQuery(getState(), queryEditor);
+    return SupersetClient.post({
+      endpoint: `/api/v1/sqllab/format_sql/`,
+      body: JSON.stringify({ sql }),
+      headers: { 'Content-Type': 'application/json' },
+    }).then(({ json }) => {
+      dispatch(queryEditorSetSql(queryEditor, json.result));
+    });
+  };
+}
+
 export function queryEditorSetAndSaveSql(targetQueryEditor, sql) {
   return function (dispatch, getState) {
     const queryEditor = getUpToDateQuery(getState(), targetQueryEditor);

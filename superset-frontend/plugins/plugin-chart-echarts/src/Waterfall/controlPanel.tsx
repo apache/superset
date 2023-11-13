@@ -17,24 +17,26 @@
  * under the License.
  */
 import React from 'react';
-import { ensureIsArray, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
+  ControlSubSectionHeader,
+  D3_TIME_FORMAT_DOCS,
+  DEFAULT_TIME_FORMAT,
   formatSelectOptions,
-  getStandardizedControls,
-  sections,
+  sharedControls,
 } from '@superset-ui/chart-controls';
 import { showValueControl } from '../controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyTimeseriesTime,
     {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['series'],
-        ['columns'],
+        ['x_axis'],
+        ['time_grain_sqla'],
+        ['groupby'],
         ['metric'],
         ['adhoc_filters'],
         ['row_limit'],
@@ -44,7 +46,6 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
-        ['color_scheme'],
         [showValueControl],
         [
           {
@@ -59,20 +60,40 @@ const config: ControlPanelConfig = {
           },
         ],
         [
+          <ControlSubSectionHeader>
+            {t('Series colors')}
+          </ControlSubSectionHeader>,
+        ],
+        [
           {
-            name: 'rich_tooltip',
+            name: 'increase_color',
             config: {
-              type: 'CheckboxControl',
-              label: t('Rich tooltip'),
+              label: t('Increase'),
+              type: 'ColorPickerControl',
+              default: { r: 90, g: 193, b: 137, a: 1 },
               renderTrigger: true,
-              default: true,
-              description: t(
-                'Shows a list of all series available at that point in time',
-              ),
+            },
+          },
+          {
+            name: 'decrease_color',
+            config: {
+              label: t('Decrease'),
+              type: 'ColorPickerControl',
+              default: { r: 224, g: 67, b: 85, a: 1 },
+              renderTrigger: true,
+            },
+          },
+          {
+            name: 'total_color',
+            config: {
+              label: t('Total'),
+              type: 'ColorPickerControl',
+              default: { r: 102, g: 102, b: 102, a: 1 },
+              renderTrigger: true,
             },
           },
         ],
-        [<div className="section-header">{t('X Axis')}</div>],
+        [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         [
           {
             name: 'x_axis_label',
@@ -81,6 +102,16 @@ const config: ControlPanelConfig = {
               label: t('X Axis Label'),
               renderTrigger: true,
               default: '',
+            },
+          },
+        ],
+        [
+          {
+            name: 'x_axis_time_format',
+            config: {
+              ...sharedControls.x_axis_time_format,
+              default: DEFAULT_TIME_FORMAT,
+              description: `${D3_TIME_FORMAT_DOCS}.`,
             },
           },
         ],
@@ -104,7 +135,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<div className="section-header">{t('Y Axis')}</div>],
+        [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
         [
           {
             name: 'y_axis_label',
@@ -117,25 +148,18 @@ const config: ControlPanelConfig = {
           },
         ],
         ['y_axis_format'],
+        ['currency_format'],
       ],
     },
   ],
   controlOverrides: {
-    columns: {
+    groupby: {
       label: t('Breakdowns'),
-      description: t('Defines how each series is broken down'),
+      description:
+        t(`Breaks down the series by the category specified in this control.
+      This can help viewers understand how each category affects the overall value.`),
       multi: false,
     },
-  },
-  formDataOverrides: formData => {
-    const series = getStandardizedControls()
-      .popAllColumns()
-      .filter(col => !ensureIsArray(formData.columns).includes(col));
-    return {
-      ...formData,
-      series,
-      metric: getStandardizedControls().shiftMetric(),
-    };
   },
 };
 

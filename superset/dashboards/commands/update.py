@@ -58,7 +58,6 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                     data=json.loads(self._properties.get("json_metadata", "{}")),
                     commit=False,
                 )
-            dashboard = DashboardDAO.update_charts_owners(dashboard, commit=False)
             db.session.commit()
         except DAOUpdateFailedError as ex:
             logger.exception(ex.exception)

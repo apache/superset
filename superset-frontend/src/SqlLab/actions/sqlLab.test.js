@@ -22,6 +22,7 @@ import fetchMock from 'fetch-mock';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import shortid from 'shortid';
+import { waitFor } from '@testing-library/react';
 import * as uiCore from '@superset-ui/core';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import { LOG_EVENT } from 'src/logger/actions';
@@ -124,6 +125,22 @@ describe('async actions', () => {
           expectedActionTypes,
         );
       });
+    });
+  });
+
+  describe('formatQuery', () => {
+    const formatQueryEndpoint = 'glob:*/api/v1/sqllab/format_sql/';
+    const expectedSql = 'SELECT 1';
+    fetchMock.post(formatQueryEndpoint, { result: expectedSql });
+
+    test('posts to the correct url', async () => {
+      const store = mockStore(initialState);
+      store.dispatch(actions.formatQuery(query, queryId));
+      await waitFor(() =>
+        expect(fetchMock.calls(formatQueryEndpoint)).toHaveLength(1),
+      );
+      expect(store.getActions()[0].type).toBe(actions.QUERY_EDITOR_SET_SQL);
+      expect(store.getActions()[0].sql).toBe(expectedSql);
     });
   });
 

@@ -23,25 +23,25 @@ from superset.daos.query import SavedQueryDAO
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
-from superset.tags.models import ObjectTypes
+from superset.tags.models import ObjectType
 
 
-def to_object_type(object_type: Union[ObjectTypes, int, str]) -> Optional[ObjectTypes]:
-    if isinstance(object_type, ObjectTypes):
+def to_object_type(object_type: Union[ObjectType, int, str]) -> Optional[ObjectType]:
+    if isinstance(object_type, ObjectType):
         return object_type
-    for type_ in ObjectTypes:
+    for type_ in ObjectType:
         if object_type in [type_.value, type_.name]:
             return type_
     return None
 
 
 def to_object_model(
-    object_type: ObjectTypes, object_id: int
+    object_type: ObjectType, object_id: int
 ) -> Optional[Union[Dashboard, SavedQuery, Slice]]:
-    if ObjectTypes.dashboard == object_type:
+    if ObjectType.dashboard == object_type:
         return DashboardDAO.find_by_id(object_id)
-    if ObjectTypes.query == object_type:
+    if ObjectType.query == object_type:
         return SavedQueryDAO.find_by_id(object_id)
-    if ObjectTypes.chart == object_type:
+    if ObjectType.chart == object_type:
         return ChartDAO.find_by_id(object_id)
     return None

@@ -67,6 +67,8 @@ services:
     restart: unless-stopped
     ports:
       - 8088:8088
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     user: *superset-user
     depends_on: *superset-depends-on
     volumes: *superset-volumes
@@ -79,6 +81,8 @@ services:
     image: superset-websocket
     ports:
       - 8080:8080
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - redis
     # Mount everything in superset-websocket into container and
@@ -131,6 +135,8 @@ services:
     depends_on: *superset-depends-on
     user: *superset-user
     volumes: *superset-volumes
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD-SHELL", "celery -A superset.tasks.celery_app:app inspect ping -d celery@$$HOSTNAME"]
     # Bump memory limit if processing selenium / thumbnails on superset-worker

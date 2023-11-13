@@ -298,11 +298,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return f"[{database}].[{schema}]" if schema else None
 
     @staticmethod
-    def get_database_perm(database_id: int, database_name: str) -> str:
+    def get_database_perm(database_id: int, database_name: str) -> Optional[str]:
         return f"[{database_name}].(id:{database_id})"
 
     @staticmethod
-    def get_dataset_perm(dataset_id: int, dataset_name: str, database_name: str) -> str:
+    def get_dataset_perm(
+        dataset_id: int,
+        dataset_name: str,
+        database_name: str,
+    ) -> Optional[str]:
         return f"[{database_name}].[{dataset_name}](id:{dataset_id})"
 
     def unpack_database_and_schema(self, schema_permission: str) -> DatabaseAndSchema:
@@ -1168,6 +1172,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .where(view_menu_table.c.id == db_pvm.view_menu_id)
             .values(name=new_view_menu_name)
         )
+        if not new_view_menu_name:
+            return None
         new_db_view_menu = self._find_view_menu_on_sqla_event(
             connection, new_view_menu_name
         )
@@ -1223,10 +1229,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 .where(view_menu_table.c.name == old_dataset_vm_name)
                 .values(name=new_dataset_vm_name)
             )
-            # After update refresh
-            new_dataset_view_menu = self._find_view_menu_on_sqla_event(
-                connection, new_dataset_vm_name
-            )
 
             # Update dataset (SqlaTable perm field)
             connection.execute(
@@ -1243,8 +1245,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 .where(chart_table.c.perm == old_dataset_vm_name)
                 .values(perm=new_dataset_vm_name)
             )
-            self.on_view_menu_after_update(mapper, connection, new_dataset_view_menu)
-            updated_view_menus.append(new_dataset_view_menu)
+            if new_dataset_vm_name:
+                # After update refresh
+                new_dataset_view_menu = self._find_view_menu_on_sqla_event(
+                    connection,
+                    new_dataset_vm_name,
+                )
+                self.on_view_menu_after_update(
+                    mapper,
+                    connection,
+                    new_dataset_view_menu,
+                )
+                updated_view_menus.append(new_dataset_view_menu)
         return updated_view_menus
 
     def dataset_after_insert(
@@ -1270,7 +1282,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
 
         try:
-            dataset_perm = target.get_perm()
+            dataset_perm: Optional[str] = target.get_perm()
             database = target.database
         except DatasetInvalidPermissionEvaluationException:
             logger.warning(
