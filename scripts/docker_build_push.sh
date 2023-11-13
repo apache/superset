@@ -20,7 +20,7 @@ set -eo pipefail
 GITHUB_RELEASE_TAG_NAME="$1"
 
 SHA=$(git rev-parse HEAD)
-REPO_NAME="apache/superset"
+REPO_NAME="baonq0412/superset"
 
 if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
   REFSPEC=$(echo "${GITHUB_HEAD_REF}" | sed 's/[^a-zA-Z0-9]/-/g' | head -c 40)
