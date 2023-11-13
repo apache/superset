@@ -1347,7 +1347,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             db_dialect, column_name
         )
         cols = {col.column_name: col for col in self.columns}
-        target_col = cols[denomalized_col_name]
+        target_col = cols[denormalized_col_name]
         tp = self.get_template_processor()
         tbl, cte = self.get_from_clause(tp)
 
