@@ -106,6 +106,7 @@ class TimeseriesChart(MigrateViz):
     rename_keys = {
         "bottom_margin": "x_axis_title_margin",
         "left_margin": "y_axis_title_margin",
+        "show_controls": "show_extra_controls",
         "x_axis_label": "x_axis_title",
         "x_axis_format": "x_axis_time_format",
         "x_ticks_layout": "xAxisLabelRotation",
@@ -113,6 +114,7 @@ class TimeseriesChart(MigrateViz):
         "y_axis_showminmax": "truncateYAxis",
         "y_log_scale": "logAxis",
     }
+    remove_keys = {"contribution", "show_brush", "show_markers"}
 
     def _pre_action(self) -> None:
         self.data["contributionMode"] = "row" if self.data.get("contribution") else None
@@ -139,6 +141,9 @@ class TimeseriesChart(MigrateViz):
             "difference" if comparison_type == "absolute" else comparison_type
         )
 
+        if x_ticks_layout := self.data.get("x_ticks_layout"):
+            self.data["x_ticks_layout"] = 45 if x_ticks_layout == "45°" else 0
+
 
 class MigrateLineChart(TimeseriesChart):
     source_viz_type = "line"
@@ -146,6 +151,8 @@ class MigrateLineChart(TimeseriesChart):
 
     def _pre_action(self) -> None:
         super()._pre_action()
+
+        self.remove_keys.add("line_interpolation")
 
         line_interpolation = self.data.get("line_interpolation")
         if line_interpolation == "cardinal":
@@ -161,7 +168,6 @@ class MigrateLineChart(TimeseriesChart):
 class MigrateAreaChart(TimeseriesChart):
     source_viz_type = "area"
     target_viz_type = "echarts_area"
-    remove_keys = {"contribution", "stacked_style", "x_axis_label"}
     stacked_map = {
         "expand": "Expand",
         "stack": "Stack",
@@ -171,11 +177,10 @@ class MigrateAreaChart(TimeseriesChart):
     def _pre_action(self) -> None:
         super()._pre_action()
 
-        self.data["stack"] = (
-            self.stacked_map.get(self.data.get("stacked_style")) or "Stack"
-        )
+        self.remove_keys.add("stacked_style")
 
-        if x_ticks_layout := self.data.get("x_ticks_layout"):
-            self.data["x_ticks_layout"] = 45 if x_ticks_layout == "45°" else 0
+        self.data["stack"] = self.stacked_map.get(
+            self.data.get("stacked_style") or "stack"
+        )
 
         self.data["opacity"] = 0.7
