@@ -239,6 +239,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     edit_model_schema = DashboardPutSchema()
     chart_entity_response_schema = ChartEntityResponseSchema()
     dashboard_get_response_schema = DashboardGetResponseSchema()
+    # pylint: disable=invalid-name
     dashboard_get_response_schema_guest = DashboardGetResponseSchemaGuest()
     dashboard_dataset_schema = DashboardDatasetSchema()
     dashboard_dataset_schema_guest = DashboardDatasetSchemaGuest()
@@ -413,13 +414,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         try:
             datasets = DashboardDAO.get_datasets_for_dashboard(id_or_slug)
             schema = (
-              self.dashboard_dataset_schema_guest
-              if security_manager.is_guest_user()
-              else self.dashboard_dataset_schema
-          )
-            result = [
-                schema.dump(dataset) for dataset in datasets
-            ]
+                self.dashboard_dataset_schema_guest
+                if security_manager.is_guest_user()
+                else self.dashboard_dataset_schema
+            )
+            result = [schema.dump(dataset) for dataset in datasets]
             return self.response(200, result=result)
         except (TypeError, ValueError) as err:
             return self.response_400(

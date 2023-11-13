@@ -196,6 +196,7 @@ class DashboardGetResponseSchemaGuest(Schema):
     changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
 
+    # pylint: disable=unused-argument
     @post_dump()
     def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         serialized["owners"] = []
@@ -258,6 +259,7 @@ class DashboardDatasetSchemaGuest(Schema):
     normalize_columns = fields.Bool()
     always_filter_main_dttm = fields.Bool()
 
+    # pylint: disable=unused-argument
     @post_dump()
     def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         serialized["owners"] = []
