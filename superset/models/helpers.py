@@ -789,7 +789,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         raise NotImplementedError()
 
     def get_fetch_values_predicate(
-        self, template_processor: Optional[BaseTemplateProcessor] = None
+        self,
+        template_processor: Optional[
+            BaseTemplateProcessor
+        ] = None,  # pylint: disable=unused-argument
     ) -> TextClause:
         return self.fetch_values_predicate
 
@@ -1416,7 +1419,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
         self,
-        apply_fetch_values_predicate: bool = False,
+        apply_fetch_values_predicate: bool = False,  # pylint: disable=unused-argument
         columns: Optional[list[Column]] = None,
         extras: Optional[dict[str, Any]] = None,
         filter: Optional[  # pylint: disable=redefined-builtin
