@@ -40,7 +40,7 @@ from superset.tags.commands.exceptions import (
     TagUpdateFailedError,
 )
 from superset.tags.commands.update import UpdateTagCommand
-from superset.tags.models import ObjectTypes, Tag
+from superset.tags.models import ObjectType, Tag
 from superset.tags.schemas import (
     delete_tags_schema,
     openapi_spec_methods_override,
@@ -364,7 +364,7 @@ class TagRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.add_objects",
         log_to_statsd=False,
     )
-    def add_objects(self, object_type: ObjectTypes, object_id: int) -> Response:
+    def add_objects(self, object_type: ObjectType, object_id: int) -> Response:
         """Add tags to an object. Create new tags if they do not already exist.
         ---
         post:
@@ -429,7 +429,7 @@ class TagRestApi(BaseSupersetModelRestApi):
         log_to_statsd=True,
     )
     def delete_object(
-        self, object_type: ObjectTypes, object_id: int, tag: str
+        self, object_type: ObjectType, object_id: int, tag: str
     ) -> Response:
         """Delete a tagged object.
         ---
