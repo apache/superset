@@ -1368,7 +1368,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             sql = self.mutate_query_from_config(sql)
 
             df = pd.read_sql_query(sql=sql, con=engine)
-            return df[denomalized_col_name].to_list()
+            return df[denormalized_col_name].to_list()
 
     def get_timestamp_expression(
         self,
