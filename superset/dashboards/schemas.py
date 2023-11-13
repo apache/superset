@@ -18,7 +18,7 @@ import json
 import re
 from typing import Any, Union
 
-from marshmallow import fields, post_load, pre_load, Schema
+from marshmallow import fields, post_dump, post_load, pre_load, Schema
 from marshmallow.validate import Length, ValidationError
 
 from superset.exceptions import SupersetException
@@ -172,7 +172,7 @@ class TagSchema(Schema):
     type = fields.Enum(TagTypes, by_value=True)
 
 
-class DashboardGetResponseSchema(Schema):
+class DashboardGetResponseSchemaGuest(Schema):
     id = fields.Int()
     slug = fields.String()
     url = fields.String()
@@ -188,8 +188,6 @@ class DashboardGetResponseSchema(Schema):
     certification_details = fields.String(
         metadata={"description": certification_details_description}
     )
-    changed_by_name = fields.String()
-    changed_by = fields.Nested(UserSchema(exclude=["username"]))
     changed_on = fields.DateTime()
     charts = fields.List(fields.String(metadata={"description": charts_description}))
     owners = fields.List(fields.Nested(UserSchema(exclude=["username"])))
@@ -197,6 +195,20 @@ class DashboardGetResponseSchema(Schema):
     tags = fields.Nested(TagSchema, many=True)
     changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
+
+    @post_dump()
+    def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        serialized["owners"] = []
+        return serialized
+
+
+class DashboardGetResponseSchema(DashboardGetResponseSchemaGuest):
+    changed_by_name = fields.String()
+    changed_by = fields.Nested(UserSchema(exclude=["username"]))
+
+    @post_dump()
+    def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        return serialized
 
 
 class DatabaseSchema(Schema):
@@ -210,12 +222,11 @@ class DatabaseSchema(Schema):
     explore_database_id = fields.Int()
 
 
-class DashboardDatasetSchema(Schema):
+class DashboardDatasetSchemaGuest(Schema):
     id = fields.Int()
     uid = fields.Str()
     column_formats = fields.Dict()
     currency_formats = fields.Dict()
-    database = fields.Nested(DatabaseSchema)
     default_endpoint = fields.String()
     filter_select = fields.Bool()
     filter_select_enabled = fields.Bool()
@@ -246,6 +257,19 @@ class DashboardDatasetSchema(Schema):
     granularity_sqla = fields.List(fields.List(fields.Str()))
     normalize_columns = fields.Bool()
     always_filter_main_dttm = fields.Bool()
+
+    @post_dump()
+    def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        serialized["owners"] = []
+        return serialized
+
+
+class DashboardDatasetSchema(DashboardDatasetSchemaGuest):
+    database = fields.Nested(DatabaseSchema)
+
+    @post_dump()
+    def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        return serialized
 
 
 class BaseDashboardSchema(Schema):

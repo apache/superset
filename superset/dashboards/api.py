@@ -66,7 +66,9 @@ from superset.dashboards.filters import (
 from superset.dashboards.schemas import (
     DashboardCopySchema,
     DashboardDatasetSchema,
+    DashboardDatasetSchemaGuest,
     DashboardGetResponseSchema,
+    DashboardGetResponseSchemaGuest,
     DashboardPostSchema,
     DashboardPutSchema,
     EmbeddedDashboardConfigSchema,
@@ -237,7 +239,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     edit_model_schema = DashboardPutSchema()
     chart_entity_response_schema = ChartEntityResponseSchema()
     dashboard_get_response_schema = DashboardGetResponseSchema()
+    dashboard_get_response_schema_guest = DashboardGetResponseSchemaGuest()
     dashboard_dataset_schema = DashboardDatasetSchema()
+    dashboard_dataset_schema_guest = DashboardDatasetSchemaGuest()
     embedded_response_schema = EmbeddedDashboardResponseSchema()
     embedded_config_schema = EmbeddedDashboardConfigSchema()
 
@@ -341,12 +345,13 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        result = self.dashboard_get_response_schema.dump(dash)
-        if security_manager.is_guest_user():
-            # We don't want to expose personal information to guest users
-            result["owners"] = []
-            del result["changed_by_name"]
-            del result["changed_by"]
+        schema = (
+            self.dashboard_get_response_schema_guest
+            if security_manager.is_guest_user()
+            else self.dashboard_get_response_schema
+        )
+        result = schema.dump(dash)
+
         add_extra_log_payload(
             dashboard_id=dash.id, action=f"{self.__class__.__name__}.get"
         )
@@ -407,14 +412,14 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         """
         try:
             datasets = DashboardDAO.get_datasets_for_dashboard(id_or_slug)
+            schema = (
+              self.dashboard_dataset_schema_guest
+              if security_manager.is_guest_user()
+              else self.dashboard_dataset_schema
+          )
             result = [
-                self.dashboard_dataset_schema.dump(dataset) for dataset in datasets
+                schema.dump(dataset) for dataset in datasets
             ]
-            if security_manager.is_guest_user():
-                # We don't want to expose personal/db information to guest users
-                for dataset in result:
-                    dataset["owners"] = []
-                    del dataset["database"]
             return self.response(200, result=result)
         except (TypeError, ValueError) as err:
             return self.response_400(
