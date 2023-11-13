@@ -790,7 +790,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
     def get_fetch_values_predicate(
         self,
-        template_processor: Optional[
+        template_processor: Optional[  # pylint: disable=unused-argument
             BaseTemplateProcessor
         ] = None,  # pylint: disable=unused-argument
     ) -> TextClause:
@@ -1419,7 +1419,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
         self,
-        apply_fetch_values_predicate: bool = False,  # pylint: disable=unused-argument
+        apply_fetch_values_predicate: bool = False,
         columns: Optional[list[Column]] = None,
         extras: Optional[dict[str, Any]] = None,
         filter: Optional[  # pylint: disable=redefined-builtin
@@ -1940,7 +1940,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
                 having_clause_and += [self.text(having)]
 
-        if self.fetch_values_predicate:
+        if apply_fetch_values_predicate and self.fetch_values_predicate:
             qry = qry.where(
                 self.get_fetch_values_predicate(template_processor=template_processor)
             )
