@@ -46,7 +46,6 @@ from sqlalchemy import (
     inspect,
     Integer,
     or_,
-    select,
     String,
     Table,
     Text,
@@ -792,34 +791,6 @@ class SqlaTable(
                     msg=ex.message,
                 )
             ) from ex
-
-    def values_for_column(self, column_name: str, limit: int = 10000) -> list[Any]:
-        """Runs query against sqla to retrieve some
-        sample values for the given column.
-        """
-        cols = {col.column_name: col for col in self.columns}
-        target_col = cols[column_name]
-        tp = self.get_template_processor()
-        tbl, cte = self.get_from_clause(tp)
-
-        qry = (
-            select([target_col.get_sqla_col(template_processor=tp)])
-            .select_from(tbl)
-            .distinct()
-        )
-        if limit:
-            qry = qry.limit(limit)
-
-        if self.fetch_values_predicate:
-            qry = qry.where(self.get_fetch_values_predicate(template_processor=tp))
-
-        with self.database.get_sqla_engine_with_context() as engine:
-            sql = qry.compile(engine, compile_kwargs={"literal_binds": True})
-            sql = self._apply_cte(sql, cte)
-            sql = self.mutate_query_from_config(sql)
-
-            df = pd.read_sql_query(sql=sql, con=engine)
-            return df[column_name].to_list()
 
     def mutate_query_from_config(self, sql: str) -> str:
         """Apply config's SQL_QUERY_MUTATOR
