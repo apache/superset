@@ -15,7 +15,6 @@ services:
       bash -c "apt-get update
       && apt-get install git -y
       && pip install --upgrade pip
-      && pip install --force-reinstall git+https://github.com/benoitc/gunicorn.git@master
       && pip install --upgrade google-api-python-client
       && pip install --upgrade google-cloud-bigquery
       && pip install --upgrade google-cloud-storage
