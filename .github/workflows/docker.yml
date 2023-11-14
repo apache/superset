@@ -57,7 +57,7 @@ jobs:
             --cache-from=type=local,src=/tmp/superset \
             -t ${{ github.sha }} \
             -t "pr-${{ github.event.pull_request.number }}" \
-            --platform linux/amd64 \
+            --platform linux/arm64 \
             --label "build_actor=${GITHUB_ACTOR}" \
             .
           docker save ${{ github.sha }} | gzip > ./build/${{ github.sha }}.tar.gz
