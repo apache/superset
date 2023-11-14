@@ -36,6 +36,7 @@ import {
   IKI_EITL_ROW_TYPE,
   IKI_EITL_COLUMN_TYPE,
   IKI_MODEL_METRICS_TYPE,
+  IKI_EXPLAINABILITY_TYPE,
 } from './componentTypes';
 
 import {
@@ -65,6 +66,7 @@ const typeToDefaultMetaData = {
   [IKI_EITL_ROW_TYPE]: { width: GRID_DEFAULT_CHART_WIDTH, height: 50 },
   [IKI_EITL_COLUMN_TYPE]: { width: GRID_DEFAULT_CHART_WIDTH, height: 50 },
   [IKI_MODEL_METRICS_TYPE]: {width: GRID_DEFAULT_CHART_WIDTH, height: 50},
+  [IKI_EXPLAINABILITY_TYPE]: { width: GRID_DEFAULT_CHART_WIDTH, height: 75 },
   [ROW_TYPE]: { background: BACKGROUND_TRANSPARENT },
   [TABS_TYPE]: null,
   [TAB_TYPE]: {
