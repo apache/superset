@@ -131,14 +131,7 @@ export interface SQLResultTableExtentionProps {
  * Interface for extensions to Slice Header
  */
 export interface SliceHeaderExtension {
-  slice: {
-    description: string;
-    viz_type: string;
-    slice_name: string;
-    slice_id: number;
-    slice_description: string;
-    datasource: string;
-  };
+  sliceId: number;
   dashboardId: number;
 }
 

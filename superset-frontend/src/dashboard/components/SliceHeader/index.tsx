@@ -243,7 +243,10 @@ const SliceHeader: FC<SliceHeaderProps> = ({
         {!editMode && (
           <>
             {SliceHeaderExtension && (
-              <SliceHeaderExtension slice={slice} dashboardId={dashboardId} />
+              <SliceHeaderExtension
+                sliceId={slice.slice_id}
+                dashboardId={dashboardId}
+              />
             )}
             {crossFilterValue && (
               <Tooltip
