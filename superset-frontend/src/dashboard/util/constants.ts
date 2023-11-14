@@ -38,6 +38,8 @@ export const NEW_IKI_RUN_PIPELINE_ID = 'NEW_IKI_RUN_PIPELINE_ID';
 export const NEW_IKI_DEEPCAST_ID = 'NEW_IKI_DEEPCAST_ID';
 export const NEW_IKI_EITL_ROW_ID = 'NEW_IKI_EITL_ROW_ID';
 export const NEW_IKI_EITL_COLUMN_ID = 'NEW_IKI_EITL_COLUMN_ID';
+export const NEW_IKI_MODEL_METRICS_ID = 'NEW_IKI_MODEL_METRICS_ID';
+
 // grid constants
 export const DASHBOARD_ROOT_DEPTH = 0;
 export const GRID_BASE_UNIT = 8;
