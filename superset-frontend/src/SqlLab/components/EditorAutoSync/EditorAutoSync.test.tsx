@@ -36,8 +36,7 @@
  */
 import React from 'react';
 import fetchMock from 'fetch-mock';
-import * as uiCore from '@superset-ui/core';
-import { render, act } from 'spec/helpers/testing-library';
+import { render, waitFor } from 'spec/helpers/testing-library';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import EditorAutoSync from '.';
@@ -63,12 +62,6 @@ afterAll(() => {
 test('sync the unsaved editor tab state when there are new changes since the last update', async () => {
   const updateEditorTabState = `glob:*/tabstateview/${defaultQueryEditor.id}`;
   fetchMock.put(updateEditorTabState, 200);
-  const isFeatureEnabledMock = jest
-    .spyOn(uiCore, 'isFeatureEnabled')
-    .mockImplementation(
-      featureFlag =>
-        featureFlag === uiCore.FeatureFlag.SQLLAB_BACKEND_PERSISTENCE,
-    );
   expect(fetchMock.calls(updateEditorTabState)).toHaveLength(0);
   render(<EditorAutoSync />, {
     useRedux: true,
@@ -77,23 +70,14 @@ test('sync the unsaved editor tab state when there are new changes since the las
       sqlLab: unsavedSqlLabState,
     },
   });
-  await act(async () => {
-    jest.runAllTimers();
-  });
+  await waitFor(() => jest.runAllTimers());
   expect(fetchMock.calls(updateEditorTabState)).toHaveLength(1);
-  isFeatureEnabledMock.mockClear();
   fetchMock.restore();
 });
 
 test('skip syncing the unsaved editor tab state when the updates are already synced', async () => {
   const updateEditorTabState = `glob:*/tabstateview/${defaultQueryEditor.id}`;
   fetchMock.put(updateEditorTabState, 200);
-  const isFeatureEnabledMock = jest
-    .spyOn(uiCore, 'isFeatureEnabled')
-    .mockImplementation(
-      featureFlag =>
-        featureFlag === uiCore.FeatureFlag.SQLLAB_BACKEND_PERSISTENCE,
-    );
   expect(fetchMock.calls(updateEditorTabState)).toHaveLength(0);
   render(<EditorAutoSync />, {
     useRedux: true,
@@ -110,11 +94,8 @@ test('skip syncing the unsaved editor tab state when the updates are already syn
       },
     },
   });
-  await act(async () => {
-    jest.runAllTimers();
-  });
+  await waitFor(() => jest.runAllTimers());
   expect(fetchMock.calls(updateEditorTabState)).toHaveLength(0);
-  isFeatureEnabledMock.mockClear();
   fetchMock.restore();
 });
 
@@ -123,12 +104,6 @@ test('renders an error toast when the sync failed', async () => {
   fetchMock.put(updateEditorTabState, {
     throws: new Error('errorMessage'),
   });
-  const isFeatureEnabledMock = jest
-    .spyOn(uiCore, 'isFeatureEnabled')
-    .mockImplementation(
-      featureFlag =>
-        featureFlag === uiCore.FeatureFlag.SQLLAB_BACKEND_PERSISTENCE,
-    );
   expect(fetchMock.calls(updateEditorTabState)).toHaveLength(0);
   const { findByText } = render(
     <>
@@ -143,39 +118,11 @@ test('renders an error toast when the sync failed', async () => {
       },
     },
   );
-  await act(async () => {
-    jest.runAllTimers();
-  });
+  await waitFor(() => jest.runAllTimers());
   const errorToast = await findByText(
     'An error occurred while saving your editor state. ' +
       'Please contact your administrator if this problem persists.',
   );
   expect(errorToast).toBeTruthy();
-  isFeatureEnabledMock.mockClear();
-  fetchMock.restore();
-});
-
-test('skip syncing the unsaved editor tab stat when SQLLAB_BACKEND_PERSISTENCE is off', async () => {
-  const updateEditorTabState = `glob:*/tabstateview/${defaultQueryEditor.id}`;
-  fetchMock.put(updateEditorTabState, 200);
-  const isFeatureEnabledMock = jest
-    .spyOn(uiCore, 'isFeatureEnabled')
-    .mockImplementation(
-      featureFlag =>
-        featureFlag !== uiCore.FeatureFlag.SQLLAB_BACKEND_PERSISTENCE,
-    );
-  expect(fetchMock.calls(updateEditorTabState)).toHaveLength(0);
-  render(<EditorAutoSync />, {
-    useRedux: true,
-    initialState: {
-      ...initialState,
-      sqlLab: unsavedSqlLabState,
-    },
-  });
-  await act(async () => {
-    jest.runAllTimers();
-  });
-  expect(fetchMock.calls(updateEditorTabState)).toHaveLength(0);
-  isFeatureEnabledMock.mockClear();
   fetchMock.restore();
 });

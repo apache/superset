@@ -19,7 +19,7 @@
 
 import React, { useRef, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import {
   SqlLabRootState,
   QueryEditor,
@@ -77,9 +77,6 @@ const EditorAutoSync: React.FC = () => {
   );
 
   useEffect(() => {
-    if (!isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)) {
-      return;
-    }
     const unsaved = filterUnsavedQueryEditorList(
       queryEditors,
       debouncedUnsavedQueryEditor,
