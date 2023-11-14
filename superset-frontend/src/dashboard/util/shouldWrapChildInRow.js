@@ -22,6 +22,8 @@ import {
   COLUMN_TYPE,
   MARKDOWN_TYPE,
   TAB_TYPE,
+  IKI_DEEPCAST_TYPE,
+  IKI_RUN_PIPELINE_TYPE,
 } from './componentTypes';
 
 const typeToWrapChildLookup = {
@@ -29,12 +31,16 @@ const typeToWrapChildLookup = {
     [CHART_TYPE]: true,
     [COLUMN_TYPE]: true,
     [MARKDOWN_TYPE]: true,
+    [IKI_DEEPCAST_TYPE]: true,
+    [IKI_RUN_PIPELINE_TYPE]: true,
   },
 
   [TAB_TYPE]: {
     [CHART_TYPE]: true,
     [COLUMN_TYPE]: true,
     [MARKDOWN_TYPE]: true,
+    [IKI_DEEPCAST_TYPE]: true,
+    [IKI_RUN_PIPELINE_TYPE]: true,
   },
 };
 

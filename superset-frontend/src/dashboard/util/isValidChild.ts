@@ -94,6 +94,7 @@ const parentMaxDepthLookup = {
     [IKI_DEEPCAST_TYPE]: depthFour,
     [IKI_EITL_ROW_TYPE]: depthFour,
     [IKI_EXPLAINABILITY_TYPE]: depthFour,
+    [IKI_RUN_PIPELINE_TYPE]: depthFour,
   },
 
   [TABS_TYPE]: {
