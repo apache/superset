@@ -262,13 +262,13 @@ describe('getInitialState', () => {
                 updatedAt: lastUpdatedTime + 100,
               },
               {
-                // out of update since last updated time is before server update time
+                // no update required given that last updated time comes before server update time
                 id: '2',
                 name: expectedValue,
                 updatedAt: lastUpdatedTime - 100,
               },
               {
-                // out of update since no updatedAt
+                // no update required given that there's no updatedAt
                 id: '3',
                 name: expectedValue,
               },
