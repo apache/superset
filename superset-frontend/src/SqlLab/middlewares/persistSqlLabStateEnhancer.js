@@ -35,15 +35,13 @@ const CLEAR_ENTITY_HELPERS_MAP = {
   unsavedQueryEditor: qe => clearQueryEditors([qe])[0],
 };
 
-const PERSISTENCE_LOCAL_STORAGE_PATH = 'sqlLab.unsavedQueryEditor';
-
 const sqlLabPersistStateConfig = {
   paths: ['sqlLab'],
   config: {
     slicer: paths => state => {
       const subset = {};
       paths.forEach(path => {
-        if (path === PERSISTENCE_LOCAL_STORAGE_PATH) {
+        if (isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)) {
           const {
             queryEditors,
             editorTabLastUpdatedAt,
@@ -118,8 +116,6 @@ const sqlLabPersistStateConfig = {
 };
 
 export const persistSqlLabStateEnhancer = persistState(
-  isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
-    ? [PERSISTENCE_LOCAL_STORAGE_PATH]
-    : sqlLabPersistStateConfig.paths,
+  sqlLabPersistStateConfig.paths,
   sqlLabPersistStateConfig.config,
 );
