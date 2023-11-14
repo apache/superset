@@ -1,7 +1,8 @@
+import { cloneDeep } from 'lodash';
 import baseConfig from '../../../plugin-chart-echarts/src/Pie/controlPanel';
 import { DEFAULT_FORM_DATA } from './types';
 
-const config = baseConfig;
+const config = cloneDeep(baseConfig);
 
 // @ts-ignore
 config.controlPanelSections[1].controlSetRows.push([
