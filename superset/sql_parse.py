@@ -14,11 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
 import re
 from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Any, cast, Optional
+from typing import Any, cast
 from urllib import parse
 
 import sqlparse
@@ -77,7 +79,7 @@ class CtasMethod(StrEnum):
     VIEW = "VIEW"
 
 
-def _extract_limit_from_query(statement: TokenList) -> Optional[int]:
+def _extract_limit_from_query(statement: TokenList) -> int | None:
     """
     Extract limit clause from SQL statement.
 
@@ -99,8 +101,8 @@ def _extract_limit_from_query(statement: TokenList) -> Optional[int]:
 
 
 def extract_top_from_query(
-    statement: TokenList, top_keywords: set[str]
-) -> Optional[int]:
+    statement: TokenList | str, top_keywords: set[str]
+) -> int | None:
     """
     Extract top clause value from SQL statement.
 
@@ -124,7 +126,7 @@ def extract_top_from_query(
     return top
 
 
-def get_cte_remainder_query(sql: str) -> tuple[Optional[str], str]:
+def get_cte_remainder_query(sql: str) -> tuple[str | None, str]:
     """
     parse the SQL and return the CTE and rest of the block to the caller
 
@@ -132,7 +134,7 @@ def get_cte_remainder_query(sql: str) -> tuple[Optional[str], str]:
     :return: CTE and remainder block to the caller
 
     """
-    cte: Optional[str] = None
+    cte: str | None = None
     remainder = sql
     stmt = sqlparse.parse(sql)[0]
 
@@ -152,15 +154,14 @@ def get_cte_remainder_query(sql: str) -> tuple[Optional[str], str]:
 
 def strip_comments_from_sql(statement: str) -> str:
     """
-    Strips comments from a SQL statement, does a simple test first
-    to avoid always instantiating the expensive ParsedQuery constructor
+    Strips comments from an SQL statement.
 
-    This is useful for engines that don't support comments
+    This is useful for engines that don't support comments.
 
     :param statement: A string with the SQL statement
     :return: SQL statement without comments
     """
-    return ParsedQuery(statement).strip_comments() if "--" in statement else statement
+    return sqlparse.format(statement.strip(" \t\r\n;"), strip_comments=True)
 
 
 @dataclass(eq=True, frozen=True)
@@ -170,8 +171,8 @@ class Table:
     """
 
     table: str
-    schema: Optional[str] = None
-    catalog: Optional[str] = None
+    schema: str | None = None
+    catalog: str | None = None
 
     def __str__(self) -> str:
         """
@@ -191,12 +192,12 @@ class Table:
 class ParsedQuery:
     def __init__(self, sql_statement: str, strip_comments: bool = False):
         if strip_comments:
-            sql_statement = sqlparse.format(sql_statement, strip_comments=True)
+            sql_statement = strip_comments_from_sql(sql_statement)
 
         self.sql: str = sql_statement
         self._tables: set[Table] = set()
         self._alias_names: set[str] = set()
-        self._limit: Optional[int] = None
+        self._limit: int | None = None
 
         logger.debug("Parsing with sqlparse statement: %s", self.sql)
         self._parsed = sqlparse.parse(self.stripped())
@@ -215,7 +216,7 @@ class ParsedQuery:
         return self._tables
 
     @property
-    def limit(self) -> Optional[int]:
+    def limit(self) -> int | None:
         return self._limit
 
     def _get_cte_tables(self, parsed: dict[str, Any]) -> list[dict[str, Any]]:
@@ -296,7 +297,7 @@ class ParsedQuery:
 
         return True
 
-    def get_inner_cte_expression(self, tokens: TokenList) -> Optional[TokenList]:
+    def get_inner_cte_expression(self, tokens: TokenList) -> TokenList | None:
         for token in tokens:
             if self._is_identifier(token):
                 for identifier_token in token.tokens:
@@ -317,26 +318,19 @@ class ParsedQuery:
 
     def is_explain(self) -> bool:
         # Remove comments
-        statements_without_comments = sqlparse.format(
-            self.stripped(), strip_comments=True
-        )
-
+        statements_without_comments = strip_comments_from_sql(self.stripped())
         # Explain statements will only be the first statement
         return statements_without_comments.upper().startswith("EXPLAIN")
 
     def is_show(self) -> bool:
         # Remove comments
-        statements_without_comments = sqlparse.format(
-            self.stripped(), strip_comments=True
-        )
+        statements_without_comments = strip_comments_from_sql(self.stripped())
         # Show statements will only be the first statement
         return statements_without_comments.upper().startswith("SHOW")
 
     def is_set(self) -> bool:
         # Remove comments
-        statements_without_comments = sqlparse.format(
-            self.stripped(), strip_comments=True
-        )
+        statements_without_comments = strip_comments_from_sql(self.stripped())
         # Set statements will only be the first statement
         return statements_without_comments.upper().startswith("SET")
 
@@ -347,7 +341,7 @@ class ParsedQuery:
         return self.sql.strip(" \t\n;")
 
     def strip_comments(self) -> str:
-        return sqlparse.format(self.stripped(), strip_comments=True)
+        return strip_comments_from_sql(self.sql)
 
     def get_statements(self) -> list[str]:
         """Returns a list of SQL statements as strings, stripped"""
@@ -360,7 +354,7 @@ class ParsedQuery:
         return statements
 
     @staticmethod
-    def get_table(tlist: TokenList) -> Optional[Table]:
+    def get_table(tlist: TokenList) -> Table | None:
         """
         Return the table if valid, i.e., conforms to the [[catalog.]schema.]table
         construct.
@@ -418,7 +412,7 @@ class ParsedQuery:
     def as_create_table(
         self,
         table_name: str,
-        schema_name: Optional[str] = None,
+        schema_name: str | None = None,
         overwrite: bool = False,
         method: CtasMethod = CtasMethod.TABLE,
     ) -> str:
@@ -520,7 +514,6 @@ class ParsedQuery:
 
 
 def sanitize_clause(clause: str) -> str:
-    # clause = sqlparse.format(clause, strip_comments=True)
     statements = sqlparse.parse(clause)
     if len(statements) != 1:
         raise QueryClauseValidationException("Clause contains multiple statements")
@@ -622,8 +615,8 @@ def add_table_name(rls: TokenList, table: str) -> None:
 def get_rls_for_table(
     candidate: Token,
     database_id: int,
-    default_schema: Optional[str],
-) -> Optional[TokenList]:
+    default_schema: str | None,
+) -> TokenList | None:
     """
     Given a table name, return any associated RLS predicates.
     """
@@ -669,7 +662,7 @@ def get_rls_for_table(
 def insert_rls_as_subquery(
     token_list: TokenList,
     database_id: int,
-    default_schema: Optional[str],
+    default_schema: str | None,
 ) -> TokenList:
     """
     Update a statement inplace applying any associated RLS predicates.
@@ -685,7 +678,7 @@ def insert_rls_as_subquery(
     This method is safer than ``insert_rls_in_predicate``, but doesn't work in all
     databases.
     """
-    rls: Optional[TokenList] = None
+    rls: TokenList | None = None
     state = InsertRLSState.SCANNING
     for token in token_list.tokens:
         # Recurse into child token list
@@ -761,7 +754,7 @@ def insert_rls_as_subquery(
 def insert_rls_in_predicate(
     token_list: TokenList,
     database_id: int,
-    default_schema: Optional[str],
+    default_schema: str | None,
 ) -> TokenList:
     """
     Update a statement inplace applying any associated RLS predicates.
@@ -772,7 +765,7 @@ def insert_rls_in_predicate(
         after:  SELECT * FROM some_table WHERE ( 1=1) AND some_table.id=42
 
     """
-    rls: Optional[TokenList] = None
+    rls: TokenList | None = None
     state = InsertRLSState.SCANNING
     for token in token_list.tokens:
         # Recurse into child token list
@@ -906,7 +899,7 @@ RE_JINJA_BLOCK = re.compile(r"\{[%#][^\{\}%#]+[%#]\}")
 
 def extract_table_references(
     sql_text: str, sqla_dialect: str, show_warning: bool = True
-) -> set["Table"]:
+) -> set[Table]:
     """
     Return all the dependencies from a SQL sql_text.
     """

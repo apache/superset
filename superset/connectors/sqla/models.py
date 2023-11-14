@@ -102,7 +102,7 @@ from superset.models.helpers import (
     QueryStringExtended,
     validate_adhoc_subquery,
 )
-from superset.sql_parse import ParsedQuery, sanitize_clause
+from superset.sql_parse import ParsedQuery, sanitize_clause, strip_comments_from_sql
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -917,7 +917,7 @@ class SqlaTable(
                         msg=ex.message,
                     )
                 ) from ex
-        sql = sqlparse.format(sql.strip("\t\r\n; "), strip_comments=True)
+        sql = strip_comments_from_sql(sql)
         if not sql:
             raise QueryObjectValidationError(_("Virtual dataset query cannot be empty"))
         if len(sqlparse.split(sql)) > 1:

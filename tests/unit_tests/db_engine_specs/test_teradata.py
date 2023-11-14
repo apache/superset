@@ -21,6 +21,7 @@ import pytest
 @pytest.mark.parametrize(
     "limit,original,expected",
     [
+        (100, "SELECT * FROM My_table", "SELECT TOP 100 * FROM My_table"),
         (100, "SEL TOP 1000 * FROM My_table", "SEL TOP 100 * FROM My_table"),
         (100, "SEL TOP 1000 * FROM My_table;", "SEL TOP 100 * FROM My_table"),
         (10000, "SEL TOP 1000 * FROM My_table;", "SEL TOP 1000 * FROM My_table"),

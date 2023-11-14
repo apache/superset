@@ -60,7 +60,7 @@ from superset import security_manager, sql_parse
 from superset.constants import TimeGrain as TimeGrainConstants
 from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.sql_parse import ParsedQuery, Table
+from superset.sql_parse import ParsedQuery, strip_comments_from_sql, Table
 from superset.superset_typing import ResultSetColumnType, SQLAColumnType
 from superset.utils import core as utils
 from superset.utils.core import ColumnSpec, GenericDataType
@@ -917,7 +917,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cte = None
         sql_remainder = None
         sql = sql.strip(" \t\n;")
-        sql_statement = sqlparse.format(sql, strip_comments=True)
+        sql_statement = strip_comments_from_sql(sql)
         query_limit: int | None = sql_parse.extract_top_from_query(
             sql_statement, cls.top_keywords
         )

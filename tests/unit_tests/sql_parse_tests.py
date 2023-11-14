@@ -1192,14 +1192,35 @@ def test_messy_breakdown_statements() -> None:
         """
 SELECT 1;\t\n\n\n  \t
 \t\nSELECT 2;
-SELECT * FROM birth_names;;;
-SELECT * FROM birth_names LIMIT 1
+SELECT '--abc' FROM birth_names;;;
+SELECT * FROM birth_names LIMIT 1 --comment
 """
     )
     assert query.get_statements() == [
         "SELECT 1",
         "SELECT 2",
-        "SELECT * FROM birth_names",
+        "SELECT '--abc' FROM birth_names",
+        "SELECT * FROM birth_names LIMIT 1 --comment",
+    ]
+
+
+def test_messy_breakdown_statements_with_comments() -> None:
+    """
+    Test the messy multiple statements are parsed correctly with 'strip_comments=True'.
+    """
+    query = ParsedQuery(
+        """
+SELECT 1;\t\n\n\n  \t
+\t\nSELECT 2;
+SELECT '--abc' FROM birth_names;;;
+SELECT * FROM birth_names LIMIT 1 --comment
+""",
+        strip_comments=True,
+    )
+    assert query.get_statements() == [
+        "SELECT 1",
+        "SELECT 2",
+        "SELECT '--abc' FROM birth_names",
         "SELECT * FROM birth_names LIMIT 1",
     ]
 

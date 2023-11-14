@@ -25,7 +25,7 @@ from jinja2.meta import find_undeclared_variables
 
 from superset import is_feature_enabled
 from superset.errors import SupersetErrorType
-from superset.sql_parse import ParsedQuery
+from superset.sql_parse import strip_comments_from_sql
 from superset.sqllab.commands.execute import SqlQueryRender
 from superset.sqllab.exceptions import SqlLabException
 from superset.utils import core as utils
@@ -58,9 +58,9 @@ class SqlQueryRenderImpl(SqlQueryRender):
                 database=query_model.database, query=query_model
             )
 
-            parsed_query = ParsedQuery(query_model.sql, strip_comments=True)
             rendered_query = sql_template_processor.process_template(
-                parsed_query.stripped(), **execution_context.template_params
+                strip_comments_from_sql(query_model.sql),
+                **execution_context.template_params,
             )
             self._validate(execution_context, rendered_query, sql_template_processor)
             return rendered_query

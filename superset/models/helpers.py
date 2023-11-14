@@ -73,6 +73,7 @@ from superset.sql_parse import (
     insert_rls_in_predicate,
     ParsedQuery,
     sanitize_clause,
+    strip_comments_from_sql,
 )
 from superset.superset_typing import (
     AdhocMetric,
@@ -1072,7 +1073,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         msg=ex.message,
                     )
                 ) from ex
-        sql = sqlparse.format(sql.strip("\t\r\n; "), strip_comments=True)
+        sql = strip_comments_from_sql(sql)
         if not sql:
             raise QueryObjectValidationError(_("Virtual dataset query cannot be empty"))
         if len(sqlparse.split(sql)) > 1:
