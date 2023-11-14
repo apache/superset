@@ -48,7 +48,6 @@ jobs:
           ./scripts/docker_build_push.sh
 
       - name: Build ephemeral env image
-        if: github.event_name == 'pull_request'
         run: |
           mkdir -p ./build
           echo ${{ github.sha }} > ./build/SHA
@@ -64,7 +63,6 @@ jobs:
           docker save ${{ github.sha }} | gzip > ./build/${{ github.sha }}.tar.gz
 
       - name: Upload build artifacts
-        if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v3
         with:
           name: build
