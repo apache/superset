@@ -245,6 +245,7 @@ WTF_CSRF_ENABLED = True
 WTF_CSRF_EXEMPT_LIST = [
     "superset.views.core.log",
     "superset.views.core.explore_json",
+    "superset.charts.api.warm_up_cache",
     "superset.charts.data.api.data",
 ]
 
