@@ -50,6 +50,7 @@ import {
   IKI_DEEPCAST_TYPE,
   IKI_EITL_ROW_TYPE,
   IKI_EITL_COLUMN_TYPE,
+  IKI_MODEL_METRICS_TYPE,
   IKI_EXPLAINABILITY_TYPE,
 } from './componentTypes';
 
@@ -78,6 +79,7 @@ const parentMaxDepthLookup = {
     [IKI_DEEPCAST_TYPE]: depthOne,
     [IKI_EITL_ROW_TYPE]: depthOne,
     [IKI_EITL_COLUMN_TYPE]: depthOne,
+    [IKI_MODEL_METRICS_TYPE]: depthOne,
     [IKI_EXPLAINABILITY_TYPE]: depthOne,
     [COLUMN_TYPE]: depthOne,
     [DIVIDER_TYPE]: depthOne,
@@ -111,6 +113,7 @@ const parentMaxDepthLookup = {
     [IKI_DEEPCAST_TYPE]: depthFive,
     [IKI_EITL_ROW_TYPE]: depthFive,
     [IKI_EITL_COLUMN_TYPE]: depthFive,
+    [IKI_MODEL_METRICS_TYPE]: depthFive,
     [IKI_EXPLAINABILITY_TYPE]: depthFive,
     [COLUMN_TYPE]: depthThree,
     [DIVIDER_TYPE]: depthFive,
@@ -129,6 +132,7 @@ const parentMaxDepthLookup = {
     [IKI_DEEPCAST_TYPE]: depthFive,
     [IKI_EITL_ROW_TYPE]: depthFive,
     [IKI_EITL_COLUMN_TYPE]: depthFive,
+    [IKI_MODEL_METRICS_TYPE]: depthFive,
     [IKI_EXPLAINABILITY_TYPE]: depthFive,
     [ROW_TYPE]: depthThree,
     [DIVIDER_TYPE]: depthThree,
@@ -147,6 +151,7 @@ const parentMaxDepthLookup = {
   [IKI_DEEPCAST_TYPE]: {},
   [IKI_EITL_ROW_TYPE]: {},
   [IKI_EITL_COLUMN_TYPE]: {},
+  [IKI_MODEL_METRICS_TYPE]: {},
   [IKI_EXPLAINABILITY_TYPE]: {},
 };
 
