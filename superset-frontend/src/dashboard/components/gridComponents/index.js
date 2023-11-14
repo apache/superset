@@ -32,6 +32,8 @@ import {
   IKI_DEEPCAST_TYPE,
   IKI_EITL_ROW_TYPE,
   IKI_EITL_COLUMN_TYPE,
+  IKI_MODEL_METRICS_TYPE,
+  IKI_EXPLAINABILITY_TYPE,
 } from '../../util/componentTypes';
 
 import ChartHolder from './ChartHolder';
@@ -49,6 +51,8 @@ import IkiRunPipeline from './IkiRunPipeline';
 import IkiDeepcast from './IkiDeepcast';
 import IkiEitlRow from './IkiEitlRow';
 import IkiEitlColumn from './IkiEitlColumn';
+import IkiModelMetrics from './IkiModelMetrics';
+import IkiExplainability from './IkiExplainability';
 
 export { default as ChartHolder } from './ChartHolder';
 export { default as Markdown } from './Markdown';
@@ -65,6 +69,8 @@ export { default as IkiRunPipeline } from './IkiRunPipeline';
 export { default as IkiDeepcast } from './IkiDeepcast';
 export { default as IkiEitlRow } from './IkiEitlRow';
 export { default as IkiEitlColumn } from './IkiEitlColumn';
+export { default as IkiModelMetrics } from './IkiModelMetrics';
+export { default as IkiExplainability } from './IkiExplainability';
 
 export const componentLookup = {
   [CHART_TYPE]: ChartHolder,
@@ -82,4 +88,6 @@ export const componentLookup = {
   [IKI_DEEPCAST_TYPE]: IkiDeepcast,
   [IKI_EITL_ROW_TYPE]: IkiEitlRow,
   [IKI_EITL_COLUMN_TYPE]: IkiEitlColumn,
+  [IKI_MODEL_METRICS_TYPE]: IkiModelMetrics,
+  [IKI_EXPLAINABILITY_TYPE]: IkiExplainability,
 };
