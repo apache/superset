@@ -16,13 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import './chart.less';
-@import './column.less';
-@import './divider.less';
-@import './header.less';
-@import './new-component.less';
-@import './row.less';
-@import './markdown.less';
-@import './iki-table.less';
-@import './iki-process-builder.less';
-@import './iki-run-pipeline.less';
+import React from 'react';
+import { t } from '@superset-ui/core';
+
+import { IKI_EXPLAINABILITY_TYPE } from '../../../util/componentTypes';
+import { NEW_IKI_EXPLAINABILITY_ID } from '../../../util/constants';
+import DraggableNewComponent from './DraggableNewComponent';
+
+export default function DraggableNewHeader() {
+  return (
+    <DraggableNewComponent
+      id={NEW_IKI_EXPLAINABILITY_ID}
+      type={IKI_EXPLAINABILITY_TYPE}
+      label={t('Explainability')}
+      description={t('Get insights from your data')}
+      className="fa fa-lightbulb-o"
+    />
+  );
+}
