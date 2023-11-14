@@ -1,4 +1,4 @@
-FROM alpine:latest
+FROM python:3.7.17-alpine
 
 ARG DOCKERIZE_VERSION=v0.7.0
 
