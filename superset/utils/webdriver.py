@@ -244,52 +244,62 @@ class WebDriverPlaywright(WebDriverProxy):
 
 class WebDriverSelenium(WebDriverProxy):
     def create(self) -> WebDriver:
-        # Add additional configured webdriver options
-        webdriver_conf = dict(current_app.config["WEBDRIVER_CONFIGURATION"])
-        driver_opts = dict(
-            webdriver_conf.get("options", {"capabilities": {}, "preferences": {}})
-        )
-        driver_srv = dict(
-            webdriver_conf.get(
-                "service",
-                {"log_output": "/dev/null", "service_args": [], "port": 0, "env": {}},
-            )
-        )
         pixel_density = current_app.config["WEBDRIVER_WINDOW"].get("pixel_density", 1)
         if self._driver_type == "firefox":
             driver_class = firefox.webdriver.WebDriver
+            service_class = firefox.service.Service
             options = firefox.options.Options()
             profile = FirefoxProfile()
             profile.set_preference("layout.css.devPixelsPerPx", str(pixel_density))
-            for name, value in driver_opts.get("preferences", {}).items():
-                profile.set_preference(str(name), value)
-            for name, value in driver_opts.get("preferences", {}).items():
-                profile.set_preference(str(name), value)
             options.profile = profile
-            kwargs = {
-                "options": options,
-                "service": firefox.service.Service(**driver_srv),
-            }
+            kwargs = {"options": options}
         elif self._driver_type == "chrome":
             driver_class = chrome.webdriver.WebDriver
+            service_class = chrome.service.Service
             options = chrome.options.Options()
             options.add_argument(f"--force-device-scale-factor={pixel_density}")
             options.add_argument(f"--window-size={self._window[0]},{self._window[1]}")
-            kwargs = {
-                "options": options,
-                "service": chrome.service.Service(**driver_srv),
-            }
+            kwargs = {"options": options}
         else:
             raise Exception(  # pylint: disable=broad-exception-raised
                 f"Webdriver name ({self._driver_type}) not supported"
             )
 
-        for name, value in driver_opts.get("capabilities", {}).items():
-            options.set_capability(name, value)
-
         # Prepare args for the webdriver init
         for arg in current_app.config["WEBDRIVER_OPTION_ARGS"]:
             options.add_argument(arg)
+
+        # Add additional configured webdriver options
+        webdriver_conf = dict(current_app.config["WEBDRIVER_CONFIGURATION"])
+
+        from packaging import version
+        from selenium import __version__ as selenium_version
+
+        if version.parse(selenium_version) < version.parse("4.10.0"):
+            kwargs |= webdriver_conf
+        else:
+            driver_opts = dict(
+                webdriver_conf.get("options", {"capabilities": {}, "preferences": {}})
+            )
+            driver_srv = dict(
+                webdriver_conf.get(
+                    "service",
+                    {
+                        "log_output": "/dev/null",
+                        "service_args": [],
+                        "port": 0,
+                        "env": {},
+                    },
+                )
+            )
+            for name, value in driver_opts.get("capabilities", {}).items():
+                options.set_capability(name, value)
+            if hasattr(options, "profile"):
+                for name, value in driver_opts.get("preferences", {}).items():
+                    options.profile.set_preference(str(name), value)
+            kwargs |= {
+                "service": service_class(**driver_srv),
+            }
 
         logger.debug("Init selenium driver")
         return driver_class(**kwargs)
