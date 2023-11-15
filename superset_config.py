@@ -1,10 +1,9 @@
-SECRET_KEY = "tOxxonFjgOCJQZ4B29XslVGJ7LOcXcOm/UIcJ0SMGzqXjL5HiRqC1w6B"
 SQLALCHEMY_DATABASE_URI = "postgresql://luiggi@localhost:5432/superset"
 
 import os
-from flask_appbuilder.security.manager import (
-    AUTH_OAUTH,
-)
+
+from flask_appbuilder.security.manager import AUTH_OAUTH
+
 from custom_sso_security_manager import CustomSsoSecurityManager
 
 CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
