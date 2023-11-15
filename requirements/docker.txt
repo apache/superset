@@ -19,5 +19,10 @@ zope-event==4.5.0
 zope-interface==5.4.0
     # via gevent
 
+authlib==1.2.0
+    # For OAuth integration
+# redis==3.5.3
+    # For Redis integration
+
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
