@@ -17,19 +17,28 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import DvtLogo from '.';
 
-const mockedProps = {
-  title: 'Logo Title',
-};
+describe('DvtLogo Component', () => {
+  it('renders with the provided title', () => {
+    const { getByText } = render(
+      <MemoryRouter>
+        <DvtLogo title="TestTitle" />
+      </MemoryRouter>,
+    );
 
-test('should render', () => {
-  const { container } = render(<DvtLogo {...mockedProps} />);
-  expect(container).toBeInTheDocument();
-});
+    expect(getByText('TestTitle')).toBeInTheDocument();
+  });
 
-test('should render the title', () => {
-  render(<DvtLogo {...mockedProps} />);
-  expect(screen.getByText('Logo Title')).toBeInTheDocument();
+  it('matches snapshot', () => {
+    const { asFragment } = render(
+      <MemoryRouter>
+        <DvtLogo title="SnapshotTest" />
+      </MemoryRouter>,
+    );
+
+    expect(asFragment()).toMatchSnapshot();
+  });
 });
