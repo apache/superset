@@ -125,6 +125,30 @@ const defaultTheme = {
       light1: '#B3DEFE',
       light2: '#EFF8FE',
     },
+    dvt: {
+      text: {
+        label: '#64748B',
+        help: '#94A3B8',
+        bold: '#0F172A',
+      },
+      primary: {
+        base: '#2563EB',
+        light1: '#B8C1CC',
+        light2: '#E2E8F0',
+        light3: '#EFF6FF',
+      },
+      success: {
+        base: '#24D164',
+        dark1: '#02993E',
+        dark2: '#599D57',
+        light1: '#34D399',
+      },
+      grayscale: {
+        base: '#979797',
+        light1: '#D3D5DA',
+        light2: '#F8FAFC',
+      },
+    },
   },
   opacity: {
     light: '10%',
