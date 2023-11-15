@@ -127,6 +127,14 @@ export interface SQLResultTableExtentionProps {
   expandedColumns?: string[];
 }
 
+/**
+ * Interface for extensions to Slice Header
+ */
+export interface SliceHeaderExtension {
+  sliceId: number;
+  dashboardId: number;
+}
+
 export type Extensions = Partial<{
   'alertsreports.header.icon': React.ComponentType;
   'embedded.documentation.configuration_details': React.ComponentType<ConfigDetailsProps>;
@@ -147,4 +155,5 @@ export type Extensions = Partial<{
   'dataset.delete.related': React.ComponentType<DatasetDeleteRelatedExtensionProps>;
   'sqleditor.extension.form': React.ComponentType<SQLFormExtensionProps>;
   'sqleditor.extension.resultTable': React.ComponentType<SQLResultTableExtentionProps>;
+  'dashboard.slice.header': React.ComponentType<SliceHeaderExtension>;
 }>;
