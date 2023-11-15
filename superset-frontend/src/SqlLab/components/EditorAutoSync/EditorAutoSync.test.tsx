@@ -39,7 +39,15 @@ import fetchMock from 'fetch-mock';
 import { render, waitFor } from 'spec/helpers/testing-library';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
+import { logging } from '@superset-ui/core';
 import EditorAutoSync from '.';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  logging: {
+    warn: jest.fn(),
+  },
+}));
 
 const editorTabLastUpdatedAt = Date.now();
 const unsavedSqlLabState = {
@@ -105,7 +113,7 @@ test('renders an error toast when the sync failed', async () => {
     throws: new Error('errorMessage'),
   });
   expect(fetchMock.calls(updateEditorTabState)).toHaveLength(0);
-  const { findByText } = render(
+  render(
     <>
       <EditorAutoSync />
       <ToastContainer />
@@ -119,10 +127,11 @@ test('renders an error toast when the sync failed', async () => {
     },
   );
   await waitFor(() => jest.runAllTimers());
-  const errorToast = await findByText(
-    'An error occurred while saving your editor state. ' +
-      'Please contact your administrator if this problem persists.',
+
+  expect(logging.warn).toHaveBeenCalledTimes(1);
+  expect(logging.warn).toHaveBeenCalledWith(
+    'An error occurred while saving your editor state.',
+    expect.anything(),
   );
-  expect(errorToast).toBeTruthy();
   fetchMock.restore();
 });
