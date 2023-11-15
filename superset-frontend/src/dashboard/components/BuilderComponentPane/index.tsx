@@ -39,7 +39,7 @@ import NewIkiRunPipeline from '../gridComponents/new/NewIkiRunPipeline';
 import NewDeepCast from '../gridComponents/new/NewDeepCast';
 import NewIkiEitlRow from '../gridComponents/new/NewIkiEitlRow';
 import NewIkiEitlColumn from '../gridComponents/new/NewIkiEitlColumn';
-
+import NewIkiInteractiveForecast from '../gridComponents/new/NewIkiInteractiveForecast';
 export interface BCPProps {
   isStandalone: boolean;
   topOffset: number;
@@ -122,6 +122,7 @@ const BuilderComponentPane: React.FC<BCPProps> = ({
                       <NewDeepCast />
                       <NewIkiEitlRow />
                       <NewIkiEitlColumn />
+                      <NewIkiInteractiveForecast />
                       {dashboardComponents
                         .getAll()
                         .map(({ key: componentKey, metadata }) => (
