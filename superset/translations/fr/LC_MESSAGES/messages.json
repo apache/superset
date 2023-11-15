@@ -249,8 +249,8 @@
       "Additional information": ["Informations additionnelles"],
       "Additional parameters": ["Paramètres supplémentaires"],
       "Additional text to add before or after the value, e.g. unit": [""],
-      "Adjust how this database will interact with SQL Lab.": [""],
-      "Adjust performance settings of this database.": [""],
+      "Adjust how this database will interact with SQL Lab.": ["Ajustez la façon dont cette base de données interagira avec SQL Lab."],
+      "Adjust performance settings of this database.": ["Ajustez les paramètres de performances de cette base de données."],
       "Advanced": ["Avancé"],
       "Advanced analytics": ["Analyses avancées"],
       "Advanced-Analytics": ["Analyses avancées"],
@@ -1531,7 +1531,7 @@
       "Empty circle": [""],
       "Empty collection": ["Collection vide"],
       "Empty query?": ["Requête vide ?"],
-      "Empty row": [""],
+      "Empty row": ["Ligne vide"],
       "Enable Filter Select": ["Activer le filtre de sélection"],
       "Enable data zooming controls": [""],
       "Enable embedding": [""],
@@ -1887,7 +1887,7 @@
         ""
       ],
       "Include Series": [""],
-      "Include a description that will be sent with your report": [""],
+      "Include a description that will be sent with your report": ["Incluez une description qui sera envoyée avec votre rapport"],
       "Include series name as an axis": [""],
       "Index Column": ["Index de colonne"],
       "Info": ["Info"],
@@ -1969,7 +1969,7 @@
       ],
       "July": ["Juillet"],
       "June": ["Juin"],
-      "KPI": [""],
+      "KPI": ["ICP"],
       "Keep control settings?": [""],
       "Keep editing": ["Garder en édition"],
       "Keys for table": ["Clefs pour la table"],
@@ -1991,7 +1991,7 @@
       "Latitude of default viewport": [""],
       "Layer configuration": ["Configuration de la couche"],
       "Layout": [""],
-      "Layout elements": [""],
+      "Layout elements": ["Éléments de mise en page"],
       "Layout type of graph": [""],
       "Layout type of tree": [""],
       "Leaf nodes that represent fewer than this number of events will be initially hidden in the visualization": [
@@ -2201,7 +2201,7 @@
       "Name of the target nodes": [""],
       "Name your database": ["Donner un nom à la base de données"],
       "Need help? Learn how to connect your database": [""],
-      "Need help? Learn more about": [""],
+      "Need help? Learn more about": ["Besoin d'aide ? En savoir plus sur"],
       "New chart": ["Nouveau graphique"],
       "New columns added: %s": ["Nouvelles colonnes ajoutées : %s"],
       "New filter set": ["Nouvel ensemble de filtre"],
@@ -2419,7 +2419,7 @@
       "Parameters related to the view and perspective on the map": [""],
       "Parent": [""],
       "Parse Dates": ["Parser les dates"],
-      "Part of a Whole": [""],
+      "Part of a Whole": ["Partie d'un tout"],
       "Partition Diagram": ["Diagramme de Partition"],
       "Partition Threshold": [""],
       "Partitions whose height to parent height proportions are below this value are pruned": [
@@ -2520,7 +2520,7 @@
         "Merci de sauvegarder votre tableau de bord d'abord, créez ensuite un nouveau rapport email."
       ],
       "Please select both a Dataset and a Chart type to proceed": [
-        "Merci de sélectionner à la fois un Dataset et un type de graphique pour continuer"
+        "Merci de sélectionner à la fois un jeu de données et un type de graphique pour continuer"
       ],
       "Please use 3 different metric labels": [
         "Utilisez 3 libellés de métrique différents"
@@ -3005,7 +3005,7 @@
       "Show labels when the node has children.": [""],
       "Show legend": [""],
       "Show less...": ["Afficher moins ..."],
-      "Show only my charts": [""],
+      "Show only my charts": ["Afficher uniquement mes graphiques"],
       "Show pointer": [""],
       "Show rows total": [""],
       "Show series values on the chart": [""],
@@ -4465,7 +4465,7 @@
       "code ISO 3166-1 alpha-3 (cca3)": [""],
       "code International Olympic Committee (cioc)": [""],
       "column": ["colonne"],
-      "connecting to %(dbModelName)s.": [""],
+      "connecting to %(dbModelName)s.": ["connexion à %(dbModelName)s."],
       "create dataset from SQL query": [""],
       "css": ["css"],
       "css_template": ["css_template"],
