@@ -24,6 +24,8 @@ from time import sleep
 from typing import TYPE_CHECKING
 
 from flask import current_app
+from packaging import version
+from selenium import __version__ as selenium_version
 from selenium.common.exceptions import (
     StaleElementReferenceException,
     TimeoutException,
@@ -271,9 +273,6 @@ class WebDriverSelenium(WebDriverProxy):
 
         # Add additional configured webdriver options
         webdriver_conf = dict(current_app.config["WEBDRIVER_CONFIGURATION"])
-
-        from packaging import version
-        from selenium import __version__ as selenium_version
 
         if version.parse(selenium_version) < version.parse("4.10.0"):
             kwargs |= webdriver_conf
