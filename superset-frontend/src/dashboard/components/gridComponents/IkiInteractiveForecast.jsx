@@ -370,7 +370,7 @@ class IkiInteractiveForecast extends React.PureComponent {
                 const metrics_type = iframeSrcUrl.searchParams.get('metrics_type')
                     ? iframeSrcUrl.searchParams.get('metrics_type')
                     : '';
-                const newIframeSrc = `${ikigaiOrigin}/widget/herosection?mode=${paramMode}&dataset_id=${dataset_id}&datetime_column=${datetime_column}&data_series=${data_series}&dimensions_column=${dimensions_column}&metrics_type=${metrics_type}`;
+                const newIframeSrc = `${ikigaiOrigin}/widget/interactive-forecast-chart?mode=${paramMode}&dataset_id=${dataset_id}&datetime_column=${datetime_column}&data_series=${data_series}&dimensions_column=${dimensions_column}&metrics_type=${metrics_type}`;
                 // console.log('iframe', newIframeSrcUrl, iframeHtml);
                 iframeSrc = newIframeSrc;
             } else {
