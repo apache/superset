@@ -29,7 +29,14 @@ export type QueryDictionary = {
   [id: string]: QueryResponse;
 };
 
+export enum QueryEditorVersion {
+  v1 = 1,
+}
+
+export const LatestQueryEditorVersion = QueryEditorVersion.v1;
+
 export interface QueryEditor {
+  version: QueryEditorVersion;
   id: string;
   dbId?: number;
   name: string;

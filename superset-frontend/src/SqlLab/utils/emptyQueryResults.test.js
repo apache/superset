@@ -83,10 +83,11 @@ describe('reduxStateToLocalStorageHelper', () => {
   });
 
   it('should only return selected keys for query editor', () => {
-    const queryEditors = [defaultQueryEditor];
-    expect(Object.keys(queryEditors[0])).toContain('schema');
+    const queryEditors = [{ ...defaultQueryEditor, dummy: 'value' }];
+    expect(Object.keys(queryEditors[0])).toContain('dummy');
 
     const clearedQueryEditors = clearQueryEditors(queryEditors);
-    expect(Object.keys(clearedQueryEditors)[0]).not.toContain('schema');
+    expect(Object.keys(clearedQueryEditors[0])).toContain('version');
+    expect(Object.keys(clearedQueryEditors[0])).not.toContain('dummy');
   });
 });

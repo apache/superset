@@ -17,7 +17,7 @@
  * under the License.
  */
 import { pickBy } from 'lodash';
-import { QueryEditor } from 'src/SqlLab/types';
+import { QueryEditor, LatestQueryEditorVersion } from 'src/SqlLab/types';
 import { api, JsonResponse } from './queryApi';
 
 export type EditorMutationParams = {
@@ -30,6 +30,7 @@ const sqlEditorApi = api.injectEndpoints({
     updateSqlEditorTab: builder.mutation<JsonResponse, EditorMutationParams>({
       query: ({
         queryEditor: {
+          version = LatestQueryEditorVersion,
           id,
           dbId,
           schema,
@@ -57,7 +58,7 @@ const sqlEditorApi = api.injectEndpoints({
             template_params: templateParams,
             hide_left_bar: hideLeftBar,
             autorun,
-            extra_json: JSON.stringify({ updatedAt, ...extra }),
+            extra_json: JSON.stringify({ updatedAt, version, ...extra }),
           },
           value => value !== undefined,
         ),

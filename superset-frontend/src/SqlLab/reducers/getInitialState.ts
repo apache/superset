@@ -20,11 +20,13 @@ import { t } from '@superset-ui/core';
 import getToastsFromPyFlashMessages from 'src/components/MessageToasts/getToastsFromPyFlashMessages';
 import type { BootstrapData } from 'src/types/bootstrapTypes';
 import type { InitialState } from 'src/hooks/apiResources/sqlLab';
-import type {
+import {
   QueryEditor,
   UnsavedQueryEditor,
   SqlLabRootState,
   Table,
+  LatestQueryEditorVersion,
+  QueryEditorVersion,
 } from 'src/SqlLab/types';
 
 export function dedupeTabHistory(tabHistory: string[]) {
@@ -53,6 +55,7 @@ export default function getInitialState({
    */
   let queryEditors: Record<string, QueryEditor> = {};
   const defaultQueryEditor = {
+    version: LatestQueryEditorVersion,
     loaded: true,
     name: t('Untitled query'),
     sql: 'SELECT *\nFROM\nWHERE',
@@ -73,6 +76,7 @@ export default function getInitialState({
     let queryEditor: QueryEditor;
     if (activeTab && activeTab.id === id) {
       queryEditor = {
+        version: activeTab.extra_json?.version ?? QueryEditorVersion.v1,
         id: id.toString(),
         loaded: true,
         name: activeTab.label,

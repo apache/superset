@@ -23,9 +23,11 @@ import {
   defaultStore as store,
 } from 'spec/helpers/testing-library';
 import { api } from 'src/hooks/apiResources/queryApi';
+import { LatestQueryEditorVersion } from 'src/SqlLab/types';
 import { useUpdateSqlEditorTabMutation } from './sqlEditorTabs';
 
 const expectedQueryEditor = {
+  version: LatestQueryEditorVersion,
   id: '123',
   dbId: 456,
   name: 'tab 1',
@@ -88,7 +90,10 @@ test('puts api request with formData', async () => {
   );
   expect(formData.get('extra_json')).toBe(
     JSON.stringify(
-      JSON.stringify({ updatedAt: expectedQueryEditor.updatedAt }),
+      JSON.stringify({
+        updatedAt: expectedQueryEditor.updatedAt,
+        version: LatestQueryEditorVersion,
+      }),
     ),
   );
 });
