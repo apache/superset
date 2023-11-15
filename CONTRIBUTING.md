@@ -624,7 +624,7 @@ The current value of max watches can be checked with:
 cat /proc/sys/fs/inotify/max_user_watches
 ```
 Edit the file /etc/sysctl.conf to increase this value.
-The value needs to be decided based on the system memory.[(see this StackOverflow answer for more context)](https://stackoverflow.com/questions/535768/what-is-a-reasonable-amount-of-inotify-watches-with-linux)
+The value needs to be decided based on the system memory [(see this StackOverflow answer for more context)](https://stackoverflow.com/questions/535768/what-is-a-reasonable-amount-of-inotify-watches-with-linux).
 
 Open the file in editor and add a line at the bottom specifying the max watches values.
 ```bash
