@@ -209,6 +209,39 @@ class TestTagsDAO(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @pytest.mark.usefixtures("with_tagging_system_feature")
+    @pytest.mark.usefixtures("create_tags")
+    # test get objects from tag
+    def test_get_objects_from_tag_with_id(self):
+        # create tagged objects
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "World Bank's Data")
+            .first()
+        )
+        dashboard_id = dashboard.id
+        tag_1 = db.session.query(Tag).filter_by(name="example_tag_1").one()
+        tag_2 = db.session.query(Tag).filter_by(name="example_tag_2").one()
+        tag_ids = [tag_1.id, tag_2.id]
+        self.insert_tagged_object(
+            object_id=dashboard_id, object_type=ObjectType.dashboard, tag_id=tag_1.id
+        )
+        # get objects
+        tagged_objects = TagDAO.get_tagged_objects_by_tag_id(tag_ids)
+        assert len(tagged_objects) == 1
+
+        # test get objects from tag with type
+        tagged_objects = TagDAO.get_tagged_objects_by_tag_id(
+            tag_ids, obj_types=["dashboard", "chart"]
+        )
+        assert len(tagged_objects) == 1
+
+        tagged_objects = TagDAO.get_tagged_objects_by_tag_id(
+            tag_ids, obj_types=["chart"]
+        )
+        assert len(tagged_objects) == 0
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @pytest.mark.usefixtures("with_tagging_system_feature")
     @pytest.mark.usefixtures("create_tagged_objects")
     def test_find_tagged_object(self):
         tag = db.session.query(Tag).filter(Tag.name == "example_tag_1").first()
