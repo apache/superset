@@ -19,7 +19,7 @@
 
 import React, { useRef, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { t } from '@superset-ui/core';
+import { logging } from '@superset-ui/core';
 import {
   SqlLabRootState,
   QueryEditor,
@@ -27,10 +27,7 @@ import {
 } from 'src/SqlLab/types';
 import { useUpdateSqlEditorTabMutation } from 'src/hooks/apiResources/sqlEditorTabs';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
-import {
-  addDangerToast,
-  setEditorTabLastUpdate,
-} from 'src/SqlLab/actions/sqlLab';
+import { setEditorTabLastUpdate } from 'src/SqlLab/actions/sqlLab';
 
 const INTERVAL = 5000;
 
@@ -69,7 +66,7 @@ const EditorAutoSync: React.FC = () => {
   );
   const dispatch = useDispatch();
   const lastSavedTimestampRef = useRef<number>(editorTabLastUpdatedAt);
-  const [updateSqlEditor, { isError }] = useUpdateSqlEditorTabMutation();
+  const [updateSqlEditor, { error }] = useUpdateSqlEditorTabMutation();
 
   const debouncedUnsavedQueryEditor = useDebounceValue(
     unsavedQueryEditor,
@@ -98,17 +95,10 @@ const EditorAutoSync: React.FC = () => {
   }, [debouncedUnsavedQueryEditor, dispatch, queryEditors, updateSqlEditor]);
 
   useEffect(() => {
-    if (isError) {
-      dispatch(
-        addDangerToast(
-          t(
-            'An error occurred while saving your editor state. ' +
-              'Please contact your administrator if this problem persists.',
-          ),
-        ),
-      );
+    if (error) {
+      logging.warn('An error occurred while saving your editor state.', error);
     }
-  }, [dispatch, isError]);
+  }, [dispatch, error]);
 
   return null;
 };
