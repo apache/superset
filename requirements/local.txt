@@ -13,3 +13,4 @@
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
+authlib==1.2.0
