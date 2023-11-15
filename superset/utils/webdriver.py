@@ -33,6 +33,7 @@ from selenium.common.exceptions import (
 )
 from selenium.webdriver import chrome, firefox, FirefoxProfile
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.service import Service
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as EC  # noqa: N812
 from selenium.webdriver.support.ui import WebDriverWait
@@ -248,8 +249,8 @@ class WebDriverSelenium(WebDriverProxy):
     def create(self) -> WebDriver:
         pixel_density = current_app.config["WEBDRIVER_WINDOW"].get("pixel_density", 1)
         if self._driver_type == "firefox":
-            driver_class = firefox.webdriver.WebDriver
-            service_class = firefox.service.Service
+            driver_class: type[WebDriver] = firefox.webdriver.WebDriver
+            service_class: type[Service] = firefox.service.Service
             options = firefox.options.Options()
             profile = FirefoxProfile()
             profile.set_preference("layout.css.devPixelsPerPx", str(pixel_density))
@@ -268,7 +269,7 @@ class WebDriverSelenium(WebDriverProxy):
             )
 
         # Prepare args for the webdriver init
-        for arg in current_app.config["WEBDRIVER_OPTION_ARGS"]:
+        for arg in list(current_app.config["WEBDRIVER_OPTION_ARGS"]):
             options.add_argument(arg)
 
         # Add additional configured webdriver options
