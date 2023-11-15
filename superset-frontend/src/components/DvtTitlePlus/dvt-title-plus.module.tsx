@@ -1,8 +1,18 @@
 import { styled } from '@superset-ui/core';
 
 const StyledDvtTitlePlus = styled.div`
-  height: 100px;
-  width: 100px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;
 
-export { StyledDvtTitlePlus };
+const DvtTitlePlusTitle = styled.p`
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin: 0;
+  color: ${({ theme }) => theme.colors.dvt.text.label};
+`;
+
+export { StyledDvtTitlePlus, DvtTitlePlusTitle };
