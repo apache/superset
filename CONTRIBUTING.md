@@ -631,7 +631,7 @@ Open the file in editor and add a line at the bottom specifying the max watches 
 fs.inotify.max_user_watches=524288
 ```
 Save the file and exit editor.
-Run following command to load the updated value of max_user_watches from sysctl.conf
+To confirm that the change succeeded, run the following command to load the updated value of max_user_watches from sysctl.conf:
 ```bash
 sudo sysctl -p
 ```
