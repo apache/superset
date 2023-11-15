@@ -19,13 +19,16 @@
 import React from 'react';
 import { render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import DvtLogo from '.';
 
 describe('DvtLogo Component', () => {
   it('renders with the provided title', () => {
     const { getByText } = render(
       <MemoryRouter>
-        <DvtLogo title="TestTitle" />
+        <ThemeProvider theme={supersetTheme}>
+          <DvtLogo title="TestTitle" />
+        </ThemeProvider>
       </MemoryRouter>,
     );
 
@@ -35,7 +38,9 @@ describe('DvtLogo Component', () => {
   it('matches snapshot', () => {
     const { asFragment } = render(
       <MemoryRouter>
-        <DvtLogo title="SnapshotTest" />
+        <ThemeProvider theme={supersetTheme}>
+          <DvtLogo title="SnapshotTest" />
+        </ThemeProvider>
       </MemoryRouter>,
     );
 
