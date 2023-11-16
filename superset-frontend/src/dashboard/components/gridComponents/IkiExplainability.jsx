@@ -251,13 +251,12 @@ class IkiExplainability extends React.PureComponent {
               );
 
               widgetUrl.search = widgetUrlQuery.toString();
-              console.info(widgetUrl);
               const tempIframe = `<iframe
                       id="ikiexplainability-widget-${this.props.component.id}"
                       name="run-flow-component"
                       src="${widgetUrl}"
                       title="IkiExplainability Component"
-                      className="ikiexplainability-widget"
+                      className="ikitable-widget"
                       style="min-height: 100%;"
                     />`;
               this.handleIkiRunPipelineChange(tempIframe);
@@ -326,8 +325,8 @@ class IkiExplainability extends React.PureComponent {
                       id="ikiexplainability-widget-${this.props.component.id}"
                       name="run-flow-component"
                       src="${widgetUrl}"
-                      title="IkiExplainability Component"
-                      className="ikiexplainability-widget"
+                      title="ikitable Component"
+                      className="ikitable-widget"
                       style="min-height: 100%;"
                     />`;
     this.handleIkiRunPipelineChange(tempIframe);
@@ -440,7 +439,7 @@ class IkiExplainability extends React.PureComponent {
                     name="ikiexplainability-${timestamp}"
                     src="${iframeSrc}"
                     title="IkiExplainability Component"
-                    className="ikiexplainability-widget"
+                    className="ikitable-widget"
                     style="height: 100%;"
                   />`;
     } else {
@@ -517,10 +516,10 @@ class IkiExplainability extends React.PureComponent {
           >
             <div
               data-test="dashboard-markdown-editor"
-              className={cx(
-                'dashboard-component-ikitable',
-                isEditing && 'dashboard-component-ikiexplainability--editing',
-              )}
+              className={cx('dashboard-component-ikitable', {
+                'dashboard-component-ikitable--editable': this.props.editMode,
+                'dashboard-component-ikitable--preview': !this.props.editMode,
+              })}
               id={component.id}
             >
               <ResizableContainer

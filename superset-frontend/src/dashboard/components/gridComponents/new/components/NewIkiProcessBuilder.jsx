@@ -17,29 +17,20 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
+import { t } from '@superset-ui/core';
 
-import DraggableNewComponent from 'src/dashboard/components/gridComponents/new/DraggableNewComponent';
-import NewTabs from 'src/dashboard/components/gridComponents/new/NewTabs';
+import { IKI_PROCESS_BUILDER_TYPE } from '../../../../util/componentTypes';
+import { NEW_IKI_PROCESS_BUILDER_ID } from '../../../../util/constants';
+import DraggableNewComponent from '../DraggableNewComponent';
 
-import { NEW_TABS_ID } from 'src/dashboard/util/constants';
-import { TABS_TYPE } from 'src/dashboard/util/componentTypes';
-
-describe('NewTabs', () => {
-  function setup() {
-    return shallow(<NewTabs />);
-  }
-
-  it('should render a DraggableNewComponent', () => {
-    const wrapper = setup();
-    expect(wrapper.find(DraggableNewComponent)).toExist();
-  });
-
-  it('should set appropriate type and id', () => {
-    const wrapper = setup();
-    expect(wrapper.find(DraggableNewComponent).props()).toMatchObject({
-      type: TABS_TYPE,
-      id: NEW_TABS_ID,
-    });
-  });
-});
+export default function DraggableNewDivider() {
+  return (
+    <DraggableNewComponent
+      id={NEW_IKI_PROCESS_BUILDER_ID}
+      type={IKI_PROCESS_BUILDER_TYPE}
+      label={t('Process Diagram')}
+      description="Visualize workflows and processes"
+      className="fa fa-columns"
+    />
+  );
+}

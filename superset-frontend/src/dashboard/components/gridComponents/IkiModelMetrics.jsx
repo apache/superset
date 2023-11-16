@@ -1,4 +1,3 @@
-
 import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
@@ -26,8 +25,6 @@ import {
   GRID_BASE_UNIT,
 } from 'src/dashboard/util/constants';
 import { refreshChart } from 'src/components/Chart/chartAction';
-
-const { Buffer } = require('buffer');
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -57,8 +54,6 @@ const propTypes = {
   handleComponentDrop: PropTypes.func.isRequired,
   updateComponents: PropTypes.func.isRequired,
 };
-
-const timestamp = new Date().getTime().toString();
 
 const defaultProps = {};
 
@@ -184,8 +179,16 @@ class IkiModelMetrics extends React.PureComponent {
           } else {
             messageData = messageObject.data;
           }
-          if (document.getElementById(`ikimodelmetrics-widget-${this.props.component.id}`)) {
-            widgetUrl = new URL(document.getElementById(`ikimodelmetrics-widget-${this.props.component.id}`).src);
+          if (
+            document.getElementById(
+              `ikimodelmetrics-widget-${this.props.component.id}`,
+            )
+          ) {
+            widgetUrl = new URL(
+              document.getElementById(
+                `ikimodelmetrics-widget-${this.props.component.id}`,
+              ).src,
+            );
             widgetUrlQueryMode = widgetUrl.searchParams.get('mode');
           } else {
             widgetUrl = `${this.props.ikigaiOrigin}/widget/model-metrics`;
@@ -229,10 +232,11 @@ class IkiModelMetrics extends React.PureComponent {
   }
 
   handleChangeFocus(nextFocus) {
-    const nextFocused = !!nextFocus;
-    const nextEditMode = nextFocused ? 'edit' : 'preview';
-    this.setState(() => ({ isFocused: nextFocused }));
-    this.handleChangeEditorMode(nextEditMode);
+    return nextFocus;
+    // const nextFocused = !!nextFocus;
+    // const nextEditMode = nextFocused ? 'edit' : 'preview';
+    // this.setState(() => ({ isFocused: nextFocused }));
+    // this.handleChangeEditorMode(nextEditMode);
   }
 
   handleChangeEditorMode(mode) {
@@ -244,13 +248,9 @@ class IkiModelMetrics extends React.PureComponent {
       this.updateMarkdownContent();
       nextState.hasError = false;
     }
-
     this.setState(nextState);
 
     let widgetUrl;
-
-    const chartsList = [];
-    const allChartElements = document.querySelectorAll('[data-test-chart-id]');
     if (
       document.getElementById(
         `ikimodelmetrics-widget-${this.props.component.id}`,
@@ -357,7 +357,9 @@ class IkiModelMetrics extends React.PureComponent {
         const paramAliasId = iframeSrcUrl.searchParams.get('alias_id')
           ? iframeSrcUrl.searchParams.get('alias_id')
           : '';
-        const paramDatasetId = iframeSrcUrl.searchParams.get('dataset_id') ? iframeSrcUrl.searchParams.get('dataset_id') : '';
+        const paramDatasetId = iframeSrcUrl.searchParams.get('dataset_id')
+          ? iframeSrcUrl.searchParams.get('dataset_id')
+          : '';
         const newIframeSrc = `${ikigaiOrigin}/widget/model-metrics?mode=${paramMode}&dataset_id=${paramDatasetId}&alias_id=${paramAliasId}`;
         // console.log('iframe', newIframeSrcUrl, iframeHtml);
         iframeSrc = newIframeSrc;
@@ -365,9 +367,6 @@ class IkiModelMetrics extends React.PureComponent {
         iframeSrc = `${ikigaiOrigin}/widget/model-metrics?mode=edit`;
       }
 
-      const allChartElements = document.querySelectorAll(
-        '[data-test-chart-id]',
-      );
       iframe = `<iframe
                     id="ikimodelmetrics-widget-${this.props.component.id}"
                     name="model-metrics-component"

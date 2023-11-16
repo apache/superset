@@ -11,7 +11,9 @@ export default function DraggableNewDivider() {
       id={NEW_IKI_MODEL_METRICS_ID}
       type={IKI_MODEL_METRICS_TYPE}
       label={t('Model Metrics')}
+      description="Evaluate the performance of your model"
       className="fa fa-percent"
+      demandApp
     />
   );
 }

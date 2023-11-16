@@ -19,18 +19,18 @@
 import React from 'react';
 import { t } from '@superset-ui/core';
 
-import { IKI_TABLE_TYPE } from '../../../util/componentTypes';
-import { NEW_IKI_TABLE_ID } from '../../../util/constants';
-import DraggableNewComponent from './DraggableNewComponent';
+import { TABS_TYPE } from '../../../../util/componentTypes';
+import { NEW_TABS_ID } from '../../../../util/constants';
+import DraggableNewComponent from '../DraggableNewComponent';
 
-export default function DraggableNewDivider() {
+export default function DraggableNewTabs() {
   return (
     <DraggableNewComponent
-      id={NEW_IKI_TABLE_ID}
-      type={IKI_TABLE_TYPE}
-      label={t('Editable Dataset')}
-      description="Edit your data from the dashboard"
-      className="fa fa-table"
+      id={NEW_TABS_ID}
+      type={TABS_TYPE}
+      label={t('Tabs')}
+      description={t('Separate dashboard content')}
+      className="fa fa-window-restore"
     />
   );
 }

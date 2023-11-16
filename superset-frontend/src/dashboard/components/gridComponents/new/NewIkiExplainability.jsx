@@ -29,8 +29,9 @@ export default function DraggableNewHeader() {
       id={NEW_IKI_EXPLAINABILITY_ID}
       type={IKI_EXPLAINABILITY_TYPE}
       label={t('Explainability')}
-      description={t('Get insights from your data')}
-      className="fa fa-lightbulb-o"
+      description={t('View insights into your forecast')}
+      className="fa fa-info-circle"
+      demandApp
     />
   );
 }

@@ -26,21 +26,23 @@ import { t, styled } from '@superset-ui/core';
 
 import SliceAdder from 'src/dashboard/containers/SliceAdder';
 import dashboardComponents from 'src/visualizations/presets/dashboardComponents';
-import NewColumn from '../gridComponents/new/NewColumn';
-import NewDivider from '../gridComponents/new/NewDivider';
-import NewHeader from '../gridComponents/new/NewHeader';
-import NewRow from '../gridComponents/new/NewRow';
-import NewTabs from '../gridComponents/new/NewTabs';
-import NewMarkdown from '../gridComponents/new/NewMarkdown';
+import NewColumn from '../gridComponents/new/layout/NewColumn';
+import NewDivider from '../gridComponents/new/layout/NewDivider';
+import NewHeader from '../gridComponents/new/layout/NewHeader';
+import NewRow from '../gridComponents/new/layout/NewRow';
+import NewTabs from '../gridComponents/new/layout/NewTabs';
+import NewMarkdown from '../gridComponents/new/layout/NewMarkdown';
 import NewDynamicComponent from '../gridComponents/new/NewDynamicComponent';
-import NewIkiTable from '../gridComponents/new/NewIkiTable';
-import NewIkiProcessBuilder from '../gridComponents/new/NewIkiProcessBuilder';
-import NewIkiRunPipeline from '../gridComponents/new/NewIkiRunPipeline';
-import NewDeepCast from '../gridComponents/new/NewDeepCast';
-import NewIkiEitlRow from '../gridComponents/new/NewIkiEitlRow';
-import NewIkiEitlColumn from '../gridComponents/new/NewIkiEitlColumn';
-import NewIkiModelMetrics from '../gridComponents/new/NewIkiModelMetrics';
+import NewIkiTable from '../gridComponents/new/components/NewIkiTable';
+import NewIkiProcessBuilder from '../gridComponents/new/components/NewIkiProcessBuilder';
+import NewIkiRunPipeline from '../gridComponents/new/components/NewIkiRunPipeline';
+import NewDeepCast from '../gridComponents/new/components/NewDeepCast';
+import NewIkiEitlRow from '../gridComponents/new/components/NewIkiEitlRow';
+import NewIkiEitlColumn from '../gridComponents/new/components/NewIkiEitlColumn';
 import NewIkiExplainability from '../gridComponents/new/NewIkiExplainability';
+import NewIkiModelMetrics from '../gridComponents/new/NewIkiModelMetrics';
+import NewExternalDatasets from '../gridComponents/new/components/NewExternalDatasets';
+import NewForecast from '../gridComponents/new/components/NewForecast';
 
 export interface BCPProps {
   isStandalone: boolean;
@@ -125,6 +127,8 @@ const BuilderComponentPane: React.FC<BCPProps> = ({
                       <NewIkiEitlRow />
                       <NewIkiEitlColumn />
                       <NewIkiModelMetrics />
+                      <NewExternalDatasets />
+                      <NewForecast />
                       <NewIkiExplainability />
                       {dashboardComponents
                         .getAll()
