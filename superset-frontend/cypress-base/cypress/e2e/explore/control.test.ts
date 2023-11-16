@@ -210,7 +210,7 @@ describe('Time range filter', () => {
       .click()
       .then(() => {
         cy.get('.ant-radio-group').children().its('length').should('eq', 5);
-        cy.get('.ant-radio-checked + span').contains('last year');
+        cy.get('.ant-radio-checked + span').contains('Last year');
         cy.get('[data-test=cancel-button]').click();
       });
   });
