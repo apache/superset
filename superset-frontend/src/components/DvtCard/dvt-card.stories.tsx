@@ -5,8 +5,8 @@ export default {
   title: 'Dvt-Components/DvtCard',
   component: DvtCard,
   argTypes: {
-    isFavorite: {control: 'boolean'},
-  }
+    isFavorite: { control: 'boolean' },
+  },
 };
 
 export const Default = (args: DvtCardProps) => {
@@ -20,4 +20,4 @@ Default.args = {
   label: 'Label',
   description:
     'Monitors real-time network stats like latency and uptime for smooth operations.',
-  };
+};

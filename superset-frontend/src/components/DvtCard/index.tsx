@@ -52,20 +52,20 @@ const DvtCard: React.FC<DvtCardProps> = ({
           <IconButton onClick={handleFavoriteClick}>
             {!isFavorite ? (
               <Icons.StarOutlined
-                iconSize='xl'
+                iconSize="xl"
                 iconColor={theme.colors.dvt.text.bold}
               />
             ) : (
               <Icons.StarFilled
-                iconSize='xl'
+                iconSize="xl"
                 iconColor={theme.colors.alert.base}
               />
             )}
           </IconButton>
           <IconButton>
             <Icon
-              fileName='more_vert'
-              iconSize='xl'
+              fileName="more_vert"
+              iconSize="xl"
               iconColor={theme.colors.dvt.text.bold}
             />
           </IconButton>
@@ -76,8 +76,8 @@ const DvtCard: React.FC<DvtCardProps> = ({
       <DvtCardLinkButton>
         <IconButton>
           <Icon
-            fileName='link'
-            iconSize='l'
+            fileName="link"
+            iconSize="l"
             iconColor={theme.colors.success.dark1}
           />
         </IconButton>
