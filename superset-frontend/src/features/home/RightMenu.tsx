@@ -46,6 +46,7 @@ import {
 import { RootState } from 'src/dashboard/types';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
 import { uploadUserPerms } from 'src/views/CRUD/utils';
+import TelemetryPixel from 'src/components/TelemetryPixel';
 import LanguagePicker from './LanguagePicker';
 import {
   ExtensionConfigs,
@@ -210,7 +211,7 @@ const RightMenu = ({
     },
     {
       label: t('SQL query'),
-      url: '/sqllab?new=true',
+      url: '/superset/sqllab?new=true',
       icon: 'fa-fw fa-search',
       perm: 'can_sqllab',
       view: 'Superset',
@@ -341,7 +342,7 @@ const RightMenu = ({
 
   return (
     <StyledDiv align={align}>
-      <img referrerPolicy="no-referrer-when-downgrade" src="https://static.scarf.sh/a.png?x-pxid=0d3461e1-abb1-4691-a0aa-5ed50de66af0&test=foo&test2=bar" />
+      <TelemetryPixel />
       {canDatabase && (
         <DatabaseModal
           onHide={handleOnHideModal}
@@ -475,7 +476,7 @@ const RightMenu = ({
             <Menu.ItemGroup key="user-section" title={t('User')}>
               {navbarRight.user_profile_url && (
                 <Menu.Item key="profile">
-                  <Link to={navbarRight.user_profile_url}>{t('Profile')}</Link>
+                  <a href={navbarRight.user_profile_url}>{t('Profile')}</a>
                 </Menu.Item>
               )}
               {navbarRight.user_info_url && (
