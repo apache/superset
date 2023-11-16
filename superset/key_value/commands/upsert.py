@@ -81,10 +81,7 @@ class UpsertKeyValueCommand(BaseCommand):
     def upsert(self) -> Key:
         filter_ = get_filter(self.resource, self.key)
         entry: KeyValueEntry = (
-            db.session.query(KeyValueEntry)
-            .filter_by(**filter_)
-            .autoflush(False)
-            .first()
+            db.session.query(KeyValueEntry).filter_by(**filter_).first()
         )
         if entry:
             entry.value = self.codec.encode(self.value)
