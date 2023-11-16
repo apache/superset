@@ -27,6 +27,15 @@ class MachineAuthProviderTests(SupersetTestCase):
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
         self.assertIsNotNone(auth_cookies["session"])
 
+    def test_get_auth_cookie_and_csrf_token(self):
+        user = self.get_user("admin")
+        (
+            auth_cookies,
+            csrf_token,
+        ) = machine_auth_provider_factory.instance.get_auth_cookie_and_csrf_token(user)
+        self.assertIsNotNone(auth_cookies["session"])
+        self.assertIsNotNone(csrf_token)
+
     @patch("superset.utils.machine_auth.MachineAuthProvider.get_auth_cookies")
     def test_auth_driver_user(self, get_auth_cookies):
         user = self.get_user("admin")

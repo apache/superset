@@ -291,11 +291,19 @@ def cache_warmup(
         return message
 
     user = security_manager.get_user_by_username(app.config["THUMBNAIL_SELENIUM_USER"])
-    cookies = MachineAuthProvider.get_auth_cookies(user)
-    headers = {
-        "Cookie": f"session={cookies.get('session', '')}",
-        "Content-Type": "application/json",
-    }
+    if app.config["WTF_CSRF_ENABLED"]:
+        cookies, csrf_token = MachineAuthProvider.get_auth_cookie_and_csrf_token(user)
+        headers = {
+            "Cookie": f"session={cookies.get('session', '')}",
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrf_token,
+        }
+    else:
+        cookies = MachineAuthProvider.get_auth_cookies(user)
+        headers = {
+            "Cookie": f"session={cookies.get('session', '')}",
+            "Content-Type": "application/json",
+        }
 
     results: dict[str, list[str]] = {"scheduled": [], "errors": []}
     for payload in strategy.get_payloads():
