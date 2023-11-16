@@ -622,7 +622,7 @@ class TagRestApi(BaseSupersetModelRestApi):
         ---
         get:
           description: >-
-            Check favorited dashboards for current user
+            Check favorited tags for current user
           parameters:
           - in: query
             name: q
