@@ -17,10 +17,12 @@
 # isort:skip_file
 """Unit tests for Superset"""
 import json
+from datetime import datetime
 
 from flask import g
 import pytest
 import prison
+from freezegun import freeze_time
 from sqlalchemy.sql import func
 from sqlalchemy import and_
 from superset.models.dashboard import Dashboard
@@ -35,7 +37,7 @@ from superset import db, security_manager
 from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database
 from superset.utils.database import get_example_database, get_main_database
-from superset.tags.models import ObjectTypes, Tag, TagTypes, TaggedObject
+from superset.tags.models import ObjectType, Tag, TagType, TaggedObject
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -47,7 +49,7 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
 from tests.integration_tests.fixtures.tags import with_tagging_system_feature
 from tests.integration_tests.base_tests import SupersetTestCase
 from superset.daos.tag import TagDAO
-from superset.tags.models import ObjectTypes
+from superset.tags.models import ObjectType
 
 TAGS_FIXTURE_COUNT = 10
 
@@ -84,7 +86,7 @@ class TestTagApi(SupersetTestCase):
         self,
         tag_id: int,
         object_id: int,
-        object_type: ObjectTypes,
+        object_type: ObjectType,
     ) -> TaggedObject:
         tag = db.session.query(Tag).filter(Tag.id == tag_id).first()
         tagged_object = TaggedObject(
@@ -121,13 +123,14 @@ class TestTagApi(SupersetTestCase):
         """
         Query API: Test get query
         """
-        tag = self.insert_tag(
-            name="test get tag",
-            tag_type="custom",
-        )
-        self.login(username="admin")
-        uri = f"api/v1/tag/{tag.id}"
-        rv = self.client.get(uri)
+        with freeze_time(datetime.now()):
+            tag = self.insert_tag(
+                name="test get tag",
+                tag_type="custom",
+            )
+            self.login(username="admin")
+            uri = f"api/v1/tag/{tag.id}"
+            rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
         expected_result = {
             "changed_by": None,
@@ -135,7 +138,7 @@ class TestTagApi(SupersetTestCase):
             "created_by": None,
             "id": tag.id,
             "name": "test get tag",
-            "type": TagTypes.custom.value,
+            "type": TagType.custom.value,
         }
         data = json.loads(rv.data.decode("utf-8"))
         for key, value in expected_result.items():
@@ -192,7 +195,7 @@ class TestTagApi(SupersetTestCase):
             .first()
         )
         dashboard_id = dashboard.id
-        dashboard_type = ObjectTypes.dashboard.value
+        dashboard_type = ObjectType.dashboard.value
         uri = f"api/v1/tag/{dashboard_type}/{dashboard_id}/"
         example_tag_names = ["example_tag_1", "example_tag_2"]
         data = {"properties": {"tags": example_tag_names}}
@@ -207,7 +210,7 @@ class TestTagApi(SupersetTestCase):
         tagged_objects = db.session.query(TaggedObject).filter(
             TaggedObject.tag_id.in_(tag_ids),
             TaggedObject.object_id == dashboard_id,
-            TaggedObject.object_type == ObjectTypes.dashboard,
+            TaggedObject.object_type == ObjectType.dashboard,
         )
         assert tagged_objects.count() == 2
         # clean up tags and tagged objects
@@ -225,7 +228,7 @@ class TestTagApi(SupersetTestCase):
     def test_delete_tagged_objects(self):
         self.login(username="admin")
         dashboard_id = 1
-        dashboard_type = ObjectTypes.dashboard
+        dashboard_type = ObjectType.dashboard
         tag_names = ["example_tag_1", "example_tag_2"]
         tags = db.session.query(Tag).filter(Tag.name.in_(tag_names))
         assert tags.count() == 2
@@ -295,7 +298,7 @@ class TestTagApi(SupersetTestCase):
             .first()
         )
         dashboard_id = dashboard.id
-        dashboard_type = ObjectTypes.dashboard
+        dashboard_type = ObjectType.dashboard
         tag_names = ["example_tag_1", "example_tag_2"]
         tags = db.session.query(Tag).filter(Tag.name.in_(tag_names))
         for tag in tags:
@@ -331,7 +334,7 @@ class TestTagApi(SupersetTestCase):
             .first()
         )
         dashboard_id = dashboard.id
-        dashboard_type = ObjectTypes.dashboard
+        dashboard_type = ObjectType.dashboard
         tag_names = ["example_tag_1", "example_tag_2"]
         tags = db.session.query(Tag).filter(Tag.name.in_(tag_names))
         for tag in tags:
@@ -480,7 +483,7 @@ class TestTagApi(SupersetTestCase):
         user_id = self.get_user(username="admin").get_id()
         tag = (
             db.session.query(Tag)
-            .filter(Tag.name == "my_tag", Tag.type == TagTypes.custom)
+            .filter(Tag.name == "my_tag", Tag.type == TagType.custom)
             .one_or_none()
         )
         assert tag is not None
@@ -576,13 +579,13 @@ class TestTagApi(SupersetTestCase):
 
         tagged_objects = db.session.query(TaggedObject).filter(
             TaggedObject.object_id == dashboard.id,
-            TaggedObject.object_type == ObjectTypes.dashboard,
+            TaggedObject.object_type == ObjectType.dashboard,
         )
         assert tagged_objects.count() == 2
 
         tagged_objects = db.session.query(TaggedObject).filter(
             TaggedObject.object_id == chart.id,
-            TaggedObject.object_type == ObjectTypes.chart,
+            TaggedObject.object_type == ObjectType.chart,
         )
         assert tagged_objects.count() == 2
 

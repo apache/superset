@@ -48,7 +48,12 @@ from superset.extensions import celery_app
 from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
-from superset.sql_parse import CtasMethod, insert_rls, ParsedQuery
+from superset.sql_parse import (
+    CtasMethod,
+    insert_rls_as_subquery,
+    insert_rls_in_predicate,
+    ParsedQuery,
+)
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.utils import write_ipc_buffer
 from superset.utils.celery import session_scope
@@ -191,7 +196,7 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                 return handle_query_error(ex, query, session)
 
 
-def execute_sql_statement(  # pylint: disable=too-many-arguments
+def execute_sql_statement(  # pylint: disable=too-many-arguments, too-many-locals
     sql_statement: str,
     query: Query,
     session: Session,
@@ -205,6 +210,16 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments
 
     parsed_query = ParsedQuery(sql_statement)
     if is_feature_enabled("RLS_IN_SQLLAB"):
+        # There are two ways to insert RLS: either replacing the table with a subquery
+        # that has the RLS, or appending the RLS to the ``WHERE`` clause. The former is
+        # safer, but not supported in all databases.
+        insert_rls = (
+            insert_rls_as_subquery
+            if database.db_engine_spec.allows_subqueries
+            and database.db_engine_spec.allows_alias_in_select
+            else insert_rls_in_predicate
+        )
+
         # Insert any applicable RLS predicates
         parsed_query = ParsedQuery(
             str(

@@ -22,7 +22,7 @@ from marshmallow import fields, post_load, pre_load, Schema
 from marshmallow.validate import Length, ValidationError
 
 from superset.exceptions import SupersetException
-from superset.tags.models import TagTypes
+from superset.tags.models import TagType
 from superset.utils import core as utils
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -169,7 +169,7 @@ class RolesSchema(Schema):
 class TagSchema(Schema):
     id = fields.Int()
     name = fields.String()
-    type = fields.Enum(TagTypes, by_value=True)
+    type = fields.Enum(TagType, by_value=True)
 
 
 class DashboardGetResponseSchema(Schema):

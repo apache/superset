@@ -55,7 +55,7 @@ def test_create_command_success(session_with_data: Session, mocker: MockFixture)
     from superset.models.slice import Slice
     from superset.models.sql_lab import Query, SavedQuery
     from superset.tags.commands.create import CreateCustomTagWithRelationshipsCommand
-    from superset.tags.models import ObjectTypes, TaggedObject
+    from superset.tags.models import ObjectType, TaggedObject
 
     # Define a list of objects to tag
     query = session_with_data.query(SavedQuery).first()
@@ -69,9 +69,9 @@ def test_create_command_success(session_with_data: Session, mocker: MockFixture)
     mocker.patch("superset.daos.query.SavedQueryDAO.find_by_id", return_value=query)
 
     objects_to_tag = [
-        (ObjectTypes.query, query.id),
-        (ObjectTypes.chart, chart.id),
-        (ObjectTypes.dashboard, dashboard.id),
+        (ObjectType.query, query.id),
+        (ObjectType.chart, chart.id),
+        (ObjectType.dashboard, dashboard.id),
     ]
 
     CreateCustomTagWithRelationshipsCommand(
@@ -98,7 +98,7 @@ def test_create_command_success_clear(session_with_data: Session, mocker: MockFi
     from superset.models.slice import Slice
     from superset.models.sql_lab import Query, SavedQuery
     from superset.tags.commands.create import CreateCustomTagWithRelationshipsCommand
-    from superset.tags.models import ObjectTypes, TaggedObject
+    from superset.tags.models import ObjectType, TaggedObject
 
     # Define a list of objects to tag
     query = session_with_data.query(SavedQuery).first()
@@ -112,9 +112,9 @@ def test_create_command_success_clear(session_with_data: Session, mocker: MockFi
     mocker.patch("superset.daos.query.SavedQueryDAO.find_by_id", return_value=query)
 
     objects_to_tag = [
-        (ObjectTypes.query, query.id),
-        (ObjectTypes.chart, chart.id),
-        (ObjectTypes.dashboard, dashboard.id),
+        (ObjectType.query, query.id),
+        (ObjectType.chart, chart.id),
+        (ObjectType.dashboard, dashboard.id),
     ]
 
     CreateCustomTagWithRelationshipsCommand(
