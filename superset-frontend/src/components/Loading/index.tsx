@@ -35,8 +35,8 @@ export interface Props {
 
 const LoaderImg = styled.img`
   z-index: 99;
-  width: 50px;
-  height: unset;
+  width: 100px;
+  height: 30px;
   position: relative;
   margin: 10px;
   &.inline {

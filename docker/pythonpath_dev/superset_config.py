@@ -133,6 +133,9 @@ CORS_OPTIONS = {
 OVERRIDE_HTTP_HEADERS = {'X-Frame-Options': 'ALLOWALL'}
 TALISMAN_ENABLED = False
 
+from security import CustomSecurityManager
+CUSTOM_SECURITY_MANAGER = CustomSecurityManager
+
 #
 # Optionally import superset_config_docker.py (which will have been included on
 # the PYTHONPATH) in order to allow for local settings to be overridden

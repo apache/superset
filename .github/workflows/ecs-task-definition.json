@@ -18,7 +18,7 @@
             "environment": [
                 {
                     "name": "SUPERSET_LOAD_EXAMPLES",
-                    "value": "yes"
+                    "value": "no"
                 },
                 {
                     "name": "SUPERSET_PORT",
