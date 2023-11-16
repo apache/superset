@@ -584,7 +584,7 @@ class TagRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        tagIds = [
+        tag_ids = [
             tag_id for tag_id in request.args.get("tagIds", "").split(",") if tag_id
         ]
         tags = [tag for tag in request.args.get("tags", "").split(",") if tag]
@@ -592,10 +592,10 @@ class TagRestApi(BaseSupersetModelRestApi):
         types = [type_ for type_ in request.args.get("types", "").split(",") if type_]
 
         try:
-            if tagIds:
+            if tag_ids:
                 # priotize using ids for lookups vs. names mainly using this
                 # for backward compatibility
-                tagged_objects = TagDAO.get_tagged_objects_by_tag_id(tagIds, types)
+                tagged_objects = TagDAO.get_tagged_objects_by_tag_id(tag_ids, types)
             else:
                 tagged_objects = TagDAO.get_tagged_objects_for_tags(tags, types)
 
