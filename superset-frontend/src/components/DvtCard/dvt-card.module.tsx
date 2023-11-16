@@ -7,12 +7,12 @@ const StyledDvtCard = styled.div`
   height: 166px;
   width: 264px;
   flex-shrink: 0;
-  background-color: ${({ theme }) => theme.colors.grayscale.light4};
+  background-color: ${({ theme }) => theme.colors.grayscale.light5};
   border-radius: 12px;
   transition: 0.3s ease;
 
   &:hover {
-    box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.1);
   }
 `;
 
@@ -39,7 +39,11 @@ const DvtHeadButtons = styled.div`
   gap: 5px;
 `;
 
-const IconButton = styled.button`
+interface IconButtonProps {
+  fadeScale?: boolean;
+}
+
+const IconButton = styled.button<IconButtonProps>`
   display: flex;
   border: none;
   padding: 0;
@@ -47,21 +51,23 @@ const IconButton = styled.button`
   background-color: transparent;
   cursor: pointer;
   justify-content: space-between;
+  transition: transform 0.2s ease;
 
   & .anticon {
     display: flex;
   }
-  &:hover {
-    transition: transform 0.2s ease;
+
+  ${({ fadeScale }) =>
+    fadeScale &&
+    `&:hover {
     transform: scale(1.3);
-  }
+  }`}
 `;
 
 const DvtCardLabel = styled.div`
   position: relative;
   color: ${({ theme }) => theme.colors.dvt.info.base};
   font-size: 12px;
-  font-style: normal;
   font-weight: 500;
   padding-left: 10px;
   margin: 10px 0;
@@ -82,14 +88,11 @@ const DvtCardLabel = styled.div`
 
 const DvtCardDescription = styled.div`
   font-size: 12px;
-  font-style: normal;
   font-weight: 400;
   line-height: 160%;
   height: 57px;
   color: ${({ theme }) => theme.colors.dvt.text.label};
-  text-overflow: ellipsis;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  word-break: break-all;
 `;
 
 const DvtCardLinkButton = styled.div`

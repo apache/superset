@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import DvtCard, { DvtCardProps } from '.';
+import { supersetTheme } from '@superset-ui/core';
 
 export default {
   title: 'Dvt-Components/DvtCard',
@@ -12,7 +13,17 @@ export default {
 export const Default = (args: DvtCardProps) => {
   const [isFavorite, setIsFavorite] = useState<boolean>(false);
 
-  return <DvtCard {...args} isFavorite={isFavorite} setFavorite={setIsFavorite}/>;
+  return (
+    <div
+      style={{
+        padding: 20,
+        backgroundColor: supersetTheme.colors.dvt.grayscale.light2,
+        height: '88vh',
+      }}
+    >
+      <DvtCard {...args} isFavorite={isFavorite} setFavorite={setIsFavorite} />
+    </div>
+  );
 };
 
 Default.args = {

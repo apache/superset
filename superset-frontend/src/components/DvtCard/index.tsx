@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useHistory } from 'react-router-dom';
 import {
   DvtCardDescription,
   DvtCardLinkButton,
@@ -10,8 +11,8 @@ import {
   StyledDvtCard,
 } from './dvt-card.module';
 import Icons from '../Icons';
-import { theme } from 'src/preamble';
 import Icon from '../Icons/Icon';
+import { supersetTheme } from '@superset-ui/core';
 
 export interface DvtCardProps {
   title: string;
@@ -19,6 +20,7 @@ export interface DvtCardProps {
   description: string;
   isFavorite: boolean;
   setFavorite: React.Dispatch<React.SetStateAction<boolean>>;
+  link?: string;
 }
 
 const DvtCard: React.FC<DvtCardProps> = ({
@@ -27,38 +29,37 @@ const DvtCard: React.FC<DvtCardProps> = ({
   description,
   isFavorite,
   setFavorite,
+  link = '',
 }) => {
-  const maxTitleLength = 20;
-  const maxDescriptionLength = 100;
+  const history = useHistory();
+  const [hoverOnLink, setHoverOnLink] = useState<boolean>(false);
 
-  const truncatedTitle =
-    title.length > maxTitleLength
-      ? `${title.slice(0, maxTitleLength)}...`
-      : title;
-  const truncatedDescription =
-    description.length > maxDescriptionLength
-      ? `${description.slice(0, maxDescriptionLength)}...`
-      : description;
+  const truncatedFormat = (text: string, maxLength: number) => {
+    return text.length > maxLength ? `${text.slice(0, maxLength)}...` : text;
+  };
 
   const handleFavoriteClick = () => {
     setFavorite(!isFavorite);
   };
 
   return (
-    <StyledDvtCard>
+    <StyledDvtCard
+      onMouseOver={() => !hoverOnLink && setHoverOnLink(true)}
+      onMouseLeave={() => setHoverOnLink(false)}
+    >
       <DvtCardHead>
-        <DvtCardTitle>{truncatedTitle}</DvtCardTitle>
+        <DvtCardTitle>{truncatedFormat(title, 17)}</DvtCardTitle>
         <DvtHeadButtons>
           <IconButton onClick={handleFavoriteClick}>
             {!isFavorite ? (
               <Icons.StarOutlined
                 iconSize="xl"
-                iconColor={theme.colors.dvt.text.bold}
+                iconColor={supersetTheme.colors.dvt.text.bold}
               />
             ) : (
               <Icons.StarFilled
                 iconSize="xl"
-                iconColor={theme.colors.alert.base}
+                iconColor={supersetTheme.colors.alert.base}
               />
             )}
           </IconButton>
@@ -66,21 +67,25 @@ const DvtCard: React.FC<DvtCardProps> = ({
             <Icon
               fileName="more_vert"
               iconSize="xl"
-              iconColor={theme.colors.dvt.text.bold}
+              iconColor={supersetTheme.colors.dvt.text.bold}
             />
           </IconButton>
         </DvtHeadButtons>
       </DvtCardHead>
-      <DvtCardLabel>{label}</DvtCardLabel>
-      <DvtCardDescription>{truncatedDescription}</DvtCardDescription>
+      <DvtCardLabel>{truncatedFormat(label, 25)}</DvtCardLabel>
+      <DvtCardDescription>
+        {truncatedFormat(description, 100)}
+      </DvtCardDescription>
       <DvtCardLinkButton>
-        <IconButton>
-          <Icon
-            fileName="link"
-            iconSize="l"
-            iconColor={theme.colors.success.dark1}
-          />
-        </IconButton>
+        {hoverOnLink && (
+          <IconButton fadeScale onClick={() => link && history.push(link)}>
+            <Icon
+              fileName="link"
+              iconSize="l"
+              iconColor={supersetTheme.colors.success.dark1}
+            />
+          </IconButton>
+        )}
       </DvtCardLinkButton>
     </StyledDvtCard>
   );
