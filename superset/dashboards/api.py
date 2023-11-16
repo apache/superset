@@ -33,7 +33,7 @@ from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
-from superset import is_feature_enabled, security_manager, thumbnail_cache
+from superset import is_feature_enabled, thumbnail_cache
 from superset.charts.schemas import ChartEntityResponseSchema
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
@@ -66,9 +66,7 @@ from superset.dashboards.filters import (
 from superset.dashboards.schemas import (
     DashboardCopySchema,
     DashboardDatasetSchema,
-    DashboardDatasetSchemaGuest,
     DashboardGetResponseSchema,
-    DashboardGetResponseSchemaGuest,
     DashboardPostSchema,
     DashboardPutSchema,
     EmbeddedDashboardConfigSchema,
@@ -240,9 +238,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     chart_entity_response_schema = ChartEntityResponseSchema()
     dashboard_get_response_schema = DashboardGetResponseSchema()
     # pylint: disable=invalid-name
-    dashboard_get_response_schema_guest = DashboardGetResponseSchemaGuest()
     dashboard_dataset_schema = DashboardDatasetSchema()
-    dashboard_dataset_schema_guest = DashboardDatasetSchemaGuest()
     embedded_response_schema = EmbeddedDashboardResponseSchema()
     embedded_config_schema = EmbeddedDashboardConfigSchema()
 
@@ -346,12 +342,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        schema = (
-            self.dashboard_get_response_schema_guest
-            if security_manager.is_guest_user()
-            else self.dashboard_get_response_schema
-        )
-        result = schema.dump(dash)
+        result = self.dashboard_get_response_schema.dump(dash)
 
         add_extra_log_payload(
             dashboard_id=dash.id, action=f"{self.__class__.__name__}.get"
@@ -413,12 +404,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         """
         try:
             datasets = DashboardDAO.get_datasets_for_dashboard(id_or_slug)
-            schema = (
-                self.dashboard_dataset_schema_guest
-                if security_manager.is_guest_user()
-                else self.dashboard_dataset_schema
-            )
-            result = [schema.dump(dataset) for dataset in datasets]
+            result = [
+                self.dashboard_dataset_schema.dump(dataset) for dataset in datasets
+            ]
             return self.response(200, result=result)
         except (TypeError, ValueError) as err:
             return self.response_400(

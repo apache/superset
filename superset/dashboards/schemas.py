@@ -21,6 +21,7 @@ from typing import Any, Union
 from marshmallow import fields, post_dump, post_load, pre_load, Schema
 from marshmallow.validate import Length, ValidationError
 
+from superset import security_manager
 from superset.exceptions import SupersetException
 from superset.tags.models import TagTypes
 from superset.utils import core as utils
@@ -172,7 +173,7 @@ class TagSchema(Schema):
     type = fields.Enum(TagTypes, by_value=True)
 
 
-class DashboardGetResponseSchemaGuest(Schema):
+class DashboardGetResponseSchema(Schema):
     id = fields.Int()
     slug = fields.String()
     url = fields.String()
@@ -188,6 +189,8 @@ class DashboardGetResponseSchemaGuest(Schema):
     certification_details = fields.String(
         metadata={"description": certification_details_description}
     )
+    changed_by_name = fields.String()
+    changed_by = fields.Nested(UserSchema(exclude=["username"]))
     changed_on = fields.DateTime()
     charts = fields.List(fields.String(metadata={"description": charts_description}))
     owners = fields.List(fields.Nested(UserSchema(exclude=["username"])))
@@ -199,16 +202,10 @@ class DashboardGetResponseSchemaGuest(Schema):
     # pylint: disable=unused-argument
     @post_dump()
     def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
-        serialized["owners"] = []
-        return serialized
-
-
-class DashboardGetResponseSchema(DashboardGetResponseSchemaGuest):
-    changed_by_name = fields.String()
-    changed_by = fields.Nested(UserSchema(exclude=["username"]))
-
-    @post_dump()
-    def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        if security_manager.is_guest_user():
+            serialized["owners"] = []
+            del serialized["changed_by_name"]
+            del serialized["changed_by"]
         return serialized
 
 
@@ -223,11 +220,12 @@ class DatabaseSchema(Schema):
     explore_database_id = fields.Int()
 
 
-class DashboardDatasetSchemaGuest(Schema):
+class DashboardDatasetSchema(Schema):
     id = fields.Int()
     uid = fields.Str()
     column_formats = fields.Dict()
     currency_formats = fields.Dict()
+    database = fields.Nested(DatabaseSchema)
     default_endpoint = fields.String()
     filter_select = fields.Bool()
     filter_select_enabled = fields.Bool()
@@ -262,15 +260,9 @@ class DashboardDatasetSchemaGuest(Schema):
     # pylint: disable=unused-argument
     @post_dump()
     def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
-        serialized["owners"] = []
-        return serialized
-
-
-class DashboardDatasetSchema(DashboardDatasetSchemaGuest):
-    database = fields.Nested(DatabaseSchema)
-
-    @post_dump()
-    def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        if security_manager.is_guest_user():
+            serialized["owners"] = []
+            del serialized["database"]
         return serialized
 
 
