@@ -123,3 +123,25 @@ export interface AlertsReportsConfig {
   ALERT_REPORTS_DEFAULT_RETENTION: number;
   ALERT_REPORTS_DEFAULT_CRON_VALUE: string;
 }
+
+export type SectionValidationObject = {
+  status: boolean;
+  errors: string[];
+  name: string;
+};
+
+export interface ValidationObject {
+  generalSection: SectionValidationObject;
+  contentSection: SectionValidationObject;
+  alertConditionSection: SectionValidationObject;
+  scheduleSection: SectionValidationObject;
+  notificationSection: SectionValidationObject;
+}
+
+export enum Sections {
+  GENERAL = 'generalSection',
+  CONTENT = 'contentSection',
+  ALERT = 'alertConditionSection',
+  SCHEDULE = 'scheduleSection',
+  NOTIFICATION = 'notificationSection',
+}
