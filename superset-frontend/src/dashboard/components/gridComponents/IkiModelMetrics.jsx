@@ -248,11 +248,9 @@ class IkiModelMetrics extends React.PureComponent {
       this.updateMarkdownContent();
       nextState.hasError = false;
     }
-
     this.setState(nextState);
 
     let widgetUrl;
-
     if (
       document.getElementById(
         `ikimodelmetrics-widget-${this.props.component.id}`,

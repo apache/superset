@@ -251,7 +251,6 @@ class IkiExplainability extends React.PureComponent {
               );
 
               widgetUrl.search = widgetUrlQuery.toString();
-
               const tempIframe = `<iframe
                       id="ikiexplainability-widget-${this.props.component.id}"
                       name="run-flow-component"
