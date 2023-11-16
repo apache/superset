@@ -329,7 +329,7 @@ class IkiRunPipeline extends React.PureComponent {
   }
 
   handleChangeFocus(nextFocus) {
-    console.log(nextFocus);
+    return nextFocus;
     // const nextFocused = !!nextFocus;
     // const nextEditMode = nextFocused ? 'edit' : 'preview';
     // this.setState(() => ({ isFocused: nextFocused }));

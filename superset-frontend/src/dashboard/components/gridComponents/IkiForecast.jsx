@@ -1,3 +1,33 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+/**
+ * COMPONENT: RUN FLOW
+ * WIDGET FRONTEND URL EXAMPLE: http://localhost:3000/widget/pipeline/run?mode=preview&v=1&run_flow_times=1661354875318&pipeline_id=2Dj9IKLHAsi3W3euDQo2Vx6Gupt&submit_button_label=r1&pipeline_log_type=full-log&edit_variables=no
+ * PARAMETERS:
+ * mode=preview
+ * v=1
+ * run_flow_times=1661354875318
+ * pipeline_id=2Dj9IKLHAsi3W3euDQo2Vx6Gupt
+ * submit_button_label=r1
+ * pipeline_log_type=full-log
+ * edit_variables=no
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
@@ -55,11 +85,13 @@ const propTypes = {
   updateComponents: PropTypes.func.isRequired,
 };
 
+const timestamp = new Date().getTime().toString();
+
 const defaultProps = {};
 
 const MARKDOWN_ERROR_MESSAGE = t('This component has an error.');
 
-class IkiModelMetrics extends React.PureComponent {
+class IkiExplainability extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -162,7 +194,6 @@ class IkiModelMetrics extends React.PureComponent {
   // eslint-disable-next-line class-methods-use-this
   handleIncomingWindowMsg() {
     window.addEventListener('message', event => {
-      // console.log('event.origin', event.origin, this.props.ikigaiOrigin);
       if (event.origin === this.props.ikigaiOrigin) {
         // if (event.origin === 'http://localhost:3000') {
         const messageObject = JSON.parse(event.data);
@@ -179,48 +210,61 @@ class IkiModelMetrics extends React.PureComponent {
           } else {
             messageData = messageObject.data;
           }
+
           if (
             document.getElementById(
-              `ikimodelmetrics-widget-${this.props.component.id}`,
+              `ikiexplainability-widget-${this.props.component.id}`,
             )
           ) {
             widgetUrl = new URL(
               document.getElementById(
-                `ikimodelmetrics-widget-${this.props.component.id}`,
+                `ikiexplainability-widget-${this.props.component.id}`,
               ).src,
             );
             widgetUrlQueryMode = widgetUrl.searchParams.get('mode');
           } else {
-            widgetUrl = `${this.props.ikigaiOrigin}/widget/model-metrics`;
+            widgetUrl = `${this.props.ikigaiOrigin}/widget/explainability?mode=edit`;
           }
 
-          if (messageObject.info === 'widget-to-superset/sending-dataset-id') {
+          if (
+            messageObject.info ===
+            'widget-to-superset/sending-alias-dataset-ids'
+          ) {
             if (widgetUrlQueryMode === 'edit') {
               widgetUrlQuery = new URLSearchParams(widgetUrl.search);
               widgetUrlQuery.set('mode', 'preview');
-              widgetUrlQuery.set('alias_id', messageData.alias_id);
-              widgetUrlQuery.set('dataset_id', messageData.dataset_id);
+              widgetUrlQuery.set(
+                'forecast_alias_id',
+                messageData.forecastAliasId,
+              );
+              widgetUrlQuery.set(
+                'insights_alias_id',
+                messageData.insightsAliasId,
+              );
+              widgetUrlQuery.set(
+                'seasonality_alias_id',
+                messageData.seasonalityAliasId,
+              );
+              widgetUrlQuery.set(
+                'sku_comp_alias_id',
+                messageData.skuCompositionAliasId,
+              );
 
               widgetUrl.search = widgetUrlQuery.toString();
-              const tempIframe = `<iframe  
-                      id="ikimodelmetrics-widget-${this.props.component.id}"
-                      name="model-metrics-component"
+              console.info(widgetUrl);
+              const tempIframe = `<iframe
+                      id="ikiexplainability-widget-${this.props.component.id}"
+                      name="run-flow-component"
                       src="${widgetUrl}"
-                      title="IkiModelMetrics Component"
-                      className="ikimodelmetrics-widget"
+                      title="IkiExplainability Component"
+                      className="ikiexplainability-widget"
                       style="min-height: 100%;"
                     />`;
-              this.handleIkiModelMetricsChange(tempIframe);
+              this.handleIkiRunPipelineChange(tempIframe);
             }
           }
         }
       }
-    });
-  }
-
-  refreshCharts(selectedCharts) {
-    selectedCharts.forEach(selectedChart => {
-      this.refreshChart(selectedChart.id, this.state.dashboardId, false);
     });
   }
 
@@ -231,8 +275,7 @@ class IkiModelMetrics extends React.PureComponent {
     });
   }
 
-  handleChangeFocus(nextFocus) {
-    return nextFocus;
+  handleChangeFocus() {
     // const nextFocused = !!nextFocus;
     // const nextEditMode = nextFocused ? 'edit' : 'preview';
     // this.setState(() => ({ isFocused: nextFocused }));
@@ -253,31 +296,41 @@ class IkiModelMetrics extends React.PureComponent {
 
     let widgetUrl;
 
+    const chartsList = [];
+    const allChartElements = document.querySelectorAll('[data-test-chart-id]');
+    allChartElements.forEach(chartElement => {
+      const tempChartID = chartElement.getAttribute('data-test-chart-id');
+      const tempChartName = chartElement.getAttribute('data-test-chart-name');
+      chartsList.push({ id: tempChartID, name: tempChartName });
+    });
     if (
       document.getElementById(
-        `ikimodelmetrics-widget-${this.props.component.id}`,
+        `ikiexplainability-widget-${this.props.component.id}`,
       )
     ) {
       widgetUrl = new URL(
         document.getElementById(
-          `ikimodelmetrics-widget-${this.props.component.id}`,
+          `ikiexplainability-widget-${this.props.component.id}`,
         ).src,
       );
     } else {
-      widgetUrl = `${this.props.ikigaiOrigin}/widget/model-metrics`;
+      widgetUrl = `${this.props.ikigaiOrigin}/widget/explainability?mode=edit`;
     }
     const widgetUrlQuery = new URLSearchParams(widgetUrl.search);
     widgetUrlQuery.set('mode', mode);
+    const jsonString2 = JSON.stringify(chartsList);
+    const base64String2 = Buffer.from(jsonString2).toString('base64');
+    widgetUrlQuery.set('charts_list', base64String2);
     widgetUrl.search = widgetUrlQuery.toString();
     const tempIframe = `<iframe
-                      id="ikimodelmetrics-widget-${this.props.component.id}"
-                      name="model-metrics-component"
+                      id="ikiexplainability-widget-${this.props.component.id}"
+                      name="run-flow-component"
                       src="${widgetUrl}"
-                      title="ikimodelmetrics Component"
-                      className="ikimodelmetrics-widget"
+                      title="IkiExplainability Component"
+                      className="ikiexplainability-widget"
                       style="min-height: 100%;"
                     />`;
-    this.handleIkiModelMetricsChange(tempIframe);
+    this.handleIkiRunPipelineChange(tempIframe);
   }
 
   updateMarkdownContent() {
@@ -301,16 +354,10 @@ class IkiModelMetrics extends React.PureComponent {
     });
   }
 
-  handleIkiModelMetricsChange(nextValue) {
-    this.setState(
-      {
-        markdownSource: nextValue,
-      },
-      () => {
-        // this.handleMarkdownChange();
-        // this.updateMarkdownContent();
-      },
-    );
+  handleIkiRunPipelineChange(nextValue) {
+    this.setState({
+      markdownSource: nextValue,
+    });
     const { updateComponents, component } = this.props;
     if (component.meta.code !== nextValue) {
       updateComponents({
@@ -356,25 +403,44 @@ class IkiModelMetrics extends React.PureComponent {
         const paramMode = iframeSrcUrl.searchParams.get('mode')
           ? iframeSrcUrl.searchParams.get('mode')
           : '';
-        const paramAliasId = iframeSrcUrl.searchParams.get('alias_id')
-          ? iframeSrcUrl.searchParams.get('alias_id')
+        // const paramTimestamp = iframeSrcUrl.searchParams.get('run_flow_times')
+        //   ? iframeSrcUrl.searchParams.get('run_flow_times')
+        //   : timestamp;
+
+        const paramForecastAliasId = iframeSrcUrl.searchParams.get(
+          'forecast_alias_id',
+        )
+          ? iframeSrcUrl.searchParams.get('forecast_alias_id')
           : '';
-        const paramDatasetId = iframeSrcUrl.searchParams.get('dataset_id')
-          ? iframeSrcUrl.searchParams.get('dataset_id')
+        const paramInsightsAliasId = iframeSrcUrl.searchParams.get(
+          'insights_alias_id',
+        )
+          ? iframeSrcUrl.searchParams.get('insights_alias_id')
           : '';
-        const newIframeSrc = `${ikigaiOrigin}/widget/model-metrics?mode=${paramMode}&dataset_id=${paramDatasetId}&alias_id=${paramAliasId}`;
-        // console.log('iframe', newIframeSrcUrl, iframeHtml);
+        const paramSeasonalityAliasId = iframeSrcUrl.searchParams.get(
+          'seasonality_alias_id',
+        )
+          ? iframeSrcUrl.searchParams.get('seasonality_alias_id')
+          : '';
+        const paramSkuCompositionAliasId = iframeSrcUrl.searchParams.get(
+          'sku_comp_alias_id',
+        )
+          ? iframeSrcUrl.searchParams.get('sku_comp_alias_id')
+          : '';
+
+        const newIframeSrc = `${ikigaiOrigin}/widget/explainability?mode=${paramMode}&v=1&forecast_alias_id=${paramForecastAliasId}&insights_alias_id=${paramInsightsAliasId}&seasonality_alias_id=${paramSeasonalityAliasId}&sku_comp_alias_id=${paramSkuCompositionAliasId}`;
+
         iframeSrc = newIframeSrc;
       } else {
-        iframeSrc = `${ikigaiOrigin}/widget/model-metrics?mode=edit`;
+        iframeSrc = `${ikigaiOrigin}/widget/explainability?mode=edit`;
       }
 
       iframe = `<iframe
-                    id="ikimodelmetrics-widget-${this.props.component.id}"
-                    name="model-metrics-component"
+                    id="ikiexplainability-widget-${this.props.component.id}"
+                    name="ikiexplainability-${timestamp}"
                     src="${iframeSrc}"
-                    title="IkiModelMetrics Component"
-                    className="ikimodelmetrics-widget"
+                    title="IkiExplainability Component"
+                    className="ikiexplainability-widget"
                     style="height: 100%;"
                   />`;
     } else {
@@ -452,8 +518,8 @@ class IkiModelMetrics extends React.PureComponent {
             <div
               data-test="dashboard-markdown-editor"
               className={cx(
-                'dashboard-component-ikirunpipeline',
-                // isEditing && 'dashboard-component-ikimodelmetrics--editing',
+                'dashboard-component-ikitable',
+                isEditing && 'dashboard-component-ikiexplainability--editing',
               )}
               id={component.id}
             >
@@ -495,8 +561,8 @@ class IkiModelMetrics extends React.PureComponent {
   }
 }
 
-IkiModelMetrics.propTypes = propTypes;
-IkiModelMetrics.defaultProps = defaultProps;
+IkiExplainability.propTypes = propTypes;
+IkiExplainability.defaultProps = defaultProps;
 
 function mapStateToProps(state) {
   return {
@@ -514,4 +580,4 @@ function mapDispatchToProps(dispatch) {
   );
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(IkiModelMetrics);
+export default connect(mapStateToProps, mapDispatchToProps)(IkiExplainability);

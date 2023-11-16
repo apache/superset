@@ -17,20 +17,19 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
 
-import { TABS_TYPE } from '../../../util/componentTypes';
-import { NEW_TABS_ID } from '../../../util/constants';
-import DraggableNewComponent from './DraggableNewComponent';
+import { MARKDOWN_TYPE } from '../../../../util/componentTypes';
+import { NEW_MARKDOWN_ID } from '../../../../util/constants';
+import DraggableNewComponent from '../DraggableNewComponent';
 
-export default function DraggableNewTabs() {
+export default function DraggableNewDivider() {
   return (
     <DraggableNewComponent
-      id={NEW_TABS_ID}
-      type={TABS_TYPE}
-      label={t('Tabs')}
-      description={t('Separate dashboard content')}
-      className="fa fa-window-restore"
+      id={NEW_MARKDOWN_ID}
+      type={MARKDOWN_TYPE}
+      label="Markdown"
+      description="HTML/CSS editor"
+      className="fa fa-code"
     />
   );
 }

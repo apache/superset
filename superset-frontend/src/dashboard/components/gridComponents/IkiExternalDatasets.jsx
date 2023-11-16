@@ -1,15 +1,37 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+/**
+ * COMPONENT: Demand Sensing Component
+ * WIDGET FRONTEND URL EXAMPLE: http://localhost:3000/widget/demand-sensing?mode=preview&pipeline_id=2Xu7cwsoaYAcWBUPpT53NI6BmPs&dataset_directory_id=2XcuQ4ZjfaZSv3FjSRJeYtsGcWH&metric_dataset_id=2XcueVqNYAMY5zFlAPflDYYpIS5&forecast_dataset_id=2XcuhD08LAAdvL9h0MeA2e4AWeC
+ * PARAMETERS:
+ * pipeline_id: string
+ * dataset_directory_id: string
+ * metric_dataset_id: string
+ * forecast_dataset_id: string
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import cx from 'classnames';
 
 import { t, SafeMarkdown } from '@superset-ui/core';
-import {
-  Logger,
-  LOG_ACTIONS_RENDER_CHART,
-  LOG_ACTIONS_FORCE_REFRESH_CHART,
-} from 'src/logger/LogUtils';
+import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { MarkdownEditor } from 'src/components/AsyncAceEditor';
 
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
@@ -24,7 +46,6 @@ import {
   GRID_MIN_ROW_UNITS,
   GRID_BASE_UNIT,
 } from 'src/dashboard/util/constants';
-import { refreshChart } from 'src/components/Chart/chartAction';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -55,21 +76,30 @@ const propTypes = {
   updateComponents: PropTypes.func.isRequired,
 };
 
+const timestamp = new Date().getTime().toString();
+
 const defaultProps = {};
 
 const MARKDOWN_ERROR_MESSAGE = t('This component has an error.');
 
-class IkiModelMetrics extends React.PureComponent {
+class IkiDemandSensing extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
       isFocused: false,
       markdownSource: props.component.meta.code,
+      // markdownSource: `<iframe
+      //                 id="ikidemandsensing-widget-${this.props.component.id}"
+      //                 name="demand-sensing-component"
+      //                 src="http://localhost:3000/widget/demand-sensing?mode=edit"
+      //                 title="IkiDemandSensing Component"
+      //                 className="ikidemandsensing-widget"
+      //                 style="min-height: 100%;"
+      //               />`,
       editor: null,
       editorMode: 'edit',
       undoLength: props.undoLength,
       redoLength: props.redoLength,
-      dashboardId: null,
     };
     this.renderStartTime = Logger.getTimestamp();
 
@@ -82,18 +112,13 @@ class IkiModelMetrics extends React.PureComponent {
   }
 
   componentDidMount() {
-    this.setState({
-      dashboardId: parseInt(
-        window.location.pathname.split('/dashboard/')[1].split('/')[0],
-        10,
-      ),
-    });
     this.props.logEvent(LOG_ACTIONS_RENDER_CHART, {
       viz_type: 'markdown',
       start_offset: this.renderStartTime,
       ts: new Date().getTime(),
       duration: Logger.getTimestamp() - this.renderStartTime,
     });
+
     this.handleIncomingWindowMsg();
   }
 
@@ -162,7 +187,6 @@ class IkiModelMetrics extends React.PureComponent {
   // eslint-disable-next-line class-methods-use-this
   handleIncomingWindowMsg() {
     window.addEventListener('message', event => {
-      // console.log('event.origin', event.origin, this.props.ikigaiOrigin);
       if (event.origin === this.props.ikigaiOrigin) {
         // if (event.origin === 'http://localhost:3000') {
         const messageObject = JSON.parse(event.data);
@@ -172,55 +196,59 @@ class IkiModelMetrics extends React.PureComponent {
           let messageData;
           let widgetUrl;
           let widgetUrlQuery;
-          let widgetUrlQueryMode;
 
           if (dataType === 'object') {
             messageData = JSON.parse(messageObject.data);
           } else {
             messageData = messageObject.data;
           }
+
           if (
             document.getElementById(
-              `ikimodelmetrics-widget-${this.props.component.id}`,
+              `ikidemandsensing-widget-${this.props.component.id}`,
             )
           ) {
             widgetUrl = new URL(
               document.getElementById(
-                `ikimodelmetrics-widget-${this.props.component.id}`,
+                `ikidemandsensing-widget-${this.props.component.id}`,
               ).src,
             );
-            widgetUrlQueryMode = widgetUrl.searchParams.get('mode');
           } else {
-            widgetUrl = `${this.props.ikigaiOrigin}/widget/model-metrics`;
+            widgetUrl = `${this.props.ikigaiOrigin}/widget/demand-sensing`;
           }
 
-          if (messageObject.info === 'widget-to-superset/sending-dataset-id') {
-            if (widgetUrlQueryMode === 'edit') {
-              widgetUrlQuery = new URLSearchParams(widgetUrl.search);
-              widgetUrlQuery.set('mode', 'preview');
-              widgetUrlQuery.set('alias_id', messageData.alias_id);
-              widgetUrlQuery.set('dataset_id', messageData.dataset_id);
-
-              widgetUrl.search = widgetUrlQuery.toString();
-              const tempIframe = `<iframe  
-                      id="ikimodelmetrics-widget-${this.props.component.id}"
-                      name="model-metrics-component"
+          if (
+            messageObject.info ===
+            'demandsensing-to-superset/sending-setup-data'
+          ) {
+            widgetUrlQuery = new URLSearchParams(widgetUrl.search);
+            widgetUrlQuery.set('mode', 'preview');
+            widgetUrlQuery.set('pipeline_id', messageData.pipeline_id);
+            widgetUrlQuery.set(
+              'dataset_directory_id',
+              messageData.dataset_directory_id,
+            );
+            widgetUrlQuery.set(
+              'metric_dataset_id',
+              messageData.metric_dataset_id,
+            );
+            widgetUrlQuery.set(
+              'forecast_dataset_id',
+              messageData.forecast_dataset_id,
+            );
+            widgetUrl.search = widgetUrlQuery.toString();
+            const tempIframe = `<iframe
+                      id="ikidemandsensing-widget-${this.props.component.id}"
+                      name="demand-sensing-component"
                       src="${widgetUrl}"
-                      title="IkiModelMetrics Component"
-                      className="ikimodelmetrics-widget"
+                      title="IkiDemandSensing Component"
+                      className="ikidemandsensing-widget"
                       style="min-height: 100%;"
                     />`;
-              this.handleIkiModelMetricsChange(tempIframe);
-            }
+            this.handleIkiDemandSensingChange(tempIframe);
           }
         }
       }
-    });
-  }
-
-  refreshCharts(selectedCharts) {
-    selectedCharts.forEach(selectedChart => {
-      this.refreshChart(selectedChart.id, this.state.dashboardId, false);
     });
   }
 
@@ -232,11 +260,10 @@ class IkiModelMetrics extends React.PureComponent {
   }
 
   handleChangeFocus(nextFocus) {
-    return nextFocus;
-    // const nextFocused = !!nextFocus;
-    // const nextEditMode = nextFocused ? 'edit' : 'preview';
-    // this.setState(() => ({ isFocused: nextFocused }));
-    // this.handleChangeEditorMode(nextEditMode);
+    const nextFocused = !!nextFocus;
+    const nextEditMode = nextFocused ? 'edit' : 'preview';
+    this.setState(() => ({ isFocused: nextFocused }));
+    this.handleChangeEditorMode(nextEditMode);
   }
 
   handleChangeEditorMode(mode) {
@@ -255,29 +282,29 @@ class IkiModelMetrics extends React.PureComponent {
 
     if (
       document.getElementById(
-        `ikimodelmetrics-widget-${this.props.component.id}`,
+        `ikidemandsensing-widget-${this.props.component.id}`,
       )
     ) {
       widgetUrl = new URL(
         document.getElementById(
-          `ikimodelmetrics-widget-${this.props.component.id}`,
+          `ikidemandsensing-widget-${this.props.component.id}`,
         ).src,
       );
     } else {
-      widgetUrl = `${this.props.ikigaiOrigin}/widget/model-metrics`;
+      widgetUrl = `${this.props.ikigaiOrigin}/widget/eitl/row`;
     }
     const widgetUrlQuery = new URLSearchParams(widgetUrl.search);
     widgetUrlQuery.set('mode', mode);
     widgetUrl.search = widgetUrlQuery.toString();
     const tempIframe = `<iframe
-                      id="ikimodelmetrics-widget-${this.props.component.id}"
-                      name="model-metrics-component"
+                      id="ikidemandsensing-widget-${this.props.component.id}"
+                      name="demand-sensing-component"
                       src="${widgetUrl}"
-                      title="ikimodelmetrics Component"
-                      className="ikimodelmetrics-widget"
+                      title="IkiDemandSensing Component"
+                      className="ikidemandsensing-widget"
                       style="min-height: 100%;"
                     />`;
-    this.handleIkiModelMetricsChange(tempIframe);
+    this.handleIkiDemandSensingChange(tempIframe);
   }
 
   updateMarkdownContent() {
@@ -301,7 +328,7 @@ class IkiModelMetrics extends React.PureComponent {
     });
   }
 
-  handleIkiModelMetricsChange(nextValue) {
+  handleIkiDemandSensingChange(nextValue) {
     this.setState(
       {
         markdownSource: nextValue,
@@ -348,7 +375,7 @@ class IkiModelMetrics extends React.PureComponent {
     let iframeSrc = '';
     if (ikigaiOrigin) {
       if (markdownSource) {
-        // iframe = markdownSource;
+        iframe = markdownSource;
         const iframeWrapper = document.createElement('div');
         iframeWrapper.innerHTML = markdownSource;
         const iframeHtml = iframeWrapper.firstChild;
@@ -356,25 +383,37 @@ class IkiModelMetrics extends React.PureComponent {
         const paramMode = iframeSrcUrl.searchParams.get('mode')
           ? iframeSrcUrl.searchParams.get('mode')
           : '';
-        const paramAliasId = iframeSrcUrl.searchParams.get('alias_id')
-          ? iframeSrcUrl.searchParams.get('alias_id')
+        const paramPipelineId = iframeSrcUrl.searchParams.get('pipeline_id')
+          ? iframeSrcUrl.searchParams.get('pipeline_id')
           : '';
-        const paramDatasetId = iframeSrcUrl.searchParams.get('dataset_id')
-          ? iframeSrcUrl.searchParams.get('dataset_id')
+        const paramDatasetDirectoryId = iframeSrcUrl.searchParams.get(
+          'dataset_directory_id',
+        )
+          ? iframeSrcUrl.searchParams.get('dataset_directory_id')
           : '';
-        const newIframeSrc = `${ikigaiOrigin}/widget/model-metrics?mode=${paramMode}&dataset_id=${paramDatasetId}&alias_id=${paramAliasId}`;
-        // console.log('iframe', newIframeSrcUrl, iframeHtml);
+        const paramMetricDatasetId = iframeSrcUrl.searchParams.get(
+          'metric_dataset_id',
+        )
+          ? iframeSrcUrl.searchParams.get('metric_dataset_id')
+          : '';
+        const paramForecastDatasetId = iframeSrcUrl.searchParams.get(
+          'forecast_dataset_id',
+        )
+          ? iframeSrcUrl.searchParams.get('forecast_dataset_id')
+          : '';
+
+        const newIframeSrc = `${ikigaiOrigin}/widget/demand-sensing?mode=${paramMode}&pipeline_id=${paramPipelineId}&dataset_directory_id=${paramDatasetDirectoryId}&metric_dataset_id=${paramMetricDatasetId}&forecast_dataset_id=${paramForecastDatasetId}`;
         iframeSrc = newIframeSrc;
       } else {
-        iframeSrc = `${ikigaiOrigin}/widget/model-metrics?mode=edit`;
+        iframeSrc = `${ikigaiOrigin}/widget/demand-sensing?mode=edit`;
       }
 
       iframe = `<iframe
-                    id="ikimodelmetrics-widget-${this.props.component.id}"
-                    name="model-metrics-component"
+                    id="ikidemandsensing-widget-${this.props.component.id}"
+                    name="demand-sensing-component-${timestamp}"
                     src="${iframeSrc}"
-                    title="IkiModelMetrics Component"
-                    className="ikimodelmetrics-widget"
+                    title="IkiDemandSensing Component"
+                    className="ikidemandsensing-widget"
                     style="height: 100%;"
                   />`;
     } else {
@@ -389,14 +428,6 @@ class IkiModelMetrics extends React.PureComponent {
 
   renderPreviewMode() {
     return this.renderIframe();
-  }
-
-  refreshChart(chartId, dashboardId, isCached) {
-    this.props.logEvent(LOG_ACTIONS_FORCE_REFRESH_CHART, {
-      slice_id: chartId,
-      is_cached: isCached,
-    });
-    return this.props.refreshChart(chartId, true, dashboardId);
   }
 
   render() {
@@ -453,7 +484,7 @@ class IkiModelMetrics extends React.PureComponent {
               data-test="dashboard-markdown-editor"
               className={cx(
                 'dashboard-component-ikirunpipeline',
-                // isEditing && 'dashboard-component-ikimodelmetrics--editing',
+                isEditing && 'dashboard-component-ikirunpipeline--editing',
               )}
               id={component.id}
             >
@@ -495,8 +526,8 @@ class IkiModelMetrics extends React.PureComponent {
   }
 }
 
-IkiModelMetrics.propTypes = propTypes;
-IkiModelMetrics.defaultProps = defaultProps;
+IkiDemandSensing.propTypes = propTypes;
+IkiDemandSensing.defaultProps = defaultProps;
 
 function mapStateToProps(state) {
   return {
@@ -505,13 +536,4 @@ function mapStateToProps(state) {
   };
 }
 
-function mapDispatchToProps(dispatch) {
-  return bindActionCreators(
-    {
-      refreshChart,
-    },
-    dispatch,
-  );
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(IkiModelMetrics);
+export default connect(mapStateToProps)(IkiDemandSensing);

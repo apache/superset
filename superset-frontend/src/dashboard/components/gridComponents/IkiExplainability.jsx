@@ -251,7 +251,7 @@ class IkiExplainability extends React.PureComponent {
               );
 
               widgetUrl.search = widgetUrlQuery.toString();
-              console.info(widgetUrl);
+
               const tempIframe = `<iframe
                       id="ikiexplainability-widget-${this.props.component.id}"
                       name="run-flow-component"
@@ -518,7 +518,7 @@ class IkiExplainability extends React.PureComponent {
             <div
               data-test="dashboard-markdown-editor"
               className={cx(
-                'dashboard-component-ikitable',
+                'dashboard-component-iikiexplainability',
                 isEditing && 'dashboard-component-ikiexplainability--editing',
               )}
               id={component.id}
