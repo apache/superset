@@ -342,7 +342,7 @@ const RightMenu = ({
 
   return (
     <StyledDiv align={align}>
-      <TelemetryPixel />
+      <TelemetryPixel version={navbarRight.version_string} sha={navbarRight.version_sha} build={navbarRight.build_number} />
       {canDatabase && (
         <DatabaseModal
           onHide={handleOnHideModal}
