@@ -146,6 +146,10 @@ function AllEntities() {
 
   const fetchTaggedObjects = () => {
     setLoading(true);
+    if (!tag) {
+      addDangerToast('Error tag object is not referenced!');
+      return;
+    }
     fetchObjectsByTagIds(
       { tagIds: [tag?.id] || '', types: null },
       (data: TaggedObject[]) => {
