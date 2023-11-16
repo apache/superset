@@ -758,7 +758,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         raise NotImplementedError()
 
     @property
-    def database(self) -> builtins.type["Database"]:
+    def database(self) -> "Database":
         raise NotImplementedError()
 
     @property
@@ -783,7 +783,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         self,
         template_processor: Optional[  # pylint: disable=unused-argument
             BaseTemplateProcessor
-        ] = None,  # pylint: disable=unused-argument
+        ] = None,
     ) -> TextClause:
         return self.fetch_values_predicate
 
@@ -792,7 +792,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         template_processor: BaseTemplateProcessor,
     ) -> list[TextClause]:
         """
-        Return the appropriate row level security filters for this table and the
+        Returns the appropriate row level security filters for this table and the
         current user. A custom username can be passed when the user is not present in the
         Flask global namespace.
 
@@ -896,7 +896,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         self, query_obj: QueryObjectDict, mutate: bool = True
     ) -> QueryStringExtended:
         sqlaq = self.get_sqla_query(**query_obj)
-        sql = self.database.compile_sqla_query(sqlaq.sqla_query)  # type: ignore
+        sql = self.database.compile_sqla_query(sqlaq.sqla_query)
         sql = self._apply_cte(sql, sqlaq.cte)
         sql = sqlparse.format(sql, reindent=True)
         if mutate:
@@ -935,7 +935,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             value = value.item()
 
         column_ = columns_by_name[dimension]
-        db_extra: dict[str, Any] = self.database.get_extra()  # type: ignore
+        db_extra: dict[str, Any] = self.database.get_extra()
 
         if isinstance(column_, dict):
             if (
@@ -1020,9 +1020,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             return df
 
         try:
-            df = self.database.get_df(
-                sql, self.schema, mutator=assign_column_label  # type: ignore
-            )
+            df = self.database.get_df(sql, self.schema, mutator=assign_column_label)
         except Exception as ex:  # pylint: disable=broad-except
             df = pd.DataFrame()
             status = QueryStatus.FAILED
@@ -1355,7 +1353,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if self.fetch_values_predicate:
             qry = qry.where(self.get_fetch_values_predicate(template_processor=tp))
 
-        with self.database.get_sqla_engine_with_context() as engine:  # type: ignore
+        with self.database.get_sqla_engine_with_context() as engine:
             sql = qry.compile(engine, compile_kwargs={"literal_binds": True})
             sql = self._apply_cte(sql, cte)
             sql = self.mutate_query_from_config(sql)
