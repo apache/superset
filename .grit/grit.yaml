@@ -1,0 +1,8 @@
+version: 0.0.1
+patterns:
+  - name: github.com/getgrit/js#*
+  - name: github.com/getgrit/python#*
+  - name: github.com/getgrit/json#*
+  - name: github.com/getgrit/hcl#*
+  - name: github.com/getgrit/js#react_to_hooks
+    level: info
