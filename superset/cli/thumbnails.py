@@ -56,13 +56,13 @@ logger = logging.getLogger(__name__)
     default=False,
     help="Force refresh, even if previously cached",
 )
-@click.option("--model_id", "-i", "model_ids", multiple=True)
+@click.option("--model_id", "-i", multiple=True)
 def compute_thumbnails(
     asynchronous: bool,
     dashboards_only: bool,
     charts_only: bool,
     force: bool,
-    model_ids: list[int],
+    model_id: list[int],
 ) -> None:
     """Compute thumbnails"""
     # pylint: disable=import-outside-toplevel
@@ -97,7 +97,7 @@ def compute_thumbnails(
 
     if not charts_only:
         compute_generic_thumbnail(
-            "dashboard", Dashboard, model_ids, cache_dashboard_thumbnail
+            "dashboard", Dashboard, model_id, cache_dashboard_thumbnail
         )
     if not dashboards_only:
-        compute_generic_thumbnail("chart", Slice, model_ids, cache_chart_thumbnail)
+        compute_generic_thumbnail("chart", Slice, model_id, cache_chart_thumbnail)
