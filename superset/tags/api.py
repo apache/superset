@@ -618,11 +618,11 @@ class TagRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def favorite_status(self, **kwargs: Any) -> Response:
-        """Favorite Stars for Dashboards
+        """Favorite Stars for Tags
         ---
         get:
           description: >-
-            Check favorited tags for current user
+            Get favorited tags for current user
           parameters:
           - in: query
             name: q
