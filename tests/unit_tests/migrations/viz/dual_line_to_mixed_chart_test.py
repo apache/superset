@@ -65,8 +65,4 @@ TARGET_FORM_DATA: dict[str, Any] = {
 def test_migration() -> None:
     source = SOURCE_FORM_DATA.copy()
     target = TARGET_FORM_DATA.copy()
-    upgrade_downgrade(source, target)
-
-
-def upgrade_downgrade(source, target) -> None:
     migrate_and_assert(MigrateDualLine, source, target)
