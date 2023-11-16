@@ -880,9 +880,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         """Apply config's SQL_QUERY_MUTATOR
 
         Typically adds comments to the query with context"""
-        if (sql_query_mutator := config.get("SQL_QUERY_MUTATOR")) and not config.get(
+        if (sql_query_mutator := config["SQL_QUERY_MUTATOR"]) and not config[
             "MUTATE_AFTER_SPLIT"
-        ):
+        ]:
             sql = sql_query_mutator(
                 sql,
                 security_manager=security_manager,
