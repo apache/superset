@@ -16,38 +16,24 @@
 # under the License.
 from typing import Any
 
-from superset.migrations.shared.migrate_viz import MigratePivotTable
-from tests.unit_tests.migrations.viz.utils import migrate_and_assert
+from superset.migrations.shared.migrate_viz import MigrateLineChart
+from tests.unit_tests.migrations.viz.utils import (
+    migrate_and_assert,
+    TIMESERIES_SOURCE_FORM_DATA,
+    TIMESERIES_TARGET_FORM_DATA,
+)
 
 SOURCE_FORM_DATA: dict[str, Any] = {
-    "any_other_key": "untouched",
-    "columns": ["state"],
-    "combine_metric": True,
-    "groupby": ["name"],
-    "number_format": "SMART_NUMBER",
-    "pandas_aggfunc": "sum",
-    "pivot_margins": True,
-    "timeseries_limit_metric": "count",
-    "transpose_pivot": True,
-    "viz_type": "pivot_table",
+    "viz_type": "line",
 }
 
 TARGET_FORM_DATA: dict[str, Any] = {
-    "any_other_key": "untouched",
-    "aggregateFunction": "Sum",
-    "colTotals": True,
-    "colSubTotals": True,
-    "combineMetric": True,
     "form_data_bak": SOURCE_FORM_DATA,
-    "groupbyColumns": ["state"],
-    "groupbyRows": ["name"],
-    "rowOrder": "value_z_to_a",
-    "series_limit_metric": "count",
-    "transposePivot": True,
-    "valueFormat": "SMART_NUMBER",
-    "viz_type": "pivot_table_v2",
+    "viz_type": "echarts_timeseries_line",
 }
 
 
 def test_migration() -> None:
-    migrate_and_assert(MigratePivotTable, SOURCE_FORM_DATA, TARGET_FORM_DATA)
+    SOURCE_FORM_DATA.update(TIMESERIES_SOURCE_FORM_DATA)
+    TARGET_FORM_DATA.update(TIMESERIES_TARGET_FORM_DATA)
+    migrate_and_assert(MigrateLineChart, SOURCE_FORM_DATA, TARGET_FORM_DATA)

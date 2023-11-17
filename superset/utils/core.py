@@ -72,7 +72,7 @@ from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql.type_api import Variant
-from sqlalchemy.types import TEXT, TypeDecorator, TypeEngine
+from sqlalchemy.types import TypeEngine
 from typing_extensions import TypeGuard
 
 from superset.constants import (
@@ -120,18 +120,6 @@ JS_MAX_INTEGER = 9007199254740991  # Largest int Java Script can handle 2^53-1
 InputType = TypeVar("InputType")  # pylint: disable=invalid-name
 
 ADHOC_FILTERS_REGEX = re.compile("^adhoc_filters")
-
-
-class LenientEnum(Enum):
-    """Enums with a `get` method that convert a enum value to `Enum` if it is a
-    valid value."""
-
-    @classmethod
-    def get(cls, value: Any) -> Any:
-        try:
-            return super().__new__(cls, value)
-        except ValueError:
-            return None
 
 
 class AdhocMetricExpressionType(StrEnum):
@@ -278,15 +266,6 @@ class PostProcessingContributionOrientation(StrEnum):
 
     ROW = "row"
     COLUMN = "column"
-
-
-class QueryMode(str, LenientEnum):
-    """
-    Whether the query runs on aggregate or returns raw records
-    """
-
-    RAW = "raw"
-    AGGREGATE = "aggregate"
 
 
 class QuerySource(Enum):
@@ -452,22 +431,6 @@ class DashboardEncoder(json.JSONEncoder):
             if isinstance(o, datetime):
                 return {"__datetime__": o.replace(microsecond=0).isoformat()}
             return json.JSONEncoder(sort_keys=True).default(o)
-
-
-class JSONEncodedDict(TypeDecorator):  # pylint: disable=abstract-method
-    """Represents an immutable structure as a json-encoded string."""
-
-    impl = TEXT
-
-    def process_bind_param(
-        self, value: dict[Any, Any] | None, dialect: str
-    ) -> str | None:
-        return json.dumps(value) if value is not None else None
-
-    def process_result_value(
-        self, value: str | None, dialect: str
-    ) -> dict[Any, Any] | None:
-        return json.loads(value) if value is not None else None
 
 
 def format_timedelta(time_delta: timedelta) -> str:

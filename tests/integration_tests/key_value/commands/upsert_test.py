@@ -57,9 +57,7 @@ def test_upsert_id_entry(
         ).run()
     assert key is not None
     assert key.id == ID_KEY
-    entry = (
-        db.session.query(KeyValueEntry).filter_by(id=int(ID_KEY)).autoflush(False).one()
-    )
+    entry = db.session.query(KeyValueEntry).filter_by(id=int(ID_KEY)).one()
     assert json.loads(entry.value) == NEW_VALUE
     assert entry.changed_by_fk == admin.id
 
@@ -81,9 +79,7 @@ def test_upsert_uuid_entry(
         ).run()
     assert key is not None
     assert key.uuid == UUID_KEY
-    entry = (
-        db.session.query(KeyValueEntry).filter_by(uuid=UUID_KEY).autoflush(False).one()
-    )
+    entry = db.session.query(KeyValueEntry).filter_by(uuid=UUID_KEY).one()
     assert json.loads(entry.value) == NEW_VALUE
     assert entry.changed_by_fk == admin.id
 

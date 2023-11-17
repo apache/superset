@@ -75,7 +75,6 @@ def migrate_chart(config: dict[str, Any]) -> dict[str, Any]:
         if isclass(class_)
         and issubclass(class_, MigrateViz)
         and hasattr(class_, "source_viz_type")
-        and class_ != processors.MigrateAreaChart  # incomplete
     }
 
     output = copy.deepcopy(config)
