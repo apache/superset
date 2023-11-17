@@ -108,14 +108,6 @@ def test_sqla_aggregations():
     )
 
 
-def test_fetch_value_predicate():
-    """
-    Test the fetch value predicate used in Superset's Explore view.
-    """
-    mixin = ExploreMixin()
-    assert mixin.fetch_value_predicate == "fix this!"
-
-
 def test_type():
     """
     Test the type property of the ExploreMixin class.
@@ -285,15 +277,6 @@ def test_columns():
         mixin.columns
 
 
-def test_get_fetch_values_predicate():
-    """
-    Test the get_fetch_values_predicate method of the ExploreMixin class.
-    """
-    mixin = ExploreMixin()
-    with pytest.raises(NotImplementedError):
-        mixin.get_fetch_values_predicate()
-
-
 def test_get_extra_cache_keys():
     """
     Test the get_extra_cache_keys method of the ExploreMixin class.
@@ -331,11 +314,6 @@ def test_columns_with_class():
     assert mixin.columns == ["column1", "column2", "column3"]
 
 
-def test_get_fetch_values_predicate_with_class():
-    mixin = MyExploreClass()
-    assert mixin.get_fetch_values_predicate() == "my_predicate"
-
-
 def test_get_extra_cache_keys_with_class():
     mixin = MyExploreClass()
     assert mixin.get_extra_cache_keys({}) == ["key1", "key2", "key3"]
@@ -344,11 +322,6 @@ def test_get_extra_cache_keys_with_class():
 def test_get_template_processor_with_class():
     mixin = MyExploreClass()
     assert isinstance(mixin.get_template_processor(), MagicMock)
-
-
-def test_fetch_value_predicate_with_class():
-    my_explore = MyExploreClass()
-    assert my_explore.fetch_value_predicate == "fix this!"
 
 
 def test_type_with_class():
