@@ -12,7 +12,7 @@ const StyledDvtCard = styled.div`
   transition: 0.3s ease;
 
   &:hover {
-    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0px 4px 4px ${({ theme }) => theme.colors.dvt.boxShadow.base};
   }
 `;
 

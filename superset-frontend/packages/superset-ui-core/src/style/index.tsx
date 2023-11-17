@@ -151,6 +151,9 @@ const defaultTheme = {
       info: {
         base: '#38BDF8',
       },
+      boxShadow: {
+        base: '#0000001a',
+      },
     },
   },
   opacity: {
