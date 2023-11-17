@@ -104,21 +104,18 @@ def get_samples(  # pylint: disable=too-many-arguments,too-many-locals
         result_type=ChartDataResultType.FULL,
         force=force,
     )
-    samples_results = samples_instance.get_payload()
-    count_star_results = count_star_instance.get_payload()
 
     try:
-        sample_data = samples_results["queries"][0]
-        count_star_data = count_star_results["queries"][0]
-        failed_status = (
-            sample_data.get("status") == QueryStatus.FAILED
-            or count_star_data.get("status") == QueryStatus.FAILED
-        )
-        error_msg = sample_data.get("error") or count_star_data.get("error")
-        if failed_status and error_msg:
-            cache_key = sample_data.get("cache_key")
-            QueryCacheManager.delete(cache_key, region=CacheRegion.DATA)
-            raise DatasetSamplesFailedError(error_msg)
+        count_star_data = count_star_instance.get_payload()["queries"][0]
+
+        if count_star_data.get("status") == QueryStatus.FAILED:
+            raise DatasetSamplesFailedError(count_star_data.get("error"))
+
+        sample_data = samples_instance.get_payload()["queries"][0]
+
+        if sample_data.get("status") == QueryStatus.FAILED:
+            QueryCacheManager.delete(sample_data.get("cache_key"), CacheRegion.DATA)
+            raise DatasetSamplesFailedError(sample_data.get("error"))
 
         sample_data["page"] = page
         sample_data["per_page"] = per_page

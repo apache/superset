@@ -16,34 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// Index .less, any imports here will be included in the final css build
+import { styled } from '@superset-ui/core';
 
-@import '~bootstrap/less/bootstrap.less';
-@import './fonts.less';
-@import './variables.less';
-@import './cosmo/bootswatch.less';
-
-html,
-body {
-  font-size: @font-size-base;
-  line-height: @line-height-base;
-}
-
-body {
-  min-height: 100vh;
+const StyledDvtSidebar = styled.div`
   display: flex;
   flex-direction: column;
-}
+  min-width: 250px;
+  padding: 32px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  background-color: ${({ theme }) => theme.colors.grayscale.light5};
+`;
 
-header {
-  flex: 0 1 auto;
-}
-
-#app {
-  flex: 1 1 auto;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  // margin-left: 250px;
-  // background-color: #F8FAFC;
-}
+export { StyledDvtSidebar };

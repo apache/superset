@@ -16,34 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// Index .less, any imports here will be included in the final css build
+import React from 'react';
+import { StyledDvtSidebar } from './dvt-sidebar.module';
+import DvtLogo from '../DvtLogo';
 
-@import '~bootstrap/less/bootstrap.less';
-@import './fonts.less';
-@import './variables.less';
-@import './cosmo/bootswatch.less';
-
-html,
-body {
-  font-size: @font-size-base;
-  line-height: @line-height-base;
+export interface DvtSidebarProps {
+  data: any[];
+  isFrontendRoute?: (path?: string) => boolean;
 }
 
-body {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
+const DvtSidebar: React.FC<DvtSidebarProps> = ({
+  data,
+  isFrontendRoute = () => false,
+}) => (
+  <StyledDvtSidebar>
+    <DvtLogo title="AppName" />
+  </StyledDvtSidebar>
+);
 
-header {
-  flex: 0 1 auto;
-}
-
-#app {
-  flex: 1 1 auto;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  // margin-left: 250px;
-  // background-color: #F8FAFC;
-}
+export default DvtSidebar;

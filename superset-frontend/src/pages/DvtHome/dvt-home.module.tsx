@@ -16,34 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// Index .less, any imports here will be included in the final css build
+import { styled } from '@superset-ui/core';
 
-@import '~bootstrap/less/bootstrap.less';
-@import './fonts.less';
-@import './variables.less';
-@import './cosmo/bootswatch.less';
-
-html,
-body {
-  font-size: @font-size-base;
-  line-height: @line-height-base;
-}
-
-body {
-  min-height: 100vh;
+const StyledDvtWelcome = styled.div`
+  flex: 1;
   display: flex;
-  flex-direction: column;
-}
+`;
 
-header {
-  flex: 0 1 auto;
-}
+const DataContainer = styled.div`
+  flex: 1;
+`;
 
-#app {
-  flex: 1 1 auto;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  // margin-left: 250px;
-  // background-color: #F8FAFC;
-}
+const CalendarContainer = styled.div`
+  width: 308px;
+`;
+
+export { StyledDvtWelcome, DataContainer, CalendarContainer };

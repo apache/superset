@@ -51,7 +51,7 @@ describe('chart actions', () => {
       .callsFake(() => MOCK_URL);
     getChartDataUriStub = sinon
       .stub(exploreUtils, 'getChartDataUri')
-      .callsFake(() => URI(MOCK_URL));
+      .callsFake(({ qs }) => URI(MOCK_URL).query(qs));
     fakeMetadata = { useLegacyApi: true };
     metadataRegistryStub = sinon
       .stub(chartlib, 'getChartMetadataRegistry')
@@ -81,7 +81,7 @@ describe('chart actions', () => {
     });
 
     it('should query with the built query', async () => {
-      const actionThunk = actions.postChartFormData({});
+      const actionThunk = actions.postChartFormData({}, null);
       await actionThunk(dispatch);
 
       expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
