@@ -137,6 +137,79 @@ Default.args = {
   ],
 };
 
+export const Example = (args: DvtTableProps) => {
+  return (
+    <div style={{ width: 1440, height: 1050 }}>
+      <DvtTable {...args} />
+    </div>
+  );
+};
+
+Example.args = {
+  header: [
+    {
+      title: 'ID',
+      field: 'id',
+      flex: 2,
+    },
+    { title: 'is_software_dev', field: 'is_software_dev' },
+    { title: 'is_first_dev_job', field: 'is_first_dev_job' },
+    { title: 'months_job_search', field: 'months_job_search' },
+    { title: 'months_job_search', field: 'months_job_search2' },
+    { title: 'job_pref', field: 'job_pref' },
+  ],
+  data: [
+    {
+      id: '64e417of7f25253d56019818b7e9fdcD',
+      is_software_dev: '0',
+      is_first_dev_job: 'Null',
+      months_job_search: 'Null',
+      months_job_search2: 'Null',
+      job_pref: 'freelance',
+    },
+    {
+      id: '64e417of7f25253d56019818b7e9fdcD',
+      is_software_dev: '0',
+      is_first_dev_job: 'Null',
+      months_job_search: 'Null',
+      months_job_search2: 'Null',
+      job_pref: 'freelance',
+    },
+    {
+      id: '64e417of7f25253d56019818b7e9fdcD',
+      is_software_dev: '0',
+      is_first_dev_job: 'Null',
+      months_job_search: 'Null',
+      months_job_search2: 'Null',
+      job_pref: 'freelance',
+    },
+    {
+      id: '64e417of7f25253d56019818b7e9fdcD',
+      is_software_dev: '0',
+      is_first_dev_job: 'Null',
+      months_job_search: 'Null',
+      months_job_search2: 'Null',
+      job_pref: 'freelance',
+    },
+    {
+      id: '64e417of7f25253d56019818b7e9fdcD',
+      is_software_dev: '0',
+      is_first_dev_job: 'Null',
+      months_job_search: 'Null',
+      months_job_search2: 'Null',
+      job_pref: 'freelance',
+    },
+    {
+      id: '64e417of7f25253d56019818b7e9fdcD',
+      is_software_dev: '0',
+      is_first_dev_job: 'Null',
+      months_job_search: 'Null',
+      months_job_search2: 'Null',
+      job_pref: 'freelance',
+    },
+  ],
+};
+
 export const IconExample = (args: DvtTableProps) => {
   const [page, setPage] = useState(1);
 
@@ -541,7 +614,6 @@ export const PaginationExample = (args: DvtTableProps) => {
         {...args}
         page={page}
         setPage={handlePageChange}
-        pagination
         itemsPerPage={3}
       />
     </div>
@@ -665,4 +737,5 @@ PaginationExample.args = {
       owners: 'A',
     },
   ],
+  pagination: true,
 };
