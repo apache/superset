@@ -10568,7 +10568,6 @@ msgid "No global filters are currently added"
 msgstr "Aucun filtre ajouté"
 
 #: superset-frontend/plugins/plugin-chart-table/src/TableChart.tsx:204
-#, fuzzy
 msgid "No matching records found"
 msgstr "Aucun enregistrement trouvé"
 
