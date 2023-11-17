@@ -14101,7 +14101,7 @@ msgstr ""
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:408
 msgid "Send as CSV"
-msgstr "Envoyer comme CSV"
+msgstr "Envoyer au format CSV"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:407
 msgid "Send as PNG"

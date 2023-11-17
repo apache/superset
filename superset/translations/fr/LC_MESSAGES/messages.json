@@ -2959,7 +2959,7 @@
       "Select values in highlighted field(s) in the control panel. Then run the query by clicking on the %s button.": [
         ""
       ],
-      "Send as CSV": ["Envoyer comme CSV"],
+      "Send as CSV": ["Envoyer au format CSV"],
       "Send as PNG": ["Envoyer comme PNG"],
       "Send as text": ["Envoyer comme texte"],
       "Send range filter events to other charts": [""],
