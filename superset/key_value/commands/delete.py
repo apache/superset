@@ -57,13 +57,7 @@ class DeleteKeyValueCommand(BaseCommand):
 
     def delete(self) -> bool:
         filter_ = get_filter(self.resource, self.key)
-        entry = (
-            db.session.query(KeyValueEntry)
-            .filter_by(**filter_)
-            .autoflush(False)
-            .first()
-        )
-        if entry:
+        if entry := db.session.query(KeyValueEntry).filter_by(**filter_).first():
             db.session.delete(entry)
             db.session.commit()
             return True
