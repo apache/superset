@@ -554,6 +554,7 @@ const AsyncSelect = forwardRef(
           ...values,
         ]);
       }
+      fireOnChange();
     };
 
     const shouldRenderChildrenOptions = useMemo(
