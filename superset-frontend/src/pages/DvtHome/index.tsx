@@ -16,34 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// Index .less, any imports here will be included in the final css build
+import React from 'react';
+import withToasts from 'src/components/MessageToasts/withToasts';
+import {
+  StyledDvtWelcome,
+  DataContainer,
+  CalendarContainer,
+} from './dvt-home.module';
 
-@import '~bootstrap/less/bootstrap.less';
-@import './fonts.less';
-@import './variables.less';
-@import './cosmo/bootswatch.less';
-
-html,
-body {
-  font-size: @font-size-base;
-  line-height: @line-height-base;
+function DvtWelcome() {
+  return (
+    <StyledDvtWelcome>
+      <DataContainer>Datalar</DataContainer>
+      <CalendarContainer>Calendar component</CalendarContainer>
+    </StyledDvtWelcome>
+  );
 }
 
-body {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-header {
-  flex: 0 1 auto;
-}
-
-#app {
-  flex: 1 1 auto;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  // margin-left: 250px;
-  // background-color: #F8FAFC;
-}
+export default withToasts(DvtWelcome);
