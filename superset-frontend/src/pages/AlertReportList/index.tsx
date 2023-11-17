@@ -53,6 +53,7 @@ import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import Owner from 'src/types/Owner';
 import AlertReportModal from 'src/features/alerts/AlertReportModal';
 import { AlertObject, AlertState } from 'src/features/alerts/types';
+import AlertReportModal_test from 'src/features/alerts/AlertReportModal_test';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -550,7 +551,7 @@ function AlertList({
           <LastUpdated updatedAt={lastFetched} update={() => refreshData()} />
         </RefreshContainer>
       </SubMenu>
-      <AlertReportModal
+      <AlertReportModal_test
         alert={currentAlert}
         addDangerToast={addDangerToast}
         layer={currentAlert}
