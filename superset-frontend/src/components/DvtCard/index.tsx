@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
+import { supersetTheme } from '@superset-ui/core';
 import {
   DvtCardDescription,
   DvtCardLinkButton,
@@ -12,7 +13,6 @@ import {
 } from './dvt-card.module';
 import Icons from '../Icons';
 import Icon from '../Icons/Icon';
-import { supersetTheme } from '@superset-ui/core';
 
 export interface DvtCardProps {
   title: string;
@@ -34,9 +34,8 @@ const DvtCard: React.FC<DvtCardProps> = ({
   const history = useHistory();
   const [hoverOnLink, setHoverOnLink] = useState<boolean>(false);
 
-  const truncatedFormat = (text: string, maxLength: number) => {
-    return text.length > maxLength ? `${text.slice(0, maxLength)}...` : text;
-  };
+  const truncatedFormat = (text: string, maxLength: number) =>
+    text.length > maxLength ? `${text.slice(0, maxLength)}...` : text;
 
   const handleFavoriteClick = () => {
     setFavorite(!isFavorite);

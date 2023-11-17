@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import DvtCard, { DvtCardProps } from '.';
 import { supersetTheme } from '@superset-ui/core';
+import DvtCard, { DvtCardProps } from '.';
 
 export default {
   title: 'Dvt-Components/DvtCard',
