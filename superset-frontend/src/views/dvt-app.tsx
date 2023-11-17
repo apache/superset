@@ -29,6 +29,7 @@ import { GlobalStyles } from 'src/GlobalStyles';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
 import DvtSidebar from 'src/components/DvtSidebar';
+import DvtNavbar from 'src/components/DvtNavbar';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import setupApp from 'src/setup/setupApp';
@@ -40,6 +41,13 @@ import { logEvent } from 'src/logger/actions';
 import { store } from 'src/views/store';
 import { RootContextProviders } from './RootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
+import { styled } from '@superset-ui/core';
+
+const Main = styled.main`
+  flex: 1;
+  padding: 25px;
+  overflow-y: auto;
+`;
 
 setupApp();
 setupPlugins();
@@ -75,17 +83,20 @@ const DvtApp = () => (
     <RootContextProviders>
       <GlobalStyles />
       <DvtSidebar data={[]} isFrontendRoute={isFrontendRoute} />
-      <Switch>
-        {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
-          <Route path={path} key={path}>
-            <Suspense fallback={<Fallback />}>
-              <ErrorBoundary>
-                <Component user={bootstrapData.user} {...props} />
-              </ErrorBoundary>
-            </Suspense>
-          </Route>
-        ))}
-      </Switch>
+      <DvtNavbar />
+      <Main>
+        <Switch>
+          {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
+            <Route path={path} key={path}>
+              <Suspense fallback={<Fallback />}>
+                <ErrorBoundary>
+                  <Component user={bootstrapData.user} {...props} />
+                </ErrorBoundary>
+              </Suspense>
+            </Route>
+          ))}
+        </Switch>
+      </Main>
       <ToastContainer />
     </RootContextProviders>
   </Router>

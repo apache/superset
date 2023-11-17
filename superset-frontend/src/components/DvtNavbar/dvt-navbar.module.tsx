@@ -16,21 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import withToasts from 'src/components/MessageToasts/withToasts';
-import {
-  StyledDvtWelcome,
-  DataContainer,
-  CalendarContainer,
-} from './dvt-home.module';
+import { styled } from '@superset-ui/core';
 
-function DvtWelcome() {
-  return (
-    <StyledDvtWelcome>
-      <DataContainer>Datalar coming soon...</DataContainer>
-      <CalendarContainer>Calendar component coming soon...</CalendarContainer>
-    </StyledDvtWelcome>
-  );
-}
+const StyledDvtNavbar = styled.div`
+  padding: 0 30px;
+  background-color: ${({ theme }) => theme.colors.grayscale.light5};
+`;
 
-export default withToasts(DvtWelcome);
+const NavbarTop = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 80px;
+  border-top: 1px solid ${({ theme }) => theme.colors.dvt.border.base};
+`;
+
+const NavbarBottom = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 80px;
+  border-top: 1px solid ${({ theme }) => theme.colors.dvt.border.base};
+`;
+
+export { StyledDvtNavbar, NavbarTop, NavbarBottom };

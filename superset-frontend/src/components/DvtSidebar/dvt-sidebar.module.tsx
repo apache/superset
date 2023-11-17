@@ -28,6 +28,9 @@ const StyledDvtSidebar = styled.div`
   left: 0;
   bottom: 0;
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
+  box-shadow: 10px 10px 50px 0px
+    ${({ theme }) => theme.colors.dvt.boxShadow.sidebar};
+  z-index: 10;
 `;
 
 export { StyledDvtSidebar };
