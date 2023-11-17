@@ -630,6 +630,7 @@
       "Batch editing %d filters:": ["Edition Batch %d filtres:"],
       "Battery level over time": [""],
       "Be careful.": ["Faites attention."],
+      "Before": ["Avant"],
       "Big Number": ["Gros nombre"],
       "Big Number Font Size": [""],
       "Big Number with Trendline": ["Gros nombre avec tendance"],
@@ -1260,6 +1261,7 @@
       "Datetime format": ["Format Datetime"],
       "Day": ["Jour"],
       "Day (freq=D)": [""],
+      "Days %s": ["Jours %s"],
       "Db engine did not return all queried columns": [
         "La base de données n'a pas retourné toutes les colonnes demandées"
       ],
@@ -1430,6 +1432,7 @@
       "Drill by": [""],
       "Drill by is not available for this data point": [""],
       "Drill by is not yet supported for this chart type": [""],
+      "Drill by: %s": ["Trier par %s"],
       "Drill to detail": [""],
       "Drill to detail by": [""],
       "Drill to detail by value is not yet supported for this chart type.": [
@@ -1819,6 +1822,7 @@
       "Host": [""],
       "Hostname or IP address": ["Nom d'hôte ou adresse IP"],
       "Hour": ["Heure"],
+      "Hours %s": ["Heures %s"],
       "Hours offset": ["Offset des heures"],
       "How do you want to enter service account credentials?": [
         "Comment voulez-vous entrer les informations de connexion du compte de service ?"
@@ -1986,6 +1990,7 @@
       "Last Changed": ["Dernière modification"],
       "Last Modified": ["Dernière modification"],
       "Last Updated %s": ["Dernière mise à jour %s"],
+      "Last Updated %s by %s": ["Dernière mise à jour %s"],
       "Last modified": ["Dernière modification"],
       "Last modified by %s": ["Dernière modification par %s"],
       "Last run": ["Dernière exécution"],
@@ -2144,6 +2149,7 @@
       "Minimum value on the gauge axis": [""],
       "Minor Split Line": [""],
       "Minute": ["Minute"],
+      "Minutes %s": ["Minutes %s"],
       "Missing dataset": ["Jeu de données manquant"],
       "Mixed Time-Series": [""],
       "Modified": ["Modifié"],
@@ -2152,6 +2158,7 @@
       "Modified columns: %s": ["Colonnes modifiées : %s"],
       "Monday": ["Lundi"],
       "Month": ["Mois"],
+      "Months %s": ["Mois %s"],
       "Move only": [""],
       "Moves the given set of dates by a specified interval.": [
         "Décale l'ensemble de dates d'un intervalle spécifié."
@@ -2267,6 +2274,7 @@
       "Nothing triggered": ["Rien déclenché"],
       "Notification method": ["Méthode de notification"],
       "November": ["Novembre"],
+      "Now": ["Maintenant"],
       "Null or Empty": ["Null ou Vide"],
       "Null values": ["Valeurs NULL"],
       "Number bounds used for color encoding from red to blue.\n               Reverse the numbers for blue to red. To get pure red or blue,\n               you can enter either only min or max.": [
@@ -2592,6 +2600,7 @@
       "Python datetime string pattern": ["Python datetime string pattern"],
       "QUERY DATA IN SQL LAB": [""],
       "Quarter": ["Trimestre"],
+      "Quarters %s": ["Trimestres %s"],
       "Query": ["Requête"],
       "Query %s: %s": [""],
       "Query History": ["Historiques des requêtes"],
@@ -2654,8 +2663,12 @@
       "Refresh frequency": ["Fréquence de rafraichissement"],
       "Refresh interval": ["Intervalle d'actualisation"],
       "Refresh the default values": ["Rafraichir les valeurs par défaut"],
+      "Refreshing charts": [
+        "Une erreur s'est produite durant la récupération des tableaux de bord : %s"
+      ],
       "Regular": [""],
       "Relationships between community channels": [""],
+      "Relative Date/Time": ["Date/Heure Relative"],
       "Relative period": ["Période relative"],
       "Relative quantity": ["Quantité relative"],
       "Remind me in 24 hours": ["Me le rappeler dans 24 heures"],
@@ -2732,6 +2745,7 @@
       "Resource already has an attached report.": [""],
       "Restore Filter": ["Restaurer le Filtre"],
       "Results": ["Résultats"],
+      "Results %s": ["Résultats"],
       "Results backend is not configured.": [
         "Le backend des résultats n'est pas configuré."
       ],
@@ -2886,6 +2900,7 @@
       "Secondary y-axis Bounds": [""],
       "Secondary y-axis format": [""],
       "Secondary y-axis title": [""],
+      "Seconds %s": ["Secondes %s"],
       "Secure Extra": ["Sécurité"],
       "Secure extra": ["Sécurité"],
       "Security": ["Sécurité"],
@@ -3084,6 +3099,7 @@
       "Sort ascending": ["Tri croissant"],
       "Sort bars by x labels.": [""],
       "Sort by": ["Trier par"],
+      "Sort by %s": ["Trier par %s"],
       "Sort columns alphabetically": ["Trier les colonnes alphabétiquement"],
       "Sort descending": ["Tri décroissant"],
       "Sort filter values": ["Trier les valeurs de filtre"],
@@ -3094,6 +3110,7 @@
       "Source SQL": ["SQL source"],
       "Sparkline": [""],
       "Spatial": ["Spatial"],
+      "Specific Date/Time": ["Date/Heure Spécifique"],
       "Specify a schema (if database flavor supports this).": [
         "Spécifier un schéma (si la base de données soutient cette fonctionnalités)."
       ],
@@ -3918,6 +3935,7 @@
       "Unexpected error occurred, please check your logs for details": [
         "Erreur inattendue, consultez les logs pour plus de détails"
       ],
+      "Unexpected time range: %s": ["Intervalle de temps inattendu: %s"],
       "Unknown": ["Erreur inconnue"],
       "Unknown MySQL server host \"%(hostname)s\".": [
         "Hôte MySQL \"%(hostname)s\" inconnu."
@@ -4136,6 +4154,7 @@
       "Week_ending Sunday": ["Semaine terminant le dimanche"],
       "Weekly Report for %s": [""],
       "Weekly seasonality": [""],
+      "Weeks %s": ["Semaines %s"],
       "What should be shown on the label?": [""],
       "When `Calculation type` is set to \"Percentage change\", the Y Axis Format is forced to `.1%`": [
         "Lorsque `Type de calcul` vaut \"Pourcentage de changement\", le format de l'axe Y est à forcé à `.1%`"
@@ -4285,6 +4304,7 @@
       "Year": ["Année"],
       "Year (freq=AS)": [""],
       "Yearly seasonality": [""],
+      "Years %s": ["Année %s"],
       "Yes": ["Oui"],
       "Yes, cancel": ["Oui, annuler"],
       "Yes, overwrite changes": [""],

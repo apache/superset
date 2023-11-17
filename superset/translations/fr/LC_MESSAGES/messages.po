@@ -2797,7 +2797,6 @@ msgstr "Faites attention."
 
 #: superset-frontend/src/components/AlteredSliceTag/index.jsx:178
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:75
-#, fuzzy
 msgid "Before"
 msgstr "Avant"
 
@@ -5597,7 +5596,7 @@ msgid "Day (freq=D)"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:65
-#, fuzzy, python-format
+#, python-format
 msgid "Days %s"
 msgstr "Jours %s"
 
@@ -6334,7 +6333,7 @@ msgid "Drill by is not yet supported for this chart type"
 msgstr ""
 
 #: superset-frontend/src/components/Chart/DrillBy/DrillByModal.tsx:420
-#, fuzzy, python-format
+#, python-format
 msgid "Drill by: %s"
 msgstr "Trier par %s"
 
@@ -8250,7 +8249,7 @@ msgid "Hour"
 msgstr "Heure"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:64
-#, fuzzy, python-format
+#, python-format
 msgid "Hours %s"
 msgstr "Heures %s"
 
@@ -9054,7 +9053,7 @@ msgid "Last Updated %s"
 msgstr "Dernière mise à jour %s"
 
 #: superset-frontend/src/dashboard/components/OverwriteConfirm/OverwriteConfirmModal.tsx:182
-#, fuzzy, python-format
+#, python-format
 msgid "Last Updated %s by %s"
 msgstr "Dernière mise à jour %s"
 
@@ -10038,7 +10037,7 @@ msgid "Minute"
 msgstr "Minute"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:63
-#, fuzzy, python-format
+#, python-format
 msgid "Minutes %s"
 msgstr "Minutes %s"
 
@@ -10104,7 +10103,7 @@ msgid "Month"
 msgstr "Mois"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:67
-#, fuzzy, python-format
+#, python-format
 msgid "Months %s"
 msgstr "Mois %s"
 
@@ -10790,7 +10789,6 @@ msgid "November"
 msgstr "Novembre"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:89
-#, fuzzy
 msgid "Now"
 msgstr "Maintenant"
 
@@ -12206,7 +12204,7 @@ msgid "Quarter"
 msgstr "Trimestre"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:68
-#, fuzzy, python-format
+#, python-format
 msgid "Quarters %s"
 msgstr "Trimestres %s"
 
@@ -12584,7 +12582,6 @@ msgid "Refresh the default values"
 msgstr "Rafraichir les valeurs par défaut"
 
 #: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:163
-#, fuzzy
 msgid "Refreshing charts"
 msgstr "Une erreur s'est produite durant la récupération des tableaux de bord : %s"
 
@@ -12634,7 +12631,6 @@ msgid "Relationships between community channels"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:88
-#, fuzzy
 msgid "Relative Date/Time"
 msgstr "Date/Heure Relative"
 
@@ -12929,7 +12925,7 @@ msgstr "Résultats"
 #: superset-frontend/src/components/Chart/DrillBy/useResultsTableView.tsx:58
 #: superset-frontend/src/explore/components/DataTablesPane/DataTablesPane.tsx:212
 #: superset-frontend/src/explore/components/DataTablesPane/components/ResultsPaneOnDashboard.tsx:84
-#, fuzzy, python-format
+#, python-format
 msgid "Results %s"
 msgstr "Résultats"
 
@@ -13800,9 +13796,9 @@ msgid "Secondary y-axis title"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:62
-#, fuzzy, python-format
+#, python-format
 msgid "Seconds %s"
-msgstr "%s secondes"
+msgstr "Secondes %s"
 
 #: superset/views/database/mixins.py:194
 msgid "Secure Extra"
@@ -14829,7 +14825,7 @@ msgid "Sort by"
 msgstr "Trier par"
 
 #: superset-frontend/src/dashboard/components/SliceAdder.jsx:362
-#, fuzzy, python-format
+#, python-format
 msgid "Sort by %s"
 msgstr "Trier par %s"
 
@@ -14917,7 +14913,6 @@ msgid "Spatial"
 msgstr "Spatial"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:87
-#, fuzzy
 msgid "Specific Date/Time"
 msgstr "Date/Heure Spécifique"
 
@@ -17929,9 +17924,9 @@ msgid "Unexpected error: "
 msgstr "Erreur inattendue"
 
 #: superset/views/api.py:108
-#, fuzzy, python-format
+#, python-format
 msgid "Unexpected time range: %s"
-msgstr "Erreur inattendue"
+msgstr "Intervalle de temps inattendu: %s"
 
 #: superset-frontend/src/features/home/ActivityTable.tsx:86
 msgid "Unknown"
@@ -18699,7 +18694,7 @@ msgid "Weekly seasonality"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:66
-#, fuzzy, python-format
+#, python-format
 msgid "Weeks %s"
 msgstr "Semaines %s"
 
@@ -19348,7 +19343,7 @@ msgid "Yearly seasonality"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:69
-#, fuzzy, python-format
+#, python-format
 msgid "Years %s"
 msgstr "Année %s"
 
