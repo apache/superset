@@ -148,6 +148,12 @@ const defaultTheme = {
         light1: '#D3D5DA',
         light2: '#F8FAFC',
       },
+      info: {
+        base: '#38BDF8',
+      },
+      boxShadow: {
+        base: '#0000001a',
+      },
     },
   },
   opacity: {
