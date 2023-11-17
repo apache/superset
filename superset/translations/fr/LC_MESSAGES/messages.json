@@ -226,6 +226,7 @@
       "Add calculated temporal columns to dataset in \"Edit datasource\" modal": [
         ""
       ],
+      "Add cross-filter": ["Ajouter un filtre"],
       "Add custom scoping": [""],
       "Add delivery method": ["Ajouter méthode de livraison"],
       "Add filter": ["Ajouter un filtre"],
@@ -556,6 +557,8 @@
         ""
       ],
       "Append": ["Ajouter"],
+      "Applied filters (%d)": ["Filtres appliqués (%d)"],
+      "Applied filters: %s": ["Filtres appliqué: %s"],
       "Applied rolling window did not return any data. Please make sure the source query satisfies the minimum periods defined in the rolling window.": [
         "La fenêtre glissante appliquée n'a pas retourné de données. Assurez-vous que la requête source satisfasse les périodes minimum définies dans la fenêtre glissante."
       ],
@@ -1089,7 +1092,7 @@
       ],
       "Creator": ["Créateur"],
       "Cross-filter will be applied to all of the charts that use this dataset.": [
-        ""
+        "Le filtre va être appliqué à tous les graphiques qui utilise cet ensemble de données"
       ],
       "Currently rendered: %s": [""],
       "Custom": ["Personnalisée"],
@@ -1418,6 +1421,7 @@
       "Divider": ["Diviseur"],
       "Do you want a donut or a pie?": [""],
       "Documentation": ["Documentation"],
+      "Download": ["Télécharger"],
       "Download as image": ["Télécharger comme image"],
       "Download to CSV": ["Télécharger en CSV"],
       "Draft": ["Brouillon"],
@@ -1639,7 +1643,10 @@
       "Export": ["Exporter"],
       "Export dashboards?": ["Exporter les tableaux de bords ?"],
       "Export query": ["Exporter la requête"],
-      "Export to YAML": ["Exporter en YAML"],
+      "Export to .CSV": ["Exporter au format CSV"],
+      "Export to .JSON": ["Exporter au format YAML"],
+      "Export to Excel": ["Exporter vers Excel"],
+      "Export to YAML": ["Exporter au format YAML"],
       "Export to YAML?": ["Exporter en YAML?"],
       "Export to original .CSV": [""],
       "Export to pivoted .CSV": [""],
@@ -2664,9 +2671,7 @@
       "Refresh frequency": ["Fréquence de rafraichissement"],
       "Refresh interval": ["Intervalle d'actualisation"],
       "Refresh the default values": ["Rafraichir les valeurs par défaut"],
-      "Refreshing charts": [
-        "Une erreur s'est produite durant la récupération des tableaux de bord : %s"
-      ],
+      "Refreshing charts": ["Rafraîchissement en cours"],
       "Regular": [""],
       "Relationships between community channels": [""],
       "Relative Date/Time": ["Date/Heure Relative"],
@@ -2912,7 +2917,7 @@
       "Select": ["Sélectionner"],
       "Select ...": ["Sélectionner..."],
       "Select Delivery Method": ["Choisir la méthode de livraison"],
-      "Select Viz Type": ["Selectionner un type de visualisation"],
+      "Select Viz Type": ["Sélectionner un type de visualisation"],
       "Select a Columnar file to be uploaded to a database.": [
         "Sélectionner un fichier en colonne à téléverser dans une base de données."
       ],
@@ -2922,7 +2927,7 @@
       "Select a column": ["Sélectionner une colonne"],
       "Select a dashboard": ["Sélectionner un tableau de bord"],
       "Select a database to upload the file to": [""],
-      "Select a visualization type": ["Selectionner un type de visualisation"],
+      "Select a visualization type": ["Sélectionner un type de visualisation"],
       "Select aggregate options": ["Sélectionner les options d’agrégat"],
       "Select any columns for metadata inspection": [""],
       "Select color scheme": ["Sélectionner un schéma de couleurs"],
@@ -2930,17 +2935,17 @@
       "Select databases require additional fields to be completed in the Advanced tab to successfully connect the database. Learn what requirements your databases has ": [
         ""
       ],
-      "Select filter": ["Selectionner un filtre"],
+      "Select filter": ["Sélectionner un filtre"],
       "Select filter plugin using AntD": [""],
       "Select first filter value by default": [
-        "Selectionne la première valeur du filtre par défaut"
+        "Sélectionne la première valeur du filtre par défaut"
       ],
       "Select operator": ["Sélectionner l'opérateur"],
       "Select or type a value": ["Sélectionner ou renseigner une valeur"],
       "Select owners": ["Sélectionner les propriétaires"],
       "Select saved metrics": ["Sélectionner les métriques sauvegardées"],
       "Select start and end date": [
-        "Selectionner la date de début et la date de fin"
+        "Sélectionner la date de début et la date de fin"
       ],
       "Select subject": ["Sélectionner un objet"],
       "Select the charts to which you want to apply cross-filters in this dashboard. Deselecting a chart will exclude it from being filtered when applying cross-filters from any chart on the dashboard. You can select \"All charts\" to apply cross-filters to all charts that use the same dataset or contain the same column name in the dashboard.": [
@@ -3654,7 +3659,7 @@
         "Cela peut être soit une adresse IP (ex 127.0.0.1)  ou un nom de domaine (ex mydatabase.com)."
       ],
       "This chart applies cross-filters to charts whose datasets contain columns with the same name.": [
-        ""
+        "Ce graphique filtre automatiquement les graphiques ayant des colonnes de même nom dans leurs ensembles de données."
       ],
       "This chart has been moved to a different filter scope.": [
         "Ce graphique a été déplacé vers un autre champ d'application du filtre."
@@ -3759,6 +3764,9 @@
       ],
       "This value should be smaller than the right target value": [
         "Cette valeur devrait être plus petite que la valeur cible de droite"
+      ],
+      "This visualization type does not support cross-filtering.": [
+        "Ce type de visualisation ne supporte pas le cross-filtering."
       ],
       "This visualization type is not supported.": [
         "Ce type de visualisation n'est pas supporté."
@@ -4327,7 +4335,9 @@
       "You can add the components in the": [
         "Vous pouvez ajouter les composants via le"
       ],
-      "You can also just click on the chart to apply cross-filter.": [""],
+      "You can also just click on the chart to apply cross-filter.": [
+        "Vous pouvez juste cliquer sur le graphique pour appliquer le filtre"
+      ],
       "You can choose to display all charts that you have access to or only the ones you own.\n              Your filter selection will be saved and remain active until you choose to change it.": [
         ""
       ],
@@ -4337,7 +4347,9 @@
       "You can preview the list of dashboards in the chart settings dropdown.": [
         ""
       ],
-      "You can't apply cross-filter on this data point.": [""],
+      "You can't apply cross-filter on this data point.": [
+        "Vous ne pouvez pas ajouter de filtre sur ce point de donnée"
+      ],
       "You cannot delete the last temporal filter as it's used for time range filters in dashboards.": [
         ""
       ],
@@ -4463,6 +4475,7 @@
       "aggregate": ["agrégat"],
       "alert": ["alerte"],
       "alerts": ["alertes"],
+      "all": ["Tous"],
       "also copy (duplicate) charts": [
         "copier également les graphiques (dupliquer)"
       ],

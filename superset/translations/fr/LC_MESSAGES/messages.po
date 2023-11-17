@@ -1204,7 +1204,6 @@ msgid "Add calculated temporal columns to dataset in \"Edit datasource\" modal"
 msgstr ""
 
 #: superset-frontend/src/components/Chart/ChartContextMenu/ChartContextMenu.tsx:197
-#, fuzzy
 msgid "Add cross-filter"
 msgstr "Ajouter un filtre"
 
@@ -2400,14 +2399,14 @@ msgid "Applied cross-filters (%d)"
 msgstr "Filtres croisés appliqués (%d)"
 
 #: superset-frontend/src/dashboard/components/FiltersBadge/DetailsPanel/index.tsx:149
-#, fuzzy, python-format
+#, python-format
 msgid "Applied filters (%d)"
 msgstr "Filtres appliqués (%d)"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterControls.tsx:260
-#, fuzzy, python-format
+#, python-format
 msgid "Applied filters: %s"
-msgstr "Filtres appliqués (%d)"
+msgstr "Filtres appliqué: %s"
 
 #: superset/viz.py:250
 msgid ""
@@ -4920,7 +4919,7 @@ msgstr "Action"
 
 #: superset-frontend/src/components/Chart/ChartContextMenu/ChartContextMenu.tsx:152
 msgid "Cross-filter will be applied to all of the charts that use this dataset."
-msgstr ""
+msgstr "Le filtre va être appliqué à tous les graphiques qui utilise cet ensemble de données"
 
 #: superset-frontend/src/components/Chart/ChartContextMenu/ChartContextMenu.tsx:164
 #, fuzzy
@@ -6256,9 +6255,8 @@ msgstr "Édité"
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:482
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/index.jsx:292
-#, fuzzy
 msgid "Download"
-msgstr "télécharger en CSV"
+msgstr "Télécharger"
 
 #: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:317
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:512
@@ -7310,24 +7308,21 @@ msgstr "Exporter la requête"
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:487
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/index.jsx:316
-#, fuzzy
 msgid "Export to .CSV"
-msgstr "Exporter en YAML"
+msgstr "Exporter au format CSV"
 
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/index.jsx:323
-#, fuzzy
 msgid "Export to .JSON"
-msgstr "Exporter en YAML"
+msgstr "Exporter au format YAML"
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:506
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/index.jsx:335
-#, fuzzy
 msgid "Export to Excel"
-msgstr "Exporter en YAML"
+msgstr "Exporter vers Excel"
 
 #: superset/views/base.py:607
 msgid "Export to YAML"
-msgstr "Exporter en YAML"
+msgstr "Exporter au format YAML"
 
 #: superset/views/base.py:607
 msgid "Export to YAML?"
@@ -12582,7 +12577,7 @@ msgstr "Rafraichir les valeurs par défaut"
 
 #: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:163
 msgid "Refreshing charts"
-msgstr "Une erreur s'est produite durant la récupération des tableaux de bord : %s"
+msgstr "Rafraîchissement en cours"
 
 #: superset-frontend/src/features/datasets/AddDataset/DatasetPanel/DatasetPanel.tsx:175
 #, fuzzy
@@ -13862,7 +13857,7 @@ msgstr "Choisir la méthode de livraison"
 
 #: superset-frontend/src/explore/components/controls/VizTypeControl/FastVizSwitcher.tsx:94
 msgid "Select Viz Type"
-msgstr "Selectionner un type de visualisation"
+msgstr "Sélectionner un type de visualisation"
 
 #: superset/views/database/forms.py:425
 msgid "Select a Columnar file to be uploaded to a database."
@@ -13923,7 +13918,7 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/VizTypeControl/index.tsx:130
 msgid "Select a visualization type"
-msgstr "Selectionner un type de visualisation"
+msgstr "Sélectionner un type de visualisation"
 
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:331
 msgid "Select aggregate options"
@@ -14004,7 +13999,7 @@ msgstr "Selectionner un filtre"
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:318
 #: superset-frontend/src/filters/components/Select/index.ts:28
 msgid "Select filter"
-msgstr "Selectionner un filtre"
+msgstr "Sélectionner un filtre"
 
 #: superset-frontend/src/filters/components/Select/index.ts:29
 msgid "Select filter plugin using AntD"
@@ -14012,7 +14007,7 @@ msgstr ""
 
 #: superset-frontend/src/filters/components/Select/controlPanel.ts:104
 msgid "Select first filter value by default"
-msgstr "Selectionne la première valeur du filtre par défaut"
+msgstr "Sélectionne la première valeur du filtre par défaut"
 
 #: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent/index.tsx:362
 msgid "Select operator"
@@ -14049,7 +14044,7 @@ msgstr "Sélectionner un schéma de couleurs"
 
 #: superset-frontend/src/visualizations/FilterBox/FilterBox.jsx:307
 msgid "Select start and end date"
-msgstr "Selectionner la date de début et la date de fin"
+msgstr "Sélectionner la date de début et la date de fin"
 
 #: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent/index.tsx:334
 msgid "Select subject"
@@ -16810,7 +16805,8 @@ msgstr ""
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
-msgstr ""
+msgstr "Ce graphique filtre automatiquement les graphiques ayant des colonnes de même nom dans leurs"
+" ensembles de données."
 
 #: superset-frontend/src/dashboard/actions/dashboardLayout.js:260
 msgid "This chart has been moved to a different filter scope."
@@ -17069,9 +17065,8 @@ msgid "This value should be smaller than the right target value"
 msgstr "Cette valeur devrait être plus petite que la valeur cible de droite"
 
 #: superset-frontend/src/components/Chart/ChartContextMenu/ChartContextMenu.tsx:171
-#, fuzzy
 msgid "This visualization type does not support cross-filtering."
-msgstr "Ce type de visualisation n'est pas supporté."
+msgstr "Ce type de visualisation ne supporte pas le cross-filtering."
 
 #: superset-frontend/src/explore/components/controls/VizTypeControl/index.tsx:64
 msgid "This visualization type is not supported."
@@ -19444,7 +19439,7 @@ msgstr "Vous pouvez ajouter les composants via mode edition"
 
 #: superset-frontend/src/components/Chart/ChartContextMenu/ChartContextMenu.tsx:157
 msgid "You can also just click on the chart to apply cross-filter."
-msgstr ""
+msgstr "Vous pouvez juste cliquer sur le graphique pour appliquer le filtre"
 
 #: superset-frontend/src/dashboard/components/SliceAdder.jsx:386
 msgid ""
@@ -19469,7 +19464,7 @@ msgstr ""
 
 #: superset-frontend/src/components/Chart/ChartContextMenu/ChartContextMenu.tsx:178
 msgid "You can't apply cross-filter on this data point."
-msgstr ""
+msgstr "Vous ne pouvez pas ajouter de filtre sur ce point de donnée"
 
 #: superset-frontend/src/explore/components/ControlPanelsContainer.tsx:501
 msgid ""
@@ -19819,7 +19814,6 @@ msgstr "alertes"
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:160
 #: superset-frontend/src/components/Chart/DrillDetail/DrillDetailMenuItems.tsx:205
 #: superset-frontend/src/explore/controls.jsx:254
-#, fuzzy
 msgid "all"
 msgstr "Tous"
 
