@@ -610,6 +610,31 @@ Then put this:
 export NODE_OPTIONS=--no-experimental-fetch
 ```
 
+If while using the above commands you encounter an error related to the limit of file watchers:
+
+```bash
+Error: ENOSPC: System limit for number of file watchers reached
+```
+The error is thrown because the number of files monitored by the system has reached the limit.
+You can address this this error by increasing the number of inotify watchers.
+
+
+The current value of max watches can be checked with:
+```bash
+cat /proc/sys/fs/inotify/max_user_watches
+```
+Edit the file /etc/sysctl.conf to increase this value.
+The value needs to be decided based on the system memory [(see this StackOverflow answer for more context)](https://stackoverflow.com/questions/535768/what-is-a-reasonable-amount-of-inotify-watches-with-linux).
+
+Open the file in editor and add a line at the bottom specifying the max watches values.
+```bash
+fs.inotify.max_user_watches=524288
+```
+Save the file and exit editor.
+To confirm that the change succeeded, run the following command to load the updated value of max_user_watches from sysctl.conf:
+```bash
+sudo sysctl -p
+```
 #### Webpack dev server
 
 The dev server by default starts at `http://localhost:9000` and proxies the backend requests to `http://localhost:8088`.
