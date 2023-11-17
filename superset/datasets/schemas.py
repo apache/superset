@@ -18,6 +18,7 @@ import json
 from datetime import datetime
 from typing import Any
 
+from dateutil.parser import isoparse
 from flask_babel import lazy_gettext as _
 from marshmallow import fields, pre_load, Schema, ValidationError
 from marshmallow.validate import Length
@@ -43,12 +44,14 @@ openapi_spec_methods_override = {
 
 
 def validate_python_date_format(value: str) -> None:
-    if value in ("epoch_s", "epoch_ms"):
-        return
+    if value in ("epoch_s", "epoch_ms", None):
+        return None
     try:
-        datetime.now().strftime(value or "")
+        dt_str = datetime.now().strftime(value)
+        isoparse(dt_str)
     except ValueError as ex:
         raise ValidationError([_("Invalid date/timestamp format")]) from ex
+    return None
 
 
 class DatasetColumnsPutSchema(Schema):
