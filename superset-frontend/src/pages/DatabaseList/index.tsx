@@ -314,7 +314,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     () => [
       {
         accessor: 'database_name',
-        Header: t('Database'),
+        Header: t('Name'),
       },
       {
         accessor: 'backend',
@@ -484,7 +484,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   const filters: Filters = useMemo(
     () => [
       {
-        Header: t('Search'),
+        Header: t('Name'),
         key: 'search',
         id: 'database_name',
         input: 'search',

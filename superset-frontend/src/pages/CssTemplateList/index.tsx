@@ -140,20 +140,18 @@ function CssTemplatesList({
             },
           },
         }: any) => {
-          let name = 'null';
+          const name = getOwnerName(changedBy);
 
-          if (changedBy) {
-            name = getOwnerName(changedBy);
-          }
-
-          return (
+          return name ? (
             <Tooltip
               id="allow-run-async-header-tooltip"
-              title={t('Last modified by %s', name)}
+              title={t('Modified by: %s', name)}
               placement="right"
             >
               <span>{changedOn}</span>
             </Tooltip>
+          ) : (
+            <span>{changedOn}</span>
           );
         },
         Header: t('Last modified'),
@@ -270,6 +268,13 @@ function CssTemplatesList({
   const filters: Filters = useMemo(
     () => [
       {
+        Header: t('Name'),
+        key: 'search',
+        id: 'template_name',
+        input: 'search',
+        operator: FilterOperator.contains,
+      },
+      {
         Header: t('Created by'),
         key: 'created_by',
         id: 'created_by',
@@ -288,13 +293,6 @@ function CssTemplatesList({
           user,
         ),
         paginate: true,
-      },
-      {
-        Header: t('Search'),
-        key: 'search',
-        id: 'template_name',
-        input: 'search',
-        operator: FilterOperator.contains,
       },
     ],
     [],

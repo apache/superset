@@ -61,6 +61,7 @@ import { Dashboard as CRUDDashboard } from 'src/views/CRUD/types';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import { loadTags } from 'src/components/Tags/utils';
 import DashboardCard from 'src/features/dashboards/DashboardCard';
+import { DashboardStatus } from 'src/features/dashboards/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
 
@@ -309,8 +310,19 @@ function DashboardList(props: DashboardListProps) {
             {dashboardTitle}
           </Link>
         ),
-        Header: t('Title'),
+        Header: t('Name'),
         accessor: 'dashboard_title',
+      },
+      {
+        Cell: ({
+          row: {
+            original: { status },
+          },
+        }: any) =>
+          status === DashboardStatus.PUBLISHED ? t('Published') : t('Draft'),
+        Header: t('Status'),
+        accessor: 'published',
+        size: 'xl',
       },
       {
         Cell: ({
@@ -340,6 +352,17 @@ function DashboardList(props: DashboardListProps) {
       {
         Cell: ({
           row: {
+            original: { owners = [] },
+          },
+        }: any) => <FacePile users={owners} />,
+        Header: t('Owners'),
+        accessor: 'owners',
+        disableSortBy: true,
+        size: 'xl',
+      },
+      {
+        Cell: ({
+          row: {
             original: {
               changed_on_delta_humanized: changedOn,
               changed_by_name: changedByName,
@@ -354,19 +377,8 @@ function DashboardList(props: DashboardListProps) {
             <span className="no-wrap">{changedOn}</span>
           </Tooltip>
         ),
-        Header: t('Last Modified'),
+        Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        size: 'xl',
-      },
-      {
-        Cell: ({
-          row: {
-            original: { owners = [] },
-          },
-        }: any) => <FacePile users={owners} />,
-        Header: t('Owners'),
-        accessor: 'owners',
-        disableSortBy: true,
         size: 'xl',
       },
       {
@@ -486,12 +498,37 @@ function DashboardList(props: DashboardListProps) {
   const filters: Filters = useMemo(() => {
     const filters_list = [
       {
-        Header: t('Search'),
+        Header: t('Name'),
         key: 'search',
         id: 'dashboard_title',
         input: 'search',
         operator: FilterOperator.titleOrSlug,
       },
+      {
+        Header: t('Status'),
+        key: 'published',
+        id: 'published',
+        input: 'select',
+        operator: FilterOperator.equals,
+        unfilteredLabel: t('Any'),
+        selects: [
+          { label: t('Published'), value: true },
+          { label: t('Draft'), value: false },
+        ],
+      },
+      ...(isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && canReadTag
+        ? [
+            {
+              Header: t('Tags'),
+              key: 'tags',
+              id: 'tags',
+              input: 'select',
+              operator: FilterOperator.dashboardTags,
+              unfilteredLabel: t('All'),
+              fetchSelects: loadTags,
+            },
+          ]
+        : []),
       {
         Header: t('Owner'),
         key: 'owner',
@@ -529,17 +566,6 @@ function DashboardList(props: DashboardListProps) {
         ],
       },
     ] as Filters;
-    if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && canReadTag) {
-      filters_list.push({
-        Header: t('Tags'),
-        key: 'tags',
-        id: 'tags',
-        input: 'select',
-        operator: FilterOperator.dashboardTags,
-        unfilteredLabel: t('All'),
-        fetchSelects: loadTags,
-      });
-    }
     return filters_list;
   }, [addDangerToast, favoritesFilter, props.user]);
 

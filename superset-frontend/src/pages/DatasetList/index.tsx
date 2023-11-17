@@ -381,6 +381,22 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         size: 'lg',
       },
       {
+        accessor: 'database',
+        disableSortBy: true,
+        hidden: true,
+      },
+      {
+        Cell: ({
+          row: {
+            original: { owners = [] },
+          },
+        }: any) => <FacePile users={owners} />,
+        Header: t('Owners'),
+        id: 'owners',
+        disableSortBy: true,
+        size: 'lg',
+      },
+      {
         Cell: ({
           row: {
             original: {
@@ -400,22 +416,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
-      },
-      {
-        accessor: 'database',
-        disableSortBy: true,
-        hidden: true,
-      },
-      {
-        Cell: ({
-          row: {
-            original: { owners = [] },
-          },
-        }: any) => <FacePile users={owners} />,
-        Header: t('Owners'),
-        id: 'owners',
-        disableSortBy: true,
-        size: 'lg',
       },
       {
         accessor: 'sql',
@@ -523,31 +523,23 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const filterTypes: Filters = useMemo(
     () => [
       {
-        Header: t('Search'),
+        Header: t('Name'),
         key: 'search',
         id: 'table_name',
         input: 'search',
         operator: FilterOperator.contains,
       },
       {
-        Header: t('Owner'),
-        key: 'owner',
-        id: 'owners',
+        Header: t('Type'),
+        key: 'sql',
+        id: 'sql',
         input: 'select',
-        operator: FilterOperator.relationManyMany,
+        operator: FilterOperator.datasetIsNullOrEmpty,
         unfilteredLabel: 'All',
-        fetchSelects: createFetchRelated(
-          'dataset',
-          'owners',
-          createErrorHandler(errMsg =>
-            t(
-              'An error occurred while fetching dataset owner values: %s',
-              errMsg,
-            ),
-          ),
-          user,
-        ),
-        paginate: true,
+        selects: [
+          { label: t('Virtual'), value: false },
+          { label: t('Physical'), value: true },
+        ],
       },
       {
         Header: t('Database'),
@@ -582,16 +574,24 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         paginate: true,
       },
       {
-        Header: t('Type'),
-        key: 'sql',
-        id: 'sql',
+        Header: t('Owner'),
+        key: 'owner',
+        id: 'owners',
         input: 'select',
-        operator: FilterOperator.datasetIsNullOrEmpty,
+        operator: FilterOperator.relationManyMany,
         unfilteredLabel: 'All',
-        selects: [
-          { label: t('Virtual'), value: false },
-          { label: t('Physical'), value: true },
-        ],
+        fetchSelects: createFetchRelated(
+          'dataset',
+          'owners',
+          createErrorHandler(errMsg =>
+            t(
+              'An error occurred while fetching dataset owner values: %s',
+              errMsg,
+            ),
+          ),
+          user,
+        ),
+        paginate: true,
       },
       {
         Header: t('Certified'),

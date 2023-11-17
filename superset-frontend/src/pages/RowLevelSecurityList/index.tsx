@@ -34,6 +34,7 @@ import { useListViewResource } from 'src/views/CRUD/hooks';
 import RowLevelSecurityModal from 'src/features/rls/RowLevelSecurityModal';
 import { RLSObject } from 'src/features/rls/types';
 import { createErrorHandler } from 'src/views/CRUD/utils';
+import getOwnerName from '../../utils/getOwnerName';
 
 const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
@@ -146,10 +147,21 @@ function RowLevelSecurityList(props: RLSProps) {
       {
         Cell: ({
           row: {
-            original: { changed_on_delta_humanized: changedOn },
+            original: {
+              changed_on_delta_humanized: changedOn,
+              changed_by: changedBy,
+            },
           },
-        }: any) => <span className="no-wrap">{changedOn}</span>,
-        Header: t('Modified'),
+        }: any) => (
+          <Tooltip
+            id="delete-action-tooltip"
+            title={t('Modified by: %s', getOwnerName(changedBy))}
+            placement="bottom"
+          >
+            <span className="no-wrap">{changedOn}</span>
+          </Tooltip>
+        ),
+        Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
       },

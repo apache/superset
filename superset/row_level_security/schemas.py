@@ -20,6 +20,7 @@ from marshmallow import fields, Schema
 from marshmallow.validate import Length, OneOf
 
 from superset.connectors.sqla.models import RowLevelSecurityFilter
+from superset.dashboards.schemas import UserSchema
 from superset.utils.core import RowLevelSecurityFilterType
 
 id_description = "Unique if of rls filter"
@@ -81,6 +82,7 @@ class RLSListSchema(Schema):
     )
     group_key = fields.String(metadata={"description": "group_key_description"})
     description = fields.String(metadata={"description": "description_description"})
+    changed_by = fields.Nested(UserSchema(exclude=["username"]))
 
 
 class RLSShowSchema(Schema):

@@ -363,7 +363,7 @@ function ChartList(props: ChartListProps) {
             )}
           </FlexRowContainer>
         ),
-        Header: t('Chart'),
+        Header: t('Name'),
         accessor: 'slice_name',
       },
       {
@@ -435,6 +435,17 @@ function ChartList(props: ChartListProps) {
       {
         Cell: ({
           row: {
+            original: { owners = [] },
+          },
+        }: any) => <FacePile users={owners} />,
+        Header: t('Owners'),
+        accessor: 'owners',
+        disableSortBy: true,
+        size: 'xl',
+      },
+      {
+        Cell: ({
+          row: {
             original: {
               last_saved_at: lastSavedAt,
               last_saved_by: lastSavedBy,
@@ -453,17 +464,6 @@ function ChartList(props: ChartListProps) {
         ),
         Header: t('Last modified'),
         accessor: 'last_saved_at',
-        size: 'xl',
-      },
-      {
-        Cell: ({
-          row: {
-            original: { owners = [] },
-          },
-        }: any) => <FacePile users={owners} />,
-        Header: t('Owners'),
-        accessor: 'owners',
-        disableSortBy: true,
         size: 'xl',
       },
       {
@@ -587,33 +587,11 @@ function ChartList(props: ChartListProps) {
   const filters: Filters = useMemo(() => {
     const filters_list = [
       {
-        Header: t('Search'),
+        Header: t('Name'),
         key: 'search',
         id: 'slice_name',
         input: 'search',
         operator: FilterOperator.chartAllText,
-      },
-      {
-        Header: t('Owner'),
-        key: 'owner',
-        id: 'owners',
-        input: 'select',
-        operator: FilterOperator.relationManyMany,
-        unfilteredLabel: t('All'),
-        fetchSelects: createFetchRelated(
-          'chart',
-          'owners',
-          createErrorHandler(errMsg =>
-            addDangerToast(
-              t(
-                'An error occurred while fetching chart owners values: %s',
-                errMsg,
-              ),
-            ),
-          ),
-          props.user,
-        ),
-        paginate: true,
       },
       {
         Header: t('Chart type'),
@@ -651,6 +629,41 @@ function ChartList(props: ChartListProps) {
         fetchSelects: createFetchDatasets,
         paginate: true,
       },
+      ...(isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && canReadTag
+        ? [
+            {
+              Header: t('Tags'),
+              key: 'tags',
+              id: 'tags',
+              input: 'select',
+              operator: FilterOperator.chartTags,
+              unfilteredLabel: t('All'),
+              fetchSelects: loadTags,
+            },
+          ]
+        : []),
+      {
+        Header: t('Owner'),
+        key: 'owner',
+        id: 'owners',
+        input: 'select',
+        operator: FilterOperator.relationManyMany,
+        unfilteredLabel: t('All'),
+        fetchSelects: createFetchRelated(
+          'chart',
+          'owners',
+          createErrorHandler(errMsg =>
+            addDangerToast(
+              t(
+                'An error occurred while fetching chart owners values: %s',
+                errMsg,
+              ),
+            ),
+          ),
+          props.user,
+        ),
+        paginate: true,
+      },
       {
         Header: t('Dashboards'),
         key: 'dashboards',
@@ -676,17 +689,6 @@ function ChartList(props: ChartListProps) {
         ],
       },
     ] as Filters;
-    if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && canReadTag) {
-      filters_list.push({
-        Header: t('Tags'),
-        key: 'tags',
-        id: 'tags',
-        input: 'select',
-        operator: FilterOperator.chartTags,
-        unfilteredLabel: t('All'),
-        fetchSelects: loadTags,
-      });
-    }
     return filters_list;
   }, [addDangerToast, favoritesFilter, props.user]);
 

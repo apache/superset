@@ -379,7 +379,7 @@ function SavedQueryList({
             original: { changed_on_delta_humanized: changedOn },
           },
         }: any) => changedOn,
-        Header: t('Modified'),
+        Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
       },
