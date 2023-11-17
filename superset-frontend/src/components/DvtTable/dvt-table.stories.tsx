@@ -7,17 +7,13 @@ export default {
 };
 
 export const Default = (args: DvtTableProps) => {
-  const [currentPage, setCurrentPage] = useState(1);
+  const [page, setPage] = useState(1);
 
-  const handlePageChange = (newPage: number) => setCurrentPage(newPage);
+  const handlePageChange = (newPage: number) => setPage(newPage);
 
   return (
     <div style={{ width: 1440, height: 1050 }}>
-      <DvtTable
-        {...args}
-        currentPage={currentPage}
-        setcurrentPage={handlePageChange}
-      />
+      <DvtTable {...args} page={page} setPage={handlePageChange} />
     </div>
   );
 };
@@ -142,17 +138,13 @@ Default.args = {
 };
 
 export const IconExample = (args: DvtTableProps) => {
-  const [currentPage, setCurrentPage] = useState(1);
+  const [page, setPage] = useState(1);
 
-  const handlePageChange = (newPage: number) => setCurrentPage(newPage);
+  const handlePageChange = (newPage: number) => setPage(newPage);
 
   return (
     <div style={{ width: 1440, height: 1050 }}>
-      <DvtTable
-        {...args}
-        currentPage={currentPage}
-        setcurrentPage={handlePageChange}
-      />
+      <DvtTable {...args} page={page} setPage={handlePageChange} />
     </div>
   );
 };
@@ -275,17 +267,13 @@ IconExample.args = {
 };
 
 export const HoverExample = (args: DvtTableProps) => {
-  const [currentPage, setCurrentPage] = useState(1);
+  const [page, setPage] = useState(1);
 
-  const handlePageChange = (newPage: number) => setCurrentPage(newPage);
+  const handlePageChange = (newPage: number) => setPage(newPage);
 
   return (
     <div style={{ width: 1440, height: 1050 }}>
-      <DvtTable
-        {...args}
-        currentPage={currentPage}
-        setcurrentPage={handlePageChange}
-      />
+      <DvtTable {...args} page={page} setPage={handlePageChange} />
     </div>
   );
 };
@@ -411,17 +399,13 @@ HoverExample.args = {
 };
 
 export const IconColourExample = (args: DvtTableProps) => {
-  const [currentPage, setCurrentPage] = useState(1);
+  const [page, setPage] = useState(1);
 
-  const handlePageChange = (newPage: number) => setCurrentPage(newPage);
+  const handlePageChange = (newPage: number) => setPage(newPage);
 
   return (
     <div style={{ width: 1440, height: 1050 }}>
-      <DvtTable
-        {...args}
-        currentPage={currentPage}
-        setcurrentPage={handlePageChange}
-      />
+      <DvtTable {...args} page={page} setPage={handlePageChange} />
     </div>
   );
 };
@@ -547,16 +531,16 @@ IconColourExample.args = {
 };
 
 export const PaginationExample = (args: DvtTableProps) => {
-  const [currentPage, setCurrentPage] = useState(1);
+  const [page, setPage] = useState(1);
 
-  const handlePageChange = (newPage: number) => setCurrentPage(newPage);
+  const handlePageChange = (newPage: number) => setPage(newPage);
 
   return (
     <div style={{ width: 1440, height: 1050 }}>
       <DvtTable
         {...args}
-        currentPage={currentPage}
-        setcurrentPage={handlePageChange}
+        page={page}
+        setPage={handlePageChange}
         pagination
         itemsPerPage={3}
       />

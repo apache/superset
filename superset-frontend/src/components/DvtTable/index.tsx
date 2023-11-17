@@ -20,18 +20,18 @@ export interface DvtTableProps {
   data: any[];
   header: {
     title: string;
-    field: string;
+    field?: string;
     folderIcon?: boolean;
     heartIcon?: boolean;
     onLink?: boolean;
     flex?: number;
     clicks?: [];
-    showHover: boolean;
+    showHover?: boolean;
   }[];
   onRowClick?: (row: any) => void;
   itemsPerPage?: number;
-  currentPage: number;
-  setcurrentPage: (newPage: number) => void;
+  page?: number;
+  setPage?: (newPage: number) => void;
   pagination?: boolean;
 }
 
@@ -40,18 +40,23 @@ const DvtTable: React.FC<DvtTableProps> = ({
   header,
   onRowClick,
   itemsPerPage = 10,
-  currentPage,
-  setcurrentPage,
+  page = 1,
+  setPage,
   pagination = false,
 }) => {
   const itemsPerPageValue = itemsPerPage;
-  const indexOfLastItem = currentPage * itemsPerPageValue;
-  const indexOfFirstItem = (currentPage - 1) * itemsPerPageValue;
-  const currentItems = data.slice(indexOfFirstItem, indexOfLastItem);
+  const indexOfLastItem = page * itemsPerPageValue;
+  const indexOfFirstItem = (page - 1) * itemsPerPageValue;
+  const currentItems = pagination
+    ? data.slice(indexOfFirstItem, indexOfLastItem)
+    : data;
+
   const [openRow, setOpenRow] = useState<number | null>(null);
 
   const paginate = (pageNumber: number) => {
-    setcurrentPage(pageNumber);
+    if (setPage) {
+      setPage(pageNumber);
+    }
   };
 
   const formatDateTime = (dateTimeString: string) => {
@@ -158,7 +163,9 @@ const DvtTable: React.FC<DvtTableProps> = ({
                             />
                           ),
                         )}
-                        {column.field !== 'action' && <>{row[column.field]}</>}
+                        {column.field !== 'action' && column.field && (
+                          <>{row[column.field]}</>
+                        )}
                       </>
                     )}
                   </StyledTableIcon>
@@ -171,7 +178,7 @@ const DvtTable: React.FC<DvtTableProps> = ({
       {pagination && (
         <StyledTablePagination>
           <DvtPagination
-            page={currentPage || 1}
+            page={page || 1}
             setPage={paginate}
             itemSize={data.length}
             pageItemSize={itemsPerPageValue}
