@@ -21,13 +21,13 @@ const DvtCalendar: React.FC<DvtCalendarProps> = ({ onSelect }) => {
       <Calendar
         style={{
           borderRadius: '12px',
-          boxShadow: '5px 5px 10px',
+          boxShadow: '5px 5px 10px rgba(0, 0, 0, 0.2)',
           paddingLeft: '11px',
           paddingRight: '11px',
         }}
         fullscreen={false}
         onSelect={onSelect}
-        headerRender={({ value, type, onChange }) => {
+        headerRender={({ value, onChange }) => {
           const start = 0;
           const end = 12;
           const monthOptions = [];
