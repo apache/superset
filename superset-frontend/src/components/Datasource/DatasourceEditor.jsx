@@ -329,7 +329,7 @@ function ColumnCollectionTable({
               control={
                 <TextControl
                   controlId="python_date_format"
-                  placeholder="%Y/%m/%d"
+                  placeholder="%Y-%m-%d"
                 />
               }
             />
