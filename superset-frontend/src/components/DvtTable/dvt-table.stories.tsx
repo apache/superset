@@ -137,13 +137,11 @@ Default.args = {
   ],
 };
 
-export const Example = (args: DvtTableProps) => {
-  return (
-    <div style={{ width: 1440, height: 1050 }}>
-      <DvtTable {...args} />
-    </div>
-  );
-};
+export const Example = (args: DvtTableProps) => (
+  <div style={{ width: 1440, height: 1050 }}>
+    <DvtTable {...args} />
+  </div>
+);
 
 Example.args = {
   header: [
