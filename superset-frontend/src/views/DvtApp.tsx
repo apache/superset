@@ -28,6 +28,7 @@ import { bindActionCreators } from 'redux';
 import { GlobalStyles } from 'src/GlobalStyles';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
+import DvtSidebar from 'src/components/DvtSidebar';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import setupApp from 'src/setup/setupApp';
@@ -39,7 +40,6 @@ import { logEvent } from 'src/logger/actions';
 import { store } from 'src/views/store';
 import { RootContextProviders } from './RootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
-import DvtSidebar from 'src/components/DvtSidebar';
 
 setupApp();
 setupPlugins();
