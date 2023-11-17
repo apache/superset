@@ -203,7 +203,7 @@ class DashboardGetResponseSchema(Schema):
     @post_dump()
     def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if security_manager.is_guest_user():
-            serialized["owners"] = []
+            del serialized["owners"]
             del serialized["changed_by_name"]
             del serialized["changed_by"]
         return serialized
@@ -261,7 +261,7 @@ class DashboardDatasetSchema(Schema):
     @post_dump()
     def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if security_manager.is_guest_user():
-            serialized["owners"] = []
+            del serialized["owners"]
             del serialized["database"]
         return serialized
 
