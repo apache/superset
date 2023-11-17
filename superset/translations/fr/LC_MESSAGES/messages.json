@@ -100,7 +100,7 @@
       "1H": [""],
       "1M": [""],
       "1T": [""],
-      "2 years ago": ["il y a 2 ans"],
+      "2 years ago": ["Il y a 2 ans"],
       "2/98 percentiles": [""],
       "28 days ago": [""],
       "2D": [""],
@@ -1091,6 +1091,7 @@
         ""
       ],
       "Currently rendered: %s": [""],
+      "Custom": ["Personnalisée"],
       "Custom Plugin": ["Plugin custom"],
       "Custom Plugins": ["Plugins custom"],
       "Custom SQL": ["SQL personnalisé"],
@@ -1981,6 +1982,7 @@
       "Labels for the marker lines": [""],
       "Labels for the markers": [""],
       "Labels for the ranges": [""],
+      "Last": ["Dernier"],
       "Last Changed": ["Dernière modification"],
       "Last Modified": ["Dernière modification"],
       "Last Updated %s": ["Dernière mise à jour %s"],
@@ -4525,6 +4527,11 @@
       "json isn't valid": ["le json n'est pas valide"],
       "key a-z": [""],
       "key z-a": [""],
+      "last day": ["hier"],
+      "last month": ["le mois dernier"],
+      "last quarter": ["le trimestre dernier"],
+      "last week": ["la semaine dernière"],
+      "last year": ["l'année dernière"],
       "latest partition:": ["dernière partition :"],
       "less than {min} {name}": [""],
       "log": ["log"],
@@ -4591,18 +4598,10 @@
       "y: values are normalized within each row": [""],
       "year": ["année"],
       "zoom area": [""],
-      "No matching records found": ["Aucun résultat trouvé"],
-      "Seconds %s": ["%s secondes"],
-      "Minutes %s": ["%s minutes "],
       "10 seconds": ["10 secondes"],
       "6 hours": ["6 heures"],
       "12 hours": ["12 heures"],
-      "24 hours": ["24 heures"],
-      "Last day": ["Hier"],
-      "Last week": ["La semaine derniere"],
-      "Last month": ["Le mois dernier"],
-      "Last quarter": ["Le trimestre dernier"],
-      "Last year": ["L'année dernière"]
+      "24 hours": ["24 heures"]
     }
   }
 }

@@ -4956,7 +4956,6 @@ msgid "Currently rendered: %s"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:33
-#, fuzzy
 msgid "Custom"
 msgstr "Personnalisée"
 
@@ -9038,9 +9037,8 @@ msgstr "Partage de requête"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:190
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:31
-#, fuzzy
 msgid "Last"
-msgstr "à"
+msgstr "Dernier"
 
 #: superset/connectors/sqla/views.py:388 superset/views/database/mixins.py:190
 msgid "Last Changed"
@@ -20421,27 +20419,22 @@ msgid "label"
 msgstr "Label"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:39
-#, fuzzy
 msgid "last day"
 msgstr "hier"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:41
-#, fuzzy
 msgid "last month"
 msgstr "le mois dernier"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:42
-#, fuzzy
 msgid "last quarter"
 msgstr "le trimestre dernier"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:40
-#, fuzzy
 msgid "last week"
-msgstr "la semaine derniere"
+msgstr "la semaine dernière"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:43
-#, fuzzy
 msgid "last year"
 msgstr "l'année dernière"
 
