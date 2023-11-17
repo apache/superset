@@ -1,23 +1,23 @@
 import React, { useState } from 'react';
-import 'dayjs/locale/zh-cn';
-import { Calendar, Select, Typography } from 'antd';
 import Icon from '../Icons/Icon';
+import { Moment } from 'moment';
+import { Calendar, Select, Typography } from 'antd';
+import { StyledCalendar, StyledCalendarIcon } from './dvt-calendar.module';
 
-const DvtCalendar: React.FC = () => {
+export interface DvtCalendarProps {
+  onSelect?: (date: Moment) => void;
+}
+
+const DvtCalendar: React.FC<DvtCalendarProps> = ({ onSelect }) => {
   const [isCalendarVisible, setCalendarVisible] = useState(true);
   const [isNextIconHovered, setNextIconHovered] = useState(false);
   const [isPrevIconHovered, setPrevIconHovered] = useState(false);
 
-  const wrapperStyle: React.CSSProperties = {
-    width: '308px',
-    height: '315px',
-    display: isCalendarVisible ? 'block' : 'none',
-  };
   const handleToggleCalendar = () => {
     setCalendarVisible(!isCalendarVisible);
   };
   return (
-    <div style={wrapperStyle}>
+    <StyledCalendar isCalendarVisible={isCalendarVisible}>
       <Calendar
         style={{
           borderRadius: '12px',
@@ -26,6 +26,7 @@ const DvtCalendar: React.FC = () => {
           paddingRight: '11px',
         }}
         fullscreen={false}
+        onSelect={onSelect}
         headerRender={({ value, type, onChange }) => {
           const start = 0;
           const end = 12;
@@ -81,7 +82,7 @@ const DvtCalendar: React.FC = () => {
             onChange(newDate);
           };
           return (
-            <div style={{ padding: 8, display: 'flex', alignItems: 'center' }}>
+            <StyledCalendarIcon>
               <Typography.Title level={5} style={{ width: 140 }}>
                 {monthNames[month]} {year}
               </Typography.Title>
@@ -105,15 +106,19 @@ const DvtCalendar: React.FC = () => {
               ></Icon>
               <Icon
                 fileName="close"
-                style={{ marginLeft: 'auto', cursor: 'pointer' }}
+                style={{
+                  marginLeft: 'auto',
+                  marginTop: '4px',
+                  cursor: 'pointer',
+                }}
                 iconSize="m"
                 onClick={handleToggleCalendar}
               />
-            </div>
+            </StyledCalendarIcon>
           );
         }}
       />
-    </div>
+    </StyledCalendar>
   );
 };
 
