@@ -35,7 +35,7 @@ from superset.datasets.schemas import validate_python_date_format
     ],
 )
 def test_validate_python_date_format(payload) -> None:
-    assert validate_python_date_format(payload) is None
+    assert validate_python_date_format(payload)
 
 
 @pytest.mark.parametrize(

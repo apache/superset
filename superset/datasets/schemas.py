@@ -43,22 +43,25 @@ openapi_spec_methods_override = {
 }
 
 
-def validate_python_date_format(value: str) -> None:
+def validate_python_date_format(value: str) -> bool:
     if value in ("epoch_s", "epoch_ms", None):
-        return None
+        return True
     try:
         dt_str = datetime.now().strftime(value)
         isoparse(dt_str)
     except ValueError as ex:
         raise ValidationError([_("Invalid date/timestamp format")]) from ex
-    return None
+    return True
 
 
 class DatasetColumnsPutSchema(Schema):
     id = fields.Integer(required=False)
     column_name = fields.String(required=True, validate=Length(1, 255))
     type = fields.String(allow_none=True)
-    advanced_data_type = fields.String(allow_none=True, validate=Length(1, 255))
+    advanced_data_type = fields.String(
+        allow_none=True,
+        validate=Length(1, 255),
+    )
     verbose_name = fields.String(allow_none=True, metadata={Length: (1, 1024)})
     description = fields.String(allow_none=True)
     expression = fields.String(allow_none=True)
