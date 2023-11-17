@@ -17,20 +17,17 @@
  * under the License.
  */
 import React from 'react';
-import withToasts from 'src/components/MessageToasts/withToasts';
-import {
-  StyledDvtWelcome,
-  DataContainer,
-  CalendarContainer,
-} from './dvt-home.module';
+import { StyledDvtNavbar, NavbarTop, NavbarBottom } from './dvt-navbar.module';
 
-function DvtWelcome() {
-  return (
-    <StyledDvtWelcome>
-      <DataContainer>Datalar coming soon...</DataContainer>
-      <CalendarContainer>Calendar component coming soon...</CalendarContainer>
-    </StyledDvtWelcome>
-  );
+export interface DvtNavbarProps {
+  user?: any;
 }
 
-export default withToasts(DvtWelcome);
+const DvtNavbar: React.FC<DvtNavbarProps> = ({ user }) => (
+  <StyledDvtNavbar>
+    <NavbarTop>Navbar Top Component coming soon...</NavbarTop>
+    <NavbarBottom>Navbar Bottom Component coming soon...</NavbarBottom>
+  </StyledDvtNavbar>
+);
+
+export default DvtNavbar;

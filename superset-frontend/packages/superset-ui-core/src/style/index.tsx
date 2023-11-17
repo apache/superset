@@ -153,6 +153,10 @@ const defaultTheme = {
       },
       boxShadow: {
         base: '#0000001a',
+        sidebar: '#64748b0a',
+      },
+      border: {
+        base: '#F1F5F9',
       },
     },
   },
