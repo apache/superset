@@ -7,7 +7,7 @@ const StyledDvtCard = styled.div`
   height: 166px;
   width: 264px;
   flex-shrink: 0;
-  background-color: ${({ theme }) => theme.colors.grayscale.light5};
+  background-color: ${({ theme }) => theme.colors.grayscale.base};
   border-radius: 12px;
   transition: 0.3s ease;
 
