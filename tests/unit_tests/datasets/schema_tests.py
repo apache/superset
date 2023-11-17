@@ -19,59 +19,31 @@
 import pytest
 from marshmallow import ValidationError
 
+from superset.datasets.schemas import validate_python_date_format
+
 
 # pylint: disable=too-few-public-methods
 @pytest.mark.parametrize(
     "payload",
     [
-        (
-            {
-                "column_name": "insert_time",
-                "filterable": True,
-                "groupby": True,
-                "python_date_format": None,
-            }
-        ),
-        (
-            {
-                "column_name": "insert_time",
-                "filterable": True,
-                "groupby": True,
-                "python_date_format": "epoch_ms",
-            }
-        ),
-        (
-            {
-                "column_name": "insert_time",
-                "filterable": True,
-                "groupby": True,
-                "python_date_format": "epoch_s",
-            }
-        ),
-        (
-            {
-                "column_name": "insert_time",
-                "filterable": True,
-                "groupby": True,
-                "python_date_format": "%Y/%m/%dT%H:%M:%S.%f",
-            }
-        ),
-        (
-            {
-                "column_name": "insert_time",
-                "filterable": True,
-                "groupby": True,
-                "python_date_format": "%Y%m%d",
-            }
-        ),
+        None,
+        "epoch_ms",
+        "epoch_s",
+        "%Y/%m/%dT%H:%M:%S.%f",
+        "%Y-%m-%dT%H:%M:%S.%f",
+        "%Y%m%d",
     ],
 )
-def test_datasets_schema_update_column_datetime_format(payload) -> None:
-    from superset.datasets.schemas import DatasetColumnsPutSchema
+def test_validate_python_date_format(payload) -> None:
+    assert None == validate_python_date_format(payload)
 
-    schema = DatasetColumnsPutSchema()
 
-    try:
-        schema.load(payload)
-    except ValidationError as err:
-        assert False, err.messages
+@pytest.mark.parametrize(
+    "payload",
+    [
+        "%d%m%Y",
+    ],
+)
+def test_validate_python_date_format_raises(payload) -> None:
+    with pytest.raises(ValidationError):
+        validate_python_date_format(payload)
