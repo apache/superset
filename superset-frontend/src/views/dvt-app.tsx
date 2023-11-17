@@ -37,16 +37,26 @@ import setupPlugins from 'src/setup/setupPlugins';
 import { routes, isFrontendRoute } from 'src/views/dvt-routes';
 import { Logger, LOG_ACTIONS_SPA_NAVIGATION } from 'src/logger/LogUtils';
 import setupExtensions from 'src/setup/setupExtensions';
+import { styled } from '@superset-ui/core';
 import { logEvent } from 'src/logger/actions';
 import { store } from 'src/views/store';
 import { RootContextProviders } from './RootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
-import { styled } from '@superset-ui/core';
 
 const Main = styled.main`
   flex: 1;
   padding: 25px;
   overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    background-color: ${({ theme }) => theme.colors.dvt.primary.light2};
+    width: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: ${({ theme }) => theme.colors.dvt.primary.base};
+    border-radius: 4px;
+  }
 `;
 
 setupApp();
