@@ -26,10 +26,8 @@ from superset.datasets.schemas import validate_python_date_format
 @pytest.mark.parametrize(
     "payload",
     [
-        None,
         "epoch_ms",
         "epoch_s",
-        "%Y/%m/%dT%H:%M:%S.%f",
         "%Y-%m-%dT%H:%M:%S.%f",
         "%Y%m%d",
     ],
@@ -42,6 +40,7 @@ def test_validate_python_date_format(payload) -> None:
     "payload",
     [
         "%d%m%Y",
+        "%Y/%m/%dT%H:%M:%S.%f",
     ],
 )
 def test_validate_python_date_format_raises(payload) -> None:
