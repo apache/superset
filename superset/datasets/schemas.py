@@ -44,7 +44,7 @@ openapi_spec_methods_override = {
 
 
 def validate_python_date_format(value: str) -> bool:
-    if value in ("epoch_s", "epoch_ms", None):
+    if value in ("epoch_s", "epoch_ms"):
         return True
     try:
         dt_str = datetime.now().strftime(value)
