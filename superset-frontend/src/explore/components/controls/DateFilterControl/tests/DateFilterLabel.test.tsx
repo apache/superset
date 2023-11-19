@@ -106,3 +106,34 @@ test('Open and close popover', () => {
   expect(defaultProps.onClosePopover).toHaveBeenCalled();
   expect(screen.queryByText('Edit time range')).not.toBeInTheDocument();
 });
+
+test('Should render shortcuts frame', () => {
+  render(
+    setup(
+      defaultProps,
+      mockStore({
+        common: {
+          conf: {
+            DEFAULT_TIME_FILTER: "DATETRUNC(DATETIME('today'), WEEK) : today",
+            TIME_FILTER_SHORTCUTS: [
+              ['Current week', "DATETRUNC(DATETIME('today'), WEEK) : today"],
+              [
+                'Current month(MTD)',
+                "DATETRUNC(DATETIME('today'), MONTH) : today",
+              ],
+              [
+                'Current year(YTD)',
+                "DATETRUNC(DATETIME('today'), YEAR) : today",
+              ],
+            ],
+          },
+        },
+      }),
+    ),
+  );
+
+  userEvent.click(screen.getByTestId('time-range-trigger'));
+  expect(screen.getByText('Current week')).toBeInTheDocument();
+  expect(screen.getByText('Current month(MTD)')).toBeInTheDocument();
+  expect(screen.getByText('Current year(YTD)')).toBeInTheDocument();
+});

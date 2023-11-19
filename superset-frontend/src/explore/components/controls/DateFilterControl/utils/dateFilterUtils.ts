@@ -63,7 +63,7 @@ export const guessFrame = (
   if (customTimeRangeDecode(timeRange).matchedFlag) {
     return 'Custom';
   }
-  if (shortcuts.filter(s => s[1] === timeRange)) {
+  if (shortcuts.filter(s => s[1] === timeRange).length > 0) {
     return 'Shortcuts';
   }
   return 'Advanced';
