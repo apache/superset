@@ -23,7 +23,7 @@ import { useTimeFilterShortcuts } from 'src/explore/components/controls/DateFilt
 import { FrameComponentProps } from 'src/explore/components/controls/DateFilterControl/types';
 
 export function ShortcutsFrame(props: FrameComponentProps) {
-  const shortCuts = useTimeFilterShortcuts();
+  const shortcuts = useTimeFilterShortcuts();
 
   return (
     <>
@@ -32,7 +32,7 @@ export function ShortcutsFrame(props: FrameComponentProps) {
         value={props.value}
         onChange={(e: any) => props.onChange(e.target.value)}
       >
-        {shortCuts.map(([key, value]: [string, string]) => (
+        {shortcuts.map(([key, value]: [string, string]) => (
           <Radio key={key} value={value} className="vertical-radio">
             {key}
           </Radio>
