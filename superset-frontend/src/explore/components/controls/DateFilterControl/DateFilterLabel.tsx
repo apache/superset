@@ -45,6 +45,7 @@ import {
   FRAME_OPTIONS,
   guessFrame,
   useDefaultTimeFilter,
+  useTimeFilterShortcuts,
 } from './utils';
 import {
   CommonFrame,
@@ -52,6 +53,7 @@ import {
   CustomFrame,
   AdvancedFrame,
   DateLabel,
+  ShortcutsFrame,
 } from './components';
 
 const StyledRangeType = styled(Select)`
@@ -159,12 +161,13 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     isOverflowingFilterBar = false,
   } = props;
   const defaultTimeFilter = useDefaultTimeFilter();
+  const shortcuts = useTimeFilterShortcuts();
 
   const value = props.value ?? defaultTimeFilter;
   const [actualTimeRange, setActualTimeRange] = useState<string>(value);
 
   const [show, setShow] = useState<boolean>(false);
-  const guessedFrame = useMemo(() => guessFrame(value), [value]);
+  const guessedFrame = useMemo(() => guessFrame(value, shortcuts), [value]);
   const [frame, setFrame] = useState<FrameType>(guessedFrame);
   const [lastFetchedTimeRange, setLastFetchedTimeRange] = useState(value);
   const [timeRangeValue, setTimeRangeValue] = useState(value);
@@ -301,6 +304,9 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       )}
       {frame === 'Custom' && (
         <CustomFrame value={timeRangeValue} onChange={setTimeRangeValue} />
+      )}
+      {frame === 'Shortcuts' && (
+        <ShortcutsFrame value={timeRangeValue} onChange={setTimeRangeValue} />
       )}
       {frame === 'No filter' && (
         <div data-test={DATE_FILTER_TEST_KEY.noFilter} />

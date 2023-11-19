@@ -26,7 +26,8 @@ export type FrameType =
   | 'Calendar'
   | 'Custom'
   | 'Advanced'
-  | 'No filter';
+  | 'No filter'
+  | 'Shortcuts';
 
 export type DateTimeGrainType =
   | 'second'
@@ -98,4 +99,5 @@ export interface DateFilterControlProps {
   onClosePopover?: () => void;
   overlayStyle?: 'Modal' | 'Popover';
   isOverflowingFilterBar?: boolean;
+  timeFilterShortcuts?: [string, string][];
 }

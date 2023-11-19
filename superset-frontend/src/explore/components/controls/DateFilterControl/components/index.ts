@@ -21,3 +21,4 @@ export { CalendarFrame } from './CalendarFrame';
 export { CustomFrame } from './CustomFrame';
 export { AdvancedFrame } from './AdvancedFrame';
 export { DateLabel } from './DateLabel';
+export { ShortcutsFrame } from './ShortcutsFrame';

@@ -153,6 +153,11 @@ FILTER_SELECT_ROW_LIMIT = 10000
 # default time filter in explore
 # values may be "Last day", "Last week", "<ISO date> : now", etc.
 DEFAULT_TIME_FILTER = NO_TIME_RANGE
+TIME_FILTER_SHORTCUTS = [
+    ["Current week", "DATETRUNC(DATETIME('today'), WEEK) : today"],
+    ["Current month(MTD)", "DATETRUNC(DATETIME('today'), MONTH) : today"],
+    ["Current year(YTD)", "DATETRUNC(DATETIME('today'), YEAR) : today"],
+]
 
 SUPERSET_WEBSERVER_PROTOCOL = "http"
 SUPERSET_WEBSERVER_ADDRESS = "0.0.0.0"

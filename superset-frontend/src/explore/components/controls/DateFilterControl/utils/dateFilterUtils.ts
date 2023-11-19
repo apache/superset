@@ -47,7 +47,10 @@ export const formatTimeRange = (
   )} ≤ ${columnPlaceholder} < ${formatDateEndpoint(splitDateRange[1])}`;
 };
 
-export const guessFrame = (timeRange: string): FrameType => {
+export const guessFrame = (
+  timeRange: string,
+  shortcuts: [string, string][],
+): FrameType => {
   if (COMMON_RANGE_VALUES_SET.has(timeRange)) {
     return 'Common';
   }
@@ -59,6 +62,9 @@ export const guessFrame = (timeRange: string): FrameType => {
   }
   if (customTimeRangeDecode(timeRange).matchedFlag) {
     return 'Custom';
+  }
+  if (shortcuts.filter(s => s[1] === timeRange)) {
+    return 'Shortcuts';
   }
   return 'Advanced';
 };
@@ -91,5 +97,13 @@ export function useDefaultTimeFilter() {
     useSelector(
       (state: JsonObject) => state?.common?.conf?.DEFAULT_TIME_FILTER,
     ) ?? NO_TIME_RANGE
+  );
+}
+
+export function useTimeFilterShortcuts(): [string, string][] {
+  return (
+    useSelector(
+      (state: JsonObject) => state?.common?.conf?.TIME_FILTER_SHORTCUTS,
+    ) ?? []
   );
 }
