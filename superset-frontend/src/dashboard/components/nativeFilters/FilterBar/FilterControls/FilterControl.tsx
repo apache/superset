@@ -49,7 +49,6 @@ const VerticalFilterControlTitle = styled.h4`
 const HorizontalFilterControlTitle = styled(VerticalFilterControlTitle)`
   font-weight: ${({ theme }) => theme.typography.weights.normal};
   color: ${({ theme }) => theme.colors.grayscale.base};
-  max-width: ${({ theme }) => theme.gridUnit * 15}px;
   ${truncationCSS};
 `;
 
