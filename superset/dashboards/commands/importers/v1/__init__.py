@@ -112,7 +112,14 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 and config["dataset_uuid"] in dataset_info
             ):
                 # update datasource id, type, and name
-                config.update(dataset_info[config["dataset_uuid"]])
+                dataset_dict = dataset_info[config["dataset_uuid"]]
+                config.update(dataset_dict)
+                # pylint: disable=line-too-long
+                dataset_uid = f"{dataset_dict['datasource_id']}__{dataset_dict['datasource_type']}"
+                config["params"].update({"datasource": dataset_uid})
+                if "query_context" in config:
+                    del config["query_context"]
+
                 chart = import_chart(session, config, overwrite=False)
                 chart_ids[str(chart.uuid)] = chart.id
 
