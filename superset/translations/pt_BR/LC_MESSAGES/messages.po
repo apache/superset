@@ -9396,10 +9396,6 @@ msgstr "Gerenciar seus bancos de dados"
 msgid "Mandatory"
 msgstr "Obrigatório"
 
-#: superset/views/database/forms.py:360
-msgid "Mangle Duplicate Columns"
-msgstr "Emaranhar colunas duplicadas"
-
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:297
 msgid "Manually set min/max values for the y-axis."
 msgstr "Definir manualmente os valores mínimo/máximo para o eixo y."
