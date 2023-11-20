@@ -25,7 +25,7 @@ We need to get the `mysqlclient` library installed into the Superset docker cont
 installed on the host machine). We could enter the running container with `docker exec -it <container_name> bash` 
 and run `pip install mysqlclient` there, but that wouldn't persist permanently.
 
-To address this, the Superset `docker compose` uses the convention of a `requirements-local.txt` file. All packages
+To address this, the Superset `docker compose` deployment uses the convention of a `requirements-local.txt` file. All packages
 listed in this file will be installed into the container from PyPI at runtime. This file will be ignored by Git for
 the purposes of local development.
 
@@ -46,7 +46,7 @@ echo "mysqlclient" >> ./docker/requirements-local.txt
 **If you are running a stock (non-customized) Superset image**, you are done.  Launch Superset with
 `docker compose -f docker-compose-non-dev.yml up` and the driver should be present.
 
-You can check its presence by entering the running container with `docker exec -it <container name>
+You can check its presence by entering the running container with `docker exec -it <container_name>
 bash` and running `pip freeze`.  The PyPI package should be present in the printed list.
 
 **If you're running a customized docker image**, rebuild your local image with the new driver baked in:
@@ -68,13 +68,15 @@ there, follow the steps on the [Using Database Connection UI page](https://super
 
 Consult the page for your specific database type in the Superset documentation to determine the connection string and any other
 parameters you need to input.  For instance, on the [MySQL page](https://superset.apache.org/docs/databases/mysql), we see
-that the connection string to a local MySQL database differs depending on whether the setup is running on Linux or OSX.
+that the connection string to a local MySQL database differs depending on whether the setup is running on Linux or Mac.
+
 Click the “Test Connection” button, which should result in a popup message saying, "Connection looks good!".
 
 ### 4. Troubleshooting
 
-If the test fails, review your docker logs for error messages.  Superset uses SQLAlchemy to connect to databases; to find
-the correct connection string for your database, you might start Python in the Superset application container and try to
-connect directly to the desired database and fetch data.  This eliminates Superset for the purposes of isolating the problem.
+If the test fails, review your docker logs for error messages.  Superset uses SQLAlchemy to connect to databases; to
+troubleshoot the connection string for your database, you might start Python in the Superset application container or host
+environment and try to connect directly to the desired database and fetch data. This eliminates Superset for the
+purposes of isolating the problem.
 
-Repeat this process for every different type of database you want Superset to be able to connect to.
+Repeat this process for each different type of database you want Superset to be able to connect to.
