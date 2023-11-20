@@ -380,7 +380,9 @@ def menu_data(user: User) -> dict[str, Any]:
 
 
 @cache_manager.cache.memoize(timeout=60)
-def cached_common_bootstrap_data(user: User, locale: str) -> dict[str, Any]:
+def cached_common_bootstrap_data(
+    user: User, user_id: int | None, locale: str
+) -> dict[str, Any]:
     """Common data always sent to the client
 
     The function is memoized as the return value only changes when user permissions
@@ -424,8 +426,9 @@ def cached_common_bootstrap_data(user: User, locale: str) -> dict[str, Any]:
 
 
 def common_bootstrap_payload(user: User) -> dict[str, Any]:
+    user_id = user.id if hasattr(user, "id") else None
     return {
-        **cached_common_bootstrap_data(user, get_locale()),
+        **cached_common_bootstrap_data(user, user_id, get_locale()),
         "flash_messages": get_flashed_messages(with_categories=True),
     }
 
