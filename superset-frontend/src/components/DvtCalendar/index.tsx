@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import Icon from '../Icons/Icon';
 import { Moment } from 'moment';
-import { Calendar, Select, Typography } from 'antd';
+import { Calendar, Typography } from 'antd';
+import Icon from '../Icons/Icon';
 import { StyledCalendar, StyledCalendarIcon } from './dvt-calendar.module';
+import { SupersetTheme } from '@superset-ui/core';
+import moment from 'moment';
 
 export interface DvtCalendarProps {
   onSelect?: (date: Moment) => void;
@@ -12,13 +14,47 @@ const DvtCalendar: React.FC<DvtCalendarProps> = ({ onSelect }) => {
   const [isCalendarVisible, setCalendarVisible] = useState(true);
   const [isNextIconHovered, setNextIconHovered] = useState(false);
   const [isPrevIconHovered, setPrevIconHovered] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Moment | null>(
+    moment(Date.now()),
+  );
 
   const handleToggleCalendar = () => {
     setCalendarVisible(!isCalendarVisible);
   };
+
   return (
     <StyledCalendar isCalendarVisible={isCalendarVisible}>
       <Calendar
+        dateFullCellRender={(date: Moment): React.ReactNode => {
+          const isSelected: boolean = selectedDate
+            ? date.isSame(selectedDate, 'day') &&
+              date.isSame(selectedDate, 'month')
+            : false;
+
+          return (
+            <div
+              css={(theme: SupersetTheme) => ({
+                backgroundColor: isSelected
+                  ? theme.colors.dvt.primary.base
+                  : '',
+                borderRadius: '50px',
+                width: '40px',
+                height: '40px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: isSelected
+                  ? `0px 5px 10px ${theme.colors.dvt.boxShadow.primaryLight3}`
+                  : '',
+                color: isSelected ? theme.colors.grayscale.light5 : '',
+                position: 'relative',
+              })}
+              onClick={() => onSelect && onSelect(date)}
+            >
+              {date.date()}
+            </div>
+          );
+        }}
         style={{
           borderRadius: '12px',
           boxShadow: '5px 5px 10px rgba(0, 0, 0, 0.2)',
@@ -26,26 +62,14 @@ const DvtCalendar: React.FC<DvtCalendarProps> = ({ onSelect }) => {
           paddingRight: '11px',
         }}
         fullscreen={false}
-        onSelect={onSelect}
+        onSelect={date => setSelectedDate(date)}
         headerRender={({ value, onChange }) => {
-          const start = 0;
-          const end = 12;
-          const monthOptions = [];
-
           let current = value.clone();
           const localeData = value.localeData();
           const months = [];
-          for (let i = 0; i < 12; i++) {
+          for (let i = 0; i < 12; i += 1) {
             current = current.month(i);
             months.push(localeData.monthsShort(current));
-          }
-
-          for (let i = start; i < end; i++) {
-            monthOptions.push(
-              <Select.Option key={i} value={i} className="month-item">
-                {months[i]}
-              </Select.Option>,
-            );
           }
           const monthNames = [
             'January',
@@ -63,14 +87,6 @@ const DvtCalendar: React.FC<DvtCalendarProps> = ({ onSelect }) => {
           ];
           const year = value.year();
           const month = value.month();
-          const options = [];
-          for (let i = year - 10; i < year + 10; i += 1) {
-            options.push(
-              <Select.Option key={i} value={i} className="year-item">
-                {i}
-              </Select.Option>,
-            );
-          }
 
           const handlePrevMonth = () => {
             const newDate = value.clone().subtract(1, 'month');
@@ -94,7 +110,7 @@ const DvtCalendar: React.FC<DvtCalendarProps> = ({ onSelect }) => {
                 onMouseEnter={() => setPrevIconHovered(true)}
                 onMouseLeave={() => setPrevIconHovered(false)}
                 onClick={handlePrevMonth}
-              ></Icon>
+              />
               <Icon
                 fileName="caret_right"
                 iconColor={isNextIconHovered ? 'blue' : 'gray'}
@@ -103,7 +119,7 @@ const DvtCalendar: React.FC<DvtCalendarProps> = ({ onSelect }) => {
                 onMouseEnter={() => setNextIconHovered(true)}
                 onMouseLeave={() => setNextIconHovered(false)}
                 onClick={handleNextMonth}
-              ></Icon>
+              />
               <Icon
                 fileName="close"
                 style={{

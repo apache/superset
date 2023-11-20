@@ -7,9 +7,5 @@ export default {
 };
 
 export const InteractiveDatePicker = () => {
-  const handleDateSelect = (selectedDate: moment.Moment) => {
-    console.log('Selected date:', selectedDate.format('YYYY-MM-DD HH:mm:ss'));
-  };
-
-  return <DvtCalendar onSelect={handleDateSelect} />;
+  <DvtCalendar />;
 };
