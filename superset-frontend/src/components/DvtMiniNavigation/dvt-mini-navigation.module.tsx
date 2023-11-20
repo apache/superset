@@ -19,16 +19,6 @@
 import { styled } from '@superset-ui/core';
 import { Link } from 'react-router-dom';
 
-// const rotate = keyframes`
-//   from {
-//     transform: rotate(0deg);
-//   }
-
-//   to {
-//     transform: rotate(360deg);
-//   }
-// `;
-
 interface FadeInIconProps {
   $fadeIn: boolean;
 }
@@ -39,8 +29,7 @@ const DvtMiniNavigationAnimatedIcon = styled.div<FadeInIconProps>`
 `;
 
 const StyledDvtMiniNavigation = styled.div`
-  height: 100px;
-  width: 100px;
+  display: inline-block;
 `;
 
 const DvtMiniNavigationHeader = styled.div`
@@ -60,16 +49,18 @@ const DvtMiniNavigationHeaderTitle = styled.div`
   letter-spacing: 0.2px;
 `;
 
-const DvtMiniNavigationData = styled.div``;
+const DvtMiniNavigationData = styled.div`
+  display: flex;
+  align-items: center;
+  padding-left: 10px;
+  height: 22px;
+`;
 
 const DvtMiniNavigationDataItem = styled(Link)`
-  padding-left: 10px;
   font-size: 14px;
   font-style: normal;
   font-weight: 500;
   color: ${({ theme }) => theme.colors.dvt.text.label};
-  width: 57px;
-  height: 22px;
 `;
 
 export {

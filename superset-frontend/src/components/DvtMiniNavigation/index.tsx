@@ -51,18 +51,20 @@ const DvtMiniNavigation: React.FC<DvtMiniNavigationProps> = ({
       <StyledDvtMiniNavigation>
         <DvtMiniNavigationHeader onClick={handleToggle}>
           <DvtMiniNavigationHeaderTitle>{title}</DvtMiniNavigationHeaderTitle>
-          <DvtMiniNavigationAnimatedIcon $fadeIn={isOpen}>
-            <RightOutlined
-              css={(theme: SupersetTheme) => ({
-                color: theme.colors.dvt.text.label,
-              })}
-            />
-          </DvtMiniNavigationAnimatedIcon>
+          {data && (
+            <DvtMiniNavigationAnimatedIcon $fadeIn={isOpen}>
+              <RightOutlined
+                css={(theme: SupersetTheme) => ({
+                  color: theme.colors.dvt.text.label,
+                })}
+              />
+            </DvtMiniNavigationAnimatedIcon>
+          )}
         </DvtMiniNavigationHeader>
-        {data &&
+        {data.length > 0 &&
           isOpen &&
-          data.map(item => (
-            <DvtMiniNavigationData>
+          data.map((item, index) => (
+            <DvtMiniNavigationData key={index}>
               <DvtMiniNavigationDataItem to={item.url}>
                 {item.text}
               </DvtMiniNavigationDataItem>
