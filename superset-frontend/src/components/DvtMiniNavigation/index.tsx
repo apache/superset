@@ -51,7 +51,7 @@ const DvtMiniNavigation: React.FC<DvtMiniNavigationProps> = ({
       <StyledDvtMiniNavigation>
         <DvtMiniNavigationHeader onClick={handleToggle}>
           <DvtMiniNavigationHeaderTitle>{title}</DvtMiniNavigationHeaderTitle>
-          {data && (
+          {data.length > 0 && (
             <DvtMiniNavigationAnimatedIcon $fadeIn={isOpen}>
               <RightOutlined
                 css={(theme: SupersetTheme) => ({

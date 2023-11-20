@@ -24,6 +24,7 @@ interface FadeInIconProps {
 }
 
 const DvtMiniNavigationAnimatedIcon = styled.div<FadeInIconProps>`
+  margin-left: 12px;
   transition: all 300ms;
   transform: ${({ $fadeIn }) => ($fadeIn ? 'rotate(90deg)' : 'rotate(0)')};
 `;
@@ -36,7 +37,6 @@ const DvtMiniNavigationHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 122px;
   height: 24px;
   cursor: 'pointer';
 `;
