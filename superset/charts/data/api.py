@@ -58,7 +58,7 @@ logger = logging.getLogger(__name__)
 
 
 class ChartDataRestApi(ChartRestApi):
-    include_route_methods = {"get_data", "data", "data_from_cache"}
+    include_route_methods = {"get_data", "data", "data_from_cache", "refresh_cache"}
 
     @expose("/<int:pk>/data/", methods=("GET",))
     @protect()
@@ -172,6 +172,49 @@ class ChartDataRestApi(ChartRestApi):
         return self._get_data_response(
             command=command, form_data=form_data, datasource=query_context.datasource
         )
+
+    @expose("/refresh_cache", methods=("POST",))
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
+        log_to_statsd=False,
+    )
+    def refresh(self) -> Response:
+        form_data = request.json
+        try:
+            from superset.models.slice import Slice
+            from typing import cast
+            chart = cast(Slice, self.datamodel.get(form_data["form_data"]["slice_id"]))
+            form_data['queries'] = json.loads(chart.query_context)['queries']
+            # set dashboard default time filter
+            form_data['queries'][0]['time_range'] = form_data['form_data']['extra_form_data']['time_range']
+            query_context = self._create_query_context_from_form(form_data)
+            command = ChartDataCommand(query_context)
+            command.validate()
+        except DatasourceNotFound:
+            return self.response_404()
+        except QueryObjectValidationError as error:
+            return self.response_400(message=error.message)
+        except ValidationError as error:
+            return self.response_400(
+                message=_(
+                    "Request is incorrect: %(error)s", error=error.normalized_messages()
+                )
+            )
+
+        async_command = CreateAsyncChartDataJobCommand()
+        try:
+            async_command.validate(request)
+        except AsyncQueryTokenException:
+            return self.response_401()
+
+        # If the user is guest we pass guest token to the celery task
+        if guest := security_manager.get_current_guest_user_if_guest():
+            form_data["guest_token"] = guest.guest_token
+
+        result = async_command.run(form_data, get_user_id())
+        return self.response(202, **result)
 
     @expose("/data", methods=("POST",))
     @protect()
