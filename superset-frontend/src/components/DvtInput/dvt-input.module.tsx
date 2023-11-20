@@ -4,7 +4,7 @@ const StyledInput = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #e2e8f0;
+  border: 1px solid ${({ theme }) => theme.colors.dvt.primary.light2};
   padding: 8px 16px;
   border-radius: 12px;
   width: 100%;
