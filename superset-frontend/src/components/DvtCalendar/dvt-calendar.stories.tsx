@@ -6,4 +6,4 @@ export default {
   component: DvtCalendar,
 };
 
-export const InteractiveDatePicker = () => <DvtCalendar />;
+export const InteractiveDatePicker = () => <DvtCalendar onSelect={() => {}} />;

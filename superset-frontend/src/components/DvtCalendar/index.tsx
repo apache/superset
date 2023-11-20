@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import moment, { Moment } from 'moment';
 import { Calendar, Typography } from 'antd';
 import { SupersetTheme } from '@superset-ui/core';
@@ -10,7 +10,7 @@ import {
 } from './dvt-calendar.module';
 
 export interface DvtCalendarProps {
-  onSelect?: (date: Moment) => void;
+  onSelect: (date: Moment | null) => void;
 }
 
 const DvtCalendar: React.FC<DvtCalendarProps> = ({ onSelect }) => {
@@ -24,6 +24,10 @@ const DvtCalendar: React.FC<DvtCalendarProps> = ({ onSelect }) => {
   const handleToggleCalendar = () => {
     setCalendarVisible(!isCalendarVisible);
   };
+
+  useEffect(() => {
+    onSelect(selectedDate);
+  }, [selectedDate]);
 
   return (
     <StyledCalendar isCalendarVisible={isCalendarVisible}>
@@ -47,12 +51,11 @@ const DvtCalendar: React.FC<DvtCalendarProps> = ({ onSelect }) => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 boxShadow: isSelected
-                  ? `0px 5px 10px ${theme.colors.dvt.boxShadow.primaryLight3}`
+                  ? `4px 8px 18px 0px ${theme.colors.dvt.boxShadow.primaryLight3}`
                   : '',
                 color: isSelected ? theme.colors.grayscale.light5 : '',
                 position: 'relative',
               })}
-              onClick={() => onSelect?.(date)}
             >
               {date.date()}
             </StyledCalendarDateCell>
@@ -62,10 +65,12 @@ const DvtCalendar: React.FC<DvtCalendarProps> = ({ onSelect }) => {
           borderRadius: '12px',
           paddingLeft: '11px',
           paddingRight: '11px',
-          boxShadow: `5px 5px 10px ${theme.colors.dvt.boxShadow.primaryLight3}`,
+          boxShadow: `4px 4px 10px ${theme.colors.dvt.boxShadow.light2}`,
         })}
         fullscreen={false}
-        onSelect={date => setSelectedDate(date)}
+        onSelect={date => {
+          !(isPrevIconHovered || isNextIconHovered) && setSelectedDate(date);
+        }}
         headerRender={({ value, onChange }) => {
           let current = value.clone();
           const localeData = value.localeData();
