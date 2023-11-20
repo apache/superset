@@ -101,8 +101,13 @@ SQLALCHEMY_TRACK_MODIFICATIONS = True
 
 class CeleryConfig:
   imports  = ("superset.sql_lab", )
-  broker_url = CELERY_REDIS_URL
-  result_backend = CELERY_REDIS_URL
+  {{- if .Values.supersetNode.connections.redis_password }}
+  broker_url = f"{env('REDIS_DRIVER')}://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
+  result_backend = f"{env('REDIS_DRIVER')}://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
+  {{- else }}
+  broker_url = f"{env('REDIS_DRIVER')}://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
+  result_backend = f"{env('REDIS_DRIVER')}://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
+  {{- end }}
 
 CELERY_CONFIG = CeleryConfig
 RESULTS_BACKEND = RedisCache(
