@@ -114,7 +114,7 @@ const DvtCalendar: React.FC<DvtCalendarProps> = ({ onSelect }) => {
                 fileName="caret_left"
                 iconColor={isPrevIconHovered ? 'blue' : 'gray'}
                 style={{ cursor: 'pointer' }}
-                iconSize="xl"
+                iconSize="xxl"
                 onMouseEnter={() => setPrevIconHovered(true)}
                 onMouseLeave={() => setPrevIconHovered(false)}
                 onClick={handlePrevMonth}
@@ -123,7 +123,7 @@ const DvtCalendar: React.FC<DvtCalendarProps> = ({ onSelect }) => {
                 fileName="caret_right"
                 iconColor={isNextIconHovered ? 'blue' : 'gray'}
                 style={{ cursor: 'pointer' }}
-                iconSize="xl"
+                iconSize="xxl"
                 onMouseEnter={() => setNextIconHovered(true)}
                 onMouseLeave={() => setNextIconHovered(false)}
                 onClick={handleNextMonth}
