@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { Moment } from 'moment';
+import moment, { Moment } from 'moment';
 import { Calendar, Typography } from 'antd';
-import Icon from '../Icons/Icon';
-import { StyledCalendar, StyledCalendarIcon } from './dvt-calendar.module';
 import { SupersetTheme } from '@superset-ui/core';
-import moment from 'moment';
+import Icon from '../Icons/Icon';
+import {
+  StyledCalendar,
+  StyledCalendarIcon,
+  StyledCalendarDateCell,
+} from './dvt-calendar.module';
 
 export interface DvtCalendarProps {
   onSelect?: (date: Moment) => void;
@@ -32,7 +35,7 @@ const DvtCalendar: React.FC<DvtCalendarProps> = ({ onSelect }) => {
             : false;
 
           return (
-            <div
+            <StyledCalendarDateCell
               css={(theme: SupersetTheme) => ({
                 backgroundColor: isSelected
                   ? theme.colors.dvt.primary.base
@@ -49,18 +52,18 @@ const DvtCalendar: React.FC<DvtCalendarProps> = ({ onSelect }) => {
                 color: isSelected ? theme.colors.grayscale.light5 : '',
                 position: 'relative',
               })}
-              onClick={() => onSelect && onSelect(date)}
+              onClick={() => onSelect?.(date)}
             >
               {date.date()}
-            </div>
+            </StyledCalendarDateCell>
           );
         }}
-        style={{
+        css={(theme: SupersetTheme) => ({
           borderRadius: '12px',
-          boxShadow: '5px 5px 10px rgba(0, 0, 0, 0.2)',
           paddingLeft: '11px',
           paddingRight: '11px',
-        }}
+          boxShadow: `5px 5px 10px ${theme.colors.dvt.boxShadow.primaryLight3}`,
+        })}
         fullscreen={false}
         onSelect={date => setSelectedDate(date)}
         headerRender={({ value, onChange }) => {

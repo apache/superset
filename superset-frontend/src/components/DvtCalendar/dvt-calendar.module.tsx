@@ -28,4 +28,8 @@ const StyledCalendarIcon = styled.div`
   align-items: center;
 `;
 
-export { StyledCalendar, StyledCalendarIcon };
+const StyledCalendarDateCell = styled.div`
+
+`;
+
+export { StyledCalendar, StyledCalendarIcon,StyledCalendarDateCell };
