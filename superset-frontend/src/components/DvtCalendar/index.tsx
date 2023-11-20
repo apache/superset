@@ -68,9 +68,9 @@ const DvtCalendar: React.FC<DvtCalendarProps> = ({ onSelect }) => {
           boxShadow: `4px 4px 10px ${theme.colors.dvt.boxShadow.light2}`,
         })}
         fullscreen={false}
-        onSelect={date => {
-          !(isPrevIconHovered || isNextIconHovered) && setSelectedDate(date);
-        }}
+        onSelect={date =>
+          !(isPrevIconHovered || isNextIconHovered) && setSelectedDate(date)
+        }
         headerRender={({ value, onChange }) => {
           let current = value.clone();
           const localeData = value.localeData();
