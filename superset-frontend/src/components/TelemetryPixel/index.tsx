@@ -26,9 +26,13 @@ interface TelemetryPixelProps {
   build?: string;
 }
 
-const TelemetryPixel = ({ version, sha, build }: TelemetryPixelProps) => {
-  const pixelPath = `https://static.scarf.sh/a.png?x-pxid=0d3461e1-abb1-4691-a0aa-5ed50de66af0&version=${version}&sha=${sha}&build=${build}`;
-  // const pixelPath = `https://apachesuperset.gateway.scarf.sh/pixel.png?x-pxid=0d3461e1-abb1-4691-a0aa-5ed50de66af0&version=${version}&sha=${sha}&build=${build}`;
+const TelemetryPixel = ({ =
+  version = 'unknownVersion',
+  sha = 'unknownSHA',
+  build = 'unknownBuild'
+}: TelemetryPixelProps) => {
+  const pixelId = '0d3461e1-abb1-4691-a0aa-5ed50de66af0';
+  const pixelPath = `https://apachesuperset.gateway.scarf.sh/pixel/${pixelId}/${version}/${sha}/${build}`;
   return isFeatureEnabled(FeatureFlag.ENABLE_TELEMETRY) ? (
     // eslint-disable-next-line jsx-a11y/alt-text
     <img referrerPolicy="no-referrer-when-downgrade" src={pixelPath} />
