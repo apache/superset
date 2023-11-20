@@ -188,7 +188,7 @@ Following the project governance model of the Apache Software Foundation (ASF), 
 
 A Project Management Committee (PMC) member is a person who has been elected by the PMC to help manage the project. PMC members are responsible for the overall health of the project, including community development, release management, and project governance. PMC members are also responsible for the technical direction of the project.
 
-For more details on PMC members, please refer to https://www.apache.org/foundation/governance/pmcs.html
+For more information about Apache Project PMCs, please refer to https://www.apache.org/foundation/governance/pmcs.html
 
 ### Committer
 
