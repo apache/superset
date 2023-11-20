@@ -485,3 +485,15 @@ test('Add extension to SliceHeader', () => {
 
   expect(screen.getByText('This is an extension')).toBeInTheDocument();
 });
+
+test('Do not display slice header controls if user is a bot', () => {
+  Object.defineProperty(window.navigator, 'webdriver', {
+    get() {
+      return true;
+    },
+  });
+  const props = createProps();
+  render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
+  expect(screen.queryByTestId('SliceHeaderControls')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('FiltersBadge')).not.toBeInTheDocument();
+});
