@@ -212,7 +212,7 @@ This security team must follow the [ASF vulnerability handling process](https://
 
 Additionally, every new security issue is tracked as a JIRA ticket on the [ASF JIRA Superset security project](https://issues.apache.org/jira/secure/RapidBoard.jspa?rapidView=588&projectKey=SUPERSETSEC)
 
-Requirements from the security team members:
+Security team members must:
 
 - They have an ICLA signed with Apache Software Foundation.
 - They are not supposed to reveal the information about pending and unfixed security issues to anyone (including their employers) unless specifically authorised by the security team members, specifically if diagnosing and solving the issue might involve the need of external experts.
