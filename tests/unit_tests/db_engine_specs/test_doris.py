@@ -22,14 +22,14 @@ from sqlalchemy import JSON, types
 from sqlalchemy.engine.url import make_url
 
 from superset.db_engine_specs.doris import (
-    AGG_STATE,
+    AggState,
     ARRAY,
     BITMAP,
     DOUBLE,
     HLL,
     LARGEINT,
     MAP,
-    QUANTILE_STATE,
+    QuantileState,
     STRUCT,
     TINYINT,
 )
@@ -63,8 +63,8 @@ from tests.unit_tests.db_engine_specs.utils import assert_column_spec
         ("jsonb", JSON, None, GenericDataType.STRING, False),
         ("bitmap", BITMAP, None, GenericDataType.STRING, False),
         ("hll", HLL, None, GenericDataType.STRING, False),
-        ("quantile_state", QUANTILE_STATE, None, GenericDataType.STRING, False),
-        ("agg_state", AGG_STATE, None, GenericDataType.STRING, False),
+        ("quantile_state", QuantileState, None, GenericDataType.STRING, False),
+        ("agg_state", AggState, None, GenericDataType.STRING, False),
     ],
 )
 def test_get_column_spec(

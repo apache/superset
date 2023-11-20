@@ -68,15 +68,15 @@ class BITMAP(Numeric):
     __visit_name__ = "BITMAP"
 
 
-class QUANTILE_STATE(Numeric):
+class QuantileState(Numeric):
     __visit_name__ = "QUANTILE_STATE"
 
 
-class AGG_STATE(Numeric):
+class AggState(Numeric):
     __visit_name__ = "AGG_STATE"
 
 
-class ARRAY(TypeEngine):  # pylint: disable=no-init
+class ARRAY(TypeEngine):
     __visit_name__ = "ARRAY"
 
     @property
@@ -84,7 +84,7 @@ class ARRAY(TypeEngine):  # pylint: disable=no-init
         return list
 
 
-class MAP(TypeEngine):  # pylint: disable=no-init
+class MAP(TypeEngine):
     __visit_name__ = "MAP"
 
     @property
@@ -92,7 +92,7 @@ class MAP(TypeEngine):  # pylint: disable=no-init
         return dict
 
 
-class STRUCT(TypeEngine):  # pylint: disable=no-init
+class STRUCT(TypeEngine):
     __visit_name__ = "STRUCT"
 
     @property
@@ -155,12 +155,12 @@ class DorisEngineSpec(MySQLEngineSpec):
         ),
         (
             re.compile(r"^quantile_state", re.IGNORECASE),
-            QUANTILE_STATE(),
+            QuantileState(),
             GenericDataType.STRING,
         ),
         (
             re.compile(r"^agg_state.*", re.IGNORECASE),
-            AGG_STATE(),
+            AggState(),
             GenericDataType.STRING,
         ),
         (re.compile(r"^hll", re.IGNORECASE), HLL(), GenericDataType.STRING),
