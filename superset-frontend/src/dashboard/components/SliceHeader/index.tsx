@@ -37,6 +37,7 @@ import Icons from 'src/components/Icons';
 import { RootState } from 'src/dashboard/types';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
+import { isCurrentUserBot } from 'src/utils/isBot';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -240,7 +241,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
         )}
       </div>
       <div className="header-controls">
-        {!editMode && (
+        {!editMode && !isCurrentUserBot() && (
           <>
             {SliceHeaderExtension && (
               <SliceHeaderExtension
