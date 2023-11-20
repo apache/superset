@@ -220,7 +220,7 @@ Security team members should also follow these general expectations:
 
 - Actively participate in assessing, discussing, fixing, and releasing security issues in Superset.
 - Avoid discussing security fixes in public forums. Pull request (PR) descriptions should not contain any information about security issues. The corresponding JIRA ticket should contain a link to the PR.
-- The security team members working on the fix might be mentioned as remediation developers in the CVE including their job affiliation if they want to.
+- Security team members who contribute to a fix may be listed as remediation developers in the CVE report, along with their job affiliation (if they choose to include it).
 
 ## Pull Request Guidelines
 
