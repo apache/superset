@@ -23,6 +23,7 @@ import {
   SupersetClient,
   t,
 } from '@superset-ui/core';
+import { useSelector } from 'react-redux';
 import React, { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import rison from 'rison';
@@ -61,6 +62,8 @@ import CertifiedBadge from 'src/components/CertifiedBadge';
 import { loadTags } from 'src/components/Tags/utils';
 import DashboardCard from 'src/features/dashboards/DashboardCard';
 import { DashboardStatus } from 'src/features/dashboards/types';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { findPermission } from 'src/utils/findPermission';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -110,6 +113,11 @@ function DashboardList(props: DashboardListProps) {
     addSuccessToast,
     user: { userId },
   } = props;
+
+  const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
+    state => state.user,
+  );
+  const canReadTag = findPermission('can_read', 'Tag', roles);
 
   const {
     state: {
@@ -578,7 +586,7 @@ function DashboardList(props: DashboardListProps) {
         ],
       },
     ] as Filters;
-    if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) {
+    if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && canReadTag) {
       filters_list.push({
         Header: t('Tags'),
         key: 'tags',

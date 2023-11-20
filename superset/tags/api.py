@@ -40,7 +40,7 @@ from superset.tags.commands.exceptions import (
     TagUpdateFailedError,
 )
 from superset.tags.commands.update import UpdateTagCommand
-from superset.tags.models import ObjectTypes, Tag
+from superset.tags.models import ObjectType, Tag
 from superset.tags.schemas import (
     delete_tags_schema,
     openapi_spec_methods_override,
@@ -258,6 +258,8 @@ class TagRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
+            all_tagged_objects: set[tuple[str, int]] = set()
+            all_skipped_tagged_objects: set[tuple[str, int]] = set()
             for tag in item.get("tags"):
                 tagged_item: dict[str, Any] = self.add_model_schema.load(
                     {
@@ -265,10 +267,25 @@ class TagRestApi(BaseSupersetModelRestApi):
                         "objects_to_tag": tag.get("objects_to_tag"),
                     }
                 )
-                CreateCustomTagWithRelationshipsCommand(
+                (
+                    objects_tagged,
+                    objects_skipped,
+                ) = CreateCustomTagWithRelationshipsCommand(
                     tagged_item, bulk_create=True
                 ).run()
-            return self.response(201)
+                all_tagged_objects = all_tagged_objects | objects_tagged
+                all_skipped_tagged_objects = (
+                    all_skipped_tagged_objects | objects_skipped
+                )
+            return self.response(
+                200,
+                result={
+                    "objects_tagged": list(
+                        all_tagged_objects - all_skipped_tagged_objects
+                    ),
+                    "objects_skipped": list(all_skipped_tagged_objects),
+                },
+            )
         except TagNotFoundError:
             return self.response_404()
         except TagInvalidError as ex:
@@ -347,7 +364,7 @@ class TagRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.add_objects",
         log_to_statsd=False,
     )
-    def add_objects(self, object_type: ObjectTypes, object_id: int) -> Response:
+    def add_objects(self, object_type: ObjectType, object_id: int) -> Response:
         """Add tags to an object. Create new tags if they do not already exist.
         ---
         post:
@@ -412,7 +429,7 @@ class TagRestApi(BaseSupersetModelRestApi):
         log_to_statsd=True,
     )
     def delete_object(
-        self, object_type: ObjectTypes, object_id: int, tag: str
+        self, object_type: ObjectType, object_id: int, tag: str
     ) -> Response:
         """Delete a tagged object.
         ---

@@ -89,7 +89,10 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         table_name = self._properties.get("table_name", None)
         # Validate uniqueness
         if not DatasetDAO.validate_update_uniqueness(
-            self._model.database_id, self._model_id, table_name
+            self._model.database_id,
+            self._model.schema,
+            self._model_id,
+            table_name,
         ):
             exceptions.append(DatasetExistsValidationError(table_name))
         # Validate/Populate database not allowed to change

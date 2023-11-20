@@ -496,13 +496,6 @@ class BaseDatasource(
         """
         raise NotImplementedError()
 
-    def values_for_column(self, column_name: str, limit: int = 10000) -> list[Any]:
-        """Given a column, returns an iterable of distinct values
-
-        This is used to populate the dropdown showing a list of
-        values in filters in the explore view"""
-        raise NotImplementedError()
-
     @staticmethod
     def default_query(qry: Query) -> Query:
         return qry

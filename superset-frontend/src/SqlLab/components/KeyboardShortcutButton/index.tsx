@@ -37,6 +37,7 @@ export enum KeyboardShortcut {
   CMD_OPT_F = 'cmd+opt+f',
   CTRL_F = 'ctrl+f',
   CTRL_H = 'ctrl+h',
+  CTRL_SHIFT_F = 'ctrl+shift+f',
 }
 
 export const KEY_MAP = {
@@ -49,6 +50,7 @@ export const KEY_MAP = {
   [KeyboardShortcut.CTRL_Q]: userOS === 'Windows' ? t('New tab') : undefined,
   [KeyboardShortcut.CTRL_T]: userOS !== 'Windows' ? t('New tab') : undefined,
   [KeyboardShortcut.CTRL_P]: t('Previous Line'),
+  [KeyboardShortcut.CTRL_SHIFT_F]: t('Format SQL'),
   // default ace editor shortcuts
   [KeyboardShortcut.CMD_F]: userOS === 'MacOS' ? t('Find') : undefined,
   [KeyboardShortcut.CTRL_F]: userOS !== 'MacOS' ? t('Find') : undefined,

@@ -424,7 +424,7 @@ Commits to `master` trigger a rebuild and redeploy of the documentation site. Su
 Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/installing-superset-from-scratch#os-dependencies) before following these steps.
 You also need to install MySQL or [MariaDB](https://mariadb.com/downloads).
 
-Ensure that you are using Python version 3.8, 3.9, 3.10 or 3.11, then proceed with:
+Ensure that you are using Python version 3.9, 3.10 or 3.11, then proceed with:
 
 ```bash
 # Create a virtual environment and activate it (recommended)
@@ -597,6 +597,31 @@ There are three types of assets you can build:
 1. `npm run build`: the production assets, CSS/JSS minified and optimized
 2. `npm run dev-server`: local development assets, with sourcemaps and hot refresh support
 3. `npm run build-instrumented`: instrumented application code for collecting code coverage from Cypress tests
+
+If while using the above commands you encounter an error related to the limit of file watchers:
+
+```bash
+Error: ENOSPC: System limit for number of file watchers reached
+```
+The error is thrown because the number of files monitored by the system has reached the limit.
+You can address this this error by increasing the number of inotify watchers.
+
+The current value of max watches can be checked with:
+```bash
+cat /proc/sys/fs/inotify/max_user_watches
+```
+Edit the file /etc/sysctl.conf to increase this value.
+The value needs to be decided based on the system memory [(see this StackOverflow answer for more context)](https://stackoverflow.com/questions/535768/what-is-a-reasonable-amount-of-inotify-watches-with-linux).
+
+Open the file in editor and add a line at the bottom specifying the max watches values.
+```bash
+fs.inotify.max_user_watches=524288
+```
+Save the file and exit editor.
+To confirm that the change succeeded, run the following command to load the updated value of max_user_watches from sysctl.conf:
+```bash
+sudo sysctl -p
+```
 
 #### Webpack dev server
 

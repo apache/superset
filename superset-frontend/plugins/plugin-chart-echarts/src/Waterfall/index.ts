@@ -22,6 +22,9 @@ import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import example1 from './images/example1.png';
+import example2 from './images/example2.png';
+import example3 from './images/example3.png';
 import { EchartsWaterfallChartProps, EchartsWaterfallFormData } from './types';
 
 export default class EchartsWaterfallChartPlugin extends ChartPlugin<
@@ -44,14 +47,22 @@ export default class EchartsWaterfallChartPlugin extends ChartPlugin<
       controlPanel,
       loadChart: () => import('./EchartsWaterfall'),
       metadata: new ChartMetadata({
-        behaviors: [Behavior.INTERACTIVE_CHART, Behavior.DRILL_TO_DETAIL],
+        behaviors: [Behavior.INTERACTIVE_CHART],
         credits: ['https://echarts.apache.org'],
         category: t('Evolution'),
-        description: '',
-        exampleGallery: [],
+        description: t(
+          `A waterfall chart is a form of data visualization that helps in understanding
+          the cumulative effect of sequentially introduced positive or negative values.
+          These intermediate values can either be time based or category based.`,
+        ),
+        exampleGallery: [
+          { url: example1 },
+          { url: example2 },
+          { url: example3 },
+        ],
         name: t('Waterfall Chart'),
+        tags: [t('Categorical'), t('Comparison'), t('ECharts')],
         thumbnail,
-        tags: [],
       }),
       transformProps,
     });

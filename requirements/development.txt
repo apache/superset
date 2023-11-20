@@ -104,11 +104,6 @@ pylint==2.17.7
     # via -r requirements/development.in
 python-ldap==3.4.3
     # via -r requirements/development.in
-requests==2.31.0
-    # via
-    #   pydruid
-    #   tableschema
-    #   tabulator
 rfc3986==2.0.0
     # via tableschema
 s3transfer==0.6.1

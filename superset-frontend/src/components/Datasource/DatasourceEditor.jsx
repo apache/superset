@@ -1141,7 +1141,7 @@ class DatasourceEditor extends React.PureComponent {
                         language="sql"
                         offerEditInModal={false}
                         minLines={20}
-                        maxLines={20}
+                        maxLines={Infinity}
                         readOnly={!this.state.isEditMode}
                         resize="both"
                       />
@@ -1396,7 +1396,7 @@ class DatasourceEditor extends React.PureComponent {
     const { theme } = this.props;
 
     return (
-      <DatasourceContainer>
+      <DatasourceContainer data-test="datasource-editor">
         {this.renderErrors()}
         <Alert
           css={theme => ({ marginBottom: theme.gridUnit * 4 })}

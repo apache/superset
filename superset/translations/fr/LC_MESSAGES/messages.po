@@ -9574,10 +9574,6 @@ msgstr "Donner un nom à la base de données"
 msgid "Mandatory"
 msgstr "Obligatoire"
 
-#: superset/views/database/forms.py:360
-msgid "Mangle Duplicate Columns"
-msgstr "Supprimer les colonnes en double"
-
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:297
 msgid "Manually set min/max values for the y-axis."
 msgstr ""

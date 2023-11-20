@@ -70,7 +70,7 @@ export default function downloadAsImage(
 
     return domToImage
       .toJpeg(elementToPrint, {
-        quality: 0.95,
+        quality: 1,
         bgcolor: supersetTheme.colors.grayscale.light4,
         filter,
       })

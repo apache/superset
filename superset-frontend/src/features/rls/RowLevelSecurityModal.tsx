@@ -385,10 +385,10 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
 
           <StyledInputContainer>
             <div className="control-label">
-              {t('Tables')} <span className="required">*</span>
+              {t('Datasets')} <span className="required">*</span>
               <InfoTooltip
                 tooltip={t(
-                  'These are the tables this filter will be applied to.',
+                  'These are the datasets this filter will be applied to.',
                 )}
               />
             </div>

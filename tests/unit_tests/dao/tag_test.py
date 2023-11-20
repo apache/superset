@@ -149,7 +149,7 @@ def test_user_favorite_tag_exc_raise(mocker):
 def test_create_tag_relationship(mocker):
     from superset.daos.tag import TagDAO
     from superset.tags.models import (  # Assuming these are defined in the same module
-        ObjectTypes,
+        ObjectType,
         TaggedObject,
     )
 
@@ -157,9 +157,9 @@ def test_create_tag_relationship(mocker):
 
     # Define a list of objects to tag
     objects_to_tag = [
-        (ObjectTypes.query, 1),
-        (ObjectTypes.chart, 2),
-        (ObjectTypes.dashboard, 3),
+        (ObjectType.query, 1),
+        (ObjectType.chart, 2),
+        (ObjectType.dashboard, 3),
     ]
 
     # Call the function

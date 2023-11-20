@@ -37,7 +37,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.tags.commands.create import CreateCustomTagCommand
 from superset.tags.commands.delete import DeleteTaggedObjectCommand, DeleteTagsCommand
-from superset.tags.models import ObjectTypes, Tag, TaggedObject, TagTypes
+from superset.tags.models import ObjectType, Tag, TaggedObject, TagType
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.importexport import (
     chart_config,
@@ -65,7 +65,7 @@ class TestCreateCustomTagCommand(SupersetTestCase):
         )
         example_tags = ["create custom tag example 1", "create custom tag example 2"]
         command = CreateCustomTagCommand(
-            ObjectTypes.dashboard.value, example_dashboard.id, example_tags
+            ObjectType.dashboard.value, example_dashboard.id, example_tags
         )
         command.run()
 
@@ -74,7 +74,7 @@ class TestCreateCustomTagCommand(SupersetTestCase):
             .join(TaggedObject)
             .filter(
                 TaggedObject.object_id == example_dashboard.id,
-                Tag.type == TagTypes.custom,
+                Tag.type == TagType.custom,
             )
             .all()
         )
@@ -101,7 +101,7 @@ class TestDeleteTagsCommand(SupersetTestCase):
         )
         example_tags = ["create custom tag example 1", "create custom tag example 2"]
         command = CreateCustomTagCommand(
-            ObjectTypes.dashboard.value, example_dashboard.id, example_tags
+            ObjectType.dashboard.value, example_dashboard.id, example_tags
         )
         command.run()
 
@@ -110,7 +110,7 @@ class TestDeleteTagsCommand(SupersetTestCase):
             .join(TaggedObject)
             .filter(
                 TaggedObject.object_id == example_dashboard.id,
-                Tag.type == TagTypes.custom,
+                Tag.type == TagType.custom,
             )
             .all()
         )
@@ -133,7 +133,7 @@ class TestDeleteTaggedObjectCommand(SupersetTestCase):
         )
         example_tags = ["create custom tag example 1", "create custom tag example 2"]
         command = CreateCustomTagCommand(
-            ObjectTypes.dashboard.value, example_dashboard.id, example_tags
+            ObjectType.dashboard.value, example_dashboard.id, example_tags
         )
         command.run()
 
@@ -142,14 +142,14 @@ class TestDeleteTaggedObjectCommand(SupersetTestCase):
             .join(Tag)
             .filter(
                 TaggedObject.object_id == example_dashboard.id,
-                TaggedObject.object_type == ObjectTypes.dashboard.name,
+                TaggedObject.object_type == ObjectType.dashboard.name,
                 Tag.name.in_(example_tags),
             )
         )
         assert tagged_objects.count() == 2
         # delete one of the tagged objects
         command = DeleteTaggedObjectCommand(
-            object_type=ObjectTypes.dashboard.value,
+            object_type=ObjectType.dashboard.value,
             object_id=example_dashboard.id,
             tag=example_tags[0],
         )
@@ -159,7 +159,7 @@ class TestDeleteTaggedObjectCommand(SupersetTestCase):
             .join(Tag)
             .filter(
                 TaggedObject.object_id == example_dashboard.id,
-                TaggedObject.object_type == ObjectTypes.dashboard.name,
+                TaggedObject.object_type == ObjectType.dashboard.name,
                 Tag.name.in_(example_tags),
             )
         )

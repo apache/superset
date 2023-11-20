@@ -118,6 +118,23 @@ export interface SQLFormExtensionProps {
   startQuery: (ctasArg?: any, ctas_method?: any) => void;
 }
 
+export interface SQLResultTableExtentionProps {
+  queryId: string;
+  orderedColumnKeys: string[];
+  data: Record<string, unknown>[];
+  height: number;
+  filterText?: string;
+  expandedColumns?: string[];
+}
+
+/**
+ * Interface for extensions to Slice Header
+ */
+export interface SliceHeaderExtension {
+  sliceId: number;
+  dashboardId: number;
+}
+
 export type Extensions = Partial<{
   'alertsreports.header.icon': React.ComponentType;
   'embedded.documentation.configuration_details': React.ComponentType<ConfigDetailsProps>;
@@ -137,4 +154,6 @@ export type Extensions = Partial<{
   'database.delete.related': React.ComponentType<DatabaseDeleteRelatedExtensionProps>;
   'dataset.delete.related': React.ComponentType<DatasetDeleteRelatedExtensionProps>;
   'sqleditor.extension.form': React.ComponentType<SQLFormExtensionProps>;
+  'sqleditor.extension.resultTable': React.ComponentType<SQLResultTableExtentionProps>;
+  'dashboard.slice.header': React.ComponentType<SliceHeaderExtension>;
 }>;

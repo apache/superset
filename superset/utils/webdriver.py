@@ -49,7 +49,7 @@ if feature_flag_manager.is_feature_enabled("PLAYWRIGHT_REPORTS_AND_THUMBNAILS"):
     from playwright.sync_api import (
         BrowserContext,
         ElementHandle,
-        Error,
+        Error as PlaywrightError,
         Page,
         sync_playwright,
         TimeoutError as PlaywrightTimeout,
@@ -140,9 +140,9 @@ class WebDriverPlaywright(WebDriverProxy):
                         "(node, error_html) => node.innerHtml = error_html",
                         [error_as_html],
                     )
-                except Error:
+                except PlaywrightError:
                     logger.exception("Failed to update error messages using alert_div")
-        except Error:
+        except PlaywrightError:
             logger.exception("Failed to capture unexpected errors")
 
         return error_messages
@@ -161,9 +161,14 @@ class WebDriverPlaywright(WebDriverProxy):
                 },
                 device_scale_factor=pixel_density,
             )
+            context.set_default_timeout(
+                current_app.config["SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT"]
+            )
             self.auth(user, context)
             page = context.new_page()
-            page.goto(url)
+            page.goto(
+                url, wait_until=current_app.config["SCREENSHOT_PLAYWRIGHT_WAIT_EVENT"]
+            )
             img: bytes | None = None
             selenium_headstart = current_app.config["SCREENSHOT_SELENIUM_HEADSTART"]
             logger.debug("Sleeping for %i seconds", selenium_headstart)
@@ -202,7 +207,7 @@ class WebDriverPlaywright(WebDriverProxy):
                     )
                     page.wait_for_selector(
                         ".loading",
-                        timeout=self._screenshot_locate_wait * 1000,
+                        timeout=self._screenshot_load_wait * 1000,
                         state="detached",
                     )
                 except PlaywrightTimeout as ex:
@@ -236,14 +241,9 @@ class WebDriverPlaywright(WebDriverProxy):
             except PlaywrightTimeout:
                 # raise again for the finally block, but handled above
                 pass
-            except StaleElementReferenceException:
+            except PlaywrightError:
                 logger.exception(
-                    "Selenium got a stale element while requesting url %s",
-                    url,
-                )
-            except WebDriverException:
-                logger.exception(
-                    "Encountered an unexpected error when requeating url %s", url
+                    "Encountered an unexpected error when requesting url %s", url
                 )
             return img
 

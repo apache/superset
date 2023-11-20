@@ -164,21 +164,25 @@ function AllEntities() {
     );
   };
 
+  const fetchTag = (tagId: number) => {
+    fetchSingleTag(
+      tagId,
+      (tag: Tag) => {
+        setTag(tag);
+        setLoading(false);
+      },
+      (error: Response) => {
+        addDangerToast(t('Error Fetching Tagged Objects'));
+        setLoading(false);
+      },
+    );
+  };
+
   useEffect(() => {
     // fetch single tag met
     if (tagId) {
       setLoading(true);
-      fetchSingleTag(
-        tagId,
-        (tag: Tag) => {
-          setTag(tag);
-          setLoading(false);
-        },
-        (error: Response) => {
-          addDangerToast(t('Error Fetching Tagged Objects'));
-          setLoading(false);
-        },
-      );
+      fetchTag(tagId);
     }
   }, [tagId]);
 
@@ -197,7 +201,10 @@ function AllEntities() {
         editTag={tag}
         addSuccessToast={addSuccessToast}
         addDangerToast={addDangerToast}
-        refreshData={fetchTaggedObjects}
+        refreshData={() => {
+          fetchTaggedObjects();
+          if (tagId) fetchTag(tagId);
+        }}
       />
       <AllEntitiesNav>
         <PageHeaderWithActions

@@ -117,7 +117,7 @@ class ImportAssetsCommand(BaseCommand):
                 dataset_uid = f"{dataset_dict['datasource_id']}__{dataset_dict['datasource_type']}"
                 config["params"].update({"datasource": dataset_uid})
                 if "query_context" in config:
-                    del config["query_context"]
+                    config["query_context"] = None
                 chart = import_chart(session, config, overwrite=True)
                 chart_ids[str(chart.uuid)] = chart.id
 

@@ -27,14 +27,14 @@ from superset.tags.commands.exceptions import (
     TagNotFoundError,
 )
 from superset.tags.commands.utils import to_object_type
-from superset.tags.models import ObjectTypes
+from superset.tags.models import ObjectType
 from superset.views.base import DeleteMixin
 
 logger = logging.getLogger(__name__)
 
 
 class DeleteTaggedObjectCommand(DeleteMixin, BaseCommand):
-    def __init__(self, object_type: ObjectTypes, object_id: int, tag: str):
+    def __init__(self, object_type: ObjectType, object_id: int, tag: str):
         self._object_type = object_type
         self._object_id = object_id
         self._tag = tag
