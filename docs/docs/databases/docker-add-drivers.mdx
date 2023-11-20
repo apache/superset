@@ -22,7 +22,7 @@ so we'll need the `mysqlclient` connector library.
 ### 2. Install the driver in the container
 
 We need to get the `mysqlclient` library installed into the Superset docker container (it doesn't matter if it's
-installed on the host machine). We could enter the running container with `docker exec -it <container_name> bash` 
+installed on the host machine). We could enter the running container with `docker exec -it <container_name> bash`
 and run `pip install mysqlclient` there, but that wouldn't persist permanently.
 
 To address this, the Superset `docker compose` deployment uses the convention of a `requirements-local.txt` file. All packages
@@ -30,7 +30,7 @@ listed in this file will be installed into the container from PyPI at runtime. T
 the purposes of local development.
 
 Create the file `requirements-local.txt` in a subdirectory called `docker` that exists in the directory with your
-`docker-compose.yml` or `docker-compose-non-dev.yml` file. 
+`docker-compose.yml` or `docker-compose-non-dev.yml` file.
 
 ```
 # Run from the repo root:
