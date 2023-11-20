@@ -215,7 +215,7 @@ Additionally, every new security issue is tracked as a JIRA ticket on the [ASF J
 Security team members must:
 
 - Have an [ICLA](https://www.apache.org/licenses/contributor-agreements.html) signed with Apache Software Foundation.
-- They are not supposed to reveal the information about pending and unfixed security issues to anyone (including their employers) unless specifically authorised by the security team members, specifically if diagnosing and solving the issue might involve the need of external experts.
+- Not reveal information about pending and unfixed security issues to anyone (including their employers) unless specifically authorised by the security team members, e.g., if the security team agrees that diagnosing and solving an issue requires the involvement of external experts.
 - Release managers are by default members of the security team. Yet they are not expected to be active in assessing, discussing and fixing security issues in Superset.
 
 Security team members should also follow these general expectations:
