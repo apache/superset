@@ -200,6 +200,8 @@ The official list of committers and PMCs can be found [here](https://projects.ap
 
 A contributor is a person who has contributed to the project in any way, including but not limited to code, tests, documentation, issues, and discussions.
 
+> You can also review the Superset project's guidelines for PMC member promotion here: https://github.com/apache/superset/wiki/Guidelines-for-promoting-Superset-Committers-to-the-Superset-PMC
+
 ### Security Team
 
 The security team is a selected subset of PMC members, committers and non-committers who are responsible for handling security issues.
