@@ -37,7 +37,7 @@ import { Tag as AntdTag } from 'antd';
 import { Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
 import FaveStar from 'src/components/FaveStar';
-import getOwnerName from 'src/utils/getOwnerName';
+import { AuditInfo, AuditInfoType } from 'src/components/AuditInfo';
 
 const PAGE_SIZE = 25;
 
@@ -164,13 +164,11 @@ function TagList(props: TagListProps) {
             },
           },
         }: any) => (
-          <Tooltip
-            id="delete-action-tooltip"
-            title={t('Modified by: %s', getOwnerName(changedBy))}
-            placement="bottom"
-          >
-            <span className="no-wrap">{changedOn}</span>
-          </Tooltip>
+          <AuditInfo
+            type={AuditInfoType.Modified}
+            date={changedOn}
+            user={changedBy}
+          />
         ),
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',

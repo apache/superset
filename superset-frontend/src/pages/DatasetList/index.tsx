@@ -70,6 +70,7 @@ import {
 } from 'src/features/datasets/constants';
 import DuplicateDatasetModal from 'src/features/datasets/DuplicateDatasetModal';
 import { useSelector } from 'react-redux';
+import { AuditInfo, AuditInfoType } from 'src/components/AuditInfo';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DatasetDeleteRelatedExtension = extensionsRegistry.get(
@@ -401,17 +402,15 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           row: {
             original: {
               changed_on_delta_humanized: changedOn,
-              changed_by_name: changedByName,
+              changed_by: changedBy,
             },
           },
         }: any) => (
-          <Tooltip
-            id="delete-action-tooltip"
-            title={t('Modified by: %s', changedByName)}
-            placement="bottom"
-          >
-            <span className="no-wrap">{changedOn}</span>
-          </Tooltip>
+          <AuditInfo
+            type={AuditInfoType.Modified}
+            date={changedOn}
+            user={changedBy}
+          />
         ),
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',

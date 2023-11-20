@@ -64,6 +64,7 @@ import DashboardCard from 'src/features/dashboards/DashboardCard';
 import { DashboardStatus } from 'src/features/dashboards/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
+import { AuditInfo, AuditInfoType } from 'src/components/AuditInfo';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -365,17 +366,15 @@ function DashboardList(props: DashboardListProps) {
           row: {
             original: {
               changed_on_delta_humanized: changedOn,
-              changed_by_name: changedByName,
+              changed_by: changedBy,
             },
           },
         }: any) => (
-          <Tooltip
-            id="delete-action-tooltip"
-            title={t('Modified by: %s', changedByName)}
-            placement="bottom"
-          >
-            <span className="no-wrap">{changedOn}</span>
-          </Tooltip>
+          <AuditInfo
+            type={AuditInfoType.Modified}
+            date={changedOn}
+            user={changedBy}
+          />
         ),
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',

@@ -26,7 +26,6 @@ import { createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import DeleteModal from 'src/components/DeleteModal';
-import { Tooltip } from 'src/components/Tooltip';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import ListView, {
@@ -36,7 +35,7 @@ import ListView, {
 } from 'src/components/ListView';
 import CssTemplateModal from 'src/features/cssTemplates/CssTemplateModal';
 import { TemplateObject } from 'src/features/cssTemplates/types';
-import getOwnerName from 'src/utils/getOwnerName';
+import { AuditInfo, AuditInfoType } from '../../components/AuditInfo';
 
 const PAGE_SIZE = 25;
 
@@ -138,21 +137,13 @@ function CssTemplatesList({
               changed_by: changedBy,
             },
           },
-        }: any) => {
-          const name = getOwnerName(changedBy);
-
-          return name ? (
-            <Tooltip
-              id="allow-run-async-header-tooltip"
-              title={t('Modified by: %s', name)}
-              placement="right"
-            >
-              <span>{changedOn}</span>
-            </Tooltip>
-          ) : (
-            <span>{changedOn}</span>
-          );
-        },
+        }: any) => (
+          <AuditInfo
+            type={AuditInfoType.Modified}
+            date={changedOn}
+            user={changedBy}
+          />
+        ),
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',

@@ -29,7 +29,6 @@ import {
 import React, { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
-import moment from 'moment';
 import { useSelector } from 'react-redux';
 import {
   createErrorHandler,
@@ -74,7 +73,7 @@ import FacePile from 'src/components/FacePile';
 import ChartCard from 'src/features/charts/ChartCard';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
-import getOwnerName from 'src/utils/getOwnerName';
+import { AuditInfo, AuditInfoType } from 'src/components/AuditInfo';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -446,21 +445,14 @@ function ChartList(props: ChartListProps) {
       {
         Cell: ({
           row: {
-            original: {
-              last_saved_at: lastSavedAt,
-              last_saved_by: lastSavedBy,
-            },
+            original: { last_saved_at: changedOn, last_saved_by: changedBy },
           },
         }: any) => (
-          <Tooltip
-            id="delete-action-tooltip"
-            title={t('Modified by: %s', getOwnerName(lastSavedBy))}
-            placement="bottom"
-          >
-            <span className="no-wrap">
-              {lastSavedAt ? moment.utc(lastSavedAt).fromNow() : null}
-            </span>
-          </Tooltip>
+          <AuditInfo
+            type={AuditInfoType.Modified}
+            date={changedOn}
+            user={changedBy}
+          />
         ),
         Header: t('Last modified'),
         accessor: 'last_saved_at',

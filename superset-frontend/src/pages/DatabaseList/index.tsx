@@ -29,7 +29,6 @@ import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { useQueryParams, BooleanParam } from 'use-query-params';
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
-import getOwnerName from 'src/utils/getOwnerName';
 
 import Loading from 'src/components/Loading';
 import { useListViewResource } from 'src/views/CRUD/hooks';
@@ -49,6 +48,7 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import type { MenuObjectProps } from 'src/types/bootstrapTypes';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
 import { DatabaseObject } from 'src/features/databases/types';
+import { AuditInfo, AuditInfoType } from 'src/components/AuditInfo';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DatabaseDeleteRelatedExtension = extensionsRegistry.get(
@@ -388,22 +388,13 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
               changed_on_delta_humanized: changedOn,
             },
           },
-        }: any) => {
-          const changed = <span className="no-wrap">{changedOn}</span>;
-          const changedbyName = getOwnerName(changedBy);
-          if (changedbyName) {
-            return (
-              <Tooltip
-                id="delete-action-tooltip"
-                title={t('Modified by: %s', changedbyName)}
-                placement="bottom"
-              >
-                {changed}
-              </Tooltip>
-            );
-          }
-          return changed;
-        },
+        }: any) => (
+          <AuditInfo
+            type={AuditInfoType.Modified}
+            date={changedOn}
+            user={changedBy}
+          />
+        ),
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',

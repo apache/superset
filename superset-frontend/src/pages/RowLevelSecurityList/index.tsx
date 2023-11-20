@@ -34,7 +34,7 @@ import { useListViewResource } from 'src/views/CRUD/hooks';
 import RowLevelSecurityModal from 'src/features/rls/RowLevelSecurityModal';
 import { RLSObject } from 'src/features/rls/types';
 import { createErrorHandler } from 'src/views/CRUD/utils';
-import getOwnerName from '../../utils/getOwnerName';
+import { AuditInfo, AuditInfoType } from 'src/components/AuditInfo';
 
 const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
@@ -153,13 +153,11 @@ function RowLevelSecurityList(props: RLSProps) {
             },
           },
         }: any) => (
-          <Tooltip
-            id="delete-action-tooltip"
-            title={t('Modified by: %s', getOwnerName(changedBy))}
-            placement="bottom"
-          >
-            <span className="no-wrap">{changedOn}</span>
-          </Tooltip>
+          <AuditInfo
+            type={AuditInfoType.Modified}
+            date={changedOn}
+            user={changedBy}
+          />
         ),
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',

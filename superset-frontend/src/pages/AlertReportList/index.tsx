@@ -53,7 +53,7 @@ import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import Owner from 'src/types/Owner';
 import AlertReportModal from 'src/features/alerts/AlertReportModal';
 import { AlertObject, AlertState } from 'src/features/alerts/types';
-import getOwnerName from 'src/utils/getOwnerName';
+import { AuditInfo, AuditInfoType } from 'src/components/AuditInfo';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -324,13 +324,11 @@ function AlertList({
             },
           },
         }: any) => (
-          <Tooltip
-            id="delete-action-tooltip"
-            title={t('Modified by: %s', getOwnerName(changedBy))}
-            placement="bottom"
-          >
-            <span className="no-wrap">{changedOn}</span>
-          </Tooltip>
+          <AuditInfo
+            type={AuditInfoType.Modified}
+            date={changedOn}
+            user={changedBy}
+          />
         ),
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
