@@ -218,7 +218,7 @@ Requirements from the security team members:
 
 Security team members should also follow these general expectations:
 
-- They are supposed to be active in assessing, discussing, fixing and releasing the security issues in Superset.
+- Actively participate in assessing, discussing, fixing, and releasing security issues in Superset.
 - Security fixes are not supposed to be discussed in public forums, and PR descriptions should not contain any information about the security issue. The corresponding JIRA ticket should contain a link to the PR.
 - The security team members working on the fix might be mentioned as remediation developers in the CVE including their job affiliation if they want to.
 
