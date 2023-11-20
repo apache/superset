@@ -155,8 +155,8 @@ FILTER_SELECT_ROW_LIMIT = 10000
 DEFAULT_TIME_FILTER = NO_TIME_RANGE
 TIME_FILTER_SHORTCUTS = [
     ["Current week", "DATETRUNC(DATETIME('today'), WEEK) : today"],
-    ["Current month(MTD)", "DATETRUNC(DATETIME('today'), MONTH) : today"],
-    ["Current year(YTD)", "DATETRUNC(DATETIME('today'), YEAR) : today"],
+    ["Current month (MTD)", "DATETRUNC(DATETIME('today'), MONTH) : today"],
+    ["Current year (YTD)", "DATETRUNC(DATETIME('today'), YEAR) : today"],
 ]
 
 SUPERSET_WEBSERVER_PROTOCOL = "http"
