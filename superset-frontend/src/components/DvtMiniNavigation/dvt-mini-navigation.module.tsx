@@ -38,7 +38,7 @@ const DvtMiniNavigationHeader = styled.div`
   align-items: center;
   justify-content: space-between;
   height: 24px;
-  cursor: 'pointer';
+  cursor: pointer;
 `;
 
 const DvtMiniNavigationHeaderTitle = styled.div`
