@@ -25,7 +25,7 @@ import { t, useTheme, QueryResponse } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 
 import {
-  queryEditorSetAndSaveSql,
+  queryEditorSetSql,
   cloneQueryToNewTab,
   fetchQueryResults,
   clearQueryResults,
@@ -109,7 +109,9 @@ const QueryTable = ({
 
   const data = useMemo(() => {
     const restoreSql = (query: QueryResponse) => {
-      dispatch(queryEditorSetAndSaveSql({ id: query.sqlEditorId }, query.sql));
+      dispatch(
+        queryEditorSetSql({ id: query.sqlEditorId }, query.sql, query.id),
+      );
     };
 
     const openQueryInNewTab = (query: QueryResponse) => {
