@@ -21,9 +21,8 @@ import React, { useMemo, useState } from 'react';
 import { t, SupersetClient } from '@superset-ui/core';
 
 import rison from 'rison';
-import moment from 'moment';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
+import { createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import DeleteModal from 'src/components/DeleteModal';
@@ -160,43 +159,6 @@ function CssTemplatesList({
         disableSortBy: true,
       },
       {
-        Cell: ({
-          row: {
-            original: { created_on: createdOn },
-          },
-        }: any) => {
-          const date = new Date(createdOn);
-          const utc = new Date(
-            Date.UTC(
-              date.getFullYear(),
-              date.getMonth(),
-              date.getDate(),
-              date.getHours(),
-              date.getMinutes(),
-              date.getSeconds(),
-              date.getMilliseconds(),
-            ),
-          );
-
-          return moment(utc).fromNow();
-        },
-        Header: t('Created on'),
-        accessor: 'created_on',
-        size: 'xl',
-        disableSortBy: true,
-      },
-      {
-        accessor: 'created_by',
-        disableSortBy: true,
-        Header: t('Created by'),
-        Cell: ({
-          row: {
-            original: { created_by: createdBy },
-          },
-        }: any) => getOwnerName(createdBy),
-        size: 'xl',
-      },
-      {
         Cell: ({ row: { original } }: any) => {
           const handleEdit = () => handleCssTemplateEdit(original);
           const handleDelete = () => setTemplateCurrentlyDeleting(original);
@@ -273,26 +235,6 @@ function CssTemplatesList({
         id: 'template_name',
         input: 'search',
         operator: FilterOperator.contains,
-      },
-      {
-        Header: t('Created by'),
-        key: 'created_by',
-        id: 'created_by',
-        input: 'select',
-        operator: FilterOperator.relationOneMany,
-        unfilteredLabel: t('All'),
-        fetchSelects: createFetchRelated(
-          'css_template',
-          'created_by',
-          createErrorHandler(errMsg =>
-            t(
-              'An error occurred while fetching dataset datasource values: %s',
-              errMsg,
-            ),
-          ),
-          user,
-        ),
-        paginate: true,
       },
     ],
     [],

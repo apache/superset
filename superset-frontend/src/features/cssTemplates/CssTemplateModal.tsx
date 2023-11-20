@@ -105,6 +105,9 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
         const update_id = currentCssTemplate.id;
         delete currentCssTemplate.id;
         delete currentCssTemplate.created_by;
+        delete currentCssTemplate.changed_by;
+        delete currentCssTemplate.changed_on_delta_humanized;
+
         updateResource(update_id, currentCssTemplate).then(response => {
           if (!response) {
             return;
