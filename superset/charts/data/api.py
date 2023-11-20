@@ -180,7 +180,7 @@ class ChartDataRestApi(ChartRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
         log_to_statsd=False,
     )
-    def refresh(self) -> Response:
+    def refresh_cache(self) -> Response:
         form_data = request.json
         try:
             from superset.models.slice import Slice
