@@ -7,5 +7,5 @@ export default {
 };
 
 export const InteractiveDatePicker = () => {
-  <DvtCalendar />;
+  return <DvtCalendar />;
 };
