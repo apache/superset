@@ -7313,7 +7313,7 @@ msgstr "Exporter au format CSV"
 
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/index.jsx:323
 msgid "Export to .JSON"
-msgstr "Exporter au format YAML"
+msgstr "Exporter au format JSON"
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:506
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/index.jsx:335

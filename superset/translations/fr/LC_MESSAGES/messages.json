@@ -1644,7 +1644,7 @@
       "Export dashboards?": ["Exporter les tableaux de bords ?"],
       "Export query": ["Exporter la requête"],
       "Export to .CSV": ["Exporter au format CSV"],
-      "Export to .JSON": ["Exporter au format YAML"],
+      "Export to .JSON": ["Exporter au format JSON"],
       "Export to Excel": ["Exporter vers Excel"],
       "Export to YAML": ["Exporter au format YAML"],
       "Export to YAML?": ["Exporter en YAML?"],
