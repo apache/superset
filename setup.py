@@ -117,7 +117,7 @@ setup(
         "pyyaml>=6.0.0, <7.0.0",
         "PyJWT>=2.4.0, <3.0",
         "redis>=4.5.4, <5.0",
-        "selenium>=3.141.0, <4.10.0",
+        "selenium>=4.10.0",
         "shillelagh>=1.2.6,<2.0",
         "shortid",
         "sshtunnel>=0.4.0, <0.5",
