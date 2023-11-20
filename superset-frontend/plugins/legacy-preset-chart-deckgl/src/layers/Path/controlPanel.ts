@@ -67,7 +67,8 @@ const config: ControlPanelConfig = {
       label: t('Map'),
       expanded: true,
       controlSetRows: [
-        [mapboxStyle, viewport],
+        [mapboxStyle],
+        [viewport],
         ['color_picker'],
         [lineWidth],
         [
