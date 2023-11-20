@@ -34,10 +34,12 @@ import SliceHeaderControls, {
 } from 'src/dashboard/components/SliceHeaderControls';
 import FiltersBadge from 'src/dashboard/components/FiltersBadge';
 import Icons from 'src/components/Icons';
+import { getUrlParam } from 'src/utils/urlUtils';
+import { URL_PARAMS } from 'src/constants';
 import { RootState } from 'src/dashboard/types';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
+import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
-import { isCurrentUserBot } from 'src/utils/isBot';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -177,6 +179,9 @@ const SliceHeader: FC<SliceHeaderProps> = ({
     ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
   );
 
+  const standaloneMode = getUrlParam(URL_PARAMS.standalone);
+  const isReport = standaloneMode === DashboardStandaloneMode.REPORT;
+
   const canExplore = !editMode && supersetCanExplore;
 
   useEffect(() => {
@@ -241,7 +246,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
         )}
       </div>
       <div className="header-controls">
-        {!editMode && !isCurrentUserBot() && (
+        {!editMode && !isReport && (
           <>
             {SliceHeaderExtension && (
               <SliceHeaderExtension

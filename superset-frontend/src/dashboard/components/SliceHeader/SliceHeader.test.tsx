@@ -486,10 +486,10 @@ test('Add extension to SliceHeader', () => {
   expect(screen.getByText('This is an extension')).toBeInTheDocument();
 });
 
-test('Do not display slice header controls if user is a bot', () => {
-  Object.defineProperty(window.navigator, 'webdriver', {
+test('Do not display slice header controls in reports', () => {
+  Object.defineProperty(window, 'location', {
     get() {
-      return true;
+      return { search: 'standalone=3' };
     },
   });
   const props = createProps();
