@@ -216,7 +216,7 @@ Requirements from the security team members:
 - They are not supposed to reveal the information about pending and unfixed security issues to anyone (including their employers) unless specifically authorised by the security team members, specifically if diagnosing and solving the issue might involve the need of external experts.
 - Release managers are by default members of the security team. Yet they are not expected to be active in assessing, discussing and fixing security issues in Superset.
 
-Additional expectations from the security team members working on a security issue:
+Security team members should also follow these general expectations:
 
 - They are supposed to be active in assessing, discussing, fixing and releasing the security issues in Superset.
 - Security fixes are not supposed to be discussed in public forums, and PR descriptions should not contain any information about the security issue. The corresponding JIRA ticket should contain a link to the PR.
