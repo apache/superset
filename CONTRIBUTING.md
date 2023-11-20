@@ -210,7 +210,7 @@ New members of the security team are selected by the PMC members in a vote. You 
 
 This security team must follow the [ASF vulnerability handling process](https://apache.org/security/committers.html#asf-project-security-for-committers).
 
-Additionally, every new security issue is tracked as a JIRA ticket on the [ASF JIRA Superset security project](https://issues.apache.org/jira/secure/RapidBoard.jspa?rapidView=588&projectKey=SUPERSETSEC)
+Each new security issue is tracked as a JIRA ticket on the [ASF's JIRA Superset security project](https://issues.apache.org/jira/secure/RapidBoard.jspa?rapidView=588&projectKey=SUPERSETSEC)
 
 Security team members must:
 
