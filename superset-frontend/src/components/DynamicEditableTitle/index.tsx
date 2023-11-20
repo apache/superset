@@ -44,7 +44,9 @@ const titleStyles = (theme: SupersetTheme) => css`
   font-weight: ${theme.typography.weights.bold};
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 
   & .dynamic-title,
   & .dynamic-title-input {
@@ -52,7 +54,9 @@ const titleStyles = (theme: SupersetTheme) => css`
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
 
   & .dynamic-title {
@@ -121,9 +125,15 @@ export const DynamicEditableTitle = ({
   }, [currentTitle, placeholder, sizerRef]);
 
   useEffect(() => {
+    // Non-edit mode: if the visible height of dashboard title (single line or multiline)
+    // is less than the actual height of the title (visible + hidden), the tooltip is shown
+    // when hovering.
+    // Edit mode: if the visible width of dashboard title (single line) is less than
+    // the actual width of the title (visible + hidden), the tooltip is shown when hovering.
     if (
       contentRef.current &&
-      contentRef.current.scrollWidth > contentRef.current.clientWidth
+      (contentRef.current.clientHeight < contentRef.current.scrollHeight ||
+        contentRef.current.clientWidth < contentRef.current.scrollWidth)
     ) {
       setShowTooltip(true);
     } else {
