@@ -19,7 +19,7 @@ under the License.
 
 ## Change Log
 
-- [3.0.2](#302-wed-nov-8-073838-2023--0500)
+- [3.0.2](#302-mon-nov-20-073838-2023--0500)
 - [3.0.1](#301-tue-oct-13-103221-2023--0700)
 - [3.0.0](#300-thu-aug-24-133627-2023--0600)
 - [2.1.1](#211-sun-apr-23-154421-2023-0100)
@@ -33,10 +33,22 @@ under the License.
 - [1.4.2](#142-sat-mar-19-000806-2022-0200)
 - [1.4.1](#141)
 
-### 3.0.2 (Wed Nov 8 07:38:38 2023 -0500)
+### 3.0.2 (Mon Nov 20 07:38:38 2023 -0500)
 
 **Fixes**
 
+- [#26037](https://github.com/apache/superset/pull/26037) fix: update FAB to 4.3.10, Azure user info fix (@dpgaspar)
+- [#25901](https://github.com/apache/superset/pull/25901) fix(native filters): rendering performance improvement by reduce overrendering (@justinpark)
+- [#25985](https://github.com/apache/superset/pull/25985) fix(explore): redandant force param (@justinpark)
+- [#25993](https://github.com/apache/superset/pull/25993) fix: Make Select component fire onChange listener when a selection is pasted in (@jfrag1)
+- [#25997](https://github.com/apache/superset/pull/25997) fix(rls): Update text from tables to datasets in RLS modal (@yousoph)
+- [#25703](https://github.com/apache/superset/pull/25703) fix(helm): Restart all related deployments when bootstrap script changed (@josedev-union)
+- [#25973](https://github.com/apache/superset/pull/25973) fix: naming denomalized to denormalized in helpers.py (@hughhhh)
+- [#25919](https://github.com/apache/superset/pull/25919) fix: always denorm column value before querying values (@hughhhh)
+- [#25947](https://github.com/apache/superset/pull/25947) fix: update flask-caching to avoid breaking redis cache, solves #25339 (@ggbaro)
+- [#25903](https://github.com/apache/superset/pull/25903) fix(sqllab): invalid sanitization on comparison symbol (@justinpark)
+- [#25857](https://github.com/apache/superset/pull/25857) fix(table): Double percenting ad-hoc percentage metrics (@john-bodley)
+- [#25872](https://github.com/apache/superset/pull/25872) fix(trino): allow impersonate_user flag to be imported (@FGrobelny)
 - [#25897](https://github.com/apache/superset/pull/25897) fix: trino cursor (@betodealmeida)
 - [#25898](https://github.com/apache/superset/pull/25898) fix: database version field (@betodealmeida)
 - [#25877](https://github.com/apache/superset/pull/25877) fix: Saving Mixed Chart with dashboard filter applied breaks adhoc_filter_b (@kgabryje)
@@ -68,6 +80,11 @@ under the License.
 - [#25553](https://github.com/apache/superset/pull/25553) fix: avoid 500 errors with SQLLAB_BACKEND_PERSISTENCE (@Khrol)
 - [#25626](https://github.com/apache/superset/pull/25626) fix(sqllab): template validation error within comments (@justinpark)
 - [#25523](https://github.com/apache/superset/pull/25523) fix(sqllab): Mistitled for new tab after rename (@justinpark)
+
+**Others**
+
+- [#25995](https://github.com/apache/superset/pull/25995) chore: Optimize fetching samples logic (@john-bodley)
+- [#23619](https://github.com/apache/superset/pull/23619) chore(colors): Updating Airbnb brand colors (@john-bodley)
 
 ### 3.0.1 (Tue Oct 13 10:32:21 2023 -0700)
 
