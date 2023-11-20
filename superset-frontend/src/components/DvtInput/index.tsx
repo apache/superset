@@ -51,7 +51,7 @@ const DvtInput = ({
         type={show ? 'text' : type}
         value={value}
         onChange={handleChange}
-      ></StyledInputField>
+      />
       {type === 'password' && (
         <StyledInputPasswordIcon onClick={() => setShow(!show)}>
           <Icon
