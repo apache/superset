@@ -17,6 +17,8 @@
  * under the License.
  */
 import React, { useState } from 'react';
+import { SupersetTheme } from '@superset-ui/core';
+import { RightOutlined } from '@ant-design/icons';
 import {
   StyledDvtMiniNavigation,
   DvtMiniNavigationHeader,
@@ -25,8 +27,6 @@ import {
   DvtMiniNavigationDataItem,
   DvtMiniNavigationAnimatedIcon,
 } from './dvt-mini-navigation.module';
-import { RightOutlined } from '@ant-design/icons';
-import { SupersetTheme } from '@superset-ui/core';
 
 export interface DvtMiniNavigationProps {
   title: string;
