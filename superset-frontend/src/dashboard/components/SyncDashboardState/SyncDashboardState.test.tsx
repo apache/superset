@@ -16,25 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
-import { PluginFilterStylesProps } from './types';
-import FormItem from '../../components/Form/FormItem';
+import React from 'react';
+import { render } from 'spec/helpers/testing-library';
+import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
+import SyncDashboardState from '.';
 
-export const RESPONSIVE_WIDTH = 0;
-
-export const FilterPluginStyle = styled.div<PluginFilterStylesProps>`
-  min-height: ${({ height }) => height}px;
-  width: ${({ width }) => (width === RESPONSIVE_WIDTH ? '100%' : `${width}px`)};
-`;
-
-export const StyledFormItem = styled(FormItem)`
-  &.ant-row.ant-form-item {
-    margin: 0;
-  }
-`;
-
-export const StatusMessage = styled.div<{
-  status?: 'error' | 'warning' | 'info';
-}>`
-  color: ${({ theme, status = 'error' }) => theme.colors[status]?.base};
-`;
+test('stores the dashboard info with local storages', () => {
+  const testDashboardPageId = 'dashboardPageId';
+  render(<SyncDashboardState dashboardPageId={testDashboardPageId} />, {
+    useRedux: true,
+  });
+  expect(getItem(LocalStorageKeys.dashboard__explore_context, {})).toEqual({
+    [testDashboardPageId]: expect.objectContaining({
+      dashboardPageId: testDashboardPageId,
+    }),
+  });
+});
