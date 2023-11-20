@@ -380,7 +380,7 @@ def menu_data(user: User) -> dict[str, Any]:
 
 
 @cache_manager.cache.memoize(timeout=60)
-def cached_common_bootstrap_data(
+def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     user: User, user_id: int | None, locale: str
 ) -> dict[str, Any]:
     """Common data always sent to the client
