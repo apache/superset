@@ -1426,6 +1426,7 @@ TALISMAN_CONFIG = {
     },
     "content_security_policy_nonce_in": ["script-src"],
     "force_https": False,
+    "session_cookie_secure": False,
 }
 # React requires `eval` to work correctly in dev mode
 TALISMAN_DEV_CONFIG = {
@@ -1447,6 +1448,7 @@ TALISMAN_DEV_CONFIG = {
     },
     "content_security_policy_nonce_in": ["script-src"],
     "force_https": False,
+    "session_cookie_secure": False,
 }
 
 #
