@@ -33,7 +33,8 @@
   },
   "workspaces": [
     "packages/*",
-    "plugins/*"
+    "plugins/*",
+    "src/setup/*"
   ],
   "scripts": {
     "_lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx,.ts,tsx .",

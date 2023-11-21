@@ -183,7 +183,7 @@ const v1ChartDataRequest = async (
   const qs = {};
   if (sliceId !== undefined) qs.form_data = `{"slice_id":${sliceId}}`;
   if (dashboardId !== undefined) qs.dashboard_id = dashboardId;
-  if (force !== false) qs.force = force;
+  if (force) qs.force = force;
 
   const allowDomainSharding =
     // eslint-disable-next-line camelcase

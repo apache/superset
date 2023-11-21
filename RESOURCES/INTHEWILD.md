@@ -111,6 +111,7 @@ Join our growing community!
 - [Steamroot](https://streamroot.io/)
 - [TechAudit](https://www.techaudit.info) [@ETselikov]
 - [Tenable](https://www.tenable.com) [@dflionis]
+- [Tentacle](https://public.tentaclecmi.com) [@jdclarke5]
 - [timbr.ai](https://timbr.ai/) [@semantiDan]
 - [Tobii](http://www.tobii.com/) [@dwa]
 - [Tooploox](https://www.tooploox.com/) [@jakubczaplicki]

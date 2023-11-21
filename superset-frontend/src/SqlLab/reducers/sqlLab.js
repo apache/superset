@@ -29,7 +29,7 @@ import {
   extendArr,
 } from '../../reduxUtils';
 
-function alterUnsavedQueryEditorState(state, updatedState, id) {
+function alterUnsavedQueryEditorState(state, updatedState, id, silent = false) {
   if (state.tabHistory[state.tabHistory.length - 1] !== id) {
     const { queryEditors } = alterInArr(
       state,
@@ -45,6 +45,7 @@ function alterUnsavedQueryEditorState(state, updatedState, id) {
     unsavedQueryEditor: {
       ...(state.unsavedQueryEditor.id === id && state.unsavedQueryEditor),
       ...(id ? { id, ...updatedState } : state.unsavedQueryEditor),
+      ...(!silent && { updatedAt: new Date().getTime() }),
     },
   };
 }
@@ -64,7 +65,10 @@ export default function sqlLabReducer(state = {}, action) {
         ...mergeUnsavedState,
         tabHistory: [...state.tabHistory, action.queryEditor.id],
       };
-      return addToArr(newState, 'queryEditors', action.queryEditor);
+      return addToArr(newState, 'queryEditors', {
+        ...action.queryEditor,
+        updatedAt: new Date().getTime(),
+      });
     },
     [actions.QUERY_EDITOR_SAVED]() {
       const { query, result, clientId } = action;
@@ -308,6 +312,7 @@ export default function sqlLabReducer(state = {}, action) {
             latestQueryId: action.query.id,
           },
           action.query.sqlEditorId,
+          action.query.isDataPreview,
         ),
       };
     },
@@ -378,14 +383,12 @@ export default function sqlLabReducer(state = {}, action) {
         qeIds.indexOf(action.queryEditor?.id) > -1 &&
         state.tabHistory[state.tabHistory.length - 1] !== action.queryEditor.id
       ) {
-        const mergeUnsavedState = alterInArr(
-          state,
-          'queryEditors',
-          state.unsavedQueryEditor,
-          {
+        const mergeUnsavedState = {
+          ...alterInArr(state, 'queryEditors', state.unsavedQueryEditor, {
             ...state.unsavedQueryEditor,
-          },
-        );
+          }),
+          unsavedQueryEditor: {},
+        };
         return {
           ...(action.queryEditor.id === state.unsavedQueryEditor.id
             ? alterInArr(
@@ -522,12 +525,20 @@ export default function sqlLabReducer(state = {}, action) {
       };
     },
     [actions.QUERY_EDITOR_SET_SQL]() {
+      const { unsavedQueryEditor } = state;
+      if (
+        unsavedQueryEditor?.id === action.queryEditor.id &&
+        unsavedQueryEditor.sql === action.sql
+      ) {
+        return state;
+      }
       return {
         ...state,
         ...alterUnsavedQueryEditorState(
           state,
           {
             sql: action.sql,
+            ...(action.queryId && { latestQueryId: action.queryId }),
           },
           action.queryEditor.id,
         ),
@@ -566,6 +577,7 @@ export default function sqlLabReducer(state = {}, action) {
             selectedText: action.sql,
           },
           action.queryEditor.id,
+          true,
         ),
       };
     },
@@ -707,6 +719,9 @@ export default function sqlLabReducer(state = {}, action) {
     },
     [actions.CREATE_DATASOURCE_FAILED]() {
       return { ...state, isDatasourceLoading: false, errorMessage: action.err };
+    },
+    [actions.SET_EDITOR_TAB_LAST_UPDATE]() {
+      return { ...state, editorTabLastUpdatedAt: action.timestamp };
     },
   };
   if (action.type in actionHandlers) {

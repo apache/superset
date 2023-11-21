@@ -113,7 +113,6 @@ class TestDashboardDAO(SupersetTestCase):
 
             data.update({"foo": "bar"})
             DashboardDAO.set_dash_metadata(dashboard, data)
-            db.session.merge(dashboard)
             db.session.commit()
             new_changed_on = DashboardDAO.get_dashboard_changed_on(dashboard)
             assert old_changed_on.replace(microsecond=0) < new_changed_on
@@ -125,7 +124,6 @@ class TestDashboardDAO(SupersetTestCase):
             )
 
             DashboardDAO.set_dash_metadata(dashboard, original_data)
-            db.session.merge(dashboard)
             db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")

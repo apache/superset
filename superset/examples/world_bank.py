@@ -24,14 +24,8 @@ from sqlalchemy.sql import column
 
 import superset.utils.database
 from superset import app, db
-from superset.connectors.sqla.models import SqlMetric
-from superset.models.dashboard import Dashboard
-from superset.models.slice import Slice
-from superset.utils import core as utils
-from superset.utils.core import DatasourceType
-
-from ..connectors.base.models import BaseDatasource
-from .helpers import (
+from superset.connectors.sqla.models import BaseDatasource, SqlMetric
+from superset.examples.helpers import (
     get_example_url,
     get_examples_folder,
     get_slice_json,
@@ -40,6 +34,10 @@ from .helpers import (
     misc_dash_slices,
     update_slice_ids,
 )
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
+from superset.utils import core as utils
+from superset.utils.core import DatasourceType
 
 
 def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-statements
@@ -87,6 +85,7 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
     tbl = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not tbl:
         tbl = table(table_name=tbl_name, schema=schema)
+        db.session.add(tbl)
     tbl.description = utils.readfile(
         os.path.join(get_examples_folder(), "countries.md")
     )
@@ -110,7 +109,6 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
                 SqlMetric(metric_name=metric, expression=f"{aggr_func}({col})")
             )
 
-    db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
 
@@ -126,6 +124,7 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
 
     if not dash:
         dash = Dashboard()
+        db.session.add(dash)
     dash.published = True
     pos = dashboard_positions
     slices = update_slice_ids(pos)
@@ -134,7 +133,6 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
     dash.position_json = json.dumps(pos, indent=4)
     dash.slug = slug
     dash.slices = slices
-    db.session.merge(dash)
     db.session.commit()
 
 

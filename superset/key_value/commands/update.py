@@ -77,17 +77,13 @@ class UpdateKeyValueCommand(BaseCommand):
     def update(self) -> Optional[Key]:
         filter_ = get_filter(self.resource, self.key)
         entry: KeyValueEntry = (
-            db.session.query(KeyValueEntry)
-            .filter_by(**filter_)
-            .autoflush(False)
-            .first()
+            db.session.query(KeyValueEntry).filter_by(**filter_).first()
         )
         if entry:
             entry.value = self.codec.encode(self.value)
             entry.expires_on = self.expires_on
             entry.changed_on = datetime.now()
             entry.changed_by_fk = get_user_id()
-            db.session.merge(entry)
             db.session.commit()
             return Key(id=entry.id, uuid=entry.uuid)
 

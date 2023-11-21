@@ -24,13 +24,13 @@ from superset.daos.tag import TagDAO
 from superset.exceptions import SupersetSecurityException
 from superset.tags.commands.exceptions import TagCreateFailedError, TagInvalidError
 from superset.tags.commands.utils import to_object_model, to_object_type
-from superset.tags.models import ObjectTypes, TagTypes
+from superset.tags.models import ObjectType, TagType
 
 logger = logging.getLogger(__name__)
 
 
 class CreateCustomTagCommand(CreateMixin, BaseCommand):
-    def __init__(self, object_type: ObjectTypes, object_id: int, tags: list[str]):
+    def __init__(self, object_type: ObjectType, object_id: int, tags: list[str]):
         self._object_type = object_type
         self._object_id = object_id
         self._tags = tags
@@ -76,7 +76,7 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
 
         try:
             tag_name = self._properties["name"]
-            tag = TagDAO.get_by_name(tag_name.strip(), TagTypes.custom)
+            tag = TagDAO.get_by_name(tag_name.strip(), TagType.custom)
             TagDAO.create_tag_relationship(
                 objects_to_tag=self._properties.get("objects_to_tag", []),
                 tag=tag,
