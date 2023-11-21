@@ -13,7 +13,7 @@ export interface DvtDotTitleProps {
 const DvtDotTitle = ({ label = '' }: DvtDotTitleProps) => (
   <StyledDotTitle>
     <StyledDotIcon>
-      <StyledDot/>
+      <StyledDot />
     </StyledDotIcon>
     <StyledTitle>{label}</StyledTitle>
   </StyledDotTitle>
