@@ -326,7 +326,8 @@ def virtual_dataset():
     TableColumn(column_name="col5", type="VARCHAR(255)", table=dataset)
 
     SqlMetric(metric_name="count", expression="count(*)", table=dataset)
-    db.session.merge(dataset)
+    db.session.add(dataset)
+    db.session.commit()
 
     yield dataset
 
@@ -390,7 +391,7 @@ def physical_dataset():
         table=dataset,
     )
     SqlMetric(metric_name="count", expression="count(*)", table=dataset)
-    db.session.merge(dataset)
+    db.session.add(dataset)
     db.session.commit()
 
     yield dataset
@@ -425,7 +426,8 @@ def virtual_dataset_comma_in_column_value():
     TableColumn(column_name="col2", type="VARCHAR(255)", table=dataset)
 
     SqlMetric(metric_name="count", expression="count(*)", table=dataset)
-    db.session.merge(dataset)
+    db.session.add(dataset)
+    db.session.commit()
 
     yield dataset
 

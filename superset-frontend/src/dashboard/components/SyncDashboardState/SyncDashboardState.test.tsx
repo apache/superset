@@ -16,22 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect } from 'react';
-import { FAST_DEBOUNCE } from 'src/constants';
+import React from 'react';
+import { render } from 'spec/helpers/testing-library';
+import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
+import SyncDashboardState from '.';
 
-export function useDebounceValue<T>(value: T, delay = FAST_DEBOUNCE) {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-
-  useEffect(() => {
-    const handler: NodeJS.Timeout = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    // Cancel the timeout if value changes (also on delay change or unmount)
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
-}
+test('stores the dashboard info with local storages', () => {
+  const testDashboardPageId = 'dashboardPageId';
+  render(<SyncDashboardState dashboardPageId={testDashboardPageId} />, {
+    useRedux: true,
+  });
+  expect(getItem(LocalStorageKeys.dashboard__explore_context, {})).toEqual({
+    [testDashboardPageId]: expect.objectContaining({
+      dashboardPageId: testDashboardPageId,
+    }),
+  });
+});
