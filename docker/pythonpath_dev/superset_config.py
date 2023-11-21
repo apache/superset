@@ -1,25 +1,3 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
-#
-# This file is included in the final Docker image and SHOULD be overridden when
-# deploying the image to prod. Settings configured here are intended for use in local
-# development environments. Also note that superset_config_docker.py is imported
-# as a final step as a means to override "defaults" configured here
-#
 import logging
 import os
 
@@ -63,7 +41,7 @@ RESULTS_BACKEND = RedisCache(host=REDIS_HOST, port=REDIS_PORT, key_prefix='super
 
 CACHE_CONFIG = {
     "CACHE_TYPE": "RedisCache",
-    "CACHE_DEFAULT_TIMEOUT": 43200,
+    "CACHE_DEFAULT_TIMEOUT": 172800,  # 48h
     "CACHE_KEY_PREFIX": "superset_",
     "CACHE_REDIS_HOST": REDIS_HOST,
     "CACHE_REDIS_PORT": REDIS_PORT,
@@ -74,7 +52,7 @@ DATA_CACHE_CONFIG = CACHE_CONFIG
 
 class CeleryConfig:
     broker_url = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
-    imports = ("superset.sql_lab","superset.tasks")
+    imports = ("superset.sql_lab", "superset.tasks")
     result_backend = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_RESULTS_DB}"
     worker_prefetch_multiplier = 10
     task_acks_late = True
