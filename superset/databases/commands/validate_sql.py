@@ -97,7 +97,7 @@ class ValidateSQLCommand(BaseCommand):
         if not validators_by_engine or spec.engine not in validators_by_engine:
             raise NoValidatorConfigFoundError(
                 SupersetError(
-                    message=__(f"no SQL validator is configured for {spec.engine}"),
+                    message=__("no SQL validator is configured for %(engine_spec)", engine_spec=spec.engine),
                     error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
                     level=ErrorLevel.ERROR,
                 ),
@@ -108,8 +108,9 @@ class ValidateSQLCommand(BaseCommand):
             raise NoValidatorFoundError(
                 SupersetError(
                     message=__(
-                        f"No validator named {validator_name} found "
-                        f"(configured for the {spec.engine} engine)"
+                        "No validator named %(validator_name) found "
+                        "(configured for the %(engine_spec) engine)",
+                        validator_name = validator_name, engine_spec = spec.engine
                     ),
                     error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
                     level=ErrorLevel.ERROR,
