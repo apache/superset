@@ -19,10 +19,6 @@
 import { styled } from '@superset-ui/core';
 import { Link } from 'react-router-dom';
 
-interface FadeInIconProps {
-  $fadeIn: boolean;
-}
-
 const StyledDvtNavigation = styled.div`
   display: inline-block;
 `;
