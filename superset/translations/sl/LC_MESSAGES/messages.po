@@ -9091,7 +9091,6 @@ msgid "Last available value seen on %s"
 msgstr "Zadnja razpoložljiva vrednost na %s"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:39
-#, fuzzy
 msgid "Last day"
 msgstr "zadnji dan"
 
@@ -9109,12 +9108,10 @@ msgid "Last modified by %s"
 msgstr "Nazadnje spremenil %s"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:41
-#, fuzzy
 msgid "Last month"
 msgstr "zadnji mesec"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:42
-#, fuzzy
 msgid "Last quarter"
 msgstr "zadnje četrletje"
 
@@ -9123,12 +9120,10 @@ msgid "Last run"
 msgstr "Zadnji zagon"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:40
-#, fuzzy
 msgid "Last week"
 msgstr "zadnji teden"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:43
-#, fuzzy
 msgid "Last year"
 msgstr "zadnje leto"
 

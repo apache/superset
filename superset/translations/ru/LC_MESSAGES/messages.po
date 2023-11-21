@@ -8940,7 +8940,6 @@ msgid "Last available value seen on %s"
 msgstr "Последнее доступное значение: %s"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:39
-#, fuzzy
 msgid "Last day"
 msgstr "последний день"
 
@@ -8958,12 +8957,10 @@ msgid "Last modified by %s"
 msgstr "Автор изменений %s"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:41
-#, fuzzy
 msgid "Last month"
 msgstr "последний месяц"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:42
-#, fuzzy
 msgid "Last quarter"
 msgstr "последний квартал"
 
@@ -8972,12 +8969,10 @@ msgid "Last run"
 msgstr "Последнее изменение"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:40
-#, fuzzy
 msgid "Last week"
 msgstr "последняя неделя"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:43
-#, fuzzy
 msgid "Last year"
 msgstr "последний год"
 

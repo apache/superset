@@ -9071,7 +9071,6 @@ msgid "Last available value seen on %s"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:39
-#, fuzzy
 msgid "Last day"
 msgstr "Sábado"
 
@@ -9093,7 +9092,6 @@ msgid "Last month"
 msgstr "mes"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:42
-#, fuzzy
 msgid "Last quarter"
 msgstr "consulta"
 
@@ -9102,12 +9100,10 @@ msgid "Last run"
 msgstr "Último cambio"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:40
-#, fuzzy
 msgid "Last week"
 msgstr "Semana anterior"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:43
-#, fuzzy
 msgid "Last year"
 msgstr "Cluster"
 

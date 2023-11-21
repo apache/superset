@@ -8793,7 +8793,6 @@ msgid "Last available value seen on %s"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:39
-#, fuzzy
 msgid "Last day"
 msgstr "Zaterdag"
 
@@ -8811,12 +8810,10 @@ msgid "Last modified by %s"
 msgstr "Laatst gewijzigd door %s"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:41
-#, fuzzy
 msgid "Last month"
 msgstr "maand"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:42
-#, fuzzy
 msgid "Last quarter"
 msgstr "Kwartaal"
 
@@ -8825,12 +8822,10 @@ msgid "Last run"
 msgstr "Laatste run"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:40
-#, fuzzy
 msgid "Last week"
 msgstr "week"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:43
-#, fuzzy
 msgid "Last year"
 msgstr "jaar"
 

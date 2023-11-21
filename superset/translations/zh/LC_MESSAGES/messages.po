@@ -8830,7 +8830,6 @@ msgid "Last available value seen on %s"
 msgstr " %s 最后一个可用值"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:39
-#, fuzzy
 msgid "Last day"
 msgstr "上一（昨）天"
 
@@ -8848,12 +8847,10 @@ msgid "Last modified by %s"
 msgstr "上次修改人 %s"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:41
-#, fuzzy
 msgid "Last month"
 msgstr "上一月"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:42
-#, fuzzy
 msgid "Last quarter"
 msgstr "上一季度"
 
@@ -8862,12 +8859,10 @@ msgid "Last run"
 msgstr "上次执行"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:40
-#, fuzzy
 msgid "Last week"
 msgstr "上一周"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:43
-#, fuzzy
 msgid "Last year"
 msgstr "上一年"
 
