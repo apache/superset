@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2023-11-21 13:10-0500\n"
+"POT-Creation-Date: 2023-11-21 16:09-0500\n"
 "PO-Revision-Date: 2023-11-20 11:34-0500\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -933,7 +933,7 @@ msgid "A screenshot of the dashboard will be sent to your email at"
 msgstr "Les rapports planifiés seront envoyés à votre adresse courriel à"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:990
-#: superset/connectors/sqla/views.py:368
+#: superset/connectors/sqla/views.py:367
 msgid ""
 "A set of parameters that become available in the query using Jinja "
 "templating syntax"
@@ -1110,7 +1110,7 @@ msgstr "Ajouter un modèle CSS"
 msgid "Add Chart"
 msgstr "Ajouter un graphique"
 
-#: superset/connectors/sqla/views.py:73
+#: superset/connectors/sqla/views.py:72
 msgid "Add Column"
 msgstr "Ajouter une colonne"
 
@@ -1126,7 +1126,7 @@ msgstr "Ajouter une base de données"
 msgid "Add Log"
 msgstr "Ajouter un journal"
 
-#: superset/connectors/sqla/views.py:208
+#: superset/connectors/sqla/views.py:207
 msgid "Add Metric"
 msgstr "Ajouter une mesure"
 
@@ -1690,7 +1690,7 @@ msgid "Allow DML"
 msgstr "Autoriser DML"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1000
-#: superset/connectors/sqla/views.py:384
+#: superset/connectors/sqla/views.py:383
 msgid ""
 "Allow column names to be changed to case insensitive format, if supported"
 " (e.g. Oracle, Snowflake)."
@@ -2132,7 +2132,7 @@ msgstr "Une erreur s'est produite lors de l'insertion de la valeur."
 msgid "An unexpected error occurred"
 msgstr "Un erreur s'est produite"
 
-#: superset/views/core.py:377
+#: superset/views/core.py:376
 msgid "An unknown error occurred. Please contact your Superset administrator"
 msgstr ""
 "Une erreur inconnue s'est produite. Veuillez contacter votre "
@@ -2531,7 +2531,7 @@ msgstr "Les paramètres du ensemble de données sont invalides"
 msgid "Assist"
 msgstr "base"
 
-#: superset/connectors/sqla/views.py:396
+#: superset/connectors/sqla/views.py:395
 msgid "Associated Charts"
 msgstr "Graphiques associés"
 
@@ -2917,7 +2917,7 @@ msgstr "Graphique à puces"
 msgid "Business"
 msgstr "Entreprise"
 
-#: superset/connectors/sqla/views.py:164
+#: superset/connectors/sqla/views.py:163
 msgid "Business Data Type"
 msgstr "Type de données commerciales"
 
@@ -3073,7 +3073,7 @@ msgstr "La requête CVAS (create view as select) comporte plus d'une instruction
 msgid "CVAS (create view as select) query is not a SELECT statement."
 msgstr "La requête CVAS (create view as select) n'est pas une instruction SELECT."
 
-#: superset/connectors/sqla/views.py:406 superset/views/chart/mixin.py:76
+#: superset/connectors/sqla/views.py:405 superset/views/chart/mixin.py:76
 msgid "Cache Timeout"
 msgstr "Délai d'inactivité et reprise du cache"
 
@@ -3181,7 +3181,7 @@ msgstr ""
 msgid "Cannot have multiple credentials for the SSH Tunnel"
 msgstr "Impossible d'avoir plusieurs identifiants pour le tunnel SSH"
 
-#: superset/views/core.py:366
+#: superset/views/core.py:365
 #, python-format
 msgid ""
 "Cannot import dashboard: %(db_error)s.\n"
@@ -3345,7 +3345,7 @@ msgstr "Modifier l’ordre des colonnes."
 msgid "Change order of rows."
 msgstr "Modifier l’ordre des rangées."
 
-#: superset/connectors/sqla/views.py:398
+#: superset/connectors/sqla/views.py:397
 msgid "Changed By"
 msgstr "Modifié par"
 
@@ -3435,7 +3435,7 @@ msgstr "Caractère à interpréter comme un point decimal."
 msgid "Chart"
 msgstr "Graphique"
 
-#: superset/views/core.py:775
+#: superset/views/core.py:774
 #, python-format
 msgid "Chart %(id)s not found"
 msgstr "Graphique %(id)s non trouvé"
@@ -3534,15 +3534,15 @@ msgstr "Le graphique [%s] a été sauvegardé"
 msgid "Chart [%s] was added to dashboard [%s]"
 msgstr "Le graphique [%s] ajouté au tableau de bord [%s]"
 
-#: superset/views/core.py:673
+#: superset/views/core.py:672
 msgid "Chart [{}] has been overwritten"
 msgstr "Le graphique [{}] a été écrasé"
 
-#: superset/views/core.py:669
+#: superset/views/core.py:668
 msgid "Chart [{}] has been saved"
 msgstr "Le graphique [{}] a été sauvegardé"
 
-#: superset/views/core.py:698
+#: superset/views/core.py:697
 msgid "Chart [{}] was added to dashboard [{}]"
 msgstr "Le graphique [{}] ajouté au tableau de bord [{}]"
 
@@ -4091,7 +4091,7 @@ msgstr "Couleurs"
 #: superset-frontend/src/filters/components/Range/controlPanel.ts:39
 #: superset-frontend/src/filters/components/Select/controlPanel.ts:49
 #: superset-frontend/src/filters/components/Time/controlPanel.ts:37
-#: superset/connectors/sqla/views.py:154
+#: superset/connectors/sqla/views.py:153
 msgid "Column"
 msgstr "Colonne"
 
@@ -4228,7 +4228,7 @@ msgstr "Configuration en colonne vers la base de données"
 #: superset-frontend/src/explore/controls.jsx:244
 #: superset-frontend/src/explore/fixtures.tsx:97
 #: superset-frontend/src/features/datasets/AddDataset/EditDataset/index.tsx:53
-#: superset/connectors/sqla/views.py:71
+#: superset/connectors/sqla/views.py:70
 msgid "Columns"
 msgstr "Colonnes"
 
@@ -4846,10 +4846,10 @@ msgid "Crimson"
 msgstr "Cramoisi"
 
 #: superset-frontend/src/components/Chart/ChartContextMenu/ChartContextMenu.tsx:152
-msgid ""
-"Cross-filter will be applied to all of the charts that use this dataset."
+msgid "Cross-filter will be applied to all of the charts that use this dataset."
 msgstr ""
-"Le filtre croisé sera appliqué à tous les graphiques qui utilisent cet ensemble de données."
+"Le filtre croisé sera appliqué à tous les graphiques qui utilisent cet "
+"ensemble de données."
 
 #: superset-frontend/src/components/Chart/ChartContextMenu/ChartContextMenu.tsx:164
 msgid "Cross-filtering is not enabled for this dashboard."
@@ -4954,7 +4954,7 @@ msgstr "Personnaliser les colonnes"
 msgid "Cyclic dependency detected"
 msgstr "Dépendance cyclique constatée"
 
-#: superset/connectors/sqla/views.py:256
+#: superset/connectors/sqla/views.py:255
 msgid "D3 Format"
 msgstr "Format D3"
 
@@ -5043,7 +5043,7 @@ msgstr "Tableau de bord"
 msgid "Dashboard [%s] just got created and chart [%s] was added to it"
 msgstr "Le tableau de bord [%s] a été créé et le graphique [%s] y a été ajouté"
 
-#: superset/views/core.py:718
+#: superset/views/core.py:717
 msgid "Dashboard [{}] just got created and chart [{}] was added to it"
 msgstr "Le tableau de bord [{}] a été créé et le graphique [{}] y a été ajouté"
 
@@ -5206,7 +5206,7 @@ msgstr "Dataframe doit inclure une colonne temporelle"
 #: superset-frontend/src/pages/QueryHistoryList/index.tsx:364
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:300
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:462
-#: superset/connectors/sqla/views.py:399 superset/connectors/sqla/views.py:400
+#: superset/connectors/sqla/views.py:398 superset/connectors/sqla/views.py:399
 #: superset/templates/superset/import_dashboards.html:53
 #: superset/views/database/forms.py:138 superset/views/database/forms.py:316
 #: superset/views/database/forms.py:443 superset/views/database/mixins.py:188
@@ -5442,7 +5442,7 @@ msgstr ""
 "de données ou de requêtes SQL. Sélectionnez un tableau de base de données"
 " à gauche ou "
 
-#: superset/connectors/sqla/views.py:388
+#: superset/connectors/sqla/views.py:387
 msgid ""
 "Datasets can have a main temporal column (main_dttm_col), but can also "
 "have secondary time columns. When this attribute is true, whenever the "
@@ -5508,7 +5508,7 @@ msgstr "Chaîne de format de date"
 msgid "Date/Time"
 msgstr "Date/heure"
 
-#: superset/connectors/sqla/views.py:162
+#: superset/connectors/sqla/views.py:161
 msgid "Datetime Format"
 msgstr "Format d’horodatage"
 
@@ -5541,7 +5541,7 @@ msgstr ""
 msgid "Days %s"
 msgstr "Jours %s"
 
-#: superset/connectors/sqla/models.py:1181 superset/models/helpers.py:1024
+#: superset/connectors/sqla/models.py:1787 superset/models/helpers.py:1024
 msgid "Db engine did not return all queried columns"
 msgstr ""
 "Le moteur de base de données n'a pas retourné toutes les colonnes "
@@ -5622,7 +5622,7 @@ msgstr "créer"
 msgid "Default"
 msgstr "Défaut"
 
-#: superset/connectors/sqla/views.py:404
+#: superset/connectors/sqla/views.py:403
 msgid "Default Endpoint"
 msgstr "Point final par défaut"
 
@@ -6032,8 +6032,8 @@ msgstr "Déclassé"
 #: superset-frontend/src/features/tags/TagModal.tsx:297
 #: superset-frontend/src/pages/AnnotationLayerList/index.tsx:154
 #: superset-frontend/src/pages/AnnotationList/index.tsx:161
-#: superset/connectors/sqla/views.py:156 superset/connectors/sqla/views.py:251
-#: superset/connectors/sqla/views.py:411 superset/views/chart/mixin.py:80
+#: superset/connectors/sqla/views.py:155 superset/connectors/sqla/views.py:250
+#: superset/connectors/sqla/views.py:410 superset/views/chart/mixin.py:80
 msgid "Description"
 msgstr "Description"
 
@@ -6478,7 +6478,7 @@ msgstr ""
 " par défaut au délai d'attente de l’ensemble de données s'il n'est pas "
 "défini."
 
-#: superset/connectors/sqla/views.py:372
+#: superset/connectors/sqla/views.py:371
 msgid ""
 "Duration (in seconds) of the caching timeout for this table. A timeout of"
 " 0 indicates that the cache never expires. Note this defaults to the "
@@ -6626,7 +6626,7 @@ msgstr "Modifier le graphique"
 msgid "Edit Chart Properties"
 msgstr "Modifier les propriétés du graphique"
 
-#: superset/connectors/sqla/views.py:74
+#: superset/connectors/sqla/views.py:73
 msgid "Edit Column"
 msgstr "Modifier une colonne"
 
@@ -6646,7 +6646,7 @@ msgstr "Modifier l’ensemble de données "
 msgid "Edit Log"
 msgstr "Modifier le journal"
 
-#: superset/connectors/sqla/views.py:209
+#: superset/connectors/sqla/views.py:208
 msgid "Edit Metric"
 msgstr "Modifier la mesure"
 
@@ -6662,7 +6662,7 @@ msgstr "Modifier le rapport par courriel"
 msgid "Edit Rule"
 msgstr "Modifier la règle"
 
-#: superset/connectors/sqla/views.py:295
+#: superset/connectors/sqla/views.py:294
 msgid "Edit Table"
 msgstr "Modifier le tableau"
 
@@ -6760,7 +6760,8 @@ msgstr "Édition d'un filtre:"
 msgid "Either the database is spelled incorrectly or does not exist."
 msgstr "La base de données est mal orthographiée ou elle n'existe pas."
 
-#: superset/db_engine_specs/mysql.py:157 superset/db_engine_specs/presto.py:681
+#: superset/db_engine_specs/doris.py:211 superset/db_engine_specs/mysql.py:157
+#: superset/db_engine_specs/presto.py:681
 #: superset/db_engine_specs/redshift.py:72
 #: superset/db_engine_specs/starrocks.py:154
 #, python-format
@@ -6849,7 +6850,7 @@ msgstr ""
 "Activez l'option «Autoriser le chargement de données» dans les paramètres"
 " de la base de données"
 
-#: superset/connectors/sqla/views.py:402
+#: superset/connectors/sqla/views.py:401
 msgid "Enable Filter Select"
 msgstr "Activer le filtre de sélection"
 
@@ -7034,7 +7035,7 @@ msgstr ""
 msgid "Error in jinja expression in HAVING clause: %(msg)s"
 msgstr "Erreur d'expression jinja dans la clause HAVING: %(msg)s"
 
-#: superset/connectors/sqla/models.py:1064 superset/models/helpers.py:835
+#: superset/connectors/sqla/models.py:1670 superset/models/helpers.py:835
 #, python-format
 msgid "Error in jinja expression in RLS filters: %(msg)s"
 msgstr "Erreur dans l'expression jinja des filtres RLS : %(msg)s"
@@ -7044,7 +7045,7 @@ msgstr "Erreur dans l'expression jinja des filtres RLS : %(msg)s"
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "Erreur d'expression jinja dans la clause WHERE: %(msg)s"
 
-#: superset/connectors/sqla/models.py:789
+#: superset/connectors/sqla/models.py:1395
 #, python-format
 msgid "Error in jinja expression in fetch values predicate: %(msg)s"
 msgstr ""
@@ -7075,7 +7076,7 @@ msgstr "Une erreur s'est produite durant la récupération des graphiques"
 msgid "Error while fetching data: %s"
 msgstr "Une erreur s'est produite durant la récupération des données: %s"
 
-#: superset/connectors/sqla/models.py:886 superset/models/helpers.py:1070
+#: superset/connectors/sqla/models.py:1492 superset/models/helpers.py:1070
 #, python-format
 msgid "Error while rendering virtual dataset query: %(msg)s"
 msgstr ""
@@ -7087,12 +7088,12 @@ msgstr ""
 msgid "Error: %(error)s"
 msgstr "Erreur: %(error)s"
 
-#: superset/views/core.py:470 superset/views/core.py:882
+#: superset/views/core.py:469 superset/views/core.py:881
 #, python-format
 msgid "Error: %(msg)s"
 msgstr "Erreur: %(msg)s"
 
-#: superset/views/core.py:467
+#: superset/views/core.py:466
 msgid "Error: permalink state not found"
 msgstr "Erreur: État du programme de rapport introuvable"
 
@@ -7274,11 +7275,11 @@ msgid "Experimental"
 msgstr "Expérimental"
 
 #: superset-frontend/src/SqlLab/components/ExploreCtasResultsButton/index.tsx:91
-#: superset/views/core.py:620
+#: superset/views/core.py:619
 msgid "Explore"
 msgstr "Explorer"
 
-#: superset/views/core.py:618
+#: superset/views/core.py:617
 #, python-format
 msgid "Explore - %(table)s"
 msgstr "Explorer - %(table)s"
@@ -7367,12 +7368,12 @@ msgstr "Exposer dans SQL Lab"
 msgid "Expose this DB in SQL Lab"
 msgstr "Exposer cette base de données dans SQL Lab"
 
-#: superset/connectors/sqla/views.py:160
+#: superset/connectors/sqla/views.py:159
 msgid "Expression"
 msgstr "Expression"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:935
-#: superset/connectors/sqla/views.py:257 superset/connectors/sqla/views.py:414
+#: superset/connectors/sqla/views.py:256 superset/connectors/sqla/views.py:413
 #: superset/views/database/mixins.py:193
 msgid "Extra"
 msgstr "Extra"
@@ -7532,7 +7533,7 @@ msgstr "Favoris"
 msgid "February"
 msgstr "Février"
 
-#: superset/connectors/sqla/views.py:408
+#: superset/connectors/sqla/views.py:407
 msgid "Fetch Values Predicate"
 msgstr "Prédicat de recherche de valeurs"
 
@@ -7703,7 +7704,7 @@ msgstr "La liste de valeurs du filtre ne peut pas être vide"
 msgid "Filter your charts"
 msgstr "Filtrer vos graphiques"
 
-#: superset/connectors/sqla/views.py:158
+#: superset/connectors/sqla/views.py:157
 msgid "Filterable"
 msgstr "Filtrable"
 
@@ -7906,13 +7907,13 @@ msgstr "Clé étrangère"
 msgid "Forest Green"
 msgstr "Vert forêt"
 
-#: superset/explore/commands/get.py:88 superset/views/core.py:484
+#: superset/explore/commands/get.py:87 superset/views/core.py:483
 msgid "Form data not found in cache, reverting to chart metadata."
 msgstr ""
 "Les données du formulaire n'ont pas été trouvées dans le cache, les "
 "métadonnées du graphique ont été rétablies."
 
-#: superset/explore/commands/get.py:96 superset/views/core.py:490
+#: superset/explore/commands/get.py:95 superset/views/core.py:489
 msgid "Form data not found in cache, reverting to dataset metadata."
 msgstr ""
 "Les données du formulaire n'ont pas été trouvées dans l’ensemble de "
@@ -8114,7 +8115,7 @@ msgstr "Clé de groupe"
 msgid "Group by"
 msgstr "Grouper par"
 
-#: superset/connectors/sqla/views.py:157
+#: superset/connectors/sqla/views.py:156
 msgid "Groupable"
 msgstr "Groupable"
 
@@ -8419,7 +8420,7 @@ msgstr "Exporter le ou les tableaux de bords"
 msgid "Import Dashboards"
 msgstr "Exporter les tableaux de bords"
 
-#: superset/connectors/sqla/views.py:294
+#: superset/connectors/sqla/views.py:293
 msgid "Import a table definition"
 msgstr "Importer la définition d'un tableau"
 
@@ -8648,7 +8649,7 @@ msgstr "Operateur cumulatif invalide: %(operator)s"
 msgid "Invalid currency code in saved metrics"
 msgstr ""
 
-#: superset/connectors/sqla/views.py:180 superset/datasets/schemas.py:58
+#: superset/connectors/sqla/views.py:179 superset/datasets/schemas.py:58
 msgid "Invalid date/timestamp format"
 msgstr "Format d’horodatage invalide"
 
@@ -8774,7 +8775,7 @@ msgstr "Est étiqueté"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:368
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:376
-#: superset/connectors/sqla/views.py:161
+#: superset/connectors/sqla/views.py:160
 msgid "Is temporal"
 msgstr "Est temporel"
 
@@ -9029,7 +9030,7 @@ msgstr "Grand"
 msgid "Last"
 msgstr "Dernier"
 
-#: superset/connectors/sqla/views.py:401 superset/views/database/mixins.py:190
+#: superset/connectors/sqla/views.py:400 superset/views/database/mixins.py:190
 msgid "Last Changed"
 msgstr "Dernière modification"
 
@@ -9547,7 +9548,7 @@ msgstr "MAI"
 msgid "MON"
 msgstr "LUN"
 
-#: superset/connectors/sqla/views.py:410
+#: superset/connectors/sqla/views.py:409
 msgid "Main Datetime Column"
 msgstr "Colonne principale d’horodatage"
 
@@ -9560,7 +9561,7 @@ msgstr ""
 "source de données contient des données pour la plage de temps "
 "sélectionnée"
 
-#: superset/views/core.py:765
+#: superset/views/core.py:764
 msgid ""
 "Malformed request. slice_id or table_name and db_name arguments are "
 "expected"
@@ -9815,11 +9816,11 @@ msgstr "Méthode"
 #: superset-frontend/src/explore/controls.jsx:167
 #: superset-frontend/src/explore/controls.jsx:168
 #: superset-frontend/src/visualizations/TimeTable/TimeTable.jsx:121
-#: superset/connectors/sqla/views.py:250
+#: superset/connectors/sqla/views.py:249
 msgid "Metric"
 msgstr "Mesure"
 
-#: superset/connectors/sqla/models.py:1092 superset/models/helpers.py:1241
+#: superset/connectors/sqla/models.py:1698 superset/models/helpers.py:1241
 #: superset/models/helpers.py:1537
 #, python-format
 msgid "Metric '%(metric)s' does not exist"
@@ -9934,7 +9935,7 @@ msgstr ""
 #: superset-frontend/src/explore/components/DatasourcePanel/index.tsx:405
 #: superset-frontend/src/explore/controls.jsx:152
 #: superset-frontend/src/features/datasets/AddDataset/EditDataset/index.tsx:54
-#: superset/connectors/sqla/views.py:206
+#: superset/connectors/sqla/views.py:205
 msgid "Metrics"
 msgstr "Mesures"
 
@@ -10068,7 +10069,7 @@ msgstr "Série temporelle mixte"
 #: superset-frontend/src/pages/RowLevelSecurityList/index.tsx:152
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:382
 #: superset-frontend/src/pages/Tags/index.tsx:168
-#: superset/connectors/sqla/views.py:415 superset/views/dashboard/mixin.py:85
+#: superset/connectors/sqla/views.py:414 superset/views/dashboard/mixin.py:85
 #: superset/views/dashboard/views.py:188 superset/views/database/mixins.py:199
 msgid "Modified"
 msgstr "Modifié"
@@ -10297,7 +10298,7 @@ msgstr "Nom de la colonne d'identification"
 msgid "Name of the source nodes"
 msgstr "Nom des nœuds sources"
 
-#: superset/connectors/sqla/views.py:338
+#: superset/connectors/sqla/views.py:337
 msgid "Name of the table that exists in the source database"
 msgstr "Nom du tableau qui existe dans la base de données source"
 
@@ -10909,7 +10910,7 @@ msgstr "Octobre"
 msgid "Offline"
 msgstr "Hors ligne"
 
-#: superset/connectors/sqla/views.py:405
+#: superset/connectors/sqla/views.py:404
 msgid "Offset"
 msgstr "Décalage"
 
@@ -11325,7 +11326,7 @@ msgstr "Propriétaire"
 #: superset-frontend/src/pages/AlertReportList/index.tsx:324
 #: superset-frontend/src/pages/DashboardList/index.tsx:390
 #: superset-frontend/src/pages/DatasetList/index.tsx:414
-#: superset/connectors/sqla/views.py:409 superset/views/chart/mixin.py:82
+#: superset/connectors/sqla/views.py:408 superset/views/chart/mixin.py:82
 #: superset/views/dashboard/mixin.py:81
 msgid "Owners"
 msgstr "Propriétaires"
@@ -11698,7 +11699,8 @@ msgstr ""
 "Veuillez corriger une erreur de syntaxe dans la requête près de "
 "«%(syntax_error)s». Puis essayez de relancer la requête."
 
-#: superset/db_engine_specs/gsheets.py:96 superset/db_engine_specs/mysql.py:177
+#: superset/db_engine_specs/doris.py:231 superset/db_engine_specs/gsheets.py:96
+#: superset/db_engine_specs/mysql.py:177
 #, python-format
 msgid ""
 "Please check your query for syntax errors near \"%(server_error)s\". "
@@ -11707,7 +11709,7 @@ msgstr ""
 "Veuillez corriger une erreur de syntaxe dans la requête près de "
 "«%(server_error)s». Puis essayez de relancer la requête."
 
-#: superset/sqllab/query_render.py:39 superset/views/core.py:118
+#: superset/sqllab/query_render.py:39 superset/views/core.py:117
 msgid ""
 "Please check your template parameters for syntax errors and make sure "
 "they match across your SQL query and Set Parameters. Then, try running "
@@ -11949,7 +11951,7 @@ msgstr "Valeurs disponibles pour le préfiltre"
 msgid "Pre-filter is required"
 msgstr "Un préfiltre est requis"
 
-#: superset/connectors/sqla/views.py:350
+#: superset/connectors/sqla/views.py:349
 msgid ""
 "Predicate applied when fetching distinct value to populate the filter "
 "control component. Supports jinja template syntax. Applies only when "
@@ -12419,7 +12421,7 @@ msgstr "Nombre d'enregistrements"
 msgid "Rectangle"
 msgstr "Rectangle"
 
-#: superset/connectors/sqla/views.py:356
+#: superset/connectors/sqla/views.py:355
 msgid "Redirects to this endpoint when clicking on the table from the table list"
 msgstr ""
 "Redirige vers ce point de terminaison lorsque l'on clique sur le tableau "
@@ -13111,7 +13113,7 @@ msgstr "SQL"
 msgid "SQL Copied!"
 msgstr "SQL copié!"
 
-#: superset/connectors/sqla/views.py:254
+#: superset/connectors/sqla/views.py:253
 msgid "SQL Expression"
 msgstr "Expression SQL"
 
@@ -13121,7 +13123,7 @@ msgstr "Expression SQL"
 msgid "SQL Lab"
 msgstr "SQL Lab"
 
-#: superset/connectors/sqla/views.py:412
+#: superset/connectors/sqla/views.py:411
 msgid "SQL Lab View"
 msgstr "Vue SQL Lab"
 
@@ -13522,7 +13524,7 @@ msgstr "L'exécuteur de la tâche planifiée n'a pas été trouvé"
 #: superset-frontend/src/pages/QueryHistoryList/index.tsx:265
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:310
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:483
-#: superset/connectors/sqla/views.py:403 superset/views/database/forms.py:155
+#: superset/connectors/sqla/views.py:402 superset/views/database/forms.py:155
 #: superset/views/database/forms.py:322 superset/views/database/forms.py:449
 msgid "Schema"
 msgstr "Schéma"
@@ -13531,7 +13533,7 @@ msgstr "Schéma"
 msgid "Schema cache timeout"
 msgstr "Délai d'attente pour le cache du schéma dépassé"
 
-#: superset/connectors/sqla/views.py:339
+#: superset/connectors/sqla/views.py:338
 msgid "Schema, as used only in some databases like Postgres, Redshift and DB2"
 msgstr ""
 "Schéma, utilisé uniquement dans certaines bases de données comme "
@@ -14207,7 +14209,7 @@ msgstr "Afficher le modèle CSS"
 msgid "Show Chart"
 msgstr "Afficher le graphique"
 
-#: superset/connectors/sqla/views.py:72
+#: superset/connectors/sqla/views.py:71
 msgid "Show Column"
 msgstr "Afficher la colonne"
 
@@ -14241,7 +14243,7 @@ msgstr "Afficher les journaux"
 msgid "Show Markers"
 msgstr "Afficher les marqueurs"
 
-#: superset/connectors/sqla/views.py:207
+#: superset/connectors/sqla/views.py:206
 msgid "Show Metric"
 msgstr "Afficher la mesure"
 
@@ -14253,7 +14255,7 @@ msgstr "Afficher les noms de mesure"
 msgid "Show Range Filter"
 msgstr "Afficher le filtre d’intervalle"
 
-#: superset/connectors/sqla/views.py:293
+#: superset/connectors/sqla/views.py:292
 msgid "Show Table"
 msgstr "Afficher les tableaux"
 
@@ -15320,12 +15322,12 @@ msgstr "Titre de l’onglet"
 #: superset-frontend/src/components/Chart/DrillBy/useDisplayModeToggle.tsx:57
 #: superset-frontend/src/components/TableSelector/index.tsx:285
 #: superset-frontend/src/visualizations/TimeTable/index.ts:26
-#: superset/connectors/sqla/views.py:159 superset/connectors/sqla/views.py:255
-#: superset/connectors/sqla/views.py:397 superset/views/chart/mixin.py:86
+#: superset/connectors/sqla/views.py:158 superset/connectors/sqla/views.py:254
+#: superset/connectors/sqla/views.py:396 superset/views/chart/mixin.py:86
 msgid "Table"
 msgstr "Tableau"
 
-#: superset/views/core.py:788
+#: superset/views/core.py:787
 #, python-format
 msgid "Table %(table)s wasn't found in the database %(db)s"
 msgstr "Le tableau %(table)s n’a pas été trouvé dans la base de données %(db)s"
@@ -15334,7 +15336,7 @@ msgstr "Le tableau %(table)s n’a pas été trouvé dans la base de données %(
 msgid "Table Exists"
 msgstr "La tableau existe"
 
-#: superset/connectors/sqla/views.py:407 superset/views/database/forms.py:129
+#: superset/connectors/sqla/views.py:406 superset/views/database/forms.py:129
 #: superset/views/database/forms.py:280 superset/views/database/forms.py:412
 msgid "Table Name"
 msgstr "Nom du tableau"
@@ -15381,7 +15383,7 @@ msgstr ""
 #: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:397
 #: superset-frontend/src/pages/QueryHistoryList/index.tsx:302
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:347
-#: superset/connectors/sqla/views.py:292
+#: superset/connectors/sqla/views.py:291
 msgid "Tables"
 msgstr "Tableaux"
 
@@ -15499,7 +15501,7 @@ msgstr "Nom du modèle"
 
 #: superset-frontend/src/SqlLab/components/TemplateParamsEditor/index.tsx:99
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:989
-#: superset/connectors/sqla/views.py:413
+#: superset/connectors/sqla/views.py:412
 msgid "Template parameters"
 msgstr "Paramètres du modèle"
 
@@ -15693,11 +15695,11 @@ msgstr ""
 msgid "The dashboard has been saved"
 msgstr "Ce tableau de bord a été sauvegardé"
 
-#: superset/views/core.py:116
+#: superset/views/core.py:115
 msgid "The data source seems to have been deleted"
 msgstr "La source de données semble avoir été effacée"
 
-#: superset/connectors/sqla/views.py:114
+#: superset/connectors/sqla/views.py:113
 msgid ""
 "The data type that was inferred by the database. It may be necessary to "
 "input a type manually for expression-defined columns in some cases. In "
@@ -15863,7 +15865,7 @@ msgstr ""
 msgid "The function to use when aggregating points into groups"
 msgstr "La fonction à utiliser lors de l’agrégation de points en groupes"
 
-#: superset/db_engine_specs/mysql.py:167
+#: superset/db_engine_specs/doris.py:221 superset/db_engine_specs/mysql.py:167
 #, python-format
 msgid "The host \"%(hostname)s\" might be down and can't be reached."
 msgstr "L'hôte «%(hostname)s» est peut-être hors-service et ne peut être atteint."
@@ -15903,7 +15905,7 @@ msgstr "Le nom d'hôte fourni ne peut pas être résolu."
 msgid "The id of the active chart"
 msgstr "L'identifiant du graphique actif"
 
-#: superset/connectors/sqla/views.py:328
+#: superset/connectors/sqla/views.py:327
 msgid ""
 "The list of charts associated with this table. By altering this "
 "datasource, you may change how these associated charts behave. Also note "
@@ -16356,7 +16358,7 @@ msgstr ""
 "Le tableau «%(table_name)s» n'existe pas. Un tableau valide doit être "
 "utilisé pour cette requête."
 
-#: superset/connectors/sqla/views.py:436
+#: superset/connectors/sqla/views.py:435
 msgid ""
 "The table was created. As part of this two-phase configuration process, "
 "you should now click the edit button by the new table to configure it."
@@ -16456,7 +16458,7 @@ msgstr "L'unité de mesure pour le rayon de point spécifié"
 msgid "The upper limit of the threshold range of the Isoband"
 msgstr ""
 
-#: superset/views/core.py:117
+#: superset/views/core.py:116
 msgid "The user seems to have been deleted"
 msgstr "L'utilisateur·rice semble avoir été effacé·e"
 
@@ -16992,7 +16994,7 @@ msgid ""
 " It is also used as the alias in the SQL query."
 msgstr ""
 
-#: superset/connectors/sqla/views.py:346
+#: superset/connectors/sqla/views.py:345
 msgid ""
 "This fields acts a Superset view, meaning that Superset will run a query "
 "against this string as a subquery."
@@ -17534,7 +17536,7 @@ msgstr "Format d’horodatage"
 msgid "Timezone"
 msgstr "Fuseau horaire"
 
-#: superset/connectors/sqla/views.py:337
+#: superset/connectors/sqla/views.py:336
 msgid "Timezone offset (in hours) for this datasource"
 msgstr "Décalage de fuseau horaire (en heures) pour cette source de données"
 
@@ -17779,7 +17781,7 @@ msgstr "Turquie"
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:276
 #: superset-frontend/src/pages/DatasetList/index.tsx:368
 #: superset-frontend/src/pages/DatasetList/index.tsx:584
-#: superset/connectors/sqla/views.py:163 superset/connectors/sqla/views.py:253
+#: superset/connectors/sqla/views.py:162 superset/connectors/sqla/views.py:252
 msgid "Type"
 msgstr "Type"
 
@@ -17852,7 +17854,7 @@ msgstr ""
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
 msgstr "Impossible de se connecter au catalogue «%(catalog_name)s»."
 
-#: superset/db_engine_specs/mysql.py:172
+#: superset/db_engine_specs/doris.py:226 superset/db_engine_specs/mysql.py:172
 #: superset/db_engine_specs/postgres.py:153
 #: superset/db_engine_specs/starrocks.py:159
 #, python-format
@@ -17992,13 +17994,17 @@ msgid "Unexpected error: "
 msgstr "Erreur inattendue: "
 
 #: superset/views/api.py:108
-#, python-format
 msgid "Unexpected time range: %(error)"
 msgstr "Plage de temps inattendue: %(error)"
 
 #: superset-frontend/src/features/home/ActivityTable.tsx:86
 msgid "Unknown"
 msgstr "Inconnu"
+
+#: superset/db_engine_specs/doris.py:216
+#, fuzzy, python-format
+msgid "Unknown Doris server host \"%(hostname)s\"."
+msgstr "Hôte inconnu du serveur Doris «%(hostname)s»."
 
 #: superset/db_engine_specs/mysql.py:162
 #, python-format
@@ -18417,7 +18423,7 @@ msgstr ""
 msgid "Vehicle Types"
 msgstr "Types du véhicule"
 
-#: superset/connectors/sqla/views.py:155 superset/connectors/sqla/views.py:252
+#: superset/connectors/sqla/views.py:154 superset/connectors/sqla/views.py:251
 msgid "Verbose Name"
 msgstr "Nom Verbose"
 
@@ -18513,18 +18519,18 @@ msgstr "Virtuel (SQL)"
 msgid "Virtual dataset"
 msgstr "Ensemble de données virtuel"
 
-#: superset/connectors/sqla/models.py:893 superset/connectors/sqla/utils.py:107
-#: superset/models/helpers.py:1077
+#: superset/connectors/sqla/models.py:1499
+#: superset/connectors/sqla/utils.py:107 superset/models/helpers.py:1077
 msgid "Virtual dataset query cannot be empty"
 msgstr "L’ensemble de données virtuel ne peut pas être vide"
 
-#: superset/connectors/sqla/models.py:896 superset/models/helpers.py:1080
+#: superset/connectors/sqla/models.py:1502 superset/models/helpers.py:1080
 msgid "Virtual dataset query cannot consist of multiple statements"
 msgstr ""
 "Une requête sur un ensemble de données virtuel ne peut pas être composée "
 "de plusieurs instructions"
 
-#: superset/connectors/sqla/models.py:861 superset/models/helpers.py:1103
+#: superset/connectors/sqla/models.py:1467 superset/models/helpers.py:1103
 msgid "Virtual dataset query must be read-only"
 msgstr ""
 "L'interrogation de l'ensemble de données virtuel doit être en lecture "
@@ -18710,7 +18716,7 @@ msgstr "Ajouter un nouvelle base de données?"
 msgid "Warning"
 msgstr "Avertissement"
 
-#: superset/connectors/sqla/views.py:258
+#: superset/connectors/sqla/views.py:257
 msgid "Warning Message"
 msgstr "Message d'avertissement"
 
@@ -18995,11 +19001,11 @@ msgstr ""
 "Si la barre de progression se chevauche lorsqu’il y a plusieurs groupes "
 "de données"
 
-#: superset/connectors/sqla/views.py:365
+#: superset/connectors/sqla/views.py:364
 msgid "Whether the table was generated by the 'Visualize' flow in SQL Lab"
 msgstr "Si le tableau a été générée par le flux «Visualiser» dans SQL Lab"
 
-#: superset/connectors/sqla/views.py:110
+#: superset/connectors/sqla/views.py:109
 msgid ""
 "Whether this column is exposed in the `Filters` section of the explore "
 "view."
@@ -19187,7 +19193,7 @@ msgstr "Si la grille doit être en 3D"
 msgid "Whether to make the histogram cumulative"
 msgstr "Si l'histogramme doit être cumulatif"
 
-#: superset/connectors/sqla/views.py:105
+#: superset/connectors/sqla/views.py:104
 msgid ""
 "Whether to make this column available as a [Time Granularity] option, "
 "column has to be DATETIME or DATETIME-like"
@@ -19204,7 +19210,7 @@ msgstr "Normaliser ou non l'histogramme"
 msgid "Whether to populate autocomplete filters options"
 msgstr "Remplir ou non les options des filtres d'autocomplétion"
 
-#: superset/connectors/sqla/views.py:360
+#: superset/connectors/sqla/views.py:359
 msgid ""
 "Whether to populate the filter's dropdown in the explore view's filter "
 "section with a list of distinct values fetched from the backend on the "
@@ -19650,7 +19656,9 @@ msgstr "Vous pouvez ajouter les composants dans le mode Éditer."
 
 #: superset-frontend/src/components/Chart/ChartContextMenu/ChartContextMenu.tsx:157
 msgid "You can also just click on the chart to apply cross-filter."
-msgstr "Vous pouvez également cliquer sur le graphique pour appliquer le filtre croisé."
+msgstr ""
+"Vous pouvez également cliquer sur le graphique pour appliquer le filtre "
+"croisé."
 
 #: superset-frontend/src/dashboard/components/SliceAdder.jsx:386
 msgid ""
@@ -19747,16 +19755,16 @@ msgstr "Vous n'avez pas encore de favoris!"
 msgid "You don't have permission to modify the value."
 msgstr "Vous n'avez pas les permission pour modifier la valeur."
 
-#: superset/security/manager.py:2308
+#: superset/security/manager.py:2309
 #, python-format
 msgid "You don't have the rights to alter %(resource)s"
 msgstr "Vous n'avez pas les droits pour modifier %(resource)s"
 
-#: superset/views/core.py:557
+#: superset/views/core.py:556
 msgid "You don't have the rights to alter this chart"
 msgstr "Vous n'avez pas les droits pour modifier ce graphique"
 
-#: superset/views/core.py:693
+#: superset/views/core.py:692
 msgid "You don't have the rights to alter this dashboard"
 msgstr "Vous n'avez pas les droits pour modifier ce tableau de bord"
 
@@ -19764,15 +19772,15 @@ msgstr "Vous n'avez pas les droits pour modifier ce tableau de bord"
 msgid "You don't have the rights to alter this title."
 msgstr "Vous n'avez pas les droits pour modifier ce titre."
 
-#: superset/views/core.py:563
+#: superset/views/core.py:562
 msgid "You don't have the rights to create a chart"
 msgstr "Vous n'avez pas les droits pour modifier ce graphique"
 
-#: superset/views/core.py:709
+#: superset/views/core.py:708
 msgid "You don't have the rights to create a dashboard"
 msgstr "Vous n'avez pas les droits pour modifier ce tableau de bord"
 
-#: superset/views/core.py:287
+#: superset/views/core.py:286
 msgid "You don't have the rights to download as csv"
 msgstr "Vous n'avez pas les droits pour télécharger au format csv"
 
@@ -19913,7 +19921,7 @@ msgstr ""
 msgid "[Longitude] and [Latitude] must be set"
 msgstr "Les colonnes [Longitude] et [Latitude] doivent êtres définies"
 
-#: superset/explore/commands/get.py:120 superset/views/core.py:519
+#: superset/explore/commands/get.py:119 superset/views/core.py:518
 msgid "[Missing Dataset]"
 msgstr "[Ensemble de données manquant]"
 
@@ -19921,7 +19929,7 @@ msgstr "[Ensemble de données manquant]"
 msgid "[Untitled]"
 msgstr "[Sans titre]"
 
-#: superset/connectors/base/models.py:267 superset/models/sql_lab.py:216
+#: superset/connectors/sqla/models.py:353 superset/models/sql_lab.py:216
 msgid "[asc]"
 msgstr "[croissant]"
 
@@ -19929,7 +19937,7 @@ msgstr "[croissant]"
 msgid "[dashboard name]"
 msgstr "[nom du tableau de bord]"
 
-#: superset/connectors/base/models.py:270 superset/models/sql_lab.py:219
+#: superset/connectors/sqla/models.py:356 superset/models/sql_lab.py:219
 msgid "[desc]"
 msgstr "[décroissant]"
 
@@ -20794,7 +20802,7 @@ msgstr ""
 "percentiles doit être une liste ou un tuple avec deux valeurs numériques,"
 " dont la première est inférieure à la deuxième valeur"
 
-#: superset/views/core.py:885
+#: superset/views/core.py:884
 msgid "permalink state not found"
 msgstr "état du programme de rapport introuvable"
 
