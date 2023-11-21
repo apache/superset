@@ -17,9 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import { StyledDvtDarkMode, DvtDarkModeLabel } from './dvt-dark-mode.module';
 import { Switch } from 'antd';
 import moon from '../../assets/dvt-img/moon.png';
+import { StyledDvtDarkMode, DvtDarkModeLabel } from './dvt-dark-mode.module';
 
 export interface DvtDarkModeProps {
   title: string;
