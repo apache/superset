@@ -6,14 +6,12 @@ export default {
   component: DvtDotTitle,
 };
 
-export const Default = (args: DvtDotTitleProps) => {
-  return <DvtDotTitle label="Welcome Page" {...args} />;
-};
-
-export const Connection = (args: DvtDotTitleProps) => {
-  return <DvtDotTitle label="Connection" {...args} />;
-};
-
-export const SQL = (args: DvtDotTitleProps) => {
-  return <DvtDotTitle label="SQL" {...args} />;
-};
+export const Default = (args: DvtDotTitleProps) => (
+  <DvtDotTitle label="Welcome Page" {...args} />
+);
+export const Connection = (args: DvtDotTitleProps) => (
+  <DvtDotTitle label="Connection" {...args} />
+);
+export const SQL = (args: DvtDotTitleProps) => (
+  <DvtDotTitle label="SQL" {...args} />
+);

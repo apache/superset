@@ -10,15 +10,13 @@ export interface DvtDotTitleProps {
   label?: string;
 }
 
-const DvtDotTitle = ({ label = '' }: DvtDotTitleProps) => {
-  return (
-    <StyledDotTitle>
-      <StyledDotIcon>
-        <StyledDot/>
-      </StyledDotIcon>
-      <StyledTitle>{label}</StyledTitle>
-    </StyledDotTitle>
-  );
-};
+const DvtDotTitle = ({ label = '' }: DvtDotTitleProps) => (
+  <StyledDotTitle>
+    <StyledDotIcon>
+      <StyledDot/>
+    </StyledDotIcon>
+    <StyledTitle>{label}</StyledTitle>
+  </StyledDotTitle>
+);
 
 export default DvtDotTitle;
