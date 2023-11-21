@@ -29,7 +29,14 @@ export type QueryDictionary = {
   [id: string]: QueryResponse;
 };
 
+export enum QueryEditorVersion {
+  v1 = 1,
+}
+
+export const LatestQueryEditorVersion = QueryEditorVersion.v1;
+
 export interface QueryEditor {
+  version: QueryEditorVersion;
   id: string;
   dbId?: number;
   name: string;
@@ -48,6 +55,7 @@ export interface QueryEditor {
   inLocalStorage?: boolean;
   northPercent?: number;
   southPercent?: number;
+  updatedAt?: number;
 }
 
 export type toastState = {
@@ -86,7 +94,7 @@ export type SqlLabRootState = {
     errorMessage: string | null;
     unsavedQueryEditor: UnsavedQueryEditor;
     queryCostEstimates?: Record<string, QueryCostEstimate>;
-    editorTabLastUpdatedAt?: number;
+    editorTabLastUpdatedAt: number;
   };
   localStorageUsageInKilobytes: number;
   messageToasts: toastState[];

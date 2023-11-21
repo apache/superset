@@ -142,6 +142,7 @@ const defaultTheme = {
         dark1: '#02993E',
         dark2: '#599D57',
         light1: '#34D399',
+        light3: '#edffec',
       },
       grayscale: {
         base: '#979797',
@@ -153,7 +154,9 @@ const defaultTheme = {
       },
       boxShadow: {
         base: '#0000001a',
+        light2: '#00000040',
         sidebar: '#64748b0a',
+        primaryLight3: '#2563eb4d',
       },
       border: {
         base: '#F1F5F9',

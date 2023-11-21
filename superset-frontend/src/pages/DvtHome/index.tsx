@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import DvtCalendar from 'src/components/DvtCalendar';
 import {
   StyledDvtWelcome,
   DataContainer,
@@ -25,10 +26,17 @@ import {
 } from './dvt-home.module';
 
 function DvtWelcome() {
+  // const [calendar, setCalendar] = useState<string | null>(null);
+
   return (
     <StyledDvtWelcome>
       <DataContainer>Datalar coming soon...</DataContainer>
-      <CalendarContainer>Calendar component coming soon...</CalendarContainer>
+      <CalendarContainer>
+        <DvtCalendar
+          // onSelect={date => date && setCalendar(date?.format('DD MM YYYY'))}
+          onSelect={() => {}}
+        />
+      </CalendarContainer>
     </StyledDvtWelcome>
   );
 }
