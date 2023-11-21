@@ -1,10 +1,8 @@
 import { styled } from '@superset-ui/core';
 
 const StyledDotTitle = styled.div`
-  position: relative;
   display: flex;
   align-items: center;
-  height: 100%;
 `;
 
 const StyledTitle = styled.div`
@@ -15,7 +13,6 @@ const StyledTitle = styled.div`
 `;
 
 const StyledDotIcon = styled.div`
-  position: relative;
   display: flex;
   height: 48px;
   width: 48px;
