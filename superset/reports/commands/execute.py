@@ -123,8 +123,6 @@ class BaseReportState:
 
         self._report_schedule.last_state = state
         self._report_schedule.last_eval_dttm = datetime.utcnow()
-
-        self._session.merge(self._report_schedule)
         self._session.commit()
 
     def create_log(self, error_message: Optional[str] = None) -> None:

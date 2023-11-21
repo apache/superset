@@ -1919,7 +1919,6 @@ def test_grace_period_error_flap(
     # Change report_schedule to valid
     create_invalid_sql_alert_email_chart.sql = "SELECT 1 AS metric"
     create_invalid_sql_alert_email_chart.grace_period = 0
-    db.session.merge(create_invalid_sql_alert_email_chart)
     db.session.commit()
 
     with freeze_time("2020-01-01T00:31:00Z"):
@@ -1936,7 +1935,6 @@ def test_grace_period_error_flap(
 
     create_invalid_sql_alert_email_chart.sql = "SELECT 'first'"
     create_invalid_sql_alert_email_chart.grace_period = 10
-    db.session.merge(create_invalid_sql_alert_email_chart)
     db.session.commit()
 
     # assert that after a success, when back to error we send the error notification

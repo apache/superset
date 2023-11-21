@@ -33,6 +33,7 @@ def load_tabbed_dashboard(_: bool = False) -> None:
 
     if not dash:
         dash = Dashboard()
+        db.session.add(dash)
 
     js = textwrap.dedent(
         """
@@ -556,6 +557,4 @@ def load_tabbed_dashboard(_: bool = False) -> None:
     dash.slices = slices
     dash.dashboard_title = "Tabbed Dashboard"
     dash.slug = slug
-
-    db.session.merge(dash)
     db.session.commit()

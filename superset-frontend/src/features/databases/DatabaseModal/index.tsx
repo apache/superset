@@ -307,6 +307,18 @@ export function dbReducer(
           }),
         };
       }
+      if (action.payload.name === 'expand_rows') {
+        return {
+          ...trimmedState,
+          extra: JSON.stringify({
+            ...extraJson,
+            schema_options: {
+              ...extraJson?.schema_options,
+              [action.payload.name]: !!action.payload.value,
+            },
+          }),
+        };
+      }
       return {
         ...trimmedState,
         extra: JSON.stringify({
