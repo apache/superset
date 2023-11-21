@@ -5,16 +5,10 @@ const StyledDotTitle = styled.div`
   display: flex;
   align-items: center;
   height: 100%;
-  font-size: 18px;
-  font-style: normal;
-  font-weight: 700;
-  line-height: 140%;
-  letter-spacing: 0.2px;
 `;
 
 const StyledTitle = styled.div`
   font-size: 18px;
-  font-style: normal;
   font-weight: 700;
   line-height: 140%;
   letter-spacing: 0.2px;
