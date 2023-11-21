@@ -4,32 +4,34 @@ import Icon from '../Icons/Icon';
 import {
   StyledInput,
   StyledInputField,
-  StyledInputPasswordIcon,
+  StyledInputIcon,
 } from './dvt-input.module';
 
 export interface DvtInputProps {
   placeholder?: string;
   type?: 'text' | 'password' | 'email' | 'search';
+  size?: 'small' | 'medium' | 'large';
   value: string;
   onChange: (value: string) => void;
-  handleSearchClick: () => void;
+  handleSearchClick?: () => void;
 }
 
 const DvtInput = ({
   placeholder = '',
   type = 'text',
+  size = 'medium',
   value,
   onChange,
   handleSearchClick,
 }: DvtInputProps) => {
-  const [show, setShow] = useState(false);
+  const [show, setShow] = useState<boolean>(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange(e.target.value);
   };
 
   return (
-    <StyledInput>
+    <StyledInput $size={size}>
       {type === 'email' && (
         <Icon
           fileName="email"
@@ -53,22 +55,22 @@ const DvtInput = ({
         onChange={handleChange}
       />
       {type === 'password' && (
-        <StyledInputPasswordIcon onClick={() => setShow(!show)}>
+        <StyledInputIcon onClick={() => setShow(!show)}>
           <Icon
-            fileName={show ? 'eye_slash' : 'eye'}
+            fileName={show ? 'eye' : 'eye_slash'}
             iconSize="xl"
             iconColor={supersetTheme.colors.dvt.text.label}
           />
-        </StyledInputPasswordIcon>
+        </StyledInputIcon>
       )}
       {type === 'search' && (
-        <StyledInputPasswordIcon onClick={() => handleSearchClick()}>
+        <StyledInputIcon onClick={() => handleSearchClick && handleSearchClick}>
           <Icon
             fileName="search"
             iconSize="xl"
             iconColor={supersetTheme.colors.dvt.text.label}
           />
-        </StyledInputPasswordIcon>
+        </StyledInputIcon>
       )}
     </StyledInput>
   );

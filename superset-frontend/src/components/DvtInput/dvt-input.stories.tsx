@@ -44,6 +44,10 @@ Email.argTypes = {
     control: { type: 'text' },
     defaultValue: 'Email',
   },
+  size: {
+    control: { type: 'select' },
+    defaultValue: 'large',
+  },
 };
 
 export const Password = (args: DvtInputProps) => {
@@ -64,13 +68,22 @@ Password.argTypes = {
     control: { type: 'text' },
     defaultValue: 'Password',
   },
+  size: {
+    control: { type: 'select' },
+    defaultValue: 'large',
+  },
 };
 
 export const Search = (args: DvtInputProps) => {
   const [text, setText] = useState<string>('');
   return (
     <div style={{ width: 200 }}>
-      <DvtInput {...args} value={text} onChange={setText} />
+      <DvtInput
+        {...args}
+        value={text}
+        onChange={setText}
+        handleSearchClick={() => {}}
+      />
     </div>
   );
 };
