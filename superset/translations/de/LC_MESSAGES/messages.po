@@ -9105,12 +9105,10 @@ msgid "Last modified by %s"
 msgstr "Zuletzt geändert durch %s"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:41
-#, fuzzy
 msgid "Last month"
 msgstr "letzter Monat"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:42
-#, fuzzy
 msgid "Last quarter"
 msgstr "letztes Quartal"
 
@@ -9119,12 +9117,10 @@ msgid "Last run"
 msgstr "Letzte Ausführung"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:40
-#, fuzzy
 msgid "Last week"
 msgstr "letzte Woche"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:43
-#, fuzzy
 msgid "Last year"
 msgstr "letztes Jahr"
 
