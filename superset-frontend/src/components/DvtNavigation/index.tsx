@@ -17,28 +17,36 @@
  * under the License.
  */
 import React from 'react';
-import withToasts from 'src/components/MessageToasts/withToasts';
-import DvtCalendar from 'src/components/DvtCalendar';
+import Icon from '../Icons/Icon';
 import {
-  StyledDvtWelcome,
-  DataContainer,
-  CalendarContainer,
-} from './dvt-home.module';
+  StyledDvtNavigation,
+  DvtNavigationItem,
+  DvtNavigationItemIcon,
+  DvtNavigationItemLabel,
+} from './dvt-navigation.module';
 
-function DvtWelcome() {
-  // const [calendar, setCalendar] = useState<string | null>(null);
-
-  return (
-    <StyledDvtWelcome>
-      <DataContainer>Datalar coming soon...</DataContainer>
-      <CalendarContainer>
-        <DvtCalendar
-          // onSelect={date => date && setCalendar(date?.format('DD MM YYYY'))}
-          onSelect={() => {}}
-        />
-      </CalendarContainer>
-    </StyledDvtWelcome>
-  );
+export interface DvtNavigationProps {
+  data: DataProps[];
+}
+export interface DataProps {
+  url: string;
+  title: string;
+  fileName: string;
 }
 
-export default withToasts(DvtWelcome);
+const DvtNavigation: React.FC<DvtNavigationProps> = ({ data }) => (
+  <StyledDvtNavigation>
+    {data.length > 0 &&
+      data.map((item, index) => (
+        <DvtNavigationItem key={index}>
+          <DvtNavigationItemIcon>
+            <Icon fileName={item.fileName} size={22} />
+          </DvtNavigationItemIcon>
+          <DvtNavigationItemLabel to={item.url}>
+            {item.title}
+          </DvtNavigationItemLabel>
+        </DvtNavigationItem>
+      ))}
+  </StyledDvtNavigation>
+);
+export default DvtNavigation;

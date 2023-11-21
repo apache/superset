@@ -16,29 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import withToasts from 'src/components/MessageToasts/withToasts';
-import DvtCalendar from 'src/components/DvtCalendar';
-import {
-  StyledDvtWelcome,
-  DataContainer,
-  CalendarContainer,
-} from './dvt-home.module';
+import { styled } from '@superset-ui/core';
+import { Link } from 'react-router-dom';
 
-function DvtWelcome() {
-  // const [calendar, setCalendar] = useState<string | null>(null);
+const StyledDvtNavigation = styled.div`
+  display: inline-flex;
+  flex-direction: column;
+  gap: 23px;
+`;
 
-  return (
-    <StyledDvtWelcome>
-      <DataContainer>Datalar coming soon...</DataContainer>
-      <CalendarContainer>
-        <DvtCalendar
-          // onSelect={date => date && setCalendar(date?.format('DD MM YYYY'))}
-          onSelect={() => {}}
-        />
-      </CalendarContainer>
-    </StyledDvtWelcome>
-  );
-}
+const DvtNavigationItem = styled.div`
+  display: flex;
+  align-items: center;
+  height: 22px;
+  cursor: pointer;
+  gap: 16px;
+`;
+const DvtNavigationItemIcon = styled.div``;
 
-export default withToasts(DvtWelcome);
+const DvtNavigationItemLabel = styled(Link)`
+  color: ${({ theme }) => theme.colors.dvt.text.label};
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 500;
+`;
+
+export {
+  StyledDvtNavigation,
+  DvtNavigationItem,
+  DvtNavigationItemIcon,
+  DvtNavigationItemLabel,
+};

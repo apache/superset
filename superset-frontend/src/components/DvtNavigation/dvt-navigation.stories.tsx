@@ -17,28 +17,37 @@
  * under the License.
  */
 import React from 'react';
-import withToasts from 'src/components/MessageToasts/withToasts';
-import DvtCalendar from 'src/components/DvtCalendar';
-import {
-  StyledDvtWelcome,
-  DataContainer,
-  CalendarContainer,
-} from './dvt-home.module';
+import { MemoryRouter } from 'react-router-dom';
+import DvtNavigation, { DvtNavigationProps } from '.';
 
-function DvtWelcome() {
-  // const [calendar, setCalendar] = useState<string | null>(null);
+export default {
+  title: 'Dvt-Components/DvtNavigation',
+  component: DvtNavigation,
+  decorators: [
+    (Story: any) => (
+      <MemoryRouter>
+        <Story />
+      </MemoryRouter>
+    ),
+  ],
+};
 
-  return (
-    <StyledDvtWelcome>
-      <DataContainer>Datalar coming soon...</DataContainer>
-      <CalendarContainer>
-        <DvtCalendar
-          // onSelect={date => date && setCalendar(date?.format('DD MM YYYY'))}
-          onSelect={() => {}}
-        />
-      </CalendarContainer>
-    </StyledDvtWelcome>
-  );
-}
+export const Default = (args: DvtNavigationProps) => (
+  <DvtNavigation {...args} />
+);
 
-export default withToasts(DvtWelcome);
+Default.args = {
+  data: [
+    { title: 'Connections', url: '', fileName: 'calendar' },
+    { title: 'Dataset', url: '', fileName: 'database' },
+    { title: 'Dashboard', url: '', fileName: 'grid' },
+    { title: 'Report', url: '', fileName: 'code' },
+    { title: 'Alert', url: '', fileName: 'alert' },
+  ],
+};
+
+Default.argTypes = {
+  data: {
+    control: { type: 'object ' },
+  },
+};
