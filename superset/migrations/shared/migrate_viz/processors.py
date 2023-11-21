@@ -211,5 +211,5 @@ class MigrateBubbleChart(MigrateViz):
         if x_ticks_layout := self.data.get("x_ticks_layout"):
             self.data["x_ticks_layout"] = 45 if x_ticks_layout == "45°" else 0
 
-        # Truncate Y-axis by default to preserve layout
+        # Truncate y-axis by default to preserve layout
         self.data["y_axis_showminmax"] = True
