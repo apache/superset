@@ -96,7 +96,6 @@ def update_position_json(dashboard, session, uuid_map):
                 del object_["meta"]["uuid"]
 
     dashboard.position_json = json.dumps(layout, indent=4)
-    session.merge(dashboard)
 
 
 def update_dashboards(session, uuid_map):
