@@ -26,14 +26,12 @@ export interface DvtDarkModeProps {
   darkMode: boolean;
 }
 
-const DvtDarkMode: React.FC<DvtDarkModeProps> = ({ title, darkMode }) => {
-  return (
-    <StyledDvtDarkMode>
-      <img src={moon} alt="moon" />
-      <DvtDarkModeLabel>{title}</DvtDarkModeLabel>
-      <Switch checked={darkMode} />
-    </StyledDvtDarkMode>
-  );
-};
+const DvtDarkMode: React.FC<DvtDarkModeProps> = ({ title, darkMode }) => (
+  <StyledDvtDarkMode>
+    <img src={moon} alt="moon" />
+    <DvtDarkModeLabel>{title}</DvtDarkModeLabel>
+    <Switch checked={darkMode} />
+  </StyledDvtDarkMode>
+);
 
 export default DvtDarkMode;
