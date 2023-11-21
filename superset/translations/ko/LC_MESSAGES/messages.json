@@ -38,10 +38,6 @@
       "%(prefix)s %(title)s": [""],
       "%(rows)d rows returned": [""],
       "%(subtitle)s\nThis may be triggered by:\n %(issue)s": [""],
-      "%(user)s was granted the role %(role)s that gives access to the %(datasource)s": [
-        ""
-      ],
-      "%(user)s's profile": [""],
       "%(validator)s was unable to check your query.\nPlease recheck your query.\nException: %(ex)s": [
         ""
       ],
@@ -55,6 +51,9 @@
       "%s Selected (Virtual)": [""],
       "%s aggregates(s)": [""],
       "%s column(s)": [""],
+      "%s items could not be tagged because you don’t have edit permissions to all selected objects.": [
+        ""
+      ],
       "%s operator(s)": [""],
       "%s option(s)": [""],
       "%s saved metric(s)": [""],
@@ -177,6 +176,9 @@
       "A timeout occurred while executing the query.": [""],
       "A timeout occurred while taking a screenshot.": [""],
       "A valid color scheme is required": [""],
+      "A waterfall chart is a form of data visualization that helps in understanding\n          the cumulative effect of sequentially introduced positive or negative values.\n          These intermediate values can either be time based or category based.": [
+        ""
+      ],
       "APPLY": [""],
       "APR": [""],
       "AQE": [""],
@@ -185,10 +187,8 @@
       "AXIS TITLE POSITION": [""],
       "About": [""],
       "Access": [""],
-      "Access requests": [""],
       "Access to user activity data is restricted": [""],
       "Access token": [""],
-      "Access was requested": [""],
       "Action": ["활동"],
       "Action Log": ["활동 기록"],
       "Actions": ["주석"],
@@ -205,7 +205,7 @@
       "Add Log": ["로그 추가"],
       "Add Metric": ["메트릭 추가"],
       "Add Report": [""],
-      "Add Saved Query": ["저장된 Query 추가"],
+      "Add Tag": [""],
       "Add a Plugin": ["플러그인 추가"],
       "Add a new tab to create SQL Query": [""],
       "Add additional custom parameters": [""],
@@ -216,7 +216,9 @@
         ""
       ],
       "Add custom scoping": [""],
+      "Add dataset columns here to group the pivot table columns.": [""],
       "Add delivery method": [""],
+      "Add description of your tag": [""],
       "Add filter": ["테이블 추가"],
       "Add filter clauses to control the filter's source query,\n                    though only in the context of the autocomplete i.e., these conditions\n                    do not impact how the filter is applied to the dashboard. This is useful\n                    when you want to improve the query's performance by only scanning a subset\n                    of the underlying data or limit the available values displayed in the filter.": [
         ""
@@ -230,6 +232,7 @@
       "Add notification method": [""],
       "Add required control values to preview chart": [""],
       "Add required control values to save chart": [""],
+      "Add tag to entities": [""],
       "Add to dashboard": ["대시보드 추가"],
       "Added": [""],
       "Additional fields may be required": [""],
@@ -269,9 +272,11 @@
       "Alert on grace period": [""],
       "Alert query returned a non-number value.": [""],
       "Alert query returned more than one column.": [""],
-      "Alert query returned more than one column. %s columns returned": [""],
+      "Alert query returned more than one column. %(num_cols) columns returned": [
+        ""
+      ],
       "Alert query returned more than one row.": [""],
-      "Alert query returned more than one row. %s rows returned": [""],
+      "Alert query returned more than one row. %(num_rows) rows returned": [""],
       "Alert running": [""],
       "Alert triggered, notification sent": [""],
       "Alert validator config error.": [""],
@@ -293,6 +298,9 @@
       "Allow CREATE VIEW AS option in SQL Lab": [""],
       "Allow Csv Upload": [""],
       "Allow DML": ["DML 허용"],
+      "Allow column names to be changed to case insensitive format, if supported (e.g. Oracle, Snowflake).": [
+        ""
+      ],
       "Allow columns to be rearranged": [""],
       "Allow creation of new tables based on queries": [""],
       "Allow creation of new views based on queries": [""],
@@ -318,6 +326,7 @@
         ""
       ],
       "Altered": [""],
+      "Always filter main datetime column": [""],
       "An Error Occurred": [""],
       "An enclosed time range (both start and end) must be specified when using a Time Comparison.": [
         ""
@@ -382,9 +391,6 @@
       "An error occurred while fetching table metadata. Please contact your administrator.": [
         ""
       ],
-      "An error occurred while hiding the left bar. Please contact your administrator.": [
-        ""
-      ],
       "An error occurred while loading the SQL": [""],
       "An error occurred while pruning logs ": [""],
       "An error occurred while removing query. Please contact your administrator.": [
@@ -397,21 +403,6 @@
         ""
       ],
       "An error occurred while setting the active tab. Please contact your administrator.": [
-        ""
-      ],
-      "An error occurred while setting the tab autorun. Please contact your administrator.": [
-        ""
-      ],
-      "An error occurred while setting the tab database ID. Please contact your administrator.": [
-        ""
-      ],
-      "An error occurred while setting the tab schema. Please contact your administrator.": [
-        ""
-      ],
-      "An error occurred while setting the tab template parameters. Please contact your administrator.": [
-        ""
-      ],
-      "An error occurred while storing the latest query id in the backend. Please contact your administrator if this problem persists.": [
         ""
       ],
       "An error occurred while storing your query in the backend. To avoid losing your changes, please save your query using the \"Save Query\" button.": [
@@ -429,12 +420,9 @@
       "Annotation Slice Configuration": [""],
       "Annotation could not be created.": [""],
       "Annotation could not be updated.": [""],
-      "Annotation delete failed.": ["주석 레이어"],
       "Annotation layer": ["주석 레이어"],
       "Annotation layer could not be created.": [""],
-      "Annotation layer could not be deleted.": [""],
       "Annotation layer could not be updated.": [""],
-      "Annotation layer delete failed.": ["주석 레이어"],
       "Annotation layer has associated annotations.": [""],
       "Annotation layer name": ["주석 레이어"],
       "Annotation layer not found.": ["주석 레이어"],
@@ -493,6 +481,7 @@
       ],
       "Arrow": [""],
       "Assign a set of parameters as": [""],
+      "Assist": [""],
       "Associated Charts": [""],
       "Async Execution": [""],
       "Asynchronous query execution": [""],
@@ -545,13 +534,18 @@
         ""
       ],
       "Box Plot": [""],
+      "Breaks down the series by the category specified in this control.\n      This can help viewers understand how each category affects the overall value.": [
+        ""
+      ],
       "Bubble Chart": ["버블 차트"],
       "Bubble Color": [""],
       "Bubble Size": [""],
       "Bubble size": [""],
+      "Bubble size number format": [""],
       "Bucket break points": [""],
       "Build": [""],
       "Bulk select": [""],
+      "Bulk tag": [""],
       "Bullet Chart": [""],
       "Business": [""],
       "Business Data Type": [""],
@@ -572,9 +566,6 @@
       "CSS Templates": ["CSS 템플릿"],
       "CSS applied to the chart": [""],
       "CSS template": ["CSS 템플릿"],
-      "CSS template could not be deleted.": [
-        "CSS 템플릿을 삭제할 수 없습니다."
-      ],
       "CSS template name": ["CSS 템플릿"],
       "CSS template not found.": ["CSS 템플릿을 찾을수 없습니다."],
       "CSS templates": ["CSS 템플릿"],
@@ -629,7 +620,6 @@
       "Cell Radius": [""],
       "Cell Size": [""],
       "Cell content": [""],
-      "Center": [""],
       "Centroid (Longitude and Latitude): ": [""],
       "Certification details": [""],
       "Certified by": ["수정됨"],
@@ -637,7 +627,6 @@
       "Change order of columns.": [""],
       "Change order of rows.": [""],
       "Changed By": [""],
-      "Changed on": [""],
       "Changes saved.": [""],
       "Changing the dataset may break the chart if the chart relies on columns or metadata that does not exist in the target dataset": [
         ""
@@ -670,7 +659,6 @@
         ""
       ],
       "Chart could not be created.": ["차트를 생성할 수 없습니다."],
-      "Chart could not be deleted.": ["차트를 삭제할 수 없습니다."],
       "Chart could not be updated.": ["차트를 업데이트할 수 없습니다."],
       "Chart does not exist": ["차트가 존재하지 않습니다"],
       "Chart has no query context saved. Please save the chart again.": [""],
@@ -680,7 +668,6 @@
       "Chart type requires a dataset": [""],
       "Charts": ["차트"],
       "Charts could not be deleted.": ["차트를 삭제할 수 없습니다."],
-      "Check configuration": [""],
       "Check for sorting ascending": [""],
       "Check if the Rose Chart should use segment area instead of segment radius for proportioning": [
         ""
@@ -738,6 +725,7 @@
       "Click this link to switch to an alternate form that exposes only the required fields needed to connect this database.": [
         ""
       ],
+      "Click to add a contour": [""],
       "Click to cancel sorting": [""],
       "Click to edit": ["클릭하여 제목 수정하기"],
       "Click to favorite/unfavorite": [""],
@@ -765,6 +753,7 @@
       "Color will be shaded based the normalized (0% to 100%) value of a given cell against the other cells in the selected range: ": [
         ""
       ],
+      "Color: ": [""],
       "Colors": [""],
       "Column": ["칼럼"],
       "Column \"%(column)s\" is not numeric or does not exists in the query results.": [
@@ -870,9 +859,7 @@
       "Copy partition query to clipboard": [""],
       "Copy query URL": [""],
       "Copy query link to your clipboard": ["클립보드에 복사하기"],
-      "Copy the account name of that database you are trying to connect to.": [
-        ""
-      ],
+      "Copy the identifier of the account you are trying to connect to.": [""],
       "Copy the name of the HTTP Path of your cluster.": [""],
       "Copy the name of the database you are trying to connect to.": [""],
       "Copy to Clipboard": [""],
@@ -886,7 +873,6 @@
       "Could not load database driver": [
         "데이터베이스 드라이버를 로드할 수 없습니다"
       ],
-      "Could not load database driver: %(driver_name)s": [""],
       "Could not load database driver: {}": [""],
       "Could not resolve hostname: \"%(host)s\".": [""],
       "Count as Fraction of Columns": [""],
@@ -905,7 +891,6 @@
       "Create new filter set": [""],
       "Create or select schema...": [""],
       "Created": ["생성자"],
-      "Created On": [""],
       "Created by": ["생성자"],
       "Created content": ["새 차트 생성"],
       "Created on": ["생성자"],
@@ -917,6 +902,9 @@
       "Cross-filtering is not enabled for this dashboard.": [""],
       "Cross-filtering is not enabled in this dashboard": [""],
       "Cumulative": [""],
+      "Currency": [""],
+      "Currency prefix or suffix": [""],
+      "Currency symbol": [""],
       "Currently rendered: %s": [""],
       "Custom": [""],
       "Custom Plugin": ["커스텀 플러그인"],
@@ -925,8 +913,12 @@
       "Custom SQL ad-hoc metrics are not enabled for this dataset": [""],
       "Custom SQL fields cannot contain sub-queries.": [""],
       "Custom time filter plugin": [""],
+      "Custom width of the screenshot in pixels": [""],
       "Customize": [""],
       "Customize Metrics": [""],
+      "Customize chart metrics or columns with currency symbols as prefixes or suffixes. Choose a symbol from dropdown or type your own.": [
+        ""
+      ],
       "Cyclic dependency detected": [""],
       "D3 Format": ["D3 포멧"],
       "D3 format": [""],
@@ -937,6 +929,7 @@
       "D3 time format for datetime columns": [""],
       "D3 time format syntax: https://github.com/d3/d3-time-format": [""],
       "DB column %(col_name)s has unknown type: %(value_type)s": [""],
+      "DD/MM format dates, international and European format": [""],
       "DEC": [""],
       "DELETE": [""],
       "DML": [""],
@@ -946,7 +939,6 @@
       "Dashboard": ["대시보드"],
       "Dashboard [%s] just got created and chart [%s] was added to it": [""],
       "Dashboard [{}] just got created and chart [{}] was added to it": [""],
-      "Dashboard could not be created.": ["대시보드를 생성할 수 없습니다."],
       "Dashboard could not be deleted.": ["대시보드를 삭제할 수 없습니다."],
       "Dashboard could not be updated.": ["대시보드를 업데이트할 수 없습니다."],
       "Dashboard does not exist": ["대시보드가 존재하지 않습니다"],
@@ -956,7 +948,6 @@
         ""
       ],
       "Dashboards": ["대시보드"],
-      "Dashboards could not be deleted.": ["대시보드를 삭제할 수 없습니다."],
       "Dashboards do not exist": ["대시보드가 존재하지 않습니다"],
       "Data": ["데이터베이스"],
       "Data URI is not allowed.": [""],
@@ -967,7 +958,6 @@
       "Data could not be retrieved from the results backend. You need to re-run the original query.": [
         ""
       ],
-      "Data has no time steps": [""],
       "Data preview": ["데이터 미리보기"],
       "Data refreshed": [""],
       "Data type": ["차트 유형"],
@@ -983,7 +973,6 @@
       "Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for excel uploads. Please contact your Superset Admin.": [
         ""
       ],
-      "Database URL": ["데이터베이스 URL"],
       "Database could not be created.": ["데이터베이스를 생성할 수 없습니다."],
       "Database could not be deleted.": ["데이터베이스를 삭제할 수 없습니다."],
       "Database could not be updated.": [
@@ -1010,7 +999,6 @@
       "Dataset column delete failed.": [""],
       "Dataset column not found.": [""],
       "Dataset could not be created.": [""],
-      "Dataset could not be deleted.": [""],
       "Dataset could not be updated.": [""],
       "Dataset does not exist": ["데이터소스가 존재하지 않습니다"],
       "Dataset metric delete failed.": [""],
@@ -1018,9 +1006,11 @@
       "Dataset name": ["데이터소스 명"],
       "Dataset parameters are invalid.": [""],
       "Dataset schema is invalid, caused by: %(error)s": [""],
-      "Dataset(s) could not be bulk deleted.": [""],
       "Datasets": ["데이터베이스"],
       "Datasets can be created from database tables or SQL queries. Select a database table to the left or ": [
+        ""
+      ],
+      "Datasets can have a main temporal column (main_dttm_col), but can also have secondary time columns. When this attribute is true, whenever the secondary columns are filtered, the same filter is applied to the main datetime column.": [
         ""
       ],
       "Datasets do not contain a temporal column": [""],
@@ -1037,6 +1027,7 @@
       "Datetime format": [""],
       "Day": ["일"],
       "Day (freq=D)": [""],
+      "Day First": [""],
       "Db engine did not return all queried columns": [""],
       "Deactivate": [""],
       "December": [""],
@@ -1083,15 +1074,24 @@
       "Define a javascript function that receives the data array used in the visualization and is expected to return a modified version of that array. This can be used to alter properties of the data, filter, or enrich the array.": [
         ""
       ],
+      "Define contour layers. Isolines represent a collection of line segments that serparate the area above and below a given threshold. Isobands represent a collection of polygons that fill the are containing values in a given threshold range.": [
+        ""
+      ],
       "Defines a rolling window function to apply, works along with the [Periods] text box": [
         ""
       ],
       "Defines how each series is broken down": [""],
       "Defines the grid size in pixels": [""],
+      "Defines the grouping of entities. Each series is represented by a specific color in the chart.": [
+        ""
+      ],
       "Defines the grouping of entities. Each series is shown as a specific color on the chart and has a legend toggle": [
         ""
       ],
       "Defines the size of the rolling window function, relative to the time granularity selected": [
+        ""
+      ],
+      "Defines the value that determines the boundary between different regions or levels in the data ": [
         ""
       ],
       "Defines whether the step should appear at the beginning, middle or end between two data points": [
@@ -1134,6 +1134,7 @@
       "Description (this can be seen in the list)": [""],
       "Description text that shows up below your Big Number": [""],
       "Deselect all": ["테이블 선택"],
+      "Details": [""],
       "Details of the certification": [""],
       "Determines how whiskers and outliers are calculated.": [""],
       "Determines whether or not this dashboard is visible in the list of all dashboards": [
@@ -1147,6 +1148,9 @@
       "Dimension to use on x-axis.": [""],
       "Dimension to use on y-axis.": [""],
       "Dimensions": [""],
+      "Dimensions contain qualitative values such as names, dates, or geographical data. Use dimensions to categorize, segment, and reveal the details in your data. Dimensions affect the level of detail in the view.": [
+        ""
+      ],
       "Directed Force Layout": [""],
       "Directional": [""],
       "Disable SQL Lab data preview queries": [""],
@@ -1155,11 +1159,13 @@
       ],
       "Disable embedding?": [""],
       "Discrete": [""],
+      "Display column level subtotal": [""],
       "Display column level total": [""],
       "Display configuration": [""],
       "Display metrics side by side within each column, as opposed to each column being displayed side by side for each metric.": [
         ""
       ],
+      "Display row level subtotal": [""],
       "Display row level total": [""],
       "Displays connections between entities in a graph structure. Useful for mapping relationships and showing which nodes are important in a network. Graph charts can be configured to be force-directed or circulate. If your data has a geospatial component, try the deck.gl Arc chart.": [
         ""
@@ -1170,6 +1176,7 @@
       "Do you want a donut or a pie?": [""],
       "Domain": [""],
       "Download": [""],
+      "Download as Image": [""],
       "Download as image": [""],
       "Download to CSV": [""],
       "Draft": [""],
@@ -1225,7 +1232,6 @@
       "Duration in ms (1.40008 => 1ms 400µs 80ns)": [""],
       "Duration in ms (100.40008 => 100ms 400µs 80ns)": [""],
       "Duration in ms (66000 => 1m 6s)": [""],
-      "Duration: %s": [""],
       "Dynamic Aggregation Function": [""],
       "Dynamically search all filter values": [""],
       "EMAIL_REPORTS_CTA": [""],
@@ -1248,7 +1254,6 @@
       "Edit Metric": ["메트릭 편집"],
       "Edit Plugin": ["플러그인 수정"],
       "Edit Report": [""],
-      "Edit Saved Query": ["저장된 Query 수정"],
       "Edit Table": ["테이블 수정"],
       "Edit annotation": ["주석"],
       "Edit annotation layer": ["주석 레이어"],
@@ -1296,6 +1301,7 @@
       "Enable graph roaming": [""],
       "Enable node dragging": [""],
       "Enable query cost estimation": [""],
+      "Enable row expansion in schemas": [""],
       "Enable server side pagination of results (experimental feature)": [""],
       "Encountered invalid NULL spatial entry,                                        please consider filtering those out": [
         ""
@@ -1303,7 +1309,6 @@
       "End": ["끝 시간"],
       "End (Longitude, Latitude): ": [""],
       "End Longitude & Latitude": [""],
-      "End Time": ["종료 시간"],
       "End angle": [""],
       "End date excluded from time range": [""],
       "End date must be after start date": [""],
@@ -1373,6 +1378,7 @@
       "Export to YAML": [""],
       "Export to YAML?": [""],
       "Export to full .CSV": [""],
+      "Export to full Excel": [""],
       "Export to original .CSV": [""],
       "Export to pivoted .CSV": [""],
       "Expose database in SQL Lab": [""],
@@ -1421,12 +1427,13 @@
       "Field cannot be decoded by JSON. %(msg)s": [""],
       "Field is required": [""],
       "File": ["CSV 파일"],
+      "File size must be less than or equal to %(max_size)s bytes": [""],
       "Fill Color": [""],
       "Fill all required fields to enable \"Default Value\"": [""],
       "Filter Configuration": [""],
       "Filter List": ["필터"],
       "Filter Type": [""],
-      "Filter box (deprecated)": [""],
+      "Filter box (legacy)": [""],
       "Filter configuration": [""],
       "Filter configuration for the filter box": [""],
       "Filter has default value": [""],
@@ -1470,6 +1477,9 @@
       "For Bigquery, Presto and Postgres, shows a button to compute cost before running a query.": [
         ""
       ],
+      "For Trino, describe full schemas of nested ROW types, expanding them with dotted paths": [
+        ""
+      ],
       "For further instructions, consult the": [""],
       "For more information about objects are in context in the scope of this function, refer to the": [
         ""
@@ -1488,7 +1498,7 @@
       "Foreign key": [""],
       "Form data not found in cache, reverting to chart metadata.": [""],
       "Form data not found in cache, reverting to dataset metadata.": [""],
-      "Formattable": [""],
+      "Format SQL": [""],
       "Formatted CSV attached in email": [""],
       "Formula": [""],
       "Found invalid orderby options": [""],
@@ -1570,13 +1580,16 @@
       "If duplicate columns are not overridden, they will be presented as \"X.1, X.2 ...X.x\"": [
         ""
       ],
+      "If enabled, this control sorts the results/values descending, otherwise it sorts the results ascending.": [
+        ""
+      ],
       "If selected, please set the schemas allowed for csv upload in Extra.": [
         ""
       ],
       "If table exists do one of the following: Fail (do nothing), Replace (drop and recreate table) or Append (insert data).": [
         ""
       ],
-      "Ignore cache when generating screenshot": [""],
+      "Ignore cache when generating report": [""],
       "Ignore null locations": [""],
       "Ignore time": [""],
       "Image (PNG) embedded in email": [""],
@@ -1607,6 +1620,7 @@
       "Info": ["정보"],
       "Inner Radius": [""],
       "Inner radius of donut hole": [""],
+      "Input custom width in pixels": [""],
       "Input field supports custom rotation. e.g. 30 for 30°": [""],
       "Instant filtering": ["필터"],
       "Intensity": [""],
@@ -1615,8 +1629,6 @@
       "Intensity is the value multiplied by the weight to obtain the final weight": [
         ""
       ],
-      "Interpret Datetime Format Automatically": [""],
-      "Interpret the datetime format automatically": [""],
       "Interval colors": [""],
       "Intesity": [""],
       "Invalid Connection String: Expecting String of the form 'ocient://user:pass@host:port/database'.": [
@@ -1625,9 +1637,6 @@
       "Invalid JSON": [""],
       "Invalid advanced data type: %(advanced_data_type)s": [""],
       "Invalid certificate": [""],
-      "Invalid connection string, a valid string usually follows:\n'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'": [
-        ""
-      ],
       "Invalid connection string, a valid string usually follows: backend+driver://user:password@database-host/database-name": [
         ""
       ],
@@ -1636,6 +1645,7 @@
       ],
       "Invalid cron expression": [""],
       "Invalid cumulative operator: %(operator)s": [""],
+      "Invalid currency code in saved metrics": [""],
       "Invalid date/timestamp format": [""],
       "Invalid filter configuration, please select a column": [""],
       "Invalid filter operation type: %(op)s": [""],
@@ -1651,7 +1661,7 @@
       "Invalid reference to column: \"%(column)s\"": [""],
       "Invalid result type: %(result_type)s": [""],
       "Invalid rolling_type: %(type)s": [""],
-      "Invalid spatial point encountered: %s": [""],
+      "Invalid spatial point encountered: %(latlong)": [""],
       "Invalid state.": [""],
       "Invalid tab ids: %s(tab_ids)": [""],
       "Inverse selection": [""],
@@ -1663,6 +1673,7 @@
       "Is tagged": [""],
       "Is temporal": [""],
       "Is true": [""],
+      "Isoband": [""],
       "Issue 1001 - The database is under an unusual load.": [""],
       "It’s not recommended to truncate axis in Bar chart.": [""],
       "JAN": [""],
@@ -1695,6 +1706,7 @@
       "Keep control settings?": [""],
       "Keep editing": [""],
       "Key": [""],
+      "Keyboard shortcuts": [""],
       "Keys for table": [""],
       "Label": ["레이블"],
       "Label Line": [""],
@@ -1710,9 +1722,14 @@
       "Last Modified": ["마지막 수정"],
       "Last Updated %s": [""],
       "Last available value seen on %s": [""],
+      "Last day": ["년"],
       "Last modified": ["마지막 수정"],
       "Last modified by %s": ["마지막 수정"],
+      "Last month": ["월"],
+      "Last quarter": ["분기"],
       "Last run": [""],
+      "Last week": ["주"],
+      "Last year": ["년"],
       "Latitude": [""],
       "Latitude of default viewport": [""],
       "Layer configuration": [""],
@@ -1724,8 +1741,6 @@
         ""
       ],
       "Least recently modified": [""],
-      "Left Axis Format": [""],
-      "Left Axis chart(s)": [""],
       "Left Margin": [""],
       "Left margin, in pixels, allowing for more room for axis labels": [""],
       "Left to Right": [""],
@@ -1750,6 +1765,9 @@
       "Limits the number of series that get displayed. A joined subquery (or an extra phase where subqueries are not supported) is applied to limit the number of series that get fetched and rendered. This feature is useful when grouping by high cardinality column(s) though does increase the query complexity and cost.": [
         ""
       ],
+      "Limits the number of the rows that are computed in the query that is the source of the data used for this chart.": [
+        ""
+      ],
       "Line Chart (legacy)": [""],
       "Line Style": [""],
       "Line chart is used to visualize measurements taken over a given category. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.": [
@@ -1757,12 +1775,12 @@
       ],
       "Line interpolation as defined by d3.js": [""],
       "Line width": [""],
+      "Line width unit": [""],
       "Linear Color Scheme": [""],
       "Linear color scheme": [""],
       "Linear interpolation": [""],
       "Lines encoding": [""],
       "Link Copied!": ["복사됨!"],
-      "List Saved Query": ["저장된 Query 목록"],
       "List of extra columns made available in JavaScript functions": [""],
       "List of n+1 values for bucketing metric into n buckets.": [""],
       "List of values to mark with lines": [""],
@@ -1778,6 +1796,7 @@
       "Logarithmic axis": [""],
       "Logarithmic scale on primary y-axis": [""],
       "Logarithmic scale on secondary y-axis": [""],
+      "Logarithmic x-axis": [""],
       "Logarithmic y-axis": [""],
       "Login": ["로그인"],
       "Login with": [""],
@@ -1789,6 +1808,8 @@
       "Longitude & Latitude columns": [""],
       "Longitude and Latitude": [""],
       "Longitude of default viewport": [""],
+      "Lower Threshold": [""],
+      "Lower threshold must be lower than upper threshold": [""],
       "MAR": [""],
       "MAY": [""],
       "MON": [""],
@@ -1849,6 +1870,7 @@
       "Metric assigned to the [X] axis": [""],
       "Metric assigned to the [Y] axis": [""],
       "Metric change in value from `since` to `until`": [""],
+      "Metric currency": [""],
       "Metric descending": [""],
       "Metric factor change from `since` to `until`": [""],
       "Metric for node values": [""],
@@ -1870,9 +1892,6 @@
         ""
       ],
       "Metrics": ["메트릭"],
-      "Metrics for which percentage of total are to be displayed. Calculated from only data within the row limit.": [
-        ""
-      ],
       "Midnight": [""],
       "Min": [""],
       "Min Width": [""],
@@ -1949,7 +1968,6 @@
       "Nightingale Rose Chart": [""],
       "No": [""],
       "No %s yet": [""],
-      "No Access!": [""],
       "No Data": [""],
       "No annotation layers yet": ["주석 레이어"],
       "No annotation yet": ["주석 레이어"],
@@ -1965,6 +1983,7 @@
       "No data in file": ["파일에 데이터가 없습니다"],
       "No databases match your search": [""],
       "No description available.": [""],
+      "No entities have this tag currently assigned": [""],
       "No favorite charts yet, go click on stars!": [""],
       "No favorite dashboards yet, go click on stars!": [""],
       "No filter is selected.": [""],
@@ -1990,7 +2009,9 @@
       "No temporal columns found": [""],
       "No time columns": [""],
       "No validator found (configured for the engine)": [""],
-      "No validator named {} found (configured for the {} engine)": [""],
+      "No validator named %(validator_name) found (configured for the %(engine_spec) engine)": [
+        ""
+      ],
       "Node label position": [""],
       "Node select mode": [""],
       "Node size": [""],
@@ -2042,9 +2063,6 @@
       "One or many columns to group by. High cardinality groupings should include a series limit to limit the number of fetched and rendered series.": [
         ""
       ],
-      "One or many columns to group by. High cardinality groupings should include a sort by metric and series limit to limit the number of fetched and rendered series.": [
-        ""
-      ],
       "One or many controls to group by. If grouping, latitude and longitude columns must be present.": [
         ""
       ],
@@ -2067,11 +2085,8 @@
       "One or more parameters needed to configure a database are missing.": [
         ""
       ],
-      "One or more parameters specified in the query are malformatted.": [""],
+      "One or more parameters specified in the query are malformed.": [""],
       "One or more parameters specified in the query are missing.": [""],
-      "One or more required fields are missing in the request. Please try again, and if the problem persists contact your administrator.": [
-        ""
-      ],
       "One ore more annotation layers failed loading.": [""],
       "Only SELECT statements are allowed against this database.": [""],
       "Only Total": [""],
@@ -2093,6 +2108,9 @@
       "Opacity of Area Chart. Also applies to confidence band.": [""],
       "Opacity of all clusters, points, and labels. Between 0 and 1.": [""],
       "Opacity of area chart.": [""],
+      "Opacity of bubbles, 0 means completely transparent, 1 means opaque": [
+        ""
+      ],
       "Opacity, expects values between 0 and 100": [""],
       "Open Datasource tab": ["데이터소스 명"],
       "Open in SQL Lab": ["SQL Lab"],
@@ -2145,6 +2163,7 @@
       "Owners is a list of users who can alter the dashboard. Searchable by name or username.": [
         ""
       ],
+      "PDF download failed, please refresh and try again.": [""],
       "Page length": [""],
       "Paired t-test Table": [""],
       "Pandas resample method": [""],
@@ -2180,14 +2199,11 @@
       "Physical (table or view)": [""],
       "Physical dataset": ["데이터소스 선택"],
       "Pick a dimension from which categorical colors are defined": [""],
-      "Pick a granularity in the Time section or uncheck 'Include Time'": [""],
       "Pick a metric for x, y and size": [""],
       "Pick a metric to display": [""],
-      "Pick a metric!": [""],
       "Pick a name to help you identify this database.": [""],
       "Pick a nickname for how the database will display in Superset.": [""],
       "Pick a set of deck.gl charts to layer on top of one another": [""],
-      "Pick a time granularity for your time series": [""],
       "Pick a title for you annotation.": [""],
       "Pick at least one field for [Series]": [""],
       "Pick at least one metric": ["적어도 하나의 메트릭을 선택하세요"],
@@ -2218,7 +2234,6 @@
       "Please check your template parameters for syntax errors and make sure they match across your SQL query and Set Parameters. Then, try running your query again.": [
         ""
       ],
-      "Please choose different metrics on left and right axis": [""],
       "Please confirm": [""],
       "Please confirm the overwrite values.": [""],
       "Please enter a SQLAlchemy URI to test": [""],
@@ -2252,7 +2267,6 @@
       "Points and clusters will update as the viewport is being changed": [""],
       "Polygon Encoding": [""],
       "Polyline": [""],
-      "Pop Tab Link": [""],
       "Popular": [""],
       "Populate \"Default value\" to enable this control": [""],
       "Population age data": [""],
@@ -2272,6 +2286,8 @@
       ],
       "Predictive": [""],
       "Predictive Analytics": [""],
+      "Prefix": [""],
+      "Prefix or suffix": [""],
       "Preview": ["데이터 미리보기"],
       "Preview: `%s`": [""],
       "Previous": [""],
@@ -2354,7 +2370,6 @@
       "Refresh dashboard": ["대시보드 가져오기"],
       "Refresh frequency": [""],
       "Refresh interval": ["새로고침 간격"],
-      "Refresh table list": [""],
       "Refresh the default values": [""],
       "Regular": [""],
       "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter, base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.": [
@@ -2375,7 +2390,6 @@
       "Rendering": [""],
       "Replace": ["바꾸기"],
       "Report Schedule could not be created.": [""],
-      "Report Schedule could not be deleted.": [""],
       "Report Schedule could not be updated.": [""],
       "Report Schedule delete failed.": [""],
       "Report Schedule execution failed when generating a csv.": [""],
@@ -2398,7 +2412,6 @@
       "Report sent": ["대시보드 가져오기"],
       "Reports": [""],
       "Repulsion strength between nodes": [""],
-      "Request Permissions": [""],
       "Request is incorrect: %(error)s": ["부적절한 요청입니다 : %(error)s"],
       "Request is not JSON": [""],
       "Request missing data field.": [""],
@@ -2430,9 +2443,6 @@
         ""
       ],
       "Role": ["역할"],
-      "Role %(r)s was extended to provide the access to the datasource %(ds)s": [
-        ""
-      ],
       "Roles": ["역할"],
       "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, regular access permissions apply.": [
         ""
@@ -2440,7 +2450,6 @@
       "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks.If no roles are defined, regular access permissions apply.": [
         ""
       ],
-      "Roles to grant": ["권한 부여"],
       "Rolling Function": [""],
       "Rolling Window": [""],
       "Rolling function": [""],
@@ -2449,6 +2458,7 @@
       "Root node id": [""],
       "Rotate axis label": [""],
       "Rotate x axis label": [""],
+      "Rotate y axis label": [""],
       "Rotation to apply to words in the cloud": [""],
       "Round cap": [""],
       "Row": [""],
@@ -2513,7 +2523,6 @@
       "Save (Overwrite)": ["저장된 Query"],
       "Save as": [""],
       "Save as new": ["다른이름으로 저장"],
-      "Save as new chart": ["새 차트 생성"],
       "Save as:": ["다른이름으로 저장"],
       "Save chart": ["차트 보기"],
       "Save dashboard": ["대시보드 저장"],
@@ -2548,6 +2557,8 @@
       "Schemas allowed for File upload": [""],
       "Scope": [""],
       "Scoping": [""],
+      "Screenshot width": [""],
+      "Screenshot width must be between %(min)spx and %(max)spx": [""],
       "Scroll": [""],
       "Scroll down to the bottom to enable overwriting changes. ": [""],
       "Search": ["검색"],
@@ -2557,6 +2568,7 @@
       "Search by query text": [""],
       "Search...": ["검색"],
       "Second": ["초"],
+      "Secondary currency format": [""],
       "Secondary y-axis Bounds": [""],
       "Secondary y-axis format": [""],
       "Secondary y-axis title": [""],
@@ -2576,7 +2588,14 @@
       "Select a database to upload the file to": [""],
       "Select a database to write a query": [""],
       "Select a file to be uploaded to the database": [""],
+      "Select a metric to display on the right axis": [""],
+      "Select a metric to display. You can use an aggregation function on a column or write custom SQL to create a metric.": [
+        ""
+      ],
       "Select a schema if the database supports this": [""],
+      "Select a time grain for the visualization. The grain is the time interval represented by a single point on the chart.": [
+        ""
+      ],
       "Select a visualization type": [""],
       "Select aggregate options": [""],
       "Select any columns for metadata inspection": [""],
@@ -2587,8 +2606,15 @@
       ],
       "Select filter plugin using AntD": [""],
       "Select first filter value by default": [""],
+      "Select one or many metrics to display, that will be displayed in the percentages of total. Percentage metrics will be calculated only from data within the row limit. You can use an aggregation function on a column or write custom SQL to create a percentage metric.": [
+        ""
+      ],
+      "Select one or many metrics to display. You can use an aggregation function on a column or write custom SQL to create a metric.": [
+        ""
+      ],
       "Select operator": [""],
       "Select or type a value": [""],
+      "Select or type currency symbol": [""],
       "Select or type dataset name": [""],
       "Select owners": [""],
       "Select schema or type to search schemas": [""],
@@ -2655,7 +2681,6 @@
       "Show Log": ["컬럼 보기"],
       "Show Markers": [""],
       "Show Metric": ["메트릭 보기"],
-      "Show Saved Query": ["저장된 Query 보기"],
       "Show Table": ["테이블 보기"],
       "Show Timestamp": [""],
       "Show Trend Line": [""],
@@ -2761,10 +2786,9 @@
       "Spatial": [""],
       "Specific Date/Time": [""],
       "Specify a schema (if database flavor supports this).": [""],
-      "Specify duplicate columns as \"X.0, X.1\".": [""],
       "Specify name to CREATE TABLE AS schema in: public": [""],
       "Specify name to CREATE VIEW AS schema in: public": [""],
-      "Specify the database version. This should be used with Presto in order to enable query cost estimation.": [
+      "Specify the database version. This is used with Presto for query cost estimation, and Dremio for syntax changes, among others.": [
         ""
       ],
       "Split number": [""],
@@ -2815,6 +2839,7 @@
       "Submit": [""],
       "Subtotal": [""],
       "Success": [""],
+      "Suffix": [""],
       "Suffix to apply after the percentage display": [""],
       "Sum": [""],
       "Sum as Fraction of Columns": [""],
@@ -2855,14 +2880,9 @@
       "Table %(table)s wasn't found in the database %(db)s": [""],
       "Table Exists": ["테이블 존재"],
       "Table Name": ["테이블 명"],
-      "Table View": ["테이블 뷰"],
       "Table [%(table_name)s] could not be found, please double check your database connection, schema, and table name": [
         ""
       ],
-      "Table [%{table}s] could not be found, please double check your database connection, schema, and table name, error: {}": [
-        ""
-      ],
-      "Table loading": [""],
       "Table name cannot contain a schema": [""],
       "Table name undefined": ["테이블 명이 정해지지 않았습니다"],
       "Table that visualizes paired t-tests, which are used to understand statistical differences between groups.": [
@@ -2871,7 +2891,9 @@
       "Tables": ["테이블"],
       "Tabs": [""],
       "Tabular": [""],
+      "Tag": [""],
       "Tag name is invalid (cannot contain ':')": [""],
+      "Tagged %s %ss": [""],
       "Take your data points, and group them into \"bins\" to see where the densest areas of information lie": [
         ""
       ],
@@ -2905,7 +2927,6 @@
       "The X-axis is not on the filters list which will prevent it from being used in\n            time range filters in dashboards. Would you like to add it to the filters list?": [
         ""
       ],
-      "The access requests seem to have been deleted": [""],
       "The category of source nodes used to assign colors. If a node is associated with more than one category, only the first will be used.": [
         ""
       ],
@@ -2914,6 +2935,8 @@
         ""
       ],
       "The color for points and clusters in RGB": [""],
+      "The color of the isoband": [""],
+      "The color of the isoline": [""],
       "The color scheme for rendering chart": [""],
       "The color scheme is determined by the related dashboard.\n        Edit the color scheme in the dashboard properties.": [
         ""
@@ -2941,6 +2964,12 @@
         ""
       ],
       "The dataset associated with this chart no longer exists": [""],
+      "The dataset column/metric that returns the values on your chart's x-axis.": [
+        ""
+      ],
+      "The dataset column/metric that returns the values on your chart's y-axis.": [
+        ""
+      ],
       "The dataset configuration exposed here\n                affects all the charts using this dataset.\n                Be mindful that changing settings\n                here may affect other charts\n                in undesirable ways.": [
         ""
       ],
@@ -2975,6 +3004,7 @@
       "The list of charts associated with this table. By altering this datasource, you may change how these associated charts behave. Also note that charts need to point to a datasource, so this form will fail at saving if removing charts from a datasource. If you want to change the datasource for a chart, overwrite the chart from the 'explore view'": [
         ""
       ],
+      "The lower limit of the threshold range of the Isoband": [""],
       "The maximum number of events to return, equivalent to the number of rows": [
         ""
       ],
@@ -3044,7 +3074,7 @@
       ],
       "The port is closed.": [""],
       "The primary metric is used to define the arc segment sizes": [""],
-      "The provided `rows` argument is not a valid integer.": [""],
+      "The provided table was not found in the provided database": [""],
       "The query associated with the results was deleted.": [""],
       "The query associated with these results could not be found. You need to re-run the original query.": [
         ""
@@ -3079,11 +3109,11 @@
       "The schema \"%(schema_name)s\" does not exist. A valid schema must be used to run this query.": [
         ""
       ],
+      "The schema of the submitted payload is invalid.": [""],
       "The schema was deleted or renamed in the database.": [""],
+      "The size of each cell in meters": [""],
       "The size of the square cell, in pixels": [""],
-      "The submitted URL is not considered safe, only use URLs with the same domain as Superset.": [
-        ""
-      ],
+      "The submitted payload failed validation.": [""],
       "The submitted payload has the incorrect format.": [""],
       "The submitted payload has the incorrect schema.": [""],
       "The table \"%(table)s\" does not exist. A valid table must be used to run this query.": [
@@ -3117,17 +3147,18 @@
       "The time unit used for the grouping of blocks": [""],
       "The type of visualization to display": [""],
       "The unit of measure for the specified point radius": [""],
+      "The upper limit of the threshold range of the Isoband": [""],
       "The user seems to have been deleted": [""],
       "The user/password combination is not valid (Incorrect password for user).": [
         ""
       ],
       "The username provided when connecting to a database is not valid.": [""],
       "The way the ticks are laid out on the X-axis": [""],
+      "The width of the Isoline in pixels": [""],
       "The width of the lines": [""],
       "There are associated alerts or reports": [
         "관련된 알람이나 리포트가 있습니다"
       ],
-      "There are associated alerts or reports: %s,": [""],
       "There are no charts added to this dashboard": [""],
       "There are no components added to this tab": [""],
       "There are no databases available": [""],
@@ -3139,7 +3170,6 @@
       "There is not enough space for this component. Try decreasing its width, or increasing the destination width.": [
         ""
       ],
-      "There was an error fetching tables": [""],
       "There was an error fetching the favorite status: %s": [""],
       "There was an error fetching your recent activity:": [""],
       "There was an error loading the dataset metadata": [""],
@@ -3172,7 +3202,7 @@
       "There's a loop in your Sankey, please provide a tree. Here's a faulty link: {}": [
         ""
       ],
-      "These are the tables this filter will be applied to.": [""],
+      "These are the datasets this filter will be applied to.": [""],
       "These filters apply to the values available in the dropdowns": [""],
       "These parameters are generated dynamically when clicking the save or overwrite button in the explore view. This JSON object is exposed here for reference and for power users who may want to alter specific parameters.": [
         ""
@@ -3203,6 +3233,9 @@
       ],
       "This column might be incompatible with current dataset": [""],
       "This column must contain date/time information.": [""],
+      "This control filters the whole chart based on the selected time range. All relative times, e.g. \"Last month\", \"Last 7 days\", \"now\", etc. are evaluated on the server using the server's local time (sans timezone). All tooltips and placeholder times are expressed in UTC (sans timezone). The timestamps are then evaluated by the database using the engine's local timezone. Note one can explicitly set the timezone per the ISO 8601 format if specifying either the start and/or end time.": [
+        ""
+      ],
       "This controls whether the \"time_range\" field from the current\n                  view should be passed down to the chart containing the annotation data.": [
         ""
       ],
@@ -3226,9 +3259,6 @@
       "This dashboard is ready to embed. In your application, pass the following id to the SDK:": [
         ""
       ],
-      "This dashboard was changed recently. Please reload dashboard to get latest version.": [
-        ""
-      ],
       "This dashboard was saved successfully.": [""],
       "This database is managed externally, and can't be edited in Superset": [
         ""
@@ -3242,6 +3272,12 @@
       "This dataset is not used to power any charts.": [""],
       "This defines the element to be plotted on the chart": [""],
       "This defines the level of the hierarchy": [""],
+      "This field is used as a unique identifier to attach the calculated dimension to charts. It is also used as the alias in the SQL query.": [
+        ""
+      ],
+      "This field is used as a unique identifier to attach the metric to charts. It is also used as the alias in the SQL query.": [
+        ""
+      ],
       "This fields acts a Superset view, meaning that Superset will run a query against this string as a subquery.": [
         ""
       ],
@@ -3262,6 +3298,9 @@
         ""
       ],
       "This may be triggered by:": [""],
+      "This metric is used to define row selection criteria (how the rows are sorted) if a series or row limit is present. If not defined, it reverts to the first metric (where appropriate).": [
+        ""
+      ],
       "This metric might be incompatible with current dataset": [""],
       "This section allows you to configure how to use the slice\n              to generate annotations.": [
         ""
@@ -3281,12 +3320,15 @@
       "This value should be smaller than the right target value": [""],
       "This visualization type is not supported.": ["시각화 유형 선택"],
       "This will remove your current embed configuration.": [""],
+      "Threshold": [""],
       "Threshold alpha level for determining significance": [""],
       "Threshold value should be double precision number": [""],
+      "Threshold: ": [""],
       "Thumbnails": [""],
       "Thursday": [""],
       "Time": [""],
       "Time Grain": [""],
+      "Time Grain must be specified when using Time Shift.": [""],
       "Time Granularity": [""],
       "Time Lag": [""],
       "Time Range": [""],
@@ -3353,6 +3395,7 @@
       "To filter on a metric, use Custom SQL tab.": [""],
       "To get a readable URL for your dashboard": [""],
       "Tooltip": [""],
+      "Tooltip Contents": [""],
       "Tooltip time format": [""],
       "Top right": [""],
       "Top to Bottom": [""],
@@ -3384,7 +3427,6 @@
         ""
       ],
       "Try different criteria to display results.": [""],
-      "Try selecting a different schema": [""],
       "Tuesday": [""],
       "Type": ["타입"],
       "Type \"%s\" to confirm": [""],
@@ -3439,7 +3481,7 @@
       "Unexpected error": [""],
       "Unexpected error occurred, please check your logs for details": [""],
       "Unexpected error: ": [""],
-      "Unexpected time range: %s": [""],
+      "Unexpected time range: %(error)": [""],
       "Unknown": [""],
       "Unknown MySQL server host \"%(hostname)s\".": [""],
       "Unknown Presto Error": [""],
@@ -3460,11 +3502,14 @@
       "Upload Excel file to database": [""],
       "Upload JSON file": [""],
       "Upload columnar file to database": [""],
+      "Upper Threshold": [""],
+      "Upper threshold must be greater than lower threshold": [""],
       "Use \"%(menuName)s\" menu instead.": [""],
       "Use a log scale": [""],
       "Use a log scale for the X-axis": [""],
       "Use a log scale for the Y-axis": [""],
       "Use an encrypted connection to the database": [""],
+      "Use an ssh tunnel connection to the database": [""],
       "Use another existing chart as a source for annotations and overlays.\n          Your chart must be one of these visualization types: [%s]": [
         ""
       ],
@@ -3487,11 +3532,11 @@
         ""
       ],
       "User": ["사용자"],
-      "User Roles": ["사용자 권한"],
       "User doesn't have the proper permissions.": [""],
       "User must select a value before applying the filter": [""],
       "User must select a value for this filter": [""],
       "User query": ["Query 공유"],
+      "Users are not allowed to set a search path for security reasons.": [""],
       "Uses Gaussian Kernel Density Estimation to visualize spatial distribution of data": [
         ""
       ],
@@ -3612,13 +3657,15 @@
       "Wednesday": [""],
       "Week": ["주"],
       "Week ending Saturday": [""],
+      "Week ending Sunday": [""],
       "Week starting Monday": [""],
       "Week starting Sunday": [""],
-      "Week_ending Sunday": [""],
       "Weekly Report": [""],
       "Weekly Report for %s": [""],
       "Weekly seasonality": [""],
       "Weight": [""],
+      "What should be shown as the label": [""],
+      "What should be shown as the tooltip label": [""],
       "What should be shown on the label?": [""],
       "When `Calculation type` is set to \"Percentage change\", the Y Axis Format is forced to `.1%`": [
         ""
@@ -3637,6 +3684,9 @@
         ""
       ],
       "When specifying SQL, the datasource acts as a view. Superset will use this statement as a subquery while grouping and filtering on the generated parent queries.": [
+        ""
+      ],
+      "When the secondary temporal columns are filtered, apply the same filter to the main datetime column.": [
         ""
       ],
       "When using \"Autocomplete filters\", this can be used to improve performance of the query fetching the values. Use this option to apply a predicate (WHERE clause) to the query selecting the distinct values from the table. Typically the intent would be to limit the scan by applying a relative time filter on a partitioned or indexed time-related field.": [
@@ -3673,6 +3723,9 @@
       "Whether to colorize numeric values by if they are positive or negative": [
         ""
       ],
+      "Whether to colorize numeric values by whether they are positive or negative": [
+        ""
+      ],
       "Whether to display a bar chart background in table columns": [""],
       "Whether to display a legend for the chart": [""],
       "Whether to display bubbles on top of countries": [""],
@@ -3690,6 +3743,7 @@
       "Whether to display the stroke": [""],
       "Whether to display the time range interactive selector": [""],
       "Whether to display the timestamp": [""],
+      "Whether to display the tooltip labels.": [""],
       "Whether to display the trend line": [""],
       "Whether to enable changing graph position and scaling.": [""],
       "Whether to enable node dragging in force layout mode.": [""],
@@ -3747,6 +3801,7 @@
       "Write dataframe index as a column": [""],
       "Write dataframe index as a column.": [""],
       "X AXIS TITLE BOTTOM MARGIN": [""],
+      "X AXIS TITLE MARGIN": [""],
       "X Axis": [""],
       "X Axis Format": [""],
       "X Axis Label": [""],
@@ -3759,13 +3814,14 @@
       "X-axis": [""],
       "Y 2 bounds": [""],
       "Y AXIS TITLE MARGIN": [""],
-      "Y AXIS TITLE POSITION": [""],
       "Y Axis": [""],
       "Y Axis 2 Bounds": [""],
       "Y Axis Bounds": [""],
       "Y Axis Format": [""],
       "Y Axis Label": [""],
       "Y Axis Title": [""],
+      "Y Axis Title Margin": [""],
+      "Y Axis Title Position": [""],
       "Y Log Scale": [""],
       "Y bounds": [""],
       "Y-Axis Sort Ascending": [""],
@@ -3778,6 +3834,7 @@
       "Yes": [""],
       "Yes, cancel": [""],
       "Yes, overwrite changes": [""],
+      "You are adding tags to %s %ss": [""],
       "You are importing one or more charts that already exist. Overwriting might cause you to lose some of your work. Are you sure you want to overwrite?": [
         ""
       ],
@@ -3791,9 +3848,6 @@
         ""
       ],
       "You are importing one or more saved queries that already exist. Overwriting might cause you to lose some of your work. Are you sure you want to overwrite?": [
-        ""
-      ],
-      "You are not authorized to see this query. If you think this is an error, please reach out to your administrator.": [
         ""
       ],
       "You can": [""],
@@ -3814,15 +3868,10 @@
         ""
       ],
       "You cannot use 45° tick layout along with the time range filter": [""],
-      "You cannot use [Columns] in combination with [Group By]/[Metrics]/[Percentage Metrics]. Please choose one or the other.": [
-        ""
-      ],
       "You do not have permission to edit this %s": [""],
       "You do not have permission to edit this chart": [""],
       "You do not have permission to edit this dashboard": [""],
-      "You do not have permissions to access the datasource(s): %(name)s.": [
-        ""
-      ],
+      "You do not have permission to read tags": [""],
       "You do not have permissions to edit this dashboard.": [""],
       "You don't have access to this chart.": [""],
       "You don't have access to this dashboard.": [""],
@@ -3837,7 +3886,6 @@
       "You don't have the rights to create a chart": [""],
       "You don't have the rights to create a dashboard": [""],
       "You don't have the rights to download as csv": [""],
-      "You have no permission to approve this request": [""],
       "You have removed this filter.": [""],
       "You have unsaved changes.": [""],
       "You have used all %(historyLength)s undo slots and will not be able to fully undo subsequent actions. You may save your current state to reset the history.": [
@@ -3874,10 +3922,8 @@
       "[Longitude] and [Latitude] columns must be present in [Group By]": [""],
       "[Longitude] and [Latitude] must be set": [""],
       "[Missing Dataset]": [""],
-      "[Superset] Access to the datasource %(name)s was granted": [""],
       "[Untitled]": [""],
       "[asc]": [""],
-      "[copy]": [""],
       "[dashboard name]": [""],
       "[desc]": [""],
       "[optional] this secondary metric is used to define the color as a ratio against the primary metric. When omitted, the color is categorical and based on labels": [
@@ -3994,7 +4040,6 @@
       "json isn't valid": [""],
       "key a-z": [""],
       "key z-a": [""],
-      "last day": [""],
       "latest partition:": [""],
       "less than {min} {name}": [""],
       "log": [""],
@@ -4009,7 +4054,7 @@
       "more than {max} {name}": [""],
       "must have a value": [""],
       "no SQL validator is configured": [""],
-      "no SQL validator is configured for {}": [""],
+      "no SQL validator is configured for %(engine_spec)": [""],
       "numeric type icon": [""],
       "nvd3": [""],
       "of parent": [""],
@@ -4032,6 +4077,7 @@
         ""
       ],
       "pixelated (Sharp)": [""],
+      "pixels": [""],
       "previous calendar month": [""],
       "previous calendar week": [""],
       "previous calendar year": [""],
@@ -4046,7 +4092,6 @@
       "restore zoom": [""],
       "right": [""],
       "running": [""],
-      "search by tags": [""],
       "series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series": [
         ""
       ],
