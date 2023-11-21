@@ -28,7 +28,6 @@ const StyledDvtDarkMode = styled.div`
 const DvtDarkModeLabel = styled.p`
   color: ${({ theme }) => theme.colors.dvt.text.label};
   font-size: 14px;
-  font-style: normal;
   margin: 0;
 `;
 
