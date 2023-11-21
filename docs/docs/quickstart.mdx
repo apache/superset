@@ -1,0 +1,56 @@
+---
+title: Quickstart
+hide_title: true
+sidebar_position: 2
+---
+
+## Quickstart
+
+You’ll need to have Docker or similar software installed on your computer to follow this quickstart.
+
+### Get Apache Superset using Docker
+```
+$ docker pull apache/superset:latest
+```
+
+### Start a Superset instance
+```
+$ docker run -d -p 8080:8088 -e "SUPERSET_SECRET_KEY=$(openssl rand -base64 42)" --name superset apache/superset
+```
+
+### Create an account for the instance
+```
+$ docker exec -it superset superset fab create-admin \
+              --username admin \
+              --firstname Superset \
+              --lastname Admin \
+              --email admin@superset.apache.org \
+              --password admin
+```
+
+### Update the instance database
+```
+$ docker exec -it superset superset db upgrade
+```
+
+### Load fresh examples
+```
+$ docker exec -it superset superset load_examples
+```
+
+### Configure the default roles
+```
+$ docker exec -it superset superset init
+```
+
+### Log in and start using Superset
+To access your fresh Superset instance, head over to [http://localhost:8088](http://localhost:8088)
+log in with the default username and password:
+```
+username: admin
+password: admin
+```
+
+## What's next?
+
+From this point, you can head on to Create your first Dashboard, Connect to a Database, or explore our Documentation.
