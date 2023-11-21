@@ -34,22 +34,19 @@ export interface DataProps {
   fileName: string;
 }
 
-const DvtNavigation: React.FC<DvtNavigationProps> = ({ data }) => {
-  return (
-    <StyledDvtNavigation>
-      {data.length > 0 &&
-        data.map((item, index) => (
-          <DvtNavigationItem key={index}>
-            <DvtNavigationItemIcon>
-              <Icon fileName={item.fileName} size={22} />
-            </DvtNavigationItemIcon>
-            <DvtNavigationItemLabel to={item.url}>
-              {item.title}
-            </DvtNavigationItemLabel>
-          </DvtNavigationItem>
-        ))}
-    </StyledDvtNavigation>
-  );
-};
-
+const DvtNavigation: React.FC<DvtNavigationProps> = ({ data }) => (
+  <StyledDvtNavigation>
+    {data.length > 0 &&
+      data.map((item, index) => (
+        <DvtNavigationItem key={index}>
+          <DvtNavigationItemIcon>
+            <Icon fileName={item.fileName} size={22} />
+          </DvtNavigationItemIcon>
+          <DvtNavigationItemLabel to={item.url}>
+            {item.title}
+          </DvtNavigationItemLabel>
+        </DvtNavigationItem>
+      ))}
+  </StyledDvtNavigation>
+);
 export default DvtNavigation;
