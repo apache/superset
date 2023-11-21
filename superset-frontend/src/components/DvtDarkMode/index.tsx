@@ -23,16 +23,17 @@ import { StyledDvtDarkMode, DvtDarkModeLabel } from './dvt-dark-mode.module';
 
 export interface DvtDarkModeProps {
   title: string;
+  darkMode: boolean;
 }
 
-const onChange = (checked: boolean) => {};
-
-const DvtDarkMode: React.FC<DvtDarkModeProps> = ({ title }) => (
-  <StyledDvtDarkMode>
-    <img src={moon} alt="moon" />
-    <DvtDarkModeLabel>{title}</DvtDarkModeLabel>
-    <Switch defaultChecked onChange={onChange} />
-  </StyledDvtDarkMode>
-);
+const DvtDarkMode: React.FC<DvtDarkModeProps> = ({ title, darkMode }) => {
+  return (
+    <StyledDvtDarkMode>
+      <img src={moon} alt="moon" />
+      <DvtDarkModeLabel>{title}</DvtDarkModeLabel>
+      <Switch checked={darkMode} />
+    </StyledDvtDarkMode>
+  );
+};
 
 export default DvtDarkMode;
