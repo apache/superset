@@ -2891,9 +2891,14 @@
       "Last available value seen on %s": [
         "Dernière valeur disponible vue sur %s"
       ],
+      "Last day": ["dernier jour"],
       "Last modified": ["Dernière modification"],
       "Last modified by %s": ["Dernière modification par %s"],
+      "Last month": ["mois dernier"],
+      "Last quarter": ["trimestre dernier"],
       "Last run": ["Dernière exécution"],
+      "Last week": ["semaine dernière"],
+      "Last year": ["an dernier"],
       "Latitude": ["Latitude"],
       "Latitude of default viewport": [
         "Latitude de la fenêtre d'affichage par défaut"
