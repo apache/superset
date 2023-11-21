@@ -205,6 +205,7 @@ setup(
         "vertica": ["sqlalchemy-vertica-python>=0.5.9, < 0.6"],
         "netezza": ["nzalchemy>=11.0.2"],
         "starrocks": ["starrocks>=1.0.0"],
+        "doris": ["pydoris>=1.0.0, <2.0.0"],
     },
     python_requires="~=3.9",
     author="Apache Software Foundation",
