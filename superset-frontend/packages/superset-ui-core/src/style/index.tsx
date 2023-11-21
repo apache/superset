@@ -142,6 +142,7 @@ const defaultTheme = {
         dark1: '#02993E',
         dark2: '#599D57',
         light1: '#34D399',
+        light3: '#edffec',
       },
       grayscale: {
         base: '#979797',
