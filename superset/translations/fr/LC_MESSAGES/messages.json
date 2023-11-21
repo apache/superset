@@ -794,7 +794,7 @@
       "Append": ["Ajouter"],
       "Applied cross-filters (%d)": ["Filtres croisés appliqués (%d)"],
       "Applied filters (%d)": ["Filtres appliqués (%d)"],
-      "Applied filters: %s": ["Filtres appliqués: (%s)"],
+      "Applied filters: %s": ["Filtres appliqués: %s"],
       "Applied rolling window did not return any data. Please make sure the source query satisfies the minimum periods defined in the rolling window.": [
         "La fenêtre roulante appliquée n'a renvoyé aucune donnée. Veuillez vous assurer que la requête source respecte les périodes minimales définies dans la fenêtre glissante."
       ],
@@ -4251,7 +4251,7 @@
       "Secondary y-axis Bounds": ["Limites secondaires de l'axe des ordonnées"],
       "Secondary y-axis format": ["Format secondaire de l’axe des ordonnées"],
       "Secondary y-axis title": ["Titre secondaire de l’axe des ordonnées"],
-      "Seconds %s": ["%s secondes"],
+      "Seconds %s": ["Secondes %s"],
       "Secure Extra": ["Secure Extra"],
       "Secure extra": ["Secure Extra"],
       "Security": ["Sécurité"],
@@ -4320,7 +4320,7 @@
       "Select dataset source": [
         "Sélectionner la source de l’ensemble de données"
       ],
-      "Select file": ["Selectionner un fichier"],
+      "Select file": ["Sélectionner un fichier"],
       "Select filter": ["Sélectionner un filtre"],
       "Select filter plugin using AntD": [
         "Sélectionner le plugiciel de filtrage en utilisant AntD"
@@ -5695,6 +5695,9 @@
         "Une erreur inattendue s'est produite, veuillez consulter vos journaux pour plus de détails"
       ],
       "Unexpected error: ": ["Erreur inattendue: "],
+      "Unexpected time range: %(error)": [
+        "Plage de temps inattendue: %(error)"
+      ],
       "Unknown": ["Inconnu"],
       "Unknown MySQL server host \"%(hostname)s\".": [
         "Hôte inconnu du serveur MySQL «%(hostname)s»."
@@ -6690,11 +6693,7 @@
         "y: les valeurs sont normalisées dans chaque rangée"
       ],
       "year": ["année"],
-      "zoom area": ["zone de zoom"],
-      "10 seconds": ["10 secondes"],
-      "6 hours": ["6 heures"],
-      "12 hours": ["12 heures"],
-      "24 hours": ["24 heures"]
+      "zoom area": ["zone de zoom"]
     }
   }
 }

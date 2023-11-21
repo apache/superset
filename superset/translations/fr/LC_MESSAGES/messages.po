@@ -13867,7 +13867,7 @@ msgstr "Sélectionner la source de l’ensemble de données"
 
 #: superset-frontend/src/components/ImportModal/index.tsx:445
 msgid "Select file"
-msgstr "Selectionner un fichier"
+msgstr "Sélectionner un fichier"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:323
 #: superset-frontend/src/filters/components/Select/index.ts:28
