@@ -38,10 +38,10 @@ export const Default = (args: DvtNavigationProps) => (
 
 Default.args = {
   data: [
-    { title: 'Connections', url: '', fileName: 'Cancel' },
+    { title: 'Connections', url: '', fileName: 'calendar' },
     { title: 'Dataset', url: '', fileName: 'database' },
-    { title: 'Dashboard', url: '', fileName: 'alert' },
-    { title: 'Report', url: '', fileName: 'alert' },
+    { title: 'Dashboard', url: '', fileName: 'grid' },
+    { title: 'Report', url: '', fileName: 'code' },
     { title: 'Alert', url: '', fileName: 'alert' },
   ],
 };

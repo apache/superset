@@ -20,7 +20,9 @@ import { styled } from '@superset-ui/core';
 import { Link } from 'react-router-dom';
 
 const StyledDvtNavigation = styled.div`
-  display: inline-block;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 23px;
 `;
 
 const DvtNavigationItem = styled.div`
@@ -31,6 +33,7 @@ const DvtNavigationItem = styled.div`
   gap: 16px;
 `;
 const DvtNavigationItemIcon = styled.div``;
+
 const DvtNavigationItemLabel = styled(Link)`
   color: ${({ theme }) => theme.colors.dvt.text.label};
   font-size: 14px;
