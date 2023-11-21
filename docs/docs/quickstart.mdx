@@ -1,24 +1,23 @@
 ---
 title: Quickstart
-hide_title: true
+hide_title: false
 sidebar_position: 2
 ---
 
-## Quickstart
+**Ready to give Apache Superset a try?** This quickstart will help you run Superset on your local machine.
+It assumes that you have [Docker](https://www.docker.com) or similar software installed.
 
-You’ll need to have Docker or similar software installed on your computer to follow this quickstart.
-
-### Get Apache Superset using Docker
+### 1. Get Superset
 ```
-$ docker pull apache/superset:latest
-```
-
-### Start a Superset instance
-```
-$ docker run -d -p 8080:8088 -e "SUPERSET_SECRET_KEY=$(openssl rand -base64 42)" --name superset apache/superset
+$ docker pull apache/superset:3.0.1
 ```
 
-### Create an account for the instance
+### 2. Start Superset
+```
+$ docker run -d -p 8080:8088 -e "SUPERSET_SECRET_KEY=$(openssl rand -base64 42)" --name superset apache/superset:3.0.1
+```
+
+### 3. Create an account
 ```
 $ docker exec -it superset superset fab create-admin \
               --username admin \
@@ -28,29 +27,36 @@ $ docker exec -it superset superset fab create-admin \
               --password admin
 ```
 
-### Update the instance database
+### 4. Update the database
 ```
 $ docker exec -it superset superset db upgrade
 ```
 
-### Load fresh examples
+### 5. Load fresh examples
 ```
 $ docker exec -it superset superset load_examples
 ```
 
-### Configure the default roles
+### 6. Configure security roles
 ```
 $ docker exec -it superset superset init
 ```
 
-### Log in and start using Superset
-To access your fresh Superset instance, head over to [http://localhost:8088](http://localhost:8088)
+### 7. Start using Superset
+To access your fresh Superset instance, head over to [http://localhost:8088](http://localhost:8088) and
 log in with the default username and password:
 ```
 username: admin
 password: admin
 ```
 
+#### 🎉 Congratulations! Superset is now up and running on your machine 🎉
+
+
 ## What's next?
 
-From this point, you can head on to Create your first Dashboard, Connect to a Database, or explore our Documentation.
+From this point, you can head on to:
+- [Create your first Dashboard](https://superset.apache.org/docs/creating-charts-dashboards/creating-your-first-dashboard)
+- [Connect to a Database](https://superset.apache.org/docs/databases/installing-database-drivers)
+
+Or just explore our Documentation!
