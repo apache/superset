@@ -25,7 +25,6 @@ import {
 } from 'brace';
 import AceEditor, { IAceEditorProps } from 'react-ace';
 import { acequire } from 'ace-builds/src-noconflict/ace';
-import 'ace-builds/webpack-resolver';
 import AsyncEsmComponent, {
   PlaceholderProps,
 } from 'src/components/AsyncEsmComponent';
