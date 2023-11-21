@@ -28,7 +28,6 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import pick from 'lodash/pick';
 import { useDispatch, useSelector } from 'react-redux';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import Loading from 'src/components/Loading';
@@ -42,11 +41,7 @@ import { setDatasources } from 'src/dashboard/actions/datasources';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 import setupPlugins from 'src/setup/setupPlugins';
 
-import {
-  getItem,
-  LocalStorageKeys,
-  setItem,
-} from 'src/utils/localStorageHelpers';
+import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { getFilterSets } from 'src/dashboard/actions/nativeFilters';
@@ -55,25 +50,28 @@ import {
   getFilterValue,
   getPermalinkValue,
 } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
-import { DashboardContextForExplore } from 'src/types/DashboardContextForExplore';
+import DashboardContainer from 'src/dashboard/containers/Dashboard';
+
 import shortid from 'shortid';
 import { RootState } from '../types';
-import { getActiveFilters } from '../util/activeDashboardFilters';
 import {
   chartContextMenuStyles,
   filterCardPopoverStyle,
   headerStyles,
 } from '../styles';
+import SyncDashboardState, {
+  getDashboardContextLocalStorage,
+} from '../components/SyncDashboardState';
 
 export const DashboardPageIdContext = React.createContext('');
 
 setupPlugins();
-const DashboardContainer = React.lazy(
+const DashboardBuilder = React.lazy(
   () =>
     import(
       /* webpackChunkName: "DashboardContainer" */
       /* webpackPreload: true */
-      'src/dashboard/containers/Dashboard'
+      'src/dashboard/components/DashboardBuilder/DashboardBuilder'
     ),
 );
 
@@ -83,74 +81,15 @@ type PageProps = {
   idOrSlug: string;
 };
 
-const getDashboardContextLocalStorage = () => {
-  const dashboardsContexts = getItem(
-    LocalStorageKeys.dashboard__explore_context,
-    {},
-  );
-  // A new dashboard tab id is generated on each dashboard page opening.
-  // We mark ids as redundant when user leaves the dashboard, because they won't be reused.
-  // Then we remove redundant dashboard contexts from local storage in order not to clutter it
-  return Object.fromEntries(
-    Object.entries(dashboardsContexts).filter(
-      ([, value]) => !value.isRedundant,
-    ),
-  );
-};
-
-const updateDashboardTabLocalStorage = (
-  dashboardPageId: string,
-  dashboardContext: DashboardContextForExplore,
-) => {
-  const dashboardsContexts = getDashboardContextLocalStorage();
-  setItem(LocalStorageKeys.dashboard__explore_context, {
-    ...dashboardsContexts,
-    [dashboardPageId]: dashboardContext,
-  });
-};
-
-const useSyncDashboardStateWithLocalStorage = () => {
-  const dashboardPageId = useMemo(() => shortid.generate(), []);
-  const dashboardContextForExplore = useSelector<
-    RootState,
-    DashboardContextForExplore
-  >(({ dashboardInfo, dashboardState, nativeFilters, dataMask }) => ({
-    labelColors: dashboardInfo.metadata?.label_colors || {},
-    sharedLabelColors: dashboardInfo.metadata?.shared_label_colors || {},
-    colorScheme: dashboardState?.colorScheme,
-    chartConfiguration: dashboardInfo.metadata?.chart_configuration || {},
-    nativeFilters: Object.entries(nativeFilters.filters).reduce(
-      (acc, [key, filterValue]) => ({
-        ...acc,
-        [key]: pick(filterValue, ['chartsInScope']),
-      }),
-      {},
-    ),
-    dataMask,
-    dashboardId: dashboardInfo.id,
-    filterBoxFilters: getActiveFilters(),
-    dashboardPageId,
-  }));
-
-  useEffect(() => {
-    updateDashboardTabLocalStorage(dashboardPageId, dashboardContextForExplore);
-    return () => {
-      // mark tab id as redundant when dashboard unmounts - case when user opens
-      // Explore in the same tab
-      updateDashboardTabLocalStorage(dashboardPageId, {
-        ...dashboardContextForExplore,
-        isRedundant: true,
-      });
-    };
-  }, [dashboardContextForExplore, dashboardPageId]);
-  return dashboardPageId;
-};
-
 export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const theme = useTheme();
   const dispatch = useDispatch();
   const history = useHistory();
-  const dashboardPageId = useSyncDashboardStateWithLocalStorage();
+  const dashboardPageId = useMemo(() => shortid.generate(), []);
+  const hasDashboardInfoInitiated = useSelector<RootState, Boolean>(
+    ({ dashboardInfo }) =>
+      dashboardInfo && Object.keys(dashboardInfo).length > 0,
+  );
   const { addDangerToast } = useToasts();
   const { result: dashboard, error: dashboardApiError } =
     useDashboard(idOrSlug);
@@ -284,7 +223,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   }, [addDangerToast, datasets, datasetsApiError, dispatch]);
 
   if (error) throw error; // caught in error boundary
-  if (!readyToRender || !isDashboardHydrated.current) return <Loading />;
+  if (!readyToRender || !hasDashboardInfoInitiated) return <Loading />;
 
   return (
     <>
@@ -295,8 +234,11 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
           chartContextMenuStyles(theme),
         ]}
       />
+      <SyncDashboardState dashboardPageId={dashboardPageId} />
       <DashboardPageIdContext.Provider value={dashboardPageId}>
-        <DashboardContainer />
+        <DashboardContainer>
+          <DashboardBuilder />
+        </DashboardContainer>
       </DashboardPageIdContext.Provider>
     </>
   );

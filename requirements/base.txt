@@ -99,7 +99,7 @@ flask==2.2.5
     #   flask-session
     #   flask-sqlalchemy
     #   flask-wtf
-flask-appbuilder==4.3.9
+flask-appbuilder==4.3.10
     # via apache-superset
 flask-babel==1.0.0
     # via flask-appbuilder
