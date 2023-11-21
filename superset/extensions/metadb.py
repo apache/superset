@@ -50,7 +50,6 @@ from shillelagh.adapters.base import Adapter
 from shillelagh.backends.apsw.dialects.base import APSWDialect
 from shillelagh.exceptions import ProgrammingError
 from shillelagh.fields import (
-    Blob,
     Boolean,
     Date,
     DateTime,
@@ -174,6 +173,18 @@ class Decimal(Field[decimal.Decimal, decimal.Decimal]):
     db_api_type = "NUMBER"
 
 
+class FallbackField(Field[Any, str]):
+    """
+    Fallback field for unknown types; converts to string.
+    """
+
+    type = "TEXT"
+    db_api_type = "STRING"
+
+    def parse(self, value: Any) -> str | None:
+        return value if value is None else str(value)
+
+
 # pylint: disable=too-many-instance-attributes
 class SupersetShillelaghAdapter(Adapter):
 
@@ -279,7 +290,7 @@ class SupersetShillelaghAdapter(Adapter):
         """
         Convert a Python type into a Shillelagh field.
         """
-        class_ = cls.type_map.get(python_type, Blob)
+        class_ = cls.type_map.get(python_type, FallbackField)
         return class_(filters=[Equal, Range], order=Order.ANY, exact=True)
 
     def _set_columns(self) -> None:
