@@ -19,18 +19,16 @@
 import { styled } from '@superset-ui/core';
 
 const StyledDvtDarkMode = styled.div`
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 9px;
-  text-decoration: none !important;
+  justify-content: space-between;
+  gap: 16px;
 `;
 
 const DvtDarkModeLabel = styled.p`
-  color: ${({ theme }) => theme.colors.dvt.text.bold};
-  font-size: 23.2px;
-  font-weight: 700;
-  line-height: 125%;
-  letter-spacing: -0.29px;
+  color: ${({ theme }) => theme.colors.dvt.text.label};
+  font-size: 14px;
+  font-style: normal;
   margin: 0;
 `;
 

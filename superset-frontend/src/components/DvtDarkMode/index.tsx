@@ -18,14 +18,20 @@
  */
 import React from 'react';
 import { StyledDvtDarkMode, DvtDarkModeLabel } from './dvt-dark-mode.module';
+import { Switch } from 'antd';
+import moon from '../../assets/dvt-img/moon.png';
 
 export interface DvtDarkModeProps {
   title: string;
 }
 
+const onChange = (checked: boolean) => {};
+
 const DvtDarkMode: React.FC<DvtDarkModeProps> = ({ title }) => (
   <StyledDvtDarkMode>
+    <img src={moon} alt="moon" />
     <DvtDarkModeLabel>{title}</DvtDarkModeLabel>
+    <Switch defaultChecked onChange={onChange} />
   </StyledDvtDarkMode>
 );
 

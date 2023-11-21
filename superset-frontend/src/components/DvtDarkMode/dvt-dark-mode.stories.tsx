@@ -17,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import { MemoryRouter } from 'react-router-dom';
 import DvtDarkMode, { DvtDarkModeProps } from '.';
 
 export default {
