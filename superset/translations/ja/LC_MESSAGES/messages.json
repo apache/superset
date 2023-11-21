@@ -35,10 +35,6 @@
       "%(other)s recents will appear here": [""],
       "%(prefix)s %(title)s": [""],
       "%(subtitle)s\nThis may be triggered by:\n %(issue)s": [""],
-      "%(user)s was granted the role %(role)s that gives access to the %(datasource)s": [
-        ""
-      ],
-      "%(user)s's profile": ["%(user)s' のプロファイル"],
       "%(validator)s was unable to check your query.\nPlease recheck your query.\nException: %(ex)s": [
         ""
       ],
@@ -52,6 +48,9 @@
       "%s Selected (Virtual)": [""],
       "%s aggregates(s)": [""],
       "%s column(s)": [""],
+      "%s items could not be tagged because you don’t have edit permissions to all selected objects.": [
+        ""
+      ],
       "%s operator(s)": [""],
       "%s option(s)": [""],
       "%s saved metric(s)": [""],
@@ -177,6 +176,9 @@
         "スクリーンショットの撮影中にタイムアウトが発生しました。"
       ],
       "A valid color scheme is required": ["有効な配色が必要です"],
+      "A waterfall chart is a form of data visualization that helps in understanding\n          the cumulative effect of sequentially introduced positive or negative values.\n          These intermediate values can either be time based or category based.": [
+        ""
+      ],
       "APPLY": ["適用"],
       "APR": ["4月"],
       "AQE": [""],
@@ -184,10 +186,8 @@
       "AXIS TITLE MARGIN": [""],
       "About": [""],
       "Access": ["アクセス"],
-      "Access requests": ["アクセス要求"],
       "Access to user activity data is restricted": [""],
       "Access token": [""],
-      "Access was requested": [""],
       "Action": ["アクション"],
       "Action Log": ["操作履歴"],
       "Actions": ["アクション"],
@@ -202,7 +202,7 @@
       "Add Database": ["データベースを追加"],
       "Add Log": ["ログを追加"],
       "Add Metric": ["指標を追加"],
-      "Add Saved Query": ["保存したクエリを追加"],
+      "Add Tag": [""],
       "Add a Plugin": [""],
       "Add a new tab to create SQL Query": [""],
       "Add an item": ["アイテムを追加"],
@@ -213,7 +213,9 @@
         ""
       ],
       "Add custom scoping": [""],
+      "Add dataset columns here to group the pivot table columns.": [""],
       "Add delivery method": [""],
+      "Add description of your tag": [""],
       "Add filter": ["フィルタを追加"],
       "Add filter clauses to control the filter's source query,\n                    though only in the context of the autocomplete i.e., these conditions\n                    do not impact how the filter is applied to the dashboard. This is useful\n                    when you want to improve the query's performance by only scanning a subset\n                    of the underlying data or limit the available values displayed in the filter.": [
         ""
@@ -227,6 +229,7 @@
       "Add notification method": [""],
       "Add required control values to preview chart": [""],
       "Add required control values to save chart": [""],
+      "Add tag to entities": [""],
       "Add to dashboard": ["新しいダッシュボードに追加"],
       "Added": ["追加済み"],
       "Additional fields may be required": [""],
@@ -274,14 +277,8 @@
       "Alert query returned more than one column.": [
         "アラートクエリが複数の列を返しました。"
       ],
-      "Alert query returned more than one column. %s columns returned": [
-        "アラートクエリが複数の列を返しました。%s 列が返されました"
-      ],
       "Alert query returned more than one row.": [
         "アラートクエリが複数の行を返しました。"
-      ],
-      "Alert query returned more than one row. %s rows returned": [
-        "アラートクエリが複数の行を返しました。 %s 行が返されました"
       ],
       "Alert running": ["アラート発動中"],
       "Alert triggered, notification sent": [
@@ -307,6 +304,9 @@
       "Allow CREATE VIEW AS option in SQL Lab": [""],
       "Allow Csv Upload": [""],
       "Allow DML": [""],
+      "Allow column names to be changed to case insensitive format, if supported (e.g. Oracle, Snowflake).": [
+        ""
+      ],
       "Allow columns to be rearranged": [""],
       "Allow creation of new tables based on queries": [""],
       "Allow creation of new views based on queries": [""],
@@ -330,6 +330,7 @@
         ""
       ],
       "Altered": ["変更"],
+      "Always filter main datetime column": [""],
       "An alert named \"%(name)s\" already exists": [""],
       "An enclosed time range (both start and end) must be specified when using a Time Comparison.": [
         "時間比較を使用する場合は、期間 (開始と終了の両方) を指定する必要があります。"
@@ -382,9 +383,6 @@
       "An error occurred while fetching table metadata. Please contact your administrator.": [
         ""
       ],
-      "An error occurred while hiding the left bar. Please contact your administrator.": [
-        ""
-      ],
       "An error occurred while loading the SQL": [
         "SQL のロード中にエラーが発生しました"
       ],
@@ -403,21 +401,6 @@
       "An error occurred while setting the active tab. Please contact your administrator.": [
         ""
       ],
-      "An error occurred while setting the tab autorun. Please contact your administrator.": [
-        ""
-      ],
-      "An error occurred while setting the tab database ID. Please contact your administrator.": [
-        ""
-      ],
-      "An error occurred while setting the tab schema. Please contact your administrator.": [
-        ""
-      ],
-      "An error occurred while setting the tab template parameters. Please contact your administrator.": [
-        ""
-      ],
-      "An error occurred while storing the latest query id in the backend. Please contact your administrator if this problem persists.": [
-        ""
-      ],
       "An error occurred while storing your query in the backend. To avoid losing your changes, please save your query using the \"Save Query\" button.": [
         ""
       ],
@@ -432,12 +415,9 @@
       "Annotation Slice Configuration": ["注釈スライスの構成"],
       "Annotation could not be created.": [""],
       "Annotation could not be updated.": [""],
-      "Annotation delete failed.": [""],
       "Annotation layer": ["注釈レイヤー"],
       "Annotation layer could not be created.": [""],
-      "Annotation layer could not be deleted.": [""],
       "Annotation layer could not be updated.": [""],
-      "Annotation layer delete failed.": [""],
       "Annotation layer has associated annotations.": [""],
       "Annotation layer name": ["注釈レイヤー名"],
       "Annotation layer not found.": [""],
@@ -505,6 +485,7 @@
         ""
       ],
       "Assign a set of parameters as": [""],
+      "Assist": [""],
       "Associated Charts": [""],
       "Async Execution": [""],
       "Asynchronous query execution": ["非同期でのクエリ実行"],
@@ -560,12 +541,16 @@
         ""
       ],
       "Box Plot": [""],
+      "Breaks down the series by the category specified in this control.\n      This can help viewers understand how each category affects the overall value.": [
+        ""
+      ],
       "Bubble Chart": ["バブルチャート"],
       "Bubble Size": [""],
       "Bubble size": [""],
       "Bucket break points": [""],
       "Build": [""],
       "Bulk select": ["一括選択"],
+      "Bulk tag": [""],
       "Bullet Chart": [""],
       "Business": [""],
       "Business Data Type": [""],
@@ -585,7 +570,6 @@
       "CSS Templates": ["CSSテンプレート"],
       "CSS applied to the chart": [""],
       "CSS template": ["CSSテンプレート"],
-      "CSS template could not be deleted.": [""],
       "CSS template name": ["CSSテンプレート名"],
       "CSS template not found.": [""],
       "CSS templates": ["CSSテンプレート"],
@@ -647,7 +631,6 @@
       "Change order of columns.": [""],
       "Change order of rows.": [""],
       "Changed By": ["更新者"],
-      "Changed on": ["変更日"],
       "Changes saved.": [""],
       "Changing the dataset may break the chart if the chart relies on columns or metadata that does not exist in the target dataset": [
         "データセットを変更すると、ターゲットのデータセットに存在しないカラムやメタデータに依存しているチャートが壊れることがあります"
@@ -688,7 +671,6 @@
         ""
       ],
       "Chart could not be created.": ["チャートを作成できませんでした。"],
-      "Chart could not be deleted.": ["チャートを削除できませんでした。"],
       "Chart could not be updated.": [
         "チャートをアップロードできませんでした。"
       ],
@@ -700,7 +682,6 @@
       "Chart type requires a dataset": [""],
       "Charts": ["チャート"],
       "Charts could not be deleted.": ["チャートを削除できませんでした。"],
-      "Check configuration": ["設定を確認"],
       "Check for sorting ascending": [""],
       "Check if the Rose Chart should use segment area instead of segment radius for proportioning": [
         ""
@@ -758,6 +739,7 @@
       "Click this link to switch to an alternate form that exposes only the required fields needed to connect this database.": [
         ""
       ],
+      "Click to add a contour": [""],
       "Click to cancel sorting": [""],
       "Click to edit": [""],
       "Click to edit %s.": [""],
@@ -887,9 +869,7 @@
       "Copy query link to your clipboard": [
         "クエリのlinkをクリップボードにコピー"
       ],
-      "Copy the account name of that database you are trying to connect to.": [
-        ""
-      ],
+      "Copy the identifier of the account you are trying to connect to.": [""],
       "Copy the name of the HTTP Path of your cluster.": [""],
       "Copy the name of the database you are trying to connect to.": [""],
       "Copy to Clipboard": [""],
@@ -901,9 +881,6 @@
       ],
       "Could not find viz object": [""],
       "Could not load database driver": [""],
-      "Could not load database driver: %(driver_name)s": [
-        "データベースドライバ: %(driver_name)s 読み込めませんでした"
-      ],
       "Could not load database driver: {}": [""],
       "Could not resolve hostname: \"%(host)s\".": [""],
       "Count Unique Values": [""],
@@ -922,7 +899,6 @@
       "Create new filter set": ["新しいフィルタ セットの作成"],
       "Create or select schema...": [""],
       "Created": ["作成した項目"],
-      "Created On": ["作成日"],
       "Created by": ["作成者"],
       "Created content": ["作成したコンテンツ"],
       "Created on": ["作成日"],
@@ -931,6 +907,9 @@
       "Cross-filter will be applied to all of the charts that use this dataset.": [
         ""
       ],
+      "Currency": [""],
+      "Currency prefix or suffix": [""],
+      "Currency symbol": [""],
       "Currently rendered: %s": [""],
       "Custom Plugin": [""],
       "Custom Plugins": [""],
@@ -938,7 +917,11 @@
       "Custom SQL ad-hoc metrics are not enabled for this dataset": [""],
       "Custom SQL fields cannot contain sub-queries.": [""],
       "Custom time filter plugin": [""],
+      "Custom width of the screenshot in pixels": [""],
       "Customize": ["カスタマイズ"],
+      "Customize chart metrics or columns with currency symbols as prefixes or suffixes. Choose a symbol from dropdown or type your own.": [
+        ""
+      ],
       "Cyclic dependency detected": [""],
       "D3 Format": [""],
       "D3 format": [""],
@@ -949,6 +932,7 @@
       "D3 time format for datetime columns": [""],
       "D3 time format syntax: https://github.com/d3/d3-time-format": [""],
       "DB column %(col_name)s has unknown type: %(value_type)s": [""],
+      "DD/MM format dates, international and European format": [""],
       "DEC": ["12月"],
       "DELETE": ["削除"],
       "DML": [""],
@@ -958,9 +942,6 @@
       "Dashboard": ["ダッシュボード"],
       "Dashboard [{}] just got created and chart [{}] was added to it": [
         "ダッシュボード [{}] が作成されチャート [{}] が追加されました"
-      ],
-      "Dashboard could not be created.": [
-        "ダッシュボードを作成できませんでした。"
       ],
       "Dashboard could not be deleted.": [
         "ダッシュボードを削除できませんでした。"
@@ -977,9 +958,6 @@
         ""
       ],
       "Dashboards": ["ダッシュボード"],
-      "Dashboards could not be deleted.": [
-        "ダッシュボードを削除できませんでした。"
-      ],
       "Dashboards do not exist": ["ダッシュボードは存在しません"],
       "Data": ["データ"],
       "Data URI is not allowed.": [""],
@@ -990,7 +968,6 @@
       "Data could not be retrieved from the results backend. You need to re-run the original query.": [
         ""
       ],
-      "Data has no time steps": [""],
       "Data preview": ["データプレビュー"],
       "Data type": [""],
       "DataFrame include at least one series": [
@@ -1007,7 +984,6 @@
       "Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for excel uploads. Please contact your Superset Admin.": [
         ""
       ],
-      "Database URL": ["データベースURL"],
       "Database could not be created.": [
         "データベースを作成できませんでした。"
       ],
@@ -1041,7 +1017,6 @@
       "Dataset column delete failed.": ["データセット列の削除に失敗しました。"],
       "Dataset column not found.": ["データセット列が見つかりません。"],
       "Dataset could not be created.": [""],
-      "Dataset could not be deleted.": [""],
       "Dataset could not be updated.": [""],
       "Dataset does not exist": ["データセットが存在しません"],
       "Dataset is required": ["データセットが必要です"],
@@ -1052,9 +1027,11 @@
       "Dataset name": [""],
       "Dataset parameters are invalid.": [""],
       "Dataset schema is invalid, caused by: %(error)s": [""],
-      "Dataset(s) could not be bulk deleted.": [""],
       "Datasets": ["データセット"],
       "Datasets can be created from database tables or SQL queries. Select a database table to the left or ": [
+        ""
+      ],
+      "Datasets can have a main temporal column (main_dttm_col), but can also have secondary time columns. When this attribute is true, whenever the secondary columns are filtered, the same filter is applied to the main datetime column.": [
         ""
       ],
       "Datasets do not contain a temporal column": [""],
@@ -1070,6 +1047,7 @@
       "Datetime format": ["日時フォーマット"],
       "Day": ["日"],
       "Day (freq=D)": [""],
+      "Day First": [""],
       "Db engine did not return all queried columns": [""],
       "December": ["12月"],
       "Decides which column to sort the base axis by.": [""],
@@ -1112,15 +1090,24 @@
       "Define a javascript function that receives the data array used in the visualization and is expected to return a modified version of that array. This can be used to alter properties of the data, filter, or enrich the array.": [
         ""
       ],
+      "Define contour layers. Isolines represent a collection of line segments that serparate the area above and below a given threshold. Isobands represent a collection of polygons that fill the are containing values in a given threshold range.": [
+        ""
+      ],
       "Defines a rolling window function to apply, works along with the [Periods] text box": [
         ""
       ],
       "Defines how each series is broken down": [""],
       "Defines the grid size in pixels": [""],
+      "Defines the grouping of entities. Each series is represented by a specific color in the chart.": [
+        ""
+      ],
       "Defines the grouping of entities. Each series is shown as a specific color on the chart and has a legend toggle": [
         ""
       ],
       "Defines the size of the rolling window function, relative to the time granularity selected": [
+        ""
+      ],
+      "Defines the value that determines the boundary between different regions or levels in the data ": [
         ""
       ],
       "Defines whether the step should appear at the beginning, middle or end between two data points": [
@@ -1173,6 +1160,7 @@
       ],
       "Description text that shows up below your Big Number": [""],
       "Deselect all": ["すべての選択を解除"],
+      "Details": [""],
       "Details of the certification": [""],
       "Determines how whiskers and outliers are calculated.": [""],
       "Determines whether or not this dashboard is visible in the list of all dashboards": [
@@ -1184,6 +1172,9 @@
       "Dimension to use on x-axis.": [""],
       "Dimension to use on y-axis.": [""],
       "Dimensions": [""],
+      "Dimensions contain qualitative values such as names, dates, or geographical data. Use dimensions to categorize, segment, and reveal the details in your data. Dimensions affect the level of detail in the view.": [
+        ""
+      ],
       "Directed Force Layout": [""],
       "Directional": [""],
       "Disable SQL Lab data preview queries": [""],
@@ -1192,11 +1183,13 @@
       ],
       "Disable embedding?": [""],
       "Display Name": ["表示名"],
+      "Display column level subtotal": [""],
       "Display column level total": [""],
       "Display configuration": [""],
       "Display metrics side by side within each column, as opposed to each column being displayed side by side for each metric.": [
         ""
       ],
+      "Display row level subtotal": [""],
       "Display row level total": [""],
       "Displays connections between entities in a graph structure. Useful for mapping relationships and showing which nodes are important in a network. Graph charts can be configured to be force-directed or circulate. If your data has a geospatial component, try the deck.gl Arc chart.": [
         ""
@@ -1245,7 +1238,6 @@
       "Duration in ms (1.40008 => 1ms 400µs 80ns)": [""],
       "Duration in ms (100.40008 => 100ms 400µs 80ns)": [""],
       "Duration in ms (66000 => 1m 6s)": [""],
-      "Duration: %s": [""],
       "Dynamic Aggregation Function": [""],
       "Dynamically search all filter values": [""],
       "END (EXCLUSIVE)": [""],
@@ -1265,7 +1257,6 @@
       "Edit Log": ["ログを編集"],
       "Edit Metric": ["指標を編集"],
       "Edit Plugin": [""],
-      "Edit Saved Query": ["保存したクエリの編集"],
       "Edit Table": ["テーブルを編集"],
       "Edit annotation": ["注釈を編集する"],
       "Edit annotation layer": ["注釈レイヤーを編集"],
@@ -1311,6 +1302,7 @@
       "Enable graph roaming": [""],
       "Enable node dragging": [""],
       "Enable query cost estimation": [""],
+      "Enable row expansion in schemas": [""],
       "Enable server side pagination of results (experimental feature)": [""],
       "Encountered invalid NULL spatial entry,                                        please consider filtering those out": [
         ""
@@ -1318,7 +1310,6 @@
       "End": ["終了時間"],
       "End (Longitude, Latitude): ": [""],
       "End Longitude & Latitude": [""],
-      "End Time": ["終了時間"],
       "End date excluded from time range": [""],
       "End date must be after start date": [
         "開始日は終了日を超えてはいけません"
@@ -1429,6 +1420,7 @@
       "Field cannot be decoded by JSON. %(msg)s": [""],
       "Field is required": [""],
       "File": ["ファイル"],
+      "File size must be less than or equal to %(max_size)s bytes": [""],
       "Fill all required fields to enable \"Default Value\"": [""],
       "Fill method": [""],
       "Filter List": ["フィルタリスト"],
@@ -1474,6 +1466,9 @@
       "For Bigquery, Presto and Postgres, shows a button to compute cost before running a query.": [
         ""
       ],
+      "For Trino, describe full schemas of nested ROW types, expanding them with dotted paths": [
+        ""
+      ],
       "For further instructions, consult the": [""],
       "For more information about objects are in context in the scope of this function, refer to the": [
         ""
@@ -1491,7 +1486,7 @@
       "Foreign key": [""],
       "Form data not found in cache, reverting to chart metadata.": [""],
       "Form data not found in cache, reverting to dataset metadata.": [""],
-      "Formattable": [""],
+      "Format SQL": [""],
       "Formatted CSV attached in email": [""],
       "Formatted value": [""],
       "Formula": [""],
@@ -1570,6 +1565,9 @@
       "If duplicate columns are not overridden, they will be presented as \"X.1, X.2 ...X.x\"": [
         ""
       ],
+      "If enabled, this control sorts the results/values descending, otherwise it sorts the results ascending.": [
+        ""
+      ],
       "If selected, please set the schemas allowed for csv upload in Extra.": [
         ""
       ],
@@ -1612,6 +1610,7 @@
       "Info": ["情報"],
       "Inner Radius": [""],
       "Inner radius of donut hole": [""],
+      "Input custom width in pixels": [""],
       "Input field supports custom rotation. e.g. 30 for 30°": [""],
       "Instant filtering": [""],
       "Intensity": [""],
@@ -1620,8 +1619,6 @@
       "Intensity is the value multiplied by the weight to obtain the final weight": [
         ""
       ],
-      "Interpret Datetime Format Automatically": [""],
-      "Interpret the datetime format automatically": [""],
       "Interval End column": [""],
       "Interval bounds": [""],
       "Interval start column": [""],
@@ -1632,9 +1629,6 @@
       "Invalid JSON": [""],
       "Invalid advanced data type: %(advanced_data_type)s": [""],
       "Invalid certificate": ["無効な証明書"],
-      "Invalid connection string, a valid string usually follows:\n'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'": [
-        ""
-      ],
       "Invalid connection string, a valid string usually follows: backend+driver://user:password@database-host/database-name": [
         ""
       ],
@@ -1643,6 +1637,7 @@
       ],
       "Invalid cron expression": [""],
       "Invalid cumulative operator: %(operator)s": [""],
+      "Invalid currency code in saved metrics": [""],
       "Invalid date/timestamp format": [
         "無効な日付/タイムスタンプのフォーマット"
       ],
@@ -1659,7 +1654,7 @@
       "Invalid reference to column: \"%(column)s\"": [""],
       "Invalid result type: %(result_type)s": [""],
       "Invalid rolling_type: %(type)s": [""],
-      "Invalid spatial point encountered: %s": [""],
+      "Invalid spatial point encountered: %(latlong)": [""],
       "Invalid tab ids: %s(tab_ids)": [""],
       "Inverse selection": [""],
       "Is dimension": [""],
@@ -1670,6 +1665,7 @@
       "Is tagged": [""],
       "Is temporal": [""],
       "Is true": [""],
+      "Isoband": [""],
       "Issue 1001 - The database is under an unusual load.": [
         "Issue 1001 - データベースに異常な負荷がかかっています。"
       ],
@@ -1703,6 +1699,7 @@
       "KPI": [""],
       "Keep control settings?": [""],
       "Keep editing": ["編集を続ける"],
+      "Keyboard shortcuts": [""],
       "Keys for table": [""],
       "Label": ["ラベル"],
       "Label Line": [""],
@@ -1718,9 +1715,14 @@
       "Last Modified": ["最終更新"],
       "Last Updated %s": ["最終更新 %s"],
       "Last available value seen on %s": [""],
+      "Last day": ["土曜日"],
       "Last modified": ["最終更新"],
       "Last modified by %s": ["最終更新者 %s"],
+      "Last month": ["月"],
+      "Last quarter": ["四半期"],
       "Last run": ["前回の実行"],
+      "Last week": ["先週"],
+      "Last year": ["年"],
       "Latitude": [""],
       "Latitude of default viewport": [""],
       "Layer configuration": ["レイヤー構成"],
@@ -1732,7 +1734,6 @@
         ""
       ],
       "Least recently modified": ["最終更新"],
-      "Left Axis Format": [""],
       "Left Margin": [""],
       "Left margin, in pixels, allowing for more room for axis labels": [""],
       "Left to Right": [""],
@@ -1754,6 +1755,9 @@
       "Limits the number of series that get displayed. A joined subquery (or an extra phase where subqueries are not supported) is applied to limit the number of series that get fetched and rendered. This feature is useful when grouping by high cardinality column(s) though does increase the query complexity and cost.": [
         ""
       ],
+      "Limits the number of the rows that are computed in the query that is the source of the data used for this chart.": [
+        ""
+      ],
       "Line Chart (legacy)": [""],
       "Line Style": [""],
       "Line chart is used to visualize measurements taken over a given category. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.": [
@@ -1764,7 +1768,6 @@
       "Linear color scheme": ["線形配色"],
       "Linear interpolation": [""],
       "Link Copied!": ["リンクをコピーしました!"],
-      "List Saved Query": ["保存したクエリのリスト"],
       "List Unique Values": [""],
       "List of extra columns made available in JavaScript functions": [""],
       "List of n+1 values for bucketing metric into n buckets.": [""],
@@ -1781,6 +1784,7 @@
       "Logarithmic axis": [""],
       "Logarithmic scale on primary y-axis": [""],
       "Logarithmic scale on secondary y-axis": [""],
+      "Logarithmic x-axis": [""],
       "Logarithmic y-axis": [""],
       "Login": ["ログイン"],
       "Logout": ["ログアウト"],
@@ -1791,6 +1795,8 @@
       "Longitude & Latitude columns": [""],
       "Longitude and Latitude": [""],
       "Longitude of default viewport": [""],
+      "Lower Threshold": [""],
+      "Lower threshold must be lower than upper threshold": [""],
       "MAR": ["3月"],
       "MAY": ["5月"],
       "MON": ["月"],
@@ -1844,6 +1850,7 @@
       "Metric assigned to the [X] axis": ["[X] 軸に割り当てられた指標"],
       "Metric assigned to the [Y] axis": ["[Y] 軸に割り当てられた指標"],
       "Metric change in value from `since` to `until`": [""],
+      "Metric currency": [""],
       "Metric factor change from `since` to `until`": [""],
       "Metric for node values": [""],
       "Metric name [%s] is duplicated": [""],
@@ -1863,9 +1870,6 @@
         ""
       ],
       "Metrics": ["指標"],
-      "Metrics for which percentage of total are to be displayed. Calculated from only data within the row limit.": [
-        ""
-      ],
       "Midnight": [""],
       "Min": ["最小値"],
       "Min periods": [""],
@@ -1942,7 +1946,6 @@
       "Nightingale Rose Chart": [""],
       "No": [""],
       "No %s yet": [""],
-      "No Access!": ["アクセスがありません!"],
       "No Data": [""],
       "No annotation layers yet": ["注釈レイヤーはまだありません"],
       "No annotation yet": ["注釈はまだありません"],
@@ -1956,6 +1959,7 @@
       "No data in file": ["ファイルにデータがありません"],
       "No databases match your search": [""],
       "No description available.": [""],
+      "No entities have this tag currently assigned": [""],
       "No favorite charts yet, go click on stars!": [
         "お気に入りのチャートはまだありません。星をクリックしてください！"
       ],
@@ -1981,7 +1985,9 @@
       ],
       "No time columns": [""],
       "No validator found (configured for the engine)": [""],
-      "No validator named {} found (configured for the {} engine)": [""],
+      "No validator named %(validator_name) found (configured for the %(engine_spec) engine)": [
+        ""
+      ],
       "Node label position": [""],
       "Node select mode": [""],
       "Node size": [""],
@@ -2030,10 +2036,6 @@
       "One or many columns to group by. High cardinality groupings should include a series limit to limit the number of fetched and rendered series.": [
         ""
       ],
-      "One or many columns to group by. High cardinality groupings should include a sort by metric and series limit to limit the number of fetched and rendered series.": [
-        ""
-      ],
-      "One or many columns to pivot as columns": [""],
       "One or many controls to group by. If grouping, latitude and longitude columns must be present.": [
         ""
       ],
@@ -2045,9 +2047,6 @@
       "One or more metrics already exist": [""],
       "One or more metrics are duplicated": [""],
       "One or more metrics do not exist": [""],
-      "One or more required fields are missing in the request. Please try again, and if the problem persists contact your administrator.": [
-        ""
-      ],
       "One ore more annotation layers failed loading.": [
         "1つ以上の注釈レイヤーの読み込みに失敗しました。"
       ],
@@ -2073,6 +2072,9 @@
       "Opacity of Area Chart. Also applies to confidence band.": [""],
       "Opacity of all clusters, points, and labels. Between 0 and 1.": [""],
       "Opacity of area chart.": [""],
+      "Opacity of bubbles, 0 means completely transparent, 1 means opaque": [
+        ""
+      ],
       "Opacity, expects values between 0 and 100": [""],
       "Open Datasource tab": ["データソースタブを開く"],
       "Open in SQL Lab": ["SQL Labで開く"],
@@ -2121,6 +2123,7 @@
       "Owners is a list of users who can alter the dashboard. Searchable by name or username.": [
         "所有者は、ダッシュボードを変更できるユーザーのリストです。名前またはユーザー名で検索できます。"
       ],
+      "PDF download failed, please refresh and try again.": [""],
       "Page length": [""],
       "Paired t-test Table": [""],
       "Pandas resample method": [""],
@@ -2153,16 +2156,11 @@
       "Physical (table or view)": [""],
       "Physical dataset": [""],
       "Pick a dimension from which categorical colors are defined": [""],
-      "Pick a granularity in the Time section or uncheck 'Include Time'": [""],
       "Pick a metric for x, y and size": [""],
       "Pick a metric to display": ["表示する指標を選択"],
-      "Pick a metric!": ["指標を選んでください!"],
       "Pick a name to help you identify this database.": [""],
       "Pick a nickname for how the database will display in Superset.": [""],
       "Pick a set of deck.gl charts to layer on top of one another": [""],
-      "Pick a time granularity for your time series": [
-        "時系列の時間粒度を選択"
-      ],
       "Pick a title for you annotation.": [""],
       "Pick at least one field for [Series]": [""],
       "Pick at least one metric": ["少なくとも1つの指標を選択してください"],
@@ -2193,7 +2191,6 @@
       "Please check your template parameters for syntax errors and make sure they match across your SQL query and Set Parameters. Then, try running your query again.": [
         ""
       ],
-      "Please choose different metrics on left and right axis": [""],
       "Please confirm": ["確認してください"],
       "Please confirm the overwrite values.": [""],
       "Please enter a SQLAlchemy URI to test": [""],
@@ -2227,7 +2224,6 @@
       "Point to your spatial columns": [""],
       "Points and clusters will update as the viewport is being changed": [""],
       "Polyline": [""],
-      "Pop Tab Link": [""],
       "Popular": [""],
       "Populate \"Default value\" to enable this control": [""],
       "Population age data": [""],
@@ -2246,6 +2242,8 @@
         ""
       ],
       "Predictive Analytics": [""],
+      "Prefix": [""],
+      "Prefix or suffix": [""],
       "Preview": ["プレビュー"],
       "Preview: `%s`": [""],
       "Previous": ["前"],
@@ -2348,9 +2346,6 @@
       "Report Schedule could not be created.": [
         "レポートスケジュールを作成できませんでした。"
       ],
-      "Report Schedule could not be deleted.": [
-        "レポートスケジュールを削除できませんでした。"
-      ],
       "Report Schedule could not be updated.": [
         "レポートスケジュールを更新できませんでした。"
       ],
@@ -2392,7 +2387,6 @@
       "Report sent": ["レポートが送信されました"],
       "Reports": ["レポート"],
       "Repulsion strength between nodes": [""],
-      "Request Permissions": ["権限のリクエスト"],
       "Request is incorrect: %(error)s": [""],
       "Request is not JSON": [""],
       "Request missing data field.": [""],
@@ -2421,9 +2415,6 @@
         ""
       ],
       "Role": [""],
-      "Role %(r)s was extended to provide the access to the datasource %(ds)s": [
-        ""
-      ],
       "Roles": [""],
       "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, regular access permissions apply.": [
         ""
@@ -2431,7 +2422,6 @@
       "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks.If no roles are defined, regular access permissions apply.": [
         ""
       ],
-      "Roles to grant": ["付与する役割"],
       "Rolling Function": [""],
       "Rolling Window": [""],
       "Rolling function": [""],
@@ -2440,6 +2430,7 @@
       "Root node id": [""],
       "Rotate axis label": [""],
       "Rotate x axis label": [""],
+      "Rotate y axis label": [""],
       "Rotation to apply to words in the cloud": [""],
       "Row": ["行"],
       "Row containing the headers to use as column names (0 is first line of data). Leave empty if there is no header row": [
@@ -2501,7 +2492,6 @@
       "Save (Overwrite)": ["上書き保存"],
       "Save as": ["別名で保存"],
       "Save as new": ["新規保存"],
-      "Save as new chart": ["新しいチャートとして保存"],
       "Save as:": ["別名で保存:"],
       "Save chart": ["チャートを保存"],
       "Save dashboard": ["ダッシュボードを保存"],
@@ -2536,13 +2526,14 @@
       "Scheduled at (UTC)": ["スケジュール設定時刻 (UTC)"],
       "Schema": ["スキーマ"],
       "Schema cache timeout": [""],
-      "Schema undefined": [""],
       "Schema, as used only in some databases like Postgres, Redshift and DB2": [
         ""
       ],
       "Schemas allowed for File upload": [""],
       "Scope": [""],
       "Scoping": ["スコープ"],
+      "Screenshot width": [""],
+      "Screenshot width must be between %(min)spx and %(max)spx": [""],
       "Scroll": [""],
       "Scroll down to the bottom to enable overwriting changes. ": [""],
       "Search": ["検索"],
@@ -2552,6 +2543,7 @@
       "Search by query text": [""],
       "Search...": ["検索…"],
       "Second": ["秒"],
+      "Secondary currency format": [""],
       "Secondary y-axis Bounds": [""],
       "Secondary y-axis format": [""],
       "Secondary y-axis title": [""],
@@ -2569,7 +2561,13 @@
       "Select a database table and create dataset": [""],
       "Select a database to upload the file to": [""],
       "Select a database to write a query": [""],
+      "Select a metric to display. You can use an aggregation function on a column or write custom SQL to create a metric.": [
+        ""
+      ],
       "Select a schema if the database supports this": [""],
+      "Select a time grain for the visualization. The grain is the time interval represented by a single point on the chart.": [
+        ""
+      ],
       "Select a visualization type": ["可視化方式を選んでください"],
       "Select aggregate options": [""],
       "Select any columns for metadata inspection": [""],
@@ -2579,8 +2577,15 @@
       ],
       "Select filter plugin using AntD": [""],
       "Select first filter value by default": [""],
+      "Select one or many metrics to display, that will be displayed in the percentages of total. Percentage metrics will be calculated only from data within the row limit. You can use an aggregation function on a column or write custom SQL to create a percentage metric.": [
+        ""
+      ],
+      "Select one or many metrics to display. You can use an aggregation function on a column or write custom SQL to create a metric.": [
+        ""
+      ],
       "Select operator": [""],
       "Select or type a value": [""],
+      "Select or type currency symbol": [""],
       "Select or type dataset name": [""],
       "Select owners": [""],
       "Select schema or type to search schemas": [""],
@@ -2645,7 +2650,6 @@
       "Show Log": ["ログを表示"],
       "Show Markers": [""],
       "Show Metric": ["指標を表示"],
-      "Show Saved Query": ["保存したクエリを表示"],
       "Show Table": ["テーブルを表示"],
       "Show Timestamp": [""],
       "Show Trend Line": [""],
@@ -2748,10 +2752,9 @@
       "Spatial": [""],
       "Specific Date/Time": [""],
       "Specify a schema (if database flavor supports this).": [""],
-      "Specify duplicate columns as \"X.0, X.1\".": [""],
       "Specify name to CREATE TABLE AS schema in: public": [""],
       "Specify name to CREATE VIEW AS schema in: public": [""],
-      "Specify the database version. This should be used with Presto in order to enable query cost estimation.": [
+      "Specify the database version. This is used with Presto for query cost estimation, and Dremio for syntax changes, among others.": [
         ""
       ],
       "Stack": [""],
@@ -2797,6 +2800,7 @@
       "Submit": [""],
       "Subtotal": [""],
       "Success": ["成功"],
+      "Suffix": [""],
       "Suffix to apply after the percentage display": [""],
       "Sum": [""],
       "Sum as Fraction of Columns": [""],
@@ -2838,11 +2842,7 @@
       ],
       "Table Exists": [""],
       "Table Name": ["テーブル名"],
-      "Table View": [""],
       "Table [%(table_name)s] could not be found, please double check your database connection, schema, and table name": [
-        ""
-      ],
-      "Table [%{table}s] could not be found, please double check your database connection, schema, and table name, error: {}": [
         ""
       ],
       "Table cache timeout": [""],
@@ -2855,7 +2855,9 @@
       "Tables": ["テーブル"],
       "Tabs": ["タブ"],
       "Tabular": [""],
+      "Tag": [""],
       "Tag name is invalid (cannot contain ':')": [""],
+      "Tagged %s %ss": [""],
       "Take your data points, and group them into \"bins\" to see where the densest areas of information lie": [
         ""
       ],
@@ -2890,7 +2892,6 @@
       "The X-axis is not on the filters list which will prevent it from being used in\n            time range filters in dashboards. Would you like to add it to the filters list?": [
         ""
       ],
-      "The access requests seem to have been deleted": [""],
       "The category of source nodes used to assign colors. If a node is associated with more than one category, only the first will be used.": [
         ""
       ],
@@ -2899,6 +2900,7 @@
         ""
       ],
       "The color for points and clusters in RGB": [""],
+      "The color of the isoband": [""],
       "The color scheme for rendering chart": [""],
       "The color scheme is determined by the related dashboard.\n        Edit the color scheme in the dashboard properties.": [
         ""
@@ -2923,6 +2925,12 @@
         ""
       ],
       "The dataset associated with this chart no longer exists": [""],
+      "The dataset column/metric that returns the values on your chart's x-axis.": [
+        ""
+      ],
+      "The dataset column/metric that returns the values on your chart's y-axis.": [
+        ""
+      ],
       "The dataset configuration exposed here\n                affects all the charts using this dataset.\n                Be mindful that changing settings\n                here may affect other charts\n                in undesirable ways.": [
         ""
       ],
@@ -2955,6 +2963,7 @@
       "The list of charts associated with this table. By altering this datasource, you may change how these associated charts behave. Also note that charts need to point to a datasource, so this form will fail at saving if removing charts from a datasource. If you want to change the datasource for a chart, overwrite the chart from the 'explore view'": [
         ""
       ],
+      "The lower limit of the threshold range of the Isoband": [""],
       "The maximum number of events to return, equivalent to the number of rows": [
         ""
       ],
@@ -3024,7 +3033,6 @@
         ""
       ],
       "The primary metric is used to define the arc segment sizes": [""],
-      "The provided `rows` argument is not a valid integer.": [""],
       "The query associated with the results was deleted.": [""],
       "The query associated with these results could not be found. You need to re-run the original query.": [
         ""
@@ -3058,10 +3066,10 @@
       "The schema \"%(schema_name)s\" does not exist. A valid schema must be used to run this query.": [
         ""
       ],
+      "The schema of the submitted payload is invalid.": [""],
+      "The size of each cell in meters": [""],
       "The size of the square cell, in pixels": [""],
-      "The submitted URL is not considered safe, only use URLs with the same domain as Superset.": [
-        ""
-      ],
+      "The submitted payload failed validation.": [""],
       "The submitted payload has the incorrect format.": [""],
       "The submitted payload has the incorrect schema.": [""],
       "The table \"%(table)s\" does not exist. A valid table must be used to run this query.": [
@@ -3094,6 +3102,7 @@
       "The time unit used for the grouping of blocks": [""],
       "The type of visualization to display": ["表示する可視化のタイプ"],
       "The unit of measure for the specified point radius": [""],
+      "The upper limit of the threshold range of the Isoband": [""],
       "The user seems to have been deleted": [""],
       "The user/password combination is not valid (Incorrect password for user).": [
         ""
@@ -3103,7 +3112,6 @@
       "There are associated alerts or reports": [
         "関連するアラートまたはレポートがあります"
       ],
-      "There are associated alerts or reports: %s,": [""],
       "There are no components added to this tab": [""],
       "There are no databases available": [""],
       "There are no filters in this dashboard.": [
@@ -3162,7 +3170,7 @@
       "There's a loop in your Sankey, please provide a tree. Here's a faulty link: {}": [
         ""
       ],
-      "These are the tables this filter will be applied to.": [""],
+      "These are the datasets this filter will be applied to.": [""],
       "These filters apply to the values available in the dropdowns": [""],
       "These parameters are generated dynamically when clicking the save or overwrite button in the explore view. This JSON object is exposed here for reference and for power users who may want to alter specific parameters.": [
         ""
@@ -3201,6 +3209,9 @@
       ],
       "This column might be incompatible with current dataset": [""],
       "This column must contain date/time information.": [""],
+      "This control filters the whole chart based on the selected time range. All relative times, e.g. \"Last month\", \"Last 7 days\", \"now\", etc. are evaluated on the server using the server's local time (sans timezone). All tooltips and placeholder times are expressed in UTC (sans timezone). The timestamps are then evaluated by the database using the engine's local timezone. Note one can explicitly set the timezone per the ISO 8601 format if specifying either the start and/or end time.": [
+        ""
+      ],
       "This controls whether the \"time_range\" field from the current\n                  view should be passed down to the chart containing the annotation data.": [
         ""
       ],
@@ -3222,9 +3233,6 @@
       "This dashboard is ready to embed. In your application, pass the following id to the SDK:": [
         ""
       ],
-      "This dashboard was changed recently. Please reload dashboard to get latest version.": [
-        "このダッシュボードは最近変更されました。最新の情報を入手するにはダッシュボードをリロードしてください。"
-      ],
       "This dashboard was saved successfully.": [
         "このダッシュボードは正常に保存されました。"
       ],
@@ -3240,6 +3248,12 @@
       "This dataset is not used to power any charts.": [""],
       "This defines the element to be plotted on the chart": [""],
       "This defines the level of the hierarchy": [""],
+      "This field is used as a unique identifier to attach the calculated dimension to charts. It is also used as the alias in the SQL query.": [
+        ""
+      ],
+      "This field is used as a unique identifier to attach the metric to charts. It is also used as the alias in the SQL query.": [
+        ""
+      ],
       "This fields acts a Superset view, meaning that Superset will run a query against this string as a subquery.": [
         ""
       ],
@@ -3262,6 +3276,9 @@
         "このマークダウンコンポーネントにエラーがあります。最近の変更を元に戻してください。"
       ],
       "This may be triggered by:": [""],
+      "This metric is used to define row selection criteria (how the rows are sorted) if a series or row limit is present. If not defined, it reverts to the first metric (where appropriate).": [
+        ""
+      ],
       "This metric might be incompatible with current dataset": [""],
       "This section allows you to configure how to use the slice\n              to generate annotations.": [
         ""
@@ -3283,8 +3300,10 @@
         "この可視化方式はサポートされていません。"
       ],
       "This will remove your current embed configuration.": [""],
+      "Threshold": [""],
       "Threshold alpha level for determining significance": [""],
       "Threshold value should be double precision number": [""],
+      "Threshold: ": [""],
       "Thumbnails": [""],
       "Thursday": ["木曜日"],
       "Time": ["時間"],
@@ -3352,6 +3371,7 @@
       ],
       "Tools": [""],
       "Tooltip": [""],
+      "Tooltip Contents": [""],
       "Top to Bottom": [""],
       "Total": [""],
       "Total (%(aggfunc)s)": [""],
@@ -3380,7 +3400,6 @@
         ""
       ],
       "Try different criteria to display results.": [""],
-      "Try selecting a different schema": [""],
       "Tuesday": ["火曜日"],
       "Type": ["タイプ"],
       "Type \"%s\" to confirm": [""],
@@ -3461,11 +3480,14 @@
       "Upload Excel file to database": [""],
       "Upload JSON file": [""],
       "Upload columnar file": [""],
+      "Upper Threshold": [""],
+      "Upper threshold must be greater than lower threshold": [""],
       "Use \"%(menuName)s\" menu instead.": [""],
       "Use a log scale": [""],
       "Use a log scale for the X-axis": [""],
       "Use a log scale for the Y-axis": [""],
       "Use an encrypted connection to the database": [""],
+      "Use an ssh tunnel connection to the database": [""],
       "Use another existing chart as a source for annotations and overlays.\n          Your chart must be one of these visualization types: [%s]": [
         ""
       ],
@@ -3489,11 +3511,11 @@
         ""
       ],
       "User": ["ユーザー"],
-      "User Roles": ["ユーザーの役割"],
       "User must select a value before applying the filter": [""],
       "User must select a value for this filter": [""],
       "User query": ["ユーザークエリ"],
       "Username": ["ユーザー名"],
+      "Users are not allowed to set a search path for security reasons.": [""],
       "Uses Gaussian Kernel Density Estimation to visualize spatial distribution of data": [
         ""
       ],
@@ -3606,11 +3628,13 @@
       "Wednesday": ["水曜日"],
       "Week": ["週"],
       "Week ending Saturday": [""],
+      "Week ending Sunday": [""],
       "Week starting Monday": [""],
       "Week starting Sunday": [""],
-      "Week_ending Sunday": [""],
       "Weekly Report for %s": [""],
       "Weekly seasonality": [""],
+      "What should be shown as the label": [""],
+      "What should be shown as the tooltip label": [""],
       "What should be shown on the label?": [""],
       "What should happen if the table already exists": [""],
       "When `Calculation type` is set to \"Percentage change\", the Y Axis Format is forced to `.1%`": [
@@ -3630,6 +3654,9 @@
         ""
       ],
       "When specifying SQL, the datasource acts as a view. Superset will use this statement as a subquery while grouping and filtering on the generated parent queries.": [
+        ""
+      ],
+      "When the secondary temporal columns are filtered, apply the same filter to the main datetime column.": [
         ""
       ],
       "When using \"Autocomplete filters\", this can be used to improve performance of the query fetching the values. Use this option to apply a predicate (WHERE clause) to the query selecting the distinct values from the table. Typically the intent would be to limit the scan by applying a relative time filter on a partitioned or indexed time-related field.": [
@@ -3664,6 +3691,9 @@
       ],
       "Whether to apply filter when items are clicked": [""],
       "Whether to colorize numeric values by if they are positive or negative": [
+        ""
+      ],
+      "Whether to colorize numeric values by whether they are positive or negative": [
         ""
       ],
       "Whether to display a bar chart background in table columns": [""],
@@ -3738,6 +3768,7 @@
       "Write dataframe index as a column": [""],
       "Write dataframe index as a column.": [""],
       "X AXIS TITLE BOTTOM MARGIN": [""],
+      "X AXIS TITLE MARGIN": [""],
       "X Axis": ["X軸"],
       "X Axis Label": [""],
       "X Axis Title": [""],
@@ -3747,13 +3778,13 @@
       "X-Axis Sort By": [""],
       "Y 2 bounds": [""],
       "Y AXIS TITLE MARGIN": [""],
-      "Y AXIS TITLE POSITION": [""],
       "Y Axis": ["Y軸"],
       "Y Axis 2 Bounds": [""],
       "Y Axis Bounds": [""],
       "Y Axis Format": [""],
       "Y Axis Label": [""],
       "Y Axis Title": [""],
+      "Y Axis Title Margin": [""],
       "Y Log Scale": [""],
       "Y bounds": [""],
       "Y-Axis Sort By": [""],
@@ -3764,6 +3795,7 @@
       "Yes": [""],
       "Yes, cancel": ["はい、キャンセルします"],
       "Yes, overwrite changes": [""],
+      "You are adding tags to %s %ss": [""],
       "You are importing one or more charts that already exist. Overwriting might cause you to lose some of your work. Are you sure you want to overwrite?": [
         ""
       ],
@@ -3778,9 +3810,6 @@
       ],
       "You are importing one or more saved queries that already exist. Overwriting might cause you to lose some of your work. Are you sure you want to overwrite?": [
         "既に存在する 1 つ以上の保存済みクエリをインポートしています。上書きすると、作業の一部が失われる可能性があります。上書きしますか?"
-      ],
-      "You are not authorized to see this query. If you think this is an error, please reach out to your administrator.": [
-        ""
       ],
       "You can add the components in the": [""],
       "You can add the components in the edit mode.": [""],
@@ -3799,17 +3828,11 @@
         ""
       ],
       "You cannot use 45° tick layout along with the time range filter": [""],
-      "You cannot use [Columns] in combination with [Group By]/[Metrics]/[Percentage Metrics]. Please choose one or the other.": [
-        "[Columns] を [Group By]/[Metrics]/[Percentage Metrics] と組み合わせて使用することはできません。どちらか一方を選択してください。"
-      ],
       "You do not have permission to edit this chart": [
         "このチャートを編集する権限がありません"
       ],
       "You do not have permission to edit this dashboard": [
         "このダッシュボードを編集する権限がありません"
-      ],
-      "You do not have permissions to access the datasource(s): %(name)s.": [
-        "データソースにアクセスするためのアクセス許可がありません: %(name)s."
       ],
       "You do not have permissions to edit this dashboard.": [
         "このダッシュボードを編集する権限がありません。"
@@ -3820,7 +3843,6 @@
       "You don't have any favorites yet!": ["まだお気に入りはありません!"],
       "You don't have the rights to alter %(resource)s": [""],
       "You don't have the rights to alter this title.": [""],
-      "You have no permission to approve this request": [""],
       "You have removed this filter.": ["このフィルタを削除しました。"],
       "You have unsaved changes.": ["未保存の変更があります。"],
       "You have used all %(historyLength)s undo slots and will not be able to fully undo subsequent actions. You may save your current state to reset the history.": [
@@ -3856,12 +3878,8 @@
       "[Longitude] and [Latitude] columns must be present in [Group By]": [""],
       "[Longitude] and [Latitude] must be set": [""],
       "[Missing Dataset]": ["[データセットが見つかりません]"],
-      "[Superset] Access to the datasource %(name)s was granted": [
-        "[Superset]　データソース　%(name)s へのアクセスは許可されました"
-      ],
       "[Untitled]": [""],
       "[asc]": [""],
-      "[copy]": [""],
       "[dashboard name]": ["[ダッシュボード名]"],
       "[desc]": [""],
       "[optional] this secondary metric is used to define the color as a ratio against the primary metric. When omitted, the color is categorical and based on labels": [
@@ -4008,6 +4026,7 @@
         ""
       ],
       "pixelated (Sharp)": [""],
+      "pixels": [""],
       "previous calendar month": [""],
       "previous calendar week": [""],
       "previous calendar year": [""],
@@ -4019,7 +4038,6 @@
       "report": ["レポート"],
       "reports": ["レポート"],
       "restore zoom": [""],
-      "search by tags": [""],
       "series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series": [
         ""
       ],
