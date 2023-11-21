@@ -38,7 +38,7 @@ export const Default = (args: DvtNavigationProps) => (
 
 Default.args = {
   data: [
-    { title: 'Connections', url: '', fileName: 'alert' },
+    { title: 'Connections', url: '', fileName: 'Cancel' },
     { title: 'Dataset', url: '', fileName: 'database' },
     { title: 'Dashboard', url: '', fileName: 'alert' },
     { title: 'Report', url: '', fileName: 'alert' },
