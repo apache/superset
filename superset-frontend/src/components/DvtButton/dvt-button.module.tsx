@@ -29,13 +29,13 @@ interface DvtButtonProps {
 interface SizeProps {
   small: {
     size: number;
-  },
+  };
   medium: {
     size: number;
-  },
+  };
   large: {
     size: number;
-  },
+  };
 }
 
 const sizes: SizeProps = {
@@ -48,7 +48,8 @@ const sizes: SizeProps = {
   large: {
     size: 56,
   },
-}
+};
+
 const StyledDvtButton = styled.button<DvtButtonProps>`
   display: flex;
   align-items: center;
@@ -56,7 +57,7 @@ const StyledDvtButton = styled.button<DvtButtonProps>`
   cursor: pointer;
   gap: 8px;
   ${({ $maxWidth }) => $maxWidth && `width: 100%;`};
-  height: ${({$size}) => `${sizes[$size].size}px`};
+  height: ${({ $size }) => `${sizes[$size].size}px`};
   padding: 0 12px;
   border-radius: 8px;
   border: none;
