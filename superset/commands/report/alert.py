@@ -96,7 +96,7 @@ class AlertCommand(BaseCommand):
         if len(rows) > 1:
             raise AlertQueryMultipleRowsError(
                 message=_(
-                    "Alert query returned more than one row. %(num_rows) rows returned",
+                    "Alert query returned more than one row. %(num_rows)s rows returned",
                     num_rows=len(rows),
                 )
             )
@@ -106,7 +106,7 @@ class AlertCommand(BaseCommand):
                 # len is subtracted by 1 to discard pandas index column
                 _(
                     "Alert query returned more than one column. "
-                    "%(num_cols) columns returned",
+                    "%(num_cols)s columns returned",
                     num_cols=(len(rows[0]) - 1),
                 )
             )
