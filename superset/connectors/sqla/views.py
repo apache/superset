@@ -28,7 +28,6 @@ from flask_babel import lazy_gettext as _
 from wtforms.validators import DataRequired, Regexp
 
 from superset import db
-from superset.connectors.base.views import DatasourceModelView
 from superset.connectors.sqla import models
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.superset_typing import FlaskResponse
@@ -282,7 +281,7 @@ class RowLevelSecurityView(BaseSupersetView):
 
 
 class TableModelView(  # pylint: disable=too-many-ancestors
-    DatasourceModelView, DeleteMixin, YamlExportMixin
+    SupersetModelView, DeleteMixin, YamlExportMixin
 ):
     datamodel = SQLAInterface(models.SqlaTable)
     class_permission_name = "Dataset"

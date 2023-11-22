@@ -26,8 +26,6 @@ docker==6.1.1
     # via -r requirements/testing.in
 ephem==4.1.4
     # via lunarcalendar
-exceptiongroup==1.1.1
-    # via pytest
 flask-testing==0.8.1
     # via -r requirements/testing.in
 fonttools==4.39.4
@@ -123,8 +121,6 @@ pyee==9.0.4
     # via playwright
 pyfakefs==5.2.2
     # via -r requirements/testing.in
-pyhive[presto]==0.7.0
-    # via apache-superset
 pytest==7.3.1
     # via
     #   -r requirements/testing.in
@@ -144,8 +140,6 @@ rsa==4.9
     # via google-auth
 setuptools-git==1.2
     # via prophet
-shillelagh[gsheetsapi]==1.2.6
-    # via apache-superset
 sqlalchemy-bigquery==1.6.1
     # via apache-superset
 statsd==4.0.1
