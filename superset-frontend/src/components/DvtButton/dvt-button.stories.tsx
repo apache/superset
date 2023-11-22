@@ -26,6 +26,18 @@ export default {
     label: {
       control: { type: 'text' },
     },
+    icon: {
+      control: { type: 'text' },
+    },
+    size: {
+      control: {
+        type: 'select',
+        options: ['small', 'medium', 'large'],
+      },
+    },
+    onClick: {
+      action: 'clicked',
+    },
     colour: {
       control: {
         type: 'select',
@@ -38,11 +50,8 @@ export default {
         options: ['basic', 'powder', 'outline'],
       },
     },
-    icon: {
-      control: { type: 'text' },
-    },
-    onClick: {
-      action: 'clicked',
+    maxWidth: {
+      control: { type: 'boolean' },
     },
   },
 };
@@ -53,4 +62,47 @@ Default.args = {
   label: 'Create a New Graph/Chart',
   colour: 'primary',
   typeColour: 'basic',
+  size: 'medium',
+};
+
+export const Powder = (args: DvtButtonProps) => <DvtButton {...args} />;
+Powder.args = {
+  label: 'Alert',
+  colour: 'primary',
+  typeColour: 'powder',
+};
+
+export const Success = (args: DvtButtonProps) => <DvtButton {...args} />;
+Success.args = {
+  label: 'Create a New Graph/Chart',
+  colour: 'success',
+  typeColour: 'basic',
+};
+
+export const Outline = (args: DvtButtonProps) => <DvtButton {...args} />;
+Outline.args = {
+  label: 'All',
+  colour: 'primary',
+  typeColour: 'outline',
+};
+
+export const Grayscale = (args: DvtButtonProps) => <DvtButton {...args} />;
+Grayscale.args = {
+  label: 'Mine',
+  colour: 'grayscale',
+};
+export const MaxWidth = (args: DvtButtonProps) => <DvtButton {...args} />;
+MaxWidth.args = {
+  label: 'Create a New Graph/Chart',
+  colour: 'primary',
+  typeColour: 'basic',
+  maxWidth: true,
+};
+
+export const Large = (args: DvtButtonProps) => <DvtButton {...args} />;
+Large.args = {
+  label: 'Alert',
+  colour: 'primary',
+  typeColour: 'basic',
+  size: 'large',
 };

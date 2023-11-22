@@ -20,19 +20,44 @@ import { styled } from '@superset-ui/core';
 
 interface DvtButtonProps {
   $label?: string;
+  $size: 'small' | 'medium' | 'large';
   $colour: 'primary' | 'success' | 'grayscale';
   $typeColour: 'basic' | 'powder' | 'outline';
   $maxWidth?: boolean;
 }
 
+interface SizeProps {
+  small: {
+    size: number;
+  },
+  medium: {
+    size: number;
+  },
+  large: {
+    size: number;
+  },
+}
+
+const sizes: SizeProps = {
+  small: {
+    size: 40,
+  },
+  medium: {
+    size: 44,
+  },
+  large: {
+    size: 56,
+  },
+}
 const StyledDvtButton = styled.button<DvtButtonProps>`
   display: flex;
   align-items: center;
+  justify-content: center;
   cursor: pointer;
-  gap: 5px;
-  ${({ $maxWidth }) =>
-    $maxWidth ? 'display: flex;' : 'display: inline-flex;'};
-  padding: 8px 12px;
+  gap: 8px;
+  ${({ $maxWidth }) => $maxWidth && `width: 100%;`};
+  height: ${({$size}) => `${sizes[$size].size}px`};
+  padding: 0 12px;
   border-radius: 8px;
   border: none;
   ${({ $typeColour, $colour, theme }) => {

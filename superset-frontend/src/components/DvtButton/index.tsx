@@ -18,10 +18,12 @@
  */
 import React from 'react';
 import { StyledDvtButton } from './dvt-button.module';
+import Icon from '../Icons/Icon';
 
 export interface DvtButtonProps {
   label: string;
   icon?: string;
+  size?: 'small' | 'medium' | 'large';
   onClick?: () => void;
   colour?: 'primary' | 'success' | 'grayscale';
   typeColour?: 'basic' | 'powder' | 'outline';
@@ -31,6 +33,7 @@ export interface DvtButtonProps {
 const DvtButton: React.FC<DvtButtonProps> = ({
   label,
   icon,
+  size = 'medium',
   onClick,
   colour = 'primary',
   typeColour = 'basic',
@@ -38,12 +41,13 @@ const DvtButton: React.FC<DvtButtonProps> = ({
 }) => (
   <StyledDvtButton
     $label={label}
+    $size={size}
     $maxWidth={maxWidth}
     $colour={colour}
     $typeColour={typeColour}
     onClick={onClick}
   >
-    {icon && <img src={icon} alt="Button Icon" />}
+    {icon && <Icon fileName={icon} />}
     {label}
   </StyledDvtButton>
 );
