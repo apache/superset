@@ -45,7 +45,7 @@ Default.args = {
   placeholder: 'Select or type a value',
 };
 
-export const Example = (args: DvtSelectProps) => {
+export const ScrollExample = (args: DvtSelectProps) => {
   const [selectedValue, setSelectedValue] = useState<string>('');
 
   return (
@@ -57,12 +57,17 @@ export const Example = (args: DvtSelectProps) => {
   );
 };
 
-Example.args = {
+ScrollExample.args = {
   label: 'Database',
   data: [
     { value: 'mssql', label: 'MsSQL' },
     { value: 'mysql', label: 'MySQL' },
     { value: 'postgresql', label: 'PostgreSQL' },
+    { value: 'oraclesql', label: 'Oracle SQL' },
+    { value: 'sqllite', label: 'SQLite' },
+    { value: 'dbvisualizer', label: 'DBVisualizer' },
+    { value: 'dbeaver', label: 'DBeaver' },
+    { value: 'heidisql', label: 'HeidiSQL' },
   ],
   placeholder: 'Select or type a value',
 };

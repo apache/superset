@@ -26,6 +26,7 @@ import {
   StyledSelectSelect,
   StyledSelectIcon,
 } from './dvt-select.module';
+import { iso8859 } from 'urijs';
 
 export interface DvtSelectProps {
   label?: string;
@@ -64,8 +65,7 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
         </StyledSelectIcon>
       </StyledSelectSelect>
 
-      {isOpen && (
-        <StyledSelectOptions>
+        <StyledSelectOptions isOpen={isOpen}>
           {data.map((option, index) => (
             <StyledSelectOption
               selectedValue={selectedValue}
@@ -77,7 +77,6 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
             </StyledSelectOption>
           ))}
         </StyledSelectOptions>
-      )}
     </StyledSelect>
   );
 };

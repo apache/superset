@@ -49,6 +49,7 @@ const StyledSelectSelect = styled.div<StyledSelectProps>`
   margin-bottom: 3px;
   cursor: pointer;
   color: ${({ theme }) => theme.colors.dvt.primary.light1};
+  transition: background-color 0.3s ease-in-out;
 `;
 
 const StyledSelectLabel = styled.label`
@@ -76,14 +77,18 @@ const StyledSelectOption = styled.div<StyledSelectOptionProps>`
       }
     `}
 `;
-const StyledSelectOptions = styled.div`
+const StyledSelectOptions = styled.div<StyledSelectProps>`
   width: 202px;
   border-radius: 12px;
   background: ${({ theme }) => theme.colors.dvt.primary.light2};
+  max-height: ${({ isOpen }) => (isOpen ? '274px' : '0')};
+  overflow-y: auto;
+  transition: max-height 0.3s ease-in-out;
 `;
 const StyledSelectIcon = styled.div<StyledSelectProps>`
   display: flex;
   justify-content: flex-end;
+  transition: transform 0.3s ease-in-out;
   transform: ${({ isOpen }) => (isOpen ? 'rotate(90deg)' : 'none')};
 `;
 
