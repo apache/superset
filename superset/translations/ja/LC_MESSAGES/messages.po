@@ -1512,18 +1512,18 @@ msgid "Alert query returned more than one column."
 msgstr "アラートクエリが複数の列を返しました。"
 
 #: superset/reports/commands/alert.py:110
-#, fuzzy, python-format
+#, python-format
 msgid "Alert query returned more than one column. %(num_cols)s columns returned"
-msgstr "アラートクエリが複数の列を返しました。%s 列が返されました"
+msgstr "アラートクエリが複数の列を返しました。%(num_cols)s 列が返されました"
 
 #: superset/reports/commands/exceptions.py:193
 msgid "Alert query returned more than one row."
 msgstr "アラートクエリが複数の行を返しました。"
 
 #: superset/reports/commands/alert.py:100
-#, fuzzy, python-format
+#, python-format
 msgid "Alert query returned more than one row. %(num_rows)s rows returned"
-msgstr "アラートクエリが複数の行を返しました。 %s 行が返されました"
+msgstr "アラートクエリが複数の行を返しました。 %(num_rows)s 行が返されました"
 
 #: superset-frontend/src/features/alerts/components/AlertStatusIcon.tsx:75
 msgid "Alert running"

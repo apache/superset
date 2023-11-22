@@ -1531,18 +1531,18 @@ msgid "Alert query returned more than one column."
 msgstr "Alert query heeft meer dan één kolom geretourneerd."
 
 #: superset/reports/commands/alert.py:110
-#, fuzzy, python-format
+#, python-format
 msgid "Alert query returned more than one column. %(num_cols)s columns returned"
-msgstr "Alert query retourneerde meer dan één kolom. %s kolommen geretourneerd"
+msgstr "Alert query retourneerde meer dan één kolom. %(num_cols)s kolommen geretourneerd"
 
 #: superset/reports/commands/exceptions.py:193
 msgid "Alert query returned more than one row."
 msgstr "Alert query retourneerde meer dan één rij."
 
 #: superset/reports/commands/alert.py:100
-#, fuzzy, python-format
+#, python-format
 msgid "Alert query returned more than one row. %(num_rows)s rows returned"
-msgstr "Alert query heeft meer dan één rij geretourneerd. %s rijen geretourneerd"
+msgstr "Alert query heeft meer dan één rij geretourneerd. %(num_rows)s rijen geretourneerd"
 
 #: superset-frontend/src/features/alerts/components/AlertStatusIcon.tsx:75
 msgid "Alert running"
@@ -8460,9 +8460,9 @@ msgid "Invalid rolling_type: %(type)s"
 msgstr "Ongeldig rolling_type: %(type)s"
 
 #: superset/viz.py:2030
-#, fuzzy, python-format
+#, python-format
 msgid "Invalid spatial point encountered: %(latlong)s"
-msgstr "Ongeldig ruimtelijk punt aangetroffen: %s"
+msgstr "Ongeldig ruimtelijk punt aangetroffen: %(latlong)s"
 
 #: superset/dashboards/permalink/exceptions.py:23
 #: superset/explore/permalink/exceptions.py:23
@@ -15895,9 +15895,9 @@ msgstr "Er zijn geassocieerde waarschuwingen of rapporten"
 #: superset/charts/commands/delete.py:69
 #: superset/dashboards/commands/delete.py:65
 #: superset/databases/commands/delete.py:64
-#, fuzzy, python-format
+#, python-format
 msgid "There are associated alerts or reports: %(report_names)s"
-msgstr "Er zijn gerelateerde waarschuwingen of rapporten:  %s,"
+msgstr "Er zijn gerelateerde waarschuwingen of rapporten:  %(report_names)s,"
 
 #: superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx:713
 msgid "There are no charts added to this dashboard"
