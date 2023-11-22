@@ -22,24 +22,24 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.sql import select
 
 from superset import db
-from superset.charts.commands.importers.v1 import ImportChartsCommand
-from superset.charts.commands.importers.v1.utils import import_chart
 from superset.charts.schemas import ImportV1ChartSchema
-from superset.commands.exceptions import CommandException
-from superset.commands.importers.v1 import ImportModelsCommand
-from superset.daos.base import BaseDAO
-from superset.dashboards.commands.importers.v1 import ImportDashboardsCommand
-from superset.dashboards.commands.importers.v1.utils import (
+from superset.commands.chart.importers.v1 import ImportChartsCommand
+from superset.commands.chart.importers.v1.utils import import_chart
+from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
+from superset.commands.dashboard.importers.v1.utils import (
     find_chart_uuids,
     import_dashboard,
     update_id_refs,
 )
+from superset.commands.database.importers.v1 import ImportDatabasesCommand
+from superset.commands.database.importers.v1.utils import import_database
+from superset.commands.dataset.importers.v1 import ImportDatasetsCommand
+from superset.commands.dataset.importers.v1.utils import import_dataset
+from superset.commands.exceptions import CommandException
+from superset.commands.importers.v1 import ImportModelsCommand
+from superset.daos.base import BaseDAO
 from superset.dashboards.schemas import ImportV1DashboardSchema
-from superset.databases.commands.importers.v1 import ImportDatabasesCommand
-from superset.databases.commands.importers.v1.utils import import_database
 from superset.databases.schemas import ImportV1DatabaseSchema
-from superset.datasets.commands.importers.v1 import ImportDatasetsCommand
-from superset.datasets.commands.importers.v1.utils import import_dataset
 from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.models.dashboard import dashboard_slices
 from superset.utils.core import get_example_default_schema

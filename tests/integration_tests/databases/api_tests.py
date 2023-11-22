@@ -288,9 +288,9 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @mock.patch(
-        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.databases.commands.create.is_feature_enabled")
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
     )
@@ -336,10 +336,10 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @mock.patch(
-        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.databases.commands.create.is_feature_enabled")
-    @mock.patch("superset.databases.commands.update.is_feature_enabled")
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
+    @mock.patch("superset.commands.database.update.is_feature_enabled")
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
     )
@@ -397,10 +397,10 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @mock.patch(
-        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.databases.commands.create.is_feature_enabled")
-    @mock.patch("superset.databases.commands.update.is_feature_enabled")
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
+    @mock.patch("superset.commands.database.update.is_feature_enabled")
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
     )
@@ -477,12 +477,12 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @mock.patch(
-        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
     )
-    @mock.patch("superset.databases.commands.create.is_feature_enabled")
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
     def test_cascade_delete_ssh_tunnel(
         self,
         mock_test_connection_database_command_run,
@@ -531,9 +531,9 @@ class TestDatabaseApi(SupersetTestCase):
         assert model_ssh_tunnel is None
 
     @mock.patch(
-        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.databases.commands.create.is_feature_enabled")
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
     )
@@ -582,9 +582,9 @@ class TestDatabaseApi(SupersetTestCase):
         assert model is None
 
     @mock.patch(
-        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.databases.commands.create.is_feature_enabled")
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
     )
@@ -637,7 +637,7 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @mock.patch(
-        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
@@ -2005,10 +2005,10 @@ class TestDatabaseApi(SupersetTestCase):
         app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
 
     @mock.patch(
-        "superset.databases.commands.test_connection.DatabaseDAO.build_db_for_connection_test",
+        "superset.commands.database.test_connection.DatabaseDAO.build_db_for_connection_test",
     )
     @mock.patch(
-        "superset.databases.commands.test_connection.event_logger",
+        "superset.commands.database.test_connection.event_logger",
     )
     def test_test_connection_failed_invalid_hostname(
         self, mock_event_logger, mock_build_db
@@ -3748,7 +3748,7 @@ class TestDatabaseApi(SupersetTestCase):
             },
         )
 
-    @patch("superset.databases.commands.validate_sql.get_validator_by_name")
+    @patch("superset.commands.database.validate_sql.get_validator_by_name")
     @patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",
         PRESTO_SQL_VALIDATORS_BY_ENGINE,

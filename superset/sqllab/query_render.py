@@ -24,9 +24,9 @@ from jinja2 import TemplateError
 from jinja2.meta import find_undeclared_variables
 
 from superset import is_feature_enabled
+from superset.commands.sql_lab.execute import SqlQueryRender
 from superset.errors import SupersetErrorType
 from superset.sql_parse import ParsedQuery
-from superset.sqllab.commands.execute import SqlQueryRender
 from superset.sqllab.exceptions import SqlLabException
 from superset.utils import core as utils
 

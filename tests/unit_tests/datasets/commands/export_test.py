@@ -25,8 +25,8 @@ def test_export(session: Session) -> None:
     """
     Test exporting a dataset.
     """
+    from superset.commands.dataset.export import ExportDatasetsCommand
     from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-    from superset.datasets.commands.export import ExportDatasetsCommand
     from superset.models.core import Database
 
     engine = session.get_bind()

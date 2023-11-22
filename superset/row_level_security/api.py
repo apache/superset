@@ -28,14 +28,14 @@ from superset.commands.exceptions import (
     DatasourceNotFoundValidationError,
     RolesNotFoundValidationError,
 )
+from superset.commands.security.create import CreateRLSRuleCommand
+from superset.commands.security.delete import DeleteRLSRuleCommand
+from superset.commands.security.exceptions import RLSRuleNotFoundError
+from superset.commands.security.update import UpdateRLSRuleCommand
 from superset.connectors.sqla.models import RowLevelSecurityFilter
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.exceptions import DAOCreateFailedError, DAOUpdateFailedError
 from superset.extensions import event_logger
-from superset.row_level_security.commands.create import CreateRLSRuleCommand
-from superset.row_level_security.commands.delete import DeleteRLSRuleCommand
-from superset.row_level_security.commands.exceptions import RLSRuleNotFoundError
-from superset.row_level_security.commands.update import UpdateRLSRuleCommand
 from superset.row_level_security.schemas import (
     get_delete_ids_schema,
     openapi_spec_methods_override,
