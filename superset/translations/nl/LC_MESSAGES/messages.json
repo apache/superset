@@ -304,8 +304,14 @@
       "Alert query returned more than one column.": [
         "Alert query heeft meer dan één kolom geretourneerd."
       ],
+      "Alert query returned more than one column. %(num_cols)s columns returned": [
+        "Alert query retourneerde meer dan één kolom. %(num_cols)s kolommen geretourneerd"
+      ],
       "Alert query returned more than one row.": [
         "Alert query retourneerde meer dan één rij."
+      ],
+      "Alert query returned more than one row. %(num_rows)s rows returned": [
+        "Alert query heeft meer dan één rij geretourneerd. %(num_rows)s rijen geretourneerd"
       ],
       "Alert running": ["Alarm actief"],
       "Alert triggered, notification sent": [
@@ -2046,6 +2052,9 @@
       "Invalid reference to column: \"%(column)s\"": [""],
       "Invalid result type: %(result_type)s": [""],
       "Invalid rolling_type: %(type)s": ["Ongeldig rolling_type: %(type)s"],
+      "Invalid spatial point encountered: %(latlong)s": [
+        "Ongeldig ruimtelijk punt aangetroffen: %(latlong)s"
+      ],
       "Invalid tab ids: %s(tab_ids)": [""],
       "Inverse selection": [""],
       "Invert current page": [""],
@@ -2430,9 +2439,6 @@
       "No temporal columns found": [""],
       "No time columns": ["Geen tijdskolommen"],
       "No validator found (configured for the engine)": [""],
-      "No validator named %(validator_name) found (configured for the %(engine_spec) engine)": [
-        ""
-      ],
       "Node label position": [""],
       "Node select mode": [""],
       "Node size": [""],
@@ -3801,6 +3807,9 @@
       "The width of the lines": [""],
       "There are associated alerts or reports": [
         "Er zijn geassocieerde waarschuwingen of rapporten"
+      ],
+      "There are associated alerts or reports: %(report_names)s": [
+        "Er zijn gerelateerde waarschuwingen of rapporten:  %(report_names)s,"
       ],
       "There are no charts added to this dashboard": [""],
       "There are no components added to this tab": [""],

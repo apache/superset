@@ -255,8 +255,14 @@
       "Alert query returned more than one column.": [
         "La consulta de alerta devolvió más de una columna."
       ],
+      "Alert query returned more than one column. %(num_cols)s columns returned": [
+        "La consulta de alerta devolvió más de una columna. %(num_cols)s columnas devueltas"
+      ],
       "Alert query returned more than one row.": [
         "La consulta de alerta devolvió más de una fila."
+      ],
+      "Alert query returned more than one row. %(num_rows)s rows returned": [
+        "La consulta de alerta devolvió más de una fila. %(num_rows)s filas devueltas"
       ],
       "Alert running": ["Ejecución de alerta"],
       "Alert triggered, notification sent": [
@@ -1661,6 +1667,9 @@
       "Invalid permalink key": [""],
       "Invalid reference to column: \"%(column)s\"": [""],
       "Invalid rolling_type: %(type)s": ["rolling_type inválido: %(type)s"],
+      "Invalid spatial point encountered: %(latlong)s": [
+        "Punto espacial inválido encontrado: %(latlong)s"
+      ],
       "Invalid tab ids: %s(tab_ids)": [""],
       "Inverse selection": ["Selección inversa"],
       "Is dimension": ["Es dimensión"],
@@ -1967,9 +1976,6 @@
         "No se encontró la columna especificada. Para filtrar por una métrica, intenta la pestaña SQL Personalizado"
       ],
       "No validator found (configured for the engine)": [""],
-      "No validator named %(validator_name) found (configured for the %(engine_spec) engine)": [
-        ""
-      ],
       "Node label position": [""],
       "None": [""],
       "None -> Arrow": [""],
@@ -3043,6 +3049,9 @@
       "There are associated alerts or reports": [
         "Hay alertas o informes asociados"
       ],
+      "There are associated alerts or reports: %(report_names)s": [
+        "Hay alertas o informes asociados: %(report_names)s,"
+      ],
       "There are no components added to this tab": [""],
       "There are no databases available": [""],
       "There are no filters in this dashboard.": [
@@ -3393,6 +3402,7 @@
       "Unexpected error occurred, please check your logs for details": [
         "Se ha producido un error inesperado, por favor verifique los registros para más detalles"
       ],
+      "Unexpected time range: %(error)s": ["Error inesperado: %(error)s"],
       "Unknown MySQL server host \"%(hostname)s\".": [
         "Host desconocido de MySQL: \"%(hostname)s\""
       ],
