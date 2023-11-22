@@ -713,7 +713,8 @@ class TestCore(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         keys = list(data.keys())
 
-        self.assertEqual(rv.status_code, 202)
+        # If chart is cached, it will return 200, otherwise 202
+        self.assertTrue(rv.status_code in {200, 202})
         self.assertCountEqual(
             keys, ["channel_id", "job_id", "user_id", "status", "errors", "result_url"]
         )
