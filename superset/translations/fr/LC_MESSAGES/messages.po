@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2023-11-21 16:09-0500\n"
+"POT-Creation-Date: 2023-11-22 10:47-0500\n"
 "PO-Revision-Date: 2023-11-20 11:34-0500\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -1557,22 +1557,22 @@ msgstr "La requête d’alerte a retourné une valeur non numérique."
 msgid "Alert query returned more than one column."
 msgstr "La requête d’alerte a retourné plus d'une colonne."
 
-#: superset/reports/commands/alert.py:109
+#: superset/reports/commands/alert.py:110
 #, python-format
-msgid "Alert query returned more than one column. %(num_cols) columns returned"
+msgid "Alert query returned more than one column. %(num_cols)s columns returned"
 msgstr ""
-"La requête d’alerte a retourné plus d'une colonne. %(num_cols) colonnes "
+"La requête d’alerte a retourné plus d'une colonne. %(num_cols)s colonnes "
 "retournées"
 
 #: superset/reports/commands/exceptions.py:193
 msgid "Alert query returned more than one row."
 msgstr "La requête d’alerte a retourné plus d'une rangée."
 
-#: superset/reports/commands/alert.py:99
+#: superset/reports/commands/alert.py:100
 #, python-format
-msgid "Alert query returned more than one row. %(num_rows) rows returned"
+msgid "Alert query returned more than one row. %(num_rows)s rows returned"
 msgstr ""
-"La requête d’alerte a retourné plus d'une rangée. %(num_rows) rangées "
+"La requête d’alerte a retourné plus d'une rangée. %(num_rows)s rangées "
 "retournées"
 
 #: superset-frontend/src/features/alerts/components/AlertStatusIcon.tsx:75
@@ -5805,7 +5805,7 @@ msgstr ""
 #: superset-frontend/src/pages/RowLevelSecurityList/index.tsx:313
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:560
 #: superset-frontend/src/pages/Tags/index.tsx:202
-#: superset-frontend/src/pages/Tags/index.tsx:350 superset/views/base.py:650
+#: superset-frontend/src/pages/Tags/index.tsx:350 superset/views/base.py:652
 msgid "Delete"
 msgstr "Supprimer"
 
@@ -5843,7 +5843,7 @@ msgstr "Supprimer le rapport?"
 msgid "Delete Template?"
 msgstr "Supprimer template?"
 
-#: superset/views/base.py:650
+#: superset/views/base.py:652
 msgid "Delete all Really?"
 msgstr "Vraiment tout effacer?"
 
@@ -7329,11 +7329,11 @@ msgstr "Exporter vers Excel"
 msgid "Export to PDF"
 msgstr "Exporter vers PDF"
 
-#: superset/views/base.py:593
+#: superset/views/base.py:595
 msgid "Export to YAML"
 msgstr "Exporter vers YAML"
 
-#: superset/views/base.py:593
+#: superset/views/base.py:595
 msgid "Export to YAML?"
 msgstr "Exporter vers YAML?"
 
@@ -8717,8 +8717,9 @@ msgid "Invalid rolling_type: %(type)s"
 msgstr "rolling_type invalide: %(type)s"
 
 #: superset/viz.py:2030
-msgid "Invalid spatial point encountered: %(latlong)"
-msgstr "Point géographique invalide: %(latlong)"
+#, python-format
+msgid "Invalid spatial point encountered: %(latlong)s"
+msgstr "Point géographique invalide: %(latlong)s"
 
 #: superset/dashboards/permalink/exceptions.py:23
 #: superset/explore/permalink/exceptions.py:23
@@ -10637,11 +10638,11 @@ msgstr "Pas de colonnes horaires"
 msgid "No validator found (configured for the engine)"
 msgstr "Aucun validateur trouvé (configuré pour le moteur)"
 
-#: superset/databases/commands/validate_sql.py:110
+#: superset/databases/commands/validate_sql.py:113
 #, fuzzy, python-format
 msgid ""
-"No validator named %(validator_name) found (configured for the "
-"%(engine_spec) engine)"
+"No validator named %(validator_name)s found (configured for the "
+"%(engine_spec)s engine)"
 msgstr "Aucun validateur nommé {} trouvé (configuré pour le moteur {})"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:157
@@ -16501,11 +16502,11 @@ msgstr "La largeur des lignes"
 msgid "There are associated alerts or reports"
 msgstr "Il y a des alertes ou des rapports associés"
 
-#: superset/charts/commands/delete.py:67
-#: superset/dashboards/commands/delete.py:63
-#: superset/databases/commands/delete.py:62
-#, fuzzy
-msgid "There are associated alerts or reports: %(report_names)"
+#: superset/charts/commands/delete.py:69
+#: superset/dashboards/commands/delete.py:65
+#: superset/databases/commands/delete.py:64
+#, fuzzy, python-format
+msgid "There are associated alerts or reports: %(report_names)s"
 msgstr "Il y a des alertes ou des rapports associés: %s,"
 
 #: superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx:713
@@ -17994,8 +17995,9 @@ msgid "Unexpected error: "
 msgstr "Erreur inattendue: "
 
 #: superset/views/api.py:108
-msgid "Unexpected time range: %(error)"
-msgstr "Plage de temps inattendue: %(error)"
+#, python-format
+msgid "Unexpected time range: %(error)s"
+msgstr "Plage de temps inattendue: %(error)s"
 
 #: superset-frontend/src/features/home/ActivityTable.tsx:86
 msgid "Unknown"
@@ -20565,7 +20567,7 @@ msgstr "devrait être un nombre entier"
 msgid "joined"
 msgstr "relié"
 
-#: superset/views/base.py:581
+#: superset/views/base.py:583
 msgid "json isn't valid"
 msgstr "json n'est pas valide"
 
@@ -20699,8 +20701,9 @@ msgid "no SQL validator is configured"
 msgstr "aucun validateur SQL n'est configuré"
 
 #: superset/databases/commands/validate_sql.py:100
-msgid "no SQL validator is configured for %(engine_spec)"
-msgstr "aucun validateur SQL n'est configuré pour %(engine_spec)"
+#, python-format
+msgid "no SQL validator is configured for %(engine_spec)s"
+msgstr "aucun validateur SQL n'est configuré pour %(engine_spec)s"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/components/ColumnTypeLabel/ColumnTypeLabel.tsx:63
 msgid "numeric type icon"

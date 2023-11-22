@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2023-11-21 16:09-0500\n"
+"POT-Creation-Date: 2023-11-22 10:47-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1460,18 +1460,18 @@ msgstr ""
 msgid "Alert query returned more than one column."
 msgstr ""
 
-#: superset/reports/commands/alert.py:109
+#: superset/reports/commands/alert.py:110
 #, python-format
-msgid "Alert query returned more than one column. %(num_cols) columns returned"
+msgid "Alert query returned more than one column. %(num_cols)s columns returned"
 msgstr ""
 
 #: superset/reports/commands/exceptions.py:193
 msgid "Alert query returned more than one row."
 msgstr ""
 
-#: superset/reports/commands/alert.py:99
+#: superset/reports/commands/alert.py:100
 #, python-format
-msgid "Alert query returned more than one row. %(num_rows) rows returned"
+msgid "Alert query returned more than one row. %(num_rows)s rows returned"
 msgstr ""
 
 #: superset-frontend/src/features/alerts/components/AlertStatusIcon.tsx:75
@@ -5420,7 +5420,7 @@ msgstr ""
 #: superset-frontend/src/pages/RowLevelSecurityList/index.tsx:313
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:560
 #: superset-frontend/src/pages/Tags/index.tsx:202
-#: superset-frontend/src/pages/Tags/index.tsx:350 superset/views/base.py:650
+#: superset-frontend/src/pages/Tags/index.tsx:350 superset/views/base.py:652
 msgid "Delete"
 msgstr ""
 
@@ -5458,7 +5458,7 @@ msgstr ""
 msgid "Delete Template?"
 msgstr ""
 
-#: superset/views/base.py:650
+#: superset/views/base.py:652
 msgid "Delete all Really?"
 msgstr ""
 
@@ -6865,11 +6865,11 @@ msgstr ""
 msgid "Export to PDF"
 msgstr ""
 
-#: superset/views/base.py:593
+#: superset/views/base.py:595
 msgid "Export to YAML"
 msgstr ""
 
-#: superset/views/base.py:593
+#: superset/views/base.py:595
 msgid "Export to YAML?"
 msgstr ""
 
@@ -8157,7 +8157,8 @@ msgid "Invalid rolling_type: %(type)s"
 msgstr ""
 
 #: superset/viz.py:2030
-msgid "Invalid spatial point encountered: %(latlong)"
+#, python-format
+msgid "Invalid spatial point encountered: %(latlong)s"
 msgstr ""
 
 #: superset/dashboards/permalink/exceptions.py:23
@@ -9994,11 +9995,11 @@ msgstr ""
 msgid "No validator found (configured for the engine)"
 msgstr ""
 
-#: superset/databases/commands/validate_sql.py:110
+#: superset/databases/commands/validate_sql.py:113
 #, python-format
 msgid ""
-"No validator named %(validator_name) found (configured for the "
-"%(engine_spec) engine)"
+"No validator named %(validator_name)s found (configured for the "
+"%(engine_spec)s engine)"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:157
@@ -15366,10 +15367,11 @@ msgstr ""
 msgid "There are associated alerts or reports"
 msgstr ""
 
-#: superset/charts/commands/delete.py:67
-#: superset/dashboards/commands/delete.py:63
-#: superset/databases/commands/delete.py:62
-msgid "There are associated alerts or reports: %(report_names)"
+#: superset/charts/commands/delete.py:69
+#: superset/dashboards/commands/delete.py:65
+#: superset/databases/commands/delete.py:64
+#, python-format
+msgid "There are associated alerts or reports: %(report_names)s"
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx:713
@@ -16675,7 +16677,8 @@ msgid "Unexpected error: "
 msgstr ""
 
 #: superset/views/api.py:108
-msgid "Unexpected time range: %(error)"
+#, python-format
+msgid "Unexpected time range: %(error)s"
 msgstr ""
 
 #: superset-frontend/src/features/home/ActivityTable.tsx:86
@@ -19011,7 +19014,7 @@ msgstr ""
 msgid "joined"
 msgstr ""
 
-#: superset/views/base.py:581
+#: superset/views/base.py:583
 msgid "json isn't valid"
 msgstr ""
 
@@ -19143,7 +19146,8 @@ msgid "no SQL validator is configured"
 msgstr ""
 
 #: superset/databases/commands/validate_sql.py:100
-msgid "no SQL validator is configured for %(engine_spec)"
+#, python-format
+msgid "no SQL validator is configured for %(engine_spec)s"
 msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/components/ColumnTypeLabel/ColumnTypeLabel.tsx:63
