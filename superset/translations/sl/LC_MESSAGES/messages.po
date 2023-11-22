@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2023-11-21 13:10-0500\n"
+"POT-Creation-Date: 2023-11-22 10:47-0500\n"
 "PO-Revision-Date: 2022-06-19 20:59+0200\n"
 "Last-Translator: dkrat7 <dkrat7 @github.com>\n"
 "Language: sl_SI\n"
@@ -959,7 +959,7 @@ msgid "A screenshot of the dashboard will be sent to your email at"
 msgstr "Zaslonska slika nadzorne plošče bo poslana na vaš e-naslov ob"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:990
-#: superset/connectors/sqla/views.py:368
+#: superset/connectors/sqla/views.py:367
 msgid ""
 "A set of parameters that become available in the query using Jinja "
 "templating syntax"
@@ -1140,7 +1140,7 @@ msgstr "Dodaj CSS predlogo"
 msgid "Add Chart"
 msgstr "Dodaj grafikon"
 
-#: superset/connectors/sqla/views.py:73
+#: superset/connectors/sqla/views.py:72
 msgid "Add Column"
 msgstr "Dodaj stolpec"
 
@@ -1156,7 +1156,7 @@ msgstr "Dodaj podatkovno bazo"
 msgid "Add Log"
 msgstr "Dodaj dnevnik"
 
-#: superset/connectors/sqla/views.py:208
+#: superset/connectors/sqla/views.py:207
 msgid "Add Metric"
 msgstr "Dodaj mero"
 
@@ -1582,9 +1582,9 @@ msgstr "Poizvedba za opozorilo je vrnila neštevilsko vrednost."
 msgid "Alert query returned more than one column."
 msgstr "Poizvedba za opozorilo je vrnila več kot en stolpec."
 
-#: superset/reports/commands/alert.py:109
+#: superset/reports/commands/alert.py:110
 #, fuzzy, python-format
-msgid "Alert query returned more than one column. %(num_cols) columns returned"
+msgid "Alert query returned more than one column. %(num_cols)s columns returned"
 msgstr ""
 "Poizvedba za opozorilo je vrnila več kot en stolpec. Število vrnjenih "
 "stolpcev: %s"
@@ -1593,9 +1593,9 @@ msgstr ""
 msgid "Alert query returned more than one row."
 msgstr "Poizvedba za opozorilo je vrnila več kot eno vrstico."
 
-#: superset/reports/commands/alert.py:99
+#: superset/reports/commands/alert.py:100
 #, fuzzy, python-format
-msgid "Alert query returned more than one row. %(num_rows) rows returned"
+msgid "Alert query returned more than one row. %(num_rows)s rows returned"
 msgstr ""
 "Poizvedba za opozorilo je vrnila več kot eno vrstico. Št. vrnjenih "
 "vrstic: %s"
@@ -1715,7 +1715,7 @@ msgid "Allow DML"
 msgstr "Dovoli DML"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1000
-#: superset/connectors/sqla/views.py:384
+#: superset/connectors/sqla/views.py:383
 msgid ""
 "Allow column names to be changed to case insensitive format, if supported"
 " (e.g. Oracle, Snowflake)."
@@ -2126,7 +2126,7 @@ msgstr "Pri posodabljanju vrednosti je prišlo do težave."
 msgid "An unexpected error occurred"
 msgstr "Prišlo je do nepričakovane napake"
 
-#: superset/views/core.py:377
+#: superset/views/core.py:376
 msgid "An unknown error occurred. Please contact your Superset administrator"
 msgstr ""
 "Zgodila se je neznana napaka. Kontaktirajte svojega administratorja za "
@@ -2530,7 +2530,7 @@ msgstr "Manjkajo parametri URL-ja"
 msgid "Assist"
 msgstr "Poudari"
 
-#: superset/connectors/sqla/views.py:396
+#: superset/connectors/sqla/views.py:395
 msgid "Associated Charts"
 msgstr "Povezani grafikoni"
 
@@ -2921,7 +2921,7 @@ msgstr "'Bullet' grafikon"
 msgid "Business"
 msgstr "Aktivnost"
 
-#: superset/connectors/sqla/views.py:164
+#: superset/connectors/sqla/views.py:163
 msgid "Business Data Type"
 msgstr "Poslovni podatkovni tip"
 
@@ -3079,7 +3079,7 @@ msgstr "CVAS (create view as select) poizvedba ima več kot en stavek."
 msgid "CVAS (create view as select) query is not a SELECT statement."
 msgstr "CVAS (create view as select) poizvedba ni SELECT stavek."
 
-#: superset/connectors/sqla/views.py:406 superset/views/chart/mixin.py:76
+#: superset/connectors/sqla/views.py:405 superset/views/chart/mixin.py:76
 msgid "Cache Timeout"
 msgstr "Trajanje predpomnilnika"
 
@@ -3183,7 +3183,7 @@ msgstr "Podatkovne baze s povezanimi podatkovnimi viri ni mogoče izbrisati"
 msgid "Cannot have multiple credentials for the SSH Tunnel"
 msgstr ""
 
-#: superset/views/core.py:366
+#: superset/views/core.py:365
 #, python-format
 msgid ""
 "Cannot import dashboard: %(db_error)s.\n"
@@ -3351,7 +3351,7 @@ msgstr "Spremeni vrstni red stolpcev."
 msgid "Change order of rows."
 msgstr "Spremeni vrstni red vrstic."
 
-#: superset/connectors/sqla/views.py:398
+#: superset/connectors/sqla/views.py:397
 msgid "Changed By"
 msgstr "Spremenil"
 
@@ -3442,7 +3442,7 @@ msgstr "Znak, ki bo prepoznan kot decimalno ločilo."
 msgid "Chart"
 msgstr "Grafikon"
 
-#: superset/views/core.py:775
+#: superset/views/core.py:774
 #, python-format
 msgid "Chart %(id)s not found"
 msgstr "Grafikon %(id)s ni najden"
@@ -3544,15 +3544,15 @@ msgstr "Grafikon [{}] je bil shranjen"
 msgid "Chart [%s] was added to dashboard [%s]"
 msgstr "Grafikon [{}] je bil dodan na nadzorno ploščo [{}]"
 
-#: superset/views/core.py:673
+#: superset/views/core.py:672
 msgid "Chart [{}] has been overwritten"
 msgstr "Grafikon [{}] je bil prepisan"
 
-#: superset/views/core.py:669
+#: superset/views/core.py:668
 msgid "Chart [{}] has been saved"
 msgstr "Grafikon [{}] je bil shranjen"
 
-#: superset/views/core.py:698
+#: superset/views/core.py:697
 msgid "Chart [{}] was added to dashboard [{}]"
 msgstr "Grafikon [{}] je bil dodan na nadzorno ploščo [{}]"
 
@@ -3623,7 +3623,7 @@ msgid "Chart name"
 msgstr "Ime grafikona"
 
 #: superset/charts/commands/exceptions.py:156
-#, fuzzy, python-format
+#, fuzzy
 msgid "Chart not found"
 msgstr "Grafikon %(id)s ni najden"
 
@@ -4095,7 +4095,7 @@ msgstr "Barve"
 #: superset-frontend/src/filters/components/Range/controlPanel.ts:39
 #: superset-frontend/src/filters/components/Select/controlPanel.ts:49
 #: superset-frontend/src/filters/components/Time/controlPanel.ts:37
-#: superset/connectors/sqla/views.py:154
+#: superset/connectors/sqla/views.py:153
 msgid "Column"
 msgstr "Stolpec"
 
@@ -4236,7 +4236,7 @@ msgstr "Nastavitve pretvorbe Stolpci v Podatkovno bazo"
 #: superset-frontend/src/explore/controls.jsx:244
 #: superset-frontend/src/explore/fixtures.tsx:97
 #: superset-frontend/src/features/datasets/AddDataset/EditDataset/index.tsx:53
-#: superset/connectors/sqla/views.py:71
+#: superset/connectors/sqla/views.py:70
 msgid "Columns"
 msgstr "Stolpci"
 
@@ -4967,7 +4967,7 @@ msgstr "Prilagodi stolpce"
 msgid "Cyclic dependency detected"
 msgstr "Zaznana krožna odvisnost"
 
-#: superset/connectors/sqla/views.py:256
+#: superset/connectors/sqla/views.py:255
 msgid "D3 Format"
 msgstr "D3 zapis"
 
@@ -5058,7 +5058,7 @@ msgstr "Nadzorna plošča"
 msgid "Dashboard [%s] just got created and chart [%s] was added to it"
 msgstr "Nadzorna plošča [{}] je bila ravno ustvarjena in grafikon [{}] dodan nanjo"
 
-#: superset/views/core.py:718
+#: superset/views/core.py:717
 msgid "Dashboard [{}] just got created and chart [{}] was added to it"
 msgstr "Nadzorna plošča [{}] je bila ravno ustvarjena in grafikon [{}] dodan nanjo"
 
@@ -5219,7 +5219,7 @@ msgstr "DataFrame mora vsebovati časovni stolpec"
 #: superset-frontend/src/pages/QueryHistoryList/index.tsx:364
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:300
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:462
-#: superset/connectors/sqla/views.py:399 superset/connectors/sqla/views.py:400
+#: superset/connectors/sqla/views.py:398 superset/connectors/sqla/views.py:399
 #: superset/templates/superset/import_dashboards.html:53
 #: superset/views/database/forms.py:138 superset/views/database/forms.py:316
 #: superset/views/database/forms.py:443 superset/views/database/mixins.py:188
@@ -5455,7 +5455,7 @@ msgid ""
 "database table to the left or "
 msgstr ""
 
-#: superset/connectors/sqla/views.py:388
+#: superset/connectors/sqla/views.py:387
 msgid ""
 "Datasets can have a main temporal column (main_dttm_col), but can also "
 "have secondary time columns. When this attribute is true, whenever the "
@@ -5523,7 +5523,7 @@ msgstr "Adaptivno oblikovanje"
 msgid "Date/Time"
 msgstr "Datum/Čas"
 
-#: superset/connectors/sqla/views.py:162
+#: superset/connectors/sqla/views.py:161
 msgid "Datetime Format"
 msgstr "Oblika zapisa datuma,časa"
 
@@ -5556,7 +5556,7 @@ msgstr ""
 msgid "Days %s"
 msgstr "Dnevi %s"
 
-#: superset/connectors/sqla/models.py:1181 superset/models/helpers.py:1024
+#: superset/connectors/sqla/models.py:1787 superset/models/helpers.py:1024
 msgid "Db engine did not return all queried columns"
 msgstr "Sitem podatkovne baze ni vrnil vse stolpcev poizvedbe"
 
@@ -5636,7 +5636,7 @@ msgstr "Ustvari"
 msgid "Default"
 msgstr "Privzeto"
 
-#: superset/connectors/sqla/views.py:404
+#: superset/connectors/sqla/views.py:403
 msgid "Default Endpoint"
 msgstr "Privzeta končna točka"
 
@@ -5810,7 +5810,7 @@ msgstr ""
 #: superset-frontend/src/pages/RowLevelSecurityList/index.tsx:313
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:560
 #: superset-frontend/src/pages/Tags/index.tsx:202
-#: superset-frontend/src/pages/Tags/index.tsx:350 superset/views/base.py:650
+#: superset-frontend/src/pages/Tags/index.tsx:350 superset/views/base.py:652
 msgid "Delete"
 msgstr "Izbriši"
 
@@ -5848,7 +5848,7 @@ msgstr "Izbrišem poročilo?"
 msgid "Delete Template?"
 msgstr "Izbrišem predlogo?"
 
-#: superset/views/base.py:650
+#: superset/views/base.py:652
 msgid "Delete all Really?"
 msgstr "Ali resnično vse izbrišem?"
 
@@ -6054,8 +6054,8 @@ msgstr "Zastarelo"
 #: superset-frontend/src/features/tags/TagModal.tsx:297
 #: superset-frontend/src/pages/AnnotationLayerList/index.tsx:154
 #: superset-frontend/src/pages/AnnotationList/index.tsx:161
-#: superset/connectors/sqla/views.py:156 superset/connectors/sqla/views.py:251
-#: superset/connectors/sqla/views.py:411 superset/views/chart/mixin.py:80
+#: superset/connectors/sqla/views.py:155 superset/connectors/sqla/views.py:250
+#: superset/connectors/sqla/views.py:410 superset/views/chart/mixin.py:80
 msgid "Description"
 msgstr "Opis"
 
@@ -6500,7 +6500,7 @@ msgstr ""
 "Časovna veljavnost (v sekundah) predpomnjenja za ta grafikon. Če ni "
 "definirana, je uporabljena vrednost za podatkovni set."
 
-#: superset/connectors/sqla/views.py:372
+#: superset/connectors/sqla/views.py:371
 msgid ""
 "Duration (in seconds) of the caching timeout for this table. A timeout of"
 " 0 indicates that the cache never expires. Note this defaults to the "
@@ -6649,7 +6649,7 @@ msgstr "Uredi grafikon"
 msgid "Edit Chart Properties"
 msgstr "Uredi lastnosti grafikona"
 
-#: superset/connectors/sqla/views.py:74
+#: superset/connectors/sqla/views.py:73
 msgid "Edit Column"
 msgstr "Uredi stolpec"
 
@@ -6669,7 +6669,7 @@ msgstr "Uredi podatkovni set "
 msgid "Edit Log"
 msgstr "Uredi dnevnik"
 
-#: superset/connectors/sqla/views.py:209
+#: superset/connectors/sqla/views.py:208
 msgid "Edit Metric"
 msgstr "Uredi mero"
 
@@ -6686,7 +6686,7 @@ msgstr "Uredi poročilo"
 msgid "Edit Rule"
 msgstr "načinu urejanja"
 
-#: superset/connectors/sqla/views.py:295
+#: superset/connectors/sqla/views.py:294
 msgid "Edit Table"
 msgstr "Uredi tabelo"
 
@@ -6784,7 +6784,8 @@ msgstr "Urejanje seta filtrov:"
 msgid "Either the database is spelled incorrectly or does not exist."
 msgstr "Ime podatkovne baze je zapisano napačno ali pa ne obstaja."
 
-#: superset/db_engine_specs/mysql.py:157 superset/db_engine_specs/presto.py:681
+#: superset/db_engine_specs/doris.py:211 superset/db_engine_specs/mysql.py:157
+#: superset/db_engine_specs/presto.py:681
 #: superset/db_engine_specs/redshift.py:72
 #: superset/db_engine_specs/starrocks.py:154
 #, python-format
@@ -6873,7 +6874,7 @@ msgstr ""
 msgid "Enable 'Allow file uploads to database' in any database's settings"
 msgstr "Omogoči 'Dovoli nalaganje podatkov' za vse podatkovne baze"
 
-#: superset/connectors/sqla/views.py:402
+#: superset/connectors/sqla/views.py:401
 msgid "Enable Filter Select"
 msgstr "Omogoči izbiro filtra"
 
@@ -7062,7 +7063,7 @@ msgstr "Pri pridobivanju informacij o podatkovni bazi je prišlo do napake: %s"
 msgid "Error in jinja expression in HAVING clause: %(msg)s"
 msgstr "Napaka v jinja izrazu HAVING stavka: %(msg)s"
 
-#: superset/connectors/sqla/models.py:1064 superset/models/helpers.py:835
+#: superset/connectors/sqla/models.py:1670 superset/models/helpers.py:835
 #, python-format
 msgid "Error in jinja expression in RLS filters: %(msg)s"
 msgstr "Napaka v jinja izrazu RLS filtrov: %(msg)s"
@@ -7072,7 +7073,7 @@ msgstr "Napaka v jinja izrazu RLS filtrov: %(msg)s"
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "Napaka v jinja izrazu WHERE stavka: %(msg)s"
 
-#: superset/connectors/sqla/models.py:789
+#: superset/connectors/sqla/models.py:1395
 #, python-format
 msgid "Error in jinja expression in fetch values predicate: %(msg)s"
 msgstr "Napaka v jinja izrazu za pridobivanje vrednosti predikatov: %(msg)s"
@@ -7101,7 +7102,7 @@ msgstr "Napaka pri pridobivanju grafikonov"
 msgid "Error while fetching data: %s"
 msgstr "Napaka pri pridobivanju podatkov: %s"
 
-#: superset/connectors/sqla/models.py:886 superset/models/helpers.py:1070
+#: superset/connectors/sqla/models.py:1492 superset/models/helpers.py:1070
 #, python-format
 msgid "Error while rendering virtual dataset query: %(msg)s"
 msgstr "Napaka pri izvajanju poizvedbe virtualnega podatkovnega seta: %(msg)s"
@@ -7111,12 +7112,12 @@ msgstr "Napaka pri izvajanju poizvedbe virtualnega podatkovnega seta: %(msg)s"
 msgid "Error: %(error)s"
 msgstr "Napaka: %(msg)s"
 
-#: superset/views/core.py:470 superset/views/core.py:882
+#: superset/views/core.py:469 superset/views/core.py:881
 #, python-format
 msgid "Error: %(msg)s"
 msgstr "Napaka: %(msg)s"
 
-#: superset/views/core.py:467
+#: superset/views/core.py:466
 msgid "Error: permalink state not found"
 msgstr "Napaka: stanje povezave ni najdeno"
 
@@ -7298,11 +7299,11 @@ msgid "Experimental"
 msgstr "Eksperimentalno"
 
 #: superset-frontend/src/SqlLab/components/ExploreCtasResultsButton/index.tsx:91
-#: superset/views/core.py:620
+#: superset/views/core.py:619
 msgid "Explore"
 msgstr "Raziskovanje"
 
-#: superset/views/core.py:618
+#: superset/views/core.py:617
 #, python-format
 msgid "Explore - %(table)s"
 msgstr "Razišči - %(table)s"
@@ -7354,11 +7355,11 @@ msgstr "Izvozi v YAML"
 msgid "Export to PDF"
 msgstr "Izvozi v YAML"
 
-#: superset/views/base.py:593
+#: superset/views/base.py:595
 msgid "Export to YAML"
 msgstr "Izvozi v YAML"
 
-#: superset/views/base.py:593
+#: superset/views/base.py:595
 msgid "Export to YAML?"
 msgstr "Izvozim v YAML?"
 
@@ -7393,12 +7394,12 @@ msgstr "Uporabi v SQL laboratoriju"
 msgid "Expose this DB in SQL Lab"
 msgstr "Uporabi to podatkovno bazo v SQL laboratoriju"
 
-#: superset/connectors/sqla/views.py:160
+#: superset/connectors/sqla/views.py:159
 msgid "Expression"
 msgstr "Izraz"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:935
-#: superset/connectors/sqla/views.py:257 superset/connectors/sqla/views.py:414
+#: superset/connectors/sqla/views.py:256 superset/connectors/sqla/views.py:413
 #: superset/views/database/mixins.py:193
 msgid "Extra"
 msgstr "Dodatno"
@@ -7558,7 +7559,7 @@ msgstr "Priljubljene"
 msgid "February"
 msgstr "Februar"
 
-#: superset/connectors/sqla/views.py:408
+#: superset/connectors/sqla/views.py:407
 msgid "Fetch Values Predicate"
 msgstr "Pridobi vrednosti predikatov"
 
@@ -7726,7 +7727,7 @@ msgstr "Seznam vrednosti filtra ne sme biti prazen"
 msgid "Filter your charts"
 msgstr "Filtriraj grafikone"
 
-#: superset/connectors/sqla/views.py:158
+#: superset/connectors/sqla/views.py:157
 msgid "Filterable"
 msgstr "Filtriranje"
 
@@ -7925,13 +7926,13 @@ msgstr ""
 msgid "Forest Green"
 msgstr "Frekvenca osveževanja"
 
-#: superset/explore/commands/get.py:88 superset/views/core.py:484
+#: superset/explore/commands/get.py:87 superset/views/core.py:483
 msgid "Form data not found in cache, reverting to chart metadata."
 msgstr ""
 "Podatkov ni mogoče najti v predpomnilniku. Uporabljeni bodo metapodatki "
 "grafikona."
 
-#: superset/explore/commands/get.py:96 superset/views/core.py:490
+#: superset/explore/commands/get.py:95 superset/views/core.py:489
 msgid "Form data not found in cache, reverting to dataset metadata."
 msgstr ""
 "Podatkov ni mogoče najti v predpomnilniku. Uporabljeni bodo metapodatki "
@@ -8142,7 +8143,7 @@ msgstr "Združevanje (Group by)"
 msgid "Group by"
 msgstr "Združevanje (Group by)"
 
-#: superset/connectors/sqla/views.py:157
+#: superset/connectors/sqla/views.py:156
 msgid "Groupable"
 msgstr "Združevanje"
 
@@ -8442,7 +8443,7 @@ msgstr "Uvozi nadzorne plošče"
 msgid "Import Dashboards"
 msgstr "Uvozi nadzorne plošče"
 
-#: superset/connectors/sqla/views.py:294
+#: superset/connectors/sqla/views.py:293
 msgid "Import a table definition"
 msgstr "Uvozi definicijo tabele"
 
@@ -8673,7 +8674,7 @@ msgstr "Neveljaven kumulativni operand: %(operator)s"
 msgid "Invalid currency code in saved metrics"
 msgstr ""
 
-#: superset/connectors/sqla/views.py:180 superset/datasets/schemas.py:58
+#: superset/connectors/sqla/views.py:179 superset/datasets/schemas.py:58
 msgid "Invalid date/timestamp format"
 msgstr "Neveljaven zapis datuma/časa"
 
@@ -8742,7 +8743,7 @@ msgstr "Neveljaven rolling_type: %(type)s"
 
 #: superset/viz.py:2030
 #, fuzzy, python-format
-msgid "Invalid spatial point encountered: %(latlong)"
+msgid "Invalid spatial point encountered: %(latlong)s"
 msgstr "Neustrezna prostorska točka: %s"
 
 #: superset/dashboards/permalink/exceptions.py:23
@@ -8804,7 +8805,7 @@ msgstr ""
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:368
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:376
-#: superset/connectors/sqla/views.py:161
+#: superset/connectors/sqla/views.py:160
 msgid "Is temporal"
 msgstr "Časoven"
 
@@ -9067,7 +9068,7 @@ msgstr "Veliko"
 msgid "Last"
 msgstr "Zadnji"
 
-#: superset/connectors/sqla/views.py:401 superset/views/database/mixins.py:190
+#: superset/connectors/sqla/views.py:400 superset/views/database/mixins.py:190
 msgid "Last Changed"
 msgstr "Zadnja sprememba"
 
@@ -9587,7 +9588,7 @@ msgstr "MAJ"
 msgid "MON"
 msgstr "PON"
 
-#: superset/connectors/sqla/views.py:410
+#: superset/connectors/sqla/views.py:409
 msgid "Main Datetime Column"
 msgstr "Glavni stolpec Datum-Čas"
 
@@ -9599,7 +9600,7 @@ msgstr ""
 "Poskrbite, da so kontrolniki pravilno nastavljeni in podatkovni vir "
 "vsebuje podatke za izbrano časovno obdobje"
 
-#: superset/views/core.py:765
+#: superset/views/core.py:764
 msgid ""
 "Malformed request. slice_id or table_name and db_name arguments are "
 "expected"
@@ -9857,11 +9858,11 @@ msgstr "Metoda"
 #: superset-frontend/src/explore/controls.jsx:167
 #: superset-frontend/src/explore/controls.jsx:168
 #: superset-frontend/src/visualizations/TimeTable/TimeTable.jsx:121
-#: superset/connectors/sqla/views.py:250
+#: superset/connectors/sqla/views.py:249
 msgid "Metric"
 msgstr "Mera"
 
-#: superset/connectors/sqla/models.py:1092 superset/models/helpers.py:1241
+#: superset/connectors/sqla/models.py:1698 superset/models/helpers.py:1241
 #: superset/models/helpers.py:1537
 #, python-format
 msgid "Metric '%(metric)s' does not exist"
@@ -9976,7 +9977,7 @@ msgstr ""
 #: superset-frontend/src/explore/components/DatasourcePanel/index.tsx:405
 #: superset-frontend/src/explore/controls.jsx:152
 #: superset-frontend/src/features/datasets/AddDataset/EditDataset/index.tsx:54
-#: superset/connectors/sqla/views.py:206
+#: superset/connectors/sqla/views.py:205
 msgid "Metrics"
 msgstr "Mere"
 
@@ -10113,7 +10114,7 @@ msgstr "Kombiniran grafikon časovne vrste"
 #: superset-frontend/src/pages/RowLevelSecurityList/index.tsx:152
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:382
 #: superset-frontend/src/pages/Tags/index.tsx:168
-#: superset/connectors/sqla/views.py:415 superset/views/dashboard/mixin.py:85
+#: superset/connectors/sqla/views.py:414 superset/views/dashboard/mixin.py:85
 #: superset/views/dashboard/views.py:188 superset/views/database/mixins.py:199
 msgid "Modified"
 msgstr "Spremenjeno"
@@ -10344,7 +10345,7 @@ msgstr "Naziv id-stolpca"
 msgid "Name of the source nodes"
 msgstr "Imena izvornih vozlišč"
 
-#: superset/connectors/sqla/views.py:338
+#: superset/connectors/sqla/views.py:337
 msgid "Name of the table that exists in the source database"
 msgstr "Ime tabele, ki obstaja v izvorni podatkovni bazi"
 
@@ -10700,11 +10701,11 @@ msgstr "Ni časovnih stolpcev"
 msgid "No validator found (configured for the engine)"
 msgstr "Potrjevalnik ni najden (nastavljen za podatkovno bazo)"
 
-#: superset/databases/commands/validate_sql.py:110
+#: superset/databases/commands/validate_sql.py:113
 #, fuzzy, python-format
 msgid ""
-"No validator named %(validator_name) found (configured for the "
-"%(engine_spec) engine)"
+"No validator named %(validator_name)s found (configured for the "
+"%(engine_spec)s engine)"
 msgstr "Potrjevalnik {} ni bil najden (nastavljen za podatkovno bazo {})"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:157
@@ -10975,7 +10976,7 @@ msgstr "Oktober"
 msgid "Offline"
 msgstr "Offline"
 
-#: superset/connectors/sqla/views.py:405
+#: superset/connectors/sqla/views.py:404
 msgid "Offset"
 msgstr "Odmik"
 
@@ -11385,7 +11386,7 @@ msgstr "Lastnik"
 #: superset-frontend/src/pages/AlertReportList/index.tsx:324
 #: superset-frontend/src/pages/DashboardList/index.tsx:390
 #: superset-frontend/src/pages/DatasetList/index.tsx:414
-#: superset/connectors/sqla/views.py:409 superset/views/chart/mixin.py:82
+#: superset/connectors/sqla/views.py:408 superset/views/chart/mixin.py:82
 #: superset/views/dashboard/mixin.py:81
 msgid "Owners"
 msgstr "Lastniki"
@@ -11753,7 +11754,8 @@ msgstr ""
 "Preverite, če ima vaša poizvedba sintaktične napake pri "
 "\"%(syntax_error)s\". Potem ponovno poženite poizvedbo."
 
-#: superset/db_engine_specs/gsheets.py:96 superset/db_engine_specs/mysql.py:177
+#: superset/db_engine_specs/doris.py:231 superset/db_engine_specs/gsheets.py:96
+#: superset/db_engine_specs/mysql.py:177
 #, python-format
 msgid ""
 "Please check your query for syntax errors near \"%(server_error)s\". "
@@ -11762,7 +11764,7 @@ msgstr ""
 "Preverite, če ima vaša poizvedba sintaktične napake pri "
 "\"%(server_error)s\". Potem ponovno poženite poizvedbo."
 
-#: superset/sqllab/query_render.py:39 superset/views/core.py:118
+#: superset/sqllab/query_render.py:39 superset/views/core.py:117
 #, fuzzy
 msgid ""
 "Please check your template parameters for syntax errors and make sure "
@@ -12003,7 +12005,7 @@ msgstr "Predfiltriraj razpoložljive vrednosti"
 msgid "Pre-filter is required"
 msgstr "Zahtevan je predfilter"
 
-#: superset/connectors/sqla/views.py:350
+#: superset/connectors/sqla/views.py:349
 msgid ""
 "Predicate applied when fetching distinct value to populate the filter "
 "control component. Supports jinja template syntax. Applies only when "
@@ -12479,7 +12481,7 @@ msgstr "Število zapisov"
 msgid "Rectangle"
 msgstr "Pravokotnik"
 
-#: superset/connectors/sqla/views.py:356
+#: superset/connectors/sqla/views.py:355
 msgid "Redirects to this endpoint when clicking on the table from the table list"
 msgstr "Preusmeri v to končno točko, ko kliknete na tabelo v seznamu tabel"
 
@@ -13169,7 +13171,7 @@ msgstr "SQL"
 msgid "SQL Copied!"
 msgstr "SQL kopiran!"
 
-#: superset/connectors/sqla/views.py:254
+#: superset/connectors/sqla/views.py:253
 msgid "SQL Expression"
 msgstr "SQL izraz"
 
@@ -13179,7 +13181,7 @@ msgstr "SQL izraz"
 msgid "SQL Lab"
 msgstr "SQL laboratorij"
 
-#: superset/connectors/sqla/views.py:412
+#: superset/connectors/sqla/views.py:411
 msgid "SQL Lab View"
 msgstr "Pogled SQL laboratorija"
 
@@ -13587,7 +13589,7 @@ msgstr "Stanje urnika poročanj ni najdeno"
 #: superset-frontend/src/pages/QueryHistoryList/index.tsx:265
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:310
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:483
-#: superset/connectors/sqla/views.py:403 superset/views/database/forms.py:155
+#: superset/connectors/sqla/views.py:402 superset/views/database/forms.py:155
 #: superset/views/database/forms.py:322 superset/views/database/forms.py:449
 msgid "Schema"
 msgstr "Shema"
@@ -13596,7 +13598,7 @@ msgstr "Shema"
 msgid "Schema cache timeout"
 msgstr "Trajanje prepomnilnika sheme"
 
-#: superset/connectors/sqla/views.py:339
+#: superset/connectors/sqla/views.py:338
 msgid "Schema, as used only in some databases like Postgres, Redshift and DB2"
 msgstr ""
 "Shema, ki se uporablja pri nekaterih podatkovnih bazah, kot so Postgres, "
@@ -14270,7 +14272,7 @@ msgstr "Prikaži CSS predlogo"
 msgid "Show Chart"
 msgstr "Prikaži grafikon"
 
-#: superset/connectors/sqla/views.py:72
+#: superset/connectors/sqla/views.py:71
 msgid "Show Column"
 msgstr "Pokaži stolpec"
 
@@ -14304,7 +14306,7 @@ msgstr "Prikaži dnevnik"
 msgid "Show Markers"
 msgstr "Prikaži markerje"
 
-#: superset/connectors/sqla/views.py:207
+#: superset/connectors/sqla/views.py:206
 msgid "Show Metric"
 msgstr "Pokaži mero"
 
@@ -14316,7 +14318,7 @@ msgstr "Pokaži imena mer"
 msgid "Show Range Filter"
 msgstr "Pokaži filter obdobja"
 
-#: superset/connectors/sqla/views.py:293
+#: superset/connectors/sqla/views.py:292
 msgid "Show Table"
 msgstr "Prikaži tabelo"
 
@@ -15376,12 +15378,12 @@ msgstr "Naslov zavihka"
 #: superset-frontend/src/components/Chart/DrillBy/useDisplayModeToggle.tsx:57
 #: superset-frontend/src/components/TableSelector/index.tsx:285
 #: superset-frontend/src/visualizations/TimeTable/index.ts:26
-#: superset/connectors/sqla/views.py:159 superset/connectors/sqla/views.py:255
-#: superset/connectors/sqla/views.py:397 superset/views/chart/mixin.py:86
+#: superset/connectors/sqla/views.py:158 superset/connectors/sqla/views.py:254
+#: superset/connectors/sqla/views.py:396 superset/views/chart/mixin.py:86
 msgid "Table"
 msgstr "Tabela"
 
-#: superset/views/core.py:788
+#: superset/views/core.py:787
 #, python-format
 msgid "Table %(table)s wasn't found in the database %(db)s"
 msgstr "Tabela %(table)s ni bila najdena v podatkovni bazi %(db)s"
@@ -15390,7 +15392,7 @@ msgstr "Tabela %(table)s ni bila najdena v podatkovni bazi %(db)s"
 msgid "Table Exists"
 msgstr "Tabela obstaja"
 
-#: superset/connectors/sqla/views.py:407 superset/views/database/forms.py:129
+#: superset/connectors/sqla/views.py:406 superset/views/database/forms.py:129
 #: superset/views/database/forms.py:280 superset/views/database/forms.py:412
 msgid "Table Name"
 msgstr "Ime tabele"
@@ -15438,7 +15440,7 @@ msgstr ""
 #: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:397
 #: superset-frontend/src/pages/QueryHistoryList/index.tsx:302
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:347
-#: superset/connectors/sqla/views.py:292
+#: superset/connectors/sqla/views.py:291
 msgid "Tables"
 msgstr "Tabele"
 
@@ -15559,7 +15561,7 @@ msgstr "Ime predloge"
 
 #: superset-frontend/src/SqlLab/components/TemplateParamsEditor/index.tsx:99
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:989
-#: superset/connectors/sqla/views.py:413
+#: superset/connectors/sqla/views.py:412
 msgid "Template parameters"
 msgstr "Parametri predlog"
 
@@ -15739,11 +15741,11 @@ msgstr "Standard za oznake držav, ki bodo podane v stolpcu z državami"
 msgid "The dashboard has been saved"
 msgstr "Nadzorna plošča je bila shranjena"
 
-#: superset/views/core.py:116
+#: superset/views/core.py:115
 msgid "The data source seems to have been deleted"
 msgstr "Zdi se, da je bil podatkovni vir izbrisan"
 
-#: superset/connectors/sqla/views.py:114
+#: superset/connectors/sqla/views.py:113
 msgid ""
 "The data type that was inferred by the database. It may be necessary to "
 "input a type manually for expression-defined columns in some cases. In "
@@ -15899,7 +15901,7 @@ msgstr "V 'columns' manjkajo naslednji vnosi iz 'series_columns': %(columns)s. "
 msgid "The function to use when aggregating points into groups"
 msgstr "Funkcija za agregacijo točk v skupine"
 
-#: superset/db_engine_specs/mysql.py:167
+#: superset/db_engine_specs/doris.py:221 superset/db_engine_specs/mysql.py:167
 #, python-format
 msgid "The host \"%(hostname)s\" might be down and can't be reached."
 msgstr "Gostitelj \"%(hostname)s\" mogoče ne deluje in ga ni mogoče doseči."
@@ -15937,7 +15939,7 @@ msgstr "Imena gostitelja ni mogoče razrešiti."
 msgid "The id of the active chart"
 msgstr "Identifikator aktivnega grafikona"
 
-#: superset/connectors/sqla/views.py:328
+#: superset/connectors/sqla/views.py:327
 msgid ""
 "The list of charts associated with this table. By altering this "
 "datasource, you may change how these associated charts behave. Also note "
@@ -16365,7 +16367,7 @@ msgstr ""
 "Tabela \"%(table_name)s\" ne obstaja. V poizvedbi mora biti uporabljena "
 "veljavna tabela."
 
-#: superset/connectors/sqla/views.py:436
+#: superset/connectors/sqla/views.py:435
 msgid ""
 "The table was created. As part of this two-phase configuration process, "
 "you should now click the edit button by the new table to configure it."
@@ -16460,7 +16462,7 @@ msgstr "Enota merila za definiran radij točk"
 msgid "The upper limit of the threshold range of the Isoband"
 msgstr ""
 
-#: superset/views/core.py:117
+#: superset/views/core.py:116
 msgid "The user seems to have been deleted"
 msgstr "Zdi se, da je bil uporabnik izbrisan"
 
@@ -16499,11 +16501,11 @@ msgstr "Debelina črt"
 msgid "There are associated alerts or reports"
 msgstr "Prisotna so povezana opozorila in poročila"
 
-#: superset/charts/commands/delete.py:67
-#: superset/dashboards/commands/delete.py:63
-#: superset/databases/commands/delete.py:62
+#: superset/charts/commands/delete.py:69
+#: superset/dashboards/commands/delete.py:65
+#: superset/databases/commands/delete.py:64
 #, fuzzy, python-format
-msgid "There are associated alerts or reports: %(report_names)"
+msgid "There are associated alerts or reports: %(report_names)s"
 msgstr "Prisotna so opozorila in poročila: %s,"
 
 #: superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx:713
@@ -16944,7 +16946,7 @@ msgid ""
 " It is also used as the alias in the SQL query."
 msgstr ""
 
-#: superset/connectors/sqla/views.py:346
+#: superset/connectors/sqla/views.py:345
 msgid ""
 "This fields acts a Superset view, meaning that Superset will run a query "
 "against this string as a subquery."
@@ -17483,7 +17485,7 @@ msgstr "Oblika zapisa časovne značke"
 msgid "Timezone"
 msgstr "Časovni pas"
 
-#: superset/connectors/sqla/views.py:337
+#: superset/connectors/sqla/views.py:336
 msgid "Timezone offset (in hours) for this datasource"
 msgstr "Razlika časovnega pasu (v urah) za ta podatkovni vir"
 
@@ -17734,7 +17736,7 @@ msgstr "poizvedba"
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:276
 #: superset-frontend/src/pages/DatasetList/index.tsx:368
 #: superset-frontend/src/pages/DatasetList/index.tsx:584
-#: superset/connectors/sqla/views.py:163 superset/connectors/sqla/views.py:253
+#: superset/connectors/sqla/views.py:162 superset/connectors/sqla/views.py:252
 msgid "Type"
 msgstr "Tip"
 
@@ -17805,7 +17807,7 @@ msgstr "Novega zavihka ni mogoče dodati v sistem. Kontaktirajte administratorja
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
 msgstr "Povezava na katalog \"%(catalog_name)s\" ni uspela."
 
-#: superset/db_engine_specs/mysql.py:172
+#: superset/db_engine_specs/doris.py:226 superset/db_engine_specs/mysql.py:172
 #: superset/db_engine_specs/postgres.py:153
 #: superset/db_engine_specs/starrocks.py:159
 #, python-format
@@ -17937,12 +17939,17 @@ msgstr "Nepričakovana napaka: "
 
 #: superset/views/api.py:108
 #, fuzzy, python-format
-msgid "Unexpected time range: %(error)"
+msgid "Unexpected time range: %(error)s"
 msgstr "Nepričakovana napaka: "
 
 #: superset-frontend/src/features/home/ActivityTable.tsx:86
 msgid "Unknown"
 msgstr "Neznano"
+
+#: superset/db_engine_specs/doris.py:216
+#, fuzzy, python-format
+msgid "Unknown Doris server host \"%(hostname)s\"."
+msgstr "Neznan MySQL strežnik \"%(hostname)s\"."
 
 #: superset/db_engine_specs/mysql.py:162
 #, python-format
@@ -18257,7 +18264,7 @@ msgid "Username"
 msgstr "Uporabniško ime"
 
 #: superset/db_engine_specs/postgres.py:276
-#, fuzzy, python-format
+#, fuzzy
 msgid "Users are not allowed to set a search path for security reasons."
 msgstr ""
 "%(dialect)s ni mogoče uporabiti kot podatkovni vir zaradi varnostnih "
@@ -18350,7 +18357,7 @@ msgstr "Vrednosti izbrane v drugih filtrih bodo vplivale na možnosti filtra"
 msgid "Vehicle Types"
 msgstr "Vrste vozil"
 
-#: superset/connectors/sqla/views.py:155 superset/connectors/sqla/views.py:252
+#: superset/connectors/sqla/views.py:154 superset/connectors/sqla/views.py:251
 msgid "Verbose Name"
 msgstr "Podrobno ime"
 
@@ -18450,18 +18457,18 @@ msgstr "Virtualen (SQL)"
 msgid "Virtual dataset"
 msgstr "Virtualen podatkovni set"
 
-#: superset/connectors/sqla/models.py:893 superset/connectors/sqla/utils.py:107
-#: superset/models/helpers.py:1077
+#: superset/connectors/sqla/models.py:1499
+#: superset/connectors/sqla/utils.py:107 superset/models/helpers.py:1077
 msgid "Virtual dataset query cannot be empty"
 msgstr "Poizvedba na virtualnem podatkovnem setu ne sme biti prazna"
 
-#: superset/connectors/sqla/models.py:896 superset/models/helpers.py:1080
+#: superset/connectors/sqla/models.py:1502 superset/models/helpers.py:1080
 msgid "Virtual dataset query cannot consist of multiple statements"
 msgstr ""
 "Poizvedba na virtualnem podatkovnem setu ne sme biti sestavljena iz več "
 "stavkov"
 
-#: superset/connectors/sqla/models.py:861 superset/models/helpers.py:1103
+#: superset/connectors/sqla/models.py:1467 superset/models/helpers.py:1103
 msgid "Virtual dataset query must be read-only"
 msgstr "Poizvedba na virtualnem podatkovnem setu mora biti samo za branje"
 
@@ -18629,7 +18636,7 @@ msgstr "Želite dodati novo podatkovno bazo?"
 msgid "Warning"
 msgstr "Opozorilo"
 
-#: superset/connectors/sqla/views.py:258
+#: superset/connectors/sqla/views.py:257
 msgid "Warning Message"
 msgstr "Opozorilo"
 
@@ -18900,13 +18907,13 @@ msgstr "Če uporabite to možnost, privzeta vrednost ne more biti nastavljena"
 msgid "Whether the progress bar overlaps when there are multiple groups of data"
 msgstr "Če želite prekrivanje območij, ko imate več skupin podatkov"
 
-#: superset/connectors/sqla/views.py:365
+#: superset/connectors/sqla/views.py:364
 msgid "Whether the table was generated by the 'Visualize' flow in SQL Lab"
 msgstr ""
 "Če želite, da je tabela ustvarjena s postopkom 'Vizualizacija' v SQL "
 "laboratoriju"
 
-#: superset/connectors/sqla/views.py:110
+#: superset/connectors/sqla/views.py:109
 msgid ""
 "Whether this column is exposed in the `Filters` section of the explore "
 "view."
@@ -19093,7 +19100,7 @@ msgstr "Če želite kumulativni histogram"
 msgid "Whether to make the histogram cumulative"
 msgstr "Če želite kumulativni histogram"
 
-#: superset/connectors/sqla/views.py:105
+#: superset/connectors/sqla/views.py:104
 msgid ""
 "Whether to make this column available as a [Time Granularity] option, "
 "column has to be DATETIME or DATETIME-like"
@@ -19109,7 +19116,7 @@ msgstr "Če želite normirati histogram"
 msgid "Whether to populate autocomplete filters options"
 msgstr "Če želite napolniti možnosti za samodokončanje filtrov"
 
-#: superset/connectors/sqla/views.py:360
+#: superset/connectors/sqla/views.py:359
 msgid ""
 "Whether to populate the filter's dropdown in the explore view's filter "
 "section with a list of distinct values fetched from the backend on the "
@@ -19607,7 +19614,7 @@ msgid "You do not have permission to edit this dashboard"
 msgstr "Nimate dovoljenja za urejanje te nadzorne plošče"
 
 #: superset-frontend/src/components/Tags/utils.tsx:69
-#, fuzzy, python-format
+#, fuzzy
 msgid "You do not have permission to read tags"
 msgstr "Nimate dovoljenja za urejanje tega grafikona"
 
@@ -19640,17 +19647,17 @@ msgstr "Priljubljenih še niste izbrali!"
 msgid "You don't have permission to modify the value."
 msgstr "Nimate dovoljenja za spreminjanje vrednosti."
 
-#: superset/security/manager.py:2308
+#: superset/security/manager.py:2309
 #, fuzzy, python-format
 msgid "You don't have the rights to alter %(resource)s"
 msgstr "Nimate pravic za spreminjanje tega naslova."
 
-#: superset/views/core.py:557
+#: superset/views/core.py:556
 #, fuzzy
 msgid "You don't have the rights to alter this chart"
 msgstr "Nimate pravic za spreminjanje tega naslova."
 
-#: superset/views/core.py:693
+#: superset/views/core.py:692
 #, fuzzy
 msgid "You don't have the rights to alter this dashboard"
 msgstr "Nimate pravic za spreminjanje tega naslova."
@@ -19659,17 +19666,17 @@ msgstr "Nimate pravic za spreminjanje tega naslova."
 msgid "You don't have the rights to alter this title."
 msgstr "Nimate pravic za spreminjanje tega naslova."
 
-#: superset/views/core.py:563
+#: superset/views/core.py:562
 #, fuzzy
 msgid "You don't have the rights to create a chart"
 msgstr "Nimate pravic za "
 
-#: superset/views/core.py:709
+#: superset/views/core.py:708
 #, fuzzy
 msgid "You don't have the rights to create a dashboard"
 msgstr "Nimate pravic za "
 
-#: superset/views/core.py:287
+#: superset/views/core.py:286
 #, fuzzy
 msgid "You don't have the rights to download as csv"
 msgstr "Nimate pravic za "
@@ -19805,7 +19812,7 @@ msgstr ""
 msgid "[Longitude] and [Latitude] must be set"
 msgstr "[Zemljepisna dolžina] in [Zemljepisna širina] morata biti nastavljeni"
 
-#: superset/explore/commands/get.py:120 superset/views/core.py:519
+#: superset/explore/commands/get.py:119 superset/views/core.py:518
 msgid "[Missing Dataset]"
 msgstr "[Manjka podatkovni set]"
 
@@ -19813,7 +19820,7 @@ msgstr "[Manjka podatkovni set]"
 msgid "[Untitled]"
 msgstr "[Neimenovana]"
 
-#: superset/connectors/base/models.py:267 superset/models/sql_lab.py:216
+#: superset/connectors/sqla/models.py:353 superset/models/sql_lab.py:216
 #, fuzzy
 msgid "[asc]"
 msgstr "Osnovno"
@@ -19822,7 +19829,7 @@ msgstr "Osnovno"
 msgid "[dashboard name]"
 msgstr "[ime nadzorne plošče]"
 
-#: superset/connectors/base/models.py:270 superset/models/sql_lab.py:219
+#: superset/connectors/sqla/models.py:356 superset/models/sql_lab.py:219
 msgid "[desc]"
 msgstr ""
 
@@ -20470,7 +20477,7 @@ msgstr "pričakovano je celo število"
 msgid "joined"
 msgstr "pridružen"
 
-#: superset/views/base.py:581
+#: superset/views/base.py:583
 msgid "json isn't valid"
 msgstr "json ni veljaven"
 
@@ -20612,8 +20619,8 @@ msgid "no SQL validator is configured"
 msgstr "SQL potrjevalnik ni nastavljen"
 
 #: superset/databases/commands/validate_sql.py:100
-#, fuzzy
-msgid "no SQL validator is configured for %(engine_spec)"
+#, fuzzy, python-format
+msgid "no SQL validator is configured for %(engine_spec)s"
 msgstr "SQL potrjevalnik ni nastavljen za {}"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/components/ColumnTypeLabel/ColumnTypeLabel.tsx:63
@@ -20722,7 +20729,7 @@ msgstr ""
 "percentili morajo biti tipa list ali tuple z vsaj dvema numeričnima "
 "vrednostma, pri čemer je prva manjša od druge"
 
-#: superset/views/core.py:885
+#: superset/views/core.py:884
 msgid "permalink state not found"
 msgstr "stanje povezave ni najdeno"
 
