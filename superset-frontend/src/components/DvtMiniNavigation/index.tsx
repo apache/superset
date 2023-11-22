@@ -34,7 +34,7 @@ export interface DvtMiniNavigationProps {
 }
 export interface DataProps {
   url: string;
-  text: string;
+  name: string;
 }
 
 const DvtMiniNavigation: React.FC<DvtMiniNavigationProps> = ({
@@ -66,7 +66,7 @@ const DvtMiniNavigation: React.FC<DvtMiniNavigationProps> = ({
           data.map((item, index) => (
             <DvtMiniNavigationData key={index}>
               <DvtMiniNavigationDataItem to={item.url}>
-                {item.text}
+                {item.name}
               </DvtMiniNavigationDataItem>
             </DvtMiniNavigationData>
           ))}
