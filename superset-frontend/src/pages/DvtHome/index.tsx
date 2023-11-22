@@ -16,24 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React from 'react';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import DvtCalendar from 'src/components/DvtCalendar';
 import {
   StyledDvtWelcome,
   DataContainer,
   CalendarContainer,
 } from './dvt-home.module';
-import DvtCalendar from 'src/components/DvtCalendar';
 
 function DvtWelcome() {
-  const [calendar, setCalendar] = useState<string | null>(null);
+  // const [calendar, setCalendar] = useState<string | null>(null);
 
   return (
     <StyledDvtWelcome>
       <DataContainer>Datalar coming soon...</DataContainer>
       <CalendarContainer>
         <DvtCalendar
-          onSelect={date => date && setCalendar(date?.format('DD MM YYYY'))}
+          // onSelect={date => date && setCalendar(date?.format('DD MM YYYY'))}
+          onSelect={() => {}}
         />
       </CalendarContainer>
     </StyledDvtWelcome>

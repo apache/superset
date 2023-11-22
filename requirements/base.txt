@@ -18,7 +18,10 @@ apsw==3.42.0.1
 async-timeout==4.0.2
     # via redis
 attrs==23.1.0
-    # via jsonschema
+    # via
+    #   cattrs
+    #   jsonschema
+    #   requests-cache
 babel==2.9.1
     # via flask-babel
 backoff==1.11.1
@@ -35,6 +38,8 @@ cachelib==0.9.0
     # via
     #   flask-caching
     #   flask-session
+cattrs==23.2.1
+    # via requests-cache
 celery==5.2.2
     # via apache-superset
 certifi==2023.7.22
@@ -85,6 +90,8 @@ dnspython==2.1.0
     # via email-validator
 email-validator==1.1.3
     # via flask-appbuilder
+exceptiongroup==1.1.1
+    # via cattrs
 flask==2.2.5
     # via
     #   apache-superset
@@ -136,7 +143,9 @@ geographiclib==1.52
 geopy==2.2.0
     # via apache-superset
 greenlet==2.0.2
-    # via shillelagh
+    # via
+    #   shillelagh
+    #   sqlalchemy
 gunicorn==21.2.0
     # via apache-superset
 hashids==1.3.1
@@ -152,7 +161,10 @@ idna==3.2
     #   email-validator
     #   requests
 importlib-metadata==6.6.0
-    # via apache-superset
+    # via
+    #   apache-superset
+    #   flask
+    #   shillelagh
 importlib-resources==5.12.0
     # via limits
 isodate==0.6.0
@@ -232,6 +244,8 @@ parsedatetime==2.6
     # via apache-superset
 pgsanity==0.2.9
     # via apache-superset
+platformdirs==3.8.1
+    # via requests-cache
 polyline==2.0.0
     # via apache-superset
 prison==0.2.1
@@ -285,12 +299,16 @@ pyyaml==6.0.1
 redis==4.5.4
     # via apache-superset
 requests==2.31.0
+    # via
+    #   requests-cache
+    #   shillelagh
+requests-cache==1.1.1
     # via shillelagh
 rich==13.3.4
     # via flask-limiter
 selenium==3.141.0
     # via apache-superset
-shillelagh==1.2.6
+shillelagh==1.2.10
     # via apache-superset
 shortid==0.1.2
     # via apache-superset
@@ -303,6 +321,7 @@ six==1.16.0
     #   paramiko
     #   prison
     #   python-dateutil
+    #   url-normalize
     #   wtforms-json
 slack-sdk==3.21.3
     # via apache-superset
@@ -328,14 +347,18 @@ tabulate==0.8.9
 typing-extensions==4.4.0
     # via
     #   apache-superset
+    #   cattrs
     #   flask-limiter
     #   limits
     #   shillelagh
 tzdata==2023.3
     # via pandas
+url-normalize==1.4.3
+    # via requests-cache
 urllib3==1.26.6
     # via
     #   requests
+    #   requests-cache
     #   selenium
 vine==5.0.0
     # via
@@ -363,7 +386,9 @@ wtforms-json==0.3.5
 xlsxwriter==3.0.7
     # via apache-superset
 zipp==3.15.0
-    # via importlib-metadata
+    # via
+    #   importlib-metadata
+    #   importlib-resources
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

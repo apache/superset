@@ -47,8 +47,7 @@ from superset.async_events.async_query_manager import AsyncQueryTokenException
 from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.charts.commands.warm_up_cache import ChartWarmUpCacheCommand
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
-from superset.connectors.base.models import BaseDatasource
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.daos.chart import ChartDAO
 from superset.daos.datasource import DatasourceDAO
 from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
@@ -605,7 +604,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "force": force,
             "user": bootstrap_user_data(g.user, include_perms=True),
             "forced_height": request.args.get("height"),
-            "common": common_bootstrap_payload(g.user),
+            "common": common_bootstrap_payload(),
         }
         if slc:
             title = slc.slice_name
@@ -863,7 +862,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             bootstrap_data=json.dumps(
                 {
                     "user": bootstrap_user_data(g.user, include_perms=True),
-                    "common": common_bootstrap_payload(g.user),
+                    "common": common_bootstrap_payload(),
                 },
                 default=utils.pessimistic_json_iso_dttm_ser,
             ),
@@ -954,7 +953,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         payload = {
             "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(g.user),
+            "common": common_bootstrap_payload(),
         }
 
         return self.render_template(

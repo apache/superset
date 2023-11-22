@@ -114,7 +114,7 @@ def get_samples(  # pylint: disable=too-many-arguments,too-many-locals
         sample_data = samples_instance.get_payload()["queries"][0]
 
         if sample_data.get("status") == QueryStatus.FAILED:
-            QueryCacheManager.delete(sample_data.get("cache_key"), CacheRegion.DATA)
+            QueryCacheManager.delete(count_star_data.get("cache_key"), CacheRegion.DATA)
             raise DatasetSamplesFailedError(sample_data.get("error"))
 
         sample_data["page"] = page
