@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { ReactNode, RefObject } from 'react';
+import React, { ReactNode, RefObject, useRef, useCallback } from 'react';
 import ErrorBoundary, {
   ErrorBoundaryProps,
   FallbackProps,
@@ -46,6 +46,7 @@ export type WrapperProps = Dimension & {
 };
 
 export type Props = Omit<SuperChartCoreProps, 'chartProps'> &
+  Omit<SuperChartCoreProps, 'chartType'> &
   Omit<ChartPropsConfig, 'width' | 'height'> & {
     /**
      * Set this to true to disable error boundary built-in in SuperChart
@@ -94,63 +95,66 @@ export type Props = Omit<SuperChartCoreProps, 'chartProps'> &
 
 type PropsWithDefault = Props & Readonly<typeof defaultProps>;
 
-class SuperChart extends React.PureComponent<Props, {}> {
+const SuperChart = (inputProps: Props) => {
   /**
    * SuperChart's core
    */
-  core?: SuperChartCore | null;
+  const createChartProps = useRef(ChartProps.createSelector());
+  const parseDimension = useRef(
+    createSelector(
+      [
+        ({ width }: { width: string | number; height: string | number }) =>
+          width,
+        ({ height }) => height,
+      ],
+      (width, height) => {
+        // Parse them in case they are % or 'auto'
+        const widthInfo = parseLength(width);
+        const heightInfo = parseLength(height);
 
-  private createChartProps = ChartProps.createSelector();
+        const boxHeight = heightInfo.isDynamic
+          ? `${heightInfo.multiplier * 100}%`
+          : heightInfo.value;
+        const boxWidth = widthInfo.isDynamic
+          ? `${widthInfo.multiplier * 100}%`
+          : widthInfo.value;
+        const style = {
+          height: boxHeight,
+          width: boxWidth,
+        };
 
-  private parseDimension = createSelector(
-    [
-      ({ width }: { width: string | number; height: string | number }) => width,
-      ({ height }) => height,
-    ],
-    (width, height) => {
-      // Parse them in case they are % or 'auto'
-      const widthInfo = parseLength(width);
-      const heightInfo = parseLength(height);
+        // bounding box will ensure that when one dimension is not dynamic
+        // e.g. height = 300
+        // the auto size will be bound to that value instead of being 100% by default
+        // e.g. height: 300 instead of height: '100%'
+        const BoundingBox =
+          widthInfo.isDynamic &&
+          heightInfo.isDynamic &&
+          widthInfo.multiplier === 1 &&
+          heightInfo.multiplier === 1
+            ? React.Fragment
+            : ({ children }: { children: ReactNode }) => (
+                <div style={style}>{children}</div>
+              );
 
-      const boxHeight = heightInfo.isDynamic
-        ? `${heightInfo.multiplier * 100}%`
-        : heightInfo.value;
-      const boxWidth = widthInfo.isDynamic
-        ? `${widthInfo.multiplier * 100}%`
-        : widthInfo.value;
-      const style = {
-        height: boxHeight,
-        width: boxWidth,
-      };
-
-      // bounding box will ensure that when one dimension is not dynamic
-      // e.g. height = 300
-      // the auto size will be bound to that value instead of being 100% by default
-      // e.g. height: 300 instead of height: '100%'
-      const BoundingBox =
-        widthInfo.isDynamic &&
-        heightInfo.isDynamic &&
-        widthInfo.multiplier === 1 &&
-        heightInfo.multiplier === 1
-          ? React.Fragment
-          : ({ children }: { children: ReactNode }) => (
-              <div style={style}>{children}</div>
-            );
-
-      return { BoundingBox, heightInfo, widthInfo };
-    },
+        return { BoundingBox, heightInfo, widthInfo };
+      },
+    ),
   );
-
-  static defaultProps = defaultProps;
-
-  private setRef = (core: SuperChartCore | null) => {
-    this.core = core;
+  const props = {
+    ...defaultProps,
+    ...inputProps,
   };
-
-  private getQueryCount = () =>
-    getChartMetadataRegistry().get(this.props.chartType)?.queryObjectCount ?? 1;
-
-  renderChart(width: number, height: number) {
+  const setRefHandler = useCallback(core => {
+    // eslint-disable-next-line no-param-reassign
+    core.current = core;
+  }, []);
+  const getQueryCountHandler = useCallback(
+    () =>
+      getChartMetadataRegistry().get(props.chartType)?.queryObjectCount ?? 1,
+    [],
+  );
+  const renderChartHandler = useCallback((width: number, height: number) => {
     const {
       id,
       className,
@@ -169,9 +173,9 @@ class SuperChart extends React.PureComponent<Props, {}> {
       noResults,
       theme,
       ...rest
-    } = this.props as PropsWithDefault;
+    } = props as PropsWithDefault;
 
-    const chartProps = this.createChartProps({
+    const chartProps = createChartProps.current({
       ...rest,
       queriesData,
       height,
@@ -185,7 +189,7 @@ class SuperChart extends React.PureComponent<Props, {}> {
       enableNoResults &&
       (!queriesData ||
         queriesData
-          .slice(0, this.getQueryCount())
+          .slice(0, getQueryCountHandler())
           .every(
             ({ data }) => !data || (Array.isArray(data) && data.length === 0),
           ));
@@ -201,7 +205,7 @@ class SuperChart extends React.PureComponent<Props, {}> {
     } else {
       const chartWithoutWrapper = (
         <SuperChartCore
-          ref={this.setRef}
+          ref={setRefHandler}
           id={id}
           className={className}
           chartType={chartType}
@@ -234,33 +238,31 @@ class SuperChart extends React.PureComponent<Props, {}> {
         {chart}
       </ErrorBoundary>
     );
-  }
+  }, []);
 
-  render() {
-    const { heightInfo, widthInfo, BoundingBox } = this.parseDimension(
-      this.props as PropsWithDefault,
+  const { heightInfo, widthInfo, BoundingBox } = parseDimension.current(
+    props as PropsWithDefault,
+  );
+
+  // If any of the dimension is dynamic, get parent's dimension
+  if (widthInfo.isDynamic || heightInfo.isDynamic) {
+    const { debounceTime } = props;
+
+    return (
+      <BoundingBox>
+        <ParentSize debounceTime={debounceTime}>
+          {({ width, height }) =>
+            renderChartHandler(
+              widthInfo.isDynamic ? Math.floor(width) : widthInfo.value,
+              heightInfo.isDynamic ? Math.floor(height) : heightInfo.value,
+            )
+          }
+        </ParentSize>
+      </BoundingBox>
     );
-
-    // If any of the dimension is dynamic, get parent's dimension
-    if (widthInfo.isDynamic || heightInfo.isDynamic) {
-      const { debounceTime } = this.props;
-
-      return (
-        <BoundingBox>
-          <ParentSize debounceTime={debounceTime}>
-            {({ width, height }) =>
-              this.renderChart(
-                widthInfo.isDynamic ? Math.floor(width) : widthInfo.value,
-                heightInfo.isDynamic ? Math.floor(height) : heightInfo.value,
-              )
-            }
-          </ParentSize>
-        </BoundingBox>
-      );
-    }
-
-    return this.renderChart(widthInfo.value, heightInfo.value);
   }
-}
+
+  return renderChartHandler(widthInfo.value, heightInfo.value);
+};
 
 export default withTheme(SuperChart);
