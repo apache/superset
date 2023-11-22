@@ -77,12 +77,16 @@ grpcio==1.54.0
     #   grpcio-status
 grpcio-status==1.54.0
     # via google-api-core
+gssapi==1.8.3
+    # via pyspnego
 iniconfig==2.0.0
     # via pytest
 jsonschema-spec==0.1.4
     # via openapi-spec-validator
 kiwisolver==1.4.4
     # via matplotlib
+krb5==0.5.1
+    # via pyspnego
 lunarcalendar==0.0.9
     # via prophet
 matplotlib==3.7.1
@@ -121,6 +125,8 @@ pyee==9.0.4
     # via playwright
 pyfakefs==5.2.2
     # via -r requirements/testing.in
+pyspnego[kerberos]==0.10.2
+    # via requests-kerberos
 pytest==7.3.1
     # via
     #   -r requirements/testing.in
@@ -132,6 +138,8 @@ pytest-mock==3.10.0
     # via -r requirements/testing.in
 pytz-deprecation-shim==0.1.0.post0
     # via tzlocal
+requests-kerberos==0.14.0
+    # via trino
 requests-oauthlib==1.3.1
     # via google-auth-oauthlib
 rfc3339-validator==0.1.4
@@ -148,7 +156,7 @@ tqdm==4.65.0
     # via
     #   cmdstanpy
     #   prophet
-trino==0.324.0
+trino[all]==0.324.0
     # via apache-superset
 tzlocal==4.3
     # via trino
