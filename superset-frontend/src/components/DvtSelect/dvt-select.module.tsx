@@ -1,8 +1,32 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import { styled } from '@superset-ui/core';
 
 interface StyledSelectProps {
   isOpen: boolean;
 }
+
+interface StyledSelectOptionProps {
+  selectedValue: string;
+  value: string;
+}
+
 const StyledSelect = styled.div`
   display: flex;
   flex-direction: column;
@@ -32,29 +56,35 @@ const StyledSelectLabel = styled.label`
   font-weight: 600;
 `;
 
-const StyledSelectOption = styled.div`
+const StyledSelectOption = styled.div<StyledSelectOptionProps>`
   padding: 13px;
   cursor: pointer;
-  color: ${({ theme }) => theme.colors.dvt.primary.light1};
-  &:hover {
-    background: ${({ theme }) => theme.colors.dvt.primary.light1};
-    color: ${({ theme }) => theme.colors.grayscale.light5};
-    &:first-of-type {
-      border-radius: 12px 12px 0px 0px;
-    }
-    &:last-of-type {
-      border-radius: 0px 0px 12px 12px;
-    }
-  }
+  ${({ theme, value, selectedValue }) =>
+    value === selectedValue
+      ? `
+        color: ${theme.colors.grayscale.light5};
+        background: ${theme.colors.dvt.primary.light1};
+        &:first-of-type {
+          border-radius: 12px 12px 0px 0px;
+        }
+        &:last-of-type {
+          border-radius: 0px 0px 12px 12px;
+        }
+      `
+      : `
+        color: ${theme.colors.dvt.primary.light1};
+      }
+    `}
 `;
 const StyledSelectOptions = styled.div`
   width: 202px;
   border-radius: 12px;
   background: ${({ theme }) => theme.colors.dvt.primary.light2};
 `;
-const StyledSelectIcon = styled.div`
+const StyledSelectIcon = styled.div<StyledSelectProps>`
   display: flex;
   justify-content: flex-end;
+  transform: ${({ isOpen }) => (isOpen ? 'rotate(90deg)' : 'none')};
 `;
 
 export {

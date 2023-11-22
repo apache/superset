@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React, { useState } from 'react';
 import Icon from '../Icons/Icon';
 import {
@@ -10,7 +28,7 @@ import {
 } from './dvt-select.module';
 
 export interface DvtSelectProps {
-  label: string;
+  label?: string;
   data: { value: string; label: string }[];
   placeholder: string;
   selectedValue: string;
@@ -20,6 +38,7 @@ export interface DvtSelectProps {
 const DvtSelect: React.FC<DvtSelectProps> = ({
   data,
   label,
+  placeholder,
   selectedValue,
   setSelectedValue,
 }) => {
@@ -36,26 +55,23 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
 
   return (
     <StyledSelect onClick={handleSelectClick}>
-      <StyledSelectLabel>{label}</StyledSelectLabel>
+      {label && <StyledSelectLabel>{label}</StyledSelectLabel>}
       <StyledSelectSelect isOpen={isOpen}>
-        {selectedValue}
-        <StyledSelectIcon>
-          {isOpen && (
-            <Icon fileName="caret_down" iconSize="xxl" iconColor="black" />
-          )}
-
-          {!isOpen && (
-            <Icon fileName="caret_right" iconSize="xxl" iconColor="black" />
-          )}
+        {data.find(option => option.value === selectedValue)?.label ||
+          placeholder}
+        <StyledSelectIcon isOpen={isOpen}>
+          <Icon fileName="caret_right" iconSize="xxl" iconColor="black" />
         </StyledSelectIcon>
       </StyledSelectSelect>
 
       {isOpen && (
         <StyledSelectOptions>
-          {data.map(option => (
+          {data.map((option, index) => (
             <StyledSelectOption
-              key={option.value}
-              onClick={() => handleOptionClick(option.label)}
+              selectedValue={selectedValue}
+              value={option.value}
+              key={index}
+              onClick={() => handleOptionClick(option.value)}
             >
               {option.label}
             </StyledSelectOption>
