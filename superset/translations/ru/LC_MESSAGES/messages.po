@@ -1537,18 +1537,18 @@ msgid "Alert query returned more than one column."
 msgstr "Запрос оповещения вернул больше, чем один столбец."
 
 #: superset/reports/commands/alert.py:110
-#, fuzzy, python-format
+#, python-format
 msgid "Alert query returned more than one column. %(num_cols)s columns returned"
-msgstr "Запрос оповещения вернул больше, чем один столбец. Возвращено столбцов: %s"
+msgstr "Запрос оповещения вернул больше, чем один столбец. Возвращено столбцов: %(num_cols)s"
 
 #: superset/reports/commands/exceptions.py:193
 msgid "Alert query returned more than one row."
 msgstr "Запрос оповещения вернул больше, чем одну строку."
 
 #: superset/reports/commands/alert.py:100
-#, fuzzy, python-format
+#, python-format
 msgid "Alert query returned more than one row. %(num_rows)s rows returned"
-msgstr "Запрос оповещения вернул больше, чем одну строку. Возвращено строк: %s"
+msgstr "Запрос оповещения вернул больше, чем одну строку. Возвращено строк: %(num_rows)s"
 
 #: superset-frontend/src/features/alerts/components/AlertStatusIcon.tsx:75
 msgid "Alert running"
@@ -10537,11 +10537,11 @@ msgid "No validator found (configured for the engine)"
 msgstr "Не найден валидатор (сконфигурированный для драйвера)"
 
 #: superset/databases/commands/validate_sql.py:113
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "No validator named %(validator_name)s found (configured for the "
 "%(engine_spec)s engine)"
-msgstr "Не найден валидатор с именем {} (сконфигурированный для драйвера {})"
+msgstr "Не найден валидатор с именем %(validator_name)s (сконфигурированный для драйвера %(engine_spec)s)"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:157
 msgid "Node label position"
@@ -16222,9 +16222,9 @@ msgstr "Есть связанные оповещения или отчеты"
 #: superset/charts/commands/delete.py:69
 #: superset/dashboards/commands/delete.py:65
 #: superset/databases/commands/delete.py:64
-#, fuzzy, python-format
+#, python-format
 msgid "There are associated alerts or reports: %(report_names)s"
-msgstr "Есть связанные оповещения или отчеты: %s"
+msgstr "Есть связанные оповещения или отчеты: %(report_names)s"
 
 #: superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx:713
 msgid "There are no charts added to this dashboard"
@@ -17631,9 +17631,9 @@ msgid "Unexpected error: "
 msgstr "Неожиданная ошибка: "
 
 #: superset/views/api.py:108
-#, fuzzy, python-format
+#, python-format
 msgid "Unexpected time range: %(error)s"
-msgstr "Неожиданная ошибка: "
+msgstr "Неожиданная ошибка: %(error)s"
 
 #: superset-frontend/src/features/home/ActivityTable.tsx:86
 msgid "Unknown"
@@ -20247,9 +20247,9 @@ msgid "no SQL validator is configured"
 msgstr "не настроен ни один SQL валидатор"
 
 #: superset/databases/commands/validate_sql.py:100
-#, fuzzy, python-format
+#, python-format
 msgid "no SQL validator is configured for %(engine_spec)s"
-msgstr "не настроен ни один SQL валидатор для {}"
+msgstr "не настроен ни один SQL валидатор для %(engine_spec)s"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/components/ColumnTypeLabel/ColumnTypeLabel.tsx:63
 msgid "numeric type icon"

@@ -1550,18 +1550,18 @@ msgid "Alert query returned more than one column."
 msgstr "La consulta de alerta devolvió más de una columna."
 
 #: superset/reports/commands/alert.py:110
-#, fuzzy, python-format
+#, python-format
 msgid "Alert query returned more than one column. %(num_cols)s columns returned"
-msgstr "La consulta de alerta devolvió más de una columna. %s columnas devueltas"
+msgstr "La consulta de alerta devolvió más de una columna. %(num_cols)s columnas devueltas"
 
 #: superset/reports/commands/exceptions.py:193
 msgid "Alert query returned more than one row."
 msgstr "La consulta de alerta devolvió más de una fila."
 
 #: superset/reports/commands/alert.py:100
-#, fuzzy, python-format
+#, python-format
 msgid "Alert query returned more than one row. %(num_rows)s rows returned"
-msgstr "La consulta de alerta devolvió más de una fila. %s filas devueltas"
+msgstr "La consulta de alerta devolvió más de una fila. %(num_rows)s filas devueltas"
 
 #: superset-frontend/src/features/alerts/components/AlertStatusIcon.tsx:75
 msgid "Alert running"
@@ -8726,9 +8726,9 @@ msgid "Invalid rolling_type: %(type)s"
 msgstr "rolling_type inválido: %(type)s"
 
 #: superset/viz.py:2030
-#, fuzzy, python-format
+#, python-format
 msgid "Invalid spatial point encountered: %(latlong)s"
-msgstr "Punto espacial inválido encontrado: %s"
+msgstr "Punto espacial inválido encontrado: %(latlong)s"
 
 #: superset/dashboards/permalink/exceptions.py:23
 #: superset/explore/permalink/exceptions.py:23
@@ -16518,9 +16518,9 @@ msgstr "Hay alertas o informes asociados"
 #: superset/charts/commands/delete.py:69
 #: superset/dashboards/commands/delete.py:65
 #: superset/databases/commands/delete.py:64
-#, fuzzy, python-format
+#, python-format
 msgid "There are associated alerts or reports: %(report_names)s"
-msgstr "Hay alertas o informes asociados: %s,"
+msgstr "Hay alertas o informes asociados: %(report_names)s,"
 
 #: superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx:713
 #, fuzzy
@@ -17943,9 +17943,9 @@ msgid "Unexpected error: "
 msgstr "Error inesperado: "
 
 #: superset/views/api.py:108
-#, fuzzy, python-format
+#, python-format
 msgid "Unexpected time range: %(error)s"
-msgstr "Error inesperado: "
+msgstr "Error inesperado: %(error)s"
 
 #: superset-frontend/src/features/home/ActivityTable.tsx:86
 #, fuzzy

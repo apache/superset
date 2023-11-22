@@ -1583,22 +1583,22 @@ msgid "Alert query returned more than one column."
 msgstr "Poizvedba za opozorilo je vrnila več kot en stolpec."
 
 #: superset/reports/commands/alert.py:110
-#, fuzzy, python-format
+#, python-format
 msgid "Alert query returned more than one column. %(num_cols)s columns returned"
 msgstr ""
 "Poizvedba za opozorilo je vrnila več kot en stolpec. Število vrnjenih "
-"stolpcev: %s"
+"stolpcev: %(num_cols)s"
 
 #: superset/reports/commands/exceptions.py:193
 msgid "Alert query returned more than one row."
 msgstr "Poizvedba za opozorilo je vrnila več kot eno vrstico."
 
 #: superset/reports/commands/alert.py:100
-#, fuzzy, python-format
+#, python-format
 msgid "Alert query returned more than one row. %(num_rows)s rows returned"
 msgstr ""
 "Poizvedba za opozorilo je vrnila več kot eno vrstico. Št. vrnjenih "
-"vrstic: %s"
+"vrstic: %(num_rows)s"
 
 #: superset-frontend/src/features/alerts/components/AlertStatusIcon.tsx:75
 msgid "Alert running"
@@ -8742,9 +8742,9 @@ msgid "Invalid rolling_type: %(type)s"
 msgstr "Neveljaven rolling_type: %(type)s"
 
 #: superset/viz.py:2030
-#, fuzzy, python-format
+#, python-format
 msgid "Invalid spatial point encountered: %(latlong)s"
-msgstr "Neustrezna prostorska točka: %s"
+msgstr "Neustrezna prostorska točka: %(latlong)s"
 
 #: superset/dashboards/permalink/exceptions.py:23
 #: superset/explore/permalink/exceptions.py:23
@@ -10702,11 +10702,11 @@ msgid "No validator found (configured for the engine)"
 msgstr "Potrjevalnik ni najden (nastavljen za podatkovno bazo)"
 
 #: superset/databases/commands/validate_sql.py:113
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "No validator named %(validator_name)s found (configured for the "
 "%(engine_spec)s engine)"
-msgstr "Potrjevalnik {} ni bil najden (nastavljen za podatkovno bazo {})"
+msgstr "Potrjevalnik %(validator_name)s ni bil najden (nastavljen za podatkovno bazo %(engine_spec)s)"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:157
 msgid "Node label position"
@@ -16504,9 +16504,9 @@ msgstr "Prisotna so povezana opozorila in poročila"
 #: superset/charts/commands/delete.py:69
 #: superset/dashboards/commands/delete.py:65
 #: superset/databases/commands/delete.py:64
-#, fuzzy, python-format
+#, python-format
 msgid "There are associated alerts or reports: %(report_names)s"
-msgstr "Prisotna so opozorila in poročila: %s,"
+msgstr "Prisotna so opozorila in poročila: %(report_names)s,"
 
 #: superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx:713
 msgid "There are no charts added to this dashboard"
@@ -17938,9 +17938,9 @@ msgid "Unexpected error: "
 msgstr "Nepričakovana napaka: "
 
 #: superset/views/api.py:108
-#, fuzzy, python-format
+#, python-format
 msgid "Unexpected time range: %(error)s"
-msgstr "Nepričakovana napaka: "
+msgstr "Nepričakovana napaka: %(error)s"
 
 #: superset-frontend/src/features/home/ActivityTable.tsx:86
 msgid "Unknown"
@@ -20619,9 +20619,9 @@ msgid "no SQL validator is configured"
 msgstr "SQL potrjevalnik ni nastavljen"
 
 #: superset/databases/commands/validate_sql.py:100
-#, fuzzy, python-format
+#, python-format
 msgid "no SQL validator is configured for %(engine_spec)s"
-msgstr "SQL potrjevalnik ni nastavljen za {}"
+msgstr "SQL potrjevalnik ni nastavljen za %(engine_spec)s"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/components/ColumnTypeLabel/ColumnTypeLabel.tsx:63
 msgid "numeric type icon"

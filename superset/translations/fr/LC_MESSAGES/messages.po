@@ -10639,11 +10639,11 @@ msgid "No validator found (configured for the engine)"
 msgstr "Aucun validateur trouvé (configuré pour le moteur)"
 
 #: superset/databases/commands/validate_sql.py:113
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "No validator named %(validator_name)s found (configured for the "
 "%(engine_spec)s engine)"
-msgstr "Aucun validateur nommé {} trouvé (configuré pour le moteur {})"
+msgstr "Aucun validateur nommé %(validator_name)s trouvé (configuré pour le moteur %(engine_spec)s)"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:157
 msgid "Node label position"
@@ -16505,9 +16505,9 @@ msgstr "Il y a des alertes ou des rapports associés"
 #: superset/charts/commands/delete.py:69
 #: superset/dashboards/commands/delete.py:65
 #: superset/databases/commands/delete.py:64
-#, fuzzy, python-format
+#, python-format
 msgid "There are associated alerts or reports: %(report_names)s"
-msgstr "Il y a des alertes ou des rapports associés: %s,"
+msgstr "Il y a des alertes ou des rapports associés: %(report_names)s,"
 
 #: superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx:713
 msgid "There are no charts added to this dashboard"

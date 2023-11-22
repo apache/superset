@@ -1520,18 +1520,18 @@ msgid "Alert query returned more than one column."
 msgstr "告警查询返回多个列。"
 
 #: superset/reports/commands/alert.py:110
-#, fuzzy, python-format
+#, python-format
 msgid "Alert query returned more than one column. %(num_cols)s columns returned"
-msgstr "告警查询返回多个列。%s 列被返回"
+msgstr "告警查询返回多个列。%(num_cols)s 列被返回"
 
 #: superset/reports/commands/exceptions.py:193
 msgid "Alert query returned more than one row."
 msgstr "告警查询返回了多行。"
 
 #: superset/reports/commands/alert.py:100
-#, fuzzy, python-format
+#, python-format
 msgid "Alert query returned more than one row. %(num_rows)s rows returned"
-msgstr "告警查询返回了多行。%s 行被返回"
+msgstr "告警查询返回了多行。%(num_rows)s 行被返回"
 
 #: superset-frontend/src/features/alerts/components/AlertStatusIcon.tsx:75
 msgid "Alert running"
@@ -8491,9 +8491,9 @@ msgid "Invalid rolling_type: %(type)s"
 msgstr "无效的滚动类型：%(type)s"
 
 #: superset/viz.py:2030
-#, fuzzy, python-format
+#, python-format
 msgid "Invalid spatial point encountered: %(latlong)s"
-msgstr "遇到无效的空间点：%s"
+msgstr "遇到无效的空间点：%(latlong)s"
 
 #: superset/dashboards/permalink/exceptions.py:23
 #: superset/explore/permalink/exceptions.py:23
@@ -16032,9 +16032,9 @@ msgstr "存在关联的警报或报告"
 #: superset/charts/commands/delete.py:69
 #: superset/dashboards/commands/delete.py:65
 #: superset/databases/commands/delete.py:64
-#, fuzzy, python-format
+#, python-format
 msgid "There are associated alerts or reports: %(report_names)s"
-msgstr "存在关联的警报或报告：%s,"
+msgstr "存在关联的警报或报告：%(report_names)s,"
 
 #: superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx:713
 #, fuzzy

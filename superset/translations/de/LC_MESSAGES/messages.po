@@ -1576,10 +1576,10 @@ msgid "Alert query returned more than one column."
 msgstr "Die Alarm-Abfrage hat mehr als eine Spalte zurückgegeben."
 
 #: superset/reports/commands/alert.py:110
-#, fuzzy, python-format
+#, python-format
 msgid "Alert query returned more than one column. %(num_cols)s columns returned"
 msgstr ""
-"Die Alarmabfrage hat mehr als eine Spalte zurückgegeben. %s Spalten "
+"Die Alarmabfrage hat mehr als eine Spalte zurückgegeben. %(num_cols)s Spalten "
 "zurückgegegeben"
 
 #: superset/reports/commands/exceptions.py:193
@@ -1587,10 +1587,10 @@ msgid "Alert query returned more than one row."
 msgstr "Die Alarm-Abfrage hat mehr als eine Zeile zurückgegeben."
 
 #: superset/reports/commands/alert.py:100
-#, fuzzy, python-format
+#, python-format
 msgid "Alert query returned more than one row. %(num_rows)s rows returned"
 msgstr ""
-"Die Alarmabfrage hat mehr als eine Zeile zurückgegeben. %s zurückgegebene"
+"Die Alarmabfrage hat mehr als eine Zeile zurückgegeben. %(num_rows)s zurückgegebene"
 " Zeilen"
 
 #: superset-frontend/src/features/alerts/components/AlertStatusIcon.tsx:75
@@ -8754,9 +8754,9 @@ msgid "Invalid rolling_type: %(type)s"
 msgstr "Ungültiger rolling_type: %(type)s"
 
 #: superset/viz.py:2030
-#, fuzzy, python-format
+#, python-format
 msgid "Invalid spatial point encountered: %(latlong)s"
-msgstr "Ungültiger räumlicher Punkt: %s"
+msgstr "Ungültiger räumlicher Punkt: %(latlong)s"
 
 #: superset/dashboards/permalink/exceptions.py:23
 #: superset/explore/permalink/exceptions.py:23
@@ -10675,11 +10675,11 @@ msgid "No validator found (configured for the engine)"
 msgstr "Kein Validator gefunden (für das Modul konfiguriert)"
 
 #: superset/databases/commands/validate_sql.py:113
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "No validator named %(validator_name)s found (configured for the "
 "%(engine_spec)s engine)"
-msgstr "Kein Validator mit dem Namen {} gefunden (konfiguriert für das {}-Modul)"
+msgstr "Kein Validator mit dem Namen %(validator_name)s gefunden (konfiguriert für das %(engine_spec)s-Modul)"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:157
 msgid "Node label position"
@@ -16513,9 +16513,9 @@ msgstr "Es gibt zugehörige Alarme oder Reports"
 #: superset/charts/commands/delete.py:69
 #: superset/dashboards/commands/delete.py:65
 #: superset/databases/commands/delete.py:64
-#, fuzzy, python-format
+#, python-format
 msgid "There are associated alerts or reports: %(report_names)s"
-msgstr "Es gibt zugehörige Alarme oder Reports: %s,"
+msgstr "Es gibt zugehörige Alarme oder Reports: %(report_names)s,"
 
 #: superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx:713
 msgid "There are no charts added to this dashboard"
@@ -17997,9 +17997,9 @@ msgid "Unexpected error: "
 msgstr "Unerwarteter Fehler:"
 
 #: superset/views/api.py:108
-#, fuzzy, python-format
+#, python-format
 msgid "Unexpected time range: %(error)s"
-msgstr "Unerwarteter Zeitraum: %s"
+msgstr "Unerwarteter Zeitraum: %(error)s"
 
 #: superset-frontend/src/features/home/ActivityTable.tsx:86
 msgid "Unknown"
@@ -20705,9 +20705,9 @@ msgid "no SQL validator is configured"
 msgstr "kein SQL-Validator ist konfiguriert"
 
 #: superset/databases/commands/validate_sql.py:100
-#, fuzzy, python-format
+#, python-format
 msgid "no SQL validator is configured for %(engine_spec)s"
-msgstr "Für {} ist kein SQL-Validator konfiguriert"
+msgstr "Für %(engine_spec)s ist kein SQL-Validator konfiguriert"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/components/ColumnTypeLabel/ColumnTypeLabel.tsx:63
 msgid "numeric type icon"
