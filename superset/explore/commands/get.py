@@ -26,8 +26,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db
 from superset.commands.base import BaseCommand
-from superset.connectors.base.models import BaseDatasource
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.daos.datasource import DatasourceDAO
 from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import SupersetException
