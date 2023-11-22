@@ -126,10 +126,10 @@ const BuilderComponentPane: React.FC<BCPProps> = ({
                       <NewDeepCast />
                       <NewIkiEitlRow />
                       <NewIkiEitlColumn />
-                      <NewIkiModelMetrics />
+                      {/* <NewIkiModelMetrics />
                       <NewExternalDatasets />
                       <NewForecast />
-                      <NewIkiExplainability />
+                      <NewIkiExplainability /> */}
                       {dashboardComponents
                         .getAll()
                         .map(({ key: componentKey, metadata }) => (
