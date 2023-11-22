@@ -434,8 +434,14 @@
       "Alert query returned more than one column.": [
         "Die Alarm-Abfrage hat mehr als eine Spalte zurückgegeben."
       ],
+      "Alert query returned more than one column. %(num_cols)s columns returned": [
+        "Die Alarmabfrage hat mehr als eine Spalte zurückgegeben. %(num_cols)s Spalten zurückgegegeben"
+      ],
       "Alert query returned more than one row.": [
         "Die Alarm-Abfrage hat mehr als eine Zeile zurückgegeben."
+      ],
+      "Alert query returned more than one row. %(num_rows)s rows returned": [
+        "Die Alarmabfrage hat mehr als eine Zeile zurückgegeben. %(num_rows)s zurückgegebene Zeilen"
       ],
       "Alert running": ["Alarm wird ausgeführt"],
       "Alert triggered, notification sent": [
@@ -2632,6 +2638,9 @@
         "Ungültiger Ergebnistyp: %(result_type)s"
       ],
       "Invalid rolling_type: %(type)s": ["Ungültiger rolling_type: %(type)s"],
+      "Invalid spatial point encountered: %(latlong)s": [
+        "Ungültiger räumlicher Punkt: %(latlong)s"
+      ],
       "Invalid state.": ["Ungültiger Zustand."],
       "Invalid tab ids: %s(tab_ids)": ["Ungültige Tab-IDs: %s(tab_ids)"],
       "Inverse selection": ["Auswahl umkehren"],
@@ -3162,6 +3171,9 @@
       "No time columns": ["Nicht-Zeitspalten"],
       "No validator found (configured for the engine)": [
         "Kein Validator gefunden (für das Modul konfiguriert)"
+      ],
+      "No validator named %(validator_name)s found (configured for the %(engine_spec)s engine)": [
+        "Kein Validator mit dem Namen %(validator_name)s gefunden (konfiguriert für das %(engine_spec)s-Modul)"
       ],
       "Node label position": ["Position der Knotenbeschriftung"],
       "Node select mode": ["Knotenauswahlmodus"],
@@ -4934,6 +4946,9 @@
       "There are associated alerts or reports": [
         "Es gibt zugehörige Alarme oder Reports"
       ],
+      "There are associated alerts or reports: %(report_names)s": [
+        "Es gibt zugehörige Alarme oder Reports: %(report_names)s,"
+      ],
       "There are no charts added to this dashboard": [
         "Diesem Dashboard wurden keine Diagramme hinzugefügt."
       ],
@@ -5444,6 +5459,7 @@
         "Unerwarteter Fehler aufgetreten, bitte überprüfen Sie Ihre Protokolle auf Details"
       ],
       "Unexpected error: ": ["Unerwarteter Fehler:"],
+      "Unexpected time range: %(error)s": ["Unerwarteter Zeitraum: %(error)s"],
       "Unknown": ["Unbekannt"],
       "Unknown MySQL server host \"%(hostname)s\".": [
         "Unbekannter MySQL-Server-Host \"%(hostname)s\"."
@@ -6321,6 +6337,9 @@
       "must have a value": ["Muss einen Wert haben"],
       "name": ["Name"],
       "no SQL validator is configured": ["kein SQL-Validator ist konfiguriert"],
+      "no SQL validator is configured for %(engine_spec)s": [
+        "Für %(engine_spec)s ist kein SQL-Validator konfiguriert"
+      ],
       "numeric type icon": ["Symbol für numerischen Typ"],
       "nvd3": ["nvd3"],
       "of parent": ["des Elternteils"],

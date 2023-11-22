@@ -277,8 +277,14 @@
       "Alert query returned more than one column.": [
         "アラートクエリが複数の列を返しました。"
       ],
+      "Alert query returned more than one column. %(num_cols)s columns returned": [
+        "アラートクエリが複数の列を返しました。%(num_cols)s 列が返されました"
+      ],
       "Alert query returned more than one row.": [
         "アラートクエリが複数の行を返しました。"
+      ],
+      "Alert query returned more than one row. %(num_rows)s rows returned": [
+        "アラートクエリが複数の行を返しました。 %(num_rows)s 行が返されました"
       ],
       "Alert running": ["アラート発動中"],
       "Alert triggered, notification sent": [
@@ -1654,7 +1660,7 @@
       "Invalid reference to column: \"%(column)s\"": [""],
       "Invalid result type: %(result_type)s": [""],
       "Invalid rolling_type: %(type)s": [""],
-      "Invalid spatial point encountered: %(latlong)": [""],
+      "Invalid spatial point encountered: %(latlong)s": [""],
       "Invalid tab ids: %s(tab_ids)": [""],
       "Inverse selection": [""],
       "Is dimension": [""],
@@ -1985,9 +1991,6 @@
       ],
       "No time columns": [""],
       "No validator found (configured for the engine)": [""],
-      "No validator named %(validator_name) found (configured for the %(engine_spec) engine)": [
-        ""
-      ],
       "Node label position": [""],
       "Node select mode": [""],
       "Node size": [""],
@@ -3454,6 +3457,7 @@
       "Unexpected error": [""],
       "Unexpected error occurred, please check your logs for details": [""],
       "Unknown": ["不明"],
+      "Unknown Doris server host \"%(hostname)s\".": [""],
       "Unknown MySQL server host \"%(hostname)s\".": [""],
       "Unknown Presto Error": [""],
       "Unknown Status": [""],

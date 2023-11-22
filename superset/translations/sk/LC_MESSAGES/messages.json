@@ -327,11 +327,13 @@
       "Alert on grace period": [""],
       "Alert query returned a non-number value.": [""],
       "Alert query returned more than one column.": [""],
-      "Alert query returned more than one column. %(num_cols) columns returned": [
+      "Alert query returned more than one column. %(num_cols)s columns returned": [
         ""
       ],
       "Alert query returned more than one row.": [""],
-      "Alert query returned more than one row. %(num_rows) rows returned": [""],
+      "Alert query returned more than one row. %(num_rows)s rows returned": [
+        ""
+      ],
       "Alert running": [""],
       "Alert triggered, notification sent": [""],
       "Alert validator config error.": [""],
@@ -1940,7 +1942,7 @@
       "Invalid reference to column: \"%(column)s\"": [""],
       "Invalid result type: %(result_type)s": [""],
       "Invalid rolling_type: %(type)s": [""],
-      "Invalid spatial point encountered: %(latlong)": [""],
+      "Invalid spatial point encountered: %(latlong)s": [""],
       "Invalid state.": [""],
       "Invalid tab ids: %s(tab_ids)": [""],
       "Inverse selection": [""],
@@ -2353,7 +2355,7 @@
       "No temporal columns found": [""],
       "No time columns": [""],
       "No validator found (configured for the engine)": [""],
-      "No validator named %(validator_name) found (configured for the %(engine_spec) engine)": [
+      "No validator named %(validator_name)s found (configured for the %(engine_spec)s engine)": [
         ""
       ],
       "Node label position": [""],
@@ -3679,7 +3681,7 @@
       "The width of the Isoline in pixels": [""],
       "The width of the lines": [""],
       "There are associated alerts or reports": [""],
-      "There are associated alerts or reports: %(report_names)": [""],
+      "There are associated alerts or reports: %(report_names)s": [""],
       "There are no charts added to this dashboard": [""],
       "There are no components added to this tab": [""],
       "There are no databases available": [""],
@@ -4044,8 +4046,9 @@
       "Unexpected error": [""],
       "Unexpected error occurred, please check your logs for details": [""],
       "Unexpected error: ": [""],
-      "Unexpected time range: %(error)": [""],
+      "Unexpected time range: %(error)s": [""],
       "Unknown": [""],
+      "Unknown Doris server host \"%(hostname)s\".": [""],
       "Unknown MySQL server host \"%(hostname)s\".": [""],
       "Unknown Presto Error": [""],
       "Unknown Status": [""],
@@ -4669,7 +4672,7 @@
       "more than {max} {name}": [""],
       "must have a value": [""],
       "no SQL validator is configured": [""],
-      "no SQL validator is configured for %(engine_spec)": [""],
+      "no SQL validator is configured for %(engine_spec)s": [""],
       "numeric type icon": [""],
       "nvd3": [""],
       "of parent": [""],

@@ -457,14 +457,14 @@
       "Alert query returned more than one column.": [
         "La requête d’alerte a retourné plus d'une colonne."
       ],
-      "Alert query returned more than one column. %(num_cols) columns returned": [
-        "La requête d’alerte a retourné plus d'une colonne. %(num_cols) colonnes retournées"
+      "Alert query returned more than one column. %(num_cols)s columns returned": [
+        "La requête d’alerte a retourné plus d'une colonne. %(num_cols)s colonnes retournées"
       ],
       "Alert query returned more than one row.": [
         "La requête d’alerte a retourné plus d'une rangée."
       ],
-      "Alert query returned more than one row. %(num_rows) rows returned": [
-        "La requête d’alerte a retourné plus d'une rangée. %(num_rows) rangées retournées"
+      "Alert query returned more than one row. %(num_rows)s rows returned": [
+        "La requête d’alerte a retourné plus d'une rangée. %(num_rows)s rangées retournées"
       ],
       "Alert running": ["Alerte en cours"],
       "Alert triggered, notification sent": [
@@ -2803,8 +2803,8 @@
         "Type de résultat invalide: %(result_type)s"
       ],
       "Invalid rolling_type: %(type)s": ["rolling_type invalide: %(type)s"],
-      "Invalid spatial point encountered: %(latlong)": [
-        "Point géographique invalide: %(latlong)"
+      "Invalid spatial point encountered: %(latlong)s": [
+        "Point géographique invalide: %(latlong)s"
       ],
       "Invalid state.": ["Certificat invalide."],
       "Invalid tab ids: %s(tab_ids)": [
@@ -3341,6 +3341,9 @@
       "No time columns": ["Pas de colonnes horaires"],
       "No validator found (configured for the engine)": [
         "Aucun validateur trouvé (configuré pour le moteur)"
+      ],
+      "No validator named %(validator_name)s found (configured for the %(engine_spec)s engine)": [
+        "Aucun validateur nommé %(validator_name)s trouvé (configuré pour le moteur %(engine_spec)s)"
       ],
       "Node label position": ["Position de l'étiquette du nœud"],
       "Node select mode": ["Mode de sélection des nœuds"],
@@ -5151,6 +5154,9 @@
       "There are associated alerts or reports": [
         "Il y a des alertes ou des rapports associés"
       ],
+      "There are associated alerts or reports: %(report_names)s": [
+        "Il y a des alertes ou des rapports associés: %(report_names)s,"
+      ],
       "There are no charts added to this dashboard": [
         "Il n'y a pas de graphiques ajouté dans ce tableau de bord"
       ],
@@ -5695,8 +5701,8 @@
         "Une erreur inattendue s'est produite, veuillez consulter vos journaux pour plus de détails"
       ],
       "Unexpected error: ": ["Erreur inattendue: "],
-      "Unexpected time range: %(error)": [
-        "Plage de temps inattendue: %(error)"
+      "Unexpected time range: %(error)s": [
+        "Plage de temps inattendue: %(error)s"
       ],
       "Unknown": ["Inconnu"],
       "Unknown MySQL server host \"%(hostname)s\".": [
@@ -6593,8 +6599,8 @@
       "no SQL validator is configured": [
         "aucun validateur SQL n'est configuré"
       ],
-      "no SQL validator is configured for %(engine_spec)": [
-        "aucun validateur SQL n'est configuré pour %(engine_spec)"
+      "no SQL validator is configured for %(engine_spec)s": [
+        "aucun validateur SQL n'est configuré pour %(engine_spec)s"
       ],
       "numeric type icon": ["icône de type numérique"],
       "nvd3": ["nvd3"],

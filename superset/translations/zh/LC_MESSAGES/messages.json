@@ -279,7 +279,13 @@
       "Alert on grace period": ["告警宽限期"],
       "Alert query returned a non-number value.": ["告警查询返回非数字值。"],
       "Alert query returned more than one column.": ["告警查询返回多个列。"],
+      "Alert query returned more than one column. %(num_cols)s columns returned": [
+        "告警查询返回多个列。%(num_cols)s 列被返回"
+      ],
       "Alert query returned more than one row.": ["告警查询返回了多行。"],
+      "Alert query returned more than one row. %(num_rows)s rows returned": [
+        "告警查询返回了多行。%(num_rows)s 行被返回"
+      ],
       "Alert running": ["告警运行中"],
       "Alert triggered, notification sent": ["告警已触发，通知已发送"],
       "Alert validator config error.": ["告警验证器配置错误。"],
@@ -1821,6 +1827,9 @@
         "无效的结果类型：%(result_type)s"
       ],
       "Invalid rolling_type: %(type)s": ["无效的滚动类型：%(type)s"],
+      "Invalid spatial point encountered: %(latlong)s": [
+        "遇到无效的空间点：%(latlong)s"
+      ],
       "Invalid tab ids: %s(tab_ids)": [""],
       "Inverse selection": ["反选"],
       "Is certified": ["已认证"],
@@ -2178,9 +2187,6 @@
       ],
       "No time columns": ["没有时间列"],
       "No validator found (configured for the engine)": [""],
-      "No validator named %(validator_name) found (configured for the %(engine_spec) engine)": [
-        ""
-      ],
       "Node label position": ["节点标签位置"],
       "Node select mode": ["节点选择模式"],
       "Node size": ["节点大小"],
@@ -3437,6 +3443,9 @@
       ],
       "The way the ticks are laid out on the X-axis": ["X轴记号的排列显示方式"],
       "There are associated alerts or reports": ["存在关联的警报或报告"],
+      "There are associated alerts or reports: %(report_names)s": [
+        "存在关联的警报或报告：%(report_names)s,"
+      ],
       "There are no components added to this tab": [""],
       "There are no databases available": ["没有可用的数据库"],
       "There are no filters in this dashboard.": ["此看板中没有过滤条件。"],

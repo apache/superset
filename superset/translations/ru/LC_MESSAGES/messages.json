@@ -417,8 +417,14 @@
       "Alert query returned more than one column.": [
         "Запрос оповещения вернул больше, чем один столбец."
       ],
+      "Alert query returned more than one column. %(num_cols)s columns returned": [
+        "Запрос оповещения вернул больше, чем один столбец. Возвращено столбцов: %(num_cols)s"
+      ],
       "Alert query returned more than one row.": [
         "Запрос оповещения вернул больше, чем одну строку."
+      ],
+      "Alert query returned more than one row. %(num_rows)s rows returned": [
+        "Запрос оповещения вернул больше, чем одну строку. Возвращено строк: %(num_rows)s"
       ],
       "Alert running": ["Выполняется оповещение"],
       "Alert triggered, notification sent": [
@@ -2464,7 +2470,7 @@
         "Недопустимый тип ответа: %(result_type)s"
       ],
       "Invalid rolling_type: %(type)s": [""],
-      "Invalid spatial point encountered: %(latlong)": [""],
+      "Invalid spatial point encountered: %(latlong)s": [""],
       "Invalid state.": [""],
       "Invalid tab ids: %s(tab_ids)": [""],
       "Inverse selection": ["Выбрать противоположные значения"],
@@ -2931,6 +2937,9 @@
       "No time columns": ["Нет столбцов формата дата/время"],
       "No validator found (configured for the engine)": [
         "Не найден валидатор (сконфигурированный для драйвера)"
+      ],
+      "No validator named %(validator_name)s found (configured for the %(engine_spec)s engine)": [
+        "Не найден валидатор с именем %(validator_name)s (сконфигурированный для драйвера %(engine_spec)s)"
       ],
       "Node label position": ["Расположение метки вершины"],
       "Node select mode": ["Режим выбора вершин"],
@@ -4507,6 +4516,9 @@
       "There are associated alerts or reports": [
         "Есть связанные оповещения или отчеты"
       ],
+      "There are associated alerts or reports: %(report_names)s": [
+        "Есть связанные оповещения или отчеты: %(report_names)s"
+      ],
       "There are no charts added to this dashboard": [
         "В этот дашборд еще не добавлен ни один график."
       ],
@@ -4981,6 +4993,7 @@
         "Возникла неожиданная ошибка, пожалуйста, проверьте историю действий для уточнения деталей"
       ],
       "Unexpected error: ": ["Неожиданная ошибка: "],
+      "Unexpected time range: %(error)s": ["Неожиданная ошибка: %(error)s"],
       "Unknown": ["Неизвестно"],
       "Unknown MySQL server host \"%(hostname)s\".": [
         "Неизвестный хост MySQL \"%(hostname)s\"."
@@ -5775,6 +5788,9 @@
       "must have a value": ["значение обязательно"],
       "name": ["имя"],
       "no SQL validator is configured": ["не настроен ни один SQL валидатор"],
+      "no SQL validator is configured for %(engine_spec)s": [
+        "не настроен ни один SQL валидатор для %(engine_spec)s"
+      ],
       "numeric type icon": [""],
       "nvd3": ["Графики nvd3"],
       "on": ["по"],

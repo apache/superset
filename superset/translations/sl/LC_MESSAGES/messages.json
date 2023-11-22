@@ -342,8 +342,14 @@
       "Alert query returned more than one column.": [
         "Poizvedba za opozorilo je vrnila več kot en stolpec."
       ],
+      "Alert query returned more than one column. %(num_cols)s columns returned": [
+        "Poizvedba za opozorilo je vrnila več kot en stolpec. Število vrnjenih stolpcev: %(num_cols)s"
+      ],
       "Alert query returned more than one row.": [
         "Poizvedba za opozorilo je vrnila več kot eno vrstico."
+      ],
+      "Alert query returned more than one row. %(num_rows)s rows returned": [
+        "Poizvedba za opozorilo je vrnila več kot eno vrstico. Št. vrnjenih vrstic: %(num_rows)s"
       ],
       "Alert running": ["Opozorilo aktivno"],
       "Alert triggered, notification sent": [
@@ -2284,6 +2290,9 @@
         "Neveljaven tip rezultata: %(result_type)s"
       ],
       "Invalid rolling_type: %(type)s": ["Neveljaven rolling_type: %(type)s"],
+      "Invalid spatial point encountered: %(latlong)s": [
+        "Neustrezna prostorska točka: %(latlong)s"
+      ],
       "Invalid state.": ["Neveljavno stanje."],
       "Invalid tab ids: %s(tab_ids)": [""],
       "Inverse selection": ["Invertiraj izbiro"],
@@ -2709,6 +2718,9 @@
       "No time columns": ["Ni časovnih stolpcev"],
       "No validator found (configured for the engine)": [
         "Potrjevalnik ni najden (nastavljen za podatkovno bazo)"
+      ],
+      "No validator named %(validator_name)s found (configured for the %(engine_spec)s engine)": [
+        "Potrjevalnik %(validator_name)s ni bil najden (nastavljen za podatkovno bazo %(engine_spec)s)"
       ],
       "Node label position": ["Položaj oznake vozlišča"],
       "Node select mode": ["Način izbire vozlišč"],
@@ -4183,6 +4195,9 @@
       "There are associated alerts or reports": [
         "Prisotna so povezana opozorila in poročila"
       ],
+      "There are associated alerts or reports: %(report_names)s": [
+        "Prisotna so opozorila in poročila: %(report_names)s,"
+      ],
       "There are no charts added to this dashboard": [
         "V nadzorni plošči ni grafikonov"
       ],
@@ -4621,6 +4636,7 @@
         "Zgodila se je nepričakovana napaka. Podrobnosti preverite v dnevnikih"
       ],
       "Unexpected error: ": ["Nepričakovana napaka: "],
+      "Unexpected time range: %(error)s": ["Nepričakovana napaka: %(error)s"],
       "Unknown": ["Neznano"],
       "Unknown MySQL server host \"%(hostname)s\".": [
         "Neznan MySQL strežnik \"%(hostname)s\"."
@@ -5364,6 +5380,9 @@
       "more than {max} {name}": [""],
       "must have a value": ["mora imeti vrednost"],
       "no SQL validator is configured": ["SQL potrjevalnik ni nastavljen"],
+      "no SQL validator is configured for %(engine_spec)s": [
+        "SQL potrjevalnik ni nastavljen za %(engine_spec)s"
+      ],
       "numeric type icon": ["ikona numeričnega tipa"],
       "nvd3": ["nvd3"],
       "on": ["v"],

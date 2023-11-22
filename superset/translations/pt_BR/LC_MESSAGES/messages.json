@@ -369,8 +369,14 @@
       "Alert query returned more than one column.": [
         "A consulta do alerta retornou mais de uma coluna."
       ],
+      "Alert query returned more than one column. %(num_cols)s columns returned": [
+        "A consulta do alerta retornou mais de uma coluna. %(num_cols)s colunas retornadas"
+      ],
       "Alert query returned more than one row.": [
         "A consulta do alerta retornou mais do que uma linha."
+      ],
+      "Alert query returned more than one row. %(num_rows)s rows returned": [
+        "A consulta do alerta retornou mais de uma linha. %(num_rows)s linhas retornadas"
       ],
       "Alert running": ["Alerta em execução"],
       "Alert triggered, notification sent": [
@@ -2458,6 +2464,9 @@
         "Tipo de resultado inválido: %(result_type)s"
       ],
       "Invalid rolling_type: %(type)s": ["Inválido rolling_type: %(type)s"],
+      "Invalid spatial point encountered: %(latlong)s": [
+        "Encontrado um ponto espacial inválido: %(latlong)s"
+      ],
       "Invalid state.": ["Estado inválido."],
       "Invalid tab ids: %s(tab_ids)": ["IDs das abas inválido: %s(tab_ids)"],
       "Inverse selection": ["Seleção inversa"],
@@ -2988,6 +2997,9 @@
       "No time columns": ["Sem colunas de tempo"],
       "No validator found (configured for the engine)": [
         "Sem validador encontrado (configurado para o motor)"
+      ],
+      "No validator named %(validator_name)s found (configured for the %(engine_spec)s engine)": [
+        "Sem validador nomeado %(validator_name)s encontrado (configurado para o motor %(engine_spec)s)"
       ],
       "Node label position": ["Posição do rótulo do nó"],
       "Node select mode": ["Modo de seleção de nó"],
@@ -4687,6 +4699,9 @@
       "There are associated alerts or reports": [
         "Há alertas ou relatórios associados"
       ],
+      "There are associated alerts or reports: %(report_names)s": [
+        "Há alertas ou relatórios associados: %(report_names)s,"
+      ],
       "There are no charts added to this dashboard": [
         "Não há gráficos adicionados a esse painel"
       ],
@@ -5189,6 +5204,9 @@
       "Unexpected error": ["Erro inesperado"],
       "Unexpected error occurred, please check your logs for details": [
         "Ocorreu um erro inesperado, verifique os registros(logs) para obter detalhes"
+      ],
+      "Unexpected time range: %(error)s": [
+        "Intervalo de tempo inesperado: %(error)s"
       ],
       "Unknown": ["Desconhecido"],
       "Unknown MySQL server host \"%(hostname)s\".": [
@@ -6045,6 +6063,9 @@
       "must have a value": ["deve ter um valor"],
       "no SQL validator is configured": [
         "nenhum validador SQL está configurado"
+      ],
+      "no SQL validator is configured for %(engine_spec)s": [
+        "nenhum validador SQL está configurado para %(engine_spec)s"
       ],
       "numeric type icon": ["ícone de tipo numérico"],
       "nvd3": ["nvd3"],
