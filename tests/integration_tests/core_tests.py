@@ -714,7 +714,7 @@ class TestCore(SupersetTestCase):
         keys = list(data.keys())
 
         # If chart is cached, it will return 200, otherwise 202
-        self.assertTrue(rv.status_code == 200 or rv.status_code == 202)
+        self.assertTrue(rv.status_code in {200, 202})
         self.assertCountEqual(
             keys, ["channel_id", "job_id", "user_id", "status", "errors", "result_url"]
         )
