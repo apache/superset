@@ -52,6 +52,11 @@ const StyledInputField = styled.input`
   &::placeholder {
     color: ${({ theme }) => theme.colors.dvt.text.help};
   }
+
+  ::-ms-reveal,
+  ::-ms-clear {
+    display: none;
+  }
 `;
 
 const StyledInputIcon = styled.div`
