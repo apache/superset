@@ -58,9 +58,9 @@ def session_with_data(session: Session):
 
 
 def test_update_command_success(session_with_data: Session, mocker: MockFixture):
+    from superset.commands.tag.update import UpdateTagCommand
     from superset.daos.tag import TagDAO
     from superset.models.dashboard import Dashboard
-    from superset.tags.commands.update import UpdateTagCommand
     from superset.tags.models import ObjectType, TaggedObject
 
     dashboard = session_with_data.query(Dashboard).first()
@@ -94,11 +94,11 @@ def test_update_command_success(session_with_data: Session, mocker: MockFixture)
 def test_update_command_success_duplicates(
     session_with_data: Session, mocker: MockFixture
 ):
+    from superset.commands.tag.create import CreateCustomTagWithRelationshipsCommand
+    from superset.commands.tag.update import UpdateTagCommand
     from superset.daos.tag import TagDAO
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
-    from superset.tags.commands.create import CreateCustomTagWithRelationshipsCommand
-    from superset.tags.commands.update import UpdateTagCommand
     from superset.tags.models import ObjectType, TaggedObject
 
     dashboard = session_with_data.query(Dashboard).first()
@@ -144,12 +144,12 @@ def test_update_command_success_duplicates(
 def test_update_command_failed_validation(
     session_with_data: Session, mocker: MockFixture
 ):
+    from superset.commands.tag.create import CreateCustomTagWithRelationshipsCommand
+    from superset.commands.tag.exceptions import TagInvalidError
+    from superset.commands.tag.update import UpdateTagCommand
     from superset.daos.tag import TagDAO
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
-    from superset.tags.commands.create import CreateCustomTagWithRelationshipsCommand
-    from superset.tags.commands.exceptions import TagInvalidError
-    from superset.tags.commands.update import UpdateTagCommand
     from superset.tags.models import ObjectType
 
     dashboard = session_with_data.query(Dashboard).first()

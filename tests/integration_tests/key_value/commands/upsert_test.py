@@ -45,7 +45,7 @@ def test_upsert_id_entry(
     admin: User,
     key_value_entry: KeyValueEntry,
 ) -> None:
-    from superset.key_value.commands.upsert import UpsertKeyValueCommand
+    from superset.commands.key_value.upsert import UpsertKeyValueCommand
     from superset.key_value.models import KeyValueEntry
 
     with override_user(admin):
@@ -67,7 +67,7 @@ def test_upsert_uuid_entry(
     admin: User,
     key_value_entry: KeyValueEntry,
 ) -> None:
-    from superset.key_value.commands.upsert import UpsertKeyValueCommand
+    from superset.commands.key_value.upsert import UpsertKeyValueCommand
     from superset.key_value.models import KeyValueEntry
 
     with override_user(admin):
@@ -85,7 +85,7 @@ def test_upsert_uuid_entry(
 
 
 def test_upsert_missing_entry(app_context: AppContext, admin: User) -> None:
-    from superset.key_value.commands.upsert import UpsertKeyValueCommand
+    from superset.commands.key_value.upsert import UpsertKeyValueCommand
     from superset.key_value.models import KeyValueEntry
 
     with override_user(admin):

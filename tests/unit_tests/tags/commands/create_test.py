@@ -49,12 +49,12 @@ def session_with_data(session: Session):
 
 
 def test_create_command_success(session_with_data: Session, mocker: MockFixture):
+    from superset.commands.tag.create import CreateCustomTagWithRelationshipsCommand
     from superset.connectors.sqla.models import SqlaTable
     from superset.daos.tag import TagDAO
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
     from superset.models.sql_lab import Query, SavedQuery
-    from superset.tags.commands.create import CreateCustomTagWithRelationshipsCommand
     from superset.tags.models import ObjectType, TaggedObject
 
     # Define a list of objects to tag
@@ -92,12 +92,12 @@ def test_create_command_success(session_with_data: Session, mocker: MockFixture)
 
 
 def test_create_command_success_clear(session_with_data: Session, mocker: MockFixture):
+    from superset.commands.tag.create import CreateCustomTagWithRelationshipsCommand
     from superset.connectors.sqla.models import SqlaTable
     from superset.daos.tag import TagDAO
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
     from superset.models.sql_lab import Query, SavedQuery
-    from superset.tags.commands.create import CreateCustomTagWithRelationshipsCommand
     from superset.tags.models import ObjectType, TaggedObject
 
     # Define a list of objects to tag

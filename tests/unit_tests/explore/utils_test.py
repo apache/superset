@@ -18,19 +18,19 @@ from flask_appbuilder.security.sqla.models import User
 from pytest import raises
 from pytest_mock import MockFixture
 
-from superset.charts.commands.exceptions import (
+from superset.commands.chart.exceptions import (
     ChartAccessDeniedError,
     ChartNotFoundError,
+)
+from superset.commands.dataset.exceptions import (
+    DatasetAccessDeniedError,
+    DatasetNotFoundError,
 )
 from superset.commands.exceptions import (
     DatasourceNotFoundValidationError,
     DatasourceTypeInvalidError,
     OwnersNotFoundValidationError,
     QueryNotFoundValidationError,
-)
-from superset.datasets.commands.exceptions import (
-    DatasetAccessDeniedError,
-    DatasetNotFoundError,
 )
 from superset.exceptions import SupersetSecurityException
 from superset.utils.core import DatasourceType, override_user

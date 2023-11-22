@@ -28,14 +28,14 @@ from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.orm.exc import NoResultFound
 
 from superset import db, event_logger, security_manager
+from superset.commands.dataset.exceptions import (
+    DatasetForbiddenError,
+    DatasetNotFoundError,
+)
 from superset.commands.utils import populate_owners
 from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.sqla.utils import get_physical_table_metadata
 from superset.daos.datasource import DatasourceDAO
-from superset.datasets.commands.exceptions import (
-    DatasetForbiddenError,
-    DatasetNotFoundError,
-)
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.core import Database
 from superset.superset_typing import FlaskResponse

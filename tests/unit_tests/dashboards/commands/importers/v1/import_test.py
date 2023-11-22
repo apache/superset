@@ -30,8 +30,8 @@ def test_import_dashboard(mocker: MockFixture, session: Session) -> None:
     Test importing a dashboard.
     """
     from superset import security_manager
+    from superset.commands.dashboard.importers.v1.utils import import_dashboard
     from superset.connectors.sqla.models import SqlaTable
-    from superset.dashboards.commands.importers.v1.utils import import_dashboard
     from superset.models.core import Database
     from superset.models.slice import Slice
     from tests.integration_tests.fixtures.importexport import dashboard_config
@@ -58,8 +58,8 @@ def test_import_dashboard_managed_externally(
     Test importing a dashboard that is managed externally.
     """
     from superset import security_manager
+    from superset.commands.dashboard.importers.v1.utils import import_dashboard
     from superset.connectors.sqla.models import SqlaTable
-    from superset.dashboards.commands.importers.v1.utils import import_dashboard
     from superset.models.core import Database
     from superset.models.slice import Slice
     from tests.integration_tests.fixtures.importexport import dashboard_config
@@ -86,8 +86,8 @@ def test_import_dashboard_without_permission(
     Test importing a dashboard when a user doesn't have permissions to create.
     """
     from superset import security_manager
+    from superset.commands.dashboard.importers.v1.utils import import_dashboard
     from superset.connectors.sqla.models import SqlaTable
-    from superset.dashboards.commands.importers.v1.utils import import_dashboard
     from superset.models.core import Database
     from superset.models.slice import Slice
     from tests.integration_tests.fixtures.importexport import dashboard_config

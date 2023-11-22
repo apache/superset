@@ -22,21 +22,21 @@ import yaml
 from werkzeug.utils import secure_filename
 
 from superset import db, security_manager
-from superset.commands.exceptions import CommandInvalidError
-from superset.commands.importers.exceptions import IncorrectVersionError
-from superset.connectors.sqla.models import SqlaTable
-from superset.dashboards.commands.exceptions import DashboardNotFoundError
-from superset.dashboards.commands.export import (
+from superset.commands.dashboard.exceptions import DashboardNotFoundError
+from superset.commands.dashboard.export import (
     append_charts,
     ExportDashboardsCommand,
     get_default_position,
 )
-from superset.dashboards.commands.importers import v0, v1
+from superset.commands.dashboard.importers import v0, v1
+from superset.commands.exceptions import CommandInvalidError
+from superset.commands.importers.exceptions import IncorrectVersionError
+from superset.commands.tag.create import CreateCustomTagCommand
+from superset.commands.tag.delete import DeleteTaggedObjectCommand, DeleteTagsCommand
+from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.tags.commands.create import CreateCustomTagCommand
-from superset.tags.commands.delete import DeleteTaggedObjectCommand, DeleteTagsCommand
 from superset.tags.models import ObjectType, Tag, TaggedObject, TagType
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.importexport import (

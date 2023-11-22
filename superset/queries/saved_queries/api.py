@@ -32,19 +32,17 @@ from superset.commands.importers.exceptions import (
     NoValidFilesFoundError,
 )
 from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.commands.query.delete import DeleteSavedQueryCommand
+from superset.commands.query.exceptions import (
+    SavedQueryDeleteFailedError,
+    SavedQueryNotFoundError,
+)
+from superset.commands.query.export import ExportSavedQueriesCommand
+from superset.commands.query.importers.dispatcher import ImportSavedQueriesCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.filters import DatabaseFilter
 from superset.extensions import event_logger
 from superset.models.sql_lab import SavedQuery
-from superset.queries.saved_queries.commands.delete import DeleteSavedQueryCommand
-from superset.queries.saved_queries.commands.exceptions import (
-    SavedQueryDeleteFailedError,
-    SavedQueryNotFoundError,
-)
-from superset.queries.saved_queries.commands.export import ExportSavedQueriesCommand
-from superset.queries.saved_queries.commands.importers.dispatcher import (
-    ImportSavedQueriesCommand,
-)
 from superset.queries.saved_queries.filters import (
     SavedQueryAllTextFilter,
     SavedQueryFavoriteFilter,

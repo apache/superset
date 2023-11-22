@@ -32,12 +32,12 @@ from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_data,
 )
 from tests.integration_tests.test_app import app
-from superset.dashboards.commands.importers.v0 import decode_dashboards
+from superset.commands.dashboard.importers.v0 import decode_dashboards
 from superset import db, security_manager
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-from superset.dashboards.commands.importers.v0 import import_chart, import_dashboard
-from superset.datasets.commands.importers.v0 import import_dataset
+from superset.commands.dashboard.importers.v0 import import_chart, import_dashboard
+from superset.commands.dataset.importers.v0 import import_dataset
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import DatasourceType, get_example_default_schema

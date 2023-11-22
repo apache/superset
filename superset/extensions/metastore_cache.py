@@ -71,7 +71,7 @@ class SupersetMetastoreCache(BaseCache):
     @staticmethod
     def _prune() -> None:
         # pylint: disable=import-outside-toplevel
-        from superset.key_value.commands.delete_expired import (
+        from superset.commands.key_value.delete_expired import (
             DeleteExpiredKeyValueCommand,
         )
 
@@ -85,7 +85,7 @@ class SupersetMetastoreCache(BaseCache):
 
     def set(self, key: str, value: Any, timeout: Optional[int] = None) -> bool:
         # pylint: disable=import-outside-toplevel
-        from superset.key_value.commands.upsert import UpsertKeyValueCommand
+        from superset.commands.key_value.upsert import UpsertKeyValueCommand
 
         UpsertKeyValueCommand(
             resource=RESOURCE,
@@ -98,7 +98,7 @@ class SupersetMetastoreCache(BaseCache):
 
     def add(self, key: str, value: Any, timeout: Optional[int] = None) -> bool:
         # pylint: disable=import-outside-toplevel
-        from superset.key_value.commands.create import CreateKeyValueCommand
+        from superset.commands.key_value.create import CreateKeyValueCommand
 
         try:
             CreateKeyValueCommand(
@@ -115,7 +115,7 @@ class SupersetMetastoreCache(BaseCache):
 
     def get(self, key: str) -> Any:
         # pylint: disable=import-outside-toplevel
-        from superset.key_value.commands.get import GetKeyValueCommand
+        from superset.commands.key_value.get import GetKeyValueCommand
 
         return GetKeyValueCommand(
             resource=RESOURCE,
@@ -131,6 +131,6 @@ class SupersetMetastoreCache(BaseCache):
 
     def delete(self, key: str) -> Any:
         # pylint: disable=import-outside-toplevel
-        from superset.key_value.commands.delete import DeleteKeyValueCommand
+        from superset.commands.key_value.delete import DeleteKeyValueCommand
 
         return DeleteKeyValueCommand(resource=RESOURCE, key=self.get_key(key)).run()

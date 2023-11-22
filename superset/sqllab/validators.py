@@ -20,7 +20,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from superset import security_manager
-from superset.sqllab.commands.execute import CanAccessQueryValidator
+from superset.commands.sql_lab.execute import CanAccessQueryValidator
 
 if TYPE_CHECKING:
     from superset.models.sql_lab import Query
