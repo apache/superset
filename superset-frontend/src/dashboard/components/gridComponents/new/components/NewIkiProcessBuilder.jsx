@@ -17,19 +17,20 @@
  * under the License.
  */
 import React from 'react';
+import { t } from '@superset-ui/core';
 
-import { MARKDOWN_TYPE } from '../../../util/componentTypes';
-import { NEW_MARKDOWN_ID } from '../../../util/constants';
-import DraggableNewComponent from './DraggableNewComponent';
+import { IKI_PROCESS_BUILDER_TYPE } from '../../../../util/componentTypes';
+import { NEW_IKI_PROCESS_BUILDER_ID } from '../../../../util/constants';
+import DraggableNewComponent from '../DraggableNewComponent';
 
 export default function DraggableNewDivider() {
   return (
     <DraggableNewComponent
-      id={NEW_MARKDOWN_ID}
-      type={MARKDOWN_TYPE}
-      label="Markdown"
-      description="HTML/CSS editor"
-      className="fa fa-code"
+      id={NEW_IKI_PROCESS_BUILDER_ID}
+      type={IKI_PROCESS_BUILDER_TYPE}
+      label={t('Process Diagram')}
+      description="Visualize workflows and processes"
+      className="fa fa-columns"
     />
   );
 }

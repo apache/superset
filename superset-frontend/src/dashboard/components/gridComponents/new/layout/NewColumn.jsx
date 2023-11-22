@@ -19,18 +19,18 @@
 import React from 'react';
 import { t } from '@superset-ui/core';
 
-import { HEADER_TYPE } from '../../../util/componentTypes';
-import { NEW_HEADER_ID } from '../../../util/constants';
-import DraggableNewComponent from './DraggableNewComponent';
+import { COLUMN_TYPE } from '../../../../util/componentTypes';
+import { NEW_COLUMN_ID } from '../../../../util/constants';
+import DraggableNewComponent from '../DraggableNewComponent';
 
-export default function DraggableNewHeader() {
+export default function DraggableNewColumn() {
   return (
     <DraggableNewComponent
-      id={NEW_HEADER_ID}
-      type={HEADER_TYPE}
-      label={t('Header')}
-      description={t('Title')}
-      className="fa fa-header"
+      id={NEW_COLUMN_ID}
+      type={COLUMN_TYPE}
+      label={t('Column')}
+      description={t('Vertical content placeholder')}
+      className="fa fa-ellipsis-v fa-5x"
     />
   );
 }

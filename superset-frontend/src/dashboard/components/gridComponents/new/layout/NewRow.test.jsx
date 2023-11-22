@@ -20,7 +20,7 @@ import React from 'react';
 import { shallow } from 'enzyme';
 
 import DraggableNewComponent from 'src/dashboard/components/gridComponents/new/DraggableNewComponent';
-import NewRow from 'src/dashboard/components/gridComponents/new/NewRow';
+import NewRow from 'src/dashboard/components/gridComponents/new/layout/NewRow';
 
 import { NEW_ROW_ID } from 'src/dashboard/util/constants';
 import { ROW_TYPE } from 'src/dashboard/util/componentTypes';

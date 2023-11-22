@@ -19,18 +19,18 @@
 import React from 'react';
 import { t } from '@superset-ui/core';
 
-import { IKI_EITL_COLUMN_TYPE } from '../../../util/componentTypes';
-import { NEW_IKI_EITL_COLUMN_ID } from '../../../util/constants';
-import DraggableNewComponent from './DraggableNewComponent';
+import { HEADER_TYPE } from '../../../../util/componentTypes';
+import { NEW_HEADER_ID } from '../../../../util/constants';
+import DraggableNewComponent from '../DraggableNewComponent';
 
-export default function DraggableNewDivider() {
+export default function DraggableNewHeader() {
   return (
     <DraggableNewComponent
-      id={NEW_IKI_EITL_COLUMN_ID}
-      type={IKI_EITL_COLUMN_TYPE}
-      label={t('aiMatch Expert in the Loop (Columns)')}
-      description="aiMatch model component"
-      className="fa fa-bars fa-rotate-90"
+      id={NEW_HEADER_ID}
+      type={HEADER_TYPE}
+      label={t('Header')}
+      description={t('Title')}
+      className="fa fa-header"
     />
   );
 }

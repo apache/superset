@@ -32,7 +32,10 @@ import {
   IKI_DEEPCAST_TYPE,
   IKI_EITL_ROW_TYPE,
   IKI_EITL_COLUMN_TYPE,
-  IKI_INTERACTIVE_FORECAST_TYPE
+  IKI_MODEL_METRICS_TYPE,
+  IKI_FORECAST_TYPE,
+  IKI_EXTERNAL_DATASETS_TYPE,
+  IKI_EXPLAINABILITY_TYPE,
 } from '../../util/componentTypes';
 
 import ChartHolder from './ChartHolder';
@@ -50,7 +53,10 @@ import IkiRunPipeline from './IkiRunPipeline';
 import IkiDeepcast from './IkiDeepcast';
 import IkiEitlRow from './IkiEitlRow';
 import IkiEitlColumn from './IkiEitlColumn';
-import IkiInteractiveForecast from './IkiInteractiveForecast'
+import IkiModelMetrics from './IkiModelMetrics';
+import IkiExternalDatasets from './IkiExternalDatasets';
+import IkiForecast from './IkiForecast';
+import IkiExplainability from './IkiExplainability';
 
 export { default as ChartHolder } from './ChartHolder';
 export { default as Markdown } from './Markdown';
@@ -67,7 +73,10 @@ export { default as IkiRunPipeline } from './IkiRunPipeline';
 export { default as IkiDeepcast } from './IkiDeepcast';
 export { default as IkiEitlRow } from './IkiEitlRow';
 export { default as IkiEitlColumn } from './IkiEitlColumn';
-export { default as IkiInteractiveForecast } from './IkiInteractiveForecast';
+export { default as IkiModelMetrics } from './IkiModelMetrics';
+export { default as IkiExternalDatasets } from './IkiExternalDatasets';
+export { default as IkiForecast } from './IkiForecast';
+export { default as IkiExplainability } from './IkiExplainability';
 
 export const componentLookup = {
   [CHART_TYPE]: ChartHolder,
@@ -85,5 +94,8 @@ export const componentLookup = {
   [IKI_DEEPCAST_TYPE]: IkiDeepcast,
   [IKI_EITL_ROW_TYPE]: IkiEitlRow,
   [IKI_EITL_COLUMN_TYPE]: IkiEitlColumn,
-  [IKI_INTERACTIVE_FORECAST_TYPE]: IkiInteractiveForecast
+  [IKI_MODEL_METRICS_TYPE]: IkiModelMetrics,
+  [IKI_FORECAST_TYPE]: IkiForecast,
+  [IKI_EXTERNAL_DATASETS_TYPE]: IkiExternalDatasets,
+  [IKI_EXPLAINABILITY_TYPE]: IkiExplainability,
 };

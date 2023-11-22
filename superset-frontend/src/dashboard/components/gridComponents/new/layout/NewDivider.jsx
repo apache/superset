@@ -19,18 +19,18 @@
 import React from 'react';
 import { t } from '@superset-ui/core';
 
-import { IKI_EITL_ROW_TYPE } from '../../../util/componentTypes';
-import { NEW_IKI_EITL_ROW_ID } from '../../../util/constants';
-import DraggableNewComponent from './DraggableNewComponent';
+import { DIVIDER_TYPE } from '../../../../util/componentTypes';
+import { NEW_DIVIDER_ID } from '../../../../util/constants';
+import DraggableNewComponent from '../DraggableNewComponent';
 
 export default function DraggableNewDivider() {
   return (
     <DraggableNewComponent
-      id={NEW_IKI_EITL_ROW_ID}
-      type={IKI_EITL_ROW_TYPE}
-      label={t('aiMatch Expert in the Loop (Rows)')}
-      description="aiMatch model component"
-      className="fa fa-bars"
+      id={NEW_DIVIDER_ID}
+      type={DIVIDER_TYPE}
+      label={t('Divider')}
+      description="Separate your content with a divider"
+      className="fa fa-minus"
     />
   );
 }

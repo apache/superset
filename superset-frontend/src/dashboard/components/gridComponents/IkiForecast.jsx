@@ -17,20 +17,19 @@
  * under the License.
  */
 /**
- * COMPONENT: RUN FLOW
- * WIDGET FRONTEND URL EXAMPLE: http://localhost:3000/widget/pipeline/run?mode=preview&v=1&run_flow_times=1661354875318&pipeline_id=2Dj9IKLHAsi3W3euDQo2Vx6Gupt&submit_button_label=r1&pipeline_log_type=full-log&edit_variables=no
+ * COMPONENT: Interactive Forecast Component
+ * WIDGET FRONTEND URL EXAMPLE: http://localhost:3000/widget/interactive-forecast-chart?mode=preview&dataset_id=2XuNHHmywYae6Ob0K0lUR0NVXSC&datetime_column=Date&data_series=Demand&dimensions_column=prediction_type&metrics_type=SUM
  * PARAMETERS:
  * mode=preview
- * v=1
- * run_flow_times=1661354875318
- * pipeline_id=2Dj9IKLHAsi3W3euDQo2Vx6Gupt
- * submit_button_label=r1
- * pipeline_log_type=full-log
- * edit_variables=no
+ * dataset_id=2XuNHHmywYae6Ob0K0lUR0NVXSC
+ * datetime_column=Date
+ * data_series=Demand
+ * dimensions_column=prediction_type
+ * metrics_type=SUM
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+// import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import cx from 'classnames';
 
@@ -38,7 +37,7 @@ import { t, SafeMarkdown } from '@superset-ui/core';
 import {
   Logger,
   LOG_ACTIONS_RENDER_CHART,
-  LOG_ACTIONS_FORCE_REFRESH_CHART,
+  // LOG_ACTIONS_FORCE_REFRESH_CHART,
 } from 'src/logger/LogUtils';
 import { MarkdownEditor } from 'src/components/AsyncAceEditor';
 
@@ -54,9 +53,7 @@ import {
   GRID_MIN_ROW_UNITS,
   GRID_BASE_UNIT,
 } from 'src/dashboard/util/constants';
-import { refreshChart } from 'src/components/Chart/chartAction';
-
-const { Buffer } = require('buffer');
+// import { chart } from 'src/components/Chart/chartReducer';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -93,25 +90,16 @@ const defaultProps = {};
 
 const MARKDOWN_ERROR_MESSAGE = t('This component has an error.');
 
-class IkiRunPipeline extends React.PureComponent {
+class IkiInteractiveForecast extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
       isFocused: false,
       markdownSource: props.component.meta.code,
-      // markdownSource: `<iframe
-      //                  id="ikirunpipeline-widget-IKI_RUN_PIPELINE-IxVl4QJtbN"
-      //                  name="run-flow-component"
-      //                  src="http://localhost:3000/widget/pipeline/run?mode=edit"
-      //                  title="IkiRunPipeline Component"
-      //                  className="ikirunpipeline-widget"
-      //                  style="min-height: 100%;"
-      //  />`,
       editor: null,
-      editorMode: 'edit',
+      editorMode: 'preview',
       undoLength: props.undoLength,
       redoLength: props.redoLength,
-      dashboardId: null,
     };
     this.renderStartTime = Logger.getTimestamp();
 
@@ -124,12 +112,6 @@ class IkiRunPipeline extends React.PureComponent {
   }
 
   componentDidMount() {
-    this.setState({
-      dashboardId: parseInt(
-        window.location.pathname.split('/dashboard/')[1].split('/')[0],
-        10,
-      ),
-    });
     this.props.logEvent(LOG_ACTIONS_RENDER_CHART, {
       viz_type: 'markdown',
       start_offset: this.renderStartTime,
@@ -189,29 +171,6 @@ class IkiRunPipeline extends React.PureComponent {
     if (this.props.editMode) {
       MarkdownEditor.preload();
     }
-    if (this.props.editMode && this.props.editMode !== prevProps.editMode) {
-      setTimeout(() => {
-        this.handleChangeEditorMode('edit');
-      }, 500);
-    } else if (
-      !this.props.editMode &&
-      this.props.editMode !== prevProps.editMode
-    ) {
-      this.handleChangeEditorMode('preview');
-      // setTimeout(() => {
-      //   const iframe = document.getElementById(
-      //     `ikirunpipeline-widget-${this.props.component.id}`,
-      //   );
-      //   if (iframe && iframe !== undefined) {
-      //     iframe.contentWindow.postMessage(
-      //       JSON.stringify({
-      //         data: 'superset-to-widget/confirm-pipeline-selection',
-      //       }),
-      //       this.props.ikigaiOrigin,
-      //     );
-      //   }
-      // }, 500);
-    }
   }
 
   componentDidCatch() {
@@ -227,98 +186,86 @@ class IkiRunPipeline extends React.PureComponent {
   // eslint-disable-next-line class-methods-use-this
   handleIncomingWindowMsg() {
     window.addEventListener('message', event => {
-      // console.log('event.origin', event.origin, this.props.ikigaiOrigin);
+      console.log('event.origin props', event.origin, this.props.ikigaiOrigin);
       if (event.origin === this.props.ikigaiOrigin) {
         // if (event.origin === 'http://localhost:3000') {
         const messageObject = JSON.parse(event.data);
+        console.log(
+          'event.origin props messageObject editMode',
+          messageObject,
+          this.props.editMode,
+        );
         if (messageObject.info && messageObject.dataType) {
           const { dataType } = messageObject;
-          const chartsList = [];
-
           let messageData;
           let widgetUrl;
           let widgetUrlQuery;
-          // let widgetUrlQueryMode;
-
-          const allChartElements = document.querySelectorAll(
-            '[data-test-chart-id]',
-          );
-          allChartElements.forEach(chartElement => {
-            const tempChartID = chartElement.getAttribute('data-test-chart-id');
-            const tempChartName = chartElement.getAttribute(
-              'data-test-chart-name',
-            );
-            chartsList.push({ id: tempChartID, name: tempChartName });
-          });
+          let widgetUrlQueryMode;
 
           if (dataType === 'object') {
             messageData = JSON.parse(messageObject.data);
           } else {
             messageData = messageObject.data;
           }
-
+          console.log('Onboarding project', messageData);
           if (
             document.getElementById(
-              `ikirunpipeline-widget-${this.props.component.id}`,
+              `ikiinteractiveforecast-widget-${this.props.component.id}`,
             )
           ) {
             widgetUrl = new URL(
               document.getElementById(
-                `ikirunpipeline-widget-${this.props.component.id}`,
+                `ikiinteractiveforecast-widget-${this.props.component.id}`,
               ).src,
             );
-            // widgetUrlQueryMode = widgetUrl.searchParams.get('mode');
+            widgetUrlQueryMode =
+              messageData.mode !== widgetUrl.searchParams.get('mode')
+                ? messageData.mode
+                : widgetUrl.searchParams.get('mode');
           } else {
-            widgetUrl = `${this.props.ikigaiOrigin}/widget/pipeline/run?mode=edit&v=1&run_flow_times=${timestamp}`;
+            widgetUrl = `${this.props.ikigaiOrigin}/widget/interactive-forecast-chart?mode=edit`;
           }
 
           if (
             messageObject.info === 'widget-to-superset/sending-pipeline-data'
           ) {
-            if (
-              // widgetUrlQueryMode === 'edit' &&
-              JSON.parse(messageObject.data).scId === this.props.component.id
-            ) {
-              widgetUrlQuery = new URLSearchParams(widgetUrl.search);
+            console.log(
+              'important Info',
+              widgetUrl,
+              widgetUrlQuery,
+              widgetUrlQueryMode,
+            );
+            if (widgetUrlQueryMode === 'preview') {
+              widgetUrlQuery = new URLSearchParams(widgetUrl);
               widgetUrlQuery.set('mode', 'preview');
-              widgetUrlQuery.set('pipeline_id', messageData.pipeline.id);
-              widgetUrlQuery.set('alias_id', messageData.aliasPipelineId);
+              widgetUrlQuery.set('dataset_id', messageData.dataset_id);
               widgetUrlQuery.set(
-                'submit_button_label',
-                messageData.buttonLabel,
+                'datetime_column',
+                messageData.datetime_column,
               );
-              widgetUrlQuery.set('pipeline_log_type', messageData.logLevel);
-              widgetUrlQuery.set('edit_variables', messageData.variable);
-              const jsonString = JSON.stringify(messageData.selectedCharts);
-              const base64String = Buffer.from(jsonString).toString('base64');
-              widgetUrlQuery.set('selected_charts', base64String);
-              widgetUrlQuery.set('scid', this.props.component.id);
+              widgetUrlQuery.set('data_series', messageData.data_series);
+              widgetUrlQuery.set(
+                'dimensions_column',
+                messageData.dimensions_column,
+              );
+              widgetUrlQuery.set('metrics_type', messageData.metrics_type);
+              //icon
               widgetUrl.search = widgetUrlQuery.toString();
+
+              console.log('final url', widgetUrl, widgetUrl.href);
               const tempIframe = `<iframe
-                          id="ikirunpipeline-widget-${this.props.component.id}"
-                          name="run-flow-component"
-                          src="${widgetUrl}"
-                          title="IkiRunPipeline Component"
-                          className="ikirunpipeline-widget"
-                          style="min-height: 100%;"
-                        />`;
+                                id="ikiinteractiveforecast-widget-${this.props.component.id}"
+                                name="ikiinteractiveforecast"
+                                src="${widgetUrl}"
+                                title="Hero Section Component"
+                                className="ikirunpipeline-widget"
+                                style="min-height: 100%;"
+                            />`;
               this.handleIkiRunPipelineChange(tempIframe);
             }
-          } else if (
-            messageObject.info ===
-            'widget-to-superset/sending-charts-to-refresh'
-          ) {
-            const { selectedCharts } = messageData;
-            this.refreshCharts(selectedCharts);
           }
         }
       }
-    });
-  }
-
-  refreshCharts(selectedCharts) {
-    selectedCharts.forEach(selectedChart => {
-      this.refreshChart(selectedChart.id, this.state.dashboardId, false);
     });
   }
 
@@ -330,11 +277,10 @@ class IkiRunPipeline extends React.PureComponent {
   }
 
   handleChangeFocus(nextFocus) {
-    return nextFocus;
-    // const nextFocused = !!nextFocus;
-    // const nextEditMode = nextFocused ? 'edit' : 'preview';
-    // this.setState(() => ({ isFocused: nextFocused }));
-    // this.handleChangeEditorMode(nextEditMode);
+    const nextFocused = !!nextFocus;
+    const nextEditMode = nextFocused ? 'edit' : 'preview';
+    this.setState(() => ({ isFocused: nextFocused }));
+    this.handleChangeEditorMode(nextEditMode);
   }
 
   handleChangeEditorMode(mode) {
@@ -348,45 +294,6 @@ class IkiRunPipeline extends React.PureComponent {
     }
 
     this.setState(nextState);
-
-    let widgetUrl;
-
-    const chartsList = [];
-    const allChartElements = document.querySelectorAll('[data-test-chart-id]');
-    allChartElements.forEach(chartElement => {
-      const tempChartID = chartElement.getAttribute('data-test-chart-id');
-      const tempChartName = chartElement.getAttribute('data-test-chart-name');
-      chartsList.push({ id: tempChartID, name: tempChartName });
-    });
-    if (
-      document.getElementById(
-        `ikirunpipeline-widget-${this.props.component.id}`,
-      )
-    ) {
-      widgetUrl = new URL(
-        document.getElementById(
-          `ikirunpipeline-widget-${this.props.component.id}`,
-        ).src,
-      );
-    } else {
-      widgetUrl = `${this.props.ikigaiOrigin}/widget/pipeline/run?mode=edit&v=1&run_flow_times=${timestamp}`;
-    }
-
-    const widgetUrlQuery = new URLSearchParams(widgetUrl.search);
-    widgetUrlQuery.set('mode', mode);
-    const jsonString2 = JSON.stringify(chartsList);
-    const base64String2 = Buffer.from(jsonString2).toString('base64');
-    widgetUrlQuery.set('charts_list', base64String2);
-    widgetUrl.search = widgetUrlQuery.toString();
-    const tempIframe = `<iframe
-                      id="ikirunpipeline-widget-${this.props.component.id}"
-                      name="run-flow-component"
-                      src="${widgetUrl}"
-                      title="IkiRunPipeline Component"
-                      className="ikirunpipeline-widget"
-                      style="min-height: 100%;"
-                    />`;
-    this.handleIkiRunPipelineChange(tempIframe);
   }
 
   updateMarkdownContent() {
@@ -416,20 +323,22 @@ class IkiRunPipeline extends React.PureComponent {
         markdownSource: nextValue,
       },
       () => {
-        const { updateComponents, component } = this.props;
-        if (component.meta.code !== nextValue) {
-          updateComponents({
-            [component.id]: {
-              ...component,
-              meta: {
-                ...component.meta,
-                code: nextValue,
-              },
-            },
-          });
-        }
+        // this.handleMarkdownChange();
+        // this.updateMarkdownContent();
       },
     );
+    const { updateComponents, component } = this.props;
+    if (component.meta.code !== nextValue) {
+      updateComponents({
+        [component.id]: {
+          ...component,
+          meta: {
+            ...component.meta,
+            code: nextValue,
+          },
+        },
+      });
+    }
   }
 
   handleDeleteComponent() {
@@ -454,7 +363,7 @@ class IkiRunPipeline extends React.PureComponent {
     let iframe = '';
     let iframeSrc = '';
     if (ikigaiOrigin) {
-      console.log("markdownSource Run Pipeline", markdownSource)
+      console.log('MarkdownSource', markdownSource);
       if (markdownSource) {
         // iframe = markdownSource;
         const iframeWrapper = document.createElement('div');
@@ -464,63 +373,36 @@ class IkiRunPipeline extends React.PureComponent {
         const paramMode = iframeSrcUrl.searchParams.get('mode')
           ? iframeSrcUrl.searchParams.get('mode')
           : '';
-        const paramTimestamp = iframeSrcUrl.searchParams.get('run_flow_times')
-          ? iframeSrcUrl.searchParams.get('run_flow_times')
-          : timestamp;
-        const paramPipelineId = iframeSrcUrl.searchParams.get('pipeline_id')
-          ? iframeSrcUrl.searchParams.get('pipeline_id')
+        const dataset_id = iframeSrcUrl.searchParams.get('dataset_id')
+          ? iframeSrcUrl.searchParams.get('dataset_id')
           : '';
-        const paramAliasId = iframeSrcUrl.searchParams.get('alias_id')
-          ? iframeSrcUrl.searchParams.get('alias_id')
+        const datetime_column = iframeSrcUrl.searchParams.get('datetime_column')
+          ? iframeSrcUrl.searchParams.get('datetime_column')
           : '';
-        const paramSubmitButtonLabel = iframeSrcUrl.searchParams.get(
-          'submit_button_label',
+        const data_series = iframeSrcUrl.searchParams.get('data_series')
+          ? iframeSrcUrl.searchParams.get('data_series')
+          : '';
+        const dimensions_column = iframeSrcUrl.searchParams.get(
+          'dimensions_column',
         )
-          ? iframeSrcUrl.searchParams.get('submit_button_label')
+          ? iframeSrcUrl.searchParams.get('dimensions_column')
           : '';
-        const paramPipelineLogType = iframeSrcUrl.searchParams.get(
-          'pipeline_log_type',
-        )
-          ? iframeSrcUrl.searchParams.get('pipeline_log_type')
+        const metrics_type = iframeSrcUrl.searchParams.get('metrics_type')
+          ? iframeSrcUrl.searchParams.get('metrics_type')
           : '';
-        const paramEditVariables = iframeSrcUrl.searchParams.get(
-          'edit_variables',
-        )
-          ? iframeSrcUrl.searchParams.get('edit_variables')
-          : '';
-        const paramSelectedCharts = iframeSrcUrl.searchParams.get(
-          'selected_charts',
-        )
-          ? iframeSrcUrl.searchParams.get('selected_charts')
-          : '';
-
-        const newIframeSrc = `${ikigaiOrigin}/widget/pipeline/run?mode=${paramMode}&v=1&run_flow_times=${paramTimestamp}&pipeline_id=${paramPipelineId}&alias_id=${paramAliasId}&submit_button_label=${paramSubmitButtonLabel}&pipeline_log_type=${paramPipelineLogType}&edit_variables=${paramEditVariables}&selected_charts=${paramSelectedCharts}`;
+        const newIframeSrc = `${ikigaiOrigin}/widget/interactive-forecast-chart?mode=${paramMode}&dataset_id=${dataset_id}&datetime_column=${datetime_column}&data_series=${data_series}&dimensions_column=${dimensions_column}&metrics_type=${metrics_type}`;
         // console.log('iframe', newIframeSrcUrl, iframeHtml);
         iframeSrc = newIframeSrc;
       } else {
-        iframeSrc = `${ikigaiOrigin}/widget/pipeline/run?mode=edit&v=1&run_flow_times=${timestamp}`;
+        iframeSrc = `${ikigaiOrigin}/widget/interactive-forecast-chart?mode=edit`;
       }
-
-      const allChartElements = document.querySelectorAll(
-        '[data-test-chart-id]',
-      );
-      const chartsList = [];
-      allChartElements.forEach(chartElement => {
-        const tempChartID = chartElement.getAttribute('data-test-chart-id');
-        const tempChartName = chartElement.getAttribute('data-test-chart-name');
-        chartsList.push({ id: tempChartID, name: tempChartName });
-      });
-      const jsonString3 = JSON.stringify(chartsList);
-      const base64String3 = Buffer.from(jsonString3).toString('base64');
-      iframeSrc = `${iframeSrc}&charts_list=${base64String3}&scid=${this.props.component.id}`;
-
       iframe = `<iframe
-                    id="ikirunpipeline-widget-${this.props.component.id}"
-                    name="run-flow-component-${timestamp}"
+                    id="ikiinteractiveforecast-widget-${this.props.component.id}"
+                    name="ikiinteractiveforecast-${timestamp}"
                     src="${iframeSrc}"
-                    title="IkiRunPipeline Component"
+                    title="Interactive Forecast Component"
                     className="ikirunpipeline-widget"
-                    style="height: 100%;"
+                    style="min-height: 100%;"
                   />`;
     } else {
       iframe = '';
@@ -534,14 +416,6 @@ class IkiRunPipeline extends React.PureComponent {
 
   renderPreviewMode() {
     return this.renderIframe();
-  }
-
-  refreshChart(chartId, dashboardId, isCached) {
-    this.props.logEvent(LOG_ACTIONS_FORCE_REFRESH_CHART, {
-      slice_id: chartId,
-      is_cached: isCached,
-    });
-    return this.props.refreshChart(chartId, true, dashboardId);
   }
 
   render() {
@@ -597,8 +471,8 @@ class IkiRunPipeline extends React.PureComponent {
             <div
               data-test="dashboard-markdown-editor"
               className={cx(
-                'dashboard-component-ikirunpipeline',
-                isEditing && 'dashboard-component-ikirunpipeline--editing',
+                'dashboard-markdown',
+                isEditing && 'dashboard-markdown--editing',
               )}
               id={component.id}
             >
@@ -613,14 +487,14 @@ class IkiRunPipeline extends React.PureComponent {
                 minWidthMultiple={GRID_MIN_COLUMN_COUNT}
                 minHeightMultiple={GRID_MIN_ROW_UNITS}
                 maxWidthMultiple={availableColumnCount + widthMultiple}
-                onResizeStart={this.handleResizeStart}
+                //onResizeStart={this.handleResizeStart}
                 onResize={onResize}
                 onResizeStop={onResizeStop}
                 editMode={isFocused ? false : editMode}
               >
                 <div
                   ref={dragSourceRef}
-                  className="dashboard-component-inner"
+                  className="dashboard-component-inner dashboard-interactiveforecast"
                   data-test="dashboard-component-chart-holder"
                 >
                   {
@@ -630,9 +504,9 @@ class IkiRunPipeline extends React.PureComponent {
                       : this.renderPreviewMode()
                   }
                 </div>
-                {dropIndicatorProps && <div {...dropIndicatorProps} />}
               </ResizableContainer>
             </div>
+            {dropIndicatorProps && <div {...dropIndicatorProps} />}
           </WithPopoverMenu>
         )}
       </DragDroppable>
@@ -640,8 +514,8 @@ class IkiRunPipeline extends React.PureComponent {
   }
 }
 
-IkiRunPipeline.propTypes = propTypes;
-IkiRunPipeline.defaultProps = defaultProps;
+IkiInteractiveForecast.propTypes = propTypes;
+IkiInteractiveForecast.defaultProps = defaultProps;
 
 function mapStateToProps(state) {
   return {
@@ -650,13 +524,4 @@ function mapStateToProps(state) {
   };
 }
 
-function mapDispatchToProps(dispatch) {
-  return bindActionCreators(
-    {
-      refreshChart,
-    },
-    dispatch,
-  );
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(IkiRunPipeline);
+export default connect(mapStateToProps)(IkiInteractiveForecast);

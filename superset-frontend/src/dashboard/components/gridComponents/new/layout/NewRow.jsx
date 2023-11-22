@@ -19,18 +19,18 @@
 import React from 'react';
 import { t } from '@superset-ui/core';
 
-import { IKI_RUN_PIPELINE_TYPE } from '../../../util/componentTypes';
-import { NEW_IKI_RUN_PIPELINE_ID } from '../../../util/constants';
-import DraggableNewComponent from './DraggableNewComponent';
+import { ROW_TYPE } from '../../../../util/componentTypes';
+import { NEW_ROW_ID } from '../../../../util/constants';
+import DraggableNewComponent from '../DraggableNewComponent';
 
-export default function DraggableNewDivider() {
+export default function DraggableNewRow() {
   return (
     <DraggableNewComponent
-      id={NEW_IKI_RUN_PIPELINE_ID}
-      type={IKI_RUN_PIPELINE_TYPE}
-      label={t('Run Flow')}
-      description={t('Trigger a Flow to run with a single click')}
-      className="fa fa-bolt"
+      id={NEW_ROW_ID}
+      type={ROW_TYPE}
+      label={t('Row')}
+      description={t('Horizontal content placeholder')}
+      className="fa fa-ellipsis-h"
     />
   );
 }

@@ -17,20 +17,29 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
+import { shallow } from 'enzyme';
 
-import { DIVIDER_TYPE } from '../../../util/componentTypes';
-import { NEW_DIVIDER_ID } from '../../../util/constants';
-import DraggableNewComponent from './DraggableNewComponent';
+import DraggableNewComponent from 'src/dashboard/components/gridComponents/new/DraggableNewComponent';
+import NewHeader from 'src/dashboard/components/gridComponents/new/layout/NewHeader';
 
-export default function DraggableNewDivider() {
-  return (
-    <DraggableNewComponent
-      id={NEW_DIVIDER_ID}
-      type={DIVIDER_TYPE}
-      label={t('Divider')}
-      description="Separate your content with a divider"
-      className="fa fa-minus"
-    />
-  );
-}
+import { NEW_HEADER_ID } from 'src/dashboard/util/constants';
+import { HEADER_TYPE } from 'src/dashboard/util/componentTypes';
+
+describe('NewHeader', () => {
+  function setup() {
+    return shallow(<NewHeader />);
+  }
+
+  it('should render a DraggableNewComponent', () => {
+    const wrapper = setup();
+    expect(wrapper.find(DraggableNewComponent)).toExist();
+  });
+
+  it('should set appropriate type and id', () => {
+    const wrapper = setup();
+    expect(wrapper.find(DraggableNewComponent).props()).toMatchObject({
+      type: HEADER_TYPE,
+      id: NEW_HEADER_ID,
+    });
+  });
+});

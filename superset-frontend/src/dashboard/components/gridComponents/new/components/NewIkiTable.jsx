@@ -17,29 +17,20 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
+import { t } from '@superset-ui/core';
 
-import DraggableNewComponent from 'src/dashboard/components/gridComponents/new/DraggableNewComponent';
-import NewHeader from 'src/dashboard/components/gridComponents/new/NewHeader';
+import { IKI_TABLE_TYPE } from '../../../../util/componentTypes';
+import { NEW_IKI_TABLE_ID } from '../../../../util/constants';
+import DraggableNewComponent from '../DraggableNewComponent';
 
-import { NEW_HEADER_ID } from 'src/dashboard/util/constants';
-import { HEADER_TYPE } from 'src/dashboard/util/componentTypes';
-
-describe('NewHeader', () => {
-  function setup() {
-    return shallow(<NewHeader />);
-  }
-
-  it('should render a DraggableNewComponent', () => {
-    const wrapper = setup();
-    expect(wrapper.find(DraggableNewComponent)).toExist();
-  });
-
-  it('should set appropriate type and id', () => {
-    const wrapper = setup();
-    expect(wrapper.find(DraggableNewComponent).props()).toMatchObject({
-      type: HEADER_TYPE,
-      id: NEW_HEADER_ID,
-    });
-  });
-});
+export default function DraggableNewDivider() {
+  return (
+    <DraggableNewComponent
+      id={NEW_IKI_TABLE_ID}
+      type={IKI_TABLE_TYPE}
+      label={t('Editable Dataset')}
+      description="Edit your data from the dashboard"
+      className="fa fa-table"
+    />
+  );
+}
