@@ -97,7 +97,7 @@ class AlertCommand(BaseCommand):
             raise AlertQueryMultipleRowsError(
                 message=_(
                     "Alert query returned more than one row. %(num_rows) rows returned",
-                    num_rows=len(rows)
+                    num_rows=len(rows),
                 )
             )
         # check if query returned more than one column
@@ -107,7 +107,7 @@ class AlertCommand(BaseCommand):
                 _(
                     "Alert query returned more than one column. "
                     "%(num_cols) columns returned",
-                    num_cols=(len(rows[0]) - 1)
+                    num_cols=(len(rows[0]) - 1),
                 )
             )
 
