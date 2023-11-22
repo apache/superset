@@ -184,3 +184,32 @@ class MigrateAreaChart(TimeseriesChart):
         )
 
         self.data["opacity"] = 0.7
+
+
+class MigrateBubbleChart(MigrateViz):
+    source_viz_type = "bubble"
+    target_viz_type = "bubble_v2"
+    rename_keys = {
+        "bottom_margin": "x_axis_title_margin",
+        "left_margin": "y_axis_title_margin",
+        "limit": "row_limit",
+        "x_axis_format": "xAxisFormat",
+        "x_log_scale": "logXAxis",
+        "x_ticks_layout": "xAxisLabelRotation",
+        "y_axis_showminmax": "truncateYAxis",
+        "y_log_scale": "logYAxis",
+    }
+    remove_keys = {"x_axis_showminmax"}
+
+    def _pre_action(self) -> None:
+        bottom_margin = self.data.get("bottom_margin")
+        if self.data.get("x_axis_label") and (
+            not bottom_margin or bottom_margin == "auto"
+        ):
+            self.data["bottom_margin"] = 30
+
+        if x_ticks_layout := self.data.get("x_ticks_layout"):
+            self.data["x_ticks_layout"] = 45 if x_ticks_layout == "45°" else 0
+
+        # Truncate y-axis by default to preserve layout
+        self.data["y_axis_showminmax"] = True

@@ -104,7 +104,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
 
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
 
-  const legends: string[] = [];
+  const legends = new Set<string>();
   const series: ScatterSeriesOption[] = [];
 
   const xAxisLabel: string = getMetricLabel(x);
@@ -114,9 +114,8 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
   const refs: Refs = {};
 
   data.forEach(datum => {
-    const name =
-      ((bubbleSeries ? datum[bubbleSeries] : datum[entity]) as string) ||
-      NULL_STRING;
+    const dataName = bubbleSeries ? datum[bubbleSeries] : datum[entity];
+    const name = dataName ? String(dataName) : NULL_STRING;
     const bubbleSeriesValue = bubbleSeries ? datum[bubbleSeries] : null;
 
     series.push({
@@ -133,7 +132,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
       type: 'scatter',
       itemStyle: { color: colorFn(name), opacity },
     });
-    legends.push(name);
+    legends.add(name);
   });
 
   normalizeSymbolSize(series, maxBubbleSize);
@@ -196,7 +195,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     },
     legend: {
       ...getLegendProps(legendType, legendOrientation, showLegend, theme),
-      data: legends,
+      data: Array.from(legends),
     },
     tooltip: {
       show: !inContextMenu,

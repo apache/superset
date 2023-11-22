@@ -36,7 +36,7 @@ from superset.common.utils.time_range_utils import (
     get_since_until_from_query_object,
     get_since_until_from_time_range,
 )
-from superset.connectors.base.models import BaseDatasource
+from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import CacheRegion, TimeGrain
 from superset.daos.annotation import AnnotationLayerDAO
 from superset.daos.chart import ChartDAO
