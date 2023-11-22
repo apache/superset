@@ -61,7 +61,7 @@ class DeleteDashboardCommand(BaseCommand):
             report_names = [report.name for report in reports]
             raise DashboardDeleteFailedReportsExistError(
                 _(
-                    "There are associated alerts or reports: %(report_names)",
+                    "There are associated alerts or reports: %(report_names)s",
                     report_names=",".join(report_names),
                 )
             )
