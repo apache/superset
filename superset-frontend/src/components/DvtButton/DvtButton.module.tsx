@@ -37,7 +37,7 @@ const StyledDvtButton = styled.button<DvtButtonProps>`
     };
 
     const colourFinderColor = {
-      primary:{
+      primary: {
         powder: 'base',
         outline: 'base',
       },
@@ -48,8 +48,8 @@ const StyledDvtButton = styled.button<DvtButtonProps>`
       grayscale: {
         powder: 'base',
         outline: 'base',
-      }
-    }
+      },
+    };
 
     return `
       background-color: ${

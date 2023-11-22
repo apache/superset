@@ -21,11 +21,18 @@ export default {
         options: ['basic', 'powder', 'outline'],
       },
     },
+    icon: {
+      control: { type: 'text' },
+    },
+    onClick: {
+      action: 'clicked',
+    },
   },
 };
 
 export const Default = (args: DvtButtonProps) => <DvtButton {...args} />;
 
 Default.args = {
+  label: 'Create a New Graph/Chart',
   typeColour: 'primary',
 };
