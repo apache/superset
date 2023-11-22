@@ -183,12 +183,14 @@ class ChartDataRestApi(ChartRestApi):
     def refresh_cache(self) -> Response:
         form_data = request.json
         try:
-            from superset.models.slice import Slice
-            from typing import cast
-            chart = cast(Slice, self.datamodel.get(form_data["form_data"]["slice_id"]))
-            form_data['queries'] = json.loads(chart.query_context)['queries']
-            # set dashboard default time filter
-            form_data['queries'][0]['time_range'] = form_data['form_data']['extra_form_data']['time_range']
+            if form_data.get("form_data"):
+                # requests for filters have no form_data
+                from superset.models.slice import Slice
+                from typing import cast
+                chart = cast(Slice, self.datamodel.get(form_data["form_data"]["slice_id"]))
+                form_data['queries'] = json.loads(chart.query_context)['queries']
+                # set dashboard default time filter
+                form_data['queries'][0]['time_range'] = form_data['form_data']['extra_form_data']['time_range']
             query_context = self._create_query_context_from_form(form_data)
             command = ChartDataCommand(query_context)
             command.validate()
