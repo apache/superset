@@ -22,6 +22,12 @@ interface StyledSelectProps {
   isOpen: boolean;
 }
 
+interface StyledSelectOptionsProps {
+  isOpen: boolean;
+  label: string;
+  itemLength: number;
+}
+
 const optionsKeyframes = keyframes`
   from {
     transform: scaleY(0);
@@ -38,7 +44,7 @@ interface StyledSelectOptionProps {
 
 const StyledSelect = styled.div`
   position: relative;
-  display: flex;
+  display: inline-flex;
   flex-direction: column;
 `;
 
@@ -75,27 +81,34 @@ const StyledSelectOption = styled.div<StyledSelectOptionProps>`
       ? `
         color: ${theme.colors.grayscale.light5};
         background: ${theme.colors.dvt.primary.light1};
-        &:first-of-type {
-          border-radius: 12px 12px 0px 0px;
-        }
-        &:last-of-type {
-          border-radius: 0px 0px 12px 12px;
-        }
       `
       : `
         color: ${theme.colors.dvt.primary.light1};
       }
     `}
 `;
-const StyledSelectOptions = styled.div<StyledSelectProps>`
+const StyledSelectOptions = styled.div<StyledSelectOptionsProps>`
   position: absolute;
-  top: 105px;
-  width: 202px;
-  border-radius: 12px;
+  top: ${({ label }) => (label ? '74px' : '52px')};
+  left: 0;
+  right: 0;
+  border-radius: ${({ itemLength }) =>
+    itemLength > 6 ? '12px 0 0 12px' : '12px'};
   background: ${({ theme }) => theme.colors.dvt.primary.light2};
   max-height: 274px;
   overflow-y: auto;
   animation: ${optionsKeyframes} 0.3s ease-in-out;
+  transform-origin: top;
+  &::-webkit-scrollbar {
+    background-color: ${({ theme }) => theme.colors.dvt.grayscale.light1};
+    width: 6px;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: ${({ theme }) => theme.colors.dvt.grayscale.base};
+    border-radius: 3px;
+  }
 `;
 const StyledSelectIcon = styled.div<StyledSelectProps>`
   display: flex;
