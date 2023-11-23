@@ -24,7 +24,7 @@ export interface DvtButtonProps {
   label: string;
   icon?: string;
   size?: 'small' | 'medium' | 'large';
-  onClick?: () => void;
+  onClick: () => void;
   colour?: 'primary' | 'success' | 'grayscale';
   typeColour?: 'basic' | 'powder' | 'outline';
   maxWidth?: boolean;

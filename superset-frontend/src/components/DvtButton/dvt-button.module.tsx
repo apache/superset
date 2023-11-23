@@ -66,17 +66,14 @@ const StyledDvtButton = styled.button<DvtButtonProps>`
       primary: {
         basic: 'base',
         powder: 'light3',
-        outline: 'base',
       },
       success: {
         basic: 'dark1',
         powder: 'light3',
-        outline: 'dark1',
       },
       grayscale: {
         basic: 'base',
         powder: 'light2',
-        outline: 'base',
       },
     };
 
