@@ -30,7 +30,7 @@ def test_import_database(mocker: MockFixture, session: Session) -> None:
     Test importing a database.
     """
     from superset import security_manager
-    from superset.databases.commands.importers.v1.utils import import_database
+    from superset.commands.database.importers.v1.utils import import_database
     from superset.models.core import Database
     from tests.integration_tests.fixtures.importexport import database_config
 
@@ -70,7 +70,7 @@ def test_import_database_sqlite_invalid(mocker: MockFixture, session: Session) -
     Test importing a database.
     """
     from superset import app, security_manager
-    from superset.databases.commands.importers.v1.utils import import_database
+    from superset.commands.database.importers.v1.utils import import_database
     from superset.models.core import Database
     from tests.integration_tests.fixtures.importexport import database_config_sqlite
 
@@ -99,7 +99,7 @@ def test_import_database_managed_externally(
     Test importing a database that is managed externally.
     """
     from superset import security_manager
-    from superset.databases.commands.importers.v1.utils import import_database
+    from superset.commands.database.importers.v1.utils import import_database
     from superset.models.core import Database
     from tests.integration_tests.fixtures.importexport import database_config
 
@@ -125,7 +125,7 @@ def test_import_database_without_permission(
     Test importing a database when a user doesn't have permissions to create.
     """
     from superset import security_manager
-    from superset.databases.commands.importers.v1.utils import import_database
+    from superset.commands.database.importers.v1.utils import import_database
     from superset.models.core import Database
     from tests.integration_tests.fixtures.importexport import database_config
 

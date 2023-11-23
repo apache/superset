@@ -64,7 +64,7 @@ def load_chart_data_into_cache(
     form_data: dict[str, Any],
 ) -> None:
     # pylint: disable=import-outside-toplevel
-    from superset.charts.data.commands.get_data_command import ChartDataCommand
+    from superset.commands.chart.data.get_data_command import ChartDataCommand
 
     user = (
         security_manager.get_user_by_id(job_metadata.get("user_id"))

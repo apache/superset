@@ -25,12 +25,12 @@ from flask import g
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset import is_feature_enabled, security_manager
-from superset.daos.base import BaseDAO
-from superset.dashboards.commands.exceptions import (
+from superset.commands.dashboard.exceptions import (
     DashboardAccessDeniedError,
     DashboardForbiddenError,
     DashboardNotFoundError,
 )
+from superset.daos.base import BaseDAO
 from superset.dashboards.filter_sets.consts import (
     DASHBOARD_ID_FIELD,
     DESCRIPTION_FIELD,

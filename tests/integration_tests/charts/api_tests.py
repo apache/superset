@@ -28,8 +28,8 @@ from parameterized import parameterized
 from sqlalchemy import and_
 from sqlalchemy.sql import func
 
-from superset.charts.commands.exceptions import ChartDataQueryFailedError
-from superset.charts.data.commands.get_data_command import ChartDataCommand
+from superset.commands.chart.data.get_data_command import ChartDataCommand
+from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.connectors.sqla.models import SqlaTable
 from superset.extensions import cache_manager, db, security_manager
 from superset.models.core import Database, FavStar, FavStarClassName

@@ -21,6 +21,8 @@ from typing import Any, Optional
 from flask import g
 from sqlalchemy.exc import SQLAlchemyError
 
+from superset.commands.tag.exceptions import TagNotFoundError
+from superset.commands.tag.utils import to_object_type
 from superset.daos.base import BaseDAO
 from superset.daos.exceptions import DAOCreateFailedError, DAODeleteFailedError
 from superset.exceptions import MissingUserContextException
@@ -28,8 +30,6 @@ from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
-from superset.tags.commands.exceptions import TagNotFoundError
-from superset.tags.commands.utils import to_object_type
 from superset.tags.models import (
     get_tag,
     ObjectType,
@@ -409,7 +409,9 @@ class TagDAO(BaseDAO[Tag]):
             for object_type, object_id in tagged_objects_to_delete:
                 # delete objects that were removed
                 TagDAO.delete_tagged_object(
-                    object_type, object_id, tag.name  # type: ignore
+                    object_type,  # type: ignore
+                    object_id,
+                    tag.name,
                 )
 
         db.session.add_all(tagged_objects)

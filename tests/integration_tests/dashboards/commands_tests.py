@@ -23,16 +23,16 @@ import yaml
 from werkzeug.utils import secure_filename
 
 from superset import db, security_manager
-from superset.commands.exceptions import CommandInvalidError
-from superset.commands.importers.exceptions import IncorrectVersionError
-from superset.connectors.sqla.models import SqlaTable
-from superset.dashboards.commands.exceptions import DashboardNotFoundError
-from superset.dashboards.commands.export import (
+from superset.commands.dashboard.exceptions import DashboardNotFoundError
+from superset.commands.dashboard.export import (
     append_charts,
     ExportDashboardsCommand,
     get_default_position,
 )
-from superset.dashboards.commands.importers import v0, v1
+from superset.commands.dashboard.importers import v0, v1
+from superset.commands.exceptions import CommandInvalidError
+from superset.commands.importers.exceptions import IncorrectVersionError
+from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -292,7 +292,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
         ]
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    @patch("superset.dashboards.commands.export.suffix")
+    @patch("superset.commands.dashboard.export.suffix")
     def test_append_charts(self, mock_suffix):
         """Test that orphaned charts are added to the dashboard position"""
         # return deterministic IDs
@@ -490,7 +490,7 @@ class TestImportDashboardsCommand(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
-    @patch("superset.dashboards.commands.importers.v1.utils.g")
+    @patch("superset.commands.dashboard.importers.v1.utils.g")
     @patch("superset.security.manager.g")
     def test_import_v1_dashboard(self, sm_g, utils_g):
         """Test that we can import a dashboard"""
