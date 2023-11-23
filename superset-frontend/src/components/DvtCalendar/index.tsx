@@ -30,7 +30,7 @@ import {
 export interface DvtCalendarProps {
   onSelect: (date: Moment | null) => void;
   isOpen: boolean;
-  setIsopen: (newCalendarVisible: boolean) => void;
+  setIsOpen: (newCalendarVisible: boolean) => void;
   selectedDate: Moment | null;
   setSelectedDate: (date: Moment | null) => void;
 }
@@ -38,7 +38,7 @@ export interface DvtCalendarProps {
 const DvtCalendar: React.FC<DvtCalendarProps> = ({
   onSelect,
   isOpen,
-  setIsopen,
+  setIsOpen,
   selectedDate,
   setSelectedDate,
 }) => {
@@ -46,7 +46,7 @@ const DvtCalendar: React.FC<DvtCalendarProps> = ({
   const [isPrevIconHovered, setPrevIconHovered] = useState(false);
 
   const handleToggleCalendar = () => {
-    setIsopen(!isOpen);
+    setIsOpen(!isOpen);
   };
 
   useEffect(() => {
@@ -95,7 +95,7 @@ const DvtCalendar: React.FC<DvtCalendarProps> = ({
           fullscreen={false}
           onSelect={date =>
             !(isPrevIconHovered || isNextIconHovered) &&
-            (setSelectedDate(date), setIsopen(false))
+            (setSelectedDate(date), setIsOpen(false))
           }
           headerRender={({ value, onChange }) => {
             let current = value.clone();

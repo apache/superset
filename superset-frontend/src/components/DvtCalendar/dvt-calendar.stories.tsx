@@ -18,23 +18,24 @@
  */
 import React, { useState } from 'react';
 import moment, { Moment } from 'moment';
-import DvtCalendar from '.';
+import DvtCalendar, { DvtCalendarProps } from '.';
 
 export default {
   title: 'Dvt-Components/DvtCalendar',
   component: DvtCalendar,
 };
-const handleSelect = (date: Moment | null) => date;
-export const InteractiveDatePicker = () => {
+
+export const InteractiveDatePicker = (args: DvtCalendarProps) => {
   const [isOpen, setIsOpen] = useState<boolean>(true);
   const [selectedDate, setSelectedDate] = useState<Moment | null>(
     moment(Date.now()),
   );
   return (
     <DvtCalendar
-      onSelect={handleSelect}
+      {...args}
+      onSelect={() => {}}
       isOpen={isOpen}
-      setIsopen={setIsOpen}
+      setIsOpen={setIsOpen}
       selectedDate={selectedDate}
       setSelectedDate={setSelectedDate}
     />
