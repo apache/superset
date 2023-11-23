@@ -37,6 +37,7 @@ interface StyledSelectOptionProps {
 }
 
 const StyledSelect = styled.div`
+  position: relative;
   display: flex;
   flex-direction: column;
 `;
