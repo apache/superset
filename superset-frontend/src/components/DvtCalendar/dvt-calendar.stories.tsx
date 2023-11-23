@@ -16,12 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import DvtCalendar from '.';
+import { Moment } from 'moment';
+import moment from 'moment';
 
 export default {
   title: 'Dvt-Components/DvtCalendar',
   component: DvtCalendar,
 };
 
-export const InteractiveDatePicker = () => <DvtCalendar onSelect={() => {}} />;
+export const InteractiveDatePicker = () => {
+  const [isOpen, setIsopen] = useState<boolean>(true);
+  const [selectedDate, setSelectedDate] = useState<Moment | null>(
+    moment(Date.now()),
+  );
+  return (
+    <DvtCalendar
+      onSelect={() => {}}
+      isOpen={isOpen}
+      setIsopen={setIsopen}
+      selectedDate={selectedDate}
+      setSelectedDate={setSelectedDate}
+    />
+  );
+};

@@ -18,13 +18,8 @@
  */
 import { styled } from '@superset-ui/core';
 
-interface StyledCalendarProps {
-  isCalendarVisible: boolean;
-}
-
-const StyledCalendar = styled.div<StyledCalendarProps>`
+const StyledCalendar = styled.div`
   width: 308px;
-  display: ${({ isCalendarVisible }) => (isCalendarVisible ? 'block' : 'none')};
   tr {
     th {
       font-weight: 600;
