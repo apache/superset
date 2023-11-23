@@ -95,7 +95,7 @@ const DvtCalendar: React.FC<DvtCalendarProps> = ({
           fullscreen={false}
           onSelect={date =>
             !(isPrevIconHovered || isNextIconHovered) &&
-            (setSelectedDate(date), setIsOpen(false))
+            (setSelectedDate(date))
           }
           headerRender={({ value, onChange }) => {
             let current = value.clone();

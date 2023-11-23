@@ -25,9 +25,6 @@ export default {
   component: DvtCalendar,
 };
 
-const handleDateSelect = (date: Moment | null) => {
-  console.log(date);
-};
 export const InteractiveDatePicker = (args: DvtCalendarProps) => {
   const [isOpen, setIsOpen] = useState<boolean>(true);
   const [selectedDate, setSelectedDate] = useState<Moment | null>(
@@ -39,7 +36,7 @@ export const InteractiveDatePicker = (args: DvtCalendarProps) => {
       setIsOpen={setIsOpen}
       selectedDate={selectedDate}
       setSelectedDate={setSelectedDate}
-      onSelect={date => handleDateSelect(date)}
+      onSelect={() => {}}
     />
   );
 };
