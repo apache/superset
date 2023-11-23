@@ -49,8 +49,8 @@ const StyledSelect = styled.div`
 `;
 
 const StyledSelectSelect = styled.div<StyledSelectProps>`
+  position: relative;
   display: flex;
-  justify-content: space-between;
   align-items: center;
   padding: 12px;
   width: 202px;
@@ -111,8 +111,8 @@ const StyledSelectOptions = styled.div<StyledSelectOptionsProps>`
   }
 `;
 const StyledSelectIcon = styled.div<StyledSelectProps>`
-  display: flex;
-  justify-content: flex-end;
+  position: absolute;
+  right: 12px;
   transition: transform 0.3s ease-in-out;
   transform: ${({ isOpen }) => (isOpen ? 'rotate(90deg)' : 'none')};
 `;

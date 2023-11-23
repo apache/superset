@@ -25,7 +25,7 @@ export default {
 };
 
 export const Default = (args: DvtSelectProps) => {
-  const [selectedValue, setSelectedValue] = useState<string>(args.placeholder);
+  const [selectedValue, setSelectedValue] = useState<string>('');
 
   return (
     <DvtSelect

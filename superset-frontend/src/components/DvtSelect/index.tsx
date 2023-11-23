@@ -30,7 +30,7 @@ import {
 export interface DvtSelectProps {
   label?: string;
   data: { value: string; label: string }[];
-  placeholder: string;
+  placeholder?: string;
   selectedValue: string;
   setSelectedValue: (newSeletedValue: string) => void;
 }
