@@ -27,7 +27,6 @@ from flask import current_app
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import Session
-from trino.sqlalchemy import datatype
 
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY, USER_AGENT
 from superset.databases.utils import make_url_safe
@@ -351,6 +350,9 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         the whole string they have to be quoted like "foo"."bar"."baz" and we then
         alias them to the full dotted string for ease of reference.
         """
+        # pylint: disable=import-outside-toplevel
+        from trino.sqlalchemy import datatype
+
         cols = [col]
         col_type = col.get("type")
 

@@ -16,7 +16,7 @@
 # under the License.
 from __future__ import annotations
 
-from typing import Any, cast, Generic, get_args, TypeVar
+from typing import Any, Generic, get_args, TypeVar
 
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
@@ -30,7 +30,6 @@ from superset.daos.exceptions import (
     DAOUpdateFailedError,
 )
 from superset.extensions import db
-from superset.utils.core import as_list
 
 T = TypeVar("T", bound=Model)
 
@@ -197,9 +196,9 @@ class BaseDAO(Generic[T]):
         return item  # type: ignore
 
     @classmethod
-    def delete(cls, item_or_items: T | list[T], commit: bool = True) -> None:
+    def delete(cls, items: list[T], commit: bool = True) -> None:
         """
-        Delete the specified item(s) including their associated relationships.
+        Delete the specified items including their associated relationships.
 
         Note that bulk deletion via `delete` is not invoked in the base class as this
         does not dispatch the ORM `after_delete` event which may be required to augment
@@ -209,12 +208,12 @@ class BaseDAO(Generic[T]):
         Subclasses may invoke bulk deletion but are responsible for instrumenting any
         post-deletion logic.
 
-        :param items: The item(s) to delete
+        :param items: The items to delete
         :param commit: Whether to commit the transaction
         :raises DAODeleteFailedError: If the deletion failed
         :see: https://docs.sqlalchemy.org/en/latest/orm/queryguide/dml.html
         """
-        items = cast(list[T], as_list(item_or_items))
+
         try:
             for item in items:
                 db.session.delete(item)

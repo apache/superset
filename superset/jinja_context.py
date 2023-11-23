@@ -30,8 +30,8 @@ from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.expression import bindparam
 from sqlalchemy.types import String
 
+from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.constants import LRU_CACHE_MAX_SIZE
-from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.exceptions import SupersetTemplateException
 from superset.extensions import feature_flag_manager
 from superset.utils.core import (

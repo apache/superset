@@ -22,11 +22,11 @@ from celery.exceptions import SoftTimeLimitExceeded
 
 from superset import app, is_feature_enabled
 from superset.commands.exceptions import CommandException
+from superset.commands.report.exceptions import ReportScheduleUnexpectedError
+from superset.commands.report.execute import AsyncExecuteReportScheduleCommand
+from superset.commands.report.log_prune import AsyncPruneReportScheduleLogCommand
 from superset.daos.report import ReportScheduleDAO
 from superset.extensions import celery_app
-from superset.reports.commands.exceptions import ReportScheduleUnexpectedError
-from superset.reports.commands.execute import AsyncExecuteReportScheduleCommand
-from superset.reports.commands.log_prune import AsyncPruneReportScheduleLogCommand
 from superset.stats_logger import BaseStatsLogger
 from superset.tasks.cron_util import cron_schedule_window
 from superset.utils.celery import session_scope
