@@ -20,12 +20,12 @@ from datetime import datetime, timezone
 
 import yaml
 
-from superset.charts.commands.export import ExportChartsCommand
 from superset.commands.base import BaseCommand
-from superset.dashboards.commands.export import ExportDashboardsCommand
-from superset.databases.commands.export import ExportDatabasesCommand
-from superset.datasets.commands.export import ExportDatasetsCommand
-from superset.queries.saved_queries.commands.export import ExportSavedQueriesCommand
+from superset.commands.chart.export import ExportChartsCommand
+from superset.commands.dashboard.export import ExportDashboardsCommand
+from superset.commands.database.export import ExportDatabasesCommand
+from superset.commands.dataset.export import ExportDatasetsCommand
+from superset.commands.query.export import ExportSavedQueriesCommand
 from superset.utils.dict_import_export import EXPORT_VERSION
 
 METADATA_FILE_NAME = "metadata.yaml"

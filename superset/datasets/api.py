@@ -30,17 +30,10 @@ from flask_babel import ngettext
 from marshmallow import ValidationError
 
 from superset import event_logger, is_feature_enabled
-from superset.commands.exceptions import CommandException
-from superset.commands.importers.exceptions import NoValidFilesFoundError
-from superset.commands.importers.v1.utils import get_contents_from_bundle
-from superset.connectors.sqla.models import SqlaTable
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.daos.dataset import DatasetDAO
-from superset.databases.filters import DatabaseFilter
-from superset.datasets.commands.create import CreateDatasetCommand
-from superset.datasets.commands.delete import DeleteDatasetCommand
-from superset.datasets.commands.duplicate import DuplicateDatasetCommand
-from superset.datasets.commands.exceptions import (
+from superset.commands.dataset.create import CreateDatasetCommand
+from superset.commands.dataset.delete import DeleteDatasetCommand
+from superset.commands.dataset.duplicate import DuplicateDatasetCommand
+from superset.commands.dataset.exceptions import (
     DatasetCreateFailedError,
     DatasetDeleteFailedError,
     DatasetForbiddenError,
@@ -49,11 +42,18 @@ from superset.datasets.commands.exceptions import (
     DatasetRefreshFailedError,
     DatasetUpdateFailedError,
 )
-from superset.datasets.commands.export import ExportDatasetsCommand
-from superset.datasets.commands.importers.dispatcher import ImportDatasetsCommand
-from superset.datasets.commands.refresh import RefreshDatasetCommand
-from superset.datasets.commands.update import UpdateDatasetCommand
-from superset.datasets.commands.warm_up_cache import DatasetWarmUpCacheCommand
+from superset.commands.dataset.export import ExportDatasetsCommand
+from superset.commands.dataset.importers.dispatcher import ImportDatasetsCommand
+from superset.commands.dataset.refresh import RefreshDatasetCommand
+from superset.commands.dataset.update import UpdateDatasetCommand
+from superset.commands.dataset.warm_up_cache import DatasetWarmUpCacheCommand
+from superset.commands.exceptions import CommandException
+from superset.commands.importers.exceptions import NoValidFilesFoundError
+from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.connectors.sqla.models import SqlaTable
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.daos.dataset import DatasetDAO
+from superset.databases.filters import DatabaseFilter
 from superset.datasets.filters import DatasetCertifiedFilter, DatasetIsNullOrEmptyFilter
 from superset.datasets.schemas import (
     DatasetCacheWarmUpRequestSchema,

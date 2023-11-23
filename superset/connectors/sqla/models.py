@@ -75,6 +75,7 @@ from sqlalchemy.sql.expression import Label, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 
 from superset import app, db, is_feature_enabled, security_manager
+from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.utils import (
     get_columns_description,
@@ -82,7 +83,6 @@ from superset.connectors.sqla.utils import (
     get_virtual_table_metadata,
 )
 from superset.constants import EMPTY_STRING, NULL_STRING
-from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 from superset.exceptions import (
     ColumnNotFoundException,
