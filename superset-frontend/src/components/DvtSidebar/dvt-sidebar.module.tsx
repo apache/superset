@@ -16,28 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import DvtTitleTotal, { DvtTitleTotalProps } from '.';
+import { styled } from '@superset-ui/core';
 
-export default {
-  title: 'Dvt-Components/DvtTitleTotal',
-  component: DvtTitleTotal,
-};
+const StyledDvtSidebar = styled.div`
+  display: flex;
+  flex-direction: column;
+  min-width: 250px;
+  padding: 32px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  background-color: ${({ theme }) => theme.colors.grayscale.light5};
+  box-shadow: 10px 10px 50px 0px
+    ${({ theme }) => theme.colors.dvt.boxShadow.sidebar};
+  z-index: 10;
+`;
 
-export const Default = (args: DvtTitleTotalProps) => (
-  <DvtTitleTotal {...args} />
-);
-
-Default.args = {
-  title: "What's New",
-  total: 15,
-};
-
-Default.argsTypes = {
-  title: {
-    control: { type: 'text' },
-  },
-  total: {
-    control: { type: 'number' },
-  },
-};
+export { StyledDvtSidebar };

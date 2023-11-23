@@ -17,27 +17,24 @@
  * under the License.
  */
 import React from 'react';
-import DvtTitleTotal, { DvtTitleTotalProps } from '.';
+import {
+  StyledDotTitle,
+  StyledDotIcon,
+  StyledDot,
+  StyledTitle,
+} from './dvt-dot-title.module';
 
-export default {
-  title: 'Dvt-Components/DvtTitleTotal',
-  component: DvtTitleTotal,
-};
+export interface DvtDotTitleProps {
+  label?: string;
+}
 
-export const Default = (args: DvtTitleTotalProps) => (
-  <DvtTitleTotal {...args} />
+const DvtDotTitle = ({ label = '' }: DvtDotTitleProps) => (
+  <StyledDotTitle>
+    <StyledDotIcon>
+      <StyledDot />
+    </StyledDotIcon>
+    <StyledTitle>{label}</StyledTitle>
+  </StyledDotTitle>
 );
 
-Default.args = {
-  title: "What's New",
-  total: 15,
-};
-
-Default.argsTypes = {
-  title: {
-    control: { type: 'text' },
-  },
-  total: {
-    control: { type: 'number' },
-  },
-};
+export default DvtDotTitle;

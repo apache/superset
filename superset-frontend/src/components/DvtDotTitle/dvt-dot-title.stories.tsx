@@ -17,27 +17,19 @@
  * under the License.
  */
 import React from 'react';
-import DvtTitleTotal, { DvtTitleTotalProps } from '.';
+import DvtDotTitle, { DvtDotTitleProps } from '.';
 
 export default {
-  title: 'Dvt-Components/DvtTitleTotal',
-  component: DvtTitleTotal,
+  title: 'Dvt-Components/DvtDotTitle',
+  component: DvtDotTitle,
 };
 
-export const Default = (args: DvtTitleTotalProps) => (
-  <DvtTitleTotal {...args} />
+export const Default = (args: DvtDotTitleProps) => (
+  <DvtDotTitle label="Welcome Page" {...args} />
 );
-
-Default.args = {
-  title: "What's New",
-  total: 15,
-};
-
-Default.argsTypes = {
-  title: {
-    control: { type: 'text' },
-  },
-  total: {
-    control: { type: 'number' },
-  },
-};
+export const Connection = (args: DvtDotTitleProps) => (
+  <DvtDotTitle label="Connection" {...args} />
+);
+export const SQL = (args: DvtDotTitleProps) => (
+  <DvtDotTitle label="SQL" {...args} />
+);

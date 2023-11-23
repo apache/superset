@@ -17,27 +17,39 @@
  * under the License.
  */
 import React from 'react';
-import DvtTitleTotal, { DvtTitleTotalProps } from '.';
+import { StyledDvtButton } from './dvt-button.module';
+import Icon from '../Icons/Icon';
 
-export default {
-  title: 'Dvt-Components/DvtTitleTotal',
-  component: DvtTitleTotal,
-};
+export interface DvtButtonProps {
+  label: string;
+  icon?: string;
+  size?: 'small' | 'medium' | 'large';
+  onClick: () => void;
+  colour?: 'primary' | 'success' | 'grayscale';
+  typeColour?: 'basic' | 'powder' | 'outline';
+  maxWidth?: boolean;
+}
 
-export const Default = (args: DvtTitleTotalProps) => (
-  <DvtTitleTotal {...args} />
+const DvtButton: React.FC<DvtButtonProps> = ({
+  label,
+  icon,
+  size = 'medium',
+  onClick,
+  colour = 'primary',
+  typeColour = 'basic',
+  maxWidth = false,
+}) => (
+  <StyledDvtButton
+    $label={label}
+    $size={size}
+    $maxWidth={maxWidth}
+    $colour={colour}
+    $typeColour={typeColour}
+    onClick={onClick}
+  >
+    {icon && <Icon fileName={icon} />}
+    {label}
+  </StyledDvtButton>
 );
 
-Default.args = {
-  title: "What's New",
-  total: 15,
-};
-
-Default.argsTypes = {
-  title: {
-    control: { type: 'text' },
-  },
-  total: {
-    control: { type: 'number' },
-  },
-};
+export default DvtButton;

@@ -17,27 +17,21 @@
  * under the License.
  */
 import React from 'react';
-import DvtTitleTotal, { DvtTitleTotalProps } from '.';
+import { Switch } from 'antd';
+import moon from '../../assets/dvt-img/moon.png';
+import { StyledDvtDarkMode, DvtDarkModeLabel } from './dvt-dark-mode.module';
 
-export default {
-  title: 'Dvt-Components/DvtTitleTotal',
-  component: DvtTitleTotal,
-};
+export interface DvtDarkModeProps {
+  title: string;
+  darkMode: boolean;
+}
 
-export const Default = (args: DvtTitleTotalProps) => (
-  <DvtTitleTotal {...args} />
+const DvtDarkMode: React.FC<DvtDarkModeProps> = ({ title, darkMode }) => (
+  <StyledDvtDarkMode>
+    <img src={moon} alt="moon" />
+    <DvtDarkModeLabel>{title}</DvtDarkModeLabel>
+    <Switch checked={darkMode} />
+  </StyledDvtDarkMode>
 );
 
-Default.args = {
-  title: "What's New",
-  total: 15,
-};
-
-Default.argsTypes = {
-  title: {
-    control: { type: 'text' },
-  },
-  total: {
-    control: { type: 'number' },
-  },
-};
+export default DvtDarkMode;

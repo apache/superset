@@ -17,27 +17,18 @@
  * under the License.
  */
 import React from 'react';
-import DvtTitleTotal, { DvtTitleTotalProps } from '.';
+import { StyledDvtLogo, DvtTitle } from './dvt-logo.module';
+import DvtAppLogo from '../../assets/dvt-img/dvtAppLogo.png';
 
-export default {
-  title: 'Dvt-Components/DvtTitleTotal',
-  component: DvtTitleTotal,
-};
+export interface DvtLogoProps {
+  title: string;
+}
 
-export const Default = (args: DvtTitleTotalProps) => (
-  <DvtTitleTotal {...args} />
+const DvtLogo: React.FC<DvtLogoProps> = ({ title }) => (
+  <StyledDvtLogo to="/Dashboard">
+    <img src={DvtAppLogo} alt="Logo" />
+    <DvtTitle>{title}</DvtTitle>
+  </StyledDvtLogo>
 );
 
-Default.args = {
-  title: "What's New",
-  total: 15,
-};
-
-Default.argsTypes = {
-  title: {
-    control: { type: 'text' },
-  },
-  total: {
-    control: { type: 'number' },
-  },
-};
+export default DvtLogo;

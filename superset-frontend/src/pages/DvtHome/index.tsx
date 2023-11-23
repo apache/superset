@@ -17,27 +17,28 @@
  * under the License.
  */
 import React from 'react';
-import DvtTitleTotal, { DvtTitleTotalProps } from '.';
+import withToasts from 'src/components/MessageToasts/withToasts';
+import DvtCalendar from 'src/components/DvtCalendar';
+import {
+  StyledDvtWelcome,
+  DataContainer,
+  CalendarContainer,
+} from './dvt-home.module';
 
-export default {
-  title: 'Dvt-Components/DvtTitleTotal',
-  component: DvtTitleTotal,
-};
+function DvtWelcome() {
+  // const [calendar, setCalendar] = useState<string | null>(null);
 
-export const Default = (args: DvtTitleTotalProps) => (
-  <DvtTitleTotal {...args} />
-);
+  return (
+    <StyledDvtWelcome>
+      <DataContainer>Datalar coming soon...</DataContainer>
+      <CalendarContainer>
+        <DvtCalendar
+          // onSelect={date => date && setCalendar(date?.format('DD MM YYYY'))}
+          onSelect={() => {}}
+        />
+      </CalendarContainer>
+    </StyledDvtWelcome>
+  );
+}
 
-Default.args = {
-  title: "What's New",
-  total: 15,
-};
-
-Default.argsTypes = {
-  title: {
-    control: { type: 'text' },
-  },
-  total: {
-    control: { type: 'number' },
-  },
-};
+export default withToasts(DvtWelcome);

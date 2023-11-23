@@ -16,28 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import DvtTitleTotal, { DvtTitleTotalProps } from '.';
+import { styled } from '@superset-ui/core';
 
-export default {
-  title: 'Dvt-Components/DvtTitleTotal',
-  component: DvtTitleTotal,
-};
+interface StyledCalendarProps {
+  isCalendarVisible: boolean;
+}
 
-export const Default = (args: DvtTitleTotalProps) => (
-  <DvtTitleTotal {...args} />
-);
+const StyledCalendar = styled.div<StyledCalendarProps>`
+  width: 308px;
+  display: ${({ isCalendarVisible }) => (isCalendarVisible ? 'block' : 'none')};
+  tr {
+    th {
+      font-weight: 600;
+      text-align: center;
+    }
+  }
+  tbody {
+    tr {
+      &:last-of-type {
+        display: none;
+      }
+    }
+  }
+`;
 
-Default.args = {
-  title: "What's New",
-  total: 15,
-};
+const StyledCalendarIcon = styled.div`
+  padding: 8px;
+  display: flex;
+  align-items: center;
+`;
 
-Default.argsTypes = {
-  title: {
-    control: { type: 'text' },
-  },
-  total: {
-    control: { type: 'number' },
-  },
-};
+const StyledCalendarDateCell = styled.div``;
+
+export { StyledCalendar, StyledCalendarIcon, StyledCalendarDateCell };

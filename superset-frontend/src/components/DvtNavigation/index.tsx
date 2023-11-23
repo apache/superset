@@ -17,27 +17,36 @@
  * under the License.
  */
 import React from 'react';
-import DvtTitleTotal, { DvtTitleTotalProps } from '.';
+import Icon from '../Icons/Icon';
+import {
+  StyledDvtNavigation,
+  DvtNavigationItem,
+  DvtNavigationItemIcon,
+  DvtNavigationItemLabel,
+} from './dvt-navigation.module';
 
-export default {
-  title: 'Dvt-Components/DvtTitleTotal',
-  component: DvtTitleTotal,
-};
+export interface DvtNavigationProps {
+  data: DataProps[];
+}
+export interface DataProps {
+  url: string;
+  title: string;
+  fileName: string;
+}
 
-export const Default = (args: DvtTitleTotalProps) => (
-  <DvtTitleTotal {...args} />
+const DvtNavigation: React.FC<DvtNavigationProps> = ({ data }) => (
+  <StyledDvtNavigation>
+    {data.length > 0 &&
+      data.map((item, index) => (
+        <DvtNavigationItem key={index}>
+          <DvtNavigationItemIcon>
+            <Icon fileName={item.fileName} size={22} />
+          </DvtNavigationItemIcon>
+          <DvtNavigationItemLabel to={item.url}>
+            {item.title}
+          </DvtNavigationItemLabel>
+        </DvtNavigationItem>
+      ))}
+  </StyledDvtNavigation>
 );
-
-Default.args = {
-  title: "What's New",
-  total: 15,
-};
-
-Default.argsTypes = {
-  title: {
-    control: { type: 'text' },
-  },
-  total: {
-    control: { type: 'number' },
-  },
-};
+export default DvtNavigation;

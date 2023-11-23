@@ -16,28 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import DvtTitleTotal, { DvtTitleTotalProps } from '.';
+import { styled } from '@superset-ui/core';
 
-export default {
-  title: 'Dvt-Components/DvtTitleTotal',
-  component: DvtTitleTotal,
-};
+const StyledDotTitle = styled.div`
+  display: flex;
+  align-items: center;
+`;
 
-export const Default = (args: DvtTitleTotalProps) => (
-  <DvtTitleTotal {...args} />
-);
+const StyledTitle = styled.div`
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 140%;
+  letter-spacing: 0.2px;
+`;
 
-Default.args = {
-  title: "What's New",
-  total: 15,
-};
+const StyledDotIcon = styled.div`
+  display: flex;
+  height: 48px;
+  width: 48px;
+  background-color: ${({ theme }) => theme.colors.dvt.success.light2};
+  border-radius: 12px;
+  margin-right: 16px;
+`;
 
-Default.argsTypes = {
-  title: {
-    control: { type: 'text' },
-  },
-  total: {
-    control: { type: 'number' },
-  },
-};
+const StyledDot = styled.div`
+  height: 16px;
+  width: 16px;
+  background-color: ${({ theme }) => theme.colors.dvt.success.base};
+  border-radius: 50px;
+  margin: auto;
+`;
+
+export { StyledDotTitle, StyledDotIcon, StyledDot, StyledTitle };

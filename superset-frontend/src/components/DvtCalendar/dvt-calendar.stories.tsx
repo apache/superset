@@ -17,27 +17,11 @@
  * under the License.
  */
 import React from 'react';
-import DvtTitleTotal, { DvtTitleTotalProps } from '.';
+import DvtCalendar from '.';
 
 export default {
-  title: 'Dvt-Components/DvtTitleTotal',
-  component: DvtTitleTotal,
+  title: 'Dvt-Components/DvtCalendar',
+  component: DvtCalendar,
 };
 
-export const Default = (args: DvtTitleTotalProps) => (
-  <DvtTitleTotal {...args} />
-);
-
-Default.args = {
-  title: "What's New",
-  total: 15,
-};
-
-Default.argsTypes = {
-  title: {
-    control: { type: 'text' },
-  },
-  total: {
-    control: { type: 'number' },
-  },
-};
+export const InteractiveDatePicker = () => <DvtCalendar onSelect={() => {}} />;

@@ -17,27 +17,17 @@
  * under the License.
  */
 import React from 'react';
-import DvtTitleTotal, { DvtTitleTotalProps } from '.';
+import { StyledDvtNavbar, NavbarTop, NavbarBottom } from './dvt-navbar.module';
 
-export default {
-  title: 'Dvt-Components/DvtTitleTotal',
-  component: DvtTitleTotal,
-};
+export interface DvtNavbarProps {
+  user?: any;
+}
 
-export const Default = (args: DvtTitleTotalProps) => (
-  <DvtTitleTotal {...args} />
+const DvtNavbar: React.FC<DvtNavbarProps> = ({ user }) => (
+  <StyledDvtNavbar>
+    <NavbarTop>Navbar Top Component coming soon...</NavbarTop>
+    <NavbarBottom>Navbar Bottom Component coming soon...</NavbarBottom>
+  </StyledDvtNavbar>
 );
 
-Default.args = {
-  title: "What's New",
-  total: 15,
-};
-
-Default.argsTypes = {
-  title: {
-    control: { type: 'text' },
-  },
-  total: {
-    control: { type: 'number' },
-  },
-};
+export default DvtNavbar;

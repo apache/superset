@@ -16,28 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import DvtTitleTotal, { DvtTitleTotalProps } from '.';
+import { styled } from '@superset-ui/core';
 
-export default {
-  title: 'Dvt-Components/DvtTitleTotal',
-  component: DvtTitleTotal,
-};
+const StyledDvtWelcome = styled.div`
+  flex: 1;
+  display: flex;
+`;
 
-export const Default = (args: DvtTitleTotalProps) => (
-  <DvtTitleTotal {...args} />
-);
+const DataContainer = styled.div`
+  flex: 1;
+`;
 
-Default.args = {
-  title: "What's New",
-  total: 15,
-};
+const CalendarContainer = styled.div`
+  width: 308px;
+`;
 
-Default.argsTypes = {
-  title: {
-    control: { type: 'text' },
-  },
-  total: {
-    control: { type: 'number' },
-  },
-};
+export { StyledDvtWelcome, DataContainer, CalendarContainer };

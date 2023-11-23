@@ -16,28 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import DvtTitleTotal, { DvtTitleTotalProps } from '.';
+import { styled } from '@superset-ui/core';
+import { Link } from 'react-router-dom';
 
-export default {
-  title: 'Dvt-Components/DvtTitleTotal',
-  component: DvtTitleTotal,
-};
+const StyledDvtLogo = styled(Link)`
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-decoration: none !important;
+`;
 
-export const Default = (args: DvtTitleTotalProps) => (
-  <DvtTitleTotal {...args} />
-);
+const DvtTitle = styled.p`
+  color: ${({ theme }) => theme.colors.dvt.text.bold};
+  font-size: 23.2px;
+  font-weight: 700;
+  line-height: 125%;
+  letter-spacing: -0.29px;
+  margin: 0;
+`;
 
-Default.args = {
-  title: "What's New",
-  total: 15,
-};
-
-Default.argsTypes = {
-  title: {
-    control: { type: 'text' },
-  },
-  total: {
-    control: { type: 'number' },
-  },
-};
+export { StyledDvtLogo, DvtTitle };

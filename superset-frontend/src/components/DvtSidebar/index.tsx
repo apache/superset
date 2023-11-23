@@ -17,27 +17,21 @@
  * under the License.
  */
 import React from 'react';
-import DvtTitleTotal, { DvtTitleTotalProps } from '.';
+import { StyledDvtSidebar } from './dvt-sidebar.module';
+import DvtLogo from '../DvtLogo';
 
-export default {
-  title: 'Dvt-Components/DvtTitleTotal',
-  component: DvtTitleTotal,
-};
+export interface DvtSidebarProps {
+  data: any[];
+  isFrontendRoute?: (path?: string) => boolean;
+}
 
-export const Default = (args: DvtTitleTotalProps) => (
-  <DvtTitleTotal {...args} />
+const DvtSidebar: React.FC<DvtSidebarProps> = ({
+  data,
+  isFrontendRoute = () => false,
+}) => (
+  <StyledDvtSidebar>
+    <DvtLogo title="AppName" />
+  </StyledDvtSidebar>
 );
 
-Default.args = {
-  title: "What's New",
-  total: 15,
-};
-
-Default.argsTypes = {
-  title: {
-    control: { type: 'text' },
-  },
-  total: {
-    control: { type: 'number' },
-  },
-};
+export default DvtSidebar;

@@ -17,27 +17,21 @@
  * under the License.
  */
 import React from 'react';
-import DvtTitleTotal, { DvtTitleTotalProps } from '.';
+import DvtDarkMode, { DvtDarkModeProps } from '.';
 
 export default {
-  title: 'Dvt-Components/DvtTitleTotal',
-  component: DvtTitleTotal,
+  title: 'Dvt-Components/DvtDarkMode',
+  component: DvtDarkMode,
 };
 
-export const Default = (args: DvtTitleTotalProps) => (
-  <DvtTitleTotal {...args} />
-);
+export const Default = (args: DvtDarkModeProps) => <DvtDarkMode {...args} />;
 
 Default.args = {
-  title: "What's New",
-  total: 15,
+  title: 'Dark Mode',
 };
 
-Default.argsTypes = {
+Default.argTypes = {
   title: {
     control: { type: 'text' },
-  },
-  total: {
-    control: { type: 'number' },
   },
 };

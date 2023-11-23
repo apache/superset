@@ -17,27 +17,29 @@
  * under the License.
  */
 import React from 'react';
-import DvtTitleTotal, { DvtTitleTotalProps } from '.';
+import { MemoryRouter } from 'react-router-dom';
+import DvtLogo, { DvtLogoProps } from '.';
 
 export default {
-  title: 'Dvt-Components/DvtTitleTotal',
-  component: DvtTitleTotal,
+  title: 'Dvt-Components/DvtLogo',
+  component: DvtLogo,
+  decorators: [
+    (Story: any) => (
+      <MemoryRouter>
+        <Story />
+      </MemoryRouter>
+    ),
+  ],
 };
 
-export const Default = (args: DvtTitleTotalProps) => (
-  <DvtTitleTotal {...args} />
-);
+export const Default = (args: DvtLogoProps) => <DvtLogo {...args} />;
 
 Default.args = {
-  title: "What's New",
-  total: 15,
+  title: 'AppName',
 };
 
-Default.argsTypes = {
+Default.argTypes = {
   title: {
     control: { type: 'text' },
-  },
-  total: {
-    control: { type: 'number' },
   },
 };

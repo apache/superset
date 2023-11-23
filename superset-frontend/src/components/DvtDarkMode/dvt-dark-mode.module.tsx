@@ -16,28 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import DvtTitleTotal, { DvtTitleTotalProps } from '.';
+import { styled } from '@superset-ui/core';
 
-export default {
-  title: 'Dvt-Components/DvtTitleTotal',
-  component: DvtTitleTotal,
-};
+const StyledDvtDarkMode = styled.div`
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+`;
 
-export const Default = (args: DvtTitleTotalProps) => (
-  <DvtTitleTotal {...args} />
-);
+const DvtDarkModeLabel = styled.p`
+  color: ${({ theme }) => theme.colors.dvt.text.label};
+  font-size: 14px;
+  margin: 0;
+`;
 
-Default.args = {
-  title: "What's New",
-  total: 15,
-};
-
-Default.argsTypes = {
-  title: {
-    control: { type: 'text' },
-  },
-  total: {
-    control: { type: 'number' },
-  },
-};
+export { StyledDvtDarkMode, DvtDarkModeLabel };
