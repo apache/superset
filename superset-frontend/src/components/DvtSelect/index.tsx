@@ -65,6 +65,7 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
         </StyledSelectIcon>
       </StyledSelectSelect>
 
+      {isOpen && (
         <StyledSelectOptions isOpen={isOpen}>
           {data.map((option, index) => (
             <StyledSelectOption
@@ -77,6 +78,7 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
             </StyledSelectOption>
           ))}
         </StyledSelectOptions>
+      )}
     </StyledSelect>
   );
 };

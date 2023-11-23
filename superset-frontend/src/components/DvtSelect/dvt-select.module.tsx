@@ -16,11 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import { keyframes, styled } from '@superset-ui/core';
 
 interface StyledSelectProps {
   isOpen: boolean;
 }
+
+const optionsKeyframes = keyframes`
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+`;
 
 interface StyledSelectOptionProps {
   selectedValue: string;
@@ -78,12 +87,14 @@ const StyledSelectOption = styled.div<StyledSelectOptionProps>`
     `}
 `;
 const StyledSelectOptions = styled.div<StyledSelectProps>`
+  position: absolute;
+  top: 105px;
   width: 202px;
   border-radius: 12px;
   background: ${({ theme }) => theme.colors.dvt.primary.light2};
-  max-height: ${({ isOpen }) => (isOpen ? '274px' : '0')};
+  max-height: 274px;
   overflow-y: auto;
-  transition: max-height 0.3s ease-in-out;
+  animation: ${optionsKeyframes} 0.3s ease-in-out;
 `;
 const StyledSelectIcon = styled.div<StyledSelectProps>`
   display: flex;
