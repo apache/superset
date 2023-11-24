@@ -31,20 +31,18 @@ export interface DvtTabsProps {
   setActive: (tabs: string) => void;
 }
 
-const DvtTabs: React.FC<DvtTabsProps> = ({ data, active, setActive }) => {
-  return (
-    <StyledDvtTabs>
-      {data.map((tabs: TabData) => (
-        <DvtButton
-          colour={active === tabs.label ? 'primary' : 'grayscale'}
-          typeColour={active === tabs.label ? 'powder' : 'outline'}
-          label={tabs.label}
-          icon={tabs.icon}
-          onClick={() => setActive(tabs.label)}
-        />
-      ))}
-    </StyledDvtTabs>
-  );
-};
+const DvtTabs: React.FC<DvtTabsProps> = ({ data, active, setActive }) => (
+  <StyledDvtTabs>
+    {data.map((tabs: TabData) => (
+      <DvtButton
+        colour={active === tabs.label ? 'primary' : 'grayscale'}
+        typeColour={active === tabs.label ? 'powder' : 'outline'}
+        label={tabs.label}
+        icon={tabs.icon}
+        onClick={() => setActive(tabs.label)}
+      />
+    ))}
+  </StyledDvtTabs>
+);
 
 export default DvtTabs;

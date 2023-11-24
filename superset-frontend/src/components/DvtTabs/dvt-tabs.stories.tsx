@@ -18,8 +18,8 @@
  */
 import React from 'react';
 import { Meta } from '@storybook/react';
-import DvtTabs, { DvtTabsProps } from '.';
 import { useState } from '@storybook/addons';
+import DvtTabs, { DvtTabsProps } from '.';
 
 export default {
   title: 'Components/DvtTabs',
