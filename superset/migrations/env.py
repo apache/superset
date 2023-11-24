@@ -42,8 +42,8 @@ if "sqlite" in DATABASE_URI:
         "SQLite Database support for metadata databases will \
         be removed in a future version of Superset."
     )
-decoded_uri = urllib.parse.unquote(DATABASE_URI)
-config.set_main_option("sqlalchemy.url", decoded_uri)
+escaped_uri = DATABASE_URI.replace('%', '%%')
+config.set_main_option("sqlalchemy.url", escaped_uri)
 target_metadata = Base.metadata  # pylint: disable=no-member
 
 
