@@ -28,7 +28,6 @@ import {
 } from './dvt-calendar.module';
 
 export interface DvtCalendarProps {
-  onSelect: (date: Moment | null) => void;
   isOpen: boolean;
   setIsOpen: (newCalendarVisible: boolean) => void;
   selectedDate: Moment | null;
@@ -36,7 +35,6 @@ export interface DvtCalendarProps {
 }
 
 const DvtCalendar: React.FC<DvtCalendarProps> = ({
-  onSelect,
   isOpen,
   setIsOpen,
   selectedDate,
@@ -50,7 +48,7 @@ const DvtCalendar: React.FC<DvtCalendarProps> = ({
   };
 
   useEffect(() => {
-    onSelect(selectedDate);
+    setSelectedDate(selectedDate);
   }, [selectedDate]);
 
   return (

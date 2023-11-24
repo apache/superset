@@ -36,7 +36,6 @@ export const InteractiveDatePicker = (args: DvtCalendarProps) => {
       setIsOpen={setIsOpen}
       selectedDate={selectedDate}
       setSelectedDate={setSelectedDate}
-      onSelect={() => {}}
     />
   );
 };
