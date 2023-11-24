@@ -17,39 +17,34 @@
  * under the License.
  */
 import React from 'react';
-import { StyledDvtButton } from './dvt-button.module';
-import Icon from '../Icons/Icon';
+import DvtButton from '../DvtButton';
+import { StyledDvtTabs } from './dvt-tabs.module';
 
-export interface DvtButtonProps {
+interface TabData {
   label: string;
   icon?: string;
-  size?: 'small' | 'medium' | 'large';
-  onClick: () => void;
-  colour?: 'primary' | 'success' | 'grayscale';
-  typeColour?: 'basic' | 'powder' | 'outline';
-  maxWidth?: boolean;
 }
 
-const DvtButton: React.FC<DvtButtonProps> = ({
-  label,
-  icon,
-  size = 'medium',
-  onClick,
-  colour = 'primary',
-  typeColour = 'basic',
-  maxWidth = false,
-}) => (
-  <StyledDvtButton
-    $label={label}
-    $size={size}
-    $maxWidth={maxWidth}
-    $colour={colour}
-    $typeColour={typeColour}
-    onClick={onClick}
-  >
-    {icon && <Icon fileName={icon} iconSize="l" />}
-    {label}
-  </StyledDvtButton>
-);
+export interface DvtTabsProps {
+  data: TabData[];
+  active: string;
+  setActive: (tabs: string) => void;
+}
 
-export default DvtButton;
+const DvtTabs: React.FC<DvtTabsProps> = ({ data, active, setActive }) => {
+  return (
+    <StyledDvtTabs>
+      {data.map((tabs: TabData) => (
+        <DvtButton
+          colour={active === tabs.label ? 'primary' : 'grayscale'}
+          typeColour={active === tabs.label ? 'powder' : 'outline'}
+          label={tabs.label}
+          icon={tabs.icon}
+          onClick={() => setActive(tabs.label)}
+        />
+      ))}
+    </StyledDvtTabs>
+  );
+};
+
+export default DvtTabs;

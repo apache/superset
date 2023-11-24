@@ -16,40 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { StyledDvtButton } from './dvt-button.module';
-import Icon from '../Icons/Icon';
+import { styled } from '@superset-ui/core';
 
-export interface DvtButtonProps {
-  label: string;
-  icon?: string;
-  size?: 'small' | 'medium' | 'large';
-  onClick: () => void;
-  colour?: 'primary' | 'success' | 'grayscale';
-  typeColour?: 'basic' | 'powder' | 'outline';
-  maxWidth?: boolean;
-}
+const StyledDvtTabs = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+`;
 
-const DvtButton: React.FC<DvtButtonProps> = ({
-  label,
-  icon,
-  size = 'medium',
-  onClick,
-  colour = 'primary',
-  typeColour = 'basic',
-  maxWidth = false,
-}) => (
-  <StyledDvtButton
-    $label={label}
-    $size={size}
-    $maxWidth={maxWidth}
-    $colour={colour}
-    $typeColour={typeColour}
-    onClick={onClick}
-  >
-    {icon && <Icon fileName={icon} iconSize="l" />}
-    {label}
-  </StyledDvtButton>
-);
-
-export default DvtButton;
+export { StyledDvtTabs };
