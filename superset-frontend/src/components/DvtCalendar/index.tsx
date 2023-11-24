@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Moment } from 'moment';
 import { Calendar, Typography } from 'antd';
 import { SupersetTheme } from '@superset-ui/core';
@@ -46,10 +46,6 @@ const DvtCalendar: React.FC<DvtCalendarProps> = ({
   const handleToggleCalendar = () => {
     setIsOpen(!isOpen);
   };
-
-  useEffect(() => {
-    setSelectedDate(selectedDate);
-  }, [selectedDate]);
 
   return (
     <StyledCalendar>
