@@ -68,7 +68,6 @@ const DvtDatePicker: React.FC<DvtDatePickerProps> = ({
           type={!isOpen ? 'text' : isOpen && selectedDate ? 'text' : 'date'}
           onClick={handleCalendarOpen}
           value={selectedDate ? moment(selectedDate).format('YYYY-MM-DD') : ''}
-          onChange={e => setSelectedDate(moment(e.target.value))}
           placeholder={placeholder}
         />
         <StyledDatepickerIcon isOpen={isOpen} onClick={handleDatepickerClick}>
