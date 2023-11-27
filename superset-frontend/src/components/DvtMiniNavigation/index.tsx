@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { useState } from 'react';
+import { useHistory } from 'react-router-dom';
 import { SupersetTheme } from '@superset-ui/core';
 import { RightOutlined } from '@ant-design/icons';
 import {
@@ -30,8 +31,10 @@ import {
 
 export interface DvtMiniNavigationProps {
   title: string;
+  url: string;
   data: DataProps[];
 }
+
 export interface DataProps {
   url: string;
   name: string;
@@ -39,39 +42,44 @@ export interface DataProps {
 
 const DvtMiniNavigation: React.FC<DvtMiniNavigationProps> = ({
   title,
+  url,
   data,
 }) => {
+  const history = useHistory();
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleToggle = () => {
-    setIsOpen(!isOpen);
+  const handleToggleOrUrl = () => {
+    if (data.length > 0) {
+      setIsOpen(!isOpen);
+    } else {
+      history.push(url);
+    }
   };
+
   return (
-    <>
-      <StyledDvtMiniNavigation>
-        <DvtMiniNavigationHeader onClick={handleToggle}>
-          <DvtMiniNavigationHeaderTitle>{title}</DvtMiniNavigationHeaderTitle>
-          {data.length > 0 && (
-            <DvtMiniNavigationAnimatedIcon $fadeIn={isOpen}>
-              <RightOutlined
-                css={(theme: SupersetTheme) => ({
-                  color: theme.colors.dvt.text.label,
-                })}
-              />
-            </DvtMiniNavigationAnimatedIcon>
-          )}
-        </DvtMiniNavigationHeader>
-        {data.length > 0 &&
-          isOpen &&
-          data.map((item, index) => (
-            <DvtMiniNavigationData key={index}>
-              <DvtMiniNavigationDataItem to={item.url}>
-                {item.name}
-              </DvtMiniNavigationDataItem>
-            </DvtMiniNavigationData>
-          ))}
-      </StyledDvtMiniNavigation>
-    </>
+    <StyledDvtMiniNavigation>
+      <DvtMiniNavigationHeader onClick={handleToggleOrUrl}>
+        <DvtMiniNavigationHeaderTitle>{title}</DvtMiniNavigationHeaderTitle>
+        {data.length > 0 && (
+          <DvtMiniNavigationAnimatedIcon $fadeIn={isOpen}>
+            <RightOutlined
+              css={(theme: SupersetTheme) => ({
+                color: theme.colors.dvt.text.label,
+              })}
+            />
+          </DvtMiniNavigationAnimatedIcon>
+        )}
+      </DvtMiniNavigationHeader>
+      {data.length > 0 &&
+        isOpen &&
+        data.map((item, index) => (
+          <DvtMiniNavigationData key={index}>
+            <DvtMiniNavigationDataItem to={item.url}>
+              {item.name}
+            </DvtMiniNavigationDataItem>
+          </DvtMiniNavigationData>
+        ))}
+    </StyledDvtMiniNavigation>
   );
 };
 
