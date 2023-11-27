@@ -16,9 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { StyledDvtSidebar } from './dvt-sidebar.module';
+import React, { useState } from 'react';
 import DvtLogo from '../DvtLogo';
+import DvtDarkMode from '../DvtDarkMode';
+import {
+  StyledDvtSidebar,
+  StyledDvtSidebarHeader,
+  StyledDvtSidebarBody,
+  StyledDvtSidebarFooter,
+} from './dvt-sidebar.module';
 
 export interface DvtSidebarProps {
   data: any[];
@@ -28,10 +34,20 @@ export interface DvtSidebarProps {
 const DvtSidebar: React.FC<DvtSidebarProps> = ({
   data,
   isFrontendRoute = () => false,
-}) => (
-  <StyledDvtSidebar>
-    <DvtLogo title="AppName" />
-  </StyledDvtSidebar>
-);
+}) => {
+  const [darkMode, setDarkMode] = useState<boolean>(false);
+
+  return (
+    <StyledDvtSidebar>
+      <StyledDvtSidebarHeader>
+        <DvtLogo title="AppName" />
+      </StyledDvtSidebarHeader>
+      <StyledDvtSidebarBody></StyledDvtSidebarBody>
+      <StyledDvtSidebarFooter>
+        <DvtDarkMode darkMode={darkMode} setDarkMode={setDarkMode} />
+      </StyledDvtSidebarFooter>
+    </StyledDvtSidebar>
+  );
+};
 
 export default DvtSidebar;

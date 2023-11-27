@@ -22,7 +22,7 @@ const StyledDvtSidebar = styled.div`
   display: flex;
   flex-direction: column;
   min-width: 250px;
-  padding: 32px;
+  padding: 32px 16px 39px 16px;
   position: fixed;
   top: 0;
   left: 0;
@@ -33,4 +33,25 @@ const StyledDvtSidebar = styled.div`
   z-index: 10;
 `;
 
-export { StyledDvtSidebar };
+const StyledDvtSidebarHeader = styled.div`
+  padding: 0 16px;
+  padding-bottom: 27px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.dvt.border.base};
+`;
+
+const StyledDvtSidebarBody = styled.div`
+  padding: 0 16px;
+  flex: 1;
+`;
+
+const StyledDvtSidebarFooter = styled.div`
+  padding: 0 16px;
+`;
+
+export {
+  StyledDvtSidebar,
+  StyledDvtSidebarHeader,
+  StyledDvtSidebarBody,
+  StyledDvtSidebarFooter,
+};

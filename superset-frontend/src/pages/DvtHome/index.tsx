@@ -20,12 +20,12 @@ import React, { useState } from 'react';
 import { Moment } from 'moment';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import DvtCalendar from 'src/components/DvtCalendar';
+import DvtButton from 'src/components/DvtButton';
 import {
   StyledDvtWelcome,
   DataContainer,
   CalendarContainer,
 } from './dvt-home.module';
-import DvtButton from 'src/components/DvtButton';
 
 function DvtWelcome() {
   const [openCalendar, setOpenCalendar] = useState<boolean>(true);
