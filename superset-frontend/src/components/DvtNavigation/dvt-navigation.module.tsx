@@ -23,6 +23,7 @@ const StyledDvtNavigation = styled.div`
   display: inline-flex;
   flex-direction: column;
   gap: 23px;
+  padding-left: 26px;
 `;
 
 const DvtNavigationItem = styled.div`
