@@ -66,8 +66,8 @@ class TimeFormatValidator extends React.PureComponent {
                 rel="noopener noreferrer"
               >
                 D3 Time Format Reference
-              </a>
-              &nbsp; for how to write a D3 time format string.
+              </a>&nbsp;
+              for how to write a D3 time format string.
             </p>
           </div>
         </div>
