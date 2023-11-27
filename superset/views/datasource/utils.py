@@ -17,12 +17,12 @@
 from typing import Any, Optional
 
 from superset import app, db
+from superset.commands.dataset.exceptions import DatasetSamplesFailedError
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.constants import CacheRegion
 from superset.daos.datasource import DatasourceDAO
-from superset.datasets.commands.exceptions import DatasetSamplesFailedError
 from superset.utils.core import QueryStatus
 from superset.views.datasource.schemas import SamplesPayloadSchema
 
@@ -114,7 +114,7 @@ def get_samples(  # pylint: disable=too-many-arguments,too-many-locals
         sample_data = samples_instance.get_payload()["queries"][0]
 
         if sample_data.get("status") == QueryStatus.FAILED:
-            QueryCacheManager.delete(sample_data.get("cache_key"), CacheRegion.DATA)
+            QueryCacheManager.delete(count_star_data.get("cache_key"), CacheRegion.DATA)
             raise DatasetSamplesFailedError(sample_data.get("error"))
 
         sample_data["page"] = page

@@ -29,16 +29,9 @@ from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
 
 from superset import app, event_logger
-from superset.commands.importers.exceptions import (
-    IncorrectFormatError,
-    NoValidFilesFoundError,
-)
-from superset.commands.importers.v1.utils import get_contents_from_bundle
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.daos.database import DatabaseDAO
-from superset.databases.commands.create import CreateDatabaseCommand
-from superset.databases.commands.delete import DeleteDatabaseCommand
-from superset.databases.commands.exceptions import (
+from superset.commands.database.create import CreateDatabaseCommand
+from superset.commands.database.delete import DeleteDatabaseCommand
+from superset.commands.database.exceptions import (
     DatabaseConnectionFailedError,
     DatabaseCreateFailedError,
     DatabaseDeleteDatasetsExistFailedError,
@@ -49,13 +42,26 @@ from superset.databases.commands.exceptions import (
     DatabaseUpdateFailedError,
     InvalidParametersError,
 )
-from superset.databases.commands.export import ExportDatabasesCommand
-from superset.databases.commands.importers.dispatcher import ImportDatabasesCommand
-from superset.databases.commands.tables import TablesDatabaseCommand
-from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
-from superset.databases.commands.update import UpdateDatabaseCommand
-from superset.databases.commands.validate import ValidateDatabaseParametersCommand
-from superset.databases.commands.validate_sql import ValidateSQLCommand
+from superset.commands.database.export import ExportDatabasesCommand
+from superset.commands.database.importers.dispatcher import ImportDatabasesCommand
+from superset.commands.database.ssh_tunnel.delete import DeleteSSHTunnelCommand
+from superset.commands.database.ssh_tunnel.exceptions import (
+    SSHTunnelDeleteFailedError,
+    SSHTunnelingNotEnabledError,
+    SSHTunnelNotFoundError,
+)
+from superset.commands.database.tables import TablesDatabaseCommand
+from superset.commands.database.test_connection import TestConnectionDatabaseCommand
+from superset.commands.database.update import UpdateDatabaseCommand
+from superset.commands.database.validate import ValidateDatabaseParametersCommand
+from superset.commands.database.validate_sql import ValidateSQLCommand
+from superset.commands.importers.exceptions import (
+    IncorrectFormatError,
+    NoValidFilesFoundError,
+)
+from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.daos.database import DatabaseDAO
 from superset.databases.decorators import check_datasource_access
 from superset.databases.filters import DatabaseFilter, DatabaseUploadEnabledFilter
 from superset.databases.schemas import (
@@ -78,12 +84,6 @@ from superset.databases.schemas import (
     TableMetadataResponseSchema,
     ValidateSQLRequest,
     ValidateSQLResponse,
-)
-from superset.databases.ssh_tunnel.commands.delete import DeleteSSHTunnelCommand
-from superset.databases.ssh_tunnel.commands.exceptions import (
-    SSHTunnelDeleteFailedError,
-    SSHTunnelingNotEnabledError,
-    SSHTunnelNotFoundError,
 )
 from superset.databases.utils import get_table_metadata
 from superset.db_engine_specs import get_available_engine_specs

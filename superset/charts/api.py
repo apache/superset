@@ -32,21 +32,6 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
 from superset import app, is_feature_enabled, thumbnail_cache
-from superset.charts.commands.create import CreateChartCommand
-from superset.charts.commands.delete import DeleteChartCommand
-from superset.charts.commands.exceptions import (
-    ChartCreateFailedError,
-    ChartDeleteFailedError,
-    ChartForbiddenError,
-    ChartInvalidError,
-    ChartNotFoundError,
-    ChartUpdateFailedError,
-    DashboardsForbiddenError,
-)
-from superset.charts.commands.export import ExportChartsCommand
-from superset.charts.commands.importers.dispatcher import ImportChartsCommand
-from superset.charts.commands.update import UpdateChartCommand
-from superset.charts.commands.warm_up_cache import ChartWarmUpCacheCommand
 from superset.charts.filters import (
     ChartAllTextFilter,
     ChartCertifiedFilter,
@@ -69,6 +54,21 @@ from superset.charts.schemas import (
     screenshot_query_schema,
     thumbnail_query_schema,
 )
+from superset.commands.chart.create import CreateChartCommand
+from superset.commands.chart.delete import DeleteChartCommand
+from superset.commands.chart.exceptions import (
+    ChartCreateFailedError,
+    ChartDeleteFailedError,
+    ChartForbiddenError,
+    ChartInvalidError,
+    ChartNotFoundError,
+    ChartUpdateFailedError,
+    DashboardsForbiddenError,
+)
+from superset.commands.chart.export import ExportChartsCommand
+from superset.commands.chart.importers.dispatcher import ImportChartsCommand
+from superset.commands.chart.update import UpdateChartCommand
+from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
 from superset.commands.exceptions import CommandException
 from superset.commands.importers.exceptions import (
     IncorrectFormatError,

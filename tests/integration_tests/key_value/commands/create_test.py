@@ -37,7 +37,7 @@ from tests.integration_tests.key_value.commands.fixtures import (
 
 
 def test_create_id_entry(app_context: AppContext, admin: User) -> None:
-    from superset.key_value.commands.create import CreateKeyValueCommand
+    from superset.commands.key_value.create import CreateKeyValueCommand
     from superset.key_value.models import KeyValueEntry
 
     with override_user(admin):
@@ -54,7 +54,7 @@ def test_create_id_entry(app_context: AppContext, admin: User) -> None:
 
 
 def test_create_uuid_entry(app_context: AppContext, admin: User) -> None:
-    from superset.key_value.commands.create import CreateKeyValueCommand
+    from superset.commands.key_value.create import CreateKeyValueCommand
     from superset.key_value.models import KeyValueEntry
 
     with override_user(admin):
@@ -69,7 +69,7 @@ def test_create_uuid_entry(app_context: AppContext, admin: User) -> None:
 
 
 def test_create_fail_json_entry(app_context: AppContext, admin: User) -> None:
-    from superset.key_value.commands.create import CreateKeyValueCommand
+    from superset.commands.key_value.create import CreateKeyValueCommand
 
     with pytest.raises(KeyValueCreateFailedError):
         CreateKeyValueCommand(
@@ -80,7 +80,7 @@ def test_create_fail_json_entry(app_context: AppContext, admin: User) -> None:
 
 
 def test_create_pickle_entry(app_context: AppContext, admin: User) -> None:
-    from superset.key_value.commands.create import CreateKeyValueCommand
+    from superset.commands.key_value.create import CreateKeyValueCommand
     from superset.key_value.models import KeyValueEntry
 
     with override_user(admin):
