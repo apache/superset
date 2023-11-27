@@ -56,4 +56,3 @@ WithIcons.args = {
     { label: 'Mine', icon: 'minus' },
   ],
 };
-
