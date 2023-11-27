@@ -63,11 +63,13 @@ import {
 } from 'src/features/alerts/types';
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
+import { AlertReportCronScheduler } from './components/OldAlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
 import StyledPanel from './components/StyledPanel';
 import ValidatedPanelHeader from './components/ValidatedPanelHeader';
-import { AlertReportCronSchedulerTest } from './components/AlertReportCronSchedulerTest';
+import { AlertReportCronSchedulerTest } from './components/AlertReportCronScheduler';
+import NumberInput from './components/NumberInput';
+import { text } from '@storybook/addon-knobs';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -439,6 +441,8 @@ export const TRANSLATIONS = {
   CUSTOM_SCREENSHOT_WIDTH_TEXT: t('Screenshot width'),
   CUSTOM_SCREENSHOT_WIDTH_PLACEHOLDER_TEXT: t('Input custom width in pixels'),
   NOTIFICATION_METHOD_TEXT: t('Notification method'),
+  SCHEDULE_TYPE_TEXT: t('Schedule type'),
+  SCHEDULE: t('Schedule'),
 };
 
 const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
@@ -1414,95 +1418,82 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             key="3"
             style={{ borderBottom: 'none' }}
           >
-            <div className="column schedule">
-              <StyledSectionTitle>
-                <h4>
-                  {isReport
-                    ? TRANSLATIONS.REPORT_SCHEDULE_TEXT
-                    : TRANSLATIONS.ALERT_CONDITION_SCHEDULE_TEXT}
-                </h4>
-                <span className="required">*</span>
-              </StyledSectionTitle>
-              <AlertReportCronSchedulerTest
-                value={
-                  currentAlert?.crontab || ALERT_REPORTS_DEFAULT_CRON_VALUE
-                }
-                onChange={newVal => updateAlertState('crontab', newVal)}
+            <AlertReportCronSchedulerTest
+              value={currentAlert?.crontab || ALERT_REPORTS_DEFAULT_CRON_VALUE}
+              onChange={newVal => updateAlertState('crontab', newVal)}
+            />
+            <StyledInputContainer>
+              <div className="control-label">
+                {TRANSLATIONS.TIMEZONE_TEXT} <span className="required">*</span>
+              </div>
+              <TimezoneSelector
+                onTimezoneChange={onTimezoneChange}
+                timezone={currentAlert?.timezone}
+                minWidth="100%"
               />
-              <div className="control-label">{TRANSLATIONS.TIMEZONE_TEXT}</div>
-              <div
-                className="input-container"
-                css={(theme: SupersetTheme) => timezoneHeaderStyle(theme)}
-              >
-                <TimezoneSelector
-                  onTimezoneChange={onTimezoneChange}
-                  timezone={currentAlert?.timezone}
-                  minWidth="100%"
+            </StyledInputContainer>
+
+            <StyledInputContainer>
+              <div className="control-label">
+                {TRANSLATIONS.LOG_RETENTION_TEXT}
+                <span className="required">*</span>
+              </div>
+              <div className="input-container">
+                <Select
+                  ariaLabel={TRANSLATIONS.LOG_RETENTION_TEXT}
+                  placeholder={TRANSLATIONS.LOG_RETENTION_TEXT}
+                  onChange={onLogRetentionChange}
+                  value={
+                    typeof currentAlert?.log_retention === 'number'
+                      ? currentAlert?.log_retention
+                      : ALERT_REPORTS_DEFAULT_RETENTION
+                  }
+                  options={RETENTION_OPTIONS}
+                  sortComparator={propertyComparator('value')}
                 />
               </div>
-              <StyledSectionTitle>
-                <h4>{TRANSLATIONS.SCHEDULE_SETTINGS_TEXT}</h4>
-              </StyledSectionTitle>
+            </StyledInputContainer>
+            <StyledInputContainer>
+              <div className="control-label">
+                {TRANSLATIONS.WORKING_TIMEOUT_TEXT}
+                <span className="required">*</span>
+              </div>
+              <div className="input-container">
+                {/* <input
+                  type="text"
+                  min="1"
+                  name="working_timeout"
+                  value={`${currentAlert?.working_timeout || ''}`}
+                  placeholder={TRANSLATIONS.TIME_IN_SECONDS_TEXT}
+                  onChange={onTimeoutVerifyChange}
+                /> */}
+                <NumberInput
+                  min={1}
+                  name="working_timeout"
+                  value={currentAlert?.working_timeout || ''}
+                  placeholder={TRANSLATIONS.TIME_IN_SECONDS_TEXT}
+                  onChange={onTimeoutVerifyChange}
+                  timeUnit="seconds"
+                />
+              </div>
+            </StyledInputContainer>
+            {!isReport && (
               <StyledInputContainer>
                 <div className="control-label">
-                  {TRANSLATIONS.LOG_RETENTION_TEXT}
-                  <span className="required">*</span>
+                  {TRANSLATIONS.GRACE_PERIOD_TEXT}
                 </div>
                 <div className="input-container">
-                  <Select
-                    ariaLabel={TRANSLATIONS.LOG_RETENTION_TEXT}
-                    placeholder={TRANSLATIONS.LOG_RETENTION_TEXT}
-                    onChange={onLogRetentionChange}
-                    value={
-                      typeof currentAlert?.log_retention === 'number'
-                        ? currentAlert?.log_retention
-                        : ALERT_REPORTS_DEFAULT_RETENTION
-                    }
-                    options={RETENTION_OPTIONS}
-                    sortComparator={propertyComparator('value')}
-                  />
-                </div>
-              </StyledInputContainer>
-              <StyledInputContainer>
-                <div className="control-label">
-                  {TRANSLATIONS.WORKING_TIMEOUT_TEXT}
-                  <span className="required">*</span>
-                </div>
-                <div className="input-container">
-                  <input
-                    type="number"
-                    min="1"
-                    name="working_timeout"
-                    value={currentAlert?.working_timeout || ''}
+                  <NumberInput
+                    min={1}
+                    name="grace_period"
+                    value={currentAlert?.grace_period || ''}
                     placeholder={TRANSLATIONS.TIME_IN_SECONDS_TEXT}
                     onChange={onTimeoutVerifyChange}
+                    timeUnit="seconds"
                   />
-                  <span className="input-label">
-                    {TRANSLATIONS.SECONDS_TEXT}
-                  </span>
                 </div>
               </StyledInputContainer>
-              {!isReport && (
-                <StyledInputContainer>
-                  <div className="control-label">
-                    {TRANSLATIONS.GRACE_PERIOD_TEXT}
-                  </div>
-                  <div className="input-container">
-                    <input
-                      type="number"
-                      min="1"
-                      name="grace_period"
-                      value={currentAlert?.grace_period || ''}
-                      placeholder={TRANSLATIONS.TIME_IN_SECONDS_TEXT}
-                      onChange={onTimeoutVerifyChange}
-                    />
-                    <span className="input-label">
-                      {TRANSLATIONS.SECONDS_TEXT}
-                    </span>
-                  </div>
-                </StyledInputContainer>
-              )}
-            </div>
+            )}
           </StyledPanel>
           <StyledPanel
             header={

@@ -24,7 +24,7 @@ import { act } from 'react-dom/test-utils';
 import {
   AlertReportCronScheduler,
   AlertReportCronSchedulerProps,
-} from './AlertReportCronScheduler';
+} from './OldAlertReportCronScheduler';
 
 const createProps = (props: Partial<AlertReportCronSchedulerProps> = {}) => ({
   onChange: jest.fn(),

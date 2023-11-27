@@ -62,7 +62,7 @@ import {
 } from 'src/features/alerts/types';
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import { AlertReportCronScheduler } from '../components/AlertReportCronScheduler';
+import { AlertReportCronScheduler } from '../components/OldAlertReportCronScheduler';
 import { NotificationMethod } from '../components/NotificationMethod';
 
 const TIMEOUT_MIN = 1;
