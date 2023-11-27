@@ -68,6 +68,7 @@ interface ColumnSelectPopoverProps {
   editedColumn?: ColumnMeta | AdhocColumn;
   onChange: (column: ColumnMeta | AdhocColumn) => void;
   onClose: () => void;
+  hasCustomLabel: boolean;
   setLabel: (title: string) => void;
   getCurrentTab: (tab: string) => void;
   label: string;
@@ -93,13 +94,14 @@ const getInitialColumnValues = (
 const ColumnSelectPopover = ({
   columns,
   editedColumn,
+  getCurrentTab,
+  hasCustomLabel,
+  isTemporal,
+  label,
   onChange,
   onClose,
   setDatasetModal,
   setLabel,
-  getCurrentTab,
-  label,
-  isTemporal,
 }: ColumnSelectPopoverProps) => {
   const datasourceType = useSelector<ExplorePageState, string | undefined>(
     state => state.explore.datasource.type,
@@ -224,11 +226,27 @@ const ColumnSelectPopover = ({
 
   const onTabChange = useCallback(
     tab => {
+      if (tab === 'sqlExpression' && hasCustomLabel) {
+        // if we switch to the Custom SQL tab and we have a custom label we need
+        // to update the adhoc column label
+        const sqlExpression =
+          adhocColumn?.sqlExpression ||
+          selectedSimpleColumn?.column_name ||
+          selectedCalculatedColumn?.expression ||
+          '';
+        setAdhocColumn({ label, sqlExpression, expressionType: 'SQL' });
+      }
       getCurrentTab(tab);
       // @ts-ignore
       sqlEditorRef.current?.editor.focus();
     },
-    [getCurrentTab],
+    [
+      getCurrentTab,
+      hasCustomLabel,
+      adhocColumn,
+      selectedSimpleColumn,
+      selectedCalculatedColumn,
+    ],
   );
 
   const onSqlEditorFocus = useCallback(() => {
