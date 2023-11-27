@@ -23,9 +23,11 @@ import {
   StyledDvtSidebar,
   StyledDvtSidebarHeader,
   StyledDvtSidebarBody,
+  StyledDvtSidebarBodyItem,
   StyledDvtSidebarFooter,
 } from './dvt-sidebar.module';
 import DvtTitlePlus from '../DvtTitlePlus';
+import DvtNavigation from '../DvtNavigation';
 
 export interface DvtSidebarProps {
   data: any[];
@@ -44,7 +46,24 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({
         <DvtLogo title="AppName" />
       </StyledDvtSidebarHeader>
       <StyledDvtSidebarBody>
-        <DvtTitlePlus title="menu" />
+        <StyledDvtSidebarBodyItem>
+          <DvtTitlePlus title="menu" />
+          <DvtNavigation
+            data={[
+              { title: 'Connections', url: '/', fileName: 'calendar' },
+              { title: 'Dataset', url: '/', fileName: 'database' },
+              { title: 'Dashboard', url: '/', fileName: 'grid' },
+              { title: 'Report', url: '/', fileName: 'code' },
+              { title: 'Alert', url: '/', fileName: 'alert' },
+            ]}
+          />
+        </StyledDvtSidebarBodyItem>
+        <StyledDvtSidebarBodyItem>
+          <DvtTitlePlus title="my folder" onClick={() => {}} />
+        </StyledDvtSidebarBodyItem>
+        <StyledDvtSidebarBodyItem>
+          <DvtTitlePlus title="shared folder" onClick={() => {}} />
+        </StyledDvtSidebarBodyItem>
       </StyledDvtSidebarBody>
       <StyledDvtSidebarFooter>
         <DvtDarkMode darkMode={darkMode} setDarkMode={setDarkMode} />

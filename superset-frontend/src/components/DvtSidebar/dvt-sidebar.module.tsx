@@ -43,6 +43,16 @@ const StyledDvtSidebarHeader = styled.div`
 const StyledDvtSidebarBody = styled.div`
   padding: 0 16px;
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-bottom: 200px;
+`;
+
+const StyledDvtSidebarBodyItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 `;
 
 const StyledDvtSidebarFooter = styled.div`
@@ -53,5 +63,6 @@ export {
   StyledDvtSidebar,
   StyledDvtSidebarHeader,
   StyledDvtSidebarBody,
+  StyledDvtSidebarBodyItem,
   StyledDvtSidebarFooter,
 };
