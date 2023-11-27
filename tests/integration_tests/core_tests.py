@@ -713,7 +713,7 @@ class TestCore(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         keys = list(data.keys())
 
-        assert rv.status_code in {202, 202}
+        assert rv.status_code in {200, 202}
         assert keys == [
             "channel_id",
             "job_id",
