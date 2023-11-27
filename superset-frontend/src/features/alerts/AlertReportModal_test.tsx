@@ -62,9 +62,9 @@ import {
 } from 'src/features/alerts/types';
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
+import { AlertReportCronScheduler } from './components/OldAlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
-import { AlertReportCronSchedulerTest } from './components/AlertReportCronSchedulerTest';
+import { AlertReportCronSchedulerTest } from './components/AlertReportCronScheduler';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -1386,12 +1386,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               className="input-container"
               css={(theme: SupersetTheme) => timezoneHeaderStyle(theme)}
             > */}
-              {/* TIME ZONE INPUT */}
-              <TimezoneSelector
-                onTimezoneChange={onTimezoneChange}
-                timezone={currentAlert?.timezone}
-                minWidth="100%"
-              />
+            {/* TIME ZONE INPUT */}
+            <TimezoneSelector
+              onTimezoneChange={onTimezoneChange}
+              timezone={currentAlert?.timezone}
+              minWidth="100%"
+            />
             {/* </div> */}
             {/* SCHEDULE SETTINGS  */}
             {/* <StyledSectionTitle>

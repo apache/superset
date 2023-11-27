@@ -23,32 +23,21 @@ import { AntdInput, RadioChangeEvent } from 'src/components';
 import { Input } from 'src/components/Input';
 import { Radio } from 'src/components/Radio';
 import { CronPicker, CronError } from 'src/components/CronPicker';
-import { StyledInputContainer, TRANSLATIONS } from '../AlertReportModal_test';
-import { Select } from 'src/components';
+import { StyledInputContainer } from '../AlertReportModal';
 
 export interface AlertReportCronSchedulerProps {
   value: string;
   onChange: (change: string) => any;
 }
-const SCHEDULE_TYPE_OPTIONS = [
-  {
-    label: t('Recurring (every)'),
-    value: 'picker',
-  },
-  {
-    label: t('CRON Schedule'),
-    value: 'input',
-  },
-];
 
-export const AlertReportCronSchedulerTest: React.FC<AlertReportCronSchedulerProps> =
+export const AlertReportCronScheduler: React.FC<AlertReportCronSchedulerProps> =
   ({ value, onChange }) => {
     const theme = useTheme();
     const inputRef = useRef<AntdInput>(null);
     const [scheduleFormat, setScheduleFormat] = useState<'picker' | 'input'>(
       'picker',
     );
-    console.log('SCHEDULE FORMAT IS: ', scheduleFormat);
+
     const handleRadioButtonChange = useCallback(
       (e: RadioChangeEvent) => setScheduleFormat(e.target.value),
       [],
@@ -77,26 +66,7 @@ export const AlertReportCronSchedulerTest: React.FC<AlertReportCronSchedulerProp
 
     return (
       <>
-        <StyledInputContainer>
-          <div className="control-label">
-            {TRANSLATIONS.SCHEDULE_TYPE_TEXT}
-            <span className="required">*</span>
-          </div>
-          <div className="input-container">
-            <Select
-              ariaLabel={TRANSLATIONS.SCHEDULE_TYPE_TEXT}
-              placeholder={TRANSLATIONS.SCHEDULE_TYPE_TEXT}
-              onChange={e => {
-                console.log('SELECTED VALUE IS: ', e);
-                setScheduleFormat(e);
-            }}
-              value={scheduleFormat}
-              options={SCHEDULE_TYPE_OPTIONS}
-              //   sortComparator={propertyComparator('value')}
-            />
-          </div>
-        </StyledInputContainer>
-        {/* <Radio.Group onChange={handleRadioButtonChange} value={scheduleFormat}>
+        <Radio.Group onChange={handleRadioButtonChange} value={scheduleFormat}>
           <div className="inline-container add-margin">
             <Radio data-test="picker" value="picker" />
             <CronPicker
@@ -129,40 +99,7 @@ export const AlertReportCronSchedulerTest: React.FC<AlertReportCronSchedulerProp
               </div>
             </StyledInputContainer>
           </div>
-        </Radio.Group> */}
-        {scheduleFormat === 'input' ? (
-         <>
-            {/* <span className="input-label">{t('CRON Schedule')}</span> */}
-            <StyledInputContainer
-              data-test="input-content"
-              className="styled-input"
-            >
-              <div className="input-container">
-                <Input
-                  type="text"
-                  name="crontab"
-                  ref={inputRef}
-                  style={error ? { borderColor: theme.colors.error.base } : {}}
-                  placeholder={t('CRON expression')}
-                  disabled={scheduleFormat !== 'input'}
-                  onBlur={handleBlur}
-                  onPressEnter={handlePressEnter}
-                />
-              </div>
-            </StyledInputContainer>
-          </>
-        ) : (
-          <div className="inline-container">
-            <CronPicker
-              clearButton={false}
-              value={value}
-              setValue={customSetValue}
-              disabled={scheduleFormat !== 'picker'}
-              displayError={scheduleFormat === 'picker'}
-              onError={onError}
-            />
-          </div>
-        )}
+        </Radio.Group>
       </>
     );
   };
