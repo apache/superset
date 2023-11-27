@@ -26,11 +26,22 @@ interface TelemetryPixelProps {
   build?: string;
 }
 
-const TelemetryPixel = ({ =
+/**
+ * Renders a telemetry pixel component to capture anonymous, agregated telemetry via Scarf.
+ * This can be disabled with the ENABLE_TELEMETRY feature flag
+ *
+ * @component
+ * @param {TelemetryPixelProps} props - The props for the TelemetryPixel component.
+ * @param {string} props.version - The version of  Superset that's currently in use.
+ * @param {string} props.sha - The SHA of Superset that's currently in use.
+ * @param {string} props.build - The build of Superset that's currently in use.
+ * @returns {JSX.Element | null} The rendered TelemetryPixel component.
+ */
+const TelemetryPixel = ({
   version = 'unknownVersion',
   sha = 'unknownSHA',
-  build = 'unknownBuild'
-}: TelemetryPixelProps) => {
+  build = 'unknownBuild',
+}: TelemetryPixelProps): JSX.Element | null => {
   const pixelId = '0d3461e1-abb1-4691-a0aa-5ed50de66af0';
   const pixelPath = `https://apachesuperset.gateway.scarf.sh/pixel/${pixelId}/${version}/${sha}/${build}`;
   return isFeatureEnabled(FeatureFlag.ENABLE_TELEMETRY) ? (
