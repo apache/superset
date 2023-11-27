@@ -46,7 +46,12 @@ const TelemetryPixel = ({
   const pixelPath = `https://apachesuperset.gateway.scarf.sh/pixel/${pixelId}/${version}/${sha}/${build}`;
   return isFeatureEnabled(FeatureFlag.ENABLE_TELEMETRY) ? (
     // eslint-disable-next-line jsx-a11y/alt-text
-    <img referrerPolicy="no-referrer-when-downgrade" src={pixelPath} width="0" height="0" />
+    <img
+      referrerPolicy="no-referrer-when-downgrade"
+      src={pixelPath}
+      width="0"
+      height="0"
+    />
   ) : null;
 };
 export default TelemetryPixel;
