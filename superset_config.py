@@ -57,12 +57,15 @@ TALISMAN_ENABLED = False
 
 # For Custom SSo - Auth0
 from flask_appbuilder.security.manager import AUTH_OAUTH
+
 from custom_sso_security_manager import CustomSsoSecurityManager
 
 CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 PUBLIC_ROLE_LIKE_GAMMA = True
+
+GUEST_TOKEN_JWT_EXP_SECONDS = os.getenv("GUEST_TOKEN_JWT_EXP_SECONDS")
 
 AUTH_TYPE = AUTH_OAUTH
 
@@ -97,6 +100,30 @@ OAUTH_PROVIDERS = [
             "access_token_url": f'{os.getenv("AUTH0_DOMAIN")}/oauth/token',
             "authorize_url": f'{os.getenv("AUTH0_DOMAIN")}/authorize',
             "access_token_method": "POST",
+            "prompt": "login",
         },
     }
 ]
+
+from flask import g, redirect, request
+from flask_appbuilder import expose, IndexView
+
+from superset.extensions import appbuilder
+from superset.superset_typing import FlaskResponse
+from superset.utils.core import get_user_id
+
+
+class SupersetIndexView(IndexView):
+    @expose("/")
+    @expose("/login/")
+    def index(self) -> FlaskResponse:
+        if not g.user or not get_user_id():
+            next = f"?next={request.args.get('next', '')}"
+            provider_login_url = f"{appbuilder.get_url_for_login}auth0{next}"
+
+            return redirect(provider_login_url)
+
+        return redirect("/dashboard/list")
+
+
+FAB_INDEX_VIEW = f"{SupersetIndexView.__module__}.{SupersetIndexView.__name__}"
