@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render } from 'spec/helpers/testing-library';
 import { FeatureFlag } from '@superset-ui/core';
 import TelemetryPixel from '.';
 
@@ -31,7 +31,9 @@ test('should render the pixel link when FF is on', () => {
     [FeatureFlag.ENABLE_TELEMETRY]: true,
   };
   render(<TelemetryPixel />);
-  expect(screen.getByText('scarf.sh')).toBeInTheDocument();
+
+  const image = document.querySelector('img[src*="scarf.sh"]');
+  expect(image).toBeInTheDocument();
 });
 
 test('should NOT render the pixel link when FF is off', () => {
@@ -39,5 +41,7 @@ test('should NOT render the pixel link when FF is off', () => {
     [FeatureFlag.ENABLE_TELEMETRY]: false,
   };
   render(<TelemetryPixel />);
-  expect(screen.getByText('scarf.sh')).not.toBeInTheDocument();
+
+  const image = document.querySelector('img[src*="scarf.sh"]');
+  expect(image).not.toBeInTheDocument();
 });
