@@ -22,12 +22,12 @@ import { useState } from '@storybook/addons';
 import DvtTabs, { DvtTabsProps } from '.';
 
 export default {
-  title: 'Components/DvtTabs',
+  title: 'Dvt-Components/DvtTabs',
   component: DvtTabs,
 } as Meta;
 
 export const Default = (args: DvtTabsProps) => {
-  const [active, setActive] = useState<string>('');
+  const [active, setActive] = useState<string>('Query History');
   return (
     <div>
       <DvtTabs {...args} active={active} setActive={setActive} />
@@ -42,7 +42,7 @@ Default.args = {
 } as DvtTabsProps;
 
 export const WithIcons = (args: DvtTabsProps) => {
-  const [active, setActive] = useState<string>('');
+  const [active, setActive] = useState<string>('Mine');
   return (
     <div>
       <DvtTabs {...args} active={active} setActive={setActive} />
@@ -57,15 +57,3 @@ WithIcons.args = {
   ],
 };
 
-export const Selected = (args: DvtTabsProps) => {
-  const [active, setActive] = useState<string>('Query History');
-  return (
-    <div>
-      <DvtTabs {...args} active={active} setActive={setActive} />
-    </div>
-  );
-};
-
-Selected.args = {
-  data: [{ label: 'Saved Queries' }, { label: 'Query History' }],
-};
