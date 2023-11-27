@@ -25,6 +25,7 @@ import {
   StyledDvtSidebarBody,
   StyledDvtSidebarFooter,
 } from './dvt-sidebar.module';
+import DvtTitlePlus from '../DvtTitlePlus';
 
 export interface DvtSidebarProps {
   data: any[];
@@ -42,7 +43,9 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({
       <StyledDvtSidebarHeader>
         <DvtLogo title="AppName" />
       </StyledDvtSidebarHeader>
-      <StyledDvtSidebarBody></StyledDvtSidebarBody>
+      <StyledDvtSidebarBody>
+        <DvtTitlePlus title="menu" />
+      </StyledDvtSidebarBody>
       <StyledDvtSidebarFooter>
         <DvtDarkMode darkMode={darkMode} setDarkMode={setDarkMode} />
       </StyledDvtSidebarFooter>
