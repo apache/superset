@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import DvtDarkMode, { DvtDarkModeProps } from '.';
 
 export default {
@@ -24,7 +24,13 @@ export default {
   component: DvtDarkMode,
 };
 
-export const Default = (args: DvtDarkModeProps) => <DvtDarkMode {...args} />;
+export const Default = (args: DvtDarkModeProps) => {
+  const [darkMode, setDarkMode] = useState<boolean>(false);
+
+  return (
+    <DvtDarkMode {...args} darkMode={darkMode} setDarkMode={setDarkMode} />
+  );
+};
 
 Default.args = {
   title: 'Dark Mode',
