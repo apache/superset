@@ -47,16 +47,11 @@ const DvtMiniNavigationAnimatedIcon = styled.div<FadeInIconProps>`
   transform: ${({ $fadeIn }) => ($fadeIn ? 'rotate(90deg)' : 'rotate(0)')};
 `;
 
-const DvtMiniNavigationData = styled.div`
+const DvtMiniNavigationDataLink = styled(Link)`
   display: flex;
-  align-items: center;
+  margin-top: 10px;
   padding-left: 10px;
-  height: 22px;
-`;
-
-const DvtMiniNavigationDataItem = styled(Link)`
   font-size: 14px;
-  font-style: normal;
   font-weight: 500;
   color: ${({ theme }) => theme.colors.dvt.text.label};
 `;
@@ -64,8 +59,7 @@ const DvtMiniNavigationDataItem = styled(Link)`
 export {
   StyledDvtMiniNavigation,
   DvtMiniNavigationHeader,
-  DvtMiniNavigationData,
-  DvtMiniNavigationDataItem,
   DvtMiniNavigationHeaderTitle,
   DvtMiniNavigationAnimatedIcon,
+  DvtMiniNavigationDataLink,
 };

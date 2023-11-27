@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
+import { useHistory } from 'react-router-dom';
 import { SupersetTheme } from '@superset-ui/core';
 import { RightOutlined } from '@ant-design/icons';
 import DvtMiniNavigation from '../DvtMiniNavigation';
 import {
   StyledDvtFolderNavigation,
+  DvtFolderNavigationItem,
   DvtFolderNavigationHeader,
   DvtFolderNavigationHeaderTitle,
   DvtFolderNavigationAnimatedIcon,
-  DvtFolderNavigationItemsBadge,
   DvtFolderMiniNavigation,
 } from './dvt-folder-navigation.module';
 
@@ -33,47 +34,51 @@ interface MiniNavigationTitleProps {
 }
 
 const DvtFolderNavigation: React.FC<DvtFolderNavigationProps> = ({ data }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const history = useHistory();
+  const [activeName, setActiveName] = useState<string>('');
 
-  const handleToggle = () => {
-    setIsOpen(!isOpen);
+  const handleToggleOrUrl = (dataLength: number, url: string, name: string) => {
+    if (dataLength) {
+      setActiveName(name === activeName ? '' : name);
+    } else {
+      history.push(url);
+    }
   };
 
   return (
     <StyledDvtFolderNavigation>
       {data.map((item, index) => (
-        <>
+        <DvtFolderNavigationItem>
           <DvtFolderNavigationHeader
             key={index}
-            onClick={handleToggle}
-            to={item.url}
+            onClick={() =>
+              handleToggleOrUrl(item.data.length, item.url, item.name)
+            }
           >
-            <DvtFolderNavigationItemsBadge></DvtFolderNavigationItemsBadge>
             <DvtFolderNavigationHeaderTitle>
               {item.name}
             </DvtFolderNavigationHeaderTitle>
-            {item.data.length > 0 && (
-              <DvtFolderNavigationAnimatedIcon $fadeIn={isOpen}>
+            <DvtFolderNavigationAnimatedIcon $fadeIn={activeName === item.name}>
+              {item.data.length > 0 && (
                 <RightOutlined
                   css={(theme: SupersetTheme) => ({
                     color: theme.colors.dvt.text.label,
                   })}
                 />
-              </DvtFolderNavigationAnimatedIcon>
-            )}
+              )}
+            </DvtFolderNavigationAnimatedIcon>
           </DvtFolderNavigationHeader>
-          {isOpen &&
-            item.data.map(minItem => (
-              <DvtFolderMiniNavigation>
-                {minItem.data.length > 0 && (
-                  <DvtMiniNavigation
-                    title={minItem.name}
-                    data={minItem.data}
-                  ></DvtMiniNavigation>
-                )}
+          {activeName === item.name &&
+            item.data.map((minItem, index) => (
+              <DvtFolderMiniNavigation key={index}>
+                <DvtMiniNavigation
+                  title={minItem.name}
+                  url={minItem.url}
+                  data={minItem.data}
+                />
               </DvtFolderMiniNavigation>
             ))}
-        </>
+        </DvtFolderNavigationItem>
       ))}
     </StyledDvtFolderNavigation>
   );

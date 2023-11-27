@@ -23,10 +23,9 @@ import { RightOutlined } from '@ant-design/icons';
 import {
   StyledDvtMiniNavigation,
   DvtMiniNavigationHeader,
-  DvtMiniNavigationData,
   DvtMiniNavigationHeaderTitle,
-  DvtMiniNavigationDataItem,
   DvtMiniNavigationAnimatedIcon,
+  DvtMiniNavigationDataLink,
 } from './dvt-mini-navigation.module';
 
 export interface DvtMiniNavigationProps {
@@ -49,7 +48,7 @@ const DvtMiniNavigation: React.FC<DvtMiniNavigationProps> = ({
   const [isOpen, setIsOpen] = useState(false);
 
   const handleToggleOrUrl = () => {
-    if (data.length > 0) {
+    if (data.length) {
       setIsOpen(!isOpen);
     } else {
       history.push(url);
@@ -73,11 +72,9 @@ const DvtMiniNavigation: React.FC<DvtMiniNavigationProps> = ({
       {data.length > 0 &&
         isOpen &&
         data.map((item, index) => (
-          <DvtMiniNavigationData key={index}>
-            <DvtMiniNavigationDataItem to={item.url}>
-              {item.name}
-            </DvtMiniNavigationDataItem>
-          </DvtMiniNavigationData>
+          <DvtMiniNavigationDataLink key={index} to={item.url}>
+            {item.name}
+          </DvtMiniNavigationDataLink>
         ))}
     </StyledDvtMiniNavigation>
   );
