@@ -389,7 +389,7 @@ interface NotificationMethodAddProps {
 }
 
 export const TRANSLATIONS = {
-  ADD_NOTIFICATION_METHOD_TEXT: t('Add notification method'),
+  ADD_NOTIFICATION_METHOD_TEXT: t('Add another notification method'),
   ADD_DELIVERY_METHOD_TEXT: t('Add delivery method'),
   SAVE_TEXT: t('Save'),
   ADD_TEXT: t('Add'),
@@ -528,10 +528,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [notificationSettings, setNotificationSettings] = useState<
     NotificationSetting[]
   >([]);
-
   const onNotificationAdd = () => {
     const settings: NotificationSetting[] = notificationSettings.slice();
-
     settings.push({
       recipients: '',
       options: allowedNotificationMethods,
@@ -593,6 +591,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const removeNotificationSetting = (index: number) => {
     const settings = notificationSettings.slice();
+    console.log('settings remove', settings);
 
     settings.splice(index, 1);
     setNotificationSettings(settings);
@@ -610,6 +609,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   // Functions
   const hide = () => {
+    console.log('HIDE');
     clearError();
     setIsHidden(true);
     onHide();
@@ -1071,7 +1071,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             ]
           : [],
       });
-      setNotificationSettings([]);
+      setNotificationSettings([
+        {
+          recipients: '',
+          options: allowedNotificationMethods,
+          method: 'Email',
+        },
+      ]);
       setNotificationAddState('active');
     }
   }, [alert]);
@@ -1621,10 +1627,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             style={{ borderBottom: 'none' }}
           >
             <div>
-              <StyledSectionTitle>
-                <h4>{TRANSLATIONS.NOTIFICATION_METHOD_TEXT}</h4>
-                <span className="required">*</span>
-              </StyledSectionTitle>
               {notificationSettings.map((notificationSetting, i) => (
                 <StyledNotificationMethodWrapper>
                   <NotificationMethod

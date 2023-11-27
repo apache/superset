@@ -36,7 +36,7 @@ const StyledNotificationMethod = styled.div`
     margin-bottom: 10px;
 
     .input-container {
-      margin-left: 10px;
+      // margin-left: 10px;
     }
 
     > div {
@@ -119,6 +119,10 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     <StyledNotificationMethod>
       <div className="inline-container">
         <StyledInputContainer>
+          <div className="control-label">
+            {t('Notification Method')}
+            <span className="required">*</span>
+          </div>
           <div className="input-container">
             <Select
               ariaLabel={t('Delivery method')}
@@ -133,18 +137,18 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               )}
               value={method}
             />
+            {method !== undefined && index !== 0 && !!onRemove ? (
+              <span
+                role="button"
+                tabIndex={0}
+                className="delete-button"
+                onClick={() => onRemove(index)}
+              >
+                <Icons.Trash iconColor={theme.colors.grayscale.base} />
+              </span>
+            ) : null}
           </div>
         </StyledInputContainer>
-        {method !== undefined && !!onRemove ? (
-          <span
-            role="button"
-            tabIndex={0}
-            className="delete-button"
-            onClick={() => onRemove(index)}
-          >
-            <Icons.Trash iconColor={theme.colors.grayscale.base} />
-          </span>
-        ) : null}
       </div>
       {method !== undefined ? (
         <StyledInputContainer>
