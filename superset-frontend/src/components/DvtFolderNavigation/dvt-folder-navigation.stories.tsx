@@ -1,6 +1,6 @@
 import React from 'react';
-import DvtFolderNavigation, { DvtFolderNavigationProps } from '.';
 import { MemoryRouter } from 'react-router-dom';
+import DvtFolderNavigation, { DvtFolderNavigationProps } from '.';
 
 export default {
   title: 'Dvt-Components/DvtFolderNavigation',
