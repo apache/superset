@@ -153,6 +153,9 @@ const defaultTheme = {
       info: {
         base: '#38BDF8',
       },
+      warning: {
+        base: '#F6A723',
+      },
       boxShadow: {
         base: '#0000001a',
         light2: '#00000040',
