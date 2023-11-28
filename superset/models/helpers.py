@@ -1352,7 +1352,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         tbl, cte = self.get_from_clause(tp)
 
         qry = (
-            sa.select([target_col.get_sqla_col(template_processor=tp)])
+            sa.select(
+                # The alias (label) here is important because some dialects will
+                # automatically add a random alias to the projection because of the
+                # call to DISTINCT; others will uppercase the column names. This
+                # gives us a deterministic column name in the dataframe.
+                [target_col.get_sqla_col(template_processor=tp).label("column_values")]
+            )
             .select_from(tbl)
             .distinct()
         )
@@ -1368,7 +1374,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             sql = self.mutate_query_from_config(sql)
 
             df = pd.read_sql_query(sql=sql, con=engine)
-            return df[denormalized_col_name].to_list()
+            return df["column_values"].to_list()
 
     def get_timestamp_expression(
         self,
