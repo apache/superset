@@ -16,35 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// Index .less, any imports here will be included in the final css build
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-@import '~bootstrap/less/bootstrap.less';
-@import './fonts.less';
-@import './variables.less';
-@import './cosmo/bootswatch.less';
-
-html,
-body {
-  font-size: @font-size-base;
-  line-height: @line-height-base;
+interface DvtAppState {
+  sort: boolean;
 }
 
-body {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
+const initialState: DvtAppState = {
+  sort: false,
+};
 
-header {
-  flex: 0 1 auto;
-}
+const dvtAppSlice = createSlice({
+  name: 'dvt-app',
+  initialState,
+  reducers: {
+    dvtAppSetSort: (state, action: PayloadAction<boolean>) => {
+      state.sort = action.payload;
+    },
+  },
+});
 
-#app {
-  flex: 1 1 auto;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  margin-left: 250px;
-  background-color: #f8fafc;
-  height: 100vh;
-}
+export const { dvtAppSetSort } = dvtAppSlice.actions;
+
+export default dvtAppSlice.reducer;
