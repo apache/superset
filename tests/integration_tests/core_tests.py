@@ -713,15 +713,17 @@ class TestCore(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         keys = list(data.keys())
 
+        # If chart is cached, it will return 200, otherwise 202
         assert rv.status_code in {200, 202}
-        assert keys == [
-            "channel_id",
-            "job_id",
-            "user_id",
-            "status",
-            "errors",
-            "result_url",
-        ]
+        if rv.status_code == 202:
+            assert keys == [
+                "channel_id",
+                "job_id",
+                "user_id",
+                "status",
+                "errors",
+                "result_url",
+            ]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch.dict(
