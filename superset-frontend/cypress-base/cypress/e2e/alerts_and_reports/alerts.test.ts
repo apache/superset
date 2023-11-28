@@ -30,7 +30,7 @@ describe('Alert list view', () => {
     cy.getBySel('sort-header').eq(3).contains('Schedule');
     cy.getBySel('sort-header').eq(4).contains('Notification method');
     cy.getBySel('sort-header').eq(5).contains('Owners');
-    cy.getBySel('sort-header').eq(6).contains('Last Modified');
+    cy.getBySel('sort-header').eq(6).contains('Last modified');
     cy.getBySel('sort-header').eq(7).contains('Active');
     // TODO Cypress won't recognize the Actions column
     // cy.getBySel('sort-header').eq(9).contains('Actions');
