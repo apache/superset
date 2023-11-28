@@ -33,8 +33,9 @@ export interface DvtTabsProps {
 
 const DvtTabs: React.FC<DvtTabsProps> = ({ data, active, setActive }) => (
   <StyledDvtTabs>
-    {data.map((tabs: TabData) => (
+    {data.map((tabs: TabData, index: number) => (
       <DvtButton
+        key={index}
         colour={active === tabs.label ? 'primary' : 'grayscale'}
         typeColour={active === tabs.label ? 'powder' : 'outline'}
         label={tabs.label}

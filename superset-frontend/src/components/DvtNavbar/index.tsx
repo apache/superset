@@ -26,6 +26,9 @@ import {
 import DvtTabs from '../DvtTabs';
 import DvtButton from '../DvtButton';
 import DvtDotTitle from '../DvtDotTitle';
+import { useDispatch } from 'react-redux';
+import { dvtAppSetSort } from 'src/dvt-redux/dvt-appReducer';
+import { useAppSelector } from 'src/hooks/useAppSelector';
 
 const dashboardTabs = [
   { label: 'All', icon: 'full' },
@@ -37,6 +40,8 @@ export interface DvtNavbarProps {
 }
 
 const DvtNavbar: React.FC<DvtNavbarProps> = ({ user }) => {
+  const dispatch = useDispatch();
+  const sort = useAppSelector(state => state.dvtApp.sort);
   const [active, setActive] = useState<string>('All');
 
   return (
@@ -56,9 +61,9 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ user }) => {
           />
           <DvtButton
             typeColour="powder"
-            label="Sort: Date Created"
+            label={`${sort ? 'Sorted' : 'Sort'}: Date Created`}
             icon="dvt-sort"
-            onClick={() => {}}
+            onClick={() => dispatch(dvtAppSetSort(!sort))}
           />
         </NavbarBottomRight>
       </NavbarBottom>
