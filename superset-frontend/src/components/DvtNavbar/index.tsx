@@ -25,6 +25,7 @@ import {
 } from './dvt-navbar.module';
 import DvtTabs from '../DvtTabs';
 import DvtButton from '../DvtButton';
+import DvtDotTitle from '../DvtDotTitle';
 
 const dashboardTabs = [
   { label: 'All', icon: 'full' },
@@ -40,7 +41,9 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ user }) => {
 
   return (
     <StyledDvtNavbar>
-      <NavbarTop>Navbar Top Component coming soon...</NavbarTop>
+      <NavbarTop>
+        <DvtDotTitle label="Welcome Page" />
+      </NavbarTop>
       <NavbarBottom>
         <DvtTabs active={active} setActive={setActive} data={dashboardTabs} />
         <NavbarBottomRight>
