@@ -46,6 +46,7 @@ const DvtDatePicker: React.FC<DvtDatePickerProps> = ({
   setSelectedDate,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [inputValue, setInputValue] = useState<string | undefined>();
 
   const handleCalendarOpen = () => {
     setIsOpen(true);
@@ -54,9 +55,21 @@ const DvtDatePicker: React.FC<DvtDatePickerProps> = ({
   const handleDatepickerClick = () => {
     setIsOpen(!isOpen);
   };
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(event.target.value);
+  };
 
+  const handleInputBlur = () => {
+    const parsedDate = moment(inputValue, 'YYYY-MM-DD', true);
+
+    if (parsedDate.isValid()) {
+      setSelectedDate(parsedDate);
+    }
+  };
   useEffect(() => {
-    setIsOpen(false);
+    setInputValue(
+      selectedDate ? moment(selectedDate).format('YYYY-MM-DD') : '',
+    );
   }, [selectedDate]);
 
   return (
@@ -65,9 +78,11 @@ const DvtDatePicker: React.FC<DvtDatePickerProps> = ({
       <StyledDatepickerGroup>
         <StyledDatepickerInput
           isOpen={isOpen}
-          type={!isOpen ? 'text' : isOpen && selectedDate ? 'text' : 'date'}
+          type="date"
           onClick={handleCalendarOpen}
-          value={selectedDate ? moment(selectedDate).format('YYYY-MM-DD') : ''}
+          onChange={handleInputChange}
+          onBlur={handleInputBlur}
+          value={inputValue}
           placeholder={placeholder}
         />
         <StyledDatepickerIcon isOpen={isOpen} onClick={handleDatepickerClick}>
@@ -81,6 +96,7 @@ const DvtDatePicker: React.FC<DvtDatePickerProps> = ({
             setSelectedDate={setSelectedDate}
             isOpen={isOpen}
             setIsOpen={setIsOpen}
+            selectedDateClose={true}
           />
         </StyledDatepickerCalendar>
       )}

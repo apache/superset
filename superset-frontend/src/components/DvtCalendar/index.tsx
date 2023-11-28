@@ -18,13 +18,14 @@
  */
 import React, { useState } from 'react';
 import { Moment } from 'moment';
-import { Calendar, Typography } from 'antd';
+import { Calendar, Select } from 'antd';
 import { SupersetTheme } from '@superset-ui/core';
 import Icon from '../Icons/Icon';
 import {
   StyledCalendar,
   StyledCalendarIcon,
   StyledCalendarDateCell,
+  StyledCalendarDateCellClick,
 } from './dvt-calendar.module';
 
 export interface DvtCalendarProps {
@@ -32,6 +33,7 @@ export interface DvtCalendarProps {
   setIsOpen: (newCalendarVisible: boolean) => void;
   selectedDate: Moment | null;
   setSelectedDate: (date: Moment | null) => void;
+  selectedDateClose?: boolean;
 }
 
 const DvtCalendar: React.FC<DvtCalendarProps> = ({
@@ -39,6 +41,7 @@ const DvtCalendar: React.FC<DvtCalendarProps> = ({
   setIsOpen,
   selectedDate,
   setSelectedDate,
+  selectedDateClose = false,
 }) => {
   const [isNextIconHovered, setNextIconHovered] = useState(false);
   const [isPrevIconHovered, setPrevIconHovered] = useState(false);
@@ -51,6 +54,7 @@ const DvtCalendar: React.FC<DvtCalendarProps> = ({
     <StyledCalendar>
       {isOpen && (
         <Calendar
+          defaultValue={selectedDate || undefined}
           dateFullCellRender={(date: Moment): React.ReactNode => {
             const isSelected: boolean = selectedDate
               ? date.isSame(selectedDate, 'day') &&
@@ -58,24 +62,10 @@ const DvtCalendar: React.FC<DvtCalendarProps> = ({
               : false;
 
             return (
-              <StyledCalendarDateCell
-                css={(theme: SupersetTheme) => ({
-                  backgroundColor: isSelected
-                    ? theme.colors.dvt.primary.base
-                    : '',
-                  borderRadius: '50px',
-                  width: '40px',
-                  height: '40px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: isSelected
-                    ? `4px 8px 18px 0px ${theme.colors.dvt.boxShadow.primaryLight3}`
-                    : '',
-                  color: isSelected ? theme.colors.grayscale.light5 : '',
-                  position: 'relative',
-                })}
-              >
+              <StyledCalendarDateCell isSelected={isSelected}>
+                <StyledCalendarDateCellClick
+                  onClick={selectedDateClose ? handleToggleCalendar : () => {}}
+                ></StyledCalendarDateCellClick>
                 {date.date()}
               </StyledCalendarDateCell>
             );
@@ -112,8 +102,13 @@ const DvtCalendar: React.FC<DvtCalendarProps> = ({
               'November',
               'December',
             ];
+
             const year = value.year();
             const month = value.month();
+            const options = [];
+            for (let i = year - 10; i < year + 10; i += 1) {
+              options.push(i);
+            }
 
             const handlePrevMonth = () => {
               const newDate = value.clone().subtract(1, 'month');
@@ -126,9 +121,49 @@ const DvtCalendar: React.FC<DvtCalendarProps> = ({
             };
             return (
               <StyledCalendarIcon>
-                <Typography.Title level={5} style={{ width: 140 }}>
-                  {monthNames[month]} {year}
-                </Typography.Title>
+                <Select
+                  size="small"
+                  dropdownMatchSelectWidth={false}
+                  value={monthNames[month]}
+                  onChange={newMonth => {
+                    const now = value.clone().month(newMonth);
+                    onChange(now);
+                  }}
+                  defaultValue={monthNames[month]}
+                  bordered={false}
+                >
+                  {monthNames.map((month, index) => (
+                    <Select.Option
+                      key={month}
+                      value={month}
+                      className="month-item"
+                      style={{ zIndex: 9999 }}
+                    >
+                      {month}
+                    </Select.Option>
+                  ))}
+                </Select>
+                <Select
+                  size="small"
+                  dropdownMatchSelectWidth={false}
+                  value={year}
+                  onChange={newYear => {
+                    const now = value.clone().year(newYear);
+                    onChange(now);
+                  }}
+                  bordered={false}
+                >
+                  {options.map((option, index) => (
+                    <Select.Option
+                      key={option}
+                      value={option}
+                      className="year-item"
+                      style={{ zIndex: 9999 }}
+                    >
+                      {option}
+                    </Select.Option>
+                  ))}
+                </Select>
                 <Icon
                   fileName="caret_left"
                   iconColor={isPrevIconHovered ? 'blue' : 'gray'}

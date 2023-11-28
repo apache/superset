@@ -40,7 +40,41 @@ const StyledCalendarIcon = styled.div`
   display: flex;
   align-items: center;
 `;
+interface StyledCalendarDateCellProps {
+  isSelected: boolean;
+}
 
-const StyledCalendarDateCell = styled.div``;
+const StyledCalendarDateCell = styled.div<StyledCalendarDateCellProps>`
+  position: relative;
+  background-color: ${({ isSelected, theme }) =>
+    isSelected ? theme.colors.dvt.primary.base : ''};
+  border-radius: 50px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: ${({ isSelected, theme }) =>
+    isSelected
+      ? `4px 8px 18px 0px ${theme.colors.dvt.boxShadow.primaryLight3}`
+      : ''};
+  color: ${({ isSelected, theme }) =>
+    isSelected ? theme.colors.grayscale.light5 : ''};
+`;
 
-export { StyledCalendar, StyledCalendarIcon, StyledCalendarDateCell };
+const StyledCalendarDateCellClick = styled.div`
+  width: 40px;
+  height: 40px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 1;
+  z-index: 999;
+`;
+
+export {
+  StyledCalendar,
+  StyledCalendarIcon,
+  StyledCalendarDateCell,
+  StyledCalendarDateCellClick,
+};
