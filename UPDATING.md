@@ -22,13 +22,9 @@ under the License.
 This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
-## Next
+## 3.1.0
 
 - [24657](https://github.com/apache/superset/pull/24657): Bumps the cryptography package to augment the OpenSSL security vulnerability.
-
-### Breaking Changes
-
-### Potential Downtime
 
 ### Other
 
