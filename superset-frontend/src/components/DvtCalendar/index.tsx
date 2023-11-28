@@ -45,6 +45,7 @@ const DvtCalendar: React.FC<DvtCalendarProps> = ({
 }) => {
   const [isNextIconHovered, setNextIconHovered] = useState(false);
   const [isPrevIconHovered, setPrevIconHovered] = useState(false);
+  const [isChange, setIsChange] = useState(false);
 
   const handleToggleCalendar = () => {
     setIsOpen(!isOpen);
@@ -78,7 +79,8 @@ const DvtCalendar: React.FC<DvtCalendarProps> = ({
           })}
           fullscreen={false}
           onSelect={date =>
-            !(isPrevIconHovered || isNextIconHovered) && setSelectedDate(date)
+            !(isPrevIconHovered || isNextIconHovered || isChange) &&
+            setSelectedDate(date)
           }
           headerRender={({ value, onChange }) => {
             let current = value.clone();
@@ -119,15 +121,27 @@ const DvtCalendar: React.FC<DvtCalendarProps> = ({
               const newDate = value.clone().add(1, 'month');
               onChange(newDate);
             };
+            const handleMonth = (newMonth: string) => {
+              const newDate = value.clone().month(newMonth);
+              onChange(newDate);
+            };
+            const handleYear = (newYear: number) => {
+              const newDate = value.clone().year(newYear);
+              onChange(newDate);
+            };
+
             return (
               <StyledCalendarIcon>
                 <Select
                   size="small"
                   dropdownMatchSelectWidth={false}
                   value={monthNames[month]}
-                  onChange={newMonth => {
-                    const now = value.clone().month(newMonth);
-                    onChange(now);
+                  onMouseEnter={() => setIsChange(true)}
+                  onMouseLeave={() => setIsChange(false)}
+                  onChange={(newMonth: string) => {
+                    setIsChange(true);
+                    handleMonth(newMonth);
+                    setIsChange(false);
                   }}
                   defaultValue={monthNames[month]}
                   bordered={false}
@@ -147,13 +161,16 @@ const DvtCalendar: React.FC<DvtCalendarProps> = ({
                   size="small"
                   dropdownMatchSelectWidth={false}
                   value={year}
-                  onChange={newYear => {
-                    const now = value.clone().year(newYear);
-                    onChange(now);
+                  onChange={(newYear: number) => {
+                    setIsChange(true);
+                    handleYear(newYear);
+                    setIsChange(false);
                   }}
                   bordered={false}
+                  onMouseEnter={() => setIsChange(true)}
+                  onMouseLeave={() => setIsChange(false)}
                 >
-                  {options.map((option, index) => (
+                  {options.map(option => (
                     <Select.Option
                       key={option}
                       value={option}
