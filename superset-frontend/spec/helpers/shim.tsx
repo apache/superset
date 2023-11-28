@@ -48,7 +48,7 @@ if (defaultView != null) {
 }
 
 const g = global as any;
-if (typeof window == 'undefined') {
+if (typeof window === 'undefined') {
   g.window = {};
   g.window.location = { href: 'about:blank' };
   g.window.performance = { now: () => new Date().getTime() };
