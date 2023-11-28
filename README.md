@@ -17,6 +17,8 @@ specific language governing permissions and limitations
 under the License.
 -->
 
+<!-- CHANGE TO GENERATE A DIFF FOR TESTING -->
+
 # Superset
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
@@ -148,7 +150,7 @@ Want to add support for your datastore or data engine? Read more [here](https://
   and please read our [Slack Community Guidelines](https://github.com/apache/superset/blob/master/CODE_OF_CONDUCT.md#slack-community-guidelines)
 - [Join our dev@superset.apache.org Mailing list](https://lists.apache.org/list.html?dev@superset.apache.org). To join, simply send an email to [dev-subscribe@superset.apache.org](mailto:dev-subscribe@superset.apache.org)
 - If you want to help troubleshoot GitHub Issues involving the numerous database drivers that Superset supports, please consider adding your name and the databases you have access to on the [Superset Database Familiarity Rolodex](https://docs.google.com/spreadsheets/d/1U1qxiLvOX0kBTUGME1AHHi6Ywel6ECF8xk_Qy-V9R8c/edit#gid=0)
-- Join Superset's Town Hall and [Operational Model](https://preset.io/blog/the-superset-operational-model-wants-you/) recurring meetings.  Meeting info is available on the [Superset Community Calendar](https://superset.apache.org/community)
+- Join Superset's Town Hall and [Operational Model](https://preset.io/blog/the-superset-operational-model-wants-you/) recurring meetings. Meeting info is available on the [Superset Community Calendar](https://superset.apache.org/community)
 
 ## Contributor Guide
 
@@ -166,13 +168,14 @@ how to set up a development environment.
 - [Superset SIPs](https://github.com/orgs/apache/projects/170) - The status of Superset's SIPs (Superset Improvement Proposals) for both consensus and implementation status.
 
 Superset 2.0!
+
 - [Superset 2.0 Meetup](https://preset.io/events/superset-2-0-meetup/)
 - [Superset 2.0 Release Notes](https://github.com/apache/superset/tree/master/RELEASING/release-notes-2-0)
 
 Understanding the Superset Points of View
+
 - [The Case for Dataset-Centric Visualization](https://preset.io/blog/dataset-centric-visualization/)
 - [Understanding the Superset Semantic Layer](https://preset.io/blog/understanding-superset-semantic-layer/)
-
 
 - Getting Started with Superset
   - [Superset in 2 Minutes using Docker Compose](https://superset.apache.org/docs/installation/installing-superset-using-docker-compose#installing-superset-locally-using-docker-compose)
@@ -180,21 +183,24 @@ Understanding the Superset Points of View
   - [Building New Database Connectors](https://preset.io/blog/building-database-connector/)
   - [Create Your First Dashboard](https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard)
   - [Comprehensive Tutorial for Contributing Code to Apache Superset
-  ](https://preset.io/blog/tutorial-contributing-code-to-apache-superset/)
+    ](https://preset.io/blog/tutorial-contributing-code-to-apache-superset/)
 - [Resources to master Superset by Preset](https://preset.io/resources/)
 
 - Deploying Superset
+
   - [Official Docker image](https://hub.docker.com/r/apache/superset)
   - [Helm Chart](https://github.com/apache/superset/tree/master/helm/superset)
 
 - Recordings of Past [Superset Community Events](https://preset.io/events)
+
   - [Mixed Time Series Charts](https://preset.io/events/mixed-time-series-visualization-in-superset-workshop/)
   - [How the Bing Team Customized Superset for the Internal Self-Serve Data & Analytics Platform](https://preset.io/events/how-the-bing-team-heavily-customized-superset-for-their-internal-data/)
   - [Live Demo: Visualizing MongoDB and Pinot Data using Trino](https://preset.io/events/2021-04-13-visualizing-mongodb-and-pinot-data-using-trino/)
-	- [Introduction to the Superset API](https://preset.io/events/introduction-to-the-superset-api/)
-	- [Building a Database Connector for Superset](https://preset.io/events/2021-02-16-building-a-database-connector-for-superset/)
+  - [Introduction to the Superset API](https://preset.io/events/introduction-to-the-superset-api/)
+  - [Building a Database Connector for Superset](https://preset.io/events/2021-02-16-building-a-database-connector-for-superset/)
 
 - Visualizations
+
   - [Creating Viz Plugins](https://superset.apache.org/docs/contributing/creating-viz-plugins/)
   - [Managing and Deploying Custom Viz Plugins](https://medium.com/nmc-techblog/apache-superset-manage-custom-viz-plugins-in-production-9fde1a708e55)
   - [Why Apache Superset is Betting on Apache ECharts](https://preset.io/blog/2021-4-1-why-echarts/)
