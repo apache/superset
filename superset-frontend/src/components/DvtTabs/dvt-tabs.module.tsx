@@ -16,28 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
-import DvtDarkMode, { DvtDarkModeProps } from '.';
+import { styled } from '@superset-ui/core';
 
-export default {
-  title: 'Dvt-Components/DvtDarkMode',
-  component: DvtDarkMode,
-};
+const StyledDvtTabs = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+`;
 
-export const Default = (args: DvtDarkModeProps) => {
-  const [darkMode, setDarkMode] = useState<boolean>(false);
-
-  return (
-    <DvtDarkMode {...args} darkMode={darkMode} setDarkMode={setDarkMode} />
-  );
-};
-
-Default.args = {
-  title: 'Dark Mode',
-};
-
-Default.argTypes = {
-  title: {
-    control: { type: 'text' },
-  },
-};
+export { StyledDvtTabs };

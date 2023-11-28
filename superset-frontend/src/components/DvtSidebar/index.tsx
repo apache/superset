@@ -16,9 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { StyledDvtSidebar } from './dvt-sidebar.module';
+import React, { useState } from 'react';
 import DvtLogo from '../DvtLogo';
+import DvtDarkMode from '../DvtDarkMode';
+import {
+  StyledDvtSidebar,
+  StyledDvtSidebarHeader,
+  StyledDvtSidebarBody,
+  StyledDvtSidebarBodyItem,
+  StyledDvtSidebarFooter,
+} from './dvt-sidebar.module';
+import DvtTitlePlus from '../DvtTitlePlus';
+import DvtNavigation from '../DvtNavigation';
 
 export interface DvtSidebarProps {
   data: any[];
@@ -28,10 +37,39 @@ export interface DvtSidebarProps {
 const DvtSidebar: React.FC<DvtSidebarProps> = ({
   data,
   isFrontendRoute = () => false,
-}) => (
-  <StyledDvtSidebar>
-    <DvtLogo title="AppName" />
-  </StyledDvtSidebar>
-);
+}) => {
+  const [darkMode, setDarkMode] = useState<boolean>(false);
+
+  return (
+    <StyledDvtSidebar>
+      <StyledDvtSidebarHeader>
+        <DvtLogo title="AppName" />
+      </StyledDvtSidebarHeader>
+      <StyledDvtSidebarBody>
+        <StyledDvtSidebarBodyItem>
+          <DvtTitlePlus title="menu" />
+          <DvtNavigation
+            data={[
+              { title: 'Connections', url: '/', fileName: 'calendar' },
+              { title: 'Dataset', url: '/', fileName: 'database' },
+              { title: 'Dashboard', url: '/', fileName: 'grid' },
+              { title: 'Report', url: '/', fileName: 'code' },
+              { title: 'Alert', url: '/', fileName: 'alert' },
+            ]}
+          />
+        </StyledDvtSidebarBodyItem>
+        <StyledDvtSidebarBodyItem>
+          <DvtTitlePlus title="my folder" onClick={() => {}} />
+        </StyledDvtSidebarBodyItem>
+        <StyledDvtSidebarBodyItem>
+          <DvtTitlePlus title="shared folder" onClick={() => {}} />
+        </StyledDvtSidebarBodyItem>
+      </StyledDvtSidebarBody>
+      <StyledDvtSidebarFooter>
+        <DvtDarkMode darkMode={darkMode} setDarkMode={setDarkMode} />
+      </StyledDvtSidebarFooter>
+    </StyledDvtSidebar>
+  );
+};
 
 export default DvtSidebar;

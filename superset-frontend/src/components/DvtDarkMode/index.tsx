@@ -22,15 +22,20 @@ import moon from '../../assets/dvt-img/moon.png';
 import { StyledDvtDarkMode, DvtDarkModeLabel } from './dvt-dark-mode.module';
 
 export interface DvtDarkModeProps {
-  title: string;
+  title?: string;
   darkMode: boolean;
+  setDarkMode: (bol: boolean) => void;
 }
 
-const DvtDarkMode: React.FC<DvtDarkModeProps> = ({ title, darkMode }) => (
+const DvtDarkMode: React.FC<DvtDarkModeProps> = ({
+  title = 'Dark Mode',
+  darkMode,
+  setDarkMode,
+}) => (
   <StyledDvtDarkMode>
     <img src={moon} alt="moon" />
     <DvtDarkModeLabel>{title}</DvtDarkModeLabel>
-    <Switch checked={darkMode} />
+    <Switch checked={darkMode} onChange={bol => setDarkMode(bol)} />
   </StyledDvtDarkMode>
 );
 

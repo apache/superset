@@ -19,6 +19,24 @@
 import { styled } from '@superset-ui/core';
 import { Link } from 'react-router-dom';
 
+const StyledDvtMiniNavigation = styled.div`
+  display: inline-block;
+`;
+
+const DvtMiniNavigationHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+`;
+
+const DvtMiniNavigationHeaderTitle = styled.div`
+  color: ${({ theme }) => theme.colors.dvt.text.label};
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+`;
+
 interface FadeInIconProps {
   $fadeIn: boolean;
 }
@@ -29,36 +47,11 @@ const DvtMiniNavigationAnimatedIcon = styled.div<FadeInIconProps>`
   transform: ${({ $fadeIn }) => ($fadeIn ? 'rotate(90deg)' : 'rotate(0)')};
 `;
 
-const StyledDvtMiniNavigation = styled.div`
-  display: inline-block;
-`;
-
-const DvtMiniNavigationHeader = styled.div`
+const DvtMiniNavigationDataLink = styled(Link)`
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 24px;
-  cursor: pointer;
-`;
-
-const DvtMiniNavigationHeaderTitle = styled.div`
-  color: ${({ theme }) => theme.colors.dvt.text.label};
-  font-size: 14px;
-  font-style: normal;
-  font-weight: 500;
-  letter-spacing: 0.2px;
-`;
-
-const DvtMiniNavigationData = styled.div`
-  display: flex;
-  align-items: center;
+  margin-top: 10px;
   padding-left: 10px;
-  height: 22px;
-`;
-
-const DvtMiniNavigationDataItem = styled(Link)`
   font-size: 14px;
-  font-style: normal;
   font-weight: 500;
   color: ${({ theme }) => theme.colors.dvt.text.label};
 `;
@@ -66,8 +59,7 @@ const DvtMiniNavigationDataItem = styled(Link)`
 export {
   StyledDvtMiniNavigation,
   DvtMiniNavigationHeader,
-  DvtMiniNavigationData,
-  DvtMiniNavigationDataItem,
   DvtMiniNavigationHeaderTitle,
   DvtMiniNavigationAnimatedIcon,
+  DvtMiniNavigationDataLink,
 };

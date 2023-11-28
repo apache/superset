@@ -29,6 +29,11 @@ const DataContainer = styled.div`
 
 const CalendarContainer = styled.div`
   width: 308px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 150px;
 `;
 
 export { StyledDvtWelcome, DataContainer, CalendarContainer };

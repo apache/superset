@@ -16,28 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
-import DvtDarkMode, { DvtDarkModeProps } from '.';
+import React from 'react';
+import DvtButton from '../DvtButton';
+import { StyledDvtTabs } from './dvt-tabs.module';
 
-export default {
-  title: 'Dvt-Components/DvtDarkMode',
-  component: DvtDarkMode,
-};
+interface TabData {
+  label: string;
+  icon?: string;
+}
 
-export const Default = (args: DvtDarkModeProps) => {
-  const [darkMode, setDarkMode] = useState<boolean>(false);
+export interface DvtTabsProps {
+  data: TabData[];
+  active: string;
+  setActive: (tabs: string) => void;
+}
 
-  return (
-    <DvtDarkMode {...args} darkMode={darkMode} setDarkMode={setDarkMode} />
-  );
-};
+const DvtTabs: React.FC<DvtTabsProps> = ({ data, active, setActive }) => (
+  <StyledDvtTabs>
+    {data.map((tabs: TabData) => (
+      <DvtButton
+        colour={active === tabs.label ? 'primary' : 'grayscale'}
+        typeColour={active === tabs.label ? 'powder' : 'outline'}
+        label={tabs.label}
+        icon={tabs.icon}
+        onClick={() => setActive(tabs.label)}
+      />
+    ))}
+  </StyledDvtTabs>
+);
 
-Default.args = {
-  title: 'Dark Mode',
-};
-
-Default.argTypes = {
-  title: {
-    control: { type: 'text' },
-  },
-};
+export default DvtTabs;

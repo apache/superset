@@ -23,20 +23,18 @@ import { StyledDvtTitlePlus, DvtTitlePlusTitle } from './dvt-title-plus.module';
 
 export interface DvtTitlePlusProps {
   title: string;
-  plus: boolean;
+  onClick?: () => void;
 }
 
-const DvtTitlePlus: React.FC<DvtTitlePlusProps> = ({
-  title = '',
-  plus = false,
-}) => (
+const DvtTitlePlus: React.FC<DvtTitlePlusProps> = ({ title = '', onClick }) => (
   <StyledDvtTitlePlus>
     <DvtTitlePlusTitle>{title}</DvtTitlePlusTitle>
-    {plus && (
+    {onClick && (
       <PlusOutlined
         css={(theme: SupersetTheme) => ({
           color: theme.colors.dvt.text.label,
         })}
+        onClick={onClick}
       />
     )}
   </StyledDvtTitlePlus>

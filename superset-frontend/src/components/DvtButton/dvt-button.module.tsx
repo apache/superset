@@ -55,6 +55,7 @@ const StyledDvtButton = styled.button<DvtButtonProps>`
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: all 300ms;
   gap: 8px;
   ${({ $maxWidth }) => $maxWidth && `width: 100%;`};
   height: ${({ $size }) => `${sizes[$size].size}px`};

@@ -32,14 +32,11 @@ export const Default = (args: DvtTitlePlusProps) => (
 
 Default.args = {
   title: 'title-plus title',
-  plus: false,
+  onClick: () => {},
 };
 
 Default.argTypes = {
   title: {
     control: { type: 'text' },
-  },
-  plus: {
-    control: { type: 'boolean' },
   },
 };

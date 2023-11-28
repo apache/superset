@@ -16,9 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useState } from 'react';
+import { Moment } from 'moment';
 import withToasts from 'src/components/MessageToasts/withToasts';
-// import DvtCalendar from 'src/components/DvtCalendar';
+import DvtCalendar from 'src/components/DvtCalendar';
+import DvtButton from 'src/components/DvtButton';
 import {
   StyledDvtWelcome,
   DataContainer,
@@ -26,16 +28,25 @@ import {
 } from './dvt-home.module';
 
 function DvtWelcome() {
-  // const [calendar, setCalendar] = useState<string | null>(null);
+  const [openCalendar, setOpenCalendar] = useState<boolean>(true);
+  const [calendar, setCalendar] = useState<Moment | null>(null);
 
   return (
     <StyledDvtWelcome>
       <DataContainer>Datalar coming soon...</DataContainer>
       <CalendarContainer>
-        {/* <DvtCalendar
-          // onSelect={date => date && setCalendar(date?.format('DD MM YYYY'))}
-          onSelect={() => {}}
-        /> */}
+        <DvtCalendar
+          isOpen={openCalendar}
+          setIsOpen={setOpenCalendar}
+          selectedDate={calendar}
+          setSelectedDate={date => date && setCalendar(date)}
+        />
+        {!openCalendar && (
+          <DvtButton
+            label="Open Calendar"
+            onClick={() => setOpenCalendar(true)}
+          />
+        )}
       </CalendarContainer>
     </StyledDvtWelcome>
   );
