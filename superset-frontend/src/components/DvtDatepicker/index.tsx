@@ -17,10 +17,9 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
+import moment, { Moment } from 'moment';
 import Icon from '../Icons/Icon';
 import DvtCalendar from '../DvtCalendar';
-import { Moment } from 'moment';
-import moment from 'moment';
 import {
   StyledDatepicker,
   StyledDatepickerLabel,
@@ -96,7 +95,7 @@ const DvtDatePicker: React.FC<DvtDatePickerProps> = ({
             setSelectedDate={setSelectedDate}
             isOpen={isOpen}
             setIsOpen={setIsOpen}
-            selectedDateClose={true}
+            selectedDateClose
           />
         </StyledDatepickerCalendar>
       )}

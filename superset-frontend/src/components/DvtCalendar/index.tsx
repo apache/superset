@@ -65,7 +65,7 @@ const DvtCalendar: React.FC<DvtCalendarProps> = ({
               <StyledCalendarDateCell isSelected={isSelected}>
                 <StyledCalendarDateCellClick
                   onClick={selectedDateClose ? handleToggleCalendar : () => {}}
-                ></StyledCalendarDateCellClick>
+                />
                 {date.date()}
               </StyledCalendarDateCell>
             );

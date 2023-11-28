@@ -17,8 +17,8 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import DvtDatePicker, { DvtDatePickerProps } from '.';
 import { Moment } from 'moment';
+import DvtDatePicker, { DvtDatePickerProps } from '.';
 
 export default {
   title: 'Dvt-Components/DvtDatePicker',
