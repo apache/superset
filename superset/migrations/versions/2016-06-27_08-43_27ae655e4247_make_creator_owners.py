@@ -74,7 +74,7 @@ class AuditMixin:
     def created_by(cls):
         return relationship(
             "User",
-            primaryjoin="%s.created_by_fk == User.id" % cls.__name__,
+            primaryjoin=f"{cls.__name__}.created_by_fk == User.id",
             enable_typechecks=False,
         )
 

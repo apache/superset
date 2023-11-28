@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryMode } from '@superset-ui/core';
+import { QueryMode, TimeGranularity } from '@superset-ui/core';
+import * as supersetCoreModule from '@superset-ui/core';
 import buildQuery from '../src/buildQuery';
 import { TableChartFormData } from '../src/types';
 
@@ -80,6 +81,45 @@ describe('plugin-chart-table', () => {
       expect(query.metrics).toBeUndefined();
       expect(query.columns).toEqual(['rawcol']);
       expect(query.post_processing).toEqual([]);
+    });
+    it('should prefer extra_form_data.time_grain_sqla over formData.time_grain_sqla', () => {
+      Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
+        value: true,
+      });
+      const query = buildQuery({
+        ...basicFormData,
+        groupby: ['col1'],
+        query_mode: QueryMode.aggregate,
+        time_grain_sqla: TimeGranularity.MONTH,
+        extra_form_data: { time_grain_sqla: TimeGranularity.QUARTER },
+        temporal_columns_lookup: { col1: true },
+      }).queries[0];
+      expect(query.columns?.[0]).toEqual({
+        timeGrain: TimeGranularity.QUARTER,
+        columnType: 'BASE_AXIS',
+        sqlExpression: 'col1',
+        label: 'col1',
+        expressionType: 'SQL',
+      });
+    });
+    it('should fallback to formData.time_grain_sqla if extra_form_data.time_grain_sqla is not set', () => {
+      Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
+        value: true,
+      });
+      const query = buildQuery({
+        ...basicFormData,
+        time_grain_sqla: TimeGranularity.MONTH,
+        groupby: ['col1'],
+        query_mode: QueryMode.aggregate,
+        temporal_columns_lookup: { col1: true },
+      }).queries[0];
+      expect(query.columns?.[0]).toEqual({
+        timeGrain: TimeGranularity.MONTH,
+        columnType: 'BASE_AXIS',
+        sqlExpression: 'col1',
+        label: 'col1',
+        expressionType: 'SQL',
+      });
     });
   });
 });

@@ -11,7 +11,6 @@ import {
   SequentialCommon,
   SequentialD3,
 } from '@superset-ui/core';
-import { configureEncodable } from '@superset-ui/preset-chart-xy';
 import themeDecorator from './themeDecorator';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -80,5 +79,3 @@ const sequentialSchemeRegistry = getSequentialSchemeRegistry();
 getTimeFormatterRegistry()
   .registerValue('smart_date', smartDateFormatter)
   .setDefaultKey('smart_date');
-
-configureEncodable();

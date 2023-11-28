@@ -8,7 +8,7 @@ version: 1
 ## Adding New Database Drivers in Docker
 
 Superset requires a Python database driver to be installed for each additional type of database you
-want to connect to. When setting up Superset locally via `docker-compose`, the drivers and packages
+want to connect to. When setting up Superset locally via `docker compose`, the drivers and packages
 contained in
 [requirements.txt](https://github.com/apache/superset/blob/master/requirements.txt) and
 [requirements-dev.txt](https://github.com/apache/superset/blob/master/requirements-dev.txt)
@@ -50,20 +50,20 @@ echo "mysqlclient" >> ./docker/requirements-local.txt
 Rebuild your local image with the new driver baked in:
 
 ```
-docker-compose build --force-rm
+docker compose build --force-rm
 ```
 
 After the rebuild of the Docker images is complete (which may take a few minutes) you can relaunch using the following command:
 
 ```
-docker-compose up
+docker compose up
 ```
 
 The other option is to start Superset via Docker Compose is using the recipe in `docker-compose-non-dev.yml`, which will use pre-built frontend assets and skip the building of front-end assets:
 
 ```
-docker-compose -f docker-compose-non-dev.yml pull
-docker-compose -f docker-compose-non-dev.yml up
+docker compose -f docker-compose-non-dev.yml pull
+docker compose -f docker-compose-non-dev.yml up
 ```
 
 ### 3. Connect to MySQL

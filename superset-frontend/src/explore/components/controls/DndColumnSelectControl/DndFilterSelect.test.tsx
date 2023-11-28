@@ -93,7 +93,7 @@ function setup({
 test('renders with default props', async () => {
   render(setup(), { useDnd: true });
   expect(
-    await screen.findByText('Drop columns or metrics here'),
+    await screen.findByText('Drop columns/metrics here or click'),
   ).toBeInTheDocument();
 });
 
@@ -122,7 +122,7 @@ test('renders options with saved metric', async () => {
     },
   );
   expect(
-    await screen.findByText('Drop columns or metrics here'),
+    await screen.findByText('Drop columns/metrics here or click'),
   ).toBeInTheDocument();
 });
 
@@ -143,7 +143,7 @@ test('renders options with column', async () => {
     },
   );
   expect(
-    await screen.findByText('Drop columns or metrics here'),
+    await screen.findByText('Drop columns/metrics here or click'),
   ).toBeInTheDocument();
 });
 
@@ -165,6 +165,6 @@ test('renders options with adhoc metric', async () => {
     },
   );
   expect(
-    await screen.findByText('Drop columns or metrics here'),
+    await screen.findByText('Drop columns/metrics here or click'),
   ).toBeInTheDocument();
 });

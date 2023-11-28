@@ -22,12 +22,12 @@ from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.css_templates.commands.bulk_delete import BulkDeleteCssTemplateCommand
-from superset.css_templates.commands.exceptions import (
-    CssTemplateBulkDeleteFailedError,
+from superset.commands.css.delete import DeleteCssTemplateCommand
+from superset.commands.css.exceptions import (
+    CssTemplateDeleteFailedError,
     CssTemplateNotFoundError,
 )
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.css_templates.filters import CssTemplateAllTextFilter
 from superset.css_templates.schemas import (
     get_delete_ids_schema,
@@ -87,7 +87,7 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
     openapi_spec_tag = "CSS Templates"
     openapi_spec_methods = openapi_spec_methods_override
 
-    @expose("/", methods=["DELETE"])
+    @expose("/", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics
@@ -97,11 +97,10 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
     )
     @rison(get_delete_ids_schema)
     def bulk_delete(self, **kwargs: Any) -> Response:
-        """Delete bulk CSS Templates
+        """Bulk delete CSS templates.
         ---
         delete:
-          description: >-
-            Deletes multiple css templates in a bulk operation.
+          summary: Bulk delete CSS templates
           parameters:
           - in: query
             name: q
@@ -130,7 +129,7 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteCssTemplateCommand(item_ids).run()
+            DeleteCssTemplateCommand(item_ids).run()
             return self.response(
                 200,
                 message=ngettext(
@@ -141,5 +140,5 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
             )
         except CssTemplateNotFoundError:
             return self.response_404()
-        except CssTemplateBulkDeleteFailedError as ex:
+        except CssTemplateDeleteFailedError as ex:
             return self.response_422(message=str(ex))

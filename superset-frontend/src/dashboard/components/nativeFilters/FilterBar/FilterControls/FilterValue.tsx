@@ -27,6 +27,7 @@ import {
   ChartDataResponseResult,
   Behavior,
   DataMask,
+  isFeatureEnabled,
   FeatureFlag,
   getChartMetadataRegistry,
   JsonObject,
@@ -40,20 +41,23 @@ import { isEqual, isEqualWith } from 'lodash';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import Loading from 'src/components/Loading';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
-import { isFeatureEnabled } from 'src/featureFlags';
+import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
-import { ClientErrorObject } from 'src/utils/getClientErrorObject';
+import {
+  ClientErrorObject,
+  getClientErrorObject,
+} from 'src/utils/getClientErrorObject';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
   onFiltersRefreshSuccess,
   setDirectPathToChild,
 } from 'src/dashboard/actions/dashboardState';
+import { RESPONSIVE_WIDTH } from 'src/filters/components/common';
 import { FAST_DEBOUNCE } from 'src/constants';
 import { dispatchHoverAction, dispatchFocusAction } from './utils';
 import { FilterControlProps } from './types';
 import { getFormData } from '../../utils';
 import { useFilterDependencies } from './state';
-import { checkIsMissingRequiredValue } from '../utils';
 import { useFilterOutlined } from '../useFilterOutlined';
 
 const HEIGHT = 32;
@@ -91,13 +95,17 @@ const FilterValue: React.FC<FilterControlProps> = ({
   setFilterActive,
   orientation = FilterBarOrientation.VERTICAL,
   overflow = false,
+  validateStatus,
 }) => {
   const { id, targets, filterType, adhoc_filters, time_range } = filter;
   const metadata = getChartMetadataRegistry().get(filterType);
   const dependencies = useFilterDependencies(id, dataMaskSelected);
   const shouldRefresh = useShouldFilterRefresh();
   const [state, setState] = useState<ChartDataResponseResult[]>([]);
-  const [error, setError] = useState<string>('');
+  const dashboardId = useSelector<RootState, number>(
+    state => state.dashboardInfo.id,
+  );
+  const [error, setError] = useState<ClientErrorObject>();
   const [formData, setFormData] = useState<Partial<QueryFormData>>({
     inView: false,
   });
@@ -142,6 +150,7 @@ const FilterValue: React.FC<FilterControlProps> = ({
       groupby,
       adhoc_filters,
       time_range,
+      dashboardId,
     });
     const filterOwnState = filter.dataMask?.ownState || {};
     // TODO: We should try to improve our useEffect hooks to depend more on
@@ -166,7 +175,6 @@ const FilterValue: React.FC<FilterControlProps> = ({
       getChartDataRequest({
         formData: newFormData,
         force: false,
-        requestParams: { dashboardId: 0 },
         ownState: filterOwnState,
       })
         .then(({ response, json }) => {
@@ -183,11 +191,11 @@ const FilterValue: React.FC<FilterControlProps> = ({
                   setState(asyncResult);
                   handleFilterLoadFinish();
                 })
-                .catch((error: ClientErrorObject) => {
-                  setError(
-                    error.message || error.error || t('Check configuration'),
-                  );
-                  handleFilterLoadFinish();
+                .catch((error: Response) => {
+                  getClientErrorObject(error).then(clientErrorObject => {
+                    setError(clientErrorObject);
+                    handleFilterLoadFinish();
+                  });
                 });
             } else {
               throw new Error(
@@ -196,13 +204,15 @@ const FilterValue: React.FC<FilterControlProps> = ({
             }
           } else {
             setState(json.result);
-            setError('');
+            setError(undefined);
             handleFilterLoadFinish();
           }
         })
         .catch((error: Response) => {
-          setError(error.statusText);
-          handleFilterLoadFinish();
+          getClientErrorObject(error).then(clientErrorObject => {
+            setError(clientErrorObject);
+            handleFilterLoadFinish();
+          });
         });
     }
   }, [
@@ -275,17 +285,12 @@ const FilterValue: React.FC<FilterControlProps> = ({
     ],
   );
 
-  const isMissingRequiredValue = checkIsMissingRequiredValue(
-    filter,
-    filter.dataMask?.filterState,
-  );
-
   const filterState = useMemo(
     () => ({
       ...filter.dataMask?.filterState,
-      validateStatus: isMissingRequiredValue && 'error',
+      validateStatus,
     }),
-    [filter.dataMask?.filterState, isMissingRequiredValue],
+    [filter.dataMask?.filterState, validateStatus],
   );
 
   const displaySettings = useMemo(
@@ -298,10 +303,15 @@ const FilterValue: React.FC<FilterControlProps> = ({
 
   if (error) {
     return (
-      <BasicErrorAlert
-        title={t('Cannot load filter')}
-        body={error}
-        level="error"
+      <ErrorMessageWithStackTrace
+        error={error.errors?.[0]}
+        fallback={
+          <BasicErrorAlert
+            title={t('Cannot load filter')}
+            body={error.error}
+            level="error"
+          />
+        }
       />
     );
   }
@@ -313,7 +323,7 @@ const FilterValue: React.FC<FilterControlProps> = ({
       ) : (
         <SuperChart
           height={HEIGHT}
-          width="100%"
+          width={RESPONSIVE_WIDTH}
           showOverflow={showOverflow}
           formData={formData}
           displaySettings={displaySettings}

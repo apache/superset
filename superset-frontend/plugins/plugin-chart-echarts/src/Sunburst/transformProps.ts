@@ -24,14 +24,15 @@ import {
   getNumberFormatter,
   getSequentialSchemeRegistry,
   getTimeFormatter,
+  getValueFormatter,
   NumberFormats,
-  NumberFormatter,
   SupersetTheme,
   t,
+  ValueFormatter,
 } from '@superset-ui/core';
 import { EChartsCoreOption } from 'echarts';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
-import { OpacityEnum } from '../constants';
+import { NULL_STRING, OpacityEnum } from '../constants';
 import { defaultGrid } from '../defaults';
 import { Refs } from '../types';
 import { formatSeriesName, getColtypesMapping } from '../utils/series';
@@ -74,7 +75,7 @@ export function formatLabel({
 }: {
   params: CallbackDataParams;
   labelType: EchartsSunburstLabelType;
-  numberFormatter: NumberFormatter;
+  numberFormatter: ValueFormatter;
 }): string {
   const { name = '', value } = params;
   const formattedValue = numberFormatter(value as number);
@@ -93,7 +94,8 @@ export function formatLabel({
 
 export function formatTooltip({
   params,
-  numberFormatter,
+  primaryValueFormatter,
+  secondaryValueFormatter,
   colorByCategory,
   totalValue,
   metricLabel,
@@ -107,7 +109,8 @@ export function formatTooltip({
       value: number;
     }[];
   };
-  numberFormatter: NumberFormatter;
+  primaryValueFormatter: ValueFormatter;
+  secondaryValueFormatter: ValueFormatter | undefined;
   colorByCategory: boolean;
   totalValue: number;
   metricLabel: string;
@@ -116,8 +119,10 @@ export function formatTooltip({
 }): string {
   const { data, treePathInfo = [] } = params;
   const node = data as TreeNode;
-  const formattedValue = numberFormatter(node.value);
-  const formattedSecondaryValue = numberFormatter(node.secondaryValue);
+  const formattedValue = primaryValueFormatter(node.value);
+  const formattedSecondaryValue = secondaryValueFormatter?.(
+    node.secondaryValue,
+  );
 
   const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
   const compareValuePercentage = percentFormatter(
@@ -133,7 +138,10 @@ export function formatTooltip({
       color: ${theme.colors.grayscale.base}"
      >`,
     `<div style="font-weight: ${theme.typography.weights.bold}">
-      ${node.name}
+      ${(node.name || NULL_STRING)
+        .toString()
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')}
      </div>`,
     `<div">
       ${absolutePercentage} of total
@@ -177,6 +185,7 @@ export default function transformProps(
     theme,
     inContextMenu,
     emitCrossFilters,
+    datasource,
   } = chartProps;
   const { data = [] } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
@@ -189,18 +198,37 @@ export default function transformProps(
     linearColorScheme,
     labelType,
     numberFormat,
+    currencyFormat,
     dateFormat,
     showLabels,
     showLabelsThreshold,
     showTotal,
     sliceId,
   } = formData;
+  const { currencyFormats = {}, columnFormats = {} } = datasource;
   const refs: Refs = {};
+  const primaryValueFormatter = getValueFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    numberFormat,
+    currencyFormat,
+  );
+  const secondaryValueFormatter = secondaryMetric
+    ? getValueFormatter(
+        secondaryMetric,
+        currencyFormats,
+        columnFormats,
+        numberFormat,
+        currencyFormat,
+      )
+    : undefined;
+
   const numberFormatter = getNumberFormatter(numberFormat);
   const formatter = (params: CallbackDataParams) =>
     formatLabel({
       params,
-      numberFormatter,
+      numberFormatter: primaryValueFormatter,
       labelType,
     });
   const minShowLabelAngle = (showLabelsThreshold || 0) * 3.6;
@@ -319,7 +347,8 @@ export default function transformProps(
       formatter: (params: any) =>
         formatTooltip({
           params,
-          numberFormatter,
+          primaryValueFormatter,
+          secondaryValueFormatter,
           colorByCategory,
           totalValue,
           metricLabel,
@@ -356,7 +385,7 @@ export default function transformProps(
           top: 'center',
           left: 'center',
           style: {
-            text: t('Total: %s', numberFormatter(totalValue)),
+            text: t('Total: %s', primaryValueFormatter(totalValue)),
             fontSize: 16,
             fontWeight: 'bold',
           },

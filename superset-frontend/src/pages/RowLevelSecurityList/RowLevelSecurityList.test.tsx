@@ -50,7 +50,7 @@ const mockRules = [
       },
       {
         id: 5,
-        name: 'granter',
+        name: 'Gamma',
       },
     ],
     tables: [
@@ -79,7 +79,7 @@ const mockRules = [
       },
       {
         id: 5,
-        name: 'granter',
+        name: 'Gamma',
       },
     ],
     tables: [

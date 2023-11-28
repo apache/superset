@@ -170,8 +170,7 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
   useEffect(() => {
     if (
       isEditMode &&
-      (!currentCssTemplate ||
-        !currentCssTemplate.id ||
+      (!currentCssTemplate?.id ||
         (cssTemplate && cssTemplate?.id !== currentCssTemplate.id) ||
         (isHidden && show))
     ) {

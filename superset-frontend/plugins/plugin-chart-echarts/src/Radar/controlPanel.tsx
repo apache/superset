@@ -26,6 +26,7 @@ import {
 } from '@superset-ui/core';
 import {
   ControlPanelConfig,
+  ControlSubSectionHeader,
   D3_FORMAT_DOCS,
   D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
   D3_FORMAT_OPTIONS,
@@ -85,7 +86,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         ['color_scheme'],
         ...legendSection,
-        [<div className="section-header">{t('Labels')}</div>],
+        [<ControlSubSectionHeader>{t('Labels')}</ControlSubSectionHeader>],
         [
           {
             name: 'show_labels',
@@ -156,7 +157,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<div className="section-header">{t('Radar')}</div>],
+        [<ControlSubSectionHeader>{t('Radar')}</ControlSubSectionHeader>],
         [
           {
             name: 'column_config',

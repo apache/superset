@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 import re
 from datetime import datetime
-from typing import Any, cast, Dict, List, Optional, Type, TYPE_CHECKING
+from typing import Any, cast, TYPE_CHECKING
 
 from flask import current_app
 from flask_babel import gettext as __
@@ -52,7 +52,6 @@ logger = logging.getLogger(__name__)
 class ClickHouseBaseEngineSpec(BaseEngineSpec):
     """Shared engine spec for ClickHouse."""
 
-    time_secondary_columns = True
     time_groupby_inline = True
 
     _time_grain_expressions = {
@@ -124,8 +123,8 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
-    ) -> Optional[str]:
+        cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
+    ) -> str | None:
         sqla_type = cls.get_sqla_column_type(target_type)
 
         if isinstance(sqla_type, types.Date):
@@ -145,7 +144,7 @@ class ClickHouseEngineSpec(ClickHouseBaseEngineSpec):
     supports_file_upload = False
 
     @classmethod
-    def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
+    def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
         return {NewConnectionError: SupersetDBAPIDatabaseError}
 
     @classmethod
@@ -159,7 +158,7 @@ class ClickHouseEngineSpec(ClickHouseBaseEngineSpec):
 
     @classmethod
     @cache_manager.cache.memoize()
-    def get_function_names(cls, database: Database) -> List[str]:
+    def get_function_names(cls, database: Database) -> list[str]:
         """
         Get a list of function names that are able to be called on the database.
         Used for SQL Lab autocomplete.
@@ -256,7 +255,7 @@ class ClickHouseConnectEngineSpec(ClickHouseEngineSpec, BasicParametersMixin):
     engine_name = "ClickHouse Connect (Superset)"
 
     default_driver = "connect"
-    _function_names: List[str] = []
+    _function_names: list[str] = []
 
     sqlalchemy_uri_placeholder = (
         "clickhousedb://user:password@host[:port][/dbname][?secure=value&=value...]"
@@ -265,7 +264,7 @@ class ClickHouseConnectEngineSpec(ClickHouseEngineSpec, BasicParametersMixin):
     encryption_parameters = {"secure": "true"}
 
     @classmethod
-    def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
+    def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
         return {}
 
     @classmethod
@@ -278,7 +277,7 @@ class ClickHouseConnectEngineSpec(ClickHouseEngineSpec, BasicParametersMixin):
         return new_exception(str(exception))
 
     @classmethod
-    def get_function_names(cls, database: Database) -> List[str]:
+    def get_function_names(cls, database: Database) -> list[str]:
         # pylint: disable=import-outside-toplevel,import-error
         from clickhouse_connect.driver.exceptions import ClickHouseError
 
@@ -304,7 +303,7 @@ class ClickHouseConnectEngineSpec(ClickHouseEngineSpec, BasicParametersMixin):
     def build_sqlalchemy_uri(
         cls,
         parameters: BasicParametersType,
-        encrypted_extra: Optional[Dict[str, str]] = None,
+        encrypted_extra: dict[str, str] | None = None,
     ) -> str:
         url_params = parameters.copy()
         if url_params.get("encryption"):
@@ -314,11 +313,11 @@ class ClickHouseConnectEngineSpec(ClickHouseEngineSpec, BasicParametersMixin):
         if not url_params.get("database"):
             url_params["database"] = "__default__"
         url_params.pop("encryption", None)
-        return str(URL(f"{cls.engine}+{cls.default_driver}", **url_params))
+        return str(URL.create(f"{cls.engine}+{cls.default_driver}", **url_params))
 
     @classmethod
     def get_parameters_from_uri(
-        cls, uri: str, encrypted_extra: Optional[Dict[str, Any]] = None
+        cls, uri: str, encrypted_extra: dict[str, Any] | None = None
     ) -> BasicParametersType:
         url = make_url_safe(uri)
         query = url.query
@@ -340,7 +339,7 @@ class ClickHouseConnectEngineSpec(ClickHouseEngineSpec, BasicParametersMixin):
     @classmethod
     def validate_parameters(
         cls, properties: BasicPropertiesType
-    ) -> List[SupersetError]:
+    ) -> list[SupersetError]:
         # pylint: disable=import-outside-toplevel,import-error
         from clickhouse_connect.driver import default_port
 

@@ -10,11 +10,10 @@ on:
 
 jobs:
   unit-tests:
-    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        python-version: [3.8, 3.9]
+        python-version: ["3.9", "3.10"]
     env:
       PYTHONPATH: ${{ github.workspace }}
     steps:

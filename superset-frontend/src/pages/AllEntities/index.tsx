@@ -16,15 +16,46 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
-import { ensureIsArray, styled, t } from '@superset-ui/core';
-import { StringParam, useQueryParam } from 'use-query-params';
-import withToasts from 'src/components/MessageToasts/withToasts';
-import AsyncSelect from 'src/components/Select/AsyncSelect';
-import { SelectValue } from 'antd/lib/select';
-import { loadTags } from 'src/components/Tags/utils';
-import { getValue } from 'src/components/Select/utils';
-import AllEntitiesTable from 'src/features/allEntities/AllEntitiesTable';
+import React, { useEffect, useState } from 'react';
+import { styled, t, css, SupersetTheme } from '@superset-ui/core';
+import { NumberParam, useQueryParam } from 'use-query-params';
+import AllEntitiesTable, {
+  TaggedObjects,
+} from 'src/features/allEntities/AllEntitiesTable';
+import Button from 'src/components/Button';
+import MetadataBar, {
+  MetadataType,
+  Description,
+  Owner,
+  LastModified,
+} from 'src/components/MetadataBar';
+import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
+import { Tag } from 'src/views/CRUD/types';
+import TagModal from 'src/features/tags/TagModal';
+import withToasts, { useToasts } from 'src/components/MessageToasts/withToasts';
+import { fetchObjects, fetchSingleTag } from 'src/features/tags/tags';
+import Loading from 'src/components/Loading';
+
+interface TaggedObject {
+  id: number;
+  type: string;
+  name: string;
+  url: string;
+  changed_on: moment.MomentInput;
+  created_by: number | undefined;
+  creator: string;
+  owners: Owner[];
+  tags: Tag[];
+}
+
+const additionalItemsStyles = (theme: SupersetTheme) => css`
+  display: flex;
+  align-items: center;
+  margin-left: ${theme.gridUnit}px;
+  & > span {
+    margin-right: ${theme.gridUnit * 3}px;
+  }
+`;
 
 const AllEntitiesContainer = styled.div`
   ${({ theme }) => `
@@ -39,7 +70,14 @@ const AllEntitiesContainer = styled.div`
     font-size: ${theme.gridUnit * 3}px;
     color: ${theme.colors.grayscale.base};
     margin-bottom: ${theme.gridUnit * 1}px;
-  }`}
+  }
+  .entities {
+    margin: ${theme.gridUnit * 6}px; 0px;
+  }
+  .pagination-container {
+    background-color: transparent;
+  }
+  `}
 `;
 
 const AllEntitiesNav = styled.div`
@@ -50,43 +88,161 @@ const AllEntitiesNav = styled.div`
   .navbar-brand {
     margin-left: ${theme.gridUnit * 2}px;
     font-weight: ${theme.typography.weights.bold};
-  }`};
+  }
+  .header {
+    font-weight: ${theme.typography.weights.bold};
+    margin-right:  ${theme.gridUnit * 3}px;
+    text-align: left;
+    font-size: ${theme.gridUnit * 4.5}px;
+    padding: ${theme.gridUnit * 3}px;
+    display: inline-block;
+    line-height: ${theme.gridUnit * 9}px;
+  }
+  `};
 `;
 
 function AllEntities() {
-  const [tagsQuery, setTagsQuery] = useQueryParam('tags', StringParam);
+  const [tagId] = useQueryParam('id', NumberParam);
+  const [tag, setTag] = useState<Tag | null>(null);
+  const [showTagModal, setShowTagModal] = useState<boolean>(false);
+  const { addSuccessToast, addDangerToast } = useToasts();
+  const [isLoading, setLoading] = useState<boolean>(false);
+  const [objects, setObjects] = useState<TaggedObjects>({
+    dashboard: [],
+    chart: [],
+    query: [],
+  });
 
-  const onTagSearchChange = (value: SelectValue) => {
-    const tags = ensureIsArray(value).map(tag => getValue(tag));
-    const tagSearch = tags.join(',');
-    setTagsQuery(tagSearch);
+  const editableTitleProps = {
+    title: tag?.name || '',
+    placeholder: 'testing',
+    onSave: (newDatasetName: string) => {},
+    canEdit: false,
+    label: t('dataset name'),
   };
 
-  const tagsValue = useMemo(
-    () =>
-      tagsQuery
-        ? tagsQuery.split(',').map(tag => ({ value: tag, label: tag }))
-        : [],
-    [tagsQuery],
-  );
+  const items = [];
+  if (tag?.description) {
+    const description: Description = {
+      type: MetadataType.DESCRIPTION,
+      value: tag?.description || '',
+    };
+    items.push(description);
+  }
 
+  const owner: Owner = {
+    type: MetadataType.OWNER,
+    createdBy: `${tag?.created_by.first_name} ${tag?.created_by.last_name}`,
+    createdOn: tag?.created_on_delta_humanized || '',
+  };
+  items.push(owner);
+
+  const lastModified: LastModified = {
+    type: MetadataType.LAST_MODIFIED,
+    value: tag?.changed_on_delta_humanized || '',
+    modifiedBy: `${tag?.changed_by.first_name} ${tag?.changed_by.last_name}`,
+  };
+  items.push(lastModified);
+
+  const fetchTaggedObjects = () => {
+    setLoading(true);
+    fetchObjects(
+      { tags: tag?.name || '', types: null },
+      (data: TaggedObject[]) => {
+        const objects = { dashboard: [], chart: [], query: [] };
+        data.forEach(function (object) {
+          const object_type = object.type;
+          objects[object_type].push(object);
+        });
+        setObjects(objects);
+        setLoading(false);
+      },
+      (error: Response) => {
+        addDangerToast('Error Fetching Tagged Objects');
+        setLoading(false);
+      },
+    );
+  };
+
+  const fetchTag = (tagId: number) => {
+    fetchSingleTag(
+      tagId,
+      (tag: Tag) => {
+        setTag(tag);
+        setLoading(false);
+      },
+      (error: Response) => {
+        addDangerToast(t('Error Fetching Tagged Objects'));
+        setLoading(false);
+      },
+    );
+  };
+
+  useEffect(() => {
+    // fetch single tag met
+    if (tagId) {
+      setLoading(true);
+      fetchTag(tagId);
+    }
+  }, [tagId]);
+
+  useEffect(() => {
+    if (tag) fetchTaggedObjects();
+  }, [tag]);
+
+  if (isLoading) return <Loading />;
   return (
     <AllEntitiesContainer>
+      <TagModal
+        show={showTagModal}
+        onHide={() => {
+          setShowTagModal(false);
+        }}
+        editTag={tag}
+        addSuccessToast={addSuccessToast}
+        addDangerToast={addDangerToast}
+        refreshData={() => {
+          fetchTaggedObjects();
+          if (tagId) fetchTag(tagId);
+        }}
+      />
       <AllEntitiesNav>
-        <span className="navbar-brand">{t('All Entities')}</span>
+        <PageHeaderWithActions
+          additionalActionsMenu={<></>}
+          editableTitleProps={editableTitleProps}
+          faveStarProps={{ itemId: 1, saveFaveStar: () => {} }}
+          showFaveStar={false}
+          showTitlePanelItems
+          titlePanelAdditionalItems={
+            <div css={additionalItemsStyles}>
+              <MetadataBar items={items} tooltipPlacement="bottom" />
+            </div>
+          }
+          rightPanelAdditionalItems={
+            <>
+              <Button
+                data-test="bulk-select-action"
+                buttonStyle="secondary"
+                onClick={() => setShowTagModal(true)}
+                showMarginRight={false}
+              >
+                {t('Edit Tag')}{' '}
+              </Button>
+            </>
+          }
+          menuDropdownProps={{
+            disabled: true,
+          }}
+          showMenuDropdown={false}
+        />
       </AllEntitiesNav>
-      <div className="select-control">
-        <div className="select-control-label">{t('search by tags')}</div>
-        <AsyncSelect
-          ariaLabel="tags"
-          value={tagsValue}
-          onChange={onTagSearchChange}
-          options={loadTags}
-          placeholder="Select"
-          mode="multiple"
+      <div className="entities">
+        <AllEntitiesTable
+          search={tag?.name || ''}
+          setShowTagModal={setShowTagModal}
+          objects={objects}
         />
       </div>
-      <AllEntitiesTable search={tagsQuery || ''} />
     </AllEntitiesContainer>
   );
 }

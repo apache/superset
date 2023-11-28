@@ -32,6 +32,7 @@ import React, {
   useReducer,
   Reducer,
 } from 'react';
+import { useHistory } from 'react-router-dom';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
 import Tabs from 'src/components/Tabs';
@@ -141,7 +142,6 @@ interface DatabaseModalProps {
   show: boolean;
   databaseId: number | undefined; // If included, will go into edit mode
   dbEngine: string | undefined; // if included goto step 2 with engine already set
-  history?: any;
 }
 
 export enum ActionType {
@@ -202,6 +202,7 @@ export type DBReducerActionType =
         configuration_method: CONFIGURATION_METHOD;
         engine_information?: {};
         driver?: string;
+        sqlalchemy_uri_placeholder?: string;
       };
     }
   | {
@@ -267,7 +268,6 @@ export function dbReducer(
       };
     case ActionType.extraInputChange:
       // "extra" payload in state is a string
-
       if (
         action.payload.name === 'schema_cache_timeout' ||
         action.payload.name === 'table_cache_timeout'
@@ -303,6 +303,18 @@ export function dbReducer(
               connect_args: {
                 [action.payload.name]: action.payload.value?.trim(),
               },
+            },
+          }),
+        };
+      }
+      if (action.payload.name === 'expand_rows') {
+        return {
+          ...trimmedState,
+          extra: JSON.stringify({
+            ...extraJson,
+            schema_options: {
+              ...extraJson?.schema_options,
+              [action.payload.name]: !!action.payload.value,
             },
           }),
         };
@@ -526,7 +538,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   show,
   databaseId,
   dbEngine,
-  history,
 }) => {
   const [db, setDB] = useReducer<
     Reducer<Partial<DatabaseObject> | null, DBReducerActionType>
@@ -542,6 +553,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     'database',
     t('database'),
     addDangerToast,
+    'connection',
   );
 
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
@@ -578,11 +590,30 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     sshTunnelPrivateKeyPasswordFields,
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
+  const [extraExtensionComponentState, setExtraExtensionComponentState] =
+    useState<object>({});
 
   const SSHTunnelSwitchComponent =
     extensionsRegistry.get('ssh_tunnel.form.switch') ?? SSHTunnelSwitch;
 
   const [useSSHTunneling, setUseSSHTunneling] = useState<boolean>(false);
+
+  let dbConfigExtraExtension = extensionsRegistry.get(
+    'databaseconnection.extraOption',
+  );
+
+  if (dbConfigExtraExtension) {
+    // add method for db modal to store data
+    dbConfigExtraExtension = {
+      ...dbConfigExtraExtension,
+      onEdit: componentState => {
+        setExtraExtensionComponentState({
+          ...extraExtensionComponentState,
+          ...componentState,
+        });
+      },
+    };
+  }
 
   const conf = useCommonConf();
   const dbImages = getDatabaseImages();
@@ -607,6 +638,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       (DB: DatabaseObject) => DB.backend === engine || DB.engine === engine,
     )?.parameters !== undefined;
   const showDBError = validationErrors || dbErrors;
+  const history = useHistory();
 
   const dbModel: DatabaseForm =
     availableDbs?.databases?.find(
@@ -647,12 +679,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const getPlaceholder = (field: string) => {
     if (field === 'database') {
-      switch (db?.engine) {
-        case Engines.Snowflake:
-          return t('e.g. xy12345.us-east-2.aws');
-        default:
-          return t('e.g. world_population');
-      }
+      return t('e.g. world_population');
     }
     return undefined;
   };
@@ -685,13 +712,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const redirectURL = (url: string) => {
-    /* TODO (lyndsiWilliams): This check and passing history
-      as a prop can be removed once SQL Lab is in the SPA */
-    if (!isEmpty(history)) {
-      history?.push(url);
-    } else {
-      window.location.href = url;
-    }
+    history.push(url);
   };
 
   // Database import logic
@@ -715,6 +736,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const onSave = async () => {
+    let dbConfigExtraExtensionOnSaveError;
+    dbConfigExtraExtension
+      ?.onSave(extraExtensionComponentState, db)
+      .then(({ error }: { error: any }) => {
+        if (error) {
+          dbConfigExtraExtensionOnSaveError = error;
+          addDangerToast(error);
+        }
+      });
+    if (dbConfigExtraExtensionOnSaveError) {
+      setLoading(false);
+      return;
+    }
     // Clone DB object
     const dbToUpdate = { ...(db || {}) };
 
@@ -730,15 +764,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         });
       }
 
-      // make sure that button spinner animates
-      setLoading(true);
-      const errors = await getValidation(dbToUpdate, true);
-      if ((validationErrors && !isEmpty(validationErrors)) || errors) {
+      // only do validation for non ssh tunnel connections
+      if (!dbToUpdate?.ssh_tunnel) {
+        // make sure that button spinner animates
+        setLoading(true);
+        const errors = await getValidation(dbToUpdate, true);
+        if ((validationErrors && !isEmpty(validationErrors)) || errors) {
+          setLoading(false);
+          return;
+        }
+        // end spinner animation
         setLoading(false);
-        return;
       }
-      setLoading(false);
-      // end spinner animation
 
       const parameters_schema = isEditMode
         ? dbToUpdate.parameters_schema?.properties
@@ -803,6 +840,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       );
       if (result) {
         if (onDatabaseAdd) onDatabaseAdd();
+        dbConfigExtraExtension
+          ?.onSave(extraExtensionComponentState, db)
+          .then(({ error }: { error: any }) => {
+            if (error) {
+              dbConfigExtraExtensionOnSaveError = error;
+              addDangerToast(error);
+            }
+          });
+        if (dbConfigExtraExtensionOnSaveError) {
+          setLoading(false);
+          return;
+        }
         if (!editNewDb) {
           onClose();
           addSuccessToast(t('Database settings updated'));
@@ -817,6 +866,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       if (dbId) {
         setHasConnectedDb(true);
         if (onDatabaseAdd) onDatabaseAdd();
+        dbConfigExtraExtension
+          ?.onSave(extraExtensionComponentState, db)
+          .then(({ error }: { error: any }) => {
+            if (error) {
+              dbConfigExtraExtensionOnSaveError = error;
+              addDangerToast(error);
+            }
+          });
+        if (dbConfigExtraExtensionOnSaveError) {
+          setLoading(false);
+          return;
+        }
+
         if (useTabLayout) {
           // tab layout only has one step
           // so it should close immediately on save
@@ -886,8 +948,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       const selectedDbModel = availableDbs?.databases.filter(
         (db: DatabaseObject) => db.name === database_name,
       )[0];
-      const { engine, parameters, engine_information, default_driver } =
-        selectedDbModel;
+      const {
+        engine,
+        parameters,
+        engine_information,
+        default_driver,
+        sqlalchemy_uri_placeholder,
+      } = selectedDbModel;
       const isDynamic = parameters !== undefined;
       setDB({
         type: ActionType.dbSelected,
@@ -899,6 +966,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             : CONFIGURATION_METHOD.SQLALCHEMY_URI,
           engine_information,
           driver: default_driver,
+          sqlalchemy_uri_placeholder,
         },
       });
 
@@ -1521,7 +1589,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onClick={() => {
           setLoading(true);
           fetchAndSetDB();
-          redirectURL(`/superset/sqllab/?db=true`);
+          redirectURL(`/sqllab?db=true`);
         }}
       >
         {t('QUERY DATA IN SQL LAB')}
@@ -1574,19 +1642,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         getValidation={() => getValidation(db)}
         validationErrors={validationErrors}
         getPlaceholder={getPlaceholder}
+        clearValidationErrors={() => setValidationErrors(null)}
       />
-      <SSHTunnelContainer>
-        <SSHTunnelSwitchComponent
-          isEditMode={isEditMode}
-          dbFetched={dbFetched}
-          disableSSHTunnelingForEngine={disableSSHTunnelingForEngine}
-          useSSHTunneling={useSSHTunneling}
-          setUseSSHTunneling={setUseSSHTunneling}
-          setDB={setDB}
-          isSSHTunneling={isSSHTunneling}
-        />
-      </SSHTunnelContainer>
-      {useSSHTunneling && (
+      {db?.parameters?.ssh && (
         <SSHTunnelContainer>{renderSSHTunnelForm()}</SSHTunnelContainer>
       )}
     </>
@@ -1596,6 +1654,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (!editNewDb) {
       return (
         <ExtraOptions
+          extraExtension={dbConfigExtraExtension}
           db={db as DatabaseObject}
           onInputChange={({ target }: { target: HTMLInputElement }) =>
             onChange(ActionType.inputChange, {
@@ -1807,6 +1866,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         </Tabs.TabPane>
         <Tabs.TabPane tab={<span>{t('Advanced')}</span>} key="2">
           <ExtraOptions
+            extraExtension={dbConfigExtraExtension}
             db={db as DatabaseObject}
             onInputChange={({ target }: { target: HTMLInputElement }) =>
               onChange(ActionType.inputChange, {

@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from flask import Response
 from flask_appbuilder.api import expose, permission_name, protect, rison, safe
@@ -83,7 +83,7 @@ class ReportExecutionLogRestApi(BaseSupersetModelRestApi):
 
     @staticmethod
     def _apply_layered_relation_to_rison(  # pylint: disable=invalid-name
-        layer_id: int, rison_parameters: Dict[str, Any]
+        layer_id: int, rison_parameters: dict[str, Any]
     ) -> None:
         if "filters" not in rison_parameters:
             rison_parameters["filters"] = []
@@ -91,7 +91,7 @@ class ReportExecutionLogRestApi(BaseSupersetModelRestApi):
             {"col": "report_schedule", "opr": "rel_o_m", "value": layer_id}
         )
 
-    @expose("/<int:pk>/log/", methods=["GET"])
+    @expose("/<int:pk>/log/", methods=("GET",))
     @protect()
     @safe
     @permission_name("get")
@@ -99,11 +99,10 @@ class ReportExecutionLogRestApi(BaseSupersetModelRestApi):
     def get_list(  # pylint: disable=arguments-differ
         self, pk: int, **kwargs: Any
     ) -> Response:
-        """Get a list of report schedule logs
+        """Get a list of report schedule logs.
         ---
         get:
-          description: >-
-            Get a list of report schedule logs
+          summary: Get a list of report schedule logs
           parameters:
           - in: path
             schema:
@@ -152,7 +151,7 @@ class ReportExecutionLogRestApi(BaseSupersetModelRestApi):
         self._apply_layered_relation_to_rison(pk, kwargs["rison"])
         return self.get_list_headless(**kwargs)
 
-    @expose("/<int:pk>/log/<int:log_id>", methods=["GET"])
+    @expose("/<int:pk>/log/<int:log_id>", methods=("GET",))
     @protect()
     @safe
     @permission_name("get")
@@ -160,11 +159,10 @@ class ReportExecutionLogRestApi(BaseSupersetModelRestApi):
     def get(  # pylint: disable=arguments-differ
         self, pk: int, log_id: int, **kwargs: Any
     ) -> Response:
-        """Get a report schedule log
+        """Get a report schedule log.
         ---
         get:
-          description: >-
-            Get a report schedule log
+          summary: Get a report schedule log
           parameters:
           - in: path
             schema:

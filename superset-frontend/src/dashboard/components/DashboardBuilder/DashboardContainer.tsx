@@ -34,7 +34,6 @@ import pick from 'lodash/pick';
 import Tabs from 'src/components/Tabs';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
 import {
-  ChartsState,
   DashboardInfo,
   DashboardLayout,
   LayoutItem,
@@ -86,7 +85,9 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const directPathToChild = useSelector<RootState, string[]>(
     state => state.dashboardState.directPathToChild,
   );
-  const charts = useSelector<RootState, ChartsState>(state => state.charts);
+  const chartIds = useSelector<RootState, number[]>(state =>
+    Object.values(state.charts).map(chart => chart.id),
+  );
 
   const tabIndex = useMemo(() => {
     const nextTabIndex = findTabIndexByComponentId({
@@ -116,7 +117,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       }
       const chartsInScope: number[] = getChartIdsInFilterScope(
         filterScope.scope,
-        charts,
+        chartIds,
         dashboardLayout,
       );
       const tabsInScope = findTabsWithChartsInScope(
@@ -207,7 +208,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
         }
       }
     }
-  }, [charts]);
+  }, [chartIds]);
 
   useComponentDidUpdate(verifyUpdateColorScheme);
 

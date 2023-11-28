@@ -612,6 +612,9 @@ function AlertList({
               bulkActions={bulkActions}
               bulkSelectEnabled={bulkSelectEnabled}
               disableBulkSelect={toggleBulkSelect}
+              refreshData={refreshData}
+              addDangerToast={addDangerToast}
+              addSuccessToast={addSuccessToast}
               pageSize={PAGE_SIZE}
             />
           );

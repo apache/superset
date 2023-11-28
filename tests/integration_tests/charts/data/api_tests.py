@@ -21,17 +21,14 @@ import unittest
 import copy
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Dict, Optional, List
+from typing import Any, Optional
 from unittest import mock
 from zipfile import ZipFile
 
 from flask import Response
 from tests.integration_tests.conftest import with_feature_flags
 from superset.models.sql_lab import Query
-from tests.integration_tests.base_tests import (
-    SupersetTestCase,
-    test_client,
-)
+from tests.integration_tests.base_tests import SupersetTestCase, test_client
 from tests.integration_tests.annotation_layers.fixtures import create_annotation_layers
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -45,15 +42,16 @@ from tests.integration_tests.fixtures.energy_dashboard import (
 import pytest
 from superset.models.slice import Slice
 
-from superset.charts.data.commands.get_data_command import ChartDataCommand
+from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.connectors.sqla.models import TableColumn, SqlaTable
 from superset.errors import SupersetErrorType
-from superset.extensions import async_query_manager, db
+from superset.extensions import async_query_manager_factory, db
 from superset.models.annotations import AnnotationLayer
 from superset.models.slice import Slice
 from superset.superset_typing import AdhocColumn
 from superset.utils.core import (
     AnnotationType,
+    backend,
     get_example_default_schema,
     AdhocMetricExpressionType,
     ExtraFiltersReasonType,
@@ -116,9 +114,10 @@ class BaseTestChartDataApi(SupersetTestCase):
 
     def quote_name(self, name: str):
         if get_main_database().backend in {"presto", "hive"}:
-            return get_example_database().inspector.engine.dialect.identifier_preparer.quote_identifier(
-                name
-            )
+            with get_example_database().get_inspector_with_context() as inspector:  # E: Ne
+                return inspector.engine.dialect.identifier_preparer.quote_identifier(
+                    name
+                )
         return name
 
 
@@ -447,11 +446,11 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         else:
             raise Exception("ds column not found")
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_prophet(self):
         """
         Chart data API: Ensure prophet post transformation works
         """
-        pytest.importorskip("prophet")
         time_grain = "P1Y"
         self.query_context_payload["queries"][0]["is_timeseries"] = True
         self.query_context_payload["queries"][0]["groupby"] = []
@@ -479,7 +478,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         self.assertIn("sum__num__yhat", row)
         self.assertIn("sum__num__yhat_upper", row)
         self.assertIn("sum__num__yhat_lower", row)
-        self.assertEqual(result["rowcount"], 47)
+        self.assertEqual(result["rowcount"], 103)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_invalid_post_processing(self):
@@ -626,7 +625,8 @@ class TestPostChartDataApi(BaseTestChartDataApi):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_async(self):
         self.logout()
-        async_query_manager.init_app(app)
+        app._got_first_request = False
+        async_query_manager_factory.init_app(app)
         self.login("admin")
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         self.assertEqual(rv.status_code, 202)
@@ -643,7 +643,8 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         Chart data API: Test chart data query returns results synchronously
         when results are already cached.
         """
-        async_query_manager.init_app(app)
+        app._got_first_request = False
+        async_query_manager_factory.init_app(app)
 
         class QueryContext:
             result_format = ChartDataResultFormat.JSON
@@ -672,7 +673,8 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         """
         Chart data API: Test chart data query non-JSON format (async)
         """
-        async_query_manager.init_app(app)
+        app._got_first_request = False
+        async_query_manager_factory.init_app(app)
         self.query_context_payload["result_type"] = "results"
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         self.assertEqual(rv.status_code, 200)
@@ -683,7 +685,8 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         """
         Chart data API: Test chart data query (async)
         """
-        async_query_manager.init_app(app)
+        app._got_first_request = False
+        async_query_manager_factory.init_app(app)
         test_client.set_cookie(
             "localhost", app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"], "foo"
         )
@@ -739,11 +742,11 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
         data = rv.json["result"][0]["data"]
 
-        unique_names = set(row["name"] for row in data)
+        unique_names = {row["name"] for row in data}
         self.maxDiff = None
         self.assertEqual(len(unique_names), SERIES_LIMIT)
         self.assertEqual(
-            set(column for column in data[0].keys()), {"state", "name", "sum__num"}
+            {column for column in data[0].keys()}, {"state", "name", "sum__num"}
         )
 
     @pytest.mark.usefixtures(
@@ -942,6 +945,71 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         assert data["result"][0]["rowcount"] == 2
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_data_get_with_x_axis_using_custom_sql(self):
+        """
+        Chart data API: Test GET endpoint
+        """
+        chart = db.session.query(Slice).filter_by(slice_name="Genders").one()
+        chart.query_context = json.dumps(
+            {
+                "datasource": {"id": chart.table.id, "type": "table"},
+                "force": False,
+                "queries": [
+                    {
+                        "time_range": "1900-01-01T00:00:00 : 2000-01-01T00:00:00",
+                        "granularity": "ds",
+                        "filters": [
+                            {"col": "ds", "op": "TEMPORAL_RANGE", "val": "No filter"}
+                        ],
+                        "extras": {
+                            "having": "",
+                            "where": "",
+                        },
+                        "applied_time_extras": {},
+                        "columns": [
+                            {
+                                "columnType": "BASE_AXIS",
+                                "datasourceWarning": False,
+                                "expressionType": "SQL",
+                                "label": "My column",
+                                "sqlExpression": "ds",
+                                "timeGrain": "P1W",
+                            }
+                        ],
+                        "metrics": ["sum__num"],
+                        "orderby": [["sum__num", False]],
+                        "annotation_layers": [],
+                        "row_limit": 50000,
+                        "timeseries_limit": 0,
+                        "order_desc": True,
+                        "url_params": {},
+                        "custom_params": {},
+                        "custom_form_data": {},
+                    }
+                ],
+                "form_data": {
+                    "x_axis": {
+                        "datasourceWarning": False,
+                        "expressionType": "SQL",
+                        "label": "My column",
+                        "sqlExpression": "ds",
+                    }
+                },
+                "result_format": "json",
+                "result_type": "full",
+            }
+        )
+        rv = self.get_assert_metric(f"api/v1/chart/{chart.id}/data/", "get_data")
+        assert rv.mimetype == "application/json"
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["result"][0]["status"] == "success"
+
+        if backend() == "presto":
+            assert data["result"][0]["rowcount"] == 41
+        else:
+            assert data["result"][0]["rowcount"] == 40
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_get_forced(self):
         """
         Chart data API: Test GET endpoint with force cache parameter
@@ -958,7 +1026,6 @@ class TestGetChartDataApi(BaseTestChartDataApi):
                         "filters": [],
                         "extras": {
                             "having": "",
-                            "having_druid": [],
                             "where": "",
                         },
                         "applied_time_extras": {},
@@ -998,7 +1065,8 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         """
         Chart data cache API: Test chart data async cache request
         """
-        async_query_manager.init_app(app)
+        app._got_first_request = False
+        async_query_manager_factory.init_app(app)
         cache_loader.load.return_value = self.query_context_payload
         orig_run = ChartDataCommand.run
 
@@ -1024,7 +1092,8 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         """
         Chart data cache API: Test chart data async cache request with run failure
         """
-        async_query_manager.init_app(app)
+        app._got_first_request = False
+        async_query_manager_factory.init_app(app)
         cache_loader.load.return_value = self.query_context_payload
         rv = self.get_assert_metric(
             f"{CHART_DATA_URI}/test-cache-key", "data_from_cache"
@@ -1041,8 +1110,9 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         """
         Chart data cache API: Test chart data async cache request (no login)
         """
+        app._got_first_request = False
+        async_query_manager_factory.init_app(app)
         self.logout()
-        async_query_manager.init_app(app)
         cache_loader.load.return_value = self.query_context_payload
         orig_run = ChartDataCommand.run
 
@@ -1063,7 +1133,8 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         """
         Chart data cache API: Test chart data async cache request with invalid cache key
         """
-        async_query_manager.init_app(app)
+        app._got_first_request = False
+        async_query_manager_factory.init_app(app)
         rv = self.get_assert_metric(
             f"{CHART_DATA_URI}/test-cache-key", "data_from_cache"
         )
@@ -1119,7 +1190,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
 
 
 @pytest.fixture()
-def physical_query_context(physical_dataset) -> Dict[str, Any]:
+def physical_query_context(physical_dataset) -> dict[str, Any]:
     return {
         "datasource": {
             "type": physical_dataset.type,
@@ -1159,6 +1230,31 @@ def test_custom_cache_timeout(test_client, login_as_admin, physical_query_contex
     assert rv.json["result"][0]["cache_timeout"] == 5678
 
 
+def test_time_filter_with_grain(test_client, login_as_admin, physical_query_context):
+    physical_query_context["queries"][0]["filters"] = [
+        {
+            "col": "col5",
+            "op": "TEMPORAL_RANGE",
+            "val": "Last quarter : ",
+            "grain": "P1W",
+        },
+    ]
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    query = rv.json["result"][0]["query"]
+    backend = get_example_database().backend
+    if backend == "sqlite":
+        assert (
+            "DATETIME(col5, 'start of day', -strftime('%w', col5) || ' days') >="
+            in query
+        )
+    elif backend == "mysql":
+        assert "DATE(DATE_SUB(col5, INTERVAL DAYOFWEEK(col5) - 1 DAY)) >=" in query
+    elif backend == "postgresql":
+        assert "DATE_TRUNC('week', col5) >=" in query
+    elif backend == "presto":
+        assert "date_trunc('week', CAST(col5 AS TIMESTAMP)) >=" in query
+
+
 def test_force_cache_timeout(test_client, login_as_admin, physical_query_context):
     physical_query_context["custom_cache_timeout"] = -1
     test_client.post(CHART_DATA_URI, json=physical_query_context)
@@ -1188,16 +1284,15 @@ def test_data_cache_default_timeout(
 
 
 def test_chart_cache_timeout(
+    load_energy_table_with_slice: list[Slice],
     test_client,
     login_as_admin,
     physical_query_context,
-    load_energy_table_with_slice: List[Slice],
 ):
     # should override datasource cache timeout
 
     slice_with_cache_timeout = load_energy_table_with_slice[0]
     slice_with_cache_timeout.cache_timeout = 20
-    db.session.merge(slice_with_cache_timeout)
 
     datasource: SqlaTable = (
         db.session.query(SqlaTable)
@@ -1205,12 +1300,10 @@ def test_chart_cache_timeout(
         .first()
     )
     datasource.cache_timeout = 1254
-    db.session.merge(datasource)
 
     db.session.commit()
 
     physical_query_context["form_data"] = {"slice_id": slice_with_cache_timeout.id}
-
     rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
     assert rv.json["result"][0]["cache_timeout"] == 20
 
@@ -1236,7 +1329,6 @@ def test_chart_cache_timeout_not_present(
         .first()
     )
     datasource.cache_timeout = 1980
-    db.session.merge(datasource)
     db.session.commit()
 
     rv = test_client.post(CHART_DATA_URI, json=physical_query_context)

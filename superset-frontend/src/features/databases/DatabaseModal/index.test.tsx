@@ -124,6 +124,10 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
             description: 'Additional parameters',
             type: 'object',
           },
+          ssh: {
+            description: 'Create SSH Tunnel',
+            type: 'boolean',
+          },
           username: {
             description: 'Username',
             nullable: true,
@@ -298,6 +302,7 @@ fetchMock.post(VALIDATE_PARAMS_ENDPOINT, {
 });
 
 const databaseFixture: DatabaseObject = {
+  id: 123,
   backend: 'postgres',
   configuration_method: CONFIGURATION_METHOD.DYNAMIC_FORM,
   database_name: 'Postgres',
@@ -669,7 +674,7 @@ describe('DatabaseModal', () => {
       const exposeInSQLLabCheckbox = screen.getByRole('checkbox', {
         name: /expose database in sql lab/i,
       });
-      // This is both the checkbox and it's respective SVG
+      // This is both the checkbox and its respective SVG
       // const exposeInSQLLabCheckboxSVG = checkboxOffSVGs[0].parentElement;
       const exposeInSQLLabText = screen.getByText(
         /expose database in sql lab/i,
@@ -716,6 +721,13 @@ describe('DatabaseModal', () => {
         /Disable SQL Lab data preview queries/i,
       );
 
+      const enableRowExpansionCheckbox = screen.getByRole('checkbox', {
+        name: /enable row expansion in schemas/i,
+      });
+      const enableRowExpansionText = screen.getByText(
+        /enable row expansion in schemas/i,
+      );
+
       // ---------- Assertions ----------
       const visibleComponents = [
         closeButton,
@@ -732,6 +744,7 @@ describe('DatabaseModal', () => {
         checkboxOffSVGs[2],
         checkboxOffSVGs[3],
         checkboxOffSVGs[4],
+        checkboxOffSVGs[5],
         tooltipIcons[0],
         tooltipIcons[1],
         tooltipIcons[2],
@@ -739,6 +752,7 @@ describe('DatabaseModal', () => {
         tooltipIcons[4],
         tooltipIcons[5],
         tooltipIcons[6],
+        tooltipIcons[7],
         exposeInSQLLabText,
         allowCTASText,
         allowCVASText,
@@ -749,6 +763,7 @@ describe('DatabaseModal', () => {
         enableQueryCostEstimationText,
         allowDbExplorationText,
         disableSQLLabDataPreviewQueriesText,
+        enableRowExpansionText,
       ];
       // These components exist in the DOM but are not visible
       const invisibleComponents = [
@@ -759,6 +774,7 @@ describe('DatabaseModal', () => {
         enableQueryCostEstimationCheckbox,
         allowDbExplorationCheckbox,
         disableSQLLabDataPreviewQueriesCheckbox,
+        enableRowExpansionCheckbox,
       ];
       visibleComponents.forEach(component => {
         expect(component).toBeVisible();
@@ -766,8 +782,8 @@ describe('DatabaseModal', () => {
       invisibleComponents.forEach(component => {
         expect(component).not.toBeVisible();
       });
-      expect(checkboxOffSVGs).toHaveLength(5);
-      expect(tooltipIcons).toHaveLength(7);
+      expect(checkboxOffSVGs).toHaveLength(6);
+      expect(tooltipIcons).toHaveLength(8);
     });
 
     test('renders the "Advanced" - PERFORMANCE tab correctly', async () => {
@@ -2008,6 +2024,7 @@ describe('dbReducer', () => {
     const currentState = dbReducer({}, action);
 
     expect(currentState).toEqual({
+      id: db.id,
       database_name: db.database_name,
       engine: backend,
       configuration_method: db.configuration_method,

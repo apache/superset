@@ -19,8 +19,6 @@
 import {
   AnnotationType,
   Behavior,
-  ChartMetadata,
-  ChartPlugin,
   hasGenericChartAxes,
   t,
 } from '@superset-ui/core';
@@ -34,8 +32,9 @@ import transformProps from '../transformProps';
 import thumbnail from './images/thumbnail.png';
 import example1 from './images/Step1.png';
 import example2 from './images/Step2.png';
+import { EchartsChartPlugin } from '../../types';
 
-export default class EchartsTimeseriesStepChartPlugin extends ChartPlugin<
+export default class EchartsTimeseriesStepChartPlugin extends EchartsChartPlugin<
   EchartsTimeseriesFormData,
   EchartsTimeseriesChartProps
 > {
@@ -44,7 +43,7 @@ export default class EchartsTimeseriesStepChartPlugin extends ChartPlugin<
       buildQuery,
       controlPanel,
       loadChart: () => import('../EchartsTimeseries'),
-      metadata: new ChartMetadata({
+      metadata: {
         behaviors: [
           Behavior.INTERACTIVE_CHART,
           Behavior.DRILL_TO_DETAIL,
@@ -79,7 +78,7 @@ export default class EchartsTimeseriesStepChartPlugin extends ChartPlugin<
           t('Stacked'),
         ],
         thumbnail,
-      }),
+      },
       transformProps,
     });
   }

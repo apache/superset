@@ -231,8 +231,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
   useEffect(() => {
     if (
       isEditMode &&
-      (!currentAnnotation ||
-        !currentAnnotation.id ||
+      (!currentAnnotation?.id ||
         (annotation && annotation.id !== currentAnnotation.id) ||
         show)
     ) {

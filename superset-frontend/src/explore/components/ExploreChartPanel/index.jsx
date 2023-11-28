@@ -23,6 +23,7 @@ import {
   css,
   DatasourceType,
   ensureIsArray,
+  isFeatureEnabled,
   FeatureFlag,
   getChartMetadataRegistry,
   styled,
@@ -32,7 +33,6 @@ import {
 } from '@superset-ui/core';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import ChartContainer from 'src/components/Chart/ChartContainer';
-import { isFeatureEnabled } from 'src/featureFlags';
 import {
   getItem,
   setItem,
@@ -418,7 +418,11 @@ const ExploreChartPanel = ({
     if (!bodyClasses.includes(standaloneClass)) {
       document.body.className += ` ${standaloneClass}`;
     }
-    return standaloneChartBody;
+    return (
+      <div id="app" data-test="standalone-app" ref={resizeObserverRef}>
+        {standaloneChartBody}
+      </div>
+    );
   }
 
   return (

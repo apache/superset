@@ -29,7 +29,7 @@ down_revision = "ad07e4fdbaba"
 import json
 import os
 from datetime import datetime
-from typing import List, Optional, Set, Type, Union
+from typing import Optional, Union
 from uuid import uuid4
 
 import sqlalchemy as sa
@@ -86,7 +86,7 @@ class AuxiliaryColumnsMixin(UUIDMixin):
 
 
 def insert_from_select(
-    target: Union[str, sa.Table, Type[Base]], source: sa.sql.expression.Select
+    target: Union[str, sa.Table, type[Base]], source: sa.sql.expression.Select
 ) -> None:
     """
     Execute INSERT FROM SELECT to copy data from a SELECT query to the target table.
@@ -274,8 +274,8 @@ def find_tables(
     session: Session,
     database_id: int,
     default_schema: Optional[str],
-    tables: Set[Table],
-) -> List[int]:
+    tables: set[Table],
+) -> list[int]:
     """
     Look for NewTable's of from a specific database
     """

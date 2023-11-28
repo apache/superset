@@ -15,8 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 """A collection of ORM sqlalchemy models for Superset"""
-import enum
-
 from cron_descriptor import get_description
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
@@ -41,28 +39,29 @@ from superset.models.dashboard import Dashboard
 from superset.models.helpers import AuditMixinNullable, ExtraJSONMixin
 from superset.models.slice import Slice
 from superset.reports.types import ReportScheduleExtra
+from superset.utils.backports import StrEnum
 
 metadata = Model.metadata  # pylint: disable=no-member
 
 
-class ReportScheduleType(str, enum.Enum):
+class ReportScheduleType(StrEnum):
     ALERT = "Alert"
     REPORT = "Report"
 
 
-class ReportScheduleValidatorType(str, enum.Enum):
+class ReportScheduleValidatorType(StrEnum):
     """Validator types for alerts"""
 
     NOT_NULL = "not null"
     OPERATOR = "operator"
 
 
-class ReportRecipientType(str, enum.Enum):
+class ReportRecipientType(StrEnum):
     EMAIL = "Email"
     SLACK = "Slack"
 
 
-class ReportState(str, enum.Enum):
+class ReportState(StrEnum):
     SUCCESS = "Success"
     WORKING = "Working"
     ERROR = "Error"
@@ -70,19 +69,19 @@ class ReportState(str, enum.Enum):
     GRACE = "On Grace"
 
 
-class ReportDataFormat(str, enum.Enum):
+class ReportDataFormat(StrEnum):
     VISUALIZATION = "PNG"
     DATA = "CSV"
     TEXT = "TEXT"
 
 
-class ReportCreationMethod(str, enum.Enum):
+class ReportCreationMethod(StrEnum):
     CHARTS = "charts"
     DASHBOARDS = "dashboards"
     ALERTS_REPORTS = "alerts_reports"
 
 
-class ReportSourceFormat(str, enum.Enum):
+class ReportSourceFormat(StrEnum):
     CHART = "chart"
     DASHBOARD = "dashboard"
 
@@ -91,9 +90,17 @@ report_schedule_user = Table(
     "report_schedule_user",
     metadata,
     Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("ab_user.id"), nullable=False),
     Column(
-        "report_schedule_id", Integer, ForeignKey("report_schedule.id"), nullable=False
+        "user_id",
+        Integer,
+        ForeignKey("ab_user.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    Column(
+        "report_schedule_id",
+        Integer,
+        ForeignKey("report_schedule.id", ondelete="CASCADE"),
+        nullable=False,
     ),
     UniqueConstraint("user_id", "report_schedule_id"),
 )
@@ -132,7 +139,11 @@ class ReportSchedule(Model, AuditMixinNullable, ExtraJSONMixin):
     # (Alerts) M-O to database
     database_id = Column(Integer, ForeignKey("dbs.id"), nullable=True)
     database = relationship(Database, foreign_keys=[database_id])
-    owners = relationship(security_manager.user_model, secondary=report_schedule_user)
+    owners = relationship(
+        security_manager.user_model,
+        secondary=report_schedule_user,
+        passive_deletes=True,
+    )
 
     # (Alerts) Stamped last observations
     last_eval_dttm = Column(DateTime)
@@ -153,6 +164,9 @@ class ReportSchedule(Model, AuditMixinNullable, ExtraJSONMixin):
 
     # (Reports) When generating a screenshot, bypass the cache?
     force_screenshot = Column(Boolean, default=False)
+
+    custom_width = Column(Integer, nullable=True)
+    custom_height = Column(Integer, nullable=True)
 
     extra: ReportScheduleExtra  # type: ignore
 

@@ -212,20 +212,23 @@ const FilterControls: FC<FilterControlsProps> = ({
         selectedCrossFilters.at(-1),
       ),
     }));
-    const nativeFiltersInScope = filtersInScope.map((filter, index) => ({
-      id: filter.id,
-      element: (
-        <div
-          className="filter-item-wrapper"
-          css={css`
-            flex-shrink: 0;
-          `}
-        >
-          {renderer(filter, index)}
-        </div>
-      ),
-    }));
-    return [...crossFilters, ...nativeFiltersInScope];
+    if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS)) {
+      const nativeFiltersInScope = filtersInScope.map((filter, index) => ({
+        id: filter.id,
+        element: (
+          <div
+            className="filter-item-wrapper"
+            css={css`
+              flex-shrink: 0;
+            `}
+          >
+            {renderer(filter, index)}
+          </div>
+        ),
+      }));
+      return [...crossFilters, ...nativeFiltersInScope];
+    }
+    return [...crossFilters];
   }, [filtersInScope, renderer, rendererCrossFilter, selectedCrossFilters]);
 
   const renderHorizontalContent = () => (
@@ -277,6 +280,7 @@ const FilterControls: FC<FilterControlsProps> = ({
               )
             : undefined
         }
+        forceRender={hasRequiredFirst}
         ref={popoverRef}
         onOverflowingStateChange={({ overflowed: nextOverflowedIds }) => {
           if (

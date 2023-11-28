@@ -20,11 +20,9 @@ from uuid import uuid4
 
 from flask import current_app
 
-from superset.dashboards.permalink.commands.create import (
-    CreateDashboardPermalinkCommand,
-)
+from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
+from superset.commands.report.execute import AsyncExecuteReportScheduleCommand
 from superset.models.dashboard import Dashboard
-from superset.reports.commands.execute import AsyncExecuteReportScheduleCommand
 from superset.reports.models import ReportSourceFormat
 from tests.integration_tests.fixtures.tabbed_dashboard import tabbed_dashboard
 from tests.integration_tests.reports.utils import create_dashboard_report
@@ -32,10 +30,10 @@ from tests.integration_tests.reports.utils import create_dashboard_report
 
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch(
-    "superset.reports.commands.execute.DashboardScreenshot",
+    "superset.commands.report.execute.DashboardScreenshot",
 )
 @patch(
-    "superset.dashboards.permalink.commands.create.CreateDashboardPermalinkCommand.run"
+    "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
 )
 def test_report_for_dashboard_with_tabs(
     create_dashboard_permalink_mock: MagicMock,
@@ -58,23 +56,22 @@ def test_report_for_dashboard_with_tabs(
         ).run()
         dashboard_state = report_schedule.extra.get("dashboard", {})
         permalink_key = CreateDashboardPermalinkCommand(
-            dashboard.id, dashboard_state
+            str(dashboard.id), dashboard_state
         ).run()
 
         assert dashboard_screenshot_mock.call_count == 1
-        (url, digest) = dashboard_screenshot_mock.call_args.args
+        url = dashboard_screenshot_mock.call_args.args[0]
         assert url.endswith(f"/superset/dashboard/p/{permalink_key}/")
-        assert digest == dashboard.digest
         assert send_email_smtp_mock.call_count == 1
         assert len(send_email_smtp_mock.call_args.kwargs["images"]) == 1
 
 
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch(
-    "superset.reports.commands.execute.DashboardScreenshot",
+    "superset.commands.report.execute.DashboardScreenshot",
 )
 @patch(
-    "superset.dashboards.permalink.commands.create.CreateDashboardPermalinkCommand.run"
+    "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
 )
 def test_report_with_header_data(
     create_dashboard_permalink_mock: MagicMock,
@@ -101,9 +98,8 @@ def test_report_with_header_data(
         ).run()
 
         assert dashboard_screenshot_mock.call_count == 1
-        (url, digest) = dashboard_screenshot_mock.call_args.args
+        url = dashboard_screenshot_mock.call_args.args[0]
         assert url.endswith(f"/superset/dashboard/p/{permalink_key}/")
-        assert digest == dashboard.digest
         assert send_email_smtp_mock.call_count == 1
         header_data = send_email_smtp_mock.call_args.kwargs["header_data"]
         assert header_data.get("dashboard_id") == dashboard.id

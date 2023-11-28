@@ -21,7 +21,6 @@ Revises: f2672aa8350a
 Create Date: 2020-08-12 00:24:39.617899
 
 """
-import collections
 import json
 import logging
 import uuid
@@ -77,7 +76,7 @@ class Dashboard(Base):
 def create_new_markdown_component(chart_position, url):
     return {
         "type": "MARKDOWN",
-        "id": "MARKDOWN-{}".format(uuid.uuid4().hex[:8]),
+        "id": f"MARKDOWN-{uuid.uuid4().hex[:8]}",
         "children": [],
         "parents": chart_position["parents"],
         "meta": {
@@ -164,7 +163,6 @@ def upgrade():
                     separators=(",", ":"),
                     sort_keys=True,
                 )
-                session.merge(dashboard)
 
         # remove iframe, separator and markup charts
         slices_to_remove = (

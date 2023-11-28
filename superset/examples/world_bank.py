@@ -17,7 +17,6 @@
 """Loads datasets, dashboards and slices in a new superset instance"""
 import json
 import os
-from typing import List
 
 import pandas as pd
 from sqlalchemy import DateTime, inspect, String
@@ -25,14 +24,8 @@ from sqlalchemy.sql import column
 
 import superset.utils.database
 from superset import app, db
-from superset.connectors.sqla.models import SqlMetric
-from superset.models.dashboard import Dashboard
-from superset.models.slice import Slice
-from superset.utils import core as utils
-from superset.utils.core import DatasourceType
-
-from ..connectors.base.models import BaseDatasource
-from .helpers import (
+from superset.connectors.sqla.models import BaseDatasource, SqlMetric
+from superset.examples.helpers import (
     get_example_url,
     get_examples_folder,
     get_slice_json,
@@ -41,6 +34,10 @@ from .helpers import (
     misc_dash_slices,
     update_slice_ids,
 )
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
+from superset.utils import core as utils
+from superset.utils.core import DatasourceType
 
 
 def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-statements
@@ -88,6 +85,7 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
     tbl = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not tbl:
         tbl = table(table_name=tbl_name, schema=schema)
+        db.session.add(tbl)
     tbl.description = utils.readfile(
         os.path.join(get_examples_folder(), "countries.md")
     )
@@ -111,7 +109,6 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
                 SqlMetric(metric_name=metric, expression=f"{aggr_func}({col})")
             )
 
-    db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
 
@@ -127,6 +124,7 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
 
     if not dash:
         dash = Dashboard()
+        db.session.add(dash)
     dash.published = True
     pos = dashboard_positions
     slices = update_slice_ids(pos)
@@ -135,11 +133,10 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
     dash.position_json = json.dumps(pos, indent=4)
     dash.slug = slug
     dash.slices = slices
-    db.session.merge(dash)
     db.session.commit()
 
 
-def create_slices(tbl: BaseDatasource) -> List[Slice]:
+def create_slices(tbl: BaseDatasource) -> list[Slice]:
     metric = "sum__SP_POP_TOTL"
     metrics = ["sum__SP_POP_TOTL"]
     secondary_metric = {
@@ -343,15 +340,15 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         ),
         Slice(
             slice_name="Treemap",
-            viz_type="treemap",
+            viz_type="treemap_v2",
             datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 since="1960-01-01",
                 until="now",
-                viz_type="treemap",
-                metrics=["sum__SP_POP_TOTL"],
+                viz_type="treemap_v2",
+                metric="sum__SP_POP_TOTL",
                 groupby=["region", "country_code"],
             ),
         ),

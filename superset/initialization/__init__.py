@@ -16,17 +16,19 @@
 # under the License.
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
 import sys
-from typing import Any, Callable, Dict, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING
 
 import wtforms_json
 from deprecation import deprecated
 from flask import Flask, redirect
 from flask_appbuilder import expose, IndexView
-from flask_babel import gettext as __, lazy_gettext as _
+from flask_babel import gettext as __
 from flask_compress import Compress
+from flask_session import Session
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from superset.constants import CHANGE_ME_SECRET_KEY
@@ -34,7 +36,7 @@ from superset.extensions import (
     _event_logger,
     APP_DIR,
     appbuilder,
-    async_query_manager,
+    async_query_manager_factory,
     cache_manager,
     celery_app,
     csrf,
@@ -68,7 +70,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         self.superset_app = app
         self.config = app.config
-        self.manifest: Dict[Any, Any] = {}
+        self.manifest: dict[Any, Any] = {}
 
     @deprecated(details="use self.superset_app instead of self.flask_app")  # type: ignore
     @property
@@ -116,6 +118,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # the global Flask app
         #
         # pylint: disable=import-outside-toplevel,too-many-locals,too-many-statements
+        from superset import security_manager
         from superset.advanced_data_type.api import AdvancedDataTypeRestApi
         from superset.annotation_layers.annotations.api import AnnotationRestApi
         from superset.annotation_layers.api import AnnotationLayerRestApi
@@ -154,7 +157,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.security.api import SecurityRestApi
         from superset.sqllab.api import SqlLabRestApi
         from superset.tags.api import TagRestApi
-        from superset.views.access_requests import AccessRequestsModelView
         from superset.views.alerts import AlertView, ReportView
         from superset.views.all_entities import TaggedObjectsModelView, TaggedObjectView
         from superset.views.annotations import AnnotationLayerView
@@ -182,6 +184,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.key_value import KV
         from superset.views.log.api import LogRestApi
         from superset.views.log.views import LogModelView
+        from superset.views.profile import ProfileView
         from superset.views.redirects import R
         from superset.views.sql_lab.views import (
             SavedQueryView,
@@ -190,6 +193,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             TableSchemaView,
             TabStateView,
         )
+        from superset.views.sqllab import SqllabView
         from superset.views.tags import TagModelView, TagView
         from superset.views.users.api import CurrentUserRestApi
 
@@ -309,10 +313,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(ExplorePermalinkView)
         appbuilder.add_view_no_menu(KV)
         appbuilder.add_view_no_menu(R)
+        appbuilder.add_view_no_menu(ProfileView)
         appbuilder.add_view_no_menu(SavedQueryView)
         appbuilder.add_view_no_menu(SavedQueryViewApi)
         appbuilder.add_view_no_menu(SliceAsync)
         appbuilder.add_view_no_menu(SqlLab)
+        appbuilder.add_view_no_menu(SqllabView)
         appbuilder.add_view_no_menu(SqlMetricInlineView)
         appbuilder.add_view_no_menu(Superset)
         appbuilder.add_view_no_menu(TableColumnInlineView)
@@ -320,6 +326,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(TableSchemaView)
         appbuilder.add_view_no_menu(TabStateView)
         appbuilder.add_view_no_menu(TaggedObjectView)
+        appbuilder.add_view_no_menu(TaggedObjectsModelView)
         appbuilder.add_view_no_menu(TagView)
         appbuilder.add_view_no_menu(ReportView)
 
@@ -334,14 +341,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Manage",
             category_label=__("Manage"),
             category_icon="fa-wrench",
-            cond=lambda: not feature_flag_manager.is_feature_enabled(
-                "VERSIONED_EXPORT"
+            cond=lambda: (
+                security_manager.can_access("can_import_dashboards", "Superset")
+                and not feature_flag_manager.is_feature_enabled("VERSIONED_EXPORT")
             ),
         )
+
         appbuilder.add_link(
             "SQL Editor",
             label=__("SQL Lab"),
-            href="/superset/sqllab/",
+            href="/sqllab/",
             category_icon="fa-flask",
             icon="fa-flask",
             category="SQL Lab",
@@ -358,19 +367,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_link(
             "Query Search",
             label=__("Query History"),
-            href="/superset/sqllab/history/",
+            href="/sqllab/history/",
             icon="fa-search",
             category_icon="fa-flask",
             category="SQL Lab",
             category_label=__("SQL Lab"),
-        )
-        appbuilder.add_view(
-            TaggedObjectsModelView,
-            "All Entities",
-            label=__("All Entities"),
-            icon="",
-            category_icon="",
-            menu_cond=lambda: feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"),
         )
         appbuilder.add_view(
             TagModelView,
@@ -378,6 +379,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             label=__("Tags"),
             icon="",
             category_icon="",
+            category="Manage",
             menu_cond=lambda: feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"),
         )
         appbuilder.add_api(LogRestApi)
@@ -420,16 +422,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
 
         appbuilder.add_view(
-            AccessRequestsModelView,
-            "Access requests",
-            label=__("Access requests"),
-            category="Security",
-            category_label=__("Security"),
-            icon="fa-table",
-            menu_cond=lambda: bool(self.config["ENABLE_ACCESS_REQUEST"]),
-        )
-
-        appbuilder.add_view(
             RowLevelSecurityView,
             "Row Level Security",
             href="/rowlevelsecurity/list/",
@@ -453,8 +445,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         # Hook that provides administrators a handle on the Flask APP
         # after initialization
-        flask_app_mutator = self.config["FLASK_APP_MUTATOR"]
-        if flask_app_mutator:
+        if flask_app_mutator := self.config["FLASK_APP_MUTATOR"]:
             flask_app_mutator(self.superset_app)
 
         if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
@@ -489,6 +480,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             logger.error("Refusing to start due to insecure SECRET_KEY")
             sys.exit(1)
 
+    def configure_session(self) -> None:
+        if self.config["SESSION_SERVER_SIDE"]:
+            Session(self.superset_app)
+
     def init_app(self) -> None:
         """
         Main entry point which will delegate to other methods in
@@ -496,6 +491,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         """
         self.pre_init()
         self.check_secret_key()
+        self.configure_session()
         # Configuration of logging must be done first to apply the formatter properly
         self.configure_logging()
         # Configuration of feature_flags must be done first to allow init features
@@ -554,7 +550,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         custom_sm = self.config["CUSTOM_SECURITY_MANAGER"] or SupersetSecurityManager
         if not issubclass(custom_sm, SupersetSecurityManager):
-            raise Exception(
+            raise Exception(  # pylint: disable=broad-exception-raised
                 """Your CUSTOM_SECURITY_MANAGER must now extend SupersetSecurityManager,
                  not FAB's security manager.
                  See [4565] in UPDATING.md"""
@@ -587,7 +583,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             CORS(self.superset_app, **self.config["CORS_OPTIONS"])
 
         if self.config["ENABLE_PROXY_FIX"]:
-            self.superset_app.wsgi_app = ProxyFix(  # type: ignore
+            self.superset_app.wsgi_app = ProxyFix(
                 self.superset_app.wsgi_app, **self.config["PROXY_FIX_CONFIG"]
             )
 
@@ -598,7 +594,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                     self.app = app
 
                 def __call__(
-                    self, environ: Dict[str, Any], start_response: Callable[..., Any]
+                    self, environ: dict[str, Any], start_response: Callable[..., Any]
                 ) -> Any:
                     # Setting wsgi.input_terminated tells werkzeug.wsgi to ignore
                     # content-length and read the stream till the end.
@@ -606,27 +602,24 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                         environ["wsgi.input_terminated"] = True
                     return self.app(environ, start_response)
 
-            self.superset_app.wsgi_app = ChunkedEncodingFix(  # type: ignore
-                self.superset_app.wsgi_app  # type: ignore
-            )
+            self.superset_app.wsgi_app = ChunkedEncodingFix(self.superset_app.wsgi_app)
 
         if self.config["UPLOAD_FOLDER"]:
-            try:
+            with contextlib.suppress(OSError):
                 os.makedirs(self.config["UPLOAD_FOLDER"])
-            except OSError:
-                pass
-
         for middleware in self.config["ADDITIONAL_MIDDLEWARE"]:
-            self.superset_app.wsgi_app = middleware(  # type: ignore
-                self.superset_app.wsgi_app
-            )
+            self.superset_app.wsgi_app = middleware(self.superset_app.wsgi_app)
 
         # Flask-Compress
         Compress(self.superset_app)
 
         # Talisman
         talisman_enabled = self.config["TALISMAN_ENABLED"]
-        talisman_config = self.config["TALISMAN_CONFIG"]
+        talisman_config = (
+            self.config["TALISMAN_DEV_CONFIG"]
+            if self.superset_app.debug
+            else self.config["TALISMAN_CONFIG"]
+        )
         csp_warning = self.config["CONTENT_SECURITY_POLICY_WARNING"]
 
         if talisman_enabled:
@@ -680,7 +673,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def configure_async_queries(self) -> None:
         if feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
-            async_query_manager.init_app(self.superset_app)
+            async_query_manager_factory.init_app(self.superset_app)
 
     def register_blueprints(self) -> None:
         for bp in self.config["BLUEPRINTS"]:

@@ -16,11 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FeatureFlag, styled, SupersetClient, t } from '@superset-ui/core';
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  styled,
+  SupersetClient,
+  t,
+} from '@superset-ui/core';
+import { useSelector } from 'react-redux';
 import React, { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import rison from 'rison';
-import { isFeatureEnabled } from 'src/featureFlags';
 import {
   createFetchRelated,
   createErrorHandler,
@@ -54,9 +60,10 @@ import Dashboard from 'src/dashboard/containers/Dashboard';
 import { Dashboard as CRUDDashboard } from 'src/views/CRUD/types';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import { loadTags } from 'src/components/Tags/utils';
-import getBootstrapData from 'src/utils/getBootstrapData';
 import DashboardCard from 'src/features/dashboards/DashboardCard';
 import { DashboardStatus } from 'src/features/dashboards/types';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { findPermission } from 'src/utils/findPermission';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -82,9 +89,8 @@ interface DashboardListProps {
   };
 }
 
-interface Dashboard {
+export interface Dashboard {
   changed_by_name: string;
-  changed_by_url: string;
   changed_on_delta_humanized: string;
   changed_by: string;
   dashboard_title: string;
@@ -101,14 +107,17 @@ const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
-const bootstrapData = getBootstrapData();
-
 function DashboardList(props: DashboardListProps) {
   const {
     addDangerToast,
     addSuccessToast,
     user: { userId },
   } = props;
+
+  const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
+    state => state.user,
+  );
+  const canReadTag = findPermission('can_read', 'Tag', roles);
 
   const {
     state: {
@@ -143,8 +152,6 @@ function DashboardList(props: DashboardListProps) {
   const [importingDashboard, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
-  const enableBroadUserAccess =
-    bootstrapData?.common?.conf?.ENABLE_BROAD_ACTIVITY_ACCESS;
   const [sshTunnelPasswordFields, setSSHTunnelPasswordFields] = useState<
     string[]
   >([]);
@@ -195,7 +202,6 @@ function DashboardList(props: DashboardListProps) {
             if (dashboard.id === json?.result?.id) {
               const {
                 changed_by_name,
-                changed_by_url,
                 changed_by,
                 dashboard_title = '',
                 slug = '',
@@ -210,7 +216,6 @@ function DashboardList(props: DashboardListProps) {
               return {
                 ...dashboard,
                 changed_by_name,
-                changed_by_url,
                 changed_by,
                 dashboard_title,
                 slug,
@@ -308,21 +313,37 @@ function DashboardList(props: DashboardListProps) {
         Header: t('Title'),
         accessor: 'dashboard_title',
       },
-
       {
         Cell: ({
           row: {
-            original: {
-              changed_by_name: changedByName,
-              changed_by_url: changedByUrl,
-            },
+            original: { tags = [] },
           },
-        }: any) =>
-          enableBroadUserAccess ? (
-            <a href={changedByUrl}>{changedByName}</a>
-          ) : (
-            <>{changedByName}</>
-          ),
+        }: {
+          row: {
+            original: {
+              tags: Tag[];
+            };
+          };
+        }) => (
+          // Only show custom type tags
+          <TagsList
+            tags={tags.filter(
+              (tag: Tag) => tag.type === 'TagTypes.custom' || tag.type === 1,
+            )}
+            maxTags={3}
+          />
+        ),
+        Header: t('Tags'),
+        accessor: 'tags',
+        disableSortBy: true,
+        hidden: !isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM),
+      },
+      {
+        Cell: ({
+          row: {
+            original: { changed_by_name: changedByName },
+          },
+        }: any) => <>{changedByName}</>,
         Header: t('Modified by'),
         accessor: 'changed_by.first_name',
         size: 'xl',
@@ -370,31 +391,6 @@ function DashboardList(props: DashboardListProps) {
         accessor: 'owners',
         disableSortBy: true,
         size: 'xl',
-      },
-      {
-        Cell: ({
-          row: {
-            original: { tags = [] },
-          },
-        }: {
-          row: {
-            original: {
-              tags: Tag[];
-            };
-          };
-        }) => (
-          // Only show custom type tags
-          <TagsList
-            tags={tags.filter(
-              (tag: Tag) => tag.type === 'TagTypes.custom' || tag.type === 1,
-            )}
-            maxTags={3}
-          />
-        ),
-        Header: t('Tags'),
-        accessor: 'tags',
-        disableSortBy: true,
-        hidden: !isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM),
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -590,7 +586,7 @@ function DashboardList(props: DashboardListProps) {
         ],
       },
     ] as Filters;
-    if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) {
+    if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && canReadTag) {
       filters_list.push({
         Header: t('Tags'),
         key: 'tags',
@@ -766,10 +762,13 @@ function DashboardList(props: DashboardListProps) {
                 data={dashboards}
                 disableBulkSelect={toggleBulkSelect}
                 fetchData={fetchData}
+                refreshData={refreshData}
                 filters={filters}
                 initialSort={initialSort}
                 loading={loading}
                 pageSize={PAGE_SIZE}
+                addSuccessToast={addSuccessToast}
+                addDangerToast={addDangerToast}
                 showThumbnails={
                   userKey
                     ? userKey.thumbnails
@@ -781,6 +780,8 @@ function DashboardList(props: DashboardListProps) {
                     ? 'card'
                     : 'table'
                 }
+                enableBulkTag
+                bulkTagResourceName="dashboard"
               />
             </>
           );

@@ -90,6 +90,7 @@ class ChartRenderer extends React.Component {
         (isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) ||
           isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)),
       inContextMenu: false,
+      legendState: undefined,
     };
     this.hasQueryResponseChange = false;
 
@@ -102,6 +103,7 @@ class ChartRenderer extends React.Component {
     this.handleOnContextMenu = this.handleOnContextMenu.bind(this);
     this.handleContextMenuSelected = this.handleContextMenuSelected.bind(this);
     this.handleContextMenuClosed = this.handleContextMenuClosed.bind(this);
+    this.handleLegendStateChanged = this.handleLegendStateChanged.bind(this);
     this.onContextMenuFallback = this.onContextMenuFallback.bind(this);
 
     this.hooks = {
@@ -113,6 +115,7 @@ class ChartRenderer extends React.Component {
       setControlValue: this.handleSetControlValue,
       onFilterMenuOpen: this.props.onFilterMenuOpen,
       onFilterMenuClose: this.props.onFilterMenuClose,
+      onLegendStateChanged: this.handleLegendStateChanged,
       setDataMask: dataMask => {
         this.props.actions?.updateDataMask(this.props.chartId, dataMask);
       },
@@ -224,6 +227,10 @@ class ChartRenderer extends React.Component {
 
   handleContextMenuClosed() {
     this.setState({ inContextMenu: false });
+  }
+
+  handleLegendStateChanged(legendState) {
+    this.setState({ legendState });
   }
 
   // When viz plugins don't handle `contextmenu` event, fallback handler
@@ -354,6 +361,7 @@ class ChartRenderer extends React.Component {
             noResults={noResultsComponent}
             postTransformProps={postTransformProps}
             emitCrossFilters={emitCrossFilters}
+            legendState={this.state.legendState}
             {...drillToDetailProps}
           />
         </div>

@@ -27,9 +27,7 @@ These features are considered **unfinished** and should only be used on developm
 
 [//]: # "PLEASE KEEP THE LIST SORTED ALPHABETICALLY"
 
-- DRILL_BY
 - ENABLE_ADVANCED_DATA_TYPES
-- ENABLE_TEMPLATE_REMOVE_FILTERS
 - KV_STORE
 - PRESTO_EXPAND_DATA
 - SHARE_QUERIES_VIA_KV_STORE
@@ -54,10 +52,10 @@ These features are **finished** but currently being tested. They are usable, but
 - GENERIC_CHART_AXES
 - GLOBAL_ASYNC_QUERIES [(docs)](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries)
 - HORIZONTAL_FILTER_BAR
+- PLAYWRIGHT_REPORTS_AND_THUMBNAILS
 - RLS_IN_SQLLAB
 - SSH_TUNNELING [(docs)](https://superset.apache.org/docs/installation/setup-ssh-tunneling)
 - USE_ANALAGOUS_COLORS
-- VERSIONED_EXPORT
 
 ## Stable
 
@@ -74,8 +72,6 @@ These features flags are **safe for production**. They have been tested and will
 - DRUID_JOINS
 - EMBEDDABLE_CHARTS
 - EMBEDDED_SUPERSET
-- ENABLE_DND_WITH_CLICK_UX
-- ENABLE_EXPLORE_DRAG_AND_DROP
 - ENABLE_TEMPLATE_PROCESSING
 - ESCAPE_MARKDOWN_HTML
 - LISTVIEWS_DEFAULT_CARD_VIEW
@@ -96,6 +92,9 @@ These features flags currently default to True and **will be removed in a future
 - DASHBOARD_NATIVE_FILTERS
 - DASHBOARD_NATIVE_FILTERS_SET
 - DISABLE_DATASET_SOURCE_EDIT
+- ENABLE_EXPLORE_DRAG_AND_DROP
 - ENABLE_EXPLORE_JSON_CSRF_PROTECTION
+- ENABLE_TEMPLATE_REMOVE_FILTERS
 - GENERIC_CHART_AXES
 - REMOVE_SLICE_LEVEL_LABEL_COLORS
+- VERSIONED_EXPORT

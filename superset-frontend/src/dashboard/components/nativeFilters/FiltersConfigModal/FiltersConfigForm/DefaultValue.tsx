@@ -53,7 +53,7 @@ const DefaultValue: FC<DefaultValueProps> = ({
   formData,
   enableNoResults,
 }) => {
-  const formFilter = (form.getFieldValue('filters') || {})[filterId];
+  const formFilter = form.getFieldValue('filters')?.[filterId];
   const queriesData = formFilter?.defaultValueQueriesData;
   const loading = hasDataset && queriesData === null;
   const value = formFilter?.defaultDataMask?.filterState?.value;

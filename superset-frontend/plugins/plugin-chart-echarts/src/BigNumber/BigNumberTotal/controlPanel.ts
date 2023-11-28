@@ -62,6 +62,7 @@ export default {
         [headerFontSize],
         [subheaderFontSize],
         ['y_axis_format'],
+        ['currency_format'],
         [
           {
             name: 'time_format',

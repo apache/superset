@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FeatureFlag, styled, SupersetClient, t } from '@superset-ui/core';
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  getExtensionsRegistry,
+  styled,
+  SupersetClient,
+  t,
+} from '@superset-ui/core';
 import React, { useState, useMemo, useEffect } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
@@ -24,7 +31,6 @@ import { useQueryParams, BooleanParam } from 'use-query-params';
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 
 import Loading from 'src/components/Loading';
-import { isFeatureEnabled } from 'src/featureFlags';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler, uploadUserPerms } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -43,6 +49,14 @@ import type { MenuObjectProps } from 'src/types/bootstrapTypes';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
 import { DatabaseObject } from 'src/features/databases/types';
 
+const extensionsRegistry = getExtensionsRegistry();
+const DatabaseDeleteRelatedExtension = extensionsRegistry.get(
+  'database.delete.related',
+);
+const dbConfigExtraExtension = extensionsRegistry.get(
+  'databaseconnection.extraOption',
+);
+
 const PAGE_SIZE = 25;
 
 interface DatabaseDeleteObject extends DatabaseObject {
@@ -60,7 +74,7 @@ const IconCheck = styled(Icons.Check)`
 `;
 
 const IconCancelX = styled(Icons.CancelX)`
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  color: ${({ theme }) => theme.colors.grayscale.light1};
 `;
 
 const Actions = styled.div`
@@ -149,13 +163,19 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         ),
       );
 
-  function handleDatabaseDelete({ id, database_name: dbName }: DatabaseObject) {
+  function handleDatabaseDelete(database: DatabaseObject) {
+    const { id, database_name: dbName } = database;
     SupersetClient.delete({
       endpoint: `/api/v1/database/${id}`,
     }).then(
       () => {
         refreshData();
         addSuccessToast(t('Deleted: %s', dbName));
+
+        // Remove any extension-related data
+        if (dbConfigExtraExtension?.onDelete) {
+          dbConfigExtraExtension.onDelete(database);
+        }
 
         // Delete user-selected db from local storage
         setItem(LocalStorageKeys.db, null);
@@ -512,13 +532,24 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       />
       {databaseCurrentlyDeleting && (
         <DeleteModal
-          description={t(
-            'The database %s is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects.',
-            databaseCurrentlyDeleting.database_name,
-            databaseCurrentlyDeleting.chart_count,
-            databaseCurrentlyDeleting.dashboard_count,
-            databaseCurrentlyDeleting.sqllab_tab_count,
-          )}
+          description={
+            <>
+              <p>
+                {t(
+                  'The database %s is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects.',
+                  databaseCurrentlyDeleting.database_name,
+                  databaseCurrentlyDeleting.chart_count,
+                  databaseCurrentlyDeleting.dashboard_count,
+                  databaseCurrentlyDeleting.sqllab_tab_count,
+                )}
+              </p>
+              {DatabaseDeleteRelatedExtension && (
+                <DatabaseDeleteRelatedExtension
+                  database={databaseCurrentlyDeleting}
+                />
+              )}
+            </>
+          }
           onConfirm={() => {
             if (databaseCurrentlyDeleting) {
               handleDatabaseDelete(databaseCurrentlyDeleting);
@@ -539,6 +570,9 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         filters={filters}
         initialSort={initialSort}
         loading={loading}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        refreshData={() => {}}
         pageSize={PAGE_SIZE}
       />
 

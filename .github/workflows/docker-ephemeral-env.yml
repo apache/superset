@@ -22,6 +22,10 @@ jobs:
             secrets.AWS_SECRET_ACCESS_KEY != '' &&
             secrets.AWS_SECRET_ACCESS_KEY != '') || '' }}" ]; then
             echo "has-secrets=1" >> "$GITHUB_OUTPUT"
+            echo "has secrets!"
+          else
+            echo "has-secrets=0" >> "$GITHUB_OUTPUT"
+            echo "no secrets!"
           fi
 
   docker_ephemeral_env:

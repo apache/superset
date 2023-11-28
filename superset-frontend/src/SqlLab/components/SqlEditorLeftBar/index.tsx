@@ -27,9 +27,9 @@ import React, {
 import { useDispatch } from 'react-redux';
 import querystring from 'query-string';
 
+import { Table } from 'src/SqlLab/types';
 import {
   queryEditorSetDb,
-  queryEditorSetFunctionNames,
   addTable,
   removeTables,
   collapseTable,
@@ -46,16 +46,16 @@ import Icons from 'src/components/Icons';
 import { TableSelectorMultiple } from 'src/components/TableSelector';
 import { IconTooltip } from 'src/components/IconTooltip';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
-import { DatabaseObject } from 'src/components/DatabaseSelector';
+import type { DatabaseObject } from 'src/components/DatabaseSelector';
 import { emptyStateComponent } from 'src/components/EmptyState';
 import {
   getItem,
   LocalStorageKeys,
   setItem,
 } from 'src/utils/localStorageHelpers';
-import TableElement, { Table } from '../TableElement';
+import TableElement from '../TableElement';
 
-interface ExtendedTable extends Table {
+export interface ExtendedTable extends Table {
   expanded: boolean;
 }
 
@@ -63,7 +63,7 @@ interface SqlEditorLeftBarProps {
   queryEditorId: string;
   height?: number;
   tables?: ExtendedTable[];
-  database: DatabaseObject;
+  database?: DatabaseObject;
   setEmptyState: Dispatch<SetStateAction<boolean>>;
 }
 
@@ -85,7 +85,9 @@ const collapseStyles = (theme: SupersetTheme) => css`
     padding: 0px ${theme.gridUnit * 4}px 0px 0px !important;
   }
   .ant-collapse-arrow {
-    top: ${theme.gridUnit * 2}px !important;
+    padding: 0 !important;
+    bottom: ${theme.gridUnit}px !important;
+    right: ${theme.gridUnit * 4}px !important;
     color: ${theme.colors.primary.dark1} !important;
     &:hover {
       color: ${theme.colors.primary.dark2} !important;
@@ -132,7 +134,9 @@ const SqlEditorLeftBar = ({
     if (bool && userSelected) {
       setUserSelected(userSelected);
       setItem(LocalStorageKeys.db, null);
-    } else setUserSelected(database);
+    } else if (database) {
+      setUserSelected(database);
+    }
   }, [database]);
 
   const onEmptyResults = (searchText?: string) => {
@@ -142,7 +146,6 @@ const SqlEditorLeftBar = ({
   const onDbChange = ({ id: dbId }: { id: number }) => {
     setEmptyState(false);
     dispatch(queryEditorSetDb(queryEditor, dbId));
-    dispatch(queryEditorSetFunctionNames(queryEditor, dbId));
   };
 
   const selectedTableNames = useMemo(
@@ -166,9 +169,9 @@ const SqlEditorLeftBar = ({
       return true;
     });
 
-    tablesToAdd.forEach(tableName =>
-      dispatch(addTable(queryEditor, database, tableName, schemaName)),
-    );
+    tablesToAdd.forEach(tableName => {
+      dispatch(addTable(queryEditor, tableName, schemaName));
+    });
 
     dispatch(removeTables(currentTables));
   };

@@ -15,11 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 """A collection of ORM sqlalchemy models for SQL Lab"""
+import builtins
 import inspect
 import logging
 import re
+from collections.abc import Hashable
 from datetime import datetime
-from typing import Any, Dict, Hashable, List, Optional, Type, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING
 
 import simplejson as json
 import sqlalchemy as sqla
@@ -131,9 +133,8 @@ class Query(
     def get_template_processor(self, **kwargs: Any) -> BaseTemplateProcessor:
         return get_template_processor(query=self, database=self.database, **kwargs)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
-            "changedOn": self.changed_on,
             "changed_on": self.changed_on.isoformat(),
             "dbId": self.database_id,
             "db": self.database.database_name if self.database else None,
@@ -181,34 +182,33 @@ class Query(
         return self.user.username
 
     @property
-    def sql_tables(self) -> List[Table]:
+    def sql_tables(self) -> list[Table]:
         return list(ParsedQuery(self.sql).tables)
 
     @property
-    def columns(self) -> List["TableColumn"]:
+    def columns(self) -> list["TableColumn"]:
         from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
             TableColumn,
         )
 
-        columns = []
-        for col in self.extra.get("columns", []):
-            columns.append(
-                TableColumn(
-                    column_name=col["name"],
-                    type=col["type"],
-                    is_dttm=col["is_dttm"],
-                    groupby=True,
-                    filterable=True,
-                )
+        return [
+            TableColumn(
+                column_name=col["column_name"],
+                database=self.database,
+                is_dttm=col["is_dttm"],
+                filterable=True,
+                groupby=True,
+                type=col["type"],
             )
-        return columns
+            for col in self.extra.get("columns", [])
+        ]
 
     @property
-    def db_extra(self) -> Optional[Dict[str, Any]]:
+    def db_extra(self) -> Optional[dict[str, Any]]:
         return None
 
     @property
-    def data(self) -> Dict[str, Any]:
+    def data(self) -> dict[str, Any]:
         order_by_choices = []
         for col in self.columns:
             column_name = str(col.column_name or "")
@@ -247,11 +247,13 @@ class Query(
         security_manager.raise_for_access(query=self)
 
     @property
-    def db_engine_spec(self) -> Type["BaseEngineSpec"]:
+    def db_engine_spec(
+        self,
+    ) -> builtins.type["BaseEngineSpec"]:  # pylint: disable=unsubscriptable-object
         return self.database.db_engine_spec
 
     @property
-    def owners_data(self) -> List[Dict[str, Any]]:
+    def owners_data(self) -> list[dict[str, Any]]:
         return []
 
     @property
@@ -267,7 +269,7 @@ class Query(
         return 0
 
     @property
-    def column_names(self) -> List[Any]:
+    def column_names(self) -> list[Any]:
         return [col.column_name for col in self.columns]
 
     @property
@@ -282,7 +284,7 @@ class Query(
         return None
 
     @property
-    def dttm_cols(self) -> List[Any]:
+    def dttm_cols(self) -> list[Any]:
         return [col.column_name for col in self.columns if col.is_dttm]
 
     @property
@@ -297,14 +299,13 @@ class Query(
     def default_endpoint(self) -> str:
         return ""
 
-    @staticmethod
-    def get_extra_cache_keys(query_obj: Dict[str, Any]) -> List[Hashable]:
+    def get_extra_cache_keys(self, query_obj: dict[str, Any]) -> list[Hashable]:
         return []
 
     @property
     def tracking_url(self) -> Optional[str]:
         """
-        Transfrom tracking url at run time because the exact URL may depends
+        Transform tracking url at run time because the exact URL may depend
         on query properties such as execution and finish time.
         """
         transform = current_app.config.get("TRACKING_URL_TRANSFORMER")
@@ -322,7 +323,7 @@ class Query(
     def tracking_url(self, value: str) -> None:
         self.tracking_url_raw = value
 
-    def get_column(self, column_name: Optional[str]) -> Optional[Dict[str, Any]]:
+    def get_column(self, column_name: Optional[str]) -> Optional[dict[str, Any]]:
         if not column_name:
             return None
         for col in self.columns:
@@ -381,6 +382,7 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     tags = relationship(
         "Tag",
         secondary="tagged_object",
+        overlaps="tags",
         primaryjoin="and_(SavedQuery.id == TaggedObject.object_id)",
         secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
         "TaggedObject.object_type == 'query')",
@@ -397,7 +399,7 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     def __repr__(self) -> str:
         return str(self.label)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
         }
@@ -406,7 +408,7 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     def pop_tab_link(self) -> Markup:
         return Markup(
             f"""
-            <a href="/superset/sqllab?savedQueryId={self.id}">
+            <a href="/sqllab?savedQueryId={self.id}">
                 <i class="fa fa-link"></i>
             </a>
         """
@@ -421,10 +423,10 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
         return self.database.sqlalchemy_uri
 
     def url(self) -> str:
-        return "/superset/sqllab?savedQueryId={0}".format(self.id)
+        return f"/sqllab?savedQueryId={self.id}"
 
     @property
-    def sql_tables(self) -> List[Table]:
+    def sql_tables(self) -> list[Table]:
         return list(ParsedQuery(self.sql).tables)
 
     @property
@@ -483,7 +485,7 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
     )
     saved_query = relationship("SavedQuery", foreign_keys=[saved_query_id])
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "user_id": self.user_id,
@@ -499,6 +501,7 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
             "template_params": self.template_params,
             "hide_left_bar": self.hide_left_bar,
             "saved_query": self.saved_query.to_dict() if self.saved_query else None,
+            "extra_json": self.extra,
         }
 
 
@@ -520,7 +523,7 @@ class TableSchema(Model, AuditMixinNullable, ExtraJSONMixin):
 
     expanded = Column(Boolean, default=False)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         try:
             description = json.loads(self.description)
         except json.JSONDecodeError:

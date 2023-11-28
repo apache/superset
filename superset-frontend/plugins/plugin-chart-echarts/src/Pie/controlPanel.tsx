@@ -21,6 +21,7 @@ import { ensureIsInt, t, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
+  ControlSubSectionHeader,
   D3_FORMAT_DOCS,
   D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
   D3_FORMAT_OPTIONS,
@@ -90,7 +91,7 @@ const config: ControlPanelConfig = {
         ],
         ...legendSection,
         // eslint-disable-next-line react/jsx-key
-        [<div className="section-header">{t('Labels')}</div>],
+        [<ControlSubSectionHeader>{t('Labels')}</ControlSubSectionHeader>],
         [
           {
             name: 'label_type',
@@ -126,6 +127,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['currency_format'],
         [
           {
             name: 'date_format',
@@ -195,7 +197,7 @@ const config: ControlPanelConfig = {
           },
         ],
         // eslint-disable-next-line react/jsx-key
-        [<div className="section-header">{t('Pie shape')}</div>],
+        [<ControlSubSectionHeader>{t('Pie shape')}</ControlSubSectionHeader>],
         [
           {
             name: 'outerRadius',

@@ -24,31 +24,33 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
 
-from superset import app
 from superset.commands.exceptions import (
     DatasourceNotFoundValidationError,
     RolesNotFoundValidationError,
 )
+from superset.commands.security.create import CreateRLSRuleCommand
+from superset.commands.security.delete import DeleteRLSRuleCommand
+from superset.commands.security.exceptions import RLSRuleNotFoundError
+from superset.commands.security.update import UpdateRLSRuleCommand
 from superset.connectors.sqla.models import RowLevelSecurityFilter
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.dao.exceptions import DAOCreateFailedError, DAOUpdateFailedError
+from superset.daos.exceptions import DAOCreateFailedError, DAOUpdateFailedError
 from superset.extensions import event_logger
-from superset.row_level_security.commands.bulk_delete import BulkDeleteRLSRuleCommand
-from superset.row_level_security.commands.create import CreateRLSRuleCommand
-from superset.row_level_security.commands.exceptions import RLSRuleNotFoundError
-from superset.row_level_security.commands.update import UpdateRLSRuleCommand
 from superset.row_level_security.schemas import (
     get_delete_ids_schema,
+    openapi_spec_methods_override,
     RLSListSchema,
     RLSPostSchema,
     RLSPutSchema,
     RLSShowSchema,
 )
+from superset.views.base import DatasourceFilter
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     requires_json,
     statsd_metrics,
 )
+from superset.views.filters import BaseFilterRelatedRoles
 
 logger = logging.getLogger(__name__)
 
@@ -122,9 +124,15 @@ class RLSRestApi(BaseSupersetModelRestApi):
     edit_model_schema = RLSPutSchema()
 
     allowed_rel_fields = {"tables", "roles"}
-    base_related_field_filters = app.config["RLS_BASE_RELATED_FIELD_FILTERS"]
+    base_related_field_filters = {
+        "tables": [["id", DatasourceFilter, lambda: []]],
+        "roles": [["id", BaseFilterRelatedRoles, lambda: []]],
+    }
 
-    @expose("/", methods=["POST"])
+    openapi_spec_methods = openapi_spec_methods_override
+    """ Overrides GET methods OpenApi descriptions """
+
+    @expose("/", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
@@ -134,11 +142,10 @@ class RLSRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def post(self) -> Response:
-        """Creates a new RLS rule
+        """Create a new RLS rule.
         ---
         post:
-          description: >-
-            Create a new RLS Rule
+          summary: Create a new RLS rule
           requestBody:
             description: RLS schema
             required: true
@@ -202,7 +209,7 @@ class RLSRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/<int:pk>", methods=["PUT"])
+    @expose("/<int:pk>", methods=("PUT",))
     @protect()
     @safe
     @statsd_metrics
@@ -212,11 +219,10 @@ class RLSRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def put(self, pk: int) -> Response:
-        """Updates an RLS Rule
+        """Update an RLS rule.
         ---
         put:
-          description: >-
-            Updates an RLS Rule
+          summary: Update an RLS rule
           parameters:
           - in: path
             schema:
@@ -291,7 +297,7 @@ class RLSRestApi(BaseSupersetModelRestApi):
         except RLSRuleNotFoundError as ex:
             return self.response_404()
 
-    @expose("/", methods=["DELETE"])
+    @expose("/", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics
@@ -301,11 +307,10 @@ class RLSRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
-        """Delete bulk RLS rules
+        """Bulk delete RLS rules.
         ---
         delete:
-          description: >-
-            Deletes multiple RLS rules in a bulk operation.
+          summary: Bulk delete RLS rules
           parameters:
           - in: query
             name: q
@@ -336,7 +341,7 @@ class RLSRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteRLSRuleCommand(item_ids).run()
+            DeleteRLSRuleCommand(item_ids).run()
             return self.response(
                 200,
                 message=ngettext(

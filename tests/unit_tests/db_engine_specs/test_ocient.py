@@ -17,15 +17,23 @@
 
 # pylint: disable=import-outside-toplevel
 
-from datetime import datetime
-from typing import Dict, List, Tuple
+from typing import Any, Callable
 
 import pytest
 
+from superset.db_engine_specs.ocient import (
+    _point_list_to_wkt,
+    _sanitized_ocient_type_codes,
+)
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 
+
+def ocient_is_installed() -> bool:
+    return len(_sanitized_ocient_type_codes) > 0
+
+
 # (msg,expected)
-MARSHALED_OCIENT_ERRORS: List[Tuple[str, SupersetError]] = [
+MARSHALED_OCIENT_ERRORS: list[tuple[str, SupersetError]] = [
     (
         "The referenced user does not exist (User 'mj' not found)",
         SupersetError(
@@ -213,3 +221,188 @@ def test_connection_errors(msg: str, expected: SupersetError) -> None:
 
     result = OcientEngineSpec.extract_errors(Exception(msg))
     assert result == [expected]
+
+
+def _generate_gis_type_sanitization_test_cases() -> (
+    list[tuple[str, int, Any, dict[str, Any]]]
+):
+    if not ocient_is_installed():
+        return []
+
+    from pyocient import _STLinestring, _STPoint, _STPolygon, TypeCodes
+
+    return [
+        (
+            "empty_point",
+            TypeCodes.ST_POINT,
+            _STPoint(long=float("inf"), lat=float("inf")),
+            {
+                "geometry": None,
+                "properties": {},
+                "type": "Feature",
+            },
+        ),
+        (
+            "valid_point",
+            TypeCodes.ST_POINT,
+            _STPoint(long=float(33), lat=float(45)),
+            {
+                "geometry": {
+                    "coordinates": [33.0, 45.0],
+                    "type": "Point",
+                },
+                "properties": {},
+                "type": "Feature",
+            },
+        ),
+        (
+            "empty_line",
+            TypeCodes.ST_LINESTRING,
+            _STLinestring([]),
+            {
+                "geometry": None,
+                "properties": {},
+                "type": "Feature",
+            },
+        ),
+        (
+            "valid_line",
+            TypeCodes.ST_LINESTRING,
+            _STLinestring(
+                [_STPoint(long=t[0], lat=t[1]) for t in [(1, 0), (1, 1), (1, 2)]]
+            ),
+            {
+                "geometry": {
+                    "coordinates": [[1, 0], [1, 1], [1, 2]],
+                    "type": "LineString",
+                },
+                "properties": {},
+                "type": "Feature",
+            },
+        ),
+        (
+            "downcast_line_to_point",
+            TypeCodes.ST_LINESTRING,
+            _STLinestring([_STPoint(long=t[0], lat=t[1]) for t in [(1, 0)]]),
+            {
+                "geometry": {
+                    "coordinates": [1, 0],
+                    "type": "Point",
+                },
+                "properties": {},
+                "type": "Feature",
+            },
+        ),
+        (
+            "empty_polygon",
+            TypeCodes.ST_POLYGON,
+            _STPolygon(exterior=[], holes=[]),
+            {
+                "geometry": None,
+                "properties": {},
+                "type": "Feature",
+            },
+        ),
+        (
+            "valid_polygon_no_holes",
+            TypeCodes.ST_POLYGON,
+            _STPolygon(
+                exterior=[
+                    _STPoint(long=t[0], lat=t[1]) for t in [(1, 0), (1, 1), (1, 0)]
+                ],
+                holes=[],
+            ),
+            {
+                "geometry": {
+                    "coordinates": [[[1, 0], [1, 1], [1, 0]]],
+                    "type": "Polygon",
+                },
+                "properties": {},
+                "type": "Feature",
+            },
+        ),
+        (
+            "valid_polygon_with_holes",
+            TypeCodes.ST_POLYGON,
+            _STPolygon(
+                exterior=[
+                    _STPoint(long=t[0], lat=t[1]) for t in [(1, 0), (1, 1), (1, 0)]
+                ],
+                holes=[
+                    [_STPoint(long=t[0], lat=t[1]) for t in [(2, 0), (2, 1), (2, 0)]],
+                    [_STPoint(long=t[0], lat=t[1]) for t in [(3, 0), (3, 1), (3, 0)]],
+                ],
+            ),
+            {
+                "geometry": {
+                    "coordinates": [
+                        [[1, 0], [1, 1], [1, 0]],
+                        [[2, 0], [2, 1], [2, 0]],
+                        [[3, 0], [3, 1], [3, 0]],
+                    ],
+                    "type": "Polygon",
+                },
+                "properties": {},
+                "type": "Feature",
+            },
+        ),
+        (
+            "downcast_poly_to_point",
+            TypeCodes.ST_POLYGON,
+            _STPolygon(
+                exterior=[_STPoint(long=t[0], lat=t[1]) for t in [(1, 0)]],
+                holes=[],
+            ),
+            {
+                "geometry": {
+                    "coordinates": [1, 0],
+                    "type": "Point",
+                },
+                "properties": {},
+                "type": "Feature",
+            },
+        ),
+        (
+            "downcast_poly_to_line",
+            TypeCodes.ST_POLYGON,
+            _STPolygon(
+                exterior=[_STPoint(long=t[0], lat=t[1]) for t in [(1, 0), (0, 1)]],
+                holes=[],
+            ),
+            {
+                "geometry": {
+                    "coordinates": [[1, 0], [0, 1]],
+                    "type": "LineString",
+                },
+                "properties": {},
+                "type": "Feature",
+            },
+        ),
+    ]
+
+
+@pytest.mark.skipif(not ocient_is_installed(), reason="requires ocient dependencies")
+@pytest.mark.parametrize(
+    "name,type_code,geo,expected", _generate_gis_type_sanitization_test_cases()
+)
+def test_gis_type_sanitization(
+    name: str, type_code: int, geo: Any, expected: Any
+) -> None:
+    # Hack to silence erroneous mypy errors
+    def die(any: Any) -> Callable[[Any], Any]:
+        pytest.fail(f"no sanitizer for type code {type_code}")
+        raise AssertionError()
+
+    type_sanitizer = _sanitized_ocient_type_codes.get(type_code, die)
+    actual = type_sanitizer(geo)
+    assert expected == actual
+
+
+@pytest.mark.skipif(not ocient_is_installed(), reason="requires ocient dependencies")
+def test_point_list_to_wkt() -> None:
+    from pyocient import _STPoint
+
+    wkt = _point_list_to_wkt(
+        [_STPoint(long=t[0], lat=t[1]) for t in [(2, 0), (2, 1), (2, 0)]]
+    )
+    assert wkt == "LINESTRING(2 0, 2 1, 2 0)"

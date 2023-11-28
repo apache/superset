@@ -18,8 +18,6 @@
  */
 import {
   t,
-  ChartMetadata,
-  ChartPlugin,
   AnnotationType,
   Behavior,
   hasGenericChartAxes,
@@ -33,6 +31,7 @@ import {
   EchartsTimeseriesFormData,
 } from '../types';
 import example1 from './images/Area1.png';
+import { EchartsChartPlugin } from '../../types';
 
 const areaTransformProps = (chartProps: EchartsTimeseriesChartProps) =>
   transformProps({
@@ -40,7 +39,7 @@ const areaTransformProps = (chartProps: EchartsTimeseriesChartProps) =>
     formData: { ...chartProps.formData, area: true },
   });
 
-export default class EchartsAreaChartPlugin extends ChartPlugin<
+export default class EchartsAreaChartPlugin extends EchartsChartPlugin<
   EchartsTimeseriesFormData,
   EchartsTimeseriesChartProps
 > {
@@ -49,7 +48,7 @@ export default class EchartsAreaChartPlugin extends ChartPlugin<
       buildQuery,
       controlPanel,
       loadChart: () => import('../EchartsTimeseries'),
-      metadata: new ChartMetadata({
+      metadata: {
         behaviors: [
           Behavior.INTERACTIVE_CHART,
           Behavior.DRILL_TO_DETAIL,
@@ -86,7 +85,7 @@ export default class EchartsAreaChartPlugin extends ChartPlugin<
           t('Popular'),
         ],
         thumbnail,
-      }),
+      },
       transformProps: areaTransformProps,
     });
   }

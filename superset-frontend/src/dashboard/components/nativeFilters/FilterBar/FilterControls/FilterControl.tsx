@@ -32,6 +32,7 @@ import { FilterCard } from '../../FilterCard';
 import { FilterBarScrollContext } from '../Vertical';
 import { FilterControlProps } from './types';
 import { FilterCardPlacement } from '../../FilterCard/types';
+import { useIsFilterInScope } from '../../state';
 
 const StyledIcon = styled.div`
   position: absolute;
@@ -42,13 +43,12 @@ const VerticalFilterControlTitle = styled.h4`
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   color: ${({ theme }) => theme.colors.grayscale.dark1};
   margin: 0;
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
 `;
 
 const HorizontalFilterControlTitle = styled(VerticalFilterControlTitle)`
   font-weight: ${({ theme }) => theme.typography.weights.normal};
   color: ${({ theme }) => theme.colors.grayscale.base};
-  max-width: ${({ theme }) => theme.gridUnit * 15}px;
   ${truncationCSS};
 `;
 
@@ -111,6 +111,7 @@ const HorizontalOverflowFilterControlContainer = styled(
 
 const VerticalFormItem = styled(StyledFormItem)`
   .ant-form-item-label {
+    overflow: visible;
     label.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
       &::after {
         display: none;
@@ -126,6 +127,7 @@ const HorizontalFormItem = styled(StyledFormItem)`
   }
 
   .ant-form-item-label {
+    overflow: visible;
     padding-bottom: 0;
     margin-right: ${({ theme }) => theme.gridUnit * 2}px;
     label.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
@@ -199,11 +201,13 @@ const DescriptionToolTip = ({ description }: { description: string }) => (
       placement="right"
       overlayInnerStyle={{
         display: '-webkit-box',
-        overflow: 'hidden',
-        WebkitLineClamp: 20,
+        WebkitLineClamp: 10,
         WebkitBoxOrient: 'vertical',
+        overflow: 'hidden',
         textOverflow: 'ellipsis',
+        whiteSpace: 'normal',
       }}
+      getPopupContainer={trigger => trigger.parentElement as HTMLElement}
     >
       <i
         className="fa fa-info-circle text-muted"
@@ -232,10 +236,11 @@ const FilterControl = ({
 
   const { name = '<undefined>' } = filter;
 
-  const isMissingRequiredValue = checkIsMissingRequiredValue(
-    filter,
-    filter.dataMask?.filterState,
-  );
+  const isFilterInScope = useIsFilterInScope();
+  const isMissingRequiredValue =
+    isFilterInScope(filter) &&
+    checkIsMissingRequiredValue(filter, filter.dataMask?.filterState);
+  const validateStatus = isMissingRequiredValue ? 'error' : undefined;
   const isRequired = !!filter.controlValues?.enableEmptyFilter;
 
   const {
@@ -292,6 +297,7 @@ const FilterControl = ({
           setFilterActive={setIsFilterActive}
           orientation={orientation}
           overflow={overflow}
+          validateStatus={validateStatus}
         />
       </InPortal>
       <FilterControlContainer
@@ -310,7 +316,7 @@ const FilterControl = ({
             <FormItem
               label={label}
               required={filter?.controlValues?.enableEmptyFilter}
-              validateStatus={isMissingRequiredValue ? 'error' : undefined}
+              validateStatus={validateStatus}
             >
               <OutPortal node={portalNode} />
             </FormItem>

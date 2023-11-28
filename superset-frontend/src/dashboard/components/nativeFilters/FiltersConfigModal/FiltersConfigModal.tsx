@@ -32,13 +32,17 @@ import {
   styled,
   SLOW_DEBOUNCE,
   t,
+  css,
+  useTheme,
 } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import { AntdForm } from 'src/components';
+import Icons from 'src/components/Icons';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { StyledModal } from 'src/components/Modal';
 import { testWithId } from 'src/utils/testUtils';
 import { updateCascadeParentIds } from 'src/dashboard/actions/nativeFilters';
+import useEffectEvent from 'src/hooks/useEffectEvent';
 import { useFilterConfigMap, useFilterConfiguration } from '../state';
 import FilterConfigurePane from './FilterConfigurePane';
 import FiltersConfigForm, {
@@ -58,17 +62,41 @@ import {
 } from './utils';
 import DividerConfigForm from './DividerConfigForm';
 
-const StyledModalWrapper = styled(StyledModal)`
-  min-width: 700px;
+const MODAL_MARGIN = 16;
+const MIN_WIDTH = 880;
+
+const StyledModalWrapper = styled(StyledModal)<{ expanded: boolean }>`
+  min-width: ${MIN_WIDTH}px;
+  width: ${({ expanded }) => (expanded ? '100%' : MIN_WIDTH)} !important;
+
+  @media (max-width: ${MIN_WIDTH + MODAL_MARGIN * 2}px) {
+    width: 100% !important;
+    min-width: auto;
+  }
+
   .ant-modal-body {
     padding: 0px;
   }
+
+  ${({ expanded }) =>
+    expanded &&
+    css`
+      height: 100%;
+
+      .ant-modal-body {
+        flex: 1 1 auto;
+      }
+      .ant-modal-content {
+        height: 100%;
+      }
+    `}
 `;
 
-export const StyledModalBody = styled.div`
+export const StyledModalBody = styled.div<{ expanded: boolean }>`
   display: flex;
-  height: 700px;
+  height: ${({ expanded }) => (expanded ? '100%' : '700px')};
   flex-direction: row;
+  flex: 1;
   .filters-list {
     width: ${({ theme }) => theme.gridUnit * 50}px;
     overflow: auto;
@@ -77,6 +105,10 @@ export const StyledModalBody = styled.div`
 
 export const StyledForm = styled(AntdForm)`
   width: 100%;
+`;
+
+export const StyledExpandButtonWrapper = styled.div`
+  margin-left: ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
 export const FILTERS_CONFIG_MODAL_TEST_ID = 'filters-config-modal';
@@ -119,6 +151,7 @@ function FiltersConfigModal({
   onCancel,
 }: FiltersConfigModalProps) {
   const dispatch = useDispatch();
+  const theme = useTheme();
 
   const [form] = AntdForm.useForm<NativeFiltersForm>();
 
@@ -306,21 +339,25 @@ function FiltersConfigModal({
   );
 
   const cleanDeletedParents = (values: NativeFiltersForm | null) => {
-    Object.keys(filterConfigMap).forEach(key => {
-      const filter = filterConfigMap[key];
-      if (!('cascadeParentIds' in filter)) {
-        return;
-      }
-      const { cascadeParentIds } = filter;
-      if (cascadeParentIds) {
-        dispatch(
-          updateCascadeParentIds(
-            key,
-            cascadeParentIds.filter(id => canBeUsedAsDependency(id)),
-          ),
+    const updatedFilterConfigMap = Object.keys(filterConfigMap).reduce(
+      (acc, key) => {
+        const filter = filterConfigMap[key];
+        const cascadeParentIds = filter.cascadeParentIds?.filter(id =>
+          canBeUsedAsDependency(id),
         );
-      }
-    });
+        if (cascadeParentIds) {
+          dispatch(updateCascadeParentIds(key, cascadeParentIds));
+        }
+        return {
+          ...acc,
+          [key]: {
+            ...filter,
+            cascadeParentIds,
+          },
+        };
+      },
+      {},
+    );
 
     const filters = values?.filters;
     if (filters) {
@@ -337,6 +374,7 @@ function FiltersConfigModal({
         }
       });
     }
+    return updatedFilterConfigMap;
   };
 
   const handleErroredFilters = useCallback(() => {
@@ -375,9 +413,9 @@ function FiltersConfigModal({
     handleErroredFilters();
 
     if (values) {
-      cleanDeletedParents(values);
+      const updatedFilterConfigMap = cleanDeletedParents(values);
       createHandleSave(
-        filterConfigMap,
+        updatedFilterConfigMap,
         orderedFilters,
         removedFilters,
         onSave,
@@ -476,6 +514,14 @@ function FiltersConfigModal({
     },
     [buildDependencyMap, canBeUsedAsDependency, orderedFilters],
   );
+
+  const [expanded, setExpanded] = useState(false);
+  const toggleExpand = useEffectEvent(() => {
+    setExpanded(!expanded);
+  });
+  const ToggleIcon = expanded
+    ? Icons.FullscreenExitOutlined
+    : Icons.FullscreenOutlined;
 
   const handleValuesChange = useMemo(
     () =>
@@ -581,25 +627,40 @@ function FiltersConfigModal({
       visible={isOpen}
       maskClosable={false}
       title={t('Add and edit filters')}
-      width="50%"
+      expanded={expanded}
       destroyOnClose
       onCancel={handleCancel}
       onOk={handleSave}
       centered
       data-test="filter-modal"
       footer={
-        <Footer
-          onDismiss={() => setSaveAlertVisible(false)}
-          onCancel={handleCancel}
-          handleSave={handleSave}
-          canSave={!erroredFilters.length}
-          saveAlertVisible={saveAlertVisible}
-          onConfirmCancel={handleConfirmCancel}
-        />
+        <div
+          css={css`
+            display: flex;
+            justify-content: flex-end;
+            align-items: flex-end;
+          `}
+        >
+          <Footer
+            onDismiss={() => setSaveAlertVisible(false)}
+            onCancel={handleCancel}
+            handleSave={handleSave}
+            canSave={!erroredFilters.length}
+            saveAlertVisible={saveAlertVisible}
+            onConfirmCancel={handleConfirmCancel}
+          />
+          <StyledExpandButtonWrapper>
+            <ToggleIcon
+              iconSize="l"
+              iconColor={theme.colors.grayscale.dark2}
+              onClick={toggleExpand}
+            />
+          </StyledExpandButtonWrapper>
+        </div>
       }
     >
       <ErrorBoundary>
-        <StyledModalBody>
+        <StyledModalBody expanded={expanded}>
           <StyledForm
             form={form}
             onValuesChange={handleValuesChange}

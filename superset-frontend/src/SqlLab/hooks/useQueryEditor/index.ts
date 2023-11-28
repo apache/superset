@@ -29,7 +29,7 @@ export default function useQueryEditor<T extends keyof QueryEditor>(
       pick(
         {
           ...queryEditors.find(({ id }) => id === sqlEditorId),
-          ...(sqlEditorId === unsavedQueryEditor.id && unsavedQueryEditor),
+          ...(sqlEditorId === unsavedQueryEditor?.id && unsavedQueryEditor),
         },
         ['id'].concat(attributes),
       ) as Pick<QueryEditor, T | 'id'>,

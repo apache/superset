@@ -300,14 +300,12 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       x_axis !== previousXAxis &&
       isTemporalColumn(x_axis, props.exploreState.datasource)
     ) {
-      const noFilter =
-        !adhoc_filters ||
-        !adhoc_filters.find(
-          filter =>
-            filter.expressionType === 'SIMPLE' &&
-            filter.operator === Operators.TEMPORAL_RANGE &&
-            filter.subject === x_axis,
-        );
+      const noFilter = !adhoc_filters?.find(
+        filter =>
+          filter.expressionType === 'SIMPLE' &&
+          filter.operator === Operators.TEMPORAL_RANGE &&
+          filter.subject === x_axis,
+      );
       if (noFilter) {
         confirm({
           title: t('The X-axis is not on the filters list'),

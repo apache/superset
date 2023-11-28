@@ -80,6 +80,7 @@ function QueryAutoRefresh({
       SupersetClient.get({
         endpoint: `/api/v1/query/updated_since?q=${params}`,
         timeout: QUERY_TIMEOUT_LIMIT,
+        parseMethod: 'json-bigint',
       })
         .then(({ json }) => {
           if (json) {
@@ -92,7 +93,7 @@ function QueryAutoRefresh({
                 }, {}) ?? {};
               dispatch(refreshQueries(queries));
             } else {
-              dispatch(clearInactiveQueries());
+              dispatch(clearInactiveQueries(QUERY_UPDATE_FREQ));
             }
           }
         })
@@ -102,7 +103,7 @@ function QueryAutoRefresh({
         });
     }
     if (!cleanInactiveRequestRef.current && !shouldRequestChecking) {
-      dispatch(clearInactiveQueries());
+      dispatch(clearInactiveQueries(QUERY_UPDATE_FREQ));
       cleanInactiveRequestRef.current = true;
     }
   };

@@ -21,17 +21,15 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ template "superset.name" . }}-init-db
+  name: {{ template "superset.fullname" . }}-init-db
   namespace: {{ .Release.Namespace }}
-  {{- if .Values.init.helmHook }}
-  annotations:
-    "helm.sh/hook": post-install,post-upgrade
-    "helm.sh/hook-delete-policy": "before-hook-creation"
+  {{- if .Values.init.jobAnnotations }}
+  annotations: {{- toYaml .Values.init.jobAnnotations | nindent 4 }}
   {{- end }}
 spec:
   template:
     metadata:
-      name: {{ template "superset.name" . }}-init-db
+      name: {{ template "superset.fullname" . }}-init-db
       {{- if .Values.init.podAnnotations }}
       annotations: {{- toYaml .Values.init.podAnnotations | nindent 8 }}
       {{- end }}
@@ -85,6 +83,9 @@ spec:
           {{- end }}
         command: {{  tpl (toJson .Values.init.command) . }}
         resources: {{- toYaml .Values.init.resources | nindent 10 }}
+      {{- if .Values.init.extraContainers }}
+          {{- toYaml .Values.init.extraContainers | nindent 6 }}
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8 }}
       {{- end }}

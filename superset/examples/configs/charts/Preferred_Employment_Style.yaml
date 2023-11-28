@@ -15,35 +15,34 @@
 # specific language governing permissions and limitations
 # under the License.
 slice_name: Preferred Employment Style
-viz_type: treemap
+viz_type: treemap_v2
 params:
   adhoc_filters:
-  - clause: WHERE
-    comparator: '0'
-    expressionType: SIMPLE
-    filterOptionName: filter_s1jzmdwgeg_p3er4w56uy
-    isExtra: false
-    isNew: false
-    operator: ==
-    sqlExpression: null
-    subject: is_software_dev
-  - clause: WHERE
-    comparator: 'NULL'
-    expressionType: SIMPLE
-    filterOptionName: filter_rdlajraxs0f_lgyfv4rvdh
-    isExtra: false
-    isNew: false
-    operator: '!='
-    sqlExpression: null
-    subject: job_pref
+    - clause: WHERE
+      comparator: "0"
+      expressionType: SIMPLE
+      filterOptionName: filter_s1jzmdwgeg_p3er4w56uy
+      isExtra: false
+      isNew: false
+      operator: ==
+      sqlExpression: null
+      subject: is_software_dev
+    - clause: WHERE
+      comparator: "NULL"
+      expressionType: SIMPLE
+      filterOptionName: filter_rdlajraxs0f_lgyfv4rvdh
+      isExtra: false
+      isNew: false
+      operator: "!="
+      sqlExpression: null
+      subject: job_pref
   color_scheme: supersetColors
   datasource: 42__table
   granularity_sqla: time_start
   groupby:
-  - job_pref
+    - job_pref
   label_colors: {}
-  metrics:
-  - count
+  metric: count
   number_format: SMART_NUMBER
   queryFields:
     groupby: groupby
@@ -53,7 +52,7 @@ params:
   time_range: No filter
   treemap_ratio: 1.618033988749895
   url_params: {}
-  viz_type: treemap
+  viz_type: treemap_v2
 cache_timeout: null
 uuid: bff88053-ccc4-92f2-d6f5-de83e950e8cd
 version: 1.0.0

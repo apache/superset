@@ -2,30 +2,27 @@
   "name": "@superset-ui/plugin-chart-table",
   "version": "0.18.25",
   "description": "Superset Chart - Table",
-  "main": "lib/index.js",
-  "module": "esm/index.js",
-  "sideEffects": false,
-  "files": [
-    "esm",
-    "lib"
+  "keywords": [
+    "superset"
   ],
+  "homepage": "https://github.com/apache/superset/tree/master/superset-frontend/plugins/plugin-chart-table#readme",
+  "bugs": {
+    "url": "https://github.com/apache/superset/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/apache/superset.git",
     "directory": "superset-frontend/plugins/plugin-chart-table"
   },
-  "keywords": [
-    "superset"
-  ],
-  "author": "Superset",
   "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://github.com/apache/superset/issues"
-  },
-  "homepage": "https://github.com/apache/superset/tree/master/superset-frontend/plugins/plugin-chart-table#readme",
-  "publishConfig": {
-    "access": "public"
-  },
+  "author": "Superset",
+  "sideEffects": false,
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "files": [
+    "esm",
+    "lib"
+  ],
   "dependencies": {
     "@react-icons/all-files": "^4.1.0",
     "@types/d3-array": "^2.9.0",
@@ -40,15 +37,20 @@
     "regenerator-runtime": "^0.13.7",
     "xss": "^1.0.10"
   },
-  "devDependencies": {
-    "@testing-library/react": "^11.2.0"
-  },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
+    "@testing-library/dom": "^7.29.4",
+    "@testing-library/jest-dom": "^5.11.6",
+    "@testing-library/react": "^11.2.0",
+    "@testing-library/react-hooks": "^5.0.3",
+    "@testing-library/user-event": "^12.7.0",
     "@types/classnames": "*",
     "@types/react": "*",
     "react": "^16.13.1",
     "react-dom": "^16.13.1"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

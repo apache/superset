@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from flask_babel import gettext as _
 from pandas import DataFrame
@@ -30,9 +30,9 @@ from superset.utils.pandas_postprocessing.utils import (
 @validate_column_args("index", "columns")
 def pivot(  # pylint: disable=too-many-arguments
     df: DataFrame,
-    index: List[str],
-    aggregates: Dict[str, Dict[str, Any]],
-    columns: Optional[List[str]] = None,
+    index: list[str],
+    aggregates: dict[str, dict[str, Any]],
+    columns: Optional[list[str]] = None,
     metric_fill_value: Optional[Any] = None,
     column_fill_value: Optional[str] = NULL_STRING,
     drop_missing_columns: Optional[bool] = True,

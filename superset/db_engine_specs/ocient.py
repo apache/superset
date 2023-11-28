@@ -15,26 +15,28 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import contextlib
 import re
 import threading
-from typing import Any, Callable, Dict, List, NamedTuple, Optional, Pattern, Set, Tuple
+from re import Pattern
+from typing import Any, Callable, List, NamedTuple, Optional
 
 from flask_babel import gettext as __
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.orm import Session
 
-# Need to try-catch here because pyocient may not be installed
-try:
+with contextlib.suppress(ImportError, RuntimeError):  # pyocient may not be installed
     # Ensure pyocient inherits Superset's logging level
+    import geojson
     import pyocient
+    from shapely import wkt
 
     from superset import app
 
     superset_log_level = app.config["LOG_LEVEL"]
     pyocient.logger.setLevel(superset_log_level)
-except ImportError as e:
-    pass
 
+from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetErrorType
 from superset.models.core import Database
@@ -84,53 +86,105 @@ def _to_hex(data: bytes) -> str:
     return data.hex()
 
 
-def _polygon_to_json(polygon: Any) -> str:
+def _wkt_to_geo_json(geo_as_wkt: str) -> Any:
     """
-    Converts the _STPolygon object into its JSON representation.
+    Converts pyocient geometry objects to their geoJSON representation.
 
-    :param data: the polygon object
-    :returns: JSON representation of the polygon
+    :param geo_as_wkt: the GIS object in WKT format
+    :returns: the geoJSON encoding of `geo`
     """
-    json_value = f"{str([[p.long, p.lat] for p in polygon.exterior])}"
-    if polygon.holes:
-        for hole in polygon.holes:
-            json_value += f", {str([[p.long, p.lat] for p in hole])}"
-        json_value = f"[{json_value}]"
-    return json_value
+    # Need to try-catch here because these deps may not be installed
+    geo = wkt.loads(geo_as_wkt)
+    return geojson.Feature(geometry=geo, properties={})
 
 
-def _linestring_to_json(linestring: Any) -> str:
+def _point_list_to_wkt(
+    points,  # type: List[pyocient._STPoint]
+) -> str:
     """
-    Converts the _STLinestring object into its JSON representation.
+    Converts the list of pyocient._STPoint elements to a WKT LineString.
 
-    :param data: the linestring object
-    :returns: JSON representation of the linestring
+    :param points: the list of pyocient._STPoint objects
+    :returns: WKT LineString
     """
-    return f"{str([[p.long, p.lat] for p in linestring.points])}"
+    coords = [f"{p.long} {p.lat}" for p in points]
+    return f"LINESTRING({', '.join(coords)})"
 
 
-def _point_to_comma_delimited(point: Any) -> str:
+def _point_to_geo_json(
+    point,  # type: pyocient._STPoint
+) -> Any:
     """
-    Returns the x and y coordinates as a comma delimited string.
+    Converts the pyocient._STPolygon object to the geoJSON format
 
-    :param data: the point object
-    :returns: the x and y coordinates as a comma delimited string
+    :param point: the pyocient._STPoint instance
+    :returns: the geoJSON encoding of this point
     """
-    return f"{point.long}, {point.lat}"
+    wkt_point = str(point)
+    return _wkt_to_geo_json(wkt_point)
+
+
+def _linestring_to_geo_json(
+    linestring,  # type: pyocient._STLinestring
+) -> Any:
+    """
+    Converts the pyocient._STLinestring object to a GIS format
+    compatible with the Superset visualization toolkit (powered
+    by Deck.gl).
+
+    :param linestring: the pyocient._STLinestring instance
+    :returns: the geoJSON of this linestring
+    """
+    if len(linestring.points) == 1:
+        # While technically an invalid linestring object, Ocient
+        # permits ST_LINESTRING containers to contain a single
+        # point. The flexibility allows the database to encode
+        # geometry collections as an array of the highest dimensional
+        # element in the collection (i.e. ST_LINESTRING[] or
+        # ST_POLYGON[]).
+        point = linestring.points[0]
+        return _point_to_geo_json(point)
+
+    wkt_linestring = str(linestring)
+    return _wkt_to_geo_json(wkt_linestring)
+
+
+def _polygon_to_geo_json(
+    polygon,  # type: pyocient._STPolygon
+) -> Any:
+    """
+    Converts the pyocient._STPolygon object to a GIS format
+    compatible with the Superset visualization toolkit (powered
+    by Deck.gl).
+
+    :param polygon: the pyocient._STPolygon instance
+    :returns: the geoJSON encoding of this polygon
+    """
+    if len(polygon.exterior) > 0 and len(polygon.holes) == 0:
+        if len(polygon.exterior) == 1:
+            # The exterior ring contains a single ST_POINT
+            point = polygon.exterior[0]
+            return _point_to_geo_json(point)
+        if polygon.exterior[0] != polygon.exterior[-1]:
+            # The exterior ring contains an open ST_LINESTRING
+            wkt_linestring = _point_list_to_wkt(polygon.exterior)
+            return _wkt_to_geo_json(wkt_linestring)
+    # else
+    # This is a valid ST_POLYGON
+    wkt_polygon = str(polygon)
+    return _wkt_to_geo_json(wkt_polygon)
 
 
 # Sanitization function for column values
 SanitizeFunc = Callable[[Any], Any]
 
+
 # Represents a pair of a column index and the sanitization function
 # to apply to its values.
-PlacedSanitizeFunc = NamedTuple(
-    "PlacedSanitizeFunc",
-    [
-        ("column_index", int),
-        ("sanitize_func", SanitizeFunc),
-    ],
-)
+class PlacedSanitizeFunc(NamedTuple):
+    column_index: int
+    sanitize_func: SanitizeFunc
+
 
 # This map contains functions used to sanitize values for column types
 # that cannot be processed natively by Superset.
@@ -143,19 +197,19 @@ PlacedSanitizeFunc = NamedTuple(
 try:
     from pyocient import TypeCodes
 
-    _sanitized_ocient_type_codes: Dict[int, SanitizeFunc] = {
+    _sanitized_ocient_type_codes: dict[int, SanitizeFunc] = {
         TypeCodes.BINARY: _to_hex,
-        TypeCodes.ST_POINT: _point_to_comma_delimited,
+        TypeCodes.ST_POINT: _point_to_geo_json,
         TypeCodes.IP: str,
         TypeCodes.IPV4: str,
-        TypeCodes.ST_LINESTRING: _linestring_to_json,
-        TypeCodes.ST_POLYGON: _polygon_to_json,
+        TypeCodes.ST_LINESTRING: _linestring_to_geo_json,
+        TypeCodes.ST_POLYGON: _polygon_to_geo_json,
     }
 except ImportError as e:
     _sanitized_ocient_type_codes = {}
 
 
-def _find_columns_to_sanitize(cursor: Any) -> List[PlacedSanitizeFunc]:
+def _find_columns_to_sanitize(cursor: Any) -> list[PlacedSanitizeFunc]:
     """
     Cleans the column value for consumption by Superset.
 
@@ -182,10 +236,10 @@ class OcientEngineSpec(BaseEngineSpec):
     # Store mapping of superset Query id -> Ocient ID
     # These are inserted into the cache when executing the query
     # They are then removed, either upon cancellation or query completion
-    query_id_mapping: Dict[str, str] = dict()
+    query_id_mapping: dict[str, str] = {}
     query_id_mapping_lock = threading.Lock()
 
-    custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
+    custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         CONNECTION_INVALID_USERNAME_REGEX: (
             __('The username "%(username)s" does not exist.'),
             SupersetErrorType.CONNECTION_INVALID_USERNAME_ERROR,
@@ -240,30 +294,28 @@ class OcientEngineSpec(BaseEngineSpec):
     }
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "ROUND({col}, 'SECOND')",
-        "PT1M": "ROUND({col}, 'MINUTE')",
-        "PT1H": "ROUND({col}, 'HOUR')",
-        "P1D": "ROUND({col}, 'DAY')",
-        "P1W": "ROUND({col}, 'WEEK')",
-        "P1M": "ROUND({col}, 'MONTH')",
-        "P0.25Y": "ROUND({col}, 'QUARTER')",
-        "P1Y": "ROUND({col}, 'YEAR')",
+        TimeGrain.SECOND: "ROUND({col}, 'SECOND')",
+        TimeGrain.MINUTE: "ROUND({col}, 'MINUTE')",
+        TimeGrain.HOUR: "ROUND({col}, 'HOUR')",
+        TimeGrain.DAY: "ROUND({col}, 'DAY')",
+        TimeGrain.WEEK: "ROUND({col}, 'WEEK')",
+        TimeGrain.MONTH: "ROUND({col}, 'MONTH')",
+        TimeGrain.QUARTER_YEAR: "ROUND({col}, 'QUARTER')",
+        TimeGrain.YEAR: "ROUND({col}, 'YEAR')",
     }
 
     @classmethod
     def get_table_names(
         cls, database: Database, inspector: Inspector, schema: Optional[str]
-    ) -> Set[str]:
+    ) -> set[str]:
         return inspector.get_table_names(schema)
 
     @classmethod
     def fetch_data(
         cls, cursor: Any, limit: Optional[int] = None
-    ) -> List[Tuple[Any, ...]]:
+    ) -> list[tuple[Any, ...]]:
         try:
-            rows: List[Tuple[Any, ...]] = super(OcientEngineSpec, cls).fetch_data(
-                cursor, limit
-            )
+            rows: list[tuple[Any, ...]] = super().fetch_data(cursor, limit)
         except Exception as exception:
             with OcientEngineSpec.query_id_mapping_lock:
                 del OcientEngineSpec.query_id_mapping[
@@ -275,7 +327,7 @@ class OcientEngineSpec(BaseEngineSpec):
         if len(rows) > 0 and type(rows[0]).__name__ == "Row":
             # Peek at the schema to determine which column values, if any,
             # require sanitization.
-            columns_to_sanitize: List[PlacedSanitizeFunc] = _find_columns_to_sanitize(
+            columns_to_sanitize: list[PlacedSanitizeFunc] = _find_columns_to_sanitize(
                 cursor
             )
 
@@ -287,7 +339,7 @@ class OcientEngineSpec(BaseEngineSpec):
 
                 # Use the identity function if the column type doesn't need to be
                 # sanitized.
-                sanitization_functions: List[SanitizeFunc] = [
+                sanitization_functions: list[SanitizeFunc] = [
                     identity for _ in range(len(cursor.description))
                 ]
                 for info in columns_to_sanitize:

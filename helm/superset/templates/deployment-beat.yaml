@@ -42,6 +42,7 @@ spec:
     metadata:
       annotations:
         checksum/superset_config.py: {{ include "superset-config" . | sha256sum }}
+        checksum/superset_bootstrap.sh: {{ tpl .Values.bootstrapScript . | sha256sum }}
         checksum/connections: {{ .Values.supersetNode.connections | toYaml | sha256sum }}
         checksum/extraConfigs: {{ .Values.extraConfigs | toYaml | sha256sum }}
         checksum/extraSecrets: {{ .Values.extraSecrets | toYaml | sha256sum }}

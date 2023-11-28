@@ -8,7 +8,6 @@ on:
 
 jobs:
   embedded-sdk-test:
-    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     defaults:
       run:

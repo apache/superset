@@ -39,7 +39,7 @@ const DEFAULT_VIEWPORT = {
 
 const sandboxUrl =
   'https://github.com/apache/superset/' +
-  'blob/master/superset-frontend/plugins/legacy-preset-chart-deckgl/src/utils/sandbox.js';
+  'blob/master/superset-frontend/plugins/legacy-preset-chart-deckgl/src/utils/sandbox.ts';
 const jsFunctionInfo = (
   <div>
     {t(
@@ -210,7 +210,7 @@ export const lineWidth = {
     label: t('Line width'),
     renderTrigger: true,
     isInt: true,
-    default: 10,
+    default: 1,
     description: t('The width of the lines'),
   },
 };

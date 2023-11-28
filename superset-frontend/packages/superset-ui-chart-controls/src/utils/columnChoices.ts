@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, QueryResponse } from '@superset-ui/core';
-import { Dataset, isColumnMeta, isDataset, isQueryResponse } from '../types';
+import { QueryResponse } from '@superset-ui/core';
+import { Dataset, isColumnMeta, isDataset } from '../types';
 
 /**
  * Convert Datasource columns to column choices
@@ -35,14 +35,5 @@ export default function columnChoices(
         opt1[1].toLowerCase() > opt2[1].toLowerCase() ? 1 : -1,
       );
   }
-
-  if (isQueryResponse(datasource)) {
-    return ensureIsArray(datasource.columns)
-      .map((col): [string, string] => [col.name, col.name])
-      .sort((opt1, opt2) =>
-        opt1[1].toLowerCase() > opt2[1].toLowerCase() ? 1 : -1,
-      );
-  }
-
   return [];
 }

@@ -89,6 +89,10 @@ export async function embedDashboard({
 
   log('embedding');
 
+  if (supersetDomain.endsWith("/")) {
+    supersetDomain = supersetDomain.slice(0, -1);
+  }
+
   function calculateConfig() {
     let configNumber = 0
     if(dashboardUiConfig) {

@@ -16,7 +16,7 @@
 # under the License.
 import json
 import re
-from typing import Any, Dict
+from typing import Any
 
 from flask_babel import lazy_gettext as _
 from marshmallow import fields, pre_load, Schema, ValidationError
@@ -24,9 +24,23 @@ from marshmallow.validate import Length
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 
 from superset.datasets.models import Dataset
+from superset.exceptions import SupersetMarshmallowValidationError
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
+
+openapi_spec_methods_override = {
+    "get": {"get": {"summary": "Get a dataset detail information"}},
+    "get_list": {
+        "get": {
+            "summary": "Get a list of datasets",
+            "description": "Gets a list of datasets, use Rison or JSON query "
+            "parameters for filtering, sorting, pagination and "
+            " for selecting specific columns and metadata.",
+        }
+    },
+    "info": {"get": {"summary": "Get metadata information about this API resource"}},
+}
 
 
 def validate_python_date_format(value: str) -> None:
@@ -34,14 +48,14 @@ def validate_python_date_format(value: str) -> None:
         r"""
         ^(
             epoch_s|epoch_ms|
-            (?P<date>%Y(-%m(-%d)?)?)([\sT](?P<time>%H(:%M(:%S(\.%f)?)?)?))?
+            (?P<date>%Y([-/]%m([-/]%d)?)?)([\sT](?P<time>%H(:%M(:%S(\.%f)?)?)?))?
         )$
         """,
         re.VERBOSE,
     )
     match = regex.match(value or "")
     if not match:
-        raise ValidationError(_("Invalid date/timestamp format"))
+        raise ValidationError([_("Invalid date/timestamp format")])
 
 
 class DatasetColumnsPutSchema(Schema):
@@ -56,7 +70,7 @@ class DatasetColumnsPutSchema(Schema):
     filterable = fields.Boolean()
     groupby = fields.Boolean()
     is_active = fields.Boolean(allow_none=True)
-    is_dttm = fields.Boolean(dump_default=False)
+    is_dttm = fields.Boolean(allow_none=True, dump_default=False)
     python_date_format = fields.String(
         allow_none=True, validate=[Length(1, 255), validate_python_date_format]
     )
@@ -71,6 +85,7 @@ class DatasetMetricsPutSchema(Schema):
     metric_name = fields.String(required=True, validate=Length(1, 255))
     metric_type = fields.String(allow_none=True, validate=Length(1, 32))
     d3format = fields.String(allow_none=True, validate=Length(1, 128))
+    currency = fields.String(allow_none=True, required=False, validate=Length(1, 128))
     verbose_name = fields.String(allow_none=True, metadata={Length: (1, 1024)})
     warning_text = fields.String(allow_none=True)
     uuid = fields.UUID(allow_none=True)
@@ -78,12 +93,14 @@ class DatasetMetricsPutSchema(Schema):
 
 class DatasetPostSchema(Schema):
     database = fields.Integer(required=True)
-    schema = fields.String(validate=Length(0, 250))
+    schema = fields.String(allow_none=True, validate=Length(0, 250))
     table_name = fields.String(required=True, allow_none=False, validate=Length(1, 250))
     sql = fields.String(allow_none=True)
     owners = fields.List(fields.Integer())
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    normalize_columns = fields.Boolean(load_default=False)
+    always_filter_main_dttm = fields.Boolean(load_default=False)
 
 
 class DatasetPutSchema(Schema):
@@ -95,6 +112,8 @@ class DatasetPutSchema(Schema):
     schema = fields.String(allow_none=True, validate=Length(0, 255))
     description = fields.String(allow_none=True)
     main_dttm_col = fields.String(allow_none=True)
+    normalize_columns = fields.Boolean(allow_none=True, dump_default=False)
+    always_filter_main_dttm = fields.Boolean(load_default=False)
     offset = fields.Integer(allow_none=True)
     default_endpoint = fields.String(allow_none=True)
     cache_timeout = fields.Integer(allow_none=True)
@@ -106,6 +125,17 @@ class DatasetPutSchema(Schema):
     extra = fields.String(allow_none=True)
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+
+    def handle_error(
+        self,
+        error: ValidationError,
+        data: dict[str, Any],
+        **kwargs: Any,
+    ) -> None:
+        """
+        Return SIP-40 error.
+        """
+        raise SupersetMarshmallowValidationError(error, data)
 
 
 class DatasetDuplicateSchema(Schema):
@@ -148,9 +178,9 @@ class DatasetRelatedObjectsResponse(Schema):
 
 
 class ImportV1ColumnSchema(Schema):
-    # pylint: disable=no-self-use, unused-argument
+    # pylint: disable=unused-argument
     @pre_load
-    def fix_extra(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
+    def fix_extra(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         """
         Fix for extra initially being exported as a string.
         """
@@ -174,9 +204,9 @@ class ImportV1ColumnSchema(Schema):
 
 
 class ImportV1MetricSchema(Schema):
-    # pylint: disable=no-self-use, unused-argument
+    # pylint: disable=unused-argument
     @pre_load
-    def fix_extra(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
+    def fix_extra(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         """
         Fix for extra initially being exported as a string.
         """
@@ -191,19 +221,24 @@ class ImportV1MetricSchema(Schema):
     expression = fields.String(required=True)
     description = fields.String(allow_none=True)
     d3format = fields.String(allow_none=True)
+    currency = fields.String(allow_none=True, required=False)
     extra = fields.Dict(allow_none=True)
     warning_text = fields.String(allow_none=True)
 
 
 class ImportV1DatasetSchema(Schema):
-    # pylint: disable=no-self-use, unused-argument
+    # pylint: disable=unused-argument
     @pre_load
-    def fix_extra(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
+    def fix_extra(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         """
         Fix for extra initially being exported as a string.
         """
         if isinstance(data.get("extra"), str):
-            data["extra"] = json.loads(data["extra"])
+            try:
+                extra = data["extra"]
+                data["extra"] = json.loads(extra) if extra.strip() else None
+            except ValueError:
+                data["extra"] = None
 
         return data
 
@@ -228,6 +263,8 @@ class ImportV1DatasetSchema(Schema):
     data = fields.URL()
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    normalize_columns = fields.Boolean(load_default=False)
+    always_filter_main_dttm = fields.Boolean(load_default=False)
 
 
 class GetOrCreateDatasetSchema(Schema):
@@ -236,11 +273,15 @@ class GetOrCreateDatasetSchema(Schema):
         required=True, metadata={"description": "ID of database table belongs to"}
     )
     schema = fields.String(
-        metadata={"description": "The schema the table belongs to"}, allow_none=True
+        allow_none=True,
+        validate=Length(0, 250),
+        metadata={"description": "The schema the table belongs to"},
     )
     template_params = fields.String(
         metadata={"description": "Template params for the table"}
     )
+    normalize_columns = fields.Boolean(load_default=False)
+    always_filter_main_dttm = fields.Boolean(load_default=False)
 
 
 class DatasetSchema(SQLAlchemyAutoSchema):
@@ -252,3 +293,43 @@ class DatasetSchema(SQLAlchemyAutoSchema):
         model = Dataset
         load_instance = True
         include_relationships = True
+
+
+class DatasetCacheWarmUpRequestSchema(Schema):
+    db_name = fields.String(
+        required=True,
+        metadata={"description": "The name of the database where the table is located"},
+    )
+    table_name = fields.String(
+        required=True,
+        metadata={"description": "The name of the table to warm up cache for"},
+    )
+    dashboard_id = fields.Integer(
+        metadata={
+            "description": "The ID of the dashboard to get filters for when warming cache"
+        }
+    )
+    extra_filters = fields.String(
+        metadata={"description": "Extra filters to apply when warming up cache"}
+    )
+
+
+class DatasetCacheWarmUpResponseSingleSchema(Schema):
+    chart_id = fields.Integer(
+        metadata={"description": "The ID of the chart the status belongs to"}
+    )
+    viz_error = fields.String(
+        metadata={"description": "Error that occurred when warming cache for chart"}
+    )
+    viz_status = fields.String(
+        metadata={"description": "Status of the underlying query for the viz"}
+    )
+
+
+class DatasetCacheWarmUpResponseSchema(Schema):
+    result = fields.List(
+        fields.Nested(DatasetCacheWarmUpResponseSingleSchema),
+        metadata={
+            "description": "A list of each chart's warmup status and errors if any"
+        },
+    )

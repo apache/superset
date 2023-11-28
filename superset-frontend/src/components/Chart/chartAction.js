@@ -19,27 +19,30 @@
 /* eslint no-undef: 'error' */
 /* eslint no-param-reassign: ["error", { "props": false }] */
 import moment from 'moment';
-import { FeatureFlag, isDefined, SupersetClient, t } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  isDefined,
+  SupersetClient,
+  t,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import { getControlsState } from 'src/explore/store';
-import { isFeatureEnabled } from 'src/featureFlags';
 import {
   getAnnotationJsonUrl,
   getExploreUrl,
   getLegacyEndpointType,
   buildV1ChartDataPayload,
-  shouldUseLegacyApi,
+  getQuerySettings,
   getChartDataUri,
 } from 'src/explore/exploreUtils';
-import { requiresQuery } from 'src/modules/AnnotationTypes';
-
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { logEvent } from 'src/logger/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { safeStringify } from 'src/utils/safeStringify';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
 import { updateDataMask } from 'src/dataMask/actions';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
+import { safeStringify } from 'src/utils/safeStringify';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
@@ -117,6 +120,7 @@ const legacyChartDataRequest = async (
   force,
   method = 'POST',
   requestParams = {},
+  parseMethod,
 ) => {
   const endpointType = getLegacyEndpointType({ resultFormat, resultType });
   const allowDomainSharding =
@@ -136,7 +140,7 @@ const legacyChartDataRequest = async (
     ...requestParams,
     url,
     postPayload: { form_data: formData },
-    parseMethod: 'json-bigint',
+    parseMethod,
   };
 
   const clientMethod =
@@ -161,6 +165,7 @@ const v1ChartDataRequest = async (
   requestParams,
   setDataMask,
   ownState,
+  parseMethod,
 ) => {
   const payload = buildV1ChartDataPayload({
     formData,
@@ -178,7 +183,7 @@ const v1ChartDataRequest = async (
   const qs = {};
   if (sliceId !== undefined) qs.form_data = `{"slice_id":${sliceId}}`;
   if (dashboardId !== undefined) qs.dashboard_id = dashboardId;
-  if (force !== false) qs.force = force;
+  if (force) qs.force = force;
 
   const allowDomainSharding =
     // eslint-disable-next-line camelcase
@@ -194,7 +199,7 @@ const v1ChartDataRequest = async (
     url,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
-    parseMethod: 'json-bigint',
+    parseMethod,
   };
 
   return SupersetClient.post(querySettings);
@@ -221,8 +226,8 @@ export async function getChartDataRequest({
       credentials: 'include',
     };
   }
-
-  if (shouldUseLegacyApi(formData)) {
+  const [useLegacyApi, parseMethod] = getQuerySettings(formData);
+  if (useLegacyApi) {
     return legacyChartDataRequest(
       formData,
       resultFormat,
@@ -230,6 +235,7 @@ export async function getChartDataRequest({
       force,
       method,
       querySettings,
+      parseMethod,
     );
   }
   return v1ChartDataRequest(
@@ -240,6 +246,7 @@ export async function getChartDataRequest({
     querySettings,
     setDataMask,
     ownState,
+    parseMethod,
   );
 }
 
@@ -258,7 +265,7 @@ export function runAnnotationQuery({
       ...(formData || getState().charts[sliceKey].latestQueryFormData),
     };
 
-    if (!requiresQuery(annotation.sourceType)) {
+    if (!annotation.sourceType) {
       return Promise.resolve();
     }
 
@@ -404,13 +411,14 @@ export function exploreJSON(
         if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
           // deal with getChartDataRequest transforming the response data
           const result = 'result' in json ? json.result : json;
+          const [useLegacyApi] = getQuerySettings(formData);
           switch (response.status) {
             case 200:
               // Query results returned synchronously, meaning query was already cached.
               return Promise.resolve(result);
             case 202:
               // Query is running asynchronously and we must await the results
-              if (shouldUseLegacyApi(formData)) {
+              if (useLegacyApi) {
                 return waitForAsyncData(result[0]);
               }
               return waitForAsyncData(result);
@@ -481,7 +489,8 @@ export function exploreJSON(
       });
 
     // only retrieve annotations when calling the legacy API
-    const annotationLayers = shouldUseLegacyApi(formData)
+    const [useLegacyApi] = getQuerySettings(formData);
+    const annotationLayers = useLegacyApi
       ? formData.annotation_layers || []
       : [];
     const isDashboardRequest = dashboardId > 0;
@@ -562,18 +571,27 @@ export function postChartFormData(
   );
 }
 
-export function redirectSQLLab(formData) {
+export function redirectSQLLab(formData, history) {
   return dispatch => {
     getChartDataRequest({ formData, resultFormat: 'json', resultType: 'query' })
       .then(({ json }) => {
-        const redirectUrl = '/superset/sqllab/';
+        const redirectUrl = '/sqllab/';
         const payload = {
           datasourceKey: formData.datasource,
           sql: json.result[0].query,
         };
-        SupersetClient.postForm(redirectUrl, {
-          form_data: safeStringify(payload),
-        });
+        if (history) {
+          history.push({
+            pathname: redirectUrl,
+            state: {
+              requestedQuery: payload,
+            },
+          });
+        } else {
+          SupersetClient.postForm(redirectUrl, {
+            form_data: safeStringify(payload),
+          });
+        }
       })
       .catch(() =>
         dispatch(addDangerToast(t('An error occurred while loading the SQL'))),

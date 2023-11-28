@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Iterator
 
 from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError

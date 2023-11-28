@@ -20,6 +20,7 @@ import React from 'react';
 import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
+  ControlSubSectionHeader,
   getStandardizedControls,
   sections,
   sharedControls,
@@ -99,7 +100,7 @@ const controlPanel: ControlPanelConfig = {
       controlSetRows: [
         ['color_scheme'],
         ...legendSection,
-        [<div className="section-header">{t('Layout')}</div>],
+        [<ControlSubSectionHeader>{t('Layout')}</ControlSubSectionHeader>],
         [
           {
             name: 'layout',

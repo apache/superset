@@ -185,7 +185,7 @@ export const sliceEntitiesForDashboard = {
       slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20136%7D',
       slice_name: 'Treemap',
       form_data: {},
-      viz_type: 'treemap',
+      viz_type: 'treemap_v2',
       datasource: '2__table',
       description: null,
       description_markeddown: '',

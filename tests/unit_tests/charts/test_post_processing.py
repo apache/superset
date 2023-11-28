@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import json
 
 import pandas as pd
 import pytest
@@ -1387,7 +1386,7 @@ def test_apply_post_process_without_result_format():
     A query without result_format should raise an exception
     """
     result = {"queries": [{"result_format": "foo"}]}
-    form_data = {"viz_type": "pivot_table"}
+    form_data = {"viz_type": "pivot_table_v2"}
 
     with pytest.raises(Exception) as ex:
         apply_post_process(result, form_data)

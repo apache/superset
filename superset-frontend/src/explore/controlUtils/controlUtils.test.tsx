@@ -52,6 +52,7 @@ describe('controlUtils', () => {
       columns: [{ column_name: 'a' }],
       metrics: [{ metric_name: 'first' }, { metric_name: 'second' }],
       column_formats: {},
+      currency_formats: {},
       verbose_map: {},
       main_dttm_col: '',
       datasource_name: '1__table',

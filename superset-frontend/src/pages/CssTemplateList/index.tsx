@@ -356,6 +356,9 @@ function CssTemplatesList({
               bulkActions={bulkActions}
               bulkSelectEnabled={bulkSelectEnabled}
               disableBulkSelect={toggleBulkSelect}
+              addDangerToast={addDangerToast}
+              addSuccessToast={addSuccessToast}
+              refreshData={refreshData}
             />
           );
         }}

@@ -130,7 +130,6 @@ describe('extractAnnotationLabels', () => {
     ];
     const results: AnnotationData = {
       'My Interval': {
-        columns: ['col'],
         records: [{ col: 1 }],
       },
       'My Line': [

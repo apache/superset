@@ -92,7 +92,9 @@ describe('GENERIC_CHART_AXES is disabled', () => {
       datasource: '5__table',
       viz_type: 'table',
       granularity: 'time_column',
-      extras: {},
+      extras: {
+        time_grain_sqla: 'P1Y',
+      },
       time_range: '1 year ago : 2013',
       orderby: [['count(*)', true]],
       columns: [
@@ -182,7 +184,7 @@ describe('GENERIC_CHART_AXES is enabled', () => {
       datasource: '5__table',
       viz_type: 'table',
       granularity: 'time_column',
-      extras: { where: '', having: '' },
+      extras: { where: '', having: '', time_grain_sqla: 'P1Y' },
       time_range: '1 year ago : 2013',
       orderby: [['count(*)', true]],
       columns: [
@@ -240,7 +242,7 @@ describe('GENERIC_CHART_AXES is enabled', () => {
       datasource: '5__table',
       viz_type: 'table',
       granularity: 'time_column',
-      extras: { where: '', having: '' },
+      extras: { where: '', having: '', time_grain_sqla: 'P1Y' },
       time_range: '1 year ago : 2013',
       orderby: [['count(*)', true]],
       columns: [

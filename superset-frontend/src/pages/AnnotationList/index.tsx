@@ -321,6 +321,9 @@ function AnnotationList({
               disableBulkSelect={toggleBulkSelect}
               emptyState={emptyState}
               fetchData={fetchData}
+              addDangerToast={addDangerToast}
+              addSuccessToast={addSuccessToast}
+              refreshData={refreshData}
               initialSort={initialSort}
               loading={loading}
               pageSize={PAGE_SIZE}

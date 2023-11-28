@@ -21,9 +21,9 @@ import pytest
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session
 
+from superset.commands.explore.form_data.state import TemporaryExploreState
 from superset.connectors.sqla.models import SqlaTable
 from superset.explore.exceptions import DatasetAccessDeniedError
-from superset.explore.form_data.commands.state import TemporaryExploreState
 from superset.extensions import cache_manager
 from superset.models.slice import Slice
 from tests.integration_tests.fixtures.world_bank_dashboard import (
@@ -216,7 +216,7 @@ def test_get_dataset_access_denied(
     assert data["message"] == message
 
 
-@patch("superset.datasource.dao.DatasourceDAO.get_datasource")
+@patch("superset.daos.datasource.DatasourceDAO.get_datasource")
 def test_wrong_endpoint(mock_get_datasource, test_client, login_as_admin, dataset):
     dataset.default_endpoint = "another_endpoint"
     mock_get_datasource.return_value = dataset

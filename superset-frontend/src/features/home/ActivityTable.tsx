@@ -36,7 +36,7 @@ import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
 
 /**
- * Return result from /api/v1/log/recent_activity/{user_id}/
+ * Return result from /api/v1/log/recent_activity/
  */
 interface RecentActivity {
   action: string;
@@ -105,7 +105,7 @@ const getEntityIcon = (entity: ActivityObject) => {
 };
 
 const getEntityUrl = (entity: ActivityObject) => {
-  if ('sql' in entity) return `/superset/sqllab?savedQueryId=${entity.id}`;
+  if ('sql' in entity) return `/sqllab?savedQueryId=${entity.id}`;
   if ('url' in entity) return entity.url;
   return entity.item_url;
 };

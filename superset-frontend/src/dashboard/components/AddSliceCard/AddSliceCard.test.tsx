@@ -19,7 +19,8 @@
 
 import React from 'react';
 import { FeatureFlag } from '@superset-ui/core';
-import { act, render, screen } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
+import { act, render, screen, within } from 'spec/helpers/testing-library';
 import AddSliceCard from '.';
 
 jest.mock('src/components/DynamicPlugins', () => ({
@@ -59,4 +60,22 @@ test('render thumbnail if feature flag is set', async () => {
   });
 
   expect(screen.queryByTestId('thumbnail')).toBeInTheDocument();
+});
+
+test('does not render the tooltip with anchors', async () => {
+  const mock = jest
+    .spyOn(React, 'useState')
+    .mockImplementation(() => [true, jest.fn()]);
+  render(
+    <AddSliceCard
+      {...mockedProps}
+      datasourceUrl="http://test.com"
+      datasourceName="datasource-name"
+    />,
+  );
+  userEvent.hover(screen.getByRole('link', { name: 'datasource-name' }));
+  expect(await screen.findByRole('tooltip')).toBeInTheDocument();
+  const tooltip = await screen.findByRole('tooltip');
+  expect(within(tooltip).queryByRole('link')).not.toBeInTheDocument();
+  mock.mockRestore();
 });

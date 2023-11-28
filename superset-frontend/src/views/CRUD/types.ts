@@ -55,7 +55,6 @@ export interface Dashboard {
   certified_by?: string;
   certification_details?: string;
   changed_by_name: string;
-  changed_by_url: string;
   changed_on_delta_humanized?: string;
   changed_on_utc?: string;
   changed_by: string;
@@ -139,9 +138,19 @@ export type ImportResourceName =
 
 export interface Tag {
   changed_on_delta_humanized: string;
+  changed_by: {
+    first_name: string;
+    last_name: string;
+  };
+  created_on_delta_humanized: string;
   name: string;
   id: number;
-  created_by: object;
+  created_by: {
+    first_name: string;
+    last_name: string;
+  };
+  description: string;
+  type: string;
 }
 
 export type DatabaseObject = Partial<Database> &

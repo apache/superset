@@ -25,7 +25,7 @@ import fetchMock from 'fetch-mock';
 import { HeaderDropdownProps } from 'src/dashboard/components/Header/types';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 import { FeatureFlag } from '@superset-ui/core';
-import * as featureFlags from 'src/featureFlags';
+import * as uiCore from '@superset-ui/core';
 import HeaderActionsDropdown from '.';
 
 let isFeatureEnabledMock: jest.MockInstance<boolean, [feature: FeatureFlag]>;
@@ -109,10 +109,10 @@ test('should render', () => {
   expect(container).toBeInTheDocument();
 });
 
-test('should render the dropdown button', () => {
+test('should render the Download dropdown button when not in edit mode', () => {
   const mockedProps = createProps();
   setup(mockedProps);
-  expect(screen.getByRole('button')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Download' })).toBeInTheDocument();
 });
 
 test('should render the menu items', async () => {
@@ -121,22 +121,23 @@ test('should render the menu items', async () => {
   expect(screen.getAllByRole('menuitem')).toHaveLength(4);
   expect(screen.getByText('Refresh dashboard')).toBeInTheDocument();
   expect(screen.getByText('Set auto-refresh interval')).toBeInTheDocument();
-  expect(screen.getByText('Download as image')).toBeInTheDocument();
   expect(screen.getByText('Enter fullscreen')).toBeInTheDocument();
+  expect(screen.getByText('Download')).toBeInTheDocument();
 });
 
 test('should render the menu items in edit mode', async () => {
   setup(editModeOnProps);
-  expect(screen.getAllByRole('menuitem')).toHaveLength(4);
+  expect(screen.getAllByRole('menuitem')).toHaveLength(5);
   expect(screen.getByText('Set auto-refresh interval')).toBeInTheDocument();
   expect(screen.getByText('Edit properties')).toBeInTheDocument();
   expect(screen.getByText('Edit CSS')).toBeInTheDocument();
+  expect(screen.getByText('Download')).toBeInTheDocument();
 });
 
 describe('with native filters feature flag disabled', () => {
   beforeAll(() => {
     isFeatureEnabledMock = jest
-      .spyOn(featureFlags, 'isFeatureEnabled')
+      .spyOn(uiCore, 'isFeatureEnabled')
       .mockImplementation(
         (featureFlag: FeatureFlag) =>
           featureFlag !== FeatureFlag.DASHBOARD_NATIVE_FILTERS,
@@ -162,7 +163,7 @@ describe('with native filters feature flag disabled', () => {
 describe('with native filters feature flag enabled', () => {
   beforeAll(() => {
     isFeatureEnabledMock = jest
-      .spyOn(featureFlags, 'isFeatureEnabled')
+      .spyOn(uiCore, 'isFeatureEnabled')
       .mockImplementation(
         (featureFlag: FeatureFlag) =>
           featureFlag === FeatureFlag.DASHBOARD_NATIVE_FILTERS,
@@ -196,7 +197,7 @@ test('should show the share actions', async () => {
   expect(screen.getByText('Share')).toBeInTheDocument();
 });
 
-test('should render the "Save Modal" when user can save', async () => {
+test('should render the "Save as" menu item when user can save', async () => {
   const mockedProps = createProps();
   const canSaveProps = {
     ...mockedProps,
@@ -206,7 +207,7 @@ test('should render the "Save Modal" when user can save', async () => {
   expect(screen.getByText('Save as')).toBeInTheDocument();
 });
 
-test('should NOT render the "Save Modal" menu item when user cannot save', async () => {
+test('should NOT render the "Save as" menu item when user cannot save', async () => {
   const mockedProps = createProps();
   setup(mockedProps);
   expect(screen.queryByText('Save as')).not.toBeInTheDocument();

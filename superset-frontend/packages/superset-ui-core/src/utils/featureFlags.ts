@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import logger from './logging';
+
 // We can codegen the enum definition based on a list of supported flags that we
 // check into source control. We're hardcoding the supported flags for now.
 export enum FeatureFlag {
@@ -40,7 +42,6 @@ export enum FeatureFlag {
   EMBEDDABLE_CHARTS = 'EMBEDDABLE_CHARTS',
   EMBEDDED_SUPERSET = 'EMBEDDED_SUPERSET',
   ENABLE_ADVANCED_DATA_TYPES = 'ENABLE_ADVANCED_DATA_TYPES',
-  ENABLE_DND_WITH_CLICK_UX = 'ENABLE_DND_WITH_CLICK_UX',
   ENABLE_EXPLORE_DRAG_AND_DROP = 'ENABLE_EXPLORE_DRAG_AND_DROP',
   ENABLE_JAVASCRIPT_CONTROLS = 'ENABLE_JAVASCRIPT_CONTROLS',
   ENABLE_TEMPLATE_PROCESSING = 'ENABLE_TEMPLATE_PROCESSING',
@@ -60,6 +61,7 @@ export enum FeatureFlag {
   TAGGING_SYSTEM = 'TAGGING_SYSTEM',
   VERSIONED_EXPORT = 'VERSIONED_EXPORT',
   SSH_TUNNELING = 'SSH_TUNNELING',
+  AVOID_COLORS_COLLISION = 'AVOID_COLORS_COLLISION',
 }
 export type ScheduleQueriesProps = {
   JSONSCHEMA: {
@@ -85,11 +87,17 @@ declare global {
   }
 }
 
+export function initFeatureFlags(featureFlags?: FeatureFlagMap) {
+  if (!window.featureFlags) {
+    window.featureFlags = featureFlags || {};
+  }
+}
+
 export function isFeatureEnabled(feature: FeatureFlag): boolean {
   try {
     return !!window.featureFlags[feature];
   } catch (error) {
-    console.error(`Failed to query feature flag ${feature}`);
+    logger.error(`Failed to query feature flag ${feature}`);
   }
   return false;
 }

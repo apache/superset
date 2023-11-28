@@ -17,14 +17,17 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { FeatureFlag } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { chart } from 'src/components/Chart/chartReducer';
 import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
 import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/reducers/nativeFilters';
 import { applyDefaultFormData } from 'src/explore/store';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { findPermission } from 'src/utils/findPermission';
-import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
+import {
+  canUserEditDashboard,
+  canUserSaveAsDashboard,
+} from 'src/dashboard/util/permissionUtils';
 import {
   getCrossFiltersConfiguration,
   isCrossFiltersEnabled,
@@ -53,7 +56,6 @@ import { TIME_RANGE } from 'src/visualizations/FilterBox/FilterBox';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
-import { isFeatureEnabled } from '../../featureFlags';
 import extractUrlParams from '../util/extractUrlParams';
 import { updateColorSchema } from './dashboardInfo';
 import updateComponentParentsList from '../util/updateComponentParentsList';
@@ -309,11 +311,14 @@ export const hydrateDashboard =
     });
 
     if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
-      metadata.chart_configuration = getCrossFiltersConfiguration(
-        dashboardLayout.present,
-        metadata.chart_configuration,
-        chartQueries,
-      );
+      const { chartConfiguration, globalChartConfiguration } =
+        getCrossFiltersConfiguration(
+          dashboardLayout.present,
+          metadata,
+          chartQueries,
+        );
+      metadata.chart_configuration = chartConfiguration;
+      metadata.global_chart_configuration = globalChartConfiguration;
     }
 
     const { roles } = user;
@@ -333,7 +338,7 @@ export const hydrateDashboard =
           metadata,
           userId: user.userId ? String(user.userId) : null, // legacy, please use state.user instead
           dash_edit_perm: canEdit,
-          dash_save_perm: findPermission('can_save_dash', 'Superset', roles),
+          dash_save_perm: canUserSaveAsDashboard(dashboard, user),
           dash_share_perm: findPermission(
             'can_share_dashboard',
             'Superset',
@@ -350,7 +355,6 @@ export const hydrateDashboard =
             roles,
           ),
           superset_can_csv: findPermission('can_csv', 'Superset', roles),
-          slice_can_edit: findPermission('can_slice', 'Superset', roles),
           common: {
             // legacy, please use state.common instead
             flash_messages: common?.flash_messages,

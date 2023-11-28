@@ -100,4 +100,8 @@ export enum AxisType {
   log = 'log',
 }
 
+export interface LegendState {
+  [key: string]: boolean;
+}
+
 export default {};

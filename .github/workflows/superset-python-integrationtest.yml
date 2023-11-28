@@ -10,11 +10,10 @@ on:
 
 jobs:
   test-mysql:
-    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        python-version: [3.8]
+        python-version: ["3.9"]
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -76,11 +75,10 @@ jobs:
           bash .github/workflows/codecov.sh -c -F python -F mysql
 
   test-postgres:
-    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        python-version: [3.8, 3.9]
+        python-version: ["3.9", "3.10"]
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -88,7 +86,7 @@ jobs:
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
     services:
       postgres:
-        image: postgres:14-alpine
+        image: postgres:15-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -143,11 +141,10 @@ jobs:
           bash .github/workflows/codecov.sh -c -F python -F postgres
 
   test-sqlite:
-    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        python-version: [3.8]
+        python-version: ["3.9"]
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
