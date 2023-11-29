@@ -269,9 +269,13 @@ export function runAnnotationQuery({
       return Promise.resolve();
     }
 
-    const granularity = fd.time_grain_sqla || fd.granularity;
-    fd.time_grain_sqla = granularity;
-    fd.granularity = granularity;
+    // remap from controls to formData naming; in the original formData the
+    // `granularity` attribute represents the time grain, but in the request
+    // payload it corresponds to the name of the column where the time grain
+    // should be applied...
+    fd.time_grain_sqla = fd.time_grain_sqla || fd.granularity;
+    fd.granularity = fd.granularity_sqla;
+
     const overridesKeys = Object.keys(annotation.overrides);
     if (overridesKeys.includes('since') || overridesKeys.includes('until')) {
       annotation.overrides = {
