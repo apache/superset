@@ -238,7 +238,7 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
       </StyledCssTemplateTitle>
       <TemplateContainer>
         <div className="control-label">
-          {t('CSS template name')}
+          {t('Name')}
           <span className="required">*</span>
         </div>
         <input
