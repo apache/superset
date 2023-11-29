@@ -186,28 +186,21 @@ class IkiInteractiveForecast extends React.PureComponent {
   // eslint-disable-next-line class-methods-use-this
   handleIncomingWindowMsg() {
     window.addEventListener('message', event => {
-      console.log('event.origin props', event.origin, this.props.ikigaiOrigin);
       if (event.origin === this.props.ikigaiOrigin) {
         // if (event.origin === 'http://localhost:3000') {
         const messageObject = JSON.parse(event.data);
-        console.log(
-          'event.origin props messageObject editMode',
-          messageObject,
-          this.props.editMode,
-        );
         if (messageObject.info && messageObject.dataType) {
           const { dataType } = messageObject;
           let messageData;
           let widgetUrl;
           let widgetUrlQuery;
-          let widgetUrlQueryMode;
+          // let widgetUrlQueryMode;
 
           if (dataType === 'object') {
             messageData = JSON.parse(messageObject.data);
           } else {
             messageData = messageObject.data;
           }
-          console.log('Onboarding project', messageData);
           if (
             document.getElementById(
               `ikiinteractiveforecast-widget-${this.props.component.id}`,
@@ -218,50 +211,66 @@ class IkiInteractiveForecast extends React.PureComponent {
                 `ikiinteractiveforecast-widget-${this.props.component.id}`,
               ).src,
             );
-            widgetUrlQueryMode =
-              messageData.mode !== widgetUrl.searchParams.get('mode')
-                ? messageData.mode
-                : widgetUrl.searchParams.get('mode');
+            // widgetUrlQueryMode =
+            //   messageData.mode !== widgetUrl.searchParams.get('mode')
+            //     ? messageData.mode
+            //     : widgetUrl.searchParams.get('mode');
           } else {
             widgetUrl = `${this.props.ikigaiOrigin}/widget/interactive-forecast-chart?mode=edit`;
           }
 
-          if (
-            messageObject.info === 'widget-to-superset/sending-pipeline-data'
-          ) {
-            console.log(
-              'important Info',
-              widgetUrl,
-              widgetUrlQuery,
-              widgetUrlQueryMode,
-            );
-            if (widgetUrlQueryMode === 'preview') {
-              widgetUrlQuery = new URLSearchParams(widgetUrl);
-              widgetUrlQuery.set('mode', 'preview');
-              widgetUrlQuery.set('dataset_id', messageData.dataset_id);
-              widgetUrlQuery.set(
-                'datetime_column',
-                messageData.datetime_column,
-              );
-              widgetUrlQuery.set('data_series', messageData.data_series);
-              widgetUrlQuery.set(
-                'dimensions_column',
-                messageData.dimensions_column,
-              );
-              widgetUrlQuery.set('metrics_type', messageData.metrics_type);
-              //icon
-              widgetUrl.search = widgetUrlQuery.toString();
+          if (messageObject.info === 'widget-to-superset/sending-dataset-ids') {
+            const explainability = messageData.explainabilityEnabled;
 
-              console.log('final url', widgetUrl, widgetUrl.href);
+            widgetUrlQuery = new URLSearchParams(widgetUrl);
+            widgetUrlQuery.set('mode', 'preview');
+            widgetUrlQuery.set('dataset_id', messageData.dataset_id);
+            widgetUrlQuery.set('datetime_column', messageData.datetime_column);
+            widgetUrlQuery.set('data_series', messageData.data_series);
+            widgetUrlQuery.set(
+              'dimensions_column',
+              messageData.dimensions_column,
+            );
+            widgetUrlQuery.set('metrics_type', messageData.metrics_type);
+            if (explainability) {
+              widgetUrlQuery.set('explainability', explainability);
+              widgetUrlQuery.set(
+                'forecastAliasId',
+                messageData.forecastAliasId,
+              );
+              widgetUrlQuery.set(
+                'insightsAliasId',
+                messageData.insightsAliasId,
+              );
+              widgetUrlQuery.set(
+                'seasonalityAliasId',
+                messageData.seasonalityAliasId,
+              );
+              widgetUrlQuery.set(
+                'skuCompositionAliasId',
+                messageData.skuCompositionAliasId,
+              );
+              widgetUrl.search = widgetUrlQuery.toString();
               const tempIframe = `<iframe
-                                id="ikiinteractiveforecast-widget-${this.props.component.id}"
-                                name="ikiinteractiveforecast"
-                                src="${widgetUrl}"
-                                title="Hero Section Component"
-                                className="ikirunpipeline-widget"
-                                style="min-height: 100%;"
-                            />`;
+                                  id="ikiinteractiveforecast-widget-${this.props.component.id}"
+                                  name="ikiinteractiveforecast"
+                                  src="${widgetUrl}"
+                                  title="Hero Section Component"
+                                  className="ikirunpipeline-widget"
+                                  style="min-height: 100%;"
+                              />`;
               this.handleIkiRunPipelineChange(tempIframe);
+            } else {
+              // widgetUrl.search = widgetUrlQuery.toString();
+              // const tempIframe = `<iframe
+              //                     id="ikiinteractiveforecast-widget-${this.props.component.id}"
+              //                     name="ikiinteractiveforecast"
+              //                     src="${widgetUrl}"
+              //                     title="Hero Section Component"
+              //                     className="ikirunpipeline-widget"
+              //                     style="min-height: 100%;"
+              //                 />`;
+              // this.handleIkiRunPipelineChange(tempIframe);
             }
           }
         }
@@ -318,6 +327,7 @@ class IkiInteractiveForecast extends React.PureComponent {
   }
 
   handleIkiRunPipelineChange(nextValue) {
+    console.info('handleIkiRunPipelineChange', nextValue);
     this.setState(
       {
         markdownSource: nextValue,
@@ -359,13 +369,10 @@ class IkiInteractiveForecast extends React.PureComponent {
   renderIframe() {
     const { markdownSource, hasError } = this.state;
     const { ikigaiOrigin } = this.props;
-    // const ikigaiOrigin = 'http://localhost:3000';
     let iframe = '';
     let iframeSrc = '';
     if (ikigaiOrigin) {
-      console.log('MarkdownSource', markdownSource);
       if (markdownSource) {
-        // iframe = markdownSource;
         const iframeWrapper = document.createElement('div');
         iframeWrapper.innerHTML = markdownSource;
         const iframeHtml = iframeWrapper.firstChild;
@@ -373,26 +380,41 @@ class IkiInteractiveForecast extends React.PureComponent {
         const paramMode = iframeSrcUrl.searchParams.get('mode')
           ? iframeSrcUrl.searchParams.get('mode')
           : '';
-        const dataset_id = iframeSrcUrl.searchParams.get('dataset_id')
+        const datasetId = iframeSrcUrl.searchParams.get('dataset_id')
           ? iframeSrcUrl.searchParams.get('dataset_id')
           : '';
-        const datetime_column = iframeSrcUrl.searchParams.get('datetime_column')
+        const datetimeColumn = iframeSrcUrl.searchParams.get('datetime_column')
           ? iframeSrcUrl.searchParams.get('datetime_column')
           : '';
-        const data_series = iframeSrcUrl.searchParams.get('data_series')
+        const dataSeries = iframeSrcUrl.searchParams.get('data_series')
           ? iframeSrcUrl.searchParams.get('data_series')
           : '';
-        const dimensions_column = iframeSrcUrl.searchParams.get(
+        const dimensionsColumn = iframeSrcUrl.searchParams.get(
           'dimensions_column',
         )
           ? iframeSrcUrl.searchParams.get('dimensions_column')
           : '';
-        const metrics_type = iframeSrcUrl.searchParams.get('metrics_type')
+        const metricsType = iframeSrcUrl.searchParams.get('metrics_type')
           ? iframeSrcUrl.searchParams.get('metrics_type')
           : '';
-        const newIframeSrc = `${ikigaiOrigin}/widget/interactive-forecast-chart?mode=${paramMode}&dataset_id=${dataset_id}&datetime_column=${datetime_column}&data_series=${data_series}&dimensions_column=${dimensions_column}&metrics_type=${metrics_type}`;
-        // console.log('iframe', newIframeSrcUrl, iframeHtml);
-        iframeSrc = newIframeSrc;
+        if (iframeSrcUrl.searchParams.get('explainability')) {
+          const explainability =
+            iframeSrcUrl.searchParams.get('explainability');
+          const forecastAliasId =
+            iframeSrcUrl.searchParams.get('forecastAliasId');
+          const insightsAliasId =
+            iframeSrcUrl.searchParams.get('insightsAliasId');
+          const seasonalityAliasId =
+            iframeSrcUrl.searchParams.get('seasonalityAliasId');
+          const skuCompositionAliasId = iframeSrcUrl.searchParams.get(
+            'skuCompositionAliasId',
+          );
+          const newIframeSrc = `${ikigaiOrigin}/widget/interactive-forecast-chart?mode=${paramMode}&dataset_id=${datasetId}&datetime_column=${datetimeColumn}&data_series=${dataSeries}&dimensions_column=${dimensionsColumn}&metrics_type=${metricsType}&explainability=${explainability}&forecastAliasId=${forecastAliasId}&insightsAliasId=${insightsAliasId}&seasonalityAliasId=${seasonalityAliasId}&skuCompositionAliasId=${skuCompositionAliasId}`;
+          iframeSrc = newIframeSrc;
+        } else {
+          const newIframeSrc = `${ikigaiOrigin}/widget/interactive-forecast-chart?mode=${paramMode}&dataset_id=${datasetId}&datetime_column=${datetimeColumn}&data_series=${dataSeries}&dimensions_column=${dimensionsColumn}&metrics_type=${metricsType}`;
+          iframeSrc = newIframeSrc;
+        }
       } else {
         iframeSrc = `${ikigaiOrigin}/widget/interactive-forecast-chart?mode=edit`;
       }
@@ -470,10 +492,7 @@ class IkiInteractiveForecast extends React.PureComponent {
           >
             <div
               data-test="dashboard-markdown-editor"
-              className={cx(
-                'dashboard-markdown',
-                isEditing && 'dashboard-markdown--editing',
-              )}
+              className={cx(isEditing && 'dashboard-markdown--editing')}
               id={component.id}
             >
               <ResizableContainer
@@ -487,14 +506,14 @@ class IkiInteractiveForecast extends React.PureComponent {
                 minWidthMultiple={GRID_MIN_COLUMN_COUNT}
                 minHeightMultiple={GRID_MIN_ROW_UNITS}
                 maxWidthMultiple={availableColumnCount + widthMultiple}
-                //onResizeStart={this.handleResizeStart}
+                // onResizeStart={this.handleResizeStart}
                 onResize={onResize}
                 onResizeStop={onResizeStop}
                 editMode={isFocused ? false : editMode}
               >
                 <div
                   ref={dragSourceRef}
-                  className="dashboard-component-inner dashboard-interactiveforecast"
+                  className="dashboard-component-inner dashboard-component-forecast"
                   data-test="dashboard-component-chart-holder"
                 >
                   {
