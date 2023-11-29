@@ -26,6 +26,10 @@ const dropdownKeyframes = keyframes`
   }
 `;
 
+interface StyledDvtTextareaIconProps {
+  isOpen: boolean;
+}
+
 const StyledDvtTextareaSelectRun = styled.div`
   width: 1126px;
   height: 281px;
@@ -91,6 +95,11 @@ const StyledDvtTextareaDropdownItem = styled.div`
   }
 `;
 
+const StyledDvtTextareaIcon = styled.div<StyledDvtTextareaIconProps>`
+  transition: transform 0.3s ease-in-out;
+  transform: ${({ isOpen }) => (isOpen ? 'rotate(90deg)' : 'none')};
+`;
+
 export {
   StyledDvtTextarea,
   StyledDvtTextareaSelectRun,
@@ -100,4 +109,5 @@ export {
   StyledDvtTextareaGroup,
   StyledDvtTextareaDropdown,
   StyledDvtTextareaDropdownItem,
+  StyledDvtTextareaIcon
 };

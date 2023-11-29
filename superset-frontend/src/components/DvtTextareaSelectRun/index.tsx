@@ -28,6 +28,7 @@ import {
   StyledDvtTextareaGroup,
   StyledDvtTextareaDropdown,
   StyledDvtTextareaDropdownItem,
+  StyledDvtTextareaIcon,
 } from './dvt-textarea-select-run.module';
 
 export interface DvtTextareaSelectRunProps {
@@ -88,7 +89,9 @@ const DvtTextareaSelectRun: React.FC<DvtTextareaSelectRunProps> = ({
         <StyledDvtTextareaLimit onClick={handleIsOpen}>
           <StyledDvtTextareaLimitInput />
           LIMIT: {data.find(item => item.value === limit)?.label}
-          <Icon fileName="caret_down" iconSize="xxl" iconColor="black" />
+          <StyledDvtTextareaIcon isOpen={isOpen}>
+            <Icon fileName="caret_right" iconSize="xxl" iconColor="black" />
+          </StyledDvtTextareaIcon>
           {isOpen && (
             <StyledDvtTextareaDropdown>
               {data.map((option, index) => (
