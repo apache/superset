@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import DvtIconDataLabel, { DvtIconDataLabelProps } from '.';
+import { SupersetTheme } from '@superset-ui/core';
 
 export default {
   title: 'Dvt-Components/DvtIconDataLabel',
@@ -26,14 +27,24 @@ export default {
 
 export const Default = (args: DvtIconDataLabelProps) => {
   return (
-    <div style={{ height: '100vh' }}>
+    <div
+      css={(theme: SupersetTheme) => ({
+        height: '100vh',
+        backgroundColor: theme.colors.dvt.grayscale.light2,
+      })}
+    >
       <DvtIconDataLabel label="No Data" />
     </div>
   );
 };
-export const Example = (args: DvtIconDataLabelProps) => {
+export const ButtonExample = (args: DvtIconDataLabelProps) => {
   return (
-    <div style={{ height: '100vh' }}>
+    <div
+      css={(theme: SupersetTheme) => ({
+        height: '100vh',
+        backgroundColor: theme.colors.dvt.grayscale.light2,
+      })}
+    >
       <DvtIconDataLabel label="No Alerts Yet" button />
     </div>
   );

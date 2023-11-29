@@ -18,13 +18,13 @@
  */
 import React from 'react';
 import Icon from '../Icons/Icon';
+import DvtButton from '../DvtButton';
 import {
   StyledIconDataLabel,
   StyledIcon,
   StyledLabel,
   StyledButton,
 } from './dvt-icon-data-label.module';
-import DvtButton from '../DvtButton';
 
 export interface DvtIconDataLabelProps {
   label: string;
@@ -40,12 +40,12 @@ const DvtIconDataLabel: React.FC<DvtIconDataLabelProps> = ({
   return (
     <StyledIconDataLabel>
       <StyledIcon>
-        <Icon fileName="file" iconSize='xxl'></Icon>
+        <Icon fileName="file" iconSize="xxl"/>
       </StyledIcon>
       <StyledLabel>{label}</StyledLabel>
       {button && (
         <StyledButton>
-          <DvtButton label="Alert" onClick={buttonClick} maxWidth/>
+          <DvtButton label="Alert" onClick={buttonClick} maxWidth />
         </StyledButton>
       )}
     </StyledIconDataLabel>
