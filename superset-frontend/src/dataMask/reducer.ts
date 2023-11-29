@@ -37,6 +37,7 @@ import {
   CLEAR_DATA_MASK_STATE,
   SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE,
   UPDATE_DATA_MASK,
+  SET_DATA_MASK_FOR_REPORT,
 } from './actions';
 import { areObjectsEqual } from '../reduxUtils';
 
@@ -116,10 +117,11 @@ const dataMaskReducer = produce(
       // TODO: update hydrate to .ts
       // @ts-ignore
       case HYDRATE_DASHBOARD:
+      case SET_DATA_MASK_FOR_REPORT:
         if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
           Object.keys(
             // @ts-ignore
-            action.data.dashboardInfo?.metadata?.chart_configuration,
+            action.data.dashboardInfo?.metadata?.chart_configuration || {},
           ).forEach(id => {
             cleanState[id] = {
               ...getInitialDataMask(id), // take initial data

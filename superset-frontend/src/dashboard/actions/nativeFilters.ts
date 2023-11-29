@@ -395,6 +395,11 @@ export function unsetHoveredNativeFilter(): UnsetHoveredNativeFilter {
   };
 }
 
+export const setDashboardNativeFilter =
+  (config: FilterConfiguration) => (dispatch: Function) => {
+    dispatch({ type: SET_FILTER_CONFIG_COMPLETE, filterConfig: config });
+  };
+
 export const UPDATE_CASCADE_PARENT_IDS = 'UPDATE_CASCADE_PARENT_IDS';
 export interface UpdateCascadeParentIds {
   type: typeof UPDATE_CASCADE_PARENT_IDS;

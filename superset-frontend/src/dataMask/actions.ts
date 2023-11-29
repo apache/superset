@@ -23,6 +23,7 @@ import {
   FilterConfiguration,
   Filters,
 } from '@superset-ui/core';
+import { Dispatch } from 'redux';
 import { getInitialDataMask } from './reducer';
 
 export const CLEAR_DATA_MASK_STATE = 'CLEAR_DATA_MASK_STATE';
@@ -94,8 +95,33 @@ export function clearDataMaskState(): ClearDataMaskState {
   };
 }
 
+export const SET_DATA_MASK_FOR_REPORT = 'SET_DATA_MASK_FOR_REPORT';
+export interface SetDataMaskForReport {
+  type: typeof SET_DATA_MASK_FOR_REPORT;
+  data: {
+    dashboardInfo: {
+      metadata: any;
+    };
+    dataMask: DataMask;
+  };
+}
+
+export const setDataMaskForReport =
+  (metadata: any, dataMask: DataMask) => (dispatch: Dispatch) => {
+    dispatch({
+      type: SET_DATA_MASK_FOR_REPORT,
+      data: {
+        dashboardInfo: {
+          metadata,
+        },
+        dataMask,
+      },
+    });
+  };
+
 export type AnyDataMaskAction =
   | ClearDataMaskState
   | UpdateDataMask
   | SetDataMaskForFilterConfigFail
-  | SetDataMaskForFilterConfigComplete;
+  | SetDataMaskForFilterConfigComplete
+  | SetDataMaskForReport;

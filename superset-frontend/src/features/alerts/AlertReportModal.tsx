@@ -31,10 +31,12 @@ import {
   SupersetClient,
   SupersetTheme,
   t,
+  Filter,
+  Divider,
 } from '@superset-ui/core';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
-
+import { useDashboard } from 'src/hooks/apiResources';
 import Icons from 'src/components/Icons';
 import { Input } from 'src/components/Input';
 import { Switch } from 'src/components/Switch';
@@ -60,8 +62,16 @@ import {
   Recipient,
   AlertsReportsConfig,
 } from 'src/features/alerts/types';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import {
+  useFilters,
+  useNativeFiltersDataMask,
+} from 'src/dashboard/components/nativeFilters/FilterBar/state';
+import { setDashboardNativeFilter } from 'src/dashboard/actions/nativeFilters';
+import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
+import { setDataMaskForReport } from 'src/dataMask/actions';
+import FilterValue from 'src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterValue';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
 
@@ -461,6 +471,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   isReport = false,
   addSuccessToast,
 }) => {
+  const dispatch = useDispatch();
   const currentUser = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
@@ -471,6 +482,60 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [disableSave, setDisableSave] = useState<boolean>(true);
   const [currentAlert, setCurrentAlert] =
     useState<Partial<AlertObject> | null>();
+
+  // Dashboard Filters and Tabs
+  const { result: dashboard } = useDashboard(
+    currentAlert?.dashboard?.value || 0,
+  );
+  const [selectedDashboardFilters, setSelectedDashboardFilters] =
+    useState<string>();
+  const dataMaskApplied = useNativeFiltersDataMask();
+  const filters = useFilters();
+  const filterValues = useMemo(() => Object.values(filters), [filters]);
+  const filterWithDataMask: Filter | undefined = useMemo(() => {
+    const selectFilter = filterValues.find(
+      filter => filter.id === selectedDashboardFilters,
+    );
+    if (selectFilter) {
+      return {
+        ...selectFilter,
+        dataMask: dataMaskApplied[selectFilter.id],
+      };
+    }
+  }, [filterValues, dataMaskApplied, selectedDashboardFilters]);
+  const dashboardFilterOptions = useMemo(
+    () =>
+      filterValues.map(filter => ({
+        label: filter.name,
+        value: filter.id,
+      })),
+    [filterValues],
+  );
+
+  const allTabsNames: any[] = [];
+  const layout = dashboard?.position_data;
+  const rootChildId = dashboard?.position_data[DASHBOARD_ROOT_ID].children[0];
+  const getAllTabsName = node => {
+    if (node.type !== 'TAB' && node.type !== 'TABS') {
+      return;
+    }
+    const label = node?.meta?.text || node?.meta?.defaultText;
+    if (label) {
+      allTabsNames.push({
+        label,
+        value: node.id,
+      });
+    }
+    if (node.children) {
+      node.children.forEach(childId => {
+        getAllTabsName(layout[childId]);
+      });
+    }
+  };
+  if (layout) {
+    getAllTabsName(layout[rootChildId]);
+  }
+
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [contentType, setContentType] = useState<string>('dashboard');
   const [reportFormat, setReportFormat] = useState<string>(
@@ -768,6 +833,19 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       updateAlertState('database', getSourceData());
     }
   }, [databaseLabel, getSourceData]);
+  const readyToRender = Boolean(dashboard);
+  useEffect(() => {
+    if (readyToRender) {
+      dispatch(
+        setDashboardNativeFilter(
+          dashboard?.metadata?.native_filter_configuration,
+        ),
+      );
+      if (dashboard?.metadata) {
+        dispatch(setDataMaskForReport(dashboard?.metadata, {}));
+      }
+    }
+  }, [readyToRender, currentAlert?.dashboard]);
 
   const loadDashboardOptions = useMemo(
     () =>
@@ -1344,6 +1422,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </div>
             </div>
           )}
+
           <div className="column schedule">
             <StyledSectionTitle>
               <h4>
@@ -1358,6 +1437,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               onChange={newVal => updateAlertState('crontab', newVal)}
             />
             <div className="control-label">{TRANSLATIONS.TIMEZONE_TEXT}</div>
+
             <div
               className="input-container"
               css={(theme: SupersetTheme) => timezoneHeaderStyle(theme)}
@@ -1471,6 +1551,32 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 options={loadDashboardOptions}
                 onChange={onDashboardChange}
               />
+            )}
+
+            {dataMaskApplied && dashboardFilterOptions.length ? (
+              <StyledInputContainer>
+                <div className="control-label">Dashboard filter</div>
+                <Select
+                  onChange={value => setSelectedDashboardFilters(value)}
+                  options={dashboardFilterOptions}
+                />
+                {filterWithDataMask ? (
+                  <>
+                    <div className="control-label">value</div>
+                    <FilterValue
+                      dataMaskSelected={dataMaskApplied}
+                      filter={filterWithDataMask}
+                      onFilterSelectionChange={() => {}}
+                    />
+                  </>
+                ) : null}
+              </StyledInputContainer>
+            ) : null}
+            {allTabsNames.length > 0 && (
+              <StyledInputContainer>
+                <div className="control-label">Select Tab</div>
+                <Select onChange={onFormatChange} options={allTabsNames} />
+              </StyledInputContainer>
             )}
             {formatOptionEnabled && (
               <>
