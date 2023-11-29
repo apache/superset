@@ -17,8 +17,8 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import DvtTextareaSelectRun, { DvtTextareaSelectRunProps } from '.';
 import { SupersetTheme } from '@superset-ui/core';
+import DvtTextareaSelectRun, { DvtTextareaSelectRunProps } from '.';
 
 export default {
   title: 'Dvt-Components/DvtTextareaSelectRun',
@@ -34,7 +34,7 @@ export const Default = (args: DvtTextareaSelectRunProps) => {
         backgroundColor: theme.colors.dvt.grayscale.light2,
         height: '600px',
         width: '1440px',
-        margin:'50px'
+        margin: '50px',
       })}
     >
       <DvtTextareaSelectRun

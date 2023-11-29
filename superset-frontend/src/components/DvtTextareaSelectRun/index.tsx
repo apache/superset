@@ -67,7 +67,7 @@ const DvtTextareaSelectRun: React.FC<DvtTextareaSelectRunProps> = ({
       <StyledDvtTextareaGroup>
         <StyledDvtTextareaLimit onClick={handleIsOpen}>
           {limit.toString().length > 3
-            ? limit.toString().slice(0, -3) + ' 000'
+            ? `${limit.toString().slice(0, -3)} 000`
             : limit}
           <StyledDvtTextareaIcon isOpen={isOpen}>
             <Icon fileName="caret_right" iconSize="xxl" iconColor="black" />
@@ -82,7 +82,7 @@ const DvtTextareaSelectRun: React.FC<DvtTextareaSelectRunProps> = ({
                   Item={option}
                 >
                   {option.toString().length > 3
-                    ? option.toString().slice(0, -3) + ' 000'
+                    ? `${option.toString().slice(0, -3)} 000`
                     : option}
                 </StyledDvtTextareaDropdownItem>
               ))}
