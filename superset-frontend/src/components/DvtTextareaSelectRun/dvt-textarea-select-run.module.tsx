@@ -29,6 +29,10 @@ const dropdownKeyframes = keyframes`
 interface StyledDvtTextareaIconProps {
   isOpen: boolean;
 }
+interface StyledDvtTextareaItemProps {
+  selectedItem: number;
+  Item: number;
+}
 
 const StyledDvtTextareaSelectRun = styled.div`
   width: 1126px;
@@ -84,15 +88,21 @@ const StyledDvtTextareaDropdown = styled.div`
   transform-origin: top;
 `;
 
-const StyledDvtTextareaDropdownItem = styled.div`
+const StyledDvtTextareaDropdownItem = styled.div<StyledDvtTextareaItemProps>`
   padding: 5px;
   cursor: pointer;
-  color: ${({ theme }) => theme.colors.dvt.text.help};
-  background: ${({ theme }) => theme.colors.grayscale.light5};
-  &:hover {
-    color: ${({ theme }) => theme.colors.grayscale.light5};
-    background: ${({ theme }) => theme.colors.dvt.text.help};
-  }
+
+  ${({ theme, Item, selectedItem }) =>
+    Item === selectedItem
+      ? `
+      color: ${theme.colors.grayscale.light5};
+      background: ${theme.colors.dvt.text.help};
+      `
+      : `
+      color: ${theme.colors.dvt.text.help};
+      background: ${theme.colors.grayscale.light5};
+      }
+    `}
 `;
 
 const StyledDvtTextareaIcon = styled.div<StyledDvtTextareaIconProps>`
@@ -109,5 +119,5 @@ export {
   StyledDvtTextareaGroup,
   StyledDvtTextareaDropdown,
   StyledDvtTextareaDropdownItem,
-  StyledDvtTextareaIcon
+  StyledDvtTextareaIcon,
 };

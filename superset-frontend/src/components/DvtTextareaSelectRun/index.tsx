@@ -98,6 +98,8 @@ const DvtTextareaSelectRun: React.FC<DvtTextareaSelectRunProps> = ({
                 <StyledDvtTextareaDropdownItem
                   key={index}
                   onClick={() => handleDropdownClick(option.value)}
+                  selectedItem={limit}
+                  Item={option.value}
                 >
                   {option.label}
                 </StyledDvtTextareaDropdownItem>
