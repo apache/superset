@@ -88,7 +88,7 @@ const DvtTextareaSelectRun: React.FC<DvtTextareaSelectRunProps> = ({
       <StyledDvtTextareaGroup>
         <StyledDvtTextareaLimit onClick={handleIsOpen}>
           <StyledDvtTextareaLimitInput />
-          LIMIT: {data.find(item => item.value === limit)?.label}
+          LIMIT : {data.find(item => item.value === limit)?.label}
           <StyledDvtTextareaIcon isOpen={isOpen}>
             <Icon fileName="caret_right" iconSize="xxl" iconColor="black" />
           </StyledDvtTextareaIcon>
