@@ -178,6 +178,7 @@ Join our growing community!
 - [Grassroot](https://www.grassrootinstitute.org/)
 - [komoot](https://www.komoot.com/) [@christophlingg]
 - [Let's Roam](https://www.letsroam.com/)
+- [Onebeat](https://1beat.com/) [@GuyAttia]
 - [Twitter](https://twitter.com/)
 - [VLMedia](https://www.vlmedia.com.tr/) [@ibotheperfect]
 - [Yahoo!](https://yahoo.com/)
