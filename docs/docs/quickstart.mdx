@@ -56,6 +56,16 @@ password: admin
 
 #### 🎉 Congratulations! Superset is now up and running on your machine! 🎉
 
+### Wrapping Up
+Once you're done with Superset, you can stop and remove it just like any other container:
+```
+$ docker container rm -f superset
+```
+:::tip
+You can use the same container more than once, as Superset will persist data locally. However, make sure to properly stop all processes by running Docker
+`stop` command. By doing so, you can avoid data corruption and/or loss of data.
+:::
+
 ## What's next?
 
 From this point on, you can head on to:
