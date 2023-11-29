@@ -21,6 +21,7 @@ import fetchMock from 'fetch-mock';
 import sinon from 'sinon';
 
 import * as chartlib from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/core';
 import { LOG_EVENT } from 'src/logger/actions';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import * as actions from 'src/components/Chart/chartAction';
@@ -231,6 +232,72 @@ describe('chart actions', () => {
 
       expect(fetchMock.calls(mockBigIntUrl)).toHaveLength(1);
       expect(json.result[0].value.toString()).toEqual(expectedBigNumber);
+    });
+  });
+
+  describe('runAnnotationQuery', () => {
+    const mockDispatch = jest.fn();
+    const mockGetState = () => ({
+      charts: {
+        chartKey: {
+          latestQueryFormData: {
+            time_grain_sqla: 'P1D',
+            granularity_sqla: 'Date',
+          },
+        },
+      },
+    });
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should dispatch annotationQueryStarted and annotationQuerySuccess on successful query', async () => {
+      const annotation = {
+        name: 'Holidays',
+        annotationType: 'EVENT',
+        sourceType: 'NATIVE',
+        color: null,
+        opacity: '',
+        style: 'solid',
+        width: 1,
+        showMarkers: false,
+        hideLine: false,
+        value: 1,
+        overrides: {
+          time_range: null,
+        },
+        show: true,
+        showLabel: false,
+        titleColumn: '',
+        descriptionColumns: [],
+        timeColumn: '',
+        intervalEndColumn: '',
+      };
+      const key = undefined;
+
+      const postSpy = jest.spyOn(SupersetClient, 'post');
+      postSpy.mockImplementation(() =>
+        Promise.resolve({ json: { result: [] } }),
+      );
+      const buildV1ChartDataPayloadSpy = jest.spyOn(
+        exploreUtils,
+        'buildV1ChartDataPayload',
+      );
+
+      const queryFunc = actions.runAnnotationQuery({ annotation, key });
+      await queryFunc(mockDispatch, mockGetState);
+
+      expect(buildV1ChartDataPayloadSpy).toHaveBeenCalledWith({
+        formData: {
+          granularity: 'Date',
+          granularity_sqla: 'Date',
+          time_grain_sqla: 'P1D',
+        },
+        force: false,
+        resultFormat: 'json',
+        resultType: 'full',
+      });
     });
   });
 });
