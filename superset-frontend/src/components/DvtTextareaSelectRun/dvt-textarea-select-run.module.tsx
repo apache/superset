@@ -76,7 +76,6 @@ const StyledDvtTextareaDropdown = styled.div`
   right: 0;
   background: ${({ theme }) => theme.colors.dvt.primary.light2};
   max-width: 145px;
-  overflow-y: auto;
   animation: ${dropdownKeyframes} 0.3s ease-in-out;
   transform-origin: top;
 `;
