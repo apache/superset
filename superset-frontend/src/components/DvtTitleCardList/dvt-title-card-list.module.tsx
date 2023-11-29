@@ -24,7 +24,6 @@ const DvtCardListButton = styled.div`
   justify-content: flex-end;
   gap: 10px;
   cursor: pointer;
-  transition: transform 0.2s ease;
 `;
 
 export {

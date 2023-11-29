@@ -74,7 +74,7 @@ export const Default = (args: DvtTitleCardListProps) => {
     const updatedData: any = [
       ...findRemoveCard,
       { ...findCard, isFavorite: !isFavorite },
-    ].sort((a: any, b: any) => a.id - b.id);
+    ].sort((a: CardDataProps, b: CardDataProps) => a.id - b.id);
     setData(updatedData);
   };
   return (
