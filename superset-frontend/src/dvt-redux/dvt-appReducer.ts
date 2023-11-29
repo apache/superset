@@ -30,12 +30,10 @@ const dvtAppSlice = createSlice({
   name: 'dvt-app',
   initialState,
   reducers: {
-    dvtAppSetSort: (state, action: PayloadAction<boolean>) => {
-      return {
-        ...state,
-        sort: action.payload,
-      };
-    },
+    dvtAppSetSort: (state, action: PayloadAction<boolean>) => ({
+      ...state,
+      sort: action.payload,
+    }),
   },
 });
 
