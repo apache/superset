@@ -16,7 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import { keyframes, styled } from '@superset-ui/core';
+const dropdownKeyframes = keyframes`
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+`;
 
 const StyledDvtTextareaSelectRun = styled.div`
   width: 1126px;
@@ -38,6 +46,21 @@ const StyledDvtTextarea = styled.textarea`
 `;
 
 const StyledDvtTextareaLimit = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+const StyledDvtTextareaLimitInput = styled.div`
+  position: relative;
+  background: ${({ theme }) => theme.colors.grayscale.light5};
+`;
+const StyledDvtTextareaButton = styled.div`
+  width: 110px;
+  margin-left: 20px;
+`;
+
+const StyledDvtTextareaGroup = styled.div`
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -45,17 +68,28 @@ const StyledDvtTextareaLimit = styled.div`
   font-weight: 500;
   margin-right: 20px;
 `;
-const StyledDvtTextareaLimitInput = styled.input`
-  max-width: 55px;
-  background: ${({ theme }) => theme.colors.grayscale.light5};
-  border: none;
-  &:focus {
-    outline: none;
-  }
+
+const StyledDvtTextareaDropdown = styled.div`
+  position: absolute;
+  top: 35px;
+  left: 0;
+  right: 0;
+  background: ${({ theme }) => theme.colors.dvt.primary.light2};
+  max-width: 145px;
+  overflow-y: auto;
+  animation: ${dropdownKeyframes} 0.3s ease-in-out;
+  transform-origin: top;
 `;
-const StyledDvtTextareaButton = styled.div`
-  width: 110px;
-  margin-left: 20px;
+
+const StyledDvtTextareaDropdownItem = styled.div`
+  padding: 5px;
+  cursor: pointer;
+  color: ${({ theme }) => theme.colors.dvt.text.help};
+  background: ${({ theme }) => theme.colors.grayscale.light5};
+  &:hover {
+    color: ${({ theme }) => theme.colors.grayscale.light5};
+    background: ${({ theme }) => theme.colors.dvt.text.help};
+  }
 `;
 
 export {
@@ -64,4 +98,7 @@ export {
   StyledDvtTextareaLimit,
   StyledDvtTextareaLimitInput,
   StyledDvtTextareaButton,
+  StyledDvtTextareaGroup,
+  StyledDvtTextareaDropdown,
+  StyledDvtTextareaDropdownItem,
 };

@@ -25,7 +25,7 @@ export default {
 };
 
 export const Default = (args: DvtTextareaSelectRunProps) => {
-  const [limit, setLimit] = useState<number>(1000);
+  const [limit, setLimit] = useState<number>(100);
   const [value, setValue] = useState<string>('');
   return (
     <DvtTextareaSelectRun

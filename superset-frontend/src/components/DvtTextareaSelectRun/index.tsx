@@ -16,21 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import DvtButton from '../DvtButton';
+import Icon from '../Icons/Icon';
 import {
   StyledDvtTextarea,
   StyledDvtTextareaSelectRun,
   StyledDvtTextareaLimit,
   StyledDvtTextareaLimitInput,
   StyledDvtTextareaButton,
+  StyledDvtTextareaGroup,
+  StyledDvtTextareaDropdown,
+  StyledDvtTextareaDropdownItem,
 } from './dvt-textarea-select-run.module';
 
 export interface DvtTextareaSelectRunProps {
   limit: number;
   setLimit: (newLimit: number) => void;
   clickRun: () => void;
-  disabled?: boolean;
   placeholder?: string;
   value: string;
   setValue: (newValue: string) => void;
@@ -40,38 +43,69 @@ const DvtTextareaSelectRun: React.FC<DvtTextareaSelectRunProps> = ({
   limit,
   setLimit,
   clickRun,
-  disabled = false,
   placeholder,
   value,
   setValue,
 }) => {
-  const handleLimit = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newLimit = parseInt(event.target.value, 10);
-    setLimit(newLimit);
-    if (value.length > newLimit) {
-      setValue(value.slice(0, newLimit));
-    }
+  const [isOpen, setIsOpen] = useState(false);
+  const data = [
+    {
+      value: 10,
+      label: '10',
+    },
+    {
+      value: 100,
+      label: '100',
+    },
+    {
+      value: 1000,
+      label: '1 000',
+    },
+    {
+      value: 10000,
+      label: '10 000',
+    },
+    {
+      value: 100000,
+      label: '100 000',
+    },
+  ];
+  const handleDropdownClick = (value: number) => {
+    setLimit(value);
+    setIsOpen(false);
+  };
+  const handleIsOpen = () => {
+    setIsOpen(!isOpen);
   };
   return (
     <StyledDvtTextareaSelectRun>
       <StyledDvtTextarea
-        maxLength={limit}
         placeholder={placeholder}
         value={value}
         onChange={event => setValue(event.target.value)}
       />
-      <StyledDvtTextareaLimit>
-        LIMIT:
-        <StyledDvtTextareaLimitInput
-          defaultValue={limit}
-          onBlur={handleLimit}
-          disabled={disabled}
-          maxLength={4}
-        />
+      <StyledDvtTextareaGroup>
+        <StyledDvtTextareaLimit onClick={handleIsOpen}>
+          <StyledDvtTextareaLimitInput />
+          LIMIT: {data.find(item => item.value === limit)?.label}
+          <Icon fileName="caret_down" iconSize="xxl" iconColor="black" />
+          {isOpen && (
+            <StyledDvtTextareaDropdown>
+              {data.map((option, index) => (
+                <StyledDvtTextareaDropdownItem
+                  key={index}
+                  onClick={() => handleDropdownClick(option.value)}
+                >
+                  {option.label}
+                </StyledDvtTextareaDropdownItem>
+              ))}
+            </StyledDvtTextareaDropdown>
+          )}
+        </StyledDvtTextareaLimit>
         <StyledDvtTextareaButton>
           <DvtButton label="Run" onClick={clickRun} maxWidth />
         </StyledDvtTextareaButton>
-      </StyledDvtTextareaLimit>
+      </StyledDvtTextareaGroup>
     </StyledDvtTextareaSelectRun>
   );
 };
