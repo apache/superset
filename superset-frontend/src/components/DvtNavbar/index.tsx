@@ -17,6 +17,9 @@
  * under the License.
  */
 import React, { useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { useAppSelector } from 'src/hooks/useAppSelector';
+import { dvtAppSetSort } from 'src/dvt-redux/dvt-appReducer';
 import {
   StyledDvtNavbar,
   NavbarTop,
@@ -26,9 +29,6 @@ import {
 import DvtTabs from '../DvtTabs';
 import DvtButton from '../DvtButton';
 import DvtDotTitle from '../DvtDotTitle';
-import { useDispatch } from 'react-redux';
-import { dvtAppSetSort } from 'src/dvt-redux/dvt-appReducer';
-import { useAppSelector } from 'src/hooks/useAppSelector';
 
 const dashboardTabs = [
   { label: 'All', icon: 'full' },

@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,10 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { validateMapboxStylesUrl } from '@superset-ui/core';
+import './setup';
 
-export { default as legacyValidateInteger } from './legacyValidateInteger';
-export { default as legacyValidateNumber } from './legacyValidateNumber';
-export { default as validateInteger } from './validateInteger';
-export { default as validateNumber } from './validateNumber';
-export { default as validateNonEmpty } from './validateNonEmpty';
-export { default as validateMapboxStylesUrl } from './validateMapboxStylesUrl';
+describe('validateMapboxStylesUrl', () => {
+  it('should validate mapbox style URLs', () => {
+    expect(
+      validateMapboxStylesUrl('mapbox://styles/mapbox/streets-v9'),
+    ).toEqual(false);
+    expect(
+      validateMapboxStylesUrl(
+        'mapbox://styles/foobar/clp2dr5r4008a01pcg4ad45m8',
+      ),
+    ).toEqual(false);
+  });
+
+  [
+    123,
+    ['mapbox://styles/mapbox/streets-v9'],
+    { url: 'mapbox://styles/mapbox/streets-v9' },
+    'https://superset.apache.org/',
+    'mapbox://tileset/mapbox/streets-v9',
+  ].forEach(value => {
+    it(`should not validate ${value}`, () => {
+      expect(validateMapboxStylesUrl(value)).toEqual(
+        'is expected to be a Mapbox URL',
+      );
+    });
+  });
+});

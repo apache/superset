@@ -27,7 +27,8 @@ export default {
       label: t('Map'),
       expanded: true,
       controlSetRows: [
-        [mapboxStyle, viewport],
+        [mapboxStyle],
+        [viewport],
         [
           {
             name: 'deck_slices',

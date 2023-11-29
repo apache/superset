@@ -17,9 +17,20 @@
  * under the License.
  */
 
-export { default as legacyValidateInteger } from './legacyValidateInteger';
-export { default as legacyValidateNumber } from './legacyValidateNumber';
-export { default as validateInteger } from './validateInteger';
-export { default as validateNumber } from './validateNumber';
-export { default as validateNonEmpty } from './validateNonEmpty';
-export { default as validateMapboxStylesUrl } from './validateMapboxStylesUrl';
+import { t } from '../translation';
+
+/**
+ * Validate a [Mapbox styles URL](https://docs.mapbox.com/help/glossary/style-url/)
+ * @param v
+ */
+export default function validateMapboxStylesUrl(v: unknown) {
+  if (
+    typeof v === 'string' &&
+    v.trim().length > 0 &&
+    v.trim().startsWith('mapbox://styles/')
+  ) {
+    return false;
+  }
+
+  return t('is expected to be a Mapbox URL');
+}
