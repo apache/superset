@@ -168,6 +168,14 @@ class TagDAO(BaseDAO[Tag]):
         )
 
     @staticmethod
+    def get_tagged_objects_by_tag_id(
+        tag_ids: Optional[list[int]], obj_types: Optional[list[str]] = None
+    ) -> list[dict[str, Any]]:
+        tags = db.session.query(Tag).filter(Tag.id.in_(tag_ids)).all()
+        tag_names = [tag.name for tag in tags]
+        return TagDAO.get_tagged_objects_for_tags(tag_names, obj_types)
+
+    @staticmethod
     def get_tagged_objects_for_tags(
         tags: Optional[list[str]] = None, obj_types: Optional[list[str]] = None
     ) -> list[dict[str, Any]]:

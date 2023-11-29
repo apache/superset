@@ -26,7 +26,7 @@ import { Input } from 'antd';
 import { Divider } from 'src/components';
 import Button from 'src/components/Button';
 import { Tag } from 'src/views/CRUD/types';
-import { fetchObjects } from 'src/features/tags/tags';
+import { fetchObjectsByTagIds } from 'src/features/tags/tags';
 
 const StyledModalBody = styled.div`
   .ant-select-dropdown {
@@ -115,8 +115,8 @@ const TagModal: React.FC<TagModalProps> = ({
     };
     clearResources();
     if (isEditMode) {
-      fetchObjects(
-        { tags: editTag.name, types: null },
+      fetchObjectsByTagIds(
+        { tagIds: [editTag.id], types: null },
         (data: Tag[]) => {
           data.forEach(updateResourceOptions);
           setDashboardsToTag(resourceMap[TaggableResources.Dashboard]);
