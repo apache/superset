@@ -17,6 +17,7 @@
  * under the License.
  */
 import { keyframes, styled } from '@superset-ui/core';
+
 const dropdownKeyframes = keyframes`
   from {
     transform: scaleY(0);
@@ -29,6 +30,7 @@ const dropdownKeyframes = keyframes`
 interface StyledDvtTextareaIconProps {
   isOpen: boolean;
 }
+
 interface StyledDvtTextareaItemProps {
   selectedItem: number;
   Item: number;
@@ -59,10 +61,12 @@ const StyledDvtTextareaLimit = styled.div`
   align-items: center;
   gap: 4px;
 `;
+
 const StyledDvtTextareaLimitInput = styled.div`
   position: relative;
   background: ${({ theme }) => theme.colors.grayscale.light5};
 `;
+
 const StyledDvtTextareaButton = styled.div`
   width: 110px;
   margin-left: 20px;
