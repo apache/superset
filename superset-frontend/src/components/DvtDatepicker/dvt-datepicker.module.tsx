@@ -53,6 +53,8 @@ const StyledDatepickerGroup = styled.div`
 const StyledDatepickerInput = styled.input<StyledDatePickerProps>`
   background-color: ${({ theme }) => theme.colors.dvt.grayscale.light2};
   border: none;
+  cursor: pointer;
+  width: 100%;
   ::-webkit-inner-spin-button,
   ::-webkit-calendar-picker-indicator {
     display: none;
