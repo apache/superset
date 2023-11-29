@@ -59,7 +59,7 @@ const DvtTextareaSelectRun: React.FC<DvtTextareaSelectRunProps> = ({
         placeholder={placeholder}
         value={value}
         onChange={event => setValue(event.target.value)}
-      ></StyledDvtTextarea>
+      />
       <StyledDvtTextareaLimit>
         LIMIT:
         <StyledDvtTextareaLimitInput
