@@ -37,16 +37,17 @@ interface StyledDvtTextareaItemProps {
 }
 
 const StyledDvtTextareaSelectRun = styled.div`
+  position: relative;
   width: 1126px;
   height: 281px;
   border-radius: 12px;
+  background: ${({ theme }) => theme.colors.grayscale.light5};
 `;
 
 const StyledDvtTextarea = styled.textarea`
   width: 1066px;
-  height: 187px;
+  height: 221px;
   border: none;
-  background: ${({ theme }) => theme.colors.grayscale.light5};
   color: ${({ theme }) => theme.colors.dvt.text.help};
   resize: none;
   margin: 30px 30px 0 30px;
@@ -60,11 +61,7 @@ const StyledDvtTextareaLimit = styled.div`
   display: flex;
   align-items: center;
   gap: 4px;
-`;
-
-const StyledDvtTextareaLimitInput = styled.div`
-  position: relative;
-  background: ${({ theme }) => theme.colors.grayscale.light5};
+  cursor: pointer;
 `;
 
 const StyledDvtTextareaButton = styled.div`
@@ -73,12 +70,15 @@ const StyledDvtTextareaButton = styled.div`
 `;
 
 const StyledDvtTextareaGroup = styled.div`
+  position: absolute;
+  bottom: 0;
+  right: 0;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   font-size: 16px;
   font-weight: 500;
   margin-right: 20px;
+  margin-bottom: 20px;
 `;
 
 const StyledDvtTextareaDropdown = styled.div`
@@ -118,7 +118,6 @@ export {
   StyledDvtTextarea,
   StyledDvtTextareaSelectRun,
   StyledDvtTextareaLimit,
-  StyledDvtTextareaLimitInput,
   StyledDvtTextareaButton,
   StyledDvtTextareaGroup,
   StyledDvtTextareaDropdown,

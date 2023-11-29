@@ -23,7 +23,6 @@ import {
   StyledDvtTextarea,
   StyledDvtTextareaSelectRun,
   StyledDvtTextareaLimit,
-  StyledDvtTextareaLimitInput,
   StyledDvtTextareaButton,
   StyledDvtTextareaGroup,
   StyledDvtTextareaDropdown,
@@ -49,28 +48,8 @@ const DvtTextareaSelectRun: React.FC<DvtTextareaSelectRunProps> = ({
   setValue,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const data = [
-    {
-      value: 10,
-      label: '10',
-    },
-    {
-      value: 100,
-      label: '100',
-    },
-    {
-      value: 1000,
-      label: '1 000',
-    },
-    {
-      value: 10000,
-      label: '10 000',
-    },
-    {
-      value: 100000,
-      label: '100 000',
-    },
-  ];
+  const limitData = [10, 100, 1000, 10000, 100000];
+
   const handleDropdownClick = (value: number) => {
     setLimit(value);
     setIsOpen(false);
@@ -87,21 +66,24 @@ const DvtTextareaSelectRun: React.FC<DvtTextareaSelectRunProps> = ({
       />
       <StyledDvtTextareaGroup>
         <StyledDvtTextareaLimit onClick={handleIsOpen}>
-          <StyledDvtTextareaLimitInput />
-          LIMIT: {data.find(item => item.value === limit)?.label}
+          {limit.toString().length > 3
+            ? limit.toString().slice(0, -3) + ' 000'
+            : limit}
           <StyledDvtTextareaIcon isOpen={isOpen}>
             <Icon fileName="caret_right" iconSize="xxl" iconColor="black" />
           </StyledDvtTextareaIcon>
           {isOpen && (
             <StyledDvtTextareaDropdown>
-              {data.map((option, index) => (
+              {limitData.map((option, index) => (
                 <StyledDvtTextareaDropdownItem
                   key={index}
-                  onClick={() => handleDropdownClick(option.value)}
+                  onClick={() => handleDropdownClick(option)}
                   selectedItem={limit}
-                  Item={option.value}
+                  Item={option}
                 >
-                  {option.label}
+                  {option.toString().length > 3
+                    ? option.toString().slice(0, -3) + ' 000'
+                    : option}
                 </StyledDvtTextareaDropdownItem>
               ))}
             </StyledDvtTextareaDropdown>

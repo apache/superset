@@ -18,6 +18,7 @@
  */
 import React, { useState } from 'react';
 import DvtTextareaSelectRun, { DvtTextareaSelectRunProps } from '.';
+import { SupersetTheme } from '@superset-ui/core';
 
 export default {
   title: 'Dvt-Components/DvtTextareaSelectRun',
@@ -28,13 +29,22 @@ export const Default = (args: DvtTextareaSelectRunProps) => {
   const [limit, setLimit] = useState<number>(100);
   const [value, setValue] = useState<string>('');
   return (
-    <DvtTextareaSelectRun
-      limit={limit}
-      setLimit={setLimit}
-      clickRun={() => {}}
-      placeholder="SELECT..."
-      value={value}
-      setValue={setValue}
-    />
+    <div
+      css={(theme: SupersetTheme) => ({
+        backgroundColor: theme.colors.dvt.grayscale.light2,
+        height: '600px',
+        width: '1440px',
+        margin:'50px'
+      })}
+    >
+      <DvtTextareaSelectRun
+        limit={limit}
+        setLimit={setLimit}
+        clickRun={() => {}}
+        placeholder="SELECT..."
+        value={value}
+        setValue={setValue}
+      />
+    </div>
   );
 };
