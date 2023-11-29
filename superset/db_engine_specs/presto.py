@@ -427,6 +427,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         limit: int = 0,
         order_by: list[tuple[str, bool]] | None = None,
         filters: dict[Any, Any] | None = None,
+        is_trino: bool = False,
     ) -> str:
         """
         Return a partition query.
@@ -467,7 +468,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
             full_table_name = f"{schema}.{table_name}" if schema else table_name
             partition_select_clause = f"SHOW PARTITIONS FROM {full_table_name}"
         else:
-            system_table_name = f'"{table_name}$partitions"'
+            system_table_name = f'"{table_name}$partitions"' if not is_trino else table_name
             full_table_name = (
                 f"{schema}.{system_table_name}" if schema else system_table_name
             )

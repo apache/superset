@@ -59,8 +59,11 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         schema_name: str | None,
     ) -> dict[str, Any]:
         metadata = {}
+        if "$partitions" in table_name:
+            logger.debug(f"{table_name} table contains $partitions")
+            table_name = table_name.replace("$partitions", "")
 
-        if indexes := database.get_indexes(table_name, schema_name.replace("$partitions", "")):
+        if indexes := database.get_indexes(table_name, schema_name):
             col_names, latest_parts = cls.latest_partition(
                 table_name,
                 schema_name,
@@ -89,6 +92,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                     schema=schema_name,
                     indexes=indexes,
                     database=database,
+                    is_trino=True
                 ),
             }
 
