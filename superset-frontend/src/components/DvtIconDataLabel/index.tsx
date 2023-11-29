@@ -36,20 +36,18 @@ const DvtIconDataLabel: React.FC<DvtIconDataLabelProps> = ({
   button = false,
   label,
   buttonClick = () => {},
-}) => {
-  return (
-    <StyledIconDataLabel>
-      <StyledIcon>
-        <Icon fileName="file" iconSize="xxl"/>
-      </StyledIcon>
-      <StyledLabel>{label}</StyledLabel>
-      {button && (
-        <StyledButton>
-          <DvtButton label="Alert" onClick={buttonClick} maxWidth />
-        </StyledButton>
-      )}
-    </StyledIconDataLabel>
-  );
-};
+}) => (
+  <StyledIconDataLabel>
+    <StyledIcon>
+      <Icon fileName="file" iconSize="xxl" />
+    </StyledIcon>
+    <StyledLabel>{label}</StyledLabel>
+    {button && (
+      <StyledButton>
+        <DvtButton label="Alert" onClick={buttonClick} maxWidth />
+      </StyledButton>
+    )}
+  </StyledIconDataLabel>
+);
 
 export default DvtIconDataLabel;

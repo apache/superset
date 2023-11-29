@@ -17,15 +17,15 @@
  * under the License.
  */
 import React from 'react';
-import DvtIconDataLabel, { DvtIconDataLabelProps } from '.';
 import { SupersetTheme } from '@superset-ui/core';
+import DvtIconDataLabel from '.';
 
 export default {
   title: 'Dvt-Components/DvtIconDataLabel',
   component: DvtIconDataLabel,
 };
 
-export const Default = (args: DvtIconDataLabelProps) => {
+export const Default = () => {
   return (
     <div
       css={(theme: SupersetTheme) => ({
@@ -37,7 +37,7 @@ export const Default = (args: DvtIconDataLabelProps) => {
     </div>
   );
 };
-export const ButtonExample = (args: DvtIconDataLabelProps) => {
+export const ButtonExample = () => {
   return (
     <div
       css={(theme: SupersetTheme) => ({
