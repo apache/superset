@@ -45,7 +45,7 @@ const DvtDatePicker: React.FC<DvtDatePickerProps> = ({
   setSelectedDate,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [inputValue, setInputValue] = useState<string | ''>();
+  const [inputValue, setInputValue] = useState<string>('');
 
   const handleCalendarOpen = () => {
     setIsOpen(true);
