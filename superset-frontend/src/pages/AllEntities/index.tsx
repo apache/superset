@@ -33,7 +33,7 @@ import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import { Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
 import withToasts, { useToasts } from 'src/components/MessageToasts/withToasts';
-import { fetchObjects, fetchSingleTag } from 'src/features/tags/tags';
+import { fetchObjectsByTagIds, fetchSingleTag } from 'src/features/tags/tags';
 import Loading from 'src/components/Loading';
 
 interface TaggedObject {
@@ -146,8 +146,12 @@ function AllEntities() {
 
   const fetchTaggedObjects = () => {
     setLoading(true);
-    fetchObjects(
-      { tags: tag?.name || '', types: null },
+    if (!tag) {
+      addDangerToast('Error tag object is not referenced!');
+      return;
+    }
+    fetchObjectsByTagIds(
+      { tagIds: [tag?.id] || '', types: null },
       (data: TaggedObject[]) => {
         const objects = { dashboard: [], chart: [], query: [] };
         data.forEach(function (object) {

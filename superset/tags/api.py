@@ -584,12 +584,21 @@ class TagRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        tag_ids = [
+            tag_id for tag_id in request.args.get("tagIds", "").split(",") if tag_id
+        ]
         tags = [tag for tag in request.args.get("tags", "").split(",") if tag]
         # filter types
         types = [type_ for type_ in request.args.get("types", "").split(",") if type_]
 
         try:
-            tagged_objects = TagDAO.get_tagged_objects_for_tags(tags, types)
+            if tag_ids:
+                # priotize using ids for lookups vs. names mainly using this
+                # for backward compatibility
+                tagged_objects = TagDAO.get_tagged_objects_by_tag_id(tag_ids, types)
+            else:
+                tagged_objects = TagDAO.get_tagged_objects_for_tags(tags, types)
+
             result = [
                 self.object_entity_response_schema.dump(tagged_object)
                 for tagged_object in tagged_objects
@@ -609,11 +618,11 @@ class TagRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def favorite_status(self, **kwargs: Any) -> Response:
-        """Favorite Stars for Dashboards
+        """Favorite Stars for Tags
         ---
         get:
           description: >-
-            Check favorited dashboards for current user
+            Get favorited tags for current user
           parameters:
           - in: query
             name: q
