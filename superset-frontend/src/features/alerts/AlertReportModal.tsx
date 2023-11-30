@@ -492,7 +492,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const dataMaskApplied = useNativeFiltersDataMask();
   const filters = useFilters();
   const filterValues = useMemo(() => Object.values(filters), [filters]);
-  const filterWithDataMask: Filter | undefined = useMemo(() => {
+  const filterWithDataMask: Filter | Divider | undefined = useMemo(() => {
     const selectFilter = filterValues.find(
       filter => filter.id === selectedDashboardFilters,
     );
@@ -502,6 +502,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         dataMask: dataMaskApplied[selectFilter.id],
       };
     }
+    return undefined;
   }, [filterValues, dataMaskApplied, selectedDashboardFilters]);
   const dashboardFilterOptions = useMemo(
     () =>
