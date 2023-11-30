@@ -25,18 +25,16 @@ export default {
   component: DvtProfileInformation,
 };
 
-export const Default = (args: DvtProfileInformationProps) => {
-  return (
-    <div
-      css={(theme: SupersetTheme) => ({
-        backgroundColor: theme.colors.dvt.grayscale.light2,
-        padding: '100px',
-      })}
-    >
-      <DvtProfileInformation {...args} />
-    </div>
-  );
-};
+export const Default = (args: DvtProfileInformationProps) => (
+  <div
+    css={(theme: SupersetTheme) => ({
+      backgroundColor: theme.colors.dvt.grayscale.light2,
+      padding: '100px',
+    })}
+  >
+    <DvtProfileInformation {...args} />
+  </div>
+);
 
 Default.args = {
   userData: [

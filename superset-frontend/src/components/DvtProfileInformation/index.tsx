@@ -48,23 +48,26 @@ const DvtProfileInformation: React.FC<DvtProfileInformationProps> = ({
     if (diffDays < 1) {
       const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
       return `Joined ${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`;
-    } else if (diffDays < 7) {
+    }
+    if (diffDays < 7) {
       return `Joined ${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`;
-    } else if (diffDays < 30) {
+    }
+    if (diffDays < 30) {
       const diffWeeks = Math.floor(diffDays / 7);
       return `Joined ${diffWeeks} ${diffWeeks === 1 ? 'week' : 'weeks'} ago`;
-    } else if (diffDays < 365) {
+    }
+    if (diffDays < 365) {
       const diffMonths = Math.floor(diffDays / 30);
       return `Joined ${diffMonths} ${
         diffMonths === 1 ? 'month' : 'months'
       } ago`;
-    } else {
-      const diffYears = Math.floor(diffDays / 365);
-      const remainingMonths = Math.floor((diffDays % 365) / 30);
-      return `Joined ${diffYears} ${diffYears === 1 ? 'year' : 'years'} ${
-        remainingMonths > 0 ? `and ${remainingMonths} months` : ''
-      } ago`;
     }
+
+    const diffYears = Math.floor(diffDays / 365);
+    const remainingMonths = Math.floor((diffDays % 365) / 30);
+    return `Joined ${diffYears} ${diffYears === 1 ? 'year' : 'years'} ${
+      remainingMonths > 0 ? `and ${remainingMonths} months` : ''
+    } ago`;
   };
 
   return (
@@ -74,6 +77,7 @@ const DvtProfileInformation: React.FC<DvtProfileInformationProps> = ({
           <StyledProfileImage>
             <img
               src={user.image}
+              alt={`Profile picture`}
               height={155}
               width={155}
               style={{ borderRadius: '155px' }}
