@@ -25,6 +25,7 @@ const StyledProfileIndormation = styled.div`
   border-radius: 12px;
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
 `;
+
 const StyledProfileImage = styled.div`
   position: absolute;
   width: 155px;
@@ -33,6 +34,7 @@ const StyledProfileImage = styled.div`
   top: -42px;
   right: 99px;
 `;
+
 const StyledHeading = styled.div`
   color: ${({ theme }) => theme.colors.dvt.text.bold};
   text-align: center;
@@ -40,6 +42,7 @@ const StyledHeading = styled.div`
   font-weight: 700;
   padding-top: 160px;
 `;
+
 const StyledInformation = styled.div`
   color: ${({ theme }) => theme.colors.dvt.text.help};
   text-align: center;
