@@ -27,18 +27,21 @@ import {
 } from './dvt-profile-information.module';
 
 export interface DvtProfileInformationProps {
-  userData: {
-    image: string;
-    header: string;
-    location: string;
-    joinedDate: string;
-    title: string;
-    test: string;
-  }[];
+  image: string;
+  header: string;
+  location: string;
+  joinedDate: string;
+  title: string;
+  test: string;
 }
 
 const DvtProfileInformation: React.FC<DvtProfileInformationProps> = ({
-  userData,
+  image,
+  header,
+  location,
+  joinedDate,
+  title,
+  test,
 }) => {
   const getTimeAgo = (joinedDate: Date): string => {
     const now = new Date();
@@ -72,28 +75,24 @@ const DvtProfileInformation: React.FC<DvtProfileInformationProps> = ({
 
   return (
     <StyledProfileIndormation>
-      {userData.map(user => (
+      <StyledProfileImage>
+        <img
+          src={image}
+          alt="Profile"
+          height={155}
+          width={155}
+          style={{ borderRadius: '155px' }}
+        />
+      </StyledProfileImage>
+      <StyledHeading>{header}</StyledHeading>
+      <StyledInformation>
+        <StyledInformationDiv>{location}</StyledInformationDiv>
         <StyledInformationDiv>
-          <StyledProfileImage>
-            <img
-              src={user.image}
-              alt="Profile"
-              height={155}
-              width={155}
-              style={{ borderRadius: '155px' }}
-            />
-          </StyledProfileImage>
-          <StyledHeading>{user.header}</StyledHeading>
-          <StyledInformation>
-            <StyledInformationDiv>{user.location}</StyledInformationDiv>
-            <StyledInformationDiv>
-              {getTimeAgo(new Date(user.joinedDate))}
-            </StyledInformationDiv>
-          </StyledInformation>
-          <StyledLabel>Title: {user.title}</StyledLabel>
-          <StyledLabel>Test: {user.test}</StyledLabel>
+          {getTimeAgo(new Date(joinedDate))}
         </StyledInformationDiv>
-      ))}
+      </StyledInformation>
+      <StyledLabel>Title: {title}</StyledLabel>
+      <StyledLabel>Test: {test}</StyledLabel>
     </StyledProfileIndormation>
   );
 };
