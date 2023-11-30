@@ -624,7 +624,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const removeNotificationSetting = (index: number) => {
     const settings = notificationSettings.slice();
-    console.log('settings remove', settings);
 
     settings.splice(index, 1);
     setNotificationSettings(settings);
@@ -642,7 +641,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   // Functions
   const hide = () => {
-    console.log('HIDE');
     clearError();
     setIsHidden(true);
     onHide();
