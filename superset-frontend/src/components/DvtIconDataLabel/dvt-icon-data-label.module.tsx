@@ -25,13 +25,16 @@ const StyledIconDataLabel = styled.div`
   align-items: center;
   justify-content: center;
 `;
+
 const StyledIcon = styled.div``;
+
 const StyledLabel = styled.label`
   font-size: 23px;
   font-weight: 500;
   color: ${({ theme }) => theme.colors.text.help};
   margin-top: 25px;
 `;
+
 const StyledButton = styled.div`
   width: 110px;
   margin-top: 25px;
