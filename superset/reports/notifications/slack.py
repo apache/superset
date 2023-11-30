@@ -64,7 +64,7 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
     def _get_channel(self) -> str:
         recipient_str = json.loads(self._recipient.recipient_config_json)["target"]
 
-        return ", ".join(get_email_address_list(recipient_str))
+        return ",".join(get_email_address_list(recipient_str))
 
     def _message_template(self, table: str = "") -> str:
         return __(
