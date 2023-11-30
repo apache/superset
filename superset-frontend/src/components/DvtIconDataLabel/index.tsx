@@ -17,8 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import Icon from '../Icons/Icon';
+import { SupersetTheme } from '@superset-ui/core';
 import DvtButton from '../DvtButton';
+import { FileTextOutlined } from '@ant-design/icons';
 import {
   StyledIconDataLabel,
   StyledIcon,
@@ -39,7 +40,14 @@ const DvtIconDataLabel: React.FC<DvtIconDataLabelProps> = ({
 }) => (
   <StyledIconDataLabel>
     <StyledIcon>
-      <Icon fileName="file" iconSize="xxl" />
+      <FileTextOutlined
+        css={(theme: SupersetTheme) => ({
+          color: theme.colors.text.help,
+          fontSize: '102px',
+          stroke: theme.colors.grayscale.light5,
+          strokeWidth: '40px',
+        })}
+      />
     </StyledIcon>
     <StyledLabel>{label}</StyledLabel>
     {button && (
