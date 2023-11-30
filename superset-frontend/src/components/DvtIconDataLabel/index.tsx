@@ -18,8 +18,8 @@
  */
 import React from 'react';
 import { SupersetTheme } from '@superset-ui/core';
-import DvtButton from '../DvtButton';
 import { FileTextOutlined } from '@ant-design/icons';
+import DvtButton from '../DvtButton';
 import {
   StyledIconDataLabel,
   StyledIcon,
