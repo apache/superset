@@ -24,18 +24,18 @@ export default {
   component: DvtNavigationBarItem,
 };
 
-export const Default = (args: DvtNavigationBarItemProps) => {
-  return <DvtNavigationBarItem {...args} />;
-};
+export const Default = (args: DvtNavigationBarItemProps) => (
+  <DvtNavigationBarItem {...args} />
+);
+
+export const Active = (args: DvtNavigationBarItemProps) => (
+  <DvtNavigationBarItem {...args} />
+);
 
 Default.args = {
   icon: 'calendar',
   label: 'Schedule',
   onClick: () => {},
-};
-
-export const Active = (args: DvtNavigationBarItemProps) => {
-  return <DvtNavigationBarItem {...args} />;
 };
 
 Active.args = {
