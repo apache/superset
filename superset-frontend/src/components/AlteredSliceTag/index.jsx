@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { isEqual, isEmpty } from 'lodash';
 import { styled, t } from '@superset-ui/core';
@@ -45,7 +45,7 @@ const StyledLabel = styled.span`
   `}
 `;
 
-function alterForComparison(value) {
+export const alterForComparison = value => {
   // Considering `[]`, `{}`, `null` and `undefined` as identical
   // for this purpose
   if (value === undefined || value === null || value === '') {
@@ -61,74 +61,73 @@ function alterForComparison(value) {
     }
   }
   return value;
-}
+};
+
+export const formatValueHandler = (value, key, controlsMap) => {
+  // Format display value based on the control type
+  // or the value type
+  if (value === undefined) {
+    return 'N/A';
+  }
+  if (value === null) {
+    return 'null';
+  }
+  if (controlsMap[key]?.type === 'AdhocFilterControl') {
+    if (!value.length) {
+      return '[]';
+    }
+    return value
+      .map(v => {
+        const filterVal =
+          v.comparator && v.comparator.constructor === Array
+            ? `[${v.comparator.join(', ')}]`
+            : v.comparator;
+        return `${v.subject} ${v.operator} ${filterVal}`;
+      })
+      .join(', ');
+  }
+  if (controlsMap[key]?.type === 'BoundsControl') {
+    return `Min: ${value[0]}, Max: ${value[1]}`;
+  }
+  if (controlsMap[key]?.type === 'CollectionControl') {
+    return value.map(v => safeStringify(v)).join(', ');
+  }
+  if (
+    controlsMap[key]?.type === 'MetricsControl' &&
+    value.constructor === Array
+  ) {
+    const formattedValue = value.map(v => v?.label ?? v);
+    return formattedValue.length ? formattedValue.join(', ') : '[]';
+  }
+  if (typeof value === 'boolean') {
+    return value ? 'true' : 'false';
+  }
+  if (value.constructor === Array) {
+    const formattedValue = value.map(v => v?.label ?? v);
+    return formattedValue.length ? formattedValue.join(', ') : '[]';
+  }
+  if (typeof value === 'string' || typeof value === 'number') {
+    return value;
+  }
+  return safeStringify(value);
+};
+
+export const getRowsFromDiffs = (diffs, controlsMap) =>
+  Object.entries(diffs).map(([key, diff]) => ({
+    control: (controlsMap[key] && controlsMap[key].label) || key,
+    before: formatValueHandler(diff.before, key, controlsMap),
+    after: formatValueHandler(diff.after, key, controlsMap),
+  }));
+
+export const isEqualish = (val1, val2) =>
+  isEqual(alterForComparison(val1), alterForComparison(val2));
 
 const AlteredSliceTag = props => {
-  const formatValueHandler = useCallback((value, key, controlsMap) => {
-    // Format display value based on the control type
-    // or the value type
-    if (value === undefined) {
-      return 'N/A';
-    }
-    if (value === null) {
-      return 'null';
-    }
-    if (controlsMap[key]?.type === 'AdhocFilterControl') {
-      if (!value.length) {
-        return '[]';
-      }
-      return value
-        .map(v => {
-          const filterVal =
-            v.comparator && v.comparator.constructor === Array
-              ? `[${v.comparator.join(', ')}]`
-              : v.comparator;
-          return `${v.subject} ${v.operator} ${filterVal}`;
-        })
-        .join(', ');
-    }
-    if (controlsMap[key]?.type === 'BoundsControl') {
-      return `Min: ${value[0]}, Max: ${value[1]}`;
-    }
-    if (controlsMap[key]?.type === 'CollectionControl') {
-      return value.map(v => safeStringify(v)).join(', ');
-    }
-    if (
-      controlsMap[key]?.type === 'MetricsControl' &&
-      value.constructor === Array
-    ) {
-      const formattedValue = value.map(v => v?.label ?? v);
-      return formattedValue.length ? formattedValue.join(', ') : '[]';
-    }
-    if (typeof value === 'boolean') {
-      return value ? 'true' : 'false';
-    }
-    if (value.constructor === Array) {
-      const formattedValue = value.map(v => v?.label ?? v);
-      return formattedValue.length ? formattedValue.join(', ') : '[]';
-    }
-    if (typeof value === 'string' || typeof value === 'number') {
-      return value;
-    }
-    return safeStringify(value);
-  }, []);
+  const prevProps = useRef({});
+  const [rows, setRows] = useState([]);
+  const [hasDiffs, setHasDiffs] = useState(false);
 
-  const getRowsFromDiffsHandler = useCallback(
-    (diffs, controlsMap) =>
-      Object.entries(diffs).map(([key, diff]) => ({
-        control: (controlsMap[key] && controlsMap[key].label) || key,
-        before: formatValueHandler(diff.before, key, controlsMap),
-        after: formatValueHandler(diff.after, key, controlsMap),
-      })),
-    [],
-  );
-
-  const isEqualishHandler = useCallback(
-    (val1, val2) => isEqual(alterForComparison(val1), alterForComparison(val2)),
-    [],
-  );
-
-  const getDiffsHandler = useCallback(props => {
+  const getDiffs = useCallback(props => {
     // Returns all properties that differ in the
     // current form data and the saved form data
     const ofd = sanitizeFormData(props.origFormData);
@@ -143,30 +142,36 @@ const AlteredSliceTag = props => {
       if (['filters', 'having', 'where'].includes(fdKey)) {
         return;
       }
-      if (!isEqualishHandler(ofd[fdKey], cfd[fdKey])) {
+      if (!isEqualish(ofd[fdKey], cfd[fdKey])) {
         diffs[fdKey] = { before: ofd[fdKey], after: cfd[fdKey] };
       }
     });
     return diffs;
   }, []);
 
-  const diffs = getDiffsHandler(props);
-  const controlsMap = getControlsForVizType(props.origFormData.viz_type);
-  const rows = getRowsFromDiffsHandler(diffs, controlsMap);
+  useEffect(() => {
+    const diffs = getDiffs(props);
+    const controlsMap = getControlsForVizType(props.origFormData?.viz_type);
+    const rows = getRowsFromDiffs(diffs, controlsMap);
+    const hasDiffs = !isEmpty(diffs);
+    setRows(rows);
+    setHasDiffs(hasDiffs);
+  }, []);
 
-  const [hasDiffs] = useState(!isEmpty(diffs));
+  useEffect(() => {
+    const diffs = getDiffs(props);
 
-  // const UNSAFE_componentWillReceivePropsHandler = useCallback(newProps => {
-  //   // Update differences if need be
-  //   if (isEqual(props, newProps)) {
-  //     return;
-  //   }
-  //   const diffs = getDiffsHandler(newProps);
-  //   setStateHandler(prevState => ({
-  //     rows: getRowsFromDiffsHandler(diffs, prevState.controlsMap),
-  //     hasDiffs: !isEmpty(diffs),
-  //   }));
-  // }, []);
+    const updateStateWithDiffs = newProps => {
+      if (isEqual(prevProps.current, newProps)) {
+        return;
+      }
+      setRows(prevRows => getRowsFromDiffs(diffs, prevRows));
+      setHasDiffs(!isEmpty(diffs));
+    };
+
+    updateStateWithDiffs(props);
+    prevProps.current = props;
+  }, [getDiffs, props]);
 
   const renderModalBodyHandler = useCallback(() => {
     const columns = [
@@ -195,7 +200,8 @@ const AlteredSliceTag = props => {
         columnsForWrapText={columnsForWrapText}
       />
     );
-  }, []);
+  }, [rows]);
+
   const renderTriggerNodeHandler = useCallback(
     () => (
       <Tooltip id="difference-tooltip" title={t('Click to see difference')}>
