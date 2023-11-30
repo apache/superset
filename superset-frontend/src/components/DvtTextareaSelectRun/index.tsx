@@ -66,7 +66,7 @@ const DvtTextareaSelectRun: React.FC<DvtTextareaSelectRunProps> = ({
       />
       <StyledDvtTextareaGroup>
         <StyledDvtTextareaLimit onClick={handleIsOpen}>
-          {limit.toString().length > 3
+         LIMIT: {limit.toString().length > 3
             ? `${limit.toString().slice(0, -3)} 000`
             : limit}
           <StyledDvtTextareaIcon isOpen={isOpen}>

@@ -62,6 +62,7 @@ const StyledDvtTextareaLimit = styled.div`
   align-items: center;
   gap: 4px;
   cursor: pointer;
+  min-width: 110px;
 `;
 
 const StyledDvtTextareaButton = styled.div`
