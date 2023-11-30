@@ -34,7 +34,7 @@ export const Default = (args: DvtTextareaSelectRunProps) => {
         backgroundColor: theme.colors.dvt.grayscale.light2,
         height: '600px',
         width: '1440px',
-        margin: '50px',
+        padding: '50px',
       })}
     >
       <DvtTextareaSelectRun
