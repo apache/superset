@@ -8,20 +8,26 @@ sidebar_position: 2
 It assumes that you have [Docker](https://www.docker.com) installed.
 
 ### 1. Get Superset
+To get started, add the latest Superset version in the `SUPERSET_VERSION` environment variable, and pull the container from Docker Hub:
 ```
-$ docker pull apache/superset:3.0.2
+$ export SUPERSET_VERSION="";
+         docker pull apache/superset:$SUPERSET_VERSION
 ```
+:::tip
+Not sure what the latest stable Superset version is? [Click here](https://github.com/apache/superset/releases) to check our release page 
+for up-to-date information.
+:::
 
 ### 2. Start Superset
 ```
 $ docker run -d -p 8080:8088 \
              -e "SUPERSET_SECRET_KEY=$(openssl rand -base64 42)" \
              -e "TALISMAN_ENABLED=False" \
-             --name superset apache/superset:3.0.2
+             --name superset apache/superset:$SUPERSET_VERSION
 ```
 :::tip
-Note that some configuration is mandatory for Superset in order to start.
-In particular, Superset will not start without a user-specified value of `SECRET_KEY` in a Superset configuration file or `SUPERSET_SECRET_KEY` as an environment variable.
+Note that some configuration is mandatory for Superset in order to start. In particular, Superset will not start without
+a user-specified value of `SECRET_KEY` in a Superset configuration file or `SUPERSET_SECRET_KEY` as an environment variable.
 Please see [Configuring Superset](https://superset.apache.org/docs/installation/configuring-superset/) for more details.
 :::
 
@@ -62,8 +68,8 @@ Once you're done with Superset, you can stop and remove it just like any other c
 $ docker container rm -f superset
 ```
 :::tip
-You can use the same container more than once, as Superset will persist data locally. However, make sure to properly stop all processes by running Docker
-`stop` command. By doing so, you can avoid data corruption and/or loss of data.
+You can use the same container more than once, as Superset will persist data locally. However, make sure to properly stop all
+processes by running Docker `stop` command. By doing so, you can avoid data corruption and/or loss of data.
 :::
 
 ## What's next?
