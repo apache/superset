@@ -44,11 +44,14 @@ const DvtProfileInformation: React.FC<DvtProfileInformationProps> = ({
   test,
 }) => {
   const getTimeAgo = (joinedDate: Date | string): string => {
-    if (!(joinedDate instanceof Date)) {
-      joinedDate = new Date(joinedDate);
+    let dateToUse = joinedDate;
+
+    if (!(dateToUse instanceof Date)) {
+      dateToUse = new Date(dateToUse);
     }
+
     const now = new Date();
-    const diffTime = Math.abs(now.getTime() - joinedDate.getTime());
+    const diffTime = Math.abs(now.getTime() - dateToUse.getTime());
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     if (diffDays < 1) {
       const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
