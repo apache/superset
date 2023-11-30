@@ -25,27 +25,24 @@ export default {
   component: DvtIconDataLabel,
 };
 
-export const Default = () => {
-  return (
-    <div
-      css={(theme: SupersetTheme) => ({
-        height: '100vh',
-        backgroundColor: theme.colors.dvt.grayscale.light2,
-      })}
-    >
-      <DvtIconDataLabel label="No Data" />
-    </div>
-  );
-};
-export const ButtonExample = () => {
-  return (
-    <div
-      css={(theme: SupersetTheme) => ({
-        height: '100vh',
-        backgroundColor: theme.colors.dvt.grayscale.light2,
-      })}
-    >
-      <DvtIconDataLabel label="No Alerts Yet" button />
-    </div>
-  );
-};
+export const Default = () => (
+  <div
+    css={(theme: SupersetTheme) => ({
+      height: '100vh',
+      backgroundColor: theme.colors.dvt.grayscale.light2,
+    })}
+  >
+    <DvtIconDataLabel label="No Data" />
+  </div>
+);
+
+export const ButtonExample = () => (
+  <div
+    css={(theme: SupersetTheme) => ({
+      height: '100vh',
+      backgroundColor: theme.colors.dvt.grayscale.light2,
+    })}
+  >
+    <DvtIconDataLabel label="No Alerts Yet" button />
+  </div>
+);
