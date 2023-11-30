@@ -29,13 +29,13 @@ import {
 
 export interface DvtIconDataLabelProps {
   label: string;
-  button?: boolean;
+  buttonLabel?: string;
   buttonClick?: () => void;
 }
 
 const DvtIconDataLabel: React.FC<DvtIconDataLabelProps> = ({
-  button = false,
   label,
+  buttonLabel,
   buttonClick = () => {},
 }) => (
   <StyledIconDataLabel>
@@ -50,9 +50,9 @@ const DvtIconDataLabel: React.FC<DvtIconDataLabelProps> = ({
       />
     </StyledIcon>
     <StyledLabel>{label}</StyledLabel>
-    {button && (
+    {buttonLabel && (
       <StyledButton>
-        <DvtButton label="Alert" onClick={buttonClick} maxWidth />
+        <DvtButton label={buttonLabel} onClick={buttonClick} maxWidth />
       </StyledButton>
     )}
   </StyledIconDataLabel>

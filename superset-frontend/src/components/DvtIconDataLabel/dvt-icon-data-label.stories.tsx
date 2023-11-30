@@ -43,6 +43,6 @@ export const ButtonExample = () => (
       backgroundColor: theme.colors.dvt.grayscale.light2,
     })}
   >
-    <DvtIconDataLabel label="No Alerts Yet" button />
+    <DvtIconDataLabel label="No Alerts Yet" buttonLabel="Alert" />
   </div>
 );
