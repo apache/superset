@@ -30,7 +30,7 @@ export interface DvtProfileInformationProps {
   image: string;
   header: string;
   location: string;
-  joinedDate: string;
+  joinedDate: Date;
   title: string;
   test: string;
 }
@@ -43,11 +43,13 @@ const DvtProfileInformation: React.FC<DvtProfileInformationProps> = ({
   title,
   test,
 }) => {
-  const getTimeAgo = (joinedDate: Date): string => {
+  const getTimeAgo = (joinedDate: Date | string): string => {
+    if (!(joinedDate instanceof Date)) {
+      joinedDate = new Date(joinedDate);
+    }
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - joinedDate.getTime());
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
     if (diffDays < 1) {
       const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
       return `Joined ${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`;
@@ -87,9 +89,7 @@ const DvtProfileInformation: React.FC<DvtProfileInformationProps> = ({
       <StyledHeading>{header}</StyledHeading>
       <StyledInformation>
         <StyledInformationDiv>{location}</StyledInformationDiv>
-        <StyledInformationDiv>
-          {getTimeAgo(new Date(joinedDate))}
-        </StyledInformationDiv>
+        <StyledInformationDiv>{getTimeAgo(joinedDate)}</StyledInformationDiv>
       </StyledInformation>
       <StyledLabel>Title: {title}</StyledLabel>
       <StyledLabel>Test: {test}</StyledLabel>
