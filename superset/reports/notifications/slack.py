@@ -60,8 +60,16 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
 
     type = ReportRecipientType.SLACK
 
-    # Use utils function to parse & format recipients
     def _get_channel(self) -> str:
+        """
+        Get the recipient's channel(s).
+        
+        Note Slack SDK uses "channel" to refer to one or more
+        channels. Multiple channels are demarcated by a comma.
+    
+        :returns: The comma separated list of channel(s)
+        """
+        
         recipient_str = json.loads(self._recipient.recipient_config_json)["target"]
 
         return ",".join(get_email_address_list(recipient_str))
