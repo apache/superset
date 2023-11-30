@@ -20,13 +20,10 @@ import { styled } from '@superset-ui/core';
 
 interface StyledNavigationBarItemLabelProps {
   active: boolean;
-  notActive: boolean;
 }
 
 const StyledNavigationBarItem = styled.div`
-  display: flex;
-  width: 250px;
-  padding: 0px 24px;
+  display: inline-flex;
   align-items: center;
   cursor: pointer;
 `;
@@ -36,12 +33,8 @@ const StyledNavigationBarItemIcon = styled.div`
 `;
 
 const StyledNavigationBarItemLabel = styled.div<StyledNavigationBarItemLabelProps>`
-  color: ${({ active, notActive, theme }) =>
-    notActive
-      ? theme.colors.dvt.text.label
-      : active
-      ? theme.colors.dvt.primary.base
-      : theme.colors.dvt.text.label};
+  color: ${({ active, theme }) =>
+    active ? theme.colors.dvt.primary.base : theme.colors.dvt.text.label};
   font-size: 16px;
   font-weight: 500;
   letter-spacing: 0.2px;

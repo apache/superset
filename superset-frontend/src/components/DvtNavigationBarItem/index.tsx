@@ -38,23 +38,20 @@ const DvtNavigationBarItem: React.FC<DvtNavigationBarItemProps> = ({
   label,
   onClick,
   active = false,
-  notActive = false,
 }) => (
   <StyledNavigationBarItem onClick={onClick}>
     <StyledNavigationBarItemIcon>
       <Icon
         fileName={icon}
         css={(theme: SupersetTheme) => ({
-          color: notActive
-            ? theme.colors.dvt.text.label
-            : active
+          color: active
             ? theme.colors.dvt.primary.base
             : theme.colors.dvt.text.label,
           fontSize: '16.5px',
         })}
       />
     </StyledNavigationBarItemIcon>
-    <StyledNavigationBarItemLabel active={active} notActive={notActive}>
+    <StyledNavigationBarItemLabel active={active}>
       {label}
     </StyledNavigationBarItemLabel>
   </StyledNavigationBarItem>
