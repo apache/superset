@@ -56,7 +56,7 @@ g.window.IntersectionObserver ??= IntersectionObserver;
 g.window.ResizeObserver ??= ResizeObserver;
 g.window.featureFlags ??= {};
 g.URL.createObjectURL ??= () => '';
-g.caches ??= new CacheStorage();
+g.caches = new CacheStorage();
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
