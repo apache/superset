@@ -69,7 +69,6 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
     
         :returns: The comma separated list of channel(s)
         """
-        
         recipient_str = json.loads(self._recipient.recipient_config_json)["target"]
 
         return ",".join(get_email_address_list(recipient_str))
