@@ -30,7 +30,6 @@ export interface DvtNavigationBarItemProps {
   label: string;
   onClick: () => void;
   active?: boolean;
-  notActive?: boolean;
 }
 
 const DvtNavigationBarItem: React.FC<DvtNavigationBarItemProps> = ({
