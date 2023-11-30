@@ -47,7 +47,6 @@ import {
   isDefined,
   hasGenericChartAxes,
   NO_TIME_RANGE,
-  validateNonEmpty,
   validateMaxValue,
 } from '@superset-ui/core';
 
