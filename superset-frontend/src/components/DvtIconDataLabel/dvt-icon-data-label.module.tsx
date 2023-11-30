@@ -36,7 +36,7 @@ const StyledLabel = styled.label`
 `;
 
 const StyledButton = styled.div`
-  width: 110px;
+  min-width: 110px;
   margin-top: 25px;
 `;
 
