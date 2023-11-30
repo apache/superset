@@ -77,7 +77,7 @@ const DvtProfileInformation: React.FC<DvtProfileInformationProps> = ({
           <StyledProfileImage>
             <img
               src={user.image}
-              alt="Profile image"
+              alt="Profile"
               height={155}
               width={155}
               style={{ borderRadius: '155px' }}
