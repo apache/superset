@@ -16,9 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+
+import React, { useState, useCallback, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { isEqual, isEmpty } from 'lodash';
-import { QueryFormData, styled, t, usePrevious } from '@superset-ui/core';
+import { styled, t, usePrevious } from '@superset-ui/core';
 import { sanitizeFormData } from 'src/explore/exploreUtils/formData';
 import getControlsForVizType from 'src/utils/getControlsForVizType';
 import { safeStringify } from 'src/utils/safeStringify';
@@ -26,45 +28,9 @@ import { Tooltip } from 'src/components/Tooltip';
 import ModalTrigger from '../ModalTrigger';
 import TableView from '../TableView';
 
-interface AlteredSliceTagProps {
-  origFormData: QueryFormData;
-  currentFormData: QueryFormData;
-}
-
-export interface ControlMap {
-  [key: string]: {
-    label?: string;
-    type?: string;
-  };
-}
-
-type FilterItemType = {
-  comparator?: string | string[];
-  subject: string;
-  operator: string;
-  label?: string;
-};
-
-export type DiffItemType<
-  T = FilterItemType | number | string | Record<string | number, any>,
-> =
-  | T[]
-  | boolean
-  | number
-  | string
-  | Record<string | number, any>
-  | null
-  | undefined;
-
-export type DiffType = {
-  before: DiffItemType;
-  after: DiffItemType;
-};
-
-export type RowType = {
-  before: string | number;
-  after: string | number;
-  control: string;
+const propTypes = {
+  origFormData: PropTypes.object.isRequired,
+  currentFormData: PropTypes.object.isRequired,
 };
 
 const StyledLabel = styled.span`
@@ -73,46 +39,45 @@ const StyledLabel = styled.span`
     color: ${theme.colors.grayscale.dark1};
     background-color: ${theme.colors.alert.base};
 
-    &:hover {
+    &: hover {
       background-color: ${theme.colors.alert.dark1};
     }
   `}
 `;
 
-export const alterForComparison = (
-  value?: string | null | [],
-): string | null => {
-  // Treat `null`, `undefined`, and empty strings as equivalent
+export const alterForComparison = value => {
+  // Considering `[]`, `{}`, `null` and `undefined` as identical
+  // for this purpose
   if (value === undefined || value === null || value === '') {
     return null;
   }
-  // Treat empty arrays and objects as equivalent to null
-  if (Array.isArray(value) && value.length === 0) {
-    return null;
-  }
-  if (typeof value === 'object' && Object.keys(value).length === 0) {
-    return null;
+  if (typeof value === 'object') {
+    if (Array.isArray(value) && value.length === 0) {
+      return null;
+    }
+    const keys = Object.keys(value);
+    if (keys && keys.length === 0) {
+      return null;
+    }
   }
   return value;
 };
 
-export const formatValueHandler = (
-  value: any,
-  key: string,
-  controlsMap: ControlMap,
-): string | number => {
+export const formatValueHandler = (value, key, controlsMap) => {
+  // Format display value based on the control type
+  // or the value type
   if (value === undefined) {
     return 'N/A';
   }
   if (value === null) {
     return 'null';
   }
-  if (controlsMap[key]?.type === 'AdhocFilterControl' && Array.isArray(value)) {
+  if (controlsMap[key]?.type === 'AdhocFilterControl') {
     if (!value.length) {
       return '[]';
     }
     return value
-      .map((v: any) => {
+      .map(v => {
         const filterVal =
           v.comparator && v.comparator.constructor === Array
             ? `[${v.comparator.join(', ')}]`
@@ -124,21 +89,21 @@ export const formatValueHandler = (
   if (controlsMap[key]?.type === 'BoundsControl') {
     return `Min: ${value[0]}, Max: ${value[1]}`;
   }
-  if (controlsMap[key]?.type === 'CollectionControl' && Array.isArray(value)) {
-    return value.map((v: any) => safeStringify(v)).join(', ');
+  if (controlsMap[key]?.type === 'CollectionControl') {
+    return value.map(v => safeStringify(v)).join(', ');
   }
   if (
     controlsMap[key]?.type === 'MetricsControl' &&
     value.constructor === Array
   ) {
-    const formattedValue = value.map((v: any) => v?.label ?? v);
+    const formattedValue = value.map(v => v?.label ?? v);
     return formattedValue.length ? formattedValue.join(', ') : '[]';
   }
   if (typeof value === 'boolean') {
     return value ? 'true' : 'false';
   }
-  if (Array.isArray(value)) {
-    const formattedValue = value.map((v: any) => v?.label ?? v);
+  if (value.constructor === Array) {
+    const formattedValue = value.map(v => v?.label ?? v);
     return formattedValue.length ? formattedValue.join(', ') : '[]';
   }
   if (typeof value === 'string' || typeof value === 'number') {
@@ -147,23 +112,20 @@ export const formatValueHandler = (
   return safeStringify(value);
 };
 
-export const getRowsFromDiffs = (
-  diffs: { [key: string]: DiffType },
-  controlsMap: ControlMap,
-): RowType[] =>
+export const getRowsFromDiffs = (diffs, controlsMap) =>
   Object.entries(diffs).map(([key, diff]) => ({
-    control: controlsMap[key]?.label || key,
+    control: (controlsMap[key] && controlsMap[key].label) || key,
     before: formatValueHandler(diff.before, key, controlsMap),
     after: formatValueHandler(diff.after, key, controlsMap),
   }));
 
-export const isEqualish = (val1: string, val2: string): boolean =>
+export const isEqualish = (val1, val2) =>
   isEqual(alterForComparison(val1), alterForComparison(val2));
 
-const AlteredSliceTag: React.FC<AlteredSliceTagProps> = props => {
+const AlteredSliceTag = props => {
   const prevProps = usePrevious(props);
-  const [rows, setRows] = useState<RowType[]>([]);
-  const [hasDiffs, setHasDiffs] = useState<boolean>(false);
+  const [rows, setRows] = useState([]);
+  const [hasDiffs, setHasDiffs] = useState(false);
 
   const getDiffs = useCallback(() => {
     // Returns all properties that differ in the
@@ -172,7 +134,7 @@ const AlteredSliceTag: React.FC<AlteredSliceTagProps> = props => {
     const cfd = sanitizeFormData(props.currentFormData);
 
     const fdKeys = Object.keys(cfd);
-    const diffs: { [key: string]: DiffType } = {};
+    const diffs = {};
     fdKeys.forEach(fdKey => {
       if (!ofd[fdKey] && !cfd[fdKey]) {
         return;
@@ -189,9 +151,7 @@ const AlteredSliceTag: React.FC<AlteredSliceTagProps> = props => {
 
   useEffect(() => {
     const diffs = getDiffs();
-    const controlsMap = getControlsForVizType(
-      props.origFormData?.viz_type,
-    ) as ControlMap;
+    const controlsMap = getControlsForVizType(props.origFormData?.viz_type);
     setRows(getRowsFromDiffs(diffs, controlsMap));
     setHasDiffs(!isEmpty(diffs));
   }, [getDiffs, props]);
@@ -203,9 +163,7 @@ const AlteredSliceTag: React.FC<AlteredSliceTagProps> = props => {
       if (isEqual(prevProps, props)) {
         return;
       }
-      setRows(prevRows =>
-        getRowsFromDiffs(diffs, prevRows as unknown as ControlMap),
-      );
+      setRows(prevRows => getRowsFromDiffs(diffs, prevRows));
       setHasDiffs(!isEmpty(diffs));
     };
 
@@ -253,7 +211,9 @@ const AlteredSliceTag: React.FC<AlteredSliceTagProps> = props => {
   if (!hasDiffs) {
     return null;
   }
-
+  // Render the label-warning 'Altered' tag which the user may
+  // click to open a modal containing a table summarizing the
+  // differences in the slice
   return (
     <ModalTrigger
       triggerNode={renderTriggerNode()}
@@ -265,3 +225,5 @@ const AlteredSliceTag: React.FC<AlteredSliceTagProps> = props => {
 };
 
 export default AlteredSliceTag;
+
+AlteredSliceTag.propTypes = propTypes;

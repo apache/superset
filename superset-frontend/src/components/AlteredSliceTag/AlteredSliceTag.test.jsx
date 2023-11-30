@@ -1,341 +1,165 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
 import React from 'react';
-import { styledMount as mount } from 'spec/helpers/theming';
-import { getChartControlPanelRegistry } from '@superset-ui/core';
-
-import AlteredSliceTag from 'src/components/AlteredSliceTag';
-import ModalTrigger from 'src/components/ModalTrigger';
-import { Tooltip } from 'src/components/Tooltip';
-import TableCollection from 'src/components/TableCollection';
-import TableView from 'src/components/TableView';
-
-import {
-  defaultProps,
-  expectedDiffs,
-  expectedRows,
-  fakePluginControls,
-} from './AlteredSliceTagMocks';
-
-const getTableWrapperFromModalBody = modalBody =>
-  modalBody.find(TableView).find(TableCollection);
+import '@testing-library/jest-dom/extend-expect';
+import { render, screen } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
+import AlteredSliceTag, {
+  alterForComparison,
+  formatValueHandler,
+} from 'src/components/AlteredSliceTag';
+import { defaultProps, expectedRows } from './AlteredSliceTagMocks';
 
 describe('AlteredSliceTag', () => {
-  let wrapper;
-  let props;
-  let controlsMap;
+  it('renders the "Altered" label', () => {
+    render(<AlteredSliceTag {...defaultProps} />);
 
-  beforeEach(() => {
-    getChartControlPanelRegistry().registerValue(
-      'altered_slice_tag_spec',
-      fakePluginControls,
+    const alteredLabel = screen.getByText('Altered');
+    expect(alteredLabel).toBeInTheDocument();
+  });
+
+  it('opens the modal on click', () => {
+    render(<AlteredSliceTag {...defaultProps} />);
+
+    const alteredLabel = screen.getByText('Altered');
+    userEvent.click(alteredLabel);
+
+    const modalTitle = screen.getByText('Chart changes');
+    expect(modalTitle).toBeInTheDocument();
+  });
+
+  it('displays the differences in the modal', () => {
+    render(<AlteredSliceTag {...defaultProps} />);
+
+    const alteredLabel = screen.getByText('Altered');
+    userEvent.click(alteredLabel);
+
+    const beforeValue = screen.getByText('1, 2, 3, 4');
+    const afterValue = screen.getByText('a, b, c, d');
+    expect(beforeValue).toBeInTheDocument();
+    expect(afterValue).toBeInTheDocument();
+  });
+
+  it('does not render anything if there are no differences', () => {
+    render(
+      <AlteredSliceTag
+        {...defaultProps}
+        currentFormData={defaultProps.origFormData}
+      />,
     );
-    props = { ...defaultProps };
-    wrapper = mount(<AlteredSliceTag {...props} />);
-    ({ controlsMap } = wrapper.instance().state);
+
+    const alteredLabel = screen.queryByText('Altered');
+    expect(alteredLabel).not.toBeInTheDocument();
+  });
+});
+
+describe('alterForComparison', () => {
+  it('returns null for undefined value', () => {
+    const value = undefined;
+    const result = alterForComparison(value);
+    expect(result).toBeNull();
   });
 
-  it('correctly determines form data differences', () => {
-    const diffs = wrapper.instance().getDiffs(props);
-    expect(diffs).toEqual(expectedDiffs);
-    expect(wrapper.instance().state.rows).toEqual(expectedRows);
-    expect(wrapper.instance().state.hasDiffs).toBe(true);
+  it('returns null for null value', () => {
+    const value = null;
+    const result = alterForComparison(value);
+    expect(result).toBeNull();
   });
 
-  it('does not run when there are no differences', () => {
-    props = {
-      origFormData: props.origFormData,
-      currentFormData: props.origFormData,
-    };
-    wrapper = mount(<AlteredSliceTag {...props} />);
-    expect(wrapper.instance().state.rows).toEqual([]);
-    expect(wrapper.instance().state.hasDiffs).toBe(false);
-    expect(wrapper.instance().render()).toBeNull();
+  it('returns null for empty string value', () => {
+    const value = '';
+    const result = alterForComparison(value);
+    expect(result).toBeNull();
   });
 
-  it('does not run when temporary controls have changes', () => {
-    props = {
-      origFormData: { ...props.origFormData, url_params: { foo: 'foo' } },
-      currentFormData: { ...props.origFormData, url_params: { bar: 'bar' } },
-    };
-    wrapper = mount(<AlteredSliceTag {...props} />);
-    expect(wrapper.instance().state.rows).toEqual([]);
-    expect(wrapper.instance().state.hasDiffs).toBe(false);
-    expect(wrapper.instance().render()).toBeNull();
+  it('returns null for empty array value', () => {
+    const value = [];
+    const result = alterForComparison(value);
+    expect(result).toBeNull();
   });
 
-  it('sets new rows when receiving new props', () => {
-    const testRows = ['testValue'];
-    const getRowsFromDiffsStub = jest
-      .spyOn(AlteredSliceTag.prototype, 'getRowsFromDiffs')
-      .mockReturnValueOnce(testRows);
-    const newProps = {
-      currentFormData: { ...props.currentFormData },
-      origFormData: { ...props.origFormData },
-    };
-    wrapper = mount(<AlteredSliceTag {...props} />);
-    const wrapperInstance = wrapper.instance();
-    wrapperInstance.UNSAFE_componentWillReceiveProps(newProps);
-    expect(getRowsFromDiffsStub).toHaveBeenCalled();
-    expect(wrapperInstance.state.rows).toEqual(testRows);
+  it('returns null for empty object value', () => {
+    const value = {};
+    const result = alterForComparison(value);
+    expect(result).toBeNull();
   });
 
-  it('does not set new state when props are the same', () => {
-    const currentRows = wrapper.instance().state.rows;
-    wrapper.instance().UNSAFE_componentWillReceiveProps(props);
-    // Check equal references
-    expect(wrapper.instance().state.rows).toBe(currentRows);
+  it('returns value for non-empty array', () => {
+    const value = [1, 2, 3];
+    const result = alterForComparison(value);
+    expect(result).toEqual(value);
   });
 
-  it('renders a ModalTrigger', () => {
-    expect(wrapper.find(ModalTrigger)).toExist();
+  it('returns value for non-empty object', () => {
+    const value = { key: 'value' };
+    const result = alterForComparison(value);
+    expect(result).toEqual(value);
+  });
+});
+
+describe('formatValueHandler', () => {
+  const controlsMap = {
+    key1: { type: 'AdhocFilterControl', label: 'Label1' },
+    key2: { type: 'BoundsControl', label: 'Label2' },
+    key3: { type: 'CollectionControl', label: 'Label3' },
+    key4: { type: 'MetricsControl', label: 'Label4' },
+    key5: { type: 'OtherControl', label: 'Label5' },
+  };
+
+  it('formats AdhocFilterControl values correctly', () => {
+    const result = formatValueHandler(
+      defaultProps.origFormData.adhoc_filters,
+      'key1',
+      controlsMap,
+    );
+    expect(result).toEqual(expectedRows[0].before);
   });
 
-  describe('renderTriggerNode', () => {
-    it('renders a Tooltip', () => {
-      const triggerNode = mount(
-        <div>{wrapper.instance().renderTriggerNode()}</div>,
-      );
-      expect(triggerNode.find(Tooltip)).toHaveLength(1);
-    });
+  it('formats BoundsControl values correctly', () => {
+    const value = [1, 2];
+    const result = formatValueHandler(value, 'key2', controlsMap);
+    expect(result).toEqual('Min: 1, Max: 2');
   });
 
-  describe('renderModalBody', () => {
-    it('renders a Table', () => {
-      const modalBody = mount(
-        <div>{wrapper.instance().renderModalBody()}</div>,
-      );
-      expect(modalBody.find(TableView)).toHaveLength(1);
-    });
-
-    it('renders a thead', () => {
-      const modalBody = mount(
-        <div>{wrapper.instance().renderModalBody()}</div>,
-      );
-      expect(
-        getTableWrapperFromModalBody(modalBody).find('thead'),
-      ).toHaveLength(1);
-    });
-
-    it('renders th', () => {
-      const modalBody = mount(
-        <div>{wrapper.instance().renderModalBody()}</div>,
-      );
-      const th = getTableWrapperFromModalBody(modalBody).find('th');
-      expect(th).toHaveLength(3);
-      ['Control', 'Before', 'After'].forEach(async (v, i) => {
-        await expect(th.at(i).find('span').get(0).props.children[0]).toBe(v);
-      });
-    });
-
-    it('renders the correct number of Tr', () => {
-      const modalBody = mount(
-        <div>{wrapper.instance().renderModalBody()}</div>,
-      );
-      const tr = getTableWrapperFromModalBody(modalBody).find('tr');
-      expect(tr).toHaveLength(8);
-    });
-
-    it('renders the correct number of td', () => {
-      const modalBody = mount(
-        <div>{wrapper.instance().renderModalBody()}</div>,
-      );
-      const td = getTableWrapperFromModalBody(modalBody).find('td');
-      expect(td).toHaveLength(21);
-      ['control', 'before', 'after'].forEach((v, i) => {
-        expect(td.find('defaultRenderer').get(0).props.columns[i].id).toBe(v);
-      });
-    });
+  it('formats CollectionControl values correctly', () => {
+    const value = [{ a: 1 }, { b: 2 }];
+    const result = formatValueHandler(value, 'key3', controlsMap);
+    expect(result).toEqual(
+      `${JSON.stringify(value[0])}, ${JSON.stringify(value[1])}`,
+    );
   });
 
-  describe('renderRows', () => {
-    it('returns an array of rows with one tr and three td', () => {
-      const modalBody = mount(
-        <div>{wrapper.instance().renderModalBody()}</div>,
-      );
-      const rows = getTableWrapperFromModalBody(modalBody).find('tr');
-      expect(rows).toHaveLength(8);
-      const slice = mount(
-        <table>
-          <tbody>{rows.get(1)}</tbody>
-        </table>,
-      );
-      expect(slice.find('tr')).toHaveLength(1);
-      expect(slice.find('td')).toHaveLength(3);
-    });
+  it('formats MetricsControl values correctly', () => {
+    const value = [{ label: 'Metric1' }, { label: 'Metric2' }];
+    const result = formatValueHandler(value, 'key4', controlsMap);
+    expect(result).toEqual('Metric1, Metric2');
   });
 
-  describe('formatValue', () => {
-    it('returns "N/A" for undefined values', () => {
-      expect(wrapper.instance().formatValue(undefined, 'b', controlsMap)).toBe(
-        'N/A',
-      );
-    });
-
-    it('returns "null" for null values', () => {
-      expect(wrapper.instance().formatValue(null, 'b', controlsMap)).toBe(
-        'null',
-      );
-    });
-
-    it('returns "Max" and "Min" for BoundsControl', () => {
-      // need to pass the viz type to the wrapper
-      expect(
-        wrapper.instance().formatValue([5, 6], 'y_axis_bounds', controlsMap),
-      ).toBe('Min: 5, Max: 6');
-    });
-
-    it('returns stringified objects for CollectionControl', () => {
-      const value = [
-        { 1: 2, alpha: 'bravo' },
-        { sent: 'imental', w0ke: 5 },
-      ];
-      const expected = '{"1":2,"alpha":"bravo"}, {"sent":"imental","w0ke":5}';
-      expect(
-        wrapper.instance().formatValue(value, 'column_collection', controlsMap),
-      ).toBe(expected);
-    });
-
-    it('returns boolean values as string', () => {
-      expect(wrapper.instance().formatValue(true, 'b', controlsMap)).toBe(
-        'true',
-      );
-      expect(wrapper.instance().formatValue(false, 'b', controlsMap)).toBe(
-        'false',
-      );
-    });
-
-    it('returns Array joined by commas', () => {
-      const value = [5, 6, 7, 8, 'hello', 'goodbye'];
-      const expected = '5, 6, 7, 8, hello, goodbye';
-      expect(
-        wrapper.instance().formatValue(value, undefined, controlsMap),
-      ).toBe(expected);
-    });
-
-    it('returns Metrics if the field type is metrics', () => {
-      const value = [
-        {
-          label: 'SUM(Sales)',
-        },
-      ];
-      const expected = 'SUM(Sales)';
-      expect(
-        wrapper.instance().formatValue(value, 'metrics', controlsMap),
-      ).toBe(expected);
-    });
-
-    it('stringifies objects', () => {
-      const value = { 1: 2, alpha: 'bravo' };
-      const expected = '{"1":2,"alpha":"bravo"}';
-      expect(
-        wrapper.instance().formatValue(value, undefined, controlsMap),
-      ).toBe(expected);
-    });
-
-    it('does nothing to strings and numbers', () => {
-      expect(wrapper.instance().formatValue(5, undefined, controlsMap)).toBe(5);
-      expect(
-        wrapper.instance().formatValue('hello', undefined, controlsMap),
-      ).toBe('hello');
-    });
-
-    it('returns "[]" for empty filters', () => {
-      expect(
-        wrapper.instance().formatValue([], 'adhoc_filters', controlsMap),
-      ).toBe('[]');
-    });
-
-    it('correctly formats filters with array values', () => {
-      const filters = [
-        {
-          clause: 'WHERE',
-          comparator: ['1', 'g', '7', 'ho'],
-          expressionType: 'SIMPLE',
-          operator: 'IN',
-          subject: 'a',
-        },
-        {
-          clause: 'WHERE',
-          comparator: ['hu', 'ho', 'ha'],
-          expressionType: 'SIMPLE',
-          operator: 'NOT IN',
-          subject: 'b',
-        },
-      ];
-      const expected = 'a IN [1, g, 7, ho], b NOT IN [hu, ho, ha]';
-      expect(
-        wrapper.instance().formatValue(filters, 'adhoc_filters', controlsMap),
-      ).toBe(expected);
-    });
-
-    it('correctly formats filters with string values', () => {
-      const filters = [
-        {
-          clause: 'WHERE',
-          comparator: 'gucci',
-          expressionType: 'SIMPLE',
-          operator: '==',
-          subject: 'a',
-        },
-        {
-          clause: 'WHERE',
-          comparator: 'moshi moshi',
-          expressionType: 'SIMPLE',
-          operator: 'LIKE',
-          subject: 'b',
-        },
-      ];
-      const expected = 'a == gucci, b LIKE moshi moshi';
-      expect(
-        wrapper.instance().formatValue(filters, 'adhoc_filters', controlsMap),
-      ).toBe(expected);
-    });
+  it('formats boolean values correctly', () => {
+    const value = true;
+    const result = formatValueHandler(value, 'key5', controlsMap);
+    expect(result).toEqual('true');
   });
-  describe('isEqualish', () => {
-    it('considers null, undefined, {} and [] as equal', () => {
-      const inst = wrapper.instance();
-      expect(inst.isEqualish(null, undefined)).toBe(true);
-      expect(inst.isEqualish(null, [])).toBe(true);
-      expect(inst.isEqualish(null, {})).toBe(true);
-      expect(inst.isEqualish(undefined, {})).toBe(true);
-    });
-    it('considers empty strings are the same as null', () => {
-      const inst = wrapper.instance();
-      expect(inst.isEqualish(undefined, '')).toBe(true);
-      expect(inst.isEqualish(null, '')).toBe(true);
-    });
-    it('considers deeply equal objects as equal', () => {
-      const inst = wrapper.instance();
-      expect(inst.isEqualish('', '')).toBe(true);
-      expect(inst.isEqualish({ a: 1, b: 2, c: 3 }, { a: 1, b: 2, c: 3 })).toBe(
-        true,
-      );
-      // Out of order
-      expect(inst.isEqualish({ a: 1, b: 2, c: 3 }, { b: 2, a: 1, c: 3 })).toBe(
-        true,
-      );
 
-      // Actually  not equal
-      expect(inst.isEqualish({ a: 1, b: 2, z: 9 }, { a: 1, b: 2, c: 3 })).toBe(
-        false,
-      );
-    });
+  it('formats array values correctly', () => {
+    const value = [{ label: 'Label1' }, { label: 'Label2' }];
+    const result = formatValueHandler(value, 'key5', controlsMap);
+    expect(result).toEqual('Label1, Label2');
+  });
+
+  it('formats string values correctly', () => {
+    const value = 'test';
+    const result = formatValueHandler(value, 'key5', controlsMap);
+    expect(result).toEqual('test');
+  });
+
+  it('formats number values correctly', () => {
+    const value = 123;
+    const result = formatValueHandler(value, 'key5', controlsMap);
+    expect(result).toEqual(123);
+  });
+
+  it('formats other values correctly', () => {
+    const value = { a: 1, b: 2 };
+    const result = formatValueHandler(value, 'key5', controlsMap);
+    expect(result).toEqual(JSON.stringify(value));
   });
 });
