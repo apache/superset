@@ -1,0 +1,21 @@
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one
+  or more contributor license agreements.  See the NOTICE file
+  distributed with this work for additional information
+  regarding copyright ownership.  The ASF licenses this file
+  to you under the Apache License, Version 2.0 (the
+  "License"); you may not use this file except in compliance
+  with the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="24px" height="24px" viewBox="0 0 24 24" version="1.1">
+<path stroke="currentColor" style="fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1;stroke-miterlimit:4;" d="M 6.999023 11.000977 C 7.327148 11.332031 7.713867 11.595703 8.144531 11.777344 C 8.572266 11.958984 9.035156 12.049805 9.500977 12.049805 C 9.966797 12.049805 10.426758 11.958984 10.854492 11.777344 C 11.285156 11.595703 11.674805 11.332031 12 11.000977 L 15.999023 6.999023 C 16.664062 6.336914 17.036133 5.4375 17.036133 4.5 C 17.036133 3.5625 16.664062 2.663086 15.999023 2.000977 C 15.336914 1.335938 14.4375 0.963867 13.5 0.963867 C 12.5625 0.963867 11.663086 1.335938 11.000977 2.000977 L 10.5 2.499023 M 11.000977 6.999023 C 10.672852 6.667969 10.286133 6.404297 9.855469 6.222656 C 9.427734 6.041016 8.964844 5.950195 8.499023 5.950195 C 8.033203 5.950195 7.573242 6.041016 7.142578 6.222656 C 6.714844 6.404297 6.325195 6.667969 6 6.999023 L 2.000977 11.000977 C 1.335938 11.663086 0.963867 12.5625 0.963867 13.5 C 0.963867 14.4375 1.335938 15.336914 2.000977 15.999023 C 2.663086 16.664062 3.5625 17.036133 4.5 17.036133 C 5.4375 17.036133 6.336914 16.664062 6.999023 15.999023 L 7.5 15.500977" transform="matrix(1.333333,0,0,1.333333,0,0)"/>
+</svg>
