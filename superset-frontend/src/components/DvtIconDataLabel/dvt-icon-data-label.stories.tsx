@@ -18,31 +18,40 @@
  */
 import React from 'react';
 import { SupersetTheme } from '@superset-ui/core';
-import DvtIconDataLabel from '.';
+import DvtIconDataLabel, { DvtIconDataLabelProps } from '.';
 
 export default {
   title: 'Dvt-Components/DvtIconDataLabel',
   component: DvtIconDataLabel,
 };
 
-export const Default = () => (
+export const Default = (args: DvtIconDataLabelProps) => (
   <div
     css={(theme: SupersetTheme) => ({
       height: '100vh',
       backgroundColor: theme.colors.dvt.grayscale.light2,
     })}
   >
-    <DvtIconDataLabel label="No Data" />
+    <DvtIconDataLabel {...args} />
   </div>
 );
 
-export const ButtonExample = () => (
+Default.args = {
+  label: 'No Data',
+};
+
+export const ButtonExample = (args: DvtIconDataLabelProps) => (
   <div
     css={(theme: SupersetTheme) => ({
       height: '100vh',
       backgroundColor: theme.colors.dvt.grayscale.light2,
     })}
   >
-    <DvtIconDataLabel label="No Alerts Yet" buttonLabel="Alert" />
+    <DvtIconDataLabel {...args} />
   </div>
 );
+
+ButtonExample.args = {
+  label: 'No Alerts Yet',
+  buttonLabel: 'Alert',
+};
