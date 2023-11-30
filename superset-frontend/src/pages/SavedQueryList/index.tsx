@@ -18,20 +18,19 @@
  */
 
 import {
-  isFeatureEnabled,
   FeatureFlag,
+  isFeatureEnabled,
   styled,
   SupersetClient,
   t,
 } from '@superset-ui/core';
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import rison from 'rison';
-import moment from 'moment';
 import {
-  createFetchRelated,
-  createFetchDistinct,
   createErrorHandler,
+  createFetchDistinct,
+  createFetchRelated,
 } from 'src/views/CRUD/utils';
 import { useSelector } from 'react-redux';
 import Popover from 'src/components/Popover';
@@ -39,11 +38,11 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import handleResourceExport from 'src/utils/export';
-import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
+import SubMenu, { ButtonProps, SubMenuProps } from 'src/features/home/SubMenu';
 import ListView, {
-  ListViewProps,
-  Filters,
   FilterOperator,
+  Filters,
+  ListViewProps,
 } from 'src/components/ListView';
 import Loading from 'src/components/Loading';
 import DeleteModal from 'src/components/DeleteModal';
@@ -55,6 +54,8 @@ import { SavedQueryObject } from 'src/views/CRUD/types';
 import copyTextToClipboard from 'src/utils/copy';
 import Tag from 'src/types/TagType';
 import ImportModelsModal from 'src/components/ImportModal/index';
+import { AuditInfo, AuditInfoType } from 'src/components/AuditInfo';
+import { loadTags } from 'src/components/Tags/utils';
 import Icons from 'src/components/Icons';
 import {
   BootstrapUser,
@@ -351,41 +352,6 @@ function SavedQueryList({
       {
         Cell: ({
           row: {
-            original: { created_on: createdOn },
-          },
-        }: any) => {
-          const date = new Date(createdOn);
-          const utc = new Date(
-            Date.UTC(
-              date.getFullYear(),
-              date.getMonth(),
-              date.getDate(),
-              date.getHours(),
-              date.getMinutes(),
-              date.getSeconds(),
-              date.getMilliseconds(),
-            ),
-          );
-
-          return moment(utc).fromNow();
-        },
-        Header: t('Created on'),
-        accessor: 'created_on',
-        size: 'xl',
-      },
-      {
-        Cell: ({
-          row: {
-            original: { changed_on_delta_humanized: changedOn },
-          },
-        }: any) => changedOn,
-        Header: t('Last modified'),
-        accessor: 'changed_on_delta_humanized',
-        size: 'xl',
-      },
-      {
-        Cell: ({
-          row: {
             original: { tags = [] },
           },
         }: any) => (
@@ -396,6 +362,25 @@ function SavedQueryList({
         accessor: 'tags',
         disableSortBy: true,
         hidden: !isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM),
+      },
+      {
+        Cell: ({
+          row: {
+            original: {
+              changed_by: changedBy,
+              changed_on_delta_humanized: changedOn,
+            },
+          },
+        }: any) => (
+          <AuditInfo
+            type={AuditInfoType.Modified}
+            user={changedBy}
+            date={changedOn}
+          />
+        ),
+        Header: t('Last modified'),
+        accessor: 'changed_on_delta_humanized',
+        size: 'xl',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -459,6 +444,13 @@ function SavedQueryList({
   const filters: Filters = useMemo(
     () => [
       {
+        Header: t('Name'),
+        id: 'label',
+        key: 'search',
+        input: 'search',
+        operator: FilterOperator.allText,
+      },
+      {
         Header: t('Database'),
         key: 'database',
         id: 'database',
@@ -497,27 +489,21 @@ function SavedQueryList({
         ),
         paginate: true,
       },
-
-      {
-        Header: t('Search'),
-        id: 'label',
-        key: 'search',
-        input: 'search',
-        operator: FilterOperator.allText,
-      },
+      ...(isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && canReadTag
+        ? [
+            {
+              Header: t('Tag'),
+              id: 'tags',
+              key: 'tags',
+              input: 'select',
+              operator: FilterOperator.savedQueryTags,
+              fetchSelects: loadTags,
+            },
+          ]
+        : []),
     ],
     [addDangerToast],
   );
-
-  if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && canReadTag) {
-    filters.push({
-      Header: t('Tags'),
-      id: 'tags',
-      key: 'tags',
-      input: 'search',
-      operator: FilterOperator.savedQueryTags,
-    });
-  }
 
   return (
     <>

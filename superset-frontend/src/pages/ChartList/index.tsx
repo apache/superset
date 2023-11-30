@@ -371,7 +371,7 @@ function ChartList(props: ChartListProps) {
             original: { viz_type: vizType },
           },
         }: any) => registry.get(vizType)?.name || vizType,
-        Header: t('Visualization type'),
+        Header: t('Type'),
         accessor: 'viz_type',
         size: 'xxl',
       },
@@ -586,7 +586,7 @@ function ChartList(props: ChartListProps) {
         operator: FilterOperator.chartAllText,
       },
       {
-        Header: t('Chart type'),
+        Header: t('Type'),
         key: 'viz_type',
         id: 'viz_type',
         input: 'select',
@@ -624,7 +624,7 @@ function ChartList(props: ChartListProps) {
       ...(isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && canReadTag
         ? [
             {
-              Header: t('Tags'),
+              Header: t('Tag'),
               key: 'tags',
               id: 'tags',
               input: 'select',
@@ -657,7 +657,7 @@ function ChartList(props: ChartListProps) {
         paginate: true,
       },
       {
-        Header: t('Dashboards'),
+        Header: t('Dashboard'),
         key: 'dashboards',
         id: 'dashboards',
         input: 'select',

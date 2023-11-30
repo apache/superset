@@ -82,7 +82,11 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     base_filters = [["id", SavedQueryFilter, lambda: []]]
 
     show_columns = [
+        "changed_on",
         "changed_on_delta_humanized",
+        "changed_by.first_name",
+        "changed_by.id",
+        "changed_by.last_name",
         "created_by.first_name",
         "created_by.id",
         "created_by.last_name",
@@ -97,7 +101,11 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "template_parameters",
     ]
     list_columns = [
+        "changed_on",
         "changed_on_delta_humanized",
+        "changed_by.first_name",
+        "changed_by.id",
+        "changed_by.last_name",
         "created_on",
         "created_by.first_name",
         "created_by.id",

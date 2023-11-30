@@ -518,7 +518,7 @@ function DashboardList(props: DashboardListProps) {
       ...(isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && canReadTag
         ? [
             {
-              Header: t('Tags'),
+              Header: t('Tag'),
               key: 'tags',
               id: 'tags',
               input: 'select',
