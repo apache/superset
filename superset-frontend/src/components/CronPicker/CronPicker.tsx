@@ -158,21 +158,3 @@ div:has(.react-js-cron-hours) {
   }
   }
 `;
-// .react-js-cron-field {
-//     margin-bottom: 0px;
-//   }
-//   .react-js-cron-select:not(.react-js-cron-custom-select) > div:first-of-type,
-//   .react-js-cron-custom-select {
-//     border-radius: ${({ theme }) => theme.gridUnit}px;
-//     background-color: ${({ theme }) =>
-//       theme.colors.grayscale.light4} !important;
-//   }
-//   .react-js-cron-custom-select > div:first-of-type {
-//     border-radius: ${({ theme }) => theme.gridUnit}px;
-//   }
-//   .react-js-cron-custom-select .ant-select-selection-placeholder {
-//     flex: auto;
-//   }
-//   .react-js-cron-custom-select .ant-select-selection-overflow-item {
-//     align-self: center;
-//   }
