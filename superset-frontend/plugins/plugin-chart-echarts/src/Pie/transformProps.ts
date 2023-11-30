@@ -327,7 +327,9 @@ export default function transformProps(
     },
     legend: {
       ...getLegendProps(legendType, legendOrientation, showLegend, theme),
-      data: keys,
+      data: keys.filter((n, i) =>
+        formData.legendLimit ? i < formData.legendLimit : true,
+      ),
     },
     graphic: showTotal
       ? {

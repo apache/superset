@@ -96,12 +96,23 @@ const legendOrientationControl: ControlSetItem = {
   },
 };
 
+export const legendLimitControl: ControlSetItem = {
+  name: 'legendLimit',
+  config: {
+    type: 'TextControl',
+    label: 'Legend Limit',
+    renderTrigger: true,
+    description: 'Maximum legend items.',
+  },
+};
+
 export const legendSection: ControlSetRow[] = [
   [<ControlSubSectionHeader>{t('Legend')}</ControlSubSectionHeader>],
   [showLegendControl],
   [legendTypeControl],
   [legendOrientationControl],
   [legendMarginControl],
+  [legendLimitControl],
 ];
 
 export const showValueControl: ControlSetItem = {

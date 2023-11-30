@@ -120,7 +120,7 @@ WTF_CSRF_EXEMPT_LIST = [
     "superset.security.api.guest_token"
 ]
 ENABLE_PROXY_FIX = True
-PUBLIC_ROLE_LIKE = "Gamma"
+GUEST_ROLE_NAME = "Guest"
 FEATURE_FLAGS = {
     "ENABLE_TEMPLATE_PROCESSING": True,
     "EMBEDDED_SUPERSET": True,
@@ -130,6 +130,7 @@ FEATURE_FLAGS = {
     "DRILL_BY": True,
     "ALERT_REPORTS": True
 }
+APP_ICON = "https://development.cloudadmin.io/static/logos/cloudadmin-logo-color@2x.png"
 SUPERSET_LOAD_EXAMPLES = False
 
 from security import CustomSecurityManager
