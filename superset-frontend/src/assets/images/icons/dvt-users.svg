@@ -1,0 +1,21 @@
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one
+  or more contributor license agreements.  See the NOTICE file
+  distributed with this work for additional information
+  regarding copyright ownership.  The ASF licenses this file
+  to you under the Apache License, Version 2.0 (the
+  "License"); you may not use this file except in compliance
+  with the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="24px" height="24px" viewBox="0 0 24 24" version="1.1">
+<path stroke="currentColor" style="fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1;stroke-miterlimit:4;" d="M 16.421875 18.875 L 16.421875 17.542969 C 16.421875 16.835938 16.078125 16.15625 15.46875 15.65625 C 14.859375 15.15625 14.035156 14.875 13.171875 14.875 L 6.671875 14.875 C 5.808594 14.875 4.984375 15.15625 4.375 15.65625 C 3.765625 16.15625 3.421875 16.835938 3.421875 17.542969 L 3.421875 18.875 M 9.421875 10.875 C 11.078125 10.875 12.421875 9.535156 12.421875 7.875 C 12.421875 6.21875 11.078125 4.875 9.421875 4.875 C 7.765625 4.875 6.421875 6.21875 6.421875 7.875 C 6.421875 9.535156 7.765625 10.875 9.421875 10.875 Z M 9.421875 10.875 M 20.421875 18.875 L 20.421875 17.515625 C 20.421875 16.910156 20.226562 16.324219 19.863281 15.847656 C 19.5 15.367188 18.992188 15.027344 18.421875 14.875 M 15.421875 4.875 C 15.992188 5.046875 16.5 5.433594 16.863281 5.976562 C 17.226562 6.519531 17.421875 7.1875 17.421875 7.875 C 17.421875 8.5625 17.226562 9.230469 16.863281 9.777344 C 16.5 10.320312 15.992188 10.707031 15.421875 10.875"/>
+</svg>
