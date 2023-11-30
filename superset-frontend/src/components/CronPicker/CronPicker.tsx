@@ -110,11 +110,28 @@ export const CronPicker = styled((props: CronProps) => (
     <ReactCronPicker locale={LOCALE} {...props} />
   </ConfigProvider>
 ))`
-display: grid !important;
+:has(.react-js-cron-months){display: grid !important;
 grid-template-columns: repeat(2, 50%);
 grid-column-gap: ${({ theme }) => theme.gridUnit}px;
 grid-row-gap: ${({ theme }) => theme.gridUnit * 2}px;
-div:has()
+div:has(.react-js-cron-hours) {
+  grid-column: span 2;
+  display: flex;
+  justify-content: space-between;
+  .react-js-cron-field {
+    width:50%;
+  }
+}}
+grid-template-columns: repeat(1, 100%);
+grid-column-gap: ${({ theme }) => theme.gridUnit}px;
+grid-row-gap: ${({ theme }) => theme.gridUnit * 2}px;
+div:has(.react-js-cron-hours) {
+  width: 100%;
+}
+:not(div:has(.react-js-cron-hours)) {
+  display: flex;
+  flex-wrap: nowrap;
+}
 .react-js-cron-select {
   width: 100%;
   .ant-select-selector {
@@ -122,6 +139,7 @@ div:has()
   }
 }
 .react-js-cron-field {
+  width: 100%;
     margin-bottom:0px;
     > span {
       margin-left: 0px;
