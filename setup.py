@@ -201,7 +201,7 @@ setup(
             "thrift>=0.14.1, <1.0.0",
         ],
         "teradata": ["teradatasql>=16.20.0.23"],
-        "thumbnails": ["Pillow>=9.5.0, <10.0.0"],
+        "thumbnails": ["Pillow>=10.0.1, <11"],
         "vertica": ["sqlalchemy-vertica-python>=0.5.9, < 0.6"],
         "netezza": ["nzalchemy>=11.0.2"],
         "starrocks": ["starrocks>=1.0.0"],

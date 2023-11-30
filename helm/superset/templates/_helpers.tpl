@@ -82,7 +82,6 @@ DATA_CACHE_CONFIG = CACHE_CONFIG
 
 SQLALCHEMY_DATABASE_URI = f"postgresql+psycopg2://{env('DB_USER')}:{env('DB_PASS')}@{env('DB_HOST')}:{env('DB_PORT')}/{env('DB_NAME')}"
 SQLALCHEMY_TRACK_MODIFICATIONS = True
-SECRET_KEY = env('SECRET_KEY', 'thisISaSECRET_1234')
 
 class CeleryConfig:
   imports  = ("superset.sql_lab", )
