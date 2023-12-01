@@ -1,11 +1,11 @@
 import React from 'react';
+import { supersetTheme } from '@superset-ui/core';
 import {
   StyledProfile,
   StyledProfileButton,
   StyledProfileMenu,
 } from './dvt-profile-menu.module';
 import Icon from '../Icons/Icon';
-import { supersetTheme } from '@superset-ui/core';
 
 export interface DvtProfileMenuProps {
   img: string;
