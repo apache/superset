@@ -611,9 +611,14 @@ export function setDirectPathToChild(path) {
   return { type: SET_DIRECT_PATH, path };
 }
 
+export const SET_ACTIVE_TAB = 'SET_ACTIVE_TAB';
+export function setActiveTab(tabId, prevTabId) {
+  return { type: SET_ACTIVE_TAB, tabId, prevTabId };
+}
+
 export const SET_ACTIVE_TABS = 'SET_ACTIVE_TABS';
-export function setActiveTabs(tabId, prevTabId) {
-  return { type: SET_ACTIVE_TABS, tabId, prevTabId };
+export function setActiveTabs(activeTabs) {
+  return { type: SET_ACTIVE_TABS, activeTabs };
 }
 
 export const SET_FOCUSED_FILTER_FIELD = 'SET_FOCUSED_FILTER_FIELD';
