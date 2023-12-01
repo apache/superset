@@ -185,6 +185,7 @@ export default function transformProps(
   const { setDataMask = () => {}, onContextMenu, onLegendStateChanged } = hooks;
   const {
     currencyFormat,
+    granularitySqla = '',
     groupby,
     increaseColor,
     decreaseColor,
@@ -213,7 +214,10 @@ export default function transformProps(
   const breakdownName = isAdhocColumn(breakdownColumn)
     ? breakdownColumn.label!
     : breakdownColumn;
-  const xAxisName = isAdhocColumn(xAxis) ? xAxis.label! : xAxis;
+  const xAxisColumn = xAxis || granularitySqla;
+  const xAxisName = isAdhocColumn(xAxisColumn)
+    ? xAxisColumn.label!
+    : xAxisColumn;
   const metricLabel = getMetricLabel(metric);
 
   const transformedData = transformer({
