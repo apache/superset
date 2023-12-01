@@ -48,9 +48,7 @@ const DvtNavigationBar: React.FC<DvtNavigationBarProps> = ({
           icon={item.icon}
           label={item.label}
           onClick={() => {
-            if (item.url) {
-              setActive && setActive(item.url);
-            }
+            item.url && setActive?.(item.url);
           }}
           active={item.url ? item.url === active : false}
         />
