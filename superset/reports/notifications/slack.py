@@ -63,7 +63,6 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
     def _get_channel(self) -> str:
         """
         Get the recipient's channel(s).
-        
         Note Slack SDK uses "channel" to refer to one or more
         channels. Multiple channels are demarcated by a comma.
     
