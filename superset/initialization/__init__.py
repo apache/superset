@@ -196,7 +196,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.sqllab import SqllabView
         from superset.views.tags import TagModelView, TagView
         from superset.views.users.api import CurrentUserRestApi
-        from superset.views.register_beta import RegisterBetaView
 
         #
         # Setup API views
@@ -330,7 +329,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(TaggedObjectsModelView)
         appbuilder.add_view_no_menu(TagView)
         appbuilder.add_view_no_menu(ReportView)
-        appbuilder.add_view_no_menu(RegisterBetaView)
 
         #
         # Add links
