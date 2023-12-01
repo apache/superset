@@ -18,7 +18,13 @@
  */
 import React, { FunctionComponent, useState, useEffect, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
-import { DataMask, Filter, isFilterDivider } from '@superset-ui/core';
+import {
+  DataMask,
+  DataMaskStateWithId,
+  DataMaskWithId,
+  Filter,
+  isFilterDivider,
+} from '@superset-ui/core';
 import { Select } from 'src/components';
 import { useDashboard } from 'src/hooks/apiResources';
 import {
@@ -29,37 +35,43 @@ import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { setDashboardNativeFilter } from 'src/dashboard/actions/nativeFilters';
 import FilterValue from 'src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterValue';
 import { setDataMaskForReport } from 'src/dataMask/actions';
+import { getInitialDataMask } from 'src/dataMask/reducer';
+import { DashboardPermalinkState } from 'src/dashboard/types';
 import { StyledInputContainer } from '../AlertReportModal';
 
 interface DashboardFiltersAndTabsProps {
   dashboardId: number | string;
-  onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
+  onFilterSelectionChange: (dataMask: DataMask) => void;
   onTabSelectionChange: (tabId: string) => void;
+  extra?: DashboardPermalinkState;
 }
 
 // Dashboard Filters and Tabs
 export const DashboardFiltersAndTabs: FunctionComponent<DashboardFiltersAndTabsProps> =
-  ({ dashboardId, onFilterSelectionChange, onTabSelectionChange }) => {
+  ({ dashboardId, onFilterSelectionChange, onTabSelectionChange, extra }) => {
     const dispatch = useDispatch();
     const { result: dashboard } = useDashboard(dashboardId);
-    const [selectedDashboardFilters, setSelectedDashboardFilters] =
-      useState<string>();
+    const [selectedDashboardFilter, setSelectedDashboardFilter] = useState<any>(
+      extra?.dataMask?.id,
+    );
     const dataMaskApplied = useNativeFiltersDataMask();
+    const [dataMaskSelected, setDataMaskSelected] =
+      useState<DataMaskStateWithId>(dataMaskApplied);
     const filters = useFilters();
     const filterValues = useMemo(() => Object.values(filters), [filters]);
     const filterWithDataMask: Filter | undefined = useMemo(() => {
       const selectFilter = filterValues.find(
         filter =>
-          filter.id === selectedDashboardFilters && !isFilterDivider(filter),
+          filter.id === selectedDashboardFilter && !isFilterDivider(filter),
       ) as Filter | undefined;
       if (selectFilter) {
         return {
           ...selectFilter,
-          dataMask: dataMaskApplied[selectFilter.id],
+          dataMask: dataMaskSelected[selectFilter.id],
         };
       }
       return undefined;
-    }, [filterValues, dataMaskApplied, selectedDashboardFilters]);
+    }, [filterValues, dataMaskSelected, selectedDashboardFilter]);
     const dashboardFilterOptions = useMemo(
       () =>
         filterValues.map(filter => ({
@@ -68,6 +80,18 @@ export const DashboardFiltersAndTabs: FunctionComponent<DashboardFiltersAndTabsP
         })),
       [filterValues],
     );
+    const handleFilterSelectionChange = (
+      filter: Pick<Filter, 'id'> & Partial<Filter>,
+      dataMask: Partial<DataMask>,
+    ) => {
+      dataMaskSelected[filter.id] = {
+        ...(getInitialDataMask(filter.id) as DataMaskWithId),
+        ...dataMask,
+      };
+      setDataMaskSelected({ ...dataMaskSelected });
+      onFilterSelectionChange(dataMaskSelected);
+    };
+
     const readyToRender = Boolean(dashboard);
     useEffect(() => {
       if (readyToRender) {
@@ -76,16 +100,19 @@ export const DashboardFiltersAndTabs: FunctionComponent<DashboardFiltersAndTabsP
             dashboard?.metadata?.native_filter_configuration,
           ),
         );
+
         if (dashboard?.metadata) {
-          dispatch(setDataMaskForReport(dashboard?.metadata, {}));
+          dispatch(
+            setDataMaskForReport(dashboard?.metadata, extra?.dataMask || {}),
+          );
         }
       }
-    }, [readyToRender, dashboardId]);
+    }, [readyToRender, dashboardId, dispatch, extra]);
 
     const allTabsNames: any[] = [];
     const layout = dashboard?.position_data;
     const rootChildId = dashboard?.position_data[DASHBOARD_ROOT_ID].children[0];
-    const getAllTabsName = node => {
+    const getAllTabsName = (node: any) => {
       if (node.type !== 'TAB' && node.type !== 'TABS') {
         return;
       }
@@ -105,23 +132,23 @@ export const DashboardFiltersAndTabs: FunctionComponent<DashboardFiltersAndTabsP
     if (layout) {
       getAllTabsName(layout[rootChildId]);
     }
-
+    console.log('extra', extra);
     return (
       <>
-        {dataMaskApplied && dashboardFilterOptions.length ? (
+        {dataMaskSelected && dashboardFilterOptions.length ? (
           <StyledInputContainer>
             <div className="control-label">Dashboard filter</div>
             <Select
-              onChange={value => setSelectedDashboardFilters(value)}
+              onChange={setSelectedDashboardFilter}
               options={dashboardFilterOptions}
             />
             {filterWithDataMask ? (
               <>
                 <div className="control-label">value</div>
                 <FilterValue
-                  dataMaskSelected={dataMaskApplied}
+                  dataMaskSelected={dataMaskSelected}
                   filter={filterWithDataMask}
-                  onFilterSelectionChange={onFilterSelectionChange}
+                  onFilterSelectionChange={handleFilterSelectionChange}
                 />
               </>
             ) : null}
@@ -130,7 +157,11 @@ export const DashboardFiltersAndTabs: FunctionComponent<DashboardFiltersAndTabsP
         {allTabsNames.length > 0 && (
           <StyledInputContainer>
             <div className="control-label">Select Tab</div>
-            <Select onChange={onTabSelectionChange} options={allTabsNames} />
+            <Select
+              value={(extra?.activeTabs || [])[0]}
+              onChange={onTabSelectionChange}
+              options={allTabsNames}
+            />
           </StyledInputContainer>
         )}
       </>

@@ -19,6 +19,7 @@
 
 import Owner from 'src/types/Owner';
 import { NOTIFICATION_FORMATS } from 'src/features/reports/types';
+import { DashboardPermalinkState } from 'src/dashboard/types';
 
 type user = {
   id: number;
@@ -90,6 +91,9 @@ export type AlertObject = {
   validator_config_json?: {
     op?: Operator;
     threshold?: number;
+  };
+  extra?: {
+    dashboard?: DashboardPermalinkState;
   };
   validator_type?: string;
   working_timeout?: number;

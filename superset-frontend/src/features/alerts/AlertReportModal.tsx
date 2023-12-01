@@ -59,7 +59,7 @@ import {
   Recipient,
   AlertsReportsConfig,
 } from 'src/features/alerts/types';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
@@ -461,7 +461,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   isReport = false,
   addSuccessToast,
 }) => {
-  const dispatch = useDispatch();
   const currentUser = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
@@ -980,6 +979,24 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setForceScreenshot(event.target.checked);
   };
 
+  const onFiltersChange = (dataMask: any) => {
+    updateAlertState('extra', {
+      dashboard: {
+        ...(currentAlert?.extra?.dashboard || {}),
+        dataMask,
+      },
+    });
+  };
+
+  const onActiveTabsChange = (activeTab: string) => {
+    updateAlertState('extra', {
+      dashboard: {
+        ...(currentAlert?.extra?.dashboard || {}),
+        activeTabs: [activeTab],
+      },
+    });
+  };
+
   // Make sure notification settings has the required info
   const checkNotificationSettings = () => {
     if (!notificationSettings.length) {
@@ -1479,8 +1496,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             {currentAlert?.dashboard?.value && (
               <DashboardFiltersAndTabs
                 dashboardId={currentAlert?.dashboard?.value}
-                onFilterSelectionChange={() => {}}
-                onTabSelectionChange={() => {}}
+                onFilterSelectionChange={onFiltersChange}
+                onTabSelectionChange={onActiveTabsChange}
+                extra={currentAlert?.extra?.dashboard}
               />
             )}
             {formatOptionEnabled && (
