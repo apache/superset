@@ -443,6 +443,8 @@ supersetCeleryBeat:
         - /bin/sh
         - -c
         - dockerize -wait "tcp://$DB_HOST:$DB_PORT" -wait "tcp://$REDIS_HOST:$REDIS_PORT" -timeout 120s
+  # -- Launch additional containers into supersetCeleryBeat pods
+  extraContainers: []
   # -- Annotations to be added to supersetCeleryBeat deployment
   deploymentAnnotations: {}
   # -- Affinity to be added to supersetCeleryBeat deployment
@@ -524,6 +526,8 @@ supersetCeleryFlower:
         - /bin/sh
         - -c
         - dockerize -wait "tcp://$DB_HOST:$DB_PORT" -wait "tcp://$REDIS_HOST:$REDIS_PORT" -timeout 120s
+  # -- Launch additional containers into supersetCeleryFlower pods
+  extraContainers: []
   # -- Annotations to be added to supersetCeleryFlower deployment
   deploymentAnnotations: {}
   # -- Affinity to be added to supersetCeleryFlower deployment
@@ -590,6 +594,8 @@ supersetWebsockets:
       http: nil
   command: []
   resources: {}
+  # -- Launch additional containers into supersetWebsockets pods
+  extraContainers: []
   deploymentAnnotations: {}
   # -- Affinity to be added to supersetWebsockets deployment
   affinity: {}

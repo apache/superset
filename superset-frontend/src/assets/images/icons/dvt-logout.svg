@@ -17,5 +17,5 @@
   under the License.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="24px" height="24px" viewBox="0 0 24 24" version="1.1">
-<path stroke="currentColor" style="fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1;stroke-miterlimit:4;" d="M 3.333333 5 L 9.166667 5 M 3.333333 10 L 9.166667 10 M 3.333333 15 L 10.833333 15 M 12.5 7.5 L 15 5 L 17.5 7.5 M 15 5 L 15 15" transform="matrix(1.2,0,0,1.2,0,0)"/>
+<path stroke="currentColor" style="fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1;stroke-miterlimit:4;" d="M 12.833333 7.333333 L 12.833333 5.5 C 12.833333 5.013021 12.639974 4.547526 12.296224 4.203776 C 11.952474 3.860026 11.486979 3.666667 11 3.666667 L 4.583333 3.666667 C 4.096354 3.666667 3.630859 3.860026 3.287109 4.203776 C 2.943359 4.547526 2.75 5.013021 2.75 5.5 L 2.75 16.5 C 2.75 16.986979 2.943359 17.452474 3.287109 17.796224 C 3.630859 18.139974 4.096354 18.333333 4.583333 18.333333 L 11 18.333333 C 11.486979 18.333333 11.952474 18.139974 12.296224 17.796224 C 12.639974 17.452474 12.833333 16.986979 12.833333 16.5 L 12.833333 14.666667 M 6.416667 11 L 19.25 11 M 19.25 11 L 16.5 8.25 M 19.25 11 L 16.5 13.75" transform="matrix(1.090909,0,0,1.090909,0,0)"/>
 </svg>
