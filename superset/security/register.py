@@ -108,17 +108,6 @@ class OrtegeRegisterView(RegisterUserDBView):
         except Exception as e:
             logger.warning(f"Error to register user in mailchimp, {e}")
 
-    def add_registration(self, username, first_name, last_name, email, password=""):
-        """
-            Add a registration request for the user.
-
-        :rtype : RegisterUser
-        """
-        register_user = self.appbuilder.sm.add_register_user(
-            username, first_name, last_name, email, password
-        )
-
-
     def form_post(self, form):
         self.add_form_unique_validations(form)
         self.add_registration(
