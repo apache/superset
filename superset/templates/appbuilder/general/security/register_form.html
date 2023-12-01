@@ -1,0 +1,129 @@
+{% import 'appbuilder/general/lib.html' as lib %}
+
+{% set begin_sep_label = '<td class="col-lg-2">' %}
+{% set end_sep_label = '</td>' %}
+{% set begin_sep_field = '<td>' %}
+{% set end_sep_field = '</td>' %}
+
+
+{% if form_action is defined %}
+    <form action="{{form_action}}" method="post" enctype="multipart/form-data">
+{% else %}
+    <form id="model_form" action="" method="post" enctype="multipart/form-data">
+{% endif %}
+    {{form.hidden_tag()}}
+
+    {% if fieldsets %}
+        {% for fieldset_item in fieldsets %}
+            {% if fieldset_item[1].get('expanded') == None %}
+                {% set expanded = True %}
+            {% else %}
+                {% set expanded = fieldset_item[1].get('expanded') %}
+            {% endif %}
+            {% call lib.accordion_tag(loop.index,fieldset_item[0], expanded) %}
+            <div class="table-responsive">
+                <table class="table table-responsive table-bordered">
+                    {% for item in fieldset_item[1].get('fields') %}
+                        {% if field.name not in exclude_cols and (field.id != 'csrf_token') and (field.type != 'HiddenField')%}
+                            <div>
+                                <label class="control-label" for="{{ field.id }}">
+                                    {{ field.label.text }}:
+                                    {% if field.flags.required %}
+                                        <strong style="color: red">&#42;</strong>
+                                    {% endif %}
+                                </label>
+                                <div>
+                                    <div class="input-group">
+                                        {% if field.render_kw.icon %}
+                                            <span class="input-group-addon"><i class="{{ field.render_kw.icon  }}"></i></span>
+                                        {% endif %}
+                                        {{ field()|safe }}
+                                    </div>
+                                    <span class="help-block" style="font-size: 12px;">{{ field.description }}</span>
+                                    {% if field.id  == 'subscribe' %}
+                                        <p style="color: #879399; font-size: 10px;">We use Mailchimp as our marketing platform. By clicking below to
+                                            subscribe, you
+                                            acknowledge that your information will be transferred to Mailchimp for processing.
+                                            <a href="https://mailchimp.com/legal/terms">Learn more</a> about Mailchimp's privacy
+                                            practices.
+                                        </p>
+                                        <p style="color: #879399; font-size: 10px;">You can unsubscribe at any time by clicking the link in the footer of
+                                            our emails. For
+                                            information about our privacy practices, please visit our website.
+                                        </p>
+                                    {% endif %}
+                                    {% if field.errors %}
+                                        <div class="alert alert-danger" style="font-size: 12px;">
+                                            {% for error in field.errors %}
+                                            {{ _(error) }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}{% if field.render_kw.icon %}
+                                {% endif %}
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </table>
+            </div>
+            {% endcall %}
+        {% endfor %}
+    {% else %}
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                {% for col in include_cols %}
+                    {% set field = form[col] %}
+                    {% if field.name not in exclude_cols and (field.id != 'csrf_token') and (field.type != 'HiddenField')%}
+                        <div>
+                            <label class="control-label" for="{{ field.id }}">
+                                {{ field.label.text }}:
+                                {% if field.flags.required %}
+                                    <strong style="color: red">&#42;</strong>
+                                {% endif %}
+                            </label>
+                            <div>
+                                <div class="input-group">
+                                    {% if field.render_kw.icon %}
+                                        <span class="input-group-addon"><i class="{{ field.render_kw.icon  }}"></i></span>
+                                    {% endif %}
+                                    {{ field()|safe }}
+                                </div>
+                                <span class="help-block" style="font-size: 12px;">{{ field.description }}</span>
+                                {% if field.id  == 'subscribe' %}
+                                    <p style="color: #879399; font-size: 10px;">We use Mailchimp as our marketing platform. By clicking below to
+                                        subscribe, you
+                                        acknowledge that your information will be transferred to Mailchimp for processing.
+                                        <a href="https://mailchimp.com/legal/terms">Learn more</a> about Mailchimp's privacy
+                                        practices.
+                                    </p>
+                                    <p style="color: #879399; font-size: 10px;">You can unsubscribe at any time by clicking the link in the footer of
+                                        our emails. For
+                                        information about our privacy practices, please visit our website.
+                                    </p>
+                                {% endif %}
+                                {% if field.errors %}
+                                    <div class="alert alert-danger" style="font-size: 12px;">
+                                        {% for error in field.errors %}
+                                        {{ _(error) }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}{% if field.render_kw.icon %}
+                            {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </table>
+        </div>
+    {% endif %}
+
+    <div class="clear" style="display: flex; flex-direction: row; gap: 10px;">
+        <a href="{{url_for('UtilView' + '.back')}}" class="btn btn-sm btn-default" data-toggle="tooltip" rel="tooltip"
+            title="{{_('Back')}}" style="display: flex; align-items: center; justify-content: center;">
+            <span class="sr-only">{{ _('Back') }}</span>
+            <i class="fa fa-arrow-left"></i>
+        </a>
+        <input class="btn btn-primary btn-block" type="submit" value="Subscribe">
+        
+    </div>
+</form>

@@ -7,11 +7,11 @@
 
 <div class="container">
     <div id="loginbox" style="margin-top:50px;" class="mainbox col-md-6 col-md-offset-3 col-sm-8 col-sm-offset-2">
-        <div class="panel panel-primary" >
+        <div class="panel panel-primary">
             <div class="panel-heading">
                 <div class="panel-title">{{ title }}</div>
             </div>
-            <div style="padding-top:30px" class="panel-body" >
+            <div style="padding-top:30px" class="panel-body">
 
                 <form class="form" action="" method="post" name="login">
                     {{form.hidden_tag()}}
@@ -44,7 +44,8 @@
                             <br>
                             <div>
                                 <input class="btn btn-primary btn-block" type="submit" value="{{_('Sign In')}}">
-                                <a href="/register/beta" class="btn btn-block btn-primary">
+                                <a href="/register/form" class="btn btn-block btn-primary" data-toggle="tooltip" rel="tooltip"
+                                    title="{{_('If you are not already a user, please register')}}">
                                     Sign up for closed beta
                                 </a>
                             </div>

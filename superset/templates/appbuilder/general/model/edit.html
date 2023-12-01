@@ -1,0 +1,25 @@
+{% extends "appbuilder/base.html" %}
+{% import 'appbuilder/general/lib.html' as lib %}
+
+{% block content %}
+<div class="col-md-6 col-md-offset-3 col-sm-8 col-sm-offset-2" style="margin-top:50px;">
+    <div class="panel panel-primary">
+        <div class="panel-heading">
+        <h4 class="panel-title">{{title}}</h4>
+        </div>
+    <div class="panel-body">
+        {% block edit_form %}
+            <div id="Home" class="tab-pane active">
+                {{ widgets.get('edit')(form_action=form_action)|safe }}
+            </div>
+        {% endblock %}
+
+            {% if related_views is defined %} </div> {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block add_tail_js %}
+<script src="{{url_for('appbuilder.static',filename='js/ab_keep_tab.js')}}" nonce="{{ baselib.get_nonce() }}"></script>
+{% endblock %}
