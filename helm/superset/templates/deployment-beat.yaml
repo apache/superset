@@ -120,6 +120,9 @@ spec:
             {{- else }}
               {{- toYaml .Values.resources | nindent 12 }}
             {{- end }}
+        {{- if .Values.supersetCeleryBeat.extraContainers }}
+            {{- toYaml .Values.supersetCeleryBeat.extraContainers | nindent 8 }}
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8 }}
       {{- end }}
