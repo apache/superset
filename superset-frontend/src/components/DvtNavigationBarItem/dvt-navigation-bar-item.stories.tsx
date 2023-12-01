@@ -22,6 +22,21 @@ import DvtNavigationBarItem, { DvtNavigationBarItemProps } from '.';
 export default {
   title: 'Dvt-Components/DvtNavigationBarItem',
   component: DvtNavigationBarItem,
+  argTypes: {
+    icon: {
+      control: { type: 'text' },
+      defaultValue: 'calendar',
+    },
+    label: {
+      control: { type: 'text' },
+      defaultValue: 'Schedule',
+    },
+    onClick: { action: 'clicked' },
+    active: {
+      control: { type: 'boolean' },
+      defaultValue: false,
+    },
+  },
 };
 
 export const Default = (args: DvtNavigationBarItemProps) => (
@@ -32,15 +47,6 @@ export const Active = (args: DvtNavigationBarItemProps) => (
   <DvtNavigationBarItem {...args} />
 );
 
-Default.args = {
-  icon: 'calendar',
-  label: 'Schedule',
-  onClick: () => {},
-};
-
 Active.args = {
-  icon: 'calendar',
-  label: 'Schedule',
-  onClick: () => {},
   active: true,
 };
