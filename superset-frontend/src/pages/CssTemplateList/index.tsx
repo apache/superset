@@ -22,7 +22,7 @@ import { t, SupersetClient } from '@superset-ui/core';
 
 import rison from 'rison';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import { createErrorHandler } from 'src/views/CRUD/utils';
+import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import DeleteModal from 'src/components/DeleteModal';
@@ -35,7 +35,8 @@ import ListView, {
 } from 'src/components/ListView';
 import CssTemplateModal from 'src/features/cssTemplates/CssTemplateModal';
 import { TemplateObject } from 'src/features/cssTemplates/types';
-import { AuditInfo, AuditInfoType } from '../../components/AuditInfo';
+import { AuditInfo, AuditInfoType } from 'src/components/AuditInfo';
+import { QueryObjectColumns } from 'src/views/CRUD/types';
 
 const PAGE_SIZE = 25;
 
@@ -183,6 +184,10 @@ function CssTemplatesList({
         hidden: !canEdit && !canDelete,
         size: 'xl',
       },
+      {
+        accessor: QueryObjectColumns.changed_by,
+        hidden: true,
+      },
     ],
     [canDelete, canCreate],
   );
@@ -226,6 +231,26 @@ function CssTemplatesList({
         id: 'template_name',
         input: 'search',
         operator: FilterOperator.contains,
+      },
+      {
+        Header: t('Modified by'),
+        key: 'changed_by',
+        id: 'changed_by',
+        input: 'select',
+        operator: FilterOperator.relationOneMany,
+        unfilteredLabel: t('All'),
+        fetchSelects: createFetchRelated(
+          'css_template',
+          'changed_by',
+          createErrorHandler(errMsg =>
+            t(
+              'An error occurred while fetching dataset datasource values: %s',
+              errMsg,
+            ),
+          ),
+          user,
+        ),
+        paginate: true,
       },
     ],
     [],

@@ -18,7 +18,11 @@
  */
 import React, { useMemo, useState } from 'react';
 import { isFeatureEnabled, FeatureFlag, t } from '@superset-ui/core';
-import { Actions } from 'src/views/CRUD/utils';
+import {
+  Actions,
+  createErrorHandler,
+  createFetchRelated,
+} from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
@@ -34,7 +38,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import { Link } from 'react-router-dom';
 import { deleteTags } from 'src/features/tags/tags';
 import { Tag as AntdTag } from 'antd';
-import { Tag } from 'src/views/CRUD/types';
+import { QueryObjectColumns, Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
 import FaveStar from 'src/components/FaveStar';
 import { AuditInfo, AuditInfoType } from 'src/components/AuditInfo';
@@ -52,11 +56,8 @@ interface TagListProps {
 }
 
 function TagList(props: TagListProps) {
-  const {
-    addDangerToast,
-    addSuccessToast,
-    user: { userId },
-  } = props;
+  const { addDangerToast, addSuccessToast, user } = props;
+  const { userId } = user;
 
   const {
     state: {
@@ -232,6 +233,10 @@ function TagList(props: TagListProps) {
         hidden: !canDelete,
         disableSortBy: true,
       },
+      {
+        accessor: QueryObjectColumns.changed_by,
+        hidden: true,
+      },
     ],
     [userId, canDelete, refreshData, addSuccessToast, addDangerToast],
   );
@@ -243,6 +248,26 @@ function TagList(props: TagListProps) {
         id: 'name',
         input: 'search',
         operator: FilterOperator.contains,
+      },
+      {
+        Header: t('Modified by'),
+        key: 'changed_by',
+        id: 'changed_by',
+        input: 'select',
+        operator: FilterOperator.relationOneMany,
+        unfilteredLabel: t('All'),
+        fetchSelects: createFetchRelated(
+          'tag',
+          'changed_by',
+          createErrorHandler(errMsg =>
+            t(
+              'An error occurred while fetching dataset datasource values: %s',
+              errMsg,
+            ),
+          ),
+          user,
+        ),
+        paginate: true,
       },
     ] as Filters;
     return filters_list;

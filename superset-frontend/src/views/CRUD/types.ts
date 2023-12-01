@@ -112,6 +112,7 @@ export interface QueryObject {
 export enum QueryObjectColumns {
   id = 'id',
   changed_on = 'changed_on',
+  changed_by = 'changed_by',
   database = 'database',
   database_name = 'database.database_name',
   schema = 'schema',

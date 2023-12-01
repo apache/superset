@@ -32,7 +32,11 @@ import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 
 import Loading from 'src/components/Loading';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import { createErrorHandler, uploadUserPerms } from 'src/views/CRUD/utils';
+import {
+  createErrorHandler,
+  createFetchRelated,
+  uploadUserPerms,
+} from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import DeleteModal from 'src/components/DeleteModal';
@@ -49,6 +53,7 @@ import type { MenuObjectProps } from 'src/types/bootstrapTypes';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
 import { DatabaseObject } from 'src/features/databases/types';
 import { AuditInfo, AuditInfoType } from 'src/components/AuditInfo';
+import { QueryObjectColumns } from 'src/views/CRUD/types';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DatabaseDeleteRelatedExtension = extensionsRegistry.get(
@@ -68,6 +73,11 @@ interface DatabaseDeleteObject extends DatabaseObject {
 interface DatabaseListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
+  user: {
+    userId: string | number;
+    firstName: string;
+    lastName: string;
+  };
 }
 
 const IconCheck = styled(Icons.Check)`
@@ -91,7 +101,11 @@ function BooleanDisplay({ value }: { value: Boolean }) {
   return value ? <IconCheck /> : <IconCancelX />;
 }
 
-function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
+function DatabaseList({
+  addDangerToast,
+  addSuccessToast,
+  user,
+}: DatabaseListProps) {
   const {
     state: {
       loading,
@@ -106,7 +120,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     t('database'),
     addDangerToast,
   );
-  const user = useSelector<any, UserWithPermissionsAndRoles>(
+  const fullUser = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
   const showDatabaseModal = getUrlParam(URL_PARAMS.showDatabaseModal);
@@ -124,11 +138,11 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     null,
   );
   const [allowUploads, setAllowUploads] = useState<boolean>(false);
-  const isAdmin = isUserAdmin(user);
+  const isAdmin = isUserAdmin(fullUser);
   const showUploads = allowUploads || isAdmin;
 
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
-  const { roles } = user;
+  const { roles } = fullUser;
   const {
     CSV_EXTENSIONS,
     COLUMNAR_EXTENSIONS,
@@ -468,6 +482,10 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         hidden: !canEdit && !canDelete,
         disableSortBy: true,
       },
+      {
+        accessor: QueryObjectColumns.changed_by,
+        hidden: true,
+      },
     ],
     [canDelete, canEdit, canExport],
   );
@@ -512,6 +530,26 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
           { label: t('Yes'), value: true },
           { label: t('No'), value: false },
         ],
+      },
+      {
+        Header: t('Modified by'),
+        key: 'changed_by',
+        id: 'changed_by',
+        input: 'select',
+        operator: FilterOperator.relationOneMany,
+        unfilteredLabel: t('All'),
+        fetchSelects: createFetchRelated(
+          'database',
+          'changed_by',
+          createErrorHandler(errMsg =>
+            t(
+              'An error occurred while fetching dataset datasource values: %s',
+              errMsg,
+            ),
+          ),
+          user,
+        ),
+        paginate: true,
       },
     ],
     [],

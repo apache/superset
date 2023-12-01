@@ -54,6 +54,7 @@ import Owner from 'src/types/Owner';
 import AlertReportModal from 'src/features/alerts/AlertReportModal';
 import { AlertObject, AlertState } from 'src/features/alerts/types';
 import { AuditInfo, AuditInfoType } from 'src/components/AuditInfo';
+import { QueryObjectColumns } from 'src/views/CRUD/types';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -405,6 +406,10 @@ function AlertList({
         disableSortBy: true,
         size: 'xl',
       },
+      {
+        accessor: QueryObjectColumns.changed_by,
+        hidden: true,
+      },
     ],
     [canDelete, canEdit, isReportEnabled, toggleActive],
   );
@@ -490,6 +495,26 @@ function AlertList({
           { label: AlertStateLabel[AlertState.Noop], value: AlertState.Noop },
           { label: AlertStateLabel[AlertState.Grace], value: AlertState.Grace },
         ],
+      },
+      {
+        Header: t('Modified by'),
+        key: 'changed_by',
+        id: 'changed_by',
+        input: 'select',
+        operator: FilterOperator.relationOneMany,
+        unfilteredLabel: t('All'),
+        fetchSelects: createFetchRelated(
+          'report',
+          'changed_by',
+          createErrorHandler(errMsg =>
+            t(
+              'An error occurred while fetching dataset datasource values: %s',
+              errMsg,
+            ),
+          ),
+          user,
+        ),
+        paginate: true,
       },
     ],
     [],

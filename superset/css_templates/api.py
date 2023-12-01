@@ -83,7 +83,7 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
     order_columns = ["template_name"]
 
     search_filters = {"template_name": [CssTemplateAllTextFilter]}
-    allowed_rel_fields = {"created_by"}
+    allowed_rel_fields = {"created_by", "changed_by"}
 
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,

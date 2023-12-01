@@ -148,7 +148,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "last_run_delta_humanized",
     ]
 
-    search_columns = ["id", "database", "label", "schema", "created_by"]
+    search_columns = ["id", "database", "label", "schema", "created_by", "changed_by"]
     if is_feature_enabled("TAGGING_SYSTEM"):
         search_columns += ["tags"]
     search_filters = {
@@ -169,7 +169,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "database": "database_name",
     }
     base_related_field_filters = {"database": [["id", DatabaseFilter, lambda: []]]}
-    allowed_rel_fields = {"database"}
+    allowed_rel_fields = {"database", "changed_by", "created_by"}
     allowed_distinct_fields = {"schema"}
 
     def pre_add(self, item: SavedQuery) -> None:

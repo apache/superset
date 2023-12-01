@@ -74,6 +74,7 @@ import ChartCard from 'src/features/charts/ChartCard';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
 import { AuditInfo, AuditInfoType } from 'src/components/AuditInfo';
+import { QueryObjectColumns } from 'src/views/CRUD/types';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -548,6 +549,10 @@ function ChartList(props: ChartListProps) {
         disableSortBy: true,
         hidden: !canEdit && !canDelete,
       },
+      {
+        accessor: QueryObjectColumns.changed_by,
+        hidden: true,
+      },
     ],
     [
       userId,
@@ -682,6 +687,26 @@ function ChartList(props: ChartListProps) {
           { label: t('Yes'), value: true },
           { label: t('No'), value: false },
         ],
+      },
+      {
+        Header: t('Modified by'),
+        key: 'changed_by',
+        id: 'changed_by',
+        input: 'select',
+        operator: FilterOperator.relationOneMany,
+        unfilteredLabel: t('All'),
+        fetchSelects: createFetchRelated(
+          'chart',
+          'changed_by',
+          createErrorHandler(errMsg =>
+            t(
+              'An error occurred while fetching dataset datasource values: %s',
+              errMsg,
+            ),
+          ),
+          props.user,
+        ),
+        paginate: true,
       },
     ] as Filters;
     return filters_list;

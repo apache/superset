@@ -57,7 +57,10 @@ import { Tooltip } from 'src/components/Tooltip';
 import ImportModelsModal from 'src/components/ImportModal/index';
 
 import Dashboard from 'src/dashboard/containers/Dashboard';
-import { Dashboard as CRUDDashboard } from 'src/views/CRUD/types';
+import {
+  Dashboard as CRUDDashboard,
+  QueryObjectColumns,
+} from 'src/views/CRUD/types';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import { loadTags } from 'src/components/Tags/utils';
 import DashboardCard from 'src/features/dashboards/DashboardCard';
@@ -109,11 +112,7 @@ const Actions = styled.div`
 `;
 
 function DashboardList(props: DashboardListProps) {
-  const {
-    addDangerToast,
-    addSuccessToast,
-    user: { userId },
-  } = props;
+  const { addDangerToast, addSuccessToast, user } = props;
 
   const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
@@ -179,7 +178,7 @@ function DashboardList(props: DashboardListProps) {
   };
 
   // TODO: Fix usage of localStorage keying on the user id
-  const userKey = dangerouslyGetItemDoNotUse(userId?.toString(), null);
+  const userKey = dangerouslyGetItemDoNotUse(user?.userId?.toString(), null);
 
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
@@ -275,7 +274,7 @@ function DashboardList(props: DashboardListProps) {
             original: { id },
           },
         }: any) =>
-          userId && (
+          user?.userId && (
             <FaveStar
               itemId={id}
               saveFaveStar={saveFavoriteStatus}
@@ -286,7 +285,7 @@ function DashboardList(props: DashboardListProps) {
         id: 'id',
         disableSortBy: true,
         size: 'xs',
-        hidden: !userId,
+        hidden: !user?.userId,
       },
       {
         Cell: ({
@@ -463,9 +462,13 @@ function DashboardList(props: DashboardListProps) {
         hidden: !canEdit && !canDelete && !canExport,
         disableSortBy: true,
       },
+      {
+        accessor: QueryObjectColumns.changed_by,
+        hidden: true,
+      },
     ],
     [
-      userId,
+      user?.userId,
       canEdit,
       canDelete,
       canExport,
@@ -550,7 +553,7 @@ function DashboardList(props: DashboardListProps) {
         ),
         paginate: true,
       },
-      ...(userId ? [favoritesFilter] : []),
+      ...(user?.userId ? [favoritesFilter] : []),
       {
         Header: t('Certified'),
         key: 'certified',
@@ -563,6 +566,26 @@ function DashboardList(props: DashboardListProps) {
           { label: t('Yes'), value: true },
           { label: t('No'), value: false },
         ],
+      },
+      {
+        Header: t('Modified by'),
+        key: 'changed_by',
+        id: 'changed_by',
+        input: 'select',
+        operator: FilterOperator.relationOneMany,
+        unfilteredLabel: t('All'),
+        fetchSelects: createFetchRelated(
+          'dashboard',
+          'changed_by',
+          createErrorHandler(errMsg =>
+            t(
+              'An error occurred while fetching dataset datasource values: %s',
+              errMsg,
+            ),
+          ),
+          user,
+        ),
+        paginate: true,
       },
     ] as Filters;
     return filters_list;
@@ -600,7 +623,7 @@ function DashboardList(props: DashboardListProps) {
             ? userKey.thumbnails
             : isFeatureEnabled(FeatureFlag.THUMBNAILS)
         }
-        userId={userId}
+        userId={user?.userId}
         loading={loading}
         openDashboardEditModal={openDashboardEditModal}
         saveFavoriteStatus={saveFavoriteStatus}
@@ -614,7 +637,7 @@ function DashboardList(props: DashboardListProps) {
       favoriteStatus,
       hasPerm,
       loading,
-      userId,
+      user?.userId,
       saveFavoriteStatus,
       userKey,
     ],
@@ -711,7 +734,7 @@ function DashboardList(props: DashboardListProps) {
                       addSuccessToast,
                       addDangerToast,
                       undefined,
-                      userId,
+                      user?.userId,
                     );
                     setDashboardToDelete(null);
                   }}

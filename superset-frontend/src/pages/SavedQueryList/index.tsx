@@ -50,17 +50,14 @@ import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import { TagsList } from 'src/components/Tags';
 import { Tooltip } from 'src/components/Tooltip';
 import { commonMenuData } from 'src/features/home/commonMenuData';
-import { SavedQueryObject } from 'src/views/CRUD/types';
+import { QueryObjectColumns, SavedQueryObject } from 'src/views/CRUD/types';
 import copyTextToClipboard from 'src/utils/copy';
 import Tag from 'src/types/TagType';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import { AuditInfo, AuditInfoType } from 'src/components/AuditInfo';
 import { loadTags } from 'src/components/Tags/utils';
 import Icons from 'src/components/Icons';
-import {
-  BootstrapUser,
-  UserWithPermissionsAndRoles,
-} from 'src/types/bootstrapTypes';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import SavedQueryPreviewModal from 'src/features/queries/SavedQueryPreviewModal';
 import { findPermission } from 'src/utils/findPermission';
 
@@ -81,7 +78,11 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
 interface SavedQueryListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  user: BootstrapUser;
+  user: {
+    userId: string | number;
+    firstName: string;
+    lastName: string;
+  };
 }
 
 const StyledTableLabel = styled.div`
@@ -100,6 +101,7 @@ const StyledPopoverItem = styled.div`
 function SavedQueryList({
   addDangerToast,
   addSuccessToast,
+  user,
 }: SavedQueryListProps) {
   const {
     state: {
@@ -437,6 +439,10 @@ function SavedQueryList({
         id: 'actions',
         disableSortBy: true,
       },
+      {
+        accessor: QueryObjectColumns.changed_by,
+        hidden: true,
+      },
     ],
     [canDelete, canEdit, canExport, copyQueryLink, handleSavedQueryPreview],
   );
@@ -501,6 +507,26 @@ function SavedQueryList({
             },
           ]
         : []) as Filters),
+      {
+        Header: t('Modified by'),
+        key: 'changed_by',
+        id: 'changed_by',
+        input: 'select',
+        operator: FilterOperator.relationOneMany,
+        unfilteredLabel: t('All'),
+        fetchSelects: createFetchRelated(
+          'saved_query',
+          'changed_by',
+          createErrorHandler(errMsg =>
+            t(
+              'An error occurred while fetching dataset datasource values: %s',
+              errMsg,
+            ),
+          ),
+          user,
+        ),
+        paginate: true,
+      },
     ],
     [addDangerToast],
   );

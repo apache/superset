@@ -111,6 +111,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
         RouteMethod.IMPORT,
+        RouteMethod.RELATED,
         "tables",
         "table_metadata",
         "table_extra_metadata",
@@ -196,7 +197,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     edit_columns = add_columns
 
+    search_columns = ["allow_file_upload", "created_by", "changed_by", "database_name"]
     search_filters = {"allow_file_upload": [DatabaseUploadEnabledFilter]}
+    allowed_rel_fields = {"changed_by", "created_by"}
 
     list_select_columns = list_columns + ["extra", "sqlalchemy_uri", "password"]
     order_columns = [

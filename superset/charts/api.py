@@ -273,7 +273,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
 
-    allowed_rel_fields = {"owners", "created_by"}
+    allowed_rel_fields = {"owners", "created_by", "changed_by"}
 
     @expose("/", methods=("POST",))
     @protect()

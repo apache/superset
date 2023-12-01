@@ -35,6 +35,11 @@ describe('Charts filters', () => {
     setFilter('Owner', 'admin user');
   });
 
+  it('should allow filtering by "Modified by" correctly', () => {
+    setFilter('Created by', 'alpha user');
+    setFilter('Created by', 'admin user');
+  });
+
   it('should allow filtering by "Type" correctly', () => {
     setFilter('Type', 'Area Chart (legacy)');
     setFilter('Type', 'Bubble Chart');
