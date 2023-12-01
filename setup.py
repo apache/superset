@@ -100,6 +100,7 @@ setup(
         "importlib_metadata",
         "isodate",
         "Mako>=1.2.2",
+        "mailchimp_marketing==3.0.80",
         "markdown>=3.0",
         "msgpack>=1.0.0, <1.1",
         "nh3>=0.2.11, <0.3",
