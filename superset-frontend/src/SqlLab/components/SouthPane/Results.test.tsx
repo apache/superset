@@ -18,11 +18,10 @@
  */
 import React from 'react';
 import { render } from 'spec/helpers/testing-library';
-import SouthPane from 'src/SqlLab/components/SouthPane';
-import '@testing-library/jest-dom/extend-expect';
-import { STATUS_OPTIONS } from 'src/SqlLab/constants';
 import { initialState, table, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import { denormalizeTimestamp } from '@superset-ui/core';
+import { LOCALSTORAGE_MAX_QUERY_AGE_MS } from 'src/SqlLab/constants';
+import Results from './Results';
 
 const mockedProps = {
   queryEditorId: defaultQueryEditor.id,
@@ -40,24 +39,23 @@ const mockedEmptyProps = {
   defaultQueryLimit: 100,
 };
 
+const mockedExpiredProps = {
+  ...mockedEmptyProps,
+  latestQueryId: 'expired_query_id',
+};
+
 const latestQueryProgressMsg = 'LATEST QUERY MESSAGE - LCly_kkIN';
+const expireDateTime = Date.now() - LOCALSTORAGE_MAX_QUERY_AGE_MS - 1;
 
 const mockState = {
   ...initialState,
   sqlLab: {
-    ...initialState.sqlLab,
+    ...initialState,
     offline: false,
     tables: [
       {
         ...table,
-        name: 'table3',
         dataPreviewQueryId: '2g2_iRFMl',
-        queryEditorId: defaultQueryEditor.id,
-      },
-      {
-        ...table,
-        name: 'table4',
-        dataPreviewQueryId: 'erWdqEWPm',
         queryEditorId: defaultQueryEditor.id,
       },
     ],
@@ -94,13 +92,15 @@ const mockState = {
         sqlEditorId: defaultQueryEditor.id,
         sql: 'select * from table3',
       },
-      erWdqEWPm: {
+      expired_query_id: {
         cached: false,
-        changed_on: denormalizeTimestamp(new Date(1559238516395).toISOString()),
+        changed_on: denormalizeTimestamp(
+          new Date(expireDateTime).toISOString(),
+        ),
         db: 'main',
         dbId: 1,
-        id: 'erWdqEWPm',
-        startDttm: 1559238516395,
+        id: 'expired_query_id',
+        startDttm: expireDateTime,
         sqlEditorId: defaultQueryEditor.id,
         sql: 'select * from table4',
       },
@@ -108,32 +108,28 @@ const mockState = {
   },
 };
 
-test('should render offline when the state is offline', async () => {
-  const { getByText } = render(<SouthPane {...mockedEmptyProps} />, {
-    useRedux: true,
-    initialState: {
-      ...initialState,
-      sqlLab: {
-        ...initialState.sqlLab,
-        offline: true,
-      },
-    },
-  });
-
-  expect(getByText(STATUS_OPTIONS.offline)).toBeVisible();
-});
-
-test('should render tabs for table preview queries', () => {
-  const { getAllByRole } = render(<SouthPane {...mockedProps} />, {
+test('Renders an empty state for results', async () => {
+  const { getByText } = render(<Results {...mockedEmptyProps} />, {
     useRedux: true,
     initialState: mockState,
   });
+  const emptyStateText = getByText(/run a query to display results/i);
+  expect(emptyStateText).toBeVisible();
+});
 
-  const tabs = getAllByRole('tab');
-  expect(tabs).toHaveLength(mockState.sqlLab.tables.length + 2);
-  expect(tabs[0]).toHaveTextContent('Results');
-  expect(tabs[1]).toHaveTextContent('Query history');
-  mockState.sqlLab.tables.forEach(({ name }, index) => {
-    expect(tabs[index + 2]).toHaveTextContent(`Preview: \`${name}\``);
+test('Renders an empty state for expired results', async () => {
+  const { getByText } = render(<Results {...mockedExpiredProps} />, {
+    useRedux: true,
+    initialState: mockState,
   });
+  const emptyStateText = getByText(/run a query to display results/i);
+  expect(emptyStateText).toBeVisible();
+});
+
+test('should pass latest query down to ResultSet component', async () => {
+  const { getByText } = render(<Results {...mockedProps} />, {
+    useRedux: true,
+    initialState: mockState,
+  });
+  expect(getByText(latestQueryProgressMsg)).toBeVisible();
 });
