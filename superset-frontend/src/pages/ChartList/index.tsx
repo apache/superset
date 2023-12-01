@@ -445,7 +445,10 @@ function ChartList(props: ChartListProps) {
       {
         Cell: ({
           row: {
-            original: { last_saved_at: changedOn, last_saved_by: changedBy },
+            original: {
+              changed_on_delta_humanized: changedOn,
+              changed_by: changedBy,
+            },
           },
         }: any) => (
           <AuditInfo
