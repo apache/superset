@@ -14,25 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import uuid
-from unittest.mock import MagicMock, patch
-
 import pandas as pd
-from flask import g
 
 
-@patch("superset.reports.notifications.slack.logger")
-def test_get_channel_with_multi_recipients(
-    logger_mock: MagicMock,
-) -> None:
-    # `superset.models.helpers`, a dependency of following imports,
-    # requires app context
+def test_get_channel_with_multi_recipients() -> None:
+    """
+    Test the _get_channel function to ensure it will return a string
+    with recipients separated by commas without interstitial spacing
+    """
     from superset.reports.models import ReportRecipients, ReportRecipientType
     from superset.reports.notifications.base import NotificationContent
-    from superset.reports.notifications.slack import SlackNotification, WebClient
+    from superset.reports.notifications.slack import SlackNotification
 
-    execution_id = uuid.uuid4()
-    g.context = {"execution_id": execution_id}
     content = NotificationContent(
         name="test alert",
         header_data={
@@ -52,29 +45,14 @@ def test_get_channel_with_multi_recipients(
         ),
         description='<p>This is <a href="#">a test</a> alert</p><br />',
     )
-    # Set a return value for _get_channel
-    with patch.object(
-        SlackNotification,
-        "_get_channel",
-        return_value="some_channel,second_channel,third_channel",
-    ) as get_channel_mock:
-        slack_notification = SlackNotification(
-            recipient=ReportRecipients(
-                type=ReportRecipientType.SLACK,
-                recipient_config_json='{"target": "some_channel; second_channel, third_channel"}',
-            ),
-            content=content,
-        )
+    slack_notification = SlackNotification(
+        recipient=ReportRecipients(
+            type=ReportRecipientType.SLACK,
+            recipient_config_json='{"target": "some_channel; second_channel, third_channel"}',
+        ),
+        content=content,
+    )
 
-        result = slack_notification._get_channel()
+    result = slack_notification._get_channel()
 
-        assert result == "some_channel,second_channel,third_channel"
-
-        # Ensure _get_channel was called
-        get_channel_mock.assert_called_once()
-
-        # Ensure other methods were not called
-        logger_mock.info.assert_not_called()
-
-    # reset g.context
-    g.context = None
+    assert result == "some_channel,second_channel,third_channel"
