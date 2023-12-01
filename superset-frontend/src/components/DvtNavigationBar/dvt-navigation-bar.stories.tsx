@@ -60,7 +60,7 @@ Default.args = {
       label: 'Created Content',
       url: 'test',
     },
-    { icon: 'calendar', label: 'dvt-calendar', url: 'test1' },
+    { icon: 'dvt-calendar', label: 'Schedule', url: 'test1' },
     {
       icon: 'dvt-history',
       label: 'Recent Activity',

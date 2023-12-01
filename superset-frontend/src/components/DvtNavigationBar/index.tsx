@@ -41,9 +41,10 @@ const DvtNavigationBar: React.FC<DvtNavigationBarProps> = ({
   setActive,
 }) => (
   <StyledNavigationBar>
-    {data.map(item => (
+    {data.map((item, index) => (
       <StyledNavigationBarItem>
         <DvtNavigationBarItem
+          key={index}
           icon={item.icon}
           label={item.label}
           onClick={() => {
