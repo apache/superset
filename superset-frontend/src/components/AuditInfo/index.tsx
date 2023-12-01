@@ -16,7 +16,7 @@ export type AuditInfoProps = {
   date: string;
 };
 
-export const AuditInfo: React.FC<AuditInfoProps> = ({ type, user, date }) => {
+export const AuditInfo = ({ type, user, date }: AuditInfoProps) => {
   const dateSpan = (
     <span className="no-wrap" data-test="audit-info-date">
       {date}
