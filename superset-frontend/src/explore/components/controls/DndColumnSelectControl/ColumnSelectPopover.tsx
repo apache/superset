@@ -119,6 +119,7 @@ const ColumnSelectPopover = ({
   const [selectedSimpleColumn, setSelectedSimpleColumn] = useState<
     ColumnMeta | undefined
   >(initialSimpleColumn);
+  const [selectedTab, setSelectedTab] = useState<string | null>(null);
 
   const [resizeButton, width, height] = useResizeButton(
     POPOVER_INITIAL_WIDTH,
@@ -190,7 +191,34 @@ const ColumnSelectPopover = ({
 
   useEffect(() => {
     getCurrentTab(defaultActiveTabKey);
-  }, [defaultActiveTabKey, getCurrentTab]);
+    setSelectedTab(defaultActiveTabKey);
+  }, [defaultActiveTabKey, getCurrentTab, setSelectedTab]);
+
+  useEffect(() => {
+    /* if the adhoc column is not set (because it was never edited) but the
+     * tab is selected and the label has changed, then we need to set the
+     * adhoc column manually */
+    if (
+      adhocColumn === undefined &&
+      selectedTab === 'sqlExpression' &&
+      hasCustomLabel
+    ) {
+      const sqlExpression =
+        selectedSimpleColumn?.column_name ||
+        selectedCalculatedColumn?.expression ||
+        '';
+      setAdhocColumn({ label, sqlExpression, expressionType: 'SQL' });
+    }
+  }, [
+    adhocColumn,
+    defaultActiveTabKey,
+    hasCustomLabel,
+    getCurrentTab,
+    label,
+    selectedCalculatedColumn,
+    selectedSimpleColumn,
+    selectedTab,
+  ]);
 
   const onSave = useCallback(() => {
     if (adhocColumn && adhocColumn.label !== label) {
@@ -226,27 +254,12 @@ const ColumnSelectPopover = ({
 
   const onTabChange = useCallback(
     tab => {
-      if (tab === 'sqlExpression' && hasCustomLabel) {
-        // if we switch to the Custom SQL tab and we have a custom label we need
-        // to update the adhoc column label
-        const sqlExpression =
-          adhocColumn?.sqlExpression ||
-          selectedSimpleColumn?.column_name ||
-          selectedCalculatedColumn?.expression ||
-          '';
-        setAdhocColumn({ label, sqlExpression, expressionType: 'SQL' });
-      }
       getCurrentTab(tab);
+      setSelectedTab(tab);
       // @ts-ignore
       sqlEditorRef.current?.editor.focus();
     },
-    [
-      getCurrentTab,
-      hasCustomLabel,
-      adhocColumn,
-      selectedSimpleColumn,
-      selectedCalculatedColumn,
-    ],
+    [getCurrentTab],
   );
 
   const onSqlEditorFocus = useCallback(() => {
