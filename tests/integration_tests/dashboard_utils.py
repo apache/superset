@@ -59,11 +59,11 @@ def create_table_metadata(
             normalize_columns=False,
             always_filter_main_dttm=False,
         )
+        db.session.add(table)
     if fetch_values_predicate:
         table.fetch_values_predicate = fetch_values_predicate
     table.database = database
     table.description = table_description
-    db.session.merge(table)
     db.session.commit()
 
     return table

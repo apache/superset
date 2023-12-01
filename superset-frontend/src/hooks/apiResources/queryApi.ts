@@ -17,7 +17,10 @@
  * under the License.
  */
 import rison from 'rison';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import {
+  ClientErrorObject,
+  getClientErrorObject,
+} from 'src/utils/getClientErrorObject';
 import { createApi, BaseQueryFn } from '@reduxjs/toolkit/query/react';
 import {
   SupersetClient,
@@ -35,7 +38,9 @@ export const supersetClientQuery: BaseQueryFn<
     parseMethod?: ParseMethod;
     transformResponse?: (response: SupersetClientResponse) => JsonValue;
     urlParams?: Record<string, number | string | undefined | boolean>;
-  }
+  },
+  JsonValue,
+  ClientErrorObject
 > = (
   {
     endpoint,

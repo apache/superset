@@ -84,7 +84,7 @@ from superset.utils.hashing import md5_sha_from_str
 
 if TYPE_CHECKING:
     from superset.common.query_context_factory import QueryContextFactory
-    from superset.connectors.base.models import BaseDatasource
+    from superset.connectors.sqla.models import BaseDatasource
 
 config = app.config
 stats_logger = config["STATS_LOGGER"]
@@ -2019,15 +2019,15 @@ class BaseDeckGLViz(BaseViz):
 
     @staticmethod
     @deprecated(deprecated_in="3.0")
-    def parse_coordinates(latlog: Any) -> tuple[float, float] | None:
-        if not latlog:
+    def parse_coordinates(latlong: Any) -> tuple[float, float] | None:
+        if not latlong:
             return None
         try:
-            point = Point(latlog)
+            point = Point(latlong)
             return (point.latitude, point.longitude)
         except Exception as ex:
             raise SpatialException(
-                _(f"Invalid spatial point encountered: {latlog}")
+                _(f"Invalid spatial point encountered: {latlong}")
             ) from ex
 
     @staticmethod
@@ -2411,6 +2411,27 @@ class DeckHeatmap(BaseDeckGLViz):
         return super().get_data(df)
 
 
+class DeckContour(BaseDeckGLViz):
+
+    """deck.gl's ContourLayer"""
+
+    viz_type = "deck_contour"
+    verbose_name = _("Deck.gl - Contour")
+    spatial_control_keys = ["spatial"]
+
+    def get_properties(self, data: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "position": data.get("spatial"),
+            "weight": (data.get(self.metric_label) if self.metric_label else None) or 1,
+        }
+
+    def get_data(self, df: pd.DataFrame) -> VizData:
+        self.metric_label = (  # pylint: disable=attribute-defined-outside-init
+            utils.get_metric_name(self.metric) if self.metric else None
+        )
+        return super().get_data(df)
+
+
 class DeckGeoJson(BaseDeckGLViz):
 
     """deck.gl's GeoJSONLayer"""
@@ -2544,7 +2565,7 @@ class PairedTTestViz(BaseViz):
         metrics = self.metric_labels
         df = df.pivot_table(index=DTTM_ALIAS, columns=groups, values=metrics)
         cols = []
-        # Be rid of falsey keys
+        # Be rid of falsy keys
         for col in df.columns:
             if col == "":
                 cols.append("N/A")

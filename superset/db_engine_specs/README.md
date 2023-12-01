@@ -43,7 +43,7 @@ The table below (generated via `python superset/db_engine_specs/lib.py`) summari
 | Allows aliases in the SELECT statement | True | True | True | True | True | True | True | True | False | True | True | True | True | True | True | True | True | True | True | True | True | True | False | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True |
 | Allows referencing aliases in the ORDER BY statement | True | True | True | True | True | True | True | True | False | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True |
 | Supports secondary time columns | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | True | True | False | False | False | False | False | False | False | True | True | False | False | False | False | False | False | False | True | True | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False |
-| Allows ommiting time filters from inline GROUP BYs | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | True | True | False | False | False | False | False | False | False | True | True | False | False | False | False | False | False | False | True | True | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False |
+| Allows omitting time filters from inline GROUP BYs | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | True | True | False | False | False | False | False | False | False | True | True | False | False | False | False | False | False | False | True | True | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False |
 | Able to use source column when an alias overshadows it | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | True | False | False | False | False | False | False | False | False | True | False | False |
 | Allows aggregations in ORDER BY not present in the SELECT | True | True | True | True | True | False | True | True | True | True | False | True | True | True | True | True | True | True | True | True | False | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True |
 | Allows expressions in ORDER BY | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | True | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False | False |
@@ -107,7 +107,7 @@ When running user queries in SQL Lab, Superset needs to limit the number of rows
 
 For most databases this is done by parsing the user submitted query and applying a limit, if one is not present, or replacing the existing limit if it's larger. This is called the `FORCE_LIMIT` method, and is the most efficient, since the database will produce at most the number of rows that Superset will display.
 
-For some databases this method might not work, and they can use the `WRAP_SQL` method, which wraps the original query in a `SELECT *` and applies a limit via the SQLAlchemy dialect, which should get translated to the correct syntax. This method might be inneficient, since the database optimizer might not be able to push the limit to the inner query.
+For some databases this method might not work, and they can use the `WRAP_SQL` method, which wraps the original query in a `SELECT *` and applies a limit via the SQLAlchemy dialect, which should get translated to the correct syntax. This method might be inefficient, since the database optimizer might not be able to push the limit to the inner query.
 
 Finally, as a last resource there is the `FETCH_MANY` method. When a DB engine spec uses this method the query runs unmodified, but Superset fetches only a certain number of rows from the cursor. It's possible that a database using this method can optimize the query execution and compute rows as they are being read by the cursor, but it's unlikely. This makes this method the least efficient of the three.
 
@@ -158,7 +158,7 @@ GROUP BY
 ```
 ### `time_groupby_inline = False`
 
-In theory this attribute should be used to ommit time filters from the self-joins. When the attribute is false the time attribute will be present in the subquery used to compute limited series, eg:
+In theory this attribute should be used to omit time filters from the self-joins. When the attribute is false the time attribute will be present in the subquery used to compute limited series, eg:
 
 ```sql
 SELECT DATE_TRUNC('day', ts) AS ts,
@@ -390,7 +390,7 @@ class MssqlEngineSpec(BaseEngineSpec):
 
 ### Function names
 
-DB engine specs should implement a class method called `get_function_names` that retuns a list of strings, representing all the function names that the database supports. This is used for autocomplete in SQL Lab.
+DB engine specs should implement a class method called `get_function_names` that returns a list of strings, representing all the function names that the database supports. This is used for autocomplete in SQL Lab.
 
 ### Masked encrypted extra
 
@@ -521,7 +521,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
 
 The method `get_url_for_impersonation` updates the SQLAlchemy URI before every query. In this particular case, it will fetch the user's email and add it to the `subject` query argument. The driver will then lower the permissions to match that given user. This allows the connection to be configured with a service account that has access to all the spreadsheets, while giving users access to only the spreadsheets they own are have been shared with them (or with their organization — Google will handle the authorization in this case, not Superset).
 
-Alternatively, it's also possible to impersonate users by implemeneting the `update_impersonation_config`. This is a class method which modifies `connect_args` in place. You can use either method, and ideally they [should be consolidated in a single one](https://github.com/apache/superset/issues/24910).
+Alternatively, it's also possible to impersonate users by implementing the `update_impersonation_config`. This is a class method which modifies `connect_args` in place. You can use either method, and ideally they [should be consolidated in a single one](https://github.com/apache/superset/issues/24910).
 
 ### File upload
 
@@ -706,13 +706,13 @@ Note that despite being implemented only for Presto, this behavior has nothing t
 
 Some databases allow uses to estimate the cost of running a query before running it. This is done via the `estimate_query_cost` method in DB engine specs, which receives the SQL and returns a list of "costs". The definition of what "cost" is varies from database to database (in the few that support this functionality), and it can be formatted via the `query_cost_formatter`.
 
-The `query_cost_formatter` can be overriden with an arbitrary function via the config `QUERY_COST_FORMATTERS_BY_ENGINE`. This allows custom deployments of Superset to format the results in different ways. For example, at some point in Lyft the cost for running Presto queries would also show the carbon footprint (in trees).
+The `query_cost_formatter` can be overridden with an arbitrary function via the config `QUERY_COST_FORMATTERS_BY_ENGINE`. This allows custom deployments of Superset to format the results in different ways. For example, at some point in Lyft the cost for running Presto queries would also show the carbon footprint (in trees).
 
 ### SQL validation
 
 A few databases support validating the syntax of the SQL as the user is typing it, indicating in SQL Lab any errors. This is usually done using an `EXPLAIN` query and, because it gets called every few seconds as the user types, it's important that the database returns the result quickly.
 
-This is currently implement for Presto and Postgres, via custom classes in `superset/sql_validators` that should be enabled in the configuration. Implementing this as custom classes, instead of a `validate_sql` method in the DB engine spec offerts no advantages, and ideally in the future we should move the logic to DB engine specs.
+This is currently implement for Presto and Postgres, via custom classes in `superset/sql_validators` that should be enabled in the configuration. Implementing this as custom classes, instead of a `validate_sql` method in the DB engine spec offers no advantages, and ideally in the future we should move the logic to DB engine specs.
 
 ## Testing DB engine specs
 
@@ -722,4 +722,4 @@ Superset has a command to test the connection to a given database, as well as ch
 superset test-db sqlite://
 ```
 
-If the connection needs additional arguments thay can be passed when the command runs.
+If the connection needs additional arguments they can be passed when the command runs.

@@ -957,6 +957,48 @@ test('does not fire onChange when searching but no selection', async () => {
   expect(onChange).toHaveBeenCalledTimes(1);
 });
 
+test('fires onChange when clearing the selection in single mode', async () => {
+  const onChange = jest.fn();
+  render(
+    <Select
+      {...defaultProps}
+      onChange={onChange}
+      mode="single"
+      value={OPTIONS[0]}
+    />,
+  );
+  clearAll();
+  expect(onChange).toHaveBeenCalledTimes(1);
+});
+
+test('fires onChange when clearing the selection in multiple mode', async () => {
+  const onChange = jest.fn();
+  render(
+    <Select
+      {...defaultProps}
+      onChange={onChange}
+      mode="multiple"
+      value={OPTIONS[0]}
+    />,
+  );
+  clearAll();
+  expect(onChange).toHaveBeenCalledTimes(1);
+});
+
+test('fires onChange when pasting a selection', async () => {
+  const onChange = jest.fn();
+  render(<Select {...defaultProps} onChange={onChange} />);
+  await open();
+  const input = getElementByClassName('.ant-select-selection-search-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => OPTIONS[0].label,
+    },
+  });
+  fireEvent(input, paste);
+  expect(onChange).toHaveBeenCalledTimes(1);
+});
+
 test('does not duplicate options when using numeric values', async () => {
   render(
     <Select
@@ -970,6 +1012,45 @@ test('does not duplicate options when using numeric values', async () => {
   );
   await type('1');
   await waitFor(() => expect(getAllSelectOptions().length).toBe(1));
+});
+
+test('pasting an existing option does not duplicate it', async () => {
+  render(<Select {...defaultProps} options={[OPTIONS[0]]} />);
+  await open();
+  const input = getElementByClassName('.ant-select-selection-search-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => OPTIONS[0].label,
+    },
+  });
+  fireEvent(input, paste);
+  expect(await findAllSelectOptions()).toHaveLength(1);
+});
+
+test('pasting an existing option does not duplicate it in multiple mode', async () => {
+  const options = [
+    { label: 'John', value: 1 },
+    { label: 'Liam', value: 2 },
+    { label: 'Olivia', value: 3 },
+  ];
+  render(
+    <Select
+      {...defaultProps}
+      options={options}
+      mode="multiple"
+      allowSelectAll={false}
+    />,
+  );
+  await open();
+  const input = getElementByClassName('.ant-select-selection-search-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => 'John,Liam,Peter',
+    },
+  });
+  fireEvent(input, paste);
+  // Only Peter should be added
+  expect(await findAllSelectOptions()).toHaveLength(4);
 });
 
 /*

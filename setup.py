@@ -50,7 +50,6 @@ VERSION_INFO_FILE = os.path.join(BASE_DIR, "superset", "static", "version_info.j
 with open(VERSION_INFO_FILE, "w") as version_file:
     json.dump(version_info, version_file)
 
-
 setup(
     name="apache-superset",
     description="A modern, enterprise-ready business intelligence web application",
@@ -81,15 +80,16 @@ setup(
         "colorama",
         "croniter>=0.3.28",
         "cron-descriptor",
-        "cryptography>=41.0.0, <41.0.2",
+        "cryptography>=41.0.2, <41.1.0",
         "deprecation>=2.1.0, <2.2.0",
         "flask>=2.2.5, <3.0.0",
-        "flask-appbuilder>=4.3.6, <5.0.0",
-        "flask-caching>=1.11.1, <2.0",
+        "flask-appbuilder>=4.3.10, <5.0.0",
+        "flask-caching>=2.1.0, <3",
         "flask-compress>=1.13, <2.0",
         "flask-talisman>=1.0.0, <2.0",
         "flask-login>=0.6.0, < 1.0",
         "flask-migrate>=3.1.0, <4.0",
+        "flask-session>=0.4.0, <1.0",
         "flask-wtf>=1.1.0, <2.0",
         "func_timeout",
         "geopy",
@@ -118,7 +118,7 @@ setup(
         "PyJWT>=2.4.0, <3.0",
         "redis>=4.5.4, <5.0",
         "selenium>=3.141.0, <4.10.0",
-        "shillelagh>=1.2.6,<2.0",
+        "shillelagh>=1.2.10, <2.0",
         "shortid",
         "sshtunnel>=0.4.0, <0.5",
         "simplejson>=3.15.0",
@@ -154,7 +154,7 @@ setup(
         "dremio": ["sqlalchemy-dremio>=1.1.5, <1.3"],
         "drill": ["sqlalchemy-drill==0.1.dev"],
         "druid": ["pydruid>=0.6.5,<0.7"],
-        "duckdb": ["duckdb-engine==0.8.1"],
+        "duckdb": ["duckdb-engine==0.9.2"],
         "dynamodb": ["pydynamodb>=0.4.2"],
         "solr": ["sqlalchemy-solr >= 0.2.0"],
         "elasticsearch": ["elasticsearch-dbapi>=0.2.9, <0.3.0"],
@@ -162,7 +162,7 @@ setup(
         "excel": ["xlrd>=1.2.0, <1.3"],
         "firebird": ["sqlalchemy-firebird>=0.7.0, <0.8"],
         "firebolt": ["firebolt-sqlalchemy>=0.0.1"],
-        "gsheets": ["shillelagh[gsheetsapi]>=1.2.6, <2"],
+        "gsheets": ["shillelagh[gsheetsapi]>=1.2.10, <2"],
         "hana": ["hdbcli==2.4.162", "sqlalchemy_hana==0.4.0"],
         "hive": [
             "pyhive[hive]>=0.6.5;python_version<'3.11'",
@@ -173,7 +173,7 @@ setup(
         "impala": ["impyla>0.16.2, <0.17"],
         "kusto": ["sqlalchemy-kusto>=2.0.0, <3"],
         "kylin": ["kylinpy>=2.8.1, <2.9"],
-        "mssql": ["pymssql>=2.1.4, <2.2"],
+        "mssql": ["pymssql>=2.2.8, <3"],
         "mysql": ["mysqlclient>=2.1.0, <3"],
         "ocient": [
             "sqlalchemy-ocient>=1.0.0",
@@ -183,6 +183,7 @@ setup(
         ],
         "oracle": ["cx-Oracle>8.0.0, <8.1"],
         "pinot": ["pinotdb>=0.3.3, <0.4"],
+        "playwright": ["playwright>=1.37.0, <2"],
         "postgres": ["psycopg2-binary==2.9.6"],
         "presto": ["pyhive[presto]>=0.6.5"],
         "trino": ["trino>=0.324.0"],
@@ -190,7 +191,7 @@ setup(
         "redshift": ["sqlalchemy-redshift>=0.8.1, < 0.9"],
         "rockset": ["rockset-sqlalchemy>=0.0.1, <1.0.0"],
         "shillelagh": [
-            "shillelagh[datasetteapi,gsheetsapi,socrata,weatherapi]>=1.2.6,<2"
+            "shillelagh[datasetteapi,gsheetsapi,socrata,weatherapi]>=1.2.10, <2"
         ],
         "snowflake": ["snowflake-sqlalchemy>=1.2.4, <2"],
         "spark": [
@@ -200,10 +201,11 @@ setup(
             "thrift>=0.14.1, <1.0.0",
         ],
         "teradata": ["teradatasql>=16.20.0.23"],
-        "thumbnails": ["Pillow>=9.5.0, <10.0.0"],
+        "thumbnails": ["Pillow>=10.0.1, <11"],
         "vertica": ["sqlalchemy-vertica-python>=0.5.9, < 0.6"],
         "netezza": ["nzalchemy>=11.0.2"],
         "starrocks": ["starrocks>=1.0.0"],
+        "doris": ["pydoris>=1.0.0, <2.0.0"],
     },
     python_requires="~=3.9",
     author="Apache Software Foundation",

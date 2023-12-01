@@ -515,7 +515,7 @@ describe('Dashboard edit', () => {
       // label Anthony
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
         .eq(2)
-        .should('have.css', 'fill', 'rgb(0, 122, 135)');
+        .should('have.css', 'fill', 'rgb(244, 176, 42)');
 
       // open main tab and nested tab
       openTab(0, 0);
@@ -526,7 +526,7 @@ describe('Dashboard edit', () => {
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
         .first()
-        .should('have.css', 'fill', 'rgb(0, 122, 135)');
+        .should('have.css', 'fill', 'rgb(244, 176, 42)');
     });
 
     it('should apply the color scheme across main tabs', () => {
@@ -557,7 +557,7 @@ describe('Dashboard edit', () => {
 
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
         .first()
-        .should('have.css', 'fill', 'rgb(204, 0, 134)');
+        .should('have.css', 'fill', 'rgb(156, 52, 152)');
 
       // change scheme now that charts are rendered across the main tabs
       editDashboard();

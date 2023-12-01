@@ -75,7 +75,7 @@ describe('DatasourceEditor', () => {
       setTimeout(() => {
         expect(fetchMock.calls(DATASOURCE_ENDPOINT)).toHaveLength(1);
         expect(fetchMock.calls(DATASOURCE_ENDPOINT)[0][0]).toContain(
-          'Vehicle%20Sales%20%2B%27',
+          'Vehicle+Sales%20%2B',
         );
         fetchMock.reset();
         done();

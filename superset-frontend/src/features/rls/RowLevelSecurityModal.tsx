@@ -39,9 +39,13 @@ import { FilterType, RLSObject, RoleObject, TableObject } from './types';
 
 const StyledModal = styled(Modal)`
   max-width: 1200px;
+  min-width: min-content;
   width: 100%;
   .ant-modal-body {
     overflow: initial;
+  }
+  .ant-modal-footer {
+    white-space: nowrap;
   }
 `;
 const StyledIcon = (theme: SupersetTheme) => css`
@@ -381,10 +385,10 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
 
           <StyledInputContainer>
             <div className="control-label">
-              {t('Tables')} <span className="required">*</span>
+              {t('Datasets')} <span className="required">*</span>
               <InfoTooltip
                 tooltip={t(
-                  'These are the tables this filter will be applied to.',
+                  'These are the datasets this filter will be applied to.',
                 )}
               />
             </div>

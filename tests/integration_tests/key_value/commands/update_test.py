@@ -45,7 +45,7 @@ def test_update_id_entry(
     admin: User,
     key_value_entry: KeyValueEntry,
 ) -> None:
-    from superset.key_value.commands.update import UpdateKeyValueCommand
+    from superset.commands.key_value.update import UpdateKeyValueCommand
     from superset.key_value.models import KeyValueEntry
 
     with override_user(admin):
@@ -57,7 +57,7 @@ def test_update_id_entry(
         ).run()
     assert key is not None
     assert key.id == ID_KEY
-    entry = db.session.query(KeyValueEntry).filter_by(id=ID_KEY).autoflush(False).one()
+    entry = db.session.query(KeyValueEntry).filter_by(id=ID_KEY).one()
     assert json.loads(entry.value) == NEW_VALUE
     assert entry.changed_by_fk == admin.id
 
@@ -67,7 +67,7 @@ def test_update_uuid_entry(
     admin: User,
     key_value_entry: KeyValueEntry,
 ) -> None:
-    from superset.key_value.commands.update import UpdateKeyValueCommand
+    from superset.commands.key_value.update import UpdateKeyValueCommand
     from superset.key_value.models import KeyValueEntry
 
     with override_user(admin):
@@ -79,15 +79,13 @@ def test_update_uuid_entry(
         ).run()
     assert key is not None
     assert key.uuid == UUID_KEY
-    entry = (
-        db.session.query(KeyValueEntry).filter_by(uuid=UUID_KEY).autoflush(False).one()
-    )
+    entry = db.session.query(KeyValueEntry).filter_by(uuid=UUID_KEY).one()
     assert json.loads(entry.value) == NEW_VALUE
     assert entry.changed_by_fk == admin.id
 
 
 def test_update_missing_entry(app_context: AppContext, admin: User) -> None:
-    from superset.key_value.commands.update import UpdateKeyValueCommand
+    from superset.commands.key_value.update import UpdateKeyValueCommand
 
     with override_user(admin):
         key = UpdateKeyValueCommand(

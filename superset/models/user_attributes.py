@@ -28,7 +28,7 @@ class UserAttribute(Model, AuditMixinNullable):
     Custom attributes attached to the user.
 
     Extending the user attribute is tricky due to its dependency on the
-    authentication typew an circular dependencies in Superset. Instead, we use
+    authentication type and circular dependencies in Superset. Instead, we use
     a custom model for adding attributes.
 
     """

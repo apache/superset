@@ -56,6 +56,8 @@ In `Secure Extra` field, config as following example:
 
 All fields in `auth_params` are passed directly to the [`KerberosAuthentication`](https://github.com/trinodb/trino-python-client/blob/0.306.0/trino/auth.py#L40) class.
 
+NOTE: Kerberos authentication requires installing the [`trino-python-client`](https://github.com/trinodb/trino-python-client) locally with either the `all` or `kerberos` optional features, i.e., installing `trino[all]` or `trino[kerberos]` respectively.
+
 #### 3. Certificate Authentication
 In `Secure Extra` field, config as following example:
 ```json

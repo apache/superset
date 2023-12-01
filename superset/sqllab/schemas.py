@@ -42,6 +42,10 @@ class EstimateQueryCostSchema(Schema):
     )
 
 
+class FormatQueryPayloadSchema(Schema):
+    sql = fields.String(required=True)
+
+
 class ExecutePayloadSchema(Schema):
     database_id = fields.Integer(required=True)
     sql = fields.String(required=True)

@@ -876,7 +876,6 @@
       "Column to use as the row labels of the dataframe. Leave empty if no index column.": [
         ""
       ],
-      "Mangle Duplicate Columns": ["Coluna Datahora principal"],
       "Specify duplicate columns as \"X.0, X.1\".": [""],
       "Skip Initial Space": [""],
       "Skip spaces after delimiter.": [""],

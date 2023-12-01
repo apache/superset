@@ -674,9 +674,7 @@ export const copyQueryLink = (
   addSuccessToast: (arg0: string) => void,
 ) => {
   copyTextToClipboard(() =>
-    Promise.resolve(
-      `${window.location.origin}/superset/sqllab?savedQueryId=${id}`,
-    ),
+    Promise.resolve(`${window.location.origin}/sqllab?savedQueryId=${id}`),
   )
     .then(() => {
       addSuccessToast(t('Link Copied!'));

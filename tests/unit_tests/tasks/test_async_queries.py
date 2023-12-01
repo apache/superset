@@ -3,7 +3,7 @@ from unittest import mock
 import pytest
 from flask_babel import lazy_gettext as _
 
-from superset.charts.commands.exceptions import ChartDataQueryFailedError
+from superset.commands.chart.exceptions import ChartDataQueryFailedError
 
 
 @mock.patch("superset.tasks.async_queries.security_manager")

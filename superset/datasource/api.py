@@ -120,6 +120,10 @@ class DatasourceRestApi(BaseSupersetApi):
                 column_name=column_name, limit=row_limit
             )
             return self.response(200, result=payload)
+        except KeyError:
+            return self.response(
+                400, message=f"Column name {column_name} does not exist"
+            )
         except NotImplementedError:
             return self.response(
                 400,

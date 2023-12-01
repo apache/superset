@@ -150,6 +150,12 @@ export interface TableProps<RecordType> {
    * only supported for virtualize == true
    */
   allowHTML?: boolean;
+
+  /**
+   * The column that contains children to display.
+   * Check https://ant.design/components/table#table for more details.
+   */
+  childrenColumnName?: string;
 }
 
 const defaultRowSelection: React.Key[] = [];
@@ -259,6 +265,7 @@ export function Table<RecordType extends object>(
     recordCount,
     onRow,
     allowHTML = false,
+    childrenColumnName,
   } = props;
 
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -392,6 +399,9 @@ export function Table<RecordType extends object>(
     theme,
     height: bodyHeight,
     bordered,
+    expandable: {
+      childrenColumnName,
+    },
   };
 
   return (

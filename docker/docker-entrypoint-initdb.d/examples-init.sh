@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------
-# Creates the examples database and repective user. This database location
+# Creates the examples database and respective user. This database location
 # and access credentials are defined on the environment variables
 # ------------------------------------------------------------------------
 set -e

@@ -22,7 +22,7 @@ from marshmallow import fields, post_load, pre_load, Schema
 from marshmallow.validate import Length, ValidationError
 
 from superset.exceptions import SupersetException
-from superset.tags.models import TagTypes
+from superset.tags.models import TagType
 from superset.utils import core as utils
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -110,7 +110,7 @@ class DashboardJSONMetadataSchema(Schema):
     # chart_configuration for now keeps data about cross-filter scoping for charts
     chart_configuration = fields.Dict()
     # global_chart_configuration keeps data about global cross-filter scoping
-    # for charts - can be overriden by chart_configuration for each chart
+    # for charts - can be overridden by chart_configuration for each chart
     global_chart_configuration = fields.Dict()
     # filter_sets_configuration is for dashboard-native filters
     filter_sets_configuration = fields.List(fields.Dict(), allow_none=True)
@@ -169,7 +169,7 @@ class RolesSchema(Schema):
 class TagSchema(Schema):
     id = fields.Int()
     name = fields.String()
-    type = fields.Enum(TagTypes, by_value=True)
+    type = fields.Enum(TagType, by_value=True)
 
 
 class DashboardGetResponseSchema(Schema):

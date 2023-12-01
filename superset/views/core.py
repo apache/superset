@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-many-lines, invalid-name
+# pylint: disable=invalid-name
 from __future__ import annotations
 
 import contextlib
@@ -43,27 +43,27 @@ from superset import (
     is_feature_enabled,
     security_manager,
 )
-from superset.charts.commands.exceptions import ChartNotFoundError
-from superset.charts.commands.warm_up_cache import ChartWarmUpCacheCommand
+from superset.async_events.async_query_manager import AsyncQueryTokenException
+from superset.commands.chart.exceptions import ChartNotFoundError
+from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
+from superset.commands.dashboard.importers.v0 import ImportDashboardsCommand
+from superset.commands.dashboard.permalink.get import GetDashboardPermalinkCommand
+from superset.commands.dataset.exceptions import DatasetNotFoundError
+from superset.commands.explore.form_data.create import CreateFormDataCommand
+from superset.commands.explore.form_data.get import GetFormDataCommand
+from superset.commands.explore.form_data.parameters import CommandParameters
+from superset.commands.explore.permalink.get import GetExplorePermalinkCommand
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
-from superset.connectors.base.models import BaseDatasource
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.daos.chart import ChartDAO
 from superset.daos.datasource import DatasourceDAO
-from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
-from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
-from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.exceptions import (
     CacheLoadError,
     DatabaseNotFound,
     SupersetException,
     SupersetSecurityException,
 )
-from superset.explore.form_data.commands.create import CreateFormDataCommand
-from superset.explore.form_data.commands.get import GetFormDataCommand
-from superset.explore.form_data.commands.parameters import CommandParameters
-from superset.explore.permalink.commands.get import GetExplorePermalinkCommand
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.extensions import async_query_manager, cache_manager
 from superset.models.core import Database
@@ -71,11 +71,8 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
-from superset.sqllab.utils import bootstrap_sqllab_data
 from superset.superset_typing import FlaskResponse
-from superset.tasks.async_queries import load_explore_json_into_cache
 from superset.utils import core as utils
-from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
 from superset.utils.core import (
     base_json_conv,
@@ -320,14 +317,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 # at which point they will call the /explore_json/data/<cache_key>
                 # endpoint to retrieve the results.
                 try:
-                    async_channel_id = async_query_manager.parse_jwt_from_request(
-                        request
-                    )["channel"]
-                    job_metadata = async_query_manager.init_job(
-                        async_channel_id, get_user_id()
+                    async_channel_id = (
+                        async_query_manager.parse_channel_id_from_request(request)
                     )
-                    load_explore_json_into_cache.delay(
-                        job_metadata, form_data, response_type, force
+                    job_metadata = async_query_manager.submit_explore_json_job(
+                        async_channel_id, form_data, response_type, force, get_user_id()
                     )
                 except AsyncQueryTokenException:
                     return json_error_response("Not authorized", 401)
@@ -610,7 +604,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "force": force,
             "user": bootstrap_user_data(g.user, include_perms=True),
             "forced_height": request.args.get("height"),
-            "common": common_bootstrap_payload(g.user),
+            "common": common_bootstrap_payload(),
         }
         if slc:
             title = slc.slice_name
@@ -868,7 +862,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             bootstrap_data=json.dumps(
                 {
                     "user": bootstrap_user_data(g.user, include_perms=True),
-                    "common": common_bootstrap_payload(g.user),
+                    "common": common_bootstrap_payload(),
                 },
                 default=utils.pessimistic_json_iso_dttm_ser,
             ),
@@ -959,7 +953,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         payload = {
             "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(g.user),
+            "common": common_bootstrap_payload(),
         }
 
         return self.render_template(
@@ -986,28 +980,18 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "POST",
         ),
     )
+    @deprecated(new_target="/sqllab")
     def sqllab(self) -> FlaskResponse:
         """SQL Editor"""
-        payload = {
-            "common": common_bootstrap_payload(g.user),
-            **bootstrap_sqllab_data(get_user_id()),
-        }
-
-        if form_data := request.form.get("form_data"):
-            with contextlib.suppress(json.JSONDecodeError):
-                payload["requested_query"] = json.loads(form_data)
-        payload["user"] = bootstrap_user_data(g.user, include_perms=True)
-        bootstrap_data = json.dumps(
-            payload, default=utils.pessimistic_json_iso_dttm_ser
-        )
-
-        return self.render_template(
-            "superset/basic.html", entry="sqllab", bootstrap_data=bootstrap_data
-        )
+        url = "/sqllab"
+        if url_params := request.args:
+            params = parse.urlencode(url_params)
+            url = f"{url}?{params}"
+        return redirect(url)
 
     @has_access
     @event_logger.log_this
     @expose("/sqllab/history/", methods=("GET",))
-    @event_logger.log_this
+    @deprecated(new_target="/sqllab/history")
     def sqllab_history(self) -> FlaskResponse:
-        return super().render_app_template()
+        return redirect("/sqllab/history")

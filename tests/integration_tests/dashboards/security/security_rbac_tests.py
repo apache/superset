@@ -21,8 +21,8 @@ from unittest.mock import patch
 
 import pytest
 
+from superset.commands.dashboard.exceptions import DashboardForbiddenError
 from superset.daos.dashboard import DashboardDAO
-from superset.dashboards.commands.exceptions import DashboardForbiddenError
 from superset.utils.core import backend, override_user
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.dashboards.dashboard_test_utils import *
