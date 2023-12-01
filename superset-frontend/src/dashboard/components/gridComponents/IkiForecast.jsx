@@ -220,6 +220,7 @@ class IkiInteractiveForecast extends React.PureComponent {
           }
 
           if (messageObject.info === 'widget-to-superset/sending-dataset-ids') {
+            console.info(messageData);
             const explainability = messageData.explainabilityEnabled;
 
             widgetUrlQuery = new URLSearchParams(widgetUrl);
@@ -232,6 +233,7 @@ class IkiInteractiveForecast extends React.PureComponent {
               messageData.dimensions_column,
             );
             widgetUrlQuery.set('metrics_type', messageData.metrics_type);
+            widgetUrlQuery.set('filter_columns', messageData.filter_columns);
             if (explainability) {
               widgetUrlQuery.set('explainability', explainability);
               widgetUrlQuery.set(
@@ -261,16 +263,16 @@ class IkiInteractiveForecast extends React.PureComponent {
                               />`;
               this.handleIkiRunPipelineChange(tempIframe);
             } else {
-              // widgetUrl.search = widgetUrlQuery.toString();
-              // const tempIframe = `<iframe
-              //                     id="ikiinteractiveforecast-widget-${this.props.component.id}"
-              //                     name="ikiinteractiveforecast"
-              //                     src="${widgetUrl}"
-              //                     title="Hero Section Component"
-              //                     className="ikirunpipeline-widget"
-              //                     style="min-height: 100%;"
-              //                 />`;
-              // this.handleIkiRunPipelineChange(tempIframe);
+              widgetUrl.search = widgetUrlQuery.toString();
+              const tempIframe = `<iframe
+                                  id="ikiinteractiveforecast-widget-${this.props.component.id}"
+                                  name="ikiinteractiveforecast"
+                                  src="${widgetUrl}"
+                                  title="Hero Section Component"
+                                  className="ikirunpipeline-widget"
+                                  style="min-height: 100%;"
+                              />`;
+              this.handleIkiRunPipelineChange(tempIframe);
             }
           }
         }
@@ -327,7 +329,6 @@ class IkiInteractiveForecast extends React.PureComponent {
   }
 
   handleIkiRunPipelineChange(nextValue) {
-    console.info('handleIkiRunPipelineChange', nextValue);
     this.setState(
       {
         markdownSource: nextValue,
@@ -386,6 +387,9 @@ class IkiInteractiveForecast extends React.PureComponent {
         const datetimeColumn = iframeSrcUrl.searchParams.get('datetime_column')
           ? iframeSrcUrl.searchParams.get('datetime_column')
           : '';
+        const filterColumns = iframeSrcUrl.searchParams.get('filter_columns')
+          ? iframeSrcUrl.searchParams.get('filter_columns')
+          : '';
         const dataSeries = iframeSrcUrl.searchParams.get('data_series')
           ? iframeSrcUrl.searchParams.get('data_series')
           : '';
@@ -409,10 +413,10 @@ class IkiInteractiveForecast extends React.PureComponent {
           const skuCompositionAliasId = iframeSrcUrl.searchParams.get(
             'skuCompositionAliasId',
           );
-          const newIframeSrc = `${ikigaiOrigin}/widget/interactive-forecast-chart?mode=${paramMode}&dataset_id=${datasetId}&datetime_column=${datetimeColumn}&data_series=${dataSeries}&dimensions_column=${dimensionsColumn}&metrics_type=${metricsType}&explainability=${explainability}&forecastAliasId=${forecastAliasId}&insightsAliasId=${insightsAliasId}&seasonalityAliasId=${seasonalityAliasId}&skuCompositionAliasId=${skuCompositionAliasId}`;
+          const newIframeSrc = `${ikigaiOrigin}/widget/interactive-forecast-chart?mode=${paramMode}&dataset_id=${datasetId}&datetime_column=${datetimeColumn}&data_series=${dataSeries}&dimensions_column=${dimensionsColumn}&metrics_type=${metricsType}&filter_columns=${filterColumns}&&explainability=${explainability}&forecastAliasId=${forecastAliasId}&insightsAliasId=${insightsAliasId}&seasonalityAliasId=${seasonalityAliasId}&skuCompositionAliasId=${skuCompositionAliasId}`;
           iframeSrc = newIframeSrc;
         } else {
-          const newIframeSrc = `${ikigaiOrigin}/widget/interactive-forecast-chart?mode=${paramMode}&dataset_id=${datasetId}&datetime_column=${datetimeColumn}&data_series=${dataSeries}&dimensions_column=${dimensionsColumn}&metrics_type=${metricsType}`;
+          const newIframeSrc = `${ikigaiOrigin}/widget/interactive-forecast-chart?mode=${paramMode}&dataset_id=${datasetId}&datetime_column=${datetimeColumn}&data_series=${dataSeries}&dimensions_column=${dimensionsColumn}&metrics_type=${metricsType}&filter_columns=${filterColumns}`;
           iframeSrc = newIframeSrc;
         }
       } else {
