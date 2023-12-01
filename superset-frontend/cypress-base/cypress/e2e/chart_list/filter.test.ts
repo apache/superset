@@ -35,9 +35,9 @@ describe('Charts filters', () => {
     setFilter('Owner', 'admin user');
   });
 
-  it('should allow filtering by "Chart type" correctly', () => {
-    setFilter('Chart type', 'Area Chart (legacy)');
-    setFilter('Chart type', 'Bubble Chart');
+  it('should allow filtering by "Type" correctly', () => {
+    setFilter('Type', 'Area Chart (legacy)');
+    setFilter('Type', 'Bubble Chart');
   });
 
   it('should allow filtering by "Dataset" correctly', () => {
@@ -46,7 +46,7 @@ describe('Charts filters', () => {
   });
 
   it('should allow filtering by "Dashboards" correctly', () => {
-    setFilter('Dashboards', 'Unicode Test');
-    setFilter('Dashboards', 'Tabbed Dashboard');
+    setFilter('Dashboard', 'Unicode Test');
+    setFilter('Dashboard', 'Tabbed Dashboard');
   });
 });

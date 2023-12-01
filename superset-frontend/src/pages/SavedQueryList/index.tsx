@@ -489,7 +489,7 @@ function SavedQueryList({
         ),
         paginate: true,
       },
-      ...(isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && canReadTag
+      ...((isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && canReadTag
         ? [
             {
               Header: t('Tag'),
@@ -500,7 +500,7 @@ function SavedQueryList({
               fetchSelects: loadTags,
             },
           ]
-        : []),
+        : []) as Filters),
     ],
     [addDangerToast],
   );

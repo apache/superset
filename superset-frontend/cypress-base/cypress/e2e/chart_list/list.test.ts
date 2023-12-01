@@ -110,7 +110,7 @@ describe('Charts list', () => {
     it('should load rows in list mode', () => {
       cy.getBySel('listview-table').should('be.visible');
       cy.getBySel('sort-header').eq(1).contains('Name');
-      cy.getBySel('sort-header').eq(2).contains('Visualization type');
+      cy.getBySel('sort-header').eq(2).contains('Type');
       cy.getBySel('sort-header').eq(3).contains('Dataset');
       cy.getBySel('sort-header').eq(4).contains('Owners');
       cy.getBySel('sort-header').eq(5).contains('Last modified');
