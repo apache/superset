@@ -36,8 +36,8 @@ describe('Charts filters', () => {
   });
 
   it('should allow filtering by "Modified by" correctly', () => {
-    setFilter('Created by', 'alpha user');
-    setFilter('Created by', 'admin user');
+    setFilter('Modified by', 'alpha user');
+    setFilter('Modified by', 'admin user');
   });
 
   it('should allow filtering by "Type" correctly', () => {
