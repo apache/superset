@@ -150,7 +150,7 @@ def test_import_database_with_version(mocker: MockFixture, session: Session) -> 
     Test importing a database with a version set.
     """
     from superset import security_manager
-    from superset.commands.database.importers.v1.utils import import_database
+    from superset.databases.commands.importers.v1.utils import import_database
     from superset.models.core import Database
     from tests.integration_tests.fixtures.importexport import database_config
 

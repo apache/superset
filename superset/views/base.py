@@ -22,7 +22,7 @@ import logging
 import os
 import traceback
 from datetime import datetime
-from typing import Any, Callable, cast, Optional, Union
+from typing import Any, Callable, cast
 
 import simplejson as json
 import yaml
@@ -140,10 +140,10 @@ def get_error_msg() -> str:
 
 
 def json_error_response(
-    msg: Optional[str] = None,
+    msg: str | None = None,
     status: int = 500,
-    payload: Optional[dict[str, Any]] = None,
-    link: Optional[str] = None,
+    payload: dict[str, Any] | None = None,
+    link: str | None = None,
 ) -> FlaskResponse:
     if not payload:
         payload = {"error": f"{msg}"}
@@ -160,7 +160,7 @@ def json_error_response(
 def json_errors_response(
     errors: list[SupersetError],
     status: int = 500,
-    payload: Optional[dict[str, Any]] = None,
+    payload: dict[str, Any] | None = None,
 ) -> FlaskResponse:
     if not payload:
         payload = {}
@@ -183,7 +183,7 @@ def data_payload_response(payload_json: str, has_error: bool = False) -> FlaskRe
 
 
 def generate_download_headers(
-    extension: str, filename: Optional[str] = None
+    extension: str, filename: str | None = None
 ) -> dict[str, Any]:
     filename = filename if filename else datetime.now().strftime("%Y%m%d_%H%M%S")
     content_disp = f"attachment; filename={filename}.{extension}"
@@ -193,7 +193,7 @@ def generate_download_headers(
 
 def deprecated(
     eol_version: str = "4.0.0",
-    new_target: Optional[str] = None,
+    new_target: str | None = None,
 ) -> Callable[[Callable[..., FlaskResponse]], Callable[..., FlaskResponse]]:
     """
     A decorator to set an API endpoint from SupersetView has deprecated.
@@ -201,7 +201,7 @@ def deprecated(
     """
 
     def _deprecated(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
-        def wraps(self: "BaseSupersetView", *args: Any, **kwargs: Any) -> FlaskResponse:
+        def wraps(self: BaseSupersetView, *args: Any, **kwargs: Any) -> FlaskResponse:
             messsage = (
                 "%s.%s "
                 "This API endpoint is deprecated and will be removed in version %s"
@@ -228,7 +228,7 @@ def api(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
     return the response in the JSON format
     """
 
-    def wraps(self: "BaseSupersetView", *args: Any, **kwargs: Any) -> FlaskResponse:
+    def wraps(self: BaseSupersetView, *args: Any, **kwargs: Any) -> FlaskResponse:
         try:
             return f(self, *args, **kwargs)
         except NoAuthorizationError:
@@ -250,7 +250,7 @@ def handle_api_exception(
     exceptions.
     """
 
-    def wraps(self: "BaseSupersetView", *args: Any, **kwargs: Any) -> FlaskResponse:
+    def wraps(self: BaseSupersetView, *args: Any, **kwargs: Any) -> FlaskResponse:
         try:
             return f(self, *args, **kwargs)
         except SupersetSecurityException as ex:
@@ -593,11 +593,11 @@ class YamlExportMixin:  # pylint: disable=too-few-public-methods
     Used on DatabaseView for cli compatibility
     """
 
-    yaml_dict_key: Optional[str] = None
+    yaml_dict_key: str | None = None
 
     @action("yaml_export", __("Export to YAML"), __("Export to YAML?"), "fa-download")
     def yaml_export(
-        self, items: Union[ImportExportMixin, list[ImportExportMixin]]
+        self, items: ImportExportMixin | list[ImportExportMixin]
     ) -> FlaskResponse:
         if not isinstance(items, list):
             items = [items]

@@ -1011,7 +1011,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             abort(404)
         payload = {
             "user": bootstrap_user_data(user, include_perms=True),
-            "common": common_bootstrap_payload(user),
+            "common": common_bootstrap_payload(),
         }
 
         return self.render_template(
@@ -1082,7 +1082,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         """SQL Editor"""
         payload = {
             "defaultDbId": config["SQLLAB_DEFAULT_DBID"],
-            "common": common_bootstrap_payload(g.user),
+            "common": common_bootstrap_payload(),
             **self._get_sqllab_tabs(get_user_id()),
         }
 
