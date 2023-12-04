@@ -27,10 +27,11 @@ export default {
 export const Default = (args: DvtSidebarProps) => {
   return <DvtSidebar {...args} />;
 };
+
 Default.args = {
   welcomeData: [
     {
-      items: [
+      navigationData: [
         {
           title: 'menu',
           data: [
@@ -49,6 +50,8 @@ Default.args = {
             { title: 'Alert', url: '/', fileName: 'dvt-alert' },
           ],
         },
+      ],
+      folderNavigationDate: [
         {
           title: 'my folder',
           data: [
@@ -79,12 +82,13 @@ Default.args = {
             },
           ],
         },
+      ],
+      items: [
         {
           title: 'shared folder',
-          data: [], 
+          data: [],
         },
       ],
     },
   ],
 };
-

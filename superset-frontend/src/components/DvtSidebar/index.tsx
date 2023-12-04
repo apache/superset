@@ -25,17 +25,21 @@ interface WelcomeProps {
     }[];
   }[];
   folderNavigationDate: {
-    name: string;
-    url: string;
+    title: string;
     data: {
       name: string;
       url: string;
       data: {
         name: string;
         url: string;
+        data: {
+          name: string;
+          url: string;
+        }[];
       }[];
     }[];
   }[];
+
   items: {
     title: string;
     data: {
@@ -89,13 +93,20 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({
         {sidebar === 'welcome' && welcomeData && welcomeData.length > 0 && (
           <StyledDvtSidebarBody>
             <StyledDvtSidebarBodyItem>
-              <DvtTitlePlus title={welcomeData[0].items[0].title || ''} />
-              <DvtNavigation data={welcomeData[0].items[0].data || []} />
+              <DvtTitlePlus
+                title={welcomeData[0].navigationData[0].title || ''}
+              />
+              <DvtNavigation
+                data={welcomeData[0].navigationData[0].data || []}
+              />
             </StyledDvtSidebarBodyItem>
             <StyledDvtSidebarBodyItem>
-              <DvtTitlePlus title="my folder" onClick={() => {}} />
+              <DvtTitlePlus
+                title={welcomeData[0].folderNavigationDate[0].title || ''}
+                onClick={() => {}}
+              />
               <DvtFolderNavigation
-                data={welcomeData[0].folderNavigationDate || []}
+                data={welcomeData[0].folderNavigationDate[0].data || []}
               />
             </StyledDvtSidebarBodyItem>
             <StyledDvtSidebarBodyItem>
@@ -103,7 +114,151 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({
             </StyledDvtSidebarBodyItem>
           </StyledDvtSidebarBody>
         )}
+        {sidebar === 'selectSidebar' && (
+          <StyledDvtSidebarBody>
+            <StyledDvtSidebarBodyItem>
+              <DvtSelect
+                data={[
+                  {
+                    label: 'Failed',
+                    value: 'failed',
+                  },
+                  {
+                    label: 'Success',
+                    value: 'success',
+                  },
+                ]}
+                label="State"
+                placeholder="Select or type a value"
+                selectedValue=""
+                setSelectedValue={() => {}}
+              />
+            </StyledDvtSidebarBodyItem>{' '}
+            <StyledDvtSidebarBodyItem>
+              <DvtSelect
+                data={[
+                  {
+                    label: 'Failed',
+                    value: 'failed',
+                  },
+                  {
+                    label: 'Success',
+                    value: 'success',
+                  },
+                ]}
+                label="State"
+                placeholder="Select or type a value"
+                selectedValue=""
+                setSelectedValue={() => {}}
+              />
+            </StyledDvtSidebarBodyItem>{' '}
+            <StyledDvtSidebarBodyItem>
+              <DvtSelect
+                data={[
+                  {
+                    label: 'Failed',
+                    value: 'failed',
+                  },
+                  {
+                    label: 'Success',
+                    value: 'success',
+                  },
+                ]}
+                label="State"
+                placeholder="Select or type a value"
+                selectedValue=""
+                setSelectedValue={() => {}}
+              />
+            </StyledDvtSidebarBodyItem>{' '}
+            <StyledDvtSidebarBodyItem>
+              <DvtSelect
+                data={[
+                  {
+                    label: 'Failed',
+                    value: 'failed',
+                  },
+                  {
+                    label: 'Success',
+                    value: 'success',
+                  },
+                ]}
+                label="State"
+                placeholder="Select or type a value"
+                selectedValue=""
+                setSelectedValue={() => {}}
+              />
+            </StyledDvtSidebarBodyItem>{' '}
+            <StyledDvtSidebarBodyItem>
+              <DvtSelect
+                data={[
+                  {
+                    label: 'Failed',
+                    value: 'failed',
+                  },
+                  {
+                    label: 'Success',
+                    value: 'success',
+                  },
+                ]}
+                label="State"
+                placeholder="Select or type a value"
+                selectedValue=""
+                setSelectedValue={() => {}}
+              />
+            </StyledDvtSidebarBodyItem>
+          </StyledDvtSidebarBody>
+        )}
 
+        {sidebar === 'profile' && (
+          <StyledDvtSidebarBody>
+            <StyledDvtSidebarBodyItem>
+              <DvtNavigationBar
+                active="test"
+                data={[
+                  {
+                    icon: 'dvt-briefcase',
+                    label: 'Created Content',
+                    url: 'test',
+                  },
+                  {
+                    icon: 'dvt-calendar',
+                    label: 'Schedule',
+                    url: 'test1',
+                  },
+                  {
+                    icon: 'dvt-history',
+                    label: 'Recent Activity',
+                    url: 'test2',
+                  },
+                  {
+                    icon: 'dvt-star',
+                    label: 'Favorites',
+                    url: 'test3',
+                  },
+                  {
+                    icon: 'dvt-users',
+                    label: 'Groups and Roles',
+                    url: 'test4',
+                  },
+                  {
+                    icon: 'dvt-arrow_forwardup',
+                    label: 'Query History',
+                    url: 'test5',
+                  },
+                ]}
+                setActive={() => {}}
+              />
+              <DvtNavigationBar
+                data={[
+                  {
+                    icon: 'dvt-logout',
+                    label: 'Log Out',
+                  },
+                ]}
+              />
+            </StyledDvtSidebarBodyItem>
+          </StyledDvtSidebarBody>
+        )}
         {sidebar === 'welcome' && (
           <StyledDvtSidebarFooter>
             <DvtDarkMode darkMode={darkMode} setDarkMode={setDarkMode} />
