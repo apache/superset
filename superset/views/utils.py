@@ -129,7 +129,6 @@ def get_viz(
 ) -> BaseViz:
     viz_type = form_data.get("viz_type", "table")
     datasource = DatasourceDAO.get_datasource(
-        db.session,
         DatasourceType(datasource_type),
         datasource_id,
     )
@@ -312,8 +311,7 @@ CONTAINER_TYPES = ["COLUMN", "GRID", "TABS", "TAB", "ROW"]
 def get_dashboard_extra_filters(
     slice_id: int, dashboard_id: int
 ) -> list[dict[str, Any]]:
-    session = db.session()
-    dashboard = session.query(Dashboard).filter_by(id=dashboard_id).one_or_none()
+    dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one_or_none()
 
     # is chart in this dashboard?
     if (
