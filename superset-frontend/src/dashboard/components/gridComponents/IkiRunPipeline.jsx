@@ -454,7 +454,7 @@ class IkiRunPipeline extends React.PureComponent {
     let iframe = '';
     let iframeSrc = '';
     if (ikigaiOrigin) {
-      console.log("markdownSource Run Pipeline", markdownSource)
+      console.log('markdownSource Run Pipeline', markdownSource);
       if (markdownSource) {
         // iframe = markdownSource;
         const iframeWrapper = document.createElement('div');
