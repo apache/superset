@@ -197,6 +197,7 @@ class TestDatabaseApi(SupersetTestCase):
             "allows_subquery",
             "allows_virtual_table_explore",
             "backend",
+            "changed_by",
             "changed_on",
             "changed_on_delta_humanized",
             "created_by",

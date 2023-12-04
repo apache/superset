@@ -99,7 +99,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
     ]
 
     search_filters = {"name": [AnnotationLayerAllTextFilter]}
-    allowed_rel_fields = {"created_by"}
+    allowed_rel_fields = {"created_by", "changed_by"}
 
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,

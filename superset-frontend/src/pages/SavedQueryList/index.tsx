@@ -18,20 +18,19 @@
  */
 
 import {
-  isFeatureEnabled,
   FeatureFlag,
+  isFeatureEnabled,
   styled,
   SupersetClient,
   t,
 } from '@superset-ui/core';
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import rison from 'rison';
-import moment from 'moment';
 import {
-  createFetchRelated,
-  createFetchDistinct,
   createErrorHandler,
+  createFetchDistinct,
+  createFetchRelated,
 } from 'src/views/CRUD/utils';
 import { useSelector } from 'react-redux';
 import Popover from 'src/components/Popover';
@@ -39,11 +38,11 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import handleResourceExport from 'src/utils/export';
-import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
+import SubMenu, { ButtonProps, SubMenuProps } from 'src/features/home/SubMenu';
 import ListView, {
-  ListViewProps,
-  Filters,
   FilterOperator,
+  Filters,
+  ListViewProps,
 } from 'src/components/ListView';
 import Loading from 'src/components/Loading';
 import DeleteModal from 'src/components/DeleteModal';
@@ -51,15 +50,14 @@ import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import { TagsList } from 'src/components/Tags';
 import { Tooltip } from 'src/components/Tooltip';
 import { commonMenuData } from 'src/features/home/commonMenuData';
-import { SavedQueryObject } from 'src/views/CRUD/types';
+import { QueryObjectColumns, SavedQueryObject } from 'src/views/CRUD/types';
 import copyTextToClipboard from 'src/utils/copy';
 import Tag from 'src/types/TagType';
 import ImportModelsModal from 'src/components/ImportModal/index';
+import { ModifiedInfo } from 'src/components/AuditInfo';
+import { loadTags } from 'src/components/Tags/utils';
 import Icons from 'src/components/Icons';
-import {
-  BootstrapUser,
-  UserWithPermissionsAndRoles,
-} from 'src/types/bootstrapTypes';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import SavedQueryPreviewModal from 'src/features/queries/SavedQueryPreviewModal';
 import { findPermission } from 'src/utils/findPermission';
 
@@ -80,7 +78,11 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
 interface SavedQueryListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  user: BootstrapUser;
+  user: {
+    userId: string | number;
+    firstName: string;
+    lastName: string;
+  };
 }
 
 const StyledTableLabel = styled.div`
@@ -99,6 +101,7 @@ const StyledPopoverItem = styled.div`
 function SavedQueryList({
   addDangerToast,
   addSuccessToast,
+  user,
 }: SavedQueryListProps) {
   const {
     state: {
@@ -351,41 +354,6 @@ function SavedQueryList({
       {
         Cell: ({
           row: {
-            original: { created_on: createdOn },
-          },
-        }: any) => {
-          const date = new Date(createdOn);
-          const utc = new Date(
-            Date.UTC(
-              date.getFullYear(),
-              date.getMonth(),
-              date.getDate(),
-              date.getHours(),
-              date.getMinutes(),
-              date.getSeconds(),
-              date.getMilliseconds(),
-            ),
-          );
-
-          return moment(utc).fromNow();
-        },
-        Header: t('Created on'),
-        accessor: 'created_on',
-        size: 'xl',
-      },
-      {
-        Cell: ({
-          row: {
-            original: { changed_on_delta_humanized: changedOn },
-          },
-        }: any) => changedOn,
-        Header: t('Modified'),
-        accessor: 'changed_on_delta_humanized',
-        size: 'xl',
-      },
-      {
-        Cell: ({
-          row: {
             original: { tags = [] },
           },
         }: any) => (
@@ -396,6 +364,19 @@ function SavedQueryList({
         accessor: 'tags',
         disableSortBy: true,
         hidden: !isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM),
+      },
+      {
+        Cell: ({
+          row: {
+            original: {
+              changed_by: changedBy,
+              changed_on_delta_humanized: changedOn,
+            },
+          },
+        }: any) => <ModifiedInfo user={changedBy} date={changedOn} />,
+        Header: t('Last modified'),
+        accessor: 'changed_on_delta_humanized',
+        size: 'xl',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -452,12 +433,23 @@ function SavedQueryList({
         id: 'actions',
         disableSortBy: true,
       },
+      {
+        accessor: QueryObjectColumns.changed_by,
+        hidden: true,
+      },
     ],
     [canDelete, canEdit, canExport, copyQueryLink, handleSavedQueryPreview],
   );
 
   const filters: Filters = useMemo(
     () => [
+      {
+        Header: t('Name'),
+        id: 'label',
+        key: 'search',
+        input: 'search',
+        operator: FilterOperator.allText,
+      },
       {
         Header: t('Database'),
         key: 'database',
@@ -497,27 +489,41 @@ function SavedQueryList({
         ),
         paginate: true,
       },
-
+      ...((isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && canReadTag
+        ? [
+            {
+              Header: t('Tag'),
+              id: 'tags',
+              key: 'tags',
+              input: 'select',
+              operator: FilterOperator.savedQueryTags,
+              fetchSelects: loadTags,
+            },
+          ]
+        : []) as Filters),
       {
-        Header: t('Search'),
-        id: 'label',
-        key: 'search',
-        input: 'search',
-        operator: FilterOperator.allText,
+        Header: t('Modified by'),
+        key: 'changed_by',
+        id: 'changed_by',
+        input: 'select',
+        operator: FilterOperator.relationOneMany,
+        unfilteredLabel: t('All'),
+        fetchSelects: createFetchRelated(
+          'saved_query',
+          'changed_by',
+          createErrorHandler(errMsg =>
+            t(
+              'An error occurred while fetching dataset datasource values: %s',
+              errMsg,
+            ),
+          ),
+          user,
+        ),
+        paginate: true,
       },
     ],
     [addDangerToast],
   );
-
-  if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && canReadTag) {
-    filters.push({
-      Header: t('Tags'),
-      id: 'tags',
-      key: 'tags',
-      input: 'search',
-      operator: FilterOperator.savedQueryTags,
-    });
-  }
 
   return (
     <>
