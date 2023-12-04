@@ -103,7 +103,7 @@ import SaveQuery, { QueryPayload } from '../SaveQuery';
 import ScheduleQueryButton from '../ScheduleQueryButton';
 import EstimateQueryCostButton from '../EstimateQueryCostButton';
 import ShareSqlLabQuery from '../ShareSqlLabQuery';
-import SqlEditorLeftBar, { ExtendedTable } from '../SqlEditorLeftBar';
+import SqlEditorLeftBar from '../SqlEditorLeftBar';
 import AceEditorWrapper from '../AceEditorWrapper';
 import RunQueryActionButton from '../RunQueryActionButton';
 import QueryLimitSelect from '../QueryLimitSelect';
@@ -215,7 +215,6 @@ const StyledSqlEditor = styled.div`
 const extensionsRegistry = getExtensionsRegistry();
 
 export type Props = {
-  tables: ExtendedTable[];
   queryEditor: QueryEditor;
   defaultQueryLimit: number;
   maxRow: number;
@@ -235,7 +234,6 @@ const elementStyle = (
 });
 
 const SqlEditor: React.FC<Props> = ({
-  tables,
   queryEditor,
   defaultQueryLimit,
   maxRow,
@@ -839,7 +837,6 @@ const SqlEditor: React.FC<Props> = ({
               <SqlEditorLeftBar
                 database={database}
                 queryEditorId={queryEditor.id}
-                tables={tables}
                 setEmptyState={bool => setShowEmptyState(bool)}
               />
             </StyledSidebar>
