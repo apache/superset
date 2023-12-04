@@ -341,7 +341,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
+        logger.info("get dashboard, id=", dash.id)
         result = self.dashboard_get_response_schema.dump(dash)
+        logger.info("got dashboard, id=", dash.id)
         add_extra_log_payload(
             dashboard_id=dash.id, action=f"{self.__class__.__name__}.get"
         )
@@ -527,12 +529,17 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
+            logger.info("trying validate data to add new dashboard")
             item = self.add_model_schema.load(request.json)
+            logger.info("validated data to add new dashboard")
         # This validates custom Schema with custom validations
         except ValidationError as error:
+            logger.warning("validate data failed to add new dashboard")
             return self.response_400(message=error.messages)
         try:
+            logger.info("trying add new dashboard")
             new_model = CreateDashboardCommand(item).run()
+            logger.info("added new dashboard")
             return self.response(201, id=new_model.id, result=item)
         except DashboardInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
@@ -600,11 +607,14 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
+            logger.info("trying validate dashboard, id=", pk)
             item = self.edit_model_schema.load(request.json)
+            logger.info("validated dashboard, id=", pk)
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
+            logger.info("trying edit dashboard, id=", pk)
             changed_model = UpdateDashboardCommand(pk, item).run()
             last_modified_time = changed_model.changed_on.replace(
                 microsecond=0
@@ -615,6 +625,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 result=item,
                 last_modified_time=last_modified_time,
             )
+            logger.info("edited dashboard, id=", pk)
         except DashboardNotFoundError:
             response = self.response_404()
         except DashboardForbiddenError:
@@ -672,7 +683,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
+            logger.info("trying delete dashboard, id=", pk)
             DeleteDashboardCommand([pk]).run()
+            logger.info("deleted dashboard, id=", pk)
             return self.response(200, message="OK")
         except DashboardNotFoundError:
             return self.response_404()
