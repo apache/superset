@@ -57,7 +57,7 @@ const types = [
   IKI_DEEPCAST_TYPE,
   IKI_EITL_ROW_TYPE,
   IKI_EITL_COLUMN_TYPE,
-  IKI_INTERACTIVE_FORECAST_TYPE
+  IKI_INTERACTIVE_FORECAST_TYPE,
 ];
 
 describe('newEntityFactory', () => {

@@ -444,7 +444,7 @@ class IkiInteractiveForecast extends React.PureComponent {
   renderPreviewMode() {
     return this.renderIframe();
   }
-  
+
   render() {
     const { isFocused, editorMode } = this.state;
     // const { isFocused } = this.state;
