@@ -288,10 +288,11 @@ class IkiInteractiveForecast extends React.PureComponent {
   }
 
   handleChangeFocus(nextFocus) {
-    const nextFocused = !!nextFocus;
-    const nextEditMode = nextFocused ? 'edit' : 'preview';
-    this.setState(() => ({ isFocused: nextFocused }));
-    this.handleChangeEditorMode(nextEditMode);
+    // const nextFocused = !!nextFocus;
+    // const nextEditMode = nextFocused ? 'edit' : 'preview';
+    // this.setState(() => ({ isFocused: nextFocused }));
+    // this.handleChangeEditorMode(nextEditMode);
+    return nextFocus;
   }
 
   handleChangeEditorMode(mode) {
@@ -443,7 +444,7 @@ class IkiInteractiveForecast extends React.PureComponent {
   renderPreviewMode() {
     return this.renderIframe();
   }
-
+  
   render() {
     const { isFocused, editorMode } = this.state;
     // const { isFocused } = this.state;

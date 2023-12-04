@@ -117,7 +117,7 @@ class IkiRunPipeline extends React.PureComponent {
 
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
     this.handleChangeEditorMode = this.handleChangeEditorMode.bind(this);
-    this.handleMarkdownChange = this.handleMarkdownChange.bind(this);
+    // this.handleMarkdownChange = this.handleMarkdownChange.bind(this);
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleResizeStart = this.handleResizeStart.bind(this);
     this.setEditor = this.setEditor.bind(this);
@@ -153,7 +153,7 @@ class IkiRunPipeline extends React.PureComponent {
         ...state,
         undoLength: nextUndoLength,
         redoLength: nextRedoLength,
-        markdownSource: nextComponent.meta.code,
+        // markdownSource: nextComponent.meta.code,
         hasError: false,
       };
     }
@@ -302,7 +302,7 @@ class IkiRunPipeline extends React.PureComponent {
                           className="ikirunpipeline-widget"
                           style="min-height: 100%;"
                         />`;
-              this.handleIkiRunPipelineChange(tempIframe);
+              this.handleIkiRunPipelineChange(tempIframe, true);
             }
           } else if (
             messageObject.info ===
@@ -342,10 +342,10 @@ class IkiRunPipeline extends React.PureComponent {
       ...this.state,
       editorMode: mode,
     };
-    if (mode === 'preview') {
-      this.updateMarkdownContent();
-      nextState.hasError = false;
-    }
+    // if (mode === 'preview') {
+    //   this.updateMarkdownContent();
+    //   nextState.hasError = false;
+    // }
 
     this.setState(nextState);
 
@@ -386,7 +386,7 @@ class IkiRunPipeline extends React.PureComponent {
                       className="ikirunpipeline-widget"
                       style="min-height: 100%;"
                     />`;
-    this.handleIkiRunPipelineChange(tempIframe);
+    this.handleIkiRunPipelineChange(tempIframe, false);
   }
 
   updateMarkdownContent() {
@@ -404,20 +404,14 @@ class IkiRunPipeline extends React.PureComponent {
     }
   }
 
-  handleMarkdownChange(nextValue) {
-    this.setState({
-      markdownSource: nextValue,
-    });
-  }
-
-  handleIkiRunPipelineChange(nextValue) {
+  handleIkiRunPipelineChange(nextValue, saveToDashboard) {
     this.setState(
       {
         markdownSource: nextValue,
       },
       () => {
         const { updateComponents, component } = this.props;
-        if (component.meta.code !== nextValue) {
+        if (saveToDashboard) {
           updateComponents({
             [component.id]: {
               ...component,
