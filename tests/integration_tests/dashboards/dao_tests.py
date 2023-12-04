@@ -34,60 +34,6 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
 
 class TestDashboardDAO(SupersetTestCase):
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    def test_set_dash_metadata(self):
-        dash: Dashboard = (
-            db.session.query(Dashboard).filter_by(slug="world_health").first()
-        )
-        data = dash.data
-        positions = data["position_json"]
-        data.update({"positions": positions})
-        original_data = copy.deepcopy(data)
-
-        # add filter scopes
-        filter_slice = next(slc for slc in dash.slices if slc.viz_type == "filter_box")
-        immune_slices = [slc for slc in dash.slices if slc != filter_slice]
-        filter_scopes = {
-            str(filter_slice.id): {
-                "region": {
-                    "scope": ["ROOT_ID"],
-                    "immune": [slc.id for slc in immune_slices],
-                }
-            }
-        }
-        data.update({"filter_scopes": json.dumps(filter_scopes)})
-        DashboardDAO.set_dash_metadata(dash, data)
-        updated_metadata = json.loads(dash.json_metadata)
-        self.assertEqual(updated_metadata["filter_scopes"], filter_scopes)
-
-        # remove a slice and change slice ids (as copy slices)
-        removed_slice = immune_slices.pop()
-        removed_components = [
-            key
-            for (key, value) in positions.items()
-            if isinstance(value, dict)
-            and value.get("type") == "CHART"
-            and value["meta"]["chartId"] == removed_slice.id
-        ]
-        for component_id in removed_components:
-            del positions[component_id]
-
-        data.update({"positions": positions})
-        DashboardDAO.set_dash_metadata(dash, data)
-        updated_metadata = json.loads(dash.json_metadata)
-        expected_filter_scopes = {
-            str(filter_slice.id): {
-                "region": {
-                    "scope": ["ROOT_ID"],
-                    "immune": [slc.id for slc in immune_slices],
-                }
-            }
-        }
-        self.assertEqual(updated_metadata["filter_scopes"], expected_filter_scopes)
-
-        # reset dash to original data
-        DashboardDAO.set_dash_metadata(dash, original_data)
-
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
     def test_get_dashboard_changed_on(self, mock_sm_g, mock_g):
