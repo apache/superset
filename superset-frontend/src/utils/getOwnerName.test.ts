@@ -18,9 +18,12 @@
  */
 import getOwnerName from './getOwnerName';
 
-test('render owner name', () => {
+test('render owner name correctly', () => {
   expect(getOwnerName({ id: 1, first_name: 'Foo', last_name: 'Bar' })).toEqual(
     'Foo Bar',
   );
+});
+
+test('return empty string for undefined owner', () => {
   expect(getOwnerName(undefined)).toEqual('');
 });

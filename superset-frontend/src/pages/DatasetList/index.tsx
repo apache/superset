@@ -70,7 +70,7 @@ import {
 } from 'src/features/datasets/constants';
 import DuplicateDatasetModal from 'src/features/datasets/DuplicateDatasetModal';
 import { useSelector } from 'react-redux';
-import { AuditInfo, AuditInfoType } from 'src/components/AuditInfo';
+import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 
 const extensionsRegistry = getExtensionsRegistry();
@@ -406,13 +406,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               changed_by: changedBy,
             },
           },
-        }: any) => (
-          <AuditInfo
-            type={AuditInfoType.Modified}
-            date={changedOn}
-            user={changedBy}
-          />
-        ),
+        }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',

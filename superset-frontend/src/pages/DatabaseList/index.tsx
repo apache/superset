@@ -52,7 +52,7 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import type { MenuObjectProps } from 'src/types/bootstrapTypes';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
 import { DatabaseObject } from 'src/features/databases/types';
-import { AuditInfo, AuditInfoType } from 'src/components/AuditInfo';
+import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 
 const extensionsRegistry = getExtensionsRegistry();
@@ -402,13 +402,7 @@ function DatabaseList({
               changed_on_delta_humanized: changedOn,
             },
           },
-        }: any) => (
-          <AuditInfo
-            type={AuditInfoType.Modified}
-            date={changedOn}
-            user={changedBy}
-          />
-        ),
+        }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',

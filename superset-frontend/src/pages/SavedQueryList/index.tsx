@@ -54,7 +54,7 @@ import { QueryObjectColumns, SavedQueryObject } from 'src/views/CRUD/types';
 import copyTextToClipboard from 'src/utils/copy';
 import Tag from 'src/types/TagType';
 import ImportModelsModal from 'src/components/ImportModal/index';
-import { AuditInfo, AuditInfoType } from 'src/components/AuditInfo';
+import { ModifiedInfo } from 'src/components/AuditInfo';
 import { loadTags } from 'src/components/Tags/utils';
 import Icons from 'src/components/Icons';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -373,13 +373,7 @@ function SavedQueryList({
               changed_on_delta_humanized: changedOn,
             },
           },
-        }: any) => (
-          <AuditInfo
-            type={AuditInfoType.Modified}
-            user={changedBy}
-            date={changedOn}
-          />
-        ),
+        }: any) => <ModifiedInfo user={changedBy} date={changedOn} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',

@@ -73,7 +73,7 @@ import FacePile from 'src/components/FacePile';
 import ChartCard from 'src/features/charts/ChartCard';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
-import { AuditInfo, AuditInfoType } from 'src/components/AuditInfo';
+import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 
 const FlexRowContainer = styled.div`
@@ -451,13 +451,7 @@ function ChartList(props: ChartListProps) {
               changed_by: changedBy,
             },
           },
-        }: any) => (
-          <AuditInfo
-            type={AuditInfoType.Modified}
-            date={changedOn}
-            user={changedBy}
-          />
-        ),
+        }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'last_saved_at',
         size: 'xl',

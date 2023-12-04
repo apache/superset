@@ -5,18 +5,12 @@ import { Tooltip } from 'src/components/Tooltip';
 import getOwnerName from 'src/utils/getOwnerName';
 import { t } from '@superset-ui/core';
 
-export const enum AuditInfoType {
-  Modified = 'Modified',
-  Created = 'Created',
-}
-
-export type AuditInfoProps = {
-  type: AuditInfoType;
+export type ModifiedInfoProps = {
   user?: Owner;
   date: string;
 };
 
-export const AuditInfo = ({ type, user, date }: AuditInfoProps) => {
+export const ModifiedInfo = ({ user, date }: ModifiedInfoProps) => {
   const dateSpan = (
     <span className="no-wrap" data-test="audit-info-date">
       {date}
@@ -25,10 +19,7 @@ export const AuditInfo = ({ type, user, date }: AuditInfoProps) => {
 
   if (user) {
     const userName = getOwnerName(user);
-    const title =
-      type === AuditInfoType.Created
-        ? t('Created by: %s', userName)
-        : t('Modified by: %s', userName);
+    const title = t('Modified by: %s', userName);
     return (
       <Tooltip title={title} placement="bottom">
         {dateSpan}

@@ -35,7 +35,7 @@ import ListView, {
 } from 'src/components/ListView';
 import CssTemplateModal from 'src/features/cssTemplates/CssTemplateModal';
 import { TemplateObject } from 'src/features/cssTemplates/types';
-import { AuditInfo, AuditInfoType } from 'src/components/AuditInfo';
+import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 
 const PAGE_SIZE = 25;
@@ -138,13 +138,7 @@ function CssTemplatesList({
               changed_by: changedBy,
             },
           },
-        }: any) => (
-          <AuditInfo
-            type={AuditInfoType.Modified}
-            date={changedOn}
-            user={changedBy}
-          />
-        ),
+        }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',

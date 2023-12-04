@@ -41,7 +41,7 @@ import { Tag as AntdTag } from 'antd';
 import { QueryObjectColumns, Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
 import FaveStar from 'src/components/FaveStar';
-import { AuditInfo, AuditInfoType } from 'src/components/AuditInfo';
+import { ModifiedInfo } from 'src/components/AuditInfo';
 
 const PAGE_SIZE = 25;
 
@@ -164,13 +164,7 @@ function TagList(props: TagListProps) {
               changed_by: changedBy,
             },
           },
-        }: any) => (
-          <AuditInfo
-            type={AuditInfoType.Modified}
-            date={changedOn}
-            user={changedBy}
-          />
-        ),
+        }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',

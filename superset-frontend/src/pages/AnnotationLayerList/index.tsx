@@ -35,7 +35,7 @@ import DeleteModal from 'src/components/DeleteModal';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import AnnotationLayerModal from 'src/features/annotationLayers/AnnotationLayerModal';
 import { AnnotationLayerObject } from 'src/features/annotationLayers/types';
-import { AuditInfo, AuditInfoType } from 'src/components/AuditInfo';
+import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 
 const PAGE_SIZE = 25;
@@ -161,13 +161,7 @@ function AnnotationLayersList({
               changed_by: changedBy,
             },
           },
-        }: any) => (
-          <AuditInfo
-            type={AuditInfoType.Modified}
-            date={changedOn}
-            user={changedBy}
-          />
-        ),
+        }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on',
         size: 'xl',

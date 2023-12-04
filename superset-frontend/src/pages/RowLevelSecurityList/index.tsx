@@ -34,7 +34,7 @@ import { useListViewResource } from 'src/views/CRUD/hooks';
 import RowLevelSecurityModal from 'src/features/rls/RowLevelSecurityModal';
 import { RLSObject } from 'src/features/rls/types';
 import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
-import { AuditInfo, AuditInfoType } from 'src/components/AuditInfo';
+import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 
 const Actions = styled.div`
@@ -153,13 +153,7 @@ function RowLevelSecurityList(props: RLSProps) {
               changed_by: changedBy,
             },
           },
-        }: any) => (
-          <AuditInfo
-            type={AuditInfoType.Modified}
-            date={changedOn}
-            user={changedBy}
-          />
-        ),
+        }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
