@@ -77,6 +77,9 @@ class RLSRestApi(BaseSupersetModelRestApi):
         "roles.name",
         "clause",
         "changed_on_delta_humanized",
+        "changed_by.first_name",
+        "changed_by.last_name",
+        "changed_by.id",
         "group_key",
     ]
     order_columns = [
@@ -115,6 +118,8 @@ class RLSRestApi(BaseSupersetModelRestApi):
         "roles",
         "group_key",
         "clause",
+        "created_by",
+        "changed_by",
     )
     edit_columns = add_columns
 
@@ -123,7 +128,7 @@ class RLSRestApi(BaseSupersetModelRestApi):
     add_model_schema = RLSPostSchema()
     edit_model_schema = RLSPutSchema()
 
-    allowed_rel_fields = {"tables", "roles"}
+    allowed_rel_fields = {"tables", "roles", "created_by", "changed_by"}
     base_related_field_filters = {
         "tables": [["id", DatasourceFilter, lambda: []]],
         "roles": [["id", BaseFilterRelatedRoles, lambda: []]],
