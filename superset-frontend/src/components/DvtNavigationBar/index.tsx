@@ -18,19 +18,16 @@
  */
 import React from 'react';
 import DvtNavigationBarItem from '../DvtNavigationBarItem';
-import {
-  StyledNavigationBar,
-  StyledNavigationBarItem,
-} from './dvt-navigation-bar.module';
+import { StyledNavigationBar } from './dvt-navigation-bar.module';
+
+interface DataProps {
+  icon: string;
+  label: string;
+  url?: string;
+}
 
 export interface DvtNavigationBarProps {
-  data: [
-    {
-      icon: string;
-      label: string;
-      url?: string;
-    },
-  ];
+  data: DataProps[];
   active?: string;
   setActive?: (newUrl: string) => void;
 }
@@ -42,17 +39,15 @@ const DvtNavigationBar: React.FC<DvtNavigationBarProps> = ({
 }) => (
   <StyledNavigationBar>
     {data.map((item, index) => (
-      <StyledNavigationBarItem>
-        <DvtNavigationBarItem
-          key={index}
-          icon={item.icon}
-          label={item.label}
-          onClick={() => {
-            item.url && setActive?.(item.url);
-          }}
-          active={item.url ? item.url === active : false}
-        />
-      </StyledNavigationBarItem>
+      <DvtNavigationBarItem
+        key={index}
+        icon={item.icon}
+        label={item.label}
+        onClick={() => {
+          item.url && setActive?.(item.url);
+        }}
+        active={item.url ? item.url === active : false}
+      />
     ))}
   </StyledNavigationBar>
 );

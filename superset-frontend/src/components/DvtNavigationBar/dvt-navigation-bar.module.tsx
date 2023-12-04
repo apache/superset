@@ -23,10 +23,7 @@ const StyledNavigationBar = styled.div`
   flex-direction: column;
   width: 250px;
   margin-bottom: 52px;
+  gap: 32px;
 `;
 
-const StyledNavigationBarItem = styled.div`
-  margin-bottom: 32px;
-`;
-
-export { StyledNavigationBar, StyledNavigationBarItem };
+export { StyledNavigationBar };
