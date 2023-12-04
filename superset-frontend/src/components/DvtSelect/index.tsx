@@ -57,9 +57,9 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
   };
 
   return (
-    <StyledSelect ref={ref} onClick={handleSelectClick}>
+    <StyledSelect ref={ref}>
       {label && <StyledSelectLabel>{label}</StyledSelectLabel>}
-      <StyledSelectSelect isOpen={isOpen}>
+      <StyledSelectSelect isOpen={isOpen} onClick={handleSelectClick}>
         {data.find(option => option.value === selectedValue)?.label ||
           placeholder}
         <StyledSelectIcon isOpen={isOpen}>
