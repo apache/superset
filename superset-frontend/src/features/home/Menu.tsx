@@ -155,26 +155,26 @@ const globalStyles = (theme: SupersetTheme) => css`
     }
   }
   .ant-menu-item-selected {
-    background-color: transparent !important;
+    background-color: transparent;
     &:not(.ant-menu-item-active) {
-      color: inherit !important;
-      border-bottom-color: transparent !important;
+      color: inherit;
+      border-bottom-color: transparent;
       & > a {
-        color: inherit !important;
+        color: inherit;
       }
     }
   }
   .ant-menu-horizontal > .ant-menu-item:has(> .is-active) {
-    color: ${theme.colors.primary.base} !important;
-    border-bottom-color: ${theme.colors.primary.base} !important;
+    color: ${theme.colors.primary.base};
+    border-bottom-color: ${theme.colors.primary.base};
     & > a {
-      color: ${theme.colors.primary.base} !important;
+      color: ${theme.colors.primary.base};
     }
   }
   .ant-menu-vertical > .ant-menu-item:has(> .is-active) {
-    background-color: ${theme.colors.primary.light5} !important;
+    background-color: ${theme.colors.primary.light5};
     & > a {
-      color: ${theme.colors.primary.base} !important;
+      color: ${theme.colors.primary.base};
     }
   }
 `;
