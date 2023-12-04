@@ -16,6 +16,7 @@
 # under the License.
 from .db2 import Db2EngineSpec
 
+
 class IBMiEngineSpec(Db2EngineSpec):
     engine = "ibmi"
     engine_name = "IBM Db2 for i"
