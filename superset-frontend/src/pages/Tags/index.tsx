@@ -238,7 +238,7 @@ function TagList(props: TagListProps) {
   const filters: Filters = useMemo(() => {
     const filters_list = [
       {
-        Header: t('Search'),
+        Header: t('Name'),
         id: 'name',
         input: 'search',
         operator: FilterOperator.contains,

@@ -446,7 +446,7 @@ function AlertList({
   const filters: Filters = useMemo(
     () => [
       {
-        Header: t('Search'),
+        Header: t('Name'),
         key: 'search',
         id: 'name',
         input: 'search',
