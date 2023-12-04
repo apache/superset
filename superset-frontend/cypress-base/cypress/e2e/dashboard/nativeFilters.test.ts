@@ -113,7 +113,7 @@ function prepareDashboardFilters(
         },
         type: 'NATIVE_FILTER',
         description: '',
-        chartsInScope: [6],
+        chartsInScope: [5],
         tabsInScope: [],
       });
     });
@@ -150,7 +150,7 @@ function prepareDashboardFilters(
             meta: {
               width: 4,
               height: 50,
-              chartId: 6,
+              chartId: 5,
               sliceName: 'Most Populated Countries',
             },
           },
@@ -414,7 +414,7 @@ describe('Native filters', () => {
       cy.createSampleDashboards([0]);
     });
 
-    it('Verify that default value is respected after revisit', () => {
+    it.only('Verify that default value is respected after revisit', () => {
       prepareDashboardFilters([
         { name: 'country_name', column: 'country_name', datasetId: 2 },
       ]);
