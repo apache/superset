@@ -16,18 +16,59 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { StyledDvtNavbar, NavbarTop, NavbarBottom } from './dvt-navbar.module';
+import React, { useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { useAppSelector } from 'src/hooks/useAppSelector';
+import { dvtAppSetSort } from 'src/dvt-redux/dvt-appReducer';
+import {
+  StyledDvtNavbar,
+  NavbarTop,
+  NavbarBottom,
+  NavbarBottomRight,
+} from './dvt-navbar.module';
+import DvtTabs from '../DvtTabs';
+import DvtButton from '../DvtButton';
+import DvtDotTitle from '../DvtDotTitle';
+
+const dashboardTabs = [
+  { label: 'All', icon: 'full' },
+  { label: 'Mine', icon: 'minus' },
+];
 
 export interface DvtNavbarProps {
   user?: any;
 }
 
-const DvtNavbar: React.FC<DvtNavbarProps> = ({ user }) => (
-  <StyledDvtNavbar>
-    <NavbarTop>Navbar Top Component coming soon...</NavbarTop>
-    <NavbarBottom>Navbar Bottom Component coming soon...</NavbarBottom>
-  </StyledDvtNavbar>
-);
+const DvtNavbar: React.FC<DvtNavbarProps> = ({ user }) => {
+  const dispatch = useDispatch();
+  const sort = useAppSelector(state => state.dvtApp.sort);
+  const [active, setActive] = useState<string>('All');
+
+  return (
+    <StyledDvtNavbar>
+      <NavbarTop>
+        <DvtDotTitle label="Welcome Page" />
+      </NavbarTop>
+      <NavbarBottom>
+        <DvtTabs active={active} setActive={setActive} data={dashboardTabs} />
+        <NavbarBottomRight>
+          <DvtButton
+            colour="grayscale"
+            typeColour="outline"
+            label="Filter"
+            icon="filter"
+            onClick={() => {}}
+          />
+          <DvtButton
+            typeColour="powder"
+            label={`${sort ? 'Sorted' : 'Sort'}: Date Created`}
+            icon="dvt-sort"
+            onClick={() => dispatch(dvtAppSetSort(!sort))}
+          />
+        </NavbarBottomRight>
+      </NavbarBottom>
+    </StyledDvtNavbar>
+  );
+};
 
 export default DvtNavbar;

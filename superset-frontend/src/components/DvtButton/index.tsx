@@ -47,7 +47,7 @@ const DvtButton: React.FC<DvtButtonProps> = ({
     $typeColour={typeColour}
     onClick={onClick}
   >
-    {icon && <Icon fileName={icon} />}
+    {icon && <Icon fileName={icon} iconSize="l" />}
     {label}
   </StyledDvtButton>
 );

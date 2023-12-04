@@ -38,14 +38,18 @@ export const Default = (args: DvtMiniNavigationProps) => (
 
 Default.args = {
   title: 'Dashboard 1',
+  url: '',
   data: [
-    { text: 'Report 1', url: '' },
-    { text: 'Report 2', url: '' },
+    { name: 'Report 1', url: '' },
+    { name: 'Report 2', url: '' },
   ],
 };
 
 Default.argTypes = {
   title: {
+    control: { type: 'text' },
+  },
+  url: {
     control: { type: 'text' },
   },
   data: {

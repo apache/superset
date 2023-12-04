@@ -39,4 +39,10 @@ const NavbarBottom = styled.div`
   border-top: 1px solid ${({ theme }) => theme.colors.dvt.border.base};
 `;
 
-export { StyledDvtNavbar, NavbarTop, NavbarBottom };
+const NavbarBottomRight = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 16px;
+`;
+
+export { StyledDvtNavbar, NavbarTop, NavbarBottom, NavbarBottomRight };

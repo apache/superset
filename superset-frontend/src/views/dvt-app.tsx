@@ -39,8 +39,8 @@ import { Logger, LOG_ACTIONS_SPA_NAVIGATION } from 'src/logger/LogUtils';
 import setupExtensions from 'src/setup/setupExtensions';
 import { styled } from '@superset-ui/core';
 import { logEvent } from 'src/logger/actions';
-import { store } from 'src/views/store';
-import { RootContextProviders } from './RootContextProviders';
+import { store } from 'src/views/dvt-store';
+import { DvtRootContextProviders } from './DvtRootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
 
 const Main = styled.main`
@@ -90,7 +90,7 @@ const DvtApp = () => (
   <Router>
     <ScrollToTop />
     <LocationPathnameLogger />
-    <RootContextProviders>
+    <DvtRootContextProviders>
       <GlobalStyles />
       <DvtSidebar data={[]} isFrontendRoute={isFrontendRoute} />
       <DvtNavbar />
@@ -108,7 +108,7 @@ const DvtApp = () => (
         </Switch>
       </Main>
       <ToastContainer />
-    </RootContextProviders>
+    </DvtRootContextProviders>
   </Router>
 );
 

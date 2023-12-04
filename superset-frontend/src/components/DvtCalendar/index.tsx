@@ -16,150 +16,204 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
-import moment, { Moment } from 'moment';
-import { Calendar, Typography } from 'antd';
+import React, { useState } from 'react';
+import { Moment } from 'moment';
+import { Calendar, Select } from 'antd';
 import { SupersetTheme } from '@superset-ui/core';
 import Icon from '../Icons/Icon';
 import {
   StyledCalendar,
   StyledCalendarIcon,
   StyledCalendarDateCell,
+  StyledCalendarDateCellClick,
 } from './dvt-calendar.module';
 
 export interface DvtCalendarProps {
-  onSelect: (date: Moment | null) => void;
+  isOpen: boolean;
+  setIsOpen: (newCalendarVisible: boolean) => void;
+  selectedDate: Moment | null;
+  setSelectedDate: (date: Moment | null) => void;
+  selectedDateClose?: boolean;
 }
 
-const DvtCalendar: React.FC<DvtCalendarProps> = ({ onSelect }) => {
-  const [isCalendarVisible, setCalendarVisible] = useState(true);
+const DvtCalendar: React.FC<DvtCalendarProps> = ({
+  isOpen,
+  setIsOpen,
+  selectedDate,
+  setSelectedDate,
+  selectedDateClose = false,
+}) => {
   const [isNextIconHovered, setNextIconHovered] = useState(false);
   const [isPrevIconHovered, setPrevIconHovered] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Moment | null>(
-    moment(Date.now()),
-  );
+  const [isChange, setIsChange] = useState(false);
 
   const handleToggleCalendar = () => {
-    setCalendarVisible(!isCalendarVisible);
+    setIsOpen(!isOpen);
   };
 
-  useEffect(() => {
-    onSelect(selectedDate);
-  }, [selectedDate]);
-
   return (
-    <StyledCalendar isCalendarVisible={isCalendarVisible}>
-      <Calendar
-        dateFullCellRender={(date: Moment): React.ReactNode => {
-          const isSelected: boolean = selectedDate
-            ? date.isSame(selectedDate, 'day') &&
-              date.isSame(selectedDate, 'month')
-            : false;
+    <StyledCalendar>
+      {isOpen && (
+        <Calendar
+          defaultValue={selectedDate || undefined}
+          dateFullCellRender={(date: Moment): React.ReactNode => {
+            const isSelected: boolean = selectedDate
+              ? date.isSame(selectedDate, 'day') &&
+                date.isSame(selectedDate, 'month')
+              : false;
 
-          return (
-            <StyledCalendarDateCell
-              css={(theme: SupersetTheme) => ({
-                backgroundColor: isSelected
-                  ? theme.colors.dvt.primary.base
-                  : '',
-                borderRadius: '50px',
-                width: '40px',
-                height: '40px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: isSelected
-                  ? `4px 8px 18px 0px ${theme.colors.dvt.boxShadow.primaryLight3}`
-                  : '',
-                color: isSelected ? theme.colors.grayscale.light5 : '',
-                position: 'relative',
-              })}
-            >
-              {date.date()}
-            </StyledCalendarDateCell>
-          );
-        }}
-        css={(theme: SupersetTheme) => ({
-          borderRadius: '12px',
-          paddingLeft: '11px',
-          paddingRight: '11px',
-          boxShadow: `4px 4px 10px ${theme.colors.dvt.boxShadow.light2}`,
-        })}
-        fullscreen={false}
-        onSelect={date =>
-          !(isPrevIconHovered || isNextIconHovered) && setSelectedDate(date)
-        }
-        headerRender={({ value, onChange }) => {
-          let current = value.clone();
-          const localeData = value.localeData();
-          const months = [];
-          for (let i = 0; i < 12; i += 1) {
-            current = current.month(i);
-            months.push(localeData.monthsShort(current));
+            return (
+              <StyledCalendarDateCell isSelected={isSelected}>
+                <StyledCalendarDateCellClick
+                  onClick={selectedDateClose ? handleToggleCalendar : () => {}}
+                />
+                {date.date()}
+              </StyledCalendarDateCell>
+            );
+          }}
+          css={(theme: SupersetTheme) => ({
+            borderRadius: '12px',
+            paddingLeft: '11px',
+            paddingRight: '11px',
+            boxShadow: `4px 4px 10px ${theme.colors.dvt.boxShadow.light2}`,
+          })}
+          fullscreen={false}
+          onSelect={date =>
+            !(isPrevIconHovered || isNextIconHovered || isChange) &&
+            setSelectedDate(date)
           }
-          const monthNames = [
-            'January',
-            'February',
-            'March',
-            'April',
-            'May',
-            'June',
-            'July',
-            'August',
-            'September',
-            'October',
-            'November',
-            'December',
-          ];
-          const year = value.year();
-          const month = value.month();
+          headerRender={({ value, onChange }) => {
+            let current = value.clone();
+            const localeData = value.localeData();
+            const months = [];
+            for (let i = 0; i < 12; i += 1) {
+              current = current.month(i);
+              months.push(localeData.monthsShort(current));
+            }
+            const monthNames = [
+              'January',
+              'February',
+              'March',
+              'April',
+              'May',
+              'June',
+              'July',
+              'August',
+              'September',
+              'October',
+              'November',
+              'December',
+            ];
 
-          const handlePrevMonth = () => {
-            const newDate = value.clone().subtract(1, 'month');
-            onChange(newDate);
-          };
+            const year = value.year();
+            const month = value.month();
+            const options = [];
+            for (let i = year - 10; i < year + 10; i += 1) {
+              options.push(i);
+            }
 
-          const handleNextMonth = () => {
-            const newDate = value.clone().add(1, 'month');
-            onChange(newDate);
-          };
-          return (
-            <StyledCalendarIcon>
-              <Typography.Title level={5} style={{ width: 140 }}>
-                {monthNames[month]} {year}
-              </Typography.Title>
-              <Icon
-                fileName="caret_left"
-                iconColor={isPrevIconHovered ? 'blue' : 'gray'}
-                style={{ cursor: 'pointer' }}
-                iconSize="xxl"
-                onMouseEnter={() => setPrevIconHovered(true)}
-                onMouseLeave={() => setPrevIconHovered(false)}
-                onClick={handlePrevMonth}
-              />
-              <Icon
-                fileName="caret_right"
-                iconColor={isNextIconHovered ? 'blue' : 'gray'}
-                style={{ cursor: 'pointer' }}
-                iconSize="xxl"
-                onMouseEnter={() => setNextIconHovered(true)}
-                onMouseLeave={() => setNextIconHovered(false)}
-                onClick={handleNextMonth}
-              />
-              <Icon
-                fileName="close"
-                style={{
-                  marginLeft: 'auto',
-                  marginTop: '4px',
-                  cursor: 'pointer',
-                }}
-                iconSize="m"
-                onClick={handleToggleCalendar}
-              />
-            </StyledCalendarIcon>
-          );
-        }}
-      />
+            const handlePrevMonth = () => {
+              const newDate = value.clone().subtract(1, 'month');
+              onChange(newDate);
+            };
+
+            const handleNextMonth = () => {
+              const newDate = value.clone().add(1, 'month');
+              onChange(newDate);
+            };
+            const handleMonth = (newMonth: string) => {
+              const newDate = value.clone().month(newMonth);
+              onChange(newDate);
+            };
+            const handleYear = (newYear: number) => {
+              const newDate = value.clone().year(newYear);
+              onChange(newDate);
+            };
+
+            return (
+              <StyledCalendarIcon>
+                <Select
+                  size="small"
+                  dropdownMatchSelectWidth={false}
+                  value={monthNames[month]}
+                  onMouseEnter={() => setIsChange(true)}
+                  onMouseLeave={() => setIsChange(false)}
+                  onChange={(newMonth: string) => {
+                    setIsChange(true);
+                    handleMonth(newMonth);
+                    setIsChange(false);
+                  }}
+                  defaultValue={monthNames[month]}
+                  bordered={false}
+                >
+                  {monthNames.map((month, index) => (
+                    <Select.Option
+                      key={month}
+                      value={month}
+                      className="month-item"
+                      style={{ zIndex: 9999 }}
+                    >
+                      {month}
+                    </Select.Option>
+                  ))}
+                </Select>
+                <Select
+                  size="small"
+                  dropdownMatchSelectWidth={false}
+                  value={year}
+                  onChange={(newYear: number) => {
+                    setIsChange(true);
+                    handleYear(newYear);
+                    setIsChange(false);
+                  }}
+                  bordered={false}
+                  onMouseEnter={() => setIsChange(true)}
+                  onMouseLeave={() => setIsChange(false)}
+                >
+                  {options.map(option => (
+                    <Select.Option
+                      key={option}
+                      value={option}
+                      className="year-item"
+                      style={{ zIndex: 9999 }}
+                    >
+                      {option}
+                    </Select.Option>
+                  ))}
+                </Select>
+                <Icon
+                  fileName="caret_left"
+                  iconColor={isPrevIconHovered ? 'blue' : 'gray'}
+                  style={{ cursor: 'pointer' }}
+                  iconSize="xxl"
+                  onMouseEnter={() => setPrevIconHovered(true)}
+                  onMouseLeave={() => setPrevIconHovered(false)}
+                  onClick={handlePrevMonth}
+                />
+                <Icon
+                  fileName="caret_right"
+                  iconColor={isNextIconHovered ? 'blue' : 'gray'}
+                  style={{ cursor: 'pointer' }}
+                  iconSize="xxl"
+                  onMouseEnter={() => setNextIconHovered(true)}
+                  onMouseLeave={() => setNextIconHovered(false)}
+                  onClick={handleNextMonth}
+                />
+                <Icon
+                  fileName="close"
+                  style={{
+                    marginLeft: 'auto',
+                    marginTop: '4px',
+                    cursor: 'pointer',
+                  }}
+                  iconSize="m"
+                  onClick={handleToggleCalendar}
+                />
+              </StyledCalendarIcon>
+            );
+          }}
+        />
+      )}
     </StyledCalendar>
   );
 };

@@ -1,0 +1,22 @@
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one
+  or more contributor license agreements.  See the NOTICE file
+  distributed with this work for additional information
+  regarding copyright ownership.  The ASF licenses this file
+  to you under the Apache License, Version 2.0 (the
+  "License"); you may not use this file except in compliance
+  with the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="23px" height="24px" viewBox="0 0 23 24" version="1.1">
+<path stroke="currentColor" fill="none" stroke-width="1.5" stroke-linecap="round" style="stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1;stroke-miterlimit:4;" d="M 1.50051 15 L 14.100713 15  " transform="matrix(1.533333,0,0,1.5,0,0)"/>
+<path fill="currentColor" style=" stroke:none;fill-rule:evenodd;fill-opacity:1;" d="M 14.332031 2.035156 C 15.078125 1.308594 16.085938 0.898438 17.136719 0.898438 C 18.1875 0.898438 19.195312 1.308594 19.9375 2.035156 C 20.679688 2.761719 21.097656 3.75 21.097656 4.777344 C 21.097656 5.804688 20.679688 6.789062 19.9375 7.515625 L 8.207031 18.992188 C 8.011719 19.183594 7.75 19.289062 7.476562 19.289062 L 3.335938 19.289062 C 2.761719 19.289062 2.300781 18.835938 2.300781 18.277344 L 2.300781 14.226562 C 2.300781 13.957031 2.410156 13.699219 2.601562 13.511719 Z M 17.136719 2.925781 C 16.632812 2.925781 16.152344 3.121094 15.796875 3.46875 L 4.371094 14.644531 L 4.371094 17.265625 L 7.046875 17.265625 L 18.472656 6.085938 C 18.828125 5.738281 19.027344 5.265625 19.027344 4.777344 C 19.027344 4.285156 18.828125 3.8125 18.472656 3.46875 C 18.117188 3.121094 17.636719 2.925781 17.136719 2.925781 Z M 17.136719 2.925781 "/>
+</svg>

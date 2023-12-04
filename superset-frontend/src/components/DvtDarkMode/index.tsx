@@ -18,19 +18,28 @@
  */
 import React from 'react';
 import { Switch } from 'antd';
-import moon from '../../assets/dvt-img/moon.png';
+import { supersetTheme } from '@superset-ui/core';
 import { StyledDvtDarkMode, DvtDarkModeLabel } from './dvt-dark-mode.module';
+import Icon from '../Icons/Icon';
 
 export interface DvtDarkModeProps {
-  title: string;
+  title?: string;
   darkMode: boolean;
+  setDarkMode: (bol: boolean) => void;
 }
 
-const DvtDarkMode: React.FC<DvtDarkModeProps> = ({ title, darkMode }) => (
+const DvtDarkMode: React.FC<DvtDarkModeProps> = ({
+  title = 'Dark Mode',
+  darkMode,
+  setDarkMode,
+}) => (
   <StyledDvtDarkMode>
-    <img src={moon} alt="moon" />
+    <Icon
+      fileName="dvt-moon_stars"
+      iconColor={supersetTheme.colors.dvt.text.label}
+    />
     <DvtDarkModeLabel>{title}</DvtDarkModeLabel>
-    <Switch checked={darkMode} />
+    <Switch checked={darkMode} onChange={bol => setDarkMode(bol)} />
   </StyledDvtDarkMode>
 );
 
