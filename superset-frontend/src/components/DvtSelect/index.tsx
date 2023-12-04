@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import Icon from '../Icons/Icon';
 import {
   StyledSelect,
@@ -26,6 +26,7 @@ import {
   StyledSelectSelect,
   StyledSelectIcon,
 } from './dvt-select.module';
+import useOnClickOutside from 'src/hooks/useOnClickOutsite';
 
 export interface DvtSelectProps {
   label?: string;
@@ -42,7 +43,9 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
   selectedValue,
   setSelectedValue,
 }) => {
+  const ref = useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  useOnClickOutside(ref, () => setIsOpen(false));
 
   const handleSelectClick = () => {
     setIsOpen(!isOpen);
@@ -54,7 +57,7 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
   };
 
   return (
-    <StyledSelect onClick={handleSelectClick}>
+    <StyledSelect ref={ref} onClick={handleSelectClick}>
       {label && <StyledSelectLabel>{label}</StyledSelectLabel>}
       <StyledSelectSelect isOpen={isOpen}>
         {data.find(option => option.value === selectedValue)?.label ||
