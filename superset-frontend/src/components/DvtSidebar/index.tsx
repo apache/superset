@@ -1,22 +1,5 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
 import React, { useState } from 'react';
+import { BrowserRouter as Router } from 'react-router-dom';
 import DvtLogo from '../DvtLogo';
 import DvtDarkMode from '../DvtDarkMode';
 import {
@@ -28,47 +11,106 @@ import {
 } from './dvt-sidebar.module';
 import DvtTitlePlus from '../DvtTitlePlus';
 import DvtNavigation from '../DvtNavigation';
+import DvtFolderNavigation from '../DvtFolderNavigation';
+import DvtSelect from '../DvtSelect';
+import DvtNavigationBar from '../DvtNavigationBar';
+
+interface WelcomeProps {
+  navigationData: {
+    title: string;
+    data: {
+      title: string;
+      url: string;
+      fileName: string;
+    }[];
+  }[];
+  folderNavigationDate: {
+    name: string;
+    url: string;
+    data: {
+      name: string;
+      url: string;
+      data: {
+        name: string;
+        url: string;
+      }[];
+    }[];
+  }[];
+  items: {
+    title: string;
+    data: {
+      title: string;
+      url: string;
+      fileName: string;
+    }[];
+  }[];
+}
 
 export interface DvtSidebarProps {
-  data: any[];
-  isFrontendRoute?: (path?: string) => boolean;
+  url: string;
+  sidebar: string;
+  welcomeData?: WelcomeProps[];
 }
 
 const DvtSidebar: React.FC<DvtSidebarProps> = ({
-  data,
-  isFrontendRoute = () => false,
+  url,
+  sidebar,
+  welcomeData,
 }) => {
   const [darkMode, setDarkMode] = useState<boolean>(false);
 
+  switch (url) {
+    case '/superset/welcome':
+      sidebar = 'welcome';
+      break;
+    case '/superset/reports':
+    case '/superset/dashboards':
+    case '/superset/datasets':
+    case '/superset/sql_query_history':
+    case '/superset/sql_query_history_time_range':
+    case '/superset/sql_query_history_state':
+    case '/superset/sql_saved_queries':
+    case '/superset/sql_lab':
+    case '/superset/alerts':
+    case '/superset/graph_chart':
+      sidebar = 'selectSidebar';
+      break;
+    case '/superset/profile':
+      sidebar = 'profile';
+      break;
+  }
+
   return (
-    <StyledDvtSidebar>
-      <StyledDvtSidebarHeader>
-        <DvtLogo title="AppName" />
-      </StyledDvtSidebarHeader>
-      <StyledDvtSidebarBody>
-        <StyledDvtSidebarBodyItem>
-          <DvtTitlePlus title="menu" />
-          <DvtNavigation
-            data={[
-              { title: 'Connections', url: '/', fileName: 'calendar' },
-              { title: 'Dataset', url: '/', fileName: 'database' },
-              { title: 'Dashboard', url: '/', fileName: 'grid' },
-              { title: 'Report', url: '/', fileName: 'code' },
-              { title: 'Alert', url: '/', fileName: 'alert' },
-            ]}
-          />
-        </StyledDvtSidebarBodyItem>
-        <StyledDvtSidebarBodyItem>
-          <DvtTitlePlus title="my folder" onClick={() => {}} />
-        </StyledDvtSidebarBodyItem>
-        <StyledDvtSidebarBodyItem>
-          <DvtTitlePlus title="shared folder" onClick={() => {}} />
-        </StyledDvtSidebarBodyItem>
-      </StyledDvtSidebarBody>
-      <StyledDvtSidebarFooter>
-        <DvtDarkMode darkMode={darkMode} setDarkMode={setDarkMode} />
-      </StyledDvtSidebarFooter>
-    </StyledDvtSidebar>
+    <Router>
+      <StyledDvtSidebar>
+        <StyledDvtSidebarHeader>
+          <DvtLogo title="AppName" />
+        </StyledDvtSidebarHeader>
+        {sidebar === 'welcome' && welcomeData && welcomeData.length > 0 && (
+          <StyledDvtSidebarBody>
+            <StyledDvtSidebarBodyItem>
+              <DvtTitlePlus title={welcomeData[0].items[0].title || ''} />
+              <DvtNavigation data={welcomeData[0].items[0].data || []} />
+            </StyledDvtSidebarBodyItem>
+            <StyledDvtSidebarBodyItem>
+              <DvtTitlePlus title="my folder" onClick={() => {}} />
+              <DvtFolderNavigation
+                data={welcomeData[0].folderNavigationDate || []}
+              />
+            </StyledDvtSidebarBodyItem>
+            <StyledDvtSidebarBodyItem>
+              <DvtTitlePlus title="shared folder" onClick={() => {}} />
+            </StyledDvtSidebarBodyItem>
+          </StyledDvtSidebarBody>
+        )}
+
+        {sidebar === 'welcome' && (
+          <StyledDvtSidebarFooter>
+            <DvtDarkMode darkMode={darkMode} setDarkMode={setDarkMode} />
+          </StyledDvtSidebarFooter>
+        )}
+      </StyledDvtSidebar>
+    </Router>
   );
 };
 
