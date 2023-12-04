@@ -17,20 +17,19 @@
  * under the License.
  */
 /**
- * COMPONENT: RUN FLOW
- * WIDGET FRONTEND URL EXAMPLE: http://localhost:3000/widget/pipeline/run?mode=preview&v=1&run_flow_times=1661354875318&pipeline_id=2Dj9IKLHAsi3W3euDQo2Vx6Gupt&submit_button_label=r1&pipeline_log_type=full-log&edit_variables=no
+ * COMPONENT: Interactive Forecast Component
+ * WIDGET FRONTEND URL EXAMPLE: http://localhost:3000/widget/interactive-forecast-chart?mode=preview&dataset_id=2XuNHHmywYae6Ob0K0lUR0NVXSC&datetime_column=Date&data_series=Demand&dimensions_column=prediction_type&metrics_type=SUM
  * PARAMETERS:
  * mode=preview
- * v=1
- * run_flow_times=1661354875318
- * pipeline_id=2Dj9IKLHAsi3W3euDQo2Vx6Gupt
- * submit_button_label=r1
- * pipeline_log_type=full-log
- * edit_variables=no
+ * dataset_id=2XuNHHmywYae6Ob0K0lUR0NVXSC
+ * datetime_column=Date
+ * data_series=Demand
+ * dimensions_column=prediction_type
+ * metrics_type=SUM
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+// import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import cx from 'classnames';
 
@@ -38,7 +37,7 @@ import { t, SafeMarkdown } from '@superset-ui/core';
 import {
   Logger,
   LOG_ACTIONS_RENDER_CHART,
-  LOG_ACTIONS_FORCE_REFRESH_CHART,
+  // LOG_ACTIONS_FORCE_REFRESH_CHART,
 } from 'src/logger/LogUtils';
 import { MarkdownEditor } from 'src/components/AsyncAceEditor';
 
@@ -54,7 +53,7 @@ import {
   GRID_MIN_ROW_UNITS,
   GRID_BASE_UNIT,
 } from 'src/dashboard/util/constants';
-import { refreshChart } from 'src/components/Chart/chartAction';
+// import { chart } from 'src/components/Chart/chartReducer';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -91,17 +90,16 @@ const defaultProps = {};
 
 const MARKDOWN_ERROR_MESSAGE = t('This component has an error.');
 
-class IkiExplainability extends React.PureComponent {
+class IkiInteractiveForecast extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
       isFocused: false,
       markdownSource: props.component.meta.code,
       editor: null,
-      editorMode: 'edit',
+      editorMode: 'preview',
       undoLength: props.undoLength,
       redoLength: props.redoLength,
-      dashboardId: null,
     };
     this.renderStartTime = Logger.getTimestamp();
 
@@ -114,12 +112,6 @@ class IkiExplainability extends React.PureComponent {
   }
 
   componentDidMount() {
-    this.setState({
-      dashboardId: parseInt(
-        window.location.pathname.split('/dashboard/')[1].split('/')[0],
-        10,
-      ),
-    });
     this.props.logEvent(LOG_ACTIONS_RENDER_CHART, {
       viz_type: 'markdown',
       start_offset: this.renderStartTime,
@@ -199,67 +191,87 @@ class IkiExplainability extends React.PureComponent {
         const messageObject = JSON.parse(event.data);
         if (messageObject.info && messageObject.dataType) {
           const { dataType } = messageObject;
-
           let messageData;
           let widgetUrl;
           let widgetUrlQuery;
-          let widgetUrlQueryMode;
+          // let widgetUrlQueryMode;
 
           if (dataType === 'object') {
             messageData = JSON.parse(messageObject.data);
           } else {
             messageData = messageObject.data;
           }
-
           if (
             document.getElementById(
-              `ikiexplainability-widget-${this.props.component.id}`,
+              `ikiinteractiveforecast-widget-${this.props.component.id}`,
             )
           ) {
             widgetUrl = new URL(
               document.getElementById(
-                `ikiexplainability-widget-${this.props.component.id}`,
+                `ikiinteractiveforecast-widget-${this.props.component.id}`,
               ).src,
             );
-            widgetUrlQueryMode = widgetUrl.searchParams.get('mode');
+            // widgetUrlQueryMode =
+            //   messageData.mode !== widgetUrl.searchParams.get('mode')
+            //     ? messageData.mode
+            //     : widgetUrl.searchParams.get('mode');
           } else {
-            widgetUrl = `${this.props.ikigaiOrigin}/widget/explainability?mode=edit`;
+            widgetUrl = `${this.props.ikigaiOrigin}/widget/interactive-forecast-chart?mode=edit`;
           }
 
-          if (
-            messageObject.info ===
-            'widget-to-superset/sending-alias-dataset-ids'
-          ) {
-            if (widgetUrlQueryMode === 'edit') {
-              widgetUrlQuery = new URLSearchParams(widgetUrl.search);
-              widgetUrlQuery.set('mode', 'preview');
+          if (messageObject.info === 'widget-to-superset/sending-dataset-ids') {
+            console.info(messageData);
+            const explainability = messageData.explainabilityEnabled;
+
+            widgetUrlQuery = new URLSearchParams(widgetUrl);
+            widgetUrlQuery.set('mode', 'preview');
+            widgetUrlQuery.set('dataset_id', messageData.dataset_id);
+            widgetUrlQuery.set('datetime_column', messageData.datetime_column);
+            widgetUrlQuery.set('data_series', messageData.data_series);
+            widgetUrlQuery.set(
+              'dimensions_column',
+              messageData.dimensions_column,
+            );
+            widgetUrlQuery.set('metrics_type', messageData.metrics_type);
+            widgetUrlQuery.set('filter_columns', messageData.filter_columns);
+            if (explainability) {
+              widgetUrlQuery.set('explainability', explainability);
               widgetUrlQuery.set(
-                'forecast_alias_id',
+                'forecastAliasId',
                 messageData.forecastAliasId,
               );
               widgetUrlQuery.set(
-                'insights_alias_id',
+                'insightsAliasId',
                 messageData.insightsAliasId,
               );
               widgetUrlQuery.set(
-                'seasonality_alias_id',
+                'seasonalityAliasId',
                 messageData.seasonalityAliasId,
               );
               widgetUrlQuery.set(
-                'sku_comp_alias_id',
+                'skuCompositionAliasId',
                 messageData.skuCompositionAliasId,
               );
-
               widgetUrl.search = widgetUrlQuery.toString();
-              console.info(widgetUrl);
               const tempIframe = `<iframe
-                      id="ikiexplainability-widget-${this.props.component.id}"
-                      name="run-flow-component"
-                      src="${widgetUrl}"
-                      title="IkiExplainability Component"
-                      className="ikiexplainability-widget"
-                      style="min-height: 100%;"
-                    />`;
+                                  id="ikiinteractiveforecast-widget-${this.props.component.id}"
+                                  name="ikiinteractiveforecast"
+                                  src="${widgetUrl}"
+                                  title="Hero Section Component"
+                                  className="ikirunpipeline-widget"
+                                  style="min-height: 100%;"
+                              />`;
+              this.handleIkiRunPipelineChange(tempIframe);
+            } else {
+              widgetUrl.search = widgetUrlQuery.toString();
+              const tempIframe = `<iframe
+                                  id="ikiinteractiveforecast-widget-${this.props.component.id}"
+                                  name="ikiinteractiveforecast"
+                                  src="${widgetUrl}"
+                                  title="Hero Section Component"
+                                  className="ikirunpipeline-widget"
+                                  style="min-height: 100%;"
+                              />`;
               this.handleIkiRunPipelineChange(tempIframe);
             }
           }
@@ -275,11 +287,12 @@ class IkiExplainability extends React.PureComponent {
     });
   }
 
-  handleChangeFocus() {
+  handleChangeFocus(nextFocus) {
     // const nextFocused = !!nextFocus;
     // const nextEditMode = nextFocused ? 'edit' : 'preview';
     // this.setState(() => ({ isFocused: nextFocused }));
     // this.handleChangeEditorMode(nextEditMode);
+    return nextFocus;
   }
 
   handleChangeEditorMode(mode) {
@@ -293,44 +306,6 @@ class IkiExplainability extends React.PureComponent {
     }
 
     this.setState(nextState);
-
-    let widgetUrl;
-
-    const chartsList = [];
-    const allChartElements = document.querySelectorAll('[data-test-chart-id]');
-    allChartElements.forEach(chartElement => {
-      const tempChartID = chartElement.getAttribute('data-test-chart-id');
-      const tempChartName = chartElement.getAttribute('data-test-chart-name');
-      chartsList.push({ id: tempChartID, name: tempChartName });
-    });
-    if (
-      document.getElementById(
-        `ikiexplainability-widget-${this.props.component.id}`,
-      )
-    ) {
-      widgetUrl = new URL(
-        document.getElementById(
-          `ikiexplainability-widget-${this.props.component.id}`,
-        ).src,
-      );
-    } else {
-      widgetUrl = `${this.props.ikigaiOrigin}/widget/explainability?mode=edit`;
-    }
-    const widgetUrlQuery = new URLSearchParams(widgetUrl.search);
-    widgetUrlQuery.set('mode', mode);
-    const jsonString2 = JSON.stringify(chartsList);
-    const base64String2 = Buffer.from(jsonString2).toString('base64');
-    widgetUrlQuery.set('charts_list', base64String2);
-    widgetUrl.search = widgetUrlQuery.toString();
-    const tempIframe = `<iframe
-                      id="ikiexplainability-widget-${this.props.component.id}"
-                      name="run-flow-component"
-                      src="${widgetUrl}"
-                      title="IkiExplainability Component"
-                      className="ikiexplainability-widget"
-                      style="min-height: 100%;"
-                    />`;
-    this.handleIkiRunPipelineChange(tempIframe);
   }
 
   updateMarkdownContent() {
@@ -355,9 +330,15 @@ class IkiExplainability extends React.PureComponent {
   }
 
   handleIkiRunPipelineChange(nextValue) {
-    this.setState({
-      markdownSource: nextValue,
-    });
+    this.setState(
+      {
+        markdownSource: nextValue,
+      },
+      () => {
+        // this.handleMarkdownChange();
+        // this.updateMarkdownContent();
+      },
+    );
     const { updateComponents, component } = this.props;
     if (component.meta.code !== nextValue) {
       updateComponents({
@@ -390,12 +371,10 @@ class IkiExplainability extends React.PureComponent {
   renderIframe() {
     const { markdownSource, hasError } = this.state;
     const { ikigaiOrigin } = this.props;
-    // const ikigaiOrigin = 'http://localhost:3000';
     let iframe = '';
     let iframeSrc = '';
     if (ikigaiOrigin) {
       if (markdownSource) {
-        // iframe = markdownSource;
         const iframeWrapper = document.createElement('div');
         iframeWrapper.innerHTML = markdownSource;
         const iframeHtml = iframeWrapper.firstChild;
@@ -403,45 +382,54 @@ class IkiExplainability extends React.PureComponent {
         const paramMode = iframeSrcUrl.searchParams.get('mode')
           ? iframeSrcUrl.searchParams.get('mode')
           : '';
-        // const paramTimestamp = iframeSrcUrl.searchParams.get('run_flow_times')
-        //   ? iframeSrcUrl.searchParams.get('run_flow_times')
-        //   : timestamp;
-
-        const paramForecastAliasId = iframeSrcUrl.searchParams.get(
-          'forecast_alias_id',
-        )
-          ? iframeSrcUrl.searchParams.get('forecast_alias_id')
+        const datasetId = iframeSrcUrl.searchParams.get('dataset_id')
+          ? iframeSrcUrl.searchParams.get('dataset_id')
           : '';
-        const paramInsightsAliasId = iframeSrcUrl.searchParams.get(
-          'insights_alias_id',
-        )
-          ? iframeSrcUrl.searchParams.get('insights_alias_id')
+        const datetimeColumn = iframeSrcUrl.searchParams.get('datetime_column')
+          ? iframeSrcUrl.searchParams.get('datetime_column')
           : '';
-        const paramSeasonalityAliasId = iframeSrcUrl.searchParams.get(
-          'seasonality_alias_id',
-        )
-          ? iframeSrcUrl.searchParams.get('seasonality_alias_id')
+        const filterColumns = iframeSrcUrl.searchParams.get('filter_columns')
+          ? iframeSrcUrl.searchParams.get('filter_columns')
           : '';
-        const paramSkuCompositionAliasId = iframeSrcUrl.searchParams.get(
-          'sku_comp_alias_id',
-        )
-          ? iframeSrcUrl.searchParams.get('sku_comp_alias_id')
+        const dataSeries = iframeSrcUrl.searchParams.get('data_series')
+          ? iframeSrcUrl.searchParams.get('data_series')
           : '';
-
-        const newIframeSrc = `${ikigaiOrigin}/widget/explainability?mode=${paramMode}&v=1&forecast_alias_id=${paramForecastAliasId}&insights_alias_id=${paramInsightsAliasId}&seasonality_alias_id=${paramSeasonalityAliasId}&sku_comp_alias_id=${paramSkuCompositionAliasId}`;
-
-        iframeSrc = newIframeSrc;
+        const dimensionsColumn = iframeSrcUrl.searchParams.get(
+          'dimensions_column',
+        )
+          ? iframeSrcUrl.searchParams.get('dimensions_column')
+          : '';
+        const metricsType = iframeSrcUrl.searchParams.get('metrics_type')
+          ? iframeSrcUrl.searchParams.get('metrics_type')
+          : '';
+        if (iframeSrcUrl.searchParams.get('explainability')) {
+          const explainability =
+            iframeSrcUrl.searchParams.get('explainability');
+          const forecastAliasId =
+            iframeSrcUrl.searchParams.get('forecastAliasId');
+          const insightsAliasId =
+            iframeSrcUrl.searchParams.get('insightsAliasId');
+          const seasonalityAliasId =
+            iframeSrcUrl.searchParams.get('seasonalityAliasId');
+          const skuCompositionAliasId = iframeSrcUrl.searchParams.get(
+            'skuCompositionAliasId',
+          );
+          const newIframeSrc = `${ikigaiOrigin}/widget/interactive-forecast-chart?mode=${paramMode}&dataset_id=${datasetId}&datetime_column=${datetimeColumn}&data_series=${dataSeries}&dimensions_column=${dimensionsColumn}&metrics_type=${metricsType}&filter_columns=${filterColumns}&&explainability=${explainability}&forecastAliasId=${forecastAliasId}&insightsAliasId=${insightsAliasId}&seasonalityAliasId=${seasonalityAliasId}&skuCompositionAliasId=${skuCompositionAliasId}`;
+          iframeSrc = newIframeSrc;
+        } else {
+          const newIframeSrc = `${ikigaiOrigin}/widget/interactive-forecast-chart?mode=${paramMode}&dataset_id=${datasetId}&datetime_column=${datetimeColumn}&data_series=${dataSeries}&dimensions_column=${dimensionsColumn}&metrics_type=${metricsType}&filter_columns=${filterColumns}`;
+          iframeSrc = newIframeSrc;
+        }
       } else {
-        iframeSrc = `${ikigaiOrigin}/widget/explainability?mode=edit`;
+        iframeSrc = `${ikigaiOrigin}/widget/interactive-forecast-chart?mode=edit`;
       }
-
       iframe = `<iframe
-                    id="ikiexplainability-widget-${this.props.component.id}"
-                    name="ikiexplainability-${timestamp}"
+                    id="ikiinteractiveforecast-widget-${this.props.component.id}"
+                    name="ikiinteractiveforecast-${timestamp}"
                     src="${iframeSrc}"
-                    title="IkiExplainability Component"
-                    className="ikiexplainability-widget"
-                    style="height: 100%;"
+                    title="Interactive Forecast Component"
+                    className="ikirunpipeline-widget"
+                    style="min-height: 100%;"
                   />`;
     } else {
       iframe = '';
@@ -456,15 +444,7 @@ class IkiExplainability extends React.PureComponent {
   renderPreviewMode() {
     return this.renderIframe();
   }
-
-  refreshChart(chartId, dashboardId, isCached) {
-    this.props.logEvent(LOG_ACTIONS_FORCE_REFRESH_CHART, {
-      slice_id: chartId,
-      is_cached: isCached,
-    });
-    return this.props.refreshChart(chartId, true, dashboardId);
-  }
-
+  
   render() {
     const { isFocused, editorMode } = this.state;
     // const { isFocused } = this.state;
@@ -517,10 +497,7 @@ class IkiExplainability extends React.PureComponent {
           >
             <div
               data-test="dashboard-markdown-editor"
-              className={cx(
-                'dashboard-component-ikitable',
-                isEditing && 'dashboard-component-ikiexplainability--editing',
-              )}
+              className={cx(isEditing && 'dashboard-markdown--editing')}
               id={component.id}
             >
               <ResizableContainer
@@ -534,14 +511,14 @@ class IkiExplainability extends React.PureComponent {
                 minWidthMultiple={GRID_MIN_COLUMN_COUNT}
                 minHeightMultiple={GRID_MIN_ROW_UNITS}
                 maxWidthMultiple={availableColumnCount + widthMultiple}
-                onResizeStart={this.handleResizeStart}
+                // onResizeStart={this.handleResizeStart}
                 onResize={onResize}
                 onResizeStop={onResizeStop}
                 editMode={isFocused ? false : editMode}
               >
                 <div
                   ref={dragSourceRef}
-                  className="dashboard-component-inner"
+                  className="dashboard-component-inner dashboard-component-forecast"
                   data-test="dashboard-component-chart-holder"
                 >
                   {
@@ -561,8 +538,8 @@ class IkiExplainability extends React.PureComponent {
   }
 }
 
-IkiExplainability.propTypes = propTypes;
-IkiExplainability.defaultProps = defaultProps;
+IkiInteractiveForecast.propTypes = propTypes;
+IkiInteractiveForecast.defaultProps = defaultProps;
 
 function mapStateToProps(state) {
   return {
@@ -571,13 +548,4 @@ function mapStateToProps(state) {
   };
 }
 
-function mapDispatchToProps(dispatch) {
-  return bindActionCreators(
-    {
-      refreshChart,
-    },
-    dispatch,
-  );
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(IkiExplainability);
+export default connect(mapStateToProps)(IkiInteractiveForecast);

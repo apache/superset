@@ -198,6 +198,19 @@ class IkiRunPipeline extends React.PureComponent {
       this.props.editMode !== prevProps.editMode
     ) {
       this.handleChangeEditorMode('preview');
+      // setTimeout(() => {
+      //   const iframe = document.getElementById(
+      //     `ikirunpipeline-widget-${this.props.component.id}`,
+      //   );
+      //   if (iframe && iframe !== undefined) {
+      //     iframe.contentWindow.postMessage(
+      //       JSON.stringify({
+      //         data: 'superset-to-widget/confirm-pipeline-selection',
+      //       }),
+      //       this.props.ikigaiOrigin,
+      //     );
+      //   }
+      // }, 500);
     }
   }
 
@@ -435,6 +448,7 @@ class IkiRunPipeline extends React.PureComponent {
     let iframe = '';
     let iframeSrc = '';
     if (ikigaiOrigin) {
+      console.log('markdownSource Run Pipeline', markdownSource);
       if (markdownSource) {
         // iframe = markdownSource;
         const iframeWrapper = document.createElement('div');

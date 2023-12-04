@@ -36,6 +36,7 @@ import {
   IKI_DEEPCAST_TYPE,
   IKI_EITL_ROW_TYPE,
   IKI_EITL_COLUMN_TYPE,
+  IKI_INTERACTIVE_FORECAST_TYPE,
 } from 'src/dashboard/util/componentTypes';
 
 const types = [
@@ -56,6 +57,7 @@ const types = [
   IKI_DEEPCAST_TYPE,
   IKI_EITL_ROW_TYPE,
   IKI_EITL_COLUMN_TYPE,
+  IKI_INTERACTIVE_FORECAST_TYPE
 ];
 
 describe('newEntityFactory', () => {
