@@ -1425,20 +1425,39 @@ TALISMAN_ENABLED = utils.cast_to_boolean(os.environ.get("TALISMAN_ENABLED", True
 # If you want Talisman, how do you want it configured??
 TALISMAN_CONFIG = {
     "content_security_policy": {
-        "default-src": ["'self'"],
-        "img-src": ["'self'", "blob:", "data:"],
+        "default-src": [
+            "'self'", 
+            "https://*.clarity.ms", 
+            "https://c.bing.com",
+            "'unsafe-inline'",
+        ],
+        "img-src": [
+            "'self'",
+            "blob:",
+            "data:",
+            "https://*.clarity.ms",
+            "https://c.bing.com",
+        ],
         "worker-src": ["'self'", "blob:"],
         "connect-src": [
             "'self'",
             "https://api.mapbox.com",
             "https://events.mapbox.com",
+            "https://*.clarity.ms",
+            "https://c.bing.com",
         ],
         "object-src": "'none'",
         "style-src": [
             "'self'",
             "'unsafe-inline'",
         ],
-        "script-src": ["'self'", "'strict-dynamic'"],
+        "script-src": [
+            "'self'", 
+            "'strict-dynamic'", 
+            "https://*.clarity.ms", 
+            "https://c.bing.com", 
+            "'unsafe-inline'",
+        ],
     },
     "content_security_policy_nonce_in": ["script-src"],
     "force_https": False,
@@ -1446,20 +1465,39 @@ TALISMAN_CONFIG = {
 # React requires `eval` to work correctly in dev mode
 TALISMAN_DEV_CONFIG = {
     "content_security_policy": {
-        "default-src": ["'self'"],
-        "img-src": ["'self'", "blob:", "data:"],
+        "default-src": [
+            "'self'", 
+            "https://*.clarity.ms", 
+            "https://c.bing.com",
+            "'unsafe-inline'",
+        ],
+        "img-src": [
+            "'self'",
+            "blob:",
+            "data:",
+            "https://*.clarity.ms",
+            "https://c.bing.com",
+        ],
         "worker-src": ["'self'", "blob:"],
         "connect-src": [
             "'self'",
             "https://api.mapbox.com",
             "https://events.mapbox.com",
+            "https://*.clarity.ms",
+            "https://c.bing.com",
         ],
         "object-src": "'none'",
         "style-src": [
             "'self'",
             "'unsafe-inline'",
         ],
-        "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        "script-src": [
+            "'self'", 
+            "'strict-dynamic'", 
+            "https://*.clarity.ms", 
+            "'unsafe-inline'",
+            "'unsafe-eval'"
+        ],
     },
     "content_security_policy_nonce_in": ["script-src"],
     "force_https": False,
