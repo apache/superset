@@ -38,37 +38,22 @@ def load_misc_dashboard() -> None:
     js = textwrap.dedent(
         """\
 {
-    "CHART-BkeVbh8ANQ": {
-        "children": [],
-        "id": "CHART-BkeVbh8ANQ",
-        "meta": {
-            "chartId": 4004,
-            "height": 34,
-            "sliceName": "Multi Line",
-            "width": 8
-        },
-        "type": "CHART"
-    },
-    "CHART-H1HYNzEANX": {
-        "children": [],
-        "id": "CHART-H1HYNzEANX",
-        "meta": {
-            "chartId": 3940,
-            "height": 50,
-            "sliceName": "Energy Sankey",
-            "width": 6
-        },
-        "type": "CHART"
-    },
     "CHART-HJOYVMV0E7": {
         "children": [],
         "id": "CHART-HJOYVMV0E7",
         "meta": {
             "chartId": 3969,
-            "height": 63,
+            "height": 69,
             "sliceName": "Mapbox Long/Lat",
-            "width": 6
+            "uuid": "164efe31-295b-4408-aaa6-2f4bfb58a212",
+            "width": 4
         },
+        "parents": [
+            "ROOT_ID",
+            "GRID_ID",
+            "ROW-S1MK4M4A4X",
+            "COLUMN-ByUFVf40EQ"
+        ],
         "type": "CHART"
     },
     "CHART-S1WYNz4AVX": {
@@ -76,32 +61,16 @@ def load_misc_dashboard() -> None:
         "id": "CHART-S1WYNz4AVX",
         "meta": {
             "chartId": 3989,
-            "height": 25,
+            "height": 69,
             "sliceName": "Parallel Coordinates",
+            "uuid": "e84f7e74-031a-47bb-9f80-ae0694dcca48",
             "width": 4
         },
-        "type": "CHART"
-    },
-    "CHART-r19KVMNCE7": {
-        "children": [],
-        "id": "CHART-r19KVMNCE7",
-        "meta": {
-            "chartId": 3971,
-            "height": 34,
-            "sliceName": "Calendar Heatmap multiformat 0",
-            "width": 4
-        },
-        "type": "CHART"
-    },
-    "CHART-rJ4K4GV04Q": {
-        "children": [],
-        "id": "CHART-rJ4K4GV04Q",
-        "meta": {
-            "chartId": 3941,
-            "height": 63,
-            "sliceName": "Energy Force Layout",
-            "width": 6
-        },
+        "parents": [
+            "ROOT_ID",
+            "GRID_ID",
+            "ROW-SytNzNA4X"
+        ],
         "type": "CHART"
     },
     "CHART-rkgF4G4A4X": {
@@ -109,54 +78,27 @@ def load_misc_dashboard() -> None:
         "id": "CHART-rkgF4G4A4X",
         "meta": {
             "chartId": 3970,
-            "height": 25,
+            "height": 69,
             "sliceName": "Birth in France by department in 2016",
-            "width": 8
+            "uuid": "54583ae9-c99a-42b5-a906-7ee2adfe1fb1",
+            "width": 4
         },
+        "parents": [
+            "ROOT_ID",
+            "GRID_ID",
+            "ROW-SytNzNA4X"
+        ],
         "type": "CHART"
     },
-    "CHART-rywK4GVR4X": {
-        "children": [],
-        "id": "CHART-rywK4GVR4X",
-        "meta": {
-            "chartId": 3942,
-            "height": 50,
-            "sliceName": "Heatmap",
-            "width": 6
-        },
-        "type": "CHART"
-    },
-    "COLUMN-ByUFVf40EQ": {
-        "children": [
-            "CHART-rywK4GVR4X",
-            "CHART-HJOYVMV0E7"
-        ],
-        "id": "COLUMN-ByUFVf40EQ",
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT",
-            "width": 6
-        },
-        "type": "COLUMN"
-    },
-    "COLUMN-rkmYVGN04Q": {
-        "children": [
-            "CHART-rJ4K4GV04Q",
-            "CHART-H1HYNzEANX"
-        ],
-        "id": "COLUMN-rkmYVGN04Q",
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT",
-            "width": 6
-        },
-        "type": "COLUMN"
-    },
+    "DASHBOARD_VERSION_KEY": "v2",
     "GRID_ID": {
         "children": [
-            "ROW-SytNzNA4X",
-            "ROW-S1MK4M4A4X",
-            "ROW-HkFFEzVRVm"
+            "ROW-SytNzNA4X"
         ],
         "id": "GRID_ID",
+        "parents": [
+            "ROOT_ID"
+        ],
         "type": "GRID"
     },
     "HEADER_ID": {
@@ -173,40 +115,22 @@ def load_misc_dashboard() -> None:
         "id": "ROOT_ID",
         "type": "ROOT"
     },
-    "ROW-HkFFEzVRVm": {
-        "children": [
-            "CHART-r19KVMNCE7",
-            "CHART-BkeVbh8ANQ"
-        ],
-        "id": "ROW-HkFFEzVRVm",
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "ROW"
-    },
-    "ROW-S1MK4M4A4X": {
-        "children": [
-            "COLUMN-rkmYVGN04Q",
-            "COLUMN-ByUFVf40EQ"
-        ],
-        "id": "ROW-S1MK4M4A4X",
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "ROW"
-    },
     "ROW-SytNzNA4X": {
         "children": [
             "CHART-rkgF4G4A4X",
-            "CHART-S1WYNz4AVX"
+            "CHART-S1WYNz4AVX",
+            "CHART-HJOYVMV0E7"
         ],
         "id": "ROW-SytNzNA4X",
         "meta": {
             "background": "BACKGROUND_TRANSPARENT"
         },
+        "parents": [
+            "ROOT_ID",
+            "GRID_ID"
+        ],
         "type": "ROW"
-    },
-    "DASHBOARD_VERSION_KEY": "v2"
+    }
 }
     """
     )
