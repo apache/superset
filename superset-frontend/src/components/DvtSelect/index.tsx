@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { useRef, useState } from 'react';
+import useOnClickOutside from 'src/hooks/useOnClickOutsite';
 import Icon from '../Icons/Icon';
 import {
   StyledSelect,
@@ -26,7 +27,6 @@ import {
   StyledSelectSelect,
   StyledSelectIcon,
 } from './dvt-select.module';
-import useOnClickOutside from 'src/hooks/useOnClickOutsite';
 
 export interface DvtSelectProps {
   label?: string;
