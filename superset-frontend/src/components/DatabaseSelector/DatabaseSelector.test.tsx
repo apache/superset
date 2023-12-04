@@ -290,7 +290,13 @@ test('Sends the correct db when changing the database', async () => {
 
 test('Sends the correct schema when changing the schema', async () => {
   const props = createProps();
-  render(<DatabaseSelector {...props} />, { useRedux: true, store });
+  const { rerender } = render(<DatabaseSelector {...props} db={null} />, {
+    useRedux: true,
+    store,
+  });
+  await waitFor(() => expect(fetchMock.calls(databaseApiRoute).length).toBe(1));
+  rerender(<DatabaseSelector {...props} />);
+  expect(props.onSchemaChange).toBeCalledTimes(0);
   const select = screen.getByRole('combobox', {
     name: 'Select schema or type to search schemas',
   });
@@ -301,4 +307,5 @@ test('Sends the correct schema when changing the schema', async () => {
   await waitFor(() =>
     expect(props.onSchemaChange).toHaveBeenCalledWith('information_schema'),
   );
+  expect(props.onSchemaChange).toBeCalledTimes(1);
 });
