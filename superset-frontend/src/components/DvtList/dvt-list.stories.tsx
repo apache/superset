@@ -21,17 +21,37 @@ import { Meta } from '@storybook/react';
 import DvtList, { DvtListProps } from '.';
 
 export default {
-  title: 'Dvt-Components/Dvt-List',
+  title: 'Dvt-Components/DvtList',
   component: DvtList,
 } as Meta;
 
 export const Default = (args: DvtListProps) => (
-  <div style={{ width: '250px', backgroundColor: '#B8C1CC', padding:'20px' }}>
+  <div style={{ width: '250px', backgroundColor: '#B8C1CC', padding: '20px' }}>
     <DvtList {...args} />
   </div>
 );
 
 Default.args = {
+  data: [
+    { id: 1, title: 'table_schema_id', subtitle: 'integer' },
+    { id: 2, title: 'table_schema_title', subtitle: 'string' },
+    { id: 3, title: 'table_schema_subtitle', subtitle: 'string' },
+    { id: 4, title: 'table_schema_subtitle', subtitle: 'string' },
+    { id: 5, title: 'table_schema_subtitle', subtitle: 'string' },
+    { id: 6, title: 'table_schema_subtitle', subtitle: 'string' },
+    { id: 7, title: 'table_schema_subtitle', subtitle: 'string' },
+    { id: 8, title: 'table_schema_subtitle', subtitle: 'string' },
+    { id: 9, title: 'table_schema_subtitle', subtitle: 'string' },
+  ],
+};
+
+export const Scroll = (args: DvtListProps) => (
+  <div style={{ width: '250px', backgroundColor: '#B8C1CC', padding: '20px' }}>
+    <DvtList {...args} />
+  </div>
+);
+
+Scroll.args = {
   data: [
     { id: 1, title: 'table_schema_id', subtitle: 'integer' },
     { id: 2, title: 'table_schema_title', subtitle: 'string' },
@@ -58,5 +78,12 @@ Default.args = {
     { id: 23, title: 'table_schema_subtitle', subtitle: 'string' },
     { id: 24, title: 'table_schema_subtitle', subtitle: 'string' },
     { id: 25, title: 'table_schema_subtitle', subtitle: 'string' },
+    { id: 26, title: 'table_schema_subtitle', subtitle: 'string' },
+    { id: 27, title: 'table_schema_subtitle', subtitle: 'string' },
+    { id: 28, title: 'table_schema_subtitle', subtitle: 'string' },
+    { id: 29, title: 'table_schema_subtitle', subtitle: 'string' },
+    { id: 30, title: 'table_schema_subtitle', subtitle: 'string' },
+    { id: 31, title: 'table_schema_subtitle', subtitle: 'string' },
+    { id: 32, title: 'table_schema_subtitle', subtitle: 'string' },
   ],
 };
