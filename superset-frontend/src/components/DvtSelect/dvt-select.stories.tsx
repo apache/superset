@@ -71,3 +71,25 @@ ScrollExample.args = {
   ],
   placeholder: 'Select or type a value',
 };
+
+export const Form = (args: DvtSelectProps) => {
+  const [selectedValue, setSelectedValue] = useState<string>('');
+
+  return (
+    <DvtSelect
+      {...args}
+      selectedValue={selectedValue}
+      setSelectedValue={setSelectedValue}
+    />
+  );
+};
+
+Form.args = {
+  label: 'State',
+  data: [
+    { value: 'failed', label: 'Failed' },
+    { value: 'success', label: 'Success' },
+  ],
+  placeholder: 'Select or type a value',
+  typeDesign:'form'
+};

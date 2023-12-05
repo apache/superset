@@ -18,6 +18,7 @@
  */
 import React, { useRef, useState } from 'react';
 import useOnClickOutside from 'src/hooks/useOnClickOutsite';
+import { SupersetTheme } from '@superset-ui/core';
 import Icon from '../Icons/Icon';
 import {
   StyledSelect,
@@ -34,6 +35,7 @@ export interface DvtSelectProps {
   placeholder?: string;
   selectedValue: string;
   setSelectedValue: (newSeletedValue: string) => void;
+  typeDesign?: 'normal' | 'form';
 }
 
 const DvtSelect: React.FC<DvtSelectProps> = ({
@@ -42,6 +44,7 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
   placeholder,
   selectedValue,
   setSelectedValue,
+  typeDesign = 'normal',
 }) => {
   const ref = useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -58,12 +61,27 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
 
   return (
     <StyledSelect ref={ref}>
-      {label && <StyledSelectLabel>{label}</StyledSelectLabel>}
-      <StyledSelectSelect isOpen={isOpen} onClick={handleSelectClick}>
+      {label && (
+        <StyledSelectLabel typeDesign={typeDesign}>{label}</StyledSelectLabel>
+      )}
+      <StyledSelectSelect
+        isOpen={isOpen}
+        onClick={handleSelectClick}
+        typeDesign={typeDesign}
+      >
         {data.find(option => option.value === selectedValue)?.label ||
           placeholder}
-        <StyledSelectIcon isOpen={isOpen}>
-          <Icon fileName="caret_right" iconSize="xxl" iconColor="black" />
+        <StyledSelectIcon isOpen={isOpen} typeDesign={typeDesign}>
+          <Icon
+            fileName="caret_right"
+            iconSize="xxl"
+            css={(theme: SupersetTheme) => ({
+              color:
+                typeDesign === 'form'
+                  ? theme.colors.dvt.text.label
+                  : theme.colors.grayscale.dark2,
+            })}
+          />
         </StyledSelectIcon>
       </StyledSelectSelect>
 

@@ -20,6 +20,11 @@ import { keyframes, styled } from '@superset-ui/core';
 
 interface StyledSelectProps {
   isOpen: boolean;
+  typeDesign: string;
+}
+
+interface StyledSelectLabelProps {
+  typeDesign: string;
 }
 
 interface StyledSelectOptionsProps {
@@ -56,9 +61,11 @@ const StyledSelectSelect = styled.div<StyledSelectProps>`
   width: 202px;
   height: 48px;
   border-radius: 12px;
-  background-color: ${({ isOpen, theme }) =>
+  background-color: ${({ isOpen, theme, typeDesign }) =>
     isOpen
       ? theme.colors.dvt.primary.light2
+      : typeDesign === 'form'
+      ? theme.colors.grayscale.light5
       : theme.colors.dvt.grayscale.light2};
   border: none;
   appearance: none;
@@ -68,9 +75,13 @@ const StyledSelectSelect = styled.div<StyledSelectProps>`
   transition: background-color 0.3s ease-in-out;
 `;
 
-const StyledSelectLabel = styled.label`
+const StyledSelectLabel = styled.label<StyledSelectLabelProps>`
   padding-left: 13px;
   font-weight: 600;
+  color: ${({ typeDesign, theme }) =>
+    typeDesign === 'form'
+      ? theme.colors.dvt.text.label
+      : theme.colors.grayscale.dark2};
 `;
 
 const StyledSelectOption = styled.div<StyledSelectOptionProps>`
@@ -99,6 +110,7 @@ const StyledSelectOptions = styled.div<StyledSelectOptionsProps>`
   overflow-y: auto;
   animation: ${optionsKeyframes} 0.3s ease-in-out;
   transform-origin: top;
+  z-index: 999;
   &::-webkit-scrollbar {
     background-color: ${({ theme }) => theme.colors.dvt.grayscale.light1};
     width: 6px;
