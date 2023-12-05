@@ -21,9 +21,11 @@ import { keyframes, styled } from '@superset-ui/core';
 interface StyledDatePickerProps {
   isOpen: boolean;
 }
+
 interface StyledDatepickerCalendarProps {
   label: string;
 }
+
 const datePickerKeyframes = keyframes`
   from {
     transform: scaleY(0);
@@ -32,9 +34,10 @@ const datePickerKeyframes = keyframes`
     transform: scaleY(1);
   }
 `;
+
 const StyledDatepicker = styled.div`
   position: relative;
-  display: flex;
+  display: inline-flex;
   flex-direction: column;
 `;
 
@@ -77,6 +80,7 @@ const StyledDatepickerIcon = styled.div<StyledDatePickerProps>`
   transform: ${({ isOpen }) => (isOpen ? 'rotate(90deg)' : 'none')};
   cursor: pointer;
 `;
+
 const StyledDatepickerCalendar = styled.div<StyledDatepickerCalendarProps>`
   position: absolute;
   top: ${({ label }) => (label ? '74px' : '52px')};
