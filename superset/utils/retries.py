@@ -15,8 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from collections.abc import Generator
 import logging
+
+from collections.abc import Generator
 from typing import Any, Callable, Optional
 
 import backoff
