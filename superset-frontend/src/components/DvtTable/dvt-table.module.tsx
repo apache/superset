@@ -31,9 +31,20 @@ const StyledTable = styled.div`
     border-color: ${({ theme }) => theme.colors.dvt.primary.base};
     overflow: hidden;
   }
-
+  input[type='checkbox'] {
+    width: 24px;
+    height: 24px;
+  }
   .ant-checkbox-checked .ant-checkbox-inner::after {
-    top: -8px;
+    display: inline-flex;
+    top: 50%;
+    left: calc(50% - 3.5px);
+    width: 4px;
+    height: 8px;
+  }
+
+  .ant-checkbox-wrapper {
+    margin: auto;
   }
 `;
 
