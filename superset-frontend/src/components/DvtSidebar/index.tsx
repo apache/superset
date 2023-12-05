@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
 import DvtLogo from '../DvtLogo';
 import DvtDarkMode from '../DvtDarkMode';
 import {
@@ -15,74 +15,9 @@ import DvtFolderNavigation from '../DvtFolderNavigation';
 import DvtSelect from '../DvtSelect';
 import DvtNavigationBar from '../DvtNavigationBar';
 
-interface WelcomeProps {
-  navigationData: {
-    title: string;
-    data: {
-      title: string;
-      url: string;
-      fileName: string;
-    }[];
-  }[];
-  folderNavigationDate: {
-    title: string;
-    data: {
-      name: string;
-      url: string;
-      data: {
-        name: string;
-        url: string;
-        data: {
-          name: string;
-          url: string;
-        }[];
-      }[];
-    }[];
-  }[];
-
-  items: {
-    title: string;
-    data: {
-      title: string;
-      url: string;
-      fileName: string;
-    }[];
-  }[];
-}
-
-export interface DvtSidebarProps {
-  url: string;
-  sidebar: string;
-  welcomeData?: WelcomeProps[];
-}
-
-const DvtSidebar: React.FC<DvtSidebarProps> = ({
-  url,
-  sidebar,
-  welcomeData,
-}) => {
+const DvtSidebar: React.FC = ({}) => {
   const [darkMode, setDarkMode] = useState<boolean>(false);
-
-  switch (url) {
-    case '/superset/welcome':
-      sidebar = 'welcome';
-      break;
-    case '/superset/reports':
-    case '/superset/dashboards':
-    case '/superset/datasets':
-    case '/superset/sql_query_history':
-    case '/superset/sql_query_history_time_range':
-    case '/superset/sql_query_history_state':
-    case '/superset/sql_saved_queries':
-    case '/superset/sql_lab':
-    case '/superset/alerts':
-    case '/superset/graph_chart':
-      sidebar = 'selectSidebar';
-      break;
-    case '/superset/profile':
-      sidebar = 'profile';
-      break;
-  }
+  let data = require('./dvtSidebarData.json');
 
   return (
     <Router>
@@ -90,180 +25,201 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({
         <StyledDvtSidebarHeader>
           <DvtLogo title="AppName" />
         </StyledDvtSidebarHeader>
-        {sidebar === 'welcome' && welcomeData && welcomeData.length > 0 && (
-          <StyledDvtSidebarBody>
-            <StyledDvtSidebarBodyItem>
-              <DvtTitlePlus
-                title={welcomeData[0].navigationData[0].title || ''}
-              />
-              <DvtNavigation
-                data={welcomeData[0].navigationData[0].data || []}
-              />
-            </StyledDvtSidebarBodyItem>
-            <StyledDvtSidebarBodyItem>
-              <DvtTitlePlus
-                title={welcomeData[0].folderNavigationDate[0].title || ''}
-                onClick={() => {}}
-              />
-              <DvtFolderNavigation
-                data={welcomeData[0].folderNavigationDate[0].data || []}
-              />
-            </StyledDvtSidebarBodyItem>
-            <StyledDvtSidebarBodyItem>
-              <DvtTitlePlus title="shared folder" onClick={() => {}} />
-            </StyledDvtSidebarBodyItem>
-          </StyledDvtSidebarBody>
-        )}
-        {sidebar === 'selectSidebar' && (
-          <StyledDvtSidebarBody>
-            <StyledDvtSidebarBodyItem>
-              <DvtSelect
-                data={[
-                  {
-                    label: 'Failed',
-                    value: 'failed',
-                  },
-                  {
-                    label: 'Success',
-                    value: 'success',
-                  },
-                ]}
-                label="State"
-                placeholder="Select or type a value"
-                selectedValue=""
-                setSelectedValue={() => {}}
-              />
-            </StyledDvtSidebarBodyItem>{' '}
-            <StyledDvtSidebarBodyItem>
-              <DvtSelect
-                data={[
-                  {
-                    label: 'Failed',
-                    value: 'failed',
-                  },
-                  {
-                    label: 'Success',
-                    value: 'success',
-                  },
-                ]}
-                label="State"
-                placeholder="Select or type a value"
-                selectedValue=""
-                setSelectedValue={() => {}}
-              />
-            </StyledDvtSidebarBodyItem>{' '}
-            <StyledDvtSidebarBodyItem>
-              <DvtSelect
-                data={[
-                  {
-                    label: 'Failed',
-                    value: 'failed',
-                  },
-                  {
-                    label: 'Success',
-                    value: 'success',
-                  },
-                ]}
-                label="State"
-                placeholder="Select or type a value"
-                selectedValue=""
-                setSelectedValue={() => {}}
-              />
-            </StyledDvtSidebarBodyItem>{' '}
-            <StyledDvtSidebarBodyItem>
-              <DvtSelect
-                data={[
-                  {
-                    label: 'Failed',
-                    value: 'failed',
-                  },
-                  {
-                    label: 'Success',
-                    value: 'success',
-                  },
-                ]}
-                label="State"
-                placeholder="Select or type a value"
-                selectedValue=""
-                setSelectedValue={() => {}}
-              />
-            </StyledDvtSidebarBodyItem>{' '}
-            <StyledDvtSidebarBodyItem>
-              <DvtSelect
-                data={[
-                  {
-                    label: 'Failed',
-                    value: 'failed',
-                  },
-                  {
-                    label: 'Success',
-                    value: 'success',
-                  },
-                ]}
-                label="State"
-                placeholder="Select or type a value"
-                selectedValue=""
-                setSelectedValue={() => {}}
-              />
-            </StyledDvtSidebarBodyItem>
-          </StyledDvtSidebarBody>
-        )}
+        <Switch>
+          <Route
+            path="/superset/welcome"
+            render={() => (
+              <StyledDvtSidebarBody>
+                <StyledDvtSidebarBodyItem>
+                  <DvtTitlePlus
+                    title={data.welcomeData?.navigationData?.title || ''}
+                  />
+                  <DvtNavigation
+                    data={data.welcomeData?.navigationData?.data || []}
+                  />
+                </StyledDvtSidebarBodyItem>
+                <StyledDvtSidebarBodyItem>
+                  <DvtTitlePlus
+                    title={data.welcomeData?.folderNavigationDate?.title || ''}
+                    onClick={() => {}}
+                  />
+                  <DvtFolderNavigation
+                    data={data.welcomeData?.folderNavigationDate?.data || []}
+                  />
+                </StyledDvtSidebarBodyItem>
+                <StyledDvtSidebarBodyItem>
+                  <DvtTitlePlus title="shared folder" onClick={() => {}} />
+                </StyledDvtSidebarBodyItem>
+              </StyledDvtSidebarBody>
+            )}
+          />
+        </Switch>
 
-        {sidebar === 'profile' && (
-          <StyledDvtSidebarBody>
-            <StyledDvtSidebarBodyItem>
-              <DvtNavigationBar
-                active="test"
-                data={[
-                  {
-                    icon: 'dvt-briefcase',
-                    label: 'Created Content',
-                    url: 'test',
-                  },
-                  {
-                    icon: 'dvt-calendar',
-                    label: 'Schedule',
-                    url: 'test1',
-                  },
-                  {
-                    icon: 'dvt-history',
-                    label: 'Recent Activity',
-                    url: 'test2',
-                  },
-                  {
-                    icon: 'dvt-star',
-                    label: 'Favorites',
-                    url: 'test3',
-                  },
-                  {
-                    icon: 'dvt-users',
-                    label: 'Groups and Roles',
-                    url: 'test4',
-                  },
-                  {
-                    icon: 'dvt-arrow_forwardup',
-                    label: 'Query History',
-                    url: 'test5',
-                  },
-                ]}
-                setActive={() => {}}
-              />
-              <DvtNavigationBar
-                data={[
-                  {
-                    icon: 'dvt-logout',
-                    label: 'Log Out',
-                  },
-                ]}
-              />
-            </StyledDvtSidebarBodyItem>
-          </StyledDvtSidebarBody>
-        )}
-        {sidebar === 'welcome' && (
-          <StyledDvtSidebarFooter>
-            <DvtDarkMode darkMode={darkMode} setDarkMode={setDarkMode} />
-          </StyledDvtSidebarFooter>
-        )}
+        <Switch>
+          <Route
+            path="/superset/welcome"
+            render={() => (
+              <StyledDvtSidebarBody>
+                <StyledDvtSidebarBodyItem>
+                  <DvtSelect
+                    data={[
+                      {
+                        label: 'Failed',
+                        value: 'failed',
+                      },
+                      {
+                        label: 'Success',
+                        value: 'success',
+                      },
+                    ]}
+                    label="State"
+                    placeholder="Select or type a value"
+                    selectedValue=""
+                    setSelectedValue={() => {}}
+                  />
+                </StyledDvtSidebarBodyItem>{' '}
+                <StyledDvtSidebarBodyItem>
+                  <DvtSelect
+                    data={[
+                      {
+                        label: 'Failed',
+                        value: 'failed',
+                      },
+                      {
+                        label: 'Success',
+                        value: 'success',
+                      },
+                    ]}
+                    label="State"
+                    placeholder="Select or type a value"
+                    selectedValue=""
+                    setSelectedValue={() => {}}
+                  />
+                </StyledDvtSidebarBodyItem>{' '}
+                <StyledDvtSidebarBodyItem>
+                  <DvtSelect
+                    data={[
+                      {
+                        label: 'Failed',
+                        value: 'failed',
+                      },
+                      {
+                        label: 'Success',
+                        value: 'success',
+                      },
+                    ]}
+                    label="State"
+                    placeholder="Select or type a value"
+                    selectedValue=""
+                    setSelectedValue={() => {}}
+                  />
+                </StyledDvtSidebarBodyItem>{' '}
+                <StyledDvtSidebarBodyItem>
+                  <DvtSelect
+                    data={[
+                      {
+                        label: 'Failed',
+                        value: 'failed',
+                      },
+                      {
+                        label: 'Success',
+                        value: 'success',
+                      },
+                    ]}
+                    label="State"
+                    placeholder="Select or type a value"
+                    selectedValue=""
+                    setSelectedValue={() => {}}
+                  />
+                </StyledDvtSidebarBodyItem>{' '}
+                <StyledDvtSidebarBodyItem>
+                  <DvtSelect
+                    data={[
+                      {
+                        label: 'Failed',
+                        value: 'failed',
+                      },
+                      {
+                        label: 'Success',
+                        value: 'success',
+                      },
+                    ]}
+                    label="State"
+                    placeholder="Select or type a value"
+                    selectedValue=""
+                    setSelectedValue={() => {}}
+                  />
+                </StyledDvtSidebarBodyItem>
+              </StyledDvtSidebarBody>
+            )}
+          />
+        </Switch>
+
+        <Switch>
+          <Route
+            path="/superset/welcome"
+            render={() => (
+              <StyledDvtSidebarBody>
+                <StyledDvtSidebarBodyItem>
+                  <DvtNavigationBar
+                    active="test"
+                    data={[
+                      {
+                        icon: 'dvt-briefcase',
+                        label: 'Created Content',
+                        url: 'test',
+                      },
+                      {
+                        icon: 'dvt-calendar',
+                        label: 'Schedule',
+                        url: 'test1',
+                      },
+                      {
+                        icon: 'dvt-history',
+                        label: 'Recent Activity',
+                        url: 'test2',
+                      },
+                      {
+                        icon: 'dvt-star',
+                        label: 'Favorites',
+                        url: 'test3',
+                      },
+                      {
+                        icon: 'dvt-users',
+                        label: 'Groups and Roles',
+                        url: 'test4',
+                      },
+                      {
+                        icon: 'dvt-arrow_forwardup',
+                        label: 'Query History',
+                        url: 'test5',
+                      },
+                    ]}
+                    setActive={() => {}}
+                  />
+                  <DvtNavigationBar
+                    data={[
+                      {
+                        icon: 'dvt-logout',
+                        label: 'Log Out',
+                      },
+                    ]}
+                  />
+                </StyledDvtSidebarBodyItem>
+              </StyledDvtSidebarBody>
+            )}
+          />
+        </Switch>
+        <Switch>
+          <Route
+            path="/superset/welcome"
+            render={() => (
+              <StyledDvtSidebarFooter>
+                <DvtDarkMode darkMode={darkMode} setDarkMode={setDarkMode} />
+              </StyledDvtSidebarFooter>
+            )}
+          />
+        </Switch>
       </StyledDvtSidebar>
     </Router>
   );

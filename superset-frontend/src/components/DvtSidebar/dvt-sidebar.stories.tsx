@@ -17,78 +17,17 @@
  * under the License.
  */
 import React from 'react';
-import DvtSidebar, { DvtSidebarProps } from '.';
+import DvtSidebar from '.';
 
 export default {
   title: 'Dvt-Components/DvtSidebar',
   component: DvtSidebar,
 };
 
-export const Default = (args: DvtSidebarProps) => {
-  return <DvtSidebar {...args} />;
+export const Default = () => {
+  return <DvtSidebar />;
 };
 
 Default.args = {
-  welcomeData: [
-    {
-      navigationData: [
-        {
-          title: 'menu',
-          data: [
-            {
-              title: 'Connections',
-              url: '/',
-              fileName: 'dvt-activity',
-            },
-            { title: 'Dataset', url: '/', fileName: 'dvt-database' },
-            { title: 'Dashboard', url: '/', fileName: 'dvt-box' },
-            {
-              title: 'Report',
-              url: '/',
-              fileName: 'dvt-analytic_chart',
-            },
-            { title: 'Alert', url: '/', fileName: 'dvt-alert' },
-          ],
-        },
-      ],
-      folderNavigationDate: [
-        {
-          title: 'my folder',
-          data: [
-            {
-              name: 'Dnext',
-              url: '',
-              data: [
-                {
-                  name: 'Dashboard 1',
-                  url: '',
-                  data: [
-                    { name: 'Report 1', url: '/dashboard/1/report/1' },
-                    { name: 'Report 2', url: '/dashboard/1/report/2' },
-                  ],
-                },
-                { name: 'Dashboard 2 ', url: '/dashboard/2', data: [] },
-              ],
-            },
-            {
-              name: 'Planning',
-              url: '/planning',
-              data: [],
-            },
-            {
-              name: 'Reporting',
-              url: '/reporting',
-              data: [],
-            },
-          ],
-        },
-      ],
-      items: [
-        {
-          title: 'shared folder',
-          data: [],
-        },
-      ],
-    },
-  ],
+  
 };
