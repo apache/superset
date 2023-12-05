@@ -143,7 +143,7 @@ setup(
             "google-cloud-bigquery>=3.10.0",
         ],
         "clickhouse": ["clickhouse-connect>=0.5.14, <1.0"],
-        "databend": ["databend-sqlalchemy>=0.3.2, <0.5"],
+        "databend": ["databend-sqlalchemy>=0.3.2, <1.0"],
         "cockroachdb": ["cockroachdb>=0.3.5, <0.4"],
         "cors": ["flask-cors>=2.0.0"],
         "crate": ["crate[sqlalchemy]>=0.26.0, <0.27"],
