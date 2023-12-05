@@ -757,12 +757,19 @@ PaginationExample.args = {
 };
 export const CheckboxExample = (args: DvtTableProps) => {
   const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<number[]>([]);
 
   const handlePageChange = (newPage: number) => setPage(newPage);
 
   return (
     <div style={{ width: 1440, height: 1050 }}>
-      <DvtTable {...args} page={page} setPage={handlePageChange} />
+      <DvtTable
+        {...args}
+        page={page}
+        setPage={handlePageChange}
+        selected={selected}
+        setSelected={setSelected}
+      />
     </div>
   );
 };

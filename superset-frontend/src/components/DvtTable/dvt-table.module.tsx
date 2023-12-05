@@ -45,10 +45,6 @@ const StyledTable = styled.div`
     height: 24px;
     width: 24px;
   }
-  .css-ov1ktg {
-    display: inline-flex;
-    margin-right: 24px;
-  }
 `;
 
 const StyledTableTable = styled.table`
@@ -123,6 +119,11 @@ const StyledTablePagination = styled.div`
   padding-top: 55px;
 `;
 
+const StyledTableCheckbox = styled.div`
+  display: inline-flex;
+  margin-right: 24px;
+`;
+
 export {
   StyledTable,
   StyledTableTable,
@@ -134,4 +135,5 @@ export {
   StyledTablePagination,
   StyledTableTitle,
   StyledTableIcon,
+  StyledTableCheckbox,
 };
