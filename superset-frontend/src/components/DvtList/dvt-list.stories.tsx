@@ -21,12 +21,12 @@ import { Meta } from '@storybook/react';
 import DvtList, { DvtListProps } from '.';
 
 export default {
-  title: 'DvtComponents/Dvt-List',
+  title: 'Dvt-Components/Dvt-List',
   component: DvtList,
 } as Meta;
 
 export const Default = (args: DvtListProps) => (
-  <div style={{ width: '250px' }}>
+  <div style={{ width: '250px', backgroundColor: '#B8C1CC', padding:'20px' }}>
     <DvtList {...args} />
   </div>
 );
@@ -55,5 +55,8 @@ Default.args = {
     { id: 20, title: 'table_schema_subtitle', subtitle: 'string' },
     { id: 21, title: 'table_schema_subtitle', subtitle: 'string' },
     { id: 22, title: 'table_schema_subtitle', subtitle: 'string' },
+    { id: 23, title: 'table_schema_subtitle', subtitle: 'string' },
+    { id: 24, title: 'table_schema_subtitle', subtitle: 'string' },
+    { id: 25, title: 'table_schema_subtitle', subtitle: 'string' },
   ],
 };

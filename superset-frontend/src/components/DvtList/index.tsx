@@ -24,17 +24,19 @@ import {
   StyledDvtListScroll,
 } from './dvt-list.module';
 
+export interface DataProps {
+  id: number;
+  title: string;
+  subtitle: string;
+}
 export interface DvtListProps {
-  data: {
-    id: number;
-    title: string;
-    subtitle: string;
-  }[];
+  title: string;
+  data: DataProps[];
 }
 
-const DvtList: React.FC<DvtListProps> = ({ data }) => (
+const DvtList: React.FC<DvtListProps> = ({ data, title }) => (
   <StyledDvtList>
-    <StyledDvtListLabel>List Component</StyledDvtListLabel>
+    <StyledDvtListLabel>{title}</StyledDvtListLabel>
     <StyledDvtListScroll>
       {data.map(item => (
         <StyledDvtListItem>

@@ -22,6 +22,7 @@ const StyledDvtList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 11px;
+  border-radius: 12px;
   background-color: ${({ theme }) => theme.colors.dvt.grayscale.light2};
   height: 734px;
 `;
@@ -31,6 +32,7 @@ const StyledDvtListLabel = styled.div`
   letter-spacing: 0.2px;
   font-weight: bold;
   font-size: 12px;
+  padding-top: 10px;
   line-height: 14.63px;
   color: ${({ theme }) => theme.colors.grayscale.dark2};
 `;
@@ -39,20 +41,24 @@ const StyledDvtListScroll = styled.div`
   display: flex;
   overflow-y: auto;
   flex-direction: column;
-
+  
   &::-webkit-scrollbar {
-    background-color: ${({ theme }) => theme.colors.dvt.primary.light2};
-    width: 10px;
+    background-color: ${({ theme }) => theme.colors.dvt.grayscale.light1};
+    width: 6px;
+    border-radius: 12px;
+
   }
   &::-webkit-scrollbar-thumb {
-    background-color: ${({ theme }) => theme.colors.dvt.primary.base};
+    background-color: ${({ theme }) => theme.colors.dvt.grayscale.base};
     width: 4px;
+    border-radius: 12px;
   }
 `;
 
 const StyledDvtListItem = styled.div`
   display: flex;
   justify-content: space-between;
+  margin-right: 8px;
 `;
 
 export {
