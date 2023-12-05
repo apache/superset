@@ -25,13 +25,11 @@ export default {
   component: DvtList,
 } as Meta;
 
-export const Default = (args: DvtListProps) => {
-  return (
-    <div style={{ width: '250px' }}>
-      <DvtList {...args} />
-    </div>
-  );
-};
+export const Default = (args: DvtListProps) => (
+  <div style={{ width: '250px' }}>
+    <DvtList {...args} />
+  </div>
+);
 
 Default.args = {
   data: [
