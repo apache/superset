@@ -252,7 +252,7 @@ prison==0.2.1
     # via flask-appbuilder
 prompt-toolkit==3.0.38
     # via click-repl
-pyarrow==12.0.0
+pyarrow==14.0.1
     # via apache-superset
 pycparser==2.20
     # via cffi
@@ -371,6 +371,7 @@ werkzeug==2.3.3
     # via
     #   apache-superset
     #   flask
+    #   flask-appbuilder
     #   flask-jwt-extended
     #   flask-login
 wrapt==1.15.0
