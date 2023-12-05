@@ -122,6 +122,9 @@ div:has(.react-js-cron-hours) {
     width:50%;
   }
 }}
+.react-js-cron-minutes {
+  padding-left: ${({ theme }) => theme.gridUnit}px;
+}
 grid-template-columns: repeat(1, 100%);
 grid-column-gap: ${({ theme }) => theme.gridUnit}px;
 grid-row-gap: ${({ theme }) => theme.gridUnit * 2}px;

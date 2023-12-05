@@ -21,7 +21,6 @@ import { t, useTheme } from '@superset-ui/core';
 
 import { AntdInput, RadioChangeEvent } from 'src/components';
 import { Input } from 'src/components/Input';
-import { Radio } from 'src/components/Radio';
 import { CronPicker, CronError } from 'src/components/CronPicker';
 import { StyledInputContainer, TRANSLATIONS } from '../AlertReportModal';
 import { Select } from 'src/components';
