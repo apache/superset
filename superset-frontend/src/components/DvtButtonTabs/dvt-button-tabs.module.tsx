@@ -18,10 +18,10 @@
  */
 import { styled } from '@superset-ui/core';
 
-const StyledDvtTabs = styled.div`
+const StyledDvtButtonTabs = styled.div`
   display: inline-flex;
   align-items: center;
   gap: 8px;
 `;
 
-export { StyledDvtTabs };
+export { StyledDvtButtonTabs };
