@@ -315,7 +315,7 @@
     "history": "^4.10.1",
     "ignore-styles": "^5.0.1",
     "imports-loader": "^3.1.1",
-    "jest": "^26.6.3",
+    "jest": "^29.7.0",
     "jest-environment-enzyme": "^7.1.2",
     "jest-enzyme": "^7.1.2",
     "jest-websocket-mock": "^2.2.0",
