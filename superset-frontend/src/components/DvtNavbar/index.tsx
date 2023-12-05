@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useHistory } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { useAppSelector } from 'src/hooks/useAppSelector';
 import { dvtAppSetSort } from 'src/dvt-redux/dvt-appReducer';
+import DvtNavbarTabsData from './dvt-navbar-tabs-data';
 import {
   StyledDvtNavbar,
   NavbarTop,
@@ -30,47 +32,79 @@ import DvtButtonTabs from '../DvtButtonTabs';
 import DvtButton from '../DvtButton';
 import DvtDotTitle from '../DvtDotTitle';
 
-const dashboardTabs = [
-  { label: 'All', icon: 'full' },
-  { label: 'Mine', icon: 'minus' },
-];
-
 export interface DvtNavbarProps {
   user?: any;
 }
 
 const DvtNavbar: React.FC<DvtNavbarProps> = ({ user }) => {
+  const history = useHistory();
   const dispatch = useDispatch();
   const sort = useAppSelector(state => state.dvtApp.sort);
+
   const [active, setActive] = useState<string>('All');
+
+  const pathName = history.location.pathname;
+
+  const pathTitles = (pathname: string) => {
+    switch (pathname) {
+      case '/superset/welcome/':
+        return 'Welcome Page';
+      case '/dashboard/list/':
+        return 'Dashboards';
+      case '/alert/list/':
+        return 'Alerts';
+      case '/report/list/':
+        return 'Reports';
+      case '/dataset/add/':
+        return 'Datasets';
+      default:
+        return '';
+    }
+  };
+
+  const withNavbarBottom = ['/superset/welcome/', '/alert/list/'];
+
+  const tabsDataFindPathname = DvtNavbarTabsData.filter(
+    (item: { pathname: string }) => item.pathname === pathName,
+  );
+
+  useEffect(() => {
+    if (tabsDataFindPathname[0]?.pathname) {
+      setActive(tabsDataFindPathname[0].data[0].label);
+    }
+  }, [pathName]);
 
   return (
     <StyledDvtNavbar>
       <NavbarTop>
-        <DvtDotTitle label="Welcome Page" />
+        <DvtDotTitle label={pathTitles(pathName)} />
       </NavbarTop>
-      <NavbarBottom>
-        <DvtButtonTabs
-          active={active}
-          setActive={setActive}
-          data={dashboardTabs}
-        />
-        <NavbarBottomRight>
-          <DvtButton
-            colour="grayscale"
-            typeColour="outline"
-            label="Filter"
-            icon="filter"
-            onClick={() => {}}
+      {withNavbarBottom.includes(pathName) && (
+        <NavbarBottom>
+          <DvtButtonTabs
+            active={active}
+            setActive={setActive}
+            data={tabsDataFindPathname[0].data}
           />
-          <DvtButton
-            typeColour="powder"
-            label={`${sort ? 'Sorted' : 'Sort'}: Date Created`}
-            icon="dvt-sort"
-            onClick={() => dispatch(dvtAppSetSort(!sort))}
-          />
-        </NavbarBottomRight>
-      </NavbarBottom>
+          {pathName === '/superset/welcome/' && (
+            <NavbarBottomRight>
+              <DvtButton
+                colour="grayscale"
+                typeColour="outline"
+                label="Filter"
+                icon="filter"
+                onClick={() => {}}
+              />
+              <DvtButton
+                typeColour="powder"
+                label={`${sort ? 'Sorted' : 'Sort'}: Date Created`}
+                icon="dvt-sort"
+                onClick={() => dispatch(dvtAppSetSort(!sort))}
+              />
+            </NavbarBottomRight>
+          )}
+        </NavbarBottom>
+      )}
     </StyledDvtNavbar>
   );
 };
