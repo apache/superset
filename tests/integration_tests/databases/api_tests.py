@@ -197,6 +197,7 @@ class TestDatabaseApi(SupersetTestCase):
             "allows_subquery",
             "allows_virtual_table_explore",
             "backend",
+            "changed_by",
             "changed_on",
             "changed_on_delta_humanized",
             "created_by",
@@ -2074,7 +2075,7 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "related_objects")
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(response["charts"]["count"], 34)
+        self.assertEqual(response["charts"]["count"], 33)
         self.assertEqual(response["dashboards"]["count"], 3)
 
     def test_get_database_related_objects_not_found(self):

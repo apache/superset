@@ -14,34 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-slice_name: Vehicle Sales Filter
-viz_type: filter_box
-params:
-  adhoc_filters: []
-  datasource: 23__table
-  date_filter: true
-  filter_configs:
-  - asc: true
-    clearable: true
-    column: product_line
-    key: 7oUjq15eQ
-    label: Product Line
-    multiple: true
-    searchAllOptions: false
-  - asc: true
-    clearable: true
-    column: deal_size
-    key: c3hO6Eub8
-    label: Deal Size
-    multiple: true
-    searchAllOptions: false
-  granularity_sqla: order_date
-  queryFields: {}
-  slice_id: 671
-  time_range: '2003-01-01T00:00:00 : 2005-06-01T00:00:00'
-  url_params: {}
-  viz_type: filter_box
-cache_timeout: null
-uuid: a5689df7-98fc-7c51-602c-ebd92dc3ec70
-version: 1.0.0
-dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005
+from .db2 import Db2EngineSpec
+
+
+class IBMiEngineSpec(Db2EngineSpec):
+    engine = "ibmi"
+    engine_name = "IBM Db2 for i"
+    max_column_name_length = 128
+
+    @classmethod
+    def epoch_to_dttm(cls) -> str:
+        return "(DAYS({col}) - DAYS('1970-01-01')) * 86400 + MIDNIGHT_SECONDS({col})"

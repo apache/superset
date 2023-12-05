@@ -21,7 +21,6 @@ import React, { useMemo, useState } from 'react';
 import rison from 'rison';
 import { t, SupersetClient } from '@superset-ui/core';
 import { Link, useHistory } from 'react-router-dom';
-import moment from 'moment';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -36,9 +35,10 @@ import DeleteModal from 'src/components/DeleteModal';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import AnnotationLayerModal from 'src/features/annotationLayers/AnnotationLayerModal';
 import { AnnotationLayerObject } from 'src/features/annotationLayers/types';
+import { ModifiedInfo } from 'src/components/AuditInfo';
+import { QueryObjectColumns } from 'src/views/CRUD/types';
 
 const PAGE_SIZE = 25;
-const MOMENT_FORMAT = 'MMM DD, YYYY';
 
 interface AnnotationLayersListProps {
   addDangerToast: (msg: string) => void;
@@ -156,63 +156,14 @@ function AnnotationLayersList({
       {
         Cell: ({
           row: {
-            original: { changed_on: changedOn },
+            original: {
+              changed_on_delta_humanized: changedOn,
+              changed_by: changedBy,
+            },
           },
-        }: any) => {
-          const date = new Date(changedOn);
-          const utc = new Date(
-            Date.UTC(
-              date.getFullYear(),
-              date.getMonth(),
-              date.getDate(),
-              date.getHours(),
-              date.getMinutes(),
-              date.getSeconds(),
-              date.getMilliseconds(),
-            ),
-          );
-
-          return moment(utc).format(MOMENT_FORMAT);
-        },
+        }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on',
-        size: 'xl',
-      },
-      {
-        Cell: ({
-          row: {
-            original: { created_on: createdOn },
-          },
-        }: any) => {
-          const date = new Date(createdOn);
-          const utc = new Date(
-            Date.UTC(
-              date.getFullYear(),
-              date.getMonth(),
-              date.getDate(),
-              date.getHours(),
-              date.getMinutes(),
-              date.getSeconds(),
-              date.getMilliseconds(),
-            ),
-          );
-
-          return moment(utc).format(MOMENT_FORMAT);
-        },
-        Header: t('Created on'),
-        accessor: 'created_on',
-        size: 'xl',
-      },
-      {
-        accessor: 'created_by',
-        disableSortBy: true,
-        Header: t('Created by'),
-        Cell: ({
-          row: {
-            original: { created_by: createdBy },
-          },
-        }: any) =>
-          createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
         size: 'xl',
       },
       {
@@ -249,6 +200,10 @@ function AnnotationLayersList({
         hidden: !canEdit && !canDelete,
         size: 'xl',
       },
+      {
+        accessor: QueryObjectColumns.changed_by,
+        hidden: true,
+      },
     ],
     [canDelete, canCreate],
   );
@@ -280,15 +235,22 @@ function AnnotationLayersList({
   const filters: Filters = useMemo(
     () => [
       {
-        Header: t('Created by'),
-        key: 'created_by',
-        id: 'created_by',
+        Header: t('Name'),
+        key: 'search',
+        id: 'name',
+        input: 'search',
+        operator: FilterOperator.contains,
+      },
+      {
+        Header: t('Changed by'),
+        key: 'changed_by',
+        id: 'changed_by',
         input: 'select',
         operator: FilterOperator.relationOneMany,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'annotation_layer',
-          'created_by',
+          'changed_by',
           createErrorHandler(errMsg =>
             t(
               'An error occurred while fetching dataset datasource values: %s',
@@ -298,13 +260,6 @@ function AnnotationLayersList({
           user,
         ),
         paginate: true,
-      },
-      {
-        Header: t('Search'),
-        key: 'search',
-        id: 'name',
-        input: 'search',
-        operator: FilterOperator.contains,
       },
     ],
     [],

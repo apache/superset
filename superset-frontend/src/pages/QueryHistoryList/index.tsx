@@ -53,6 +53,7 @@ import { QueryObject, QueryObjectColumns } from 'src/views/CRUD/types';
 import Icons from 'src/components/Icons';
 import QueryPreviewModal from 'src/features/queries/QueryPreviewModal';
 import { addSuccessToast } from 'src/components/MessageToasts/actions';
+import getOwnerName from 'src/utils/getOwnerName';
 
 const PAGE_SIZE = 25;
 const SQL_PREVIEW_MAX_LINES = 4;
@@ -311,7 +312,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
           row: {
             original: { user },
           },
-        }: any) => (user ? `${user.first_name} ${user.last_name}` : ''),
+        }: any) => getOwnerName(user),
       },
       {
         accessor: QueryObjectColumns.user,
