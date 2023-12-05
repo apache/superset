@@ -57,10 +57,11 @@ const StyledSelectSelect = styled.div<StyledSelectProps>`
   position: relative;
   display: flex;
   align-items: center;
-  padding: 12px;
+  padding: ${({ typeDesign }) => (typeDesign === 'form' ? '12px 8px' : '12px')};
   width: 202px;
   height: 48px;
-  border-radius: 12px;
+  border-radius: ${({ typeDesign }) =>
+    typeDesign === 'form' ? '4px' : '12px'};
   background-color: ${({ isOpen, theme, typeDesign }) =>
     isOpen
       ? theme.colors.dvt.primary.light2
@@ -69,14 +70,15 @@ const StyledSelectSelect = styled.div<StyledSelectProps>`
       : theme.colors.dvt.grayscale.light2};
   border: none;
   appearance: none;
-  margin-bottom: 3px;
+  margin-bottom: ${({ typeDesign }) =>
+    typeDesign === 'form' ? '12px' : '3px'};
   cursor: pointer;
   color: ${({ theme }) => theme.colors.dvt.primary.light1};
   transition: background-color 0.3s ease-in-out;
 `;
 
 const StyledSelectLabel = styled.label<StyledSelectLabelProps>`
-  padding-left: 13px;
+  ${({ typeDesign }) => (typeDesign === 'form' ? '0' : '13px')};
   font-weight: 600;
   color: ${({ typeDesign, theme }) =>
     typeDesign === 'form'

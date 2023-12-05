@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { useState } from 'react';
+import { SupersetTheme } from '@superset-ui/core';
 import DvtSelect, { DvtSelectProps } from '.';
 
 export default {
@@ -73,23 +74,29 @@ ScrollExample.args = {
 };
 
 export const Form = (args: DvtSelectProps) => {
-  const [selectedValue, setSelectedValue] = useState<string>('');
+  const [selectedValue, setSelectedValue] = useState<string>('3600');
 
   return (
-    <DvtSelect
-      {...args}
-      selectedValue={selectedValue}
-      setSelectedValue={setSelectedValue}
-    />
+    <div
+      css={(theme: SupersetTheme) => ({
+        backgroundColor: theme.colors.dvt.grayscale.light2,
+        padding: '20px',
+      })}
+    >
+      <DvtSelect
+        {...args}
+        selectedValue={selectedValue}
+        setSelectedValue={setSelectedValue}
+      />
+    </div>
   );
 };
 
 Form.args = {
-  label: 'State',
+  label: 'Working Timeout',
   data: [
-    { value: 'failed', label: 'Failed' },
-    { value: 'success', label: 'Success' },
+    { value: '3600', label: '3600' },
+    { value: '7200', label: '7200' },
   ],
-  placeholder: 'Select or type a value',
-  typeDesign:'form'
+  typeDesign: 'form',
 };
