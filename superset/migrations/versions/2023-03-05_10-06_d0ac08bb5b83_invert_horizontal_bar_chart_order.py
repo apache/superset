@@ -51,11 +51,8 @@ class Slice(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
     slices = (
-        session.query(Slice)
+        db.session.query(Slice)
         .filter(
             and_(
                 Slice.viz_type == CHART_TYPE,
@@ -82,18 +79,14 @@ def upgrade():
             print(f"Parsing params for slice {slc.id} failed.")
             pass
 
-    session.commit()
-    session.close()
+    db.session.commit()
     if changes:
         print(f"Updated {changes} bar chart sort orders.")
 
 
 def downgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
     slices = (
-        session.query(Slice)
+        db.session.query(Slice)
         .filter(
             and_(
                 Slice.viz_type == CHART_TYPE,
@@ -120,7 +113,6 @@ def downgrade():
             print(f"Parsing params for slice {slc.id} failed.")
             pass
 
-    session.commit()
-    session.close()
+    db.session.commit()
     if changes:
         print(f"Updated {changes} bar chart sort orders.")

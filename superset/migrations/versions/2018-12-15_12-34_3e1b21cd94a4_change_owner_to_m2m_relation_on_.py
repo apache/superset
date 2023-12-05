@@ -84,33 +84,28 @@ def upgrade():
         sa.PrimaryKeyConstraint("id"),
     )
 
-    bind = op.get_bind()
-    insp = sa.engine.reflection.Inspector.from_engine(bind)
-    session = db.Session(bind=bind)
-
-    tables = session.query(SqlaTable).all()
+    tables = db.session.query(SqlaTable).all()
     for table in tables:
         if table.user_id is not None:
-            session.execute(
+            db.session.execute(
                 sqlatable_user.insert().values(user_id=table.user_id, table_id=table.id)
             )
 
-    druiddatasources = session.query(DruidDatasource).all()
+    druiddatasources = db.session.query(DruidDatasource).all()
     for druiddatasource in druiddatasources:
         if druiddatasource.user_id is not None:
-            session.execute(
+            db.session.execute(
                 druiddatasource_user.insert().values(
                     user_id=druiddatasource.user_id, datasource_id=druiddatasource.id
                 )
             )
 
-    session.close()
     with op.batch_alter_table("tables") as batch_op:
         batch_op.drop_constraint("user_id", type_="foreignkey")
         batch_op.drop_column("user_id")
     with op.batch_alter_table("datasources") as batch_op:
         batch_op.drop_constraint(
-            generic_find_fk_constraint_name("datasources", {"id"}, "ab_user", insp),
+            generic_find_fk_constraint_name("datasources", {"id"}, "ab_user"),
             type_="foreignkey",
         )
         batch_op.drop_column("user_id")

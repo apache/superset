@@ -47,14 +47,11 @@ def upgrade():
 
 
 def remove_value_if_too_long():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
     # it will be easier for users to notice that their field has been deleted rather than truncated
     # so just remove it if it won't fit back into the 1000 string length column
     try:
         rows = (
-            session.query(SqlaTable)
+            db.session.query(SqlaTable)
             .filter(func.length(SqlaTable.fetch_values_predicate) > 1000)
             .all()
         )
@@ -64,8 +61,7 @@ def remove_value_if_too_long():
 
         logging.info("%d values deleted", len(rows))
 
-        session.commit()
-        session.close()
+        db.session.commit()
     except Exception as ex:
         logging.warning(ex)
 

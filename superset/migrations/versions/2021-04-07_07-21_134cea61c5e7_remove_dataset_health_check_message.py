@@ -46,10 +46,7 @@ class SqlaTable(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    for datasource in session.query(SqlaTable):
+    for datasource in db.session.query(SqlaTable):
         if datasource.extra:
             try:
                 extra = json.loads(datasource.extra)
@@ -60,8 +57,7 @@ def upgrade():
             except Exception as ex:
                 logging.exception(ex)
 
-    session.commit()
-    session.close()
+    db.session.commit()
 
 
 def downgrade():

@@ -77,7 +77,7 @@ models["dashboards"].position_json = sa.Column(utils.MediumText())
 default_batch_size = int(os.environ.get("BATCH_SIZE", 200))
 
 
-def update_position_json(dashboard, session, uuid_map):
+def update_position_json(dashboard, uuid_map):
     try:
         layout = json.loads(dashboard.position_json or "{}")
     except JSONDecodeError:
@@ -98,7 +98,7 @@ def update_position_json(dashboard, session, uuid_map):
     dashboard.position_json = json.dumps(layout, indent=4)
 
 
-def update_dashboards(session, uuid_map):
+def update_dashboards(uuid_map):
     message = (
         "Updating dashboard position json with slice uuid.."
         if uuid_map
@@ -106,23 +106,20 @@ def update_dashboards(session, uuid_map):
     )
     print(f"\n{message}\r", end="")
 
-    query = session.query(models["dashboards"])
+    query = db.session.query(models["dashboards"])
     dashboard_count = query.count()
     for i, dashboard in enumerate(query.all()):
-        update_position_json(dashboard, session, uuid_map)
+        update_position_json(dashboard, uuid_map)
         if i and i % default_batch_size == 0:
-            session.commit()
+            db.session.commit()
         print(f"{message} {i+1}/{dashboard_count}\r", end="")
 
-    session.commit()
+    db.session.commit()
     # Extra whitespace to override very long numbers, e.g. 99999/99999.
     print(f"{message} Done.      \n")
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
     for table_name, model in models.items():
         with op.batch_alter_table(table_name) as batch_op:
             batch_op.add_column(
@@ -134,7 +131,7 @@ def upgrade():
                 ),
             )
 
-        assign_uuids(model, session)
+        assign_uuids(model)
 
         # add uniqueness constraint
         with op.batch_alter_table(table_name) as batch_op:
@@ -144,19 +141,16 @@ def upgrade():
     # add UUID to Dashboard.position_json
     slice_uuid_map = {
         slc.id: slc.uuid
-        for slc in session.query(models["slices"])
+        for slc in db.session.query(models["slices"])
         .options(load_only("id", "uuid"))
         .all()
     }
-    update_dashboards(session, slice_uuid_map)
+    update_dashboards(slice_uuid_map)
 
 
 def downgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
     # remove uuid from position_json
-    update_dashboards(session, {})
+    update_dashboards({})
 
     # remove uuid column
     for table_name in models:

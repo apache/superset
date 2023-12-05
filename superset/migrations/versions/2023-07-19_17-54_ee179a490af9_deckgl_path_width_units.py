@@ -46,9 +46,7 @@ class Slice(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-    for slc in session.query(Slice).filter(
+    for slc in db.session.query(Slice).filter(
         or_(
             Slice.viz_type == "deck_path",
             Slice.viz_type == "deck_geojson",
@@ -62,8 +60,7 @@ def upgrade():
                 slc.params = json.dumps(params)
         except Exception:
             logging.exception(f"Unable to parse params for slice {slc.id}")
-    session.commit()
-    session.close()
+    db.session.commit()
 
 
 def downgrade():

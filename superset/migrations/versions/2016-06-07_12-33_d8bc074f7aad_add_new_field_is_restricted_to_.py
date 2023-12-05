@@ -58,19 +58,15 @@ def upgrade():
         "sql_metrics", sa.Column("is_restricted", sa.Boolean(), nullable=True)
     )
 
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
     # don't use models.DruidMetric
     # because it assumes the context is consistent with the application
-    for obj in session.query(DruidMetric).all():
+    for obj in db.session.query(DruidMetric).all():
         obj.is_restricted = False
 
-    for obj in session.query(SqlMetric).all():
+    for obj in db.session.query(SqlMetric).all():
         obj.is_restricted = False
 
-    session.commit()
-    session.close()
+    db.session.commit()
 
 
 def downgrade():

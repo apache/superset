@@ -31,7 +31,6 @@ from alembic import op
 from sqlalchemy.dialects.mysql.base import MySQLDialect
 from sqlalchemy.dialects.postgresql.base import PGDialect
 from sqlalchemy.dialects.sqlite.base import SQLiteDialect
-from sqlalchemy.engine.reflection import Inspector
 
 from superset.utils.core import generic_find_uq_constraint_name
 
@@ -73,18 +72,16 @@ report_schedule = sa.Table(
 
 
 def upgrade():
-    bind = op.get_bind()
-
-    if not isinstance(bind.dialect, SQLiteDialect):
+    if not isinstance(db.engine.dialect, SQLiteDialect):
         op.drop_constraint("uq_report_schedule_name", "report_schedule", type_="unique")
 
-        if isinstance(bind.dialect, MySQLDialect):
+        if isinstance(db.engine.dialect, MySQLDialect):
             op.drop_index(
                 op.f("name"),
                 table_name="report_schedule",
             )
 
-        if isinstance(bind.dialect, PGDialect):
+        if isinstance(db.engine.dialect, PGDialect):
             op.drop_constraint(
                 "report_schedule_name_key", "report_schedule", type_="unique"
             )

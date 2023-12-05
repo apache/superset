@@ -99,7 +99,7 @@ def insert_from_select(
         target_table: sa.Table = Base.metadata.tables[target]
     cols = [col.name for col in source.columns if col.name in target_table.columns]
     query = target_table.insert().from_select(cols, source)
-    return op.execute(query)
+    return db.engine.execute(query)
 
 
 class Database(Base):
@@ -271,7 +271,6 @@ class NewDataset(Base, AuxiliaryColumnsMixin):
 
 
 def find_tables(
-    session: Session,
     database_id: int,
     default_schema: Optional[str],
     tables: set[Table],
@@ -292,7 +291,7 @@ def find_tables(
             for table in tables
         ]
     )
-    return session.query(NewTable.id).filter(predicate).all()
+    return db.session.query(NewTable.id).filter(predicate).all()
 
 
 # helper SQLA elements for easier querying
@@ -308,9 +307,9 @@ active_table_columns = sa.join(
 active_metrics = sa.join(SqlMetric, SqlaTable, SqlMetric.table_id == SqlaTable.id)
 
 
-def copy_tables(session: Session) -> None:
+def copy_tables() -> None:
     """Copy Physical tables"""
-    count = session.query(SqlaTable).filter(is_physical_table).count()
+    count = db.session.query(SqlaTable).filter(is_physical_table).count()
     if not count:
         return
     print(f">> Copy {count:,} physical tables to sl_tables...")
@@ -342,9 +341,9 @@ def copy_tables(session: Session) -> None:
     )
 
 
-def copy_datasets(session: Session) -> None:
+def copy_datasets() -> None:
     """Copy all datasets"""
-    count = session.query(SqlaTable).count()
+    count = db.session.query(SqlaTable).count()
     if not count:
         return
     print(f">> Copy {count:,} SqlaTable to sl_datasets...")
@@ -396,9 +395,9 @@ def copy_datasets(session: Session) -> None:
     )
 
 
-def copy_columns(session: Session) -> None:
+def copy_columns() -> None:
     """Copy columns with active associated SqlTable"""
-    count = session.query(TableColumn).select_from(active_table_columns).count()
+    count = db.session.query(TableColumn).select_from(active_table_columns).count()
     if not count:
         return
     print(f">> Copy {count:,} table columns to sl_columns...")
@@ -444,9 +443,9 @@ def copy_columns(session: Session) -> None:
     )
 
 
-def copy_metrics(session: Session) -> None:
+def copy_metrics() -> None:
     """Copy metrics as virtual columns"""
-    metrics_count = session.query(SqlMetric).select_from(active_metrics).count()
+    metrics_count = db.session.query(SqlMetric).select_from(active_metrics).count()
     if not metrics_count:
         return
 
@@ -500,13 +499,13 @@ def copy_metrics(session: Session) -> None:
     )
 
 
-def postprocess_datasets(session: Session) -> None:
+def postprocess_datasets() -> None:
     """
     Postprocess datasets after insertion to
       - Quote table names for physical datasets (if needed)
       - Link referenced tables to virtual datasets
     """
-    total = session.query(SqlaTable).count()
+    total = db.session.query(SqlaTable).count()
     if not total:
         return
 
@@ -522,7 +521,7 @@ def postprocess_datasets(session: Session) -> None:
         Database.id == SqlaTable.database_id,
         isouter=True,
     )
-    assert session.query(func.count()).select_from(joined_tables).scalar() == total
+    assert db.session.query(func.count()).select_from(joined_tables).scalar() == total
 
     print(f">> Run postprocessing on {total} datasets")
 
@@ -548,7 +547,7 @@ def postprocess_datasets(session: Session) -> None:
             is_physical,
             schema,
             sqlalchemy_uri,
-        ) in session.execute(
+        ) in db.session.execute(
             select(
                 [
                     NewDataset.database_id,
@@ -583,7 +582,7 @@ def postprocess_datasets(session: Session) -> None:
                 updates["extra_json"] = json.dumps(extra_json)
 
             if updates:
-                session.execute(
+                db.session.execute(
                     sa.update(NewDataset)
                     .where(NewDataset.id == dataset_id)
                     .values(**updates)
@@ -618,13 +617,13 @@ def postprocess_datasets(session: Session) -> None:
         print("")
 
 
-def postprocess_columns(session: Session) -> None:
+def postprocess_columns() -> None:
     """
     At this step, we will
       - Add engine specific quotes to `expression` of physical columns
       - Tuck some extra metadata to `extra_json`
     """
-    total = session.query(NewColumn).count()
+    total = db.session.query(NewColumn).count()
     if not total:
         return
 
@@ -865,7 +864,7 @@ new_tables: sa.Table = [
 
 
 def reset_postgres_id_sequence(table: str) -> None:
-    op.execute(
+    db.engine.execute(
         f"""
         SELECT setval(
             pg_get_serial_sequence('{table}', 'id'),
@@ -878,21 +877,19 @@ def reset_postgres_id_sequence(table: str) -> None:
 
 
 def upgrade() -> None:
-    bind = op.get_bind()
-    session: Session = Session(bind=bind)
-    Base.metadata.drop_all(bind=bind, tables=new_tables)
-    Base.metadata.create_all(bind=bind, tables=new_tables)
+    Base.metadata.drop_all(bind=db.session.bind, tables=new_tables)
+    Base.metadata.create_all(bind=db.session.bind, tables=new_tables)
 
-    copy_tables(session)
-    copy_datasets(session)
-    copy_columns(session)
-    copy_metrics(session)
+    copy_tables()
+    copy_datasets()
+    copy_columns()
+    copy_metrics()
     session.commit()
 
-    postprocess_columns(session)
+    postprocess_columns()
     session.commit()
 
-    postprocess_datasets(session)
+    postprocess_datasets()
     session.commit()
 
     # Table were created with the same uuids are datasets. They should
@@ -910,4 +907,4 @@ def upgrade() -> None:
 
 
 def downgrade():
-    Base.metadata.drop_all(bind=op.get_bind(), tables=new_tables)
+    Base.metadata.drop_all(bind=db.session.bind, tables=new_tables)

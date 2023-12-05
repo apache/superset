@@ -31,12 +31,12 @@ from alembic import op
 from sqlalchemy import String
 from sqlalchemy.sql import column, table
 
+from superset import db
+
 report_schedule = table("report_schedule", column("extra", String))
 
 
 def upgrade():
-    bind = op.get_bind()
-
     with op.batch_alter_table("report_schedule") as batch_op:
         batch_op.add_column(
             sa.Column(
@@ -46,7 +46,7 @@ def upgrade():
                 default="{}",
             ),
         )
-    bind.execute(report_schedule.update().values({"extra": "{}"}))
+    db.engine.execute(report_schedule.update().values({"extra": "{}"}))
     with op.batch_alter_table("report_schedule") as batch_op:
         batch_op.alter_column("extra", existing_type=sa.Text(), nullable=False)
 

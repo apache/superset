@@ -33,6 +33,7 @@ from flask_appbuilder.models.mixins import AuditMixin
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 
+from superset import db
 from superset.tags.models import ObjectType, TagType
 from superset.utils.core import get_user_id
 
@@ -97,9 +98,8 @@ class User(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    Tag.__table__.create(bind)
-    TaggedObject.__table__.create(bind)
+    Tag.__table__.create(db.session.bind)
+    TaggedObject.__table__.create(db.session.bind)
 
 
 def downgrade():

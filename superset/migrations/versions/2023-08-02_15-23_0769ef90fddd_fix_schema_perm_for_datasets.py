@@ -60,9 +60,9 @@ class Database(Base):
     database_name = sa.Column(sa.String(250))
 
 
-def fix_datasets_schema_perm(session):
+def fix_datasets_schema_perm():
     for result in (
-        session.query(SqlaTable, Database.database_name)
+        db.session.query(SqlaTable, Database.database_name)
         .join(Database)
         .filter(SqlaTable.schema.isnot(None))
         .filter(
@@ -75,9 +75,9 @@ def fix_datasets_schema_perm(session):
         )
 
 
-def fix_charts_schema_perm(session):
+def fix_charts_schema_perm():
     for result in (
-        session.query(Slice, SqlaTable, Database.database_name)
+        db.session.query(Slice, SqlaTable, Database.database_name)
         .join(SqlaTable, Slice.datasource_id == SqlaTable.id)
         .join(Database, SqlaTable.database_id == Database.id)
         .filter(SqlaTable.schema.isnot(None))
@@ -92,16 +92,13 @@ def fix_charts_schema_perm(session):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-    if isinstance(bind.dialect, SQLiteDialect):
+    if isinstance(db.engine.dialect, SQLiteDialect):
         return  # sqlite doesn't have a concat function
 
-    fix_datasets_schema_perm(session)
-    fix_charts_schema_perm(session)
+    fix_datasets_schema_perm()
+    fix_charts_schema_perm()
 
-    session.commit()
-    session.close()
+    db.session.commit()
 
 
 def downgrade():

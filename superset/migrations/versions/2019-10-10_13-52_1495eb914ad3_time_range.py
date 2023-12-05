@@ -46,10 +46,7 @@ class Slice(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    for slc in session.query(Slice).all():
+    for slc in db.session.query(Slice).all():
         try:
             form_data = json.loads(slc.params)
             update_time_range(form_data)
@@ -57,14 +54,11 @@ def upgrade():
         except Exception as ex:
             logging.exception(ex)
 
-    session.commit()
+    db.session.commit()
 
 
 def downgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    for slc in session.query(Slice).all():
+    for slc in db.session.query(Slice).all():
         try:
             form_data = json.loads(slc.params)
 
@@ -82,4 +76,4 @@ def downgrade():
         except Exception as ex:
             logging.exception(ex)
 
-    session.commit()
+    db.session.commit()

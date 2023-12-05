@@ -96,16 +96,12 @@ class Dashboard(Base, AuditMixin):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    objects = session.query(Slice).all()
-    objects += session.query(Dashboard).all()
+    objects = db.session.query(Slice).all()
+    objects += db.session.query(Dashboard).all()
     for obj in objects:
         if obj.created_by and obj.created_by not in obj.owners:
             obj.owners.append(obj.created_by)
-        session.commit()
-    session.close()
+        db.session.commit()
 
 
 def downgrade():

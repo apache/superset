@@ -43,6 +43,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, relationship
 
+from superset import db
+
 Base = declarative_base()
 
 # Partial freeze of the current metadata db schema
@@ -153,11 +155,8 @@ def upgrade():
     and replaces them with the current (correct) permission name
     """
 
-    bind = op.get_bind()
-    session = orm.Session(bind=bind)
-
     faulty_view_menus = (
-        session.query(ViewMenu)
+        db.session.query(ViewMenu)
         .join(PermissionView)
         .join(Permission)
         .filter(ViewMenu.name.ilike("[None].[%](id:%)"))
@@ -178,7 +177,7 @@ def upgrade():
                     # This can fail on differing SECRET_KEYS
                     return
                 existing_view_menu = (
-                    session.query(ViewMenu)
+                    db.session.query(ViewMenu)
                     .filter(ViewMenu.name == new_view_menu)
                     .one_or_none()
                 )
@@ -192,9 +191,9 @@ def upgrade():
                     faulty_view_menu.name = new_view_menu
     # Commit all view_menu updates
     try:
-        session.commit()
+        db.session.commit()
     except SQLAlchemyError:
-        session.rollback()
+        db.session.rollback()
 
     # Delete all orphaned faulty permissions
     for orphaned_faulty_view_menu in orphaned_faulty_view_menus:
@@ -212,12 +211,12 @@ def upgrade():
             # Now it's safe to remove the pvm pair
             session.delete(pvm)
         # finally remove the orphaned view_menu permission
-        session.delete(orphaned_faulty_view_menu)
+        db.session.delete(orphaned_faulty_view_menu)
 
     try:
-        session.commit()
+        db.session.commit()
     except SQLAlchemyError:
-        session.rollback()
+        db.session.rollback()
 
 
 def downgrade():

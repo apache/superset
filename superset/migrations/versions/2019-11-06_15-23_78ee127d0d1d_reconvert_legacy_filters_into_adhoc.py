@@ -51,10 +51,7 @@ class Slice(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    for slc in session.query(Slice).all():
+    for slc in db.session.query(Slice).all():
         if slc.params:
             try:
                 source = json.loads(slc.params)
@@ -66,8 +63,7 @@ def upgrade():
             except Exception as ex:
                 logging.warn(ex)
 
-    session.commit()
-    session.close()
+    db.session.commit()
 
 
 def downgrade():

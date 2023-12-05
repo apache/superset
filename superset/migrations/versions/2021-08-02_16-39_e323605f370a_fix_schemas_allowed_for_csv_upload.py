@@ -48,10 +48,7 @@ def upgrade():
     """
     Fix databases with ``schemas_allowed_for_csv_upload`` stored as string.
     """
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    for database in session.query(Database).all():
+    for database in db.session.query(Database).all():
         try:
             extra = json.loads(database.extra)
         except json.decoder.JSONDecodeError as ex:
@@ -73,8 +70,7 @@ def upgrade():
 
         database.extra = json.dumps(extra)
 
-    session.commit()
-    session.close()
+    db.session.commit()
 
 
 def downgrade():

@@ -45,10 +45,7 @@ class Dashboard(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    for dashboard in session.query(Dashboard).all():
+    for dashboard in db.session.query(Dashboard).all():
         try:
             json_metadata = json.loads(dashboard.json_metadata)
 
@@ -58,8 +55,7 @@ def upgrade():
         except Exception:  # pylint: disable=broad-except
             pass
 
-    session.commit()
-    session.close()
+    db.session.commit()
 
 
 def downgrade():

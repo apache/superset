@@ -88,15 +88,12 @@ def create_new_markdown_component(chart_position, url):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
     dash_to_migrate = defaultdict(list)
     iframe_urls = defaultdict(list)
 
     try:
         # find iframe viz_type and its url
-        iframes = session.query(Slice).filter_by(viz_type="iframe").all()
+        iframes = db.session.query(Slice).filter_by(viz_type="iframe").all()
         iframe_ids = [slc.id for slc in iframes]
 
         for iframe in iframes:
@@ -106,7 +103,7 @@ def upgrade():
 
         # find iframe viz_type that used in dashboard
         dash_slc = (
-            session.query(dashboard_slices)
+            db.session.query(dashboard_slices)
             .filter(dashboard_slices.c.slice_id.in_(iframe_ids))
             .all()
         )
@@ -116,7 +113,7 @@ def upgrade():
 
         # replace iframe in dashboard metadata
         dashboards = (
-            session.query(Dashboard).filter(Dashboard.id.in_(dashboard_ids)).all()
+            db.session.query(Dashboard).filter(Dashboard.id.in_(dashboard_ids)).all()
         )
         for i, dashboard in enumerate(dashboards):
             print(
@@ -166,31 +163,30 @@ def upgrade():
 
         # remove iframe, separator and markup charts
         slices_to_remove = (
-            session.query(Slice)
+            db.session.query(Slice)
             .filter(Slice.viz_type.in_(["iframe", "separator", "markup"]))
             .all()
         )
         slices_ids = [slc.id for slc in slices_to_remove]
 
         # remove dependencies first
-        session.query(dashboard_slices).filter(
+        db.session.query(dashboard_slices).filter(
             dashboard_slices.c.slice_id.in_(slices_ids)
         ).delete(synchronize_session=False)
 
-        session.query(slice_user).filter(slice_user.c.slice_id.in_(slices_ids)).delete(
-            synchronize_session=False
-        )
+        db.session.query(slice_user).filter(
+            slice_user.c.slice_id.in_(slices_ids)
+        ).delete(synchronize_session=False)
 
         # remove slices
-        session.query(Slice).filter(Slice.id.in_(slices_ids)).delete(
+        db.session.query(Slice).filter(Slice.id.in_(slices_ids)).delete(
             synchronize_session=False
         )
 
     except Exception as ex:
         logging.exception(f"dashboard {dashboard.id} has error: {ex}")
 
-    session.commit()
-    session.close()
+    db.session.commit()
 
 
 def downgrade():

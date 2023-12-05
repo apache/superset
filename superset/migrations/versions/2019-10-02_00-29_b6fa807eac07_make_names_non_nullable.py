@@ -24,6 +24,7 @@ Create Date: 2019-10-02 00:29:16.679272
 import sqlalchemy as sa
 from alembic import op
 
+from superset import db
 from superset.utils.core import generic_find_fk_constraint_name
 
 # revision identifiers, used by Alembic.
@@ -37,14 +38,9 @@ conv = {
 
 
 def upgrade():
-    bind = op.get_bind()
-    insp = sa.engine.reflection.Inspector.from_engine(bind)
-
     # First, drop the foreign key constraint prior to altering columns.
     fk_datasources_cluster_name_clusters = (
-        generic_find_fk_constraint_name(
-            "datasources", {"cluster_name"}, "clusters", insp
-        )
+        generic_find_fk_constraint_name("datasources", {"cluster_name"}, "clusters")
         or "fk_datasources_cluster_name_clusters"
     )
     with op.batch_alter_table("datasources", naming_convention=conv) as batch_op:
@@ -81,14 +77,9 @@ def upgrade():
 
 
 def downgrade():
-    bind = op.get_bind()
-    insp = sa.engine.reflection.Inspector.from_engine(bind)
-
     # First, drop the foreign key constraint prior to altering columns.
     fk_datasources_cluster_name_clusters = (
-        generic_find_fk_constraint_name(
-            "datasources", {"cluster_name"}, "clusters", insp
-        )
+        generic_find_fk_constraint_name("datasources", {"cluster_name"}, "clusters")
         or "fk_datasources_cluster_name_clusters"
     )
     with op.batch_alter_table("datasources", naming_convention=conv) as batch_op:

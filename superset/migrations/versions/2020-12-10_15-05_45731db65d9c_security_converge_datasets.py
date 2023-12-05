@@ -86,29 +86,22 @@ PVM_MAP = {
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = Session(bind=bind)
-
     # Add the new permissions on the migration itself
-    add_pvms(session, NEW_PVMS)
-    migrate_roles(session, PVM_MAP)
+    add_pvms(NEW_PVMS)
+    migrate_roles(PVM_MAP)
     try:
-        session.commit()
+        db.session.commit()
     except SQLAlchemyError as ex:
         print(f"An error occurred while upgrading permissions: {ex}")
-        session.rollback()
+        db.session.rollback()
 
 
 def downgrade():
-    bind = op.get_bind()
-    session = Session(bind=bind)
-
     # Add the old permissions on the migration itself
     add_pvms(session, get_reversed_new_pvms(PVM_MAP))
     migrate_roles(session, get_reversed_pvm_map(PVM_MAP))
     try:
-        session.commit()
+        db.session.commit()
     except SQLAlchemyError as ex:
         print(f"An error occurred while downgrading permissions: {ex}")
-        session.rollback()
-    pass
+        db.session.rollback()

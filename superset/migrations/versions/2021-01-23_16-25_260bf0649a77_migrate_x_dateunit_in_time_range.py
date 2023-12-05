@@ -52,12 +52,10 @@ class Slice(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
     x_dateunit_in_since = DateRangeMigration.x_dateunit_in_since
     x_dateunit_in_until = DateRangeMigration.x_dateunit_in_until
 
-    if isinstance(bind.dialect, SQLiteDialect):
+    if isinstance(db.engine.dialect, SQLiteDialect):
         # The REGEXP operator is a special syntax for the regexp() user function.
         # https://www.sqlite.org/lang_expr.html#regexp
         to_lower = sa.func.LOWER
@@ -65,21 +63,21 @@ def upgrade():
             sa.func.REGEXP(to_lower(Slice.params), x_dateunit_in_since),
             sa.func.REGEXP(to_lower(Slice.params), x_dateunit_in_until),
         )
-    elif isinstance(bind.dialect, MySQLDialect):
+    elif isinstance(db.engine.dialect, MySQLDialect):
         to_lower = sa.func.LOWER
         where_clause = or_(
             to_lower(Slice.params).op("REGEXP")(x_dateunit_in_since),
             to_lower(Slice.params).op("REGEXP")(x_dateunit_in_until),
         )
     else:
-        # isinstance(bind.dialect, PGDialect):
+        # isinstance(db.engine.dialect, PGDialect):
         where_clause = or_(
             Slice.params.op("~*")(x_dateunit_in_since),
             Slice.params.op("~*")(x_dateunit_in_until),
         )
 
     try:
-        slices = session.query(Slice).filter(where_clause)
+        slices = db.session.query(Slice).filter(where_clause)
         total = slices.count()
         sep = " : "
         pattern = DateRangeMigration.x_dateunit
@@ -97,11 +95,9 @@ def upgrade():
                     end = f"{end.strip()} later"
                 params["time_range"] = f"{start}{sep}{end}"
                 slc.params = json.dumps(params, sort_keys=True, indent=4)
-                session.commit()
+                db.session.commit()
     except OperationalError:
         pass
-
-    session.close()
 
 
 def downgrade():

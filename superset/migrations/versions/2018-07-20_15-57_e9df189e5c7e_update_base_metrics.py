@@ -58,15 +58,12 @@ class SqlMetric(BaseMetricMixin, Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
     # Delete the orphaned metrics records.
-    for record in session.query(DruidMetric).all():
+    for record in db.session.query(DruidMetric).all():
         if record.datasource_id is None:
-            session.delete(record)
+            db.session.delete(record)
 
-    session.commit()
+    db.session.commit()
 
     # Enforce that metrics.metric_name column be non-nullable.
     with op.batch_alter_table("metrics") as batch_op:
@@ -77,11 +74,11 @@ def upgrade():
         batch_op.alter_column("json", existing_type=Text, nullable=False)
 
     # Delete the orphaned sql_metrics records.
-    for record in session.query(SqlMetric).all():
+    for record in db.session.query(SqlMetric).all():
         if record.table_id is None:
-            session.delete(record)
+            db.session.delete(record)
 
-    session.commit()
+    db.session.commit()
 
     # Reduce the size of the sql_metrics.metric_name column for constraint
     # viability and enforce that it to be non-nullable.
@@ -102,15 +99,10 @@ def upgrade():
 
 
 def downgrade():
-    bind = op.get_bind()
-    insp = engine.reflection.Inspector.from_engine(bind)
-
     # Remove the missing uniqueness constraint from the sql_metrics table.
     with op.batch_alter_table("sql_metrics", naming_convention=conv) as batch_op:
         batch_op.drop_constraint(
-            generic_find_uq_constraint_name(
-                "sql_metrics", {"metric_name", "table_id"}, insp
-            )
+            generic_find_uq_constraint_name("sql_metrics", {"metric_name", "table_id"})
             or "uq_sql_metrics_table_id",
             type_="unique",
         )

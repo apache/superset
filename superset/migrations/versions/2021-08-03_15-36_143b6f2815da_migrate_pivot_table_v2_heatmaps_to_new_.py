@@ -56,11 +56,8 @@ VALID_RENDERERS = (
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
     slices = (
-        session.query(Slice)
+        db.session.query(Slice)
         .filter(
             and_(
                 Slice.viz_type == "pivot_table_v2",
@@ -97,8 +94,7 @@ def upgrade():
             print(f"Parsing json_metadata for slice {slice.id} failed.")
             raise e
 
-    session.commit()
-    session.close()
+    db.session.commit()
     print(f"Upgraded {changed_slices} slices.")
 
 

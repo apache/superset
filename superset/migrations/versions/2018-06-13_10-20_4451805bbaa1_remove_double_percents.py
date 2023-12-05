@@ -62,11 +62,8 @@ class Database(Base):
 
 
 def replace(source, target):
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
     query = (
-        session.query(Slice, Database)
+        db.session.query(Slice, Database)
         .join(Table, Slice.datasource_id == Table.id)
         .join(Database, Table.database_id == Database.id)
         .filter(Slice.datasource_type == "table")
@@ -91,8 +88,7 @@ def replace(source, target):
         except Exception:
             pass
 
-    session.commit()
-    session.close()
+    db.session.commit()
 
 
 def upgrade():

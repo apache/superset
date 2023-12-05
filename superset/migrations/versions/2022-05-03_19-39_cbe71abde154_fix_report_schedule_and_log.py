@@ -55,29 +55,25 @@ class ReportSchedule(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
     for schedule in (
-        session.query(ReportSchedule)
+        db.session.query(ReportSchedule)
         .filter(ReportSchedule.last_state == ReportState.WORKING)
         .all()
     ):
         schedule.last_value = None
         schedule.last_value_row_json = None
 
-    session.commit()
+    db.session.commit()
 
     for execution_log in (
-        session.query(ReportExecutionLog)
+        db.session.query(ReportExecutionLog)
         .filter(ReportExecutionLog.state == ReportState.WORKING)
         .all()
     ):
         execution_log.value = None
         execution_log.value_row_json = None
 
-    session.commit()
-    session.close()
+    db.session.commit()
 
 
 def downgrade():

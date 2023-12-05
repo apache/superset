@@ -56,10 +56,7 @@ def upgrade():
         ),
     )
 
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    for table in paginated_update(session.query(SqlaTable)):
+    for table in paginated_update(db.session.query(SqlaTable)):
         table.normalize_columns = True
 
 

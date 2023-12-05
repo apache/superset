@@ -67,10 +67,7 @@ class Dashboard(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    dashboards = session.query(Dashboard).all()
+    dashboards = db.session.query(Dashboard).all()
     for i, dashboard in enumerate(dashboards):
         print(f"scanning dashboard ({i + 1}/{len(dashboards)}) >>>>")
         try:
@@ -102,8 +99,7 @@ def upgrade():
         except Exception as ex:
             logging.exception(f"dashboard {dashboard.id} has error: {ex}")
 
-    session.commit()
-    session.close()
+    db.session.commit()
 
 
 def downgrade():

@@ -22,9 +22,8 @@ from typing import Any
 
 from sqlalchemy import and_, Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Session
 
-from superset import conf, is_feature_enabled
+from superset import conf, db, is_feature_enabled
 from superset.constants import TimeGrain
 from superset.migrations.shared.utils import paginated_update, try_load_json
 
@@ -154,8 +153,8 @@ class MigrateViz:
                 slc.query_context = json.dumps(query_context)
 
     @classmethod
-    def upgrade(cls, session: Session) -> None:
-        slices = session.query(Slice).filter(Slice.viz_type == cls.source_viz_type)
+    def upgrade(cls) -> None:
+        slices = db.session.query(Slice).filter(Slice.viz_type == cls.source_viz_type)
         for slc in paginated_update(
             slices,
             lambda current, total: print(f"Upgraded {current}/{total} charts"),
@@ -163,8 +162,8 @@ class MigrateViz:
             cls.upgrade_slice(slc)
 
     @classmethod
-    def downgrade(cls, session: Session) -> None:
-        slices = session.query(Slice).filter(
+    def downgrade(cls) -> None:
+        slices = db.session.query(Slice).filter(
             and_(
                 Slice.viz_type == cls.target_viz_type,
                 Slice.params.like(f"%{FORM_DATA_BAK_FIELD_NAME}%"),

@@ -36,15 +36,12 @@ down_revision = "817e1c9b09d0"
 
 
 def upgrade():
-    bind = op.get_bind()
-    insp = sa.engine.reflection.Inspector.from_engine(bind)
-
     # Add cluster_id column
     with op.batch_alter_table("datasources") as batch_op:
         batch_op.add_column(sa.Column("cluster_id", sa.Integer()))
 
     # Update cluster_id values
-    metadata = sa.MetaData(bind=bind)
+    metadata = sa.MetaData(bind=db.session.bind)
     datasources = sa.Table("datasources", metadata, autoload=True)
     clusters = sa.Table("clusters", metadata, autoload=True)
 
@@ -53,15 +50,15 @@ def upgrade():
         .where(datasources.c.cluster_name == clusters.c.cluster_name)
         .as_scalar()
     )
-    bind.execute(statement)
+    db.engine.execute(statement)
 
     with op.batch_alter_table("datasources") as batch_op:
         # Drop cluster_name column
         fk_constraint_name = generic_find_fk_constraint_name(
-            "datasources", {"cluster_name"}, "clusters", insp
+            "datasources", {"cluster_name"}, "clusters"
         )
         uq_constraint_name = generic_find_uq_constraint_name(
-            "datasources", {"cluster_name", "datasource_name"}, insp
+            "datasources", {"cluster_name", "datasource_name"}
         )
         batch_op.drop_constraint(fk_constraint_name, type_="foreignkey")
         batch_op.drop_constraint(uq_constraint_name, type_="unique")
@@ -78,15 +75,12 @@ def upgrade():
 
 
 def downgrade():
-    bind = op.get_bind()
-    insp = sa.engine.reflection.Inspector.from_engine(bind)
-
     # Add cluster_name column
     with op.batch_alter_table("datasources") as batch_op:
         batch_op.add_column(sa.Column("cluster_name", sa.String(250)))
 
     # Update cluster_name values
-    metadata = sa.MetaData(bind=bind)
+    metadata = sa.MetaData(bind=db.session.bind)
     datasources = sa.Table("datasources", metadata, autoload=True)
     clusters = sa.Table("clusters", metadata, autoload=True)
 
@@ -95,15 +89,15 @@ def downgrade():
         .where(datasources.c.cluster_id == clusters.c.id)
         .as_scalar()
     )
-    bind.execute(statement)
+    db.engine.execute(statement)
 
     with op.batch_alter_table("datasources") as batch_op:
         # Drop cluster_id column
         fk_constraint_name = generic_find_fk_constraint_name(
-            "datasources", {"id"}, "clusters", insp
+            "datasources", {"id"}, "clusters"
         )
         uq_constraint_name = generic_find_uq_constraint_name(
-            "datasources", {"cluster_id", "datasource_name"}, insp
+            "datasources", {"cluster_id", "datasource_name"}
         )
         batch_op.drop_constraint(fk_constraint_name, type_="foreignkey")
         batch_op.drop_constraint(uq_constraint_name, type_="unique")

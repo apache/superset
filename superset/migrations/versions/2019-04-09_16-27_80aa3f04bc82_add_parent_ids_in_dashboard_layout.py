@@ -62,10 +62,7 @@ def add_parent_ids(node, layout):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    dashboards = session.query(Dashboard).all()
+    dashboards = db.session.query(Dashboard).all()
     for i, dashboard in enumerate(dashboards):
         print(
             "adding parents for dashboard layout, id = {} ({}/{}) >>>>".format(
@@ -83,15 +80,11 @@ def upgrade():
         except Exception as ex:
             logging.exception(ex)
 
-    session.commit()
-    session.close()
+    db.session.commit()
 
 
 def downgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    dashboards = session.query(Dashboard).all()
+    dashboards = db.session.query(Dashboard).all()
     for i, dashboard in enumerate(dashboards):
         print(
             "remove parents from dashboard layout, id = {} ({}/{}) >>>>".format(
@@ -112,5 +105,4 @@ def downgrade():
         except Exception as ex:
             logging.exception(ex)
 
-    session.commit()
-    session.close()
+    db.session.commit()

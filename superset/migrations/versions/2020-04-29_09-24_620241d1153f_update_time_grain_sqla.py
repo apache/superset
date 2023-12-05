@@ -74,11 +74,8 @@ def duration_by_name(database: Database):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
     query = (
-        session.query(Slice, Database)
+        db.session.query(Slice, Database)
         .filter(Slice.datasource_type == "table")
         .filter(Slice.datasource_id == Table.id)
         .filter(Table.database_id == Database.id)
@@ -96,8 +93,7 @@ def upgrade():
         except Exception:
             pass
 
-    session.commit()
-    session.close()
+    db.session.commit()
 
 
 # No downgrade because we can't know what rows were changed in the previous upgrade

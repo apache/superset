@@ -44,10 +44,7 @@ class Slice(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    for slc in session.query(Slice).filter(
+    for slc in db.session.query(Slice).filter(
         or_(Slice.viz_type.like("line"), Slice.viz_type.like("bar"))
     ):
         params = json.loads(slc.params)
@@ -69,15 +66,11 @@ def upgrade():
                 )
             params["annotation_layers"] = new_layers
             slc.params = json.dumps(params)
-            session.commit()
-    session.close()
+            db.session.commit()
 
 
 def downgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    for slc in session.query(Slice).filter(
+    for slc in db.session.query(Slice).filter(
         or_(Slice.viz_type.like("line"), Slice.viz_type.like("bar"))
     ):
         params = json.loads(slc.params)
@@ -85,5 +78,4 @@ def downgrade():
         if layers:
             params["annotation_layers"] = [layer["value"] for layer in layers]
             slc.params = json.dumps(params)
-            session.commit()
-    session.close()
+            db.session.commit()

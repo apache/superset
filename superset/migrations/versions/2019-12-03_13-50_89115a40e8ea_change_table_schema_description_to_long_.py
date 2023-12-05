@@ -31,10 +31,11 @@ from alembic import op
 from sqlalchemy.dialects import mysql
 from sqlalchemy.dialects.mysql.base import MySQLDialect
 
+from superset import db
+
 
 def upgrade():
-    bind = op.get_bind()
-    if isinstance(bind.dialect, MySQLDialect):
+    if isinstance(db.engine.dialect, MySQLDialect):
         with op.batch_alter_table("table_schema") as batch_op:
             batch_op.alter_column(
                 "description", existing_type=sa.Text, type_=mysql.LONGTEXT
@@ -42,8 +43,7 @@ def upgrade():
 
 
 def downgrade():
-    bind = op.get_bind()
-    if isinstance(bind.dialect, MySQLDialect):
+    if isinstance(db.engine.dialect, MySQLDialect):
         with op.batch_alter_table("table_schema") as batch_op:
             batch_op.alter_column(
                 "description", existing_type=mysql.LONGTEXT, type_=sa.Text

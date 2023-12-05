@@ -158,9 +158,6 @@ class TableColumn(BaseColumnMixin, Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
     tables = [
         Annotation,
         Dashboard,
@@ -176,7 +173,7 @@ def upgrade():
     ]
 
     for table in tables:
-        for record in session.query(table).all():
+        for record in db.session.query(table).all():
             for col in record.__table__.columns.values():
                 if not col.primary_key:
                     value = getattr(record, col.name)
@@ -184,9 +181,7 @@ def upgrade():
                     if value is not None and value.strip() == "":
                         setattr(record, col.name, None)
 
-        session.commit()
-
-    session.close()
+        db.session.commit()
 
 
 def downgrade():

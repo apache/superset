@@ -44,14 +44,10 @@ class Database(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    for obj in session.query(Database).all():
+    for obj in db.session.query(Database).all():
         obj.allow_run_sync = True
 
-    session.commit()
-    session.close()
+    db.session.commit()
 
 
 def downgrade():

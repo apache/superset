@@ -93,11 +93,8 @@ def upgrade_dashboard(dashboard: dict[str, Any]) -> tuple[int, int]:
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
     dashboards = (
-        session.query(Dashboard)
+        db.session.query(Dashboard)
         .filter(Dashboard.json_metadata.like('%"native_filter_configuration"%'))
         .all()
     )
@@ -115,8 +112,7 @@ def upgrade():
             print(f"Parsing json_metadata for dashboard {dashboard.id} failed.")
             raise e
 
-    session.commit()
-    session.close()
+    db.session.commit()
     print(f"Upgraded {changed_filters} filters and {changed_filter_sets} filter sets.")
 
 
@@ -135,11 +131,8 @@ def downgrade_dashboard(dashboard: dict[str, Any]) -> tuple[int, int]:
 
 
 def downgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
     dashboards = (
-        session.query(Dashboard)
+        db.session.query(Dashboard)
         .filter(Dashboard.json_metadata.like('%"native_filter_configuration"%'))
         .all()
     )
@@ -155,8 +148,7 @@ def downgrade():
             print(f"Parsing json_metadata for dashboard {dashboard.id} failed.")
             raise e
 
-    session.commit()
-    session.close()
+    db.session.commit()
     print(
         f"Downgraded {changed_filters} filters and {changed_filter_sets} filter sets."
     )

@@ -47,10 +47,7 @@ class Dashboard(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    for dashboard in session.query(Dashboard).all():
+    for dashboard in db.session.query(Dashboard).all():
         if dashboard.json_metadata:
             updated = False
 
@@ -73,8 +70,7 @@ def upgrade():
                     f"Unable to parse JSON metadata for dashboard {dashboard.id}"
                 )
 
-    session.commit()
-    session.close()
+    db.session.commit()
 
 
 def downgrade():

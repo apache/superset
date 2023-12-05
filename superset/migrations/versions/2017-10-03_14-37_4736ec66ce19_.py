@@ -27,6 +27,7 @@ import logging
 import sqlalchemy as sa
 from alembic import op
 
+from superset import db
 from superset.utils.core import (
     generic_find_fk_constraint_name,
     generic_find_fk_constraint_names,
@@ -52,9 +53,6 @@ datasources = sa.Table(
 
 
 def upgrade():
-    bind = op.get_bind()
-    insp = sa.engine.reflection.Inspector.from_engine(bind)
-
     # Add the new less restrictive uniqueness constraint.
     with op.batch_alter_table("datasources", naming_convention=conv) as batch_op:
         batch_op.create_unique_constraint(
@@ -85,8 +83,8 @@ def upgrade():
         )
 
         # Migrate the existing data.
-        for datasource in bind.execute(datasources.select()):
-            bind.execute(
+        for datasource in db.engine.execute(datasources.select()):
+            db.engine.execute(
                 table.update()
                 .where(table.c.datasource_name == datasource.datasource_name)
                 .values(datasource_id=datasource.id)
@@ -97,7 +95,7 @@ def upgrade():
             # due to prior revisions (1226819ee0e3, 3b626e2a6783) there may
             # incorrectly be multiple duplicate constraints.
             names = generic_find_fk_constraint_names(
-                foreign, {"datasource_name"}, "datasources", insp
+                foreign, {"datasource_name"}, "datasources"
             )
 
             for name in names:
@@ -113,7 +111,8 @@ def upgrade():
         with op.batch_alter_table("datasources", naming_convention=conv) as batch_op:
             batch_op.drop_constraint(
                 generic_find_uq_constraint_name(
-                    "datasources", {"datasource_name"}, insp
+                    "datasources",
+                    {"datasource_name"},
                 )
                 or "uq_datasources_datasource_name",
                 type_="unique",
@@ -129,9 +128,6 @@ def upgrade():
 
 
 def downgrade():
-    bind = op.get_bind()
-    insp = sa.engine.reflection.Inspector.from_engine(bind)
-
     # Add the new more restrictive uniqueness constraint which is required by
     # the foreign key constraints. Note this operation will fail if the
     # datasources.datasource_name column is no longer unique.
@@ -164,8 +160,8 @@ def downgrade():
         )
 
         # Migrate the existing data.
-        for datasource in bind.execute(datasources.select()):
-            bind.execute(
+        for datasource in db.engine.execute(datasources.select()):
+            db.engine.execute(
                 table.update()
                 .where(table.c.datasource_id == datasource.id)
                 .values(datasource_name=datasource.datasource_name)
@@ -183,9 +179,7 @@ def downgrade():
         # Prior to dropping the uniqueness constraint, the foreign key
         # associated with the cluster_name column needs to be dropped.
         batch_op.drop_constraint(
-            generic_find_fk_constraint_name(
-                "datasources", {"cluster_name"}, "clusters", insp
-            )
+            generic_find_fk_constraint_name("datasources", {"cluster_name"}, "clusters")
             or "fk_datasources_cluster_name_clusters",
             type_="foreignkey",
         )
@@ -193,7 +187,7 @@ def downgrade():
         # Drop the old less restrictive uniqueness constraint.
         batch_op.drop_constraint(
             generic_find_uq_constraint_name(
-                "datasources", {"cluster_name", "datasource_name"}, insp
+                "datasources", {"cluster_name", "datasource_name"}
             )
             or "uq_datasources_cluster_name",
             type_="unique",

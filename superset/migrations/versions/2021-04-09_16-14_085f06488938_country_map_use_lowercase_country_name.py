@@ -48,10 +48,7 @@ def upgrade():
     """
     Convert all country names to lowercase
     """
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    for slc in session.query(Slice).filter(Slice.viz_type == "country_map").all():
+    for slc in db.session.query(Slice).filter(Slice.viz_type == "country_map").all():
         try:
             params = json.loads(slc.params)
             if params.get("select_country"):
@@ -60,18 +57,14 @@ def upgrade():
         except Exception:
             pass
 
-    session.commit()
-    session.close()
+    db.session.commit()
 
 
 def downgrade():
     """
     Convert all country names to sentence case
     """
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    for slc in session.query(Slice).filter(Slice.viz_type == "country_map").all():
+    for slc in db.session.query(Slice).filter(Slice.viz_type == "country_map").all():
         try:
             params = json.loads(slc.params)
             if params.get("select_country"):
@@ -81,5 +74,4 @@ def downgrade():
         except Exception:
             pass
 
-    session.commit()
-    session.close()
+    db.session.commit()

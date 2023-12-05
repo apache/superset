@@ -48,21 +48,16 @@ class Slice(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    slices = session.query(Slice).all()
+    slices = db.session.query(Slice).all()
     slice_len = len(slices)
     for i, slc in enumerate(slices):
         try:
             d = json.loads(slc.params or "{}")
             slc.params = json.dumps(d, indent=2, sort_keys=True)
-            session.commit()
+            db.session.commit()
             print(f"Upgraded ({i}/{slice_len}): {slc.slice_name}")
         except Exception as ex:
             print(slc.slice_name + " error: " + str(ex))
-
-    session.close()
 
 
 def downgrade():

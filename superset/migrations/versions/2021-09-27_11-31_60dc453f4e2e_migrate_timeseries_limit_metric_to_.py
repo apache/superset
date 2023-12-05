@@ -47,14 +47,11 @@ class Slice(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
     where_clause = and_(
         Slice.viz_type == "pivot_table_v2",
         Slice.params.like('%"timeseries_limit_metric%'),
     )
-    slices = session.query(Slice).filter(where_clause)
+    slices = db.session.query(Slice).filter(where_clause)
     total = slices.count()
     idx = 0
     for slc in slices.yield_per(100):
@@ -63,9 +60,7 @@ def upgrade():
         params = json.loads(slc.params)
         params["legacy_order_by"] = params.pop("timeseries_limit_metric", None)
         slc.params = json.dumps(params, sort_keys=True, indent=4)
-        session.commit()
-
-    session.close()
+        db.session.commit()
 
 
 def downgrade():

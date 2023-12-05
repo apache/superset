@@ -28,7 +28,6 @@ down_revision = "96e99fb176a0"
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.exc import OperationalError
 
 
@@ -127,9 +126,7 @@ def upgrade():
 
 
 def has_unique_constraint(constraint_name: str, table_name: str) -> bool:
-    bind = op.get_bind()
-    inspector = Inspector.from_engine(bind)
-    unique_constraints = inspector.get_unique_constraints(table_name)
+    unique_constraints = sa.inspect(db.engine).get_unique_constraints(table_name)
     return constraint_name in {constraint["name"] for constraint in unique_constraints}
 
 

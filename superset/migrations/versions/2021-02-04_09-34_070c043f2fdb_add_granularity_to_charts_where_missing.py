@@ -74,13 +74,10 @@ def upgrade():
       matches the behavior of Explore view on the frontend)
     - If no dttm columns exist in the dataset, don't change the chart.
     """
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
     slices_changed = 0
 
     for slc in (
-        session.query(Slice)
+        db.session.query(Slice)
         .filter(
             and_(
                 Slice.datasource_type == "table", Slice.params.notlike('%"granularity%')
@@ -123,8 +120,7 @@ def upgrade():
             pass
 
     print(f"{slices_changed} slices altered")
-    session.commit()
-    session.close()
+    db.session.commit()
 
 
 def downgrade():

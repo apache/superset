@@ -50,16 +50,11 @@ class SavedQuery(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
     for model in (Query, SavedQuery):
-        for record in session.query(model).filter(model.schema == "null"):
+        for record in db.session.query(model).filter(model.schema == "null"):
             record.schema = None
 
-        session.commit()
-
-    session.close()
+        db.session.commit()
 
 
 def downgrade():

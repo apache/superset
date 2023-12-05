@@ -30,10 +30,10 @@ down_revision = "06e1e70058c7"
 
 
 def upgrade():
-    if isinstance(op.get_bind().dialect, MySQLDialect):
+    if isinstance(db.engine.dialect, MySQLDialect):
         # If the columns are already MEDIUMTEXT, this is a no-op
-        op.execute("ALTER TABLE slices MODIFY params MEDIUMTEXT")
-        op.execute("ALTER TABLE slices MODIFY query_context MEDIUMTEXT")
+        db.engine.execute("ALTER TABLE slices MODIFY params MEDIUMTEXT")
+        db.engine.execute("ALTER TABLE slices MODIFY query_context MEDIUMTEXT")
 
 
 def downgrade():

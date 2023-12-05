@@ -27,15 +27,13 @@ revision = "f92a3124dd66"
 down_revision = "240d23c7f86f"
 
 from alembic import op
-from sqlalchemy.engine.reflection import Inspector
 
+from superset import db
 from superset.utils.core import generic_find_fk_constraint_name
 
 
 def upgrade():
-    bind = op.get_bind()
-    insp = Inspector.from_engine(bind)
-    tables = insp.get_table_names()
+    tables = sa.inspect(db.engine).get_table_names()
     conv = {"fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s"}
 
     if "datasources" in tables:
@@ -44,7 +42,6 @@ def upgrade():
                 table="slices",
                 columns={"id"},
                 referenced="datasources",
-                insp=insp,
             ):
                 batch_op.drop_constraint(constraint, type_="foreignkey")
 

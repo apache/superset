@@ -44,12 +44,9 @@ class DashboardSlices(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
     # find dup records in dashboard_slices tbl
     dup_records = (
-        session.query(
+        db.session.query(
             DashboardSlices.dashboard_id,
             DashboardSlices.slice_id,
             db.func.count(DashboardSlices.id),
@@ -78,7 +75,7 @@ def upgrade():
             )
             .offset(1)
         ]
-        session.query(DashboardSlices).filter(DashboardSlices.id.in_(ids)).delete(
+        db.session.query(DashboardSlices).filter(DashboardSlices.id.in_(ids)).delete(
             synchronize_session=False
         )
 

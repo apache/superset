@@ -579,10 +579,7 @@ def scan_dashboard_positions_data(positions):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    dashboards = session.query(Dashboard).all()
+    dashboards = db.session.query(Dashboard).all()
     for i, dashboard in enumerate(dashboards):
         print(f"scanning dashboard ({i + 1}/{len(dashboards)}) >>>>")
         position_json = json.loads(dashboard.position_json or "[]")
@@ -647,11 +644,9 @@ def upgrade():
 
             sorted_by_key = collections.OrderedDict(sorted(v2_layout.items()))
             dashboard.position_json = json.dumps(sorted_by_key, indent=2)
-            session.commit()
+            db.session.commit()
         else:
             print(f"Skip converted dash_id: {dashboard.id}")
-
-    session.close()
 
 
 def downgrade():
