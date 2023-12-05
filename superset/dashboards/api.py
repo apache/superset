@@ -261,7 +261,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "roles": RelatedFieldFilter("name", FilterRelatedRoles),
         "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
-    allowed_rel_fields = {"owners", "roles", "created_by"}
+    allowed_rel_fields = {"owners", "roles", "created_by", "changed_by"}
 
     openapi_spec_tag = "Dashboards"
     """ Override the name set for this collection of endpoints """

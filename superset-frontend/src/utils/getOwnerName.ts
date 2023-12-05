@@ -16,12 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import Owner from 'src/types/Owner';
 
-const StyledDvtTabs = styled.div`
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-export { StyledDvtTabs };
+export default function getOwnerName(owner?: Owner): string {
+  if (!owner) {
+    return '';
+  }
+  return `${owner.first_name} ${owner.last_name}`;
+}
