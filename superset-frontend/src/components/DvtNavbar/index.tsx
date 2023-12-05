@@ -26,7 +26,7 @@ import {
   NavbarBottom,
   NavbarBottomRight,
 } from './dvt-navbar.module';
-import DvtTabs from '../DvtTabs';
+import DvtButtonTabs from '../DvtButtonTabs';
 import DvtButton from '../DvtButton';
 import DvtDotTitle from '../DvtDotTitle';
 
@@ -50,7 +50,11 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ user }) => {
         <DvtDotTitle label="Welcome Page" />
       </NavbarTop>
       <NavbarBottom>
-        <DvtTabs active={active} setActive={setActive} data={dashboardTabs} />
+        <DvtButtonTabs
+          active={active}
+          setActive={setActive}
+          data={dashboardTabs}
+        />
         <NavbarBottomRight>
           <DvtButton
             colour="grayscale"
