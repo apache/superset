@@ -20,9 +20,9 @@ import React, { useState } from 'react';
 import type { CheckboxChangeEvent } from 'antd/es/checkbox';
 import { SupersetTheme, supersetTheme } from '@superset-ui/core';
 import { FolderOutlined, HeartOutlined } from '@ant-design/icons';
+import { Checkbox } from 'antd';
 import DvtPagination from '../DvtPagination';
 import Icon from '../Icons/Icon';
-import { Checkbox } from 'antd';
 import {
   StyledTable,
   StyledTableTable,
