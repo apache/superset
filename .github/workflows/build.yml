@@ -29,7 +29,7 @@ jobs:
         with:
           # list of Docker images to use as base name for tags
           images: |
-            ${{ secrets.CR_ENDPOINT }}/ortege/superset
+            ${{ secrets.CR_ENDPOINT }}/ortege/studio
           # generate Docker tags based on the following events/attributes
           tags: |
             type=ref,event=branch
@@ -59,4 +59,4 @@ jobs:
           DOCKERHUB_USER: ${{ secrets.CR_USERNAME }}
         run: |
           GITHUB_RELEASE_TAG_NAME="${{ github.event.release.tag_name }}"
-          ./scripts/docker_build_push.sh "$GITHUB_RELEASE_TAG_NAME"  "${{ secrets.CR_ENDPOINT }}/ortege/superset" ""${{ secrets.CR_ENDPOINT }}
+          ./scripts/docker_build_push.sh "$GITHUB_RELEASE_TAG_NAME"  "${{ secrets.CR_ENDPOINT }}/ortege/studio" "${{ secrets.CR_ENDPOINT }}"
