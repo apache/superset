@@ -46,7 +46,7 @@ fi
 case "${1}" in
   worker)
     echo "Starting Celery worker..."
-    celery --app=superset.tasks.celery_app:app worker -O fair -l INFO
+    newrelic-admin run-program celery --app=superset.tasks.celery_app:app worker -O fair -l INFO
     ;;
   beat)
     echo "Starting Celery beat..."

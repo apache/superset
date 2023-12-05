@@ -1,2 +1,3 @@
 psycopg2
 sqlalchemy-redshift
+newrelic==8.8.0
