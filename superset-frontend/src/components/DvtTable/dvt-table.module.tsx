@@ -29,22 +29,21 @@ const StyledTable = styled.div`
     position: relative;
     background-color: ${({ theme }) => theme.colors.dvt.primary.base};
     border-color: ${({ theme }) => theme.colors.dvt.primary.base};
-    overflow: hidden;
-  }
-  input[type='checkbox'] {
-    width: 24px;
     height: 24px;
+    width: 24px;
   }
+
   .ant-checkbox-checked .ant-checkbox-inner::after {
     display: inline-flex;
     top: 50%;
-    left: calc(50% - 3.5px);
-    width: 4px;
-    height: 8px;
+    left: calc(50% - 4.5px);
+    width: 6px;
+    height: 11px;
   }
 
-  .ant-checkbox-wrapper {
-    margin: auto;
+  .ant-checkbox-inner {
+    height: 24px;
+    width: 24px;
   }
 `;
 
@@ -86,7 +85,8 @@ const StyledTableTh = styled.th<StyledTableThProps>`
   padding-left: 3px;
   width: ${({ flex }) => (flex ? `${flex}%` : 'auto')};
   &:first-of-type {
-    padding-left: 33px;
+    padding-left: 30px;
+    padding-right: 3px;
   }
 `;
 
