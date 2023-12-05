@@ -33,9 +33,11 @@ module.exports = {
     '@superset-ui/(.*)$': '<rootDir>/node_modules/@superset-ui/$1/src',
   },
   testEnvironment: 'jsdom',
+  testEnvironmentOptions: {
+    url: 'http://localhost',
+  },
   modulePathIgnorePatterns: ['<rootDir>/packages/generator-superset'],
   setupFilesAfterEnv: ['<rootDir>/spec/helpers/setup.ts'],
-  testURL: 'http://localhost',
   collectCoverageFrom: [
     'src/**/*.{js,jsx,ts,tsx}',
     '{packages,plugins}/**/src/**/*.{js,jsx,ts,tsx}',
