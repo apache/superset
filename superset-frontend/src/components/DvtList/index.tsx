@@ -32,20 +32,18 @@ export interface DvtListProps {
   }[];
 }
 
-const DvtList: React.FC<DvtListProps> = ({ data }) => {
-  return (
-    <StyledDvtList>
-      <StyledDvtListLabel>List Component</StyledDvtListLabel>
-      <StyledDvtListScroll>
-        {data.map(item => (
-          <StyledDvtListItem>
-            <p>{item.title}</p>
-            <p>{item.subtitle}</p>
-          </StyledDvtListItem>
-        ))}
-      </StyledDvtListScroll>
-    </StyledDvtList>
-  );
-};
+const DvtList: React.FC<DvtListProps> = ({ data }) => (
+  <StyledDvtList>
+    <StyledDvtListLabel>List Component</StyledDvtListLabel>
+    <StyledDvtListScroll>
+      {data.map(item => (
+        <StyledDvtListItem>
+          <p>{item.title}</p>
+          <p>{item.subtitle}</p>
+        </StyledDvtListItem>
+      ))}
+    </StyledDvtListScroll>
+  </StyledDvtList>
+);
 
 export default DvtList;
