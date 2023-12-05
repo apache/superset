@@ -60,7 +60,7 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
   };
 
   return (
-    <StyledSelect ref={ref}>
+    <StyledSelect ref={ref} typeDesign={typeDesign}>
       {label && (
         <StyledSelectLabel typeDesign={typeDesign}>{label}</StyledSelectLabel>
       )}

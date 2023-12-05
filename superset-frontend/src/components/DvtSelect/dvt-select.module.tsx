@@ -49,10 +49,11 @@ interface StyledSelectOptionProps {
   typeDesign: string;
 }
 
-const StyledSelect = styled.div`
+const StyledSelect = styled.div<StyledSelectLabelProps>`
   position: relative;
   display: inline-flex;
   flex-direction: column;
+  gap: ${({ typeDesign }) => (typeDesign === 'form' ? '12px' : '3px')};
 `;
 
 const StyledSelectSelect = styled.div<StyledSelectProps>`
@@ -72,8 +73,6 @@ const StyledSelectSelect = styled.div<StyledSelectProps>`
       : theme.colors.dvt.grayscale.light2};
   border: none;
   appearance: none;
-  margin-bottom: ${({ typeDesign }) =>
-    typeDesign === 'form' ? '12px' : '3px'};
   cursor: pointer;
   color: ${({ theme }) => theme.colors.dvt.primary.light1};
   transition: background-color 0.3s ease-in-out;
