@@ -53,7 +53,6 @@ const StyledSelect = styled.div<StyledSelectLabelProps>`
   position: relative;
   display: inline-flex;
   flex-direction: column;
-  gap: ${({ typeDesign }) => (typeDesign === 'form' ? '12px' : '3px')};
 `;
 
 const StyledSelectSelect = styled.div<StyledSelectProps>`
@@ -79,7 +78,7 @@ const StyledSelectSelect = styled.div<StyledSelectProps>`
 `;
 
 const StyledSelectLabel = styled.label<StyledSelectLabelProps>`
-  ${({ typeDesign }) => (typeDesign === 'form' ? '0' : '13px')};
+  margin-bottom: ${({ typeDesign }) => (typeDesign === 'form' ? '0' : '13px')};
   font-weight: 600;
   color: ${({ typeDesign, theme }) =>
     typeDesign === 'form'
