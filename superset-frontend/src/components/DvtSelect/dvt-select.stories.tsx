@@ -81,6 +81,7 @@ export const Form = (args: DvtSelectProps) => {
       css={(theme: SupersetTheme) => ({
         backgroundColor: theme.colors.dvt.grayscale.light2,
         padding: '20px',
+        height: '50vh',
       })}
     >
       <DvtSelect

@@ -31,6 +31,7 @@ interface StyledSelectOptionsProps {
   isOpen: boolean;
   label: string;
   itemLength: number;
+  typeDesign: string;
 }
 
 const optionsKeyframes = keyframes`
@@ -45,6 +46,7 @@ const optionsKeyframes = keyframes`
 interface StyledSelectOptionProps {
   selectedValue: string;
   value: string;
+  typeDesign: string;
 }
 
 const StyledSelect = styled.div`
@@ -63,10 +65,10 @@ const StyledSelectSelect = styled.div<StyledSelectProps>`
   border-radius: ${({ typeDesign }) =>
     typeDesign === 'form' ? '4px' : '12px'};
   background-color: ${({ isOpen, theme, typeDesign }) =>
-    isOpen
-      ? theme.colors.dvt.primary.light2
-      : typeDesign === 'form'
+    typeDesign === 'form'
       ? theme.colors.grayscale.light5
+      : isOpen
+      ? theme.colors.dvt.primary.light2
       : theme.colors.dvt.grayscale.light2};
   border: none;
   appearance: none;
@@ -89,12 +91,23 @@ const StyledSelectLabel = styled.label<StyledSelectLabelProps>`
 const StyledSelectOption = styled.div<StyledSelectOptionProps>`
   padding: 13px;
   cursor: pointer;
-  ${({ theme, value, selectedValue }) =>
+  ${({ theme, value, selectedValue, typeDesign }) =>
     value === selectedValue
-      ? `
+      ? typeDesign === 'form'
+        ? `
+        color: ${theme.colors.dvt.text.help};
+        background: ${theme.colors.dvt.primary.light2};
+      `
+        : `
         color: ${theme.colors.grayscale.light5};
         background: ${theme.colors.dvt.primary.light1};
       `
+      : typeDesign === 'form'
+      ? `
+        color: ${theme.colors.dvt.primary.light1};
+        background: ${theme.colors.dvt.primary.light3};
+      }
+    `
       : `
         color: ${theme.colors.dvt.primary.light1};
       }
@@ -105,8 +118,8 @@ const StyledSelectOptions = styled.div<StyledSelectOptionsProps>`
   top: ${({ label }) => (label ? '74px' : '52px')};
   left: 0;
   right: 0;
-  border-radius: ${({ itemLength }) =>
-    itemLength > 6 ? '12px 0 0 12px' : '12px'};
+  border-radius: ${({ itemLength, typeDesign }) =>
+    itemLength > 6 ? '12px 0 0 12px' : typeDesign === 'form' ? '4px' : '12px'};
   background: ${({ theme }) => theme.colors.dvt.primary.light2};
   max-height: 274px;
   overflow-y: auto;

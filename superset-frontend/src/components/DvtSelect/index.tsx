@@ -90,6 +90,7 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
           isOpen={isOpen}
           label={label || ''}
           itemLength={data.length}
+          typeDesign={typeDesign}
         >
           {data.map((option, index) => (
             <StyledSelectOption
@@ -97,6 +98,7 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
               value={option.value}
               key={index}
               onClick={() => handleOptionClick(option.value)}
+              typeDesign={typeDesign}
             >
               {option.label}
             </StyledSelectOption>
