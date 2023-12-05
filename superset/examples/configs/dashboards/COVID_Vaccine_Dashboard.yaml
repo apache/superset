@@ -18,6 +18,9 @@ dashboard_title: COVID Vaccine Dashboard
 description: null
 css: ""
 slug: null
+certified_by: ""
+certification_details: ""
+published: true
 uuid: f4065089-110a-41fa-8dd7-9ce98a65e250
 position:
   CHART-63bEuxjDMJ:
@@ -25,32 +28,32 @@ position:
     id: CHART-63bEuxjDMJ
     meta:
       chartId: 3961
-      height: 72
+      height: 60
       sliceName: Vaccine Candidates per Country
       sliceNameOverride: Map of Vaccine Candidates
       uuid: ddc91df6-fb40-4826-bdca-16b85af1c024
-      width: 12
-    parents:
-      - ROOT_ID
-      - TABS-wUKya7eQ0Z
-      - TAB-BCIJF4NvgQ
-      - ROW-zvw7luvEL
-    type: CHART
-  CHART-F-fkth0Dnv:
-    children: []
-    id: CHART-F-fkth0Dnv
-    meta:
-      chartId: 3960
-      height: 60
-      sliceName: Vaccine Candidates per Country
-      sliceNameOverride: Treemap of Vaccine Candidates per Country
-      uuid: e2f5a8a7-feb0-4f79-bc6b-01fe55b98b3c
       width: 8
     parents:
       - ROOT_ID
       - TABS-wUKya7eQ0Z
       - TAB-BCIJF4NvgQ
       - ROW-xSeNAspgw
+    type: CHART
+  CHART-F-fkth0Dnv:
+    children: []
+    id: CHART-F-fkth0Dnv
+    meta:
+      chartId: 3960
+      height: 82
+      sliceName: Vaccine Candidates per Country
+      sliceNameOverride: Treemap of Vaccine Candidates per Country
+      uuid: e2f5a8a7-feb0-4f79-bc6b-01fe55b98b3c
+      width: 4
+    parents:
+      - ROOT_ID
+      - TABS-wUKya7eQ0Z
+      - TAB-BCIJF4NvgQ
+      - ROW-dieUdkeUw
     type: CHART
   CHART-RjD_ygqtwH:
     children: []
@@ -66,7 +69,7 @@ position:
       - ROOT_ID
       - TABS-wUKya7eQ0Z
       - TAB-BCIJF4NvgQ
-      - ROW-zvw7luvEL
+      - ROW-zhOlQLQnB
     type: CHART
   CHART-aGfmWtliqA:
     children: []
@@ -81,7 +84,39 @@ position:
       - ROOT_ID
       - TABS-wUKya7eQ0Z
       - TAB-BCIJF4NvgQ
-      - ROW-zvw7luvEL
+      - ROW-zhOlQLQnB
+    type: CHART
+  CHART-dCUpAcPsji:
+    children: []
+    id: CHART-dCUpAcPsji
+    meta:
+      chartId: 3963
+      height: 82
+      sliceName: Vaccine Candidates per Country & Stage
+      sliceNameOverride: Heatmap of Countries & Clinical Stages
+      uuid: cd111331-d286-4258-9020-c7949a109ed2
+      width: 4
+    parents:
+      - ROOT_ID
+      - TABS-wUKya7eQ0Z
+      - TAB-BCIJF4NvgQ
+      - ROW-dieUdkeUw
+    type: CHART
+  CHART-fYo7IyvKZQ:
+    children: []
+    id: CHART-fYo7IyvKZQ
+    meta:
+      chartId: 3964
+      height: 60
+      sliceName: Vaccine Candidates per Country & Stage
+      sliceNameOverride: Sunburst of Country & Clinical Stages
+      uuid: f69c556f-15fe-4a82-a8bb-69d5b6954123
+      width: 4
+    parents:
+      - ROOT_ID
+      - TABS-wUKya7eQ0Z
+      - TAB-BCIJF4NvgQ
+      - ROW-xSeNAspgw
     type: CHART
   CHART-j4hUvP5dDD:
     children: []
@@ -98,38 +133,6 @@ position:
       - TABS-wUKya7eQ0Z
       - TAB-BCIJF4NvgQ
       - ROW-dieUdkeUw
-    type: CHART
-  CHART-dCUpAcPsji:
-    children: []
-    id: CHART-dCUpAcPsji
-    meta:
-      chartId: 3963
-      height: 72
-      sliceName: Vaccine Candidates per Country & Stage
-      sliceNameOverride: Heatmap of Countries & Clinical Stages
-      uuid: cd111331-d286-4258-9020-c7949a109ed2
-      width: 4
-    parents:
-      - ROOT_ID
-      - TABS-wUKya7eQ0Z
-      - TAB-BCIJF4NvgQ
-      - ROW-dieUdkeUw
-    type: CHART
-  CHART-eirDduqb1A:
-    children: []
-    id: CHART-eirDduqb1A
-    meta:
-      chartId: 3965
-      height: 60
-      sliceName: Filtering Vaccines
-      sliceNameOverride: Filter Box of Vaccines
-      uuid: c29381ce-0e99-4cf3-bf0f-5f55d6b94176
-      width: 4
-    parents:
-      - ROOT_ID
-      - TABS-wUKya7eQ0Z
-      - TAB-BCIJF4NvgQ
-      - ROW-xSeNAspgw
     type: CHART
   DASHBOARD_VERSION_KEY: v2
   GRID_ID:
@@ -189,27 +192,38 @@ position:
       - TAB-BCIJF4NvgQ
       - ROW-zhOlQLQnB
     type: MARKDOWN
-  CHART-fYo7IyvKZQ:
-    children: []
-    id: CHART-fYo7IyvKZQ
-    meta:
-      chartId: 3964
-      height: 72
-      sliceName: Vaccine Candidates per Country & Stage
-      sliceNameOverride: Sunburst of Country & Clinical Stages
-      uuid: f69c556f-15fe-4a82-a8bb-69d5b6954123
-      width: 4
-    parents:
-      - ROOT_ID
-      - TABS-wUKya7eQ0Z
-      - TAB-BCIJF4NvgQ
-      - ROW-dieUdkeUw
-    type: CHART
   ROOT_ID:
     children:
       - TABS-wUKya7eQ0Z
     id: ROOT_ID
     type: ROOT
+  ROW-dieUdkeUw:
+    children:
+      - CHART-F-fkth0Dnv
+      - CHART-dCUpAcPsji
+      - CHART-j4hUvP5dDD
+    id: ROW-dieUdkeUw
+    meta:
+      "0": ROOT_ID
+      background: BACKGROUND_TRANSPARENT
+    parents:
+      - ROOT_ID
+      - TABS-wUKya7eQ0Z
+      - TAB-BCIJF4NvgQ
+    type: ROW
+  ROW-xSeNAspgw:
+    children:
+      - CHART-63bEuxjDMJ
+      - CHART-fYo7IyvKZQ
+    id: ROW-xSeNAspgw
+    meta:
+      "0": ROOT_ID
+      background: BACKGROUND_TRANSPARENT
+    parents:
+      - ROOT_ID
+      - TABS-wUKya7eQ0Z
+      - TAB-BCIJF4NvgQ
+    type: ROW
   ROW-zhOlQLQnB:
     children:
       - MARKDOWN-VjQQ5SFj5v
@@ -224,50 +238,10 @@ position:
       - TABS-wUKya7eQ0Z
       - TAB-BCIJF4NvgQ
     type: ROW
-  ROW-xSeNAspgw:
-    children:
-      - CHART-eirDduqb1A
-      - CHART-F-fkth0Dnv
-    id: ROW-xSeNAspgw
-    meta:
-      "0": ROOT_ID
-      background: BACKGROUND_TRANSPARENT
-    parents:
-      - ROOT_ID
-      - TABS-wUKya7eQ0Z
-      - TAB-BCIJF4NvgQ
-    type: ROW
-  ROW-dieUdkeUw:
-    children:
-      - CHART-dCUpAcPsji
-      - CHART-fYo7IyvKZQ
-      - CHART-j4hUvP5dDD
-    id: ROW-dieUdkeUw
-    meta:
-      "0": ROOT_ID
-      background: BACKGROUND_TRANSPARENT
-    parents:
-      - ROOT_ID
-      - TABS-wUKya7eQ0Z
-      - TAB-BCIJF4NvgQ
-    type: ROW
-  ROW-zvw7luvEL:
-    children:
-      - CHART-63bEuxjDMJ
-    id: ROW-zvw7luvEL
-    meta:
-      "0": ROOT_ID
-      background: BACKGROUND_TRANSPARENT
-    parents:
-      - ROOT_ID
-      - TABS-wUKya7eQ0Z
-      - TAB-BCIJF4NvgQ
-    type: ROW
   TAB-BCIJF4NvgQ:
     children:
       - ROW-zhOlQLQnB
       - ROW-xSeNAspgw
-      - ROW-zvw7luvEL
       - ROW-dieUdkeUw
     id: TAB-BCIJF4NvgQ
     meta:
@@ -316,18 +290,4 @@ metadata:
     Unknown: "#EFA1AA"
     Live attenuated virus: "#FDE380"
     COUNT(*): "#D1C6BC"
-  filter_scopes:
-    "3965":
-      country_name:
-        scope:
-          - ROOT_ID
-        immune: []
-      product_category:
-        scope:
-          - ROOT_ID
-        immune: []
-      clinical_stage:
-        scope:
-          - ROOT_ID
-        immune: []
 version: 1.0.0

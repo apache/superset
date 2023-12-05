@@ -1,5 +1,3 @@
-import Owner from 'src/types/Owner';
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,12 +16,11 @@ import Owner from 'src/types/Owner';
  * specific language governing permissions and limitations
  * under the License.
  */
-export type TemplateObject = {
-  id?: number;
-  changed_on_delta_humanized?: string;
-  created_on?: string;
-  changed_by?: Owner;
-  created_by?: Owner;
-  css?: string;
-  template_name: string;
-};
+import Owner from 'src/types/Owner';
+
+export default function getOwnerName(owner?: Owner): string {
+  if (!owner) {
+    return '';
+  }
+  return `${owner.first_name} ${owner.last_name}`;
+}

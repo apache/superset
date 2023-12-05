@@ -744,50 +744,6 @@ class TestUtils(SupersetTestCase):
         self.assertListEqual(as_list([123]), [123])
         self.assertListEqual(as_list("foo"), ["foo"])
 
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    def test_build_extra_filters(self):
-        world_health = db.session.query(Dashboard).filter_by(slug="world_health").one()
-        layout = json.loads(world_health.position_json)
-        filter_ = db.session.query(Slice).filter_by(slice_name="Region Filter").one()
-        world = db.session.query(Slice).filter_by(slice_name="World's Population").one()
-        box_plot = db.session.query(Slice).filter_by(slice_name="Box plot").one()
-        treemap = db.session.query(Slice).filter_by(slice_name="Treemap").one()
-
-        filter_scopes = {
-            str(filter_.id): {
-                "region": {"scope": ["ROOT_ID"], "immune": [treemap.id]},
-                "country_name": {
-                    "scope": ["ROOT_ID"],
-                    "immune": [treemap.id, box_plot.id],
-                },
-            }
-        }
-
-        default_filters = {
-            str(filter_.id): {
-                "region": ["North America"],
-                "country_name": ["United States"],
-            }
-        }
-
-        # immune to all filters
-        assert (
-            build_extra_filters(layout, filter_scopes, default_filters, treemap.id)
-            == []
-        )
-
-        # in scope
-        assert build_extra_filters(
-            layout, filter_scopes, default_filters, world.id
-        ) == [
-            {"col": "region", "op": "==", "val": "North America"},
-            {"col": "country_name", "op": "in", "val": ["United States"]},
-        ]
-
-        assert build_extra_filters(
-            layout, filter_scopes, default_filters, box_plot.id
-        ) == [{"col": "region", "op": "==", "val": "North America"}]
-
     def test_merge_extra_filters_with_no_extras(self):
         form_data = {
             "time_range": "Last 10 days",
