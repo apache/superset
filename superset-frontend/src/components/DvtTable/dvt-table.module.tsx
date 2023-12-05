@@ -45,6 +45,10 @@ const StyledTable = styled.div`
     height: 24px;
     width: 24px;
   }
+  .css-ov1ktg {
+    display: inline-flex;
+    margin-right: 24px;
+  }
 `;
 
 const StyledTableTable = styled.table`
