@@ -21,6 +21,20 @@ import { styled } from '@superset-ui/core';
 const StyledTable = styled.div`
   background: ${({ theme }) => theme.colors.dvt.grayscale.light2};
   padding: 32px;
+  .ant-checkbox-indeterminate .ant-checkbox-inner::after {
+    display: none;
+  }
+
+  .ant-checkbox-checked .ant-checkbox-inner {
+    position: relative;
+    background-color: ${({ theme }) => theme.colors.dvt.primary.base};
+    border-color: ${({ theme }) => theme.colors.dvt.primary.base};
+    overflow: hidden;
+  }
+
+  .ant-checkbox-checked .ant-checkbox-inner::after {
+    top: -8px;
+  }
 `;
 
 const StyledTableTable = styled.table`

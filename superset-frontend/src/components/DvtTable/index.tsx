@@ -17,9 +17,13 @@
  * under the License.
  */
 import React, { useState } from 'react';
+import type { CheckboxChangeEvent } from 'antd/es/checkbox';
+import type { CheckboxValueType } from 'antd/es/checkbox/Group';
 import { SupersetTheme, supersetTheme } from '@superset-ui/core';
 import { FolderOutlined, HeartOutlined } from '@ant-design/icons';
 import DvtPagination from '../DvtPagination';
+import Icon from '../Icons/Icon';
+import { Checkbox } from 'antd';
 import {
   StyledTable,
   StyledTableTable,
@@ -32,7 +36,6 @@ import {
   StyledTableTitle,
   StyledTableIcon,
 } from './dvt-table.module';
-import Icon from '../Icons/Icon';
 
 export interface DvtTableProps {
   data: any[];
@@ -45,6 +48,7 @@ export interface DvtTableProps {
     flex?: number;
     clicks?: [];
     showHover?: boolean;
+    checkbox?: boolean;
   }[];
   onRowClick?: (row: any) => void;
   itemsPerPage?: number;
@@ -97,6 +101,23 @@ const DvtTable: React.FC<DvtTableProps> = ({
 
   const columnsWithDefaults = 100 / totalFlex;
 
+  const plainOptions = data.map((_, index) => ({
+    label: `${index + 1}`,
+    value: index,
+  }));
+  const defaultCheckedList: CheckboxValueType[] = [];
+  const [checkedList, setCheckedList] =
+    useState<CheckboxValueType[]>(defaultCheckedList);
+
+  const checkAll = plainOptions.length === checkedList.length;
+  const indeterminate =
+    checkedList.length > 0 && checkedList.length < plainOptions.length;
+
+  const onCheckAllChange = (e: CheckboxChangeEvent) => {
+    setCheckedList(
+      e.target.checked ? plainOptions.map(option => option.value) : [],
+    );
+  };
   return (
     <StyledTable>
       <StyledTableTable>
@@ -107,6 +128,13 @@ const DvtTable: React.FC<DvtTableProps> = ({
                 key={columnIndex}
                 flex={(column.flex || 1) * columnsWithDefaults}
               >
+                {column.checkbox && (
+                  <Checkbox
+                    indeterminate={indeterminate}
+                    onChange={onCheckAllChange}
+                    checked={checkAll}
+                  />
+                )}
                 {column.title}
               </StyledTableTh>
             ))}
@@ -126,6 +154,17 @@ const DvtTable: React.FC<DvtTableProps> = ({
                   $onLink={column.onLink || false}
                 >
                   <StyledTableIcon>
+                    {column.checkbox && columnIndex === 0 && (
+                      <Checkbox
+                        checked={checkedList.includes(rowIndex)}
+                        onChange={e => {
+                          const checkedRows = e.target.checked
+                            ? [...checkedList, rowIndex]
+                            : checkedList.filter(item => item !== rowIndex);
+                          setCheckedList(checkedRows);
+                        }}
+                      />
+                    )}
                     {column.folderIcon && (
                       <FolderOutlined
                         css={(theme: SupersetTheme) => ({
