@@ -78,7 +78,7 @@ const StyledSelectSelect = styled.div<StyledSelectProps>`
 `;
 
 const StyledSelectLabel = styled.label<StyledSelectLabelProps>`
-  margin-bottom: ${({ typeDesign }) => (typeDesign === 'form' ? '0' : '13px')};
+  margin-left: ${({ typeDesign }) => (typeDesign === 'form' ? '0' : '13px')};
   font-weight: 600;
   color: ${({ typeDesign, theme }) =>
     typeDesign === 'form'
