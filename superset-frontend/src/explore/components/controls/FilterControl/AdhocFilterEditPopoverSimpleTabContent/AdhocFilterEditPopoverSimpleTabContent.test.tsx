@@ -396,9 +396,8 @@ describe('AdhocFilterEditPopoverSimpleTabContent Advanced data Type Test', () =>
     });
   };
 
-  let isFeatureEnabledMock: any;
   beforeEach(async () => {
-    isFeatureEnabledMock = jest
+    jest
       .spyOn(uiCore, 'isFeatureEnabled')
       .mockImplementation(
         (featureFlag: FeatureFlag) =>
@@ -407,7 +406,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent Advanced data Type Test', () =>
   });
 
   afterAll(() => {
-    isFeatureEnabledMock.restore();
+    jest.restoreAllMocks();
   });
 
   it('should not call API when column has no advanced data type', async () => {

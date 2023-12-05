@@ -28,14 +28,16 @@ afterAll(() => {
 
 test('calling: "NOT_SCROLL_TOP" ,"SCROLL_TOP", "NOT_SCROLL_TOP"', () => {
   window.scroll = jest.fn();
+  const clearIntervalSpy = jest.spyOn(global, 'clearInterval');
   document.documentElement.scrollTop = 500;
 
   handleScroll('NOT_SCROLL_TOP');
 
-  expect(clearInterval).not.toBeCalled();
+  expect(clearIntervalSpy).not.toBeCalled();
 
   handleScroll('SCROLL_TOP');
 
   handleScroll('NOT_SCROLL_TOP');
-  expect(clearInterval).toHaveBeenCalledWith(expect.any(Number));
+  expect(clearIntervalSpy).toHaveBeenCalledWith(expect.any(Number));
+  clearIntervalSpy.mockRestore();
 });

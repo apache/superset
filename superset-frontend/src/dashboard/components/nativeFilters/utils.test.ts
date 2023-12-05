@@ -21,19 +21,14 @@ import * as uiCore from '@superset-ui/core';
 import { DashboardLayout } from 'src/dashboard/types';
 import { nativeFilterGate, findTabsWithChartsInScope } from './utils';
 
-let isFeatureEnabledMock: jest.MockInstance<boolean, [feature: FeatureFlag]>;
-
 describe('nativeFilterGate', () => {
   describe('with all feature flags disabled', () => {
     beforeAll(() => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation(() => false);
+      jest.spyOn(uiCore, 'isFeatureEnabled').mockImplementation(() => false);
     });
 
     afterAll(() => {
-      // @ts-ignore
-      isFeatureEnabledMock.restore();
+      jest.restoreAllMocks();
     });
 
     it('should return true for regular chart', () => {
@@ -57,7 +52,7 @@ describe('nativeFilterGate', () => {
 
   describe('with only native filters feature flag enabled', () => {
     beforeAll(() => {
-      isFeatureEnabledMock = jest
+      jest
         .spyOn(uiCore, 'isFeatureEnabled')
         .mockImplementation(
           (featureFlag: FeatureFlag) =>
@@ -66,8 +61,7 @@ describe('nativeFilterGate', () => {
     });
 
     afterAll(() => {
-      // @ts-ignore
-      isFeatureEnabledMock.restore();
+      jest.restoreAllMocks();
     });
 
     it('should return true for regular chart', () => {
@@ -91,7 +85,7 @@ describe('nativeFilterGate', () => {
 
   describe('with native filters and experimental feature flag enabled', () => {
     beforeAll(() => {
-      isFeatureEnabledMock = jest
+      jest
         .spyOn(uiCore, 'isFeatureEnabled')
         .mockImplementation((featureFlag: FeatureFlag) =>
           [
@@ -102,8 +96,7 @@ describe('nativeFilterGate', () => {
     });
 
     afterAll(() => {
-      // @ts-ignore
-      isFeatureEnabledMock.restore();
+      jest.restoreAllMocks();
     });
 
     it('should return true for regular chart', () => {
