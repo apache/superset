@@ -26,8 +26,10 @@ export default {
 } as Meta;
 
 export const Default = (args: DvtListProps) => (
-  <div style={{ width: '250px', backgroundColor: '#B8C1CC', padding: '20px' }}>
-    <DvtList {...args} />
+  <div style={{ backgroundColor: '#B8C1CC', padding: '20px' }}>
+    <div style={{ width: '250px' }}>
+      <DvtList {...args} />
+    </div>
   </div>
 );
 
@@ -46,8 +48,10 @@ Default.args = {
 };
 
 export const Scroll = (args: DvtListProps) => (
-  <div style={{ width: '250px', backgroundColor: '#B8C1CC', padding: '20px' }}>
-    <DvtList {...args} />
+  <div style={{ backgroundColor: '#B8C1CC', padding: '20px' }}>
+    <div style={{ width: '250px' }}>
+      <DvtList {...args} />
+    </div>
   </div>
 );
 

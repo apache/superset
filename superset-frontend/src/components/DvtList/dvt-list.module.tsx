@@ -25,6 +25,7 @@ const StyledDvtList = styled.div`
   border-radius: 12px;
   background-color: ${({ theme }) => theme.colors.dvt.grayscale.light2};
   height: 734px;
+  padding: 16px 20px;
 `;
 
 const StyledDvtListLabel = styled.div`
@@ -32,8 +33,7 @@ const StyledDvtListLabel = styled.div`
   letter-spacing: 0.2px;
   font-weight: bold;
   font-size: 12px;
-  padding-top: 10px;
-  line-height: 14.63px;
+  margin-bottom: 11px;
   color: ${({ theme }) => theme.colors.grayscale.dark2};
 `;
 
@@ -41,12 +41,12 @@ const StyledDvtListScroll = styled.div`
   display: flex;
   overflow-y: auto;
   flex-direction: column;
-  
+  padding-right: 10px;
+
   &::-webkit-scrollbar {
     background-color: ${({ theme }) => theme.colors.dvt.grayscale.light1};
     width: 6px;
     border-radius: 12px;
-
   }
   &::-webkit-scrollbar-thumb {
     background-color: ${({ theme }) => theme.colors.dvt.grayscale.base};
@@ -58,7 +58,6 @@ const StyledDvtListScroll = styled.div`
 const StyledDvtListItem = styled.div`
   display: flex;
   justify-content: space-between;
-  margin-right: 8px;
 `;
 
 export {
