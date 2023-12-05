@@ -117,7 +117,7 @@ class TagRestApi(BaseSupersetModelRestApi):
     related_field_filters = {
         "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
-    allowed_rel_fields = {"created_by"}
+    allowed_rel_fields = {"created_by", "changed_by"}
 
     add_model_schema = TagPostSchema()
     edit_model_schema = TagPutSchema()
