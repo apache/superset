@@ -121,6 +121,10 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
             ['2 years ago', t('2 years ago')],
             ['156 weeks ago', t('156 weeks ago')],
             ['3 years ago', t('3 years ago')],
+            ['208 weeks ago', t('208 weeks ago')],
+            ['4 years ago', t('4 years ago')],
+            ['261 weeks ago', t('261 weeks ago')],
+            ['5 years ago', t('5 years ago')],
           ],
           description: t(
             'Overlay one or more timeseries from a ' +
