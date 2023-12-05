@@ -20,7 +20,6 @@ import os
 from typing import Optional
 
 from flask import Flask
-import newrelic.agent
 
 from superset.initialization import SupersetAppInitializer
 
@@ -29,6 +28,8 @@ logger = logging.getLogger(__name__)
 
 def create_app(superset_config_module: Optional[str] = None) -> Flask:
     app = SupersetApp(__name__)
+
+    import newrelic.agent
     app = newrelic.agent.wsgi_application()(app)
 
     try:
