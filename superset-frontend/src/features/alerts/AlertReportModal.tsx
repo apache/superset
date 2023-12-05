@@ -67,7 +67,6 @@ import {
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import Collapse from 'src/components/Collapse';
-import { AlertReportCronScheduler } from './components/OldAlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
 import StyledPanel from './components/StyledPanel';
 import ValidatedPanelHeader from './components/ValidatedPanelHeader';
