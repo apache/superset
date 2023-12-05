@@ -30,6 +30,10 @@ def create_app(superset_config_module: Optional[str] = None) -> Flask:
     app = SupersetApp(__name__)
 
     import newrelic.agent
+    import os
+    newrelic.agent.initialize(
+        os.path.dirname(os.path.realpath(__file__)) + '/newrelic.ini'
+    )
     app = newrelic.agent.wsgi_application()(app)
 
     try:
