@@ -21,8 +21,6 @@ import { styled } from '@superset-ui/core';
 const StyledNavigationBar = styled.div`
   display: flex;
   flex-direction: column;
-  width: 250px;
-  margin-bottom: 52px;
   gap: 32px;
 `;
 
