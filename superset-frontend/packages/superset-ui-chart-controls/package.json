@@ -31,7 +31,7 @@
     "prop-types": "^15.7.2"
   },
   "peerDependencies": {
-    "@ant-design/icons": "^5.0.0",
+    "@ant-design/icons": "^5.0.1",
     "@emotion/react": "^11.4.1",
     "@superset-ui/core": "*",
     "@testing-library/dom": "^7.29.4",
