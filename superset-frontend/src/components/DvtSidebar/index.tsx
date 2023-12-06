@@ -66,10 +66,7 @@ const DvtSidebar: React.FC = () => {
                 sidebarDataFindPathname[0]?.data[0]?.folderNavigationData[0]
                   ?.title
               }
-              onClick={
-                sidebarDataFindPathname[0]?.data[0]?.folderNavigationData[0]
-                  ?.onClick
-              }
+              onClick={() => {}}
             />
             <DvtFolderNavigation
               data={
@@ -81,7 +78,7 @@ const DvtSidebar: React.FC = () => {
           <StyledDvtSidebarBodyItem>
             <DvtTitlePlus
               title={sidebarDataFindPathname[0]?.data[0]?.items[0]?.title}
-              onClick={sidebarDataFindPathname[0]?.data[0]?.items[0]?.onClick}
+              onClick={() => {}}
             />
           </StyledDvtSidebarBodyItem>
         </StyledDvtSidebarBody>

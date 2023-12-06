@@ -43,7 +43,6 @@ const DvtSidebarData: SidebarDataProps[] = [
         folderNavigationData: [
           {
             title: 'my folder',
-            onClick: () => { },
             data: [
               {
                 name: 'Dnext',
@@ -56,13 +55,12 @@ const DvtSidebarData: SidebarDataProps[] = [
                       {
                         name: 'Report 1',
                         url: '/dashboard/1/report/1',
-                        data: []
+                        data: [],
                       },
                       {
                         name: 'Report 2',
                         url: '/dashboard/1/report/2',
-                        data: []
-
+                        data: [],
                       },
                     ],
                   },
@@ -89,14 +87,11 @@ const DvtSidebarData: SidebarDataProps[] = [
         items: [
           {
             title: 'shared folder',
-            onClick: () => { },
           },
         ],
       },
     ],
   },
-
-
   {
     pathname: '/dataset/add/',
     data: [
@@ -116,7 +111,7 @@ const DvtSidebarData: SidebarDataProps[] = [
               { label: 'Failed', value: 'failed' },
               { label: 'Success', value: 'success' },
             ],
-            placeholder: 'Select or type a value'
+            placeholder: 'Select or type a value',
           },
           {
             label: 'Status',
@@ -124,7 +119,7 @@ const DvtSidebarData: SidebarDataProps[] = [
               { label: 'Failed', value: 'failed' },
               { label: 'Success', value: 'success' },
             ],
-            placeholder: 'Select or type a value'
+            placeholder: 'Select or type a value',
           },
           {
             label: 'Search',
@@ -132,7 +127,7 @@ const DvtSidebarData: SidebarDataProps[] = [
               { label: 'Failed', value: 'failed' },
               { label: 'Success', value: 'success' },
             ],
-            placeholder: 'Type a value'
+            placeholder: 'Type a value',
           },
         ],
       },
@@ -178,12 +173,12 @@ const DvtSidebarData: SidebarDataProps[] = [
         itemsLogout: [
           {
             icon: 'dvt-logout',
-            label: 'Log Out'
-          }
+            label: 'Log Out',
+          },
         ],
       },
     ],
-  }
+  },
 ];
 
 export default DvtSidebarData;
