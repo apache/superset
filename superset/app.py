@@ -26,14 +26,15 @@ from superset.initialization import SupersetAppInitializer
 logger = logging.getLogger(__name__)
 
 
-def create_app(superset_config_module: Optional[str] = None) -> Flask:
+def create_app(superset_config_module: Optional[str] = None, **kwargs) -> Flask:
     app = SupersetApp(__name__)
 
-    import newrelic.agent
-    newrelic.agent.initialize(
-        os.path.dirname(os.path.realpath(__file__)) + '/newrelic.ini'
-    )
-    app = newrelic.agent.wsgi_application()(app)
+    if kwargs.get('initialize_newrelic', True):
+        import newrelic.agent
+        newrelic.agent.initialize(
+            os.path.dirname(os.path.realpath(__file__)) + '/newrelic.ini'
+        )
+        app = newrelic.agent.wsgi_application()(app)
 
     try:
         # Allow user to override our config completely
