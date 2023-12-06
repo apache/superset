@@ -22,6 +22,7 @@ under the License.
 - [3.0.2](#302-mon-nov-20-073838-2023--0500)
 - [3.0.1](#301-tue-oct-13-103221-2023--0700)
 - [3.0.0](#300-thu-aug-24-133627-2023--0600)
+- [2.1.2](#212-wed-oct-18-165930-2023--0700)
 - [2.1.1](#211-sun-apr-23-154421-2023-0100)
 - [2.1.0](#210-thu-mar-16-211305-2023--0700)
 - [2.0.1](#201-fri-nov-4-103402-2022--0400)
@@ -902,6 +903,24 @@ under the License.
 - [#23144](https://github.com/apache/superset/pull/23144) chore: revert "feat(native_filter_migration): add transition mode (#16992)" (@john-bodley)
 - [#23158](https://github.com/apache/superset/pull/23158) chore: Bump cryptography to 39.0.1 (@EugeneTorap)
 - [#23108](https://github.com/apache/superset/pull/23108) chore: Remove yarn.lock from the root folder (@EugeneTorap)
+
+### 2.1.2 (Wed Oct 18 16:59:30 2023 -0700)
+**Database Migrations**
+
+**Features**
+
+**Fixes**
+- [#25150](https://github.com/apache/superset/pull/25150) fix: Chart series limit doesn't work for some databases (@KSPT-taylorjohn)
+- [#25014](https://github.com/apache/superset/pull/25014) fix: CTE queries with non-SELECT statements (@dpgaspar)
+- [#24849](https://github.com/apache/superset/pull/24849) fix: validation errors appearing after ssh tunnel switch (@hughhhh)
+- [#24196](https://github.com/apache/superset/pull/24196) fix: SSH Tunnel creation with dynamic form (@hughhhh)
+- [#24821](https://github.com/apache/superset/pull/24821) fix: Allow chart import to update the dataset an existing chart points to (@jfrag1)
+- [#24317](https://github.com/apache/superset/pull/24317) fix: update order of build for testing a release (@eschutho)
+
+**Others**
+- [#24826](https://github.com/apache/superset/pull/24826) chore: remove CssTemplate and Annotation access from gamma role (@lilykuang)
+- [#23680](https://github.com/apache/superset/pull/23680) chore: bump wtforms and add missing flask-limiter (@dpgaspar)
+- [#24758](https://github.com/apache/superset/pull/24758) chore(view_api): return application/json as content-type for api/v1/form_data endpoint (@zephyring)
 
 ### 2.1.1 (Sun Apr 23 15:44:21 2023 +0100)
 
