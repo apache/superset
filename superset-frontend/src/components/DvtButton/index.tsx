@@ -44,26 +44,16 @@ const DvtButton: React.FC<DvtButtonProps> = ({
   bold = false,
 }) => (
   <StyledDvtButton
-    $label={label}
     $size={size}
     $maxWidth={maxWidth}
     $colour={colour}
     $typeColour={typeColour}
     onClick={onClick}
     $bold={bold}
+    $iconToRight={iconToRight}
   >
-    {iconToRight && (
-      <>
-        {label}
-        {icon && <Icon fileName={icon} iconSize="l" />}
-      </>
-    )}
-    {!iconToRight && (
-      <>
-        {icon && <Icon fileName={icon} iconSize="l" />}
-        {label}
-      </>
-    )}
+    {label}
+    {icon && <Icon fileName={icon} iconSize="l" />}
   </StyledDvtButton>
 );
 
