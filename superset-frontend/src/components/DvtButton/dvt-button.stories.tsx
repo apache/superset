@@ -41,7 +41,7 @@ export default {
     colour: {
       control: {
         type: 'select',
-        options: ['primary', 'success', 'grayscale'],
+        options: ['primary', 'success', 'grayscale', 'error'],
       },
     },
     typeColour: {
@@ -91,6 +91,13 @@ Grayscale.args = {
   label: 'Mine',
   colour: 'grayscale',
 };
+
+export const Error = (args: DvtButtonProps) => <DvtButton {...args} />;
+Error.args = {
+  label: 'Error/Delete',
+  colour: 'error',
+};
+
 export const MaxWidth = (args: DvtButtonProps) => <DvtButton {...args} />;
 MaxWidth.args = {
   label: 'Create a New Graph/Chart',
@@ -105,4 +112,17 @@ Large.args = {
   colour: 'primary',
   typeColour: 'basic',
   size: 'large',
+};
+
+export const iconToLeft = (args: DvtButtonProps) => <DvtButton {...args} />;
+iconToLeft.args = {
+  label: 'iconToLeft',
+  icon:'dvt-folder',
+  iconToLeft: true,
+};
+
+export const Bold = (args: DvtButtonProps) => <DvtButton {...args} />;
+Bold.args = {
+  label: 'Bold',
+  bold: true,
 };

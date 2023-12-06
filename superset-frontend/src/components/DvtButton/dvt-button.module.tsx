@@ -21,9 +21,11 @@ import { styled } from '@superset-ui/core';
 interface DvtButtonProps {
   $label?: string;
   $size: 'small' | 'medium' | 'large';
-  $colour: 'primary' | 'success' | 'grayscale';
+  $colour: 'primary' | 'success' | 'grayscale' | 'error';
   $typeColour: 'basic' | 'powder' | 'outline';
   $maxWidth?: boolean;
+  $iconToLeft?: boolean;
+  $bold?: boolean;
 }
 
 interface SizeProps {
@@ -62,7 +64,7 @@ const StyledDvtButton = styled.button<DvtButtonProps>`
   padding: 0 12px;
   border-radius: 8px;
   border: none;
-  ${({ $typeColour, $colour, theme }) => {
+  ${({ $typeColour, $colour, $bold, theme }) => {
     const colourFinder = {
       primary: {
         basic: 'base',
@@ -75,6 +77,10 @@ const StyledDvtButton = styled.button<DvtButtonProps>`
       grayscale: {
         basic: 'base',
         powder: 'light2',
+      },
+      error: {
+        basic: 'base',
+        powder: 'light1',
       },
     };
 
@@ -91,6 +97,10 @@ const StyledDvtButton = styled.button<DvtButtonProps>`
         powder: 'base',
         outline: 'base',
       },
+      error: {
+        powder: 'base',
+        outline: 'base',
+      },
     };
 
     return `
@@ -104,6 +114,7 @@ const StyledDvtButton = styled.button<DvtButtonProps>`
           ? theme.colors.grayscale.light5
           : theme.colors.dvt[$colour][colourFinderColor[$colour][$typeColour]]
       };
+      ${$bold ? 'font-weight: bold;' : ''}
     `;
   }};
 `;
