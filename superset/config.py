@@ -788,7 +788,20 @@ EXCEL_EXPORT = {"encoding": "utf-8"}
 # time grains in superset/db_engine_specs/base.py).
 # For example: to disable 1 second time grain:
 # TIME_GRAIN_DENYLIST = ['PT1S']
-TIME_GRAIN_DENYLIST: list[str] = []
+TIME_GRAIN_DENYLIST: list[str] = [
+    'PT1S',
+    'PT5S',
+    'PT30S',
+    'PT1M',
+    'PT5M',
+    'PT10M',
+    'PT15M',
+    'PT30M',
+    'PT6H',
+    'P1W',
+    "P1W/1970-01-03T00:00:00Z",
+    "P1W/1970-01-04T00:00:00Z"
+]
 
 # Additional time grains to be supported using similar definitions as in
 # superset/db_engine_specs/base.py.
