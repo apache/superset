@@ -32,5 +32,4 @@ gunicorn \
     --max-requests-jitter ${WORKER_MAX_REQUESTS_JITTER:-0} \
     --limit-request-line ${SERVER_LIMIT_REQUEST_LINE:-0} \
     --limit-request-field_size ${SERVER_LIMIT_REQUEST_FIELD_SIZE:-0} \
-    --log-level "${GUNICORN_LOGLEVEL:-error}" \
     "${FLASK_APP}"
