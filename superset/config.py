@@ -390,7 +390,11 @@ class D3Format(TypedDict, total=False):
 
 D3_FORMAT: D3Format = {}
 
-CURRENCIES = ["USD", "EUR", "GBP", "INR", "MXN", "JPY", "CNY"]
+CURRENCIES = [
+    "USD",
+    "RUB",
+    "EUR",
+]
 
 # ---------------------------------------------------
 # Feature flags
