@@ -17,44 +17,41 @@
  * under the License.
  */
 import React from 'react';
-import { StyledDvtButton } from './dvt-button.module';
-import Icon from '../Icons/Icon';
+import DvtNavigationBarItem from '../DvtNavigationBarItem';
+import { StyledNavigationBar } from './dvt-navigation-bar.module';
 
-export interface DvtButtonProps {
+interface DataProps {
+  icon: string;
   label: string;
-  icon?: string;
-  size?: 'small' | 'medium' | 'large';
-  onClick: () => void;
-  colour?: 'primary' | 'success' | 'grayscale' | 'error';
-  typeColour?: 'basic' | 'powder' | 'outline';
-  maxWidth?: boolean;
-  iconToRight?: boolean;
-  bold?: boolean;
+  url?: string;
 }
 
-const DvtButton: React.FC<DvtButtonProps> = ({
-  label,
-  icon,
-  size = 'medium',
-  onClick,
-  colour = 'primary',
-  typeColour = 'basic',
-  maxWidth = false,
-  iconToRight = false,
-  bold = false,
+export interface DvtNavigationBarProps {
+  data: DataProps[];
+  active?: string;
+  setActive?: (newUrl: string) => void;
+}
+
+const DvtNavigationBar: React.FC<DvtNavigationBarProps> = ({
+  data,
+  active,
+  setActive,
 }) => (
-  <StyledDvtButton
-    $size={size}
-    $maxWidth={maxWidth}
-    $colour={colour}
-    $typeColour={typeColour}
-    onClick={onClick}
-    $bold={bold}
-    $iconToRight={iconToRight}
-  >
-    {label}
-    {icon && <Icon fileName={icon} iconSize="l" />}
-  </StyledDvtButton>
+  <StyledNavigationBar>
+    {data.map((item, index) => (
+      <DvtNavigationBarItem
+        key={index}
+        icon={item.icon}
+        label={item.label}
+        onClick={() => {
+          if (item.url) {
+            setActive?.(item.url);
+          }
+        }}
+        active={item.url ? item.url === active : false}
+      />
+    ))}
+  </StyledNavigationBar>
 );
 
-export default DvtButton;
+export default DvtNavigationBar;

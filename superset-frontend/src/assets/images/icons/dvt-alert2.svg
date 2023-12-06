@@ -1,0 +1,21 @@
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one
+  or more contributor license agreements.  See the NOTICE file
+  distributed with this work for additional information
+  regarding copyright ownership.  The ASF licenses this file
+  to you under the Apache License, Version 2.0 (the
+  "License"); you may not use this file except in compliance
+  with the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="24px" height="24px" viewBox="0 0 24 24" version="1.1">
+<path stroke="currentColor" style="fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1;stroke-miterlimit:4;" d="M 12 7.75 L 12 13 M 21.082031 8.578125 L 21.082031 15.421875 C 21.082031 16.539062 20.480469 17.578125 19.511719 18.148438 L 13.570312 21.578125 C 12.601562 22.140625 11.398438 22.140625 10.421875 21.578125 L 4.480469 18.148438 C 3.511719 17.589844 2.910156 16.550781 2.910156 15.421875 L 2.910156 8.578125 C 2.910156 7.460938 3.511719 6.421875 4.480469 5.851562 L 10.421875 2.421875 C 11.390625 1.859375 12.589844 1.859375 13.570312 2.421875 L 19.511719 5.851562 C 20.480469 6.421875 21.082031 7.449219 21.082031 8.578125 Z M 21.082031 8.578125 M 12 16.199219 L 12 16.300781"/>
+</svg>

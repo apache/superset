@@ -43,6 +43,12 @@ import { store } from 'src/views/dvt-store';
 import { DvtRootContextProviders } from './DvtRootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
 
+const StyledApp = styled.div`
+  margin-left: 250px;
+  background-color: ${({ theme }) => theme.colors.dvt.grayscale.light2};
+  height: 100vh;
+`;
+
 const Main = styled.main`
   flex: 1;
   padding: 25px;
@@ -91,23 +97,27 @@ const DvtApp = () => (
     <ScrollToTop />
     <LocationPathnameLogger />
     <DvtRootContextProviders>
-      <GlobalStyles />
-      <DvtSidebar data={[]} isFrontendRoute={isFrontendRoute} />
-      <DvtNavbar />
-      <Main>
-        <Switch>
-          {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
-            <Route path={path} key={path}>
-              <Suspense fallback={<Fallback />}>
-                <ErrorBoundary>
-                  <Component user={bootstrapData.user} {...props} />
-                </ErrorBoundary>
-              </Suspense>
-            </Route>
-          ))}
-        </Switch>
-      </Main>
-      <ToastContainer />
+      <StyledApp>
+        <GlobalStyles />
+        <DvtSidebar data={[]} isFrontendRoute={isFrontendRoute} />
+        <DvtNavbar />
+        <Main>
+          <Switch>
+            {routes.map(
+              ({ path, Component, props = {}, Fallback = Loading }) => (
+                <Route path={path} key={path}>
+                  <Suspense fallback={<Fallback />}>
+                    <ErrorBoundary>
+                      <Component user={bootstrapData.user} {...props} />
+                    </ErrorBoundary>
+                  </Suspense>
+                </Route>
+              ),
+            )}
+          </Switch>
+        </Main>
+        <ToastContainer />
+      </StyledApp>
     </DvtRootContextProviders>
   </Router>
 );

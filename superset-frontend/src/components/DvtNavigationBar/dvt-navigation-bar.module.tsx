@@ -16,32 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// Index .less, any imports here will be included in the final css build
+import { styled } from '@superset-ui/core';
 
-@import '~bootstrap/less/bootstrap.less';
-@import './fonts.less';
-@import './variables.less';
-@import './cosmo/bootswatch.less';
-
-html,
-body {
-  font-size: @font-size-base;
-  line-height: @line-height-base;
-}
-
-body {
-  min-height: 100vh;
+const StyledNavigationBar = styled.div`
   display: flex;
   flex-direction: column;
-}
+  width: 250px;
+  margin-bottom: 52px;
+  gap: 32px;
+`;
 
-header {
-  flex: 0 1 auto;
-}
-
-#app {
-  flex: 1 1 auto;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-}
+export { StyledNavigationBar };

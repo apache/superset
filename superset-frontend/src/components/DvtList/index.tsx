@@ -16,12 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import React from 'react';
+import {
+  StyledDvtList,
+  StyledDvtListItem,
+  StyledDvtListLabel,
+  StyledDvtListScroll,
+} from './dvt-list.module';
 
-const StyledDvtTabs = styled.div`
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-`;
+export interface DataProps {
+  id: number;
+  title: string;
+  subtitle: string;
+}
+export interface DvtListProps {
+  title: string;
+  data: DataProps[];
+}
 
-export { StyledDvtTabs };
+const DvtList: React.FC<DvtListProps> = ({ data, title }) => (
+  <StyledDvtList>
+    <StyledDvtListLabel>{title}</StyledDvtListLabel>
+    <StyledDvtListScroll>
+      {data.map(item => (
+        <StyledDvtListItem>
+          <p>{item.title}</p>
+          <p>{item.subtitle}</p>
+        </StyledDvtListItem>
+      ))}
+    </StyledDvtListScroll>
+  </StyledDvtList>
+);
+
+export default DvtList;

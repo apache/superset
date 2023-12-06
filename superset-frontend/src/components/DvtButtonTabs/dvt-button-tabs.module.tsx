@@ -16,32 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// Index .less, any imports here will be included in the final css build
+import { styled } from '@superset-ui/core';
 
-@import '~bootstrap/less/bootstrap.less';
-@import './fonts.less';
-@import './variables.less';
-@import './cosmo/bootswatch.less';
+const StyledDvtButtonTabs = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+`;
 
-html,
-body {
-  font-size: @font-size-base;
-  line-height: @line-height-base;
-}
-
-body {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-header {
-  flex: 0 1 auto;
-}
-
-#app {
-  flex: 1 1 auto;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-}
+export { StyledDvtButtonTabs };

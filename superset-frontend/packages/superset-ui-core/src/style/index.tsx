@@ -156,6 +156,10 @@ const defaultTheme = {
       warning: {
         base: '#F6A723',
       },
+      error: {
+        base: '#F32525',
+        light1: '#fdeded',
+      },
       boxShadow: {
         base: '#0000001a',
         light2: '#00000040',
