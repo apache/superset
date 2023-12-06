@@ -114,7 +114,7 @@ const StyledDvtButton = styled.button<DvtButtonProps>`
           : theme.colors.dvt[$colour][colourFinderColor[$colour][$typeColour]]
       };
       ${$bold ? 'font-weight: bold;' : ''}
-      ${$iconToRight ? 'flex-direction: row-reverse;' : 'flex-direction: row;'}
+      ${!$iconToRight && 'flex-direction: row-reverse;'}
     `;
   }};
 `;
