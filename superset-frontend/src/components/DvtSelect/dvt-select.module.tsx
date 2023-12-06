@@ -20,12 +20,18 @@ import { keyframes, styled } from '@superset-ui/core';
 
 interface StyledSelectProps {
   isOpen: boolean;
+  typeDesign: string;
+}
+
+interface StyledSelectLabelProps {
+  typeDesign: string;
 }
 
 interface StyledSelectOptionsProps {
   isOpen: boolean;
   label: string;
   itemLength: number;
+  typeDesign: string;
 }
 
 const optionsKeyframes = keyframes`
@@ -40,9 +46,10 @@ const optionsKeyframes = keyframes`
 interface StyledSelectOptionProps {
   selectedValue: string;
   value: string;
+  typeDesign: string;
 }
 
-const StyledSelect = styled.div`
+const StyledSelect = styled.div<StyledSelectLabelProps>`
   position: relative;
   display: inline-flex;
   flex-direction: column;
@@ -52,36 +59,53 @@ const StyledSelectSelect = styled.div<StyledSelectProps>`
   position: relative;
   display: flex;
   align-items: center;
-  padding: 12px;
+  padding: ${({ typeDesign }) => (typeDesign === 'form' ? '12px 8px' : '12px')};
   width: 202px;
   height: 48px;
-  border-radius: 12px;
-  background-color: ${({ isOpen, theme }) =>
-    isOpen
+  border-radius: ${({ typeDesign }) =>
+    typeDesign === 'form' ? '4px' : '12px'};
+  background-color: ${({ isOpen, theme, typeDesign }) =>
+    typeDesign === 'form'
+      ? theme.colors.grayscale.light5
+      : isOpen
       ? theme.colors.dvt.primary.light2
       : theme.colors.dvt.grayscale.light2};
   border: none;
   appearance: none;
-  margin-bottom: 3px;
   cursor: pointer;
   color: ${({ theme }) => theme.colors.dvt.primary.light1};
   transition: background-color 0.3s ease-in-out;
 `;
 
-const StyledSelectLabel = styled.label`
-  padding-left: 13px;
+const StyledSelectLabel = styled.label<StyledSelectLabelProps>`
+  margin-left: ${({ typeDesign }) => (typeDesign === 'form' ? '0' : '13px')};
   font-weight: 600;
+  color: ${({ typeDesign, theme }) =>
+    typeDesign === 'form'
+      ? theme.colors.dvt.text.label
+      : theme.colors.grayscale.dark2};
 `;
 
 const StyledSelectOption = styled.div<StyledSelectOptionProps>`
   padding: 13px;
   cursor: pointer;
-  ${({ theme, value, selectedValue }) =>
+  ${({ theme, value, selectedValue, typeDesign }) =>
     value === selectedValue
-      ? `
+      ? typeDesign === 'form'
+        ? `
+        color: ${theme.colors.dvt.text.help};
+        background: ${theme.colors.dvt.primary.light2};
+      `
+        : `
         color: ${theme.colors.grayscale.light5};
         background: ${theme.colors.dvt.primary.light1};
       `
+      : typeDesign === 'form'
+      ? `
+        color: ${theme.colors.dvt.primary.light1};
+        background: ${theme.colors.dvt.primary.light3};
+      }
+    `
       : `
         color: ${theme.colors.dvt.primary.light1};
       }
@@ -92,13 +116,14 @@ const StyledSelectOptions = styled.div<StyledSelectOptionsProps>`
   top: ${({ label }) => (label ? '74px' : '52px')};
   left: 0;
   right: 0;
-  border-radius: ${({ itemLength }) =>
-    itemLength > 6 ? '12px 0 0 12px' : '12px'};
+  border-radius: ${({ itemLength, typeDesign }) =>
+    itemLength > 6 ? '12px 0 0 12px' : typeDesign === 'form' ? '4px' : '12px'};
   background: ${({ theme }) => theme.colors.dvt.primary.light2};
   max-height: 274px;
   overflow-y: auto;
   animation: ${optionsKeyframes} 0.3s ease-in-out;
   transform-origin: top;
+  z-index: 999;
   &::-webkit-scrollbar {
     background-color: ${({ theme }) => theme.colors.dvt.grayscale.light1};
     width: 6px;
