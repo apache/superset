@@ -24,7 +24,7 @@ interface DvtButtonProps {
   $colour: 'primary' | 'success' | 'grayscale' | 'error';
   $typeColour: 'basic' | 'powder' | 'outline';
   $maxWidth?: boolean;
-  $iconToLeft?: boolean;
+  $iconToRight?: boolean;
   $bold?: boolean;
 }
 

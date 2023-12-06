@@ -114,11 +114,11 @@ Large.args = {
   size: 'large',
 };
 
-export const iconToLeft = (args: DvtButtonProps) => <DvtButton {...args} />;
-iconToLeft.args = {
+export const iconToRight = (args: DvtButtonProps) => <DvtButton {...args} />;
+iconToRight.args = {
   label: 'iconToLeft',
   icon: 'dvt-folder',
-  iconToLeft: true,
+  iconToRight: true,
 };
 
 export const Bold = (args: DvtButtonProps) => <DvtButton {...args} />;

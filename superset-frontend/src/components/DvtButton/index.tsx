@@ -28,7 +28,7 @@ export interface DvtButtonProps {
   colour?: 'primary' | 'success' | 'grayscale' | 'error';
   typeColour?: 'basic' | 'powder' | 'outline';
   maxWidth?: boolean;
-  iconToLeft: boolean;
+  iconToRight?: boolean;
   bold?: boolean;
 }
 
@@ -40,7 +40,7 @@ const DvtButton: React.FC<DvtButtonProps> = ({
   colour = 'primary',
   typeColour = 'basic',
   maxWidth = false,
-  iconToLeft = false,
+  iconToRight = false,
   bold = false,
 }) => (
   <StyledDvtButton
@@ -52,13 +52,13 @@ const DvtButton: React.FC<DvtButtonProps> = ({
     onClick={onClick}
     $bold={bold}
   >
-    {iconToLeft && (
+    {iconToRight && (
       <>
         {label}
         {icon && <Icon fileName={icon} iconSize="l" />}
       </>
     )}
-    {!iconToLeft && (
+    {!iconToRight && (
       <>
         {icon && <Icon fileName={icon} iconSize="l" />}
         {label}
