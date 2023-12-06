@@ -21,6 +21,34 @@ import { styled } from '@superset-ui/core';
 const StyledTable = styled.div`
   background: ${({ theme }) => theme.colors.dvt.grayscale.light2};
   padding: 32px;
+  .ant-checkbox-indeterminate .ant-checkbox-inner::after {
+    display: inline-flex;
+    width: 15px;
+    height: 15px;
+    background-color: ${({ theme }) => theme.colors.dvt.primary.base};
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .ant-checkbox-checked .ant-checkbox-inner {
+    position: relative;
+    background-color: ${({ theme }) => theme.colors.dvt.primary.base};
+    border-color: ${({ theme }) => theme.colors.dvt.primary.base};
+    height: 24px;
+    width: 24px;
+  }
+
+  .ant-checkbox-checked .ant-checkbox-inner::after {
+    display: inline-flex;
+    top: 50%;
+    left: calc(50% - 4.5px);
+    width: 6px;
+    height: 11px;
+  }
+
+  .ant-checkbox-inner {
+    height: 24px;
+    width: 24px;
+  }
 `;
 
 const StyledTableTable = styled.table`
@@ -61,7 +89,8 @@ const StyledTableTh = styled.th<StyledTableThProps>`
   padding-left: 3px;
   width: ${({ flex }) => (flex ? `${flex}%` : 'auto')};
   &:first-of-type {
-    padding-left: 33px;
+    padding-left: 30px;
+    padding-right: 3px;
   }
 `;
 
@@ -94,6 +123,11 @@ const StyledTablePagination = styled.div`
   padding-top: 55px;
 `;
 
+const StyledTableCheckbox = styled.div`
+  display: inline-flex;
+  margin-right: 24px;
+`;
+
 export {
   StyledTable,
   StyledTableTable,
@@ -105,4 +139,5 @@ export {
   StyledTablePagination,
   StyledTableTitle,
   StyledTableIcon,
+  StyledTableCheckbox,
 };
