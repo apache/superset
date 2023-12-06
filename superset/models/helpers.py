@@ -813,7 +813,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         self,
         template_processor: Optional[  # pylint: disable=unused-argument
             BaseTemplateProcessor
-        ] = None,  # pylint: disable=unused-argument
+        ] = None,
     ) -> TextClause:
         return self.fetch_values_predicate
 
