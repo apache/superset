@@ -63,7 +63,7 @@ spec:
               name: {{ tpl .Values.envFromSecret . }}
           {{- range .Values.envFromSecrets }}
           - secretRef:
-              name: {{ tpl . $ }}
+              name: {{ tpl . $ | quote }}
           {{- end }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         {{- if .Values.init.containerSecurityContext }}
