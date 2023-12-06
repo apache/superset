@@ -279,20 +279,12 @@ test('should compile AA in query B', () => {
 });
 
 test('should convert a queryObject with x-axis although FF is disabled', () => {
-  let windowSpy: any;
-
-  beforeAll(() => {
-    // @ts-ignore
-    windowSpy = jest.spyOn(window, 'window', 'get').mockImplementation(() => ({
-      featureFlags: {
-        GENERIC_CHART_AXES: false,
-      },
-    }));
-  });
-
-  afterAll(() => {
-    windowSpy.mockRestore();
-  });
+  // @ts-ignore
+  jest.spyOn(window, 'window', 'get').mockImplementation(() => ({
+    featureFlags: {
+      GENERIC_CHART_AXES: false,
+    },
+  }));
 
   const { queries } = buildQuery({
     ...formDataMixedChart,
@@ -397,6 +389,7 @@ test('should convert a queryObject with x-axis although FF is disabled', () => {
       ],
     }),
   );
+  jest.restoreAllMocks();
 });
 
 test("shouldn't convert a queryObject with axis although FF is enabled", () => {

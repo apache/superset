@@ -271,7 +271,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
 
   refreshAceEditor() {
     setTimeout(() => {
-      if (this.aceEditorRef) {
+      if (this.aceEditorRef?.editor) {
         this.aceEditorRef.editor.resize();
       }
     }, 0);
