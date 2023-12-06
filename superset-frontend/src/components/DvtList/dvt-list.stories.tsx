@@ -34,6 +34,7 @@ export const Default = (args: DvtListProps) => (
 );
 
 Default.args = {
+  title: 'FFC 2019 Survey',
   data: [
     { id: 1, title: 'table_schema_id', subtitle: 'integer' },
     { id: 2, title: 'table_schema_title', subtitle: 'string' },
@@ -56,6 +57,7 @@ export const Scroll = (args: DvtListProps) => (
 );
 
 Scroll.args = {
+  title: 'FFC 2019 Survey',
   data: [
     { id: 1, title: 'table_schema_id', subtitle: 'integer' },
     { id: 2, title: 'table_schema_title', subtitle: 'string' },
