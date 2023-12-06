@@ -60,6 +60,7 @@ export interface DvtTableProps {
   pagination?: boolean;
   selected?: any[];
   setSelected?: (newSelected: any[]) => void;
+  checkboxActiveField?:string;
 }
 
 const DvtTable: React.FC<DvtTableProps> = ({
@@ -72,6 +73,7 @@ const DvtTable: React.FC<DvtTableProps> = ({
   pagination = false,
   selected = [],
   setSelected = () => {},
+  checkboxActiveField='id'
 }) => {
   const itemsPerPageValue = itemsPerPage;
   const indexOfLastItem = page * itemsPerPageValue;
@@ -157,11 +159,11 @@ const DvtTable: React.FC<DvtTableProps> = ({
                     {column.checkbox && columnIndex === 0 && (
                       <StyledTableCheckbox>
                         <Checkbox
-                          checked={selected.some(item => item.id === row.id)}
+                          checked={selected.some(item => item[checkboxActiveField] === row[checkboxActiveField])}
                           onChange={e => {
                             const checkedRows = e.target.checked
                               ? [...selected, row]
-                              : selected.filter(item => item.id !== row.id);
+                              : selected.filter(item => item[checkboxActiveField] !== row[checkboxActiveField]);
                             setSelected(checkedRows);
                           }}
                         />
