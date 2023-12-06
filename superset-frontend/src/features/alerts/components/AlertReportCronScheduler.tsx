@@ -40,7 +40,7 @@ const SCHEDULE_TYPE_OPTIONS = [
   },
 ];
 
-export const AlertReportCronSchedulerTest: React.FC<AlertReportCronSchedulerProps> =
+export const AlertReportCronScheduler: React.FC<AlertReportCronSchedulerProps> =
   ({ value, onChange }) => {
     const theme = useTheme();
     const inputRef = useRef<AntdInput>(null);
