@@ -31,12 +31,10 @@ import {
   SupersetClient,
   SupersetTheme,
   t,
-  supersetTheme,
 } from '@superset-ui/core';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
-import Icons from 'src/components/Icons';
 import { Input } from 'src/components/Input';
 import { Switch } from 'src/components/Switch';
 import Modal from 'src/components/Modal';
