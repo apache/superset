@@ -1,4 +1,5 @@
 /**
+
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -146,7 +147,7 @@ describe('with native filters feature flag disabled', () => {
 
   afterAll(() => {
     // @ts-ignore
-    isFeatureEnabledMock.restore();
+    isFeatureEnabledMock.mockRestore();
   });
 
   it('should render filter mapping in edit mode if explicit filter scopes undefined', async () => {
@@ -172,7 +173,7 @@ describe('with native filters feature flag enabled', () => {
 
   afterAll(() => {
     // @ts-ignore
-    isFeatureEnabledMock.restore();
+    isFeatureEnabledMock.mockRestore();
   });
 
   it('should not render filter mapping in edit mode if explicit filter scopes undefined', async () => {

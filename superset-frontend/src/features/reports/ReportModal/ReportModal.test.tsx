@@ -66,7 +66,7 @@ describe('Email Report Modal', () => {
 
   afterAll(() => {
     // @ts-ignore
-    isFeatureEnabledMock.restore();
+    isFeatureEnabledMock.mockRestore();
   });
 
   it('inputs respond correctly', () => {
