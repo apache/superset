@@ -22,7 +22,11 @@ const StyledTable = styled.div`
   background: ${({ theme }) => theme.colors.dvt.grayscale.light2};
   padding: 32px;
   .ant-checkbox-indeterminate .ant-checkbox-inner::after {
-    display: none;
+    display: inline-flex;
+    width: 15px;
+    height: 15px;
+    background-color: ${({ theme }) => theme.colors.dvt.primary.base};
+    transform: translate(-50%, -50%) scale(1);
   }
 
   .ant-checkbox-checked .ant-checkbox-inner {

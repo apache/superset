@@ -811,6 +811,7 @@ CheckboxExample.args = {
   ],
   data: [
     {
+      id: 1,
       name: 'arac',
       type: 'Pysical',
       database: 'PostgreSQL',
@@ -820,6 +821,7 @@ CheckboxExample.args = {
       owners: 'A',
     },
     {
+      id: 2,
       name: 'hrrr2',
       type: 'Pysical',
       database: 'PostgreSQL',
@@ -829,6 +831,7 @@ CheckboxExample.args = {
       owners: 'A',
     },
     {
+      id: 3,
       name: 'channel_members',
       type: 'Pysical',
       database: 'Examples',
@@ -838,6 +841,7 @@ CheckboxExample.args = {
       owners: 'A',
     },
     {
+      id: 4,
       name: 'channel',
       type: 'Pysical',
       database: 'Examples',
@@ -847,6 +851,7 @@ CheckboxExample.args = {
       owners: 'A',
     },
     {
+      id: 5,
       name: 'cleaned_sales_data',
       type: 'Pysical',
       database: 'Examples',
@@ -856,6 +861,7 @@ CheckboxExample.args = {
       owners: 'A',
     },
     {
+      id: 6,
       name: 'covid_vaccines',
       type: 'Pysical',
       database: 'Examples',
@@ -865,6 +871,7 @@ CheckboxExample.args = {
       owners: 'A',
     },
     {
+      id: 7,
       name: 'exported_stats',
       type: 'Pysical',
       database: 'Examples',
@@ -874,6 +881,7 @@ CheckboxExample.args = {
       owners: 'A',
     },
     {
+      id: 8,
       name: 'members_channels_2',
       type: 'Pysical',
       database: 'Examples',
@@ -883,6 +891,7 @@ CheckboxExample.args = {
       owners: 'A',
     },
     {
+      id: 9,
       name: 'Fcc 2018 Survey',
       type: 'Pysical',
       database: 'Examples',

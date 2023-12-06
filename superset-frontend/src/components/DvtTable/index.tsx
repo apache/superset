@@ -37,26 +37,29 @@ import {
   StyledTableCheckbox,
 } from './dvt-table.module';
 
+interface HeaderProps {
+  id: number;
+  title: string;
+  field?: string;
+  folderIcon?: boolean;
+  heartIcon?: boolean;
+  onLink?: boolean;
+  flex?: number;
+  clicks?: [];
+  showHover?: boolean;
+  checkbox?: boolean;
+}
+
 export interface DvtTableProps {
   data: any[];
-  header: {
-    title: string;
-    field?: string;
-    folderIcon?: boolean;
-    heartIcon?: boolean;
-    onLink?: boolean;
-    flex?: number;
-    clicks?: [];
-    showHover?: boolean;
-    checkbox?: boolean;
-  }[];
+  header: HeaderProps[];
   onRowClick?: (row: any) => void;
   itemsPerPage?: number;
   page?: number;
   setPage?: (newPage: number) => void;
   pagination?: boolean;
-  selected?: number[];
-  setSelected?: (newSelected: number[]) => void;
+  selected?: any[];
+  setSelected?: (newSelected: any[]) => void;
 }
 
 const DvtTable: React.FC<DvtTableProps> = ({
@@ -105,20 +108,14 @@ const DvtTable: React.FC<DvtTableProps> = ({
 
   const columnsWithDefaults = 100 / totalFlex;
 
-  const plainOptions = data.map((_, index) => ({
-    label: `${index + 1}`,
-    value: index,
-  }));
+  const checkAll = data.length === selected.length;
 
-  const checkAll = plainOptions.length === selected.length;
-  const indeterminate =
-    selected.length > 0 && selected.length < plainOptions.length;
+  const indeterminate = selected.length > 0 && selected.length < data.length;
 
   const onCheckAllChange = (e: CheckboxChangeEvent) => {
-    setSelected(
-      e.target.checked ? plainOptions.map(option => option.value) : [],
-    );
+    setSelected(e.target.checked ? data.slice() : []);
   };
+
   return (
     <StyledTable>
       <StyledTableTable>
@@ -160,11 +157,11 @@ const DvtTable: React.FC<DvtTableProps> = ({
                     {column.checkbox && columnIndex === 0 && (
                       <StyledTableCheckbox>
                         <Checkbox
-                          checked={selected.includes(rowIndex as never)}
+                          checked={selected.some(item => item.id === row.id)}
                           onChange={e => {
                             const checkedRows = e.target.checked
-                              ? [...selected, rowIndex]
-                              : selected.filter(item => item !== rowIndex);
+                              ? [...selected, row]
+                              : selected.filter(item => item.id !== row.id);
                             setSelected(checkedRows);
                           }}
                         />
