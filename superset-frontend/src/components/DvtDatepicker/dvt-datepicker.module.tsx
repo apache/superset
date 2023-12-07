@@ -39,6 +39,7 @@ const StyledDatepicker = styled.div`
   position: relative;
   display: inline-flex;
   flex-direction: column;
+  z-index: 999;
 `;
 
 const StyledDatepickerGroup = styled.div`
