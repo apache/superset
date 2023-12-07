@@ -3,7 +3,6 @@ import { Meta } from '@storybook/react';
 import { MemoryRouter } from 'react-router-dom';
 import DvtCardDetailChart, { DvtCardDetailChartProps } from '.';
 
-
 export default {
   title: 'Dvt-Components/DvtCardDetailChart',
   component: DvtCardDetailChart,
@@ -20,19 +19,19 @@ Default.args = {
   dataset: 'public_FCC 2018 Survey',
   modified: '2 mounths ago',
   link: '',
-},
+};
 
 Default.argsTypes = {
   labelTitle: {
     control: { type: 'text' },
   },
   vizType: {
-    control: {type: 'text'},
+    control: { type: 'text' },
   },
   dataset: {
-    control: {type:'text'},
+    control: { type: 'text' },
   },
   modified: {
-    control: {type: 'text'},
+    control: { type: 'text' },
   },
 };
