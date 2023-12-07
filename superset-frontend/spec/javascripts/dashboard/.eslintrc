@@ -1,5 +1,5 @@
 {
-  "extends": "prettier",
+"extends": ["prettier","plugin:no-unsanitized/DOM"],
   "plugins": ["prettier"],
   "rules": {
     "prefer-template": 2,

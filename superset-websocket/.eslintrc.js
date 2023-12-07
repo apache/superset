@@ -30,6 +30,7 @@ module.exports = {
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
     'prettier',
+    'plugin:no-unsanitized/DOM',
   ],
   rules: {
     "@typescript-eslint/explicit-module-boundary-types": 0,
