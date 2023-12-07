@@ -41,14 +41,12 @@ import { Switch } from 'src/components/Switch';
 import Modal from 'src/components/Modal';
 import Collapse from 'src/components/Collapse';
 import TimezoneSelector from 'src/components/TimezoneSelector';
-import { Radio } from 'src/components/Radio';
 import { propertyComparator } from 'src/components/Select/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
 import { AntdCheckbox, AsyncSelect, Select } from 'src/components';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/features/databases/state';
-import { CustomWidthHeaderStyle } from 'src/features/reports/ReportModal/styles';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import {
   NotificationMethodOption,
@@ -149,6 +147,32 @@ const RETENTION_OPTIONS = [
   },
 ];
 
+const CONTENT_TYPE_OPTIONS = [
+  {
+    label: t('Dashboard'),
+    value: 'dashboard',
+  },
+  {
+    label: t('Chart'),
+    value: 'chart',
+  },
+];
+const FORMAT_OPTIONS = {
+  png: {
+    label: t('Send as PNG'),
+    value: 'PNG',
+  },
+  csv: {
+    label: t('Send as CSV'),
+    value: 'CSV',
+  },
+  txt: {
+    label: t('Send as text'),
+    value: 'TEXT',
+  },
+};
+
+// Style Constants
 const MODAL_BODY_HEIGHT = 180.5;
 
 // Apply to collapse panels as 'style' prop value
@@ -173,6 +197,14 @@ const StyledModal = styled(Modal)`
   .ant-modal-body {
     height: ${({ theme }) => theme.gridUnit * MODAL_BODY_HEIGHT}px;
     height: ${({ theme }) => theme.gridUnit * MODAL_BODY_HEIGHT}px;
+  }
+
+  .control-label {
+    margin-top: ${({ theme }) => theme.gridUnit}px;
+  }
+
+  .control-label {
+    margin-top: ${({ theme }) => theme.gridUnit}px;
   }
 
   .inline-container {
@@ -284,17 +316,8 @@ export const StyledInputContainer = styled.div`
   }
 `;
 
-const StyledRadio = styled(Radio)`
-  display: block;
-  line-height: ${({ theme }) => theme.gridUnit * 7}px;
-`;
-
-const StyledRadioGroup = styled(Radio.Group)`
-  margin-left: ${({ theme }) => theme.gridUnit * 5.5}px;
-`;
-
 const StyledCheckbox = styled(AntdCheckbox)`
-  margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+  margin-top: ${({ theme }) => theme.gridUnit * 0}px;
 `;
 
 // Notification Method components
@@ -370,26 +393,27 @@ export const TRANSLATIONS = {
   ACTIVE_REPORT_TEXT: t('Report is active'),
   ACTIVE_ALERT_TEXT: t('Alert is active'),
   // Alert condition panel inputs
-  ALERT_CONDITION_TEXT: t('Alert condition'),
   DATABASE_TEXT: t('Database'),
   DATABASE_PLACEHOLDER: t('Select database'),
   DATABASE_PLACEHOLDER: t('Select database'),
   SQL_QUERY_TEXT: t('SQL Query'),
-  SQL_QUERY_TOOLTIP: t(
-    'The result of this query should be a numeric-esque value',
-  ),
-  TRIGGER_ALERT_IF_TEXT: t('Trigger Alert If...'),
+  TRIGGER_ALERT_IF_TEXT: t('Trigger alert if...'),
   CONDITION_TEXT: t('Condition'),
   CONDITION_PLACEHOLDER: t('Condition'),
   CONDITION_PLACEHOLDER: t('Condition'),
   VALUE_TEXT: t('Value'),
   VALUE_TOOLTIP: t('Threshold value should be double precision number'),
   // Contents panel inputs
+  CONTENT_TYPE_LABEL: t('Content type'),
+  CONTENT_TYPE_PLACEHOLDER: t('Select content type'),
+  SELECT_DASHBOARD_LABEL: t('Select dashboard'),
+  SELECT_DASHBOARD_PLACEHOLDER: t('Select dashboard to use'),
+  SELECT_CHART_LABEL: t('Select chart'),
+  SELECT_CHART_PLACEHOLDER: t('Select chart to use'),
   DASHBOARD_TEXT: t('Dashboard'),
   CHART_TEXT: t('Chart'),
-  SEND_AS_PNG_TEXT: t('Send as PNG'),
-  SEND_AS_CSV_TEXT: t('Send as CSV'),
-  SEND_AS_TEXT: t('Send as text'),
+  FORMAT_TYPE_LABEL: t('Content Format'),
+  FORMAT_TYPE_PLACEHOLDER: t('Select format'),
   IGNORE_CACHE_TEXT: t('Ignore cache when generating report'),
   CUSTOM_SCREENSHOT_WIDTH_TEXT: t('Screenshot width'),
   CUSTOM_SCREENSHOT_WIDTH_PLACEHOLDER_TEXT: t('Input custom width in pixels'),
@@ -992,18 +1016,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('timezone', timezone);
   };
 
-  const onContentTypeChange = (event: any) => {
-    const { target } = event;
+  const onContentTypeChange = (value: any) => {
     // When switch content type, reset force_screenshot to false
     setForceScreenshot(false);
-    // Gives time to close the select before changing the type
-    setTimeout(() => setContentType(target.value), 200);
+    setContentType(value);
   };
 
-  const onFormatChange = (event: any) => {
-    const { target } = event;
-
-    setReportFormat(target.value);
+  const onFormatChange = (value: any) => {
+    setReportFormat(value);
   };
 
   const onForceScreenshotChange = (event: any) => {
@@ -1411,94 +1431,88 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             }
             key="2"
           >
-            <div className="column condition">
-              <StyledSectionTitle>
-                <h4>{TRANSLATIONS.ALERT_CONDITION_TEXT}</h4>
-              </StyledSectionTitle>
-              <StyledInputContainer>
-                <div className="control-label">
-                  {TRANSLATIONS.DATABASE_TEXT}
+            <StyledInputContainer>
+              <div className="control-label">
+                {TRANSLATIONS.DATABASE_TEXT}
+                <span className="required">*</span>
+              </div>
+              <div className="input-container">
+                <AsyncSelect
+                  ariaLabel={TRANSLATIONS.DATABASE_TEXT}
+                  name="source"
+                  placeholder={TRANSLATIONS.DATABASE_PLACEHOLDER}
+                  value={
+                    currentAlert?.database?.label &&
+                    currentAlert?.database?.value
+                      ? {
+                          value: currentAlert.database.value,
+                          label: currentAlert.database.label,
+                        }
+                      : undefined
+                  }
+                  options={loadSourceOptions}
+                  onChange={onSourceChange}
+                />
+              </div>
+            </StyledInputContainer>
+            <StyledInputContainer>
+              <div className="control-label">
+                {TRANSLATIONS.SQL_QUERY_TEXT}
+                <span className="required">*</span>
+              </div>
+              <TextAreaControl
+                name="sql"
+                language="sql"
+                offerEditInModal={false}
+                minLines={15}
+                maxLines={15}
+                onChange={onSQLChange}
+                readOnly={false}
+                initialValue={resource?.sql}
+                key={currentAlert?.id}
+              />
+            </StyledInputContainer>
+            <div className="inline-container wrap">
+              <StyledInputContainer css={no_margin_bottom}>
+                <div className="control-label" css={inputSpacer}>
+                  {TRANSLATIONS.TRIGGER_ALERT_IF_TEXT}
                   <span className="required">*</span>
                 </div>
                 <div className="input-container">
-                  <AsyncSelect
-                    ariaLabel={TRANSLATIONS.DATABASE_TEXT}
-                    name="source"
-                    value={
-                      currentAlert?.database?.label &&
-                      currentAlert?.database?.value
-                        ? {
-                            value: currentAlert.database.value,
-                            label: currentAlert.database.label,
-                          }
-                        : undefined
-                    }
-                    options={loadSourceOptions}
-                    onChange={onSourceChange}
+                  <Select
+                    ariaLabel={TRANSLATIONS.CONDITION_TEXT}
+                    onChange={onConditionChange}
+                    placeholder={TRANSLATIONS.CONDITION_PLACEHOLDER}
+                    value={currentAlert?.validator_config_json?.op || undefined}
+                    options={CONDITIONS}
+                    css={inputSpacer}
                   />
                 </div>
               </StyledInputContainer>
-              <StyledInputContainer>
+              <StyledInputContainer css={no_margin_bottom}>
                 <div className="control-label">
-                  {TRANSLATIONS.SQL_QUERY_TEXT}
+                  {TRANSLATIONS.VALUE_TEXT}{' '}
+                  <InfoTooltipWithTrigger
+                    tooltip={TRANSLATIONS.VALUE_TOOLTIP}
+                  />
                   <span className="required">*</span>
                 </div>
-                <TextAreaControl
-                  name="sql"
-                  language="sql"
-                  offerEditInModal={false}
-                  minLines={15}
-                  maxLines={15}
-                  onChange={onSQLChange}
-                  readOnly={false}
-                  initialValue={resource?.sql}
-                  key={currentAlert?.id}
-                />
+                <div className="input-container">
+                  <input
+                    type="number"
+                    name="threshold"
+                    disabled={conditionNotNull}
+                    value={
+                      currentAlert?.validator_config_json?.threshold !==
+                      undefined
+                        ? currentAlert.validator_config_json.threshold
+                        : ''
+                    }
+                    placeholder={TRANSLATIONS.VALUE_TEXT}
+                    onChange={onThresholdChange}
+                  />
+                </div>
               </StyledInputContainer>
-              <div className="inline-container wrap">
-                <StyledInputContainer>
-                  <div className="control-label" css={inputSpacer}>
-                    {TRANSLATIONS.TRIGGER_ALERT_IF_TEXT}
-                    <span className="required">*</span>
-                  </div>
-                  <div className="input-container">
-                    <Select
-                      ariaLabel={TRANSLATIONS.CONDITION_TEXT}
-                      onChange={onConditionChange}
-                      placeholder="Condition"
-                      value={
-                        currentAlert?.validator_config_json?.op || undefined
-                      }
-                      options={CONDITIONS}
-                      css={inputSpacer}
-                    />
-                  </div>
-                </StyledInputContainer>
-                <StyledInputContainer>
-                  <div className="control-label">
-                    {TRANSLATIONS.VALUE_TEXT}{' '}
-                    <InfoTooltipWithTrigger
-                      tooltip={TRANSLATIONS.VALUE_TOOLTIP}
-                    />
-                    <span className="required">*</span>
-                  </div>
-                  <div className="input-container">
-                    <input
-                      type="number"
-                      name="threshold"
-                      disabled={conditionNotNull}
-                      value={
-                        currentAlert?.validator_config_json?.threshold !==
-                        undefined
-                          ? currentAlert.validator_config_json.threshold
-                          : ''
-                      }
-                      placeholder={TRANSLATIONS.VALUE_TEXT}
-                      onChange={onThresholdChange}
-                    />
-                  </div>
-                </StyledInputContainer>
-              </div>
             </div>
           </StyledPanel>
         )}
@@ -1516,99 +1530,126 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             />
           }
           key="3"
+          style={{ borderBottom: 'none' }}
         >
-          <div className="column message">
-            <Radio.Group onChange={onContentTypeChange} value={contentType}>
-              <StyledRadio value="dashboard">
-                {TRANSLATIONS.DASHBOARD_TEXT}
-              </StyledRadio>
-              <StyledRadio value="chart">{TRANSLATIONS.CHART_TEXT}</StyledRadio>
-            </Radio.Group>
+          <StyledInputContainer>
+            <div className="control-label">
+              {TRANSLATIONS.CONTENT_TYPE_LABEL}
+              <span className="required">*</span>
+            </div>
+            <Select
+              ariaLabel={TRANSLATIONS.CONTENT_TYPE_PLACEHOLDER}
+              onChange={onContentTypeChange}
+              value={contentType}
+              options={CONTENT_TYPE_OPTIONS}
+              placeholder={TRANSLATIONS.CONTENT_TYPE_PLACEHOLDER}
+            />
+          </StyledInputContainer>
+          <StyledInputContainer>
             {contentType === 'chart' ? (
-              <AsyncSelect
-                ariaLabel={TRANSLATIONS.CHART_TEXT}
-                name="chart"
-                value={
-                  currentAlert?.chart?.label && currentAlert?.chart?.value
-                    ? {
-                        value: currentAlert.chart.value,
-                        label: currentAlert.chart.label,
-                      }
-                    : undefined
-                }
-                options={loadChartOptions}
-                onChange={onChartChange}
-              />
-            ) : (
-              <AsyncSelect
-                ariaLabel={TRANSLATIONS.DASHBOARD_TEXT}
-                name="dashboard"
-                value={
-                  currentAlert?.dashboard?.label &&
-                  currentAlert?.dashboard?.value
-                    ? {
-                        value: currentAlert.dashboard.value,
-                        label: currentAlert.dashboard.label,
-                      }
-                    : undefined
-                }
-                options={loadDashboardOptions}
-                onChange={onDashboardChange}
-              />
-            )}
-            {formatOptionEnabled && (
               <>
-                <div className="inline-container">
-                  <StyledRadioGroup
-                    onChange={onFormatChange}
-                    value={reportFormat}
-                  >
-                    <StyledRadio value="PNG">
-                      {TRANSLATIONS.SEND_AS_PNG_TEXT}
-                    </StyledRadio>
-                    <StyledRadio value="CSV">
-                      {TRANSLATIONS.SEND_AS_CSV_TEXT}
-                    </StyledRadio>
-                    {TEXT_BASED_VISUALIZATION_TYPES.includes(chartVizType) && (
-                      <StyledRadio value="TEXT">
-                        {TRANSLATIONS.SEND_AS_TEXT}
-                      </StyledRadio>
-                    )}
-                  </StyledRadioGroup>
+                <div className="control-label">
+                  {TRANSLATIONS.SELECT_CHART_LABEL}
+                  <span className="required">*</span>
                 </div>
+                <AsyncSelect
+                  ariaLabel={TRANSLATIONS.CHART_TEXT}
+                  name="chart"
+                  value={
+                    currentAlert?.chart?.label && currentAlert?.chart?.value
+                      ? {
+                          value: currentAlert.chart.value,
+                          label: currentAlert.chart.label,
+                        }
+                      : undefined
+                  }
+                  options={loadChartOptions}
+                  onChange={onChartChange}
+                  placeholder={TRANSLATIONS.SELECT_CHART_PLACEHOLDER}
+                />
+              </>
+            ) : (
+              <>
+                <div className="control-label">
+                  {TRANSLATIONS.SELECT_DASHBOARD_LABEL}
+                  <span className="required">*</span>
+                </div>
+                <AsyncSelect
+                  ariaLabel={TRANSLATIONS.DASHBOARD_TEXT}
+                  name="dashboard"
+                  value={
+                    currentAlert?.dashboard?.label &&
+                    currentAlert?.dashboard?.value
+                      ? {
+                          value: currentAlert.dashboard.value,
+                          label: currentAlert.dashboard.label,
+                        }
+                      : undefined
+                  }
+                  options={loadDashboardOptions}
+                  onChange={onDashboardChange}
+                  placeholder={TRANSLATIONS.SELECT_DASHBOARD_PLACEHOLDER}
+                />
               </>
             )}
-            {isScreenshot && (
-              <StyledInputContainer>
-                <div className="control-label" css={CustomWidthHeaderStyle}>
-                  {TRANSLATIONS.CUSTOM_SCREENSHOT_WIDTH_TEXT}
+          </StyledInputContainer>
+          <StyledInputContainer
+            css={['TEXT', 'CSV'].includes(reportFormat) && no_margin_bottom}
+          >
+            {formatOptionEnabled && (
+              <>
+                <div className="control-label">
+                  {TRANSLATIONS.FORMAT_TYPE_LABEL}
+                  <span className="required">*</span>
                 </div>
-                <div className="input-container">
-                  <Input
-                    type="number"
-                    name="custom_width"
-                    value={currentAlert?.custom_width || ''}
-                    placeholder={
-                      TRANSLATIONS.CUSTOM_SCREENSHOT_WIDTH_PLACEHOLDER_TEXT
-                    }
-                    onChange={onInputChange}
-                  />
-                </div>
-              </StyledInputContainer>
+                <Select
+                  ariaLabel={TRANSLATIONS.FORMAT_TYPE_PLACEHOLDER}
+                  onChange={onFormatChange}
+                  value={reportFormat}
+                  options={
+                    /*If chart is of text based viz type: show text
+                  format option*/
+                    TEXT_BASED_VISUALIZATION_TYPES.includes(chartVizType)
+                      ? Object.values(FORMAT_OPTIONS)
+                      : ['png', 'csv'].map(key => FORMAT_OPTIONS[key])
+                  }
+                  placeholder={TRANSLATIONS.FORMAT_TYPE_PLACEHOLDER}
+                />
+              </>
             )}
-            {(isReport || contentType === 'dashboard') && (
-              <div className="inline-container">
-                <StyledCheckbox
-                  data-test="bypass-cache"
-                  className="checkbox"
-                  checked={forceScreenshot}
-                  onChange={onForceScreenshotChange}
-                >
-                  {TRANSLATIONS.IGNORE_CACHE_TEXT}
-                </StyledCheckbox>
+          </StyledInputContainer>
+          {isScreenshot && (
+            <StyledInputContainer
+              css={!isReport && contentType === 'chart' && no_margin_bottom}
+            >
+              <div className="control-label">
+                {TRANSLATIONS.CUSTOM_SCREENSHOT_WIDTH_TEXT}
               </div>
-            )}
-          </div>
+              <div className="input-container">
+                <Input
+                  type="number"
+                  name="custom_width"
+                  value={currentAlert?.custom_width || ''}
+                  placeholder={
+                    TRANSLATIONS.CUSTOM_SCREENSHOT_WIDTH_PLACEHOLDER_TEXT
+                  }
+                  onChange={onInputChange}
+                />
+              </div>
+            </StyledInputContainer>
+          )}
+          {(isReport || contentType === 'dashboard') && (
+            <div className="inline-container">
+              <StyledCheckbox
+                data-test="bypass-cache"
+                className="checkbox"
+                checked={forceScreenshot}
+                onChange={onForceScreenshotChange}
+              >
+                {TRANSLATIONS.IGNORE_CACHE_TEXT}
+              </StyledCheckbox>
+            </div>
+          )}
         </StyledPanel>
         <StyledPanel
           header={
@@ -1657,46 +1698,41 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             </div>
           </StyledInputContainer>
           <StyledInputContainer css={no_margin_bottom}>
-            <div className="control-label">
-              {TRANSLATIONS.WORKING_TIMEOUT_TEXT}
-              <span className="required">*</span>
-            </div>
-            <div className="input-container">
-              {/* <input
-                  type="text"
-                  min="1"
-                  name="working_timeout"
-                  value={`${currentAlert?.working_timeout || ''}`}
-                  placeholder={TRANSLATIONS.TIME_IN_SECONDS_TEXT}
-                  onChange={onTimeoutVerifyChange}
-                /> */}
-              <NumberInput
-                min={1}
-                name="working_timeout"
-                value={currentAlert?.working_timeout || ''}
-                placeholder={TRANSLATIONS.TIME_IN_SECONDS_TEXT}
-                onChange={onTimeoutVerifyChange}
-                timeUnit="seconds"
-              />
-            </div>
+            {isReport ? (
+              <>
+                <div className="control-label">
+                  {TRANSLATIONS.WORKING_TIMEOUT_TEXT}
+                  <span className="required">*</span>
+                </div>
+                <div className="input-container">
+                  <NumberInput
+                    min={1}
+                    name="working_timeout"
+                    value={currentAlert?.working_timeout || ''}
+                    placeholder={TRANSLATIONS.TIME_IN_SECONDS_TEXT}
+                    onChange={onTimeoutVerifyChange}
+                    timeUnit="seconds"
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="control-label">
+                  {TRANSLATIONS.GRACE_PERIOD_TEXT}
+                </div>
+                <div className="input-container">
+                  <NumberInput
+                    min={1}
+                    name="grace_period"
+                    value={currentAlert?.grace_period || ''}
+                    placeholder={TRANSLATIONS.TIME_IN_SECONDS_TEXT}
+                    onChange={onTimeoutVerifyChange}
+                    timeUnit="seconds"
+                  />
+                </div>
+              </>
+            )}
           </StyledInputContainer>
-          {!isReport && (
-            <StyledInputContainer css={no_margin_bottom}>
-              <div className="control-label">
-                {TRANSLATIONS.GRACE_PERIOD_TEXT}
-              </div>
-              <div className="input-container">
-                <NumberInput
-                  min={1}
-                  name="grace_period"
-                  value={currentAlert?.grace_period || ''}
-                  placeholder={TRANSLATIONS.TIME_IN_SECONDS_TEXT}
-                  onChange={onTimeoutVerifyChange}
-                  timeUnit="seconds"
-                />
-              </div>
-            </StyledInputContainer>
-          )}
         </StyledPanel>
         <StyledPanel
           header={
