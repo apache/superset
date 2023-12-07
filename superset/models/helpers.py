@@ -792,7 +792,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         self,
         template_processor: Optional[  # pylint: disable=unused-argument
             BaseTemplateProcessor
-        ] = None,  # pylint: disable=unused-argument
+        ] = None,
     ) -> TextClause:
         return self.fetch_values_predicate
 
@@ -1343,7 +1343,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def values_for_column(
         self, column_name: str, limit: int = 10000, denormalize_column: bool = False
     ) -> list[Any]:
-        # denormalize column name before querying for values unless disabled in the dataset
+        # denormalize column name before querying for values
+        # unless disabled in the dataset configuration
         db_dialect = self.database.get_dialect()
         column_name_ = (
             self.database.db_engine_spec.denormalize_name(db_dialect, column_name)
