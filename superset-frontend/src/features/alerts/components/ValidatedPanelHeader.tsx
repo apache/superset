@@ -5,12 +5,13 @@ import { CheckCircleOutlined } from '@ant-design/icons';
 const ValidatedPanelHeader = ({
   title,
   subtitle,
-  // required,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  required,
   validateCheckStatus,
 }: {
   title: string;
   subtitle: string;
-  // required: boolean;
+  required: boolean;
   validateCheckStatus: boolean;
 }): JSX.Element => {
   const asterisk = ' *';
