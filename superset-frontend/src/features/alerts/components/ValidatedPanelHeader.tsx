@@ -1,17 +1,16 @@
 import React from 'react';
 import { t } from '@superset-ui/core';
 import { CheckCircleOutlined } from '@ant-design/icons';
-import { check } from 'yargs';
 
 const ValidatedPanelHeader = ({
   title,
   subtitle,
-  required,
+  // required,
   validateCheckStatus,
 }: {
   title: string;
   subtitle: string;
-  required: boolean;
+  // required: boolean;
   validateCheckStatus: boolean;
 }): JSX.Element => {
   const asterisk = ' *';

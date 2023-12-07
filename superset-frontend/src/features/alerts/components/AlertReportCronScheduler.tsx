@@ -19,7 +19,7 @@
 import React, { useState, useCallback, useRef, FocusEvent } from 'react';
 import { t, useTheme } from '@superset-ui/core';
 
-import { AntdInput, RadioChangeEvent, Select } from 'src/components';
+import { AntdInput, Select } from 'src/components';
 import { Input } from 'src/components/Input';
 import { CronPicker, CronError } from 'src/components/CronPicker';
 import { StyledInputContainer, TRANSLATIONS } from '../AlertReportModal';
@@ -79,7 +79,7 @@ export const AlertReportCronScheduler: React.FC<AlertReportCronSchedulerProps> =
             <Select
               ariaLabel={TRANSLATIONS.SCHEDULE_TYPE_TEXT}
               placeholder={TRANSLATIONS.SCHEDULE_TYPE_TEXT}
-              onChange={e => {
+              onChange={(e: any) => {
                 setScheduleFormat(e);
               }}
               value={scheduleFormat}
