@@ -188,7 +188,7 @@ class IkiDemandSensing extends React.PureComponent {
   handleIncomingWindowMsg() {
     window.addEventListener('message', event => {
       if (event.origin === this.props.ikigaiOrigin) {
-      // if (event.origin === 'http://localhost:3000') {
+        // if (event.origin === 'http://localhost:3000') {
         const messageObject = JSON.parse(event.data);
         if (messageObject.info && messageObject.dataType) {
           const { dataType } = messageObject;
