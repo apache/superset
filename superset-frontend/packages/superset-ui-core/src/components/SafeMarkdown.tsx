@@ -67,6 +67,7 @@ function SafeMarkdown({
       rehypePlugins={rehypePlugins}
       remarkPlugins={[remarkGfm]}
       skipHtml={false}
+      transformLinkUri={null}
     >
       {source}
     </ReactMarkdown>
