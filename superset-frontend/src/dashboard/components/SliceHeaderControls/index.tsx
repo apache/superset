@@ -347,7 +347,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
     isCached = [],
   } = props;
   const isTable = slice.viz_type === 'table';
-  const cachedWhen = (cachedDttm || []).map(itemCachedDttm =>
+  const cachedWhen = (cachedDttm || []).map((itemCachedDttm: Date) =>
     moment.utc(itemCachedDttm).fromNow(),
   );
   const updatedWhen = updatedDttm ? moment.utc(updatedDttm).fromNow() : '';
@@ -362,13 +362,15 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
   };
   const refreshTooltipData = [...new Set(isCached.map(getCachedTitle) || '')];
   // If all queries have same cache time we can unit them to one
-  const refreshTooltip = refreshTooltipData.map((item, index) => (
-    <div key={`tooltip-${index}`}>
-      {refreshTooltipData.length > 1
-        ? t('Query %s: %s', index + 1, item)
-        : item}
-    </div>
-  ));
+  const refreshTooltip = refreshTooltipData.map(
+    (item: string, index: number) => (
+      <div key={`tooltip-${index}`}>
+        {refreshTooltipData.length > 1
+          ? t('Query %s: %s', index + 1, item)
+          : item}{' '}
+      </div>
+    ),
+  );
   const fullscreenLabel = isFullSize
     ? t('Exit fullscreen')
     : t('Enter fullscreen');

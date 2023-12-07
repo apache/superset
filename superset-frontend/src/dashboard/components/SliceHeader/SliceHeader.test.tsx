@@ -268,7 +268,7 @@ test('Should render click to edit prompt and run onExploreChart on click', async
     initialEntries: ['/superset/dashboard/1/'],
   });
   render(
-    <Router history={history}>
+    <Router location={history.location} navigator={history}>
       <SliceHeader {...props} />
     </Router>,
     { useRedux: true },
@@ -304,7 +304,7 @@ test('Should not render click to edit prompt and run onExploreChart on click if 
     initialEntries: ['/superset/dashboard/1/'],
   });
   render(
-    <Router history={history}>
+    <Router location={history.location} navigator={history}>
       <SliceHeader {...props} />
     </Router>,
     { useRedux: true },
@@ -326,7 +326,7 @@ test('Should not render click to edit prompt and run onExploreChart on click if 
     initialEntries: ['/superset/dashboard/1/'],
   });
   render(
-    <Router history={history}>
+    <Router location={history.location} navigator={history}>
       <SliceHeader {...props} />
     </Router>,
     { useRedux: true },

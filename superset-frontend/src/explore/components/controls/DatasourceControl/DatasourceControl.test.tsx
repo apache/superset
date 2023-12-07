@@ -246,7 +246,7 @@ test('Click on View in SQL Lab', async () => {
     <>
       <Route
         path="/sqllab"
-        render={({ location }) => (
+        element={({ location }: { location: any }) => (
           <div data-test="mock-sqllab-route">
             {JSON.stringify(location.state)}
           </div>

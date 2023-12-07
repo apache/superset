@@ -34,6 +34,7 @@ export const LocationProvider: React.FC = ({
 }: {
   children: React.ReactNode;
 }) => {
+  // @ts-ignore
   const location = useLocation<LocationState>();
   return <Provider value={location.state || EMPTY_STATE}>{children}</Provider>;
 };

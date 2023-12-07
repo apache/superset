@@ -89,7 +89,7 @@ export default function AddDataset() {
 
   const { datasetId: id } = useParams<{ datasetId: string }>();
   useEffect(() => {
-    if (!Number.isNaN(parseInt(id, 10))) {
+    if (id && !Number.isNaN(parseInt(id, 10))) {
       setEditPageIsVisible(true);
     }
   }, [id]);
@@ -106,7 +106,7 @@ export default function AddDataset() {
     />
   );
 
-  const EditPageComponent = () => <EditPage id={id} />;
+  const EditPageComponent = () => <EditPage id={id as string} />;
 
   const DatasetPanelComponent = () => (
     <DatasetPanel
