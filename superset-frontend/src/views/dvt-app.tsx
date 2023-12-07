@@ -99,7 +99,7 @@ const DvtApp = () => (
     <DvtRootContextProviders>
       <StyledApp>
         <GlobalStyles />
-        <DvtSidebar data={[]} isFrontendRoute={isFrontendRoute} />
+        <DvtSidebar />
         <DvtNavbar />
         <Main>
           <Switch>
