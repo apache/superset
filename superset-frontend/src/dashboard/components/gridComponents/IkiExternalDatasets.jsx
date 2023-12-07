@@ -18,10 +18,10 @@
  */
 /**
  * COMPONENT: Demand Sensing Component
- * WIDGET FRONTEND URL EXAMPLE: http://localhost:3000/widget/demand-sensing?mode=preview&pipeline_id=2Xu7cwsoaYAcWBUPpT53NI6BmPs&dataset_directory_id=2XcuQ4ZjfaZSv3FjSRJeYtsGcWH&metric_dataset_id=2XcueVqNYAMY5zFlAPflDYYpIS5&forecast_dataset_id=2XcuhD08LAAdvL9h0MeA2e4AWeC
+ * WIDGET FRONTEND URL EXAMPLE: http://localhost:3000/widget/demand-sensing?mode=preview&pipeline_id=2Xu7cwsoaYAcWBUPpT53NI6BmPs&master_dataset_id=2XcuQ4ZjfaZSv3FjSRJeYtsGcWH&metric_dataset_id=2XcueVqNYAMY5zFlAPflDYYpIS5&forecast_dataset_id=2XcuhD08LAAdvL9h0MeA2e4AWeC
  * PARAMETERS:
  * pipeline_id: string
- * dataset_directory_id: string
+ * master_dataset_id: string
  * metric_dataset_id: string
  * forecast_dataset_id: string
  */
@@ -188,7 +188,7 @@ class IkiDemandSensing extends React.PureComponent {
   handleIncomingWindowMsg() {
     window.addEventListener('message', event => {
       if (event.origin === this.props.ikigaiOrigin) {
-        // if (event.origin === 'http://localhost:3000') {
+      // if (event.origin === 'http://localhost:3000') {
         const messageObject = JSON.parse(event.data);
         if (messageObject.info && messageObject.dataType) {
           const { dataType } = messageObject;
@@ -225,8 +225,8 @@ class IkiDemandSensing extends React.PureComponent {
             widgetUrlQuery.set('mode', 'preview');
             widgetUrlQuery.set('pipeline_id', messageData.pipeline_id);
             widgetUrlQuery.set(
-              'dataset_directory_id',
-              messageData.dataset_directory_id,
+              'master_dataset_id',
+              messageData.master_dataset_id,
             );
             widgetUrlQuery.set(
               'metric_dataset_id',
@@ -386,10 +386,10 @@ class IkiDemandSensing extends React.PureComponent {
         const paramPipelineId = iframeSrcUrl.searchParams.get('pipeline_id')
           ? iframeSrcUrl.searchParams.get('pipeline_id')
           : '';
-        const paramDatasetDirectoryId = iframeSrcUrl.searchParams.get(
-          'dataset_directory_id',
+        const paramMasterDatasetId = iframeSrcUrl.searchParams.get(
+          'master_dataset_id',
         )
-          ? iframeSrcUrl.searchParams.get('dataset_directory_id')
+          ? iframeSrcUrl.searchParams.get('master_dataset_id')
           : '';
         const paramMetricDatasetId = iframeSrcUrl.searchParams.get(
           'metric_dataset_id',
@@ -402,7 +402,7 @@ class IkiDemandSensing extends React.PureComponent {
           ? iframeSrcUrl.searchParams.get('forecast_dataset_id')
           : '';
 
-        const newIframeSrc = `${ikigaiOrigin}/widget/demand-sensing?mode=${paramMode}&pipeline_id=${paramPipelineId}&dataset_directory_id=${paramDatasetDirectoryId}&metric_dataset_id=${paramMetricDatasetId}&forecast_dataset_id=${paramForecastDatasetId}`;
+        const newIframeSrc = `${ikigaiOrigin}/widget/demand-sensing?mode=${paramMode}&pipeline_id=${paramPipelineId}&master_dataset_id=${paramMasterDatasetId}&metric_dataset_id=${paramMetricDatasetId}&forecast_dataset_id=${paramForecastDatasetId}`;
         iframeSrc = newIframeSrc;
       } else {
         iframeSrc = `${ikigaiOrigin}/widget/demand-sensing?mode=edit`;
