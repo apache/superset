@@ -111,7 +111,8 @@ ARG GECKODRIVER_VERSION=v0.33.0 \
 
 USER root
 
-RUN apt-get install -yqq --no-install-recommends \
+RUN apt-get update -qq \
+    && apt-get install -yqq --no-install-recommends \
         libnss3 \
         libdbus-glib-1-2 \
         libgtk-3-0 \
