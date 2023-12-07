@@ -211,8 +211,7 @@ function Heatmap(element, props) {
     return d3.scale.ordinal().domain(domain).range(d3.range(domain.length));
   }
 
-  // eslint-disable-next-line no-param-reassign
-  element.innerHTML = '';
+  element.replaceChildren();
   const matrix = {};
 
   adjustMargins();

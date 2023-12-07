@@ -42,7 +42,6 @@ module.exports = {
     'prettier',
     'prettier/react',
     'plugin:react-hooks/recommended',
-    'plugin:no-unsanitized/DOM',
   ],
   parser: '@babel/eslint-parser',
   parserOptions: {
@@ -74,6 +73,7 @@ module.exports = {
     'file-progress',
     'theme-colors',
     'translation-vars',
+    'no-unsanitized',
   ],
   overrides: [
     {
@@ -128,6 +128,8 @@ module.exports = {
         'no-prototype-builtins': 0,
         'no-restricted-properties': 0,
         'no-shadow': 0, // re-enable up for discussion
+        'no-unsanitized/method': 'error',
+        'no-unsanitized/property': 'error',
         'no-use-before-define': 0, // disabled temporarily
         'padded-blocks': 0,
         'prefer-arrow-callback': 0,

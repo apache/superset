@@ -38,7 +38,7 @@ const propTypes = {
 function Chord(element, props) {
   const { data, width, height, numberFormat, colorScheme, sliceId } = props;
 
-  element.innerHTML = '';
+  element.replaceChildren();
 
   const div = d3.select(element);
   div.classed('superset-legacy-chart-chord', true);
