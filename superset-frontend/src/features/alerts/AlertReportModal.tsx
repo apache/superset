@@ -1607,8 +1607,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   onChange={onFormatChange}
                   value={reportFormat}
                   options={
-                    /*If chart is of text based viz type: show text
-                  format option*/
+                    /* If chart is of text based viz type: show text
+                  format option */
                     TEXT_BASED_VISUALIZATION_TYPES.includes(chartVizType)
                       ? Object.values(FORMAT_OPTIONS)
                       : ['png', 'csv'].map(key => FORMAT_OPTIONS[key])
