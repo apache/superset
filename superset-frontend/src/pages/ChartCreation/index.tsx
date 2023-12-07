@@ -237,7 +237,6 @@ export class ChartCreation extends React.PureComponent<
   }
 
   gotoSlice() {
-    // @ts-ignore
     this.props.history.push(this.exploreUrl());
   }
 

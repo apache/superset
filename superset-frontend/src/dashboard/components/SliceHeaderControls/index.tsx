@@ -347,7 +347,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
     isCached = [],
   } = props;
   const isTable = slice.viz_type === 'table';
-  const cachedWhen = (cachedDttm || []).map((itemCachedDttm: Date) =>
+  const cachedWhen = (cachedDttm || []).map((itemCachedDttm: string) =>
     moment.utc(itemCachedDttm).fromNow(),
   );
   const updatedWhen = updatedDttm ? moment.utc(updatedDttm).fromNow() : '';
