@@ -40,7 +40,6 @@ import { Input } from 'src/components/Input';
 import { Switch } from 'src/components/Switch';
 import Modal from 'src/components/Modal';
 import Collapse from 'src/components/Collapse';
-import Collapse from 'src/components/Collapse';
 import TimezoneSelector from 'src/components/TimezoneSelector';
 import { Radio } from 'src/components/Radio';
 import { propertyComparator } from 'src/components/Select/utils';
@@ -49,9 +48,6 @@ import Owner from 'src/types/Owner';
 import { AntdCheckbox, AsyncSelect, Select } from 'src/components';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/features/databases/state';
-import { NotificationMethod } from './components/NotificationMethod';
-import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
-import NumberInput from './components/NumberInput';
 import { CustomWidthHeaderStyle } from 'src/features/reports/ReportModal/styles';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import {
@@ -69,6 +65,11 @@ import {
 } from 'src/features/alerts/types';
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import NumberInput from './components/NumberInput';
+import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
+import { NotificationMethod } from './components/NotificationMethod';
+import ValidatedPanelHeader from './components/ValidatedPanelHeader';
+import StyledPanel from './components/StyledPanel';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
