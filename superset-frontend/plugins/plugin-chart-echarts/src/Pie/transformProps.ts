@@ -18,6 +18,7 @@
  */
 import {
   CategoricalColorNamespace,
+  ensureIsArray,
   getColumnLabel,
   getMetricLabel,
   getNumberFormatter,
@@ -334,7 +335,10 @@ export default function transformProps(
         if (!formData.showValuesInLegend) {
           return name;
         }
-        const record = data.find(item => item.name === name);
+        const groupby = ensureIsArray(groupbyLabels);
+        const record = data.find(item =>
+          groupby.some(col => item[col] === name),
+        );
         const params: Pick<CallbackDataParams, any> = {
           name,
           value: record?.[metricLabel] || 0,
