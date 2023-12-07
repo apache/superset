@@ -42,6 +42,7 @@ module.exports = {
     'prettier',
     'prettier/react',
     'plugin:react-hooks/recommended',
+    'plugin:no-unsanitized/DOM',
   ],
   parser: '@babel/eslint-parser',
   parserOptions: {

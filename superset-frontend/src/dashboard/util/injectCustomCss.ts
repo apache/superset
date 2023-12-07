@@ -42,6 +42,8 @@ export default function injectCustomCss(css: string) {
   if ('styleSheet' in style) {
     (style as HTMLStyleElement & MysteryStyleElement).styleSheet.cssText = css;
   } else {
+    // TODO: find a way to avoid innerHTML here, or make this less scary
+    // eslint-disable-next-line no-unsanitized/property
     style.innerHTML = css;
   }
 

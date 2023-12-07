@@ -72,7 +72,7 @@ const appMountPoint = document.getElementById('app')!;
 const MESSAGE_TYPE = '__embedded_comms__';
 
 function showFailureMessage(message: string) {
-  appMountPoint.innerHTML = message;
+  appMountPoint.textContent = message;
 }
 
 if (!window.parent || window.parent === window) {

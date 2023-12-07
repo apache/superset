@@ -19,7 +19,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import AntdIcon from '@ant-design/icons';
-import { styled } from '@superset-ui/core';
+import { styled, sanitizeFileName } from '@superset-ui/core';
 import TransparentIcon from 'src/assets/images/icons/transparent.svg';
 import IconType from './IconType';
 
@@ -55,9 +55,18 @@ export const Icon = (props: IconProps) => {
   useEffect(() => {
     let cancelled = false;
     async function importIcon(): Promise<void> {
+      // This is sanitized via a custom util function
+      /* eslint-disable no-unsanitized/method */
+
       ImportedSVG.current = (
-        await import(`!!@svgr/webpack!src/assets/images/icons/${fileName}.svg`)
+        await import(
+          `!!@svgr/webpack!src/assets/images/icons/${sanitizeFileName(
+            fileName,
+          )}.svg`
+        )
       ).default;
+      /* eslint-enable no-unsanitized/method */
+
       if (!cancelled) {
         setLoaded(true);
       }

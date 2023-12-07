@@ -42,7 +42,7 @@ function connect() {
   // Connection opened
   socket.addEventListener('open', function () {
     socketCount++;
-    document.getElementById('socket-count').innerHTML = socketCount;
+    document.getElementById('socket-count').textContent = socketCount;
     connect();
 
     socket.send('Hello Server!');
@@ -58,6 +58,6 @@ function connect() {
 connect();
 
 setInterval(() => {
-  document.getElementById('message-count').innerHTML = messageCount;
-  document.getElementById('message-debug').innerHTML = lastMessage;
+  document.getElementById('message-count').textContent = messageCount;
+  document.getElementById('message-debug').textContent = lastMessage;
 }, 250);

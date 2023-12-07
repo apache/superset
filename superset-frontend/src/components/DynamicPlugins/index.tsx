@@ -25,6 +25,7 @@ import {
   getChartMetadataRegistry,
   logging,
   makeApi,
+  sanitizeUrl,
 } from '@superset-ui/core';
 import { omitBy } from 'lodash';
 
@@ -189,7 +190,10 @@ export const DynamicPluginProvider: React.FC = ({ children }) => {
         plugins.map(async plugin => {
           let error: Error | null = null;
           try {
-            await import(/* webpackIgnore: true */ plugin.bundle_url);
+            const plugin_bundle_url = sanitizeUrl(plugin.bundle_url);
+            // This is sanitized via a custom util function
+            // eslint-disable-next-line no-unsanitized/method
+            await import(/* webpackIgnore: true */ plugin_bundle_url);
           } catch (err) {
             logging.error(
               `Failed to load plugin ${plugin.key} with the following error:`,
