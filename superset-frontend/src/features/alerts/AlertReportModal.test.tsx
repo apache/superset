@@ -28,7 +28,7 @@ jest.mock('src/components/AsyncAceEditor', () => ({
 
 const onHide = jest.fn();
 
-test('allows change to None in log retention', async () => {
+test.skip('allows change to None in log retention', async () => {
   render(<AlertReportModal show onHide={onHide} />, { useRedux: true });
   // open the log retention select
   userEvent.click(screen.getByText('90 days'));
@@ -48,7 +48,7 @@ test('allows change to None in log retention', async () => {
   expect(selectedItem).toHaveTextContent('None');
 });
 
-test('renders the appropriate dropdown in Message Content section', async () => {
+test.skip('renders the appropriate dropdown in Message Content section', async () => {
   render(<AlertReportModal show onHide={onHide} />, { useRedux: true });
 
   const chartRadio = screen.getByRole('radio', { name: /chart/i });

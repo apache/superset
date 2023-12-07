@@ -19,11 +19,10 @@
 import React, { useState, useCallback, useRef, FocusEvent } from 'react';
 import { t, useTheme } from '@superset-ui/core';
 
-import { AntdInput, RadioChangeEvent } from 'src/components';
+import { AntdInput, RadioChangeEvent, Select } from 'src/components';
 import { Input } from 'src/components/Input';
 import { CronPicker, CronError } from 'src/components/CronPicker';
 import { StyledInputContainer, TRANSLATIONS } from '../AlertReportModal';
-import { Select } from 'src/components';
 
 export interface AlertReportCronSchedulerProps {
   value: string;
@@ -46,11 +45,6 @@ export const AlertReportCronScheduler: React.FC<AlertReportCronSchedulerProps> =
     const inputRef = useRef<AntdInput>(null);
     const [scheduleFormat, setScheduleFormat] = useState<'picker' | 'input'>(
       'picker',
-    );
-
-    const handleRadioButtonChange = useCallback(
-      (e: RadioChangeEvent) => setScheduleFormat(e.target.value),
-      [],
     );
 
     const customSetValue = useCallback(
