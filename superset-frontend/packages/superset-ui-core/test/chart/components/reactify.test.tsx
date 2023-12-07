@@ -27,10 +27,10 @@ describe('reactify(renderFn)', () => {
   const renderFn: RenderFuncType<{ content?: string }> = jest.fn(
     (element, props) => {
       const container = element;
-      container.replaceChildren();
+      container.innerHTML = '';
       const child = document.createElement('b');
       // TODO: make this safer
-      // eslint-disable-next-line no-unsanitized/property
+      // eslint-disable-next-line no-unsanitized/method
       child.innerHTML = props.content ?? '';
       container.append(child);
     },
