@@ -21,16 +21,25 @@ import { useHistory } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { useAppSelector } from 'src/hooks/useAppSelector';
 import { dvtAppSetSort } from 'src/dvt-redux/dvt-appReducer';
-import DvtNavbarTabsData from './dvt-navbar-tabs-data';
+import { DvtNavbarTabsData, UserData } from './dvt-navbar-tabs-data';
+import { BellOutlined } from '@ant-design/icons';
+import DvtButtonTabs from '../DvtButtonTabs';
+import DvtButton from '../DvtButton';
+import DvtDotTitle from '../DvtDotTitle';
+import DvtInput from '../DvtInput';
+import DvtSelect from '../DvtSelect';
+import DvtProfileMenu from '../DvtProfileMenu';
 import {
   StyledDvtNavbar,
   NavbarTop,
   NavbarBottom,
   NavbarBottomRight,
+  NavbarSearchInput,
+  NavbarProfileMenu,
+  NavbarSearchGroup,
+  NavbarProfileIcon,
+  NavbarProfileIconDot,
 } from './dvt-navbar.module';
-import DvtButtonTabs from '../DvtButtonTabs';
-import DvtButton from '../DvtButton';
-import DvtDotTitle from '../DvtDotTitle';
 
 export interface DvtNavbarProps {
   user?: any;
@@ -56,13 +65,28 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ user }) => {
       case '/report/list/':
         return 'Reports';
       case '/dataset/add/':
+        return 'Connection';
+      case '/superset/sqllab/':
+        return 'SQL';
+      case '/tablemodelview/list/':
         return 'Datasets';
+      case '/superset/sqllab/history/':
+        return 'SQL';
+      case '/superset/profile/admin/':
+        return 'Profile';
+      case '/chart/add':
+        return 'Create a New Graph/Chart';
       default:
         return '';
     }
   };
 
-  const withNavbarBottom = ['/superset/welcome/', '/alert/list/'];
+  const withNavbarBottom = [
+    '/superset/welcome/',
+    '/alert/list/',
+    '/superset/sqllab/history/',
+    '/superset/sqllab/',
+  ];
 
   const tabsDataFindPathname = DvtNavbarTabsData.filter(
     (item: { pathname: string }) => item.pathname === pathName,
@@ -74,10 +98,41 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ user }) => {
     }
   }, [pathName]);
 
+  const [searchText, setSearchText] = useState<string>('');
+
   return (
     <StyledDvtNavbar>
       <NavbarTop>
-        <DvtDotTitle label={pathTitles(pathName)} />
+        {pathName !== '/superset/profile/admin/' ? (
+          <>
+            <DvtDotTitle label={pathTitles(pathName)} />
+            <NavbarSearchGroup>
+              Search
+              <DvtSelect
+                data={[]}
+                placeholder="All"
+                selectedValue=""
+                setSelectedValue={() => {}}
+                typeDesign="form"
+              />
+              <NavbarSearchInput>
+                <DvtInput
+                  onChange={setSearchText}
+                  type="search"
+                  value={searchText}
+                />
+              </NavbarSearchInput>
+            </NavbarSearchGroup>
+          </>
+        ) : (
+          <NavbarProfileIcon>
+            <BellOutlined style={{ fontSize: '24px' }} />
+            <NavbarProfileIconDot />
+          </NavbarProfileIcon>
+        )}
+        <NavbarProfileMenu>
+          <DvtProfileMenu img={UserData[0].image} />
+        </NavbarProfileMenu>
       </NavbarTop>
       {withNavbarBottom.includes(pathName) && (
         <NavbarBottom>
@@ -86,6 +141,7 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ user }) => {
             setActive={setActive}
             data={tabsDataFindPathname[0].data}
           />
+
           {pathName === '/superset/welcome/' && (
             <NavbarBottomRight>
               <DvtButton
