@@ -87,15 +87,15 @@ class IkiDemandSensing extends React.PureComponent {
     super(props);
     this.state = {
       isFocused: false,
-      // markdownSource: props.component.meta.code,
-      markdownSource: `<iframe
-                      id="ikidemandsensing-widget-${this.props.component.id}"
-                      name="demand-sensing-component"
-                      src="http://localhost:3000/widget/demand-sensing?mode=edit"
-                      title="IkiDemandSensing Component"
-                      className="ikidemandsensing-widget"
-                      style="min-height: 100%;"
-                    />`,
+      markdownSource: props.component.meta.code,
+      // markdownSource: `<iframe
+      //                 id="ikidemandsensing-widget-${this.props.component.id}"
+      //                 name="demand-sensing-component"
+      //                 src="http://localhost:3000/widget/demand-sensing?mode=edit"
+      //                 title="IkiDemandSensing Component"
+      //                 className="ikidemandsensing-widget"
+      //                 style="min-height: 100%;"
+      //               />`,
       editor: null,
       editorMode: 'edit',
       undoLength: props.undoLength,
@@ -187,8 +187,8 @@ class IkiDemandSensing extends React.PureComponent {
   // eslint-disable-next-line class-methods-use-this
   handleIncomingWindowMsg() {
     window.addEventListener('message', event => {
-      // if (event.origin === this.props.ikigaiOrigin) {
-      if (event.origin === 'http://localhost:3000') {
+      if (event.origin === this.props.ikigaiOrigin) {
+      // if (event.origin === 'http://localhost:3000') {
         const messageObject = JSON.parse(event.data);
         if (messageObject.info && messageObject.dataType) {
           const { dataType } = messageObject;
@@ -369,8 +369,8 @@ class IkiDemandSensing extends React.PureComponent {
 
   renderIframe() {
     const { markdownSource, hasError } = this.state;
-    // const { ikigaiOrigin } = this.props;
-    const ikigaiOrigin = 'http://localhost:3000';
+    const { ikigaiOrigin } = this.props;
+    // const ikigaiOrigin = 'http://localhost:3000';
     let iframe = '';
     let iframeSrc = '';
     if (ikigaiOrigin) {
