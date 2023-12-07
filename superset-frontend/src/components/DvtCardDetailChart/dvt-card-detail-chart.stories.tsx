@@ -13,25 +13,24 @@ export const Default = (args: DvtCardDetailChartProps) => (
   <DvtCardDetailChart {...args} />
 );
 
-Default.args = {
+(Default.args = {
   labelTitle: 'Country of Citizenship',
   vizType: 'World Map',
   dataset: 'public_FCC 2018 Survey',
   modified: '2 mounths ago',
   link: '',
-},
-
-Default.argsTypes = {
-  labelTitle: {
-    control: { type: 'text' },
-  },
-  vizType: {
-    control: {type: 'text'},
-  },
-  dataset: {
-    control: {type:'text'},
-  },
-  modified: {
-    control: {type: 'text'},
-  },
-};
+}),
+  (Default.argsTypes = {
+    labelTitle: {
+      control: { type: 'text' },
+    },
+    vizType: {
+      control: { type: 'text' },
+    },
+    dataset: {
+      control: { type: 'text' },
+    },
+    modified: {
+      control: { type: 'text' },
+    },
+  });

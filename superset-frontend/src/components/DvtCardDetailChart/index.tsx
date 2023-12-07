@@ -21,26 +21,22 @@ const DvtCardDetailChart: React.FC<DvtCardDetailChartProps> = ({
   dataset,
   modified,
   link = '',
-}) => {
-  return (
-    <StyledDvtCardDetailChart>
-      <StyledDvtCardDetailChartTitle>
-        {labelTitle}
-      </StyledDvtCardDetailChartTitle>
-      <StyledDvtCardDetails>
-        <StyledDvtCardP>Viz type</StyledDvtCardP>
-        <StyledDvtCardP>{vizType}</StyledDvtCardP>
-      </StyledDvtCardDetails>
-      <StyledDvtCardDetails>
-        <StyledDvtCardP>Dataset</StyledDvtCardP>
-        <StyledDvtCardLink to={link}>{dataset}</StyledDvtCardLink>
-      </StyledDvtCardDetails>
-      <StyledDvtCardDetails>
-        <StyledDvtCardP>Modified</StyledDvtCardP>
-        <StyledDvtCardP>{modified}</StyledDvtCardP>
-      </StyledDvtCardDetails>
-    </StyledDvtCardDetailChart>
-  );
-};
+}) => (
+  <StyledDvtCardDetailChart>
+    <StyledDvtCardDetailChartTitle>{labelTitle}</StyledDvtCardDetailChartTitle>
+    <StyledDvtCardDetails>
+      <StyledDvtCardP>Viz type</StyledDvtCardP>
+      <StyledDvtCardP>{vizType}</StyledDvtCardP>
+    </StyledDvtCardDetails>
+    <StyledDvtCardDetails>
+      <StyledDvtCardP>Dataset</StyledDvtCardP>
+      <StyledDvtCardLink to={link}>{dataset}</StyledDvtCardLink>
+    </StyledDvtCardDetails>
+    <StyledDvtCardDetails>
+      <StyledDvtCardP>Modified</StyledDvtCardP>
+      <StyledDvtCardP>{modified}</StyledDvtCardP>
+    </StyledDvtCardDetails>
+  </StyledDvtCardDetailChart>
+);
 
 export default DvtCardDetailChart;
