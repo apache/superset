@@ -30,7 +30,7 @@ describe('reactify(renderFn)', () => {
       container.innerHTML = '';
       const child = document.createElement('b');
       // TODO: make this safer
-      // eslint-disable-next-line no-unsanitized/method
+      // eslint-disable-next-line no-unsanitized/property
       child.innerHTML = props.content ?? '';
       container.append(child);
     },
