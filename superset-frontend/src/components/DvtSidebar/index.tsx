@@ -17,6 +17,8 @@ import {
   StyledDvtSidebarSelect,
   StyledDvtSidebarNavbarLogout,
 } from './dvt-sidebar.module';
+import DvtList from '../DvtList';
+import DvtDatePicker from '../DvtDatepicker';
 
 const DvtSidebar: React.FC = () => {
   const [darkMode, setDarkMode] = useState<boolean>(false);
@@ -28,10 +30,22 @@ const DvtSidebar: React.FC = () => {
     switch (pathname) {
       case '/superset/welcome/':
         return 'Welcome Page';
+      case '/dashboard/list/':
+        return 'Dashboards';
+      case '/alert/list/':
+        return 'Alerts';
+      case '/report/list/':
+        return 'Reports';
+      case '/dataset/add/':
+        return 'Connection';
+      case '/superset/sqllab/':
+        return 'SQL Lab';
+      case '/tablemodelview/list/':
+        return 'Datasets';
+      case '/superset/sqllab/history/':
+        return 'SQL History';
       case '/superset/profile/admin/':
         return 'Profile';
-      case '/dataset/add/':
-        return 'Datasets';
       default:
         return '';
     }
@@ -84,7 +98,13 @@ const DvtSidebar: React.FC = () => {
         </StyledDvtSidebarBody>
       )}
 
-      {pathTitles(pathName) === 'Datasets' && (
+      {(pathTitles(pathName) === 'Datasets' ||
+        pathTitles(pathName) === 'Dashboards' ||
+        pathTitles(pathName) === 'Alerts' ||
+        pathTitles(pathName) === 'Reports' ||
+        pathTitles(pathName) === 'Connection' ||
+        pathTitles(pathName) === 'SQL Lab' ||
+        pathTitles(pathName) === 'SQL History') && (
         <StyledDvtSidebarBody pathName={pathName}>
           {sidebarDataFindPathname[0].data[0].selectData.map(
             (
@@ -92,17 +112,48 @@ const DvtSidebar: React.FC = () => {
                 label: string;
                 values: { label: string; value: string }[];
                 placeholder: string;
+                valuesList: { id: number; title: string; subtitle: string }[];
+                title: string;
+                datePicker?: boolean;
               },
               index: number,
             ) => (
               <StyledDvtSidebarSelect key={index}>
-                <DvtSelect
-                  data={selectDataItem.values}
-                  label={selectDataItem.label}
-                  placeholder={selectDataItem.placeholder}
-                  selectedValue=""
-                  setSelectedValue={() => {}}
-                />
+                {!selectDataItem.datePicker &&
+                  selectDataItem.placeholder !== 'See Table Schema' && (
+                    <DvtSelect
+                      data={selectDataItem.values}
+                      label={selectDataItem.label}
+                      placeholder={selectDataItem.placeholder}
+                      selectedValue=""
+                      setSelectedValue={() => {}}
+                    />
+                  )}
+                {selectDataItem.placeholder === 'See Table Schema' && (
+                  <>
+                    <DvtSelect
+                      data={selectDataItem.values}
+                      label={selectDataItem.label}
+                      placeholder={selectDataItem.placeholder}
+                      selectedValue=""
+                      setSelectedValue={() => {}}
+                    />
+                    <DvtList
+                      data={selectDataItem.valuesList}
+                      title={selectDataItem.title}
+                    ></DvtList>
+                  </>
+                )}
+                {selectDataItem.datePicker && (
+                  <DvtDatePicker
+                    isOpen
+                    label={selectDataItem.label}
+                    placeholder={selectDataItem.placeholder}
+                    selectedDate={null}
+                    setIsOpen={() => {}}
+                    setSelectedDate={() => {}}
+                  ></DvtDatePicker>
+                )}
               </StyledDvtSidebarSelect>
             ),
           )}

@@ -34,7 +34,7 @@ import getBootstrapData from 'src/utils/getBootstrapData';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import setupApp from 'src/setup/setupApp';
 import setupPlugins from 'src/setup/setupPlugins';
-import { routes, isFrontendRoute } from 'src/views/dvt-routes';
+import { routes } from 'src/views/dvt-routes';
 import { Logger, LOG_ACTIONS_SPA_NAVIGATION } from 'src/logger/LogUtils';
 import setupExtensions from 'src/setup/setupExtensions';
 import { styled } from '@superset-ui/core';
