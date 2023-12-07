@@ -248,7 +248,7 @@ class BaseReportState:
         )
         user = security_manager.find_user(username)
         auth_cookies = machine_auth_provider_factory.instance.get_auth_data(user).get(
-            "cooikes", {}
+            "cookies", {}
         )
 
         if self._report_schedule.chart.query_context is None:
