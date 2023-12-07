@@ -138,6 +138,7 @@ const config: ControlPanelConfig = {
               choices: [
                 [0, '0°'],
                 [45, '45°'],
+                [90, '90°'],
               ],
               default: xAxisLabelRotation,
               renderTrigger: true,
