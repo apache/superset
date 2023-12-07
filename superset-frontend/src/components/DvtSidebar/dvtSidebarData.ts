@@ -219,7 +219,7 @@ const DvtSidebarData: SidebarDataProps[] = [
     ],
   },
   {
-    pathname: '/superset/sqllab/',
+    pathname: '/chart/list/',
     data: [
       {
         selectData: [
@@ -243,163 +243,163 @@ const DvtSidebarData: SidebarDataProps[] = [
               {
                 id: 1,
                 subtitle: 'integer',
-                title: 'table_schema_id'
+                title: 'table_schema_id',
               },
               {
                 id: 2,
                 subtitle: 'string',
-                title: 'table_schema_title'
+                title: 'table_schema_title',
               },
               {
                 id: 3,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
+                title: 'table_schema_subtitle',
               },
               {
                 id: 4,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
+                title: 'table_schema_subtitle',
               },
               {
                 id: 5,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
+                title: 'table_schema_subtitle',
               },
               {
                 id: 6,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
+                title: 'table_schema_subtitle',
               },
               {
                 id: 7,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
+                title: 'table_schema_subtitle',
               },
               {
                 id: 8,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
+                title: 'table_schema_subtitle',
               },
               {
                 id: 9,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
+                title: 'table_schema_subtitle',
               },
               {
                 id: 10,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
+                title: 'table_schema_subtitle',
               },
               {
                 id: 11,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
+                title: 'table_schema_subtitle',
               },
               {
                 id: 12,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
+                title: 'table_schema_subtitle',
               },
               {
                 id: 13,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
+                title: 'table_schema_subtitle',
               },
               {
                 id: 14,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
+                title: 'table_schema_subtitle',
               },
               {
                 id: 15,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
+                title: 'table_schema_subtitle',
               },
               {
                 id: 16,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
+                title: 'table_schema_subtitle',
               },
               {
                 id: 17,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
+                title: 'table_schema_subtitle',
               },
               {
                 id: 18,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
+                title: 'table_schema_subtitle',
               },
               {
                 id: 19,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
+                title: 'table_schema_subtitle',
               },
               {
                 id: 20,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
+                title: 'table_schema_subtitle',
               },
               {
                 id: 21,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
+                title: 'table_schema_subtitle',
               },
               {
                 id: 22,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
+                title: 'table_schema_subtitle',
               },
               {
                 id: 23,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
+                title: 'table_schema_subtitle',
               },
               {
                 id: 24,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
+                title: 'table_schema_subtitle',
               },
               {
                 id: 25,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
+                title: 'table_schema_subtitle',
               },
               {
                 id: 26,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
+                title: 'table_schema_subtitle',
               },
               {
                 id: 27,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
+                title: 'table_schema_subtitle',
               },
               {
                 id: 28,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
+                title: 'table_schema_subtitle',
               },
               {
                 id: 29,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
+                title: 'table_schema_subtitle',
               },
               {
                 id: 30,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
+                title: 'table_schema_subtitle',
               },
               {
                 id: 31,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
+                title: 'table_schema_subtitle',
               },
               {
                 id: 32,
                 subtitle: 'string',
-                title: 'table_schema_subtitle'
-              }
+                title: 'table_schema_subtitle',
+              },
             ],
             placeholder: 'See Table Schema',
             title: 'FFC 2019 Survey',
@@ -586,8 +586,7 @@ const DvtSidebarData: SidebarDataProps[] = [
             label: 'Query History',
             url: 'test5',
           },
-        ],
-        itemsLogout: [
+        ], itemsLogout: [
           {
             icon: 'dvt-logout',
             label: 'Log Out',

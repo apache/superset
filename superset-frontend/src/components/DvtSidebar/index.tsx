@@ -141,7 +141,7 @@ const DvtSidebar: React.FC = () => {
                     <DvtList
                       data={selectDataItem.valuesList}
                       title={selectDataItem.title}
-                    ></DvtList>
+                    />
                   </>
                 )}
                 {selectDataItem.datePicker && (
@@ -152,7 +152,7 @@ const DvtSidebar: React.FC = () => {
                     selectedDate={null}
                     setIsOpen={() => {}}
                     setSelectedDate={() => {}}
-                  ></DvtDatePicker>
+                  />
                 )}
               </StyledDvtSidebarSelect>
             ),
