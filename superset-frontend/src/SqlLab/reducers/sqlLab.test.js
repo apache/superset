@@ -20,6 +20,7 @@ import { QueryState } from '@superset-ui/core';
 import sqlLabReducer from 'src/SqlLab/reducers/sqlLab';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import { table, initialState as mockState } from '../fixtures';
+import { QUERY_UPDATE_FREQ } from '../components/QueryAutoRefresh';
 
 const initialState = mockState.sqlLab;
 
@@ -404,6 +405,7 @@ describe('sqlLabReducer', () => {
       };
     });
     it('updates queries that have already been completed', () => {
+      const current = Date.now();
       newState = sqlLabReducer(
         {
           ...newState,
@@ -418,9 +420,10 @@ describe('sqlLabReducer', () => {
             },
           },
         },
-        actions.clearInactiveQueries(Date.now()),
+        actions.clearInactiveQueries(QUERY_UPDATE_FREQ),
       );
       expect(newState.queries.abcd.state).toBe(QueryState.SUCCESS);
+      expect(newState.queriesLastUpdate).toBeGreaterThanOrEqual(current);
     });
   });
 });
