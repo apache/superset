@@ -23,7 +23,6 @@ import { ChartSpec, waitForChartLoad } from 'cypress/utils';
 export const WORLD_HEALTH_CHARTS = [
   { name: '% Rural', viz: 'world_map' },
   { name: 'Most Populated Countries', viz: 'table' },
-  { name: 'Region Filter', viz: 'filter_box' },
   { name: "World's Population", viz: 'big_number' },
   { name: 'Growth Rate', viz: 'line' },
   { name: 'Rural Breakdown', viz: 'sunburst' },

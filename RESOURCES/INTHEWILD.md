@@ -176,8 +176,10 @@ Join our growing community!
 - [Automattic](https://automattic.com/) [@Khrol, @Usiel]
 - [Dropbox](https://www.dropbox.com/) [@bkyryliuk]
 - [Grassroot](https://www.grassrootinstitute.org/)
+- [Increff](https://www.increff.com/) [@ishansinghania]
 - [komoot](https://www.komoot.com/) [@christophlingg]
 - [Let's Roam](https://www.letsroam.com/)
+- [Onebeat](https://1beat.com/) [@GuyAttia]
 - [Twitter](https://twitter.com/)
 - [VLMedia](https://www.vlmedia.com.tr/) [@ibotheperfect]
 - [Yahoo!](https://yahoo.com/)

@@ -296,7 +296,7 @@ class BaseSupersetView(BaseView):
     ) -> FlaskResponse:
         payload = {
             "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(g.user),
+            "common": common_bootstrap_payload(),
             **(extra_bootstrap_data or {}),
         }
         return self.render_template(
@@ -380,7 +380,9 @@ def menu_data(user: User) -> dict[str, Any]:
 
 
 @cache_manager.cache.memoize(timeout=60)
-def cached_common_bootstrap_data(user: User, locale: str) -> dict[str, Any]:
+def cached_common_bootstrap_data(  # pylint: disable=unused-argument
+    user_id: int | None, locale: str
+) -> dict[str, Any]:
     """Common data always sent to the client
 
     The function is memoized as the return value only changes when user permissions
@@ -417,15 +419,15 @@ def cached_common_bootstrap_data(user: User, locale: str) -> dict[str, Any]:
         "extra_sequential_color_schemes": conf["EXTRA_SEQUENTIAL_COLOR_SCHEMES"],
         "extra_categorical_color_schemes": conf["EXTRA_CATEGORICAL_COLOR_SCHEMES"],
         "theme_overrides": conf["THEME_OVERRIDES"],
-        "menu_data": menu_data(user),
+        "menu_data": menu_data(g.user),
     }
     bootstrap_data.update(conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
     return bootstrap_data
 
 
-def common_bootstrap_payload(user: User) -> dict[str, Any]:
+def common_bootstrap_payload() -> dict[str, Any]:
     return {
-        **cached_common_bootstrap_data(user, get_locale()),
+        **cached_common_bootstrap_data(utils.get_user_id(), get_locale()),
         "flash_messages": get_flashed_messages(with_categories=True),
     }
 
@@ -535,7 +537,7 @@ def show_unexpected_exception(ex: Exception) -> FlaskResponse:
 def get_common_bootstrap_data() -> dict[str, Any]:
     def serialize_bootstrap_data() -> str:
         return json.dumps(
-            {"common": common_bootstrap_payload(g.user)},
+            {"common": common_bootstrap_payload()},
             default=utils.pessimistic_json_iso_dttm_ser,
         )
 
@@ -553,7 +555,7 @@ class SupersetModelView(ModelView):
     def render_app_template(self) -> FlaskResponse:
         payload = {
             "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(g.user),
+            "common": common_bootstrap_payload(),
         }
         return self.render_template(
             "superset/spa.html",

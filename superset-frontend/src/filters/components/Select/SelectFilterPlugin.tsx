@@ -37,7 +37,6 @@ import { Select } from 'src/components';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { hasOption, propertyComparator } from 'src/components/Select/utils';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import { uniqWith, isEqual } from 'lodash';
 import { PluginFilterSelectProps, SelectValue } from './types';
 import { FilterPluginStyle, StatusMessage, StyledFormItem } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
@@ -46,15 +45,11 @@ type DataMaskAction =
   | { type: 'ownState'; ownState: JsonObject }
   | {
       type: 'filterState';
-      __cache: JsonObject;
       extraFormData: ExtraFormData;
       filterState: { value: SelectValue; label?: string };
     };
 
-function reducer(
-  draft: DataMask & { __cache?: JsonObject },
-  action: DataMaskAction,
-) {
+function reducer(draft: DataMask, action: DataMaskAction) {
   switch (action.type) {
     case 'ownState':
       draft.ownState = {
@@ -63,10 +58,18 @@ function reducer(
       };
       return draft;
     case 'filterState':
-      draft.extraFormData = action.extraFormData;
-      // eslint-disable-next-line no-underscore-dangle
-      draft.__cache = action.__cache;
-      draft.filterState = { ...draft.filterState, ...action.filterState };
+      if (
+        JSON.stringify(draft.extraFormData) !==
+        JSON.stringify(action.extraFormData)
+      ) {
+        draft.extraFormData = action.extraFormData;
+      }
+      if (
+        JSON.stringify(draft.filterState) !== JSON.stringify(action.filterState)
+      ) {
+        draft.filterState = { ...draft.filterState, ...action.filterState };
+      }
+
       return draft;
     default:
       return draft;
@@ -130,7 +133,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       const suffix = inverseSelection && values?.length ? t(' (excluded)') : '';
       dispatchDataMask({
         type: 'filterState',
-        __cache: filterState,
         extraFormData: getSelectExtraFormData(
           col,
           values,
@@ -219,16 +221,13 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   }, [filterState.validateMessage, filterState.validateStatus]);
 
   const uniqueOptions = useMemo(() => {
-    const allOptions = [...data];
-    return uniqWith(allOptions, isEqual).map(row => {
-      const [value] = groupby.map(col => row[col]);
-      return {
-        label: labelFormatter(value, datatype),
-        value,
-        isNewOption: false,
-      };
-    });
-  }, [data, datatype, groupby, labelFormatter]);
+    const allOptions = new Set([...data.map(el => el[col])]);
+    return [...allOptions].map((value: string) => ({
+      label: labelFormatter(value, datatype),
+      value,
+      isNewOption: false,
+    }));
+  }, [data, datatype, col, labelFormatter]);
 
   const options = useMemo(() => {
     if (search && !multiSelect && !hasOption(search, uniqueOptions, true)) {

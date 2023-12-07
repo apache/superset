@@ -9418,10 +9418,6 @@ msgstr "Upravljajte podatkovne baze"
 msgid "Mandatory"
 msgstr "Obvezno"
 
-#: superset/views/database/forms.py:360
-msgid "Mangle Duplicate Columns"
-msgstr "Odstrani podvojene stolpce"
-
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:297
 #, fuzzy
 msgid "Manually set min/max values for the y-axis."
