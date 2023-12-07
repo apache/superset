@@ -586,7 +586,8 @@ const DvtSidebarData: SidebarDataProps[] = [
             label: 'Query History',
             url: 'test5',
           },
-        ], itemsLogout: [
+        ],
+        itemsLogout: [
           {
             icon: 'dvt-logout',
             label: 'Log Out',
@@ -595,7 +596,6 @@ const DvtSidebarData: SidebarDataProps[] = [
       },
     ],
   },
-
 ];
 
 export default DvtSidebarData;
