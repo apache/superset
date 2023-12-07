@@ -113,7 +113,7 @@ class MachineAuthProvider:
 
     def get_cookies(self, user: User | None) -> dict[str, str]:
         if user:
-            cookies = self.get_auth_cookies(user)
+            cookies = self.get_auth_data(user).get("cookies", {})
         elif request.cookies:
             cookies = request.cookies
         else:
@@ -121,10 +121,13 @@ class MachineAuthProvider:
         return cookies
 
     @staticmethod
-    def get_auth_cookies(user: User) -> dict[str, str]:
+    def get_auth_data(user: User) -> dict[str, Any]:
         # Login with the user specified to get the reports
+        csrf_token = None
         with current_app.test_request_context("/login"):
             login_user(user)
+            if current_app.config["WTF_CSRF_ENABLED"]:
+                csrf_token = generate_csrf()
             # A mock response object to get the cookie information from
             response = Response()
             current_app.session_interface.save_session(current_app, session, response)
@@ -142,32 +145,7 @@ class MachineAuthProvider:
                 cookie_tuple = list(cookie.items())[0]
                 cookies[cookie_tuple[0]] = cookie_tuple[1]
 
-        return cookies
-
-    @staticmethod
-    def get_auth_cookie_and_csrf_token(user: User) -> tuple[dict[str, str], str]:
-        # Login with the user specified to get the reports
-        with current_app.test_request_context("/login"):
-            login_user(user)
-            csrf_token = generate_csrf()
-            # A mock response object to get the cookie information from
-            response = Response()
-            current_app.session_interface.save_session(current_app, session, response)
-
-        cookies = {}
-
-        # Grab any "set-cookie" headers from the login response
-        for name, value in response.headers:
-            if name.lower() == "set-cookie":
-                # This yields a MultiDict, which is ordered -- something like
-                # MultiDict([('session', 'value-we-want), ('HttpOnly', ''), etc...
-                # Therefore, we just need to grab the first tuple and add it to our
-                # final dict
-                cookie = parse_cookie(value)
-                cookie_tuple = list(cookie.items())[0]
-                cookies[cookie_tuple[0]] = cookie_tuple[1]
-
-        return cookie, csrf_token
+        return {"cookies": cookies, "csrf_token": csrf_token}
 
 
 class MachineAuthProviderFactory:

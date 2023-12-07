@@ -17,6 +17,7 @@
 
 from unittest.mock import call, Mock, patch
 
+from superset import app
 from superset.extensions import machine_auth_provider_factory
 from tests.integration_tests.base_tests import SupersetTestCase
 
@@ -24,25 +25,31 @@ from tests.integration_tests.base_tests import SupersetTestCase
 class MachineAuthProviderTests(SupersetTestCase):
     def test_get_auth_cookies(self):
         user = self.get_user("admin")
-        auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
+        auth_cookies = machine_auth_provider_factory.instance.get_auth_data(user).get(
+            "cookies", {}
+        )
         self.assertIsNotNone(auth_cookies["session"])
 
     def test_get_auth_cookie_and_csrf_token(self):
+        backup_config = app.config["WTF_CSRF_ENABLED"]
+        app.config["WTF_CSRF_ENABLED"] = True
         user = self.get_user("admin")
-        (
-            auth_cookies,
-            csrf_token,
-        ) = machine_auth_provider_factory.instance.get_auth_cookie_and_csrf_token(user)
-        self.assertIsNotNone(auth_cookies["session"])
-        self.assertIsNotNone(csrf_token)
+        auth_data = machine_auth_provider_factory.instance.get_auth_data(user)
+        self.assertIsNotNone(auth_data["cookies"]["session"])
+        self.assertIsNotNone(auth_data["csrf_token"])
+        # restore the WTF_CSRF_ENABLED config
+        app.config["WTF_CSRF_ENABLED"] = backup_config
 
-    @patch("superset.utils.machine_auth.MachineAuthProvider.get_auth_cookies")
-    def test_auth_driver_user(self, get_auth_cookies):
+    @patch("superset.utils.machine_auth.MachineAuthProvider.get_auth_data")
+    def test_auth_driver_user(self, get_auth_data):
         user = self.get_user("admin")
         driver = Mock()
-        get_auth_cookies.return_value = {
-            "session": "session_val",
-            "other_cookie": "other_val",
+        get_auth_data.return_value = {
+            "cookies": {
+                "session": "session_val",
+                "other_cookie": "other_val",
+            },
+            "csrf_token": "csrf_token",
         }
         machine_auth_provider_factory.instance.authenticate_webdriver(driver, user)
         driver.add_cookie.assert_has_calls(
