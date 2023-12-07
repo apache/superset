@@ -106,6 +106,17 @@ export const legendLimitControl: ControlSetItem = {
   },
 };
 
+export const showValuesInLegend: ControlSetItem = {
+  name: 'showValuesInLegend',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Show values in legend'),
+    default: false,
+    renderTrigger: true,
+    description: t('Show series values on the legend'),
+  },
+};
+
 export const legendSection: ControlSetRow[] = [
   [<ControlSubSectionHeader>{t('Legend')}</ControlSubSectionHeader>],
   [showLegendControl],
@@ -113,6 +124,7 @@ export const legendSection: ControlSetRow[] = [
   [legendOrientationControl],
   [legendMarginControl],
   [legendLimitControl],
+  [showValuesInLegend],
 ];
 
 export const showValueControl: ControlSetItem = {

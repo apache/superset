@@ -330,6 +330,22 @@ export default function transformProps(
       data: keys.filter((n, i) =>
         formData.legendLimit ? i < formData.legendLimit : true,
       ),
+      formatter: (name: string) => {
+        if (!formData.showValuesInLegend) {
+          return name;
+        }
+        const record = data.find(item => item.name === name);
+        const params: Pick<CallbackDataParams, any> = {
+          name,
+          value: record?.[metricLabel] || 0,
+        };
+        return formatPieLabel({
+          params,
+          numberFormatter,
+          labelType: EchartsPieLabelType.KeyValue,
+          sanitizeName: true,
+        });
+      },
     },
     graphic: showTotal
       ? {
