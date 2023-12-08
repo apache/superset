@@ -146,6 +146,7 @@ setup(
         "cockroachdb": ["cockroachdb>=0.3.5, <0.4"],
         "cors": ["flask-cors>=2.0.0"],
         "crate": ["crate[sqlalchemy]>=0.26.0, <0.27"],
+        "databend": ["databend-sqlalchemy>=0.3.2, <1.0"],
         "databricks": [
             "databricks-sql-connector>=2.0.2, <3",
             "sqlalchemy-databricks>=0.2.0",
