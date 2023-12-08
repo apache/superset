@@ -43,7 +43,7 @@ def get_limit_clause(page: Optional[int], per_page: Optional[int]) -> dict[str, 
     return {"row_offset": offset, "row_limit": limit}
 
 
-def get_samples(  # pylint: disable=too-many-arguments,too-many-locals
+def get_samples(  # pylint: disable=too-many-arguments
     datasource_type: str,
     datasource_id: int,
     force: bool = False,
