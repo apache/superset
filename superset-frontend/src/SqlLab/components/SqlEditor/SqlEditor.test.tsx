@@ -145,8 +145,8 @@ describe('SqlEditor', () => {
     (SqlEditorLeftBar as jest.Mock).mockImplementation(() => (
       <div data-test="mock-sql-editor-left-bar" />
     ));
-    (ResultSet as jest.Mock).mockClear();
-    (ResultSet as jest.Mock).mockImplementation(() => (
+    (ResultSet as unknown as jest.Mock).mockClear();
+    (ResultSet as unknown as jest.Mock).mockImplementation(() => (
       <div data-test="mock-result-set" />
     ));
   });
@@ -182,7 +182,8 @@ describe('SqlEditor', () => {
     const editor = await findByTestId('react-ace');
     const sql = 'select *';
     const renderCount = (SqlEditorLeftBar as jest.Mock).mock.calls.length;
-    const renderCountForSouthPane = (ResultSet as jest.Mock).mock.calls.length;
+    const renderCountForSouthPane = (ResultSet as unknown as jest.Mock).mock
+      .calls.length;
     expect(SqlEditorLeftBar).toHaveBeenCalledTimes(renderCount);
     expect(ResultSet).toHaveBeenCalledTimes(renderCountForSouthPane);
     fireEvent.change(editor, { target: { value: sql } });
