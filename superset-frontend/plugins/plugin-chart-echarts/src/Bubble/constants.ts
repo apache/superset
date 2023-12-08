@@ -17,6 +17,7 @@
  * under the License.
  */
 import { DEFAULT_LEGEND_FORM_DATA } from '../constants';
+import { defaultXAxis } from '../defaults';
 import { EchartsBubbleFormData } from './types';
 
 export const DEFAULT_FORM_DATA: Partial<EchartsBubbleFormData> = {
@@ -29,7 +30,7 @@ export const DEFAULT_FORM_DATA: Partial<EchartsBubbleFormData> = {
   truncateXAxis: false,
   truncateYAxis: false,
   yAxisBounds: [null, null],
-  xAxisLabelRotation: 0,
+  xAxisLabelRotation: defaultXAxis.xAxisLabelRotation,
   opacity: 0.6,
 };
 
