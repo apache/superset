@@ -21,14 +21,9 @@ import moment from 'moment';
 import { t } from '@superset-ui/core';
 import rison from 'rison';
 import TableLoader from 'src/components/TableLoader';
-import { BootstrapUser } from 'src/types/bootstrapTypes';
 import { ActivityResult } from './types';
 
-interface RecentActivityProps {
-  user: BootstrapUser;
-}
-
-export default function RecentActivity({ user }: RecentActivityProps) {
+export default function RecentActivity() {
   const rowLimit = 50;
   const mutator = function (data: ActivityResult) {
     return data.result

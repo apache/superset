@@ -37,7 +37,6 @@ export const testWithId =
       return (resultIdOnly ? id : { 'data-test': id }) as TestWithIdType<T>;
     }
     if (!id && !prefix) {
-      console.warn('testWithId function has missed "prefix" and "id" params');
       return (resultIdOnly ? '' : { 'data-test': '' }) as TestWithIdType<T>;
     }
     const newId = `${prefix}__${id}`;

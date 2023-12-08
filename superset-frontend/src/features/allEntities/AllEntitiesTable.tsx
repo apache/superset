@@ -68,13 +68,11 @@ export interface TaggedObjects {
 }
 
 interface AllEntitiesTableProps {
-  search?: string;
   setShowTagModal: (show: boolean) => void;
   objects: TaggedObjects;
 }
 
 export default function AllEntitiesTable({
-  search = '',
   setShowTagModal,
   objects,
 }: AllEntitiesTableProps) {

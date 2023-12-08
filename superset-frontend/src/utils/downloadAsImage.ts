@@ -81,6 +81,7 @@ export default function downloadAsImage(
         link.click();
       })
       .catch(e => {
+        // eslint-disable-next-line no-console
         console.error('Creating image failed', e);
       });
   };

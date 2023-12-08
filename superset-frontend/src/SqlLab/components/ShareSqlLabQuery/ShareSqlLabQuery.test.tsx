@@ -123,7 +123,7 @@ describe('ShareSqlLabQuery', () => {
         });
       });
       const button = screen.getByRole('button');
-      const { id, remoteId, ...expected } = mockQueryEditor;
+      const expected = (({ id, remoteId, ...rest }) => rest)(mockQueryEditor);
       const storeQuerySpy = jest.spyOn(utils, 'storeQuery');
       userEvent.click(button);
       expect(storeQuerySpy.mock.calls).toHaveLength(1);
@@ -138,7 +138,7 @@ describe('ShareSqlLabQuery', () => {
         });
       });
       const button = screen.getByRole('button');
-      const { id, ...expected } = unsavedQueryEditor;
+      const expected = (({ id, ...rest }) => rest)(mockQueryEditor);
       const storeQuerySpy = jest.spyOn(utils, 'storeQuery');
       userEvent.click(button);
       expect(storeQuerySpy.mock.calls).toHaveLength(1);

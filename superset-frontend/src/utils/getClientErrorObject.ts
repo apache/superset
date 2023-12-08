@@ -86,29 +86,6 @@ export function parseErrorJson(responseObject: JsonObject): ClientErrorObject {
   return { ...error, error: error.error }; // explicit ClientErrorObject
 }
 
-/*
- * Utility to get standardized error text for generic update failures
- */
-export async function getErrorText(
-  errorObject: ErrorType,
-  source: ErrorTextSource,
-) {
-  const { error, message } = await getClientErrorObject(errorObject);
-  let errorText = t('Sorry, an unknown error occurred.');
-
-  if (error) {
-    errorText = t(
-      'Sorry, there was an error saving this %s: %s',
-      source,
-      error,
-    );
-  }
-  if (typeof message === 'string' && message === 'Forbidden') {
-    errorText = t('You do not have permission to edit this %s', source);
-  }
-  return errorText;
-}
-
 export function getClientErrorObject(
   response:
     | SupersetClientResponse
@@ -201,6 +178,29 @@ export function getClientErrorObject(
       error,
     });
   });
+}
+
+/*
+ * Utility to get standardized error text for generic update failures
+ */
+export async function getErrorText(
+  errorObject: ErrorType,
+  source: ErrorTextSource,
+) {
+  const { error, message } = await getClientErrorObject(errorObject);
+  let errorText = t('Sorry, an unknown error occurred.');
+
+  if (error) {
+    errorText = t(
+      'Sorry, there was an error saving this %s: %s',
+      source,
+      error,
+    );
+  }
+  if (typeof message === 'string' && message === 'Forbidden') {
+    errorText = t('You do not have permission to edit this %s', source);
+  }
+  return errorText;
 }
 
 export function getClientErrorMessage(
