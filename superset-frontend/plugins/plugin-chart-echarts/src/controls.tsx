@@ -29,6 +29,7 @@ import {
 } from '@superset-ui/chart-controls';
 import { DEFAULT_LEGEND_FORM_DATA, StackControlOptions } from './constants';
 import { DEFAULT_FORM_DATA } from './Timeseries/constants';
+import { defaultXAxis } from './defaults';
 
 const { legendMargin, legendOrientation, legendType, showLegend } =
   DEFAULT_LEGEND_FORM_DATA;
@@ -240,6 +241,24 @@ const sortSeriesAscending: ControlSetItem = {
     default: DEFAULT_SORT_SERIES_DATA.sort_series_ascending,
     renderTrigger: true,
     description: t('Sort series in ascending order'),
+  },
+};
+
+export const xAxisLabelRotation = {
+  name: 'xAxisLabelRotation',
+  config: {
+    type: 'SelectControl',
+    freeForm: true,
+    clearable: false,
+    label: t('Rotate x axis label'),
+    choices: [
+      [0, '0°'],
+      [45, '45°'],
+      [90, '90°'],
+    ],
+    default: defaultXAxis.xAxisLabelRotation,
+    renderTrigger: true,
+    description: t('Input field supports custom rotation. e.g. 30 for 30°'),
   },
 };
 
