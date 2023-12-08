@@ -18,10 +18,18 @@
  */
 import { styled } from '@superset-ui/core';
 
+interface DvtPopperProps {
+  top?: number;
+  bottom?: number;
+  right?: number;
+  left?: number;
+}
+
 const StyledPopper = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
+  position: relative;
 `;
 
 const StyledPopperUp = styled.div`
@@ -38,7 +46,6 @@ const StyledPopperBody = styled.div`
   justify-content: center;
   background-color: ${({ theme }) => theme.colors.dvt.primary.base};
   border-radius: 4px;
-  width: 85px;
   height: 44px;
   color: ${({ theme }) => theme.colors.grayscale.light5};
   font-size: 16px;
@@ -46,6 +53,26 @@ const StyledPopperBody = styled.div`
   line-height: 140%;
   letter-spacing: 0.2px;
   cursor: pointer;
+  padding: 0 17px;
 `;
 
-export { StyledPopper, StyledPopperUp, StyledPopperBody };
+const StyledPopperGroup = styled.div``;
+
+const StyledPopperAbsolute = styled.div<DvtPopperProps>`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: absolute;
+  top: ${({ top }) => top};
+  bottom: ${({ bottom }) => bottom};
+  right: ${({ right }) => right};
+  left: ${({ left }) => left};
+`;
+
+export {
+  StyledPopper,
+  StyledPopperUp,
+  StyledPopperBody,
+  StyledPopperGroup,
+  StyledPopperAbsolute,
+};

@@ -16,31 +16,67 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { ReactNode } from 'react';
 import {
   StyledPopper,
   StyledPopperUp,
   StyledPopperBody,
+  StyledPopperGroup,
+  StyledPopperAbsolute,
 } from './dvt-popper.module';
 
 export interface DvtPopperProps {
   label: string;
+  children: ReactNode;
   isOpen: boolean;
   setIsOpen: (newOpen: boolean) => void;
   onClick: () => void;
+  top?: number;
+  bottom?: number;
+  right?: number;
+  left?: number;
 }
 
-const DvtPopper: React.FC<DvtPopperProps> = ({ label, isOpen, setIsOpen }) => {
-  const handleClick = () => {
+const DvtPopper: React.FC<DvtPopperProps> = ({
+  label,
+  children,
+  isOpen,
+  setIsOpen,
+  top = 0,
+  bottom,
+  right = 0,
+  left = 0,
+  onClick,
+}) => {
+  const handleMouseEnter = () => {
+    setIsOpen(true);
+  };
+
+  const handleMouseLeave = () => {
     setIsOpen(false);
   };
 
-  return isOpen ? (
-    <StyledPopper>
-      <StyledPopperUp />
-      <StyledPopperBody onClick={handleClick}>{label}</StyledPopperBody>
-    </StyledPopper>
-  ) : null;
+  return (
+    <StyledPopperGroup
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <StyledPopper>
+        {children}
+        {isOpen && (
+          <StyledPopperAbsolute
+            top={top}
+            bottom={bottom}
+            right={right}
+            left={left}
+          >
+            <StyledPopperUp />
+            <StyledPopperBody onClick={onClick}>{label}</StyledPopperBody>
+          </StyledPopperAbsolute>
+        )}
+      </StyledPopper>
+    </StyledPopperGroup>
+  );
 };
 
 export default DvtPopper;

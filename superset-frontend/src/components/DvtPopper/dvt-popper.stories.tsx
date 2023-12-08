@@ -26,7 +26,7 @@ export default {
 };
 
 export const Default = (args: DvtPopperProps) => {
-  const [isOpen, setIsOpen] = useState<boolean>(true);
+  const [isOpen, setIsOpen] = useState<boolean>(false);
 
   return (
     <div
@@ -38,17 +38,19 @@ export const Default = (args: DvtPopperProps) => {
         alignItems: 'center',
       }}
     >
-      <DvtButton label="Open/Close" onClick={() => setIsOpen(!isOpen)} />
       <DvtPopper
         {...args}
         onClick={() => {}}
         isOpen={isOpen}
         setIsOpen={setIsOpen}
-      />
+      >
+        <DvtButton label="Open/Close" onClick={() => setIsOpen(!isOpen)} />
+      </DvtPopper>
     </div>
   );
 };
 
 Default.args = {
   label: 'Export',
+  top: '45px',
 };
