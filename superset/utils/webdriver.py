@@ -186,7 +186,9 @@ class WebDriverPlaywright(WebDriverProxy):
                 try:
                     # chart containers didn't render
                     logger.debug("Wait for chart containers to draw at url: %s", url)
-                    for slice_container_elem in page.locator(".slice_container").all():
+                    slice_container_locator = page.locator(".slice_container")
+                    slice_container_locator.first.wait_for()
+                    for slice_container_elem in slice_container_locator.all():
                         slice_container_elem.wait_for()
                 except PlaywrightTimeout as ex:
                     logger.exception(
