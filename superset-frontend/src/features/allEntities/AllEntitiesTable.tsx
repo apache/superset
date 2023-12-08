@@ -68,6 +68,7 @@ export interface TaggedObjects {
 }
 
 interface AllEntitiesTableProps {
+  search?: string;
   setShowTagModal: (show: boolean) => void;
   objects: TaggedObjects;
 }

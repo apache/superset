@@ -79,6 +79,7 @@ const SqlEditorTabHeader: React.FC<Props> = ({ queryEditor }) => {
   );
 
   function renameTab() {
+    // eslint-disable-next-line no-alert
     const newTitle = prompt(t('Enter a new title for the tab'));
     if (newTitle) {
       actions.queryEditorSetTitle(qe, newTitle, qe.id);

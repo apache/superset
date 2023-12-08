@@ -610,6 +610,7 @@ class PivotData {
     this.props = { ...PivotData.defaultProps, ...inputProps };
     this.processRecord = this.processRecord.bind(this);
     PropTypes.checkPropTypes(
+      // eslint-disable-next-line react/forbid-foreign-prop-types
       PivotData.propTypes,
       this.props,
       'prop',
