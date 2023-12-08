@@ -142,8 +142,7 @@ const StyledSelectIcon = styled.div<StyledSelectProps>`
   position: absolute;
   right: 12px;
   transition: transform 0.3s ease-in-out;
-  transform: ${({ isOpen, typeDesign }) =>
-    typeDesign !== 'navbar' && (isOpen ? 'rotate(90deg)' : 'none')};
+  transform: ${({ isOpen }) => (isOpen ? 'rotate(90deg)' : 'none')};
 `;
 
 export {

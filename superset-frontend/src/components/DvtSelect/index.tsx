@@ -73,7 +73,7 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
           placeholder}
         <StyledSelectIcon isOpen={isOpen} typeDesign={typeDesign}>
           <Icon
-            fileName={typeDesign === 'navbar' ? 'caret_down' : 'caret_right'}
+            fileName="caret_right"
             iconSize="xxl"
             css={(theme: SupersetTheme) => ({
               color:
