@@ -51,7 +51,7 @@ const DvtSidebar: React.FC = () => {
     }
   };
 
-  const sidebarDataFindPathname = DvtSidebarData.filter(
+  const sidebarDataFindPathname = DvtSidebarData.find(
     (item: { pathname: string }) => item.pathname === pathName,
   );
 
@@ -62,39 +62,27 @@ const DvtSidebar: React.FC = () => {
       </StyledDvtSidebarHeader>
       {pathTitles(pathName) === 'Welcome Page' && (
         <StyledDvtSidebarBody pathName={pathName}>
-          <StyledDvtSidebarBodyItem>
-            <DvtTitlePlus
-              title={
-                sidebarDataFindPathname[0]?.data[0]?.navigationData[0]?.title
-              }
-            />
-            <DvtNavigation
-              data={
-                sidebarDataFindPathname[0]?.data[0]?.navigationData[0]?.data
-              }
-            />
-          </StyledDvtSidebarBodyItem>
-          <StyledDvtSidebarBodyItem>
-            <DvtTitlePlus
-              title={
-                sidebarDataFindPathname[0]?.data[0]?.folderNavigationData[0]
-                  ?.title
-              }
-              onClick={() => {}}
-            />
-            <DvtFolderNavigation
-              data={
-                sidebarDataFindPathname[0]?.data[0]?.folderNavigationData[0]
-                  ?.data
-              }
-            />
-          </StyledDvtSidebarBodyItem>
-          <StyledDvtSidebarBodyItem>
-            <DvtTitlePlus
-              title={sidebarDataFindPathname[0]?.data[0]?.items[0]?.title}
-              onClick={() => {}}
-            />
-          </StyledDvtSidebarBodyItem>
+          {sidebarDataFindPathname?.data.map((data: any, index: number) => (
+            <>
+              {data.titleMenu === 'folder navigation' && (
+                <StyledDvtSidebarBodyItem key={index}>
+                  <DvtTitlePlus title={data.title} />
+                  <DvtNavigation data={data.data} />
+                </StyledDvtSidebarBodyItem>
+              )}
+              {data.titleMenu === 'folder' && (
+                <StyledDvtSidebarBodyItem key={index}>
+                  <DvtTitlePlus title={data.title} onClick={() => {}} />
+                  <DvtFolderNavigation data={data.data} />
+                </StyledDvtSidebarBodyItem>
+              )}
+              {data.titleMenu === 'shared folder' && (
+                <StyledDvtSidebarBodyItem key={index}>
+                  <DvtTitlePlus title={data.title} onClick={() => {}} />
+                </StyledDvtSidebarBodyItem>
+              )}
+            </>
+          ))}
         </StyledDvtSidebarBody>
       )}
 
@@ -106,9 +94,9 @@ const DvtSidebar: React.FC = () => {
         pathTitles(pathName) === 'SQL Lab' ||
         pathTitles(pathName) === 'SQL History') && (
         <StyledDvtSidebarBody pathName={pathName}>
-          {sidebarDataFindPathname[0].data[0].selectData.map(
+          {sidebarDataFindPathname?.data.map(
             (
-              selectDataItem: {
+              data: {
                 label: string;
                 values: { label: string; value: string }[];
                 placeholder: string;
@@ -119,36 +107,33 @@ const DvtSidebar: React.FC = () => {
               index: number,
             ) => (
               <StyledDvtSidebarSelect key={index}>
-                {!selectDataItem.datePicker &&
-                  selectDataItem.placeholder !== 'See Table Schema' && (
+                {!data.datePicker &&
+                  data.placeholder !== 'See Table Schema' && (
                     <DvtSelect
-                      data={selectDataItem.values}
-                      label={selectDataItem.label}
-                      placeholder={selectDataItem.placeholder}
+                      data={data.values}
+                      label={data.label}
+                      placeholder={data.placeholder}
                       selectedValue=""
                       setSelectedValue={() => {}}
                     />
                   )}
-                {selectDataItem.placeholder === 'See Table Schema' && (
+                {data.placeholder === 'See Table Schema' && (
                   <>
                     <DvtSelect
-                      data={selectDataItem.values}
-                      label={selectDataItem.label}
-                      placeholder={selectDataItem.placeholder}
+                      data={data.values}
+                      label={data.label}
+                      placeholder={data.placeholder}
                       selectedValue=""
                       setSelectedValue={() => {}}
                     />
-                    <DvtList
-                      data={selectDataItem.valuesList}
-                      title={selectDataItem.title}
-                    />
+                    <DvtList data={data.valuesList} title={data.title} />
                   </>
                 )}
-                {selectDataItem.datePicker && (
+                {data.datePicker && (
                   <DvtDatePicker
                     isOpen
-                    label={selectDataItem.label}
-                    placeholder={selectDataItem.placeholder}
+                    label={data.label}
+                    placeholder={data.placeholder}
                     selectedDate={null}
                     setIsOpen={() => {}}
                     setSelectedDate={() => {}}
@@ -162,18 +147,19 @@ const DvtSidebar: React.FC = () => {
 
       {pathTitles(pathName) === 'Profile' && (
         <StyledDvtSidebarBody pathName={pathName}>
-          <StyledDvtSidebarBodyItem>
-            <DvtNavigationBar
-              active={active}
-              data={sidebarDataFindPathname[0]?.data[0]?.items}
-              setActive={setActive}
-            />
-            <StyledDvtSidebarNavbarLogout>
+          {sidebarDataFindPathname?.data.map((data: any, index: number) => (
+            <StyledDvtSidebarBodyItem>
               <DvtNavigationBar
-                data={sidebarDataFindPathname[0]?.data[0]?.itemsLogout}
+                active={active}
+                data={data.items}
+                setActive={setActive}
               />
-            </StyledDvtSidebarNavbarLogout>
-          </StyledDvtSidebarBodyItem>
+              <StyledDvtSidebarNavbarLogout>
+                <DvtNavigationBar data={data.itemsLogout} />
+              </StyledDvtSidebarNavbarLogout>
+            </StyledDvtSidebarBodyItem>
+          ))}
+          s
         </StyledDvtSidebarBody>
       )}
       {pathTitles(pathName) === 'Welcome Page' && (

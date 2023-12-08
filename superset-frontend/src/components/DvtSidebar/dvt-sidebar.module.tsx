@@ -62,6 +62,7 @@ const StyledDvtSidebarBodyItem = styled.div`
 `;
 
 const StyledDvtSidebarFooter = styled.div`
+  justify-content: end;
   padding: 0 16px;
 `;
 
