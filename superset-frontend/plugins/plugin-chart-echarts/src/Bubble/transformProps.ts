@@ -158,6 +158,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     convertInteger(xAxisTitleMargin),
   );
 
+  const xAxisType = logXAxis ? AxisType.log : AxisType.value;
   const echartOptions: EChartsCoreOption = {
     series,
     xAxis: {
@@ -175,8 +176,8 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
         fontWight: 'bolder',
       },
       nameGap: convertInteger(xAxisTitleMargin),
-      type: logXAxis ? AxisType.log : AxisType.value,
-      ...getMinAndMaxFromBounds(truncateXAxis, xAxisMin, xAxisMax),
+      type: xAxisType,
+      ...getMinAndMaxFromBounds(xAxisType, truncateXAxis, xAxisMin, xAxisMax),
     },
     yAxis: {
       axisLabel: { formatter: yAxisFormatter },

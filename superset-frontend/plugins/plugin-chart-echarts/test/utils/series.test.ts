@@ -882,25 +882,27 @@ test('getAxisType', () => {
 });
 
 test('getMinAndMaxFromBounds returns empty object when not truncating', () => {
-  expect(getMinAndMaxFromBounds(false, 10, 100)).toEqual({});
+  expect(getMinAndMaxFromBounds(AxisType.value, false, 10, 100)).toEqual({});
 });
 
 test('getMinAndMaxFromBounds returns automatic bounds when truncating', () => {
-  expect(getMinAndMaxFromBounds(true, undefined, undefined)).toEqual({
+  expect(
+    getMinAndMaxFromBounds(AxisType.value, true, undefined, undefined),
+  ).toEqual({
     min: 'dataMin',
     max: 'dataMax',
   });
 });
 
 test('getMinAndMaxFromBounds returns automatic upper bound when truncating', () => {
-  expect(getMinAndMaxFromBounds(true, 10, undefined)).toEqual({
+  expect(getMinAndMaxFromBounds(AxisType.value, true, 10, undefined)).toEqual({
     min: 10,
     max: 'dataMax',
   });
 });
 
 test('getMinAndMaxFromBounds returns automatic lower bound when truncating', () => {
-  expect(getMinAndMaxFromBounds(true, undefined, 100)).toEqual({
+  expect(getMinAndMaxFromBounds(AxisType.value, true, undefined, 100)).toEqual({
     min: 'dataMin',
     max: 100,
   });

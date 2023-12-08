@@ -460,7 +460,7 @@ export default function transformProps(
       xAxisType === AxisType.time && timeGrainSqla
         ? TIMEGRAIN_TO_TIMESTAMP[timeGrainSqla]
         : 0,
-    ...getMinAndMaxFromBounds(truncateXAxis, xAxisMin, xAxisMax),
+    ...getMinAndMaxFromBounds(xAxisType, truncateXAxis, xAxisMin, xAxisMax),
   };
 
   let yAxis: any = {

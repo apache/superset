@@ -257,7 +257,7 @@ export const truncateXAxis: ControlSetItem = {
     default: DEFAULT_FORM_DATA.truncateXAxis,
     renderTrigger: true,
     description: t(
-      'Truncate X Axis. Can be overridden by specifying a min or max bound. Only applies when x-axis is numerical',
+      'Truncate X Axis. Can be overridden by specifying a min or max bound. Only applicable for numercal X axis.',
     ),
   },
 };
@@ -270,9 +270,9 @@ export const xAxisBounds: ControlSetItem = {
     renderTrigger: true,
     default: DEFAULT_FORM_DATA.xAxisBounds,
     description: t(
-      'Bounds for the X axis. When left empty, the bounds are ' +
-        'dynamically defined based on the min/max of the data. Note that ' +
-        "this feature will only expand the axis range. It won't " +
+      'Bounds for numerical X axis. Not applicable for temporal or categorical axes. ' +
+        'When left empty, the bounds are dynamically defined based on the min/max of the data. ' +
+        "Note that this feature will only expand the axis range. It won't " +
         "narrow the data's extent.",
     ),
     visibility: ({ controls }: ControlPanelsContainerProps) =>

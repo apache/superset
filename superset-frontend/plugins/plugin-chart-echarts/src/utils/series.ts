@@ -545,11 +545,12 @@ export function calculateLowerLogTick(minPositiveValue: number) {
 }
 
 export function getMinAndMaxFromBounds(
+  axisType: AxisType,
   truncateAxis: boolean,
   min?: number,
   max?: number,
 ): { min: number | 'dataMin'; max: number | 'dataMax' } | {} {
-  return truncateAxis
+  return truncateAxis && axisType === AxisType.value
     ? {
         min: min === undefined ? 'dataMin' : min,
         max: max === undefined ? 'dataMax' : max,
