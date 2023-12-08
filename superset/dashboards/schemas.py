@@ -203,7 +203,7 @@ class DashboardGetResponseSchema(Schema):
     changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
 
-    # pylint: disable=unused-argument
+    # pylint: disable=unused-argument, no-self-use
     @post_dump()
     def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if security_manager.is_guest_user():
@@ -260,7 +260,7 @@ class DashboardDatasetSchema(Schema):
     granularity_sqla = fields.List(fields.List(fields.Str()))
     normalize_columns = fields.Bool()
 
-    # pylint: disable=unused-argument
+    # pylint: disable=unused-argument, no-self-use
     @post_dump()
     def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if security_manager.is_guest_user():
@@ -270,7 +270,7 @@ class DashboardDatasetSchema(Schema):
 
 
 class BaseDashboardSchema(Schema):
-    # pylint: disable=no-self-use,unused-argument
+    # pylint: disable=no-self-use, unused-argument
     @post_load
     def post_load(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if data.get("slug"):
