@@ -53,7 +53,7 @@ import {
   ForecastSeriesEnum,
   Refs,
 } from '../types';
-import { parseYAxisBound } from '../utils/controls';
+import { parseAxisBound } from '../utils/controls';
 import {
   getOverMaxHiddenFormatter,
   dedupSeries,
@@ -345,9 +345,9 @@ export default function transformProps(
     });
 
   // yAxisBounds need to be parsed to replace incompatible values with undefined
-  let [min, max] = (yAxisBounds || []).map(parseYAxisBound);
+  let [min, max] = (yAxisBounds || []).map(parseAxisBound);
   let [minSecondary, maxSecondary] = (yAxisBoundsSecondary || []).map(
-    parseYAxisBound,
+    parseAxisBound,
   );
 
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
