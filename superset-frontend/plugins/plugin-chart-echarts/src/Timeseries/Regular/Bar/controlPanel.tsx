@@ -35,6 +35,8 @@ import {
   richTooltipSection,
   seriesOrderSection,
   showValueSection,
+  truncateXAxis,
+  xAxisBounds,
 } from '../../../controls';
 
 import { OrientationType } from '../../types';
@@ -224,6 +226,8 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
         },
       },
     ],
+    [truncateXAxis],
+    [xAxisBounds],
     [
       {
         name: 'truncateYAxis',

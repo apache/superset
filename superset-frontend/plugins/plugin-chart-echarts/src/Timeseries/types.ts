@@ -75,10 +75,12 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   stack: StackType;
   timeCompare?: string[];
   tooltipTimeFormat?: string;
+  truncateXAxis: boolean;
   truncateYAxis: boolean;
   yAxisFormat?: string;
   xAxisTimeFormat?: string;
   timeGrainSqla?: TimeGranularity;
+  xAxisBounds: [number | undefined | null, number | undefined | null];
   yAxisBounds: [number | undefined | null, number | undefined | null];
   zoomable: boolean;
   richTooltip: boolean;

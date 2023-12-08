@@ -248,3 +248,34 @@ export const seriesOrderSection: ControlSetRow[] = [
   [sortSeriesType],
   [sortSeriesAscending],
 ];
+
+export const truncateXAxis: ControlSetItem = {
+  name: 'truncateXAxis',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Truncate X Axis'),
+    default: DEFAULT_FORM_DATA.truncateXAxis,
+    renderTrigger: true,
+    description: t(
+      'Truncate X Axis. Can be overridden by specifying a min or max bound. Only applies when x-axis is numerical',
+    ),
+  },
+};
+
+export const xAxisBounds: ControlSetItem = {
+  name: 'xAxisBounds',
+  config: {
+    type: 'BoundsControl',
+    label: t('X Axis Bounds'),
+    renderTrigger: true,
+    default: DEFAULT_FORM_DATA.xAxisBounds,
+    description: t(
+      'Bounds for the X axis. When left empty, the bounds are ' +
+        'dynamically defined based on the min/max of the data. Note that ' +
+        "this feature will only expand the axis range. It won't " +
+        "narrow the data's extent.",
+    ),
+    visibility: ({ controls }: ControlPanelsContainerProps) =>
+      Boolean(controls?.truncateXAxis?.value),
+  },
+};

@@ -38,6 +38,8 @@ import {
   richTooltipSection,
   seriesOrderSection,
   showValueSection,
+  truncateXAxis,
+  xAxisBounds,
 } from '../../../controls';
 
 const {
@@ -229,6 +231,8 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [truncateXAxis],
+        [xAxisBounds],
         [
           {
             name: 'truncateYAxis',
