@@ -21,8 +21,8 @@ import { useHistory } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { useAppSelector } from 'src/hooks/useAppSelector';
 import { dvtAppSetSort } from 'src/dvt-redux/dvt-appReducer';
-import { DvtNavbarTabsData, UserData } from './dvt-navbar-tabs-data';
 import { BellOutlined } from '@ant-design/icons';
+import { DvtNavbarTabsData, UserData } from './dvt-navbar-tabs-data';
 import DvtButtonTabs from '../DvtButtonTabs';
 import DvtButton from '../DvtButton';
 import DvtDotTitle from '../DvtDotTitle';
@@ -131,7 +131,7 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ user }) => {
           </NavbarProfileIcon>
         )}
         <NavbarProfileMenu>
-          <DvtProfileMenu img={UserData[0].image} />
+          <DvtProfileMenu img={UserData.image} />
         </NavbarProfileMenu>
       </NavbarTop>
       {withNavbarBottom.includes(pathName) && (
