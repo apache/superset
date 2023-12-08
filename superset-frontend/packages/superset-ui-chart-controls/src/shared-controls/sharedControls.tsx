@@ -85,7 +85,9 @@ import {
   dndAdhocMetricControl2,
   dndXAxisControl,
 } from './dndControls';
+import getBootstrapData from '../../../../src/utils/getBootstrapData';
 
+const sqlMaxRow = getBootstrapData().common.conf.SQL_MAX_ROW;
 export { withDndFallback } from './dndControls';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
@@ -247,7 +249,7 @@ const row_limit: SharedControlConfig<'SelectControl'> = {
   freeForm: true,
   label: t('Row limit'),
   clearable: false,
-  validators: [legacyValidateInteger, v => validateMaxValue(v, 100000)],
+  validators: [legacyValidateInteger, v => validateMaxValue(v, sqlMaxRow)],
   default: 10000,
   choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
   description: t('Limits the number of rows that get displayed.'),
