@@ -10,7 +10,11 @@ export default {
 } as Meta;
 
 export const Default = (args: DvtCardDetailChartProps) => (
-  <DvtCardDetailChart {...args} />
+  <div style={{ backgroundColor: '#B8C1CC', padding: '20px' }}>
+    <div style={{ width: '400px' }}>
+      <DvtCardDetailChart {...args} />
+    </div>
+  </div>
 );
 
 Default.args = {

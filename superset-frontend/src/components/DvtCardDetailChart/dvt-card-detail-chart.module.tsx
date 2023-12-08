@@ -4,10 +4,9 @@ import { Link } from 'react-router-dom';
 const StyledDvtCardDetailChart = styled.div`
   display: flex;
   flex-direction: column;
-  width: 400px;
-  height: 172px;
   border-radius: 4px;
-  padding: 10px;
+  padding: 19px;
+  gap: 20px;
   background-color: ${({ theme }) => theme.colors.dvt.grayscale.light2};
 `;
 
@@ -15,14 +14,13 @@ const StyledDvtCardDetailChartTitle = styled.div`
   display: flex;
   font-size: 16px;
   font-weight: bold;
-  margin-bottom: 20px;
+  line-height: 100%;
 `;
 
 const StyledDvtCardDetails = styled.div`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  margin-bottom: 10px;
 `;
 
 const StyledDvtCardLink = styled(Link)`
@@ -32,8 +30,10 @@ const StyledDvtCardLink = styled(Link)`
 `;
 
 const StyledDvtCardP = styled.p`
+  display: flex;
   font-size: 15px;
   font-weight: 500;
+  line-height: 100%;
   color: ${({ theme }) => theme.colors.dvt.text.label};
 `;
 export {
