@@ -195,12 +195,7 @@ class RefreshIntervalModal extends React.PureComponent<
                 <input
                   type="number"
                   min="0"
-                  style={{
-                    border: '1px solid lightgrey',
-                    borderRadius: '3px',
-                    maxWidth: '100%',
-                    padding: '5px',
-                  }}
+                  className="form-control input-sm"
                   id="custom_refresh_frequency_hour"
                   placeholder="Type a number"
                   onChange={event => {
