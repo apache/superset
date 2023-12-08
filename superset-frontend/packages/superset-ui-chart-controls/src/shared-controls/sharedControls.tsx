@@ -88,7 +88,6 @@ import {
 import getBootstrapData from '../../../../src/utils/getBootstrapData';
 
 const sqlMaxRow = getBootstrapData().common.conf.SQL_MAX_ROW;
-export { withDndFallback } from './dndControls';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
