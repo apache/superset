@@ -29,7 +29,7 @@ def test_update_id_refs_immune_missing(  # pylint: disable=invalid-name
     immune to filters. The missing chart ID should be simply ignored when the
     dashboard is imported.
     """
-    from superset.dashboards.commands.importers.v1.utils import update_id_refs
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
 
     config = {
         "position": {
@@ -83,7 +83,7 @@ def test_update_id_refs_immune_missing(  # pylint: disable=invalid-name
 
 
 def test_update_native_filter_config_scope_excluded():
-    from superset.dashboards.commands.importers.v1.utils import update_id_refs
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
 
     config = {
         "position": {

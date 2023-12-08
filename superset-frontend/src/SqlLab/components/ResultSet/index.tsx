@@ -18,6 +18,7 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
+import { useHistory } from 'react-router-dom';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
@@ -32,6 +33,7 @@ import {
   usePrevious,
   css,
   getNumberFormatter,
+  getExtensionsRegistry,
 } from '@superset-ui/core';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import {
@@ -135,6 +137,8 @@ const ResultSetButtons = styled.div`
 const ROWS_CHIP_WIDTH = 100;
 const GAP = 8;
 
+const extensionsRegistry = getExtensionsRegistry();
+
 const ResultSet = ({
   cache = false,
   csv = true,
@@ -149,12 +153,16 @@ const ResultSet = ({
   user,
   defaultQueryLimit,
 }: ResultSetProps) => {
+  const ResultTable =
+    extensionsRegistry.get('sqleditor.extension.resultTable') ??
+    FilterableTable;
   const theme = useTheme();
   const [searchText, setSearchText] = useState('');
   const [cachedData, setCachedData] = useState<Record<string, unknown>[]>([]);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const [alertIsOpen, setAlertIsOpen] = useState(false);
 
+  const history = useHistory();
   const dispatch = useDispatch();
 
   const reRunQueryIfSessionTimeoutErrorOnMount = useCallback(() => {
@@ -209,8 +217,10 @@ const ResultSet = ({
     setSearchText(event.target.value);
   };
 
-  const createExploreResultsOnClick = async () => {
+  const createExploreResultsOnClick = async (clickEvent: React.MouseEvent) => {
     const { results } = query;
+
+    const openInNewWindow = clickEvent.metaKey;
 
     if (results?.query_id) {
       const key = await postFormData(results.query_id, 'query', {
@@ -223,7 +233,11 @@ const ResultSet = ({
       const url = mountExploreUrl(null, {
         [URL_PARAMS.formDataKey.name]: key,
       });
-      window.open(url, '_blank', 'noreferrer');
+      if (openInNewWindow) {
+        window.open(url, '_blank', 'noreferrer');
+      } else {
+        history.push(url);
+      }
     } else {
       addDangerToast(t('Unable to create chart without a query id.'));
     }
@@ -301,7 +315,7 @@ const ResultSet = ({
     return <div />;
   };
 
-  const renderRowsReturned = () => {
+  const renderRowsReturned = (alertMessage: boolean) => {
     const { results, rows, queryLimit, limitingFactor } = query;
     let limitMessage = '';
     const limitReached = results?.displayLimitReached;
@@ -353,59 +367,70 @@ const ResultSet = ({
 
     const tooltipText = `${rowsReturnedMessage}. ${limitMessage}`;
 
+    if (alertMessage) {
+      return (
+        <>
+          {!limitReached && shouldUseDefaultDropdownAlert && (
+            <div ref={calculateAlertRefHeight}>
+              <Alert
+                type="warning"
+                message={t('%(rows)d rows returned', { rows })}
+                onClose={() => setAlertIsOpen(false)}
+                description={t(
+                  'The number of rows displayed is limited to %(rows)d by the dropdown.',
+                  { rows },
+                )}
+              />
+            </div>
+          )}
+          {limitReached && (
+            <div ref={calculateAlertRefHeight}>
+              <Alert
+                type="warning"
+                onClose={() => setAlertIsOpen(false)}
+                message={t('%(rows)d rows returned', { rows: rowsCount })}
+                description={
+                  isAdmin
+                    ? displayMaxRowsReachedMessage.withAdmin
+                    : displayMaxRowsReachedMessage.withoutAdmin
+                }
+              />
+            </div>
+          )}
+        </>
+      );
+    }
+    const showRowsReturned =
+      showSqlInline || (!limitReached && !shouldUseDefaultDropdownAlert);
+
     return (
-      <ReturnedRows>
-        {!limitReached && !shouldUseDefaultDropdownAlert && (
-          <Tooltip
-            id="sqllab-rowcount-tooltip"
-            title={tooltipText}
-            placement="left"
-          >
-            <Label
-              css={css`
-                line-height: ${theme.typography.sizes.l}px;
-              `}
+      <>
+        {showRowsReturned && (
+          <ReturnedRows>
+            <Tooltip
+              id="sqllab-rowcount-tooltip"
+              title={tooltipText}
+              placement="left"
             >
-              {limitMessage && (
-                <Icons.ExclamationCircleOutlined
-                  css={css`
-                    font-size: ${theme.typography.sizes.m}px;
-                    margin-right: ${theme.gridUnit}px;
-                  `}
-                />
-              )}
-              {tn('%s row', '%s rows', rows, formattedRowCount)}
-            </Label>
-          </Tooltip>
+              <Label
+                css={css`
+                  line-height: ${theme.typography.sizes.l}px;
+                `}
+              >
+                {limitMessage && (
+                  <Icons.ExclamationCircleOutlined
+                    css={css`
+                      font-size: ${theme.typography.sizes.m}px;
+                      margin-right: ${theme.gridUnit}px;
+                    `}
+                  />
+                )}
+                {tn('%s row', '%s rows', rows, formattedRowCount)}
+              </Label>
+            </Tooltip>
+          </ReturnedRows>
         )}
-        {!limitReached && shouldUseDefaultDropdownAlert && (
-          <div ref={calculateAlertRefHeight}>
-            <Alert
-              type="warning"
-              message={t('%(rows)d rows returned', { rows })}
-              onClose={() => setAlertIsOpen(false)}
-              description={t(
-                'The number of rows displayed is limited to %(rows)d by the dropdown.',
-                { rows },
-              )}
-            />
-          </div>
-        )}
-        {limitReached && (
-          <div ref={calculateAlertRefHeight}>
-            <Alert
-              type="warning"
-              onClose={() => setAlertIsOpen(false)}
-              message={t('%(rows)d rows returned', { rows: rowsCount })}
-              description={
-                isAdmin
-                  ? displayMaxRowsReachedMessage.withAdmin
-                  : displayMaxRowsReachedMessage.withoutAdmin
-              }
-            />
-          </div>
-        )}
-      </ReturnedRows>
+      </>
     );
   };
 
@@ -531,40 +556,45 @@ const ResultSet = ({
         <ResultContainer>
           {renderControls()}
           {showSql && showSqlInline ? (
-            <div
-              css={css`
-                display: flex;
-                justify-content: space-between;
-                gap: ${GAP}px;
-              `}
-            >
-              <Card
-                css={[
-                  css`
-                    height: 28px;
-                    width: calc(100% - ${ROWS_CHIP_WIDTH + GAP}px);
-                    code {
-                      width: 100%;
-                      overflow: hidden;
-                      white-space: nowrap !important;
-                      text-overflow: ellipsis;
-                      display: block;
-                    }
-                  `,
-                ]}
+            <>
+              <div
+                css={css`
+                  display: flex;
+                  justify-content: space-between;
+                  gap: ${GAP}px;
+                `}
               >
-                {sql}
-              </Card>
-              {renderRowsReturned()}
-            </div>
+                <Card
+                  css={[
+                    css`
+                      height: 28px;
+                      width: calc(100% - ${ROWS_CHIP_WIDTH + GAP}px);
+                      code {
+                        width: 100%;
+                        overflow: hidden;
+                        white-space: nowrap !important;
+                        text-overflow: ellipsis;
+                        display: block;
+                      }
+                    `,
+                  ]}
+                >
+                  {sql}
+                </Card>
+                {renderRowsReturned(false)}
+              </div>
+              {renderRowsReturned(true)}
+            </>
           ) : (
             <>
-              {renderRowsReturned()}
+              {renderRowsReturned(false)}
+              {renderRowsReturned(true)}
               {sql}
             </>
           )}
-          <FilterableTable
+          <ResultTable
             data={data}
+            queryId={query.id}
             orderedColumnKeys={results.columns.map(col => col.column_name)}
             height={rowsHeight}
             filterText={searchText}

@@ -24,7 +24,7 @@ import re
 from typing import Any, Optional
 from unittest.mock import Mock, patch
 
-from superset.databases.commands.exceptions import DatabaseInvalidError
+from superset.commands.database.exceptions import DatabaseInvalidError
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -59,7 +59,6 @@ from superset.utils.core import (
     get_stacktrace,
     json_int_dttm_ser,
     json_iso_dttm_ser,
-    JSONEncodedDict,
     merge_extra_filters,
     merge_extra_form_data,
     merge_request_params,
@@ -582,15 +581,6 @@ class TestUtils(SupersetTestCase):
             format_timedelta(timedelta(0) - timedelta(days=16, hours=4, minutes=3)),
             "-16 days, 4:03:00",
         )
-
-    def test_json_encoded_obj(self):
-        obj = {"a": 5, "b": ["a", "g", 5]}
-        val = '{"a": 5, "b": ["a", "g", 5]}'
-        jsonObj = JSONEncodedDict()
-        resp = jsonObj.process_bind_param(obj, "dialect")
-        self.assertIn('"a": 5', resp)
-        self.assertIn('"b": ["a", "g", 5]', resp)
-        self.assertEqual(jsonObj.process_result_value(val, "dialect"), obj)
 
     def test_validate_json(self):
         valid = '{"a": 5, "b": [1, 5, ["g", "h"]]}'

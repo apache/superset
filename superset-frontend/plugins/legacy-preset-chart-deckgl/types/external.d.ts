@@ -17,4 +17,55 @@
  * under the License.
  */
 
-declare module '*.png';
+declare module 'deck.gl' {
+  import { Layer, LayerProps } from '@deck.gl/core';
+
+  interface HeatmapLayerProps<T extends object = any> extends LayerProps<T> {
+    id?: string;
+    data?: T[];
+    getPosition?: (d: T) => number[] | null | undefined;
+    getWeight?: (d: T) => number | null | undefined;
+    radiusPixels?: number;
+    colorRange?: number[][];
+    threshold?: number;
+    intensity?: number;
+    aggregation?: string;
+  }
+
+  interface ContourLayerProps<T extends object = any> extends LayerProps<T> {
+    id?: string;
+    data?: T[];
+    getPosition?: (d: T) => number[] | null | undefined;
+    getWeight?: (d: T) => number | null | undefined;
+    contours: {
+      color?: ColorType | undefined;
+      lowerThreshold?: any | undefined;
+      upperThreshold?: any | undefined;
+      strokeWidth?: any | undefined;
+      zIndex?: any | undefined;
+    };
+    cellSize: number;
+    colorRange?: number[][];
+    intensity?: number;
+    aggregation?: string;
+  }
+
+  export class HeatmapLayer<T extends object = any> extends Layer<
+    T,
+    HeatmapLayerProps<T>
+  > {
+    constructor(props: HeatmapLayerProps<T>);
+  }
+
+  export class ContourLayer<T extends object = any> extends Layer<
+    T,
+    ContourLayerProps<T>
+  > {
+    constructor(props: ContourLayerProps<T>);
+  }
+}
+
+declare module '*.png' {
+  const value: any;
+  export default value;
+}

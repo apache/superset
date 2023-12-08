@@ -26,13 +26,9 @@ from marshmallow import ValidationError
 
 from superset import is_feature_enabled
 from superset.charts.filters import ChartFilter
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.dashboards.filters import DashboardAccessFilter
-from superset.databases.filters import DatabaseFilter
-from superset.extensions import event_logger
-from superset.reports.commands.create import CreateReportScheduleCommand
-from superset.reports.commands.delete import DeleteReportScheduleCommand
-from superset.reports.commands.exceptions import (
+from superset.commands.report.create import CreateReportScheduleCommand
+from superset.commands.report.delete import DeleteReportScheduleCommand
+from superset.commands.report.exceptions import (
     ReportScheduleCreateFailedError,
     ReportScheduleDeleteFailedError,
     ReportScheduleForbiddenError,
@@ -40,7 +36,11 @@ from superset.reports.commands.exceptions import (
     ReportScheduleNotFoundError,
     ReportScheduleUpdateFailedError,
 )
-from superset.reports.commands.update import UpdateReportScheduleCommand
+from superset.commands.report.update import UpdateReportScheduleCommand
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.dashboards.filters import DashboardAccessFilter
+from superset.databases.filters import DatabaseFilter
+from superset.extensions import event_logger
 from superset.reports.filters import ReportScheduleAllTextFilter, ReportScheduleFilter
 from superset.reports.models import ReportSchedule
 from superset.reports.schemas import (

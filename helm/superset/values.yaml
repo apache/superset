@@ -93,6 +93,8 @@ extraSecretEnv: {}
   # # Google API Keys: https://console.cloud.google.com/apis/credentials
   # GOOGLE_KEY: ...
   # GOOGLE_SECRET: ...
+  #   # Generate your own secret key for encryption. Use openssl rand -base64 42 to generate a good key
+  #  SUPERSET_SECRET_KEY: 'CHANGE_ME_TO_A_COMPLEX_RANDOM_SECRET'
 
 # -- Extra files to mount on `/app/pythonpath`
 extraConfigs: {}
@@ -240,6 +242,13 @@ hostAliases: []
 # Superset node configuration
 supersetNode:
   replicaCount: 1
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+
   # -- Startup command
   # @default -- See `values.yaml`
   command:
@@ -334,6 +343,13 @@ supersetNode:
 # Superset Celery worker configuration
 supersetWorker:
   replicaCount: 1
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+
   # -- Worker startup command
   # @default -- a `celery worker` command
   command:
@@ -427,6 +443,8 @@ supersetCeleryBeat:
         - /bin/sh
         - -c
         - dockerize -wait "tcp://$DB_HOST:$DB_PORT" -wait "tcp://$REDIS_HOST:$REDIS_PORT" -timeout 120s
+  # -- Launch additional containers into supersetCeleryBeat pods
+  extraContainers: []
   # -- Annotations to be added to supersetCeleryBeat deployment
   deploymentAnnotations: {}
   # -- Affinity to be added to supersetCeleryBeat deployment
@@ -508,6 +526,8 @@ supersetCeleryFlower:
         - /bin/sh
         - -c
         - dockerize -wait "tcp://$DB_HOST:$DB_PORT" -wait "tcp://$REDIS_HOST:$REDIS_PORT" -timeout 120s
+  # -- Launch additional containers into supersetCeleryFlower pods
+  extraContainers: []
   # -- Annotations to be added to supersetCeleryFlower deployment
   deploymentAnnotations: {}
   # -- Affinity to be added to supersetCeleryFlower deployment
@@ -574,6 +594,8 @@ supersetWebsockets:
       http: nil
   command: []
   resources: {}
+  # -- Launch additional containers into supersetWebsockets pods
+  extraContainers: []
   deploymentAnnotations: {}
   # -- Affinity to be added to supersetWebsockets deployment
   affinity: {}
@@ -657,7 +679,7 @@ init:
         - -c
         - dockerize -wait "tcp://$DB_HOST:$DB_PORT" -timeout 120s
   # -- A Superset init script
-  # @default -- a script to create admin user and initailize roles
+  # @default -- a script to create admin user and initialize roles
   initscript: |-
     #!/bin/sh
     set -eu
@@ -683,6 +705,8 @@ init:
       echo "Importing database connections.... "
       superset import_datasources -p {{ .Values.extraConfigMountPath }}/import_datasources.yaml
     fi
+  # -- Launch additional containers into init job pod
+  extraContainers: []
   ## Annotations to be added to init job pods
   podAnnotations: {}
   podSecurityContext: {}

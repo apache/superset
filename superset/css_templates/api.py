@@ -22,12 +22,12 @@ from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.css_templates.commands.delete import DeleteCssTemplateCommand
-from superset.css_templates.commands.exceptions import (
+from superset.commands.css.delete import DeleteCssTemplateCommand
+from superset.commands.css.exceptions import (
     CssTemplateDeleteFailedError,
     CssTemplateNotFoundError,
 )
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.css_templates.filters import CssTemplateAllTextFilter
 from superset.css_templates.schemas import (
     get_delete_ids_schema,

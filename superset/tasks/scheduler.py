@@ -15,17 +15,18 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from datetime import datetime
 
 from celery import Celery
 from celery.exceptions import SoftTimeLimitExceeded
 
 from superset import app, is_feature_enabled
 from superset.commands.exceptions import CommandException
+from superset.commands.report.exceptions import ReportScheduleUnexpectedError
+from superset.commands.report.execute import AsyncExecuteReportScheduleCommand
+from superset.commands.report.log_prune import AsyncPruneReportScheduleLogCommand
 from superset.daos.report import ReportScheduleDAO
 from superset.extensions import celery_app
-from superset.reports.commands.exceptions import ReportScheduleUnexpectedError
-from superset.reports.commands.execute import AsyncExecuteReportScheduleCommand
-from superset.reports.commands.log_prune import AsyncPruneReportScheduleLogCommand
 from superset.stats_logger import BaseStatsLogger
 from superset.tasks.cron_util import cron_schedule_window
 from superset.utils.celery import session_scope
@@ -47,9 +48,15 @@ def scheduler() -> None:
         return
     with session_scope(nullpool=True) as session:
         active_schedules = ReportScheduleDAO.find_active(session)
+        triggered_at = (
+            datetime.fromisoformat(scheduler.request.expires)
+            - app.config["CELERY_BEAT_SCHEDULER_EXPIRES"]
+            if scheduler.request.expires
+            else datetime.utcnow()
+        )
         for active_schedule in active_schedules:
             for schedule in cron_schedule_window(
-                active_schedule.crontab, active_schedule.timezone
+                triggered_at, active_schedule.crontab, active_schedule.timezone
             ):
                 logger.info(
                     "Scheduling alert %s eta: %s", active_schedule.name, schedule

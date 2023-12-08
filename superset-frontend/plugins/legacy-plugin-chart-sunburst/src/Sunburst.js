@@ -82,7 +82,8 @@ function buildHierarchy(rows) {
     let currentNode = root;
     for (let level = 0; level < levels.length; level += 1) {
       const children = currentNode.children || [];
-      const nodeName = levels[level].toString();
+      const node = levels[level];
+      const nodeName = node ? node.toString() : t('N/A');
       // If the next node has the name '0', it will
       const isLeafNode = level >= levels.length - 1 || levels[level + 1] === 0;
       let childNode;

@@ -34,7 +34,7 @@ from superset.models.slice import Slice
 from superset.tasks.types import ExecutorType
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
-from superset.utils.webdriver import find_unexpected_errors, WebDriverProxy
+from superset.utils.webdriver import WebDriverSelenium
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -79,11 +79,11 @@ class TestThumbnailsSeleniumLive(LiveServerTestCase):
 class TestWebDriverScreenshotErrorDetector(SupersetTestCase):
     @patch("superset.utils.webdriver.WebDriverWait")
     @patch("superset.utils.webdriver.firefox")
-    @patch("superset.utils.webdriver.find_unexpected_errors")
+    @patch("superset.utils.webdriver.WebDriverSelenium.find_unexpected_errors")
     def test_not_call_find_unexpected_errors_if_feature_disabled(
         self, mock_find_unexpected_errors, mock_firefox, mock_webdriver_wait
     ):
-        webdriver_proxy = WebDriverProxy("firefox")
+        webdriver_proxy = WebDriverSelenium("firefox")
         user = security_manager.get_user_by_username(
             app.config["THUMBNAIL_SELENIUM_USER"]
         )
@@ -94,12 +94,12 @@ class TestWebDriverScreenshotErrorDetector(SupersetTestCase):
 
     @patch("superset.utils.webdriver.WebDriverWait")
     @patch("superset.utils.webdriver.firefox")
-    @patch("superset.utils.webdriver.find_unexpected_errors")
+    @patch("superset.utils.webdriver.WebDriverSelenium.find_unexpected_errors")
     def test_call_find_unexpected_errors_if_feature_enabled(
         self, mock_find_unexpected_errors, mock_firefox, mock_webdriver_wait
     ):
         app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"] = True
-        webdriver_proxy = WebDriverProxy("firefox")
+        webdriver_proxy = WebDriverSelenium("firefox")
         user = security_manager.get_user_by_username(
             app.config["THUMBNAIL_SELENIUM_USER"]
         )
@@ -115,7 +115,7 @@ class TestWebDriverScreenshotErrorDetector(SupersetTestCase):
 
         webdriver.find_elements.return_value = []
 
-        unexpected_errors = find_unexpected_errors(driver=webdriver)
+        unexpected_errors = WebDriverSelenium.find_unexpected_errors(driver=webdriver)
         assert len(unexpected_errors) == 0
 
         assert "alert" in webdriver.find_elements.call_args_list[0][0][1]
@@ -128,7 +128,7 @@ class TestWebDriverScreenshotErrorDetector(SupersetTestCase):
         webdriver.find_elements.return_value = [alert_div]
         alert_div.find_elements.return_value = MagicMock()
 
-        unexpected_errors = find_unexpected_errors(driver=webdriver)
+        unexpected_errors = WebDriverSelenium.find_unexpected_errors(driver=webdriver)
         assert len(unexpected_errors) == 1
 
         # attempt to find alerts
@@ -141,14 +141,14 @@ class TestWebDriverScreenshotErrorDetector(SupersetTestCase):
         assert alert_div == webdriver.execute_script.call_args_list[0][0][1]
 
 
-class TestWebDriverProxy(SupersetTestCase):
+class TestWebDriverSelenium(SupersetTestCase):
     @patch("superset.utils.webdriver.WebDriverWait")
     @patch("superset.utils.webdriver.firefox")
     @patch("superset.utils.webdriver.sleep")
     def test_screenshot_selenium_headstart(
         self, mock_sleep, mock_webdriver, mock_webdriver_wait
     ):
-        webdriver = WebDriverProxy("firefox")
+        webdriver = WebDriverSelenium("firefox")
         user = security_manager.get_user_by_username(
             app.config["THUMBNAIL_SELENIUM_USER"]
         )
@@ -161,7 +161,7 @@ class TestWebDriverProxy(SupersetTestCase):
     @patch("superset.utils.webdriver.firefox")
     def test_screenshot_selenium_locate_wait(self, mock_webdriver, mock_webdriver_wait):
         app.config["SCREENSHOT_LOCATE_WAIT"] = 15
-        webdriver = WebDriverProxy("firefox")
+        webdriver = WebDriverSelenium("firefox")
         user = security_manager.get_user_by_username(
             app.config["THUMBNAIL_SELENIUM_USER"]
         )
@@ -173,7 +173,7 @@ class TestWebDriverProxy(SupersetTestCase):
     @patch("superset.utils.webdriver.firefox")
     def test_screenshot_selenium_load_wait(self, mock_webdriver, mock_webdriver_wait):
         app.config["SCREENSHOT_LOAD_WAIT"] = 15
-        webdriver = WebDriverProxy("firefox")
+        webdriver = WebDriverSelenium("firefox")
         user = security_manager.get_user_by_username(
             app.config["THUMBNAIL_SELENIUM_USER"]
         )
@@ -187,7 +187,7 @@ class TestWebDriverProxy(SupersetTestCase):
     def test_screenshot_selenium_animation_wait(
         self, mock_sleep, mock_webdriver, mock_webdriver_wait
     ):
-        webdriver = WebDriverProxy("firefox")
+        webdriver = WebDriverSelenium("firefox")
         user = security_manager.get_user_by_username(
             app.config["THUMBNAIL_SELENIUM_USER"]
         )

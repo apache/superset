@@ -20,9 +20,13 @@
 import { invert } from 'lodash';
 import {
   AnnotationLayer,
+  AxisType,
+  buildCustomFormatters,
   CategoricalColorNamespace,
+  CurrencyFormatter,
   ensureIsArray,
   GenericDataType,
+  getCustomFormatter,
   getMetricLabel,
   getNumberFormatter,
   getXAxisLabel,
@@ -34,9 +38,6 @@ import {
   isTimeseriesAnnotationLayer,
   t,
   TimeseriesChartDataResponseResult,
-  buildCustomFormatters,
-  getCustomFormatter,
-  CurrencyFormatter,
 } from '@superset-ui/core';
 import {
   extractExtraMetrics,
@@ -48,8 +49,8 @@ import { ZRLineType } from 'echarts/types/src/util/types';
 import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
-  TimeseriesChartTransformedProps,
   OrientationType,
+  TimeseriesChartTransformedProps,
 } from './types';
 import { DEFAULT_FORM_DATA } from './constants';
 import { ForecastSeriesEnum, ForecastValue, Refs } from '../types';
@@ -80,8 +81,6 @@ import { defaultGrid, defaultYAxis } from '../defaults';
 import {
   getBaselineSeriesForStream,
   getPadding,
-  getTooltipTimeFormatter,
-  getXAxisFormatter,
   transformEventAnnotation,
   transformFormulaAnnotation,
   transformIntervalAnnotation,
@@ -90,11 +89,15 @@ import {
 } from './transformers';
 import {
   StackControlsValue,
-  TIMESERIES_CONSTANTS,
   TIMEGRAIN_TO_TIMESTAMP,
+  TIMESERIES_CONSTANTS,
 } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
-import { getYAxisFormatter } from '../utils/getYAxisFormatter';
+import {
+  getTooltipTimeFormatter,
+  getXAxisFormatter,
+  getYAxisFormatter,
+} from '../utils/formatters';
 
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
@@ -446,13 +449,13 @@ export default function transformProps(
       rotate: xAxisLabelRotation,
     },
     minInterval:
-      xAxisType === 'time' && timeGrainSqla
+      xAxisType === AxisType.time && timeGrainSqla
         ? TIMEGRAIN_TO_TIMESTAMP[timeGrainSqla]
         : 0,
   };
   let yAxis: any = {
     ...defaultYAxis,
-    type: logAxis ? 'log' : 'value',
+    type: logAxis ? AxisType.log : AxisType.value,
     min,
     max,
     minorTick: { show: true },

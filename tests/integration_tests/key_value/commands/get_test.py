@@ -38,7 +38,7 @@ if TYPE_CHECKING:
 
 
 def test_get_id_entry(app_context: AppContext, key_value_entry: KeyValueEntry) -> None:
-    from superset.key_value.commands.get import GetKeyValueCommand
+    from superset.commands.key_value.get import GetKeyValueCommand
 
     value = GetKeyValueCommand(resource=RESOURCE, key=ID_KEY, codec=JSON_CODEC).run()
     assert value == JSON_VALUE
@@ -47,7 +47,7 @@ def test_get_id_entry(app_context: AppContext, key_value_entry: KeyValueEntry) -
 def test_get_uuid_entry(
     app_context: AppContext, key_value_entry: KeyValueEntry
 ) -> None:
-    from superset.key_value.commands.get import GetKeyValueCommand
+    from superset.commands.key_value.get import GetKeyValueCommand
 
     value = GetKeyValueCommand(resource=RESOURCE, key=UUID_KEY, codec=JSON_CODEC).run()
     assert value == JSON_VALUE
@@ -57,14 +57,14 @@ def test_get_id_entry_missing(
     app_context: AppContext,
     key_value_entry: KeyValueEntry,
 ) -> None:
-    from superset.key_value.commands.get import GetKeyValueCommand
+    from superset.commands.key_value.get import GetKeyValueCommand
 
     value = GetKeyValueCommand(resource=RESOURCE, key=456, codec=JSON_CODEC).run()
     assert value is None
 
 
 def test_get_expired_entry(app_context: AppContext) -> None:
-    from superset.key_value.commands.get import GetKeyValueCommand
+    from superset.commands.key_value.get import GetKeyValueCommand
     from superset.key_value.models import KeyValueEntry
 
     entry = KeyValueEntry(
@@ -83,7 +83,7 @@ def test_get_expired_entry(app_context: AppContext) -> None:
 
 
 def test_get_future_expiring_entry(app_context: AppContext) -> None:
-    from superset.key_value.commands.get import GetKeyValueCommand
+    from superset.commands.key_value.get import GetKeyValueCommand
     from superset.key_value.models import KeyValueEntry
 
     id_ = 789

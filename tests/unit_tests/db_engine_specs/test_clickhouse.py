@@ -30,6 +30,8 @@ from sqlalchemy.types import (
     String,
     TypeEngine,
 )
+from urllib3.connection import HTTPConnection
+from urllib3.exceptions import NewConnectionError
 
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
@@ -56,14 +58,12 @@ def test_convert_dttm(
 
 
 def test_execute_connection_error() -> None:
-    from urllib3.exceptions import NewConnectionError
-
     from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
     from superset.db_engine_specs.exceptions import SupersetDBAPIDatabaseError
 
     cursor = Mock()
     cursor.execute.side_effect = NewConnectionError(
-        "Dummypool", "Exception with sensitive data"
+        HTTPConnection("localhost"), "Exception with sensitive data"
     )
     with pytest.raises(SupersetDBAPIDatabaseError) as ex:
         ClickHouseEngineSpec.execute(cursor, "SELECT col1 from table1")

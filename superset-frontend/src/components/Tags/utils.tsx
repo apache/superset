@@ -46,7 +46,7 @@ export const tagToSelectOption = (
 ): SelectTagsValue => ({
   value: item.name,
   label: item.name,
-  key: item.name,
+  key: item.id,
 });
 
 export const loadTags = async (
@@ -66,7 +66,7 @@ export const loadTags = async (
   const getErrorMessage = ({ error, message }: ClientErrorObject) => {
     let errorText = message || error || t('An error has occurred');
     if (message === 'Forbidden') {
-      errorText = t('You do not have permission to edit this dashboard');
+      errorText = t('You do not have permission to read tags');
     }
     return errorText;
   };

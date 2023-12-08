@@ -21,9 +21,9 @@ import pytest
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session
 
+from superset.commands.explore.form_data.state import TemporaryExploreState
 from superset.connectors.sqla.models import SqlaTable
 from superset.explore.exceptions import DatasetAccessDeniedError
-from superset.explore.form_data.commands.state import TemporaryExploreState
 from superset.extensions import cache_manager
 from superset.models.slice import Slice
 from tests.integration_tests.fixtures.world_bank_dashboard import (

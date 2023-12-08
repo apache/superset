@@ -32,7 +32,8 @@ import {
 import { DEFAULT_FORM_DATA, EchartsFunnelLabelTypeType } from './types';
 import { legendSection } from '../controls';
 
-const { labelType, numberFormat, showLabels } = DEFAULT_FORM_DATA;
+const { labelType, numberFormat, showLabels, defaultTooltipLabel } =
+  DEFAULT_FORM_DATA;
 
 const funnelLegendSection = [...legendSection];
 funnelLegendSection.splice(2, 1);
@@ -84,7 +85,7 @@ const config: ControlPanelConfig = {
             name: 'label_type',
             config: {
               type: 'SelectControl',
-              label: t('Label Type'),
+              label: t('Label Contents'),
               default: labelType,
               renderTrigger: true,
               choices: [
@@ -101,7 +102,33 @@ const config: ControlPanelConfig = {
                   t('Category, Value and Percentage'),
                 ],
               ],
-              description: t('What should be shown on the label?'),
+              description: t('What should be shown as the label'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'tooltip_label_type',
+            config: {
+              type: 'SelectControl',
+              label: t('Tooltip Contents'),
+              default: defaultTooltipLabel,
+              renderTrigger: true,
+              choices: [
+                [EchartsFunnelLabelTypeType.Key, t('Category Name')],
+                [EchartsFunnelLabelTypeType.Value, t('Value')],
+                [EchartsFunnelLabelTypeType.Percent, t('Percentage')],
+                [EchartsFunnelLabelTypeType.KeyValue, t('Category and Value')],
+                [
+                  EchartsFunnelLabelTypeType.KeyPercent,
+                  t('Category and Percentage'),
+                ],
+                [
+                  EchartsFunnelLabelTypeType.KeyValuePercent,
+                  t('Category, Value and Percentage'),
+                ],
+              ],
+              description: t('What should be shown as the tooltip label'),
             },
           },
         ],
@@ -129,6 +156,18 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: showLabels,
               description: t('Whether to display the labels.'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'show_tooltip_labels',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Tooltip Labels'),
+              renderTrigger: true,
+              default: showLabels,
+              description: t('Whether to display the tooltip labels.'),
             },
           },
         ],

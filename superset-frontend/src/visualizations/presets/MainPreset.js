@@ -65,6 +65,8 @@ import {
   EchartsMixedTimeseriesChartPlugin,
   EchartsTreeChartPlugin,
   EchartsSunburstChartPlugin,
+  EchartsBubbleChartPlugin,
+  EchartsWaterfallChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
 import {
   SelectFilterPlugin,
@@ -152,6 +154,9 @@ export default class MainPreset extends Preset {
         new EchartsTimeseriesStepChartPlugin().configure({
           key: 'echarts_timeseries_step',
         }),
+        new EchartsWaterfallChartPlugin().configure({
+          key: 'waterfall',
+        }),
         new SelectFilterPlugin().configure({ key: 'filter_select' }),
         new RangeFilterPlugin().configure({ key: 'filter_range' }),
         new TimeFilterPlugin().configure({ key: 'filter_time' }),
@@ -160,6 +165,7 @@ export default class MainPreset extends Preset {
         new EchartsTreeChartPlugin().configure({ key: 'tree_chart' }),
         new EchartsSunburstChartPlugin().configure({ key: 'sunburst_v2' }),
         new HandlebarsChartPlugin().configure({ key: 'handlebars' }),
+        new EchartsBubbleChartPlugin().configure({ key: 'bubble_v2' }),
         ...experimentalplugins,
       ],
     });
