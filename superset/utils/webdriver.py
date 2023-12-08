@@ -133,7 +133,9 @@ class WebDriverPlaywright(WebDriverProxy):
 
         return error_messages
 
-    def get_screenshot(self, url: str, element_name: str, user: User) -> bytes | None:
+    def get_screenshot(  # pylint: disable=too-many-locals, too-many-statements
+        self, url: str, element_name: str, user: User
+    ) -> bytes | None:
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch()
             pixel_density = current_app.config["WEBDRIVER_WINDOW"].get(
