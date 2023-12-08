@@ -548,7 +548,7 @@ export function getMinAndMaxFromBounds(
   truncateAxis: boolean,
   min?: number,
   max?: number,
-): { min: number | 'dataMin'; max: number | 'dataMin' } | {} {
+): { min: number | 'dataMin'; max: number | 'dataMax' } | {} {
   return truncateAxis
     ? {
         min: min === undefined ? 'dataMin' : min,
