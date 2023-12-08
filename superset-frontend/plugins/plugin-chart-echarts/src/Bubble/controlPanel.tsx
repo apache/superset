@@ -26,7 +26,7 @@ import {
 } from '@superset-ui/chart-controls';
 
 import { DEFAULT_FORM_DATA } from './constants';
-import { legendSection } from '../controls';
+import { legendSection, truncateXAxis, xAxisBounds } from '../controls';
 
 const { logAxis, truncateYAxis, yAxisBounds, xAxisLabelRotation, opacity } =
   DEFAULT_FORM_DATA;
@@ -247,6 +247,8 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [truncateXAxis],
+        [xAxisBounds],
         [
           {
             name: 'truncateYAxis',

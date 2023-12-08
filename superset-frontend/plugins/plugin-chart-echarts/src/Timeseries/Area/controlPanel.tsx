@@ -37,6 +37,8 @@ import {
   richTooltipSection,
   seriesOrderSection,
   percentageThresholdControl,
+  truncateXAxis,
+  xAxisBounds,
 } from '../../controls';
 import { AreaChartStackControlOptions } from '../../constants';
 
@@ -241,6 +243,8 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [truncateXAxis],
+        [xAxisBounds],
         [
           {
             name: 'truncateYAxis',
