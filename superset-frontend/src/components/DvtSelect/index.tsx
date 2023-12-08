@@ -35,7 +35,7 @@ export interface DvtSelectProps {
   placeholder?: string;
   selectedValue: string;
   setSelectedValue: (newSeletedValue: string) => void;
-  typeDesign?: 'normal' | 'form';
+  typeDesign?: 'normal' | 'form' | 'navbar';
 }
 
 const DvtSelect: React.FC<DvtSelectProps> = ({
@@ -73,11 +73,11 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
           placeholder}
         <StyledSelectIcon isOpen={isOpen} typeDesign={typeDesign}>
           <Icon
-            fileName="caret_right"
+            fileName={typeDesign === 'navbar' ? 'caret_down' : 'caret_right'}
             iconSize="xxl"
             css={(theme: SupersetTheme) => ({
               color:
-                typeDesign === 'form'
+                typeDesign === 'form' || typeDesign === 'navbar'
                   ? theme.colors.dvt.text.label
                   : theme.colors.grayscale.dark2,
             })}

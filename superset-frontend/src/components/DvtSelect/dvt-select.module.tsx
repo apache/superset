@@ -65,12 +65,15 @@ const StyledSelectSelect = styled.div<StyledSelectProps>`
   border-radius: ${({ typeDesign }) =>
     typeDesign === 'form' ? '4px' : '12px'};
   background-color: ${({ isOpen, theme, typeDesign }) =>
-    typeDesign === 'form'
+    typeDesign === 'form' || typeDesign === 'navbar'
       ? theme.colors.grayscale.light5
       : isOpen
       ? theme.colors.dvt.primary.light2
       : theme.colors.dvt.grayscale.light2};
-  border: none;
+  border: ${({ theme, typeDesign }) =>
+    typeDesign === 'navbar'
+      ? `1px solid ${theme.colors.dvt.primary.light2}`
+      : 'none'};
   appearance: none;
   cursor: pointer;
   color: ${({ theme }) => theme.colors.dvt.primary.light1};
@@ -91,7 +94,7 @@ const StyledSelectOption = styled.div<StyledSelectOptionProps>`
   cursor: pointer;
   ${({ theme, value, selectedValue, typeDesign }) =>
     value === selectedValue
-      ? typeDesign === 'form'
+      ? typeDesign === 'form' || typeDesign === 'navbar'
         ? `
         color: ${theme.colors.dvt.text.help};
         background: ${theme.colors.dvt.primary.light2};
@@ -100,7 +103,7 @@ const StyledSelectOption = styled.div<StyledSelectOptionProps>`
         color: ${theme.colors.grayscale.light5};
         background: ${theme.colors.dvt.primary.light1};
       `
-      : typeDesign === 'form'
+      : typeDesign === 'form' || typeDesign === 'navbar'
       ? `
         color: ${theme.colors.dvt.primary.light1};
         background: ${theme.colors.dvt.primary.light3};
@@ -139,7 +142,8 @@ const StyledSelectIcon = styled.div<StyledSelectProps>`
   position: absolute;
   right: 12px;
   transition: transform 0.3s ease-in-out;
-  transform: ${({ isOpen }) => (isOpen ? 'rotate(90deg)' : 'none')};
+  transform: ${({ isOpen, typeDesign }) =>
+    typeDesign !== 'navbar' && (isOpen ? 'rotate(90deg)' : 'none')};
 `;
 
 export {
