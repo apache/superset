@@ -45,7 +45,7 @@ export interface QueryAutoRefreshProps {
 
 // returns true if the Query.state matches one of the specifc values indicating the query is still processing on server
 export const isQueryRunning = (q: Query): boolean =>
-  runningQueryStateList.includes(q?.state);
+  runningQueryStateList.includes(q?.state) && !q?.resultsKey;
 
 // returns true if at least one query is running and within the max age to poll timeframe
 export const shouldCheckForQueries = (queryList: QueryDictionary): boolean => {

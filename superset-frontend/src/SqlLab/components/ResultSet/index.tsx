@@ -17,13 +17,14 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { useHistory } from 'react-router-dom';
+import pick from 'lodash/pick';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
 import shortid from 'shortid';
 import {
-  QueryResponse,
   QueryState,
   styled,
   t,
@@ -40,8 +41,7 @@ import {
   ISimpleColumn,
   SaveDatasetModal,
 } from 'src/SqlLab/components/SaveDatasetModal';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import { EXPLORE_CHART_DEFAULT } from 'src/SqlLab/types';
+import { EXPLORE_CHART_DEFAULT, SqlLabRootState } from 'src/SqlLab/types';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import ProgressBar from 'src/components/ProgressBar';
@@ -81,12 +81,11 @@ export interface ResultSetProps {
   database?: Record<string, any>;
   displayLimit: number;
   height: number;
-  query: QueryResponse;
+  queryId: string;
   search?: boolean;
   showSql?: boolean;
   showSqlInline?: boolean;
   visualize?: boolean;
-  user: UserWithPermissionsAndRoles;
   defaultQueryLimit: number;
 }
 
@@ -144,14 +143,44 @@ const ResultSet = ({
   database = {},
   displayLimit,
   height,
-  query,
+  queryId,
   search = true,
   showSql = false,
   showSqlInline = false,
   visualize = true,
-  user,
   defaultQueryLimit,
 }: ResultSetProps) => {
+  const user = useSelector(({ user }: SqlLabRootState) => user, shallowEqual);
+  const query = useSelector(
+    ({ sqlLab: { queries } }: SqlLabRootState) =>
+      pick(queries[queryId], [
+        'id',
+        'errorMessage',
+        'cached',
+        'results',
+        'resultsKey',
+        'dbId',
+        'tab',
+        'sql',
+        'templateParams',
+        'schema',
+        'rows',
+        'queryLimit',
+        'limitingFactor',
+        'trackingUrl',
+        'state',
+        'errors',
+        'link',
+        'ctas',
+        'ctas_method',
+        'tempSchema',
+        'tempTable',
+        'isDataPreview',
+        'progress',
+        'extra',
+      ]),
+    shallowEqual,
+  );
   const ResultTable =
     extensionsRegistry.get('sqleditor.extension.resultTable') ??
     FilterableTable;
@@ -161,6 +190,7 @@ const ResultSet = ({
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const [alertIsOpen, setAlertIsOpen] = useState(false);
 
+  const history = useHistory();
   const dispatch = useDispatch();
 
   const reRunQueryIfSessionTimeoutErrorOnMount = useCallback(() => {
@@ -177,8 +207,8 @@ const ResultSet = ({
     reRunQueryIfSessionTimeoutErrorOnMount();
   }, [reRunQueryIfSessionTimeoutErrorOnMount]);
 
-  const fetchResults = (query: QueryResponse) => {
-    dispatch(fetchQueryResults(query, displayLimit));
+  const fetchResults = (q: typeof query) => {
+    dispatch(fetchQueryResults(q, displayLimit));
   };
 
   const prevQuery = usePrevious(query);
@@ -215,8 +245,10 @@ const ResultSet = ({
     setSearchText(event.target.value);
   };
 
-  const createExploreResultsOnClick = async () => {
+  const createExploreResultsOnClick = async (clickEvent: React.MouseEvent) => {
     const { results } = query;
+
+    const openInNewWindow = clickEvent.metaKey;
 
     if (results?.query_id) {
       const key = await postFormData(results.query_id, 'query', {
@@ -229,7 +261,11 @@ const ResultSet = ({
       const url = mountExploreUrl(null, {
         [URL_PARAMS.formDataKey.name]: key,
       });
-      window.open(url, '_blank', 'noreferrer');
+      if (openInNewWindow) {
+        window.open(url, '_blank', 'noreferrer');
+      } else {
+        history.push(url);
+      }
     } else {
       addDangerToast(t('Unable to create chart without a query id.'));
     }
@@ -471,7 +507,7 @@ const ResultSet = ({
       <ResultlessStyles>
         <ErrorMessageWithStackTrace
           title={t('Database error')}
-          error={query?.errors?.[0]}
+          error={query?.extra?.errors?.[0] || query?.errors?.[0]}
           subtitle={<MonospaceDiv>{query.errorMessage}</MonospaceDiv>}
           copyText={query.errorMessage || undefined}
           link={query.link}
@@ -654,4 +690,4 @@ const ResultSet = ({
   );
 };
 
-export default ResultSet;
+export default React.memo(ResultSet);

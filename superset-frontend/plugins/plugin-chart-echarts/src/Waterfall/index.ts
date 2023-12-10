@@ -61,7 +61,7 @@ export default class EchartsWaterfallChartPlugin extends ChartPlugin<
           { url: example3 },
         ],
         name: t('Waterfall Chart'),
-        tags: [t('Categorical'), t('Comparison'), t('ECharts')],
+        tags: [t('Categorical'), t('Comparison'), t('ECharts'), t('Popular')],
         thumbnail,
       }),
       transformProps,

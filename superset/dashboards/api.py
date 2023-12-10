@@ -35,13 +35,9 @@ from werkzeug.wsgi import FileWrapper
 
 from superset import is_feature_enabled, thumbnail_cache
 from superset.charts.schemas import ChartEntityResponseSchema
-from superset.commands.importers.exceptions import NoValidFilesFoundError
-from superset.commands.importers.v1.utils import get_contents_from_bundle
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
-from superset.dashboards.commands.create import CreateDashboardCommand
-from superset.dashboards.commands.delete import DeleteDashboardCommand
-from superset.dashboards.commands.exceptions import (
+from superset.commands.dashboard.create import CreateDashboardCommand
+from superset.commands.dashboard.delete import DeleteDashboardCommand
+from superset.commands.dashboard.exceptions import (
     DashboardAccessDeniedError,
     DashboardCreateFailedError,
     DashboardDeleteFailedError,
@@ -50,9 +46,13 @@ from superset.dashboards.commands.exceptions import (
     DashboardNotFoundError,
     DashboardUpdateFailedError,
 )
-from superset.dashboards.commands.export import ExportDashboardsCommand
-from superset.dashboards.commands.importers.dispatcher import ImportDashboardsCommand
-from superset.dashboards.commands.update import UpdateDashboardCommand
+from superset.commands.dashboard.export import ExportDashboardsCommand
+from superset.commands.dashboard.importers.dispatcher import ImportDashboardsCommand
+from superset.commands.dashboard.update import UpdateDashboardCommand
+from superset.commands.importers.exceptions import NoValidFilesFoundError
+from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
 from superset.dashboards.filters import (
     DashboardAccessFilter,
     DashboardCertifiedFilter,
@@ -261,7 +261,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "roles": RelatedFieldFilter("name", FilterRelatedRoles),
         "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
-    allowed_rel_fields = {"owners", "roles", "created_by"}
+    allowed_rel_fields = {"owners", "roles", "created_by", "changed_by"}
 
     openapi_spec_tag = "Dashboards"
     """ Override the name set for this collection of endpoints """
@@ -1349,8 +1349,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        for embedded in dashboard.embedded:
-            EmbeddedDashboardDAO.delete(embedded)
+        EmbeddedDashboardDAO.delete(dashboard.embedded)
         return self.response(200, message="OK")
 
     @expose("/<id_or_slug>/copy/", methods=("POST",))

@@ -23,7 +23,7 @@ from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
 from superset.daos.tag import TagDAO
 from superset.tags.exceptions import InvalidTagNameError
-from superset.tags.models import ObjectTypes, Tag, TaggedObject
+from superset.tags.models import ObjectType, Tag, TaggedObject
 from tests.integration_tests.tags.api_tests import TAGS_FIXTURE_COUNT
 
 import tests.integration_tests.test_app  # pylint: disable=unused-import
@@ -57,7 +57,7 @@ class TestTagsDAO(SupersetTestCase):
         self,
         tag_id: int,
         object_id: int,
-        object_type: ObjectTypes,
+        object_type: ObjectType,
     ) -> TaggedObject:
         tag = db.session.query(Tag).filter(Tag.id == tag_id).first()
         tagged_object = TaggedObject(
@@ -113,7 +113,7 @@ class TestTagsDAO(SupersetTestCase):
                 tagged_objects.append(
                     self.insert_tagged_object(
                         object_id=dashboard_id,
-                        object_type=ObjectTypes.dashboard,
+                        object_type=ObjectType.dashboard,
                         tag_id=tag.id,
                     )
                 )
@@ -127,14 +127,14 @@ class TestTagsDAO(SupersetTestCase):
         # test that a tag cannot be added if it has ':' in it
         with pytest.raises(DAOCreateFailedError):
             TagDAO.create_custom_tagged_objects(
-                object_type=ObjectTypes.dashboard.name,
+                object_type=ObjectType.dashboard.name,
                 object_id=1,
                 tag_names=["invalid:example tag 1"],
             )
 
         # test that a tag can be added if it has a valid name
         TagDAO.create_custom_tagged_objects(
-            object_type=ObjectTypes.dashboard.name,
+            object_type=ObjectType.dashboard.name,
             object_id=1,
             tag_names=["example tag 1"],
         )
@@ -155,7 +155,7 @@ class TestTagsDAO(SupersetTestCase):
         dashboard_id = dashboard.id
         tag = db.session.query(Tag).filter_by(name="example_tag_1").one()
         self.insert_tagged_object(
-            object_id=dashboard_id, object_type=ObjectTypes.dashboard, tag_id=tag.id
+            object_id=dashboard_id, object_type=ObjectType.dashboard, tag_id=tag.id
         )
         # get objects
         tagged_objects = TagDAO.get_tagged_objects_for_tags(
@@ -179,7 +179,7 @@ class TestTagsDAO(SupersetTestCase):
                 TaggedObject,
                 and_(
                     TaggedObject.object_id == Slice.id,
-                    TaggedObject.object_type == ObjectTypes.chart,
+                    TaggedObject.object_type == ObjectType.chart,
                 ),
             )
             .distinct(Slice.id)
@@ -191,7 +191,7 @@ class TestTagsDAO(SupersetTestCase):
                 TaggedObject,
                 and_(
                     TaggedObject.object_id == Dashboard.id,
-                    TaggedObject.object_type == ObjectTypes.dashboard,
+                    TaggedObject.object_type == ObjectType.dashboard,
                 ),
             )
             .distinct(Dashboard.id)
@@ -209,11 +209,44 @@ class TestTagsDAO(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @pytest.mark.usefixtures("with_tagging_system_feature")
+    @pytest.mark.usefixtures("create_tags")
+    # test get objects from tag
+    def test_get_objects_from_tag_with_id(self):
+        # create tagged objects
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "World Bank's Data")
+            .first()
+        )
+        dashboard_id = dashboard.id
+        tag_1 = db.session.query(Tag).filter_by(name="example_tag_1").one()
+        tag_2 = db.session.query(Tag).filter_by(name="example_tag_2").one()
+        tag_ids = [tag_1.id, tag_2.id]
+        self.insert_tagged_object(
+            object_id=dashboard_id, object_type=ObjectType.dashboard, tag_id=tag_1.id
+        )
+        # get objects
+        tagged_objects = TagDAO.get_tagged_objects_by_tag_id(tag_ids)
+        assert len(tagged_objects) == 1
+
+        # test get objects from tag with type
+        tagged_objects = TagDAO.get_tagged_objects_by_tag_id(
+            tag_ids, obj_types=["dashboard", "chart"]
+        )
+        assert len(tagged_objects) == 1
+
+        tagged_objects = TagDAO.get_tagged_objects_by_tag_id(
+            tag_ids, obj_types=["chart"]
+        )
+        assert len(tagged_objects) == 0
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @pytest.mark.usefixtures("with_tagging_system_feature")
     @pytest.mark.usefixtures("create_tagged_objects")
     def test_find_tagged_object(self):
         tag = db.session.query(Tag).filter(Tag.name == "example_tag_1").first()
         tagged_object = TagDAO.find_tagged_object(
-            object_id=1, object_type=ObjectTypes.dashboard.name, tag_id=tag.id
+            object_id=1, object_type=ObjectType.dashboard.name, tag_id=tag.id
         )
         assert tagged_object is not None
 
@@ -269,20 +302,20 @@ class TestTagsDAO(SupersetTestCase):
             .filter(
                 TaggedObject.tag_id == tag.id,
                 TaggedObject.object_id == 1,
-                TaggedObject.object_type == ObjectTypes.dashboard.name,
+                TaggedObject.object_type == ObjectType.dashboard.name,
             )
             .first()
         )
         assert tagged_object is not None
         TagDAO.delete_tagged_object(
-            object_type=ObjectTypes.dashboard.name, object_id=1, tag_name=tag.name
+            object_type=ObjectType.dashboard.name, object_id=1, tag_name=tag.name
         )
         tagged_object = (
             db.session.query(TaggedObject)
             .filter(
                 TaggedObject.tag_id == tag.id,
                 TaggedObject.object_id == 1,
-                TaggedObject.object_type == ObjectTypes.dashboard.name,
+                TaggedObject.object_type == ObjectType.dashboard.name,
             )
             .first()
         )

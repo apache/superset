@@ -18,7 +18,7 @@
  */
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { css } from '@superset-ui/core';
+import { css, isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { useSqlLabInitialState } from 'src/hooks/apiResources/sqlLab';
 import type { InitialState } from 'src/hooks/apiResources/sqlLab';
 import { resetState } from 'src/SqlLab/actions/sqlLab';
@@ -27,16 +27,17 @@ import type { SqlLabRootState } from 'src/SqlLab/types';
 import { SqlLabGlobalStyles } from 'src/SqlLab//SqlLabGlobalStyles';
 import App from 'src/SqlLab/components/App';
 import Loading from 'src/components/Loading';
+import EditorAutoSync from 'src/SqlLab/components/EditorAutoSync';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { LocationProvider } from './LocationContext';
 
 export default function SqlLab() {
-  const editorTabLastUpdatedAt = useSelector<SqlLabRootState, number>(
-    state => state.sqlLab.editorTabLastUpdatedAt || 0,
+  const lastInitializedAt = useSelector<SqlLabRootState, number>(
+    state => state.sqlLab.queriesLastUpdate || 0,
   );
   const { data, isLoading, isError, error, fulfilledTimeStamp } =
     useSqlLabInitialState();
-  const shouldInitialize = editorTabLastUpdatedAt <= (fulfilledTimeStamp || 0);
+  const shouldInitialize = lastInitializedAt <= (fulfilledTimeStamp || 0);
   const dispatch = useDispatch();
 
   const initBootstrapData = useEffectEvent(
@@ -72,6 +73,9 @@ export default function SqlLab() {
       >
         <SqlLabGlobalStyles />
         <App />
+        {isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) && (
+          <EditorAutoSync />
+        )}
       </div>
     </LocationProvider>
   );

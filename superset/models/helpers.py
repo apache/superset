@@ -705,10 +705,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         "MIN": sa.func.MIN,
         "MAX": sa.func.MAX,
     }
-
-    @property
-    def fetch_value_predicate(self) -> str:
-        return "fix this!"
+    fetch_values_predicate = None
 
     @property
     def type(self) -> str:
@@ -785,16 +782,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def columns(self) -> list[Any]:
         raise NotImplementedError()
 
-    def get_fetch_values_predicate(
-        self, template_processor: Optional[BaseTemplateProcessor] = None
-    ) -> TextClause:
-        raise NotImplementedError()
-
     def get_extra_cache_keys(self, query_obj: dict[str, Any]) -> list[Hashable]:
         raise NotImplementedError()
 
     def get_template_processor(self, **kwargs: Any) -> BaseTemplateProcessor:
         raise NotImplementedError()
+
+    def get_fetch_values_predicate(
+        self,
+        template_processor: Optional[  # pylint: disable=unused-argument
+            BaseTemplateProcessor
+        ] = None,
+    ) -> TextClause:
+        return self.fetch_values_predicate
 
     def get_sqla_row_level_filters(
         self,
@@ -1340,29 +1340,38 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         return and_(*l)
 
-    def values_for_column(self, column_name: str, limit: int = 10000) -> list[Any]:
-        """Runs query against sqla to retrieve some
-        sample values for the given column.
-        """
-        cols = {}
-        for col in self.columns:
-            if isinstance(col, dict):
-                cols[col.get("column_name")] = col
-            else:
-                cols[col.column_name] = col
-
-        target_col = cols[column_name]
-        tp = None  # todo(hughhhh): add back self.get_template_processor()
+    def values_for_column(
+        self, column_name: str, limit: int = 10000, denormalize_column: bool = False
+    ) -> list[Any]:
+        # denormalize column name before querying for values
+        # unless disabled in the dataset configuration
+        db_dialect = self.database.get_dialect()
+        column_name_ = (
+            self.database.db_engine_spec.denormalize_name(db_dialect, column_name)
+            if denormalize_column
+            else column_name
+        )
+        cols = {col.column_name: col for col in self.columns}
+        target_col = cols[column_name_]
+        tp = self.get_template_processor()
         tbl, cte = self.get_from_clause(tp)
 
-        if isinstance(target_col, dict):
-            sql_column = sa.column(target_col.get("name"))
-        else:
-            sql_column = target_col
-
-        qry = sa.select([sql_column]).select_from(tbl).distinct()
+        qry = (
+            sa.select(
+                # The alias (label) here is important because some dialects will
+                # automatically add a random alias to the projection because of the
+                # call to DISTINCT; others will uppercase the column names. This
+                # gives us a deterministic column name in the dataframe.
+                [target_col.get_sqla_col(template_processor=tp).label("column_values")]
+            )
+            .select_from(tbl)
+            .distinct()
+        )
         if limit:
             qry = qry.limit(limit)
+
+        if self.fetch_values_predicate:
+            qry = qry.where(self.get_fetch_values_predicate(template_processor=tp))
 
         with self.database.get_sqla_engine_with_context() as engine:
             sql = qry.compile(engine, compile_kwargs={"literal_binds": True})
@@ -1370,7 +1379,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             sql = self.mutate_query_from_config(sql)
 
             df = pd.read_sql_query(sql=sql, con=engine)
-            return df[column_name].to_list()
+            return df["column_values"].to_list()
 
     def get_timestamp_expression(
         self,
@@ -1942,7 +1951,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
                 having_clause_and += [self.text(having)]
 
-        if apply_fetch_values_predicate and self.fetch_values_predicate:  # type: ignore
+        if apply_fetch_values_predicate and self.fetch_values_predicate:
             qry = qry.where(
                 self.get_fetch_values_predicate(template_processor=template_processor)
             )

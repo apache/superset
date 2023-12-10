@@ -180,6 +180,51 @@ See [Translating](#translating) for more details.
 
 There is a dedicated [`apache-superset` tag](https://stackoverflow.com/questions/tagged/apache-superset) on [StackOverflow](https://stackoverflow.com/). Please use it when asking questions.
 
+## Types of Contributors
+
+Following the project governance model of the Apache Software Foundation (ASF), Apache Superset has a specific set of contributor roles:
+
+### PMC Member
+
+A Project Management Committee (PMC) member is a person who has been elected by the PMC to help manage the project. PMC members are responsible for the overall health of the project, including community development, release management, and project governance. PMC members are also responsible for the technical direction of the project.
+
+For more information about Apache Project PMCs, please refer to https://www.apache.org/foundation/governance/pmcs.html
+
+### Committer
+
+A committer is a person who has been elected by the PMC to have write access (commit access) to the code repository. They can modify the code, documentation, and website and accept contributions from others.
+
+The official list of committers and PMC members can be found [here](https://projects.apache.org/committee.html?superset).
+
+### Contributor
+
+A contributor is a person who has contributed to the project in any way, including but not limited to code, tests, documentation, issues, and discussions.
+
+> You can also review the Superset project's guidelines for PMC member promotion here: https://github.com/apache/superset/wiki/Guidelines-for-promoting-Superset-Committers-to-the-Superset-PMC
+
+### Security Team
+
+The security team is a selected subset of PMC members, committers and non-committers who are responsible for handling security issues.
+
+New members of the security team are selected by the PMC members in a vote. You can request to be added to the team by sending a message to private@superset.apache.org. However, the team should be small and focused on solving security issues, so the requests will be evaluated on a case-by-case basis and the team size will be kept relatively small, limited to only actively security-focused contributors.
+
+This security team must follow the [ASF vulnerability handling process](https://apache.org/security/committers.html#asf-project-security-for-committers).
+
+Each new security issue is tracked as a JIRA ticket on the [ASF's JIRA Superset security project](https://issues.apache.org/jira/secure/RapidBoard.jspa?rapidView=588&projectKey=SUPERSETSEC)
+
+Security team members must:
+
+- Have an [ICLA](https://www.apache.org/licenses/contributor-agreements.html) signed with Apache Software Foundation.
+- Not reveal information about pending and unfixed security issues to anyone (including their employers) unless specifically authorised by the security team members, e.g., if the security team agrees that diagnosing and solving an issue requires the involvement of external experts.
+
+A release manager, the contributor overseeing the release of a specific version of Apache Superset, is by default a member of the security team.  However, they are not expected to be active in assessing, discussing, and fixing security issues.
+
+Security team members should also follow these general expectations:
+
+- Actively participate in assessing, discussing, fixing, and releasing security issues in Superset.
+- Avoid discussing security fixes in public forums. Pull request (PR) descriptions should not contain any information about security issues. The corresponding JIRA ticket should contain a link to the PR.
+- Security team members who contribute to a fix may be listed as remediation developers in the CVE report, along with their job affiliation (if they choose to include it).
+
 ## Pull Request Guidelines
 
 A philosophy we would like to strongly encourage is
@@ -424,7 +469,7 @@ Commits to `master` trigger a rebuild and redeploy of the documentation site. Su
 Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/installing-superset-from-scratch#os-dependencies) before following these steps.
 You also need to install MySQL or [MariaDB](https://mariadb.com/downloads).
 
-Ensure that you are using Python version 3.8, 3.9, 3.10 or 3.11, then proceed with:
+Ensure that you are using Python version 3.9, 3.10 or 3.11, then proceed with:
 
 ```bash
 # Create a virtual environment and activate it (recommended)
@@ -610,6 +655,31 @@ Then put this:
 export NODE_OPTIONS=--no-experimental-fetch
 ```
 
+If while using the above commands you encounter an error related to the limit of file watchers:
+
+```bash
+Error: ENOSPC: System limit for number of file watchers reached
+```
+The error is thrown because the number of files monitored by the system has reached the limit.
+You can address this this error by increasing the number of inotify watchers.
+
+
+The current value of max watches can be checked with:
+```bash
+cat /proc/sys/fs/inotify/max_user_watches
+```
+Edit the file /etc/sysctl.conf to increase this value.
+The value needs to be decided based on the system memory [(see this StackOverflow answer for more context)](https://stackoverflow.com/questions/535768/what-is-a-reasonable-amount-of-inotify-watches-with-linux).
+
+Open the file in editor and add a line at the bottom specifying the max watches values.
+```bash
+fs.inotify.max_user_watches=524288
+```
+Save the file and exit editor.
+To confirm that the change succeeded, run the following command to load the updated value of max_user_watches from sysctl.conf:
+```bash
+sudo sysctl -p
+```
 #### Webpack dev server
 
 The dev server by default starts at `http://localhost:9000` and proxies the backend requests to `http://localhost:8088`.

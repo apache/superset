@@ -28,11 +28,11 @@ from flask import current_app
 from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
-from superset.datasets.commands.exceptions import (
+from superset.commands.dataset.exceptions import (
     DatasetForbiddenDataURI,
     ImportFailedError,
 )
-from superset.datasets.commands.importers.v1.utils import validate_data_uri
+from superset.commands.dataset.importers.v1.utils import validate_data_uri
 
 
 def test_import_dataset(mocker: MockFixture, session: Session) -> None:
@@ -40,8 +40,8 @@ def test_import_dataset(mocker: MockFixture, session: Session) -> None:
     Test importing a dataset.
     """
     from superset import security_manager
+    from superset.commands.dataset.importers.v1.utils import import_dataset
     from superset.connectors.sqla.models import SqlaTable
-    from superset.datasets.commands.importers.v1.utils import import_dataset
     from superset.models.core import Database
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
@@ -156,8 +156,8 @@ def test_import_dataset_duplicate_column(mocker: MockFixture, session: Session) 
     """
     from superset import security_manager
     from superset.columns.models import Column as NewColumn
+    from superset.commands.dataset.importers.v1.utils import import_dataset
     from superset.connectors.sqla.models import SqlaTable, TableColumn
-    from superset.datasets.commands.importers.v1.utils import import_dataset
     from superset.models.core import Database
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
@@ -281,8 +281,8 @@ def test_import_column_extra_is_string(mocker: MockFixture, session: Session) ->
     Test importing a dataset when the column extra is a string.
     """
     from superset import security_manager
+    from superset.commands.dataset.importers.v1.utils import import_dataset
     from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-    from superset.datasets.commands.importers.v1.utils import import_dataset
     from superset.datasets.schemas import ImportV1DatasetSchema
     from superset.models.core import Database
 
@@ -366,8 +366,8 @@ def test_import_dataset_extra_empty_string(
     Test importing a dataset when the extra field is an empty string.
     """
     from superset import security_manager
+    from superset.commands.dataset.importers.v1.utils import import_dataset
     from superset.connectors.sqla.models import SqlaTable
-    from superset.datasets.commands.importers.v1.utils import import_dataset
     from superset.datasets.schemas import ImportV1DatasetSchema
     from superset.models.core import Database
 
@@ -422,7 +422,7 @@ def test_import_dataset_extra_empty_string(
     assert sqla_table.extra == None
 
 
-@patch("superset.datasets.commands.importers.v1.utils.request")
+@patch("superset.commands.dataset.importers.v1.utils.request")
 def test_import_column_allowed_data_url(
     request: Mock,
     mocker: MockFixture,
@@ -434,8 +434,8 @@ def test_import_column_allowed_data_url(
     import io
 
     from superset import security_manager
+    from superset.commands.dataset.importers.v1.utils import import_dataset
     from superset.connectors.sqla.models import SqlaTable
-    from superset.datasets.commands.importers.v1.utils import import_dataset
     from superset.datasets.schemas import ImportV1DatasetSchema
     from superset.models.core import Database
 
@@ -510,8 +510,8 @@ def test_import_dataset_managed_externally(
     Test importing a dataset that is managed externally.
     """
     from superset import security_manager
+    from superset.commands.dataset.importers.v1.utils import import_dataset
     from superset.connectors.sqla.models import SqlaTable
-    from superset.datasets.commands.importers.v1.utils import import_dataset
     from superset.models.core import Database
     from tests.integration_tests.fixtures.importexport import dataset_config
 

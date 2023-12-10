@@ -18,6 +18,7 @@
  */
 import { SortSeriesType } from '@superset-ui/chart-controls';
 import {
+  AxisType,
   DataRecord,
   GenericDataType,
   getNumberFormatter,
@@ -31,9 +32,11 @@ import {
   extractSeries,
   extractShowValueIndexes,
   formatSeriesName,
+  getAxisType,
   getChartPadding,
   getLegendProps,
   getOverMaxHiddenFormatter,
+  getMinAndMaxFromBounds,
   sanitizeHtml,
   sortAndFilterSeries,
   sortRows,
@@ -869,4 +872,38 @@ test('calculateLowerLogTick', () => {
   expect(calculateLowerLogTick(99)).toEqual(10);
   expect(calculateLowerLogTick(2)).toEqual(1);
   expect(calculateLowerLogTick(0.005)).toEqual(0.001);
+});
+
+test('getAxisType', () => {
+  expect(getAxisType(GenericDataType.TEMPORAL)).toEqual(AxisType.time);
+  expect(getAxisType(GenericDataType.NUMERIC)).toEqual(AxisType.value);
+  expect(getAxisType(GenericDataType.BOOLEAN)).toEqual(AxisType.category);
+  expect(getAxisType(GenericDataType.STRING)).toEqual(AxisType.category);
+});
+
+test('getMinAndMaxFromBounds returns empty object when not truncating', () => {
+  expect(getMinAndMaxFromBounds(AxisType.value, false, 10, 100)).toEqual({});
+});
+
+test('getMinAndMaxFromBounds returns automatic bounds when truncating', () => {
+  expect(
+    getMinAndMaxFromBounds(AxisType.value, true, undefined, undefined),
+  ).toEqual({
+    min: 'dataMin',
+    max: 'dataMax',
+  });
+});
+
+test('getMinAndMaxFromBounds returns automatic upper bound when truncating', () => {
+  expect(getMinAndMaxFromBounds(AxisType.value, true, 10, undefined)).toEqual({
+    min: 10,
+    max: 'dataMax',
+  });
+});
+
+test('getMinAndMaxFromBounds returns automatic lower bound when truncating', () => {
+  expect(getMinAndMaxFromBounds(AxisType.value, true, undefined, 100)).toEqual({
+    min: 'dataMin',
+    max: 100,
+  });
 });

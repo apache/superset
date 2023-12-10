@@ -20,9 +20,13 @@
 import { invert } from 'lodash';
 import {
   AnnotationLayer,
+  AxisType,
+  buildCustomFormatters,
   CategoricalColorNamespace,
+  CurrencyFormatter,
   ensureIsArray,
   GenericDataType,
+  getCustomFormatter,
   getMetricLabel,
   getNumberFormatter,
   getXAxisLabel,
@@ -34,9 +38,6 @@ import {
   isTimeseriesAnnotationLayer,
   t,
   TimeseriesChartDataResponseResult,
-  buildCustomFormatters,
-  getCustomFormatter,
-  CurrencyFormatter,
 } from '@superset-ui/core';
 import {
   extractExtraMetrics,
@@ -48,12 +49,12 @@ import { ZRLineType } from 'echarts/types/src/util/types';
 import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
-  TimeseriesChartTransformedProps,
   OrientationType,
+  TimeseriesChartTransformedProps,
 } from './types';
 import { DEFAULT_FORM_DATA } from './constants';
 import { ForecastSeriesEnum, ForecastValue, Refs } from '../types';
-import { parseYAxisBound } from '../utils/controls';
+import { parseAxisBound } from '../utils/controls';
 import {
   calculateLowerLogTick,
   dedupSeries,
@@ -63,6 +64,7 @@ import {
   getAxisType,
   getColtypesMapping,
   getLegendProps,
+  getMinAndMaxFromBounds,
 } from '../utils/series';
 import {
   extractAnnotationLabels,
@@ -88,8 +90,8 @@ import {
 } from './transformers';
 import {
   StackControlsValue,
-  TIMESERIES_CONSTANTS,
   TIMEGRAIN_TO_TIMESTAMP,
+  TIMESERIES_CONSTANTS,
 } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import {
@@ -160,8 +162,10 @@ export default function transformProps(
     stack,
     tooltipTimeFormat,
     tooltipSortByMetric,
+    truncateXAxis,
     truncateYAxis,
     xAxis: xAxisOrig,
+    xAxisBounds,
     xAxisLabelRotation,
     xAxisSortSeries,
     xAxisSortSeriesAscending,
@@ -387,15 +391,20 @@ export default function transformProps(
       }
     });
 
-  // yAxisBounds need to be parsed to replace incompatible values with undefined
-  let [min, max] = (yAxisBounds || []).map(parseYAxisBound);
+  // axis bounds need to be parsed to replace incompatible values with undefined
+  const [xAxisMin, xAxisMax] = (xAxisBounds || []).map(parseAxisBound);
+  let [yAxisMin, yAxisMax] = (yAxisBounds || []).map(parseAxisBound);
 
   // default to 0-100% range when doing row-level contribution chart
   if ((contributionMode === 'row' || isAreaExpand) && stack) {
-    if (min === undefined) min = 0;
-    if (max === undefined) max = 1;
-  } else if (logAxis && min === undefined && minPositiveValue !== undefined) {
-    min = calculateLowerLogTick(minPositiveValue);
+    if (yAxisMin === undefined) yAxisMin = 0;
+    if (yAxisMax === undefined) yAxisMax = 1;
+  } else if (
+    logAxis &&
+    yAxisMin === undefined &&
+    minPositiveValue !== undefined
+  ) {
+    yAxisMin = calculateLowerLogTick(minPositiveValue);
   }
 
   const tooltipFormatter =
@@ -448,15 +457,17 @@ export default function transformProps(
       rotate: xAxisLabelRotation,
     },
     minInterval:
-      xAxisType === 'time' && timeGrainSqla
+      xAxisType === AxisType.time && timeGrainSqla
         ? TIMEGRAIN_TO_TIMESTAMP[timeGrainSqla]
         : 0,
+    ...getMinAndMaxFromBounds(xAxisType, truncateXAxis, xAxisMin, xAxisMax),
   };
+
   let yAxis: any = {
     ...defaultYAxis,
-    type: logAxis ? 'log' : 'value',
-    min,
-    max,
+    type: logAxis ? AxisType.log : AxisType.value,
+    min: yAxisMin,
+    max: yAxisMax,
     minorTick: { show: true },
     minorSplitLine: { show: minorSplitLine },
     axisLabel: {
