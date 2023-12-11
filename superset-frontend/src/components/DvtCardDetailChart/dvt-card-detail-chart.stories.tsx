@@ -21,7 +21,7 @@ Default.args = {
   labelTitle: 'Country of Citizenship',
   vizType: 'World Map',
   dataset: 'public_FCC 2018 Survey',
-  modified: '2 mounths ago',
+  modified: new Date(),
   link: '',
 };
 
@@ -36,6 +36,6 @@ Default.argsTypes = {
     control: { type: 'text' },
   },
   modified: {
-    control: { type: 'text' },
+    control: { type: 'date' },
   },
 };
