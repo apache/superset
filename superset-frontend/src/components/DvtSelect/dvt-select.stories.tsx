@@ -101,3 +101,32 @@ Form.args = {
   ],
   typeDesign: 'form',
 };
+
+export const Navbar = (args: DvtSelectProps) => {
+  const [selectedValue, setSelectedValue] = useState<string>('');
+
+  return (
+    <div
+      css={(theme: SupersetTheme) => ({
+        backgroundColor: theme.colors.dvt.grayscale.light2,
+        padding: '20px',
+        height: '50vh',
+      })}
+    >
+      <DvtSelect
+        {...args}
+        selectedValue={selectedValue}
+        setSelectedValue={setSelectedValue}
+      />
+    </div>
+  );
+};
+
+Navbar.args = {
+  data: [
+    { value: 'test', label: 'test' },
+    { value: 'test1', label: 'test1' },
+  ],
+  placeholder: 'All',
+  typeDesign: 'navbar',
+};
