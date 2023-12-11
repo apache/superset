@@ -18,7 +18,6 @@
  */
 
 import React from 'react';
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 
 interface TelemetryPixelProps {
   version?: string;
@@ -27,8 +26,8 @@ interface TelemetryPixelProps {
 }
 
 /**
- * Renders a telemetry pixel component to capture anonymous, agregated telemetry via Scarf.
- * This can be disabled with the ENABLE_TELEMETRY feature flag
+ * Renders a telemetry pixel component to capture anonymous, aggregated telemetry via Scarf.
+ * This can be disabled by setting the SCARF_ANALYTICS environment variable to false.
  *
  * @component
  * @param {TelemetryPixelProps} props - The props for the TelemetryPixel component.
@@ -37,20 +36,28 @@ interface TelemetryPixelProps {
  * @param {string} props.build - The build of Superset that's currently in use.
  * @returns {JSX.Element | null} The rendered TelemetryPixel component.
  */
+
 const TelemetryPixel = ({
   version = 'unknownVersion',
   sha = 'unknownSHA',
   build = 'unknownBuild',
-}: TelemetryPixelProps): JSX.Element | null => {
+}: TelemetryPixelProps): React.ReactElement | null => {
   const pixelId = '0d3461e1-abb1-4691-a0aa-5ed50de66af0';
   const pixelPath = `https://apachesuperset.gateway.scarf.sh/pixel/${pixelId}/${version}/${sha}/${build}`;
-  return isFeatureEnabled(FeatureFlag.ENABLE_TELEMETRY) ? (
-    // eslint-disable-next-line jsx-a11y/alt-text
+
+  console.warn(
+    'scarf',
+    process.env.SCARF_ANALYTICS,
+    typeof process.env.SCARF_ANALYTICS,
+  );
+
+  return JSON.stringify(process.env.SCARF_ANALYTICS) !== 'false' ? (
     <img
       referrerPolicy="no-referrer-when-downgrade"
       src={pixelPath}
-      width="0"
-      height="0"
+      width={0}
+      height={0}
+      alt=""
     />
   ) : null;
 };

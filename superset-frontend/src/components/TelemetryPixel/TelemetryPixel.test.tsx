@@ -18,30 +18,35 @@
  */
 import React from 'react';
 import { render } from 'spec/helpers/testing-library';
-import { FeatureFlag } from '@superset-ui/core';
 import TelemetryPixel from '.';
 
-test('should render', () => {
-  const { container } = render(<TelemetryPixel />);
-  expect(container).toBeInTheDocument();
-});
+describe('environmental variables', () => {
+  const OLD_ENV = process.env;
 
-test('should render the pixel link when FF is on', () => {
-  window.featureFlags = {
-    [FeatureFlag.ENABLE_TELEMETRY]: true,
-  };
-  render(<TelemetryPixel />);
+  // restor the process after messing with it!
+  afterAll(() => {
+    process.env = OLD_ENV;
+  });
 
-  const image = document.querySelector('img[src*="scarf.sh"]');
-  expect(image).toBeInTheDocument();
-});
+  test('should render', () => {
+    const { container } = render(<TelemetryPixel />);
+    expect(container).toBeInTheDocument();
+  });
 
-test('should NOT render the pixel link when FF is off', () => {
-  window.featureFlags = {
-    [FeatureFlag.ENABLE_TELEMETRY]: false,
-  };
-  render(<TelemetryPixel />);
+  test('should render the pixel link when FF is on', () => {
+    process.env.SCARF_ANALYTICS = 'true';
+    render(<TelemetryPixel />);
 
-  const image = document.querySelector('img[src*="scarf.sh"]');
-  expect(image).not.toBeInTheDocument();
+    const image = document.querySelector('img[src*="scarf.sh"]');
+    expect(image).toBeInTheDocument();
+  });
+
+  test('should NOT render the pixel link when FF is off', () => {
+    process.env.SCARF_ANALYTICS = 'false';
+    render(<TelemetryPixel />);
+
+    const image = document.querySelector('img[src*="scarf.sh"]');
+    expect(image).not.toBeInTheDocument();
+  });
+
 });
