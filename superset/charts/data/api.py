@@ -23,7 +23,7 @@ from typing import Any, TYPE_CHECKING, Optional
 
 import pandas as pd
 import simplejson
-from flask import current_app, g, make_response, request, Response
+from flask import current_app, g, make_response, request, Response, send_file
 from flask_appbuilder.api import expose, protect
 from flask_babel import gettext as _
 from marshmallow import ValidationError
@@ -256,6 +256,15 @@ class ChartDataRestApi(ChartRestApi):
             return self._run_async(json_body, command)
 
         form_data = json_body.get("form_data")
+        if query_context.result_format == ChartDataResultFormat.XLSX:
+            bytes_stream = self._get_data_response(
+                command, form_data=form_data, datasource=query_context.datasource
+            )
+            return send_file(path_or_file=bytes_stream,
+                             mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                             as_attachment=True,
+                             download_name="data.xlsx"
+                             )
         return self._get_data_response(
             command, form_data=form_data, datasource=query_context.datasource
         )
@@ -265,7 +274,7 @@ class ChartDataRestApi(ChartRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".data_from_cache",
+                                             f".data_from_cache",
         log_to_statsd=False,
     )
     def data_from_cache(self, cache_key: str) -> Response:
@@ -401,11 +410,9 @@ class ChartDataRestApi(ChartRestApi):
                             )
 
                     excel_writer = io.BytesIO()
-                    writer = pd.ExcelWriter(excel_writer, mode="w", engine="xlsxwriter")
                     logger.info("export to excel file")
-                    df.to_excel(writer, startrow=0, merge_cells=False,
+                    df.to_excel(excel_writer, startrow=0, merge_cells=False,
                                 sheet_name="Sheet_1", index_label=None, index=False)
-                    writer.save()
                     logger.info("move seek to begin")
                     excel_writer.seek(0)
                     return excel_writer
@@ -481,7 +488,7 @@ class ChartDataRestApi(ChartRestApi):
         force_cached: bool = False,
         form_data: dict[str, Any] | None = None,
         datasource: BaseDatasource | Query | None = None,
-    ) -> Response:
+    ) -> Response | io.BytesIO:
         try:
             result = command.run(force_cached=force_cached)
         except ChartDataCacheLoadError as exc:
