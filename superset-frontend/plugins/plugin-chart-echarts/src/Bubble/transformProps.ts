@@ -28,9 +28,9 @@ import {
 import { EchartsBubbleChartProps, EchartsBubbleFormData } from './types';
 import { DEFAULT_FORM_DATA, MINIMUM_BUBBLE_SIZE } from './constants';
 import { defaultGrid } from '../defaults';
-import { getLegendProps } from '../utils/series';
+import { getLegendProps, getMinAndMaxFromBounds } from '../utils/series';
 import { Refs } from '../types';
-import { parseYAxisBound } from '../utils/controls';
+import { parseAxisBound } from '../utils/controls';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { getPadding } from '../Timeseries/transformers';
 import { convertInteger } from '../utils/convertInteger';
@@ -84,6 +84,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     series: bubbleSeries,
     xAxisLabel: bubbleXAxisTitle,
     yAxisLabel: bubbleYAxisTitle,
+    xAxisBounds,
     xAxisFormat,
     yAxisFormat,
     yAxisBounds,
@@ -91,6 +92,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     logYAxis,
     xAxisTitleMargin,
     yAxisTitleMargin,
+    truncateXAxis,
     truncateYAxis,
     xAxisLabelRotation,
     yAxisLabelRotation,
@@ -141,7 +143,8 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
   const yAxisFormatter = getNumberFormatter(yAxisFormat);
   const tooltipSizeFormatter = getNumberFormatter(tooltipSizeFormat);
 
-  const [min, max] = yAxisBounds.map(parseYAxisBound);
+  const [xAxisMin, xAxisMax] = xAxisBounds.map(parseAxisBound);
+  const [yAxisMin, yAxisMax] = yAxisBounds.map(parseAxisBound);
 
   const padding = getPadding(
     showLegend,
@@ -155,6 +158,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     convertInteger(xAxisTitleMargin),
   );
 
+  const xAxisType = logXAxis ? AxisType.log : AxisType.value;
   const echartOptions: EChartsCoreOption = {
     series,
     xAxis: {
@@ -172,7 +176,8 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
         fontWight: 'bolder',
       },
       nameGap: convertInteger(xAxisTitleMargin),
-      type: logXAxis ? AxisType.log : AxisType.value,
+      type: xAxisType,
+      ...getMinAndMaxFromBounds(xAxisType, truncateXAxis, xAxisMin, xAxisMax),
     },
     yAxis: {
       axisLabel: { formatter: yAxisFormatter },
@@ -189,8 +194,8 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
         fontWight: 'bolder',
       },
       nameGap: convertInteger(yAxisTitleMargin),
-      min,
-      max,
+      min: yAxisMin,
+      max: yAxisMax,
       type: logYAxis ? AxisType.log : AxisType.value,
     },
     legend: {
