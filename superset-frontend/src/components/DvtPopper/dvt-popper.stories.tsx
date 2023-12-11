@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React from 'react';
 import DvtButton from '../DvtButton';
 import DvtPopper, { DvtPopperProps } from '.';
 
@@ -25,32 +25,23 @@ export default {
   component: DvtPopper,
 };
 
-export const Default = (args: DvtPopperProps) => {
-  const [isOpen, setIsOpen] = useState<boolean>(false);
-
-  return (
-    <div
-      style={{
-        width: '100px',
-        position: 'relative',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-      }}
-    >
-      <DvtPopper
-        {...args}
-        onClick={() => {}}
-        isOpen={isOpen}
-        setIsOpen={setIsOpen}
-      >
-        <DvtButton label="Open/Close" onClick={() => setIsOpen(!isOpen)} />
-      </DvtPopper>
-    </div>
-  );
-};
+export const Default = (args: DvtPopperProps) => (
+  <div
+    style={{
+      width: '100px',
+      position: 'relative',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+    }}
+  >
+    <DvtPopper {...args}>
+      <DvtButton label="Open/Close" onClick={() => {}} />
+    </DvtPopper>
+  </div>
+);
 
 Default.args = {
   label: 'Export',
-  top: '45px',
+  direction: 'top',
 };

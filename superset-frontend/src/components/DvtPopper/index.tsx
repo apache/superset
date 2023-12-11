@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useState } from 'react';
 import {
   StyledPopper,
   StyledPopperUp,
@@ -28,50 +28,27 @@ import {
 export interface DvtPopperProps {
   label: string;
   children: ReactNode;
-  isOpen: boolean;
-  setIsOpen: (newOpen: boolean) => void;
-  onClick: () => void;
-  top?: number;
-  bottom?: number;
-  right?: number;
-  left?: number;
+  direction: 'top' | 'bottom' | 'left' | 'right';
 }
 
 const DvtPopper: React.FC<DvtPopperProps> = ({
   label,
   children,
-  isOpen,
-  setIsOpen,
-  top = 0,
-  bottom,
-  right = 0,
-  left = 0,
-  onClick,
+  direction,
 }) => {
-  const handleMouseEnter = () => {
-    setIsOpen(true);
-  };
-
-  const handleMouseLeave = () => {
-    setIsOpen(false);
-  };
+  const [isHovered, setIsHovered] = useState(false);
 
   return (
     <StyledPopperGroup
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
+      {children}
       <StyledPopper>
-        {children}
-        {isOpen && (
-          <StyledPopperAbsolute
-            top={top}
-            bottom={bottom}
-            right={right}
-            left={left}
-          >
+        {isHovered && (
+          <StyledPopperAbsolute direction={direction}>
             <StyledPopperUp />
-            <StyledPopperBody onClick={onClick}>{label}</StyledPopperBody>
+            <StyledPopperBody>{label}</StyledPopperBody>
           </StyledPopperAbsolute>
         )}
       </StyledPopper>

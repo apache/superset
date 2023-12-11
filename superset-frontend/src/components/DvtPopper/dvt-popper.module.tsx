@@ -19,10 +19,7 @@
 import { styled } from '@superset-ui/core';
 
 interface DvtPopperProps {
-  top?: number;
-  bottom?: number;
-  right?: number;
-  left?: number;
+  direction: string;
 }
 
 const StyledPopper = styled.div`
@@ -63,10 +60,10 @@ const StyledPopperAbsolute = styled.div<DvtPopperProps>`
   flex-direction: column;
   align-items: center;
   position: absolute;
-  top: ${({ top }) => top};
-  bottom: ${({ bottom }) => bottom};
-  right: ${({ right }) => right};
-  left: ${({ left }) => left};
+  top: ${({ direction }) => (direction === 'top' ? '0' : 'auto')};
+  bottom: ${({ direction }) => (direction === 'bottom' ? '0' : 'auto')};
+  right: ${({ direction }) => (direction === 'right' ? '0' : 'auto')};
+  left: ${({ direction }) => (direction === 'left' ? '0' : 'auto')};
 `;
 
 export {
