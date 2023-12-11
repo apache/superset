@@ -1,4 +1,5 @@
 import React from 'react';
+import moment, { Moment } from 'moment';
 import {
   StyledDvtCardDetailChart,
   StyledDvtCardDetailChartTitle,
@@ -6,7 +7,6 @@ import {
   StyledDvtCardLink,
   StyledDvtCardP,
 } from './dvt-card-detail-chart.module';
-import moment, { Moment } from 'moment';
 
 export interface DvtCardDetailChartProps {
   labelTitle: string;
@@ -57,17 +57,19 @@ const getFormattedDifference = (modified: Moment) => {
   const hours = duration.hours();
   const minutes = duration.minutes();
 
+  let dateMessage = 'Just Now';
+
   if (years > 0) {
-    return `${years} Years Ago`;
+    dateMessage = `${years} Years Ago`;
   } else if (months > 0) {
-    return `${months} Months Ago`;
+    dateMessage = `${months} Months Ago`;
   } else if (days > 0) {
-    return `${days} Days Ago`;
+    dateMessage = `${days} Days Ago`;
   } else if (hours > 0) {
-    return `${hours} Hours Ago`;
+    dateMessage = `${hours} Hours Ago`;
   } else if (minutes > 0) {
-    return `${minutes} Minutes Ago`;
+    dateMessage = `${minutes} Minutes Ago`;
   }
-  return 'Just Now';
+  return dateMessage;
 };
 export default DvtCardDetailChart;

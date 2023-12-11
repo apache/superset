@@ -17,14 +17,6 @@ export const Default = (args: DvtCardDetailChartProps) => (
   </div>
 );
 
-Default.args = {
-  labelTitle: 'Country of Citizenship',
-  vizType: 'World Map',
-  dataset: 'public_FCC 2018 Survey',
-  modified: new Date(),
-  link: '',
-};
-
 Default.argsTypes = {
   labelTitle: {
     control: { type: 'text' },
@@ -37,5 +29,6 @@ Default.argsTypes = {
   },
   modified: {
     control: { type: 'date' },
+    defaultValue: new Date('2023-11-30T00:34:23Z'),
   },
 };
