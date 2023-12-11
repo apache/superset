@@ -124,7 +124,9 @@ Users often want to connect to other databases from Superset. Currently, the eas
 :::note
 Superset uses [Scarf Gateway](https://about.scarf.sh/scarf-gateway) to collect telemetry data. Knowing the installation counts for different Superset versions informs the project's decisions about patching and long-term support. Scarf purges personally identifiable information (PII) and provides only aggregated statistics.
 
-To opt-out of this data collection in your docker compose based installation, edit the `x-superset-image:` line in your `docker-compose.yml` and `docker-compose-non-dev.yml` files, replacing `apachesuperset.docker.scarf.sh/apache/superset` with `apache/superset` to pull the image directly from Docker Hub.
+To opt-out of this data collection for packages downloaded through the Scarf Gateway by your docker compose based installation, edit the `x-superset-image:` line in your `docker-compose.yml` and `docker-compose-non-dev.yml` files, replacing `apachesuperset.docker.scarf.sh/apache/superset` with `apache/superset` to pull the image directly from Docker Hub.
+
+To disable the Scarf telemetry pixel, set the `SCARF_ANALYTICS` environment variable to `False` in your terminal and/or in your `docker/.env` and `docker/.env-non-dev` files.
 :::
 
 ### 4. Log in to Superset
