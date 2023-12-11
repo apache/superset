@@ -25,9 +25,10 @@ import {
 import { EchartsBubbleChartProps } from 'plugins/plugin-chart-echarts/src/Bubble/types';
 
 import transformProps, { formatTooltip } from '../../src/Bubble/transformProps';
+import { ChartPropsConfig } from '@superset-ui/core/lib/chart/models/ChartProps';
 
 describe('Bubble transformProps', () => {
-  const formData: SqlaFormData = {
+  const defaultFormData: SqlaFormData = {
     datasource: '1__table',
     viz_type: 'echarts_bubble',
     entity: 'customer_name',
@@ -51,8 +52,8 @@ describe('Bubble transformProps', () => {
     xAxisBounds: [null, null],
     yAxisBounds: [null, null],
   };
-  const chartProps = new ChartProps({
-    formData,
+  const chartConfig: ChartPropsConfig = {
+    formData: defaultFormData,
     height: 800,
     width: 800,
     queriesData: [
@@ -80,9 +81,48 @@ describe('Bubble transformProps', () => {
       },
     ],
     theme: supersetTheme,
-  });
+  };
 
   it('Should transform props for viz', () => {
+    const chartProps = new ChartProps(chartConfig);
+    expect(transformProps(chartProps as EchartsBubbleChartProps)).toEqual(
+      expect.objectContaining({
+        width: 800,
+        height: 800,
+        echartOptions: expect.objectContaining({
+          series: expect.arrayContaining([
+            expect.objectContaining({
+              data: expect.arrayContaining([
+                [10, 20, 30, 'AV Stores, Co.', null],
+              ]),
+            }),
+            expect.objectContaining({
+              data: expect.arrayContaining([
+                [40, 50, 60, 'Alpha Cognac', null],
+              ]),
+            }),
+            expect.objectContaining({
+              data: expect.arrayContaining([
+                [70, 80, 90, 'Amica Models & Co.', null],
+              ]),
+            }),
+          ]),
+        }),
+      }),
+    );
+  });
+
+  it('Should transform props with undefined control values', () => {
+    const formData: SqlaFormData = {
+      ...defaultFormData,
+      xAxisBounds: undefined,
+      yAxisBounds: undefined,
+    };
+    const chartProps = new ChartProps({
+      ...chartConfig,
+      formData,
+    });
+
     expect(transformProps(chartProps as EchartsBubbleChartProps)).toEqual(
       expect.objectContaining({
         width: 800,
