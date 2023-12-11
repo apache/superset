@@ -102,8 +102,7 @@ const presets = [
   },
   {
     label: 'this month',
-    value:
-      "DATETRUNC(DATETIME('today'), MONTH) : DATETRUNC(DATEADD(DATETIME('today'), 1, MONTH), MONTH)",
+    value: "DATETRUNC(DATETIME('today'), MONTH) : DATETIME('today')",
   },
 ];
 
