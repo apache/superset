@@ -19,7 +19,8 @@ under the License.
 
 ## Change Log
 
-- [3.1.0](#310-tue-nov-28-113148-2023--0300)
+- [3.1.0](#310-mon-dec-11-162753-2023-0000)
+- [3.0.3](#303-fri-dec-8-054009-2023--0800)
 - [3.0.2](#302-mon-nov-20-073838-2023--0500)
 - [3.0.1](#301-tue-oct-13-103221-2023--0700)
 - [3.0.0](#300-thu-aug-24-133627-2023--0600)
@@ -34,10 +35,11 @@ under the License.
 - [1.4.2](#142-sat-mar-19-000806-2022-0200)
 - [1.4.1](#141)
 
-### 3.1.0 (Tue Nov 28 11:31:48 2023 -0300)
+### 3.1.0 (Mon Dec 11 16:27:53 2023 +0000)
 
 **Database Migrations**
 
+- [#26160](https://github.com/apache/superset/pull/26160) fix: Migration order due to cherry which went astray (@john-bodley)
 - [#24776](https://github.com/apache/superset/pull/24776) chore(sqlalchemy): Remove erroneous SQLAlchemy ORM session.merge operations (@john-bodley)
 - [#25819](https://github.com/apache/superset/pull/25819) chore: Singularize tag models (@john-bodley)
 - [#25911](https://github.com/apache/superset/pull/25911) chore: remove deprecated functions in SQLAlchemy (@gnought)
@@ -50,6 +52,8 @@ under the License.
 
 **Features**
 
+- [#26136](https://github.com/apache/superset/pull/26136) feat: Adds legacy time support for Waterfall chart (@michael-s-molina)
+- [#26123](https://github.com/apache/superset/pull/26123) feat(helm): Add option to deploy extra containers to remaining deployments (@bluemalkin)
 - [#24714](https://github.com/apache/superset/pull/24714) feat: Add Apache Doris support (@liujiwen-up)
 - [#26033](https://github.com/apache/superset/pull/26033) feat: Add Bubble chart migration logic (@michael-s-molina)
 - [#25921](https://github.com/apache/superset/pull/25921) feat(metadb): handle decimals (@betodealmeida)
@@ -107,16 +111,12 @@ under the License.
 
 **Fixes**
 
-- [#26106](https://github.com/apache/superset/pull/26106) fix: flaky test_explore_json_async test v2 (@villebro)
-- [#26091](https://github.com/apache/superset/pull/26091) fix: bump node-fetch to 2.6.7 (@dpgaspar)
-- [#26087](https://github.com/apache/superset/pull/26087) fix(plugin-chart-echarts): support numerical x-axis (@villebro)
+- [#26187](https://github.com/apache/superset/pull/26187) fix: bump pyarrow constraints (CVE-2023-47248) (@cwegener)
+- [#26224](https://github.com/apache/superset/pull/26224) fix: Use page.locator in Playwright reports (@kgabryje)
+- [#26156](https://github.com/apache/superset/pull/26156) fix(sqllab): flaky json explore modal due to over-rendering (@justinpark)
+- [#25533](https://github.com/apache/superset/pull/25533) fix(menu): Styling active menu in SPA navigation (@justinpark)
+- [#25977](https://github.com/apache/superset/pull/25977) fix(sqllab): table preview has gone (@justinpark)
 - [#26066](https://github.com/apache/superset/pull/26066) fix: move driver import to method (@giftig)
-- [#26059](https://github.com/apache/superset/pull/26059) fix: Flaky test_explore_json_async test (@michael-s-molina)
-- [#26023](https://github.com/apache/superset/pull/26023) fix: Prevent cached bootstrap data from leaking between users w/ same first/last name (@jfrag1)
-- [#26060](https://github.com/apache/superset/pull/26060) fix: Optimize fetching samples logic (@john-bodley)
-- [#26010](https://github.com/apache/superset/pull/26010) fix: Remove annotation Fuzzy to get french translation (@aehanno)
-- [#26005](https://github.com/apache/superset/pull/26005) fix(security): restore default value of SESSION_COOKIE_SECURE to False (@sfirke)
-- [#25883](https://github.com/apache/superset/pull/25883) fix(horizontal filter bar filter labels): Increase max-width to 96px (@rtexelm)
 - [#25934](https://github.com/apache/superset/pull/25934) fix(tag): update state to clear form on success (@hughhhh)
 - [#25941](https://github.com/apache/superset/pull/25941) fix(sqllab): Allow router navigation to explore (@justinpark)
 - [#25875](https://github.com/apache/superset/pull/25875) fix(typo): replace 'datasouce_id' with 'datasource_id' in openapi.json (@nero5700)
@@ -155,6 +155,12 @@ under the License.
 
 **Others**
 
+- [#26082](https://github.com/apache/superset/pull/26082) chore: lock the databend-sqlalchemy version (@hantmac)
+- [#26212](https://github.com/apache/superset/pull/26212) chore: Moves xAxisLabelRotation to shared controls (@michael-s-molina)
+- [#26188](https://github.com/apache/superset/pull/26188) chore: Lower giveup log level for retried functions to warning (@jfrag1)
+- [#25961](https://github.com/apache/superset/pull/25961) chore: harmonize and clean up list views (@villebro)
+- [#26147](https://github.com/apache/superset/pull/26147) chore: Rename SET_ACTIVE_TABS action, add a new action (@kgabryje)
+- [#25996](https://github.com/apache/superset/pull/25996) chore(tags): Allow for lookup via ids vs. name in the API (@hughhhh)
 - [#26058](https://github.com/apache/superset/pull/26058) chore: Adds the 3.1.0 Release Notes (@michael-s-molina)
 - [#26000](https://github.com/apache/superset/pull/26000) docs(databases): Update pinot.mdx to incorporate username and password based connection. (@raamri)
 - [#26075](https://github.com/apache/superset/pull/26075) chore: Adds 3.0.2 data to CHANGELOG.md (@michael-s-molina)
@@ -389,6 +395,39 @@ under the License.
 - [#24564](https://github.com/apache/superset/pull/24564) docs: add notice not to use gevent worker with bigquery datasource (@okayhooni)
 - [#24578](https://github.com/apache/superset/pull/24578) refactor: pkg_resources -> importlib.resources (@cwegener)
 - [#24523](https://github.com/apache/superset/pull/24523) build(deps-dev): bump @typescript-eslint/eslint-plugin from 5.60.0 to 5.60.1 in /superset-websocket (@dependabot[bot])
+
+### 3.0.3 (Fri Dec 8 05:40:09 2023 -0800)
+
+**Fixes**
+
+- [#26215](https://github.com/apache/superset/pull/26215) fix(plugin-chart-echarts): support truncated numeric x-axis (@villebro)
+- [#26199](https://github.com/apache/superset/pull/26199) fix(chart-filter): Avoid column denormalization if not enabled (@Vitor-Avila)
+- [#26211](https://github.com/apache/superset/pull/26211) fix: support custom links in markdown (@villebro)
+- [#26189](https://github.com/apache/superset/pull/26189) fix(dashboard): title formatting (@nytai)
+- [#26207](https://github.com/apache/superset/pull/26207) fix: Includes 90° x-axis label rotation (@michael-s-molina)
+- [#26157](https://github.com/apache/superset/pull/26157) fix(init-job): Fix envFrom for init job in helm chart (@sumagoudb)
+- [#25878](https://github.com/apache/superset/pull/25878) fix(embedded): Hide sensitive payload data from guest users (@jfrag1)
+- [#25894](https://github.com/apache/superset/pull/25894) fix(Alerts/Reports): allow use of ";" separator in slack recipient entry (@rtexelm)
+- [#26116](https://github.com/apache/superset/pull/26116) fix(database-import): Support importing a DB connection with a version set (@Vitor-Avila)
+- [#26154](https://github.com/apache/superset/pull/26154) fix: set label on adhoc column should persist (@betodealmeida)
+- [#26140](https://github.com/apache/superset/pull/26140) fix(annotations): time grain column (@betodealmeida)
+- [#23916](https://github.com/apache/superset/pull/23916) fix: remove default secret key from helm (@dpgaspar)
+- [#26120](https://github.com/apache/superset/pull/26120) fix: alias column when fetching values (@betodealmeida)
+- [#26106](https://github.com/apache/superset/pull/26106) fix: flaky test_explore_json_async test v2 (@villebro)
+- [#26091](https://github.com/apache/superset/pull/26091) fix: bump node-fetch to 2.6.7 (@dpgaspar)
+- [#26087](https://github.com/apache/superset/pull/26087) fix(plugin-chart-echarts): support numerical x-axis (@villebro)
+- [#26059](https://github.com/apache/superset/pull/26059) fix: Flaky test_explore_json_async test (@michael-s-molina)
+- [#26023](https://github.com/apache/superset/pull/26023) fix: Prevent cached bootstrap data from leaking between users w/ same first/last name (@jfrag1)
+- [#26060](https://github.com/apache/superset/pull/26060) fix: Optimize fetching samples logic (@john-bodley)
+- [#26010](https://github.com/apache/superset/pull/26010) fix: Remove annotation Fuzzy to get french translation (@aehanno)
+- [#26005](https://github.com/apache/superset/pull/26005) fix(security): restore default value of SESSION_COOKIE_SECURE to False (@sfirke)
+- [#25883](https://github.com/apache/superset/pull/25883) fix(horizontal filter bar filter labels): Increase max-width to 96px (@rtexelm)
+
+**Others**
+
+- [#26208](https://github.com/apache/superset/pull/26208) chore: Adds note about numerical x-axis (@michael-s-molina)
+- [#26158](https://github.com/apache/superset/pull/26158) chore: Clean up the examples dashboards (@michael-s-molina)
+- [#25931](https://github.com/apache/superset/pull/25931) chore(deps): bump pillow deps (@gnought)
 
 ### 3.0.2 (Mon Nov 20 07:38:38 2023 -0500)
 
