@@ -1,24 +1,17 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
-import { FormatLocaleDefinition } from 'd3-format';
+// DODO was here
+
+import {
+  FormatLocaleDefinition,
+  formatLocale,
+  precisionFixed,
+  format,
+} from 'd3-format';
 import { RegistryWithDefaultKey, OverwritePolicy } from '../models';
-import { DEFAULT_D3_FORMAT } from './D3FormatConfig';
+import {
+  DEFAULT_D3_FORMAT,
+  D3_CURRENCIES_LOCALES,
+  SUPPORTED_CURRENCIES_LOCALES_ARRAY,
+} from './D3FormatConfig';
 import createD3NumberFormatter from './factories/createD3NumberFormatter';
 import createSmartNumberFormatter from './factories/createSmartNumberFormatter';
 import NumberFormats from './NumberFormats';
@@ -44,6 +37,42 @@ export default class NumberFormatterRegistry extends RegistryWithDefaultKey<
       NumberFormats.SMART_NUMBER_SIGNED,
       createSmartNumberFormatter({ signed: true }),
     );
+    SUPPORTED_CURRENCIES_LOCALES_ARRAY.forEach(localeName => {
+      this.registerValue(
+        D3_CURRENCIES_LOCALES[localeName].id,
+        new NumberFormatter({
+          id: D3_CURRENCIES_LOCALES[localeName].id,
+          formatFunc: v => {
+            let value = v;
+            // we need a rounded value for locale Russia
+            if (localeName === 'RUSSIAN_ROUNDED') {
+              const preFormatFunction = format(`.${precisionFixed(1)}f`);
+              // @ts-ignore
+              value = preFormatFunction(v);
+            }
+            if (localeName === 'DEFAULT_ROUNDED') {
+              const preFormatFunction = format(`.${precisionFixed(1)}f`);
+              // @ts-ignore
+              value = preFormatFunction(v);
+            }
+            if (localeName === 'RUSSIAN_ROUNDED_1') {
+              // @ts-ignore
+              value = v.toFixed(1);
+            }
+            if (localeName === 'RUSSIAN_ROUNDED_2') {
+              // @ts-ignore
+              value = v.toFixed(2);
+            }
+            if (localeName === 'RUSSIAN_ROUNDED_3') {
+              // @ts-ignore
+              value = v.toFixed(3);
+            }
+            const locale = formatLocale(D3_CURRENCIES_LOCALES[localeName]);
+            return locale.format('$,')(value);
+          },
+        }),
+      );
+    });
     this.setDefaultKey(NumberFormats.SMART_NUMBER);
     this.d3Format = DEFAULT_D3_FORMAT;
   }

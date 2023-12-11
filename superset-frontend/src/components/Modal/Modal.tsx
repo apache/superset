@@ -282,7 +282,7 @@ const CustomModal = ({
       ]
     : FooterComponent;
 
-  const modalWidth = width || (responsive ? '100vw' : '600px');
+  const modalWidth = width || (responsive ? '100vw' : '630px');
   const shouldShowMask = !(resizable || draggable);
 
   const onDragStart = (_: DraggableEvent, uiData: DraggableData) => {
