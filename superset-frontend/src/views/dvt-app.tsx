@@ -40,7 +40,7 @@ import setupExtensions from 'src/setup/setupExtensions';
 import { styled } from '@superset-ui/core';
 import { logEvent } from 'src/logger/actions';
 import { store } from 'src/views/dvt-store';
-import { DvtRootContextProviders } from './DvtRootContextProviders';
+import { RootContextProviders } from './RootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
 
 const StyledApp = styled.div`
@@ -96,7 +96,7 @@ const DvtApp = () => (
   <Router>
     <ScrollToTop />
     <LocationPathnameLogger />
-    <DvtRootContextProviders>
+    <RootContextProviders>
       <StyledApp>
         <GlobalStyles />
         <DvtSidebar data={[]} isFrontendRoute={isFrontendRoute} />
@@ -118,7 +118,7 @@ const DvtApp = () => (
         </Main>
         <ToastContainer />
       </StyledApp>
-    </DvtRootContextProviders>
+    </RootContextProviders>
   </Router>
 );
 
