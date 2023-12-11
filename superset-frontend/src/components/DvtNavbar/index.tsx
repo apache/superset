@@ -113,7 +113,7 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ user }) => {
                 placeholder="All"
                 selectedValue=""
                 setSelectedValue={() => {}}
-                typeDesign="form"
+                typeDesign="navbar"
               />
               <NavbarSearchInput>
                 <DvtInput
