@@ -74,6 +74,7 @@ import {
   TimeColumnFilterPlugin,
   TimeGrainFilterPlugin,
   GroupByFilterPlugin,
+  TimeSimplifiedFilterPlugin
 } from 'src/filters/components';
 import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/plugin-chart-pivot-table';
 // import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
@@ -159,6 +160,9 @@ export default class MainPreset extends Preset {
         new SelectFilterPlugin().configure({ key: 'filter_select' }),
         new RangeFilterPlugin().configure({ key: 'filter_range' }),
         new TimeFilterPlugin().configure({ key: 'filter_time' }),
+        new TimeSimplifiedFilterPlugin().configure({
+          key: 'filter_time_simplified',
+        }),
         new TimeColumnFilterPlugin().configure({ key: 'filter_timecolumn' }),
         new TimeGrainFilterPlugin().configure({ key: 'filter_timegrain' }),
         new EchartsTreeChartPlugin().configure({ key: 'tree_chart' }),
