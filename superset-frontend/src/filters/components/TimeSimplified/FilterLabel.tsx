@@ -79,6 +79,11 @@ const ContentStyleWrapper = styled.div`
     .footer {
       text-align: right;
     }
+
+    .rdtPicker td.rdtActive {
+      background-color: ${theme.colors.primary.base};
+      border-radius: 4px;
+    }
   `}
 `;
 
@@ -113,6 +118,14 @@ const rangeToMoment = (range: string) => {
   return moment(from, 'YYYY-MM-DD');
 };
 
+const getActualTimeRange = (value: string) => {
+  const preset = presets.find(p => p.value === value);
+  if (preset) {
+    return preset.label;
+  }
+  return rangeToMoment(value).format('MMM YYYY');
+};
+
 export default function FilterLabel(props: DateFilterControlProps) {
   const {
     onChange,
@@ -124,7 +137,9 @@ export default function FilterLabel(props: DateFilterControlProps) {
   const defaultTimeFilter = useDefaultTimeFilter();
 
   const value = props.value ?? defaultTimeFilter;
-  const [actualTimeRange, setActualTimeRange] = useState<string>(value);
+  const [actualTimeRange, setActualTimeRange] = useState<string>(
+    getActualTimeRange(value),
+  );
 
   const [show, setShow] = useState<boolean>(false);
   const [tooltipTitle, setTooltipTitle] = useState<ReactNode | null>(value);
@@ -141,12 +156,7 @@ export default function FilterLabel(props: DateFilterControlProps) {
       if (error) {
         setTooltipTitle(value || null);
       } else {
-        const preset = presets.find(p => p.value === value);
-        if (preset) {
-          setActualTimeRange(preset.label);
-        } else {
-          setActualTimeRange(rangeToMoment(value).format('MMM YYYY'));
-        }
+        setActualTimeRange(getActualTimeRange(value));
         setTooltipTitle(actualRange);
       }
     });
@@ -172,9 +182,14 @@ export default function FilterLabel(props: DateFilterControlProps) {
 
   const handleMonthChange = useCallback(
     (date: Moment): void => {
-      const dateFrom = date.format('YYYY-MM-01');
-      const dateTo = date.add(1, 'month').format('YYYY-MM-01');
-      const newValue = `${dateFrom} : ${dateTo}`;
+      let newValue = '';
+      if (date.isSame(moment(), 'month') && date.isSame(moment(), 'year')) {
+        newValue = presets[1].value;
+      } else {
+        const dateFrom = date.format('YYYY-MM-01');
+        const dateTo = date.add(1, 'month').format('YYYY-MM-01');
+        newValue = `${dateFrom} : ${dateTo}`;
+      }
       onChange(newValue);
       setShow(false);
       onClosePopover();
@@ -194,7 +209,7 @@ export default function FilterLabel(props: DateFilterControlProps) {
   const overlayContent = (
     <ContentStyleWrapper>
       {presets.map((p, i) => (
-        <Button key={`p${i}`} onClick={() => handlePresetChange(p.value)}>
+        <Button key={`p${i}`} onClick={() => handlePresetChange(p.value)} buttonStyle={p.value === value  ? 'primary' : undefined}>
           {p.label}
         </Button>
       ))}
