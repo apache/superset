@@ -6,8 +6,7 @@ import {
   StyledDvtCardLink,
   StyledDvtCardP,
 } from './dvt-card-detail-chart.module';
-import { Moment } from 'moment';
-import moment from 'moment';
+import moment, { Moment } from 'moment';
 
 export interface DvtCardDetailChartProps {
   labelTitle: string;
@@ -68,8 +67,7 @@ const getFormattedDifference = (modified: Moment) => {
     return `${hours} Hours Ago`;
   } else if (minutes > 0) {
     return `${minutes} Minutes Ago`;
-  } else {
-    return 'Just Now';
   }
+  return 'Just Now';
 };
 export default DvtCardDetailChart;
