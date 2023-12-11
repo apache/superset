@@ -54,13 +54,11 @@ describe('Dashboards list', () => {
 
     it('should load rows in list mode', () => {
       cy.getBySel('listview-table').should('be.visible');
-      cy.getBySel('sort-header').eq(1).contains('Title');
-      cy.getBySel('sort-header').eq(2).contains('Modified by');
-      cy.getBySel('sort-header').eq(3).contains('Status');
-      cy.getBySel('sort-header').eq(4).contains('Modified');
-      cy.getBySel('sort-header').eq(5).contains('Created by');
-      cy.getBySel('sort-header').eq(6).contains('Owners');
-      cy.getBySel('sort-header').eq(7).contains('Actions');
+      cy.getBySel('sort-header').eq(1).contains('Name');
+      cy.getBySel('sort-header').eq(2).contains('Status');
+      cy.getBySel('sort-header').eq(3).contains('Owners');
+      cy.getBySel('sort-header').eq(4).contains('Last modified');
+      cy.getBySel('sort-header').eq(5).contains('Actions');
     });
 
     it('should sort correctly in list mode', () => {

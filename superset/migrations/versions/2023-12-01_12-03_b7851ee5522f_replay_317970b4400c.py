@@ -14,34 +14,31 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-slice_name: Vehicle Sales Filter
-viz_type: filter_box
-params:
-  adhoc_filters: []
-  datasource: 23__table
-  date_filter: true
-  filter_configs:
-  - asc: true
-    clearable: true
-    column: product_line
-    key: 7oUjq15eQ
-    label: Product Line
-    multiple: true
-    searchAllOptions: false
-  - asc: true
-    clearable: true
-    column: deal_size
-    key: c3hO6Eub8
-    label: Deal Size
-    multiple: true
-    searchAllOptions: false
-  granularity_sqla: order_date
-  queryFields: {}
-  slice_id: 671
-  time_range: '2003-01-01T00:00:00 : 2005-06-01T00:00:00'
-  url_params: {}
-  viz_type: filter_box
-cache_timeout: null
-uuid: a5689df7-98fc-7c51-602c-ebd92dc3ec70
-version: 1.0.0
-dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005
+"""replay 317970b4400c
+
+Revision ID: b7851ee5522f
+Revises: 4b85906e5b91
+Create Date: 2023-12-01 12:03:27.538945
+
+"""
+
+# revision identifiers, used by Alembic.
+revision = "b7851ee5522f"
+down_revision = "4b85906e5b91"
+
+from importlib import import_module
+
+import sqlalchemy as sa
+from alembic import op
+
+module = import_module(
+    "superset.migrations.versions.2023-09-06_13-18_317970b4400c_added_time_secondary_column_to_"
+)
+
+
+def upgrade():
+    module.upgrade()
+
+
+def downgrade():
+    module.downgrade()

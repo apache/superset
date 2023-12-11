@@ -247,8 +247,17 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "sql": [DatasetIsNullOrEmptyFilter],
         "id": [DatasetCertifiedFilter],
     }
-    search_columns = ["id", "database", "owners", "schema", "sql", "table_name"]
-    allowed_rel_fields = {"database", "owners"}
+    search_columns = [
+        "id",
+        "database",
+        "owners",
+        "schema",
+        "sql",
+        "table_name",
+        "created_by",
+        "changed_by",
+    ]
+    allowed_rel_fields = {"database", "owners", "created_by", "changed_by"}
     allowed_distinct_fields = {"schema"}
 
     apispec_parameter_schemas = {

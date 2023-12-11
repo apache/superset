@@ -56,10 +56,12 @@ test('renders correctly in edit mode', () => {
     changed_on_delta_humanized: '',
     created_on_delta_humanized: '',
     created_by: {
+      id: 1,
       first_name: 'joe',
       last_name: 'smith',
     },
     changed_by: {
+      id: 2,
       first_name: 'tom',
       last_name: 'brown',
     },
