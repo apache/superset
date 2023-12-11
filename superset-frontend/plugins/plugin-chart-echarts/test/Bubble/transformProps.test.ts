@@ -18,6 +18,7 @@
  */
 import {
   ChartProps,
+  ChartPropsConfig,
   getNumberFormatter,
   SqlaFormData,
   supersetTheme,
@@ -25,7 +26,6 @@ import {
 import { EchartsBubbleChartProps } from 'plugins/plugin-chart-echarts/src/Bubble/types';
 
 import transformProps, { formatTooltip } from '../../src/Bubble/transformProps';
-import { ChartPropsConfig } from '@superset-ui/core/lib/chart/models/ChartProps';
 
 describe('Bubble transformProps', () => {
   const defaultFormData: SqlaFormData = {
