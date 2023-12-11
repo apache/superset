@@ -37,13 +37,14 @@ interface TelemetryPixelProps {
  * @returns {JSX.Element | null} The rendered TelemetryPixel component.
  */
 
+const PIXEL_ID = '0d3461e1-abb1-4691-a0aa-5ed50de66af0';
+
 const TelemetryPixel = ({
   version = 'unknownVersion',
   sha = 'unknownSHA',
   build = 'unknownBuild',
 }: TelemetryPixelProps): React.ReactElement | null => {
-  const pixelId = '0d3461e1-abb1-4691-a0aa-5ed50de66af0';
-  const pixelPath = `https://apachesuperset.gateway.scarf.sh/pixel/${pixelId}/${version}/${sha}/${build}`;
+  const pixelPath = `https://apachesuperset.gateway.scarf.sh/pixel/${PIXEL_ID}/${version}/${sha}/${build}`;
 
   console.warn(
     'scarf',
