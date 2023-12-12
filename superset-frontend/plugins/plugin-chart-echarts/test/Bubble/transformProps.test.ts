@@ -48,6 +48,7 @@ describe('Bubble transformProps', () => {
       expressionType: 'simple',
       label: 'SUM(sales)',
     },
+    xAxisBounds: [null, null],
     yAxisBounds: [null, null],
   };
   const chartProps = new ChartProps({

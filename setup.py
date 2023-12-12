@@ -113,7 +113,7 @@ setup(
         "python-dateutil",
         "python-dotenv",
         "python-geohash",
-        "pyarrow>=12.0.0, <13",
+        "pyarrow>=14.0.1, <15",
         "pyyaml>=6.0.0, <7.0.0",
         "PyJWT>=2.4.0, <3.0",
         "redis>=4.5.4, <5.0",
@@ -146,6 +146,7 @@ setup(
         "cockroachdb": ["cockroachdb>=0.3.5, <0.4"],
         "cors": ["flask-cors>=2.0.0"],
         "crate": ["crate[sqlalchemy]>=0.26.0, <0.27"],
+        "databend": ["databend-sqlalchemy>=0.3.2, <1.0"],
         "databricks": [
             "databricks-sql-connector>=2.0.2, <3",
             "sqlalchemy-databricks>=0.2.0",
