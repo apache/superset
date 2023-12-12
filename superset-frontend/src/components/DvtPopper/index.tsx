@@ -37,7 +37,7 @@ export interface DvtPopperProps {
 const DvtPopper: React.FC<DvtPopperProps> = ({
   label,
   children,
-  direction='top',
+  direction='bottom',
 }) => {
   const [isHovered, setIsHovered] = useState(false);
 
