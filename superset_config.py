@@ -65,7 +65,8 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 PUBLIC_ROLE_LIKE_GAMMA = True
 
-GUEST_TOKEN_JWT_EXP_SECONDS = os.getenv("GUEST_TOKEN_JWT_EXP_SECONDS")
+if os.getenv("GUEST_TOKEN_JWT_EXP_SECONDS") is not None:
+    GUEST_TOKEN_JWT_EXP_SECONDS = int(os.getenv("GUEST_TOKEN_JWT_EXP_SECONDS") or 300)
 
 AUTH_TYPE = AUTH_OAUTH
 
@@ -116,6 +117,9 @@ from superset.utils.core import get_user_id
 class SupersetIndexView(IndexView):
     @expose("/")
     @expose("/login/")
+    @expose("/login")
+    @expose("/superset/welcome/")
+    @expose("/superset/welcome")
     def index(self) -> FlaskResponse:
         if not g.user or not get_user_id():
             next = f"?next={request.args.get('next', '')}"

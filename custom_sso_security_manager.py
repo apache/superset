@@ -30,6 +30,6 @@ class CustomSsoSecurityManager(SupersetSecurityManager):
                 "email": me["email"],
                 "first_name": me["given_name"],
                 "last_name": me["family_name"],
-                "role_keys": me["role_keys"],
+                "role_keys": me["role_keys"] if "role_keys" in me else [],
                 # "organization": me["organization"],
             }
