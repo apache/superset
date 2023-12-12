@@ -93,11 +93,11 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ user }) => {
     '/superset/sqllab/',
   ];
 
-  const tabsDataFindPathname = DvtNavbarTabsData.find(
-    (item: { pathname: string }) => item.pathname === pathName,
-  );
-
   useEffect(() => {
+    const tabsDataFindPathname = DvtNavbarTabsData.find(
+      (item: { pathname: string }) => item.pathname === pathName,
+    );
+
     if (tabsDataFindPathname?.pathname) {
       setActive(tabsDataFindPathname.data[0].label);
       setActiveData(tabsDataFindPathname.data);
