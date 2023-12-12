@@ -97,6 +97,8 @@ import { isEmpty } from 'lodash';
 import TemplateParamsEditor from '../TemplateParamsEditor';
 import SouthPane from '../SouthPane';
 import SaveQuery, { QueryPayload } from '../SaveQuery';
+import ValidateQuery from '../ValidateQuery/ValidateQuery';
+import GenerateQuery from '../GenerateQuery/GenerateQuery';
 import ScheduleQueryButton from '../ScheduleQueryButton';
 import EstimateQueryCostButton from '../EstimateQueryCostButton';
 import ShareSqlLabQuery from '../ShareSqlLabQuery';
@@ -734,6 +736,30 @@ const SqlEditor: React.FC<Props> = ({
           )}
         </div>
         <div className="rightItems">
+          <span>
+            <GenerateQuery
+              queryEditorId={queryEditor.id}
+              columns={latestQuery?.results?.columns || []}
+              onSave={onSaveQuery}
+              onUpdate={(query, remoteId) =>
+                dispatch(updateSavedQuery(query, remoteId))
+              }
+              saveQueryWarning={saveQueryWarning}
+              database={database}
+            />
+          </span>
+          <span>
+            <ValidateQuery
+              queryEditorId={queryEditor.id}
+              columns={latestQuery?.results?.columns || []}
+              onSave={onSaveQuery}
+              onUpdate={(query, remoteId) =>
+                dispatch(updateSavedQuery(query, remoteId))
+              }
+              saveQueryWarning={saveQueryWarning}
+              database={database}
+            />
+          </span>
           <span>
             <SaveQuery
               queryEditorId={queryEditor.id}
