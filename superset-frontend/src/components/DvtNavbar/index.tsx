@@ -22,7 +22,11 @@ import { useDispatch } from 'react-redux';
 import { useAppSelector } from 'src/hooks/useAppSelector';
 import { dvtAppSetSort } from 'src/dvt-redux/dvt-appReducer';
 import { BellOutlined } from '@ant-design/icons';
-import { DvtNavbarTabsData, UserData } from './dvt-navbar-tabs-data';
+import {
+  DvtNavbarTabsData,
+  UserData,
+  TabsDataProps,
+} from './dvt-navbar-tabs-data';
 import DvtButtonTabs from '../DvtButtonTabs';
 import DvtButton from '../DvtButton';
 import DvtDotTitle from '../DvtDotTitle';
@@ -51,6 +55,7 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ user }) => {
   const sort = useAppSelector(state => state.dvtApp.sort);
 
   const [active, setActive] = useState<string>('All');
+  const [activeData, setActiveData] = useState<TabsDataProps[]>([]);
 
   const pathName = history.location.pathname;
 
@@ -88,13 +93,14 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ user }) => {
     '/superset/sqllab/',
   ];
 
-  const tabsDataFindPathname = DvtNavbarTabsData.filter(
+  const tabsDataFindPathname = DvtNavbarTabsData.find(
     (item: { pathname: string }) => item.pathname === pathName,
   );
 
   useEffect(() => {
-    if (tabsDataFindPathname[0]?.pathname) {
-      setActive(tabsDataFindPathname[0].data[0].label);
+    if (tabsDataFindPathname?.pathname) {
+      setActive(tabsDataFindPathname.data[0].label);
+      setActiveData(tabsDataFindPathname.data);
     }
   }, [pathName]);
 
@@ -139,7 +145,7 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ user }) => {
           <DvtButtonTabs
             active={active}
             setActive={setActive}
-            data={tabsDataFindPathname[0].data}
+            data={activeData}
           />
 
           {pathName === '/superset/welcome/' && (
