@@ -29,6 +29,7 @@ export const DEFAULT_FORM_DATA: Partial<EchartsBubbleFormData> = {
   yAxisTitleMargin: 30,
   truncateXAxis: false,
   truncateYAxis: false,
+  xAxisBounds: [null, null],
   yAxisBounds: [null, null],
   xAxisLabelRotation: defaultXAxis.xAxisLabelRotation,
   opacity: 0.6,
