@@ -20,15 +20,15 @@ const DvtFolderNavigationItem = styled.div`
     border-radius: 6px;
   }
 
-  &:nth-child(3n + 1)::before {
+  &:nth-of-type(3n + 1)::before {
     background-color: ${({ theme }) => theme.colors.dvt.primary.base};
   }
 
-  &:nth-child(3n + 2)::before {
+  &:nth-of-type(3n + 2)::before {
     background-color: ${({ theme }) => theme.colors.dvt.warning.base};
   }
 
-  &:nth-child(3n)::before {
+  &:nth-of-type(3n)::before {
     background-color: ${({ theme }) => theme.colors.dvt.success.light1};
   }
 `;
