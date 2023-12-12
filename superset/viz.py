@@ -80,6 +80,7 @@ from superset.utils.core import (
     simple_filter_to_adhoc,
 )
 from superset.utils.date_parser import get_since_until, parse_past_timedelta
+from superset.utils.geopy_extensions import LngLatPoint
 from superset.utils.hashing import md5_sha_from_str
 
 if TYPE_CHECKING:
@@ -2019,15 +2020,22 @@ class BaseDeckGLViz(BaseViz):
 
     @staticmethod
     @deprecated(deprecated_in="3.0")
-    def parse_coordinates(latlong: Any) -> tuple[float, float] | None:
-        if not latlong:
+    def parse_coordinates(
+        coords: Any, is_lat_long: bool = True
+    ) -> tuple[float, float] | None:
+        if not coords:
             return None
         try:
-            point = Point(latlong)
-            return (point.latitude, point.longitude)
+            if is_lat_long:
+                point = Point(coords)
+            else:
+                point = LngLatPoint(coords)
+
+            return (point.longitude, point.latitude)
+
         except Exception as ex:
             raise SpatialException(
-                _(f"Invalid spatial point encountered: {latlong}")
+                _(f"Invalid spatial point encountered: {coords}")
             ) from ex
 
     @staticmethod
@@ -2056,14 +2064,18 @@ class BaseDeckGLViz(BaseViz):
             )
         elif spatial.get("type") == "delimited":
             lon_lat_col = spatial.get("lonlatCol")
-            df[key] = df[lon_lat_col].apply(self.parse_coordinates)
+            df[key] = df[lon_lat_col].apply(
+                lambda longlat: self.parse_coordinates(
+                    longlat, bool(spatial.get("reverseCheckbox"))
+                )
+            )
             del df[lon_lat_col]
         elif spatial.get("type") == "geohash":
             df[key] = df[spatial.get("geohashCol")].map(self.reverse_geohash_decode)
             del df[spatial.get("geohashCol")]
 
-        if spatial.get("reverseCheckbox"):
-            self.reverse_latlong(df, key)
+            if spatial.get("reverseCheckbox"):
+                self.reverse_latlong(df, key)
 
         if df.get(key) is None:
             raise NullValueException(
