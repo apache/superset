@@ -37,6 +37,30 @@ const StyledPopperUp = styled.div`
   border-bottom: 20px solid ${({ theme }) => theme.colors.dvt.primary.base};
 `;
 
+const StyledPopperDown = styled.div`
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 20px solid ${({ theme }) => theme.colors.dvt.primary.base};
+`;
+
+const StyledPopperLeft = styled.div`
+  width: 0;
+  height: 0;
+  border-top: 10px solid transparent;
+  border-right: 20px solid ${({ theme }) => theme.colors.dvt.primary.base};
+  border-bottom: 10px solid transparent;
+`;
+
+const StyledPopperRight = styled.div`
+  width: 0;
+  height: 0;
+  border-top: 10px solid transparent;
+  border-left: 20px solid ${({ theme }) => theme.colors.dvt.primary.base};
+  border-bottom: 10px solid transparent;
+`;
+
 const StyledPopperBody = styled.div`
   display: flex;
   align-items: center;
@@ -69,6 +93,9 @@ const StyledPopperAbsolute = styled.div<DvtPopperProps>`
 export {
   StyledPopper,
   StyledPopperUp,
+  StyledPopperDown,
+  StyledPopperLeft,
+  StyledPopperRight,
   StyledPopperBody,
   StyledPopperGroup,
   StyledPopperAbsolute,
