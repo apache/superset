@@ -50,11 +50,11 @@ const DvtPopper: React.FC<DvtPopperProps> = ({
 
       {isHovered && (
         <StyledPopperAbsolute direction={direction}>
-          {direction === 'top' && <StyledPopperUp />}
-          {direction === 'left' && <StyledPopperLeft />}
+          {direction === 'bottom' && <StyledPopperUp />}
+          {direction === 'right' && <StyledPopperLeft />}
           <StyledPopperBody>{label}</StyledPopperBody>
-          {direction === 'bottom' && <StyledPopperDown />}{' '}
-          {direction === 'right' && <StyledPopperRight />}
+          {direction === 'top' && <StyledPopperDown />}{' '}
+          {direction === 'left' && <StyledPopperRight />}
         </StyledPopperAbsolute>
       )}
     </StyledPopperGroup>
