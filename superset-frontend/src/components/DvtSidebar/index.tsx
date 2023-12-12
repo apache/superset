@@ -65,21 +65,19 @@ const DvtSidebar: React.FC = () => {
           {sidebarDataFindPathname?.data.map((data: any, index: number) => (
             <StyledDvtSidebarBodyItem key={index}>
               {data.titleMenu === 'folder navigation' && (
-                <StyledDvtSidebarBodyItem key={index}>
+                <>
                   <DvtTitlePlus title={data.title} />
                   <DvtNavigation data={data.data} />
-                </StyledDvtSidebarBodyItem>
+                </>
               )}
               {data.titleMenu === 'folder' && (
-                <StyledDvtSidebarBodyItem key={index}>
+                <>
                   <DvtTitlePlus title={data.title} onClick={() => {}} />
                   <DvtFolderNavigation data={data.data} />
-                </StyledDvtSidebarBodyItem>
+                </>
               )}
               {data.titleMenu === 'shared folder' && (
-                <StyledDvtSidebarBodyItem key={index}>
-                  <DvtTitlePlus title={data.title} onClick={() => {}} />
-                </StyledDvtSidebarBodyItem>
+                <DvtTitlePlus title={data.title} onClick={() => {}} />
               )}
             </StyledDvtSidebarBodyItem>
           ))}
