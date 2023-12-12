@@ -26,7 +26,6 @@ const StyledPopper = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  position: relative;
 `;
 
 const StyledPopperUp = styled.div`
@@ -77,17 +76,47 @@ const StyledPopperBody = styled.div`
   padding: 0 17px;
 `;
 
-const StyledPopperGroup = styled.div``;
+const StyledPopperGroup = styled.div`
+  position: relative;
+`;
 
 const StyledPopperAbsolute = styled.div<DvtPopperProps>`
   display: flex;
-  flex-direction: column;
+  flex-direction: ${({ direction }) =>
+    direction === 'top' || direction === 'bottom' ? 'column' : 'row'};
   align-items: center;
   position: absolute;
-  top: ${({ direction }) => (direction === 'top' ? '0' : 'auto')};
-  bottom: ${({ direction }) => (direction === 'bottom' ? '0' : 'auto')};
-  right: ${({ direction }) => (direction === 'right' ? '0' : 'auto')};
-  left: ${({ direction }) => (direction === 'left' ? '0' : 'auto')};
+  ${({ direction }) => {
+    if (direction === 'top') {
+      return `
+        left: 0;
+        right: 0;
+        top: 100%;
+      `;
+    }
+    if (direction === 'bottom') {
+      return `
+        left: 0;
+        right: 0;
+        bottom: 100%;
+      `;
+    }
+    if (direction === 'right') {
+      return `
+        top: 0;
+        bottom: 0;
+        right: 100%;
+      `;
+    }
+    if (direction === 'left') {
+      return `
+        top: 0;
+        bottom: 0;
+        left: 100%;
+      `;
+    }
+    return '';
+  }}
 `;
 
 export {

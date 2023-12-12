@@ -46,16 +46,17 @@ const DvtPopper: React.FC<DvtPopperProps> = ({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {children}
-      <StyledPopper>
-        {isHovered && (
-          <StyledPopperAbsolute direction={direction}>
-            <StyledPopperUp /> <StyledPopperLeft />
-            <StyledPopperBody>{label}</StyledPopperBody>
-            <StyledPopperDown /> <StyledPopperRight />
-          </StyledPopperAbsolute>
-        )}
-      </StyledPopper>
+      <StyledPopper>{children} </StyledPopper>
+
+      {isHovered && (
+        <StyledPopperAbsolute direction={direction}>
+          {direction === 'top' && <StyledPopperUp />}
+          {direction === 'left' && <StyledPopperLeft />}
+          <StyledPopperBody>{label}</StyledPopperBody>
+          {direction === 'bottom' && <StyledPopperDown />}{' '}
+          {direction === 'right' && <StyledPopperRight />}
+        </StyledPopperAbsolute>
+      )}
     </StyledPopperGroup>
   );
 };

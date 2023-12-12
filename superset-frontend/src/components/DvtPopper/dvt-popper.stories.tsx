@@ -28,11 +28,13 @@ export default {
 export const Default = (args: DvtPopperProps) => (
   <div
     style={{
-      width: '100px',
+      width: '400px',
+      height: '400px',
       position: 'relative',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
+      justifyContent: 'center',
     }}
   >
     <DvtPopper {...args}>
