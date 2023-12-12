@@ -37,7 +37,7 @@ export interface DvtPopperProps {
 const DvtPopper: React.FC<DvtPopperProps> = ({
   label,
   children,
-  direction='bottom',
+  direction = 'bottom',
 }) => {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -47,7 +47,6 @@ const DvtPopper: React.FC<DvtPopperProps> = ({
       onMouseLeave={() => setIsHovered(false)}
     >
       <StyledPopper>{children} </StyledPopper>
-
       {isHovered && (
         <StyledPopperAbsolute direction={direction}>
           {direction === 'bottom' && <StyledPopperUp />}
