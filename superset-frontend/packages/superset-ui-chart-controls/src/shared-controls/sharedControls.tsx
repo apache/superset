@@ -87,6 +87,8 @@ import {
   dndXAxisControl,
 } from './dndControls';
 
+export { withDndFallback } from './dndControls';
+
 const sqlMaxRow = getBootstrapData().common.conf.SQL_MAX_ROW;
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
