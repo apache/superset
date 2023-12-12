@@ -50,6 +50,7 @@ import {
   validateMaxValue,
 } from '@superset-ui/core';
 
+import getBootstrapData from 'src/utils/getBootstrapData';
 import {
   formatSelectOptions,
   D3_FORMAT_OPTIONS,
@@ -85,7 +86,6 @@ import {
   dndAdhocMetricControl2,
   dndXAxisControl,
 } from './dndControls';
-import getBootstrapData from '../../../../src/utils/getBootstrapData';
 
 const sqlMaxRow = getBootstrapData().common.conf.SQL_MAX_ROW;
 
