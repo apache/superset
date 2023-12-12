@@ -548,6 +548,7 @@ function ChartList(props: ChartListProps) {
         hidden: true,
       },
     ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       userId,
       canEdit,
@@ -704,6 +705,7 @@ function ChartList(props: ChartListProps) {
       },
     ] as Filters;
     return filters_list;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addDangerToast, favoritesFilter, props.user]);
 
   const sortTypes = [
@@ -749,6 +751,7 @@ function ChartList(props: ChartListProps) {
         handleBulkChartExport={handleBulkChartExport}
       />
     ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       addDangerToast,
       addSuccessToast,

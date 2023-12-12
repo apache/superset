@@ -58,6 +58,7 @@ export default function PluginFilterTimegrain(
         }),
         {} as { [key in string]: string },
       ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [JSON.stringify(data)],
   );
 
@@ -84,10 +85,12 @@ export default function PluginFilterTimegrain(
     handleChange(defaultValue ?? []);
     // I think after Config Modal update some filter it re-creates default value for all other filters
     // so we can process it like this `JSON.stringify` or start to use `Immer`
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(defaultValue)]);
 
   useEffect(() => {
     handleChange(filterState.value ?? []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(filterState.value)]);
 
   const placeholderText =

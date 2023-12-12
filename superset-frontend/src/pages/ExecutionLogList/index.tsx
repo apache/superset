@@ -84,6 +84,7 @@ function ExecutionLog({
     if (alertId !== null && !alertLoading) {
       fetchResource(alertId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [alertId]);
 
   const initialSort = [{ id: 'start_dttm', desc: true }];

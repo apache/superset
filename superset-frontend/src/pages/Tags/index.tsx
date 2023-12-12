@@ -232,6 +232,7 @@ function TagList(props: TagListProps) {
         hidden: true,
       },
     ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [userId, canDelete, refreshData, addSuccessToast, addDangerToast],
   );
 
@@ -265,6 +266,7 @@ function TagList(props: TagListProps) {
       },
     ] as Filters;
     return filters_list;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addDangerToast, props.user]);
 
   const sortTypes = [

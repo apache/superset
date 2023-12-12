@@ -438,6 +438,7 @@ function SavedQueryList({
         hidden: true,
       },
     ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [canDelete, canEdit, canExport, copyQueryLink, handleSavedQueryPreview],
   );
 
@@ -522,6 +523,7 @@ function SavedQueryList({
         paginate: true,
       },
     ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [addDangerToast],
   );
 

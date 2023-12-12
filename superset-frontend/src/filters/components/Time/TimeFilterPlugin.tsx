@@ -80,6 +80,7 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
 
   useEffect(() => {
     handleTimeRangeChange(filterState.value);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterState.value]);
 
   return props.formData?.inView ? (

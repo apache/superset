@@ -515,6 +515,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         hidden: true,
       },
     ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [canEdit, canDelete, canExport, openDatasetEditModal, canDuplicate, user],
   );
 

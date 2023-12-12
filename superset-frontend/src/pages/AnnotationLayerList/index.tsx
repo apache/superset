@@ -205,6 +205,7 @@ function AnnotationLayersList({
         hidden: true,
       },
     ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [canDelete, canCreate],
   );
 
@@ -262,6 +263,7 @@ function AnnotationLayersList({
         paginate: true,
       },
     ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
 

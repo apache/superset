@@ -145,7 +145,7 @@ module.exports = {
         'react/require-default-props': 0,
         'react/sort-comp': 0, // TODO: re-enable in separate PR
         'react/static-property-placement': 0, // re-enable up for discussion
-        'react-hooks/exhaustive-deps': 0,
+        'react-hooks/exhaustive-deps': 2,
         'prettier/prettier': 'error',
         'file-progress/activate': 1,
       },

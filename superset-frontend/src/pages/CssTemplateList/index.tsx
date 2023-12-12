@@ -183,6 +183,7 @@ function CssTemplatesList({
         hidden: true,
       },
     ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [canDelete, canCreate],
   );
 
@@ -247,6 +248,7 @@ function CssTemplatesList({
         paginate: true,
       },
     ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
 

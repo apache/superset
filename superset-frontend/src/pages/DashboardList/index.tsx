@@ -583,6 +583,7 @@ function DashboardList(props: DashboardListProps) {
       },
     ] as Filters;
     return filters_list;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addDangerToast, favoritesFilter, props.user]);
 
   const sortTypes = [

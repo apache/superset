@@ -298,6 +298,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     ]).then(() => {
       setIsFetchingActivityData(false);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [otherTabFilters]);
 
   const handleToggle = () => {
@@ -317,12 +318,14 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         ...(queryData?.slice(0, 3) || []),
       ],
     }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chartData, queryData, dashboardData]);
 
   useEffect(() => {
     if (!collapseState && activityData?.[TableTab.Viewed]?.length) {
       setActiveState(activeState => ['1', ...activeState]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activityData]);
 
   const isRecentActivityLoading =

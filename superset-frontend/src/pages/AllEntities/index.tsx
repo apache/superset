@@ -189,10 +189,12 @@ function AllEntities() {
       setLoading(true);
       fetchTag(tagId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tagId]);
 
   useEffect(() => {
     if (tag) fetchTaggedObjects();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tag]);
 
   if (isLoading) return <Loading />;

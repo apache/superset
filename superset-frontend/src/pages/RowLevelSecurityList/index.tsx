@@ -228,6 +228,7 @@ function RowLevelSecurityList(props: RLSProps) {
         hidden: true,
       },
     ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       user.userId,
       canEdit,
