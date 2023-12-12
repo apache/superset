@@ -8,18 +8,20 @@ const ValidatedPanelHeader = ({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   required,
   validateCheckStatus,
+  testId,
 }: {
   title: string;
   subtitle: string;
   required: boolean;
   validateCheckStatus: boolean;
+  testId?: string;
 }): JSX.Element => {
   const asterisk = ' *';
   const checkmark = <CheckCircleOutlined />;
 
   return (
     <div className="collapse-panel-header">
-      <div className="collapse-panel-title">
+      <div className="collapse-panel-title" data-test={testId ? testId : ''}>
         <span>{t(title)}</span>
         {validateCheckStatus ? (
           <span className="validation-checkmark">{checkmark}</span>

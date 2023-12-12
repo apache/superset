@@ -68,6 +68,7 @@ import { AlertReportCronScheduler } from './components/AlertReportCronScheduler'
 import { NotificationMethod } from './components/NotificationMethod';
 import ValidatedPanelHeader from './components/ValidatedPanelHeader';
 import StyledPanel from './components/StyledPanel';
+import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -81,7 +82,7 @@ type SelectValue = {
   label: string;
 };
 
-interface AlertReportModalProps {
+export interface AlertReportModalProps {
   addSuccessToast: (msg: string) => void;
   addDangerToast: (msg: string) => void;
   alert?: AlertObject | null;
@@ -1137,30 +1138,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     validateNotificationSection();
   };
 
-  const buildErrorTooltipMessage = (build = true) => {
-    if (build) {
-      const sectionErrors: string[] = [];
-      Object.values(validationStatus).forEach(validationData => {
-        if (!validationData.status) {
-          const sectionTitle = `• ${validationData.name}: `;
-          sectionErrors.push(sectionTitle + validationData.errors.join(', '));
-        }
-      });
-      setErrorTooltipMessage(
-        <div>
-          Not all required fields are complete. Please provide the following:
-          <StyledList>
-            {sectionErrors.map(err => (
-              <li key={err}>{err}</li>
-            ))}
-          </StyledList>
-        </div>,
-      );
-    } else {
-      setErrorTooltipMessage('');
-    }
-  };
-
   const enforceValidation = () => {
     if (
       validationStatus[Sections.GENERAL].status &&
@@ -1169,10 +1146,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       validationStatus[Sections.SCHEDULE].status &&
       validationStatus[Sections.NOTIFICATION].status
     ) {
-      buildErrorTooltipMessage(false);
+      buildErrorTooltipMessage(false, setErrorTooltipMessage, validationStatus);
       setDisableSave(false);
     } else {
-      buildErrorTooltipMessage();
+      buildErrorTooltipMessage(true, setErrorTooltipMessage, validationStatus);
       setDisableSave(true);
     }
   };
@@ -1343,7 +1320,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         </h4>
       }
     >
-      <Collapse accordion expandIconPosition="right" defaultActiveKey="1">
+      <Collapse
+        expandIconPosition="right"
+        // defaultActiveKey="1"
+        accordion
+        style={{ border: 'none' }}
+      >
         <StyledPanel
           header={
             <ValidatedPanelHeader
@@ -1351,6 +1333,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               subtitle={TRANSLATIONS.GENERAL_SUBTITLE}
               required
               validateCheckStatus={validationStatus[Sections.GENERAL].status}
+              testId="general-information-panel"
             />
           }
           key="1"
@@ -1433,6 +1416,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 subtitle={TRANSLATIONS.ALERT_CONDITION_SUBTITLE}
                 required={false}
                 validateCheckStatus={validationStatus[Sections.ALERT].status}
+                testId="alert-condition-panel"
               />
             }
             key="2"
@@ -1533,6 +1517,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               subtitle={TRANSLATIONS.CONTENTS_SUBTITLE}
               required
               validateCheckStatus={validationStatus[Sections.CONTENT].status}
+              testId="contents-panel"
             />
           }
           key="3"
@@ -1664,6 +1649,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               subtitle={TRANSLATIONS.SCHEDULE_SUBTITLE}
               required
               validateCheckStatus={validationStatus[Sections.SCHEDULE].status}
+              testId="schedule-panel"
             />
           }
           key="4"
@@ -1749,6 +1735,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               validateCheckStatus={
                 validationStatus[Sections.NOTIFICATION].status
               }
+              testId="notification-method-panel"
             />
           }
           key="5"
