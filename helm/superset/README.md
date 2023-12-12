@@ -115,8 +115,9 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | nodeSelector | object | `{}` |  |
 | postgresql | object | see `values.yaml` | Configuration values for the postgresql dependency. ref: https://github.com/bitnami/charts/tree/main/bitnami/postgresql |
 | redis | object | see `values.yaml` | Configuration values for the Redis dependency. ref: https://github.com/bitnami/charts/blob/master/bitnami/redis More documentation can be found here: https://artifacthub.io/packages/helm/bitnami/redis |
-| resources | object | `{}` |  |
+| resources | object | `{}` | Custom annotations for Superset secret resources |
 | runAsUser | int | `0` | User ID directive. This user must have enough permissions to run the bootstrap script Running containers as root is not recommended in production. Change this to another UID - e.g. 1000 to be more secure |
+| secretAnnotations | object | `{}` |
 | service.annotations | object | `{}` |  |
 | service.loadBalancerIP | string | `nil` |  |
 | service.nodePort.http | int | `"nil"` |  |
