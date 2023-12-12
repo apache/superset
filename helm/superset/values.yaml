@@ -819,5 +819,10 @@ tolerations: []
 
 affinity: {}
 
+# -- Secret annotations to be added to all secrets
+secretAnnotations: {}
+  # my-custom-annotation: "my-value"
+  # another-annotation: "another-value"
+
 # -- TopologySpreadConstrains to be added to all deployments
 topologySpreadConstraints: []
