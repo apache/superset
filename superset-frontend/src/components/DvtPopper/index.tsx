@@ -31,13 +31,13 @@ import {
 export interface DvtPopperProps {
   label: string;
   children: ReactNode;
-  direction: 'top' | 'bottom' | 'left' | 'right';
+  direction?: 'top' | 'bottom' | 'left' | 'right';
 }
 
 const DvtPopper: React.FC<DvtPopperProps> = ({
   label,
   children,
-  direction,
+  direction='top',
 }) => {
   const [isHovered, setIsHovered] = useState(false);
 
