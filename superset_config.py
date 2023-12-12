@@ -65,7 +65,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 PUBLIC_ROLE_LIKE_GAMMA = True
 
-if os.getenv("GUEST_TOKEN_JWT_EXP_SECONDS"):
+if os.getenv("GUEST_TOKEN_JWT_EXP_SECONDS") is not None:
     GUEST_TOKEN_JWT_EXP_SECONDS = int(os.getenv("GUEST_TOKEN_JWT_EXP_SECONDS") or 300)
 
 AUTH_TYPE = AUTH_OAUTH
