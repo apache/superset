@@ -1,5 +1,5 @@
 import React from 'react';
-import moment, { Moment } from 'moment';
+import moment from 'moment';
 import {
   StyledDvtCardDetailChart,
   StyledDvtCardDetailChartTitle,
@@ -10,20 +10,45 @@ import {
 
 export interface DvtCardDetailChartProps {
   labelTitle: string;
-  vizType: string;
-  dataset: string;
-  modified: Moment;
-  link?: string;
+  vizTypeLabel: string;
+  datasetLabel: string;
+  datasetLink?: string;
+  modified: Date;
 }
 
 const DvtCardDetailChart: React.FC<DvtCardDetailChartProps> = ({
-  labelTitle = 'Country of Citizenship',
-  vizType,
-  dataset,
+  labelTitle,
+  vizTypeLabel,
+  datasetLabel,
+  datasetLink = '',
   modified,
-  link = '',
 }) => {
-  const formattedModified = getFormattedDifference(modified);
+  const getFormattedDifference = (modified: Date) => {
+    const now = moment();
+    const diff = now.diff(modified);
+    const duration = moment.duration(diff);
+
+    const years = duration.years();
+    const months = duration.months();
+    const days = duration.days();
+    const hours = duration.hours();
+    const minutes = duration.minutes();
+
+    let dateMessage = 'Just Now';
+
+    if (years > 0) {
+      dateMessage = `${years} Years Ago`;
+    } else if (months > 0) {
+      dateMessage = `${months} Months Ago`;
+    } else if (days > 0) {
+      dateMessage = `${days} Days Ago`;
+    } else if (hours > 0) {
+      dateMessage = `${hours} Hours Ago`;
+    } else if (minutes > 0) {
+      dateMessage = `${minutes} Minutes Ago`;
+    }
+    return dateMessage;
+  };
 
   return (
     <StyledDvtCardDetailChart>
@@ -32,44 +57,18 @@ const DvtCardDetailChart: React.FC<DvtCardDetailChartProps> = ({
       </StyledDvtCardDetailChartTitle>
       <StyledDvtCardDetails>
         <StyledDvtCardP>Viz type</StyledDvtCardP>
-        <StyledDvtCardP>{vizType}</StyledDvtCardP>
+        <StyledDvtCardP>{vizTypeLabel}</StyledDvtCardP>
       </StyledDvtCardDetails>
       <StyledDvtCardDetails>
         <StyledDvtCardP>Dataset</StyledDvtCardP>
-        <StyledDvtCardLink to={link}>{dataset}</StyledDvtCardLink>
+        <StyledDvtCardLink to={datasetLink}>{datasetLabel}</StyledDvtCardLink>
       </StyledDvtCardDetails>
       <StyledDvtCardDetails>
         <StyledDvtCardP>Modified</StyledDvtCardP>
-        <StyledDvtCardP>{formattedModified}</StyledDvtCardP>
+        <StyledDvtCardP>{getFormattedDifference(modified)}</StyledDvtCardP>
       </StyledDvtCardDetails>
     </StyledDvtCardDetailChart>
   );
 };
 
-const getFormattedDifference = (modified: Moment) => {
-  const now = moment();
-  const diff = now.diff(modified);
-  const duration = moment.duration(diff);
-
-  const years = duration.years();
-  const months = duration.months();
-  const days = duration.days();
-  const hours = duration.hours();
-  const minutes = duration.minutes();
-
-  let dateMessage = 'Just Now';
-
-  if (years > 0) {
-    dateMessage = `${years} Years Ago`;
-  } else if (months > 0) {
-    dateMessage = `${months} Months Ago`;
-  } else if (days > 0) {
-    dateMessage = `${days} Days Ago`;
-  } else if (hours > 0) {
-    dateMessage = `${hours} Hours Ago`;
-  } else if (minutes > 0) {
-    dateMessage = `${minutes} Minutes Ago`;
-  }
-  return dateMessage;
-};
 export default DvtCardDetailChart;

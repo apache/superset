@@ -24,18 +24,20 @@ const StyledDvtCardDetails = styled.div`
 `;
 
 const StyledDvtCardLink = styled(Link)`
-  font-weight: 500;
   font-size: 15px;
+  font-weight: 500;
+  line-height: 100%;
   color: ${({ theme }) => theme.colors.dvt.primary.base};
 `;
 
 const StyledDvtCardP = styled.p`
-  display: flex;
   font-size: 15px;
   font-weight: 500;
   line-height: 100%;
   color: ${({ theme }) => theme.colors.dvt.text.label};
+  margin: 0;
 `;
+
 export {
   StyledDvtCardDetailChart,
   StyledDvtCardDetailChartTitle,
