@@ -63,7 +63,7 @@ const DvtSidebar: React.FC = () => {
       {pathTitles(pathName) === 'Welcome Page' && (
         <StyledDvtSidebarBody pathName={pathName}>
           {sidebarDataFindPathname?.data.map((data: any, index: number) => (
-            <>
+            <StyledDvtSidebarBodyItem key={index}>
               {data.titleMenu === 'folder navigation' && (
                 <StyledDvtSidebarBodyItem key={index}>
                   <DvtTitlePlus title={data.title} />
@@ -81,7 +81,7 @@ const DvtSidebar: React.FC = () => {
                   <DvtTitlePlus title={data.title} onClick={() => {}} />
                 </StyledDvtSidebarBodyItem>
               )}
-            </>
+            </StyledDvtSidebarBodyItem>
           ))}
         </StyledDvtSidebarBody>
       )}
@@ -148,7 +148,7 @@ const DvtSidebar: React.FC = () => {
       {pathTitles(pathName) === 'Profile' && (
         <StyledDvtSidebarBody pathName={pathName}>
           {sidebarDataFindPathname?.data.map((data: any, index: number) => (
-            <StyledDvtSidebarBodyItem>
+            <StyledDvtSidebarBodyItem key={index}>
               <DvtNavigationBar
                 active={active}
                 data={data.items}
@@ -159,7 +159,6 @@ const DvtSidebar: React.FC = () => {
               </StyledDvtSidebarNavbarLogout>
             </StyledDvtSidebarBodyItem>
           ))}
-          s
         </StyledDvtSidebarBody>
       )}
       {pathTitles(pathName) === 'Welcome Page' && (
