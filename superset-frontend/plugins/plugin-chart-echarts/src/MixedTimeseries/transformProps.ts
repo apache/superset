@@ -223,7 +223,7 @@ export default function transformProps(
 
   const dataTypes = getColtypesMapping(queriesData[0]);
   const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
-  const xAxisType = getAxisType(xAxisDataType);
+  const xAxisType = getAxisType(stack, xAxisDataType);
   const series: SeriesOption[] = [];
   const formatter = contributionMode
     ? getNumberFormatter(',.0%')

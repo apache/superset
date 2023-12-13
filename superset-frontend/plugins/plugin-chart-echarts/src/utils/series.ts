@@ -508,11 +508,14 @@ export function sanitizeHtml(text: string): string {
   return format.encodeHTML(text);
 }
 
-export function getAxisType(dataType?: GenericDataType): AxisType {
+export function getAxisType(
+  stack: StackType,
+  dataType?: GenericDataType,
+): AxisType {
   if (dataType === GenericDataType.TEMPORAL) {
     return AxisType.time;
   }
-  if (dataType === GenericDataType.NUMERIC) {
+  if (dataType === GenericDataType.NUMERIC && !stack) {
     return AxisType.value;
   }
   return AxisType.category;
