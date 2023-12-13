@@ -138,6 +138,7 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
                     selectedDate={null}
                     setIsOpen={() => {}}
                     setSelectedDate={() => {}}
+                    maxWidth
                   />
                 )}
               </StyledDvtSidebarBodySelect>
