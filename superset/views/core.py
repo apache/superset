@@ -17,13 +17,15 @@
 # pylint: disable=too-many-lines, invalid-name
 from __future__ import annotations
 
+import io
 import logging
 from datetime import datetime
 from typing import Any, Callable, cast
 from urllib import parse
 
 import simplejson as json
-from flask import abort, flash, g, redirect, render_template, request, Response
+from flask import abort, flash, g, redirect, render_template,\
+    request, Response, send_file
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import (
     has_access,
@@ -201,11 +203,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     def generate_json(
         self, viz_obj: BaseViz, response_type: str | None = None
-    ) -> FlaskResponse:
+    ) -> FlaskResponse | io.BytesIO:
         if response_type == ChartDataResultFormat.CSV:
             return CsvResponse(
                 viz_obj.get_csv(), headers=generate_download_headers("csv")
             )
+
+        if response_type == ChartDataResultFormat.XLSX:
+            return viz_obj.get_xlsx()
 
         if response_type == ChartDataResultType.QUERY:
             return self.get_query_string_response(viz_obj)
@@ -362,7 +367,18 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 force=force,
             )
 
+            if response_type == ChartDataResultFormat.XLSX:
+                bytes_stream = self.generate_json(viz_obj, response_type)
+                return send_file(path_or_file=bytes_stream,
+                                 mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                 as_attachment=True,
+                                 download_name="data.xlsx"
+                                 )
+            if response_type == ChartDataResultFormat.CSV:
+                return self.generate_json(viz_obj, response_type)
+
             return self.generate_json(viz_obj, response_type)
+
         except SupersetException as ex:
             return json_error_response(utils.error_msg_from_exception(ex), 400)
 

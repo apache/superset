@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import io
 import logging
 import re
 import urllib.request
@@ -69,15 +70,28 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
 
     # Escape csv headers
     df = df.rename(columns=escape_values)
+    return df.to_dict(orient="records")
+    # return df.to_csv(**kwargs)
 
-    # Escape csv values
+
+def df_to_escaped_xlsx(df: pd.DataFrame, **kwargs: Any) -> io.BytesIO:
+    escape_values = lambda v: escape_value(v) if isinstance(v, str) else v
+
+    # Escape xslx headers
+    df = df.rename(columns=escape_values)
+
+    excel_writer = io.BytesIO()
+
+    # Escape xlsx values
     for name, column in df.items():
         if column.dtype == np.dtype(object):
             for idx, value in enumerate(column.values):
                 if isinstance(value, str):
                     df.at[idx, name] = escape_value(value)
-
-    return df.to_csv(**kwargs)
+    df.to_excel(excel_writer, startrow=0, merge_cells=False,
+                sheet_name="Sheet_1", index_label=None, index=False)
+    excel_writer.seek(0)
+    return excel_writer
 
 
 def get_chart_csv_data(

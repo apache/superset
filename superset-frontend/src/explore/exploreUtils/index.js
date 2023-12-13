@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 
 import { useCallback, useEffect } from 'react';
 /* eslint camelcase: 0 */
@@ -27,16 +10,18 @@ import {
   getChartMetadataRegistry,
   SupersetClient,
 } from '@superset-ui/core';
+import FileSaver from 'file-saver';
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
 import { optionLabel } from 'src/utils/common';
-import { URL_PARAMS } from 'src/constants';
+import { URL_PARAMS, CSV, XLSX, CSV_MIME, XLSX_MIME } from 'src/constants';
 import {
   MULTI_OPERATORS,
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
   UNSAVED_CHART_ID,
 } from 'src/explore/constants';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
+import { API_HANDLER } from 'src/Superstructure/api';
 
 export function getChartKey(explore) {
   const { slice, form_data } = explore;
@@ -234,10 +219,34 @@ export const buildV1ChartDataPayload = ({
   );
 };
 
-export const getLegacyEndpointType = ({ resultType, resultFormat }) =>
-  resultFormat === 'csv' ? resultFormat : resultType;
+export const getCSV = async (url, payload, isLegacy, resultFormat) => {
+  let params = {
+    method: 'post',
+    url,
+    body: payload,
+  };
 
-export const exportChart = ({
+  if (resultFormat === XLSX) {
+    params = {
+      ...params,
+      responseType: 'blob',
+    };
+  }
+
+  if (isLegacy) {
+    const response = await API_HANDLER.SupersetClientNoApi({ ...params });
+    if (response && response.result) return response.result[0];
+  } else {
+    const response = await API_HANDLER.SupersetClient({ ...params });
+    if (response) return response;
+  }
+
+  return null;
+};
+
+
+// DODO-changed (added)
+export const exportChartPlugin = ({
   formData,
   resultFormat = 'json',
   resultType = 'full',
@@ -246,6 +255,7 @@ export const exportChart = ({
 }) => {
   let url;
   let payload;
+
   const [useLegacyApi, parseMethod] = getQuerySettings(formData);
   if (useLegacyApi) {
     const endpointType = getLegacyEndpointType({ resultFormat, resultType });
@@ -255,6 +265,24 @@ export const exportChart = ({
       allowDomainSharding: false,
     });
     payload = formData;
+
+    const fixedUrl =
+      url.split(`${window.location.origin}/superset`).filter(x => x)[0] || null;
+
+    const updatedUrl =
+      resultFormat === XLSX
+        ? `${fixedUrl}&${XLSX}=true` // &language=${language}`
+        : `${fixedUrl}`; // &language=${language}`;
+
+    console.groupCollapsed('EXPORT CSV/XLSX legacy');
+    console.log('url', url);
+    console.log('fixedUrl', fixedUrl);
+    console.log('payload', payload);
+    console.log('resultFormat', resultFormat);
+    console.log('updatedUrl', updatedUrl);
+    console.groupEnd();
+
+    return getCSV(updatedUrl, payload, true, resultFormat);
   } else {
     url = '/api/v1/chart/data';
     payload = buildV1ChartDataPayload({
@@ -265,9 +293,149 @@ export const exportChart = ({
       ownState,
       parseMethod,
     });
+
+    console.groupCollapsed('EXPORT CSV/XLSX');
+    console.log('url', url);
+    console.log('payload', payload);
+    console.groupEnd();
+
+    return getCSV(url, payload, false, resultFormat);
   }
 
-  SupersetClient.postForm(url, { form_data: safeStringify(payload) });
+  // SupersetClient.postForm(url, { form_data: safeStringify(payload) });
+
+  // // TODO: DODO check how this workds in plugin
+  // console.log('shouldUseLegacyApi(formData)', shouldUseLegacyApi(formData));
+
+  // if (shouldUseLegacyApi(formData)) {
+  //   const endpointType = getLegacyEndpointType({ resultFormat, resultType });
+  //   url = getExploreUrl({
+  //     formData,
+  //     endpointType,
+  //     allowDomainSharding: false,
+  //   });
+  //   payload = formData;
+
+  // const fixedUrl =
+  //   url.split(`${window.location.origin}/superset`).filter(x => x)[0] || null;
+
+  // const updatedUrl =
+  //   resultFormat === XLSX
+  //     ? `${fixedUrl}&${XLSX}=true&language=${language}`
+  //     : `${fixedUrl}&language=${language}`;
+
+  //   console.groupCollapsed('EXPORT CSV/XLSX legacy');
+  //   console.log('url', url);
+  //   console.log('fixedUrl', fixedUrl);
+  //   console.log('payload', payload);
+  //   console.log('resultFormat', resultFormat);
+  //   console.log('updatedUrl', updatedUrl);
+  //   console.groupEnd();
+
+  //   return getCSV(updatedUrl, payload, true, resultFormat);
+  // }
+
+  // url = '/api/v1/chart/data';
+  // payload = buildV1ChartDataPayload({
+  //   formData,
+  //   force,
+  //   resultFormat,
+  //   resultType,
+  //   ownState,
+  //   language,
+  // });
+
+  // console.groupCollapsed('EXPORT CSV');
+  // console.log('url', url);
+  // console.log('payload', payload);
+  // console.groupEnd();
+
+  // return getCSV(url, payload, false, resultFormat);
+};
+
+const generateFileName = (filename, extension) =>
+  `${filename ? filename.split(' ').join('_') : 'data'}.${extension}`;
+
+const getExportedChartName = (slice = {}, extension) => {
+  const sliceName = slice?.slice_name || 'viz_type';
+  const vizType = slice?.viz_type || 'viz_type';
+  const timeGrain =
+    slice?.form_data?.time_grain_sqla ||
+    slice?.form_data?.time_range ||
+    'time_grain_sqla';
+
+  return generateFileName(
+    `${sliceName}__${timeGrain}__${vizType}-chart`,
+    extension,
+  );
+};
+
+export const getLegacyEndpointType = ({ resultType, resultFormat }) =>
+  resultFormat === 'csv' ? resultFormat : resultType;
+
+export const exportChart = ({
+  formData,
+  resultFormat = 'json',
+  resultType = 'full',
+  force = false,
+  ownState = {},
+  slice = {},
+}) => {
+  console.log('slice', slice);
+  const exportResultPromise = exportChartPlugin({
+    formData,
+    resultFormat,
+    resultType,
+    force,
+    ownState,
+    // language,
+  });
+
+  return exportResultPromise
+    .then(exportResult => {
+      if (exportResult && exportResult.code && exportResult.message) {
+        throw exportResult;
+      }
+
+      if (exportResult) {
+        const extension = resultFormat; // csv | xlsx
+        const blobType = extension === XLSX ? XLSX_MIME : CSV_MIME;
+
+        const outputFilename = getExportedChartName(slice, extension);
+
+        console.log('outputFilename', outputFilename);
+
+        if (extension === XLSX) {
+          const url = URL.createObjectURL(
+            new Blob([exportResult], {
+              type: blobType,
+            }),
+          );
+
+          const link = document.createElement('a');
+          link.href = url;
+          link.setAttribute('download', outputFilename);
+          document.body.appendChild(link);
+          link.click();
+        } else {
+          const universalBOM = '\uFEFF';
+          const alteredResult = universalBOM + exportResult;
+          const csvFile = new Blob([alteredResult], {
+            type: blobType,
+          });
+          FileSaver.saveAs(csvFile, outputFilename);
+        }
+      } else throw exportResult;
+    })
+    .catch(csvExportError => {
+      console.log('csvExportError', csvExportError);
+      // eslint-disable-next-line no-alert
+      alert(
+        `Unfortunately you cannot download ${resultFormat} file. The reason: ${
+          csvExportError.message || 'Unexpected'
+        } [${csvExportError.code || 'Unknown'}]`,
+      );
+    });
 };
 
 export const exploreChart = (formData, requestParams) => {
