@@ -17,11 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
-import { Provider } from 'react-redux';
 import { Store } from 'redux';
-import * as SupersetUI from '@superset-ui/core';
-import { styledMount as mount } from 'spec/helpers/theming';
+import { render } from 'spec/helpers/testing-library';
 import {
   CHART_RENDERING_SUCCEEDED,
   CHART_UPDATE_SUCCEEDED,
@@ -36,123 +33,105 @@ import { sliceId } from 'spec/fixtures/mockChartQueries';
 import { dashboardFilters } from 'spec/fixtures/mockDashboardFilters';
 import { dashboardWithFilter } from 'spec/fixtures/mockDashboardLayout';
 
+jest.mock(
+  'src/dashboard/components/FiltersBadge/DetailsPanel',
+  () =>
+    ({ children }: { children: React.ReactNode }) =>
+      <div data-test="mock-details-panel">{children}</div>,
+);
+
 const defaultStore = getMockStoreWithFilters();
 function setup(store: Store = defaultStore) {
-  return mount(
-    <Provider store={store}>
-      <FiltersBadge chartId={sliceId} />
-    </Provider>,
-  );
+  return render(<FiltersBadge chartId={sliceId} />, { store });
 }
 
-describe('FiltersBadge', () => {
-  // there's this bizarre "active filters" thing
-  // that doesn't actually use any kind of state management.
-  // Have to set variables in there.
-  buildActiveFilters({
-    dashboardFilters,
-    components: dashboardWithFilter,
+// there's this bizarre "active filters" thing
+// that doesn't actually use any kind of state management.
+// Have to set variables in there.
+buildActiveFilters({
+  dashboardFilters,
+  components: dashboardWithFilter,
+});
+
+describe('for dashboard filters', () => {
+  test('does not show number when there are no active filters', () => {
+    const store = getMockStoreWithFilters();
+    // start with basic dashboard state, dispatch an event to simulate query completion
+    store.dispatch({
+      type: CHART_UPDATE_SUCCEEDED,
+      key: sliceId,
+      queriesResponse: [
+        {
+          status: 'success',
+          applied_filters: [],
+          rejected_filters: [],
+        },
+      ],
+      dashboardFilters,
+    });
+    const { queryByTestId } = setup(store);
+    expect(queryByTestId('applied-filter-count')).not.toBeInTheDocument();
   });
 
-  beforeEach(() => {
-    // shallow rendering in enzyme doesn't propagate contexts correctly,
-    // so we have to mock the hook.
-    // See https://medium.com/7shifts-engineering-blog/testing-usecontext-react-hook-with-enzyme-shallow-da062140fc83
-    jest
-      .spyOn(SupersetUI, 'useTheme')
-      .mockImplementation(() => SupersetUI.supersetTheme);
+  test('shows the indicator when filters have been applied', () => {
+    const store = getMockStoreWithFilters();
+    // start with basic dashboard state, dispatch an event to simulate query completion
+    store.dispatch({
+      type: CHART_UPDATE_SUCCEEDED,
+      key: sliceId,
+      queriesResponse: [
+        {
+          status: 'success',
+          applied_filters: [{ column: 'region' }],
+          rejected_filters: [],
+        },
+      ],
+      dashboardFilters,
+    });
+    store.dispatch({ type: CHART_RENDERING_SUCCEEDED, key: sliceId });
+    const { getByTestId } = setup(store);
+    expect(getByTestId('applied-filter-count')).toHaveTextContent('1');
+    expect(getByTestId('mock-details-panel')).toBeInTheDocument();
+  });
+});
+
+describe('for native filters', () => {
+  test('does not show number when there are no active filters', () => {
+    const store = getMockStoreWithNativeFilters();
+    // start with basic dashboard state, dispatch an event to simulate query completion
+    store.dispatch({
+      type: CHART_UPDATE_SUCCEEDED,
+      key: sliceId,
+      queriesResponse: [
+        {
+          status: 'success',
+          applied_filters: [],
+          rejected_filters: [],
+        },
+      ],
+    });
+    store.dispatch({ type: CHART_RENDERING_SUCCEEDED, key: sliceId });
+    const { queryByTestId } = setup(store);
+    expect(queryByTestId('applied-filter-count')).not.toBeInTheDocument();
   });
 
-  describe('for dashboard filters', () => {
-    it("doesn't show number when there are no active filters", () => {
-      const store = getMockStoreWithFilters();
-      // start with basic dashboard state, dispatch an event to simulate query completion
-      store.dispatch({
-        type: CHART_UPDATE_SUCCEEDED,
-        key: sliceId,
-        queriesResponse: [
-          {
-            status: 'success',
-            applied_filters: [],
-            rejected_filters: [],
-          },
-        ],
-        dashboardFilters,
-      });
-      const wrapper = shallow(
-        <Provider store={store}>
-          <FiltersBadge chartId={sliceId} />,
-        </Provider>,
-      );
-      expect(wrapper.find('[data-test="applied-filter-count"]')).not.toExist();
+  test('shows the indicator when filters have been applied', () => {
+    const store = getMockStoreWithNativeFilters();
+    // start with basic dashboard state, dispatch an event to simulate query completion
+    store.dispatch({
+      type: CHART_UPDATE_SUCCEEDED,
+      key: sliceId,
+      queriesResponse: [
+        {
+          status: 'success',
+          applied_filters: [{ column: 'region' }],
+          rejected_filters: [],
+        },
+      ],
     });
-
-    it('shows the indicator when filters have been applied', () => {
-      const store = getMockStoreWithFilters();
-      // start with basic dashboard state, dispatch an event to simulate query completion
-      store.dispatch({
-        type: CHART_UPDATE_SUCCEEDED,
-        key: sliceId,
-        queriesResponse: [
-          {
-            status: 'success',
-            applied_filters: [{ column: 'region' }],
-            rejected_filters: [],
-          },
-        ],
-        dashboardFilters,
-      });
-      store.dispatch({ type: CHART_RENDERING_SUCCEEDED, key: sliceId });
-      const wrapper = setup(store);
-      expect(wrapper.find('DetailsPanelPopover')).toExist();
-      expect(
-        wrapper.find('[data-test="applied-filter-count"] .current'),
-      ).toHaveText('1');
-      expect(wrapper.find('WarningFilled')).not.toExist();
-    });
-  });
-
-  describe('for native filters', () => {
-    it("doesn't show number when there are no active filters", () => {
-      const store = getMockStoreWithNativeFilters();
-      // start with basic dashboard state, dispatch an event to simulate query completion
-      store.dispatch({
-        type: CHART_UPDATE_SUCCEEDED,
-        key: sliceId,
-        queriesResponse: [
-          {
-            status: 'success',
-            applied_filters: [],
-            rejected_filters: [],
-          },
-        ],
-      });
-      store.dispatch({ type: CHART_RENDERING_SUCCEEDED, key: sliceId });
-      const wrapper = setup(store);
-      expect(wrapper.find('[data-test="applied-filter-count"]')).not.toExist();
-    });
-
-    it('shows the indicator when filters have been applied', () => {
-      const store = getMockStoreWithNativeFilters();
-      // start with basic dashboard state, dispatch an event to simulate query completion
-      store.dispatch({
-        type: CHART_UPDATE_SUCCEEDED,
-        key: sliceId,
-        queriesResponse: [
-          {
-            status: 'success',
-            applied_filters: [{ column: 'region' }],
-            rejected_filters: [],
-          },
-        ],
-      });
-      store.dispatch({ type: CHART_RENDERING_SUCCEEDED, key: sliceId });
-      const wrapper = setup(store);
-      expect(wrapper.find('DetailsPanelPopover')).toExist();
-      expect(
-        wrapper.find('[data-test="applied-filter-count"] .current'),
-      ).toHaveText('1');
-      expect(wrapper.find('WarningFilled')).not.toExist();
-    });
+    store.dispatch({ type: CHART_RENDERING_SUCCEEDED, key: sliceId });
+    const { getByTestId } = setup(store);
+    expect(getByTestId('applied-filter-count')).toHaveTextContent('1');
+    expect(getByTestId('mock-details-panel')).toBeInTheDocument();
   });
 });
