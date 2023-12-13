@@ -36,6 +36,8 @@ export interface DvtSelectProps {
   selectedValue: string;
   setSelectedValue: (newSeletedValue: string) => void;
   typeDesign?: 'normal' | 'form' | 'navbar';
+  width?: number;
+  maxWidth?: boolean;
 }
 
 const DvtSelect: React.FC<DvtSelectProps> = ({
@@ -45,6 +47,8 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
   selectedValue,
   setSelectedValue,
   typeDesign = 'normal',
+  width = 202,
+  maxWidth = false,
 }) => {
   const ref = useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -60,7 +64,11 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
   };
 
   return (
-    <StyledSelect ref={ref} typeDesign={typeDesign}>
+    <StyledSelect
+      ref={ref}
+      typeDesign={typeDesign}
+      style={{ minWidth: maxWidth ? '100%' : width }}
+    >
       {label && (
         <StyledSelectLabel typeDesign={typeDesign}>{label}</StyledSelectLabel>
       )}
@@ -84,7 +92,6 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
           />
         </StyledSelectIcon>
       </StyledSelectSelect>
-
       {isOpen && (
         <StyledSelectOptions
           isOpen={isOpen}

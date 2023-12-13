@@ -60,7 +60,7 @@ const StyledSelectSelect = styled.div<StyledSelectProps>`
   display: flex;
   align-items: center;
   padding: ${({ typeDesign }) => (typeDesign === 'form' ? '12px 8px' : '12px')};
-  width: 202px;
+  width: 100%;
   height: 48px;
   border-radius: ${({ typeDesign }) =>
     typeDesign === 'form' ? '4px' : '12px'};
