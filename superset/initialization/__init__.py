@@ -196,6 +196,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.sqllab import SqllabView
         from superset.views.tags import TagModelView, TagView
         from superset.views.users.api import CurrentUserRestApi
+        from superset.dvt_auth.login import DVTAuthDBView
+        from superset.dvt_auth.reset_password import DVTResetPasswordView
 
         #
         # Setup API views
@@ -296,6 +298,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_icon="",
         )
 
+
+
         #
         # Setup views with no menu
         #
@@ -329,6 +333,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(TaggedObjectsModelView)
         appbuilder.add_view_no_menu(TagView)
         appbuilder.add_view_no_menu(ReportView)
+
 
         #
         # Add links
@@ -429,6 +434,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=__("Security"),
             icon="fa-lock",
+        )
+
+        appbuilder.add_view(DVTAuthDBView, "Login",
+            category="Security",
+            category_icon="fa-cogs",
+            icon="fa-group",
         )
 
     def init_app_in_ctx(self) -> None:
