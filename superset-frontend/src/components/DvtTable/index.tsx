@@ -232,6 +232,9 @@ const DvtTable: React.FC<DvtTableProps> = ({
                                           ? 'visible'
                                           : 'hidden'
                                         : 'visible',
+                                      height: '56px',
+                                      display: 'flex',
+                                      alignItems: 'center',
                                     }}
                                   />
                                 </DvtPopper>
