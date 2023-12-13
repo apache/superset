@@ -18,9 +18,13 @@
  */
 import { styled } from '@superset-ui/core';
 
-const StyledDvtSidebar = styled.div`
+interface SidebarProps {
+  pathName: string;
+}
+const StyledDvtSidebar = styled.div<SidebarProps>`
   display: flex;
   flex-direction: column;
+  position: relative;
   min-width: 250px;
   padding: 32px 16px 39px 16px;
   position: fixed;
@@ -40,13 +44,15 @@ const StyledDvtSidebarHeader = styled.div`
   border-bottom: 1px solid ${({ theme }) => theme.colors.dvt.border.base};
 `;
 
-const StyledDvtSidebarBody = styled.div`
+const StyledDvtSidebarBody = styled.div<SidebarProps>`
   padding: 0 16px;
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  padding-bottom: 200px;
+  padding-bottom: ${({ pathName }) =>
+    pathName === '/superset/welcome/' && ' 200px'};
+  justify-content: ${({ pathName }) =>
+    pathName === '/superset/welcome/' && ' space-between'};
 `;
 
 const StyledDvtSidebarBodyItem = styled.div`
@@ -56,7 +62,23 @@ const StyledDvtSidebarBodyItem = styled.div`
 `;
 
 const StyledDvtSidebarFooter = styled.div`
+  justify-content: end;
   padding: 0 16px;
+`;
+
+const StyledDvtSidebarSelect = styled.div`
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 17px;
+  margin-left: 8px;
+`;
+
+const StyledDvtSidebarNavbarLogout = styled.div`
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  bottom: 0;
+  margin-bottom: 35px;
 `;
 
 export {
@@ -65,4 +87,6 @@ export {
   StyledDvtSidebarBody,
   StyledDvtSidebarBodyItem,
   StyledDvtSidebarFooter,
+  StyledDvtSidebarSelect,
+  StyledDvtSidebarNavbarLogout,
 };
