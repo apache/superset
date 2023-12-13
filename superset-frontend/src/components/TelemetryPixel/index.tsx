@@ -52,7 +52,8 @@ const TelemetryPixel = ({
     typeof process.env.SCARF_ANALYTICS,
   );
 
-  return JSON.stringify(process.env.SCARF_ANALYTICS) !== 'false' ? (
+  return process.env.SCARF_ANALYTICS === 'false' ||
+    process.env.SCARF_ANALYTICS === 'false' ? null : (
     <img
       referrerPolicy="no-referrer-when-downgrade"
       src={pixelPath}
@@ -60,6 +61,6 @@ const TelemetryPixel = ({
       height={0}
       alt=""
     />
-  ) : null;
+  );
 };
 export default TelemetryPixel;
