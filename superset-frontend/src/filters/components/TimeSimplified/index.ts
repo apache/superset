@@ -16,10 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as SelectFilterPlugin } from './Select';
-export { default as RangeFilterPlugin } from './Range';
-export { default as TimeFilterPlugin } from './Time';
-export { default as TimeColumnFilterPlugin } from './TimeColumn';
-export { default as GroupByFilterPlugin } from './GroupBy';
-export { default as TimeGrainFilterPlugin } from './TimeGrain';
-export { default as TimeSimplifiedFilterPlugin } from './TimeSimplified';
+import { Behavior, ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
+import controlPanel from './controlPanel';
+import transformProps from './transformProps';
+import thumbnail from './images/thumbnail.png';
+
+export default class TimeSimplifiedFilterPlugin extends ChartPlugin {
+  constructor() {
+    const metadata = new ChartMetadata({
+      name: 'Simple time filter',
+      description: t('Custom time filter plugin'),
+      behaviors: [Behavior.INTERACTIVE_CHART, Behavior.NATIVE_FILTER],
+      thumbnail,
+      tags: [t('Experimental')],
+      datasourceCount: 0,
+    });
+
+    super({
+      controlPanel,
+      loadChart: () => import('./TimeSimplifiedFilterPlugin'),
+      metadata,
+      transformProps,
+    });
+  }
+}
