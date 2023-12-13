@@ -12,8 +12,8 @@ import {
   StyledDvtSidebarHeader,
   StyledDvtSidebarBody,
   StyledDvtSidebarBodyItem,
+  StyledDvtSidebarBodySelect,
   StyledDvtSidebarFooter,
-  StyledDvtSidebarSelect,
   StyledDvtSidebarNavbarLogout,
 } from './dvt-sidebar.module';
 import DvtList from '../DvtList';
@@ -105,7 +105,7 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
               },
               index: number,
             ) => (
-              <StyledDvtSidebarSelect key={index}>
+              <StyledDvtSidebarBodySelect key={index}>
                 {!data.datePicker &&
                   data.placeholder !== 'See Table Schema' && (
                     <DvtSelect
@@ -114,6 +114,7 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
                       placeholder={data.placeholder}
                       selectedValue=""
                       setSelectedValue={() => {}}
+                      maxWidth
                     />
                   )}
                 {data.placeholder === 'See Table Schema' && (
@@ -124,6 +125,7 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
                       placeholder={data.placeholder}
                       selectedValue=""
                       setSelectedValue={() => {}}
+                      maxWidth
                     />
                     <DvtList data={data.valuesList} title={data.title} />
                   </>
@@ -138,7 +140,7 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
                     setSelectedDate={() => {}}
                   />
                 )}
-              </StyledDvtSidebarSelect>
+              </StyledDvtSidebarBodySelect>
             ),
           )}
         </StyledDvtSidebarBody>

@@ -45,14 +45,12 @@ const StyledDvtSidebarHeader = styled.div`
 `;
 
 const StyledDvtSidebarBody = styled.div<SidebarProps>`
-  padding: 0 16px;
+  padding: ${({ pathName }) =>
+    `0 ${pathName === '/superset/welcome/' ? 16 : 8}`}px;
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding-bottom: ${({ pathName }) =>
-    pathName === '/superset/welcome/' && ' 200px'};
-  justify-content: ${({ pathName }) =>
-    pathName === '/superset/welcome/' && ' space-between'};
+  gap: ${({ pathName }) => (pathName === '/superset/welcome/' ? 40 : 12)}px;
 `;
 
 const StyledDvtSidebarBodyItem = styled.div`
@@ -61,16 +59,11 @@ const StyledDvtSidebarBodyItem = styled.div`
   gap: 20px;
 `;
 
+const StyledDvtSidebarBodySelect = styled.div``;
+
 const StyledDvtSidebarFooter = styled.div`
   justify-content: end;
   padding: 0 16px;
-`;
-
-const StyledDvtSidebarSelect = styled.div`
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 17px;
-  margin-left: 8px;
 `;
 
 const StyledDvtSidebarNavbarLogout = styled.div`
@@ -86,7 +79,7 @@ export {
   StyledDvtSidebarHeader,
   StyledDvtSidebarBody,
   StyledDvtSidebarBodyItem,
+  StyledDvtSidebarBodySelect,
   StyledDvtSidebarFooter,
-  StyledDvtSidebarSelect,
   StyledDvtSidebarNavbarLogout,
 };
