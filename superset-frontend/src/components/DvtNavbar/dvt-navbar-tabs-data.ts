@@ -1,6 +1,10 @@
-interface TabsDataProps {
+export interface TabsDataProps {
   label: string;
   icon?: string;
+}
+
+interface UserDataProps {
+  image: string;
 }
 
 interface DvtNavbarTabsDataProps {
@@ -8,7 +12,12 @@ interface DvtNavbarTabsDataProps {
   data: TabsDataProps[];
 }
 
-const DvtNavbarTabsData: DvtNavbarTabsDataProps[] = [
+export const UserData: UserDataProps = {
+  image:
+    'https://e7.pngegg.com/pngimages/799/987/png-clipart-computer-icons-avatar-icon-design-avatar-heroes-computer-wallpaper-thumbnail.png',
+};
+
+export const DvtNavbarTabsData: DvtNavbarTabsDataProps[] = [
   {
     pathname: '/superset/welcome/',
     data: [
@@ -33,6 +42,28 @@ const DvtNavbarTabsData: DvtNavbarTabsDataProps[] = [
       },
     ],
   },
+  {
+    pathname: '/superset/sqllab/history/',
+    data: [
+      {
+        label: 'Saved Queries',
+      },
+      {
+        label: 'Query History',
+      },
+    ],
+  },
+  {
+    pathname: '/superset/sqllab/',
+    data: [
+      {
+        label: 'Saved ',
+        icon: 'caret_down',
+      },
+      {
+        label: 'Copy Link',
+        icon: 'link',
+      },
+    ],
+  },
 ];
-
-export default DvtNavbarTabsData;
