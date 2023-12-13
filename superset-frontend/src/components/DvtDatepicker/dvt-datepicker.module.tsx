@@ -39,12 +39,13 @@ const StyledDatepicker = styled.div`
   position: relative;
   display: inline-flex;
   flex-direction: column;
+  z-index: 999;
 `;
 
 const StyledDatepickerGroup = styled.div`
   position: relative;
   display: inline-flex;
-  width: 202px;
+  width: 100%;
   height: 48px;
   padding: 12px;
   border-radius: 12px;

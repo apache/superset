@@ -16,12 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import React from 'react';
+import DvtButton from '../DvtButton';
+import DvtPopper, { DvtPopperProps } from '.';
 
-const StyledNavigationBar = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 32px;
-`;
+export default {
+  title: 'Dvt-Components/DvtPopper',
+  component: DvtPopper,
+};
 
-export { StyledNavigationBar };
+export const Default = (args: DvtPopperProps) => (
+  <div
+    style={{
+      width: '400px',
+      height: '400px',
+      position: 'relative',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+    }}
+  >
+    <DvtPopper {...args}>
+      <DvtButton label="Open/Close" onClick={() => {}} />
+    </DvtPopper>
+  </div>
+);
+
+Default.args = {
+  label: 'Export',
+  direction: 'top',
+};

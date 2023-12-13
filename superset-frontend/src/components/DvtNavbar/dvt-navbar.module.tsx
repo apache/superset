@@ -21,12 +21,15 @@ import { styled } from '@superset-ui/core';
 const StyledDvtNavbar = styled.div`
   padding: 0 30px;
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 250px;
 `;
 
 const NavbarTop = styled.div`
   display: flex;
   align-items: center;
-  justify-content: space-between;
   min-height: 80px;
   border-top: 1px solid ${({ theme }) => theme.colors.dvt.border.base};
 `;
@@ -45,4 +48,53 @@ const NavbarBottomRight = styled.div`
   gap: 16px;
 `;
 
-export { StyledDvtNavbar, NavbarTop, NavbarBottom, NavbarBottomRight };
+const NavbarSearchInput = styled.div`
+  width: 200px;
+`;
+
+const NavbarProfileMenu = styled.div`
+  display: flex;
+  width: 70px;
+`;
+
+const NavbarProfileIcon = styled.div`
+  display: flex;
+  align-items: center;
+  position: relative;
+  margin-left: auto;
+  margin-right: 32px;
+`;
+
+const NavbarProfileIconDot = styled.div`
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background-color: ${({ theme }) => theme.colors.error.base};
+  border-radius: 50%;
+  top: 1px;
+  right: 1px;
+  border: 1px ${({ theme }) => theme.colors.grayscale.light5};
+`;
+
+const NavbarSearchGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 434px;
+  margin-left: auto;
+  margin-right: 150px;
+  font-size: 14px;
+  font-weight: 500;
+`;
+
+export {
+  StyledDvtNavbar,
+  NavbarTop,
+  NavbarBottom,
+  NavbarBottomRight,
+  NavbarSearchInput,
+  NavbarProfileMenu,
+  NavbarSearchGroup,
+  NavbarProfileIcon,
+  NavbarProfileIconDot,
+};

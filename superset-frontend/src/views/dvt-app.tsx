@@ -16,60 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { Suspense, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { hot } from 'react-hot-loader/root';
-import {
-  BrowserRouter as Router,
-  Switch,
-  Route,
-  useLocation,
-} from 'react-router-dom';
+import { BrowserRouter as Router, useLocation } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
-import { GlobalStyles } from 'src/GlobalStyles';
-import ErrorBoundary from 'src/components/ErrorBoundary';
-import Loading from 'src/components/Loading';
-import DvtSidebar from 'src/components/DvtSidebar';
-import DvtNavbar from 'src/components/DvtNavbar';
-import getBootstrapData from 'src/utils/getBootstrapData';
-import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import setupApp from 'src/setup/setupApp';
 import setupPlugins from 'src/setup/setupPlugins';
-import { routes, isFrontendRoute } from 'src/views/dvt-routes';
 import { Logger, LOG_ACTIONS_SPA_NAVIGATION } from 'src/logger/LogUtils';
 import setupExtensions from 'src/setup/setupExtensions';
-import { styled } from '@superset-ui/core';
 import { logEvent } from 'src/logger/actions';
 import { store } from 'src/views/dvt-store';
 import { DvtRootContextProviders } from './DvtRootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
-
-const StyledApp = styled.div`
-  margin-left: 250px;
-  background-color: ${({ theme }) => theme.colors.dvt.grayscale.light2};
-  height: 100vh;
-`;
-
-const Main = styled.main`
-  flex: 1;
-  padding: 25px;
-  overflow-y: auto;
-
-  &::-webkit-scrollbar {
-    background-color: ${({ theme }) => theme.colors.dvt.primary.light2};
-    width: 10px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background-color: ${({ theme }) => theme.colors.dvt.primary.base};
-    border-radius: 4px;
-  }
-`;
+import DvtLayout from './dvt-layout';
 
 setupApp();
 setupPlugins();
 setupExtensions();
-
-const bootstrapData = getBootstrapData();
 
 let lastLocationPathname: string;
 
@@ -97,27 +60,7 @@ const DvtApp = () => (
     <ScrollToTop />
     <LocationPathnameLogger />
     <DvtRootContextProviders>
-      <StyledApp>
-        <GlobalStyles />
-        <DvtSidebar data={[]} isFrontendRoute={isFrontendRoute} />
-        <DvtNavbar />
-        <Main>
-          <Switch>
-            {routes.map(
-              ({ path, Component, props = {}, Fallback = Loading }) => (
-                <Route path={path} key={path}>
-                  <Suspense fallback={<Fallback />}>
-                    <ErrorBoundary>
-                      <Component user={bootstrapData.user} {...props} />
-                    </ErrorBoundary>
-                  </Suspense>
-                </Route>
-              ),
-            )}
-          </Switch>
-        </Main>
-        <ToastContainer />
-      </StyledApp>
+      <DvtLayout />
     </DvtRootContextProviders>
   </Router>
 );
