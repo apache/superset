@@ -27,6 +27,12 @@ import Icons from 'src/components/Icons';
 import Fieldset from './Fieldset';
 import { recurseReactClone } from './utils';
 
+type RecordType = {
+  [columnName: string]: any;
+  id: string | number;
+  __expanded?: boolean;
+};
+
 interface CRUDCollectionProps {
   allowAddItem?: boolean;
   allowDeletes?: boolean;
@@ -40,7 +46,7 @@ interface CRUDCollectionProps {
   itemCellProps?: ((
     val: unknown,
     label: string,
-    record: any,
+    record: RecordType,
   ) => React.DetailedHTMLProps<
     React.TdHTMLAttributes<HTMLTableCellElement>,
     HTMLTableCellElement
@@ -49,7 +55,7 @@ interface CRUDCollectionProps {
     val: unknown,
     onChange: () => void,
     label: string,
-    record: any,
+    record: RecordType,
   ) => ReactNode)[];
   onChange?: (arg0: any) => void;
   tableColumns: Array<any>;
@@ -366,20 +372,20 @@ export default class CRUDCollection extends React.PureComponent<
     );
   }
 
-  getCellProps(record: any, col: any) {
+  getCellProps(record: RecordType, col: any) {
     const cellPropsFn = this.props.itemCellProps?.[col];
     const val = record[col];
     return cellPropsFn ? cellPropsFn(val, this.getLabel(col), record) : {};
   }
 
-  renderCell(record: any, col: any) {
+  renderCell(record: RecordType, col: any) {
     const renderer = this.props.itemRenderers?.[col];
     const val = record[col];
     const onChange = this.onCellChange.bind(this, record.id, col);
     return renderer ? renderer(val, onChange, this.getLabel(col), record) : val;
   }
 
-  renderItem(record: any) {
+  renderItem(record: RecordType) {
     const { allowAddItem, allowDeletes, expandFieldset, tableColumns } =
       this.props;
     /* eslint-disable no-underscore-dangle */
