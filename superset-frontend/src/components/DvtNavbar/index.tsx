@@ -17,7 +17,6 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import { useHistory } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { useAppSelector } from 'src/hooks/useAppSelector';
 import { dvtAppSetSort } from 'src/dvt-redux/dvt-appReducer';
@@ -26,6 +25,7 @@ import {
   DvtNavbarTabsData,
   UserData,
   TabsDataProps,
+  WithNavbarBottom,
 } from './dvt-navbar-tabs-data';
 import DvtButtonTabs from '../DvtButtonTabs';
 import DvtButton from '../DvtButton';
@@ -46,18 +46,16 @@ import {
 } from './dvt-navbar.module';
 
 export interface DvtNavbarProps {
+  pathName: string;
   user?: any;
 }
 
-const DvtNavbar: React.FC<DvtNavbarProps> = ({ user }) => {
-  const history = useHistory();
+const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, user }) => {
   const dispatch = useDispatch();
   const sort = useAppSelector(state => state.dvtApp.sort);
 
   const [active, setActive] = useState<string>('All');
   const [activeData, setActiveData] = useState<TabsDataProps[]>([]);
-
-  const pathName = history.location.pathname;
 
   const pathTitles = (pathname: string) => {
     switch (pathname) {
@@ -85,13 +83,6 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ user }) => {
         return '';
     }
   };
-
-  const withNavbarBottom = [
-    '/superset/welcome/',
-    '/alert/list/',
-    '/superset/sqllab/history/',
-    '/superset/sqllab/',
-  ];
 
   useEffect(() => {
     const tabsDataFindPathname = DvtNavbarTabsData.find(
@@ -140,14 +131,13 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ user }) => {
           <DvtProfileMenu img={UserData.image} />
         </NavbarProfileMenu>
       </NavbarTop>
-      {withNavbarBottom.includes(pathName) && (
+      {WithNavbarBottom.includes(pathName) && (
         <NavbarBottom>
           <DvtButtonTabs
             active={active}
             setActive={setActive}
             data={activeData}
           />
-
           {pathName === '/superset/welcome/' && (
             <NavbarBottomRight>
               <DvtButton

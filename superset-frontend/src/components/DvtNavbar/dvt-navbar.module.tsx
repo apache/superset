@@ -21,6 +21,10 @@ import { styled } from '@superset-ui/core';
 const StyledDvtNavbar = styled.div`
   padding: 0 30px;
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 250px;
 `;
 
 const NavbarTop = styled.div`

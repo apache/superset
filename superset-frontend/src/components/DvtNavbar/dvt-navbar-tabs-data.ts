@@ -67,3 +67,10 @@ export const DvtNavbarTabsData: DvtNavbarTabsDataProps[] = [
     ],
   },
 ];
+
+export const WithNavbarBottom: string[] = [
+  '/superset/welcome/',
+  '/alert/list/',
+  '/superset/sqllab/history/',
+  '/superset/sqllab/',
+];

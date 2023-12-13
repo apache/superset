@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useHistory } from 'react-router-dom';
 import DvtLogo from '../DvtLogo';
 import DvtDarkMode from '../DvtDarkMode';
 import DvtTitlePlus from '../DvtTitlePlus';
@@ -20,10 +19,12 @@ import {
 import DvtList from '../DvtList';
 import DvtDatePicker from '../DvtDatepicker';
 
-const DvtSidebar: React.FC = () => {
+interface DvtSidebarProps {
+  pathName: string;
+}
+
+const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
   const [darkMode, setDarkMode] = useState<boolean>(false);
-  const history = useHistory();
-  const pathName = history.location.pathname;
   const [active, setActive] = useState<string>('test');
 
   const pathTitles = (pathname: string) => {
