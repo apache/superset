@@ -86,6 +86,7 @@ const StyledPopperAbsolute = styled.div<DvtPopperProps>`
     direction === 'top' || direction === 'bottom' ? 'column' : 'row'};
   align-items: center;
   position: absolute;
+  z-index: 999;
   ${({ direction }) => {
     if (direction === 'bottom') {
       return `
