@@ -875,10 +875,13 @@ test('calculateLowerLogTick', () => {
 });
 
 test('getAxisType', () => {
-  expect(getAxisType(GenericDataType.TEMPORAL)).toEqual(AxisType.time);
-  expect(getAxisType(GenericDataType.NUMERIC)).toEqual(AxisType.value);
-  expect(getAxisType(GenericDataType.BOOLEAN)).toEqual(AxisType.category);
-  expect(getAxisType(GenericDataType.STRING)).toEqual(AxisType.category);
+  expect(getAxisType(false, GenericDataType.TEMPORAL)).toEqual(AxisType.time);
+  expect(getAxisType(false, GenericDataType.NUMERIC)).toEqual(AxisType.value);
+  expect(getAxisType(true, GenericDataType.NUMERIC)).toEqual(AxisType.category);
+  expect(getAxisType(false, GenericDataType.BOOLEAN)).toEqual(
+    AxisType.category,
+  );
+  expect(getAxisType(false, GenericDataType.STRING)).toEqual(AxisType.category);
 });
 
 test('getMinAndMaxFromBounds returns empty object when not truncating', () => {

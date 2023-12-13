@@ -247,7 +247,7 @@ export default function transformProps(
   const isAreaExpand = stack === StackControlsValue.Expand;
   const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
 
-  const xAxisType = getAxisType(xAxisDataType);
+  const xAxisType = getAxisType(stack, xAxisDataType);
   const series: SeriesOption[] = [];
 
   const forcePercentFormatter = Boolean(contributionMode || isAreaExpand);
