@@ -643,18 +643,6 @@ There are three types of assets you can build:
 2. `npm run dev-server`: local development assets, with sourcemaps and hot refresh support
 3. `npm run build-instrumented`: instrumented application code for collecting code coverage from Cypress tests
 
-If this type of error comes while building assets(i.e using above commands):
-
-```bash
-Error: You must provide the URL of lib/mappings.wasm by calling SourceMapConsumer.initialize
-```
-
-Then put this:
-
-```bash
-export NODE_OPTIONS=--no-experimental-fetch
-```
-
 If while using the above commands you encounter an error related to the limit of file watchers:
 
 ```bash
@@ -662,7 +650,6 @@ Error: ENOSPC: System limit for number of file watchers reached
 ```
 The error is thrown because the number of files monitored by the system has reached the limit.
 You can address this this error by increasing the number of inotify watchers.
-
 
 The current value of max watches can be checked with:
 ```bash
@@ -680,6 +667,7 @@ To confirm that the change succeeded, run the following command to load the upda
 ```bash
 sudo sysctl -p
 ```
+
 #### Webpack dev server
 
 The dev server by default starts at `http://localhost:9000` and proxies the backend requests to `http://localhost:8088`.

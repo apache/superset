@@ -333,6 +333,7 @@
     "react-test-renderer": "^16.9.0",
     "redux-mock-store": "^1.5.4",
     "sinon": "^9.0.2",
+    "source-map": "^0.7.4",
     "source-map-support": "^0.5.21",
     "speed-measure-webpack-plugin": "^1.5.0",
     "storybook-addon-jsx": "^7.3.14",
