@@ -57,15 +57,18 @@ Default.args = {
         {
           icon: 'edit_alt',
           click: () => {},
+          popperLabel: 'Edit',
         },
 
         {
           icon: 'share',
           click: () => {},
+          popperLabel: 'Export',
         },
         {
           icon: 'trash',
           click: () => {},
+          popperLabel: 'Share',
         },
       ],
     },

@@ -36,6 +36,7 @@ import {
   StyledTableIcon,
   StyledTableCheckbox,
 } from './dvt-table.module';
+import DvtPopper from '../DvtPopper';
 
 interface HeaderProps {
   id: number;
@@ -45,7 +46,7 @@ interface HeaderProps {
   heartIcon?: boolean;
   onLink?: boolean;
   flex?: number;
-  clicks?: [];
+  clicks?: { icon: string; click: () => void; colour?: string }[];
   showHover?: boolean;
   checkbox?: boolean;
 }
@@ -209,29 +210,55 @@ const DvtTable: React.FC<DvtTableProps> = ({
                               icon: string;
                               click: () => void;
                               colour: string;
+                              popperLabel?: string;
                             },
                             index,
                           ) => (
-                            <Icon
-                              key={index}
-                              onClick={clicks.click}
-                              fileName={clicks.icon}
-                              iconColor={
-                                clicks.colour ||
-                                supersetTheme.colors.grayscale.dark2
-                              }
-                              iconSize="xl"
-                              style={{
-                                marginRight: 3.6,
-                                visibility: column.showHover
-                                  ? openRow === rowIndex
-                                    ? 'visible'
-                                    : 'hidden'
-                                  : 'visible',
-                              }}
-                            />
+                            <React.Fragment key={index}>
+                              {clicks.popperLabel && (
+                                <DvtPopper label={clicks.popperLabel}>
+                                  <Icon
+                                    onClick={clicks.click}
+                                    fileName={clicks.icon}
+                                    iconColor={
+                                      clicks.colour ||
+                                      supersetTheme.colors.grayscale.dark2
+                                    }
+                                    iconSize="xl"
+                                    style={{
+                                      marginRight: 3.6,
+                                      visibility: column.showHover
+                                        ? openRow === rowIndex
+                                          ? 'visible'
+                                          : 'hidden'
+                                        : 'visible',
+                                    }}
+                                  />
+                                </DvtPopper>
+                              )}
+                              {!clicks.popperLabel && (
+                                <Icon
+                                  onClick={clicks.click}
+                                  fileName={clicks.icon}
+                                  iconColor={
+                                    clicks.colour ||
+                                    supersetTheme.colors.grayscale.dark2
+                                  }
+                                  iconSize="xl"
+                                  style={{
+                                    marginRight: 3.6,
+                                    visibility: column.showHover
+                                      ? openRow === rowIndex
+                                        ? 'visible'
+                                        : 'hidden'
+                                      : 'visible',
+                                  }}
+                                />
+                              )}
+                            </React.Fragment>
                           ),
                         )}
+
                         {column.field !== 'action' && column.field && (
                           <>{row[column.field]}</>
                         )}
