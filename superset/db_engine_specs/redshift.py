@@ -14,8 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
 import re
+from datetime import datetime
 from re import Pattern
 from typing import Any, Optional
 
@@ -29,6 +32,7 @@ from superset.errors import SupersetErrorType
 from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.sql_parse import Table
+from sqlalchemy.types import Date, DateTime
 
 logger = logging.getLogger()
 
@@ -146,6 +150,19 @@ class RedshiftEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         :return: Conditionally mutated label
         """
         return label.lower()
+
+    @classmethod
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
+    ) -> str | None:
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, Date):
+            return f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"
+        if isinstance(sqla_type, DateTime):
+            dttm_formatted = dttm.isoformat(sep=" ", timespec="microseconds")
+            return f"""TO_TIMESTAMP('{dttm_formatted}', 'YYYY-MM-DD HH24:MI:SS.US')"""
+        return None
 
     @classmethod
     def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:
