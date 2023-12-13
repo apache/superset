@@ -42,4 +42,6 @@ export const Default = (args: DvtDatePickerProps) => {
 Default.args = {
   label: 'Time Range',
   placeholder: 'Type a value',
+  width: 202,
+  maxWidth: false,
 };
