@@ -143,8 +143,8 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
   const yAxisFormatter = getNumberFormatter(yAxisFormat);
   const tooltipSizeFormatter = getNumberFormatter(tooltipSizeFormat);
 
-  const [xAxisMin, xAxisMax] = xAxisBounds.map(parseAxisBound);
-  const [yAxisMin, yAxisMax] = yAxisBounds.map(parseAxisBound);
+  const [xAxisMin, xAxisMax] = (xAxisBounds || []).map(parseAxisBound);
+  const [yAxisMin, yAxisMax] = (yAxisBounds || []).map(parseAxisBound);
 
   const padding = getPadding(
     showLegend,
