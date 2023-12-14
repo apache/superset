@@ -162,6 +162,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       dispatchDataMask,
       enableEmptyFilter,
       inverseSelection,
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       JSON.stringify(filterState),
       labelFormatter,
     ],
@@ -251,39 +252,48 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     [formData.sortAscending],
   );
 
-  useEffect(() => {
-    if (defaultToFirstItem && filterState.value === undefined) {
-      // initialize to first value if set to default to first item
-      const firstItem: SelectValue = data[0]
-        ? (groupby.map(col => data[0][col]) as string[])
-        : null;
-      // firstItem[0] !== undefined for a case when groupby changed but new data still not fetched
-      // TODO: still need repopulate default value in config modal when column changed
-      if (firstItem?.[0] !== undefined) {
-        updateDataMask(firstItem);
+  useEffect(
+    () => {
+      if (defaultToFirstItem && filterState.value === undefined) {
+        // initialize to first value if set to default to first item
+        const firstItem: SelectValue = data[0]
+          ? (groupby.map(col => data[0][col]) as string[])
+          : null;
+        // firstItem[0] !== undefined for a case when groupby changed but new data still not fetched
+        // TODO: still need repopulate default value in config modal when column changed
+        if (firstItem?.[0] !== undefined) {
+          updateDataMask(firstItem);
+        }
+      } else if (isDisabled) {
+        // empty selection if filter is disabled
+        updateDataMask(null);
+      } else {
+        // reset data mask based on filter state
+        updateDataMask(filterState.value);
       }
-    } else if (isDisabled) {
-      // empty selection if filter is disabled
-      updateDataMask(null);
-    } else {
-      // reset data mask based on filter state
-      updateDataMask(filterState.value);
-    }
-  }, [
-    col,
-    isDisabled,
-    defaultToFirstItem,
-    enableEmptyFilter,
-    inverseSelection,
-    updateDataMask,
-    data,
-    groupby,
-    JSON.stringify(filterState.value),
-  ]);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      col,
+      isDisabled,
+      defaultToFirstItem,
+      enableEmptyFilter,
+      inverseSelection,
+      updateDataMask,
+      data,
+      groupby,
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      JSON.stringify(filterState.value),
+    ],
+  );
 
-  useEffect(() => {
-    setDataMask(dataMask);
-  }, [JSON.stringify(dataMask)]);
+  useEffect(
+    () => {
+      setDataMask(dataMask);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify(dataMask)],
+  );
 
   return (
     <FilterPluginStyle height={height} width={width}>
