@@ -46,7 +46,12 @@ interface HeaderProps {
   heartIcon?: boolean;
   onLink?: boolean;
   flex?: number;
-  clicks?: { icon: string; click: () => void; colour?: string }[];
+  clicks?: {
+    icon: string;
+    click: () => void;
+    colour?: string;
+    popperLabel?: string;
+  }[];
   showHover?: boolean;
   checkbox?: boolean;
 }

@@ -19,7 +19,6 @@
 import { styled } from '@superset-ui/core';
 
 const StyledTable = styled.div`
-  background: ${({ theme }) => theme.colors.dvt.grayscale.light2};
   .ant-checkbox-indeterminate .ant-checkbox-inner::after {
     display: inline-flex;
     width: 15px;
