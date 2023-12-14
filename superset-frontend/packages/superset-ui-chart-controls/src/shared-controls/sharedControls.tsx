@@ -50,7 +50,8 @@ import {
   validateMaxValue,
 } from '@superset-ui/core';
 
-import getBootstrapData from 'src/utils/getBootstrapData';
+// eslint-disable-next-line import/no-unresolved
+import getBootstrapData from '../utils/getBootstrapData';
 import {
   formatSelectOptions,
   D3_FORMAT_OPTIONS,
@@ -89,7 +90,7 @@ import {
 
 export { withDndFallback } from './dndControls';
 
-const sqlMaxRow = getBootstrapData().common.conf.SQL_MAX_ROW;
+const { SQL_MAX_ROW } = getBootstrapData().common.conf;
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
@@ -248,7 +249,7 @@ const row_limit: SharedControlConfig<'SelectControl'> = {
   freeForm: true,
   label: t('Row limit'),
   clearable: false,
-  validators: [legacyValidateInteger, v => validateMaxValue(v, sqlMaxRow)],
+  validators: [legacyValidateInteger, v => validateMaxValue(v, SQL_MAX_ROW)],
   default: 10000,
   choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
   description: t(
