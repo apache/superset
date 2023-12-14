@@ -1,23 +1,27 @@
+import re
 import subprocess
 import sys
-import re
+
 import requests
 
 # Part 1: Verify SHA512 hash - this is the same as running `shasum -a 512 {release}` and comparing it against `{release}.sha512`
 
+
 def get_sha512_hash(filename):
     """Run the shasum command on the file and return the SHA512 hash."""
-    result = subprocess.run(['shasum', '-a', '512', filename], stdout=subprocess.PIPE)
+    result = subprocess.run(["shasum", "-a", "512", filename], stdout=subprocess.PIPE)
     sha512_hash = result.stdout.decode().split()[0]
     return sha512_hash
 
+
 def read_sha512_file(filename):
     """Read the corresponding .sha512 file and process its contents."""
-    sha_filename = filename + '.sha512'
-    with open(sha_filename, 'r') as file:
+    sha_filename = filename + ".sha512"
+    with open(sha_filename) as file:
         lines = file.readlines()
-        processed_sha = ''.join(lines[1:]).replace(' ', '').replace('\n', '').lower()
+        processed_sha = "".join(lines[1:]).replace(" ", "").replace("\n", "").lower()
     return processed_sha
+
 
 def verify_sha512(filename):
     """Verify if the SHA512 hash of the file matches with the hash in the .sha512 file."""
@@ -29,15 +33,19 @@ def verify_sha512(filename):
     else:
         return "SHA failed"
 
+
 # Part 2: Verify RSA key - this is the same as running `gpg --verify {release}.asc {release}` and comparing the RSA key and email address against the KEYS file
+
 
 def get_gpg_info(filename):
     """Run the GPG verify command and extract RSA key and email address."""
-    asc_filename = filename + '.asc'
-    result = subprocess.run(['gpg', '--verify', asc_filename, filename], stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+    asc_filename = filename + ".asc"
+    result = subprocess.run(
+        ["gpg", "--verify", asc_filename, filename], capture_output=True
+    )
     output = result.stderr.decode()
 
-    rsa_key = re.search(r'RSA key ([0-9A-F]+)', output)
+    rsa_key = re.search(r"RSA key ([0-9A-F]+)", output)
     email = re.search(r'issuer "([^"]+)"', output)
 
     rsa_key_result = rsa_key.group(1) if rsa_key else None
@@ -54,7 +62,7 @@ def get_gpg_info(filename):
 
 def verify_rsa_key(rsa_key, email):
     """Fetch the KEYS file and verify if the RSA key and email match."""
-    url = 'https://downloads.apache.org/superset/KEYS'
+    url = "https://downloads.apache.org/superset/KEYS"
     response = requests.get(url)
     if response.status_code == 200:
         if rsa_key not in response.text:
@@ -82,6 +90,7 @@ def verify_sha512_and_rsa(filename):
         print(rsa_result)
     else:
         print("GPG verification failed: RSA key or email not found")
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
