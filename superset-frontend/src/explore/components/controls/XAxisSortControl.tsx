@@ -25,12 +25,16 @@ export default function XAxisSortControl(props: {
   shouldReset: boolean;
 }) {
   const [value, setValue] = useState(props.value);
-  useEffect(() => {
-    if (props.shouldReset) {
-      props.onChange(undefined);
-      setValue(null);
-    }
-  }, [props.shouldReset, props.value]);
+  useEffect(
+    () => {
+      if (props.shouldReset) {
+        props.onChange(undefined);
+        setValue(null);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [props.shouldReset, props.value],
+  );
 
   return <SelectControl {...props} value={value} />;
 }

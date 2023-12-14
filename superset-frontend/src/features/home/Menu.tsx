@@ -219,22 +219,26 @@ export function Menu({
   const defaultTabSelection: string[] = [];
   const [activeTabs, setActiveTabs] = useState(defaultTabSelection);
   const location = useLocation();
-  useEffect(() => {
-    const path = location.pathname;
-    switch (true) {
-      case path.startsWith(paths.DASHBOARD):
-        setActiveTabs(['Dashboards']);
-        break;
-      case path.startsWith(paths.CHART) || path.startsWith(paths.EXPLORE):
-        setActiveTabs(['Charts']);
-        break;
-      case path.startsWith(paths.DATASETS):
-        setActiveTabs(['Datasets']);
-        break;
-      default:
-        setActiveTabs(defaultTabSelection);
-    }
-  }, [location.pathname]);
+  useEffect(
+    () => {
+      const path = location.pathname;
+      switch (true) {
+        case path.startsWith(paths.DASHBOARD):
+          setActiveTabs(['Dashboards']);
+          break;
+        case path.startsWith(paths.CHART) || path.startsWith(paths.EXPLORE):
+          setActiveTabs(['Charts']);
+          break;
+        case path.startsWith(paths.DATASETS):
+          setActiveTabs(['Datasets']);
+          break;
+        default:
+          setActiveTabs(defaultTabSelection);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [location.pathname],
+  );
 
   const standalone = getUrlParam(URL_PARAMS.standalone);
   if (standalone || uiConfig.hideNav) return <></>;

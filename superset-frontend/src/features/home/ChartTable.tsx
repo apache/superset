@@ -124,12 +124,16 @@ function ChartTable({
       filters: getFilterValues(tab, WelcomeTable.Charts, user, otherTabFilters),
     });
 
-  useEffect(() => {
-    if (loaded || activeTab === TableTab.Favorite) {
-      getData(activeTab);
-    }
-    setLoaded(true);
-  }, [activeTab]);
+  useEffect(
+    () => {
+      if (loaded || activeTab === TableTab.Favorite) {
+        getData(activeTab);
+      }
+      setLoaded(true);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeTab],
+  );
 
   const handleBulkChartExport = (chartsToExport: Chart[]) => {
     const ids = chartsToExport.map(({ id }) => id);

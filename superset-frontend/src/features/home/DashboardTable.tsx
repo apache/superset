@@ -114,12 +114,16 @@ function DashboardTable({
       ),
     });
 
-  useEffect(() => {
-    if (loaded || activeTab === TableTab.Favorite) {
-      getData(activeTab);
-    }
-    setLoaded(true);
-  }, [activeTab]);
+  useEffect(
+    () => {
+      if (loaded || activeTab === TableTab.Favorite) {
+        getData(activeTab);
+      }
+      setLoaded(true);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeTab],
+  );
 
   const handleBulkDashboardExport = (dashboardsToExport: Dashboard[]) => {
     const ids = dashboardsToExport.map(({ id }) => id);

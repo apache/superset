@@ -139,11 +139,15 @@ export default function ActivityTable({
     });
   };
 
-  useEffect(() => {
-    if (activeChild === TableTab.Edited) {
-      getEditedCards();
-    }
-  }, [activeChild]);
+  useEffect(
+    () => {
+      if (activeChild === TableTab.Edited) {
+        getEditedCards();
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeChild],
+  );
 
   const tabs = [
     {
