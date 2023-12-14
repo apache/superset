@@ -19,7 +19,6 @@
 
 import { validateNumber } from '@superset-ui/core';
 
-// eslint-disable-next-line import/prefer-default-export
 export function parseAxisBound(
   bound?: string | number | null,
 ): number | undefined {

@@ -32,7 +32,12 @@ import {
 
 import { DEFAULT_FORM_DATA } from './types';
 import { EchartsTimeseriesSeriesType } from '../Timeseries/types';
-import { legendSection, richTooltipSection } from '../controls';
+import {
+  legendSection,
+  richTooltipSection,
+  truncateXAxis,
+  xAxisBounds,
+} from '../controls';
 
 const {
   area,
@@ -350,6 +355,8 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [truncateXAxis],
+        [xAxisBounds],
         [
           {
             name: 'truncateYAxis',
