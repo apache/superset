@@ -1069,7 +1069,6 @@
       "Cross-filters": [""],
       "Cumulative": [""],
       "Currently rendered: %s": [""],
-      "Custom": [""],
       "Custom Plugin": [""],
       "Custom Plugins": [""],
       "Custom SQL": [""],
@@ -1592,6 +1591,7 @@
       "Export dashboards?": [""],
       "Export query": [""],
       "Export to .CSV": [""],
+      "Export to .XLSX": [""],
       "Export to .JSON": [""],
       "Export to Excel": [""],
       "Export to YAML": [""],
@@ -4194,9 +4194,6 @@
       "Web": [""],
       "Wednesday": [""],
       "Week": [""],
-      "Week ending Saturday": [""],
-      "Week starting Monday": [""],
-      "Week starting Sunday": [""],
       "Week_ending Sunday": [""],
       "Weekly Report": [""],
       "Weekly Report for %s": [""],
@@ -4728,7 +4725,15 @@
       "y": [""],
       "y: values are normalized within each row": [""],
       "year": [""],
-      "zoom area": [""]
+      "zoom area": [""],
+      "Custom": ["Exact date"],
+      "Week starting sunday": [""],
+      "Week starting monday": [""],
+      "Week ending saturday": [""],
+      "Week_ending sunday": [""],
+      "Week starting Sunday": [""],
+      "Week starting Monday": [""],
+      "Week ending Saturday": [""]
     }
   }
 }

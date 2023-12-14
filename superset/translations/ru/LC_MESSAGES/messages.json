@@ -286,7 +286,7 @@
       "Actions": ["Действия"],
       "Active": ["Активен"],
       "Actual Values": ["Фактические значения"],
-      "Actual time range": ["Фактический временной интервал"],
+      "Actual time range": ["Текущие настройки фильтрации времени"],
       "Actual value": ["Фактическое значение"],
       "Actual values": ["Фактические значения"],
       "Adaptive formatting": ["Адаптивное форматирование"],
@@ -313,7 +313,6 @@
       ],
       "Add an annotation layer": ["Добавить слой аннотации"],
       "Add an item": ["Добавить запись"],
-      "Add and edit filters": ["Добавить и изменить фильтры"],
       "Add annotation": ["Добавить аннотацию"],
       "Add annotation layer": ["Добавить слой аннотации"],
       "Add calculated columns to dataset in \"Edit datasource\" modal": [
@@ -751,7 +750,6 @@
       "Apply conditional color formatting to numeric columns": [
         "Применить условное цветовое форматирование к столбцам"
       ],
-      "Apply filters": ["Применить фильтры"],
       "Apply metrics on": ["Применить меры к"],
       "Apply to all panels": ["Применить ко всем панелям"],
       "Apply to specific panels": ["Применить к выбранным панелям"],
@@ -1138,7 +1136,6 @@
       ],
       "Clause": ["Оператор"],
       "Clear": ["Очистить"],
-      "Clear all": ["Сбросить фильтры"],
       "Clear all data": ["Очистить все данные"],
       "Clear form": ["Очистить форму"],
       "Click on \"+Add/Edit Filters\" button to create new dashboard filters": [
@@ -1800,7 +1797,7 @@
       "Domain": ["Блок"],
       "Donut": ["Кольцевая диаграмма"],
       "Dotted": ["Пунктир"],
-      "Download": ["Сохранить"],
+      "Download": ["Скачать"],
       "Download as image": ["Сохранить как изображение"],
       "Download to CSV": ["Сохранить в CSV"],
       "Draft": ["Черновик"],
@@ -1906,7 +1903,7 @@
       "Edit Chart": ["Редактировать график"],
       "Edit Chart Properties": ["Редактировать свойства графика"],
       "Edit Column": ["Редактировать столбец"],
-      "Edit Dashboard": ["Редактировать дашборд"],
+      "Edit Dashboard": ["Изменить"],
       "Edit Database": ["Редактировать Базу Данных"],
       "Edit Dataset ": ["Редактировать датасет "],
       "Edit Log": ["Редактировать запись"],
@@ -1922,7 +1919,7 @@
       ],
       "Edit chart": ["Редактировать график"],
       "Edit chart properties": ["Редактировать свойства графика"],
-      "Edit dashboard": ["Редактировать дашборд"],
+      "Edit dashboard": ["Изменить"],
       "Edit database": ["Редактировать Базу Данных"],
       "Edit dataset": ["Редактировать датасет"],
       "Edit email report": ["Редактировать рассылку"],
@@ -1932,7 +1929,7 @@
       "Edit template parameters": [
         "Редактировать параметры шаблонизации Jinja"
       ],
-      "Edit the dashboard": ["Редактировать дашборд"],
+      "Edit the dashboard": ["Изменить"],
       "Edit time range": ["Изменить временной интервал"],
       "Edited": ["Редактировано"],
       "Editing 1 filter:": ["Редактирование 1 фильтра:"],
@@ -2049,7 +2046,6 @@
       "Event time column": ["Столбец формата дата/время"],
       "Every": ["Каждый(ая)"],
       "Evolution": ["Динамика"],
-      "Exact": ["Точное"],
       "Example": ["Пример"],
       "Examples": ["Примеры"],
       "Excel File": ["Excel Файл"],
@@ -2084,7 +2080,8 @@
       "Export": ["Экспортировать"],
       "Export dashboards?": ["Экспортировать дашборды?"],
       "Export query": ["Экспорт запроса"],
-      "Export to .CSV": ["Экспорт в .CSV"],
+      "Export to .CSV": ["Скачать .CSV файл"],
+      "Export to .XLSX": ["Скачать .XLSX файл"],
       "Export to .JSON": ["Экспорт в .JSON"],
       "Export to YAML": ["Экспорт в YAML"],
       "Export to YAML?": ["Экспортировать в YAML?"],
@@ -2158,9 +2155,6 @@
       "Field is required": ["Поле обязательно к заполнению"],
       "File": ["Файл"],
       "Fill Color": ["Цвет заливки"],
-      "Fill all required fields to enable \"Default Value\"": [
-        "Установить все требуемые флаги для включения \"Значения по умолчанию\""
-      ],
       "Fill method": ["Метод заполнения пропусков"],
       "Filled": ["С заливкой"],
       "Filter": ["Фильтр"],
@@ -2203,7 +2197,6 @@
       "Filters by columns": ["Фильтры по столбцам"],
       "Filters by metrics": ["Фильтры по мерам"],
       "Filters configuration": ["Конфигурация фильтров"],
-      "Filters out of scope (%d)": ["Фильтры вне рамок дашборда (%d)"],
       "Filters with the same group key will be ORed together within the group, while different filter groups will be ANDed together. Undefined group keys are treated as unique groups, i.e. are not grouped together. For example, if a table has three filters, of which two are for departments Finance and Marketing (group key = 'department'), and one refers to the region Europe (group key = 'region'), the filter clause would apply the filter (department = 'Finance' OR department = 'Marketing') AND (region = 'Europe').": [
         ""
       ],
@@ -2702,7 +2695,6 @@
       "Max": ["Максимум"],
       "Max Bubble Size": ["Максимальный размер пузыря"],
       "Max Events": ["Лимит событий"],
-      "Maximum": ["Максимум"],
       "Maximum Font Size": ["Максимальный размер шрифта"],
       "Maximum Radius": ["Максимальный радиус"],
       "Maximum value on the gauge axis": ["Максимальное значение индикатора"],
@@ -2782,7 +2774,6 @@
       "Min periods": ["Минимальный период"],
       "Min/max (no outliers)": ["Мин/макс (без выбросов)"],
       "Mine": ["Мои"],
-      "Minimum": ["Минимум"],
       "Minimum Font Size": ["Минимальный размер шрифта"],
       "Minimum Radius": ["Минимальный радиус"],
       "Minimum leaf node event count": [""],
@@ -2847,7 +2838,7 @@
       "N/A": ["Пусто"],
       "NOT GROUPED BY": [""],
       "NOV": ["НОЯ"],
-      "NOW": ["СЕЙЧАС"],
+      "NOW": ["Сейчас"],
       "NUMERIC": ["Числовой (NUMERIC/DECIMAL)"],
       "Name": ["Имя"],
       "Name is required": ["Имя обязательно"],
@@ -2917,7 +2908,6 @@
       "No favorite dashboards yet, go click on stars!": [
         "Пока нет избранных дашбордов, для добавления в избранное нажмите на звездочку рядом с дашбордом"
       ],
-      "No filter": ["Без фильтрации"],
       "No filter is selected.": ["Не выбраны фильтры."],
       "No filters": ["Нет фильтров"],
       "No filters are currently added to this dashboard.": [
@@ -3140,7 +3130,6 @@
       "Original table column order": [
         "Расположение столбцов как в исходной таблице"
       ],
-      "Original value": ["Исходное значение"],
       "Other": ["Прочее"],
       "Outdoors": ["Туристический режим"],
       "Outer Radius": ["Внешний радиус"],
@@ -3406,7 +3395,7 @@
       "Query preview": ["Предпросмотр запроса"],
       "Query was stopped": ["Запрос прерван"],
       "Query was stopped.": ["Запрос прерван"],
-      "RANGE TYPE": ["ТИП ИНТЕРВАЛА"],
+      "RANGE TYPE": ["Тип"],
       "RGB Color": ["Цвет RGB"],
       "Radar": ["Радар"],
       "Radar Chart": ["Диаграмма радар"],
@@ -3985,9 +3974,7 @@
       "Simple ad-hoc metrics are not enabled for this dataset": [""],
       "Single": ["Один"],
       "Single Metric": ["Одна мера"],
-      "Single Value": ["Единственное значение"],
       "Single value": ["Единственное значение"],
-      "Single value type": ["Тип единственного значения"],
       "Size of edge symbols": [""],
       "Size of marker. Also applies to forecast observations.": [
         "Размер маркера. Также применяется к прогнозным значениям."
@@ -4869,7 +4856,7 @@
       "Time granularity": ["Гранулярность времени"],
       "Time in seconds": ["Время в секундах"],
       "Time lag": ["Временной лаг"],
-      "Time range": ["Временной интервал"],
+      "Time range": ["Фильтр по времени"],
       "Time ratio": ["Соотношение времени"],
       "Time related form attributes": ["Параметры, связанные со временем"],
       "Time series": ["Временной ряд"],
@@ -4916,10 +4903,10 @@
       ],
       "Timezone selector": ["Выбор часового пояса"],
       "Tiny": ["Крошечный"],
-      "Title": ["Заголовок"],
+      "Title": ["Название"],
       "Title Column": ["Столбец с названием"],
       "Title is required": ["Название обязательно"],
-      "Title or Slug": ["Название или читаемый URL"],
+      "Title or Slug": ["Название"],
       "To filter on a metric, use Custom SQL tab.": [
         "Для фильтрации по мере используйте вкладку Свой SQL."
       ],
@@ -5163,7 +5150,6 @@
       "Values are dependent on other filters": [
         "Значения зависят от других фильтров"
       ],
-      "Values dependent on": ["Значения зависят от"],
       "Values selected in other filters will affect the filter options to only show relevant values": [
         ""
       ],
@@ -5283,10 +5269,12 @@
       "Web": ["Сеть"],
       "Wednesday": ["Среда"],
       "Week": ["Неделя"],
-      "Week ending Saturday": ["Неделя, заканчивающаяся в субботу"],
-      "Week starting Monday": ["Неделя, начинающаяся в понедельник"],
-      "Week starting Sunday": ["Неделя, начинающаяся в воскресенье"],
-      "Week_ending Sunday": ["Неделя, заканчивающаяся в воскресенье"],
+      "Week starting monday": ["Неделя с понедельника"],
+      "Week ending saturday": ["Неделя до субботы"],
+      "Week_ending sunday": ["Неделя до воскресенья"],
+      "Week starting Sunday": ["Неделя с воскресенья"],
+      "Week starting Monday": ["Неделя с понедельника"],
+      "Week ending Saturday": ["Неделя до субботы"],
       "Weekly Report": ["Еженедельный отчет"],
       "Weekly Report for %s": ["Еженедельный отчет для %s"],
       "Weekly seasonality": ["Недельная сезонность"],
@@ -5822,8 +5810,13 @@
       "last day": ["последний день"],
       "last month": ["последний месяц"],
       "last quarter": ["последний квартал"],
-      "last week": ["последняя неделя"],
+      "last week": ["последние 7 дней"],
       "last year": ["последний год"],
+      "Last day": ["Последние сутки"],
+      "Last week": ["Последние 7 дней"],
+      "Last month": ["Последние 30 дней"],
+      "Last quarter": ["Последние 90 дней"],
+      "Last year": ["Последние 365 дней"],
       "latest partition:": ["последний раздел:"],
       "left": ["слева"],
       "less than {min} {name}": [""],
@@ -5857,9 +5850,6 @@
       "p5": ["p5"],
       "p95": ["p95"],
       "p99": ["p99"],
-      "page_size.all": [""],
-      "page_size.entries": [""],
-      "page_size.show": [""],
       "percentile (exclusive)": ["перцентиль (исключая)"],
       "percentiles must be a list or tuple with two numeric values, of which the first is lower than the second value": [
         ""
@@ -5923,7 +5913,37 @@
         "y: значения нормализованы внутри каждой строки"
       ],
       "year": ["год"],
-      "zoom area": [""]
+      "zoom area": [""],
+      "With space rounded": ["С пробелом округл."],
+      "Original value": ["Оригинальное значение"],
+      "Half hour": ["Пол часа"],
+      "Week starting sunday": ["Неделя с воскресенья"],
+      "Query Mode": [""],
+      "Raw Records": ["Необработанные записи"],
+      "Emit Filter Events": [""],
+      "Show Cell Bars": ["Показывать столбцы ячеек"],
+      "page_size.show": ["Показать"],
+      "page_size.all": ["все"],
+      "page_size.entries": ["записей"],
+      "table.previous_page": ["Предыдущая"],
+      "table.next_page": ["Следующая"],
+      "search.num_records": ["%s запись", "%s записей..."],
+      "Specific Date": ["Точная дата"],
+      "Relative Date": ["Относительная дата"],
+      "Filters out of scope (%d)": ["Неприменяемые фильтры (%d)"],
+      "Apply filters": ["Применить фильтры"],
+      "Clear all": ["Очистить"],
+      "Fill all required fields to enable \"Default Value\"": [
+        "Укажите все необходимые поля"
+      ],
+      "Single Value": ["Одиночное значение"],
+      "Single value type": ["Тип одиночного значения"],
+      "Minimum": ["Минимум"],
+      "Exact": ["Точное"],
+      "Maximum": ["Максимум"],
+      "Values dependent on": ["Значения зависят от"],
+      "No filter": ["Без фильтра"],
+      "Add and edit filters": ["Создать/изменить фильтры"]
     }
   }
 }
