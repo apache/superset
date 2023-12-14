@@ -50,7 +50,6 @@ import {
   validateMaxValue,
 } from '@superset-ui/core';
 
-// eslint-disable-next-line import/no-unresolved
 import getBootstrapData from '../utils/getBootstrapData';
 import {
   formatSelectOptions,
