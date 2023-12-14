@@ -460,17 +460,21 @@ const Selector: React.FC<{
 
   // see Element.scrollIntoViewIfNeeded()
   // see: https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoViewIfNeeded
-  useEffect(() => {
-    if (isSelected) {
-      // We need to wait for the modal to open and then scroll, so we put it in the microtask queue
-      queueMicrotask(() =>
-        scrollIntoView(btnRef.current as HTMLButtonElement, {
-          behavior: 'smooth',
-          scrollMode: 'if-needed',
-        }),
-      );
-    }
-  }, []);
+  useEffect(
+    () => {
+      if (isSelected) {
+        // We need to wait for the modal to open and then scroll, so we put it in the microtask queue
+        queueMicrotask(() =>
+          scrollIntoView(btnRef.current as HTMLButtonElement, {
+            behavior: 'smooth',
+            scrollMode: 'if-needed',
+          }),
+        );
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
   return (
     <SelectorLabel
@@ -503,17 +507,21 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     ? mountedPluginMetadata[selectedViz]
     : null;
 
-  const chartMetadata: VizEntry[] = useMemo(() => {
-    const result = Object.entries(mountedPluginMetadata)
-      .map(([key, value]) => ({ key, value }))
-      .filter(({ key }) => !props.denyList.includes(key))
-      .filter(
-        ({ value }) =>
-          nativeFilterGate(value.behaviors || []) && !value.deprecated,
-      );
-    result.sort((a, b) => vizSortFactor(a) - vizSortFactor(b));
-    return result;
-  }, [mountedPluginMetadata]);
+  const chartMetadata: VizEntry[] = useMemo(
+    () => {
+      const result = Object.entries(mountedPluginMetadata)
+        .map(([key, value]) => ({ key, value }))
+        .filter(({ key }) => !props.denyList.includes(key))
+        .filter(
+          ({ value }) =>
+            nativeFilterGate(value.behaviors || []) && !value.deprecated,
+        );
+      result.sort((a, b) => vizSortFactor(a) - vizSortFactor(b));
+      return result;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [mountedPluginMetadata],
+  );
 
   const chartsByCategory = useMemo(() => {
     const result: Record<string, VizEntry[]> = {};
