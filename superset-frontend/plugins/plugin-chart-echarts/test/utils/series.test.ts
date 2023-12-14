@@ -41,7 +41,11 @@ import {
   sortAndFilterSeries,
   sortRows,
 } from '../../src/utils/series';
-import { LegendOrientation, LegendType } from '../../src/types';
+import {
+  EchartsTimeseriesSeriesType,
+  LegendOrientation,
+  LegendType,
+} from '../../src/types';
 import { defaultLegendPadding } from '../../src/defaults';
 import { NULL_STRING } from '../../src/constants';
 
@@ -885,28 +889,109 @@ test('getAxisType', () => {
 });
 
 test('getMinAndMaxFromBounds returns empty object when not truncating', () => {
-  expect(getMinAndMaxFromBounds(AxisType.value, false, 10, 100)).toEqual({});
+  expect(
+    getMinAndMaxFromBounds(
+      AxisType.value,
+      false,
+      10,
+      100,
+      EchartsTimeseriesSeriesType.Bar,
+    ),
+  ).toEqual({});
 });
 
-test('getMinAndMaxFromBounds returns automatic bounds when truncating', () => {
+test('getMinAndMaxFromBounds returns empty object for categorical axis', () => {
   expect(
-    getMinAndMaxFromBounds(AxisType.value, true, undefined, undefined),
+    getMinAndMaxFromBounds(
+      AxisType.category,
+      false,
+      10,
+      100,
+      EchartsTimeseriesSeriesType.Bar,
+    ),
+  ).toEqual({});
+});
+
+test('getMinAndMaxFromBounds returns empty object for time axis', () => {
+  expect(
+    getMinAndMaxFromBounds(
+      AxisType.time,
+      false,
+      10,
+      100,
+      EchartsTimeseriesSeriesType.Bar,
+    ),
+  ).toEqual({});
+});
+
+test('getMinAndMaxFromBounds returns dataMin/dataMax for non-bar charts', () => {
+  expect(
+    getMinAndMaxFromBounds(
+      AxisType.value,
+      true,
+      undefined,
+      undefined,
+      EchartsTimeseriesSeriesType.Line,
+    ),
   ).toEqual({
     min: 'dataMin',
     max: 'dataMax',
   });
 });
 
-test('getMinAndMaxFromBounds returns automatic upper bound when truncating', () => {
-  expect(getMinAndMaxFromBounds(AxisType.value, true, 10, undefined)).toEqual({
+test('getMinAndMaxFromBounds returns bound without scale for non-bar charts', () => {
+  expect(
+    getMinAndMaxFromBounds(
+      AxisType.value,
+      true,
+      10,
+      undefined,
+      EchartsTimeseriesSeriesType.Line,
+    ),
+  ).toEqual({
     min: 10,
     max: 'dataMax',
   });
 });
 
+test('getMinAndMaxFromBounds returns scale when truncating without bounds', () => {
+  expect(
+    getMinAndMaxFromBounds(
+      AxisType.value,
+      true,
+      undefined,
+      undefined,
+      EchartsTimeseriesSeriesType.Bar,
+    ),
+  ).toEqual({ scale: true });
+});
+
+test('getMinAndMaxFromBounds returns automatic upper bound when truncating', () => {
+  expect(
+    getMinAndMaxFromBounds(
+      AxisType.value,
+      true,
+      10,
+      undefined,
+      EchartsTimeseriesSeriesType.Bar,
+    ),
+  ).toEqual({
+    min: 10,
+    scale: true,
+  });
+});
+
 test('getMinAndMaxFromBounds returns automatic lower bound when truncating', () => {
-  expect(getMinAndMaxFromBounds(AxisType.value, true, undefined, 100)).toEqual({
-    min: 'dataMin',
+  expect(
+    getMinAndMaxFromBounds(
+      AxisType.value,
+      true,
+      undefined,
+      100,
+      EchartsTimeseriesSeriesType.Bar,
+    ),
+  ).toEqual({
     max: 100,
+    scale: true,
   });
 });
