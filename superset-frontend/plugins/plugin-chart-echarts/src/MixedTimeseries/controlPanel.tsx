@@ -35,6 +35,8 @@ import { EchartsTimeseriesSeriesType } from '../Timeseries/types';
 import {
   legendSection,
   richTooltipSection,
+  truncateXAxis,
+  xAxisBounds,
   xAxisLabelRotation,
 } from '../controls';
 
@@ -333,6 +335,8 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [truncateXAxis],
+        [xAxisBounds],
         [
           {
             name: 'truncateYAxis',
