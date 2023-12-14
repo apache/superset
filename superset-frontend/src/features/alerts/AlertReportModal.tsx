@@ -1024,130 +1024,144 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   // Initialize
-  useEffect(() => {
-    if (
-      isEditMode &&
-      (!currentAlert?.id || alert?.id !== currentAlert.id || (isHidden && show))
-    ) {
-      if (alert?.id !== null && !loading && !fetchError) {
-        const id = alert.id || 0;
-        fetchResource(id);
+  useEffect(
+    () => {
+      if (
+        isEditMode &&
+        (!currentAlert?.id ||
+          alert?.id !== currentAlert.id ||
+          (isHidden && show))
+      ) {
+        if (alert?.id !== null && !loading && !fetchError) {
+          const id = alert.id || 0;
+          fetchResource(id);
+        }
+      } else if (
+        !isEditMode &&
+        (!currentAlert || currentAlert.id || (isHidden && show))
+      ) {
+        setCurrentAlert({
+          ...defaultAlert,
+          owners: currentUser
+            ? [
+                {
+                  value: currentUser.userId,
+                  label: `${currentUser.firstName} ${currentUser.lastName}`,
+                },
+              ]
+            : [],
+        });
+        setNotificationSettings([]);
+        setNotificationAddState('active');
       }
-    } else if (
-      !isEditMode &&
-      (!currentAlert || currentAlert.id || (isHidden && show))
-    ) {
-      setCurrentAlert({
-        ...defaultAlert,
-        owners: currentUser
-          ? [
-              {
-                value: currentUser.userId,
-                label: `${currentUser.firstName} ${currentUser.lastName}`,
-              },
-            ]
-          : [],
-      });
-      setNotificationSettings([]);
-      setNotificationAddState('active');
-    }
-  }, [alert]);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [alert],
+  );
 
-  useEffect(() => {
-    if (resource) {
-      // Add notification settings
-      const settings = (resource.recipients || []).map(setting => {
-        const config =
-          typeof setting.recipient_config_json === 'string'
-            ? JSON.parse(setting.recipient_config_json)
-            : {};
-        return {
-          method: setting.type,
-          // @ts-ignore: Type not assignable
-          recipients: config.target || setting.recipient_config_json,
-          options: allowedNotificationMethods,
-        };
-      });
+  useEffect(
+    () => {
+      if (resource) {
+        // Add notification settings
+        const settings = (resource.recipients || []).map(setting => {
+          const config =
+            typeof setting.recipient_config_json === 'string'
+              ? JSON.parse(setting.recipient_config_json)
+              : {};
+          return {
+            method: setting.type,
+            // @ts-ignore: Type not assignable
+            recipients: config.target || setting.recipient_config_json,
+            options: allowedNotificationMethods,
+          };
+        });
 
-      setNotificationSettings(settings);
-      setNotificationAddState(
-        settings.length === allowedNotificationMethods.length
-          ? 'hidden'
-          : 'active',
-      );
-      setContentType(resource.chart ? 'chart' : 'dashboard');
-      setReportFormat(
-        resource.chart
-          ? resource.report_format || DEFAULT_NOTIFICATION_FORMAT
-          : DEFAULT_NOTIFICATION_FORMAT,
-      );
-      const validatorConfig =
-        typeof resource.validator_config_json === 'string'
-          ? JSON.parse(resource.validator_config_json)
-          : resource.validator_config_json;
+        setNotificationSettings(settings);
+        setNotificationAddState(
+          settings.length === allowedNotificationMethods.length
+            ? 'hidden'
+            : 'active',
+        );
+        setContentType(resource.chart ? 'chart' : 'dashboard');
+        setReportFormat(
+          resource.chart
+            ? resource.report_format || DEFAULT_NOTIFICATION_FORMAT
+            : DEFAULT_NOTIFICATION_FORMAT,
+        );
+        const validatorConfig =
+          typeof resource.validator_config_json === 'string'
+            ? JSON.parse(resource.validator_config_json)
+            : resource.validator_config_json;
 
-      setConditionNotNull(resource.validator_type === 'not null');
+        setConditionNotNull(resource.validator_type === 'not null');
 
-      if (resource.chart) {
-        setChartVizType((resource.chart as ChartObject).viz_type);
-      }
-      setForceScreenshot(resource.force_screenshot);
+        if (resource.chart) {
+          setChartVizType((resource.chart as ChartObject).viz_type);
+        }
+        setForceScreenshot(resource.force_screenshot);
 
-      setCurrentAlert({
-        ...resource,
-        chart: resource.chart
-          ? getChartData(resource.chart) || {
-              value: (resource.chart as ChartObject).id,
-              label: (resource.chart as ChartObject).slice_name,
-            }
-          : undefined,
-        dashboard: resource.dashboard
-          ? getDashboardData(resource.dashboard) || {
-              value: (resource.dashboard as DashboardObject).id,
-              label: (resource.dashboard as DashboardObject).dashboard_title,
-            }
-          : undefined,
-        database: resource.database
-          ? getSourceData(resource.database) || {
-              value: (resource.database as DatabaseObject).id,
-              label: (resource.database as DatabaseObject).database_name,
-            }
-          : undefined,
-        owners: (alert?.owners || []).map(owner => ({
-          value: (owner as MetaObject).value || owner.id,
-          label:
-            (owner as MetaObject).label ||
-            `${(owner as Owner).first_name} ${(owner as Owner).last_name}`,
-        })),
-        // @ts-ignore: Type not assignable
-        validator_config_json:
-          resource.validator_type === 'not null'
-            ? {
-                op: 'not null',
+        setCurrentAlert({
+          ...resource,
+          chart: resource.chart
+            ? getChartData(resource.chart) || {
+                value: (resource.chart as ChartObject).id,
+                label: (resource.chart as ChartObject).slice_name,
               }
-            : validatorConfig,
-      });
-    }
-  }, [resource]);
+            : undefined,
+          dashboard: resource.dashboard
+            ? getDashboardData(resource.dashboard) || {
+                value: (resource.dashboard as DashboardObject).id,
+                label: (resource.dashboard as DashboardObject).dashboard_title,
+              }
+            : undefined,
+          database: resource.database
+            ? getSourceData(resource.database) || {
+                value: (resource.database as DatabaseObject).id,
+                label: (resource.database as DatabaseObject).database_name,
+              }
+            : undefined,
+          owners: (alert?.owners || []).map(owner => ({
+            value: (owner as MetaObject).value || owner.id,
+            label:
+              (owner as MetaObject).label ||
+              `${(owner as Owner).first_name} ${(owner as Owner).last_name}`,
+          })),
+          // @ts-ignore: Type not assignable
+          validator_config_json:
+            resource.validator_type === 'not null'
+              ? {
+                  op: 'not null',
+                }
+              : validatorConfig,
+        });
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [resource],
+  );
 
   // Validation
   const currentAlertSafe = currentAlert || {};
-  useEffect(() => {
-    validate();
-  }, [
-    currentAlertSafe.name,
-    currentAlertSafe.owners,
-    currentAlertSafe.database,
-    currentAlertSafe.sql,
-    currentAlertSafe.validator_config_json,
-    currentAlertSafe.crontab,
-    currentAlertSafe.working_timeout,
-    currentAlertSafe.dashboard,
-    currentAlertSafe.chart,
-    contentType,
-    notificationSettings,
-    conditionNotNull,
-  ]);
+  useEffect(
+    () => {
+      validate();
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      currentAlertSafe.name,
+      currentAlertSafe.owners,
+      currentAlertSafe.database,
+      currentAlertSafe.sql,
+      currentAlertSafe.validator_config_json,
+      currentAlertSafe.crontab,
+      currentAlertSafe.working_timeout,
+      currentAlertSafe.dashboard,
+      currentAlertSafe.chart,
+      contentType,
+      notificationSettings,
+      conditionNotNull,
+    ],
+  );
 
   // Show/hide
   if (isHidden && show) {
