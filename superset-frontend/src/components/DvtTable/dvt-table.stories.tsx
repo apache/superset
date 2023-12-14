@@ -30,7 +30,14 @@ export const Default = (args: DvtTableProps) => {
   const handlePageChange = (newPage: number) => setPage(newPage);
 
   return (
-    <div style={{ width: 1440, height: 1050 }}>
+    <div
+      style={{
+        width: 1440,
+        height: 1050,
+        backgroundColor: 'F8FAFC',
+        padding: 32,
+      }}
+    >
       <DvtTable {...args} page={page} setPage={handlePageChange} />
     </div>
   );
@@ -57,15 +64,18 @@ Default.args = {
         {
           icon: 'edit_alt',
           click: () => {},
+          popperLabel: 'Edit',
         },
 
         {
           icon: 'share',
           click: () => {},
+          popperLabel: 'Export',
         },
         {
           icon: 'trash',
           click: () => {},
+          popperLabel: 'Share',
         },
       ],
     },
@@ -156,7 +166,14 @@ Default.args = {
 };
 
 export const Example = (args: DvtTableProps) => (
-  <div style={{ width: 1440, height: 1050 }}>
+  <div
+    style={{
+      width: 1440,
+      height: 1050,
+      backgroundColor: 'F8FAFC',
+      padding: 32,
+    }}
+  >
     <DvtTable {...args} />
   </div>
 );
@@ -232,7 +249,14 @@ export const IconExample = (args: DvtTableProps) => {
   const handlePageChange = (newPage: number) => setPage(newPage);
 
   return (
-    <div style={{ width: 1440, height: 1050 }}>
+    <div
+      style={{
+        width: 1440,
+        height: 1050,
+        backgroundColor: 'F8FAFC',
+        padding: 32,
+      }}
+    >
       <DvtTable {...args} page={page} setPage={handlePageChange} />
     </div>
   );
@@ -361,7 +385,14 @@ export const HoverExample = (args: DvtTableProps) => {
   const handlePageChange = (newPage: number) => setPage(newPage);
 
   return (
-    <div style={{ width: 1440, height: 1050 }}>
+    <div
+      style={{
+        width: 1440,
+        height: 1050,
+        backgroundColor: 'F8FAFC',
+        padding: 32,
+      }}
+    >
       <DvtTable {...args} page={page} setPage={handlePageChange} />
     </div>
   );
@@ -493,7 +524,14 @@ export const IconColourExample = (args: DvtTableProps) => {
   const handlePageChange = (newPage: number) => setPage(newPage);
 
   return (
-    <div style={{ width: 1440, height: 1050 }}>
+    <div
+      style={{
+        width: 1440,
+        height: 1050,
+        backgroundColor: 'F8FAFC',
+        padding: 32,
+      }}
+    >
       <DvtTable {...args} page={page} setPage={handlePageChange} />
     </div>
   );
@@ -625,7 +663,14 @@ export const PaginationExample = (args: DvtTableProps) => {
   const handlePageChange = (newPage: number) => setPage(newPage);
 
   return (
-    <div style={{ width: 1440, height: 1050 }}>
+    <div
+      style={{
+        width: 1440,
+        height: 1050,
+        backgroundColor: 'F8FAFC',
+        padding: 32,
+      }}
+    >
       <DvtTable
         {...args}
         page={page}
@@ -762,7 +807,14 @@ export const CheckboxExample = (args: DvtTableProps) => {
   const handlePageChange = (newPage: number) => setPage(newPage);
 
   return (
-    <div style={{ width: 1440, height: 1050 }}>
+    <div
+      style={{
+        width: 1440,
+        height: 1050,
+        backgroundColor: 'F8FAFC',
+        padding: 32,
+      }}
+    >
       <DvtTable
         {...args}
         page={page}
