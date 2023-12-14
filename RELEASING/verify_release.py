@@ -1,20 +1,21 @@
 import re
 import subprocess
 import sys
+from typing import Optional
 
 import requests
 
 # Part 1: Verify SHA512 hash - this is the same as running `shasum -a 512 {release}` and comparing it against `{release}.sha512`
 
 
-def get_sha512_hash(filename):
+def get_sha512_hash(filename: str) -> str:
     """Run the shasum command on the file and return the SHA512 hash."""
     result = subprocess.run(["shasum", "-a", "512", filename], stdout=subprocess.PIPE)
     sha512_hash = result.stdout.decode().split()[0]
     return sha512_hash
 
 
-def read_sha512_file(filename):
+def read_sha512_file(filename: str) -> str:
     """Read the corresponding .sha512 file and process its contents."""
     sha_filename = filename + ".sha512"
     with open(sha_filename) as file:
@@ -23,7 +24,7 @@ def read_sha512_file(filename):
     return processed_sha
 
 
-def verify_sha512(filename):
+def verify_sha512(filename: str) -> str:
     """Verify if the SHA512 hash of the file matches with the hash in the .sha512 file."""
     sha512_hash = get_sha512_hash(filename)
     sha512_file_content = read_sha512_file(filename)
@@ -37,7 +38,7 @@ def verify_sha512(filename):
 # Part 2: Verify RSA key - this is the same as running `gpg --verify {release}.asc {release}` and comparing the RSA key and email address against the KEYS file
 
 
-def get_gpg_info(filename):
+def get_gpg_info(filename: str) -> tuple[Optional[str], Optional[str]]:
     """Run the GPG verify command and extract RSA key and email address."""
     asc_filename = filename + ".asc"
     result = subprocess.run(
@@ -60,7 +61,7 @@ def get_gpg_info(filename):
     return rsa_key_result, email_result
 
 
-def verify_rsa_key(rsa_key, email):
+def verify_rsa_key(rsa_key: str, email: Optional[str]) -> str:
     """Fetch the KEYS file and verify if the RSA key and email match."""
     url = "https://downloads.apache.org/superset/KEYS"
     response = requests.get(url)
@@ -79,7 +80,7 @@ def verify_rsa_key(rsa_key, email):
         return "Failed to fetch KEYS file"
 
 
-def verify_sha512_and_rsa(filename):
+def verify_sha512_and_rsa(filename: str) -> None:
     """Verify SHA512 hash and RSA key."""
     sha_result = verify_sha512(filename)
     print(sha_result)
