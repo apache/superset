@@ -19,7 +19,7 @@ under the License.
 
 ## Change Log
 
-- [3.0.3](#303-fri-dec-8-054009-2023--0800)
+- [3.0.3](#303-thu-dec-14-164807-2023--0300)
 - [3.0.2](#302-mon-nov-20-073838-2023--0500)
 - [3.0.1](#301-tue-oct-13-103221-2023--0700)
 - [3.0.0](#300-thu-aug-24-133627-2023--0600)
@@ -34,10 +34,14 @@ under the License.
 - [1.4.2](#142-sat-mar-19-000806-2022-0200)
 - [1.4.1](#141)
 
-### 3.0.3 (Fri Dec 8 05:40:09 2023 -0800)
+### 3.0.3 (Thu Dec 14 16:48:07 2023 -0300)
 
 **Fixes**
 
+- [#26279](https://github.com/apache/superset/pull/26279) fix: Cannot expand initially hidden SQL Lab tab (@michael-s-molina)
+- [#26269](https://github.com/apache/superset/pull/26269) fix(plugin-chart-echarts): use scale for truncating x-axis (@villebro)
+- [#26264](https://github.com/apache/superset/pull/26264) fix: Stacked charts with numerical columns (@michael-s-molina)
+- [#26187](https://github.com/apache/superset/pull/26187) fix: bump pyarrow constraints (CVE-2023-47248) (@cwegener)
 - [#26215](https://github.com/apache/superset/pull/26215) fix(plugin-chart-echarts): support truncated numeric x-axis (@villebro)
 - [#26199](https://github.com/apache/superset/pull/26199) fix(chart-filter): Avoid column denormalization if not enabled (@Vitor-Avila)
 - [#26211](https://github.com/apache/superset/pull/26211) fix: support custom links in markdown (@villebro)
@@ -63,6 +67,7 @@ under the License.
 
 **Others**
 
+- [#26251](https://github.com/apache/superset/pull/26251) chore: improve CSP add base uri restriction (@dpgaspar)
 - [#26208](https://github.com/apache/superset/pull/26208) chore: Adds note about numerical x-axis (@michael-s-molina)
 - [#26158](https://github.com/apache/superset/pull/26158) chore: Clean up the examples dashboards (@michael-s-molina)
 - [#25931](https://github.com/apache/superset/pull/25931) chore(deps): bump pillow deps (@gnought)
