@@ -31,46 +31,50 @@ interface Results {
 export const useGetTimeRangeLabel = (adhocFilter: AdhocFilter): Results => {
   const [actualTimeRange, setActualTimeRange] = useState<Results>({});
 
-  useEffect(() => {
-    if (
-      adhocFilter.operator !== Operators.TEMPORAL_RANGE ||
-      adhocFilter.expressionType !== EXPRESSION_TYPES.SIMPLE
-    ) {
-      setActualTimeRange({});
-    }
-    if (
-      adhocFilter.operator === Operators.TEMPORAL_RANGE &&
-      adhocFilter.comparator === NO_TIME_RANGE
-    ) {
-      setActualTimeRange({
-        actualTimeRange: `${adhocFilter.subject} (${NO_TIME_RANGE})`,
-        title: NO_TIME_RANGE,
-      });
-    }
+  useEffect(
+    () => {
+      if (
+        adhocFilter.operator !== Operators.TEMPORAL_RANGE ||
+        adhocFilter.expressionType !== EXPRESSION_TYPES.SIMPLE
+      ) {
+        setActualTimeRange({});
+      }
+      if (
+        adhocFilter.operator === Operators.TEMPORAL_RANGE &&
+        adhocFilter.comparator === NO_TIME_RANGE
+      ) {
+        setActualTimeRange({
+          actualTimeRange: `${adhocFilter.subject} (${NO_TIME_RANGE})`,
+          title: NO_TIME_RANGE,
+        });
+      }
 
-    if (
-      adhocFilter.operator === Operators.TEMPORAL_RANGE &&
-      adhocFilter.expressionType === EXPRESSION_TYPES.SIMPLE &&
-      adhocFilter.comparator !== NO_TIME_RANGE &&
-      actualTimeRange.title !== adhocFilter.comparator
-    ) {
-      fetchTimeRange(adhocFilter.comparator, adhocFilter.subject).then(
-        ({ value, error }) => {
-          if (error) {
-            setActualTimeRange({
-              actualTimeRange: `${adhocFilter.subject} (${adhocFilter.comparator})`,
-              title: error,
-            });
-          } else {
-            setActualTimeRange({
-              actualTimeRange: value ?? '',
-              title: adhocFilter.comparator,
-            });
-          }
-        },
-      );
-    }
-  }, [adhocFilter]);
+      if (
+        adhocFilter.operator === Operators.TEMPORAL_RANGE &&
+        adhocFilter.expressionType === EXPRESSION_TYPES.SIMPLE &&
+        adhocFilter.comparator !== NO_TIME_RANGE &&
+        actualTimeRange.title !== adhocFilter.comparator
+      ) {
+        fetchTimeRange(adhocFilter.comparator, adhocFilter.subject).then(
+          ({ value, error }) => {
+            if (error) {
+              setActualTimeRange({
+                actualTimeRange: `${adhocFilter.subject} (${adhocFilter.comparator})`,
+                title: error,
+              });
+            } else {
+              setActualTimeRange({
+                actualTimeRange: value ?? '',
+                title: adhocFilter.comparator,
+              });
+            }
+          },
+        );
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [adhocFilter],
+  );
 
   return actualTimeRange;
 };

@@ -170,28 +170,32 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
   };
 
   // Initialize
-  useEffect(() => {
-    if (
-      isEditMode &&
-      (!currentCssTemplate?.id ||
-        (cssTemplate && cssTemplate?.id !== currentCssTemplate.id) ||
-        (isHidden && show))
-    ) {
-      if (cssTemplate?.id !== null && !loading) {
-        const id = cssTemplate.id || 0;
+  useEffect(
+    () => {
+      if (
+        isEditMode &&
+        (!currentCssTemplate?.id ||
+          (cssTemplate && cssTemplate?.id !== currentCssTemplate.id) ||
+          (isHidden && show))
+      ) {
+        if (cssTemplate?.id !== null && !loading) {
+          const id = cssTemplate.id || 0;
 
-        fetchResource(id);
+          fetchResource(id);
+        }
+      } else if (
+        !isEditMode &&
+        (!currentCssTemplate || currentCssTemplate.id || (isHidden && show))
+      ) {
+        setCurrentCssTemplate({
+          template_name: '',
+          css: '',
+        });
       }
-    } else if (
-      !isEditMode &&
-      (!currentCssTemplate || currentCssTemplate.id || (isHidden && show))
-    ) {
-      setCurrentCssTemplate({
-        template_name: '',
-        css: '',
-      });
-    }
-  }, [cssTemplate]);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [cssTemplate],
+  );
 
   useEffect(() => {
     if (resource) {
@@ -200,12 +204,18 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
   }, [resource]);
 
   // Validation
-  useEffect(() => {
-    validate();
-  }, [
-    currentCssTemplate ? currentCssTemplate.template_name : '',
-    currentCssTemplate ? currentCssTemplate.css : '',
-  ]);
+  useEffect(
+    () => {
+      validate();
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      currentCssTemplate ? currentCssTemplate.template_name : '',
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      currentCssTemplate ? currentCssTemplate.css : '',
+    ],
+  );
 
   // Show/hide
   if (isHidden && show) {

@@ -394,60 +394,72 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     onChange: onDatePickerChange,
   });
 
-  useEffect(() => {
-    const refreshComparatorSuggestions = () => {
-      const { datasource } = props;
-      const col = props.adhocFilter.subject;
-      const having = props.adhocFilter.clause === CLAUSES.HAVING;
+  useEffect(
+    () => {
+      const refreshComparatorSuggestions = () => {
+        const { datasource } = props;
+        const col = props.adhocFilter.subject;
+        const having = props.adhocFilter.clause === CLAUSES.HAVING;
 
-      if (col && datasource && datasource.filter_select && !having) {
-        const controller = new AbortController();
-        const { signal } = controller;
-        if (loadingComparatorSuggestions) {
-          controller.abort();
-        }
-        setLoadingComparatorSuggestions(true);
-        SupersetClient.get({
-          signal,
-          endpoint: `/api/v1/datasource/${datasource.type}/${datasource.id}/column/${col}/values/`,
-        })
-          .then(({ json }) => {
-            setSuggestions(
-              json.result.map(
-                (suggestion: null | number | boolean | string) => ({
-                  value: suggestion,
-                  label: optionLabel(suggestion),
-                }),
-              ),
-            );
-            setLoadingComparatorSuggestions(false);
+        if (col && datasource && datasource.filter_select && !having) {
+          const controller = new AbortController();
+          const { signal } = controller;
+          if (loadingComparatorSuggestions) {
+            controller.abort();
+          }
+          setLoadingComparatorSuggestions(true);
+          SupersetClient.get({
+            signal,
+            endpoint: `/api/v1/datasource/${datasource.type}/${datasource.id}/column/${col}/values/`,
           })
-          .catch(() => {
-            setSuggestions([]);
-            setLoadingComparatorSuggestions(false);
-          });
+            .then(({ json }) => {
+              setSuggestions(
+                json.result.map(
+                  (suggestion: null | number | boolean | string) => ({
+                    value: suggestion,
+                    label: optionLabel(suggestion),
+                  }),
+                ),
+              );
+              setLoadingComparatorSuggestions(false);
+            })
+            .catch(() => {
+              setSuggestions([]);
+              setLoadingComparatorSuggestions(false);
+            });
+        }
+      };
+      if (!datePicker) {
+        refreshComparatorSuggestions();
       }
-    };
-    if (!datePicker) {
-      refreshComparatorSuggestions();
-    }
-  }, [props.adhocFilter.subject]);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [props.adhocFilter.subject],
+  );
 
-  useEffect(() => {
-    if (isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)) {
-      fetchSubjectAdvancedDataType(props);
-    }
-  }, [props.adhocFilter.subject]);
+  useEffect(
+    () => {
+      if (isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)) {
+        fetchSubjectAdvancedDataType(props);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [props.adhocFilter.subject],
+  );
 
-  useEffect(() => {
-    if (isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)) {
-      fetchAdvancedDataTypeValueCallback(
-        comparator === undefined ? '' : comparator,
-        advancedDataTypesState,
-        subjectAdvancedDataType,
-      );
-    }
-  }, [comparator, subjectAdvancedDataType, fetchAdvancedDataTypeValueCallback]);
+  useEffect(
+    () => {
+      if (isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)) {
+        fetchAdvancedDataTypeValueCallback(
+          comparator === undefined ? '' : comparator,
+          advancedDataTypesState,
+          subjectAdvancedDataType,
+        );
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [comparator, subjectAdvancedDataType, fetchAdvancedDataTypeValueCallback],
+  );
 
   useEffect(() => {
     if (isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)) {

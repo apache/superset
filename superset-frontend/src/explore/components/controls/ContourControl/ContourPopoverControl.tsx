@@ -139,34 +139,38 @@ const ContourPopoverControl = ({
   );
   const [isComplete, setIsComplete] = useState(false);
 
-  useEffect(() => {
-    const isIsoband = currentTab === CONTOUR_TYPES.Isoband;
-    const validLower =
-      Boolean(contour.lowerThreshold) || contour.lowerThreshold === 0;
-    const validUpper =
-      Boolean(contour.upperThreshold) || contour.upperThreshold === 0;
-    const validStrokeWidth =
-      Boolean(contour.strokeWidth) || contour.strokeWidth === 0;
-    const validColor =
-      typeof contour.color === 'object' &&
-      'r' in contour.color &&
-      typeof contour.color.r === 'number' &&
-      'g' in contour.color &&
-      typeof contour.color.g === 'number' &&
-      'b' in contour.color &&
-      typeof contour.color.b === 'number' &&
-      'a' in contour.color &&
-      typeof contour.color.a === 'number';
+  useEffect(
+    () => {
+      const isIsoband = currentTab === CONTOUR_TYPES.Isoband;
+      const validLower =
+        Boolean(contour.lowerThreshold) || contour.lowerThreshold === 0;
+      const validUpper =
+        Boolean(contour.upperThreshold) || contour.upperThreshold === 0;
+      const validStrokeWidth =
+        Boolean(contour.strokeWidth) || contour.strokeWidth === 0;
+      const validColor =
+        typeof contour.color === 'object' &&
+        'r' in contour.color &&
+        typeof contour.color.r === 'number' &&
+        'g' in contour.color &&
+        typeof contour.color.g === 'number' &&
+        'b' in contour.color &&
+        typeof contour.color.b === 'number' &&
+        'a' in contour.color &&
+        typeof contour.color.a === 'number';
 
-    const errors = determineErrorMap(currentTab, contour);
-    if (errors !== validationErrors) setValidationErrors(errors);
+      const errors = determineErrorMap(currentTab, contour);
+      if (errors !== validationErrors) setValidationErrors(errors);
 
-    const sectionIsComplete = isIsoband
-      ? validLower && validUpper && validColor
-      : validLower && validColor && validStrokeWidth;
+      const sectionIsComplete = isIsoband
+        ? validLower && validUpper && validColor
+        : validLower && validColor && validStrokeWidth;
 
-    if (sectionIsComplete !== isComplete) setIsComplete(sectionIsComplete);
-  }, [contour, currentTab]);
+      if (sectionIsComplete !== isComplete) setIsComplete(sectionIsComplete);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [contour, currentTab],
+  );
 
   const onTabChange = (activeKey: any) => {
     setCurrentTab(activeKey);

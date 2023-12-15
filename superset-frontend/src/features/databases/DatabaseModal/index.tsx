@@ -1194,46 +1194,54 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const firstUpdate = useRef(true); // Captures first render
   // Only runs when importing files don't need user input
-  useEffect(() => {
-    // Will not run on first render
-    if (firstUpdate.current) {
-      firstUpdate.current = false;
-      return;
-    }
+  useEffect(
+    () => {
+      // Will not run on first render
+      if (firstUpdate.current) {
+        firstUpdate.current = false;
+        return;
+      }
 
-    if (
-      !importLoading &&
-      !alreadyExists.length &&
-      !passwordsNeeded.length &&
-      !sshPasswordNeeded.length &&
-      !sshPrivateKeyNeeded.length &&
-      !sshPrivateKeyPasswordNeeded.length &&
-      !isLoading && // This prevents a double toast for non-related imports
-      !importErrored // This prevents a success toast on error
-    ) {
-      onClose();
-      addSuccessToast(t('Database connected'));
-    }
-  }, [
-    alreadyExists,
-    passwordsNeeded,
-    importLoading,
-    importErrored,
-    sshPasswordNeeded,
-    sshPrivateKeyNeeded,
-    sshPrivateKeyPasswordNeeded,
-  ]);
+      if (
+        !importLoading &&
+        !alreadyExists.length &&
+        !passwordsNeeded.length &&
+        !sshPasswordNeeded.length &&
+        !sshPrivateKeyNeeded.length &&
+        !sshPrivateKeyPasswordNeeded.length &&
+        !isLoading && // This prevents a double toast for non-related imports
+        !importErrored // This prevents a success toast on error
+      ) {
+        onClose();
+        addSuccessToast(t('Database connected'));
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      alreadyExists,
+      passwordsNeeded,
+      importLoading,
+      importErrored,
+      sshPasswordNeeded,
+      sshPrivateKeyNeeded,
+      sshPrivateKeyPasswordNeeded,
+    ],
+  );
 
-  useEffect(() => {
-    if (show) {
-      setTabKey(DEFAULT_TAB_KEY);
-      setLoading(true);
-      getAvailableDbs();
-    }
-    if (databaseId && show) {
-      fetchDB();
-    }
-  }, [show, databaseId]);
+  useEffect(
+    () => {
+      if (show) {
+        setTabKey(DEFAULT_TAB_KEY);
+        setLoading(true);
+        getAvailableDbs();
+      }
+      if (databaseId && show) {
+        fetchDB();
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [show, databaseId],
+  );
 
   useEffect(() => {
     if (dbFetched) {
@@ -1247,16 +1255,20 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
   }, [dbFetched]);
 
-  useEffect(() => {
-    if (isLoading) {
-      setLoading(false);
-    }
+  useEffect(
+    () => {
+      if (isLoading) {
+        setLoading(false);
+      }
 
-    if (availableDbs && dbEngine) {
-      // set model if passed into props
-      setDatabaseModel(dbEngine);
-    }
-  }, [availableDbs]);
+      if (availableDbs && dbEngine) {
+        // set model if passed into props
+        setDatabaseModel(dbEngine);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [availableDbs],
+  );
 
   // This forces the modal to scroll until the importing filename is in view
   useEffect(() => {

@@ -67,9 +67,16 @@ const ViewQueryModal: React.FC<Props> = props => {
         });
       });
   };
-  useEffect(() => {
-    loadChartData('query');
-  }, [JSON.stringify(props.latestQueryFormData)]);
+  useEffect(
+    () => {
+      loadChartData('query');
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      JSON.stringify(props.latestQueryFormData),
+    ],
+  );
 
   if (isLoading) {
     return <Loading />;

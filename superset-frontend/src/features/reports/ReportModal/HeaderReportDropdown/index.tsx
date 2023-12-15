@@ -176,28 +176,36 @@ export default function HeaderReportDropDown({
     canAddReports() &&
     !!((dashboardId && prevDashboard !== dashboardId) || chart?.id);
 
-  useEffect(() => {
-    if (shouldFetch) {
-      dispatch(
-        fetchUISpecificReport({
-          userId: user.userId,
-          filterField: dashboardId ? 'dashboard_id' : 'chart_id',
-          creationMethod: dashboardId ? 'dashboards' : 'charts',
-          resourceId: dashboardId || chart?.id,
-        }),
-      );
-    }
-  }, []);
+  useEffect(
+    () => {
+      if (shouldFetch) {
+        dispatch(
+          fetchUISpecificReport({
+            userId: user.userId,
+            filterField: dashboardId ? 'dashboard_id' : 'chart_id',
+            creationMethod: dashboardId ? 'dashboards' : 'charts',
+            resourceId: dashboardId || chart?.id,
+          }),
+        );
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
   const showReportSubMenu = report && setShowReportSubMenu && canAddReports();
 
-  useEffect(() => {
-    if (showReportSubMenu) {
-      setShowReportSubMenu(true);
-    } else if (!report && setShowReportSubMenu) {
-      setShowReportSubMenu(false);
-    }
-  }, [report]);
+  useEffect(
+    () => {
+      if (showReportSubMenu) {
+        setShowReportSubMenu(true);
+      } else if (!report && setShowReportSubMenu) {
+        setShowReportSubMenu(false);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [report],
+  );
 
   const handleShowMenu = () => {
     if (setIsDropdownVisible) {

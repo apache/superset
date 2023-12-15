@@ -145,57 +145,73 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
   );
 
   // initialize
-  useEffect(() => {
-    if (!isEditMode) {
-      setCurrentRule({ ...DEAFULT_RULE });
-    } else if (rule?.id !== null && !loading && !fetchError) {
-      fetchResource(rule.id as number);
-    }
-  }, [rule]);
+  useEffect(
+    () => {
+      if (!isEditMode) {
+        setCurrentRule({ ...DEAFULT_RULE });
+      } else if (rule?.id !== null && !loading && !fetchError) {
+        fetchResource(rule.id as number);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rule],
+  );
 
-  useEffect(() => {
-    if (resource) {
-      setCurrentRule({ ...resource, id: rule?.id });
-      const selectedTableAndRoles = getSelectedData();
-      updateRuleState('tables', selectedTableAndRoles?.tables || []);
-      updateRuleState('roles', selectedTableAndRoles?.roles || []);
-    }
-  }, [resource]);
+  useEffect(
+    () => {
+      if (resource) {
+        setCurrentRule({ ...resource, id: rule?.id });
+        const selectedTableAndRoles = getSelectedData();
+        updateRuleState('tables', selectedTableAndRoles?.tables || []);
+        updateRuleState('roles', selectedTableAndRoles?.roles || []);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [resource],
+  );
 
   // find selected tables and roles
-  const getSelectedData = useCallback(() => {
-    if (!resource) {
-      return null;
-    }
-    const tables: TableObject[] = [];
-    const roles: RoleObject[] = [];
+  const getSelectedData = useCallback(
+    () => {
+      if (!resource) {
+        return null;
+      }
+      const tables: TableObject[] = [];
+      const roles: RoleObject[] = [];
 
-    resource.tables?.forEach(selectedTable => {
-      tables.push({
-        key: selectedTable.id,
-        label: selectedTable.schema
-          ? `${selectedTable.schema}.${selectedTable.table_name}`
-          : selectedTable.table_name,
-        value: selectedTable.id,
+      resource.tables?.forEach(selectedTable => {
+        tables.push({
+          key: selectedTable.id,
+          label: selectedTable.schema
+            ? `${selectedTable.schema}.${selectedTable.table_name}`
+            : selectedTable.table_name,
+          value: selectedTable.id,
+        });
       });
-    });
 
-    resource.roles?.forEach(selectedRole => {
-      roles.push({
-        key: selectedRole.id,
-        label: selectedRole.name,
-        value: selectedRole.id,
+      resource.roles?.forEach(selectedRole => {
+        roles.push({
+          key: selectedRole.id,
+          label: selectedRole.name,
+          value: selectedRole.id,
+        });
       });
-    });
 
-    return { tables, roles };
-  }, [resource?.tables, resource?.roles]);
+      return { tables, roles };
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [resource?.tables, resource?.roles],
+  );
 
   // validate
   const currentRuleSafe = currentRule || {};
-  useEffect(() => {
-    validate();
-  }, [currentRuleSafe.name, currentRuleSafe.clause, currentRuleSafe?.tables]);
+  useEffect(
+    () => {
+      validate();
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [currentRuleSafe.name, currentRuleSafe.clause, currentRuleSafe?.tables],
+  );
 
   // * event handlers *
   type SelectValue = {

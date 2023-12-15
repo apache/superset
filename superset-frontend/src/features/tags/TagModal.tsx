@@ -96,41 +96,45 @@ const TagModal: React.FC<TagModalProps> = ({
     setSavedQueriesToTag([]);
   };
 
-  useEffect(() => {
-    const resourceMap: { [key: string]: TaggableResourceOption[] } = {
-      [TaggableResources.Dashboard]: [],
-      [TaggableResources.Chart]: [],
-      [TaggableResources.SavedQuery]: [],
-    };
+  useEffect(
+    () => {
+      const resourceMap: { [key: string]: TaggableResourceOption[] } = {
+        [TaggableResources.Dashboard]: [],
+        [TaggableResources.Chart]: [],
+        [TaggableResources.SavedQuery]: [],
+      };
 
-    const updateResourceOptions = ({ id, name, type }: Tag) => {
-      const resourceOptions = resourceMap[type];
-      if (resourceOptions) {
-        resourceOptions.push({
-          value: id,
-          label: name,
-          key: id,
-        });
+      const updateResourceOptions = ({ id, name, type }: Tag) => {
+        const resourceOptions = resourceMap[type];
+        if (resourceOptions) {
+          resourceOptions.push({
+            value: id,
+            label: name,
+            key: id,
+          });
+        }
+      };
+      clearResources();
+      if (isEditMode) {
+        fetchObjectsByTagIds(
+          { tagIds: [editTag.id], types: null },
+          (data: Tag[]) => {
+            data.forEach(updateResourceOptions);
+            setDashboardsToTag(resourceMap[TaggableResources.Dashboard]);
+            setChartsToTag(resourceMap[TaggableResources.Chart]);
+            setSavedQueriesToTag(resourceMap[TaggableResources.SavedQuery]);
+          },
+          (error: Response) => {
+            addDangerToast('Error Fetching Tagged Objects');
+          },
+        );
+        setTagName(editTag.name);
+        setDescription(editTag.description);
       }
-    };
-    clearResources();
-    if (isEditMode) {
-      fetchObjectsByTagIds(
-        { tagIds: [editTag.id], types: null },
-        (data: Tag[]) => {
-          data.forEach(updateResourceOptions);
-          setDashboardsToTag(resourceMap[TaggableResources.Dashboard]);
-          setChartsToTag(resourceMap[TaggableResources.Chart]);
-          setSavedQueriesToTag(resourceMap[TaggableResources.SavedQuery]);
-        },
-        (error: Response) => {
-          addDangerToast('Error Fetching Tagged Objects');
-        },
-      );
-      setTagName(editTag.name);
-      setDescription(editTag.description);
-    }
-  }, [editTag]);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [editTag],
+  );
 
   const loadData = async (
     search: string,
