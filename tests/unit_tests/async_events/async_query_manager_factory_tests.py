@@ -17,22 +17,8 @@
 from unittest import mock
 
 from flask import current_app
-from pytest import fixture
 
-from superset.async_events.async_query_manager import AsyncQueryManager
 from superset.async_events.async_query_manager_factory import AsyncQueryManagerFactory
-
-JWT_TOKEN_SECRET = "some_secret"
-JWT_TOKEN_COOKIE_NAME = "superset_async_jwt"
-
-
-@fixture
-def async_query_manager():
-    query_manager = AsyncQueryManager()
-    query_manager._jwt_secret = JWT_TOKEN_SECRET
-    query_manager._jwt_cookie_name = JWT_TOKEN_COOKIE_NAME
-
-    return query_manager
 
 
 def test_init_app():
