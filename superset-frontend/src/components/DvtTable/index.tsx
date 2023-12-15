@@ -58,9 +58,6 @@ export interface DvtTableProps {
   data: any[];
   header: HeaderProps[];
   onRowClick?: (row: any) => void;
-  itemsPerPage?: number;
-  page?: number;
-  setPage?: (newPage: number) => void;
   selected?: any[];
   setSelected?: (newSelected: any[]) => void;
   checkboxActiveField?: string;
@@ -70,9 +67,6 @@ const DvtTable: React.FC<DvtTableProps> = ({
   data,
   header,
   onRowClick,
-  itemsPerPage = 10,
-  page = 1,
-  setPage,
   selected = [],
   setSelected = () => {},
   checkboxActiveField = 'id',
