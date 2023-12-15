@@ -49,15 +49,13 @@ const dvtSidebarSlice = createSlice({
     dvtSidebarReportsSetProperty: (
       state,
       action: PayloadAction<DvtSidebarState>,
-    ) => {
-      return {
-        ...state,
-        reports: {
-          ...state.reports,
-          ...action.payload.reports,
-        },
-      };
-    },
+    ) => ({
+      ...state,
+      reports: {
+        ...state.reports,
+        ...action.payload.reports,
+      },
+    }),
   },
 });
 
