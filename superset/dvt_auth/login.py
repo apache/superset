@@ -8,4 +8,5 @@ class DVTAuthDBView(AuthDBView):
 
     @expose("/login/", methods=["GET", "POST"])
     def login(self) -> WerkzeugResponse:
+        # Test comment
         return super().login()
