@@ -55,7 +55,7 @@ CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile(
 )
 
 
-class RedshiftEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
+class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     engine = "redshift"
     engine_name = "Amazon Redshift"
     max_column_name_length = 127

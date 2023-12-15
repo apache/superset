@@ -183,7 +183,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         return "(timestamp 'epoch' + {col} * interval '1 second')"
 
 
-class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
+class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     engine = "postgresql"
     engine_aliases = {"postgres"}
     supports_dynamic_schema = True
