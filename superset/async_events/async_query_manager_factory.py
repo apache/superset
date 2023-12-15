@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from flask import Flask
+from flask import current_app, Flask
 
 from superset.async_events.async_query_manager import AsyncQueryManager
 from superset.utils.class_utils import load_class_from_name
@@ -32,8 +32,7 @@ class AsyncQueryManagerFactory:
         self._async_query_manager.init_app(app)
 
     def instance(self) -> AsyncQueryManager:
-        from flask import current_app
-
+        # pylint: disable=import-outside-toplevel
         from superset import is_feature_enabled
 
         # check instance init again to allow dynamic feature flag change to apply
