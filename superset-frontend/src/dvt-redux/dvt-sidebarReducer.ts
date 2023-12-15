@@ -19,36 +19,57 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 interface DvtSidebarState {
-    reports: { owner: string; createdBy: string; chartType: string; dataset: string; dashboards: string; favorite: string; certified: string };
+  reports: {
+    owner: string;
+    createdBy: string;
+    chartType: string;
+    dataset: string;
+    dashboards: string;
+    favorite: string;
+    certified: string;
+  };
 }
 
 const initialState: DvtSidebarState = {
-    reports: {
-        owner: '',
-        createdBy: '',
-        chartType: '',
-        dataset: '',
-        dashboards: '',
-        favorite: '',
-        certified: '',
-    },
+  reports: {
+    owner: '',
+    createdBy: '',
+    chartType: '',
+    dataset: '',
+    dashboards: '',
+    favorite: '',
+    certified: '',
+  },
 };
 
 const dvtSidebarSlice = createSlice({
-    name: 'dvt-sidebar',
-    initialState,
-    reducers: {
-        dvtSidebarReportsSetProperty: (state, action: PayloadAction<{ property: 'owner' | 'createdBy' | 'chartType' | 'dataset' | 'dashboards' | 'favorite' | 'certified'; value: string }>) => {
-            const { property, value } = action.payload;
-            return {
-                ...state,
-                reports: {
-                    ...state.reports,
-                    [property]: value,
-                },
-            };
+  name: 'dvt-sidebar',
+  initialState,
+  reducers: {
+    dvtSidebarReportsSetProperty: (
+      state,
+      action: PayloadAction<{
+        property:
+          | 'owner'
+          | 'createdBy'
+          | 'chartType'
+          | 'dataset'
+          | 'dashboards'
+          | 'favorite'
+          | 'certified';
+        value: string;
+      }>,
+    ) => {
+      const { property, value } = action.payload;
+      return {
+        ...state,
+        reports: {
+          ...state.reports,
+          [property]: value,
         },
+      };
     },
+  },
 });
 
 export const { dvtSidebarReportsSetProperty } = dvtSidebarSlice.actions;

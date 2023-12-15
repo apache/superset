@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
+import { dvtSidebarReportsSetProperty } from 'src/dvt-redux/dvt-sidebarReducer';
+import { useAppSelector } from 'src/hooks/useAppSelector';
 import DvtLogo from '../DvtLogo';
 import DvtDarkMode from '../DvtDarkMode';
 import DvtTitlePlus from '../DvtTitlePlus';
@@ -19,8 +21,6 @@ import {
 } from './dvt-sidebar.module';
 import DvtList from '../DvtList';
 import DvtDatePicker from '../DvtDatepicker';
-import { dvtSidebarReportsSetProperty } from 'src/dvt-redux/dvt-sidebarReducer';
-import { useAppSelector } from 'src/hooks/useAppSelector';
 
 interface DvtSidebarProps {
   pathName: string;
