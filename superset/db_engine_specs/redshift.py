@@ -25,6 +25,7 @@ from typing import Any, Optional
 import pandas as pd
 from flask_babel import gettext as __
 from sqlalchemy.types import NVARCHAR
+from sqlalchemy.types import Date, DateTime
 
 from superset.db_engine_specs.base import BasicParametersMixin
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
@@ -32,7 +33,6 @@ from superset.errors import SupersetErrorType
 from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.sql_parse import Table
-from sqlalchemy.types import Date, DateTime
 
 logger = logging.getLogger()
 
