@@ -84,6 +84,7 @@ const StyledDvtContentScroll = styled.div`
 const StyledDvtContentList = styled.div`
   display: flex;
   flex-direction: column;
+  font-size: 12px;
   padding: 24px;
   width: 695px;
   height: 300px;
