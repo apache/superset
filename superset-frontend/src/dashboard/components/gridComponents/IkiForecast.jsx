@@ -472,68 +472,70 @@ class IkiInteractiveForecast extends React.PureComponent {
     // const isEditing = false;
 
     return (
-      <DragDroppable
-        component={component}
-        parentComponent={parentComponent}
-        orientation={parentComponent.type === ROW_TYPE ? 'column' : 'row'}
-        index={index}
-        depth={depth}
-        onDrop={handleComponentDrop}
-        disableDragDrop={isFocused}
-        editMode={editMode}
-      >
-        {({ dropIndicatorProps, dragSourceRef }) => (
-          <WithPopoverMenu
-            onChangeFocus={this.handleChangeFocus}
-            menuItems={[
-              <MarkdownModeDropdown
-                id={`${component.id}-mode`}
-                value={this.state.editorMode}
-                onChange={this.handleChangeEditorMode}
-              />,
-              <DeleteComponentButton onDelete={this.handleDeleteComponent} />,
-            ]}
-            editMode={editMode}
-          >
-            <div
-              data-test="dashboard-markdown-editor"
-              className={cx('demand-app-comp', isEditing && 'dashboard-markdown--editing')}
-              id={component.id}
+      <div className="demand-app-wrap">
+        <DragDroppable
+          component={component}
+          parentComponent={parentComponent}
+          orientation={parentComponent.type === ROW_TYPE ? 'column' : 'row'}
+          index={index}
+          depth={depth}
+          onDrop={handleComponentDrop}
+          disableDragDrop={isFocused}
+          editMode={editMode}
+        >
+          {({ dropIndicatorProps, dragSourceRef }) => (
+            <WithPopoverMenu
+              onChangeFocus={this.handleChangeFocus}
+              menuItems={[
+                <MarkdownModeDropdown
+                  id={`${component.id}-mode`}
+                  value={this.state.editorMode}
+                  onChange={this.handleChangeEditorMode}
+                />,
+                <DeleteComponentButton onDelete={this.handleDeleteComponent} />,
+              ]}
+              editMode={editMode}
             >
-              <ResizableContainer
+              <div
+                data-test="dashboard-markdown-editor"
+                className={cx('demand-app-comp', isEditing && 'dashboard-markdown--editing')}
                 id={component.id}
-                adjustableWidth={parentComponent.type === ROW_TYPE}
-                adjustableHeight
-                widthStep={columnWidth}
-                widthMultiple={widthMultiple}
-                heightStep={GRID_BASE_UNIT}
-                heightMultiple={component.meta.height}
-                minWidthMultiple={GRID_MIN_COLUMN_COUNT}
-                minHeightMultiple={GRID_MIN_ROW_UNITS}
-                maxWidthMultiple={availableColumnCount + widthMultiple}
-                // onResizeStart={this.handleResizeStart}
-                onResize={onResize}
-                onResizeStop={onResizeStop}
-                editMode={isFocused ? false : editMode}
               >
-                <div
-                  ref={dragSourceRef}
-                  className="dashboard-component-inner dashboard-component-forecast"
-                  data-test="dashboard-component-chart-holder"
+                <ResizableContainer
+                  id={component.id}
+                  adjustableWidth={parentComponent.type === ROW_TYPE}
+                  adjustableHeight
+                  widthStep={columnWidth}
+                  widthMultiple={widthMultiple}
+                  heightStep={GRID_BASE_UNIT}
+                  heightMultiple={component.meta.height}
+                  minWidthMultiple={GRID_MIN_COLUMN_COUNT}
+                  minHeightMultiple={GRID_MIN_ROW_UNITS}
+                  maxWidthMultiple={availableColumnCount + widthMultiple}
+                  // onResizeStart={this.handleResizeStart}
+                  onResize={onResize}
+                  onResizeStop={onResizeStop}
+                  editMode={isFocused ? false : editMode}
                 >
-                  {
-                    // editMode && isEditing
-                    editMode && isEditing
-                      ? this.renderEditMode()
-                      : this.renderPreviewMode()
-                  }
-                </div>
-              </ResizableContainer>
-            </div>
-            {dropIndicatorProps && <div {...dropIndicatorProps} />}
-          </WithPopoverMenu>
-        )}
-      </DragDroppable>
+                  <div
+                    ref={dragSourceRef}
+                    className="dashboard-component-inner dashboard-component-forecast"
+                    data-test="dashboard-component-chart-holder"
+                  >
+                    {
+                      // editMode && isEditing
+                      editMode && isEditing
+                        ? this.renderEditMode()
+                        : this.renderPreviewMode()
+                    }
+                  </div>
+                </ResizableContainer>
+              </div>
+              {dropIndicatorProps && <div {...dropIndicatorProps} />}
+            </WithPopoverMenu>
+          )}
+        </DragDroppable>
+      </div>
     );
   }
 }
