@@ -32,11 +32,12 @@ class AsyncQueryManagerFactory:
         self._async_query_manager.init_app(app)
 
     def instance(self) -> AsyncQueryManager:
+        from flask import current_app
+
+        from superset import is_feature_enabled
+
         # check instance init again to allow dynamic feature flag change to apply
         # after initial app bootstrapping
-        if not self._async_query_manager:
-            from superset import is_feature_enabled
-            if is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
-                from flask import current_app
-                self.init_app(current_app)
+        if not self._async_query_manager and is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
+            self.init_app(current_app)
         return self._async_query_manager
