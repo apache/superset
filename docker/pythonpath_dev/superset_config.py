@@ -120,7 +120,7 @@ WTF_CSRF_EXEMPT_LIST = [
     "superset.security.api.guest_token"
 ]
 ENABLE_PROXY_FIX = True
-GUEST_ROLE_NAME = "Guest"
+GUEST_ROLE_NAME = "Public"
 FEATURE_FLAGS = {
     "ENABLE_TEMPLATE_PROCESSING": True,
     "EMBEDDED_SUPERSET": True,

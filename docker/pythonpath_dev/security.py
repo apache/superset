@@ -19,13 +19,17 @@ class CustomAuthDBView(AuthDBView):
         email = payload['email']
         if self.appbuilder.sm.find_user(username=username):
             return security_api.response(409)
+        roles = [
+            self.appbuilder.sm.find_role('Public'),
+            self.appbuilder.sm.find_role('Report RLS'),
+        ]
         if self.appbuilder.sm.add_user(
             username=username,
             email=email,
             first_name=email,
             last_name='CloudAdmin',
-            role=self.appbuilder.sm.find_role('Public'),
-            hashed_password=generate_password_hash('1'),
+            role=roles,
+            hashed_password=generate_password_hash('Y8sNaPf7ryWwcUvgUcpJ8b7QyRPwYtdh'),
         ):
             return security_api.response(200)
         return security_api.response(422)
