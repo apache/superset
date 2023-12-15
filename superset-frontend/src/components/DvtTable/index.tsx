@@ -21,7 +21,6 @@ import type { CheckboxChangeEvent } from 'antd/es/checkbox';
 import { SupersetTheme, supersetTheme } from '@superset-ui/core';
 import { FolderOutlined, HeartOutlined } from '@ant-design/icons';
 import { Checkbox } from 'antd';
-import DvtPagination from '../DvtPagination';
 import Icon from '../Icons/Icon';
 import {
   StyledTable,
@@ -31,7 +30,6 @@ import {
   StyledTableTh,
   StyledTableTbody,
   StyledTableTd,
-  StyledTablePagination,
   StyledTableTitle,
   StyledTableIcon,
   StyledTableCheckbox,
@@ -63,7 +61,6 @@ export interface DvtTableProps {
   itemsPerPage?: number;
   page?: number;
   setPage?: (newPage: number) => void;
-  pagination?: boolean;
   selected?: any[];
   setSelected?: (newSelected: any[]) => void;
   checkboxActiveField?: string;
@@ -76,25 +73,11 @@ const DvtTable: React.FC<DvtTableProps> = ({
   itemsPerPage = 10,
   page = 1,
   setPage,
-  pagination = false,
   selected = [],
   setSelected = () => {},
   checkboxActiveField = 'id',
 }) => {
-  const itemsPerPageValue = itemsPerPage;
-  const indexOfLastItem = page * itemsPerPageValue;
-  const indexOfFirstItem = (page - 1) * itemsPerPageValue;
-  const currentItems = pagination
-    ? data.slice(indexOfFirstItem, indexOfLastItem)
-    : data;
-
   const [openRow, setOpenRow] = useState<number | null>(null);
-
-  const paginate = (pageNumber: number) => {
-    if (setPage) {
-      setPage(pageNumber);
-    }
-  };
 
   const formatDateTime = (dateTimeString: string) => {
     const [datePart, timePart] = dateTimeString.split(' ');
@@ -149,7 +132,7 @@ const DvtTable: React.FC<DvtTableProps> = ({
           </StyledTableTitle>
         </StyledTabletHead>
         <StyledTableTbody>
-          {currentItems.map((row, rowIndex) => (
+          {data.map((row, rowIndex) => (
             <StyledTableTr
               key={rowIndex}
               onClick={() => onRowClick?.(row)}
@@ -279,16 +262,6 @@ const DvtTable: React.FC<DvtTableProps> = ({
           ))}
         </StyledTableTbody>
       </StyledTableTable>
-      {pagination && (
-        <StyledTablePagination>
-          <DvtPagination
-            page={page || 1}
-            setPage={paginate}
-            itemSize={data.length}
-            pageItemSize={itemsPerPageValue}
-          />
-        </StyledTablePagination>
-      )}
     </StyledTable>
   );
 };
