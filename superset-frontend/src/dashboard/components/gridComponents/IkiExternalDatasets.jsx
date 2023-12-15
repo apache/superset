@@ -483,7 +483,10 @@ class IkiDemandSensing extends React.PureComponent {
             >
               <div
                 data-test="dashboard-markdown-editor"
-                className={cx('demand-app-comp', isEditing && 'dashboard-markdown--editing')}
+                className={cx(
+                  'demand-app-comp',
+                  isEditing && 'dashboard-markdown--editing',
+                )}
                 id={component.id}
               >
                 <ResizableContainer
