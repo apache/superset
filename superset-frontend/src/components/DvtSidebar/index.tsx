@@ -27,9 +27,10 @@ interface DvtSidebarProps {
 }
 
 const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
+  const dispatch = useDispatch();
+  const reportsSelector = useAppSelector(state => state.dvtSidebar.reports);
   const [darkMode, setDarkMode] = useState<boolean>(false);
   const [active, setActive] = useState<string>('test');
-  const dispatch = useDispatch();
 
   const pathTitles = (pathname: string) => {
     switch (pathname) {
@@ -60,78 +61,16 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
     (item: { pathname: string }) => item.pathname === pathName,
   );
 
-  const calculatePropertyValue = (
-    pathname: string,
-    property: string,
-    value: string,
-  ) => {
-    if (pathname === '/report/list/') {
-      switch (property) {
-        case 'Owner':
-          dispatch(dvtSidebarReportsSetProperty({ property: 'owner', value }));
-          break;
-        case 'Created by':
-          dispatch(
-            dvtSidebarReportsSetProperty({ property: 'createdBy', value }),
-          );
-          break;
-        case 'Chart Type':
-          dispatch(
-            dvtSidebarReportsSetProperty({ property: 'chartType', value }),
-          );
-          break;
-        case 'Dataset':
-          dispatch(
-            dvtSidebarReportsSetProperty({ property: 'dataset', value }),
-          );
-          break;
-        case 'Dashboards':
-          dispatch(
-            dvtSidebarReportsSetProperty({ property: 'dashboards', value }),
-          );
-          break;
-        case 'Favorite':
-          dispatch(
-            dvtSidebarReportsSetProperty({ property: 'favorite', value }),
-          );
-          break;
-        case 'Certified':
-          dispatch(
-            dvtSidebarReportsSetProperty({ property: 'certified', value }),
-          );
-          break;
-        default:
-          break;
-      }
-    }
+  const updateReportsProperty = (value: string, propertyName: string) => {
+    dispatch(
+      dvtSidebarReportsSetProperty({
+        reports: {
+          ...reportsSelector,
+          [propertyName]: value,
+        },
+      }),
+    );
   };
-
-  const selectedValue = (pathname: string, property: string): string => {
-    if (pathname === '/report/list/') {
-      switch (property) {
-        case 'Owner':
-          return 'owner';
-        case 'Created by':
-          return 'createdBy';
-        case 'Chart Type':
-          return 'chartType';
-        case 'Dataset':
-          return 'dataset';
-        case 'Dashboards':
-          return 'dashboards';
-        case 'Favorite':
-          return 'favorite';
-        case 'Certified':
-          return 'certified';
-        default:
-          return '';
-      }
-    }
-
-    return '';
-  };
-
-  const reportsSelector = useAppSelector(state => state.dvtSidebar.reports);
 
   return (
     <StyledDvtSidebar pathName={pathName}>
@@ -179,6 +118,7 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
                 valuesList: { id: number; title: string; subtitle: string }[];
                 title: string;
                 datePicker?: boolean;
+                name: string;
               },
               index: number,
             ) => (
@@ -188,11 +128,9 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
                     data={data.values}
                     label={data.label}
                     placeholder={data.placeholder}
-                    selectedValue={
-                      reportsSelector[selectedValue(pathName, data.placeholder)]
-                    }
+                    selectedValue={reportsSelector[data.name]}
                     setSelectedValue={value =>
-                      calculatePropertyValue(pathName, data.placeholder, value)
+                      updateReportsProperty(value, data.name)
                     }
                     maxWidth
                   />

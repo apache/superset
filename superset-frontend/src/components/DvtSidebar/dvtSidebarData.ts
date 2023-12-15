@@ -436,48 +436,61 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Success', value: 'success' },
         ],
         placeholder: 'Owner',
+        name: 'owner',
       },
       {
         values: [
           { label: 'Superset Admin', value: 'Superset Admin' },
           { label: 'Success', value: 'success' },
         ],
-        placeholder: 'Created by',
+        placeholder: 'Created by', 
+        name: 'createdBy',
+
       },
       {
         values: [
           { label: 'Error', value: 'Error' },
           { label: 'Success', value: 'Success' },
         ],
-        placeholder: 'Chart Type',
+        placeholder: 'Chart Type', 
+        name: 'chartType',
+
       },
       {
         values: [
           { label: 'Failed', value: 'failed' },
           { label: 'Success', value: 'success' },
         ],
-        placeholder: 'Dataset',
+        placeholder: 'Dataset', 
+        name: 'dataset',
+
       },
       {
         values: [
           { label: 'Failed', value: 'failed' },
           { label: 'Success', value: 'success' },
         ],
-        placeholder: 'Dashboards',
+        placeholder: 'Dashboards', 
+        name: 'dashboards',
+
       },
       {
         values: [
           { label: 'Failed', value: 'failed' },
           { label: 'Success', value: 'success' },
         ],
-        placeholder: 'Favorite',
+        placeholder: 'Favorite', 
+        name: 'favorite',
+
       },
       {
         values: [
           { label: 'Failed', value: 'failed' },
           { label: 'Success', value: 'success' },
         ],
-        placeholder: 'Certified',
+        placeholder: 'Certified', 
+        name: 'certified',
+
       },
     ],
   },

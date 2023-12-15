@@ -48,24 +48,13 @@ const dvtSidebarSlice = createSlice({
   reducers: {
     dvtSidebarReportsSetProperty: (
       state,
-      action: PayloadAction<{
-        property:
-          | 'owner'
-          | 'createdBy'
-          | 'chartType'
-          | 'dataset'
-          | 'dashboards'
-          | 'favorite'
-          | 'certified';
-        value: string;
-      }>,
+      action: PayloadAction<DvtSidebarState>,
     ) => {
-      const { property, value } = action.payload;
       return {
         ...state,
         reports: {
           ...state.reports,
-          [property]: value,
+          ...action.payload.reports,
         },
       };
     },
