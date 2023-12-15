@@ -259,7 +259,7 @@
     "@types/js-levenshtein": "^1.1.0",
     "@types/json-bigint": "^1.0.1",
     "@types/mousetrap": "^1.6.11",
-    "@types/react": "^16.9.43",
+    "@types/react": "^16.9.53",
     "@types/react-dom": "^16.9.8",
     "@types/react-gravatar": "^2.6.8",
     "@types/react-json-tree": "^0.6.11",
