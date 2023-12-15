@@ -106,11 +106,6 @@ const queryStore = mockStore({
   },
 });
 
-const queryDefaultProps = {
-  ...defaultProps,
-  form_data: { datasource: '107__query', url_params: { foo: 'bar' } },
-};
-
 const fetchDashboardsEndpoint = `glob:*/dashboardasync/api/read?_flt_0_owners=${1}`;
 const fetchChartEndpoint = `glob:*/api/v1/chart/${1}*`;
 const fetchDashboardEndpoint = `glob:*/api/v1/dashboard/*`;
