@@ -50,7 +50,6 @@ const StyledTable = styled.div`
 `;
 
 const StyledTableTable = styled.table`
-  height: 100%;
   width: 100%;
   border-collapse: separate;
   border-spacing: 0 20px;
@@ -114,13 +113,6 @@ const StyledTableTd = styled.td<StyledTableTdProps>`
   }
 `;
 
-const StyledTablePagination = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  padding-right: 13px;
-  padding-top: 55px;
-`;
-
 const StyledTableCheckbox = styled.div`
   display: inline-flex;
   margin-right: 24px;
@@ -134,7 +126,6 @@ export {
   StyledTableTh,
   StyledTableTbody,
   StyledTableTd,
-  StyledTablePagination,
   StyledTableTitle,
   StyledTableIcon,
   StyledTableCheckbox,
