@@ -24,24 +24,18 @@ export default {
   component: DvtTable,
 };
 
-export const Default = (args: DvtTableProps) => {
-  const [page, setPage] = useState(1);
-
-  const handlePageChange = (newPage: number) => setPage(newPage);
-
-  return (
-    <div
-      style={{
-        width: 1440,
-        height: 1050,
-        backgroundColor: 'F8FAFC',
-        padding: 32,
-      }}
-    >
-      <DvtTable {...args} page={page} setPage={handlePageChange} />
-    </div>
-  );
-};
+export const Default = (args: DvtTableProps) => (
+  <div
+    style={{
+      width: 1440,
+      height: 1050,
+      backgroundColor: '#F8FAFC',
+      padding: 32,
+    }}
+  >
+    <DvtTable {...args} />
+  </div>
+);
 
 Default.args = {
   header: [
@@ -170,7 +164,7 @@ export const Example = (args: DvtTableProps) => (
     style={{
       width: 1440,
       height: 1050,
-      backgroundColor: 'F8FAFC',
+      backgroundColor: '#F8FAFC',
       padding: 32,
     }}
   >
@@ -243,24 +237,18 @@ Example.args = {
   ],
 };
 
-export const IconExample = (args: DvtTableProps) => {
-  const [page, setPage] = useState(1);
-
-  const handlePageChange = (newPage: number) => setPage(newPage);
-
-  return (
-    <div
-      style={{
-        width: 1440,
-        height: 1050,
-        backgroundColor: 'F8FAFC',
-        padding: 32,
-      }}
-    >
-      <DvtTable {...args} page={page} setPage={handlePageChange} />
-    </div>
-  );
-};
+export const IconExample = (args: DvtTableProps) => (
+  <div
+    style={{
+      width: 1440,
+      height: 1050,
+      backgroundColor: '#F8FAFC',
+      padding: 32,
+    }}
+  >
+    <DvtTable {...args} />
+  </div>
+);
 
 IconExample.args = {
   header: [
@@ -379,24 +367,18 @@ IconExample.args = {
   ],
 };
 
-export const HoverExample = (args: DvtTableProps) => {
-  const [page, setPage] = useState(1);
-
-  const handlePageChange = (newPage: number) => setPage(newPage);
-
-  return (
-    <div
-      style={{
-        width: 1440,
-        height: 1050,
-        backgroundColor: 'F8FAFC',
-        padding: 32,
-      }}
-    >
-      <DvtTable {...args} page={page} setPage={handlePageChange} />
-    </div>
-  );
-};
+export const HoverExample = (args: DvtTableProps) => (
+  <div
+    style={{
+      width: 1440,
+      height: 1050,
+      backgroundColor: '#F8FAFC',
+      padding: 32,
+    }}
+  >
+    <DvtTable {...args} />
+  </div>
+);
 
 HoverExample.args = {
   header: [
@@ -518,24 +500,18 @@ HoverExample.args = {
   ],
 };
 
-export const IconColourExample = (args: DvtTableProps) => {
-  const [page, setPage] = useState(1);
-
-  const handlePageChange = (newPage: number) => setPage(newPage);
-
-  return (
-    <div
-      style={{
-        width: 1440,
-        height: 1050,
-        backgroundColor: 'F8FAFC',
-        padding: 32,
-      }}
-    >
-      <DvtTable {...args} page={page} setPage={handlePageChange} />
-    </div>
-  );
-};
+export const IconColourExample = (args: DvtTableProps) => (
+  <div
+    style={{
+      width: 1440,
+      height: 1050,
+      backgroundColor: '#F8FAFC',
+      padding: 32,
+    }}
+  >
+    <DvtTable {...args} />
+  </div>
+);
 
 IconColourExample.args = {
   header: [
@@ -658,27 +634,18 @@ IconColourExample.args = {
 };
 
 export const CheckboxExample = (args: DvtTableProps) => {
-  const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<number[]>([]);
-
-  const handlePageChange = (newPage: number) => setPage(newPage);
 
   return (
     <div
       style={{
         width: 1440,
         height: 1050,
-        backgroundColor: 'F8FAFC',
+        backgroundColor: '#F8FAFC',
         padding: 32,
       }}
     >
-      <DvtTable
-        {...args}
-        page={page}
-        setPage={handlePageChange}
-        selected={selected}
-        setSelected={setSelected}
-      />
+      <DvtTable {...args} selected={selected} setSelected={setSelected} />
     </div>
   );
 };
