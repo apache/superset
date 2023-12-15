@@ -36,6 +36,8 @@ export interface DvtDatePickerProps {
   setSelectedDate: (newSeletedValue: Moment) => void;
   isOpen: boolean;
   setIsOpen: (newOpen: boolean) => void;
+  width?: number;
+  maxWidth?: boolean;
 }
 
 const DvtDatePicker: React.FC<DvtDatePickerProps> = ({
@@ -43,6 +45,8 @@ const DvtDatePicker: React.FC<DvtDatePickerProps> = ({
   placeholder,
   selectedDate,
   setSelectedDate,
+  width = 202,
+  maxWidth = false,
 }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [inputValue, setInputValue] = useState<string>('');
@@ -72,7 +76,7 @@ const DvtDatePicker: React.FC<DvtDatePickerProps> = ({
   }, [selectedDate]);
 
   return (
-    <StyledDatepicker>
+    <StyledDatepicker style={{ minWidth: maxWidth ? '100%' : width }}>
       {label && <StyledDatepickerLabel>{label}</StyledDatepickerLabel>}
       <StyledDatepickerGroup>
         <StyledDatepickerInput

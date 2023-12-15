@@ -17,33 +17,45 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import { useHistory } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { useAppSelector } from 'src/hooks/useAppSelector';
 import { dvtAppSetSort } from 'src/dvt-redux/dvt-appReducer';
-import DvtNavbarTabsData from './dvt-navbar-tabs-data';
+import { BellOutlined } from '@ant-design/icons';
+import {
+  DvtNavbarTabsData,
+  UserData,
+  TabsDataProps,
+  WithNavbarBottom,
+} from './dvt-navbar-tabs-data';
+import DvtButtonTabs from '../DvtButtonTabs';
+import DvtButton from '../DvtButton';
+import DvtDotTitle from '../DvtDotTitle';
+import DvtInput from '../DvtInput';
+import DvtSelect from '../DvtSelect';
+import DvtProfileMenu from '../DvtProfileMenu';
 import {
   StyledDvtNavbar,
   NavbarTop,
   NavbarBottom,
   NavbarBottomRight,
+  NavbarSearchInput,
+  NavbarProfileMenu,
+  NavbarSearchGroup,
+  NavbarProfileIcon,
+  NavbarProfileIconDot,
 } from './dvt-navbar.module';
-import DvtButtonTabs from '../DvtButtonTabs';
-import DvtButton from '../DvtButton';
-import DvtDotTitle from '../DvtDotTitle';
 
 export interface DvtNavbarProps {
+  pathName: string;
   user?: any;
 }
 
-const DvtNavbar: React.FC<DvtNavbarProps> = ({ user }) => {
-  const history = useHistory();
+const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, user }) => {
   const dispatch = useDispatch();
   const sort = useAppSelector(state => state.dvtApp.sort);
 
   const [active, setActive] = useState<string>('All');
-
-  const pathName = history.location.pathname;
+  const [activeData, setActiveData] = useState<TabsDataProps[]>([]);
 
   const pathTitles = (pathname: string) => {
     switch (pathname) {
@@ -56,35 +68,75 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ user }) => {
       case '/report/list/':
         return 'Reports';
       case '/dataset/add/':
+        return 'Connection';
+      case '/superset/sqllab/':
+        return 'SQL';
+      case '/tablemodelview/list/':
         return 'Datasets';
+      case '/superset/sqllab/history/':
+        return 'SQL';
+      case '/superset/profile/admin/':
+        return 'Profile';
+      case '/chart/add':
+        return 'Create a New Graph/Chart';
       default:
         return '';
     }
   };
 
-  const withNavbarBottom = ['/superset/welcome/', '/alert/list/'];
-
-  const tabsDataFindPathname = DvtNavbarTabsData.filter(
-    (item: { pathname: string }) => item.pathname === pathName,
-  );
-
   useEffect(() => {
-    if (tabsDataFindPathname[0]?.pathname) {
-      setActive(tabsDataFindPathname[0].data[0].label);
+    const tabsDataFindPathname = DvtNavbarTabsData.find(
+      (item: { pathname: string }) => item.pathname === pathName,
+    );
+
+    if (tabsDataFindPathname?.pathname) {
+      setActive(tabsDataFindPathname.data[0].label);
+      setActiveData(tabsDataFindPathname.data);
     }
   }, [pathName]);
+
+  const [searchText, setSearchText] = useState<string>('');
 
   return (
     <StyledDvtNavbar>
       <NavbarTop>
-        <DvtDotTitle label={pathTitles(pathName)} />
+        {pathName !== '/superset/profile/admin/' ? (
+          <>
+            <DvtDotTitle label={pathTitles(pathName)} />
+            <NavbarSearchGroup>
+              Search
+              <DvtSelect
+                data={[]}
+                placeholder="All"
+                selectedValue=""
+                setSelectedValue={() => {}}
+                typeDesign="navbar"
+              />
+              <NavbarSearchInput>
+                <DvtInput
+                  onChange={setSearchText}
+                  type="search"
+                  value={searchText}
+                />
+              </NavbarSearchInput>
+            </NavbarSearchGroup>
+          </>
+        ) : (
+          <NavbarProfileIcon>
+            <BellOutlined style={{ fontSize: '24px' }} />
+            <NavbarProfileIconDot />
+          </NavbarProfileIcon>
+        )}
+        <NavbarProfileMenu>
+          <DvtProfileMenu img={UserData.image} />
+        </NavbarProfileMenu>
       </NavbarTop>
-      {withNavbarBottom.includes(pathName) && (
+      {WithNavbarBottom.includes(pathName) && (
         <NavbarBottom>
           <DvtButtonTabs
             active={active}
             setActive={setActive}
-            data={tabsDataFindPathname[0].data}
+            data={activeData}
           />
           {pathName === '/superset/welcome/' && (
             <NavbarBottomRight>

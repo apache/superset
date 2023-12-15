@@ -30,6 +30,7 @@ import {
   DEFAULT_LEGEND_FORM_DATA,
   DEFAULT_TITLE_FORM_DATA,
 } from '../constants';
+import { defaultXAxis } from '../defaults';
 
 // @ts-ignore
 export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
@@ -57,11 +58,12 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   seriesType: EchartsTimeseriesSeriesType.Line,
   stack: false,
   tooltipTimeFormat: 'smart_date',
+  truncateXAxis: true,
   truncateYAxis: false,
   yAxisBounds: [null, null],
   zoomable: false,
   richTooltip: true,
-  xAxisLabelRotation: 0,
+  xAxisLabelRotation: defaultXAxis.xAxisLabelRotation,
   groupby: [],
   showValue: false,
   onlyTotal: false,

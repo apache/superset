@@ -16,116 +16,116 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
-import React from 'react';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import React, { lazy } from 'react';
 
 // not lazy loaded since this is the home page.
 import DvtHome from 'src/pages/DvtHome';
 
-// const ChartCreation = lazy(
-//   () =>
-//     import(/* webpackChunkName: "ChartCreation" */ 'src/pages/ChartCreation'),
-// );
+const ChartCreation = lazy(
+  () =>
+    import(/* webpackChunkName: "ChartCreation" */ 'src/pages/ChartCreation'),
+);
 
-// const AnnotationLayerList = lazy(
-//   () =>
-//     import(
-//       /* webpackChunkName: "AnnotationLayerList" */ 'src/pages/AnnotationLayerList'
-//     ),
-// );
+const AnnotationLayerList = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "AnnotationLayerList" */ 'src/pages/AnnotationLayerList'
+    ),
+);
 
-// const AlertReportList = lazy(
-//   () =>
-//     import(
-//       /* webpackChunkName: "AlertReportList" */ 'src/pages/AlertReportList'
-//     ),
-// );
+const AlertReportList = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "AlertReportList" */ 'src/pages/AlertReportList'
+    ),
+);
 
-// const AnnotationList = lazy(
-//   () =>
-//     import(/* webpackChunkName: "AnnotationList" */ 'src/pages/AnnotationList'),
-// );
+const AnnotationList = lazy(
+  () =>
+    import(/* webpackChunkName: "AnnotationList" */ 'src/pages/AnnotationList'),
+);
 
-// const ChartList = lazy(
-//   () => import(/* webpackChunkName: "ChartList" */ 'src/pages/ChartList'),
-// );
+const ChartList = lazy(
+  () => import(/* webpackChunkName: "ChartList" */ 'src/pages/ChartList'),
+);
 
-// const CssTemplateList = lazy(
-//   () =>
-//     import(
-//       /* webpackChunkName: "CssTemplateList" */ 'src/pages/CssTemplateList'
-//     ),
-// );
+const CssTemplateList = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "CssTemplateList" */ 'src/pages/CssTemplateList'
+    ),
+);
 
-// const DashboardList = lazy(
-//   () =>
-//     import(/* webpackChunkName: "DashboardList" */ 'src/pages/DashboardList'),
-// );
+const DashboardList = lazy(
+  () =>
+    import(/* webpackChunkName: "DashboardList" */ 'src/pages/DashboardList'),
+);
 
-// const Dashboard = lazy(
-//   () => import(/* webpackChunkName: "Dashboard" */ 'src/pages/Dashboard'),
-// );
+const Dashboard = lazy(
+  () => import(/* webpackChunkName: "Dashboard" */ 'src/pages/Dashboard'),
+);
 
-// const DatabaseList = lazy(
-//   () => import(/* webpackChunkName: "DatabaseList" */ 'src/pages/DatabaseList'),
-// );
+const DatabaseList = lazy(
+  () => import(/* webpackChunkName: "DatabaseList" */ 'src/pages/DatabaseList'),
+);
 
-// const DatasetList = lazy(
-//   () => import(/* webpackChunkName: "DatasetList" */ 'src/pages/DatasetList'),
-// );
+const DatasetList = lazy(
+  () => import(/* webpackChunkName: "DatasetList" */ 'src/pages/DatasetList'),
+);
 
-// const DatasetCreation = lazy(
-//   () =>
-//     import(
-//       /* webpackChunkName: "DatasetCreation" */ 'src/pages/DatasetCreation'
-//     ),
-// );
+const DatasetCreation = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "DatasetCreation" */ 'src/pages/DatasetCreation'
+    ),
+);
 
-// const ExecutionLogList = lazy(
-//   () =>
-//     import(
-//       /* webpackChunkName: "ExecutionLogList" */ 'src/pages/ExecutionLogList'
-//     ),
-// );
+const ExecutionLogList = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "ExecutionLogList" */ 'src/pages/ExecutionLogList'
+    ),
+);
 
-// const Chart = lazy(
-//   () => import(/* webpackChunkName: "Chart" */ 'src/pages/Chart'),
-// );
+const Chart = lazy(
+  () => import(/* webpackChunkName: "Chart" */ 'src/pages/Chart'),
+);
 
-// const QueryHistoryList = lazy(
-//   () =>
-//     import(
-//       /* webpackChunkName: "QueryHistoryList" */ 'src/pages/QueryHistoryList'
-//     ),
-// );
+const QueryHistoryList = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "QueryHistoryList" */ 'src/pages/QueryHistoryList'
+    ),
+);
 
-// const SavedQueryList = lazy(
-//   () =>
-//     import(/* webpackChunkName: "SavedQueryList" */ 'src/pages/SavedQueryList'),
-// );
+const SavedQueryList = lazy(
+  () =>
+    import(/* webpackChunkName: "SavedQueryList" */ 'src/pages/SavedQueryList'),
+);
 
-// const SqlLab = lazy(
-//   () => import(/* webpackChunkName: "SqlLab" */ 'src/pages/SqlLab'),
-// );
+const SqlLab = lazy(
+  () => import(/* webpackChunkName: "SqlLab" */ 'src/pages/SqlLab'),
+);
 
-// const AllEntities = lazy(
-//   () => import(/* webpackChunkName: "AllEntities" */ 'src/pages/AllEntities'),
-// );
+const AllEntities = lazy(
+  () => import(/* webpackChunkName: "AllEntities" */ 'src/pages/AllEntities'),
+);
 
-// const Tags = lazy(
-//   () => import(/* webpackChunkName: "Tags" */ 'src/pages/Tags'),
-// );
+const Tags = lazy(
+  () => import(/* webpackChunkName: "Tags" */ 'src/pages/Tags'),
+);
 
-// const RowLevelSecurityList = lazy(
-//   () =>
-//     import(
-//       /* webpackChunkName: "RowLevelSecurityList" */ 'src/pages/RowLevelSecurityList'
-//     ),
-// );
+const RowLevelSecurityList = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "RowLevelSecurityList" */ 'src/pages/RowLevelSecurityList'
+    ),
+);
 
-// const Profile = lazy(
-//   () => import(/* webpackChunkName: "Profile" */ 'src/pages/Profile'),
-// );
+const Profile = lazy(
+  () => import(/* webpackChunkName: "Profile" */ 'src/pages/Profile'),
+);
 
 type Routes = {
   path: string;
@@ -139,112 +139,112 @@ export const routes: Routes = [
     path: '/superset/welcome/',
     Component: DvtHome,
   },
-  // {
-  //   path: '/dashboard/list/',
-  //   Component: DashboardList,
-  // },
-  // {
-  //   path: '/superset/dashboard/:idOrSlug/',
-  //   Component: Dashboard,
-  // },
-  // {
-  //   path: '/chart/add',
-  //   Component: ChartCreation,
-  // },
-  // {
-  //   path: '/chart/list/',
-  //   Component: ChartList,
-  // },
-  // {
-  //   path: '/tablemodelview/list/',
-  //   Component: DatasetList,
-  // },
-  // {
-  //   path: '/databaseview/list/',
-  //   Component: DatabaseList,
-  // },
-  // {
-  //   path: '/savedqueryview/list/',
-  //   Component: SavedQueryList,
-  // },
-  // {
-  //   path: '/csstemplatemodelview/list/',
-  //   Component: CssTemplateList,
-  // },
-  // {
-  //   path: '/annotationlayer/list/',
-  //   Component: AnnotationLayerList,
-  // },
-  // {
-  //   path: '/annotationlayer/:annotationLayerId/annotation/',
-  //   Component: AnnotationList,
-  // },
-  // {
-  //   path: '/sqllab/history/',
-  //   Component: QueryHistoryList,
-  // },
-  // {
-  //   path: '/alert/list/',
-  //   Component: AlertReportList,
-  // },
-  // {
-  //   path: '/report/list/',
-  //   Component: AlertReportList,
-  //   props: {
-  //     isReportEnabled: true,
-  //   },
-  // },
-  // {
-  //   path: '/alert/:alertId/log/',
-  //   Component: ExecutionLogList,
-  // },
-  // {
-  //   path: '/report/:alertId/log/',
-  //   Component: ExecutionLogList,
-  //   props: {
-  //     isReportEnabled: true,
-  //   },
-  // },
-  // {
-  //   path: '/explore/',
-  //   Component: Chart,
-  // },
-  // {
-  //   path: '/superset/explore/p',
-  //   Component: Chart,
-  // },
-  // {
-  //   path: '/dataset/add/',
-  //   Component: DatasetCreation,
-  // },
-  // {
-  //   path: '/dataset/:datasetId',
-  //   Component: DatasetCreation,
-  // },
-  // {
-  //   path: '/rowlevelsecurity/list',
-  //   Component: RowLevelSecurityList,
-  // },
-  // {
-  //   path: '/profile',
-  //   Component: Profile,
-  // },
-  // {
-  //   path: '/sqllab/',
-  //   Component: SqlLab,
-  // },
+  {
+    path: '/dashboard/list/',
+    Component: DashboardList,
+  },
+  {
+    path: '/superset/dashboard/:idOrSlug/',
+    Component: Dashboard,
+  },
+  {
+    path: '/chart/add',
+    Component: ChartCreation,
+  },
+  {
+    path: '/chart/list/',
+    Component: ChartList,
+  },
+  {
+    path: '/tablemodelview/list/',
+    Component: DatasetList,
+  },
+  {
+    path: '/databaseview/list/',
+    Component: DatabaseList,
+  },
+  {
+    path: '/savedqueryview/list/',
+    Component: SavedQueryList,
+  },
+  {
+    path: '/csstemplatemodelview/list/',
+    Component: CssTemplateList,
+  },
+  {
+    path: '/annotationlayer/list/',
+    Component: AnnotationLayerList,
+  },
+  {
+    path: '/annotationlayer/:annotationLayerId/annotation/',
+    Component: AnnotationList,
+  },
+  {
+    path: '/sqllab/history/',
+    Component: QueryHistoryList,
+  },
+  {
+    path: '/alert/list/',
+    Component: AlertReportList,
+  },
+  {
+    path: '/report/list/',
+    Component: AlertReportList,
+    props: {
+      isReportEnabled: true,
+    },
+  },
+  {
+    path: '/alert/:alertId/log/',
+    Component: ExecutionLogList,
+  },
+  {
+    path: '/report/:alertId/log/',
+    Component: ExecutionLogList,
+    props: {
+      isReportEnabled: true,
+    },
+  },
+  {
+    path: '/explore/',
+    Component: Chart,
+  },
+  {
+    path: '/superset/explore/p',
+    Component: Chart,
+  },
+  {
+    path: '/dataset/add/',
+    Component: DatasetCreation,
+  },
+  {
+    path: '/dataset/:datasetId',
+    Component: DatasetCreation,
+  },
+  {
+    path: '/rowlevelsecurity/list',
+    Component: RowLevelSecurityList,
+  },
+  {
+    path: '/profile',
+    Component: Profile,
+  },
+  {
+    path: '/sqllab/',
+    Component: SqlLab,
+  },
 ];
 
-// if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) {
-//   routes.push({
-//     path: '/superset/all_entities/',
-//     Component: AllEntities,
-//   });
-//   routes.push({
-//     path: '/superset/tags/',
-//     Component: Tags,
-//   });
-// }
+if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) {
+  routes.push({
+    path: '/superset/all_entities/',
+    Component: AllEntities,
+  });
+  routes.push({
+    path: '/superset/tags/',
+    Component: Tags,
+  });
+}
 
 const frontEndRoutes = routes
   .map(r => r.path)

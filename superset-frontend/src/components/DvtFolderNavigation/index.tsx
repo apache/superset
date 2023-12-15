@@ -48,9 +48,8 @@ const DvtFolderNavigation: React.FC<DvtFolderNavigationProps> = ({ data }) => {
   return (
     <StyledDvtFolderNavigation>
       {data.map((item, index) => (
-        <DvtFolderNavigationItem>
+        <DvtFolderNavigationItem key={index}>
           <DvtFolderNavigationHeader
-            key={index}
             onClick={() =>
               handleToggleOrUrl(item.data.length, item.url, item.name)
             }

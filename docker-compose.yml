@@ -124,6 +124,8 @@ services:
     command: ["/app/docker/docker-frontend.sh"]
     env_file: docker/.env
     depends_on: *superset-depends-on
+    environment:
+      SCARF_ANALYTICS: "${SCARF_ANALYTICS}"
     volumes: *superset-volumes
 
   superset-worker:

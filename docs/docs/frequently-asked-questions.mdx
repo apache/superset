@@ -268,8 +268,10 @@ This can be used, for example, to convert UTC time to local time.
 ### Does Superset collect any telemetry data?
 
 Superset uses [Scarf](https://about.scarf.sh/) by default to collect basic telemetry data upon installing and/or running Superset. This data helps the maintainers of Superset better understand which versions of Superset are being used, in order to prioritize patch/minor releases and security fixes.
-We use the [Scarf Gateway](https://docs.scarf.sh/gateway/) to sit in front of container registries, and the [scarf-js](https://about.scarf.sh/package-sdks) package to track `npm` installations.
-Scarf purges PII and provides aggregated statistics. Superset users can easily opt out of analytics in various ways documented [here](https://docs.scarf.sh/gateway/#do-not-track) and [here](https://docs.scarf.sh/package-analytics/#as-a-user-of-a-package-using-scarf-js-how-can-i-opt-out-of-analytics). Additional opt-out instructions for Docker users are available on the [Docker Installation](https://superset.apache.org/docs/installation/installing-superset-using-docker-compose) page.
+We use the [Scarf Gateway](https://docs.scarf.sh/gateway/) to sit in front of container registries, the [scarf-js](https://about.scarf.sh/package-sdks) package to track `npm` installations, and a Scarf pixel to gather anonymous analytics on Superset page views.
+Scarf purges PII and provides aggregated statistics. Superset users can easily opt out of analytics in various ways documented [here](https://docs.scarf.sh/gateway/#do-not-track) and [here](https://docs.scarf.sh/package-analytics/#as-a-user-of-a-package-using-scarf-js-how-can-i-opt-out-of-analytics).
+Superset maintainers can also opt out of telemetry data collection by setting the `SCARF_ANALYTICS` environment variable to `false` in the Superset container (or anywhere Superset/webpack are run).
+Additional opt-out instructions for Docker users are available on the [Docker Installation](https://superset.apache.org/docs/installation/installing-superset-using-docker-compose) page.
 
 ### Does Superset have an archive panel or trash bin from which a user can recover deleted assets?
 
