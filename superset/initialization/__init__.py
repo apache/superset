@@ -197,7 +197,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.tags import TagModelView, TagView
         from superset.views.users.api import CurrentUserRestApi
         from superset.dvt_auth.login import DVTAuthDBView
-        from superset.dvt_auth.reset_password import DVTResetPasswordView
 
         #
         # Setup API views
