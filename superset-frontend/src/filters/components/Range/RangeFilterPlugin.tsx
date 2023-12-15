@@ -237,39 +237,45 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     setValue(value);
   }, []);
 
-  useEffect(() => {
-    // when switch filter type and queriesData still not updated we need ignore this case (in FilterBar)
-    if (row?.min === undefined && row?.max === undefined) {
-      return;
-    }
+  useEffect(
+    () => {
+      // when switch filter type and queriesData still not updated we need ignore this case (in FilterBar)
+      if (row?.min === undefined && row?.max === undefined) {
+        return;
+      }
 
-    let filterStateValue = filterState.value ?? [min, max];
-    if (enableSingleMaxValue) {
-      const filterStateMax =
-        filterStateValue[maxIndex] <= minMax[maxIndex]
-          ? filterStateValue[maxIndex]
-          : minMax[maxIndex];
+      let filterStateValue = filterState.value ?? [min, max];
+      if (enableSingleMaxValue) {
+        const filterStateMax =
+          filterStateValue[maxIndex] <= minMax[maxIndex]
+            ? filterStateValue[maxIndex]
+            : minMax[maxIndex];
 
-      filterStateValue = [min, filterStateMax];
-    } else if (enableSingleMinValue) {
-      const filterStateMin =
-        filterStateValue[minIndex] >= minMax[minIndex]
-          ? filterStateValue[minIndex]
-          : minMax[minIndex];
+        filterStateValue = [min, filterStateMax];
+      } else if (enableSingleMinValue) {
+        const filterStateMin =
+          filterStateValue[minIndex] >= minMax[minIndex]
+            ? filterStateValue[minIndex]
+            : minMax[minIndex];
 
-      filterStateValue = [filterStateMin, max];
-    } else if (enableSingleExactValue) {
-      filterStateValue = [minMax[minIndex], minMax[minIndex]];
-    }
+        filterStateValue = [filterStateMin, max];
+      } else if (enableSingleExactValue) {
+        filterStateValue = [minMax[minIndex], minMax[minIndex]];
+      }
 
-    handleAfterChange(filterStateValue);
-  }, [
-    enableSingleMaxValue,
-    enableSingleMinValue,
-    enableSingleExactValue,
-    JSON.stringify(filterState.value),
-    JSON.stringify(data),
-  ]);
+      handleAfterChange(filterStateValue);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      enableSingleMaxValue,
+      enableSingleMinValue,
+      enableSingleExactValue,
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      JSON.stringify(filterState.value),
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      JSON.stringify(data),
+    ],
+  );
 
   const formItemExtra = useMemo(() => {
     if (filterState.validateMessage) {
@@ -282,23 +288,35 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     return undefined;
   }, [filterState.validateMessage, filterState.validateStatus]);
 
-  useEffect(() => {
-    if (enableSingleMaxValue) {
-      handleAfterChange([min, minMax[maxIndex]]);
-    }
-  }, [enableSingleMaxValue]);
+  useEffect(
+    () => {
+      if (enableSingleMaxValue) {
+        handleAfterChange([min, minMax[maxIndex]]);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [enableSingleMaxValue],
+  );
 
-  useEffect(() => {
-    if (enableSingleMinValue) {
-      handleAfterChange([minMax[minIndex], max]);
-    }
-  }, [enableSingleMinValue]);
+  useEffect(
+    () => {
+      if (enableSingleMinValue) {
+        handleAfterChange([minMax[minIndex], max]);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [enableSingleMinValue],
+  );
 
-  useEffect(() => {
-    if (enableSingleExactValue) {
-      handleAfterChange([minMax[minIndex], minMax[minIndex]]);
-    }
-  }, [enableSingleExactValue]);
+  useEffect(
+    () => {
+      if (enableSingleExactValue) {
+        handleAfterChange([minMax[minIndex], minMax[minIndex]]);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [enableSingleExactValue],
+  );
 
   return (
     <FilterPluginStyle height={height} width={width}>
