@@ -77,8 +77,9 @@ const DvtContent: React.FC<DvtContentProps> = ({ title, header, data }) => {
     <StyledDvtContent>
       <StyledDvtContentTitle>{title}</StyledDvtContentTitle>
       <StyledDvtContentHeader>
-        {header.map(item => (
+        {header.map((item, index) => (
           <StyledDvtContentSubtitleP
+            key={index}
             style={{
               width: item.width ? item.width : 'auto',
               flex: item.width ? 'none' : 1,
@@ -91,11 +92,12 @@ const DvtContent: React.FC<DvtContentProps> = ({ title, header, data }) => {
       <StyledDvtContentList>
         <StyledDvtContentScroll>
           <StyledDvtContentListUl $column>
-            {data.map(item => (
-              <StyledContentListLi>
+            {data.map((item, index) => (
+              <StyledContentListLi key={index}>
                 <StyledDvtContentListUl>
-                  {header.map(hItem => (
+                  {header.map((hItem, hIndex) => (
                     <StyledContentListLi
+                      key={hIndex}
                       style={{
                         width: hItem.width ? hItem.width : 'auto',
                         flex: hItem.width ? 'none' : 1,

@@ -22,10 +22,6 @@ interface StyledDvtContentListUlProps {
   $column?: boolean;
 }
 
-interface StyledDvtContentListLiProps {
-  $lastOnWidth?: boolean;
-}
-
 const StyledDvtContent = styled.div`
   display: flex;
   flex-direction: column;
@@ -84,7 +80,6 @@ const StyledDvtContentScroll = styled.div`
 const StyledDvtContentList = styled.div`
   display: flex;
   flex-direction: column;
-  font-size: 12px;
   padding: 24px;
   width: 695px;
   height: 300px;
@@ -100,15 +95,11 @@ const StyledDvtContentListUl = styled.ul<StyledDvtContentListUlProps>`
   padding: 0;
 `;
 
-const StyledContentListLi = styled.li<StyledDvtContentListLiProps>`
+const StyledContentListLi = styled.li`
   display: flex;
   flex: 1;
+  font-size: 12px;
   align-items: center;
-  ${({ $lastOnWidth }) =>
-    $lastOnWidth &&
-    `&:last-of-type {
-    background-color: red;
-  }`};
 `;
 
 export {
