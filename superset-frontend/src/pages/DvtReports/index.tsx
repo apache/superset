@@ -20,9 +20,15 @@
 import React, { useEffect, useState } from 'react';
 import DvtTable from 'src/components/DvtTable';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { StyledReports, StyledReportsButton } from './dvt-reports.module';
+import DvtButton from 'src/components/DvtButton';
+import DvtIconDataLabel from 'src/components/DvtIconDataLabel';
+import DvtPagination from 'src/components/DvtPagination';
 
 function ReportList() {
   const [apiData, setApiData] = useState([]);
+
+  const [page, setPage] = useState<number>(1);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -49,7 +55,9 @@ function ReportList() {
           }));
 
         setApiData(editedData);
-      } catch (error) {}
+      } catch (error) {
+        console.error('Hata:', error);
+      }
     };
 
     fetchData();
@@ -86,7 +94,41 @@ function ReportList() {
     ],
   };
 
-  return <DvtTable data={apiData} header={modifiedData.header} />;
+  const itemsPerPageValue = 10;
+  const indexOfLastItem = page * itemsPerPageValue;
+  const indexOfFirstItem = (page - 1) * itemsPerPageValue;
+  const currentItems =
+    apiData.length > 10
+      ? apiData.slice(indexOfFirstItem, indexOfLastItem)
+      : apiData;
+
+  return apiData.length > 0 ? (
+    <StyledReports>
+      <DvtTable
+        data={currentItems}
+        header={modifiedData.header}
+        page={page}
+        setPage={setPage}
+      />
+      <StyledReportsButton>
+        <DvtButton
+          label="Create a New Graph/Chart"
+          onClick={() => {}}
+          colour="grayscale"
+        />
+        <DvtPagination
+          page={page}
+          setPage={setPage}
+          itemSize={apiData.length}
+          pageItemSize={10}
+        />
+      </StyledReportsButton>
+    </StyledReports>
+  ) : (
+    <StyledReports>
+      <DvtIconDataLabel label="No Reports Yet" buttonLabel="Reports" />
+    </StyledReports>
+  );
 }
 
 export default withToasts(ReportList);
