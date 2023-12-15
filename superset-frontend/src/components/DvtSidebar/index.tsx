@@ -19,7 +19,8 @@ import {
 } from './dvt-sidebar.module';
 import DvtList from '../DvtList';
 import DvtDatePicker from '../DvtDatepicker';
-import { dvtSidebarSetOwner } from 'src/dvt-redux/dvt-sidebarReducer';
+import { dvtSidebarReportsSetProperty } from 'src/dvt-redux/dvt-sidebarReducer';
+import { useAppSelector } from 'src/hooks/useAppSelector';
 
 interface DvtSidebarProps {
   pathName: string;
@@ -58,6 +59,79 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
   const sidebarDataFindPathname = DvtSidebarData.find(
     (item: { pathname: string }) => item.pathname === pathName,
   );
+
+  const calculatePropertyValue = (
+    pathname: string,
+    property: string,
+    value: string,
+  ) => {
+    if (pathname === '/report/list/') {
+      switch (property) {
+        case 'Owner':
+          dispatch(dvtSidebarReportsSetProperty({ property: 'owner', value }));
+          break;
+        case 'Created by':
+          dispatch(
+            dvtSidebarReportsSetProperty({ property: 'createdBy', value }),
+          );
+          break;
+        case 'Chart Type':
+          dispatch(
+            dvtSidebarReportsSetProperty({ property: 'chartType', value }),
+          );
+          break;
+        case 'Dataset':
+          dispatch(
+            dvtSidebarReportsSetProperty({ property: 'dataset', value }),
+          );
+          break;
+        case 'Dashboards':
+          dispatch(
+            dvtSidebarReportsSetProperty({ property: 'dashboards', value }),
+          );
+          break;
+        case 'Favorite':
+          dispatch(
+            dvtSidebarReportsSetProperty({ property: 'favorite', value }),
+          );
+          break;
+        case 'Certified':
+          dispatch(
+            dvtSidebarReportsSetProperty({ property: 'certified', value }),
+          );
+          break;
+        default:
+          break;
+      }
+    }
+  };
+
+  const selectedValue = (pathname: string, property: string): string => {
+    if (pathname === '/report/list/') {
+      switch (property) {
+        case 'Owner':
+          return 'owner';
+        case 'Created by':
+          return 'createdBy';
+        case 'Chart Type':
+          return 'chartType';
+        case 'Dataset':
+          return 'dataset';
+        case 'Dashboards':
+          return 'dashboards';
+        case 'Favorite':
+          return 'favorite';
+        case 'Certified':
+          return 'certified';
+        default:
+          return '';
+      }
+    }
+
+    return '';
+  };
+
+  const reportsSelector = useAppSelector(state => state.dvtSidebar.reports);
 
   return (
     <StyledDvtSidebar pathName={pathName}>
@@ -114,10 +188,12 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
                     data={data.values}
                     label={data.label}
                     placeholder={data.placeholder}
-                    selectedValue=""
-                    setSelectedValue={value => {
-                      dispatch(dvtSidebarSetOwner(value));
-                    }}
+                    selectedValue={
+                      reportsSelector[selectedValue(pathName, data.placeholder)]
+                    }
+                    setSelectedValue={value =>
+                      calculatePropertyValue(pathName, data.placeholder, value)
+                    }
                     maxWidth
                   />
                 )}

@@ -439,15 +439,15 @@ const DvtSidebarData: SidebarDataProps[] = [
       },
       {
         values: [
-          { label: 'Failed', value: 'failed' },
+          { label: 'Superset Admin', value: 'Superset Admin' },
           { label: 'Success', value: 'success' },
         ],
         placeholder: 'Created by',
       },
       {
         values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
+          { label: 'Error', value: 'Error' },
+          { label: 'Success', value: 'Success' },
         ],
         placeholder: 'Chart Type',
       },

@@ -19,24 +19,38 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 interface DvtSidebarState {
-    owner: string;
+    reports: { owner: string; createdBy: string; chartType: string; dataset: string; dashboards: string; favorite: string; certified: string };
 }
 
 const initialState: DvtSidebarState = {
-    owner: '',
+    reports: {
+        owner: '',
+        createdBy: '',
+        chartType: '',
+        dataset: '',
+        dashboards: '',
+        favorite: '',
+        certified: '',
+    },
 };
 
 const dvtSidebarSlice = createSlice({
     name: 'dvt-sidebar',
     initialState,
     reducers: {
-        dvtSidebarSetOwner: (state, action: PayloadAction<string>) => ({
-            ...state,
-            owner: action.payload,
-        }),
+        dvtSidebarReportsSetProperty: (state, action: PayloadAction<{ property: 'owner' | 'createdBy' | 'chartType' | 'dataset' | 'dashboards' | 'favorite' | 'certified'; value: string }>) => {
+            const { property, value } = action.payload;
+            return {
+                ...state,
+                reports: {
+                    ...state.reports,
+                    [property]: value,
+                },
+            };
+        },
     },
 });
 
-export const { dvtSidebarSetOwner } = dvtSidebarSlice.actions;
+export const { dvtSidebarReportsSetProperty } = dvtSidebarSlice.actions;
 
 export default dvtSidebarSlice.reducer;

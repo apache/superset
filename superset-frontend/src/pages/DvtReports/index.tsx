@@ -30,7 +30,7 @@ function ReportList() {
   const [apiData, setApiData] = useState([]);
 
   const [page, setPage] = useState<number>(1);
-  const owner = useAppSelector(state => state.dvtSidebar.owner);
+  const reportsSelector = useAppSelector(state => state.dvtSidebar.reports);
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -53,16 +53,26 @@ function ReportList() {
             }),
             created_by: `${item.created_by.first_name} ${item.created_by.last_name}`,
             changed_by: `${item.changed_by.first_name} ${item.changed_by.last_name}`,
+            last_state: item.last_state,
           }));
 
-        setApiData(editedData);
+        const filteredData = editedData.filter(
+          (item: any) =>
+            (reportsSelector.createdBy
+              ? item.created_by === reportsSelector.createdBy
+              : true) &&
+            (reportsSelector.chartType
+              ? item.last_state === reportsSelector.chartType
+              : true),
+        );
+        setApiData(filteredData);
       } catch (error) {
         console.error('Hata:', error);
       }
     };
 
     fetchData();
-  }, []);
+  }, [reportsSelector]);
   const modifiedData = {
     header: [
       { id: 1, title: 'Name', field: 'name', heartIcon: true },
@@ -105,12 +115,7 @@ function ReportList() {
 
   return apiData.length > 0 ? (
     <StyledReports>
-      <DvtTable
-        data={currentItems}
-        header={modifiedData.header}
-        page={page}
-        setPage={setPage}
-      />
+      <DvtTable data={currentItems} header={modifiedData.header} />
       <StyledReportsButton>
         <DvtButton
           label="Create a New Graph/Chart"
