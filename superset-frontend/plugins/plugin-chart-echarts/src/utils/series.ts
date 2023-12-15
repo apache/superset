@@ -41,7 +41,12 @@ import {
   StackControlsValue,
   TIMESERIES_CONSTANTS,
 } from '../constants';
-import { LegendOrientation, LegendType, StackType } from '../types';
+import {
+  EchartsTimeseriesSeriesType,
+  LegendOrientation,
+  LegendType,
+  StackType,
+} from '../types';
 import { defaultLegendPadding } from '../defaults';
 
 function isDefined<T>(value: T | undefined | null): boolean {
@@ -547,16 +552,35 @@ export function calculateLowerLogTick(minPositiveValue: number) {
   return Math.pow(10, logBase10);
 }
 
+type BoundsType = {
+  min?: number | 'dataMin';
+  max?: number | 'dataMax';
+  scale?: true;
+};
+
 export function getMinAndMaxFromBounds(
   axisType: AxisType,
   truncateAxis: boolean,
   min?: number,
   max?: number,
-): { min: number | 'dataMin'; max: number | 'dataMax' } | {} {
-  return truncateAxis && axisType === AxisType.value
-    ? {
-        min: min === undefined ? 'dataMin' : min,
-        max: max === undefined ? 'dataMax' : max,
-      }
-    : {};
+  seriesType?: EchartsTimeseriesSeriesType,
+): BoundsType | {} {
+  if (axisType === AxisType.value && truncateAxis) {
+    const ret: BoundsType = {};
+    if (seriesType === EchartsTimeseriesSeriesType.Bar) {
+      ret.scale = true;
+    }
+    if (min !== undefined) {
+      ret.min = min;
+    } else if (seriesType !== EchartsTimeseriesSeriesType.Bar) {
+      ret.min = 'dataMin';
+    }
+    if (max !== undefined) {
+      ret.max = max;
+    } else if (seriesType !== EchartsTimeseriesSeriesType.Bar) {
+      ret.max = 'dataMax';
+    }
+    return ret;
+  }
+  return {};
 }
