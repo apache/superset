@@ -63,7 +63,7 @@ import dvtSidebarReducer from 'src/dvt-redux/dvt-sidebarReducer';
 // Some reducers don't do anything, and redux is just used to reference the initial "state".
 // This may change later, as the client application takes on more responsibilities.
 const noopReducer =
-  <STATE = unknown,>(initialState: STATE) =>
+  <STATE = unknown>(initialState: STATE) =>
   (state: STATE = initialState) =>
     state;
 

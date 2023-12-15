@@ -19,12 +19,12 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAppSelector } from 'src/hooks/useAppSelector';
-import { StyledReports, StyledReportsButton } from './dvt-reports.module';
+import DvtPagination from 'src/components/DvtPagination';
 import DvtTable from 'src/components/DvtTable';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import DvtButton from 'src/components/DvtButton';
 import DvtIconDataLabel from 'src/components/DvtIconDataLabel';
-import DvtPagination from 'src/components/DvtPagination';
+import { StyledReports, StyledReportsButton } from './dvt-reports.module';
 
 function ReportList() {
   const [apiData, setApiData] = useState([]);
