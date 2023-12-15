@@ -16,15 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
-import { shallowEqual, useSelector } from 'react-redux';
+import React from 'react';
 import { EmptyStateMedium } from 'src/components/EmptyState';
-import { t, styled } from '@superset-ui/core';
+import { t, styled, QueryResponse } from '@superset-ui/core';
 import QueryTable from 'src/SqlLab/components/QueryTable';
-import { SqlLabRootState } from 'src/SqlLab/types';
 
 interface QueryHistoryProps {
-  queryEditorId: string | number;
+  queries: QueryResponse[];
   displayLimit: number;
   latestQueryId: string | undefined;
 }
@@ -41,23 +39,11 @@ const StyledEmptyStateWrapper = styled.div`
 `;
 
 const QueryHistory = ({
-  queryEditorId,
+  queries,
   displayLimit,
   latestQueryId,
-}: QueryHistoryProps) => {
-  const queries = useSelector(
-    ({ sqlLab: { queries } }: SqlLabRootState) => queries,
-    shallowEqual,
-  );
-  const editorQueries = useMemo(
-    () =>
-      Object.values(queries).filter(
-        ({ sqlEditorId }) => String(sqlEditorId) === String(queryEditorId),
-      ),
-    [queries, queryEditorId],
-  );
-
-  return editorQueries.length > 0 ? (
+}: QueryHistoryProps) =>
+  queries.length > 0 ? (
     <QueryTable
       columns={[
         'state',
@@ -69,7 +55,7 @@ const QueryHistory = ({
         'results',
         'actions',
       ]}
-      queries={editorQueries}
+      queries={queries}
       displayLimit={displayLimit}
       latestQueryId={latestQueryId}
     />
@@ -81,6 +67,5 @@ const QueryHistory = ({
       />
     </StyledEmptyStateWrapper>
   );
-};
 
 export default QueryHistory;
