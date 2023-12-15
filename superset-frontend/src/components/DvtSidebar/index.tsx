@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useDispatch } from 'react-redux';
 import DvtLogo from '../DvtLogo';
 import DvtDarkMode from '../DvtDarkMode';
 import DvtTitlePlus from '../DvtTitlePlus';
@@ -18,6 +19,7 @@ import {
 } from './dvt-sidebar.module';
 import DvtList from '../DvtList';
 import DvtDatePicker from '../DvtDatepicker';
+import { dvtSidebarSetOwner } from 'src/dvt-redux/dvt-sidebarReducer';
 
 interface DvtSidebarProps {
   pathName: string;
@@ -26,6 +28,7 @@ interface DvtSidebarProps {
 const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
   const [darkMode, setDarkMode] = useState<boolean>(false);
   const [active, setActive] = useState<string>('test');
+  const dispatch = useDispatch();
 
   const pathTitles = (pathname: string) => {
     switch (pathname) {
@@ -106,18 +109,19 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
               index: number,
             ) => (
               <StyledDvtSidebarBodySelect key={index}>
-                {!data.datePicker &&
-                  data.placeholder !== 'See Table Schema' && (
-                    <DvtSelect
-                      data={data.values}
-                      label={data.label}
-                      placeholder={data.placeholder}
-                      selectedValue=""
-                      setSelectedValue={() => {}}
-                      maxWidth
-                    />
-                  )}
-                {data.placeholder === 'See Table Schema' && (
+                {!data.datePicker && !data.valuesList && (
+                  <DvtSelect
+                    data={data.values}
+                    label={data.label}
+                    placeholder={data.placeholder}
+                    selectedValue=""
+                    setSelectedValue={value => {
+                      dispatch(dvtSidebarSetOwner(value));
+                    }}
+                    maxWidth
+                  />
+                )}
+                {data.valuesList && (
                   <>
                     <DvtSelect
                       data={data.values}

@@ -24,12 +24,13 @@ import { StyledReports, StyledReportsButton } from './dvt-reports.module';
 import DvtButton from 'src/components/DvtButton';
 import DvtIconDataLabel from 'src/components/DvtIconDataLabel';
 import DvtPagination from 'src/components/DvtPagination';
+import { useAppSelector } from 'src/hooks/useAppSelector';
 
 function ReportList() {
   const [apiData, setApiData] = useState([]);
 
   const [page, setPage] = useState<number>(1);
-
+  const owner = useAppSelector(state => state.dvtSidebar.owner);
   useEffect(() => {
     const fetchData = async () => {
       try {
