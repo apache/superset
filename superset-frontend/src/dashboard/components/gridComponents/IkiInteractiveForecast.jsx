@@ -464,6 +464,7 @@ class IkiInteractiveForecast extends React.PureComponent {
               data-test="dashboard-markdown-editor"
               className={cx(
                 'dashboard-markdown',
+                'demand-app-comp',
                 isEditing && 'dashboard-markdown--editing',
               )}
               id={component.id}

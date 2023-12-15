@@ -516,7 +516,7 @@ class IkiExplainability extends React.PureComponent {
           >
             <div
               data-test="dashboard-markdown-editor"
-              className={cx('dashboard-component-ikitable', {
+              className={cx('dashboard-component-ikitable', 'demand-app-comp', {
                 'dashboard-component-ikitable--editable': this.props.editMode,
                 'dashboard-component-ikitable--preview': !this.props.editMode,
               })}

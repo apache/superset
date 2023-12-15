@@ -451,6 +451,7 @@ class IkiModelMetrics extends React.PureComponent {
               data-test="dashboard-markdown-editor"
               className={cx(
                 'dashboard-component-ikirunpipeline',
+                'demand-app-comp'
                 // isEditing && 'dashboard-component-ikimodelmetrics--editing',
               )}
               id={component.id}
