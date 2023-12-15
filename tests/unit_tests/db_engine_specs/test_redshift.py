@@ -16,7 +16,7 @@
 # under the License.
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Optional
 
 import pytest
 

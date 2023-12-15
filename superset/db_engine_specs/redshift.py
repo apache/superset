@@ -20,12 +20,11 @@ import logging
 import re
 from datetime import datetime
 from re import Pattern
-from typing import Any, Optional
+from typing import Any
 
 import pandas as pd
 from flask_babel import gettext as __
-from sqlalchemy.types import NVARCHAR
-from sqlalchemy.types import Date, DateTime
+from sqlalchemy.types import Date, DateTime, NVARCHAR
 
 from superset.db_engine_specs.base import BasicParametersMixin
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
@@ -165,7 +164,7 @@ class RedshiftEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         return None
 
     @classmethod
-    def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:
+    def get_cancel_query_id(cls, cursor: Any, query: Query) -> str | None:
         """
         Get Redshift PID that will be used to cancel all other running
         queries in the same session.
