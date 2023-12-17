@@ -325,11 +325,11 @@ class Chart extends React.Component {
   };
 
   exportFullCSV() {
-    this.exportCSV(true);
+    this.exportTable('csv', true);
   }
 
-  exportCSV(isFullCSV = false) {
-    this.exportTable('csv', isFullCSV);
+  exportCSV() {
+    this.exportTable('csv', false);
   }
 
   exportXLSX() {
