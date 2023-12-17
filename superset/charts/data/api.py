@@ -50,6 +50,8 @@ from superset.utils.core import create_zip, get_user_id, json_int_dttm_ser
 from superset.views.base import CsvResponse, generate_download_headers, XlsxResponse
 from superset.views.base_api import statsd_metrics
 
+from superset.charts.scribe_post_processing import apply_scribe_post_process
+
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
 
@@ -370,6 +372,7 @@ class ChartDataRestApi(ChartRestApi):
             if len(result["queries"]) == 1:
                 # return single query results
                 data = result["queries"][0]["data"]
+                data = apply_scribe_post_process(data)
                 if is_csv_format:
                     return CsvResponse(data, headers=generate_download_headers("csv"))
 
@@ -377,6 +380,7 @@ class ChartDataRestApi(ChartRestApi):
 
             # return multi-query results bundled as a zip file
             def _process_data(query_data: Any) -> Any:
+                query_data = apply_scribe_post_process(query_data)
                 if result_format == ChartDataResultFormat.CSV:
                     encoding = current_app.config["CSV_EXPORT"].get("encoding", "utf-8")
                     return query_data.encode(encoding)
