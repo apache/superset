@@ -143,7 +143,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.datasets.columns.api import DatasetColumnsRestApi
         from superset.datasets.metrics.api import DatasetMetricRestApi
         from superset.datasource.api import DatasourceRestApi
-        from superset.dvt_auth.login import DVTAuthDBView
         from superset.embedded.api import EmbeddedDashboardRestApi
         from superset.embedded.view import EmbeddedView
         from superset.explore.api import ExploreRestApi
@@ -430,14 +429,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=__("Security"),
             icon="fa-lock",
-        )
-
-        appbuilder.add_view(
-            DVTAuthDBView,
-            "Login",
-            category="Security",
-            category_icon="fa-cogs",
-            icon="fa-group",
         )
 
     def init_app_in_ctx(self) -> None:
