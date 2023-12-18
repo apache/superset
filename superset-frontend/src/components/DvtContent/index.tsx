@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import moment from 'moment';
 import {
   StyledContentListLi,
   StyledDvtContent,
@@ -27,7 +28,6 @@ import {
   StyledDvtContentSubtitleP,
   StyledDvtContentTitle,
 } from './dvt-content.module';
-import moment from 'moment';
 
 export interface HeaderProps {
   title: string;
