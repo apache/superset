@@ -24,8 +24,8 @@ from urllib import request
 import pandas as pd
 from flask import current_app, g
 from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, String, Text
+from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.orm import Session
-from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.sql.visitors import VisitableType
 
 from superset import security_manager
