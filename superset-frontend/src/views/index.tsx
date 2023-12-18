@@ -18,6 +18,6 @@
  */
 import React from 'react';
 import ReactDOM from 'react-dom';
-import App from './App';
+import DvtApp from './dvt-app';
 
-ReactDOM.render(<App />, document.getElementById('app'));
+ReactDOM.render(<DvtApp />, document.getElementById('app'));
