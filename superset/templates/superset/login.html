@@ -1,0 +1,370 @@
+
+
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      .container {
+        display: flex;
+        height: 100vh;
+      }
+
+      .slider,
+      .loginForm {
+        flex: 1;
+        height: 100%;
+      }
+
+      .loginForm {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+
+      .slider {
+        display: flex;
+        flex-direction: column;
+        background: #2563eb;
+        justify-content: space-between;
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        color: #fff;
+        font-family: Inter;
+        font-size: 27.718px;
+        font-weight: 700;
+        letter-spacing: -0.346px;
+        gap: 11px;
+        padding: 21px 48px;
+      }
+      .background {
+        width: 524px;
+        height: 524px;
+        border-radius: 524px;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.06) -5.48%,
+          rgba(255, 255, 255, 0) 96.9%
+        );
+        display: flex;
+        align-self: center;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .small-background {
+        width: 367px;
+        height: 367px;
+        border-radius: 367px;
+        border-radius: 367px;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.15) -25.29%,
+          rgba(255, 255, 255, 0) 97.21%
+        );
+      }
+
+      .slider-text {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .slider-text h3 {
+        color: var(--additional-white, #fff);
+        text-align: center;
+        margin: 0;
+        padding: 0;
+        font-family: Inter;
+        font-size: 24px;
+        font-weight: 700;
+        line-height: 125%;
+        letter-spacing: 0.2px;
+      }
+
+      .slider-text p {
+        color: #f8fafc;
+        text-align: center;
+        margin: 0;
+        padding: 0;
+        font-family: Inter;
+        font-size: 14px;
+        font-weight: 400;
+        line-height: 160%; /* 22.4px */
+      }
+
+      .dot-group {
+        display: inline-flex;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 16px;
+        padding-bottom: 72px;
+      }
+
+      .input-group {
+        display: flex;
+        height: 56px;
+        width: 404px;
+        align-items: center;
+        gap: 12px;
+        align-self: stretch;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+      }
+
+      .input-group input {
+        width: 100%;
+        padding: 0;
+        border: none;
+        outline: none;
+        padding: 8px 16px;
+      }
+      .signin-button {
+        display: flex;
+        width: 404px;
+        height: 56px;
+        padding: 8px;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        flex-shrink: 0;
+        border-radius: 12px;
+        background: #2563eb;
+        border: none;
+        color: #fff;
+        font-family: Inter;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 140%;
+        letter-spacing: 0.2px;
+        cursor: pointer;
+      }
+      .input-svg {
+        margin-left: 16px;
+      }
+
+      .form-text {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        padding-bottom: 32px;
+      }
+
+      .form-text h3 {
+        color: #0f172a;
+        text-align: center;
+        margin: 0;
+        padding: 0;
+        font-family: Inter;
+        font-size: 24px;
+        font-weight: 700;
+        line-height: 125%;
+        letter-spacing: 0.2px;
+      }
+
+      .form-text p {
+        color: #64748b;
+        text-align: center;
+        margin: 0;
+        padding: 0;
+        font-family: Inter;
+        font-size: 14px;
+        font-weight: 400;
+        line-height: 160%; /* 22.4px */
+      }
+
+      .input-container {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding-bottom: 16px;
+      }
+
+      .form-element {
+        display: flex;
+        justify-content: space-between;
+        padding-bottom: 32px;
+      }
+      .form-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #0f172a;
+        font-family: Inter;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 160%;
+        letter-spacing: 0.2px;
+      }
+
+      .forgot-password {
+        color: #2563eb;
+        text-align: right;
+        font-family: Inter;
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 160%;
+      }
+    </style>
+
+<div class="container">
+      <div class="slider">
+        <div class="logo">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="34"
+            height="34"
+            viewBox="0 0 34 34"
+            fill="none"
+          >
+            <path
+              fill-rule="evenodd"
+              clip-rule="evenodd"
+              d="M0.632969 5.82608C0 7.3542 0 9.29143 0 13.1659V21.4813C0 25.3557 0 27.293 0.632969 28.8211C1.47693 30.8586 3.09571 32.4774 5.13321 33.3213C6.66133 33.9543 8.59856 33.9543 12.473 33.9543H20.7884C24.6629 33.9543 26.6001 33.9543 28.1282 33.3213C30.1657 32.4774 31.7845 30.8586 32.6284 28.8211C33.2614 27.293 33.2614 25.3557 33.2614 21.4813V13.1659C33.2614 9.29143 33.2614 7.3542 32.6284 5.82608C31.7845 3.78858 30.1657 2.1698 28.1282 1.32584C26.6001 0.692871 24.6629 0.692871 20.7884 0.692871H12.473C8.59856 0.692871 6.66133 0.692871 5.13321 1.32584C3.09571 2.1698 1.47693 3.78858 0.632969 5.82608ZM19.1819 9.79924C19.2176 9.66986 19.0669 9.57035 18.9619 9.65399L9.67957 17.0498C9.59098 17.1204 9.61988 17.2617 9.72907 17.2918L14.677 18.6571C14.7508 18.6775 14.7941 18.7538 14.7737 18.8276L13.2036 24.5176C13.1679 24.647 13.3186 24.7465 13.4236 24.6629L22.7059 17.2671C22.7945 17.1965 22.7656 17.0552 22.6564 17.0251L17.7085 15.6598C17.6347 15.6394 17.5914 15.5631 17.6118 15.4893L19.1819 9.79924Z"
+              fill="white"
+            />
+          </svg>
+
+          <p>AppName</p>
+        </div>
+
+        <div class="background">
+          <div class="small-background">
+            <img src="/static/assets/images/login.png" />
+          </div>
+        </div>
+
+        <div class="slider-text">
+          <h3>Reporting tool</h3>
+          <p>Everything you need in an easily customizable dashboard.</p>
+        </div>
+
+        <div class="dot-group">
+          <div>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="10"
+              height="10"
+              viewBox="0 0 10 10"
+              fill="none"
+            >
+              <circle cx="5" cy="5" r="5" fill="white" />
+            </svg>
+          </div>
+          <div>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="10"
+              height="10"
+              viewBox="0 0 10 10"
+              fill="none"
+            >
+              <circle opacity="0.2" cx="5" cy="5" r="5" fill="white" />
+            </svg>
+          </div>
+          <div>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="10"
+              height="10"
+              viewBox="0 0 10 10"
+              fill="none"
+            >
+              <circle opacity="0.2" cx="5" cy="5" r="5" fill="white" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <form class="loginForm" action="" method="post" name="login">
+        {{form.hidden_tag()}}
+        <div class="form-group">
+          <div class="form-text">
+            <h3>Sign In to your Account</h3>
+            <p class="form-text">{{_("Enter your login and password below")}}:</p>
+          </div>
+          <div class="input-container">
+            <div class="input-group">
+              <div class="input-svg">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="16"
+                  viewBox="0 0 20 16"
+                  fill="none"
+                >
+                  <path
+                    d="M17 1H3C1.89543 1 1 1.89543 1 3V13C1 14.1046 1.89543 15 3 15H17C18.1046 15 19 14.1046 19 13V3C19 1.89543 18.1046 1 17 1Z"
+                    stroke="#64748B"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M1 3L10 9L19 3"
+                    stroke="#64748B"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </div>
+              {{ form.username(size = 80, class = "input-field", autofocus = true, placeholder="Email") }}
+            </div>
+            <div class="input-group">
+              <div class="input-svg">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="20"
+                  viewBox="0 0 16 20"
+                  fill="none"
+                >
+                  <path
+                    d="M13 9H3C1.89543 9 1 9.89543 1 11V17C1 18.1046 1.89543 19 3 19H13C14.1046 19 15 18.1046 15 17V11C15 9.89543 14.1046 9 13 9Z"
+                    stroke="#64748B"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M8 15C8.55228 15 9 14.5523 9 14C9 13.4477 8.55228 13 8 13C7.44772 13 7 13.4477 7 14C7 14.5523 7.44772 15 8 15Z"
+                    stroke="#64748B"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M4 9V5C4 3.93913 4.42143 2.92172 5.17157 2.17157C5.92172 1.42143 6.93913 1 8 1C9.06087 1 10.0783 1.42143 10.8284 2.17157C11.5786 2.92172 12 3.93913 12 5V9"
+                    stroke="#64748B"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </div>
+              {{ form.password(size = 80, class = "input-field", placeholder="Password", type="password") }}
+            </div>
+          </div>
+          <div class="form-element">
+            <div class="form-checkbox">
+              <input type="checkbox" />Remember me
+            </div>
+
+            <div class="forgot-password">
+              <a href="#">Forgot Password?</a>
+            </div>
+          </div>
+          <input class="signin-button" type="submit" value="{{_('Sign In')}}">
+        </div>
+      </form>
+    </div>
