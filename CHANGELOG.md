@@ -19,7 +19,7 @@ under the License.
 
 ## Change Log
 
-- [3.1.0](#310-mon-dec-11-162753-2023-0000)
+- [3.1.0](#310-fri-dec-15-150500-2023--0800)
 - [3.0.3](#303-fri-dec-8-054009-2023--0800)
 - [3.0.2](#302-mon-nov-20-073838-2023--0500)
 - [3.0.1](#301-tue-oct-13-103221-2023--0700)
@@ -35,7 +35,7 @@ under the License.
 - [1.4.2](#142-sat-mar-19-000806-2022-0200)
 - [1.4.1](#141)
 
-### 3.1.0 (Mon Dec 11 16:27:53 2023 +0000)
+### 3.1.0 (Fri Dec 15 15:05:00 2023 -0800)
 
 **Database Migrations**
 
@@ -111,7 +111,11 @@ under the License.
 
 **Fixes**
 
-- [#26187](https://github.com/apache/superset/pull/26187) fix: bump pyarrow constraints (CVE-2023-47248) (@cwegener)
+- [#26284](https://github.com/apache/superset/pull/26284) fix: Revert "fix(sqllab): flaky json explore modal due to over-rendering (#26156)" (@justinpark)
+- [#26279](https://github.com/apache/superset/pull/26279) fix: Cannot expand initially hidden SQL Lab tab (@michael-s-molina)
+- [#26269](https://github.com/apache/superset/pull/26269) fix(plugin-chart-echarts): use scale for truncating x-axis (@villebro)
+- [#26264](https://github.com/apache/superset/pull/26264) fix: Stacked charts with numerical columns (@michael-s-molina)
+- [#26243](https://github.com/apache/superset/pull/26243) fix(plugin-chart-echarts): undefined bounds for bubble chart (@villebro)
 - [#26224](https://github.com/apache/superset/pull/26224) fix: Use page.locator in Playwright reports (@kgabryje)
 - [#26156](https://github.com/apache/superset/pull/26156) fix(sqllab): flaky json explore modal due to over-rendering (@justinpark)
 - [#25533](https://github.com/apache/superset/pull/25533) fix(menu): Styling active menu in SPA navigation (@justinpark)
@@ -155,6 +159,7 @@ under the License.
 
 **Others**
 
+- [#26251](https://github.com/apache/superset/pull/26251) chore: improve CSP add base uri restriction (@dpgaspar)
 - [#26082](https://github.com/apache/superset/pull/26082) chore: lock the databend-sqlalchemy version (@hantmac)
 - [#26212](https://github.com/apache/superset/pull/26212) chore: Moves xAxisLabelRotation to shared controls (@michael-s-molina)
 - [#26188](https://github.com/apache/superset/pull/26188) chore: Lower giveup log level for retried functions to warning (@jfrag1)
