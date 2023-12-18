@@ -757,7 +757,7 @@ class AnnotationDatasource(BaseDatasource):
         raise NotImplementedError()
 
 
-class TableColumn(Model, AuditMixinNullable, ImportExportMixin, CertificationMixin):
+class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model):
 
     """ORM object for table columns, each table can have multiple columns"""
 
@@ -971,7 +971,7 @@ class TableColumn(Model, AuditMixinNullable, ImportExportMixin, CertificationMix
         return {s: getattr(self, s) for s in attrs if hasattr(self, s)}
 
 
-class SqlMetric(Model, AuditMixinNullable, ImportExportMixin, CertificationMixin):
+class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model):
 
     """ORM object for metrics, each table can have multiple metrics"""
 

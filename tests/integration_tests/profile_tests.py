@@ -31,7 +31,7 @@ from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 from .base_tests import SupersetTestCase
 
 
-class TestProfile(SupersetTestCase, InsertChartMixin):
+class TestProfile(InsertChartMixin, SupersetTestCase):
     def insert_dashboard_created_by(self, username: str) -> Dashboard:
         user = self.get_user(username)
         dashboard = self.insert_dashboard(

@@ -345,7 +345,7 @@ export default function sqlLabReducer(state = {}, action) {
         return state;
       }
       const alts = {
-        endDttm: action?.results?.query?.endDttm || now(),
+        endDttm: now(),
         progress: 100,
         results: action.results,
         rows: action?.results?.query?.rows || 0,
@@ -674,14 +674,7 @@ export default function sqlLabReducer(state = {}, action) {
       if (!change) {
         newQueries = state.queries;
       }
-      return {
-        ...state,
-        queries: newQueries,
-        queriesLastUpdate:
-          queriesLastUpdate > state.queriesLastUpdate
-            ? queriesLastUpdate
-            : Date.now(),
-      };
+      return { ...state, queries: newQueries, queriesLastUpdate };
     },
     [actions.CLEAR_INACTIVE_QUERIES]() {
       const { queries } = state;
@@ -708,11 +701,7 @@ export default function sqlLabReducer(state = {}, action) {
             },
           ]),
       );
-      return {
-        ...state,
-        queries: cleanedQueries,
-        queriesLastUpdate: Date.now(),
-      };
+      return { ...state, queries: cleanedQueries };
     },
     [actions.SET_USER_OFFLINE]() {
       return { ...state, offline: action.offline };

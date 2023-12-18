@@ -21,7 +21,7 @@ under the License.
 
 Here's a list of organizations, broken down into broad industry categories, that have taken the time to send a PR to let
 the world know they are using Apache Superset. If you are a user and want to be recognized,
-all you have to do is file a simple PR [like this one](https://github.com/apache/superset/pull/10122). If you think
+all you have to do is file a simple PR [like this one](https://github.com/apache/superset/pull/10122) — [just click here](https://github.com/apache/superset/edit/master/RESOURCES/INTHEWILD.md) to do so. If you think
 the categorization is inaccurate, please file a PR with your correction as well.
 Join our growing community!
 
@@ -41,9 +41,9 @@ Join our growing community!
 - [Capital Service S.A.](http://capitalservice.pl) [@pkonarzewski]
 - [Clark.de](http://clark.de/)
 - [KarrotPay](https://www.daangnpay.com/)
+- [Taveo](https://www.taveo.com) [@codek]
 - [Wise](https://wise.com) [@koszti]
 - [Xendit](http://xendit.co/) [@LieAlbertTriAdrian]
-- [Taveo](https://www.taveo.com) [@codek]
 
 ### Gaming
 - [Digit Game Studios](https://www.digitgaming.com/)
@@ -131,8 +131,6 @@ Join our growing community!
 - [TME QQMUSIC/WESING](https://www.tencentmusic.com/)[@shenyuanli,@marklaw]
 - [Xite](https://xite.com/) [@shashankkoppar]
 - [Zaihang](http://www.zaih.com/)
-
-
 
 ### Education
 - [Brilliant.org](https://brilliant.org/)

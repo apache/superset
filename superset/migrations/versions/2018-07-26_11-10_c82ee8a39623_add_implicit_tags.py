@@ -80,7 +80,7 @@ class Tag(Base, AuditMixinNullable):
     type = Column(Enum(TagType))
 
 
-class TaggedObject(Base, AuditMixinNullable):
+class TaggedObject(AuditMixinNullable, Base):
     __tablename__ = "tagged_object"
 
     id = Column(Integer, primary_key=True)
