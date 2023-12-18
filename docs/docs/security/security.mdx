@@ -270,7 +270,7 @@ These generally improve security, but administrators should be aware of their ex
 In particular, the option of `force_https = True` (`False` by default) may break Superset's Alerts & Reports
 if workers are configured to access charts via a `WEBDRIVER_BASEURL` beginning
 with `http://`.  As long as a Superset deployment enforces https upstream, e.g.,
-through a loader balancer or application gateway, it should be acceptable to keep this
+through a load balancer or application gateway, it should be acceptable to keep this
 option disabled. Otherwise, you may want to enable `force_https` like this:
 
 ```python

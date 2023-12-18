@@ -7,12 +7,10 @@ version: 2
 
 ## Alerts and Reports
 
-*This covers versions 1.0.1 to current.*
-
 Users can configure automated alerts and reports to send dashboards or charts to an email recipient or Slack channel.
 
-- Alerts are sent when a SQL condition is reached
-- Reports are sent on a schedule
+- *Alerts* are sent when a SQL condition is reached
+- *Reports* are sent on a schedule
 
 Alerts and reports are disabled by default. To turn them on, you need to do some setup, described here.
 
@@ -250,7 +248,68 @@ USER superset
 
 Don't forget to set `WEBDRIVER_TYPE` and `WEBDRIVER_OPTION_ARGS` in your config if you use Chrome.
 
-### Schedule Reports
+### Troubleshooting
+
+There are many reasons that reports might not be working.  Try these steps to check for specific issues.
+
+#### Confirm feature flag is enabled and you have sufficient permissions
+
+If you don't see "Alerts & Reports" under the *Manage* section of the Settings dropdown in the Superset UI, you need to enable the `ALERT_REPORTS` feature flag (see above). Enable another feature flag and check to see that it took effect, to verify that your config file is getting loaded.
+
+Log in as an admin user to ensure you have adequate permissions.
+
+#### Check the logs of your Celery worker
+
+This is the best source of information about the problem.  In a docker compose deployment, you can do this with a command like `docker logs superset_worker --since 1h`.
+
+#### Check web browser and webdriver installation
+
+To take a screenshot, the worker visits the dashboard or chart using a headless browser, then takes a screenshot. If you are able to send a chart as CSV or text but can't send as PNG, your problem may lie with the browser.
+
+Superset docker images that have a tag ending with `-dev` have the Firefox headless browser and geckodriver already installed. You can test that these are installed and in the proper path by entering your Superset worker and running `firefox --headless` and then `geckodriver`. Both commands should start those applications.
+
+If you are handling the installation of that software on your own, or wish to use Chromium instead, do your own verification to ensure that the headless browser opens successfully in the worker environment.
+
+#### Send a test email
+
+One symptom of an invalid connection to an email server is receiving an error of `[Errno 110] Connection timed out` in your logs when the report tries to send.
+
+Confirm via testing that your outbound email configuration is correct.  Here is the simplest test, for an un-authenticated email SMTP email service running on port 25.  If you are sending over SSL, for instance, study how [Superset's codebase sends emails](https://github.com/apache/superset/blob/master/superset/utils/core.py#L818) and then test with those commands and arguments.
+
+Start Python in your worker environment, replace all example values, and run:
+```python
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+from_email = 'superset_emails@example.com'
+to_email = 'your_email@example.com'
+msg = MIMEMultipart()
+msg['From'] = from_email
+msg['To'] = to_email
+msg['Subject'] = 'Superset SMTP config test'
+message = 'It worked'
+msg.attach(MIMEText(message))
+mailserver = smtplib.SMTP('smtpmail.example.com', 25)
+mailserver.sendmail(from_email, to_email, msg.as_string())
+mailserver.quit()
+```
+
+This should send an email.
+
+Possible fixes:
+- Some cloud hosts disable outgoing unauthenticated SMTP email to prevent spam.  For instance, [Azure blocks port 25 by default on some machines](https://learn.microsoft.com/en-us/azure/virtual-network/troubleshoot-outbound-smtp-connectivity). Enable that port or use another sending method.
+- Use another set of SMTP credentials that you verify works in this setup.
+
+#### Browse to your report from the worker
+
+The worker may be unable to reach the report. It will use the value of `WEBDRIVER_BASEURL` to browse to the report.  If that route is invalid, or presents an authentication challenge that the worker can't pass, the report screenshot will fail.
+
+Check this by attempting to `curl` the URL of a report that you see in the error logs of your worker. For instance, from the worker environment, run `curl http://superset_app:8088/superset/dashboard/1/`. You may get different responses depending on whether the dashboard exists - for example, you may need to change the `1` in that URL. If there's a URL in your logs from a failed report screenshot, that's a good place to start. The goal is to determine a valid value for `WEBDRIVER_BASEURL` and determine if an issue like HTTPS or authentication is redirecting your worker.
+
+In a deployment with authentication measures enabled like HTTPS and Single Sign-On, it may make sense to have the worker navigate directly to the Superset application running in the same location, avoiding the need to sign in.  For instance, you could use `WEBDRIVER_BASEURL="http://superset_app:8088"` for a docker compose deployment, and set `"force_https": False,` in your `TALISMAN_CONFIG`.
+
+### Scheduling Queries as Reports
 
 You can optionally allow your users to schedule queries directly in SQL Lab. This is done by adding
 extra metadata to saved queries, which are then picked up by an external scheduled (like

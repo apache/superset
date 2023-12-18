@@ -251,7 +251,8 @@ const QueryTable = ({
               modalBody={
                 <ResultSet
                   showSql
-                  queryId={query.id}
+                  user={user}
+                  query={query}
                   height={400}
                   displayLimit={displayLimit}
                   defaultQueryLimit={1000}

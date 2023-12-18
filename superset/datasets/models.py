@@ -69,7 +69,7 @@ dataset_user_association_table = sa.Table(
 )
 
 
-class Dataset(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
+class Dataset(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):
     """
     A table/view in a database.
     """

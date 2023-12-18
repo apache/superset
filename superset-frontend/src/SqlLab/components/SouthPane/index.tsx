@@ -19,8 +19,10 @@
 import React, { createRef, useMemo } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import shortid from 'shortid';
+import Alert from 'src/components/Alert';
 import Tabs from 'src/components/Tabs';
-import { styled, t } from '@superset-ui/core';
+import { EmptyStateMedium } from 'src/components/EmptyState';
+import { FeatureFlag, styled, t, isFeatureEnabled } from '@superset-ui/core';
 
 import { setActiveSouthPaneTab } from 'src/SqlLab/actions/sqlLab';
 
@@ -31,11 +33,11 @@ import ResultSet from '../ResultSet';
 import {
   STATUS_OPTIONS,
   STATE_TYPE_MAP,
+  LOCALSTORAGE_MAX_QUERY_AGE_MS,
   STATUS_OPTIONS_LOCALIZED,
 } from '../../constants';
-import Results from './Results';
 
-const TAB_HEIGHT = 130;
+const TAB_HEIGHT = 140;
 
 /*
     editorQueries are queries executed by users passed from SqlEditor component
@@ -83,6 +85,18 @@ const StyledPane = styled.div<StyledPaneProps>`
   }
 `;
 
+const EXTRA_HEIGHT_RESULTS = 24; // we need extra height in RESULTS tab. because the height from props was calculated based on PREVIEW tab.
+const StyledEmptyStateWrapper = styled.div`
+  height: 100%;
+  .ant-empty-image img {
+    margin-right: 28px;
+  }
+
+  p {
+    margin-right: 28px;
+  }
+`;
+
 const SouthPane = ({
   queryEditorId,
   latestQueryId,
@@ -91,43 +105,128 @@ const SouthPane = ({
   defaultQueryLimit,
 }: SouthPaneProps) => {
   const dispatch = useDispatch();
-  const { offline, tables } = useSelector(
-    ({ sqlLab: { offline, tables } }: SqlLabRootState) => ({
+  const user = useSelector(({ user }: SqlLabRootState) => user, shallowEqual);
+  const { databases, offline, queries, tables } = useSelector(
+    ({ sqlLab: { databases, offline, queries, tables } }: SqlLabRootState) => ({
+      databases,
       offline,
+      queries,
       tables,
     }),
     shallowEqual,
   );
-  const queries = useSelector(
-    ({ sqlLab: { queries } }: SqlLabRootState) => Object.keys(queries),
-    shallowEqual,
+  const editorQueries = useMemo(
+    () =>
+      Object.values(queries).filter(
+        ({ sqlEditorId }) => sqlEditorId === queryEditorId,
+      ),
+    [queries, queryEditorId],
   );
+  const dataPreviewQueries = useMemo(
+    () =>
+      tables
+        .filter(
+          ({ dataPreviewQueryId, queryEditorId: qeId }) =>
+            dataPreviewQueryId &&
+            queryEditorId === qeId &&
+            queries[dataPreviewQueryId],
+        )
+        .map(({ name, dataPreviewQueryId }) => ({
+          ...queries[dataPreviewQueryId || ''],
+          tableName: name,
+        })),
+    [queries, queryEditorId, tables],
+  );
+  const latestQuery = useMemo(
+    () => editorQueries.find(({ id }) => id === latestQueryId),
+    [editorQueries, latestQueryId],
+  );
+
   const activeSouthPaneTab =
     useSelector<SqlLabRootState, string>(
       state => state.sqlLab.activeSouthPaneTab as string,
     ) ?? 'Results';
-
-  const querySet = useMemo(() => new Set(queries), [queries]);
-  const dataPreviewQueries = useMemo(
-    () =>
-      tables.filter(
-        ({ dataPreviewQueryId, queryEditorId: qeId }) =>
-          dataPreviewQueryId &&
-          queryEditorId === qeId &&
-          querySet.has(dataPreviewQueryId),
-      ),
-    [queryEditorId, tables, querySet],
-  );
   const innerTabContentHeight = height - TAB_HEIGHT;
   const southPaneRef = createRef<HTMLDivElement>();
   const switchTab = (id: string) => {
     dispatch(setActiveSouthPaneTab(id));
   };
-
-  return offline ? (
+  const renderOfflineStatus = () => (
     <Label className="m-r-3" type={STATE_TYPE_MAP[STATUS_OPTIONS.offline]}>
       {STATUS_OPTIONS_LOCALIZED.offline}
     </Label>
+  );
+
+  const renderResults = () => {
+    let results;
+    if (latestQuery) {
+      if (latestQuery?.extra?.errors) {
+        latestQuery.errors = latestQuery.extra.errors;
+      }
+      if (
+        isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) &&
+        latestQuery.state === 'success' &&
+        !latestQuery.resultsKey &&
+        !latestQuery.results
+      ) {
+        results = (
+          <Alert
+            type="warning"
+            message={t(
+              'No stored results found, you need to re-run your query',
+            )}
+          />
+        );
+        return results;
+      }
+      if (Date.now() - latestQuery.startDttm <= LOCALSTORAGE_MAX_QUERY_AGE_MS) {
+        results = (
+          <ResultSet
+            search
+            query={latestQuery}
+            user={user}
+            height={innerTabContentHeight + EXTRA_HEIGHT_RESULTS}
+            database={databases[latestQuery.dbId]}
+            displayLimit={displayLimit}
+            defaultQueryLimit={defaultQueryLimit}
+            showSql
+            showSqlInline
+          />
+        );
+      }
+    } else {
+      results = (
+        <StyledEmptyStateWrapper>
+          <EmptyStateMedium
+            title={t('Run a query to display results')}
+            image="document.svg"
+          />
+        </StyledEmptyStateWrapper>
+      );
+    }
+    return results;
+  };
+
+  const renderDataPreviewTabs = () =>
+    dataPreviewQueries.map(query => (
+      <Tabs.TabPane
+        tab={t('Preview: `%s`', decodeURIComponent(query.tableName))}
+        key={query.id}
+      >
+        <ResultSet
+          query={query}
+          visualize={false}
+          csv={false}
+          cache
+          user={user}
+          height={innerTabContentHeight}
+          displayLimit={displayLimit}
+          defaultQueryLimit={defaultQueryLimit}
+        />
+      </Tabs.TabPane>
+    ));
+  return offline ? (
+    renderOfflineStatus()
   ) : (
     <StyledPane
       data-test="south-pane"
@@ -144,41 +243,16 @@ const SouthPane = ({
         animated={false}
       >
         <Tabs.TabPane tab={t('Results')} key="Results">
-          {latestQueryId && (
-            <Results
-              height={innerTabContentHeight}
-              latestQueryId={latestQueryId}
-              displayLimit={displayLimit}
-              defaultQueryLimit={defaultQueryLimit}
-            />
-          )}
+          {renderResults()}
         </Tabs.TabPane>
         <Tabs.TabPane tab={t('Query history')} key="History">
           <QueryHistory
-            queryEditorId={queryEditorId}
+            queries={editorQueries}
             displayLimit={displayLimit}
             latestQueryId={latestQueryId}
           />
         </Tabs.TabPane>
-        {dataPreviewQueries.map(
-          ({ name, dataPreviewQueryId }) =>
-            dataPreviewQueryId && (
-              <Tabs.TabPane
-                tab={t('Preview: `%s`', decodeURIComponent(name))}
-                key={dataPreviewQueryId}
-              >
-                <ResultSet
-                  queryId={dataPreviewQueryId}
-                  visualize={false}
-                  csv={false}
-                  cache
-                  height={innerTabContentHeight}
-                  displayLimit={displayLimit}
-                  defaultQueryLimit={defaultQueryLimit}
-                />
-              </Tabs.TabPane>
-            ),
-        )}
+        {renderDataPreviewTabs()}
       </Tabs>
     </StyledPane>
   );
