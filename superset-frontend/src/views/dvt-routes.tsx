@@ -36,9 +36,7 @@ const AnnotationLayerList = lazy(
 
 const AlertReportList = lazy(
   () =>
-    import(
-      /* webpackChunkName: "AlertReportList" */ 'src/pages/AlertReportList'
-    ),
+    import(/* webpackChunkName: "AlertReportList" */ 'src/pages/DvtReports'),
 );
 
 const AnnotationList = lazy(

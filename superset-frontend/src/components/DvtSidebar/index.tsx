@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { dvtSidebarReportsSetProperty } from 'src/dvt-redux/dvt-sidebarReducer';
+import { useAppSelector } from 'src/hooks/useAppSelector';
 import DvtLogo from '../DvtLogo';
 import DvtDarkMode from '../DvtDarkMode';
 import DvtTitlePlus from '../DvtTitlePlus';
@@ -24,6 +27,8 @@ interface DvtSidebarProps {
 }
 
 const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
+  const dispatch = useDispatch();
+  const reportsSelector = useAppSelector(state => state.dvtSidebar.reports);
   const [darkMode, setDarkMode] = useState<boolean>(false);
   const [active, setActive] = useState<string>('test');
 
@@ -55,6 +60,17 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
   const sidebarDataFindPathname = DvtSidebarData.find(
     (item: { pathname: string }) => item.pathname === pathName,
   );
+
+  const updateReportsProperty = (value: string, propertyName: string) => {
+    dispatch(
+      dvtSidebarReportsSetProperty({
+        reports: {
+          ...reportsSelector,
+          [propertyName]: value,
+        },
+      }),
+    );
+  };
 
   return (
     <StyledDvtSidebar pathName={pathName}>
@@ -102,22 +118,24 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
                 valuesList: { id: number; title: string; subtitle: string }[];
                 title: string;
                 datePicker?: boolean;
+                name: string;
               },
               index: number,
             ) => (
               <StyledDvtSidebarBodySelect key={index}>
-                {!data.datePicker &&
-                  data.placeholder !== 'See Table Schema' && (
-                    <DvtSelect
-                      data={data.values}
-                      label={data.label}
-                      placeholder={data.placeholder}
-                      selectedValue=""
-                      setSelectedValue={() => {}}
-                      maxWidth
-                    />
-                  )}
-                {data.placeholder === 'See Table Schema' && (
+                {!data.datePicker && !data.valuesList && (
+                  <DvtSelect
+                    data={data.values}
+                    label={data.label}
+                    placeholder={data.placeholder}
+                    selectedValue={reportsSelector[data.name]}
+                    setSelectedValue={value =>
+                      updateReportsProperty(value, data.name)
+                    }
+                    maxWidth
+                  />
+                )}
+                {data.valuesList && (
                   <>
                     <DvtSelect
                       data={data.values}
