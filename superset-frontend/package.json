@@ -306,7 +306,7 @@
     "eslint-plugin-prettier": "^4.0.0",
     "eslint-plugin-react": "^7.22.0",
     "eslint-plugin-react-hooks": "^4.2.0",
-    "eslint-plugin-testing-library": "^3.10.2",
+    "eslint-plugin-testing-library": "^6.2.0",
     "eslint-plugin-theme-colors": "file:tools/eslint-plugin-theme-colors",
     "eslint-plugin-translation-vars": "file:tools/eslint-plugin-translation-vars",
     "exports-loader": "^0.7.0",
