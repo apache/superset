@@ -68,6 +68,7 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   markerSize: number;
   metrics: QueryFormMetric[];
   minorSplitLine: boolean;
+  minorTicks: boolean;
   opacity: number;
   orderDesc: boolean;
   rowLimit: number;
