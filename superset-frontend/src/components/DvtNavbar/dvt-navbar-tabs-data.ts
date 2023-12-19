@@ -19,19 +19,6 @@ export const UserData: UserDataProps = {
 
 export const DvtNavbarTabsData: DvtNavbarTabsDataProps[] = [
   {
-    pathname: '/superset/welcome/',
-    data: [
-      {
-        label: 'All',
-        icon: 'full',
-      },
-      {
-        label: 'Mine',
-        icon: 'minus',
-      },
-    ],
-  },
-  {
     pathname: '/alert/list/',
     data: [
       {

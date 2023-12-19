@@ -141,13 +141,6 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, user }) => {
           {pathName === '/superset/welcome/' && (
             <NavbarBottomRight>
               <DvtButton
-                colour="grayscale"
-                typeColour="outline"
-                label="Filter"
-                icon="filter"
-                onClick={() => {}}
-              />
-              <DvtButton
                 typeColour="powder"
                 label={`${sort ? 'Sorted' : 'Sort'}: Date Created`}
                 icon="dvt-sort"
