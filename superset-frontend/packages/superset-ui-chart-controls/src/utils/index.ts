@@ -25,4 +25,3 @@ export { default as columnChoices } from './columnChoices';
 export * from './defineSavedMetrics';
 export * from './getStandardizedControls';
 export * from './getTemporalColumns';
-export * from './getBootstrapData';
