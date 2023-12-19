@@ -557,3 +557,10 @@ export type ControlFormItemSpec<T extends ControlType = ControlType> = {
       defaultValue?: Currency;
     }
   : {});
+
+interface CommonBootstrapData {
+  conf: JsonObject;
+}
+export interface BootstrapData {
+  common: CommonBootstrapData;
+}

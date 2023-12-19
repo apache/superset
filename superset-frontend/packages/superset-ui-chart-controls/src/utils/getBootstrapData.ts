@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import { BootstrapData } from 'src/types/bootstrapTypes';
-import { DEFAULT_BOOTSTRAP_DATA } from 'src/constants';
+import { BootstrapData } from '../types';
+import { DEFAULT_BOOTSTRAP_DATA } from '../constants';
 
 export default function getBootstrapData(): BootstrapData {
   const appContainer = document.getElementById('app');

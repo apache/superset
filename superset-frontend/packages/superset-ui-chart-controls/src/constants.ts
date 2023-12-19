@@ -24,7 +24,12 @@ import {
   QueryColumn,
   DatasourceType,
 } from '@superset-ui/core';
-import { ColumnMeta, SortSeriesData, SortSeriesType } from './types';
+import {
+  BootstrapData,
+  ColumnMeta,
+  SortSeriesData,
+  SortSeriesType,
+} from './types';
 
 // eslint-disable-next-line import/prefer-default-export
 export const TIME_FILTER_LABELS = {
@@ -74,4 +79,10 @@ export const SORT_SERIES_CHOICES = [
 export const DEFAULT_XAXIS_SORT_SERIES_DATA: SortSeriesData = {
   sort_series_type: SortSeriesType.Name,
   sort_series_ascending: true,
+};
+
+export const DEFAULT_BOOTSTRAP_DATA: BootstrapData = {
+  common: {
+    conf: {},
+  },
 };
