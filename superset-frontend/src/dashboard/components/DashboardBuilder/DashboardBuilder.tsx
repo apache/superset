@@ -317,7 +317,7 @@ const DashboardContentWrapper = styled.div`
         width: 100%;
       }
 
-      & > .empty-droptarget:first-child {
+      & > .empty-droptarget:first-child:not(.empty-droptarget--full) {
         height: ${theme.gridUnit * 4}px;
         top: -2px;
         z-index: 10;
