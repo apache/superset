@@ -175,7 +175,9 @@ function AlertList() {
         }
         buttonLabel={editedData.length === 0 ? 'Alert' : 'Clear All Filter'}
         buttonClick={() => {
-          editedData.length > 0 && clearAlerts();
+          if (editedData.length > 0) {
+            clearAlerts();
+          }
         }}
       />
     </StyledAlerts>
