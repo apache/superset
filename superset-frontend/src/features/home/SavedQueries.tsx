@@ -39,6 +39,7 @@ import {
   PAGE_SIZE,
   shortenSQL,
 } from 'src/views/CRUD/utils';
+import { withPrefix } from 'src/utils/routeUtils';
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
@@ -195,7 +196,9 @@ const SavedQueries = ({
     <Menu>
       {canEdit && (
         <Menu.Item>
-          <Link to={`/sqllab?savedQueryId=${query.id}`}>{t('Edit')}</Link>
+          <Link to={withPrefix(`/sqllab/?savedQueryId=${query.id}`)}>
+            {t('Edit')}
+          </Link>
         </Menu.Item>
       )}
       <Menu.Item
@@ -253,7 +256,7 @@ const SavedQueries = ({
         buttons={[
           {
             name: (
-              <Link to="/sqllab?new=true">
+              <Link to={withPrefix('/sqllab/?new=true')}>
                 <i className="fa fa-plus" />
                 {t('SQL Query')}
               </Link>
@@ -264,7 +267,7 @@ const SavedQueries = ({
             name: t('View All »'),
             buttonStyle: 'link',
             onClick: () => {
-              window.location.href = '/savedqueryview/list';
+              window.location.href = withPrefix('/savedqueryview/list/');
             },
           },
         ]}
@@ -275,9 +278,11 @@ const SavedQueries = ({
             <CardStyles key={q.id}>
               <ListViewCard
                 imgURL=""
-                url={`/sqllab?savedQueryId=${q.id}`}
+                url={withPrefix(`/sqllab/?savedQueryId=${q.id}`)}
                 title={q.label}
-                imgFallbackURL="/static/assets/images/empty-query.svg"
+                imgFallbackURL={withPrefix(
+                  '/static/assets/images/empty-query.svg',
+                )}
                 description={t('Ran %s', q.changed_on_delta_humanized)}
                 cover={
                   q?.sql?.length && showThumbnails && featureFlag ? (

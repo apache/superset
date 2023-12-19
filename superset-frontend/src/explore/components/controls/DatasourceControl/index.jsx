@@ -53,6 +53,7 @@ import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { safeStringify } from 'src/utils/safeStringify';
 import { isString } from 'lodash';
 import { Link } from 'react-router-dom';
+import { withPrefix } from 'src/utils/routeUtils';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -254,7 +255,7 @@ class DatasourceControl extends React.PureComponent {
             datasourceKey: `${datasource.id}__${datasource.type}`,
             sql: datasource.sql,
           };
-          SupersetClient.postForm('/sqllab/', {
+          SupersetClient.postForm(withPrefix('/sqllab/'), {
             form_data: safeStringify(payload),
           });
         }
@@ -326,7 +327,7 @@ class DatasourceControl extends React.PureComponent {
           <Menu.Item key={VIEW_IN_SQL_LAB}>
             <Link
               to={{
-                pathname: '/sqllab',
+                pathname: withPrefix('/sqllab'),
                 state: { requestedQuery },
               }}
               onClick={preventRouterLinkWhileMetaClicked}
@@ -366,7 +367,7 @@ class DatasourceControl extends React.PureComponent {
           <Menu.Item key={VIEW_IN_SQL_LAB}>
             <Link
               to={{
-                pathname: '/sqllab',
+                pathname: withPrefix('/sqllab/'),
                 state: { requestedQuery },
               }}
               onClick={preventRouterLinkWhileMetaClicked}

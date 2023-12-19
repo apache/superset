@@ -22,6 +22,7 @@ from typing import Any, TYPE_CHECKING
 from urllib import parse
 
 import sqlalchemy as sqla
+from flask import url_for
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from markupsafe import escape, Markup
@@ -299,20 +300,22 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     def get_explore_url(
         self,
-        base_url: str = "/explore",
+        base_url: str | None = None,
         overrides: dict[str, Any] | None = None,
     ) -> str:
+        base_url = base_url or url_for("ExploreView.root")
         return self.build_explore_url(self.id, base_url, overrides)
 
     @staticmethod
     def build_explore_url(
-        id_: int, base_url: str = "/explore", overrides: dict[str, Any] | None = None
+        id_: int, base_url: str | None = None, overrides: dict[str, Any] | None = None
     ) -> str:
+        base_url = base_url or url_for("ExploreView.root")
         overrides = overrides or {}
         form_data = {"slice_id": id_}
         form_data.update(overrides)
         params = parse.quote(json.dumps(form_data))
-        return f"{base_url}/?slice_id={id_}&form_data={params}"
+        return f"{base_url}?slice_id={id_}&form_data={params}"
 
     @property
     def slice_url(self) -> str:
@@ -322,11 +325,11 @@ class Slice(  # pylint: disable=too-many-public-methods
     @property
     def explore_json_url(self) -> str:
         """Defines the url to access the slice"""
-        return self.get_explore_url("/superset/explore_json")
+        return self.get_explore_url(url_for("Superset.explore_json"))
 
     @property
     def edit_url(self) -> str:
-        return f"/chart/edit/{self.id}"
+        return url_for("SliceModelView.edit", pk=self.id)
 
     @property
     def chart(self) -> str:
@@ -350,7 +353,7 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @property
     def url(self) -> str:
-        return f"/explore/?slice_id={self.id}"
+        return url_for("ExploreView.root", slice_id=self.id)
 
     def get_query_context_factory(self) -> QueryContextFactory:
         if self.query_context_factory is None:

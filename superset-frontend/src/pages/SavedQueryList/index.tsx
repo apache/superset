@@ -61,6 +61,8 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import SavedQueryPreviewModal from 'src/features/queries/SavedQueryPreviewModal';
 import { findPermission } from 'src/utils/findPermission';
 
+import { withPrefix } from 'src/utils/routeUtils';
+
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
   'The passwords for the databases below are needed in order to ' +
@@ -197,7 +199,7 @@ function SavedQueryList({
 
   subMenuButtons.push({
     name: (
-      <Link to="/sqllab?new=true">
+      <Link to={withPrefix('/sqllab/?new=true')}>
         <i className="fa fa-plus" /> {t('Query')}
       </Link>
     ),
@@ -227,16 +229,17 @@ function SavedQueryList({
   // Action methods
   const openInSqlLab = (id: number, openInNewWindow: boolean) => {
     if (openInNewWindow) {
-      window.open(`/sqllab?savedQueryId=${id}`);
+      window.open(withPrefix(`/sqllab/?savedQueryId=${id}`));
     } else {
-      history.push(`/sqllab?savedQueryId=${id}`);
+      history.push(withPrefix(`/sqllab/?savedQueryId=${id}`));
     }
   };
 
   const copyQueryLink = useCallback(
     (id: number) => {
+      const uri = withPrefix(`/sqllab/?savedQueryId=${id}`);
       copyTextToClipboard(() =>
-        Promise.resolve(`${window.location.origin}/sqllab?savedQueryId=${id}`),
+        Promise.resolve(`${window.location.origin}${uri}`),
       )
         .then(() => {
           addSuccessToast(t('Link Copied!'));

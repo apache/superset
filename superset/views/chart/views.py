@@ -51,7 +51,7 @@ class SliceModelView(
         security_manager.raise_for_ownership(item)
 
     @expose(
-        "/add",
+        "/add/",
         methods=(
             "GET",
             "POST",

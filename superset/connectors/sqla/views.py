@@ -18,7 +18,7 @@
 import logging
 import re
 
-from flask import flash, Markup, redirect
+from flask import flash, Markup, redirect, url_for
 from flask_appbuilder import CompactCRUDMixin, expose, permission_name
 from flask_appbuilder.fields import QuerySelectField
 from flask_appbuilder.fieldwidgets import Select2Widget
@@ -460,7 +460,9 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         resp = super().edit(pk)
         if isinstance(resp, str):
             return resp
-        return redirect(f"/explore/?datasource_type=table&datasource_id={pk}")
+        return redirect(
+            url_for("Superset.explore", datasource_type="table", datasource_id=pk)
+        )
 
     @expose("/list/")
     @has_access

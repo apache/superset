@@ -78,7 +78,7 @@ function prepareDashboardFilters(
   cy.createSampleDashboards([0]);
   cy.request({
     method: 'GET',
-    url: `api/v1/dashboard/1-sample-dashboard`,
+    url: `/api/v1/dashboard/1-sample-dashboard`,
   }).then(res => {
     const { body } = res;
     const dashboardId = body.result.id;
@@ -170,7 +170,7 @@ function prepareDashboardFilters(
       return cy
         .request({
           method: 'PUT',
-          url: `api/v1/dashboard/${dashboardId}`,
+          url: `/api/v1/dashboard/${dashboardId}`,
           body: {
             json_metadata: JSON.stringify(jsonMetadata),
           },

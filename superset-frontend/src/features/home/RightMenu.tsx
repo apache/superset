@@ -47,6 +47,7 @@ import { RootState } from 'src/dashboard/types';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
 import { uploadUserPerms } from 'src/views/CRUD/utils';
 import TelemetryPixel from 'src/components/TelemetryPixel';
+import { withPrefix } from 'src/utils/routeUtils';
 import LanguagePicker from './LanguagePicker';
 import {
   ExtensionConfigs,
@@ -178,7 +179,7 @@ const RightMenu = ({
         {
           label: t('Create dataset'),
           name: GlobalMenuDataOptions.DATASET_CREATION,
-          url: '/dataset/add/',
+          url: withPrefix('/dataset/add/'),
           perm: canDataset && nonExamplesDBConnected,
         },
         {
@@ -189,21 +190,21 @@ const RightMenu = ({
         {
           label: t('Upload CSV to database'),
           name: 'Upload a CSV',
-          url: '/csvtodatabaseview/form',
+          url: withPrefix('/csvtodatabaseview/form'),
           perm: canUploadCSV && showUploads,
           disable: isAdmin && !allowUploads,
         },
         {
           label: t('Upload columnar file to database'),
           name: 'Upload a Columnar file',
-          url: '/columnartodatabaseview/form',
+          url: withPrefix('/columnartodatabaseview/form'),
           perm: canUploadColumnar && showUploads,
           disable: isAdmin && !allowUploads,
         },
         {
           label: t('Upload Excel file to database'),
           name: 'Upload Excel',
-          url: '/exceltodatabaseview/form',
+          url: withPrefix('/exceltodatabaseview/form'),
           perm: canUploadExcel && showUploads,
           disable: isAdmin && !allowUploads,
         },
@@ -211,7 +212,7 @@ const RightMenu = ({
     },
     {
       label: t('SQL query'),
-      url: '/sqllab?new=true',
+      url: withPrefix('/sqllab/?new=true'),
       icon: 'fa-fw fa-search',
       perm: 'can_sqllab',
       view: 'Superset',
@@ -219,15 +220,15 @@ const RightMenu = ({
     {
       label: t('Chart'),
       url: Number.isInteger(dashboardId)
-        ? `/chart/add?dashboard_id=${dashboardId}`
-        : '/chart/add',
+        ? withPrefix(`/chart/add/?dashboard_id=${dashboardId}`)
+        : withPrefix('/chart/add/'),
       icon: 'fa-fw fa-bar-chart',
       perm: 'can_write',
       view: 'Chart',
     },
     {
       label: t('Dashboard'),
-      url: '/dashboard/new',
+      url: withPrefix('/dashboard/new/'),
       icon: 'fa-fw fa-dashboard',
       perm: 'can_write',
       view: 'Dashboard',
@@ -475,16 +476,30 @@ const RightMenu = ({
             <Menu.ItemGroup key="user-section" title={t('User')}>
               {navbarRight.user_profile_url && (
                 <Menu.Item key="profile">
-                  <Link to={navbarRight.user_profile_url}>{t('Profile')}</Link>
+                  {isFrontendRoute(navbarRight.user_profile_url) ? (
+                    <Link to={navbarRight.user_profile_url}>
+                      {t('Profile')}
+                    </Link>
+                  ) : (
+                    <a href={navbarRight.user_profile_url}>{t('Profile')}</a>
+                  )}
                 </Menu.Item>
               )}
               {navbarRight.user_info_url && (
                 <Menu.Item key="info">
-                  <a href={navbarRight.user_info_url}>{t('Info')}</a>
+                  {isFrontendRoute(navbarRight.user_info_url) ? (
+                    <Link to={navbarRight.user_info_url}>{t('Info')}</Link>
+                  ) : (
+                    <a href={navbarRight.user_info_url}>{t('Info')}</a>
+                  )}
                 </Menu.Item>
               )}
               <Menu.Item key="logout">
-                <a href={navbarRight.user_logout_url}>{t('Logout')}</a>
+                {isFrontendRoute(navbarRight.user_logout_url) ? (
+                  <Link to={navbarRight.user_logout_url}>{t('Logout')}</Link>
+                ) : (
+                  <a href={navbarRight.user_logout_url}>{t('Logout')}</a>
+                )}
               </Menu.Item>
             </Menu.ItemGroup>,
           ]}

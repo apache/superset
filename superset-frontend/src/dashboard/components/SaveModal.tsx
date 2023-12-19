@@ -31,6 +31,8 @@ import {
   SAVE_TYPE_NEWDASHBOARD,
 } from 'src/dashboard/util/constants';
 
+import { withPrefix } from 'src/utils/routeUtils';
+
 type SaveType = typeof SAVE_TYPE_OVERWRITE | typeof SAVE_TYPE_NEWDASHBOARD;
 
 type SaveModalProps = {
@@ -154,7 +156,9 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
     } else {
       this.onSave(data, dashboardId, saveType).then((resp: JsonResponse) => {
         if (saveType === SAVE_TYPE_NEWDASHBOARD && resp.json?.result?.id) {
-          window.location.href = `/superset/dashboard/${resp.json.result.id}/`;
+          window.location.href = withPrefix(
+            `/superset/dashboard/${resp.json.result.id}/`,
+          );
         }
       });
       this.modal?.current?.close?.();

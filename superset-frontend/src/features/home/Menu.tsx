@@ -34,6 +34,7 @@ import {
   MenuObjectProps,
   MenuData,
 } from 'src/types/bootstrapTypes';
+import { withPrefix } from 'src/utils/routeUtils';
 import RightMenu from './RightMenu';
 
 interface MenuProps {
@@ -209,12 +210,12 @@ export function Menu({
     return () => window.removeEventListener('resize', windowResize);
   }, []);
 
-  enum paths {
-    EXPLORE = '/explore',
-    DASHBOARD = '/dashboard',
-    CHART = '/chart',
-    DATASETS = '/tablemodelview',
-  }
+  const paths = {
+    EXPLORE: withPrefix('/explore'),
+    DASHBOARD: withPrefix('/dashboard'),
+    CHART: withPrefix('/chart'),
+    DATASETS: withPrefix('/tablemodelview'),
+  };
 
   const defaultTabSelection: string[] = [];
   const [activeTabs, setActiveTabs] = useState(defaultTabSelection);

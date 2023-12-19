@@ -22,6 +22,8 @@ import React, { lazy } from 'react';
 // not lazy loaded since this is the home page.
 import Home from 'src/pages/Home';
 
+import { withPrefix } from 'src/utils/routeUtils';
+
 const ChartCreation = lazy(
   () =>
     import(/* webpackChunkName: "ChartCreation" */ 'src/pages/ChartCreation'),
@@ -136,112 +138,112 @@ type Routes = {
 
 export const routes: Routes = [
   {
-    path: '/superset/welcome/',
+    path: withPrefix('/superset/welcome/'),
     Component: Home,
   },
   {
-    path: '/dashboard/list/',
+    path: withPrefix('/dashboard/list/'),
     Component: DashboardList,
   },
   {
-    path: '/superset/dashboard/:idOrSlug/',
+    path: withPrefix('/superset/dashboard/:idOrSlug/'),
     Component: Dashboard,
   },
   {
-    path: '/chart/add',
+    path: withPrefix('/chart/add/'),
     Component: ChartCreation,
   },
   {
-    path: '/chart/list/',
+    path: withPrefix('/chart/list/'),
     Component: ChartList,
   },
   {
-    path: '/tablemodelview/list/',
+    path: withPrefix('/tablemodelview/list/'),
     Component: DatasetList,
   },
   {
-    path: '/databaseview/list/',
+    path: withPrefix('/databaseview/list/'),
     Component: DatabaseList,
   },
   {
-    path: '/savedqueryview/list/',
+    path: withPrefix('/savedqueryview/list/'),
     Component: SavedQueryList,
   },
   {
-    path: '/csstemplatemodelview/list/',
+    path: withPrefix('/csstemplatemodelview/list/'),
     Component: CssTemplateList,
   },
   {
-    path: '/annotationlayer/list/',
+    path: withPrefix('/annotationlayer/list/'),
     Component: AnnotationLayerList,
   },
   {
-    path: '/annotationlayer/:annotationLayerId/annotation/',
+    path: withPrefix('/annotationlayer/:annotationLayerId/annotation/'),
     Component: AnnotationList,
   },
   {
-    path: '/sqllab/history/',
+    path: withPrefix('/sqllab/history/'),
     Component: QueryHistoryList,
   },
   {
-    path: '/alert/list/',
+    path: withPrefix('/alert/list/'),
     Component: AlertReportList,
   },
   {
-    path: '/report/list/',
+    path: withPrefix('/report/list/'),
     Component: AlertReportList,
     props: {
       isReportEnabled: true,
     },
   },
   {
-    path: '/alert/:alertId/log/',
+    path: withPrefix('/alert/:alertId/log/'),
     Component: ExecutionLogList,
   },
   {
-    path: '/report/:alertId/log/',
+    path: withPrefix('/report/:alertId/log/'),
     Component: ExecutionLogList,
     props: {
       isReportEnabled: true,
     },
   },
   {
-    path: '/explore/',
+    path: withPrefix('/explore/'),
     Component: Chart,
   },
   {
-    path: '/superset/explore/p',
+    path: withPrefix('/superset/explore/p'),
     Component: Chart,
   },
   {
-    path: '/dataset/add/',
+    path: withPrefix('/dataset/add/'),
     Component: DatasetCreation,
   },
   {
-    path: '/dataset/:datasetId',
+    path: withPrefix('/dataset/:datasetId/'),
     Component: DatasetCreation,
   },
   {
-    path: '/rowlevelsecurity/list',
+    path: withPrefix('/rowlevelsecurity/list/'),
     Component: RowLevelSecurityList,
   },
   {
-    path: '/profile',
+    path: withPrefix('/profile/'),
     Component: Profile,
   },
   {
-    path: '/sqllab/',
+    path: withPrefix('/sqllab/'),
     Component: SqlLab,
   },
 ];
 
 if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) {
   routes.push({
-    path: '/superset/all_entities/',
+    path: withPrefix('/superset/all_entities/'),
     Component: AllEntities,
   });
   routes.push({
-    path: '/superset/tags/',
+    path: withPrefix('/superset/tags/'),
     Component: Tags,
   });
 }

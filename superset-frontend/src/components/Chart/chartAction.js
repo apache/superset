@@ -44,6 +44,8 @@ import { updateDataMask } from 'src/dataMask/actions';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { safeStringify } from 'src/utils/safeStringify';
 
+import { withPrefix } from 'src/utils/routeUtils';
+
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
   return {
@@ -578,7 +580,7 @@ export function redirectSQLLab(formData, history) {
   return dispatch => {
     getChartDataRequest({ formData, resultFormat: 'json', resultType: 'query' })
       .then(({ json }) => {
-        const redirectUrl = '/sqllab/';
+        const redirectUrl = withPrefix('/sqllab/');
         const payload = {
           datasourceKey: formData.datasource,
           sql: json.result[0].query,

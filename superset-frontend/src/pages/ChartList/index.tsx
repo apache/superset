@@ -777,7 +777,7 @@ function ChartList(props: ChartListProps) {
       ),
       buttonStyle: 'primary',
       onClick: () => {
-        history.push('/chart/add');
+        history.push('/chart/add/');
       },
     });
 

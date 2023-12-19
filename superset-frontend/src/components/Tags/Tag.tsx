@@ -23,6 +23,8 @@ import AntdTag from 'antd/lib/tag';
 import React, { useMemo } from 'react';
 import { Tooltip } from 'src/components/Tooltip';
 
+import { withPrefix } from 'src/utils/routeUtils';
+
 const StyledTag = styled(AntdTag)`
   ${({ theme }) => `
   margin-top: ${theme.gridUnit}px;
@@ -65,7 +67,7 @@ const Tag = ({
           <StyledTag data-test="tag" role="link" key={id} onClick={onClick}>
             {id ? (
               <a
-                href={`/superset/all_entities/?id=${id}`}
+                href={withPrefix(`/superset/all_entities/?id=${id}`)}
                 target="_blank"
                 rel="noreferrer"
               >

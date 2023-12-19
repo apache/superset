@@ -45,6 +45,7 @@ import { slicePropShape } from 'src/dashboard/util/propShapes';
 import { debounce, pickBy } from 'lodash';
 import Checkbox from 'src/components/Checkbox';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import { withPrefix } from 'src/utils/routeUtils';
 import AddSliceCard from './AddSliceCard';
 import AddSliceDragPreview from './dnd/AddSliceDragPreview';
 import DragDroppable from './dnd/DragDroppable';
@@ -333,7 +334,9 @@ class SliceAdder extends React.Component {
             buttonSize="xsmall"
             onClick={() =>
               window.open(
-                `/chart/add?dashboard_id=${this.props.dashboardId}`,
+                withPrefix(
+                  `/chart/add/?dashboard_id=${this.props.dashboardId}`,
+                ),
                 '_blank',
                 'noopener noreferrer',
               )

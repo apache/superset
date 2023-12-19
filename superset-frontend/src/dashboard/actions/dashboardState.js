@@ -54,6 +54,7 @@ import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { safeStringify } from 'src/utils/safeStringify';
 import { logEvent } from 'src/logger/actions';
 import { LOG_ACTIONS_CONFIRM_OVERWRITE_DASHBOARD_METADATA } from 'src/logger/LogUtils';
+import { withPrefix } from 'src/utils/routeUtils';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';
 import {
   saveChartConfiguration,
@@ -346,7 +347,7 @@ export function saveDashboardRequest(data, id, saveType) {
       window.history.pushState(
         { event: 'dashboard_properties_changed' },
         '',
-        `/superset/dashboard/${slug || id}/`,
+        withPrefix(`/superset/dashboard/${slug || id}/`),
       );
 
       dispatch(addSuccessToast(t('This dashboard was saved successfully.')));

@@ -302,13 +302,15 @@ class BaseDatasource(
 
     @property
     def url(self) -> str:
-        return f"/{self.baselink}/edit/{self.id}"
+        prefix = config.get("APPLICATION_ROOT", "") or ""
+        return f"{prefix}{self.baselink}/edit/{self.id}"
 
     @property
     def explore_url(self) -> str:
         if self.default_endpoint:
             return self.default_endpoint
-        return f"/explore/?datasource_type={self.type}&datasource_id={self.id}"
+        prefix = config.get("APPLICATION_ROOT", "") or ""
+        return f"{prefix}/explore/?datasource_type={self.type}&datasource_id={self.id}"
 
     @property
     def column_formats(self) -> dict[str, str | None]:

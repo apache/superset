@@ -35,6 +35,7 @@ import Chart, { Slice } from 'src/types/Chart';
 import copyTextToClipboard from 'src/utils/copy';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import SupersetText from 'src/utils/textUtils';
+import { withPrefix } from 'src/utils/routeUtils';
 import { FavoriteStatus, ImportResourceName, DatabaseObject } from './types';
 
 interface ListViewResourceState<D extends object = any> {
@@ -673,9 +674,8 @@ export const copyQueryLink = (
   addDangerToast: (arg0: string) => void,
   addSuccessToast: (arg0: string) => void,
 ) => {
-  copyTextToClipboard(() =>
-    Promise.resolve(`${window.location.origin}/sqllab?savedQueryId=${id}`),
-  )
+  const uri = withPrefix(`/sqllab/?savedQueryId=${id}`);
+  copyTextToClipboard(() => Promise.resolve(`${window.location.origin}${uri}`))
     .then(() => {
       addSuccessToast(t('Link Copied!'));
     })
@@ -696,7 +696,7 @@ export const testDatabaseConnection = (
   addSuccessToast: (arg0: string) => void,
 ) => {
   SupersetClient.post({
-    endpoint: 'api/v1/database/test_connection/',
+    endpoint: '/api/v1/database/test_connection/',
     body: JSON.stringify(connection),
     headers: { 'Content-Type': 'application/json' },
   }).then(

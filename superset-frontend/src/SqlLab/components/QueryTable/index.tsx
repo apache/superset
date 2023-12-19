@@ -39,6 +39,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import { SqlLabRootState } from 'src/SqlLab/types';
 import ModalTrigger from 'src/components/ModalTrigger';
 import { UserWithPermissionsAndRoles as User } from 'src/types/bootstrapTypes';
+import { withPrefix } from 'src/utils/routeUtils';
 import ResultSet from '../ResultSet';
 import HighlightedSql from '../HighlightedSql';
 import { StaticPosition, verticalAlign, StyledTooltip } from './styles';
@@ -61,8 +62,7 @@ interface QueryTableProps {
 }
 
 const openQuery = (id: number) => {
-  const url = `/sqllab?queryId=${id}`;
-  window.open(url);
+  window.open(withPrefix(`/sqllab/?queryId=${id}`));
 };
 
 const QueryTable = ({

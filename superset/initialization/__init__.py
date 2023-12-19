@@ -24,7 +24,7 @@ from typing import Any, Callable, TYPE_CHECKING
 
 import wtforms_json
 from deprecation import deprecated
-from flask import Flask, redirect
+from flask import Flask, redirect, url_for
 from flask_appbuilder import expose, IndexView
 from flask_babel import gettext as __
 from flask_compress import Compress
@@ -237,7 +237,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_link(
             "Home",
             label=__("Home"),
-            href="/superset/welcome/",
+            href=f"{appbuilder.app.config['APPLICATION_ROOT']}/superset/welcome/",
             cond=lambda: bool(appbuilder.app.config["LOGO_TARGET_PATH"]),
         )
 
@@ -269,7 +269,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_link(
             "Datasets",
             label=__("Datasets"),
-            href="/tablemodelview/list/",
+            href=f"{appbuilder.app.config['APPLICATION_ROOT']}/tablemodelview/list/",
             icon="fa-table",
             category="",
             category_icon="",
@@ -333,10 +333,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         #
         # Add links
         #
+        prefix = appbuilder.app.config["APPLICATION_ROOT"]
         appbuilder.add_link(
             "Import Dashboards",
             label=__("Import Dashboards"),
-            href="/superset/import_dashboards/",
+            href=f"{prefix}/superset/import_dashboards/",
             icon="fa-cloud-upload",
             category="Manage",
             category_label=__("Manage"),
@@ -350,7 +351,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_link(
             "SQL Editor",
             label=__("SQL Lab"),
-            href="/sqllab/",
+            href=f"{prefix}/sqllab/",
             category_icon="fa-flask",
             icon="fa-flask",
             category="SQL Lab",
@@ -359,7 +360,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_link(
             "Saved Queries",
             label=__("Saved Queries"),
-            href="/savedqueryview/list/",
+            href=f"{prefix}/savedqueryview/list/",
             icon="fa-save",
             category="SQL Lab",
             category_label=__("SQL"),
@@ -367,7 +368,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_link(
             "Query Search",
             label=__("Query History"),
-            href="/sqllab/history/",
+            href=f"{prefix}/sqllab/history/",
             icon="fa-search",
             category_icon="fa-flask",
             category="SQL Lab",
@@ -414,7 +415,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             AnnotationLayerView,
             "Annotation Layers",
             label=__("Annotation Layers"),
-            href="/annotationlayer/list/",
+            href=f"{prefix}/annotationlayer/list/",
             icon="fa-comment",
             category_icon="",
             category="Manage",
@@ -424,7 +425,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view(
             RowLevelSecurityView,
             "Row Level Security",
-            href="/rowlevelsecurity/list/",
+            href=f"{prefix}/rowlevelsecurity/list/",
             label=__("Row Level Security"),
             category="Security",
             category_label=__("Security"),
@@ -694,4 +695,4 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 class SupersetIndexView(IndexView):
     @expose("/")
     def index(self) -> FlaskResponse:
-        return redirect("/superset/welcome/")
+        return redirect(url_for("Superset.welcome"))

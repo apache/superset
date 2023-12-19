@@ -16,7 +16,7 @@
 # under the License.
 import logging
 
-from flask import request, Response
+from flask import request, Response, url_for
 from flask_appbuilder.api import expose, protect, safe
 from marshmallow import ValidationError
 
@@ -96,7 +96,7 @@ class ExplorePermalinkRestApi(BaseSupersetApi):
             state = self.add_model_schema.load(request.json)
             key = CreateExplorePermalinkCommand(state=state).run()
             http_origin = request.headers.environ.get("HTTP_ORIGIN")
-            url = f"{http_origin}/superset/explore/p/{key}/"
+            url = f"{http_origin}{url_for('ExplorePermalinkView.permalink', key=key)}"
             return self.response(201, key=key, url=url)
         except ValidationError as ex:
             return self.response(400, message=ex.messages)

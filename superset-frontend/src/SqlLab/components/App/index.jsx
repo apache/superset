@@ -34,6 +34,7 @@ import {
   LOG_ACTIONS_SQLLAB_WARN_LOCAL_STORAGE_USAGE,
   LOG_ACTIONS_SQLLAB_MONITOR_LOCAL_STORAGE_USAGE,
 } from 'src/logger/LogUtils';
+import { withPrefix } from 'src/utils/routeUtils';
 import TabbedSqlEditors from '../TabbedSqlEditors';
 import QueryAutoRefresh from '../QueryAutoRefresh';
 
@@ -189,7 +190,7 @@ class App extends React.PureComponent {
       return (
         <Redirect
           to={{
-            pathname: '/sqllab/history/',
+            pathname: withPrefix('/sqllab/history/'),
             replace: true,
           }}
         />

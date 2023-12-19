@@ -30,6 +30,7 @@ import Loading from 'src/components/Loading';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { withPrefix } from 'src/utils/routeUtils';
 import { embeddedApi } from './api';
 
 const debugMode = process.env.WEBPACK_MODE === 'development';
@@ -62,8 +63,11 @@ const EmbeddedRoute = () => (
 const EmbeddedApp = () => (
   <Router>
     {/* todo (embedded) remove this line after uuids are deployed */}
-    <Route path="/dashboard/:idOrSlug/embedded/" component={EmbeddedRoute} />
-    <Route path="/embedded/:uuid/" component={EmbeddedRoute} />
+    <Route
+      path={withPrefix('/dashboard/:idOrSlug/embedded/')}
+      component={EmbeddedRoute}
+    />
+    <Route path={withPrefix('/embedded/:uuid/')} component={EmbeddedRoute} />
   </Router>
 );
 

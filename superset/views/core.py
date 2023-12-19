@@ -15,16 +15,18 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=invalid-name
+# pylint: disable=too-many-lines
 from __future__ import annotations
 
 import contextlib
 import logging
+import re
 from datetime import datetime
 from typing import Any, Callable, cast
 from urllib import parse
 
 import simplejson as json
-from flask import abort, flash, g, redirect, render_template, request, Response
+from flask import abort, flash, g, redirect, render_template, request, Response, url_for
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import (
     has_access,
@@ -136,7 +138,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if not slc:
             abort(404)
         form_data = parse.quote(json.dumps({"slice_id": slice_id}))
-        endpoint = f"/explore/?form_data={form_data}"
+        endpoint = url_for("Superset.explore", form_data=form_data)
 
         if ReservedUrlParameters.is_standalone_mode():
             endpoint += f"&{ReservedUrlParameters.STANDALONE}=true"
@@ -381,7 +383,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 )
             if success:
                 flash("Dashboard(s) have been imported", "success")
-                return redirect("/dashboard/list/")
+                return redirect(url_for("DashboardModelView.list"))
 
         databases = db.session.query(Database).all()
         return self.render_template(
@@ -394,7 +396,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         the form_data param with a form_data_key by saving the original content
         to the cache layer.
         """
-        redirect_url = request.url.replace("/superset/explore", "/explore")
+
         form_data_key = None
         if request_form_data := request.args.get("form_data"):
             parsed_form_data = loads_request_json(request_form_data)
@@ -410,17 +412,25 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     form_data=request_form_data,
                 )
                 form_data_key = CreateFormDataCommand(parameters).run()
-        if form_data_key:
-            url = parse.urlparse(redirect_url)
-            query = parse.parse_qs(url.query)
-            query.pop("form_data")
-            query["form_data_key"] = [form_data_key]
-            url = url._replace(query=parse.urlencode(query, True))
-            redirect_url = parse.urlunparse(url)
+            params = {"form_data_key": form_data_key} if form_data_key else {}
+        else:
+            m = re.match(
+                r"/superset/explore/((?P<datasource_type>[^/]+)/"
+                r"(?P<datasource_id>[^/]+)/)?",
+                request.url,
+            )
+            params = (
+                {
+                    key: value
+                    for key, value in m.groupdict().items()
+                    if value is not None
+                }
+                if m
+                else {}
+            )
+        redirect_url = url_for("ExploreView.root", **params)
 
-        # Return a relative URL
-        url = parse.urlparse(redirect_url)
-        return f"{url.path}?{url.query}" if url.query else url.path
+        return redirect_url
 
     @has_access
     @event_logger.log_this
@@ -467,7 +477,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     )
             except (ChartNotFoundError, ExplorePermalinkGetFailedError) as ex:
                 flash(__("Error: %(msg)s", msg=ex.message), "danger")
-                return redirect("/chart/list/")
+                return redirect(url_for("SliceModelView.list"))
         elif form_data_key:
             parameters = CommandParameters(key=form_data_key)
             value = GetFormDataCommand(parameters).run()
@@ -839,7 +849,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             dashboard.raise_for_access()
         except SupersetSecurityException as ex:
             return redirect_with_flash(
-                url="/dashboard/list/",
+                url=url_for("DashboardModelView.list"),
                 message=utils.error_msg_from_exception(ex),
                 category="danger",
             )
@@ -879,11 +889,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             value = GetDashboardPermalinkCommand(key).run()
         except DashboardPermalinkGetFailedError as ex:
             flash(__("Error: %(msg)s", msg=ex.message), "danger")
-            return redirect("/dashboard/list/")
+            return redirect(url_for("DashboardModelView.list"))
         if not value:
             return json_error_response(_("permalink state not found"), status=404)
         dashboard_id, state = value["dashboardId"], value.get("state", {})
-        url = f"/superset/dashboard/{dashboard_id}?permalink_key={key}"
+        url = url_for(
+            "Superset.dashboard", dashboard_id_or_slug=dashboard_id, permalink_key=key
+        )
         if url_params := state.get("urlParams"):
             params = parse.urlencode(url_params)
             url = f"{url}&{params}"
@@ -969,7 +981,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/profile/")
     @deprecated(new_target="/profile")
     def profile(self) -> FlaskResponse:
-        return redirect("/profile/")
+        return redirect(url_for("ProfileView.root"))
 
     @has_access
     @event_logger.log_this
@@ -983,10 +995,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @deprecated(new_target="/sqllab")
     def sqllab(self) -> FlaskResponse:
         """SQL Editor"""
-        url = "/sqllab"
-        if url_params := request.args:
-            params = parse.urlencode(url_params)
-            url = f"{url}?{params}"
+        url = url_for("SqllabView.root", **request.args)
         return redirect(url)
 
     @has_access
@@ -994,4 +1003,5 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/sqllab/history/", methods=("GET",))
     @deprecated(new_target="/sqllab/history")
     def sqllab_history(self) -> FlaskResponse:
-        return redirect("/sqllab/history")
+        url = url_for("SqllabView.history", **request.args)
+        return redirect(url)

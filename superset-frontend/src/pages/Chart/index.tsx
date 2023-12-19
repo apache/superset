@@ -49,7 +49,7 @@ const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
   try {
     const rv = await makeApi<{}, ExploreResponsePayload>({
       method: 'GET',
-      endpoint: 'api/v1/explore/',
+      endpoint: '/api/v1/explore/',
     })(exploreUrlParams);
     if (isValidResult(rv)) {
       return rv;

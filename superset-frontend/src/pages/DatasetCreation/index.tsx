@@ -31,6 +31,8 @@ import {
 } from 'src/features/datasets/AddDataset/types';
 import DatasetLayout from 'src/features/datasets/DatasetLayout';
 
+import { withPrefix } from 'src/utils/routeUtils';
+
 type Schema = {
   schema: string;
 };
@@ -72,8 +74,9 @@ export function datasetReducer(
   }
 }
 
-const prevUrl =
-  '/tablemodelview/list/?pageIndex=0&sortColumn=changed_on_delta_humanized&sortOrder=desc';
+const prevUrl = withPrefix(
+  '/tablemodelview/list/?pageIndex=0&sortColumn=changed_on_delta_humanized&sortOrder=desc',
+);
 
 export default function AddDataset() {
   const [dataset, setDataset] = useReducer<

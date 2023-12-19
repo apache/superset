@@ -31,6 +31,7 @@ import {
 } from 'src/views/CRUD/utils';
 import { Chart } from 'src/types/Chart';
 import Icons from 'src/components/Icons';
+import { withPrefix } from 'src/utils/routeUtils';
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
@@ -105,7 +106,7 @@ const getEntityIcon = (entity: ActivityObject) => {
 };
 
 const getEntityUrl = (entity: ActivityObject) => {
-  if ('sql' in entity) return `/sqllab?savedQueryId=${entity.id}`;
+  if ('sql' in entity) return withPrefix(`/sqllab/?savedQueryId=${entity.id}`);
   if ('url' in entity) return entity.url;
   return entity.item_url;
 };

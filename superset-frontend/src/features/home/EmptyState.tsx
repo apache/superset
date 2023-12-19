@@ -22,6 +22,7 @@ import Button from 'src/components/Button';
 import { Empty } from 'src/components';
 import { TableTab } from 'src/views/CRUD/types';
 import { styled, t } from '@superset-ui/core';
+import { withPrefix } from 'src/utils/routeUtils';
 import { WelcomeTable } from './types';
 
 const welcomeTableLabels: Record<WelcomeTable, string> = {
@@ -80,14 +81,14 @@ export default function EmptyState({
   otherTabTitle,
 }: EmptyStateProps) {
   const mineRedirects: Redirects = {
-    [WelcomeTable.Charts]: '/chart/add',
-    [WelcomeTable.Dashboards]: '/dashboard/new',
-    [WelcomeTable.SavedQueries]: '/sqllab?new=true',
+    [WelcomeTable.Charts]: withPrefix('/chart/add/'),
+    [WelcomeTable.Dashboards]: withPrefix('/dashboard/new/'),
+    [WelcomeTable.SavedQueries]: withPrefix('/sqllab/?new=true'),
   };
   const favRedirects: Redirects = {
-    [WelcomeTable.Charts]: '/chart/list',
-    [WelcomeTable.Dashboards]: '/dashboard/list/',
-    [WelcomeTable.SavedQueries]: '/savedqueryview/list/',
+    [WelcomeTable.Charts]: withPrefix('/chart/list/'),
+    [WelcomeTable.Dashboards]: withPrefix('/dashboard/list/'),
+    [WelcomeTable.SavedQueries]: withPrefix('/savedqueryview/list/'),
   };
   const tableIcon: Record<WelcomeTable, string> = {
     [WelcomeTable.Charts]: 'empty-charts.svg',
@@ -132,7 +133,7 @@ export default function EmptyState({
     return (
       <EmptyContainer>
         <Empty
-          image={`/static/assets/images/${tableIcon[tableName]}`}
+          image={withPrefix(`/static/assets/images/${tableIcon[tableName]}`)}
           description={
             tableName === WelcomeTable.Recents || tab === TableTab.Other
               ? recent
@@ -162,7 +163,7 @@ export default function EmptyState({
   return (
     <EmptyContainer>
       <Empty
-        image="/static/assets/images/star-circle.svg"
+        image={withPrefix('/static/assets/images/star-circle.svg')}
         description={
           <span className="no-favorites">
             {t("You don't have any favorites yet!")}

@@ -21,7 +21,7 @@ import logging
 from typing import Any, cast, TYPE_CHECKING
 
 from celery.exceptions import SoftTimeLimitExceeded
-from flask import current_app, g
+from flask import current_app, g, url_for
 from marshmallow import ValidationError
 
 from superset.charts.schemas import ChartDataQueryContextSchema
@@ -141,7 +141,7 @@ def load_explore_json_into_cache(  # pylint: disable=too-many-locals
             }
             cache_key = generate_cache_key(cache_value, cache_key_prefix)
             set_and_log_cache(cache_manager.cache, cache_key, cache_value)
-            result_url = f"/superset/explore_json/data/{cache_key}"
+            result_url = url_for("Superset.explore_json_data", cache_key=cache_key)
             async_query_manager.update_job(
                 job_metadata,
                 async_query_manager.STATUS_DONE,

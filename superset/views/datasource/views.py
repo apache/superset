@@ -18,7 +18,7 @@ import json
 from collections import Counter
 from typing import Any
 
-from flask import redirect, request
+from flask import redirect, request, url_for
 from flask_appbuilder import expose, permission_name
 from flask_appbuilder.api import rison
 from flask_appbuilder.security.decorators import has_access, has_access_api
@@ -231,4 +231,4 @@ class DatasetEditor(BaseSupersetView):
         dev = request.args.get("testing")
         if dev is not None:
             return super().render_app_template()
-        return redirect("/")
+        return redirect(url_for("SupersetIndexView.index"))

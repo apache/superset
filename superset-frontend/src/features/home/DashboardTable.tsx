@@ -41,6 +41,7 @@ import Loading from 'src/components/Loading';
 import DeleteModal from 'src/components/DeleteModal';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import DashboardCard from 'src/features/dashboards/DashboardCard';
+import { withPrefix } from 'src/utils/routeUtils';
 import EmptyState from './EmptyState';
 import SubMenu from './SubMenu';
 import { WelcomeTable } from './types';
@@ -196,19 +197,20 @@ function DashboardTable({
             ),
             buttonStyle: 'tertiary',
             onClick: () => {
-              window.location.assign('/dashboard/new');
+              window.location.assign(withPrefix('/dashboard/new/'));
             },
           },
           {
             name: t('View All »'),
             buttonStyle: 'link',
             onClick: () => {
-              const target =
+              const target = withPrefix(
                 activeTab === TableTab.Favorite
                   ? `/dashboard/list/?filters=(favorite:(label:${t(
                       'Yes',
                     )},value:!t))`
-                  : '/dashboard/list/';
+                  : '/dashboard/list/',
+              );
               history.push(target);
             },
           },

@@ -18,19 +18,21 @@
  */
 import { t } from '@superset-ui/core';
 
+import { withPrefix } from 'src/utils/routeUtils';
+
 export const commonMenuData = {
   name: t('SQL'),
   tabs: [
     {
       name: 'Saved queries',
       label: t('Saved queries'),
-      url: '/savedqueryview/list/',
+      url: withPrefix('/savedqueryview/list/'),
       usesRouter: true,
     },
     {
       name: 'Query history',
       label: t('Query history'),
-      url: '/sqllab/history/',
+      url: withPrefix('/sqllab/history/'),
       usesRouter: true,
     },
   ],

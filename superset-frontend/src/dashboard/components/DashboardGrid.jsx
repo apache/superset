@@ -20,6 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { addAlpha, css, styled, t } from '@superset-ui/core';
 import { EmptyStateBig } from 'src/components/EmptyState';
+import { withPrefix } from 'src/utils/routeUtils';
 import { componentShape } from '../util/propShapes';
 import DashboardComponent from '../containers/DashboardComponent';
 import DragDroppable from './dnd/DragDroppable';
@@ -203,7 +204,7 @@ class DashboardGrid extends React.PureComponent {
         }
         buttonAction={() => {
           window.open(
-            `/chart/add?dashboard_id=${dashboardId}`,
+            withPrefix(`/chart/add/?dashboard_id=${dashboardId}`),
             '_blank',
             'noopener noreferrer',
           );
@@ -226,7 +227,7 @@ class DashboardGrid extends React.PureComponent {
         }
         buttonAction={() => {
           window.open(
-            `/chart/add?dashboard_id=${dashboardId}`,
+            withPrefix(`/chart/add/?dashboard_id=${dashboardId}`),
             '_blank',
             'noopener noreferrer',
           );

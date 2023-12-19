@@ -268,8 +268,8 @@ class TestCore(SupersetTestCase):
 
     def test_add_slice(self):
         self.login(username="admin")
-        # assert that /chart/add responds with 200
-        url = "/chart/add"
+        # assert that /chart/add/ responds with 200
+        url = "/chart/add/"
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
 

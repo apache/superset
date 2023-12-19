@@ -56,6 +56,8 @@ import { AlertObject, AlertState } from 'src/features/alerts/types';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 
+import { withPrefix } from 'src/utils/routeUtils';
+
 const extensionsRegistry = getExtensionsRegistry();
 
 const PAGE_SIZE = 25;
@@ -532,14 +534,14 @@ function AlertList({
           {
             name: 'Alerts',
             label: t('Alerts'),
-            url: '/alert/list/',
+            url: withPrefix('/alert/list/'),
             usesRouter: true,
             'data-test': 'alert-list',
           },
           {
             name: 'Reports',
             label: t('Reports'),
-            url: '/report/list/',
+            url: withPrefix('/report/list/'),
             usesRouter: true,
             'data-test': 'report-list',
           },

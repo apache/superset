@@ -25,7 +25,7 @@ from typing import Any, Optional, TYPE_CHECKING
 
 import simplejson as json
 import sqlalchemy as sqla
-from flask import current_app, Markup
+from flask import current_app, Markup, url_for
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_babel import gettext as __
@@ -408,7 +408,7 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     def pop_tab_link(self) -> Markup:
         return Markup(
             f"""
-            <a href="/sqllab?savedQueryId={self.id}">
+            <a href="{self.url()}">
                 <i class="fa fa-link"></i>
             </a>
         """
@@ -423,7 +423,7 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
         return self.database.sqlalchemy_uri
 
     def url(self) -> str:
-        return f"/sqllab?savedQueryId={self.id}"
+        return url_for("SqllabView.root", savedQueryId=self.id)
 
     @property
     def sql_tables(self) -> list[Table]:

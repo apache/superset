@@ -24,6 +24,7 @@ import userEvent from '@testing-library/user-event';
 import { DatasourceType, JsonObject, SupersetClient } from '@superset-ui/core';
 import { render, screen, act, waitFor } from 'spec/helpers/testing-library';
 import { fallbackExploreInitialData } from 'src/explore/fixtures';
+import { withPrefix } from 'src/utils/routeUtils';
 import DatasourceControl from '.';
 
 const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
@@ -245,7 +246,7 @@ test('Click on View in SQL Lab', async () => {
   const { queryByTestId, getByTestId } = render(
     <>
       <Route
-        path="/sqllab"
+        path={withPrefix('/sqllab/')}
         render={({ location }) => (
           <div data-test="mock-sqllab-route">
             {JSON.stringify(location.state)}

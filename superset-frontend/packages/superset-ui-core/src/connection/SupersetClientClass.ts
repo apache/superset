@@ -239,7 +239,7 @@ export default class SupersetClientClass {
       method: 'GET',
       mode: this.mode,
       timeout: this.timeout,
-      url: this.getUrl({ endpoint: 'api/v1/security/csrf_token/' }),
+      url: this.getUrl({ endpoint: '/api/v1/security/csrf_token/' }),
       parseMethod: 'json',
     }).then(({ json }) => {
       if (typeof json === 'object') {
@@ -270,9 +270,9 @@ export default class SupersetClientClass {
 
     const host = inputHost ?? this.host;
     const cleanHost = host.slice(-1) === '/' ? host.slice(0, -1) : host; // no backslash
-
+    const prefixedEndpoint = `${DEFAULT_BASE_URL}${endpoint}`;
     return `${this.protocol}//${cleanHost}/${
-      endpoint[0] === '/' ? endpoint.slice(1) : endpoint
+      prefixedEndpoint[0] === '/' ? prefixedEndpoint.slice(1) : prefixedEndpoint
     }`;
   }
 }

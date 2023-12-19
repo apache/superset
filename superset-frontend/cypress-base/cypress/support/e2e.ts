@@ -190,7 +190,7 @@ Cypress.Commands.add(
     const accessToken = window.localStorage.getItem('access_token');
     cy.request({
       method: 'POST',
-      url: 'api/v1/explore/form_data',
+      url: '/api/v1/explore/form_data',
       body: {
         datasource_id,
         datasource_type,

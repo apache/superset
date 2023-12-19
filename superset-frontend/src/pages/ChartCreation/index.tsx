@@ -45,6 +45,7 @@ import {
   Dataset,
   DatasetSelectLabel,
 } from 'src/features/datasets/DatasetSelectLabel';
+import { withPrefix } from 'src/utils/routeUtils';
 
 export interface ChartCreationProps extends RouteComponentProps {
   user: UserWithPermissionsAndRoles;
@@ -299,7 +300,10 @@ export class ChartCreation extends React.PureComponent<
     const VIEW_INSTRUCTIONS_TEXT = t('view instructions');
     const datasetHelpText = this.state.canCreateDataset ? (
       <span data-test="dataset-write">
-        <Link to="/dataset/add/" data-test="add-chart-new-dataset">
+        <Link
+          to={withPrefix('/dataset/add/')}
+          data-test="add-chart-new-dataset"
+        >
           {t('Add a dataset')}{' '}
         </Link>
         {t('or')}{' '}

@@ -37,6 +37,7 @@ from flask import (
     Response,
     send_file,
     session,
+    url_for,
 )
 from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
@@ -344,8 +345,10 @@ def menu_data(user: User) -> dict[str, Any]:
     return {
         "menu": appbuilder.menu.get_data(),
         "brand": {
-            "path": appbuilder.app.config["LOGO_TARGET_PATH"] or "/superset/welcome/",
-            "icon": appbuilder.app_icon,
+            "path": appbuilder.app.config["LOGO_TARGET_PATH"]
+            or url_for("Superset.welcome"),
+            "icon": f"{appbuilder.app.config['STATIC_ASSETS_PREFIX']}"
+            f"{appbuilder.app_icon}",
             "alt": appbuilder.app_name,
             "tooltip": appbuilder.app.config["LOGO_TOOLTIP"],
             "text": brand_text,
@@ -373,7 +376,7 @@ def menu_data(user: User) -> dict[str, Any]:
             "user_login_url": appbuilder.get_url_for_login,
             "user_profile_url": None
             if user.is_anonymous or is_feature_enabled("MENU_HIDE_USER_INFO")
-            else "/profile/",
+            else url_for("ProfileView.root"),
             "locale": session.get("locale", "en"),
         },
     }

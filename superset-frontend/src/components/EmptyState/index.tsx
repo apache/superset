@@ -22,6 +22,8 @@ import { styled, css, SupersetTheme, t } from '@superset-ui/core';
 import { Empty } from 'src/components';
 import Button from 'src/components/Button';
 
+import { withPrefix } from 'src/utils/routeUtils';
+
 export enum EmptyStateSize {
   Small,
   Medium,
@@ -119,7 +121,9 @@ const ActionButton = styled(Button)`
 `;
 
 const getImage = (image: string | ReactNode) =>
-  typeof image === 'string' ? `/static/assets/images/${image}` : image;
+  typeof image === 'string'
+    ? withPrefix(`/static/assets/images/${image}`)
+    : image;
 
 const getImageHeight = (size: EmptyStateSize) => {
   switch (size) {
@@ -242,7 +246,7 @@ export const emptyStateComponent = (emptyResultsWithSearch: boolean) => (
     description={
       <p>
         {TRANSLATIONS.MANAGE_YOUR_DATABASES_TEXT}{' '}
-        <a href="/databaseview/list">{TRANSLATIONS.HERE_TEXT}</a>
+        <a href={withPrefix('/databaseview/list')}>{TRANSLATIONS.HERE_TEXT}</a>
       </p>
     }
   />

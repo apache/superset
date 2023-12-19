@@ -45,6 +45,7 @@ import Chart from 'src/types/Chart';
 import handleResourceExport from 'src/utils/export';
 import Loading from 'src/components/Loading';
 import ErrorBoundary from 'src/components/ErrorBoundary';
+import { withPrefix } from 'src/utils/routeUtils';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
 import SubMenu from './SubMenu';
@@ -193,19 +194,20 @@ function ChartTable({
             ),
             buttonStyle: 'tertiary',
             onClick: () => {
-              window.location.assign('/chart/add');
+              window.location.assign(withPrefix('/chart/add/'));
             },
           },
           {
             name: t('View All »'),
             buttonStyle: 'link',
             onClick: () => {
-              const target =
+              const target = withPrefix(
                 activeTab === TableTab.Favorite
                   ? `/chart/list/?filters=(favorite:(label:${t(
                       'Yes',
                     )},value:!t))`
-                  : '/chart/list/';
+                  : '/chart/list/',
+              );
               history.push(target);
             },
           },

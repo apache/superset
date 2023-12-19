@@ -23,6 +23,8 @@ import Icons from 'src/components/Icons';
 import { Menu } from 'src/components/Menu';
 import { Link } from 'react-router-dom';
 
+import { withPrefix } from 'src/utils/routeUtils';
+
 export interface DashboardsSubMenuProps {
   chartId?: number;
   dashboards?: { id: number; dashboard_title: string }[];
@@ -86,7 +88,9 @@ const DashboardsSubMenu = ({
             <Link
               target="_blank"
               rel="noreferer noopener"
-              to={`/superset/dashboard/${dashboard.id}${urlQueryString}`}
+              to={withPrefix(
+                `/superset/dashboard/${dashboard.id}${urlQueryString}`,
+              )}
             >
               <div
                 css={css`

@@ -21,12 +21,14 @@
 import shortid from 'shortid';
 import { SupersetClient } from '@superset-ui/core';
 
-import { safeStringify } from '../utils/safeStringify';
-import { LOG_EVENT } from '../logger/actions';
-import { LOG_EVENT_TYPE_TIMING } from '../logger/LogUtils';
-import DebouncedMessageQueue from '../utils/DebouncedMessageQueue';
+import { LOG_EVENT } from 'src/logger/actions';
+import { LOG_EVENT_TYPE_TIMING } from 'src/logger/LogUtils';
+import DebouncedMessageQueue from 'src/utils/DebouncedMessageQueue';
+import { safeStringify } from 'src/utils/safeStringify';
 
-const LOG_ENDPOINT = '/superset/log/?explode=events';
+import { withPrefix } from 'src/utils/routeUtils';
+
+const LOG_ENDPOINT = withPrefix('/superset/log/?explode=events');
 const sendBeacon = events => {
   if (events.length <= 0) {
     return;

@@ -294,5 +294,5 @@ test('Render tab content with no children, editMode: true, canEdit: true', () =>
   ).toBeVisible();
   expect(
     screen.getByRole('link', { name: 'create a new chart' }),
-  ).toHaveAttribute('href', '/chart/add?dashboard_id=23');
+  ).toHaveAttribute('href', '/chart/add/?dashboard_id=23');
 });

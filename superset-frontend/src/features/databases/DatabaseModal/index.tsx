@@ -58,6 +58,7 @@ import {
 import { useCommonConf } from 'src/features/databases/state';
 import Loading from 'src/components/Loading';
 import { isEmpty, pick } from 'lodash';
+import { withPrefix } from 'src/utils/routeUtils';
 import {
   DatabaseObject,
   DatabaseForm,
@@ -1589,7 +1590,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onClick={() => {
           setLoading(true);
           fetchAndSetDB();
-          redirectURL(`/sqllab?db=true`);
+          redirectURL(withPrefix(`/sqllab/?db=true`));
         }}
       >
         {t('QUERY DATA IN SQL LAB')}

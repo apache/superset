@@ -22,6 +22,8 @@ import { t, SupersetClient } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import { useHistory } from 'react-router-dom';
 
+import { withPrefix } from 'src/utils/routeUtils';
+
 interface SimpleDataSource {
   id: string;
   sql: string;
@@ -55,10 +57,10 @@ const ViewQueryModalFooter: React.FC<ViewQueryModalFooterProps> = (props: {
       sql,
     };
     if (openInNewWindow) {
-      SupersetClient.postForm('/sqllab/', payload);
+      SupersetClient.postForm(withPrefix('/sqllab/'), payload);
     } else {
       history.push({
-        pathname: '/sqllab',
+        pathname: withPrefix('/sqllab/'),
         state: {
           requestedQuery: payload,
         },

@@ -19,7 +19,9 @@
 
 import { FetchRetryOptions } from './types';
 
-export const DEFAULT_BASE_URL = 'http://localhost';
+export const DEFAULT_BASE_URL =
+  // eslint-disable-next-line no-underscore-dangle
+  (window as any).__SUPERSET_DEPLOYMENT_PREFIX__ ?? '';
 
 // HTTP status codes
 export const HTTP_STATUS_OK = 200;

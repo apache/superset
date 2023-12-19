@@ -41,6 +41,8 @@ import { FilterOperator } from 'src/components/ListView';
 import moment from 'moment';
 import TruncatedList from 'src/components/TruncatedList';
 
+import { withPrefix } from 'src/utils/routeUtils';
+
 interface DatasetUsageProps {
   datasetId: string;
 }
@@ -49,7 +51,7 @@ const DEFAULT_PAGE_SIZE = 25;
 
 const getLinkProps = (dashboard: ChartLinkedDashboard) => ({
   key: dashboard.id,
-  to: `/superset/dashboard/${dashboard.id}`,
+  to: withPrefix(`/superset/dashboard/${dashboard.id}`),
   target: '_blank',
   rel: 'noreferer noopener',
   children: dashboard.dashboard_title,
@@ -230,7 +232,7 @@ const DatasetUsage = ({ datasetId }: DatasetUsageProps) => {
   const emptyStateButtonAction = useCallback(
     () =>
       window.open(
-        `/explore/?dataset_type=table&dataset_id=${datasetId}`,
+        withPrefix(`/explore/?dataset_type=table&dataset_id=${datasetId}`),
         '_blank',
       ),
     [datasetId],

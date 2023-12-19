@@ -30,6 +30,8 @@ import AnchorLink from 'src/dashboard/components/AnchorLink';
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import { componentShape } from 'src/dashboard/util/propShapes';
 
+import { withPrefix } from 'src/utils/routeUtils';
+
 export const RENDER_TAB = 'RENDER_TAB';
 export const RENDER_TAB_CONTENT = 'RENDER_TAB_CONTENT';
 
@@ -191,7 +193,7 @@ class Tab extends React.PureComponent {
                 <span>
                   {t('You can')}{' '}
                   <a
-                    href={`/chart/add?dashboard_id=${dashboardId}`}
+                    href={withPrefix(`/chart/add/?dashboard_id=${dashboardId}`)}
                     rel="noopener noreferrer"
                     target="_blank"
                   >

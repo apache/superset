@@ -36,6 +36,8 @@ import { createErrorHandler } from 'src/views/CRUD/utils';
 import { AnnotationObject } from 'src/features/annotations/types';
 import AnnotationModal from 'src/features/annotations/AnnotationModal';
 
+import { withPrefix } from 'src/utils/routeUtils';
+
 const PAGE_SIZE = 25;
 
 interface AnnotationListProps {
@@ -259,9 +261,13 @@ function AnnotationList({
             <span>{t('Annotation Layer %s', annotationLayerName)}</span>
             <span>
               {hasHistory ? (
-                <Link to="/annotationlayer/list/">{t('Back to all')}</Link>
+                <Link to={withPrefix('/annotationlayer/list/')}>
+                  {t('Back to all')}
+                </Link>
               ) : (
-                <a href="/annotationlayer/list/">{t('Back to all')}</a>
+                <a href={withPrefix('/annotationlayer/list/')}>
+                  {t('Back to all')}
+                </a>
               )}
             </span>
           </StyledHeader>

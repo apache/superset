@@ -24,6 +24,7 @@ from functools import partial
 from typing import Any, Callable
 
 import sqlalchemy as sqla
+from flask import url_for
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.security.sqla.models import User
@@ -206,12 +207,12 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
 
     @property
     def url(self) -> str:
-        return f"/superset/dashboard/{self.slug or self.id}/"
+        return url_for("Superset.dashboard", dashboard_id_or_slug=self.slug or self.id)
 
     @staticmethod
     def get_url(id_: int, slug: str | None = None) -> str:
         # To be able to generate URL's without instantiating a Dashboard object
-        return f"/superset/dashboard/{slug or id_}/"
+        return url_for("Superset.dashboard", dashboard_id_or_slug=slug or id_)
 
     @property
     def datasources(self) -> set[BaseDatasource]:

@@ -38,6 +38,8 @@ import {
 } from 'src/explore/constants';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 
+import { withPrefix } from 'src/utils/routeUtils';
+
 export function getChartKey(explore) {
   const { slice, form_data } = explore;
   return slice?.slice_id ?? form_data?.slice_id ?? UNSAVED_CHART_ID;
@@ -83,13 +85,13 @@ export function getURIDirectory(endpointType = 'base') {
       endpointType,
     )
   ) {
-    return '/superset/explore_json/';
+    return withPrefix('/superset/explore_json/');
   }
-  return '/explore/';
+  return withPrefix('/explore/');
 }
 
 export function mountExploreUrl(endpointType, extraSearch = {}, force = false) {
-  const uri = new URI('/');
+  const uri = new URI(withPrefix('/'));
   const directory = getURIDirectory(endpointType);
   const search = uri.search(true);
   Object.keys(extraSearch).forEach(key => {
@@ -112,7 +114,7 @@ export function getChartDataUri({ path, qs, allowDomainSharding = false }) {
     protocol: window.location.protocol.slice(0, -1),
     hostname: getHostName(allowDomainSharding),
     port: window.location.port ? window.location.port : '',
-    path,
+    path: withPrefix(path),
   });
   if (qs) {
     uri = uri.search(qs);
@@ -191,7 +193,7 @@ export function getExploreUrl({
       }
     });
   }
-  return uri.search(search).directory(directory).toString();
+  return uri.directory(directory).search(search).toString();
 }
 
 export const getQuerySettings = formData => {

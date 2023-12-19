@@ -19,19 +19,26 @@
 
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
+import { withPrefix } from 'src/utils/routeUtils';
 import { GenericLink } from './GenericLink';
 
 test('renders', () => {
-  render(<GenericLink to="/explore">Link to Explore</GenericLink>, {
-    useRouter: true,
-  });
+  render(
+    <GenericLink to={withPrefix('/explore')}>Link to Explore</GenericLink>,
+    {
+      useRouter: true,
+    },
+  );
   expect(screen.getByText('Link to Explore')).toBeVisible();
 });
 
 test('navigates to internal URL', () => {
-  render(<GenericLink to="/explore">Link to Explore</GenericLink>, {
-    useRouter: true,
-  });
+  render(
+    <GenericLink to={withPrefix('/explore')}>Link to Explore</GenericLink>,
+    {
+      useRouter: true,
+    },
+  );
   const internalLink = screen.getByTestId('internal-link');
   expect(internalLink).toHaveAttribute('href', '/explore');
 });

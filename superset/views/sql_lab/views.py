@@ -17,7 +17,7 @@
 import logging
 
 import simplejson as json
-from flask import redirect, request, Response
+from flask import redirect, request, Response, url_for
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
@@ -276,4 +276,4 @@ class SqlLab(BaseSupersetView):
         logger.warning(
             "This endpoint is deprecated and will be removed in the next major release"
         )
-        return redirect(f"/savedqueryview/list/?_flt_0_user={get_user_id()}")
+        return redirect(url_for("SavedQueryView.list", _flt_0_user=get_user_id()))

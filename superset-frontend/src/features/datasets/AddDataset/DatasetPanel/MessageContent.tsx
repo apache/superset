@@ -22,6 +22,8 @@ import { t, styled } from '@superset-ui/core';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import { Link } from 'react-router-dom';
 
+import { withPrefix } from 'src/utils/routeUtils';
+
 const StyledContainer = styled.div`
   padding: ${({ theme }) => theme.gridUnit * 8}px
     ${({ theme }) => theme.gridUnit * 6}px;
@@ -51,7 +53,7 @@ export const VIEW_DATASET_MESSAGE = t(
 const renderEmptyDescription = () => (
   <>
     {SELECT_MESSAGE}
-    <Link to="/sqllab">
+    <Link to={withPrefix('/sqllab/')}>
       <span role="button" tabIndex={0}>
         {CREATE_MESSAGE}
       </span>

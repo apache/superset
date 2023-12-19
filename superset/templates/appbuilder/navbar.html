@@ -20,6 +20,7 @@
 {% set app_icon_width = appbuilder.app.config['APP_ICON_WIDTH'] %}
 {% set logo_target_path = appbuilder.app.config['LOGO_TARGET_PATH'] or '/profile/{}/'.format(current_user.username) %}
 {% set root_path = logo_target_path if not logo_target_path.startswith('/') else '/superset' + logo_target_path if current_user.username is defined else '#'  %}
+{% set asset_prefix = appbuilder.app.config['STATIC_ASSETS_PREFIX'] %}
 
 {% block navbar %}
   <div id="app-menu">
@@ -34,8 +35,8 @@
           <a class="navbar-brand" href="{{ root_path }}">
             <img
               width="{{ app_icon_width }}"
-              src="{{ appbuilder.app_icon }}"
-              alt="{{ appbuilder.app_name }}"
+              src="{{ asset_prefix }}{{ appbuilder.app_icon }}"
+              alt="{{ appbuilder.app_name }} - {{ asset_prefix }}"
             />
           </a>
         </div>

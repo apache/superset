@@ -73,6 +73,8 @@ import { useSelector } from 'react-redux';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 
+import { withPrefix } from 'src/utils/routeUtils';
+
 const extensionsRegistry = getExtensionsRegistry();
 const DatasetDeleteRelatedExtension = extensionsRegistry.get(
   'dataset.delete.related',
@@ -651,7 +653,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         </>
       ),
       onClick: () => {
-        history.push('/dataset/add/');
+        history.push(withPrefix('/dataset/add/'));
       },
       buttonStyle: 'primary',
     });

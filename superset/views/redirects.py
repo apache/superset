@@ -17,7 +17,7 @@
 import logging
 from typing import Optional
 
-from flask import flash
+from flask import flash, url_for
 from flask_appbuilder import expose
 from werkzeug.utils import redirect
 
@@ -68,7 +68,7 @@ class R(BaseSupersetView):  # pylint: disable=invalid-name
             if dashboard_url:
                 return redirect(dashboard_url[1:])
 
-            return redirect("/")
+            return redirect(url_for("SupersetIndexView.index"))
 
         flash("URL to nowhere...", "danger")
-        return redirect("/")
+        return redirect(url_for("SupersetIndexView.index"))

@@ -22,7 +22,7 @@ import zipfile
 from typing import Any, TYPE_CHECKING
 
 import pandas as pd
-from flask import flash, g, redirect
+from flask import flash, g, redirect, url_for
 from flask_appbuilder import expose, SimpleFormView
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
@@ -184,7 +184,9 @@ class CsvToDatabaseView(CustomFormView):
                 schema_name=csv_table.schema,
             )
             flash(message, "danger")
-            return redirect("/csvtodatabaseview/form")
+            return redirect(
+                f"{url_for('SupersetIndexView.index')}csvtodatabaseview/form"
+            )
 
         if form.delimiter.data == "other":
             delimiter_input = form.otherInput.data
@@ -279,7 +281,9 @@ class CsvToDatabaseView(CustomFormView):
 
             flash(message, "danger")
             stats_logger.incr("failed_csv_upload")
-            return redirect("/csvtodatabaseview/form")
+            return redirect(
+                f"{url_for('SupersetIndexView.index')}csvtodatabaseview/form"
+            )
 
         # Go back to welcome page / splash screen
         message = _(
@@ -296,7 +300,7 @@ class CsvToDatabaseView(CustomFormView):
             schema=form.schema.data,
             table=form.table_name.data,
         )
-        return redirect("/tablemodelview/list/")
+        return redirect(f"{url_for('SupersetIndexView.index')}tablemodelview/list/")
 
 
 class ExcelToDatabaseView(SimpleFormView):
@@ -323,7 +327,9 @@ class ExcelToDatabaseView(SimpleFormView):
                 schema_name=excel_table.schema,
             )
             flash(message, "danger")
-            return redirect("/exceltodatabaseview/form")
+            return redirect(
+                f"{url_for('SupersetIndexView.index')}exceltodatabaseview/form"
+            )
 
         uploaded_tmp_file_path = (
             tempfile.NamedTemporaryFile(  # pylint: disable=consider-using-with
@@ -414,7 +420,9 @@ class ExcelToDatabaseView(SimpleFormView):
 
             flash(message, "danger")
             stats_logger.incr("failed_excel_upload")
-            return redirect("/exceltodatabaseview/form")
+            return redirect(
+                f"{url_for('SupersetIndexView.index')}exceltodatabaseview/form"
+            )
 
         # Go back to welcome page / splash screen
         message = _(
@@ -431,7 +439,7 @@ class ExcelToDatabaseView(SimpleFormView):
             schema=form.schema.data,
             table=form.name.data,
         )
-        return redirect("/tablemodelview/list/")
+        return redirect(f"{url_for('SupersetIndexView.index')}tablemodelview/list/")
 
 
 class ColumnarToDatabaseView(SimpleFormView):
@@ -468,7 +476,9 @@ class ColumnarToDatabaseView(SimpleFormView):
                 " Please make sure all files are of the same extension.",
             )
             flash(message, "danger")
-            return redirect("/columnartodatabaseview/form")
+            return redirect(
+                f"{url_for('SupersetIndexView.index')}columnartodatabaseview/form"
+            )
 
         read = pd.read_parquet
         kwargs = {
@@ -484,7 +494,9 @@ class ColumnarToDatabaseView(SimpleFormView):
                 schema_name=columnar_table.schema,
             )
             flash(message, "danger")
-            return redirect("/columnartodatabaseview/form")
+            return redirect(
+                f"{url_for('SupersetIndexView.index')}columnartodatabaseview/form"
+            )
 
         try:
             chunks = [read(file, **kwargs) for file in files]
@@ -556,7 +568,9 @@ class ColumnarToDatabaseView(SimpleFormView):
 
             flash(message, "danger")
             stats_logger.incr("failed_columnar_upload")
-            return redirect("/columnartodatabaseview/form")
+            return redirect(
+                f"{url_for('SupersetIndexView.index')}columnartodatabaseview/form"
+            )
 
         # Go back to welcome page / splash screen
         message = _(
@@ -573,4 +587,4 @@ class ColumnarToDatabaseView(SimpleFormView):
             schema=form.schema.data,
             table=form.name.data,
         )
-        return redirect("/tablemodelview/list/")
+        return redirect(f"{url_for('SupersetIndexView.index')}tablemodelview/list/")

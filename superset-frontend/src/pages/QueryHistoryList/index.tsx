@@ -55,6 +55,8 @@ import QueryPreviewModal from 'src/features/queries/QueryPreviewModal';
 import { addSuccessToast } from 'src/components/MessageToasts/actions';
 import getOwnerName from 'src/utils/getOwnerName';
 
+import { withPrefix } from 'src/utils/routeUtils';
+
 const PAGE_SIZE = 25;
 const SQL_PREVIEW_MAX_LINES = 4;
 
@@ -349,7 +351,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
           },
         }: any) => (
           <Tooltip title={t('Open query in SQL Lab')} placement="bottom">
-            <Link to={`/sqllab?queryId=${id}`}>
+            <Link to={withPrefix(`/sqllab/?queryId=${id}`)}>
               <Icons.Full iconColor={theme.colors.grayscale.base} />
             </Link>
           </Tooltip>
@@ -442,7 +444,9 @@ function QueryList({ addDangerToast }: QueryListProps) {
           query={queryCurrentlyPreviewing}
           queries={queries}
           fetchData={handleQueryPreview}
-          openInSqlLab={(id: number) => history.push(`/sqllab?queryId=${id}`)}
+          openInSqlLab={(id: number) =>
+            history.push(withPrefix(`/sqllab/?queryId=${id}`))
+          }
           show
         />
       )}

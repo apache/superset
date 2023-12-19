@@ -30,6 +30,7 @@ import * as Actions from 'src/SqlLab/actions/sqlLab';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { locationContext } from 'src/pages/SqlLab/LocationContext';
+import { withPrefix } from 'src/utils/routeUtils';
 import SqlEditor from '../SqlEditor';
 import SqlEditorTabHeader from '../SqlEditorTabHeader';
 
@@ -76,7 +77,7 @@ const userOS = detectOS();
 class TabbedSqlEditors extends React.PureComponent {
   constructor(props) {
     super(props);
-    const sqlLabUrl = '/sqllab';
+    const sqlLabUrl = withPrefix('/sqllab/');
     this.state = {
       sqlLabUrl,
     };

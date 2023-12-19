@@ -39,6 +39,7 @@ import PopoverSection from 'src/components/PopoverSection';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { EmptyStateSmall } from 'src/components/EmptyState';
 import { FILTER_OPTIONS_LIMIT } from 'src/explore/constants';
+import { withPrefix } from 'src/utils/routeUtils';
 import {
   ANNOTATION_SOURCE_TYPES,
   ANNOTATION_TYPES,
@@ -117,7 +118,7 @@ const NotFoundContent = () => (
         <span>
           {t('Add an annotation layer')}{' '}
           <a
-            href="/annotationlayer/list"
+            href={withPrefix('/annotationlayer/list/')}
             target="_blank"
             rel="noopener noreferrer"
           >
