@@ -88,31 +88,34 @@ const DvtSidebarData: SidebarDataProps[] = [
     ],
   },
   {
-    pathname: '/dataset/add/',
+    pathname: '/databaseview/list/',
     data: [
       {
-        label: 'Database',
+        label: 'EXPOSE IN SQL LAB',
         values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
+          { label: 'No', value: 'false' },
+          { label: 'Yes', value: 'true' },
         ],
         placeholder: 'Select or type a value',
+        name: 'expose_in_sqllab',
       },
       {
-        label: 'Database',
+        label: 'AQE',
         values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
+          { label: 'No', value: 'false' },
+          { label: 'Yes', value: 'true' },
         ],
         placeholder: 'Select or type a value',
+        name: 'allow_run_async',
       },
       {
-        label: 'Database',
+        label: 'SEARCH',
         values: [
           { label: 'Failed', value: 'failed' },
           { label: 'Success', value: 'success' },
         ],
         placeholder: 'Type a value',
+        name: 'search',
       },
     ],
   },

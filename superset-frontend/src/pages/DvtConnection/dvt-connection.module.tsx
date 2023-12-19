@@ -1,17 +1,17 @@
 import { styled } from '@superset-ui/core';
 
-const StyledReports = styled.div`
+const StyledConnection = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   height: 100%;
 `;
 
-const StyledReportsButton = styled.div`
+const StyledConnectionButton = styled.div`
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   flex: end;
   padding: 30px 0px 36px 0px;
 `;
 
-export { StyledReports, StyledReportsButton };
+export { StyledConnection, StyledConnectionButton };

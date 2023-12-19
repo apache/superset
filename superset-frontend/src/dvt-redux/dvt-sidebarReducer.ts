@@ -35,6 +35,12 @@ interface DvtSidebarState {
     status: string;
     search: string;
   };
+
+  connection: {
+    expose_in_sqllab: string;
+    allow_run_async: string;
+    search: string;
+  };
 }
 
 const initialState: DvtSidebarState = {
@@ -52,6 +58,12 @@ const initialState: DvtSidebarState = {
     createdBy: '',
     owner: '',
     status: '',
+    search: '',
+  },
+
+  connection: {
+    expose_in_sqllab: '',
+    allow_run_async: '',
     search: '',
   },
 };
@@ -80,10 +92,23 @@ const dvtSidebarSlice = createSlice({
         ...action.payload.alerts,
       },
     }),
+    dvtSidebarConnectionSetProperty: (
+      state,
+      action: PayloadAction<{ connection: DvtSidebarState['connection'] }>,
+    ) => ({
+      ...state,
+      connection: {
+        ...state.connection,
+        ...action.payload.connection,
+      },
+    }),
   },
 });
 
-export const { dvtSidebarReportsSetProperty, dvtSidebarAlertsSetProperty } =
-  dvtSidebarSlice.actions;
+export const {
+  dvtSidebarReportsSetProperty,
+  dvtSidebarAlertsSetProperty,
+  dvtSidebarConnectionSetProperty,
+} = dvtSidebarSlice.actions;
 
 export default dvtSidebarSlice.reducer;

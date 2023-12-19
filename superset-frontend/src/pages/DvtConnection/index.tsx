@@ -18,27 +18,78 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { dvtSidebarConnectionSetProperty } from 'src/dvt-redux/dvt-sidebarReducer';
 import { useAppSelector } from 'src/hooks/useAppSelector';
 import DvtPagination from 'src/components/DvtPagination';
 import DvtTable from 'src/components/DvtTable';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import DvtButton from 'src/components/DvtButton';
 import DvtIconDataLabel from 'src/components/DvtIconDataLabel';
-import { StyledReports, StyledReportsButton } from './dvt-reports.module';
+import {
+  StyledConnection,
+  StyledConnectionButton,
+} from './dvt-connection.module';
 
-function ReportList() {
+const modifiedData = {
+  header: [
+    { id: 1, title: 'Database', field: 'database', heartIcon: true },
+    { id: 2, title: 'Admin', field: 'admin' },
+    { id: 3, title: 'Last Modified', field: 'date' },
+    {
+      id: 4,
+      title: 'Action',
+      clicks: [
+        {
+          icon: 'edit_alt',
+          click: () => {},
+          popperLabel: 'Edit',
+        },
+        {
+          icon: 'share',
+          click: () => {},
+          popperLabel: 'Export',
+        },
+        {
+          icon: 'trash',
+          click: () => {},
+          popperLabel: 'Delete',
+        },
+      ],
+    },
+  ],
+};
+
+function ConnectionList() {
+  const dispatch = useDispatch();
+  const connectionSelector = useAppSelector(
+    state => state.dvtSidebar.connection,
+  );
   const [apiData, setApiData] = useState([]);
-
   const [page, setPage] = useState<number>(1);
+  const [editedData, setEditedData] = useState<any[]>([]);
+
+  const clearConnection = () => {
+    dispatch(
+      dvtSidebarConnectionSetProperty({
+        connection: {
+          ...connectionSelector,
+          expose_in_sqllab: '',
+          allow_run_async: '',
+          search: '',
+        },
+      }),
+    );
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('/api/v1/dataset/');
+        const response = await fetch('/api/v1/database/');
         const data = await response.json();
-        const editedData = data.result.map((item: any) => ({
-          database: item.database.database_name,
-          admin: `${item.owners[0]?.first_name} ${item.owners[0]?.last_name}`,
-          date: new Date(item.changed_on_utc).toLocaleString('tr-TR', {
+        const newEditedData = data.result.map((item: any) => ({
+          database: item.database_name,
+          admin: `${item.created_by?.first_name} ${item.created_by?.last_name}`,
+          date: new Date(item.changed_on).toLocaleString('tr-TR', {
             day: '2-digit',
             month: '2-digit',
             year: 'numeric',
@@ -46,45 +97,32 @@ function ReportList() {
             minute: '2-digit',
             second: '2-digit',
           }),
+          expose_in_sqllab: item.expose_in_sqllab,
+          allow_run_async: item.allow_run_async,
         }));
 
-        setApiData(editedData);
-        console.log(data.result);
+        setEditedData(newEditedData);
+
+        const filteredData = newEditedData.filter(
+          (item: any) =>
+            (connectionSelector.expose_in_sqllab
+              ? item.expose_in_sqllab.toString() ===
+                connectionSelector.expose_in_sqllab
+              : true) &&
+            (connectionSelector.allow_run_async
+              ? item.allow_run_async.toString() ===
+                connectionSelector.allow_run_async
+              : true),
+        );
+
+        setApiData(filteredData);
       } catch (error) {
         console.error('Hata:', error);
       }
     };
 
     fetchData();
-  }, []);
-  const modifiedData = {
-    header: [
-      { id: 1, title: 'Database', field: 'database', heartIcon: true },
-      { id: 2, title: 'Admin', field: 'admin' },
-      { id: 3, title: 'Last Modified', field: 'date' },
-      {
-        id: 4,
-        title: 'Action',
-        clicks: [
-          {
-            icon: 'edit_alt',
-            click: () => {},
-            popperLabel: 'Edit',
-          },
-          {
-            icon: 'share',
-            click: () => {},
-            popperLabel: 'Export',
-          },
-          {
-            icon: 'trash',
-            click: () => {},
-            popperLabel: 'Delete',
-          },
-        ],
-      },
-    ],
-  };
+  }, [connectionSelector]);
 
   const itemsPerPageValue = 10;
   const indexOfLastItem = page * itemsPerPageValue;
@@ -95,27 +133,30 @@ function ReportList() {
       : apiData;
 
   return apiData.length > 0 ? (
-    <StyledReports>
+    <StyledConnection>
       <DvtTable data={currentItems} header={modifiedData.header} />
-      <StyledReportsButton>
-        <DvtButton
-          label="Create a New Connection"
-          onClick={() => {}}
-          colour="grayscale"
-        />
+      <StyledConnectionButton>
         <DvtPagination
           page={page}
           setPage={setPage}
           itemSize={apiData.length}
           pageItemSize={10}
         />
-      </StyledReportsButton>
-    </StyledReports>
+      </StyledConnectionButton>
+    </StyledConnection>
   ) : (
-    <StyledReports>
-      <DvtIconDataLabel label="No Connection Yet" buttonLabel="Connections" />
-    </StyledReports>
+    <StyledConnection>
+      {editedData.length !== 0 && (
+        <DvtIconDataLabel
+          label="No results match your filter criteria"
+          buttonLabel="Clear All Filter"
+          buttonClick={() => {
+            clearConnection();
+          }}
+        />
+      )}
+    </StyledConnection>
   );
 }
 
-export default withToasts(ReportList);
+export default withToasts(ConnectionList);
