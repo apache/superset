@@ -18,6 +18,8 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { dvtSidebarAlertsSetProperty } from 'src/dvt-redux/dvt-sidebarReducer';
 import { useAppSelector } from 'src/hooks/useAppSelector';
 import DvtPagination from 'src/components/DvtPagination';
 import DvtTable from 'src/components/DvtTable';
@@ -61,16 +63,32 @@ const modifiedData = {
 };
 
 function AlertList() {
+  const dispatch = useDispatch();
   const alertsSelector = useAppSelector(state => state.dvtSidebar.alerts);
   const [apiData, setApiData] = useState([]);
   const [page, setPage] = useState<number>(1);
+  const [editedData, setEditedData] = useState<any[]>([]);
+
+  const clearAlerts = () => {
+    dispatch(
+      dvtSidebarAlertsSetProperty({
+        alerts: {
+          ...alertsSelector,
+          createdBy: '',
+          owner: '',
+          status: '',
+          search: '',
+        },
+      }),
+    );
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const response = await fetch('/api/v1/report/');
         const data = await response.json();
-        const editedData = data.result
+        const newEditedData = data.result
           .filter((item: any) => item.type === 'Alert')
           .map((item: any) => ({
             lastRun: new Date(item.last_eval_dttm).toLocaleString('tr-TR', {
@@ -98,8 +116,9 @@ function AlertList() {
             active: item.active.toString(),
           }));
 
-          
-        const filteredData = editedData.filter(
+        setEditedData(newEditedData);
+
+        const filteredData = newEditedData.filter(
           (item: any) =>
             (alertsSelector.owner
               ? item.owners === alertsSelector.owner
@@ -148,7 +167,17 @@ function AlertList() {
     </StyledAlerts>
   ) : (
     <StyledAlerts>
-      <DvtIconDataLabel label="No Alerts Yet" buttonLabel="Alert" />
+      <DvtIconDataLabel
+        label={
+          editedData.length === 0
+            ? 'No Alerts Yet'
+            : 'No results match your filter criteria'
+        }
+        buttonLabel={editedData.length === 0 ? 'Alert' : 'Clear All Filter'}
+        buttonClick={() => {
+          editedData.length > 0 && clearAlerts();
+        }}
+      />
     </StyledAlerts>
   );
 }
