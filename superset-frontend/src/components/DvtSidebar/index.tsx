@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { dvtSidebarReportsSetProperty } from 'src/dvt-redux/dvt-sidebarReducer';
+import {
+  dvtSidebarAlertsSetProperty,
+  dvtSidebarReportsSetProperty,
+} from 'src/dvt-redux/dvt-sidebarReducer';
 import { useAppSelector } from 'src/hooks/useAppSelector';
 import DvtLogo from '../DvtLogo';
 import DvtDarkMode from '../DvtDarkMode';
@@ -29,6 +32,7 @@ interface DvtSidebarProps {
 const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
   const dispatch = useDispatch();
   const reportsSelector = useAppSelector(state => state.dvtSidebar.reports);
+  const alertsSelector = useAppSelector(state => state.dvtSidebar.alerts);
   const [darkMode, setDarkMode] = useState<boolean>(false);
   const [active, setActive] = useState<string>('test');
 
@@ -66,6 +70,17 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
       dvtSidebarReportsSetProperty({
         reports: {
           ...reportsSelector,
+          [propertyName]: value,
+        },
+      }),
+    );
+  };
+
+  const updateAlertsProperty = (value: string, propertyName: string) => {
+    dispatch(
+      dvtSidebarAlertsSetProperty({
+        alerts: {
+          ...alertsSelector,
           [propertyName]: value,
         },
       }),
@@ -115,7 +130,7 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
                 label: string;
                 values: { label: string; value: string }[];
                 placeholder: string;
-                valuesList: { id: number; title: string; subtitle: string }[];
+                valuesList?: { id: number; title: string; subtitle: string }[];
                 title: string;
                 datePicker?: boolean;
                 name: string;
@@ -128,10 +143,20 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
                     data={data.values}
                     label={data.label}
                     placeholder={data.placeholder}
-                    selectedValue={reportsSelector[data.name]}
-                    setSelectedValue={value =>
-                      updateReportsProperty(value, data.name)
+                    selectedValue={
+                      pathTitles(pathName) === 'Reports'
+                        ? reportsSelector[data.name]
+                        : pathTitles(pathName) === 'Alerts'
+                        ? alertsSelector[data.name]
+                        : undefined
                     }
+                    setSelectedValue={value => {
+                      if (pathTitles(pathName) === 'Reports') {
+                        updateReportsProperty(value, data.name);
+                      } else if (pathTitles(pathName) === 'Alerts') {
+                        updateAlertsProperty(value, data.name);
+                      }
+                    }}
                     maxWidth
                   />
                 )}

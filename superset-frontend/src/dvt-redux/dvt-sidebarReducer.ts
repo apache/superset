@@ -28,6 +28,13 @@ interface DvtSidebarState {
     favorite: string;
     certified: string;
   };
+
+  alerts: {
+    createdBy: string;
+    owners: string;
+    status: string;
+    search: string;
+  };
 }
 
 const initialState: DvtSidebarState = {
@@ -40,6 +47,13 @@ const initialState: DvtSidebarState = {
     favorite: '',
     certified: '',
   },
+
+  alerts: {
+    createdBy: '',
+    owners: '',
+    status: '',
+    search: '',
+  }
 };
 
 const dvtSidebarSlice = createSlice({
@@ -48,7 +62,7 @@ const dvtSidebarSlice = createSlice({
   reducers: {
     dvtSidebarReportsSetProperty: (
       state,
-      action: PayloadAction<DvtSidebarState>,
+      action: PayloadAction<{ reports: DvtSidebarState['reports'] }>,
     ) => ({
       ...state,
       reports: {
@@ -56,9 +70,19 @@ const dvtSidebarSlice = createSlice({
         ...action.payload.reports,
       },
     }),
+    dvtSidebarAlertsSetProperty: (
+      state,
+      action: PayloadAction<{ alerts: DvtSidebarState['alerts'] }>,
+    ) => ({
+      ...state,
+      alerts: {
+        ...state.alerts,
+        ...action.payload.alerts,
+      },
+    }),
   },
 });
 
-export const { dvtSidebarReportsSetProperty } = dvtSidebarSlice.actions;
+export const { dvtSidebarReportsSetProperty, dvtSidebarAlertsSetProperty } = dvtSidebarSlice.actions;
 
 export default dvtSidebarSlice.reducer;

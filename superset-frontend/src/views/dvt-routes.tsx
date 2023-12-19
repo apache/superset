@@ -39,6 +39,11 @@ const AlertReportList = lazy(
     import(/* webpackChunkName: "AlertReportList" */ 'src/pages/DvtReports'),
 );
 
+const AlertList = lazy(
+  () =>
+    import(/* webpackChunkName: "AlertReportList" */ 'src/pages/DvtAlerts'),
+);
+
 const AnnotationList = lazy(
   () =>
     import(/* webpackChunkName: "AnnotationList" */ 'src/pages/AnnotationList'),
@@ -183,7 +188,7 @@ export const routes: Routes = [
   },
   {
     path: '/alert/list/',
-    Component: AlertReportList,
+    Component: AlertList,
   },
   {
     path: '/report/list/',

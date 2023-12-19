@@ -494,26 +494,27 @@ const DvtSidebarData: SidebarDataProps[] = [
       {
         label: 'Owner',
         values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
+          { label: 'Superset Admin', value: 'Superset Admin' },
         ],
         placeholder: 'Select or type a value',
+        name: 'owner',
       },
       {
         label: 'Created by',
         values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
+          { label: 'Superset Admin', value: 'Superset Admin' },
         ],
         placeholder: 'Select or type a value',
+        name: 'createdBy',
       },
       {
         label: 'Status',
         values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
+          { label: 'Error', value: 'Error' },
+          { label: 'Success', value: 'Success' },
         ],
         placeholder: 'Select or type a value',
+        name: 'status',
       },
       {
         label: 'Search',
@@ -522,6 +523,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Success', value: 'success' },
         ],
         placeholder: 'Type a value',
+        name: 'search',
       },
     ],
   },
