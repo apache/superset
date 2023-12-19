@@ -23,7 +23,7 @@ import time
 from collections import defaultdict
 from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING, Union
 
-from flask import current_app, Flask, g, Request
+from flask import _request_ctx_stack, current_app, Flask, g, Request
 from flask_appbuilder import Model
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
@@ -2224,7 +2224,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             logger.warning("Invalid guest token", exc_info=True)
             return None
 
-        return self.get_guest_user_from_token(cast(GuestToken, token))
+        user = self.get_guest_user_from_token(cast(GuestToken, token))
+
+        # set the guest jwt to request context
+        _request_ctx_stack.top.jwt = token
+        _request_ctx_stack.top.jwt_user = {"loaded_user": user}
+        return user
 
     def get_guest_user_from_token(self, token: GuestToken) -> GuestUser:
         return self.guest_user_cls(
