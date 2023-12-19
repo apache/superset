@@ -493,17 +493,13 @@ const DvtSidebarData: SidebarDataProps[] = [
     data: [
       {
         label: 'Owner',
-        values: [
-          { label: 'Superset Admin', value: 'Superset Admin' },
-        ],
+        values: [{ label: 'Superset Admin', value: 'Superset Admin' }],
         placeholder: 'Select or type a value',
         name: 'owner',
       },
       {
         label: 'Created by',
-        values: [
-          { label: 'Superset Admin', value: 'Superset Admin' },
-        ],
+        values: [{ label: 'Superset Admin', value: 'Superset Admin' }],
         placeholder: 'Select or type a value',
         name: 'createdBy',
       },

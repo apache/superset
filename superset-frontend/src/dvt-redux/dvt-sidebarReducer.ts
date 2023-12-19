@@ -31,7 +31,7 @@ interface DvtSidebarState {
 
   alerts: {
     createdBy: string;
-    owners: string;
+    owner: string;
     status: string;
     search: string;
   };
@@ -50,10 +50,10 @@ const initialState: DvtSidebarState = {
 
   alerts: {
     createdBy: '',
-    owners: '',
+    owner: '',
     status: '',
     search: '',
-  }
+  },
 };
 
 const dvtSidebarSlice = createSlice({
@@ -83,6 +83,7 @@ const dvtSidebarSlice = createSlice({
   },
 });
 
-export const { dvtSidebarReportsSetProperty, dvtSidebarAlertsSetProperty } = dvtSidebarSlice.actions;
+export const { dvtSidebarReportsSetProperty, dvtSidebarAlertsSetProperty } =
+  dvtSidebarSlice.actions;
 
 export default dvtSidebarSlice.reducer;
