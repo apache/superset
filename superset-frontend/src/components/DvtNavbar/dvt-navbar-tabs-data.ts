@@ -60,5 +60,4 @@ export const WithNavbarBottom: string[] = [
   '/alert/list/',
   '/superset/sqllab/history/',
   '/superset/sqllab/',
-  '/databaseview/list/',
 ];

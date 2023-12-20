@@ -150,14 +150,6 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, user }) => {
               </NavbarBottomRight>
             </>
           )}
-
-          {pathName === '/databaseview/list/' && (
-            <DvtButton
-              colour="success"
-              label="Create a New Connection"
-              onClick={() => {}}
-            />
-          )}
         </NavbarBottom>
       )}
     </StyledDvtNavbar>

@@ -9,7 +9,7 @@ const StyledConnection = styled.div`
 
 const StyledConnectionButton = styled.div`
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   flex: end;
   padding: 30px 0px 36px 0px;
 `;

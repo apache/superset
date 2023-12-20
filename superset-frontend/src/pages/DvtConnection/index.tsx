@@ -23,6 +23,7 @@ import { dvtSidebarConnectionSetProperty } from 'src/dvt-redux/dvt-sidebarReduce
 import { useAppSelector } from 'src/hooks/useAppSelector';
 import DvtPagination from 'src/components/DvtPagination';
 import DvtTable from 'src/components/DvtTable';
+import DvtButton from 'src/components/DvtButton';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import DvtIconDataLabel from 'src/components/DvtIconDataLabel';
 import {
@@ -136,6 +137,11 @@ function ConnectionList() {
     <StyledConnection>
       <DvtTable data={currentItems} header={modifiedData.header} />
       <StyledConnectionButton>
+        <DvtButton
+          label="Create a New Connection"
+          onClick={() => {}}
+          colour="grayscale"
+        />
         <DvtPagination
           page={page}
           setPage={setPage}
@@ -146,15 +152,21 @@ function ConnectionList() {
     </StyledConnection>
   ) : (
     <StyledConnection>
-      {editedData.length !== 0 && (
-        <DvtIconDataLabel
-          label="No results match your filter criteria"
-          buttonLabel="Clear All Filter"
-          buttonClick={() => {
+      <DvtIconDataLabel
+        label={
+          editedData.length === 0
+            ? 'No Connection Yet'
+            : 'No results match your filter criteria'
+        }
+        buttonLabel={
+          editedData.length === 0 ? 'Connection' : 'Clear All Filter'
+        }
+        buttonClick={() => {
+          if (editedData.length > 0) {
             clearConnection();
-          }}
-        />
-      )}
+          }
+        }}
+      />
     </StyledConnection>
   );
 }
