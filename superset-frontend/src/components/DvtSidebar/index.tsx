@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import {
   dvtSidebarAlertsSetProperty,
+  dvtSidebarConnectionSetProperty,
   dvtSidebarReportsSetProperty,
 } from 'src/dvt-redux/dvt-sidebarReducer';
 import { useAppSelector } from 'src/hooks/useAppSelector';
@@ -33,6 +34,9 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
   const dispatch = useDispatch();
   const reportsSelector = useAppSelector(state => state.dvtSidebar.reports);
   const alertsSelector = useAppSelector(state => state.dvtSidebar.alerts);
+  const connectionSelector = useAppSelector(
+    state => state.dvtSidebar.connection,
+  );
   const [darkMode, setDarkMode] = useState<boolean>(false);
   const [active, setActive] = useState<string>('test');
 
@@ -46,7 +50,7 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
         return 'Alerts';
       case '/report/list/':
         return 'Reports';
-      case '/dataset/add/':
+      case '/databaseview/list/':
         return 'Connection';
       case '/superset/sqllab/':
         return 'SQL Lab';
@@ -81,6 +85,17 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
       dvtSidebarAlertsSetProperty({
         alerts: {
           ...alertsSelector,
+          [propertyName]: value,
+        },
+      }),
+    );
+  };
+
+  const updateConnectionProperty = (value: string, propertyName: string) => {
+    dispatch(
+      dvtSidebarConnectionSetProperty({
+        connection: {
+          ...connectionSelector,
           [propertyName]: value,
         },
       }),
@@ -148,6 +163,8 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
                         ? reportsSelector[data.name]
                         : pathTitles(pathName) === 'Alerts'
                         ? alertsSelector[data.name]
+                        : pathTitles(pathName) === 'Connection'
+                        ? connectionSelector[data.name]
                         : undefined
                     }
                     setSelectedValue={value => {
@@ -155,6 +172,8 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
                         updateReportsProperty(value, data.name);
                       } else if (pathTitles(pathName) === 'Alerts') {
                         updateAlertsProperty(value, data.name);
+                      } else if (pathTitles(pathName) === 'Connection') {
+                        updateConnectionProperty(value, data.name);
                       }
                     }}
                     maxWidth
