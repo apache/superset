@@ -32,9 +32,13 @@ import {
 } from '@superset-ui/chart-controls';
 import {
   legendSection,
+  minorTicks,
   richTooltipSection,
   seriesOrderSection,
   showValueSection,
+  truncateXAxis,
+  xAxisBounds,
+  xAxisLabelRotation,
 } from '../../../controls';
 
 import { OrientationType } from '../../types';
@@ -49,7 +53,6 @@ const {
   truncateYAxis,
   yAxisBounds,
   zoomable,
-  xAxisLabelRotation,
   orientation,
 } = DEFAULT_FORM_DATA;
 
@@ -163,21 +166,9 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
     ],
     [
       {
-        name: 'xAxisLabelRotation',
+        name: xAxisLabelRotation.name,
         config: {
-          type: 'SelectControl',
-          freeForm: true,
-          clearable: false,
-          label: t('Rotate axis label'),
-          choices: [
-            [0, '0°'],
-            [45, '45°'],
-          ],
-          default: xAxisLabelRotation,
-          renderTrigger: true,
-          description: t(
-            'Input field supports custom rotation. e.g. 30 for 30°',
-          ),
+          ...xAxisLabelRotation.config,
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isVertical(controls) : isHorizontal(controls),
         },
@@ -223,6 +214,8 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
         },
       },
     ],
+    [truncateXAxis],
+    [xAxisBounds],
     [
       {
         name: 'truncateYAxis',
@@ -307,6 +300,7 @@ const config: ControlPanelConfig = {
         ...seriesOrderSection,
         ['color_scheme'],
         ...showValueSection,
+        [minorTicks],
         [
           {
             name: 'zoomable',

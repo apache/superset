@@ -17,8 +17,8 @@
 from typing import Any
 
 from marshmallow import Schema
+from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.orm import Session
-from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.sql import select
 
 from superset import db

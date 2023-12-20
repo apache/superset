@@ -194,7 +194,7 @@ class DatabendParametersSchema(Schema):
     )
 
 
-class DatabendConnectEngineSpec(DatabendEngineSpec, BasicParametersMixin):
+class DatabendConnectEngineSpec(BasicParametersMixin, DatabendEngineSpec):
     """Engine spec for databend sqlalchemy connector"""
 
     engine = "databend"

@@ -622,7 +622,7 @@ cd superset-frontend
 npm ci
 ```
 
-Note that Superset uses [Scarf](https://docs.scarf.sh) to capture telemetry/analytics about versions being installed, including the `scarf-js` npm package. As noted elsewhere in this documentation, Scarf gathers aggregated stats for the sake of security/release strategy, and does not capture/retain PII. [You can read here](https://docs.scarf.sh/package-analytics/) about the package, and various means to opt out of it, but one easy way to opt out is to add this setting in `superset-frontent/package.json`:
+Note that Superset uses [Scarf](https://docs.scarf.sh) to capture telemetry/analytics about versions being installed, including the `scarf-js` npm package and an analytics pixel. As noted elsewhere in this documentation, Scarf gathers aggregated stats for the sake of security/release strategy, and does not capture/retain PII. [You can read here](https://docs.scarf.sh/package-analytics/) about the `scarf-js` package, and various means to opt out of it, but you can opt out of the npm package _and_ the pixel by setting the `SCARF_ANALYTICS` envinronment variable to `false` or opt out of the pixel by adding this setting in `superset-frontent/package.json`:
 
 ```json
 // your-package/package.json
@@ -643,18 +643,6 @@ There are three types of assets you can build:
 2. `npm run dev-server`: local development assets, with sourcemaps and hot refresh support
 3. `npm run build-instrumented`: instrumented application code for collecting code coverage from Cypress tests
 
-If this type of error comes while building assets(i.e using above commands):
-
-```bash
-Error: You must provide the URL of lib/mappings.wasm by calling SourceMapConsumer.initialize
-```
-
-Then put this:
-
-```bash
-export NODE_OPTIONS=--no-experimental-fetch
-```
-
 If while using the above commands you encounter an error related to the limit of file watchers:
 
 ```bash
@@ -662,7 +650,6 @@ Error: ENOSPC: System limit for number of file watchers reached
 ```
 The error is thrown because the number of files monitored by the system has reached the limit.
 You can address this this error by increasing the number of inotify watchers.
-
 
 The current value of max watches can be checked with:
 ```bash
@@ -680,6 +667,7 @@ To confirm that the change succeeded, run the following command to load the upda
 ```bash
 sudo sysctl -p
 ```
+
 #### Webpack dev server
 
 The dev server by default starts at `http://localhost:9000` and proxies the backend requests to `http://localhost:8088`.

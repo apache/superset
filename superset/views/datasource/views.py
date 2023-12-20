@@ -24,8 +24,7 @@ from flask_appbuilder.api import rison
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import _
 from marshmallow import ValidationError
-from sqlalchemy.exc import NoSuchTableError
-from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.exc import NoResultFound, NoSuchTableError
 
 from superset import db, event_logger, security_manager
 from superset.commands.dataset.exceptions import (

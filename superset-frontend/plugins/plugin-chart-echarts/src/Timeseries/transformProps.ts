@@ -54,7 +54,7 @@ import {
 } from './types';
 import { DEFAULT_FORM_DATA } from './constants';
 import { ForecastSeriesEnum, ForecastValue, Refs } from '../types';
-import { parseYAxisBound } from '../utils/controls';
+import { parseAxisBound } from '../utils/controls';
 import {
   calculateLowerLogTick,
   dedupSeries,
@@ -64,6 +64,7 @@ import {
   getAxisType,
   getColtypesMapping,
   getLegendProps,
+  getMinAndMaxFromBounds,
 } from '../utils/series';
 import {
   extractAnnotationLabels,
@@ -145,6 +146,7 @@ export default function transformProps(
     markerSize,
     metrics,
     minorSplitLine,
+    minorTicks,
     onlyTotal,
     opacity,
     orientation,
@@ -161,8 +163,10 @@ export default function transformProps(
     stack,
     tooltipTimeFormat,
     tooltipSortByMetric,
+    truncateXAxis,
     truncateYAxis,
     xAxis: xAxisOrig,
+    xAxisBounds,
     xAxisLabelRotation,
     xAxisSortSeries,
     xAxisSortSeriesAscending,
@@ -244,7 +248,7 @@ export default function transformProps(
   const isAreaExpand = stack === StackControlsValue.Expand;
   const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
 
-  const xAxisType = getAxisType(xAxisDataType);
+  const xAxisType = getAxisType(stack, xAxisDataType);
   const series: SeriesOption[] = [];
 
   const forcePercentFormatter = Boolean(contributionMode || isAreaExpand);
@@ -388,15 +392,20 @@ export default function transformProps(
       }
     });
 
-  // yAxisBounds need to be parsed to replace incompatible values with undefined
-  let [min, max] = (yAxisBounds || []).map(parseYAxisBound);
+  // axis bounds need to be parsed to replace incompatible values with undefined
+  const [xAxisMin, xAxisMax] = (xAxisBounds || []).map(parseAxisBound);
+  let [yAxisMin, yAxisMax] = (yAxisBounds || []).map(parseAxisBound);
 
   // default to 0-100% range when doing row-level contribution chart
   if ((contributionMode === 'row' || isAreaExpand) && stack) {
-    if (min === undefined) min = 0;
-    if (max === undefined) max = 1;
-  } else if (logAxis && min === undefined && minPositiveValue !== undefined) {
-    min = calculateLowerLogTick(minPositiveValue);
+    if (yAxisMin === undefined) yAxisMin = 0;
+    if (yAxisMax === undefined) yAxisMax = 1;
+  } else if (
+    logAxis &&
+    yAxisMin === undefined &&
+    minPositiveValue !== undefined
+  ) {
+    yAxisMin = calculateLowerLogTick(minPositiveValue);
   }
 
   const tooltipFormatter =
@@ -448,17 +457,26 @@ export default function transformProps(
       formatter: xAxisFormatter,
       rotate: xAxisLabelRotation,
     },
+    minorTick: { show: minorTicks },
     minInterval:
       xAxisType === AxisType.time && timeGrainSqla
         ? TIMEGRAIN_TO_TIMESTAMP[timeGrainSqla]
         : 0,
+    ...getMinAndMaxFromBounds(
+      xAxisType,
+      truncateXAxis,
+      xAxisMin,
+      xAxisMax,
+      seriesType,
+    ),
   };
+
   let yAxis: any = {
     ...defaultYAxis,
     type: logAxis ? AxisType.log : AxisType.value,
-    min,
-    max,
-    minorTick: { show: true },
+    min: yAxisMin,
+    max: yAxisMax,
+    minorTick: { show: minorTicks },
     minorSplitLine: { show: minorSplitLine },
     axisLabel: {
       formatter: getYAxisFormatter(

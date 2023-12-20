@@ -117,6 +117,7 @@ const plugins = [
     'process.env.WEBPACK_MODE': JSON.stringify(mode),
     'process.env.REDUX_DEFAULT_MIDDLEWARE':
       process.env.REDUX_DEFAULT_MIDDLEWARE,
+    'process.env.SCARF_ANALYTICS': process.env.SCARF_ANALYTICS,
   }),
 
   new CopyPlugin({
