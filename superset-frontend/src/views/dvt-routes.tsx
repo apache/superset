@@ -69,7 +69,8 @@ const Dashboard = lazy(
 );
 
 const DatabaseList = lazy(
-  () => import(/* webpackChunkName: "DatabaseList" */ 'src/pages/DvtConnection'),
+  () =>
+    import(/* webpackChunkName: "DatabaseList" */ 'src/pages/DvtConnection'),
 );
 
 const DatasetList = lazy(
