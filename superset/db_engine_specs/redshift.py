@@ -23,7 +23,7 @@ from typing import Any
 
 import pandas as pd
 from flask_babel import gettext as __
-from sqlalchemy.types import Date, DateTime, NVARCHAR
+from sqlalchemy.types import NVARCHAR
 
 from superset.db_engine_specs.base import BasicParametersMixin
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
