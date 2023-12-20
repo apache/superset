@@ -45,5 +45,3 @@ def test_convert_dttm(
     from superset.db_engine_specs.redshift import RedshiftEngineSpec as spec
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
-
-
