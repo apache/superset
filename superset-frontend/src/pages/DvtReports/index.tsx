@@ -18,6 +18,8 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { dvtSidebarReportsSetProperty } from 'src/dvt-redux/dvt-sidebarReducer';
 import { useAppSelector } from 'src/hooks/useAppSelector';
 import DvtPagination from 'src/components/DvtPagination';
 import DvtTable from 'src/components/DvtTable';
@@ -26,45 +28,111 @@ import DvtButton from 'src/components/DvtButton';
 import DvtIconDataLabel from 'src/components/DvtIconDataLabel';
 import { StyledReports, StyledReportsButton } from './dvt-reports.module';
 
-function ReportList() {
-  const [apiData, setApiData] = useState([]);
+const modifiedData = {
+  header: [
+    { id: 1, title: 'Name', field: 'name', heartIcon: true },
+    { id: 2, title: 'Visualization Type', field: 'type' },
+    { id: 3, title: 'Dataset', field: 'crontab_humanized' },
+    { id: 4, title: 'Modified date', field: 'date' },
+    { id: 5, title: 'Modified by', field: 'changed_by' },
+    { id: 6, title: 'Created by', field: 'created_by' },
+    {
+      id: 9,
+      title: 'Action',
+      clicks: [
+        {
+          icon: 'edit_alt',
+          click: () => {},
+          popperLabel: 'Edit',
+        },
+        {
+          icon: 'share',
+          click: () => {},
+          popperLabel: 'Export',
+        },
+        {
+          icon: 'trash',
+          click: () => {},
+          popperLabel: 'Delete',
+        },
+      ],
+    },
+  ],
+};
 
-  const [page, setPage] = useState<number>(1);
+function ReportList() {
+  const dispatch = useDispatch();
   const reportsSelector = useAppSelector(state => state.dvtSidebar.reports);
+  const [apiData, setApiData] = useState([]);
+  const [page, setPage] = useState<number>(1);
+  const [editedData, setEditedData] = useState<any[]>([]);
+
+  const clearReports = () => {
+    dispatch(
+      dvtSidebarReportsSetProperty({
+        reports: {
+          ...reportsSelector,
+          owner: '',
+          createdBy: '',
+          chartType: '',
+          dataset: '',
+          dashboards: '',
+          favorite: '',
+          certified: '',
+        },
+      }),
+    );
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('/api/v1/report/');
+        const response = await fetch('/api/v1/chart/');
         const data = await response.json();
+        console.log(data);
+        const newEditedData = data.result.map((item: any) => ({
+          name: item.slice_name,
+          type: item.viz_type,
+          crontab_humanized: item.datasource_name_text,
+          date: new Date(item.changed_on_utc).toLocaleString('tr-TR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          }),
+          created_by: `${item.created_by.first_name} ${item.created_by.last_name}`,
+          changed_by: `${item.changed_by.first_name} ${item.changed_by.last_name}`,
+          owner: `${item.owners[0].first_name} ${item.owners[0].last_name}`,
+          dashboards: item.dashboards[0]?.dashboard_title,
+          certified: item.certified_by,
+        }));
 
-        const editedData = data.result
-          .filter((item: any) => item.type === 'Report')
-          .map((item: any) => ({
-            name: item.name,
-            type: item.type,
-            crontab_humanized: item.crontab_humanized,
-            date: new Date(item.created_on).toLocaleString('tr-TR', {
-              day: '2-digit',
-              month: '2-digit',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-              second: '2-digit',
-            }),
-            created_by: `${item.created_by.first_name} ${item.created_by.last_name}`,
-            changed_by: `${item.changed_by.first_name} ${item.changed_by.last_name}`,
-            last_state: item.last_state,
-          }));
+        setEditedData(newEditedData);
 
-        const filteredData = editedData.filter(
+        const filteredData = newEditedData.filter(
           (item: any) =>
+            (reportsSelector.owner
+              ? item.owner === reportsSelector.owner
+              : true) &&
             (reportsSelector.createdBy
               ? item.created_by === reportsSelector.createdBy
               : true) &&
             (reportsSelector.chartType
-              ? item.last_state === reportsSelector.chartType
+              ? item.type === reportsSelector.chartType
+              : true) &&
+            (reportsSelector.dataset
+              ? item.crontab_humanized === reportsSelector.dataset
+              : true) &&
+            (reportsSelector.dashboards
+              ? item.dashboards === reportsSelector.dashboards
+              : true) &&
+            (reportsSelector.certified
+              ? item.certified === reportsSelector.certified
               : true),
         );
+
         setApiData(filteredData);
       } catch (error) {
         console.error('Hata:', error);
@@ -73,37 +141,6 @@ function ReportList() {
 
     fetchData();
   }, [reportsSelector]);
-  const modifiedData = {
-    header: [
-      { id: 1, title: 'Name', field: 'name', heartIcon: true },
-      { id: 2, title: 'Visualization Type', field: 'type' },
-      { id: 3, title: 'Dataset', field: 'crontab_humanized' },
-      { id: 4, title: 'Modified date', field: 'date' },
-      { id: 5, title: 'Modified by', field: 'changed_by' },
-      { id: 6, title: 'Created by', field: 'created_by' },
-      {
-        id: 9,
-        title: 'Action',
-        clicks: [
-          {
-            icon: 'edit_alt',
-            click: () => {},
-            popperLabel: 'Edit',
-          },
-          {
-            icon: 'share',
-            click: () => {},
-            popperLabel: 'Export',
-          },
-          {
-            icon: 'trash',
-            click: () => {},
-            popperLabel: 'Delete',
-          },
-        ],
-      },
-    ],
-  };
 
   const itemsPerPageValue = 10;
   const indexOfLastItem = page * itemsPerPageValue;
@@ -132,7 +169,19 @@ function ReportList() {
     </StyledReports>
   ) : (
     <StyledReports>
-      <DvtIconDataLabel label="No Reports Yet" buttonLabel="Reports" />
+      <DvtIconDataLabel
+        label={
+          editedData.length === 0
+            ? 'No Alerts Yet'
+            : 'No results match your filter criteria'
+        }
+        buttonLabel={editedData.length === 0 ? 'Alert' : 'Clear All Filter'}
+        buttonClick={() => {
+          if (editedData.length > 0) {
+            clearReports();
+          }
+        }}
+      />{' '}
     </StyledReports>
   );
 }
