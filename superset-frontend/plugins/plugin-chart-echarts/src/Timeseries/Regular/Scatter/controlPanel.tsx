@@ -34,6 +34,7 @@ import {
 } from '../../constants';
 import {
   legendSection,
+  minorTicks,
   richTooltipSection,
   seriesOrderSection,
   showValueSection,
@@ -111,6 +112,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [minorTicks],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
 

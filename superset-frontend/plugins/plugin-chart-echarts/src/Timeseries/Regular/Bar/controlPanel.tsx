@@ -32,6 +32,7 @@ import {
 } from '@superset-ui/chart-controls';
 import {
   legendSection,
+  minorTicks,
   richTooltipSection,
   seriesOrderSection,
   showValueSection,
@@ -312,6 +313,7 @@ const config: ControlPanelConfig = {
         ...seriesOrderSection,
         ['color_scheme'],
         ...showValueSection,
+        [minorTicks],
         [
           {
             name: 'zoomable',

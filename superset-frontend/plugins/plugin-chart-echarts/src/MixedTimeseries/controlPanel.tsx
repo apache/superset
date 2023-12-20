@@ -34,6 +34,7 @@ import { DEFAULT_FORM_DATA } from './types';
 import { EchartsTimeseriesSeriesType } from '../Timeseries/types';
 import {
   legendSection,
+  minorTicks,
   richTooltipSection,
   truncateXAxis,
   xAxisBounds,
@@ -316,6 +317,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [minorTicks],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         ['x_axis_time_format'],

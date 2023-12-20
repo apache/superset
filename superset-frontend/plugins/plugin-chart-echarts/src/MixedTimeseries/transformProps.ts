@@ -158,6 +158,7 @@ export default function transformProps(
     opacity,
     opacityB,
     minorSplitLine,
+    minorTicks,
     seriesType,
     seriesTypeB,
     showLegend,
@@ -497,6 +498,7 @@ export default function transformProps(
         formatter: xAxisFormatter,
         rotate: xAxisLabelRotation,
       },
+      minorTick: { show: minorTicks },
       minInterval:
         xAxisType === 'time' && timeGrainSqla
           ? TIMEGRAIN_TO_TIMESTAMP[timeGrainSqla]
@@ -518,7 +520,7 @@ export default function transformProps(
         type: logAxis ? 'log' : 'value',
         min: yAxisMin,
         max: yAxisMax,
-        minorTick: { show: true },
+        minorTick: { show: minorTicks },
         minorSplitLine: { show: minorSplitLine },
         axisLabel: {
           formatter: getYAxisFormatter(
@@ -539,7 +541,7 @@ export default function transformProps(
         type: logAxisSecondary ? 'log' : 'value',
         min: minSecondary,
         max: maxSecondary,
-        minorTick: { show: true },
+        minorTick: { show: minorTicks },
         splitLine: { show: false },
         minorSplitLine: { show: minorSplitLine },
         axisLabel: {

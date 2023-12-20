@@ -39,6 +39,7 @@ import {
   percentageThresholdControl,
   truncateXAxis,
   xAxisBounds,
+  minorTicks,
 } from '../../controls';
 import { AreaChartStackControlOptions } from '../../constants';
 
@@ -169,6 +170,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [minorTicks],
         [
           {
             name: 'zoomable',
