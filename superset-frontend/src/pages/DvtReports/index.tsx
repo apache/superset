@@ -63,9 +63,9 @@ const modifiedData = {
 function ReportList() {
   const dispatch = useDispatch();
   const reportsSelector = useAppSelector(state => state.dvtSidebar.reports);
-  const [apiData, setApiData] = useState([]);
   const [page, setPage] = useState<number>(1);
-  const [editedData, setEditedData] = useState<any[]>([]);
+  const [editedData, setEditedData] = useState([]);
+  const [filteredData, setFilteredData] = useState([]);
 
   const clearReports = () => {
     dispatch(
@@ -89,7 +89,6 @@ function ReportList() {
       try {
         const response = await fetch('/api/v1/chart/');
         const data = await response.json();
-        console.log(data);
         const newEditedData = data.result.map((item: any) => ({
           name: item.slice_name,
           type: item.viz_type,
@@ -110,47 +109,48 @@ function ReportList() {
         }));
 
         setEditedData(newEditedData);
-
-        const filteredData = newEditedData.filter(
-          (item: any) =>
-            (reportsSelector.owner
-              ? item.owner === reportsSelector.owner
-              : true) &&
-            (reportsSelector.createdBy
-              ? item.created_by === reportsSelector.createdBy
-              : true) &&
-            (reportsSelector.chartType
-              ? item.type === reportsSelector.chartType
-              : true) &&
-            (reportsSelector.dataset
-              ? item.crontab_humanized === reportsSelector.dataset
-              : true) &&
-            (reportsSelector.dashboards
-              ? item.dashboards === reportsSelector.dashboards
-              : true) &&
-            (reportsSelector.certified
-              ? item.certified === reportsSelector.certified
-              : true),
-        );
-
-        setApiData(filteredData);
+        setFilteredData(newEditedData);
       } catch (error) {
         console.error('Hata:', error);
       }
     };
 
     fetchData();
+  }, []);
+
+  useEffect(() => {
+    const filteredData = editedData.filter(
+      (item: any) =>
+        (reportsSelector.owner ? item.owner === reportsSelector.owner : true) &&
+        (reportsSelector.createdBy
+          ? item.created_by === reportsSelector.createdBy
+          : true) &&
+        (reportsSelector.chartType
+          ? item.type === reportsSelector.chartType
+          : true) &&
+        (reportsSelector.dataset
+          ? item.crontab_humanized === reportsSelector.dataset
+          : true) &&
+        (reportsSelector.dashboards
+          ? item.dashboards === reportsSelector.dashboards
+          : true) &&
+        (reportsSelector.certified
+          ? item.certified === reportsSelector.certified
+          : true),
+    );
+
+    setFilteredData(filteredData);
   }, [reportsSelector]);
 
   const itemsPerPageValue = 10;
   const indexOfLastItem = page * itemsPerPageValue;
   const indexOfFirstItem = (page - 1) * itemsPerPageValue;
   const currentItems =
-    apiData.length > 10
-      ? apiData.slice(indexOfFirstItem, indexOfLastItem)
-      : apiData;
+    filteredData.length > 10
+      ? filteredData.slice(indexOfFirstItem, indexOfLastItem)
+      : filteredData;
 
-  return apiData.length > 0 ? (
+  return filteredData.length > 0 ? (
     <StyledReports>
       <DvtTable data={currentItems} header={modifiedData.header} />
       <StyledReportsButton>
@@ -162,7 +162,7 @@ function ReportList() {
         <DvtPagination
           page={page}
           setPage={setPage}
-          itemSize={apiData.length}
+          itemSize={filteredData.length}
           pageItemSize={10}
         />
       </StyledReportsButton>
