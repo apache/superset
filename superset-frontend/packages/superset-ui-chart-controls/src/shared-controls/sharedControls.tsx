@@ -59,7 +59,7 @@ import {
   DEFAULT_TIME_FORMAT,
   DEFAULT_NUMBER_FORMAT,
 } from '../utils';
-import { TIME_FILTER_LABELS } from '../constants';
+import { DEFAULT_MAX_ROW, TIME_FILTER_LABELS } from '../constants';
 import {
   SharedControlConfig,
   Dataset,
@@ -247,7 +247,7 @@ const row_limit: SharedControlConfig<'SelectControl'> = {
   clearable: false,
   validators: [
     legacyValidateInteger,
-    (v, state) => validateMaxValue(v, state?.maxValue),
+    (v, state) => validateMaxValue(v, state?.maxValue || DEFAULT_MAX_ROW),
   ],
   mapStateToProps: state => ({ maxValue: state?.common?.conf?.SQL_MAX_ROW }),
   default: 10000,
