@@ -249,7 +249,7 @@ const row_limit: SharedControlConfig<'SelectControl'> = {
     legacyValidateInteger,
     (v, state) => validateMaxValue(v, state?.maxValue),
   ],
-  mapStateToProps: state => ({ maxValue: state?.common.conf.SQL_MAX_ROW }),
+  mapStateToProps: state => ({ maxValue: state?.common?.conf?.SQL_MAX_ROW }),
   default: 10000,
   choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
   description: t(
