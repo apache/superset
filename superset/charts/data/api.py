@@ -367,10 +367,11 @@ class ChartDataRestApi(ChartRestApi):
         Execute command as an async query.
         """
         # First, look for the chart query results in the cache.
-        with contextlib.suppress(ChartDataCacheLoadError):
-            result = command.run(force_cached=True)
-            if result is not None:
-                return self._send_chart_response(result)
+        if not form_data.get("force"):
+            with contextlib.suppress(ChartDataCacheLoadError):
+                result = command.run(force_cached=True)
+                if result is not None:
+                    return self._send_chart_response(result)
         # Otherwise, kick off a background job to run the chart query.
         # Clients will either poll or be notified of query completion,
         # at which point they will call the /data/<cache_key> endpoint
