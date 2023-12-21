@@ -539,6 +539,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "CHART_PLUGINS_EXPERIMENTAL": False,
     # Regardless of database configuration settings, force SQLLAB to run async using Celery
     "SQLLAB_FORCE_RUN_ASYNC": False,
+    # Set to True to enable Google Sheets exports.
+    # Requires `gsheets-export` optional dependency, and config parameters:
+    # - `GOOGLE_SHEETS_EXPORT_SERVICE_ACCOUNT_JSON_PATH`
+    # - `GOOGLE_SHEETS_EXPORT_SHARE_PERMISSIONS`
+    "GOOGLE_SHEETS_EXPORT": False,
 }
 
 # ------------------------------
