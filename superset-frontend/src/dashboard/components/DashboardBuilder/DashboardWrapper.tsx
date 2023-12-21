@@ -31,7 +31,9 @@ const StyledDiv = styled.div`
     flex: 1;
     /* Special cases */
 
-    &.dragdroppable--dragging .empty-droptarget.empty-droptarget--full {
+    &.dragdroppable--dragging
+      .dashboard-component-tabs-content
+      > .empty-droptarget.empty-droptarget--full {
       height: 100%;
     }
 
@@ -86,10 +88,6 @@ const StyledDiv = styled.div`
 
     i.warning {
       color: ${theme.colors.alert.base};
-    }
-
-    &.dragdroppable--dragging .grid-content {
-      height: 80vh;
     }
   `}
 `;
