@@ -426,7 +426,6 @@ export const TRANSLATIONS = {
   CUSTOM_SCREENSHOT_WIDTH_TEXT: t('Screenshot width'),
   CUSTOM_SCREENSHOT_WIDTH_PLACEHOLDER_TEXT: t('Input custom width in pixels'),
   NOTIFICATION_METHOD_TEXT: t('Notification method'),
-  SUBJECT_TEXT: t('Subject name'),
 };
 
 const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
