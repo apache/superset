@@ -388,7 +388,22 @@ The script will generate the email text that should be sent to dev@superset.apac
 
 ## Validating a release
 
+Official instructions:
 https://www.apache.org/info/verification.html
+
+We now have a handy script for anyone validating a release to use. The core of it is in this very folder, `verify_release.py`. Just make sure you have all three release files in the same directory (`{some version}.tar.gz`, `{some version}.tar.gz.asc` and `{some version}tar.gz.sha512`). Then you can pass this script the path to the `.gz` file like so:
+`python verify_release.py ~/path/tp/apache-superset-{version/candidate}-source.tar.gz`
+
+
+If all goes well, you will see this result in your terminal:
+```bash
+SHA-512 verified
+RSA key verified
+```
+
+There are also additional support scripts leveraging this to make it easy for those downloading a release to test it in-situ. You can do either of the following to validate these release assets:
+* `cd` into `superset-frontend` and run `npm run validate-release`
+* `cd` into `RELEASES` and run `./validate_this_release.sh`
 
 ## Publishing a successful release
 

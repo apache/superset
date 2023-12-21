@@ -73,7 +73,7 @@ CHART_DATA_URI = "api/v1/chart/data"
 CHARTS_FIXTURE_COUNT = 10
 
 
-class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
+class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
     resource_name = "chart"
 
     @pytest.fixture(autouse=True)

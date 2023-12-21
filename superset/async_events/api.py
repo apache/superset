@@ -23,7 +23,7 @@ from flask_appbuilder.security.decorators import permission_name, protect
 
 from superset.async_events.async_query_manager import AsyncQueryTokenException
 from superset.extensions import async_query_manager, event_logger
-from superset.views.base_api import BaseSupersetApi
+from superset.views.base_api import BaseSupersetApi, statsd_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +36,7 @@ class AsyncEventsRestApi(BaseSupersetApi):
     @event_logger.log_this
     @protect()
     @safe
+    @statsd_metrics
     @permission_name("list")
     def events(self) -> Response:
         """

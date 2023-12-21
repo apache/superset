@@ -93,7 +93,7 @@ import {
 } from 'src/utils/localStorageHelpers';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import getBootstrapData from 'src/utils/getBootstrapData';
-import { isEmpty } from 'lodash';
+import { isBoolean, isEmpty } from 'lodash';
 import TemplateParamsEditor from '../TemplateParamsEditor';
 import SouthPane from '../SouthPane';
 import SaveQuery, { QueryPayload } from '../SaveQuery';
@@ -255,7 +255,9 @@ const SqlEditor: React.FC<Props> = ({
     if (unsavedQueryEditor?.id === queryEditor.id) {
       dbId = unsavedQueryEditor.dbId || dbId;
       latestQueryId = unsavedQueryEditor.latestQueryId || latestQueryId;
-      hideLeftBar = unsavedQueryEditor.hideLeftBar || hideLeftBar;
+      hideLeftBar = isBoolean(unsavedQueryEditor.hideLeftBar)
+        ? unsavedQueryEditor.hideLeftBar
+        : hideLeftBar;
     }
     return {
       database: databases[dbId || ''],
