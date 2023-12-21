@@ -13,7 +13,7 @@ const DvtSidebarData: SidebarDataProps[] = [
         data: [
           {
             title: 'Connections',
-            url: '/',
+            url: '/databaseview/list/',
             fileName: 'dvt-activity',
           },
           {
@@ -28,12 +28,12 @@ const DvtSidebarData: SidebarDataProps[] = [
           },
           {
             title: 'Report',
-            url: '/',
+            url: '/report/list/',
             fileName: 'dvt-analytic_chart',
           },
           {
             title: 'Alert',
-            url: '/',
+            url: '/alert/list/',
             fileName: 'dvt-alert',
           },
         ],
