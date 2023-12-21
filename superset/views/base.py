@@ -409,6 +409,8 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     available_specs = get_available_engine_specs()
     frontend_config["HAS_GSHEETS_INSTALLED"] = bool(available_specs[GSheetsEngineSpec])
 
+    frontend_config["HAS_GSHEETS_EXPORT"] = bool(available_specs[GSheetsEngineSpec])
+
     bootstrap_data = {
         "conf": frontend_config,
         "locale": locale,
