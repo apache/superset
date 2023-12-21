@@ -13,7 +13,7 @@ const DvtSidebarData: SidebarDataProps[] = [
         data: [
           {
             title: 'Connections',
-            url: '/',
+            url: '/databaseview/list/',
             fileName: 'dvt-activity',
           },
           {
@@ -28,12 +28,12 @@ const DvtSidebarData: SidebarDataProps[] = [
           },
           {
             title: 'Report',
-            url: '/',
+            url: '/report/list/',
             fileName: 'dvt-analytic_chart',
           },
           {
             title: 'Alert',
-            url: '/',
+            url: '/alert/list/',
             fileName: 'dvt-alert',
           },
         ],
@@ -434,57 +434,79 @@ const DvtSidebarData: SidebarDataProps[] = [
     pathname: '/report/list/',
     data: [
       {
-        values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
-        ],
+        values: [{ label: 'Superset Admin', value: 'Superset Admin' }],
         placeholder: 'Owner',
         name: 'owner',
       },
       {
-        values: [
-          { label: 'Superset Admin', value: 'Superset Admin' },
-          { label: 'Success', value: 'success' },
-        ],
+        values: [{ label: 'Superset Admin', value: 'Superset Admin' }],
         placeholder: 'Created by',
         name: 'createdBy',
       },
       {
         values: [
-          { label: 'Error', value: 'Error' },
-          { label: 'Success', value: 'Success' },
+          { label: 'Pie Chart', value: 'pie' },
+          { label: 'Big Number with Trendline', value: 'big_number' },
+          { label: 'Table', value: 'table' },
+          { label: 'World Map', value: 'world_map' },
+          { label: 'Treemap (legacy)', value: 'treemap' },
+          { label: 'Bar Chart', value: 'dist_bar' },
+          { label: 'Time-series Bar Chart', value: 'echarts_timeseries_bar' },
+          { label: 'Chord Diagram', value: 'chord' },
+          { label: 'Heatmap', value: 'heatmap' },
+          { label: 'Box Plot', value: 'box_plot' },
+          { label: 'Sankey Diagram', value: 'sankey' },
         ],
         placeholder: 'Chart Type',
         name: 'chartType',
       },
       {
         values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
+          { label: 'arac', value: 'dwh.arac' },
+          { label: 'alarm_event', value: 'cap.alarm_event' },
+          {
+            label: 'FCC 2018 Survey',
+            value: 'public.FCC 2018 Survey',
+          },
+          { label: 'video_game_sales', value: 'public.video_game_sales' },
+          { label: 'hrrr2', value: 'public.hrrr2' },
+          {
+            label: 'users_channels-uzooNNtSRO',
+            value: 'public.users_channels-uzooNNtSRO',
+          },
         ],
         placeholder: 'Dataset',
         name: 'dataset',
       },
       {
         values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
+          { label: 'Unicode Test', value: 'Unicode Test' },
+          {
+            label: 'COVID Vaccine Dashboard',
+            value: 'COVID Vaccine Dashboard',
+          },
+          { label: 'untitled dashboard', value: 'untitled dashboard' },
+          {
+            label: 'FCC New Coder Survey 2018',
+            value: 'FCC New Coder Survey 2018',
+          },
+          { label: 'Video Game Sales', value: 'Video Game Sales' },
         ],
         placeholder: 'Dashboards',
         name: 'dashboards',
       },
       {
         values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
+          { label: 'Yes', value: 'true' },
+          { label: 'No', value: 'false' },
         ],
         placeholder: 'Favorite',
         name: 'favorite',
       },
       {
         values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
+          { label: 'Yes', value: 'true' },
+          { label: 'No', value: null },
         ],
         placeholder: 'Certified',
         name: 'certified',
