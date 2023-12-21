@@ -18,7 +18,6 @@
  */
 
 import afghanistan from './countries/afghanistan.geojson';
-import aland from './countries/aland.geojson';
 import albania from './countries/albania.geojson';
 import algeria from './countries/algeria.geojson';
 import argentina from './countries/argentina.geojson';
@@ -116,7 +115,6 @@ import zambia from './countries/zambia.geojson';
 
 export const countries = {
   afghanistan,
-  aland,
   albania,
   algeria,
   argentina,
@@ -223,13 +221,7 @@ export const countryOptions = Object.keys(countries).map(x => {
   if (x === 'france_regions') {
     return [x, 'France (regions)'];
   }
-  return [
-    x,
-    x
-      .split('_')
-      .map(e => e[0].toUpperCase() + e.slice(1))
-      .join(' '),
-  ];
+  return [x, x.split('_').map((e) => e[0].toUpperCase() + e.slice(1)).join(' ')];
 });
 
 export default countries;
