@@ -372,7 +372,7 @@ class ChartDataRestApi(ChartRestApi):
             if len(result["queries"]) == 1:
                 # return single query results
                 data = result["queries"][0]["data"]
-                data = apply_scribe_post_process(data)
+                data = apply_scribe_post_process(data, is_csv_format)
                 if is_csv_format:
                     return CsvResponse(data, headers=generate_download_headers("csv"))
 
@@ -380,7 +380,9 @@ class ChartDataRestApi(ChartRestApi):
 
             # return multi-query results bundled as a zip file
             def _process_data(query_data: Any) -> Any:
-                query_data = apply_scribe_post_process(query_data)
+                query_data = apply_scribe_post_process(
+                    query_data, result_format == ChartDataResultFormat.CSV
+                )
                 if result_format == ChartDataResultFormat.CSV:
                     encoding = current_app.config["CSV_EXPORT"].get("encoding", "utf-8")
                     return query_data.encode(encoding)

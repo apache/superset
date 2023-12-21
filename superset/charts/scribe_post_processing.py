@@ -1,6 +1,6 @@
 from urllib.parse import parse_qsl
 from bs4 import BeautifulSoup
-from io import StringIO
+from io import StringIO, BytesIO
 import pandas as pd
 
 
@@ -25,12 +25,19 @@ def process_col(col):
     return col
 
 
-def apply_scribe_post_process(data):
-    df = pd.read_csv(StringIO(data))
+def apply_scribe_post_process(data, is_csv_format):
+    if is_csv_format:
+        df = pd.read_csv(StringIO(data))
+    else:
+        df = pd.read_excel(BytesIO(data))
     df = df.apply(process_col, axis=1)
     if "More" in df:
         df = pd.concat([df.drop("More", axis=1), pd.json_normalize(df["More"])], axis=1)
-    buf = StringIO()
-    df.to_csv(buf)
+    if is_csv_format:
+        buf = StringIO()
+        df.to_csv(buf)
+    else:
+        buf = BytesIO()
+        df.to_excel(buf)
     buf.seek(0)
     return buf.getvalue()
