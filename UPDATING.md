@@ -29,6 +29,8 @@ assists people when migrating to a new version.
 
 ### Breaking Changes
 
+- [26331](https://github.com/apache/superset/issues/26331): Removes the deprecated `DISABLE_DATASET_SOURCE_EDIT` feature flag.
+
 ### Potential Downtime
 
 ### Other
