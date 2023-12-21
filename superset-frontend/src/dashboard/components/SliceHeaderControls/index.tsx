@@ -74,6 +74,19 @@ const MENU_KEYS = {
   DOWNLOAD: 'download',
 };
 
+const ACTION_KEYS = {
+  enter: 'Enter',
+  spacebar: 'Spacebar',
+  space: ' ',
+};
+
+const NAV_KEYS = {
+  tab: 'Tab',
+  escape: 'Escape',
+  up: 'ArrowUp',
+  down: 'ArrowDown',
+};
+
 // TODO: replace 3 dots with an icon
 const VerticalDotsContainer = styled.div`
   padding: ${({ theme }) => theme.gridUnit / 4}px
@@ -167,6 +180,60 @@ const dropdownIconsStyles = css`
     vertical-align: 0;
   }
 `;
+
+export const handleDropdownNavigation = (
+  e: React.KeyboardEvent<HTMLElement>,
+  dropdownIsOpen: boolean,
+  menu: React.ReactElement,
+  toggleDropdown: () => void,
+  setSelectedKeys: (keys: string[]) => void,
+) => {
+  if (e.key === NAV_KEYS.tab && !dropdownIsOpen) {
+    return; // continue with system tab navigation
+  }
+  e.preventDefault();
+  // for accessibility
+  const keys = menu.props.children
+    .map(
+      (item: any) =>
+        item?.key ||
+        item?.props?.children?.find((child: React.ReactElement) => child?.key)
+          ?.key,
+    )
+    .filter((item: any) => !!item);
+  const { selectedKeys } = menu.props;
+  const currentKeyIndex = keys.indexOf(selectedKeys[0]);
+  // programatically toggle the dropdown on keypress
+  if (Object.values(ACTION_KEYS).includes(e.key)) {
+    if (!selectedKeys.length) {
+      // if nothing is selected, then open and close
+      // the menu on enter or spacebar
+      toggleDropdown();
+    } else {
+      // when a menu item is selected, then trigger
+      // the menu item's onClick handler
+      menu.props.onClick({ key: selectedKeys[0], domEvent: e });
+      // clear out/deselect keys
+      setSelectedKeys([]);
+      // close dropdown menu
+      toggleDropdown();
+      // put focus back on menu trigger
+      e.currentTarget.focus();
+    }
+  } else if (
+    e.key === NAV_KEYS.down ||
+    (e.key === NAV_KEYS.tab && !e.shiftKey)
+  ) {
+    // programatically select the menu items going down
+    setSelectedKeys([keys[Math.min(currentKeyIndex + 1, keys.length)]]);
+  } else if (e.key === NAV_KEYS.up || (e.key === NAV_KEYS.tab && e.shiftKey)) {
+    // programatically select the menu items going up
+    setSelectedKeys([keys[Math.max(currentKeyIndex - 1, 0)]]);
+  } else if (e.key === NAV_KEYS.escape) {
+    // close dropdown menu
+    toggleDropdown();
+  }
+};
 
 const ViewResultsModalTrigger = ({
   canExplore,
@@ -622,42 +689,15 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
             e.currentTarget.blur();
             toggleDropdown();
           }}
-          onKeyDown={e => {
-            if (e.key === 'Tab') {
-              return; // continue with system tab navigation
-            }
-            e.preventDefault();
-            // for accessibility
-            const keys = menu.props.children
-              .map((item: any) => item?.key)
-              .filter((item: any) => !!item);
-            const { selectedKeys } = menu.props;
-            const currentKeyIndex = keys.indexOf(selectedKeys[0]);
-            // programatically toggle the dropdown on keypress
-            if (['Enter', 'Spacebar', ' '].includes(e.key)) {
-              if (!selectedKeys.length) {
-                // if nothing is selected, then open and close
-                // the menu on enter or spacebar
-                toggleDropdown();
-              } else {
-                // when a menu item is selected, then trigger
-                // the menu item's onClick handler
-                menu.props.onClick({ key: selectedKeys[0], domEvent: e });
-                // clear out/deselect keys
-                setSelectedKeys([]);
-                // close dropdown menu
-                toggleDropdown();
-                // put focus back on menu trigger
-                e.currentTarget.focus();
-              }
-            } else if (e.key === 'ArrowDown') {
-              setSelectedKeys([
-                keys[Math.min(currentKeyIndex + 1, keys.length)],
-              ]);
-            } else if (e.key === 'ArrowUp') {
-              setSelectedKeys([keys[Math.max(currentKeyIndex - 1, 0)]]);
-            }
-          }}
+          onKeyDown={e =>
+            handleDropdownNavigation(
+              e,
+              dropdownIsOpen,
+              menu,
+              toggleDropdown,
+              setSelectedKeys,
+            )
+          }
         >
           <VerticalDotsTrigger />
         </span>

@@ -51,6 +51,20 @@ export const headerStyles = (theme: SupersetTheme) => css`
   }
 `;
 
+// adds enough margin and padding so that the focus ouline styles will fit
+export const chartHeaderStyles = (theme: SupersetTheme) => css`
+  .header-title a {
+    margin: ${theme.gridUnit / 2}px;
+    padding: ${theme.gridUnit / 2}px;
+  }
+  .header-controls {
+    &,
+    &:hover {
+      margin-top: ${theme.gridUnit}px;
+    }
+  }
+`;
+
 export const filterCardPopoverStyle = (theme: SupersetTheme) => css`
   .filter-card-popover {
     width: 240px;
@@ -107,18 +121,43 @@ export const focusStyle = (theme: SupersetTheme) => css`
   .header-controls span {
     &:focus {
       box-shadow: 0 0 0 2px ${theme.colors.primary.dark1};
-      border-radius: 4px;
+      border-radius: ${theme.gridUnit / 2}px;
       outline: none;
       text-decoration: none;
     }
     &:not(.superset-button, .ant-menu-item
         a, .fave-unfave-icon, .ant-tabs-tabpane, .header-controls span) {
       &:focus {
-        padding: 2px;
+        padding: ${theme.gridUnit / 2}px;
       }
     }
-    .header-title & {
-      margin: 2px;
+  }
+
+  // these styles fade the focus outline after 3 seconds
+  .header-controls span,
+  .fave-unfave-icon,
+  .right-button-panel .ant-dropdown-trigger {
+    box-shadow: none;
+    &:focus {
+      animation: fadeIn 0.25s forwards, fadeOut 3s 0.25s forwards;
+    }
+  }
+
+  @keyframes fadeOut {
+    0% {
+      box-shadow: 0 0 0 2px ${theme.colors.primary.dark1};
+    }
+    100% {
+      box-shadow: 0 0 0 0 ${theme.colors.primary.dark1};
+    }
+  }
+
+  @keyframes fadeIn {
+    0% {
+      box-shadow: 0 0 0 0 ${theme.colors.primary.dark1};
+    }
+    100% {
+      box-shadow: 0 0 0 2px ${theme.colors.primary.dark1};
     }
   }
 `;

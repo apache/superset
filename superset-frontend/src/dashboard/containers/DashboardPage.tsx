@@ -55,6 +55,7 @@ import {
   filterCardPopoverStyle,
   focusStyle,
   headerStyles,
+  chartHeaderStyles,
 } from '../styles';
 import SyncDashboardState, {
   getDashboardContextLocalStorage,
@@ -220,6 +221,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
           headerStyles(theme),
           chartContextMenuStyles(theme),
           focusStyle(theme),
+          chartHeaderStyles(theme),
         ]}
       />
       <SyncDashboardState dashboardPageId={dashboardPageId} />
