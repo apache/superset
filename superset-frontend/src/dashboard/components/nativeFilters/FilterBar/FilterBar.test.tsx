@@ -23,7 +23,7 @@ import userEvent from '@testing-library/user-event';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
 import * as mockCore from '@superset-ui/core';
 import { testWithId } from 'src/utils/testUtils';
-import { FeatureFlag, Preset } from '@superset-ui/core';
+import { Preset } from '@superset-ui/core';
 import { TimeFilterPlugin, SelectFilterPlugin } from 'src/filters/components';
 import fetchMock from 'fetch-mock';
 import { FilterBarOrientation } from 'src/dashboard/types';
@@ -72,11 +72,6 @@ const getTestId = testWithId<string>(FILTER_BAR_TEST_ID, true);
 const getModalTestId = testWithId<string>(FILTERS_CONFIG_MODAL_TEST_ID, true);
 
 const FILTER_NAME = 'Time filter 1';
-
-// @ts-ignore
-global.featureFlags = {
-  [FeatureFlag.DASHBOARD_NATIVE_FILTERS]: true,
-};
 
 const addFilterFlow = async () => {
   // open filter config modal
@@ -291,10 +286,6 @@ describe('FilterBar', () => {
   });
 
   it('create filter and apply it flow', async () => {
-    // @ts-ignore
-    global.featureFlags = {
-      [FeatureFlag.DASHBOARD_NATIVE_FILTERS]: true,
-    };
     renderWrapper(openedBarProps, stateWithoutNativeFilters);
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
 

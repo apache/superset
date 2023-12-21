@@ -133,10 +133,6 @@ describe('FiltersBadge', () => {
     });
 
     it('shows the indicator when filters have been applied', () => {
-      // @ts-ignore
-      global.featureFlags = {
-        [SupersetUI.FeatureFlag.DASHBOARD_NATIVE_FILTERS]: true,
-      };
       const store = getMockStoreWithNativeFilters();
       // start with basic dashboard state, dispatch an event to simulate query completion
       store.dispatch({

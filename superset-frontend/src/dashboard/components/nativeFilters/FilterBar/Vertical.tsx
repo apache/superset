@@ -196,12 +196,6 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
     [],
   );
 
-  const actionsElement = useMemo(
-    () =>
-      isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) ? actions : null,
-    [actions],
-  );
-
   return (
     <FilterBarScrollContext.Provider value={isScrolling}>
       <BarWrapper
@@ -234,12 +228,11 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
             <div css={tabPaneStyle} onScroll={onScroll}>
               <>
                 {crossFilters}
-                {isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
-                  filterControls}
+                {filterControls}
               </>
             </div>
           )}
-          {actionsElement}
+          {actions}
         </Bar>
       </BarWrapper>
     </FilterBarScrollContext.Provider>

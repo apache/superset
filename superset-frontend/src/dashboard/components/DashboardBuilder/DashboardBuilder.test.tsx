@@ -20,7 +20,6 @@ import React from 'react';
 import fetchMock from 'fetch-mock';
 import { render } from 'spec/helpers/testing-library';
 import { fireEvent, within } from '@testing-library/react';
-import * as uiCore from '@superset-ui/core';
 import DashboardBuilder from 'src/dashboard/components/DashboardBuilder/DashboardBuilder';
 import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
 import {
@@ -247,35 +246,20 @@ describe('DashboardBuilder', () => {
     expect(await findByAltText('Loading...')).toBeVisible();
   });
 
-  describe('when nativeFiltersEnabled', () => {
-    let isFeatureEnabledMock: jest.MockInstance<boolean, [string]>;
-    beforeAll(() => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation(
-          flag => flag === uiCore.FeatureFlag.DASHBOARD_NATIVE_FILTERS,
-        );
+  it('should set FilterBar width by useStoredSidebarWidth', () => {
+    const expectedValue = 200;
+    const setter = jest.fn();
+    (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
+      expectedValue,
+      setter,
+    ]);
+    const { getByTestId } = setup({
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        dash_edit_perm: true,
+      },
     });
-
-    afterAll(() => {
-      isFeatureEnabledMock.mockRestore();
-    });
-
-    it('should set FilterBar width by useStoredSidebarWidth', () => {
-      const expectedValue = 200;
-      const setter = jest.fn();
-      (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
-        expectedValue,
-        setter,
-      ]);
-      const { getByTestId } = setup({
-        dashboardInfo: {
-          ...mockState.dashboardInfo,
-          dash_edit_perm: true,
-        },
-      });
-      const filterbar = getByTestId('dashboard-filters-panel');
-      expect(filterbar).toHaveStyleRule('width', `${expectedValue}px`);
-    });
+    const filterbar = getByTestId('dashboard-filters-panel');
+    expect(filterbar).toHaveStyleRule('width', `${expectedValue}px`);
   });
 });

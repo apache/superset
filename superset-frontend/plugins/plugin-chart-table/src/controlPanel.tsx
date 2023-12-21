@@ -290,8 +290,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) ||
-        isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS)
+        isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)
           ? [
               {
                 name: 'server_pagination',
