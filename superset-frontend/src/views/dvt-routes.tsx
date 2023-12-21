@@ -39,6 +39,10 @@ const AlertReportList = lazy(
     import(/* webpackChunkName: "AlertReportList" */ 'src/pages/DvtReports'),
 );
 
+const AlertList = lazy(
+  () => import(/* webpackChunkName: "AlertReportList" */ 'src/pages/DvtAlerts'),
+);
+
 const AnnotationList = lazy(
   () =>
     import(/* webpackChunkName: "AnnotationList" */ 'src/pages/AnnotationList'),
@@ -65,7 +69,8 @@ const Dashboard = lazy(
 );
 
 const DatabaseList = lazy(
-  () => import(/* webpackChunkName: "DatabaseList" */ 'src/pages/DatabaseList'),
+  () =>
+    import(/* webpackChunkName: "DatabaseList" */ 'src/pages/DvtConnection'),
 );
 
 const DatasetList = lazy(
@@ -183,7 +188,7 @@ export const routes: Routes = [
   },
   {
     path: '/alert/list/',
-    Component: AlertReportList,
+    Component: AlertList,
   },
   {
     path: '/report/list/',

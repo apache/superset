@@ -70,7 +70,8 @@
     "storybook": "cross-env NODE_ENV=development BABEL_ENV=development start-storybook -p 6006",
     "tdd": "cross-env NODE_ENV=test jest --watch",
     "test": "cross-env NODE_ENV=test jest",
-    "type": "tsc --noEmit"
+    "type": "tsc --noEmit",
+    "validate-release": "../RELEASING/validate_this_release.sh"
   },
   "browserslist": [
     "last 3 chrome versions",

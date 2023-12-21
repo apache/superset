@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { dvtSidebarReportsSetProperty } from 'src/dvt-redux/dvt-sidebarReducer';
+import {
+  dvtSidebarAlertsSetProperty,
+  dvtSidebarConnectionSetProperty,
+  dvtSidebarReportsSetProperty,
+} from 'src/dvt-redux/dvt-sidebarReducer';
 import { useAppSelector } from 'src/hooks/useAppSelector';
 import DvtLogo from '../DvtLogo';
 import DvtDarkMode from '../DvtDarkMode';
@@ -29,6 +33,10 @@ interface DvtSidebarProps {
 const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
   const dispatch = useDispatch();
   const reportsSelector = useAppSelector(state => state.dvtSidebar.reports);
+  const alertsSelector = useAppSelector(state => state.dvtSidebar.alerts);
+  const connectionSelector = useAppSelector(
+    state => state.dvtSidebar.connection,
+  );
   const [darkMode, setDarkMode] = useState<boolean>(false);
   const [active, setActive] = useState<string>('test');
 
@@ -42,7 +50,7 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
         return 'Alerts';
       case '/report/list/':
         return 'Reports';
-      case '/dataset/add/':
+      case '/databaseview/list/':
         return 'Connection';
       case '/superset/sqllab/':
         return 'SQL Lab';
@@ -66,6 +74,28 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
       dvtSidebarReportsSetProperty({
         reports: {
           ...reportsSelector,
+          [propertyName]: value,
+        },
+      }),
+    );
+  };
+
+  const updateAlertsProperty = (value: string, propertyName: string) => {
+    dispatch(
+      dvtSidebarAlertsSetProperty({
+        alerts: {
+          ...alertsSelector,
+          [propertyName]: value,
+        },
+      }),
+    );
+  };
+
+  const updateConnectionProperty = (value: string, propertyName: string) => {
+    dispatch(
+      dvtSidebarConnectionSetProperty({
+        connection: {
+          ...connectionSelector,
           [propertyName]: value,
         },
       }),
@@ -115,7 +145,7 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
                 label: string;
                 values: { label: string; value: string }[];
                 placeholder: string;
-                valuesList: { id: number; title: string; subtitle: string }[];
+                valuesList?: { id: number; title: string; subtitle: string }[];
                 title: string;
                 datePicker?: boolean;
                 name: string;
@@ -128,10 +158,24 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
                     data={data.values}
                     label={data.label}
                     placeholder={data.placeholder}
-                    selectedValue={reportsSelector[data.name]}
-                    setSelectedValue={value =>
-                      updateReportsProperty(value, data.name)
+                    selectedValue={
+                      pathTitles(pathName) === 'Reports'
+                        ? reportsSelector[data.name]
+                        : pathTitles(pathName) === 'Alerts'
+                        ? alertsSelector[data.name]
+                        : pathTitles(pathName) === 'Connection'
+                        ? connectionSelector[data.name]
+                        : undefined
                     }
+                    setSelectedValue={value => {
+                      if (pathTitles(pathName) === 'Reports') {
+                        updateReportsProperty(value, data.name);
+                      } else if (pathTitles(pathName) === 'Alerts') {
+                        updateAlertsProperty(value, data.name);
+                      } else if (pathTitles(pathName) === 'Connection') {
+                        updateConnectionProperty(value, data.name);
+                      }
+                    }}
                     maxWidth
                   />
                 )}

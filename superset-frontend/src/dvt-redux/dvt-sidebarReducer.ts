@@ -28,6 +28,19 @@ interface DvtSidebarState {
     favorite: string;
     certified: string;
   };
+
+  alerts: {
+    createdBy: string;
+    owner: string;
+    status: string;
+    search: string;
+  };
+
+  connection: {
+    expose_in_sqllab: string;
+    allow_run_async: string;
+    search: string;
+  };
 }
 
 const initialState: DvtSidebarState = {
@@ -40,6 +53,19 @@ const initialState: DvtSidebarState = {
     favorite: '',
     certified: '',
   },
+
+  alerts: {
+    createdBy: '',
+    owner: '',
+    status: '',
+    search: '',
+  },
+
+  connection: {
+    expose_in_sqllab: '',
+    allow_run_async: '',
+    search: '',
+  },
 };
 
 const dvtSidebarSlice = createSlice({
@@ -48,7 +74,7 @@ const dvtSidebarSlice = createSlice({
   reducers: {
     dvtSidebarReportsSetProperty: (
       state,
-      action: PayloadAction<DvtSidebarState>,
+      action: PayloadAction<{ reports: DvtSidebarState['reports'] }>,
     ) => ({
       ...state,
       reports: {
@@ -56,9 +82,33 @@ const dvtSidebarSlice = createSlice({
         ...action.payload.reports,
       },
     }),
+    dvtSidebarAlertsSetProperty: (
+      state,
+      action: PayloadAction<{ alerts: DvtSidebarState['alerts'] }>,
+    ) => ({
+      ...state,
+      alerts: {
+        ...state.alerts,
+        ...action.payload.alerts,
+      },
+    }),
+    dvtSidebarConnectionSetProperty: (
+      state,
+      action: PayloadAction<{ connection: DvtSidebarState['connection'] }>,
+    ) => ({
+      ...state,
+      connection: {
+        ...state.connection,
+        ...action.payload.connection,
+      },
+    }),
   },
 });
 
-export const { dvtSidebarReportsSetProperty } = dvtSidebarSlice.actions;
+export const {
+  dvtSidebarReportsSetProperty,
+  dvtSidebarAlertsSetProperty,
+  dvtSidebarConnectionSetProperty,
+} = dvtSidebarSlice.actions;
 
 export default dvtSidebarSlice.reducer;

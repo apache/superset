@@ -67,7 +67,7 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, user }) => {
         return 'Alerts';
       case '/report/list/':
         return 'Reports';
-      case '/dataset/add/':
+      case '/databaseview/list/':
         return 'Connection';
       case '/superset/sqllab/':
         return 'SQL';
@@ -133,27 +133,22 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, user }) => {
       </NavbarTop>
       {WithNavbarBottom.includes(pathName) && (
         <NavbarBottom>
-          <DvtButtonTabs
-            active={active}
-            setActive={setActive}
-            data={activeData}
-          />
           {pathName === '/superset/welcome/' && (
-            <NavbarBottomRight>
-              <DvtButton
-                colour="grayscale"
-                typeColour="outline"
-                label="Filter"
-                icon="filter"
-                onClick={() => {}}
+            <>
+              <DvtButtonTabs
+                active={active}
+                setActive={setActive}
+                data={activeData}
               />
-              <DvtButton
-                typeColour="powder"
-                label={`${sort ? 'Sorted' : 'Sort'}: Date Created`}
-                icon="dvt-sort"
-                onClick={() => dispatch(dvtAppSetSort(!sort))}
-              />
-            </NavbarBottomRight>
+              <NavbarBottomRight>
+                <DvtButton
+                  typeColour="powder"
+                  label={`${sort ? 'Sorted' : 'Sort'}: Date Created`}
+                  icon="dvt-sort"
+                  onClick={() => dispatch(dvtAppSetSort(!sort))}
+                />
+              </NavbarBottomRight>
+            </>
           )}
         </NavbarBottom>
       )}
