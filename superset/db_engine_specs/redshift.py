@@ -14,10 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
 import re
 from re import Pattern
-from typing import Any, Optional
+from typing import Any
 
 import pandas as pd
 from flask_babel import gettext as __
@@ -148,7 +150,7 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         return label.lower()
 
     @classmethod
-    def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:
+    def get_cancel_query_id(cls, cursor: Any, query: Query) -> str | None:
         """
         Get Redshift PID that will be used to cancel all other running
         queries in the same session.

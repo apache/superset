@@ -298,3 +298,14 @@ export const xAxisBounds: ControlSetItem = {
       Boolean(controls?.truncateXAxis?.value),
   },
 };
+
+export const minorTicks: ControlSetItem = {
+  name: 'minorTicks',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Minor ticks'),
+    default: false,
+    renderTrigger: true,
+    description: t('Show minor ticks on axes.'),
+  },
+};
