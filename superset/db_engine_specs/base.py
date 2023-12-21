@@ -51,7 +51,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import Session
-from sqlalchemy.sql import quoted_name, text
+from sqlalchemy.sql import literal_column, quoted_name, text
 from sqlalchemy.sql.expression import ColumnClause, Select, TextAsFrom, TextClause
 from sqlalchemy.types import TypeEngine
 from sqlparse.tokens import CTE
@@ -323,10 +323,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # engine-specific type mappings to check prior to the defaults
     column_type_mappings: tuple[ColumnTypeMapping, ...] = ()
 
+    # type-specific functions to mutate values received from the database.
+    # Needed on certain databases that return values in an unexpected format
+    column_type_mutators: dict[TypeEngine, Callable[[Any], Any]] = {}
+
     # Does database support join-free timeslot grouping
     time_groupby_inline = False
     limit_method = LimitMethod.FORCE_LIMIT
-    time_secondary_columns = False
     allows_joins = True
     allows_subqueries = True
     allows_alias_in_select = True
@@ -396,6 +399,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     supports_dynamic_catalog = False
 
     @classmethod
+    def get_allows_alias_in_select(
+        cls, database: Database  # pylint: disable=unused-argument
+    ) -> bool:
+        """
+        Method for dynamic `allows_alias_in_select`.
+
+        In Dremio this atribute is version-dependent, so Superset needs to inspect the
+        database configuration in order to determine it. This method allows engine-specs
+        to define dynamic values for the attribute.
+        """
+        return cls.allows_alias_in_select
+
+    @classmethod
     def supports_url(cls, url: URL) -> bool:
         """
         Returns true if the DB engine spec supports a given SQLAlchemy URL.
@@ -462,7 +478,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         connect_args: dict[str, Any],
     ) -> str | None:
         """
-        Return the schema configured in a SQLALchemy URI and connection argments, if any.
+        Return the schema configured in a SQLALchemy URI and connection arguments, if any.
         """
         return None
 
@@ -744,7 +760,30 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         try:
             if cls.limit_method == LimitMethod.FETCH_MANY and limit:
                 return cursor.fetchmany(limit)
-            return cursor.fetchall()
+            data = cursor.fetchall()
+            description = cursor.description or []
+            # Create a mapping between column name and a mutator function to normalize
+            # values with. The first two items in the description row are
+            # the column name and type.
+            column_mutators = {
+                row[0]: func
+                for row in description
+                if (
+                    func := cls.column_type_mutators.get(
+                        type(cls.get_sqla_column_type(cls.get_datatype(row[1])))
+                    )
+                )
+            }
+            if column_mutators:
+                indexes = {row[0]: idx for idx, row in enumerate(description)}
+                for row_idx, row in enumerate(data):
+                    new_row = list(row)
+                    for col, func in column_mutators.items():
+                        col_idx = indexes[col]
+                        new_row[col_idx] = func(row[col_idx])
+                    data[row_idx] = tuple(new_row)
+
+            return data
         except Exception as ex:
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
@@ -1145,7 +1184,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         connection arguments.
 
         For example, in order to specify a default schema in RDS we need to run a query
-        at the beggining of the session:
+        at the beginning of the session:
 
             sql> set search_path = my_schema;
 
@@ -1283,8 +1322,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return comment
 
     @classmethod
-    def get_columns(
-        cls, inspector: Inspector, table_name: str, schema: str | None
+    def get_columns(  # pylint: disable=unused-argument
+        cls,
+        inspector: Inspector,
+        table_name: str,
+        schema: str | None,
+        options: dict[str, Any] | None = None,
     ) -> list[ResultSetColumnType]:
         """
         Get all columns from a given schema and table
@@ -1292,6 +1335,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param inspector: SqlAlchemy Inspector instance
         :param table_name: Table name
         :param schema: Schema name. If omitted, uses default schema for database
+        :param options: Extra options to customise the display of columns in
+                        some databases
         :return: All columns in table
         """
         return convert_inspector_columns(
@@ -1343,7 +1388,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def _get_fields(cls, cols: list[ResultSetColumnType]) -> list[Any]:
-        return [column(c["column_name"]) for c in cols]
+        return [
+            literal_column(query_as)
+            if (query_as := c.get("query_as"))
+            else column(c["column_name"])
+            for c in cols
+        ]
 
     @classmethod
     def select_star(  # pylint: disable=too-many-arguments,too-many-locals
@@ -1383,8 +1433,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if show_cols:
             fields = cls._get_fields(cols)
         quote = engine.dialect.identifier_preparer.quote
+        quote_schema = engine.dialect.identifier_preparer.quote_schema
         if schema:
-            full_table_name = quote(schema) + "." + quote(table_name)
+            full_table_name = quote_schema(schema) + "." + quote(table_name)
         else:
             full_table_name = quote(table_name)
 

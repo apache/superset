@@ -30,7 +30,7 @@ def test_import_chart(mocker: MockFixture, session: Session) -> None:
     Test importing a chart.
     """
     from superset import security_manager
-    from superset.charts.commands.importers.v1.utils import import_chart
+    from superset.commands.chart.importers.v1.utils import import_chart
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
     from superset.models.slice import Slice
@@ -57,7 +57,7 @@ def test_import_chart_managed_externally(mocker: MockFixture, session: Session) 
     Test importing a chart that is managed externally.
     """
     from superset import security_manager
-    from superset.charts.commands.importers.v1.utils import import_chart
+    from superset.commands.chart.importers.v1.utils import import_chart
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
     from superset.models.slice import Slice
@@ -87,7 +87,7 @@ def test_import_chart_without_permission(
     Test importing a chart when a user doesn't have permissions to create.
     """
     from superset import security_manager
-    from superset.charts.commands.importers.v1.utils import import_chart
+    from superset.commands.chart.importers.v1.utils import import_chart
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
     from superset.models.slice import Slice

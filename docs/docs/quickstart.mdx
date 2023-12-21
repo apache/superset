@@ -1,0 +1,86 @@
+---
+title: Quickstart
+hide_title: false
+sidebar_position: 2
+---
+
+**Ready to give Apache Superset a try?** This quickstart will help you run Superset on your local machine in
+**5 simple steps**. It assumes that you have [Docker](https://www.docker.com) installed.
+
+### 1. Get Superset
+To get started, set the `SUPERSET_VERSION` environment variable with the latest Superset version.
+[Click here](https://github.com/apache/superset/releases) to check the latest version.
+
+```
+$ export SUPERSET_VERSION=<latest_version>
+```
+
+Pull the Superset image from Docker Hub:
+
+```
+$ docker pull apache/superset:$SUPERSET_VERSION
+```
+
+### 2. Start Superset
+:::tip
+Note that some configuration is mandatory for Superset in order to start. In particular, Superset will not start without
+a user-specified value of `SECRET_KEY` in a Superset configuration file or `SUPERSET_SECRET_KEY` as an environment variable.
+Please see [Configuring Superset](https://superset.apache.org/docs/installation/configuring-superset/) for more details.
+:::
+```
+$ docker run -d -p 8080:8088 \
+             -e "SUPERSET_SECRET_KEY=$(openssl rand -base64 42)" \
+             -e "TALISMAN_ENABLED=False" \
+             --name superset apache/superset:$SUPERSET_VERSION
+```
+
+### 3. Create an account
+```
+$ docker exec -it superset superset fab create-admin \
+              --username admin \
+              --firstname Admin \
+              --lastname Admin \
+              --email admin@localhost \
+              --password admin
+```
+
+### 4. Configure Superset
+```
+$ docker exec -it superset superset db upgrade &&
+         docker exec -it superset superset load_examples &&
+         docker exec -it superset superset init
+```
+:::tip
+This step can take some time. While you wait, feel free to join the official Slack channel to check for new releases,
+ask questions, and engage with the community.
+[Click here to join.](https://apache-superset.slack.com/join/shared_invite/zt-26ol9ge4y-kzUnSo9inRepOay0ufBTsA#/shared-invite/email)
+:::
+
+### 5. Start using Superset
+After configuring your fresh instance, head over to [http://localhost:8080](http://localhost:8080) and
+log in with the default created account:
+```
+username: admin
+password: admin
+```
+
+#### 🎉 Congratulations! Superset is now up and running on your machine! 🎉
+
+### Wrapping Up
+Once you're done with Superset, you can stop and remove it just like any other container:
+```
+$ docker container rm -f superset
+```
+:::tip
+You can use the same container more than once, as Superset will persist data locally. However, make sure to properly stop all
+processes by running Docker `stop` command. By doing so, you can avoid data corruption and/or loss of data.
+:::
+
+## What's next?
+
+From this point on, you can head on to:
+- [Create your first Dashboard](https://superset.apache.org/docs/creating-charts-dashboards/creating-your-first-dashboard)
+- [Connect to a Database](https://superset.apache.org/docs/databases/installing-database-drivers)
+- [Configure Superset](https://superset.apache.org/docs/installation/configuring-superset/)
+
+Or just explore our Documentation!

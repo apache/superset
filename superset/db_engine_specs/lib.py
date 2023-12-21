@@ -39,9 +39,8 @@ DATABASE_DETAILS = {
     "subqueries": "Supports subqueries",
     "alias_in_select": "Allows aliases in the SELECT statement",
     "alias_in_orderby": "Allows referencing aliases in the ORDER BY statement",
-    "secondary_time_columns": "Supports secondary time columns",
     "time_groupby_inline": (
-        "Allows ommiting time filters from inline GROUP BYs"
+        "Allows omitting time filters from inline GROUP BYs"
     ),  # E: line too long (80 > 79 characters)
     "alias_to_source_column": (
         "Able to use source column when an alias overshadows it"
@@ -125,7 +124,6 @@ def diagnose(spec: type[BaseEngineSpec]) -> dict[str, Any]:
             "subqueries": spec.allows_subqueries,
             "alias_in_select": spec.allows_alias_in_select,
             "alias_in_orderby": spec.allows_alias_in_orderby,
-            "secondary_time_columns": spec.time_secondary_columns,
             "time_groupby_inline": spec.time_groupby_inline,
             "alias_to_source_column": not spec.allows_alias_to_source_column,
             "order_by_not_in_select": spec.allows_hidden_orderby_agg,
@@ -231,7 +229,6 @@ def generate_table() -> list[list[Any]]:
         "subqueries",
         "alias_in_select",
         "alias_in_orderby",
-        "secondary_time_columns",
         "time_groupby_inline",
         "alias_to_source_column",
         "order_by_not_in_select",

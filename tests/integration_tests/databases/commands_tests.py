@@ -23,11 +23,8 @@ from func_timeout import FunctionTimedOut
 from sqlalchemy.exc import DBAPIError
 
 from superset import db, event_logger, security_manager
-from superset.commands.exceptions import CommandInvalidError
-from superset.commands.importers.exceptions import IncorrectVersionError
-from superset.connectors.sqla.models import SqlaTable
-from superset.databases.commands.create import CreateDatabaseCommand
-from superset.databases.commands.exceptions import (
+from superset.commands.database.create import CreateDatabaseCommand
+from superset.commands.database.exceptions import (
     DatabaseInvalidError,
     DatabaseNotFoundError,
     DatabaseSecurityUnsafeError,
@@ -35,11 +32,14 @@ from superset.databases.commands.exceptions import (
     DatabaseTestConnectionDriverError,
     DatabaseTestConnectionUnexpectedError,
 )
-from superset.databases.commands.export import ExportDatabasesCommand
-from superset.databases.commands.importers.v1 import ImportDatabasesCommand
-from superset.databases.commands.tables import TablesDatabaseCommand
-from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
-from superset.databases.commands.validate import ValidateDatabaseParametersCommand
+from superset.commands.database.export import ExportDatabasesCommand
+from superset.commands.database.importers.v1 import ImportDatabasesCommand
+from superset.commands.database.tables import TablesDatabaseCommand
+from superset.commands.database.test_connection import TestConnectionDatabaseCommand
+from superset.commands.database.validate import ValidateDatabaseParametersCommand
+from superset.commands.exceptions import CommandInvalidError
+from superset.commands.importers.exceptions import IncorrectVersionError
+from superset.connectors.sqla.models import SqlaTable
 from superset.databases.schemas import DatabaseTestConnectionSchema
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -75,7 +75,7 @@ from tests.integration_tests.fixtures.importexport import (
 
 
 class TestCreateDatabaseCommand(SupersetTestCase):
-    @patch("superset.databases.commands.test_connection.event_logger.log_with_context")
+    @patch("superset.commands.database.test_connection.event_logger.log_with_context")
     @patch("superset.utils.core.g")
     def test_create_duplicate_error(self, mock_g, mock_logger):
         example_db = get_example_database()
@@ -94,7 +94,7 @@ class TestCreateDatabaseCommand(SupersetTestCase):
             "DatabaseRequiredFieldValidationError"
         )
 
-    @patch("superset.databases.commands.test_connection.event_logger.log_with_context")
+    @patch("superset.commands.database.test_connection.event_logger.log_with_context")
     @patch("superset.utils.core.g")
     def test_multiple_error_logging(self, mock_g, mock_logger):
         mock_g.user = security_manager.find_user("admin")
@@ -834,7 +834,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
             }
         }
 
-    @patch("superset.databases.commands.importers.v1.import_dataset")
+    @patch("superset.commands.database.importers.v1.import_dataset")
     def test_import_v1_rollback(self, mock_import_dataset):
         """Test than on an exception everything is rolled back"""
         num_databases = db.session.query(Database).count()
@@ -860,7 +860,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
 
 class TestTestConnectionDatabaseCommand(SupersetTestCase):
     @patch("superset.daos.database.Database._get_sqla_engine")
-    @patch("superset.databases.commands.test_connection.event_logger.log_with_context")
+    @patch("superset.commands.database.test_connection.event_logger.log_with_context")
     @patch("superset.utils.core.g")
     def test_connection_db_exception(
         self, mock_g, mock_event_logger, mock_get_sqla_engine
@@ -881,7 +881,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         mock_event_logger.assert_called()
 
     @patch("superset.daos.database.Database._get_sqla_engine")
-    @patch("superset.databases.commands.test_connection.event_logger.log_with_context")
+    @patch("superset.commands.database.test_connection.event_logger.log_with_context")
     @patch("superset.utils.core.g")
     def test_connection_do_ping_exception(
         self, mock_g, mock_event_logger, mock_get_sqla_engine
@@ -903,8 +903,8 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
             == SupersetErrorType.GENERIC_DB_ENGINE_ERROR
         )
 
-    @patch("superset.databases.commands.test_connection.func_timeout")
-    @patch("superset.databases.commands.test_connection.event_logger.log_with_context")
+    @patch("superset.commands.database.test_connection.func_timeout")
+    @patch("superset.commands.database.test_connection.event_logger.log_with_context")
     @patch("superset.utils.core.g")
     def test_connection_do_ping_timeout(
         self, mock_g, mock_event_logger, mock_func_timeout
@@ -926,7 +926,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         )
 
     @patch("superset.daos.database.Database._get_sqla_engine")
-    @patch("superset.databases.commands.test_connection.event_logger.log_with_context")
+    @patch("superset.commands.database.test_connection.event_logger.log_with_context")
     @patch("superset.utils.core.g")
     def test_connection_superset_security_connection(
         self, mock_g, mock_event_logger, mock_get_sqla_engine
@@ -949,7 +949,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         mock_event_logger.assert_called()
 
     @patch("superset.daos.database.Database._get_sqla_engine")
-    @patch("superset.databases.commands.test_connection.event_logger.log_with_context")
+    @patch("superset.commands.database.test_connection.event_logger.log_with_context")
     @patch("superset.utils.core.g")
     def test_connection_db_api_exc(
         self, mock_g, mock_event_logger, mock_get_sqla_engine
@@ -975,7 +975,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
 
 @patch("superset.db_engine_specs.base.is_hostname_valid")
 @patch("superset.db_engine_specs.base.is_port_open")
-@patch("superset.databases.commands.validate.DatabaseDAO")
+@patch("superset.commands.database.validate.DatabaseDAO")
 def test_validate(DatabaseDAO, is_port_open, is_hostname_valid, app_context):
     """
     Test parameter validation.

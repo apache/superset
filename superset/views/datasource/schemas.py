@@ -29,6 +29,7 @@ class ExternalMetadataParams(TypedDict):
     schema_name: str
     table_name: str
     normalize_columns: Optional[bool]
+    always_filter_main_dttm: Optional[bool]
 
 
 get_external_metadata_schema = {
@@ -37,6 +38,7 @@ get_external_metadata_schema = {
     "schema_name": "string",
     "table_name": "string",
     "normalize_columns": "boolean",
+    "always_filter_main_dttm": "boolean",
 }
 
 
@@ -46,6 +48,7 @@ class ExternalMetadataSchema(Schema):
     schema_name = fields.Str(allow_none=True)
     table_name = fields.Str(required=True)
     normalize_columns = fields.Bool(allow_none=True)
+    always_filter_main_dttm = fields.Bool(allow_none=True)
 
     # pylint: disable=unused-argument
     @post_load
@@ -60,6 +63,7 @@ class ExternalMetadataSchema(Schema):
             schema_name=data.get("schema_name", ""),
             table_name=data["table_name"],
             normalize_columns=data["normalize_columns"],
+            always_filter_main_dttm=data["always_filter_main_dttm"],
         )
 
 

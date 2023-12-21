@@ -28,7 +28,6 @@ from flask_babel import lazy_gettext as _
 from wtforms.validators import DataRequired, Regexp
 
 from superset import db
-from superset.connectors.base.views import DatasourceModelView
 from superset.connectors.sqla import models
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.superset_typing import FlaskResponse
@@ -282,7 +281,7 @@ class RowLevelSecurityView(BaseSupersetView):
 
 
 class TableModelView(  # pylint: disable=too-many-ancestors
-    DatasourceModelView, DeleteMixin, YamlExportMixin
+    SupersetModelView, DeleteMixin, YamlExportMixin
 ):
     datamodel = SQLAInterface(models.SqlaTable)
     class_permission_name = "Dataset"
@@ -314,6 +313,7 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         "template_params",
         "extra",
         "normalize_columns",
+        "always_filter_main_dttm",
     ]
     base_filters = [["id", DatasourceFilter, lambda: []]]
     show_columns = edit_columns + ["perm", "slices"]
@@ -383,6 +383,12 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         "normalize_columns": _(
             "Allow column names to be changed to case insensitive format, "
             "if supported (e.g. Oracle, Snowflake)."
+        ),
+        "always_filter_main_dttm": _(
+            "Datasets can have a main temporal column (main_dttm_col), "
+            "but can also have secondary time columns. "
+            "When this attribute is true, whenever the secondary columns are filtered, "
+            "the same filter is applied to the main datetime column."
         ),
     }
     label_columns = {

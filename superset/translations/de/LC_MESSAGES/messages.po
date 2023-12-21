@@ -9407,10 +9407,6 @@ msgstr "Verwalten Sie Ihre Datenbanken"
 msgid "Mandatory"
 msgstr "Notwendig"
 
-#: superset/views/database/forms.py:360
-msgid "Mangle Duplicate Columns"
-msgstr "Doppelte Spalten zusammenführen"
-
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:297
 msgid "Manually set min/max values for the y-axis."
 msgstr "Min/Max-Werte für die y-Achse manuell festlegen."

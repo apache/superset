@@ -32,6 +32,7 @@ import React, {
   useReducer,
   Reducer,
 } from 'react';
+import { useHistory } from 'react-router-dom';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
 import Tabs from 'src/components/Tabs';
@@ -141,7 +142,6 @@ interface DatabaseModalProps {
   show: boolean;
   databaseId: number | undefined; // If included, will go into edit mode
   dbEngine: string | undefined; // if included goto step 2 with engine already set
-  history?: any;
 }
 
 export enum ActionType {
@@ -303,6 +303,18 @@ export function dbReducer(
               connect_args: {
                 [action.payload.name]: action.payload.value?.trim(),
               },
+            },
+          }),
+        };
+      }
+      if (action.payload.name === 'expand_rows') {
+        return {
+          ...trimmedState,
+          extra: JSON.stringify({
+            ...extraJson,
+            schema_options: {
+              ...extraJson?.schema_options,
+              [action.payload.name]: !!action.payload.value,
             },
           }),
         };
@@ -526,7 +538,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   show,
   databaseId,
   dbEngine,
-  history,
 }) => {
   const [db, setDB] = useReducer<
     Reducer<Partial<DatabaseObject> | null, DBReducerActionType>
@@ -627,6 +638,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       (DB: DatabaseObject) => DB.backend === engine || DB.engine === engine,
     )?.parameters !== undefined;
   const showDBError = validationErrors || dbErrors;
+  const history = useHistory();
 
   const dbModel: DatabaseForm =
     availableDbs?.databases?.find(
@@ -700,13 +712,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const redirectURL = (url: string) => {
-    /* TODO (lyndsiWilliams): This check and passing history
-      as a prop can be removed once SQL Lab is in the SPA */
-    if (!isEmpty(history)) {
-      history?.push(url);
-    } else {
-      window.location.href = url;
-    }
+    history.push(url);
   };
 
   // Database import logic
@@ -1583,7 +1589,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onClick={() => {
           setLoading(true);
           fetchAndSetDB();
-          redirectURL(`/superset/sqllab/?db=true`);
+          redirectURL(`/sqllab?db=true`);
         }}
       >
         {t('QUERY DATA IN SQL LAB')}

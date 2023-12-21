@@ -46,6 +46,7 @@ import {
 import { RootState } from 'src/dashboard/types';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
 import { uploadUserPerms } from 'src/views/CRUD/utils';
+import TelemetryPixel from 'src/components/TelemetryPixel';
 import LanguagePicker from './LanguagePicker';
 import {
   ExtensionConfigs,
@@ -210,7 +211,7 @@ const RightMenu = ({
     },
     {
       label: t('SQL query'),
-      url: '/superset/sqllab?new=true',
+      url: '/sqllab?new=true',
       icon: 'fa-fw fa-search',
       perm: 'can_sqllab',
       view: 'Superset',
@@ -562,6 +563,11 @@ const RightMenu = ({
           {t('Login')}
         </StyledAnchor>
       )}
+      <TelemetryPixel
+        version={navbarRight.version_string}
+        sha={navbarRight.version_sha}
+        build={navbarRight.build_number}
+      />
     </StyledDiv>
   );
 };

@@ -181,7 +181,7 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
         :param item: The object to update
         :param attributes: The attributes associated with the object to update
         :param commit: Whether to commit the transaction
-        :raises: DAOUpdateFailedError: If the updation failed
+        :raises: DAOUpdateFailedError: If the update failed
         """
 
         # TODO(john-bodley): Determine why we need special handling for recipients.

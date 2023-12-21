@@ -79,7 +79,7 @@ interface ScheduleQueryButtonProps {
   defaultLabel?: string;
   sql: string;
   schema?: string;
-  dbId: number;
+  dbId?: number;
   animation?: boolean;
   onSchedule?: Function;
   scheduleQueryWarning: string | null;

@@ -50,10 +50,17 @@ export type InitialState = {
     template_params: string | null;
     hide_left_bar?: boolean;
     saved_query: { id: number } | null;
-    extra_json?: object;
+    extra_json?: Record<string, any>;
   };
   databases: object[];
-  queries: Record<string, QueryResponse & { inLocalStorage?: boolean }>;
+  queries: Record<
+    string,
+    Omit<QueryResponse, 'startDttm' | 'endDttm'> & {
+      startDttm: number | string;
+      endDttm: number | string;
+      inLocalStorage?: boolean;
+    }
+  >;
   tab_state_ids: {
     id: number;
     label: string;

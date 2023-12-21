@@ -762,10 +762,9 @@ class DatasourceEditor extends React.PureComponent {
       database_name:
         datasource.database.database_name || datasource.database.name,
       schema_name: datasource.schema,
-      table_name: datasource.table_name
-        ? encodeURIComponent(datasource.table_name)
-        : datasource.table_name,
+      table_name: datasource.table_name,
       normalize_columns: datasource.normalize_columns,
+      always_filter_main_dttm: datasource.always_filter_main_dttm,
     };
     Object.entries(params).forEach(([key, value]) => {
       // rison can't encode the undefined value
@@ -773,7 +772,7 @@ class DatasourceEditor extends React.PureComponent {
         params[key] = null;
       }
     });
-    const endpoint = `/datasource/external_metadata_by_name/?q=${rison.encode(
+    const endpoint = `/datasource/external_metadata_by_name/?q=${rison.encode_uri(
       params,
     )}`;
     this.setState({ metadataLoading: true });
@@ -1003,6 +1002,15 @@ class DatasourceEditor extends React.PureComponent {
           )}
           control={<CheckboxControl controlId="normalize_columns" />}
         />
+        <Field
+          inline
+          fieldKey="always_filter_main_dttm"
+          label={t('Always filter main datetime column')}
+          description={t(
+            `When the secondary temporal columns are filtered, apply the same filter to the main datetime column.`,
+          )}
+          control={<CheckboxControl controlId="always_filter_main_dttm" />}
+        />
       </Fieldset>
     );
   }
@@ -1106,7 +1114,7 @@ class DatasourceEditor extends React.PureComponent {
                     <div css={{ width: 'calc(100% - 34px)', marginTop: -16 }}>
                       <Field
                         fieldKey="table_name"
-                        label={t('Dataset name')}
+                        label={t('Name')}
                         control={
                           <TextControl
                             controlId="table_name"
@@ -1133,7 +1141,7 @@ class DatasourceEditor extends React.PureComponent {
                         language="sql"
                         offerEditInModal={false}
                         minLines={20}
-                        maxLines={20}
+                        maxLines={Infinity}
                         readOnly={!this.state.isEditMode}
                         resize="both"
                       />
@@ -1388,7 +1396,7 @@ class DatasourceEditor extends React.PureComponent {
     const { theme } = this.props;
 
     return (
-      <DatasourceContainer>
+      <DatasourceContainer data-test="datasource-editor">
         {this.renderErrors()}
         <Alert
           css={theme => ({ marginBottom: theme.gridUnit * 4 })}

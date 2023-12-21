@@ -18,7 +18,13 @@
  */
 
 /* eslint-disable no-param-reassign */
-import React, { useEffect, useState, useCallback, createContext } from 'react';
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  createContext,
+  useRef,
+} from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   DataMaskStateWithId,
@@ -144,6 +150,8 @@ const FilterBar: React.FC<FiltersBarProps> = ({
 
   const [filtersInScope] = useSelectFiltersInScope(nativeFilterValues);
 
+  const dataMaskSelectedRef = useRef(dataMaskSelected);
+  dataMaskSelectedRef.current = dataMaskSelected;
   const handleFilterSelectionChange = useCallback(
     (
       filter: Pick<Filter, 'id'> & Partial<Filter>,
@@ -154,19 +162,19 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         if (
           // filterState.value === undefined - means that value not initialized
           dataMask.filterState?.value !== undefined &&
-          dataMaskSelected[filter.id]?.filterState?.value === undefined &&
+          dataMaskSelectedRef.current[filter.id]?.filterState?.value ===
+            undefined &&
           filter.requiredFirst
         ) {
           dispatch(updateDataMask(filter.id, dataMask));
         }
-
         draft[filter.id] = {
           ...(getInitialDataMask(filter.id) as DataMaskWithId),
           ...dataMask,
         };
       });
     },
-    [dataMaskSelected, dispatch, setDataMaskSelected],
+    [dispatch, setDataMaskSelected],
   );
 
   useEffect(() => {

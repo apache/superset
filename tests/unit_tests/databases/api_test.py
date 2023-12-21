@@ -396,7 +396,7 @@ def test_delete_ssh_tunnel(
         mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")
         mocker.patch("superset.utils.log.DBEventLogger.log")
         mocker.patch(
-            "superset.databases.ssh_tunnel.commands.delete.is_feature_enabled",
+            "superset.commands.database.ssh_tunnel.delete.is_feature_enabled",
             return_value=True,
         )
 
@@ -472,7 +472,7 @@ def test_delete_ssh_tunnel_not_found(
         mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")
         mocker.patch("superset.utils.log.DBEventLogger.log")
         mocker.patch(
-            "superset.databases.ssh_tunnel.commands.delete.is_feature_enabled",
+            "superset.commands.database.ssh_tunnel.delete.is_feature_enabled",
             return_value=True,
         )
 
@@ -559,7 +559,7 @@ def test_apply_dynamic_database_filter(
         mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")
         mocker.patch("superset.utils.log.DBEventLogger.log")
         mocker.patch(
-            "superset.databases.ssh_tunnel.commands.delete.is_feature_enabled",
+            "superset.commands.database.ssh_tunnel.delete.is_feature_enabled",
             return_value=False,
         )
 

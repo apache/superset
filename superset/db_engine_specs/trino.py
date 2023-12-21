@@ -24,6 +24,7 @@ from typing import Any, TYPE_CHECKING
 
 import simplejson as json
 from flask import current_app
+from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import Session
 
@@ -33,6 +34,7 @@ from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.db_engine_specs.presto import PrestoBaseEngineSpec
 from superset.models.sql_lab import Query
+from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
@@ -184,7 +186,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
     @classmethod
     def execute_with_cursor(
-        cls, cursor: Any, sql: str, query: Query, session: Session
+        cls, cursor: Cursor, sql: str, query: Query, session: Session
     ) -> None:
         """
         Trigger execution of a query and handle the resulting cursor.
@@ -193,34 +195,40 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         in another thread and invoke `handle_cursor` to poll for the query ID
         to appear on the cursor in parallel.
         """
+        # Fetch the query ID beforehand, since it might fail inside the thread due to
+        # how the SQLAlchemy session is handled.
+        query_id = query.id
+
         execute_result: dict[str, Any] = {}
+        execute_event = threading.Event()
 
-        def _execute(results: dict[str, Any]) -> None:
-            logger.debug("Query %d: Running query: %s", query.id, sql)
+        def _execute(results: dict[str, Any], event: threading.Event) -> None:
+            logger.debug("Query %d: Running query: %s", query_id, sql)
 
-            # Pass result / exception information back to the parent thread
             try:
                 cls.execute(cursor, sql)
-                results["complete"] = True
             except Exception as ex:  # pylint: disable=broad-except
-                results["complete"] = True
                 results["error"] = ex
+            finally:
+                event.set()
 
-        execute_thread = threading.Thread(target=_execute, args=(execute_result,))
+        execute_thread = threading.Thread(
+            target=_execute,
+            args=(execute_result, execute_event),
+        )
         execute_thread.start()
 
         # Wait for a query ID to be available before handling the cursor, as
         # it's required by that method; it may never become available on error.
-        while not cursor.query_id and not execute_result.get("complete"):
+        while not cursor.query_id and not execute_event.is_set():
             time.sleep(0.1)
 
-        logger.debug("Query %d: Handling cursor", query.id)
+        logger.debug("Query %d: Handling cursor", query_id)
         cls.handle_cursor(cursor, query, session)
 
         # Block until the query completes; same behaviour as the client itself
-        logger.debug("Query %d: Waiting for query to complete", query.id)
-        while not execute_result.get("complete"):
-            time.sleep(0.5)
+        logger.debug("Query %d: Waiting for query to complete", query_id)
+        execute_event.wait()
 
         # Unfortunately we'll mangle the stack trace due to the thread, but
         # throwing the original exception allows mapping database errors as normal
@@ -234,7 +242,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             session.commit()
 
     @classmethod
-    def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
+    def cancel_query(cls, cursor: Cursor, query: Query, cancel_query_id: str) -> bool:
         """
         Cancel query in the underlying database.
 
@@ -325,3 +333,65 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         return {
             requests_exceptions.ConnectionError: SupersetDBAPIConnectionError,
         }
+
+    @classmethod
+    def _expand_columns(cls, col: ResultSetColumnType) -> list[ResultSetColumnType]:
+        """
+        Expand the given column out to one or more columns by analysing their types,
+        descending into ROWS and expanding out their inner fields recursively.
+
+        We can only navigate named fields in ROWs in this way, so we can't expand out
+        MAP or ARRAY types, nor fields in ROWs which have no name (in fact the trino
+        library doesn't correctly parse unnamed fields in ROWs). We won't be able to
+        expand ROWs which are nested underneath any of those types, either.
+
+        Expanded columns are named foo.bar.baz and we provide a query_as property to
+        instruct the base engine spec how to correctly query them: instead of quoting
+        the whole string they have to be quoted like "foo"."bar"."baz" and we then
+        alias them to the full dotted string for ease of reference.
+        """
+        # pylint: disable=import-outside-toplevel
+        from trino.sqlalchemy import datatype
+
+        cols = [col]
+        col_type = col.get("type")
+
+        if not isinstance(col_type, datatype.ROW):
+            return cols
+
+        for inner_name, inner_type in col_type.attr_types:
+            outer_name = col["name"]
+            name = ".".join([outer_name, inner_name])
+            query_name = ".".join([f'"{piece}"' for piece in name.split(".")])
+            column_spec = cls.get_column_spec(str(inner_type))
+            is_dttm = column_spec.is_dttm if column_spec else False
+
+            inner_col = ResultSetColumnType(
+                name=name,
+                column_name=name,
+                type=inner_type,
+                is_dttm=is_dttm,
+                query_as=f'{query_name} AS "{name}"',
+            )
+            cols.extend(cls._expand_columns(inner_col))
+
+        return cols
+
+    @classmethod
+    def get_columns(
+        cls,
+        inspector: Inspector,
+        table_name: str,
+        schema: str | None,
+        options: dict[str, Any] | None = None,
+    ) -> list[ResultSetColumnType]:
+        """
+        If the "expand_rows" feature is enabled on the database via
+        "schema_options", expand the schema definition out to show all
+        subfields of nested ROWs as their appropriate dotted paths.
+        """
+        base_cols = super().get_columns(inspector, table_name, schema, options)
+        if not (options or {}).get("expand_rows"):
+            return base_cols
+
+        return [col for base_col in base_cols for col in cls._expand_columns(base_col)]

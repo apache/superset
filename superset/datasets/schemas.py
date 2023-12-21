@@ -24,6 +24,7 @@ from marshmallow.validate import Length
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 
 from superset.datasets.models import Dataset
+from superset.exceptions import SupersetMarshmallowValidationError
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -99,6 +100,7 @@ class DatasetPostSchema(Schema):
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
     normalize_columns = fields.Boolean(load_default=False)
+    always_filter_main_dttm = fields.Boolean(load_default=False)
 
 
 class DatasetPutSchema(Schema):
@@ -111,6 +113,7 @@ class DatasetPutSchema(Schema):
     description = fields.String(allow_none=True)
     main_dttm_col = fields.String(allow_none=True)
     normalize_columns = fields.Boolean(allow_none=True, dump_default=False)
+    always_filter_main_dttm = fields.Boolean(load_default=False)
     offset = fields.Integer(allow_none=True)
     default_endpoint = fields.String(allow_none=True)
     cache_timeout = fields.Integer(allow_none=True)
@@ -122,6 +125,17 @@ class DatasetPutSchema(Schema):
     extra = fields.String(allow_none=True)
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+
+    def handle_error(
+        self,
+        error: ValidationError,
+        data: dict[str, Any],
+        **kwargs: Any,
+    ) -> None:
+        """
+        Return SIP-40 error.
+        """
+        raise SupersetMarshmallowValidationError(error, data)
 
 
 class DatasetDuplicateSchema(Schema):
@@ -250,6 +264,7 @@ class ImportV1DatasetSchema(Schema):
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
     normalize_columns = fields.Boolean(load_default=False)
+    always_filter_main_dttm = fields.Boolean(load_default=False)
 
 
 class GetOrCreateDatasetSchema(Schema):
@@ -266,6 +281,7 @@ class GetOrCreateDatasetSchema(Schema):
         metadata={"description": "Template params for the table"}
     )
     normalize_columns = fields.Boolean(load_default=False)
+    always_filter_main_dttm = fields.Boolean(load_default=False)
 
 
 class DatasetSchema(SQLAlchemyAutoSchema):
