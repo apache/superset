@@ -70,7 +70,6 @@ type SaveModalState = {
   action: SaveActionType;
   isLoading: boolean;
   saveStatus?: string | null;
-  vizType?: string;
   dashboard?: { label: string; value: string | number };
 };
 
@@ -93,7 +92,6 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       datasetName: props.datasource?.name,
       action: this.canOverwriteSlice() ? 'overwrite' : 'saveas',
       isLoading: false,
-      vizType: props.form_data?.viz_type,
       dashboard: undefined,
     };
     this.onDashboardChange = this.onDashboardChange.bind(this);
@@ -383,10 +381,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
             />
           </FormItem>
         )}
-        {!(
-          isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
-          this.state.vizType === 'filter_box'
-        ) && (
+        {!isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) && (
           <FormItem
             label={t('Add to dashboard')}
             data-test="save-chart-modal-select-dashboard-form"
@@ -456,8 +451,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
           !this.state.dashboard ||
           (this.props.datasource?.type !== DatasourceType.Table &&
             !this.state.datasetName) ||
-          (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
-            this.state.vizType === 'filter_box')
+          isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS)
         }
         onClick={() => this.saveOrOverwrite(true)}
       >

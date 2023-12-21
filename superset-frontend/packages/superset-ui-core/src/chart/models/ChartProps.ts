@@ -76,10 +76,7 @@ export interface ChartPropsConfig {
   annotationData?: AnnotationData;
   /** Datasource metadata */
   datasource?: SnakeCaseDatasource;
-  /**
-   * Formerly called "filters", which was misleading because it is actually
-   * initial values of the filter_box and table vis
-   */
+  /** Initial values */
   initialValues?: DataRecordFilters;
   /** Main configuration of the chart */
   formData?: RawFormData;

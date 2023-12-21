@@ -183,12 +183,6 @@ test('Should "export to Excel"', async () => {
   expect(props.exportXLSX).toBeCalledWith(371);
 });
 
-test('Should not show "Download" if slice is filter box', () => {
-  const props = createProps('filter_box');
-  renderWrapper(props);
-  expect(screen.queryByText('Download')).not.toBeInTheDocument();
-});
-
 test('Export full CSV is under featureflag', async () => {
   // @ts-ignore
   global.featureFlags = {

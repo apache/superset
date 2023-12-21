@@ -581,7 +581,7 @@ export function addSliceToDashboard(id, component) {
     ]).then(() => {
       dispatch(addSlice(selectedSlice));
 
-      if (selectedSlice && selectedSlice.viz_type === 'filter_box') {
+      if (selectedSlice) {
         dispatch(addFilter(id, component, selectedSlice.form_data));
       }
     });
@@ -591,7 +591,7 @@ export function addSliceToDashboard(id, component) {
 export function removeSliceFromDashboard(id) {
   return (dispatch, getState) => {
     const sliceEntity = getState().sliceEntities.slices[id];
-    if (sliceEntity && sliceEntity.viz_type === 'filter_box') {
+    if (sliceEntity) {
       dispatch(removeFilter(id));
     }
 
