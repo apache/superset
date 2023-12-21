@@ -2226,9 +2226,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         user = self.get_guest_user_from_token(cast(GuestToken, token))
 
-        # set the guest jwt to request context
-        _request_ctx_stack.top.jwt = token
-        _request_ctx_stack.top.jwt_user = {"loaded_user": user}
+        # set the guest user jwt to request context
+        g.guest_token = token
         return user
 
     def get_guest_user_from_token(self, token: GuestToken) -> GuestUser:
