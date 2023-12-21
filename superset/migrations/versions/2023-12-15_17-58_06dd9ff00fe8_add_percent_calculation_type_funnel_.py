@@ -28,6 +28,7 @@ from sqlalchemy import Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
+from superset.migrations.shared.utils import paginated_update
 
 # revision identifiers, used by Alembic.
 revision = "06dd9ff00fe8"
@@ -47,7 +48,9 @@ def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
-    for slc in session.query(Slice).filter(Slice.viz_type == "funnel"):
+    for slc in paginated_update(
+        session.query(Slice).filter(Slice.viz_type == "funnel")
+    ):
         params = json.loads(slc.params)
         percent_calculation = params.get("percent_calculation_type")
         if not percent_calculation:
@@ -61,7 +64,9 @@ def downgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
-    for slc in session.query(Slice).filter(Slice.viz_type == "funnel"):
+    for slc in paginated_update(
+        session.query(Slice).filter(Slice.viz_type == "funnel")
+    ):
         params = json.loads(slc.params)
         percent_calculation = params.get("percent_calculation_type")
         if percent_calculation:
