@@ -40,6 +40,69 @@ const cardData: CardDataProps[] = [
     link: '/link1',
   },
 ];
+type ApiData = {
+  result: any[];
+};
+
+type FormatFunction = (data: ApiData) => CardDataProps[];
+
+const fetchAndFormatData = async (
+  url: string,
+  formatFunction: FormatFunction,
+  setDataFunction: React.Dispatch<React.SetStateAction<CardDataProps[]>>,
+) => {
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    setDataFunction(formatFunction(data));
+  } catch (error) {
+    console.error('API request failed:', error);
+  }
+};
+
+const formatDashboardData: FormatFunction = data => {
+  return data.result.slice(0, 5).map(item => ({
+    id: item.id,
+    title: item.dashboard_title,
+    label: item.changed_by_name,
+    description: `Modified ${item.changed_on_delta_humanized}`,
+    isFavorite: item.published,
+    link: item.url,
+  }));
+};
+
+const formatChartData: FormatFunction = data => {
+  return data.result.slice(0, 5).map(item => ({
+    id: item.id,
+    title: item.slice_name,
+    label: item.changed_by_name,
+    description: `Modified ${item.created_on_delta_humanized}`,
+    isFavorite: item.is_managed_externally,
+    link: item.url,
+  }));
+};
+
+const formatSavedQueriesData: FormatFunction = data => {
+  return data.result.slice(0, 5).map(item => ({
+    id: item.id,
+    title: item.label,
+    label: item.description,
+    description: `Ran ${item.last_run_delta_humanized}`,
+    isFavorite: false,
+    link: '',
+  }));
+};
+
+const formatRecentData: FormatFunction = data => {
+  return data.result.slice(0, 5).map(item => ({
+    id: Math.floor(item.time),
+    title: item.item_title,
+    label: '',
+    description: `Modified ${item.time_delta_humanized}`,
+    isFavorite: false,
+    link: item.item_url,
+  }));
+};
 
 function DvtWelcome() {
   const [openCalendar, setOpenCalendar] = useState<boolean>(true);
@@ -61,89 +124,22 @@ function DvtWelcome() {
   };
 
   useEffect(() => {
-    const fetchRecentData = async () => {
-      try {
-        const response = await fetch(`/api/v1/chart/`);
-        const data = await response.json();
-        setRecentData(data);
-      } catch (error) {
-        console.error('API request failed:', error);
-      }
-    };
-
-    const fetchDashboardData = async () => {
-      try {
-        const response = await fetch(`/api/v1/dashboard/`);
-        const data = await response.json();
-        let resultFormatData = [];
-
-        for (let i = 0; i < data.result.length; i++) {
-          const item = data.result[i];
-          resultFormatData.push({
-            id: item.id,
-            title: item.dashboard_title,
-            label: item.changed_by_name,
-            description: `Modified ${item.changed_on_delta_humanized}`,
-            isFavorite: item.published,
-            link: item.url,
-          });
-        }
-        setDashboardData(resultFormatData.slice(0, 5));
-      } catch (error) {
-        console.error('API request failed:', error);
-      }
-    };
-
-    const fetchChartData = async () => {
-      try {
-        const response = await fetch(`/api/v1/chart/`);
-        const data = await response.json();
-        let resultFormatData = [];
-
-        for (let i = 0; i < data.result.length; i++) {
-          const item = data.result[i];
-          resultFormatData.push({
-            id: item.id,
-            title: item.slice_name,
-            label: item.changed_by_name,
-            description: `Modified ${item.created_on_delta_humanized}`,
-            isFavorite: item.is_managed_externally,
-            link: item.url,
-          });
-        }
-        setChartData(resultFormatData.slice(0, 5));
-      } catch (error) {
-        console.error('API request failed:', error);
-      }
-    };
-
-    const fetchSavedQueriesData = async () => {
-      try {
-        const response = await fetch(`/api/v1/saved_query/`);
-        const data = await response.json();
-        let resultFormatData = [];
-
-        for (let i = 0; i < data.result.length; i++) {
-          const item = data.result[i];
-          resultFormatData.push({
-            id: item.id,
-            title: item.label,
-            label: item.description,
-            description: `Ran ${item.last_run_delta_humanized}`,
-            isFavorite: false,
-            link: '',
-          });
-        }
-        setSavedQueriesData(resultFormatData);
-      } catch (error) {
-        console.error('API request failed:', error);
-      }
-    };
-
-    fetchRecentData();
-    fetchDashboardData();
-    fetchChartData();
-    fetchSavedQueriesData();
+    fetchAndFormatData('/api/v1/chart/', formatChartData, setChartData);
+    fetchAndFormatData(
+      '/api/v1/dashboard/',
+      formatDashboardData,
+      setDashboardData,
+    );
+    fetchAndFormatData(
+      '/api/v1/saved_query/',
+      formatSavedQueriesData,
+      setSavedQueriesData,
+    );
+    fetchAndFormatData(
+      '/api/v1/log/recent_activity/1/',
+      formatRecentData,
+      setRecentData,
+    );
   }, []);
 
   return (
@@ -151,7 +147,7 @@ function DvtWelcome() {
       <DataContainer>
         <DvtTitleCardList
           title="Recents"
-          data={cardData}
+          data={recentData}
           setFavorites={handleSetFavorites}
         />
 
