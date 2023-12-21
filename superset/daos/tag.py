@@ -24,7 +24,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.commands.tag.exceptions import TagNotFoundError
 from superset.commands.tag.utils import to_object_type
 from superset.daos.base import BaseDAO
-from superset.daos.exceptions import DAOCreateFailedError, DAODeleteFailedError
+from superset.daos.exceptions import DAODeleteFailedError
 from superset.exceptions import MissingUserContextException
 from superset.extensions import db
 from superset.models.dashboard import Dashboard
