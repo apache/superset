@@ -347,6 +347,7 @@ class BaseReportState:
         screenshot_data = []
         header_data = self._get_log_data()
         url = self._get_url(user_friendly=True)
+        prefix = app.config["EMAIL_REPORTS_SUBJECT_PREFIX"]
         if (
             feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
             or self._report_schedule.type == ReportScheduleType.REPORT
@@ -375,16 +376,21 @@ class BaseReportState:
         ):
             embedded_data = self._get_embedded_data()
 
-        if self._report_schedule.chart:
-            name = (
-                f"{self._report_schedule.name}: "
-                f"{self._report_schedule.chart.slice_name}"
-            )
+        if not self._report_schedule.email_subject:
+            if self._report_schedule.chart:
+                name = (
+                    f"{prefix} "
+                    f"{self._report_schedule.name}: "
+                    f"{self._report_schedule.chart.slice_name}"
+                )
+            else:
+                name = (
+                    f"{prefix} "
+                    f"{self._report_schedule.name}: "
+                    f"{self._report_schedule.dashboard.dashboard_title}"
+                )
         else:
-            name = (
-                f"{self._report_schedule.name}: "
-                f"{self._report_schedule.dashboard.dashboard_title}"
-            )
+            name = self._report_schedule.email_subject
 
         return NotificationContent(
             name=name,

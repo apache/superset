@@ -426,6 +426,7 @@ export const TRANSLATIONS = {
   CUSTOM_SCREENSHOT_WIDTH_TEXT: t('Screenshot width'),
   CUSTOM_SCREENSHOT_WIDTH_PLACEHOLDER_TEXT: t('Input custom width in pixels'),
   NOTIFICATION_METHOD_TEXT: t('Notification method'),
+  SUBJECT_TEXT: t('Subject name'),
 };
 
 const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
@@ -511,6 +512,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [notificationSettings, setNotificationSettings] = useState<
     NotificationSetting[]
   >([]);
+  const [emailSubject, setEmailSubject] = useState<string>('');
 
   const onNotificationAdd = () => {
     const settings: NotificationSetting[] = notificationSettings.slice();
@@ -554,6 +556,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     owners: [],
     recipients: [],
     sql: '',
+    email_subject: '',
     validator_config_json: {},
     validator_type: '',
     force_screenshot: false,
@@ -888,6 +891,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const parsedValue = type === 'number' ? parseInt(value, 10) || null : value;
 
     updateAlertState(name, parsedValue);
+
+    if (name === 'name') {
+      updateEmailSubject();
+    }
   };
 
   const onTimeoutVerifyChange = (
@@ -922,12 +929,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const onDashboardChange = (dashboard: SelectValue) => {
     updateAlertState('dashboard', dashboard || undefined);
     updateAlertState('chart', null);
+    updateEmailSubject();
   };
 
   const onChartChange = (chart: SelectValue) => {
     getChartVisualizationType(chart);
     updateAlertState('chart', chart || undefined);
     updateAlertState('dashboard', null);
+    updateEmailSubject();
   };
 
   const onActiveSwitch = (checked: boolean) => {
@@ -1140,6 +1149,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const currentAlertSafe = currentAlert || {};
   useEffect(() => {
     validate();
+    updateEmailSubject();
   }, [
     currentAlertSafe.name,
     currentAlertSafe.owners,
@@ -1159,6 +1169,18 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   if (isHidden && show) {
     setIsHidden(false);
   }
+
+  const updateEmailSubject = () => {
+    if (contentType === 'chart') {
+      setEmailSubject(
+        `${currentAlert?.name}: ${currentAlert?.chart?.label || ''}`,
+      );
+    } else {
+      setEmailSubject(
+        `${currentAlert?.name}: ${currentAlert?.dashboard?.label || ''}`,
+      );
+    }
+  };
 
   return (
     <StyledModal
@@ -1540,6 +1562,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   key={`NotificationMethod-${i}`}
                   onUpdate={updateNotificationSetting}
                   onRemove={removeNotificationSetting}
+                  onInputChange={onInputChange}
+                  email_subject={currentAlert?.email_subject || ''}
+                  _default={emailSubject || ''}
                 />
               </StyledNotificationMethodWrapper>
             ))}

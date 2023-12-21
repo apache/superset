@@ -146,6 +146,12 @@ class ReportSchedulePostSchema(Schema):
         allow_none=True,
         required=False,
     )
+    email_subject = fields.String(
+        description=description_description,
+        allow_none=True,
+        required=False,
+        example="[Report]  Report name: Dashboard or chart name",
+    )
     context_markdown = fields.String(
         metadata={"description": context_markdown_description},
         allow_none=True,
@@ -271,6 +277,12 @@ class ReportSchedulePutSchema(Schema):
         },
         allow_none=True,
         required=False,
+    )
+    email_subject = fields.String(
+        description=description_description,
+        allow_none=True,
+        required=False,
+        example="[Report]  Report name: Dashboard or chart name",
     )
     context_markdown = fields.String(
         metadata={"description": context_markdown_description},

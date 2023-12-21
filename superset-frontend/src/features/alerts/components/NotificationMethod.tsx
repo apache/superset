@@ -61,18 +61,31 @@ interface NotificationMethodProps {
   index: number;
   onUpdate?: (index: number, updatedSetting: NotificationSetting) => void;
   onRemove?: (index: number) => void;
+  onInputChange?: (
+    event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
+  ) => void;
+  email_subject: string;
+  _default: string;
 }
+
+const TRANSLATIONS = {
+  EMAIL_SUBJECT_NAME: t('Email subject name (optional)'),
+};
 
 export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   setting = null,
   index,
   onUpdate,
   onRemove,
+  onInputChange,
+  email_subject,
+  _default,
 }) => {
   const { method, recipients, options } = setting || {};
   const [recipientValue, setRecipientValue] = useState<string>(
     recipients || '',
   );
+  const [subjectValue, setSubjectValue] = useState<string>(email_subject || '');
   const theme = useTheme();
 
   if (!setting) {
@@ -107,6 +120,18 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
       };
 
       onUpdate(index, updatedSetting);
+    }
+  };
+
+  const onSubjectChange = (
+    event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
+  ) => {
+    const { target } = event;
+
+    setSubjectValue(target.value);
+
+    if (onInputChange) {
+      onInputChange(event);
     }
   };
 
@@ -148,6 +173,16 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
       </div>
       {method !== undefined ? (
         <StyledInputContainer>
+          <div className="control-label">{TRANSLATIONS.EMAIL_SUBJECT_NAME}</div>
+          <div className="input-container">
+            <input
+              type="text"
+              name="email_subject"
+              value={subjectValue}
+              placeholder={`Default: ${_default}`}
+              onChange={onSubjectChange}
+            />
+          </div>
           <div className="control-label">{t(method)}</div>
           <div className="input-container">
             <textarea
