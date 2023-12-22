@@ -50,8 +50,8 @@ const fetchAndFormatData = async (
   }
 };
 
-const formatDashboardData: FormatFunction = (data): CardDataProps[] => {
-  return data.result.slice(0, 5).map(item => ({
+const formatDashboardData: FormatFunction = data =>
+  data.result.slice(0, 5).map(item => ({
     id: item.id,
     title: item.dashboard_title,
     label: item.changed_by_name,
@@ -59,10 +59,9 @@ const formatDashboardData: FormatFunction = (data): CardDataProps[] => {
     isFavorite: item.published,
     link: item.url,
   }));
-};
 
-const formatChartData: FormatFunction = (data): CardDataProps[] => {
-  return data.result.slice(0, 5).map(item => ({
+const formatChartData: FormatFunction = data =>
+  data.result.slice(0, 5).map(item => ({
     id: item.id,
     title: item.slice_name,
     label: item.changed_by_name,
@@ -70,10 +69,9 @@ const formatChartData: FormatFunction = (data): CardDataProps[] => {
     isFavorite: item.is_managed_externally,
     link: item.url,
   }));
-};
 
-const formatSavedQueriesData: FormatFunction = (data): CardDataProps[] => {
-  return data.result.slice(0, 5).map(item => ({
+const formatSavedQueriesData: FormatFunction = data =>
+  data.result.slice(0, 5).map(item => ({
     id: item.id,
     title: item.label,
     label: item.description,
@@ -81,10 +79,9 @@ const formatSavedQueriesData: FormatFunction = (data): CardDataProps[] => {
     isFavorite: null,
     link: '',
   }));
-};
 
-const formatRecentData: FormatFunction = (data): CardDataProps[] => {
-  return data.result.slice(0, 5).map(item => ({
+const formatRecentData: FormatFunction = data =>
+  data.result.slice(0, 5).map(item => ({
     id: Math.floor(item.time),
     title: item.item_title,
     label: '',
@@ -92,7 +89,6 @@ const formatRecentData: FormatFunction = (data): CardDataProps[] => {
     isFavorite: null,
     link: item.item_url,
   }));
-};
 
 function DvtWelcome() {
   const [openCalendar, setOpenCalendar] = useState<boolean>(true);
