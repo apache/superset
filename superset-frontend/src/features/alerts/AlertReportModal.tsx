@@ -204,10 +204,6 @@ const StyledModal = styled(Modal)`
     margin-top: ${({ theme }) => theme.gridUnit}px;
   }
 
-  .control-label {
-    margin-top: ${({ theme }) => theme.gridUnit}px;
-  }
-
   .inline-container {
     display: flex;
     flex-direction: row;
@@ -321,6 +317,10 @@ const StyledCheckbox = styled(AntdCheckbox)`
   margin-top: ${({ theme }) => theme.gridUnit * 0}px;
 `;
 
+const StyledTooltip = styled(InfoTooltipWithTrigger)`
+  margin-left: ${({ theme }) => theme.gridUnit}px;
+`;
+
 // Notification Method components
 const StyledNotificationAddButton = styled.div`
   color: ${({ theme }) => theme.colors.primary.dark1};
@@ -394,11 +394,13 @@ export const TRANSLATIONS = {
   DATABASE_TEXT: t('Database'),
   DATABASE_PLACEHOLDER: t('Select database'),
   SQL_QUERY_TEXT: t('SQL Query'),
-  TRIGGER_ALERT_IF_TEXT: t('Trigger alert if...'),
+  SQL_QUERY_TOOLTIP: t(
+    'The result of this query should be a numeric-esque value',
+  ),
+  TRIGGER_ALERT_IF_TEXT: t('Trigger Alert If...'),
   CONDITION_TEXT: t('Condition'),
   CONDITION_PLACEHOLDER: t('Condition'),
   VALUE_TEXT: t('Value'),
-  VALUE_TOOLTIP: t('Threshold value should be double precision number'),
   // Contents panel inputs
   CONTENT_TYPE_LABEL: t('Content type'),
   CONTENT_TYPE_PLACEHOLDER: t('Select content type'),
@@ -1481,11 +1483,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </StyledInputContainer>
               <StyledInputContainer css={no_margin_bottom}>
                 <div className="control-label">
-                  {TRANSLATIONS.VALUE_TEXT}{' '}
-                  <InfoTooltipWithTrigger
-                    tooltip={TRANSLATIONS.VALUE_TOOLTIP}
-                  />
-                  <span className="required">*</span>
+                  {TRANSLATIONS.VALUE_TEXT} <span className="required">*</span>
                 </div>
                 <div className="input-container">
                   <input
