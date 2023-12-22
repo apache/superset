@@ -23,15 +23,18 @@ Create Date: 2023-12-20 15:46:14.672860
 """
 
 # revision identifiers, used by Alembic.
-revision = '4835fe620276'
-down_revision = 'b7851ee5522f'
+revision = "4835fe620276"
+down_revision = "b7851ee5522f"
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 
 def upgrade():
-    op.add_column("report_schedule", sa.Column("email_subject", sa.Text(), nullable=True))
+    op.add_column(
+        "report_schedule", sa.Column("email_subject", sa.Text(), nullable=True)
+    )
+
 
 def downgrade():
     op.drop_column("report_schedule", "email_subject")
