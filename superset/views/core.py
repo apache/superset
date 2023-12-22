@@ -239,8 +239,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return json_error_response(utils.error_msg_from_exception(ex), 400)
 
     EXPLORE_JSON_METHODS = ["POST"]
-    if not is_feature_enabled("ENABLE_EXPLORE_JSON_CSRF_PROTECTION"):
-        EXPLORE_JSON_METHODS.append("GET")
 
     @api
     @has_access_api
