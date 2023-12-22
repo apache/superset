@@ -56,7 +56,6 @@ def upgrade():
         if not percent_calculation:
             params["percent_calculation_type"] = "total"
             slc.params = json.dumps(params)
-            session.commit()
     session.close()
 
 
@@ -72,5 +71,4 @@ def downgrade():
         if percent_calculation:
             del params["percent_calculation_type"]
             slc.params = json.dumps(params)
-            session.commit()
     session.close()
