@@ -40,6 +40,7 @@ const cardData: CardDataProps[] = [
     link: '/link1',
   },
 ];
+
 type ApiData = {
   result: any[];
 };
@@ -54,7 +55,7 @@ const fetchAndFormatData = async (
   try {
     const response = await fetch(url);
     const data = await response.json();
-    setDataFunction(formatFunction(data));
+    setDataFunction(formatFunction(data).sort((a, b) => a.id - b.id));
   } catch (error) {
     console.error('API request failed:', error);
   }
@@ -88,7 +89,7 @@ const formatSavedQueriesData: FormatFunction = data => {
     title: item.label,
     label: item.description,
     description: `Ran ${item.last_run_delta_humanized}`,
-    isFavorite: false,
+    isFavorite: null,
     link: '',
   }));
 };
@@ -99,7 +100,7 @@ const formatRecentData: FormatFunction = data => {
     title: item.item_title,
     label: '',
     description: `Modified ${item.time_delta_humanized}`,
-    isFavorite: false,
+    isFavorite: null,
     link: item.item_url,
   }));
 };
@@ -109,18 +110,32 @@ function DvtWelcome() {
   const [calendar, setCalendar] = useState<Moment | null>(null);
   const [favorites, setFavorites] = useState<number[]>([]);
   const [recentData, setRecentData] = useState<CardDataProps[]>([]);
-  const [dashboardData, setDashboardData] = useState<CardDataProps[]>([]);
+  const [dashboardData, setDashboardData] = useState<any[]>([]);
   const [chartData, setChartData] = useState<CardDataProps[]>([]);
   const [savedQueriesData, setSavedQueriesData] = useState<CardDataProps[]>([]);
 
-  const handleSetFavorites = (id: number, isFavorite: boolean) => {
-    if (isFavorite) {
-      setFavorites(prevFavorites => [...prevFavorites, id]);
-    } else {
-      setFavorites(prevFavorites =>
-        prevFavorites.filter(favoriteId => favoriteId !== id),
-      );
-    }
+  const handleSetFavorites = (
+    id: number,
+    isFavorite: boolean,
+    title: string,
+  ) => {
+    console.log(id, isFavorite);
+    fetch(
+      `/superset/favstar/${title}/${id}/${isFavorite ? 'unselect' : 'select'}/`,
+    ).then(res => {
+      if (res.status === 200) {
+        if (title === 'Dashboard') {
+          const findItem = dashboardData.find(item => item.id === id);
+          const withoutItemData = dashboardData.filter(item => item.id !== id);
+
+          setDashboardData(
+            [...withoutItemData, { ...findItem, isFavorite: !isFavorite }].sort(
+              (a, b) => a.id - b.id,
+            ),
+          );
+        }
+      }
+    });
   };
 
   useEffect(() => {
@@ -145,29 +160,25 @@ function DvtWelcome() {
   return (
     <StyledDvtWelcome>
       <DataContainer>
-        <DvtTitleCardList
-          title="Recents"
-          data={recentData}
-          setFavorites={handleSetFavorites}
-        />
+        <DvtTitleCardList title="Recents" data={recentData} />
 
         <DvtTitleCardList
           title="Dashboards"
           data={dashboardData}
-          setFavorites={handleSetFavorites}
+          setFavorites={(id, isFavorite) =>
+            handleSetFavorites(id, isFavorite, 'Dashboard')
+          }
         />
 
         <DvtTitleCardList
           title="Charts"
           data={chartData}
-          setFavorites={handleSetFavorites}
+          setFavorites={(id, isFavorite) =>
+            handleSetFavorites(id, isFavorite, 'slice')
+          }
         />
 
-        <DvtTitleCardList
-          title="Saved Queries"
-          data={savedQueriesData}
-          setFavorites={handleSetFavorites}
-        />
+        <DvtTitleCardList title="Saved Queries" data={savedQueriesData} />
       </DataContainer>
       <CalendarContainer>
         {openCalendar ? (

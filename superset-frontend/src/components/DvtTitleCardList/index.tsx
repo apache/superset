@@ -15,14 +15,14 @@ export interface CardDataProps {
   title: string;
   label: string;
   description: string;
-  isFavorite: boolean;
+  isFavorite: boolean | null;
   link: string;
 }
 
 export interface DvtTitleCardListProps {
   title: string;
   data: CardDataProps[];
-  setFavorites: (id: number, isFavorite: boolean) => void;
+  setFavorites?: (id: number, isFavorite: boolean) => void;
 }
 
 const DvtTitleCardList: React.FC<DvtTitleCardListProps> = ({
@@ -55,7 +55,13 @@ const DvtTitleCardList: React.FC<DvtTitleCardListProps> = ({
           label={item.label}
           description={item.description}
           isFavorite={item.isFavorite}
-          setFavorite={() => setFavorites(item.id, item.isFavorite)}
+          setFavorite={() =>
+            setFavorites &&
+            setFavorites(
+              item.id,
+              item.isFavorite === null ? false : item.isFavorite,
+            )
+          }
           link={item.link}
         />
       ))}

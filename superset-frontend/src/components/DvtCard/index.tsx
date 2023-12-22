@@ -36,7 +36,7 @@ export interface DvtCardProps {
   title: string;
   label: string;
   description: string;
-  isFavorite: boolean;
+  isFavorite: boolean | null;
   setFavorite: React.Dispatch<React.SetStateAction<boolean>>;
   link?: string;
 }
@@ -67,19 +67,22 @@ const DvtCard: React.FC<DvtCardProps> = ({
       <DvtCardHead>
         <DvtCardTitle>{truncatedFormat(title, 17)}</DvtCardTitle>
         <DvtHeadButtons>
-          <IconButton onClick={handleFavoriteClick}>
-            {!isFavorite ? (
-              <Icons.StarOutlined
-                iconSize="xl"
-                iconColor={supersetTheme.colors.dvt.text.bold}
-              />
-            ) : (
-              <Icons.StarFilled
-                iconSize="xl"
-                iconColor={supersetTheme.colors.alert.base}
-              />
-            )}
-          </IconButton>
+          {isFavorite !== null && (
+            <IconButton onClick={handleFavoriteClick}>
+              {!isFavorite ? (
+                <Icons.StarOutlined
+                  iconSize="xl"
+                  iconColor={supersetTheme.colors.dvt.text.bold}
+                />
+              ) : (
+                <Icons.StarFilled
+                  iconSize="xl"
+                  iconColor={supersetTheme.colors.alert.base}
+                />
+              )}
+            </IconButton>
+          )}
+
           <IconButton>
             <Icon
               fileName="more_vert"
