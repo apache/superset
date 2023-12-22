@@ -29,6 +29,8 @@ assists people when migrating to a new version.
 
 ### Breaking Changes
 
+- [26345](https://github.com/apache/superset/issues/26345): Removes the deprecated `ENABLE_TEMPLATE_REMOVE_FILTERS` feature flag.
+
 ### Potential Downtime
 
 ### Other
