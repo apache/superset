@@ -21,14 +21,14 @@ import { Moment } from 'moment';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import DvtCalendar from 'src/components/DvtCalendar';
 import DvtButton from 'src/components/DvtButton';
+import DvtTitleCardList, {
+  CardDataProps,
+} from 'src/components/DvtTitleCardList';
 import {
   StyledDvtWelcome,
   DataContainer,
   CalendarContainer,
 } from './dvt-home.module';
-import DvtTitleCardList, {
-  CardDataProps,
-} from 'src/components/DvtTitleCardList';
 
 type ApiData = {
   result: any[];
@@ -50,7 +50,7 @@ const fetchAndFormatData = async (
   }
 };
 
-const formatDashboardData: FormatFunction = data => {
+const formatDashboardData: FormatFunction = (data): CardDataProps[] => {
   return data.result.slice(0, 5).map(item => ({
     id: item.id,
     title: item.dashboard_title,
@@ -61,7 +61,7 @@ const formatDashboardData: FormatFunction = data => {
   }));
 };
 
-const formatChartData: FormatFunction = data => {
+const formatChartData: FormatFunction = (data): CardDataProps[] => {
   return data.result.slice(0, 5).map(item => ({
     id: item.id,
     title: item.slice_name,
@@ -72,7 +72,7 @@ const formatChartData: FormatFunction = data => {
   }));
 };
 
-const formatSavedQueriesData: FormatFunction = data => {
+const formatSavedQueriesData: FormatFunction = (data): CardDataProps[] => {
   return data.result.slice(0, 5).map(item => ({
     id: item.id,
     title: item.label,
@@ -83,7 +83,7 @@ const formatSavedQueriesData: FormatFunction = data => {
   }));
 };
 
-const formatRecentData: FormatFunction = data => {
+const formatRecentData: FormatFunction = (data): CardDataProps[] => {
   return data.result.slice(0, 5).map(item => ({
     id: Math.floor(item.time),
     title: item.item_title,
