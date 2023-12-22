@@ -339,55 +339,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         except SupersetException as ex:
             return json_error_response(utils.error_msg_from_exception(ex), 400)
 
-    @has_access
-    @event_logger.log_this
-    @expose(
-        "/import_dashboards/",
-        methods=(
-            "GET",
-            "POST",
-        ),
-    )
-    def import_dashboards(self) -> FlaskResponse:
-        """Overrides the dashboards using json instances from the file."""
-        import_file = request.files.get("file")
-        if request.method == "POST" and import_file:
-            success = False
-            database_id = request.form.get("db_id")
-            try:
-                ImportDashboardsCommand(
-                    {import_file.filename: import_file.read()}, database_id
-                ).run()
-                success = True
-            except DatabaseNotFound as ex:
-                logger.exception(ex)
-                flash(
-                    _(
-                        "Cannot import dashboard: %(db_error)s.\n"
-                        "Make sure to create the database before "
-                        "importing the dashboard.",
-                        db_error=ex,
-                    ),
-                    "danger",
-                )
-            except Exception as ex:  # pylint: disable=broad-except
-                logger.exception(ex)
-                flash(
-                    _(
-                        "An unknown error occurred. "
-                        "Please contact your Superset administrator"
-                    ),
-                    "danger",
-                )
-            if success:
-                flash("Dashboard(s) have been imported", "success")
-                return redirect("/dashboard/list/")
-
-        databases = db.session.query(Database).all()
-        return self.render_template(
-            "superset/import_dashboards.html", databases=databases
-        )
-
     @staticmethod
     def get_redirect_url() -> str:
         """Assembles the redirect URL to the new endpoint. It also replaces
