@@ -30,17 +30,6 @@ import DvtTitleCardList, {
   CardDataProps,
 } from 'src/components/DvtTitleCardList';
 
-const cardData: CardDataProps[] = [
-  {
-    id: 1,
-    title: 'Card 1',
-    label: 'Label 1',
-    description: 'Description 1',
-    isFavorite: false,
-    link: '/link1',
-  },
-];
-
 type ApiData = {
   result: any[];
 };
@@ -108,7 +97,6 @@ const formatRecentData: FormatFunction = data => {
 function DvtWelcome() {
   const [openCalendar, setOpenCalendar] = useState<boolean>(true);
   const [calendar, setCalendar] = useState<Moment | null>(null);
-  const [favorites, setFavorites] = useState<number[]>([]);
   const [recentData, setRecentData] = useState<CardDataProps[]>([]);
   const [dashboardData, setDashboardData] = useState<any[]>([]);
   const [chartData, setChartData] = useState<CardDataProps[]>([]);
