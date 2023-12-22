@@ -112,10 +112,10 @@ def load_explore_json_into_cache(  # pylint: disable=too-many-locals
 ) -> None:
     cache_key_prefix = "ejr-"  # ejr: explore_json request
 
-    user = (
-        security_manager.get_user_by_id(job_metadata.get("user_id"))
-        or security_manager.get_anonymous_user()
-    )
+    if user_id := job_metadata.get("user_id"):
+        user = security_manager.get_user_by_id(user_id)
+    else:
+        user = security_manager.get_anonymous_user()
 
     with override_user(user, force=False):
         try:
