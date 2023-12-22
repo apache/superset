@@ -515,8 +515,12 @@ export function sanitizeHtml(text: string): string {
 
 export function getAxisType(
   stack: StackType,
+  forceCategorical?: boolean,
   dataType?: GenericDataType,
 ): AxisType {
+  if (forceCategorical) {
+    return AxisType.category;
+  }
   if (dataType === GenericDataType.TEMPORAL) {
     return AxisType.time;
   }

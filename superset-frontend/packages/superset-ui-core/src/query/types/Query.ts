@@ -27,7 +27,7 @@ import {
   QueryFormData,
   QueryFormMetric,
 } from './QueryFormData';
-import { Maybe } from '../../types';
+import { GenericDataType, Maybe } from '../../types';
 import { PostProcessingRule } from './PostProcessing';
 import { JsonObject } from '../../connection';
 import { TimeGranularity } from '../../time-format';
@@ -250,6 +250,7 @@ export type QueryColumn = {
   name?: string;
   column_name: string;
   type: string | null;
+  type_generic: GenericDataType;
   is_dttm: boolean;
 };
 
@@ -383,16 +384,19 @@ export const testQuery: Query = {
       column_name: 'Column 1',
       type: 'STRING',
       is_dttm: false,
+      type_generic: GenericDataType.STRING,
     },
     {
       column_name: 'Column 3',
       type: 'STRING',
       is_dttm: false,
+      type_generic: GenericDataType.STRING,
     },
     {
       column_name: 'Column 2',
       type: 'TIMESTAMP',
       is_dttm: true,
+      type_generic: GenericDataType.TEMPORAL,
     },
   ],
 };

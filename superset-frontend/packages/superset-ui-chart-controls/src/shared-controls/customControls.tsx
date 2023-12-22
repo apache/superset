@@ -22,7 +22,6 @@ import {
   ensureIsArray,
   getColumnLabel,
   getMetricLabel,
-  isDefined,
   QueryFormColumn,
   QueryFormMetric,
   t,
@@ -38,6 +37,7 @@ import {
   DEFAULT_XAXIS_SORT_SERIES_DATA,
   SORT_SERIES_CHOICES,
 } from '../constants';
+import { isCategoricalColumn } from '../utils/isCategoricalColumn';
 
 export const contributionModeControl = {
   name: 'contributionMode',
@@ -54,10 +54,14 @@ export const contributionModeControl = {
   },
 };
 
-function isTemporal(controls: ControlStateMapping): boolean {
-  return !(
-    isDefined(controls?.x_axis?.value) &&
-    !isTemporalColumn(
+function isForcedCategorical(controls: ControlStateMapping): boolean {
+  return !!controls?.xAxisForceCategorical?.value;
+}
+
+function isCategorical(controls: ControlStateMapping): boolean {
+  return (
+    isForcedCategorical(controls) ||
+    isCategoricalColumn(
       getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
       controls?.datasource?.datasource,
     )
@@ -65,7 +69,7 @@ function isTemporal(controls: ControlStateMapping): boolean {
 }
 
 const xAxisSortVisibility = ({ controls }: { controls: ControlStateMapping }) =>
-  !isTemporal(controls) &&
+  isCategorical(controls) &&
   ensureIsArray(controls?.groupby?.value).length === 0 &&
   ensureIsArray(controls?.metrics?.value).length === 1;
 
@@ -74,7 +78,7 @@ const xAxisMultiSortVisibility = ({
 }: {
   controls: ControlStateMapping;
 }) =>
-  !isTemporal(controls) &&
+  isCategorical(controls) &&
   (!!ensureIsArray(controls?.groupby?.value).length ||
     ensureIsArray(controls?.metrics?.value).length > 1);
 
@@ -142,6 +146,23 @@ export const xAxisSortAscControl = {
     default: true,
     description: t('Whether to sort ascending or descending on the base Axis.'),
     visibility: xAxisSortVisibility,
+  },
+};
+
+export const xAxisForceCategoricalControl = {
+  name: 'xAxisForceCategorical',
+  config: {
+    type: 'CheckboxControl',
+    label: () => t('Force categorical'),
+    default: false,
+    description: t('Treat values as categorical.'),
+    renderTrigger: true,
+    visibility: ({ controls }: { controls: ControlStateMapping }) =>
+      !isCategoricalColumn(
+        getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+        controls?.datasource?.datasource,
+      ),
+    shouldMapStateToProps: () => true,
   },
 };
 
