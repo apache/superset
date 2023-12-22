@@ -28,7 +28,7 @@ import jwt
 import prison
 import pytest
 
-from flask import current_app, g
+from flask import current_app
 from flask_appbuilder.security.sqla.models import Role
 from superset.daos.datasource import DatasourceDAO
 from superset.models.dashboard import Dashboard
