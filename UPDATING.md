@@ -29,6 +29,8 @@ assists people when migrating to a new version.
 
 ### Breaking Changes
 
+- [26348](https://github.com/apache/superset/issues/26348): Removes the deprecated `CLIENT_CACHE` feature flag.
+
 ### Potential Downtime
 
 ### Other
