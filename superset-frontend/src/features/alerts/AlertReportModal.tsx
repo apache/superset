@@ -152,6 +152,10 @@ const StyledModal = styled(Modal)`
   }
 `;
 
+const StyledTooltip = styled(InfoTooltipWithTrigger)`
+  margin-left: ${({ theme }) => theme.gridUnit}px;
+`;
+
 const StyledIcon = (theme: SupersetTheme) => css`
   margin: auto ${theme.gridUnit * 2}px auto 0;
   color: ${theme.colors.grayscale.base};
@@ -397,10 +401,12 @@ export const TRANSLATIONS = {
   ALERT_CONDITION_TEXT: t('Alert condition'),
   DATABASE_TEXT: t('Database'),
   SQL_QUERY_TEXT: t('SQL Query'),
+  SQL_QUERY_TOOLTIP: t(
+    'The result of this query should be a numeric-esque value',
+  ),
   TRIGGER_ALERT_IF_TEXT: t('Trigger Alert If...'),
   CONDITION_TEXT: t('Condition'),
   VALUE_TEXT: t('Value'),
-  VALUE_TOOLTIP: t('Threshold value should be double precision number'),
   REPORT_SCHEDULE_TEXT: t('Report schedule'),
   ALERT_CONDITION_SCHEDULE_TEXT: t('Alert condition schedule'),
   TIMEZONE_TEXT: t('Timezone'),
@@ -1284,6 +1290,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <StyledInputContainer>
                 <div className="control-label">
                   {TRANSLATIONS.SQL_QUERY_TEXT}
+                  <StyledTooltip tooltip={TRANSLATIONS.SQL_QUERY_TOOLTIP} />
                   <span className="required">*</span>
                 </div>
                 <TextAreaControl
@@ -1319,10 +1326,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 </StyledInputContainer>
                 <StyledInputContainer>
                   <div className="control-label">
-                    {TRANSLATIONS.VALUE_TEXT}{' '}
-                    <InfoTooltipWithTrigger
-                      tooltip={TRANSLATIONS.VALUE_TOOLTIP}
-                    />
+                    {TRANSLATIONS.VALUE_TEXT}
                     <span className="required">*</span>
                   </div>
                   <div className="input-container">
