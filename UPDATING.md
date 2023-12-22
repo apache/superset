@@ -29,6 +29,8 @@ assists people when migrating to a new version.
 
 ### Breaking Changes
 
+- [26346](https://github.com/apache/superset/issues/26346): Removes the deprecated `REMOVE_SLICE_LEVEL_LABEL_COLORS` feature flag.
+
 ### Potential Downtime
 
 ### Other

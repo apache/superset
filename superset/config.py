@@ -435,7 +435,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Exposes API endpoint to compute thumbnails
     "THUMBNAILS": False,
     "DASHBOARD_CACHE": False,  # deprecated
-    "REMOVE_SLICE_LEVEL_LABEL_COLORS": False,  # deprecated
     "SHARE_QUERIES_VIA_KV_STORE": False,
     "TAGGING_SYSTEM": False,
     "SQLLAB_BACKEND_PERSISTENCE": True,
