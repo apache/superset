@@ -2224,13 +2224,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             logger.warning("Invalid guest token", exc_info=True)
             return None
 
-        user = self.get_guest_user_from_token(cast(GuestToken, token))
-
-        g.guest_token = token
-        return user
-
-    def get_current_guest_token_if_guest(self) -> Optional[GuestToken]:
-        return g.guest_token if self.is_guest_user() else None
+        return self.get_guest_user_from_token(cast(GuestToken, token))
 
     def get_guest_user_from_token(self, token: GuestToken) -> GuestUser:
         return self.guest_user_cls(

@@ -2002,61 +2002,6 @@ class TestGuestTokens(SupersetTestCase):
             decoded_token["exp"],
         )
 
-    @patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        EMBEDDED_SUPERSET=True,
-    )
-    def test_get_guest_token_if_guest(self):
-        token = self.create_guest_token()
-        fake_request = FakeRequest()
-        fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
-
-        g.user = security_manager.get_guest_user_from_request(fake_request)
-        guest_token = security_manager.get_current_guest_token_if_guest()
-        self.assertEqual("test_guest", guest_token["user"]["username"])
-
-    @patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        EMBEDDED_SUPERSET=False,
-    )
-    def test_get_guest_token_none_if_embedded_not_enabled(self):
-        token = self.create_guest_token()
-        fake_request = FakeRequest()
-        fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
-
-        g.user = security_manager.get_guest_user_from_request(fake_request)
-        guest_token = security_manager.get_current_guest_token_if_guest()
-        self.assertIsNone(guest_token)
-
-    @patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        EMBEDDED_SUPERSET=False,
-    )
-    def test_get_guest_token_is_none_if_no_user(self):
-        token = self.create_guest_token()
-        fake_request = FakeRequest()
-        fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
-
-        security_manager.get_guest_user_from_request(fake_request)
-        g.user = None
-        guest_token = security_manager.get_current_guest_token_if_guest()
-        self.assertIsNone(guest_token)
-        security_manager.find_user("admin")
-
-    @patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        EMBEDDED_SUPERSET=False,
-    )
-    def test_get_guest_token_is_none_if_admin_user(self):
-        token = self.create_guest_token()
-        fake_request = FakeRequest()
-        fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
-
-        security_manager.get_guest_user_from_request(fake_request)
-        g.user = security_manager.find_user("admin")
-        guest_token = security_manager.get_current_guest_token_if_guest()
-        self.assertIsNone(guest_token)
-
     def test_get_guest_user(self):
         token = self.create_guest_token()
         fake_request = FakeRequest()
