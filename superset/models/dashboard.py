@@ -20,7 +20,6 @@ import json
 import logging
 import uuid
 from collections import defaultdict
-from functools import partial
 from typing import Any, Callable
 
 import sqlalchemy as sqla
@@ -313,11 +312,6 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
             "is_managed_externally": self.is_managed_externally,
         }
 
-    @cache_manager.cache.memoize(
-        # manage cache version manually
-        make_name=lambda fname: f"{fname}-v1.0",
-        unless=lambda: not is_feature_enabled("DASHBOARD_CACHE"),
-    )
     def datasets_trimmed_for_slices(self) -> list[dict[str, Any]]:
         # Verbose but efficient database enumeration of dashboard datasources.
         slices_by_datasource: dict[
@@ -506,37 +500,3 @@ if is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
     update_thumbnail: OnDashboardChange = lambda _, __, dash: dash.update_thumbnail()
     sqla.event.listen(Dashboard, "after_insert", update_thumbnail)
     sqla.event.listen(Dashboard, "after_update", update_thumbnail)
-
-if is_feature_enabled("DASHBOARD_CACHE"):
-
-    def clear_dashboard_cache(
-        _mapper: Mapper,
-        _connection: Connection,
-        obj: Slice | BaseDatasource | Dashboard,
-        check_modified: bool = True,
-    ) -> None:
-        if check_modified and not object_session(obj).is_modified(obj):
-            # needed for avoiding excessive cache purging when duplicating a dashboard
-            return
-        if isinstance(obj, Dashboard):
-            obj.clear_cache()
-        elif isinstance(obj, Slice):
-            Dashboard.clear_cache_for_slice(slice_id=obj.id)
-        elif isinstance(obj, BaseDatasource):
-            Dashboard.clear_cache_for_datasource(datasource_id=obj.id)
-        elif isinstance(obj, (SqlMetric, TableColumn)):
-            Dashboard.clear_cache_for_datasource(datasource_id=obj.table_id)
-
-    sqla.event.listen(Dashboard, "after_update", clear_dashboard_cache)
-    sqla.event.listen(
-        Dashboard, "after_delete", partial(clear_dashboard_cache, check_modified=False)
-    )
-    sqla.event.listen(Slice, "after_update", clear_dashboard_cache)
-    sqla.event.listen(Slice, "after_delete", clear_dashboard_cache)
-    sqla.event.listen(
-        BaseDatasource, "after_update", clear_dashboard_cache, propagate=True
-    )
-    # also clear cache on column/metric updates since updates to these will not
-    # trigger update events for BaseDatasource.
-    sqla.event.listen(SqlMetric, "after_update", clear_dashboard_cache)
-    sqla.event.listen(TableColumn, "after_update", clear_dashboard_cache)
