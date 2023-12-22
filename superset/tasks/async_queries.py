@@ -66,10 +66,16 @@ def load_chart_data_into_cache(
     # pylint: disable=import-outside-toplevel
     from superset.commands.chart.data.get_data_command import ChartDataCommand
 
-    user = (
-        security_manager.get_user_by_id(job_metadata.get("user_id"))
-        or security_manager.get_anonymous_user()
-    )
+    if user_id := job_metadata.get("user_id"):
+        # logged in user
+        user = security_manager.get_user_by_id(user_id)
+    elif guest_token := job_metadata.get("guest_token"):
+        # embedded guest user
+        user = security_manager.get_guest_user_from_token(guest_token)
+        del job_metadata["guest_token"]
+    else:
+        # default to anonymous user if no user is found
+        user = security_manager.get_anonymous_user()
 
     with override_user(user, force=False):
         try:
