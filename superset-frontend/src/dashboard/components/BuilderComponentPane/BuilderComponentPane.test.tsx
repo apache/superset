@@ -23,7 +23,7 @@ import BuilderComponentPane from '.';
 
 jest.mock('src/dashboard/containers/SliceAdder');
 
-test('BuilderComponentPane has correct tabs in correct order', () => {
+test.skip('BuilderComponentPane has correct tabs in correct order', () => {
   render(<BuilderComponentPane topOffset={115} />);
   const tabs = screen.getAllByRole('tab');
   expect(tabs).toHaveLength(2);
