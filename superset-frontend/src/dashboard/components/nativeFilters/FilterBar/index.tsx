@@ -149,7 +149,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
   const user: UserWithPermissionsAndRoles = useSelector<
-    any,
+    RootState,
     UserWithPermissionsAndRoles
   >(state => state.user);
 
