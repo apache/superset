@@ -70,7 +70,8 @@
     "storybook": "cross-env NODE_ENV=development BABEL_ENV=development start-storybook -p 6006",
     "tdd": "cross-env NODE_ENV=test jest --watch",
     "test": "cross-env NODE_ENV=test jest",
-    "type": "tsc --noEmit"
+    "type": "tsc --noEmit",
+    "update-maps": "jupyter nbconvert --to notebook --execute --inplace 'plugins/legacy-plugin-chart-country-map/scripts/Country Map GeoJSON Generator.ipynb' -Xfrozen_modules=off"
   },
   "browserslist": [
     "last 3 chrome versions",
