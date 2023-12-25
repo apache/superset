@@ -48,6 +48,6 @@ Default.argTypes = {
   },
   typeDesign: {
     control: { type: 'select' },
-    defaultValue: 'Default',
+    defaultValue: 'form',
   },
 };

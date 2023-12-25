@@ -41,7 +41,8 @@ const StyleTextareaText = styled.textarea<StyledTextAreaProps>`
   border: none;
   outline: none;
   padding: 12px 8px;
-  border-radius: ${({ typeDesign }) => (typeDesign ? '12px' : '4px')};
+  border-radius: ${({ typeDesign }) =>
+    typeDesign === 'border' ? '12px' : '4px'};
 `;
 
 export { StyleTextarea, StyleTextareaText, StyleTextareaLabel };

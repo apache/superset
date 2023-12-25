@@ -25,7 +25,7 @@ import {
 
 export interface DvtTextareaProps {
   label?: string;
-  typeDesign?: 'default' | 'border';
+  typeDesign?: 'form' | 'border';
   placeholder?: string;
   value: string;
   onChange: (value: string) => void;
@@ -33,7 +33,7 @@ export interface DvtTextareaProps {
 
 const DvtTextarea: React.FC<DvtTextareaProps> = ({
   label,
-  typeDesign = 'default',
+  typeDesign = 'form',
   placeholder = '',
   value,
   onChange,
