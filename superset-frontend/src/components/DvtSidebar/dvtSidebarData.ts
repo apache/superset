@@ -18,12 +18,12 @@ const DvtSidebarData: SidebarDataProps[] = [
           },
           {
             title: 'Dataset',
-            url: '/',
+            url: '/dataset/add/',
             fileName: 'dvt-database',
           },
           {
             title: 'Dashboard',
-            url: '/',
+            url: '/dashboard/list/',
             fileName: 'dvt-box',
           },
           {

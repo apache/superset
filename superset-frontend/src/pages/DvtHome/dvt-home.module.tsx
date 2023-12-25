@@ -21,19 +21,23 @@ import { styled } from '@superset-ui/core';
 const StyledDvtWelcome = styled.div`
   flex: 1;
   display: flex;
+  justify-content: flex-start;
+  gap: 30px;
 `;
 
 const DataContainer = styled.div`
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 `;
 
 const CalendarContainer = styled.div`
-  width: 308px;
   display: flex;
-  flex-direction: column;
+  min-width: 308px;
+  max-height: 317px;
   align-items: center;
   justify-content: center;
-  gap: 150px;
 `;
 
 export { StyledDvtWelcome, DataContainer, CalendarContainer };

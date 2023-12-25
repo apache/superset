@@ -16,32 +16,167 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Moment } from 'moment';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import DvtCalendar from 'src/components/DvtCalendar';
 import DvtButton from 'src/components/DvtButton';
+import DvtTitleCardList, {
+  CardDataProps,
+} from 'src/components/DvtTitleCardList';
 import {
   StyledDvtWelcome,
   DataContainer,
   CalendarContainer,
 } from './dvt-home.module';
 
+type ApiData = {
+  result: any[];
+};
+
+type FormatFunction = (data: ApiData) => CardDataProps[];
+
+const fetchAndFormatData = async (
+  url: string,
+  formatFunction: FormatFunction,
+  setDataFunction: React.Dispatch<React.SetStateAction<CardDataProps[]>>,
+) => {
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    setDataFunction(formatFunction(data).sort((a, b) => a.id - b.id));
+  } catch (error) {
+    console.error('API request failed:', error);
+  }
+};
+
+const formatDashboardData: FormatFunction = data =>
+  data.result.slice(0, 5).map(item => ({
+    id: item.id,
+    title: item.dashboard_title,
+    label: item.changed_by_name,
+    description: `Modified ${item.changed_on_delta_humanized}`,
+    isFavorite: item.published,
+    link: item.url,
+  }));
+
+const formatChartData: FormatFunction = data =>
+  data.result.slice(0, 5).map(item => ({
+    id: item.id,
+    title: item.slice_name,
+    label: item.changed_by_name,
+    description: `Modified ${item.created_on_delta_humanized}`,
+    isFavorite: item.is_managed_externally,
+    link: item.url,
+  }));
+
+const formatSavedQueriesData: FormatFunction = data =>
+  data.result.slice(0, 5).map(item => ({
+    id: item.id,
+    title: item.label,
+    label: item.description,
+    description: `Ran ${item.last_run_delta_humanized}`,
+    isFavorite: null,
+    link: '',
+  }));
+
+const formatRecentData: FormatFunction = data =>
+  data.result.slice(0, 5).map(item => ({
+    id: Math.floor(item.time),
+    title: item.item_title,
+    label: '',
+    description: `Modified ${item.time_delta_humanized}`,
+    isFavorite: null,
+    link: item.item_url,
+  }));
+
 function DvtWelcome() {
   const [openCalendar, setOpenCalendar] = useState<boolean>(true);
   const [calendar, setCalendar] = useState<Moment | null>(null);
+  const [recentData, setRecentData] = useState<CardDataProps[]>([]);
+  const [dashboardData, setDashboardData] = useState<any[]>([]);
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [savedQueriesData, setSavedQueriesData] = useState<CardDataProps[]>([]);
+
+  const handleSetFavorites = (
+    id: number,
+    isFavorite: boolean,
+    title: string,
+  ) => {
+    const updateData = (dataList: CardDataProps[]) => {
+      const findItem = dataList.find(item => item.id === id);
+      const withoutItemData = dataList.filter(item => item.id !== id);
+      return [
+        ...withoutItemData,
+        { ...findItem, isFavorite: !isFavorite },
+      ].sort((a: CardDataProps, b: CardDataProps) => a.id - b.id);
+    };
+
+    fetch(
+      `/superset/favstar/${title}/${id}/${isFavorite ? 'unselect' : 'select'}/`,
+    ).then(res => {
+      if (res.status === 200) {
+        if (title === 'Dashboard') {
+          setDashboardData(updatedData => updateData(updatedData));
+        }
+        if (title === 'slice') {
+          setChartData(updatedData => updateData(updatedData));
+        }
+      }
+    });
+  };
+
+  useEffect(() => {
+    fetchAndFormatData('/api/v1/chart/', formatChartData, setChartData);
+    fetchAndFormatData(
+      '/api/v1/dashboard/',
+      formatDashboardData,
+      setDashboardData,
+    );
+    fetchAndFormatData(
+      '/api/v1/saved_query/',
+      formatSavedQueriesData,
+      setSavedQueriesData,
+    );
+    fetchAndFormatData(
+      '/api/v1/log/recent_activity/1/',
+      formatRecentData,
+      setRecentData,
+    );
+  }, []);
 
   return (
     <StyledDvtWelcome>
-      <DataContainer>Datalar coming soon...</DataContainer>
-      <CalendarContainer>
-        <DvtCalendar
-          isOpen={openCalendar}
-          setIsOpen={setOpenCalendar}
-          selectedDate={calendar}
-          setSelectedDate={date => date && setCalendar(date)}
+      <DataContainer>
+        <DvtTitleCardList title="Recents" data={recentData} />
+
+        <DvtTitleCardList
+          title="Dashboards"
+          data={dashboardData}
+          setFavorites={(id, isFavorite) =>
+            handleSetFavorites(id, isFavorite, 'Dashboard')
+          }
         />
-        {!openCalendar && (
+
+        <DvtTitleCardList
+          title="Charts"
+          data={chartData}
+          setFavorites={(id, isFavorite) =>
+            handleSetFavorites(id, isFavorite, 'slice')
+          }
+        />
+
+        <DvtTitleCardList title="Saved Queries" data={savedQueriesData} />
+      </DataContainer>
+      <CalendarContainer>
+        {openCalendar ? (
+          <DvtCalendar
+            isOpen={openCalendar}
+            setIsOpen={setOpenCalendar}
+            selectedDate={calendar}
+            setSelectedDate={date => date && setCalendar(date)}
+          />
+        ) : (
           <DvtButton
             label="Open Calendar"
             onClick={() => setOpenCalendar(true)}
