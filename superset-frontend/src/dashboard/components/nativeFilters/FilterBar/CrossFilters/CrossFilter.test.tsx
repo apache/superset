@@ -30,6 +30,9 @@ const mockedProps = {
     value: 'Italy',
     status: IndicatorStatus.CrossFilterApplied,
     path: ['test-path'],
+    selectedFilters: {
+      country_name: 'Italy',
+    },
   },
   orientation: FilterBarOrientation.HORIZONTAL,
   last: false,
