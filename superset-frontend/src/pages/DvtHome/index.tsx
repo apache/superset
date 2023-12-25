@@ -95,7 +95,7 @@ function DvtWelcome() {
   const [calendar, setCalendar] = useState<Moment | null>(null);
   const [recentData, setRecentData] = useState<CardDataProps[]>([]);
   const [dashboardData, setDashboardData] = useState<any[]>([]);
-  const [chartData, setChartData] = useState<CardDataProps[]>([]);
+  const [chartData, setChartData] = useState<any[]>([]);
   const [savedQueriesData, setSavedQueriesData] = useState<CardDataProps[]>([]);
 
   const handleSetFavorites = (
@@ -103,7 +103,6 @@ function DvtWelcome() {
     isFavorite: boolean,
     title: string,
   ) => {
-    console.log(id, isFavorite);
     fetch(
       `/superset/favstar/${title}/${id}/${isFavorite ? 'unselect' : 'select'}/`,
     ).then(res => {
@@ -113,6 +112,16 @@ function DvtWelcome() {
           const withoutItemData = dashboardData.filter(item => item.id !== id);
 
           setDashboardData(
+            [...withoutItemData, { ...findItem, isFavorite: !isFavorite }].sort(
+              (a, b) => a.id - b.id,
+            ),
+          );
+        }
+        if (title === 'slice') {
+          const findItem = chartData.find(item => item.id === id);
+          const withoutItemData = chartData.filter(item => item.id !== id);
+
+          setChartData(
             [...withoutItemData, { ...findItem, isFavorite: !isFavorite }].sort(
               (a, b) => a.id - b.id,
             ),
