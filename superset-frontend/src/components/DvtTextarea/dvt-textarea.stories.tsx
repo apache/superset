@@ -48,6 +48,91 @@ Default.argTypes = {
   },
   typeDesign: {
     control: { type: 'select' },
+    defaultValue: 'text',
+  },
+  placeholder: {
+    control: { type: 'text' },
+    defaultValue: 'Default',
+  },
+};
+
+export const Form = (args: DvtTextareaProps) => {
+  const [text, setText] = useState<string>('');
+  return (
+    <div
+      css={(theme: SupersetTheme) => ({
+        backgroundColor: theme.colors.dvt.grayscale.light2,
+        padding: '40px',
+      })}
+    >
+      <div style={{ width: '226px' }}>
+        <DvtTextarea {...args} value={text} onChange={setText} />
+      </div>
+    </div>
+  );
+};
+
+Form.argTypes = {
+  label: {
+    control: { type: 'text' },
+    defaultValue: 'SQL QUERY',
+  },
+  typeDesign: {
+    control: { type: 'select' },
     defaultValue: 'form',
+  },
+};
+
+export const Border = (args: DvtTextareaProps) => {
+  const [text, setText] = useState<string>('');
+  return (
+    <div
+      css={(theme: SupersetTheme) => ({
+        backgroundColor: theme.colors.dvt.grayscale.light2,
+        padding: '40px',
+      })}
+    >
+      <div style={{ width: '226px' }}>
+        <DvtTextarea {...args} value={text} onChange={setText} />
+      </div>
+    </div>
+  );
+};
+
+Border.argTypes = {
+  label: {
+    control: { type: 'text' },
+    defaultValue: 'SQL QUERY',
+  },
+  typeDesign: {
+    control: { type: 'select' },
+    defaultValue: 'border',
+  },
+};
+
+export const Resize = (args: DvtTextareaProps) => {
+  const [text, setText] = useState<string>('');
+  return (
+    <div
+      css={(theme: SupersetTheme) => ({
+        backgroundColor: theme.colors.dvt.grayscale.light2,
+        padding: '40px',
+      })}
+    >
+      <div style={{ width: '226px' }}>
+        <DvtTextarea {...args} value={text} onChange={setText} />
+      </div>
+    </div>
+  );
+};
+
+Resize.argTypes = {
+  label: {
+    control: { type: 'text' },
+    defaultValue: 'SQL QUERY',
+  },
+  typeDesign: {
+    control: { type: 'select' },
+    defaultValue: 'resize',
   },
 };

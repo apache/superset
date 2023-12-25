@@ -37,12 +37,16 @@ const StyleTextareaLabel = styled.div`
 const StyleTextareaText = styled.textarea<StyledTextAreaProps>`
   height: 169px;
   width: 100%;
-  resize: none;
-  border: none;
   outline: none;
+  border: none;
+  resize: ${({ typeDesign }) => (typeDesign === 'resize' ? '' : 'none')};
   padding: 12px 8px;
   border-radius: ${({ typeDesign }) =>
-    typeDesign === 'border' ? '12px' : '4px'};
+    typeDesign === 'form' ? '4px' : '12px'};
+  border: ${({ typeDesign, theme }) =>
+    typeDesign === 'border'
+      ? `1px solid ${theme.colors.dvt.primary.light2}`
+      : ''};
 `;
 
 export { StyleTextarea, StyleTextareaText, StyleTextareaLabel };
