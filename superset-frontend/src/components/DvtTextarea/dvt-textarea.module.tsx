@@ -24,7 +24,7 @@ const StyleTextarea = styled.div`
 
 const StyleTextareaText = styled.textarea`
   height: 169px;
-  width: 226px;
+  width: 100%;
   resize: none;
   border: none;
   outline: none;

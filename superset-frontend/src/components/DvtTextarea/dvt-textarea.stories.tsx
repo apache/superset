@@ -34,7 +34,9 @@ export const Default: React.FC<DvtTextareaProps> = () => {
         padding: '40px',
       })}
     >
-      <DvtTextarea value={text} onChange={setText} />
+      <div style={{ width: '226px' }}>
+        <DvtTextarea value={text} onChange={setText} />{' '}
+      </div>
     </div>
   );
 };

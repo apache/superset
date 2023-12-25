@@ -40,7 +40,7 @@ const DvtTextarea: React.FC<DvtTextareaProps> = ({
         value={value}
         placeholder={placeholder}
         onChange={handleChange}
-      ></StyleTextareaText>
+      />
     </StyleTextarea>
   );
 };
