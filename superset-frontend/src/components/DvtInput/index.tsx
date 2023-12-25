@@ -27,7 +27,8 @@ import {
 
 export interface DvtInputProps {
   placeholder?: string;
-  type?: 'text' | 'password' | 'email' | 'search' | 'form';
+  type?: 'text' | 'password' | 'email' | 'search';
+  typeDesign?: 'text' | 'form';
   size?: 'small' | 'medium' | 'large';
   value: string;
   onChange: (value: string) => void;
@@ -39,6 +40,7 @@ const DvtInput = ({
   type = 'text',
   size = 'medium',
   value,
+  typeDesign = 'text',
   onChange,
   handleSearchClick,
 }: DvtInputProps) => {
@@ -49,7 +51,7 @@ const DvtInput = ({
   };
 
   return (
-    <StyledInput $size={size} typeDesign={type}>
+    <StyledInput $size={size} typeDesign={typeDesign}>
       {type === 'email' && (
         <Icon
           fileName="email"

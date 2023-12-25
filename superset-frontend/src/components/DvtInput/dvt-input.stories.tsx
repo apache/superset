@@ -136,4 +136,8 @@ Form.argTypes = {
     control: { type: 'select' },
     defaultValue: 'small',
   },
+  typeDesign: {
+    control: { type: 'select' },
+    defaultValue: 'form',
+  },
 };
