@@ -103,12 +103,13 @@ function DvtWelcome() {
     isFavorite: boolean,
     title: string,
   ) => {
-    const updateData = (dataList: CardDataProps[], findItem: CardDataProps) => {
+    const updateData = (dataList: CardDataProps[]) => {
+      const findItem = dataList.find(item => item.id === id);
       const withoutItemData = dataList.filter(item => item.id !== id);
       return [
         ...withoutItemData,
         { ...findItem, isFavorite: !isFavorite },
-      ].sort((a, b) => a.id - b.id);
+      ].sort((a: CardDataProps, b: CardDataProps) => a.id - b.id);
     };
 
     fetch(
@@ -116,12 +117,10 @@ function DvtWelcome() {
     ).then(res => {
       if (res.status === 200) {
         if (title === 'Dashboard') {
-          const findItem = dashboardData.find(item => item.id === id);
-          setDashboardData(updatedData => updateData(updatedData, findItem));
+          setDashboardData(updatedData => updateData(updatedData));
         }
         if (title === 'slice') {
-          const findItem = chartData.find(item => item.id === id);
-          setChartData(updatedData => updateData(updatedData, findItem));
+          setChartData(updatedData => updateData(updatedData));
         }
       }
     });
