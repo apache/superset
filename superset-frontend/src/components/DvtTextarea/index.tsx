@@ -17,15 +17,23 @@
  * under the License.
  */
 import React from 'react';
-import { StyleTextarea, StyleTextareaText } from './dvt-textarea.module';
+import {
+  StyleTextarea,
+  StyleTextareaLabel,
+  StyleTextareaText,
+} from './dvt-textarea.module';
 
 export interface DvtTextareaProps {
+  label?: string;
+  typeDesign?: 'default' | 'border';
   placeholder?: string;
   value: string;
   onChange: (value: string) => void;
 }
 
 const DvtTextarea: React.FC<DvtTextareaProps> = ({
+  label,
+  typeDesign = 'default',
   placeholder = '',
   value,
   onChange,
@@ -36,7 +44,9 @@ const DvtTextarea: React.FC<DvtTextareaProps> = ({
 
   return (
     <StyleTextarea>
+      {label && <StyleTextareaLabel>{label}</StyleTextareaLabel>}
       <StyleTextareaText
+        typeDesign={typeDesign}
         value={value}
         placeholder={placeholder}
         onChange={handleChange}

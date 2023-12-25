@@ -25,7 +25,7 @@ export default {
   component: DvtTextarea,
 };
 
-export const Default: React.FC<DvtTextareaProps> = () => {
+export const Default = (args: DvtTextareaProps) => {
   const [text, setText] = useState<string>('');
   return (
     <div
@@ -35,8 +35,19 @@ export const Default: React.FC<DvtTextareaProps> = () => {
       })}
     >
       <div style={{ width: '226px' }}>
-        <DvtTextarea value={text} onChange={setText} />{' '}
+        <DvtTextarea {...args} value={text} onChange={setText} />
       </div>
     </div>
   );
+};
+
+Default.argTypes = {
+  label: {
+    control: { type: 'text' },
+    defaultValue: 'SQL QUERY',
+  },
+  typeDesign: {
+    control: { type: 'select' },
+    defaultValue: 'Default',
+  },
 };

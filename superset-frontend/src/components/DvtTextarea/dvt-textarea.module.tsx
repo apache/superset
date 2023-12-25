@@ -18,17 +18,30 @@
  */
 import { styled } from '@superset-ui/core';
 
+interface StyledTextAreaProps {
+  typeDesign: string;
+}
+
 const StyleTextarea = styled.div`
-  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
 `;
 
-const StyleTextareaText = styled.textarea`
+const StyleTextareaLabel = styled.div`
+  font-size: 12px;
+  font-weight: 500;
+  color: ${({ theme }) => theme.colors.dvt.text.help};
+`;
+
+const StyleTextareaText = styled.textarea<StyledTextAreaProps>`
   height: 169px;
   width: 100%;
   resize: none;
   border: none;
   outline: none;
   padding: 12px 8px;
+  border-radius: ${({ typeDesign }) => (typeDesign ? '12px' : '4px')};
 `;
 
-export { StyleTextarea, StyleTextareaText };
+export { StyleTextarea, StyleTextareaText, StyleTextareaLabel };
