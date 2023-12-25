@@ -112,3 +112,28 @@ Search.argTypes = {
     defaultValue: 'search',
   },
 };
+
+export const Form = (args: DvtInputProps) => {
+  const [text, setText] = useState<string>('');
+  return (
+    <div style={{ width: 282 }}>
+      <DvtInput
+        {...args}
+        value={text}
+        onChange={setText}
+        handleSearchClick={() => {}}
+      />
+    </div>
+  );
+};
+
+Form.argTypes = {
+  type: {
+    control: { type: 'select' },
+    defaultValue: 'form',
+  },
+  size: {
+    control: { type: 'select' },
+    defaultValue: 'small',
+  },
+};

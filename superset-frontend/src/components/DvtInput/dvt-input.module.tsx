@@ -20,6 +20,7 @@ import { styled } from '@superset-ui/core';
 
 interface StyledInputProps {
   $size: string;
+  typeDesign: string;
 }
 
 const sizes = {
@@ -34,7 +35,8 @@ const StyledInput = styled.div<StyledInputProps>`
   justify-content: center;
   border: 1px solid ${({ theme }) => theme.colors.dvt.primary.light2};
   padding: 8px 16px;
-  border-radius: 12px;
+  border-radius: ${({ typeDesign }) =>
+    typeDesign === 'form' ? '4px' : '12px'};
   width: 100%;
   height: ${({ $size }) => sizes[$size]}px;
 `;
