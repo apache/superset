@@ -103,29 +103,25 @@ function DvtWelcome() {
     isFavorite: boolean,
     title: string,
   ) => {
+    const updateData = (dataList: CardDataProps[], findItem: CardDataProps) => {
+      const withoutItemData = dataList.filter(item => item.id !== id);
+      return [
+        ...withoutItemData,
+        { ...findItem, isFavorite: !isFavorite },
+      ].sort((a, b) => a.id - b.id);
+    };
+
     fetch(
       `/superset/favstar/${title}/${id}/${isFavorite ? 'unselect' : 'select'}/`,
     ).then(res => {
       if (res.status === 200) {
         if (title === 'Dashboard') {
           const findItem = dashboardData.find(item => item.id === id);
-          const withoutItemData = dashboardData.filter(item => item.id !== id);
-
-          setDashboardData(
-            [...withoutItemData, { ...findItem, isFavorite: !isFavorite }].sort(
-              (a, b) => a.id - b.id,
-            ),
-          );
+          setDashboardData(updatedData => updateData(updatedData, findItem));
         }
         if (title === 'slice') {
           const findItem = chartData.find(item => item.id === id);
-          const withoutItemData = chartData.filter(item => item.id !== id);
-
-          setChartData(
-            [...withoutItemData, { ...findItem, isFavorite: !isFavorite }].sort(
-              (a, b) => a.id - b.id,
-            ),
-          );
+          setChartData(updatedData => updateData(updatedData, findItem));
         }
       }
     });
