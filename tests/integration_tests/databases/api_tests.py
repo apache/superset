@@ -1340,6 +1340,21 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(data, {})
 
+    def test_get_invalid_table_table_extra_metadata_trino(self):
+        """
+        Database API: Test get invalid table from table extra metadata
+        """
+        from superset.utils.database import get_or_create_db
+
+        trino_db = get_or_create_db("trino_examples", "trino://42/sd")
+        uri = f"api/v1/database/{trino_db.id}/table_extra/wrong_table/null/"
+        self.login(username="admin")
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+
+        self.assertEqual(rv.status_code, 404)
+        self.assertEqual(data, {"message": "Not found"})
+
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_select_star(self):
         """
