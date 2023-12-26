@@ -21,6 +21,7 @@ import { keyframes, styled } from '@superset-ui/core';
 interface StyledSelectProps {
   isOpen: boolean;
   typeDesign: string;
+  selectedValue: string;
 }
 
 interface StyledSelectLabelProps {
@@ -76,7 +77,10 @@ const StyledSelectSelect = styled.div<StyledSelectProps>`
       : 'none'};
   appearance: none;
   cursor: pointer;
-  color: ${({ theme }) => theme.colors.dvt.primary.light1};
+  color: ${({ theme, selectedValue }) =>
+    selectedValue
+      ? theme.colors.grayscale.dark2
+      : theme.colors.dvt.primary.light1};
   transition: background-color 0.3s ease-in-out;
 `;
 

@@ -76,10 +76,15 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
         isOpen={isOpen}
         onClick={handleSelectClick}
         typeDesign={typeDesign}
+        selectedValue={selectedValue}
       >
         {data.find(option => option.value === selectedValue)?.label ||
           placeholder}
-        <StyledSelectIcon isOpen={isOpen} typeDesign={typeDesign}>
+        <StyledSelectIcon
+          isOpen={isOpen}
+          typeDesign={typeDesign}
+          selectedValue={selectedValue}
+        >
           <Icon
             fileName="caret_right"
             iconSize="xxl"
