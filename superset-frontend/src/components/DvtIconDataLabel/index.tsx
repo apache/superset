@@ -17,39 +17,40 @@
  * under the License.
  */
 import React from 'react';
-import { SupersetTheme } from '@superset-ui/core';
-import { FileTextOutlined } from '@ant-design/icons';
 import DvtButton from '../DvtButton';
+import DvtLargeFile from '../../assets/images/icons/dvt-large-file.svg';
+import DvtSquare from '../../assets/images/icons/dvt-square.svg';
 import {
   StyledIconDataLabel,
   StyledIcon,
   StyledLabel,
   StyledButton,
+  StyledDescription,
 } from './dvt-icon-data-label.module';
 
 export interface DvtIconDataLabelProps {
   label: string;
   buttonLabel?: string;
+  icon?: 'file' | 'square';
+  description?: string;
   buttonClick?: () => void;
 }
 
 const DvtIconDataLabel: React.FC<DvtIconDataLabelProps> = ({
   label,
   buttonLabel,
+  icon = 'file',
+  description,
   buttonClick = () => {},
 }) => (
   <StyledIconDataLabel>
     <StyledIcon>
-      <FileTextOutlined
-        css={(theme: SupersetTheme) => ({
-          color: theme.colors.text.help,
-          fontSize: '102px',
-          stroke: theme.colors.grayscale.light5,
-          strokeWidth: '40px',
-        })}
-      />
+      {icon === 'square' && <DvtSquare />}
+      {icon === 'file' && <DvtLargeFile />}
     </StyledIcon>
     <StyledLabel>{label}</StyledLabel>
+    {description && <StyledDescription>{description}</StyledDescription>}
+
     {buttonLabel && (
       <StyledButton>
         <DvtButton label={buttonLabel} onClick={buttonClick} maxWidth />

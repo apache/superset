@@ -55,3 +55,36 @@ ButtonExample.args = {
   label: 'No Alerts Yet',
   buttonLabel: 'Alert',
 };
+export const SquareIcon = (args: DvtIconDataLabelProps) => (
+  <div
+    css={(theme: SupersetTheme) => ({
+      height: '100vh',
+      backgroundColor: theme.colors.dvt.grayscale.light2,
+    })}
+  >
+    <DvtIconDataLabel {...args} />
+  </div>
+);
+
+SquareIcon.args = {
+  icon: 'square',
+  label: 'Select Dataset Source',
+};
+
+export const LabelAndDescription = (args: DvtIconDataLabelProps) => (
+  <div
+    css={(theme: SupersetTheme) => ({
+      height: '100vh',
+      backgroundColor: theme.colors.dvt.grayscale.light2,
+    })}
+  >
+    <DvtIconDataLabel {...args} />
+  </div>
+);
+
+LabelAndDescription.args = {
+  label: 'Select Dataset Source',
+  description:
+    'You can create a new chart or use existing ones from the panel on the right',
+  icon: 'square',
+};
