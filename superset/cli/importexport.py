@@ -22,7 +22,6 @@ from typing import Optional
 from zipfile import is_zipfile, ZipFile
 
 import click
-import yaml
 from flask import g
 from flask.cli import with_appcontext
 

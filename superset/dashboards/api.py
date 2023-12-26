@@ -23,7 +23,7 @@ from io import BytesIO
 from typing import Any, Callable, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
-from flask import make_response, redirect, request, Response, send_file, url_for
+from flask import redirect, request, Response, send_file, url_for
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.hooks import before_request
@@ -752,7 +752,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
         log_to_statsd=False,
     )
-    def export(self, **kwargs: Any) -> Response:  # pylint: disable=too-many-locals
+    def export(self, **kwargs: Any) -> Response:
         """Download multiple dashboards as YAML files.
         ---
         get:

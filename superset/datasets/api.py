@@ -22,7 +22,6 @@ from io import BytesIO
 from typing import Any
 from zipfile import is_zipfile, ZipFile
 
-import yaml
 from flask import request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -488,7 +487,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
         log_to_statsd=False,
     )
-    def export(self, **kwargs: Any) -> Response:  # pylint: disable=too-many-locals
+    def export(self, **kwargs: Any) -> Response:
         """Download multiple datasets as YAML files.
         ---
         get:
