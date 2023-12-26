@@ -593,6 +593,55 @@ const DvtSidebarData: SidebarDataProps[] = [
       },
     ],
   },
+  
+  {
+    pathname: '/chart/add',
+    data: [
+      {
+        values: [{ label: 'Superset Admin', value: 'Superset Admin' }],
+        placeholder: 'Dataset',
+        name: 'owner',
+      },
+      {
+        values: [
+          { label: 'Lorem ıpsum', value: 'Lorem ıpsum' },
+          { label: 'Dolor Sit Amet', value: 'Dolor Sit Amet' },
+          { label: 'Lorem ıpsum', value: 'Lorem ıpsum' },
+          { label: 'Dolor Sit Amet', value: 'Dolor Sit Amet' },
+        ],
+        placeholder: 'Graph Chart Type',
+        name: 'createdBy',
+      },
+      {
+        values: [
+          { label: '#1 Clustered Bar Chart', value: '#1 Clustered Bar Chart' },
+          {
+            label: '#2 Clustered Column Chart',
+            value: '#2 Clustered Column Chart',
+          },
+          { label: '#3 Combo Chart', value: '#3 Combo Chart' },
+          { label: '#4 Area Chart', value: '#4 Area Chart' },
+          { label: '#5 Line Chart', value: '#5 Line Chart' },
+          { label: '#6 Pie Chart', value: '#6 Pie Chart' },
+          { label: '#7 Doughnut Chart', value: '#7 Doughnut Chart' },
+          { label: '#7 Doughnut Chart', value: '#7 Doughnut Chart' },
+          { label: '#8 Gauge Chart', value: '#8 Gauge Chart' },
+        ],
+        placeholder: 'Category',
+        name: 'status',
+      },
+      {
+        values: [
+          { label: 'Lorem ıpsum', value: 'Lorem ıpsum' },
+          { label: 'Dolor Sit Amet', value: 'Dolor Sit Amet' },
+          { label: 'Lorem ıpsum', value: 'Lorem ıpsum' },
+          { label: 'Dolor Sit Amet', value: 'Dolor Sit Amet' },
+        ],
+        placeholder: 'ML/AI',
+        name: 'search',
+      },
+    ],
+  },
 ];
 
 export default DvtSidebarData;
