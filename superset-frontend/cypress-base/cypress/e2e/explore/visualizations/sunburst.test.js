@@ -18,7 +18,7 @@
  */
 describe('Visualization > Sunburst', () => {
   beforeEach(() => {
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '/api/v1/chart/data**').as('chartData');
   });
 
   const SUNBURST_FORM_DATA = {
@@ -37,32 +37,35 @@ describe('Visualization > Sunburst', () => {
 
   function verify(formData) {
     cy.visitChartByParams(formData);
-    cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
+    cy.verifySliceSuccess({ waitAlias: '@chartData' });
   }
 
-  it('should work without secondary metric', () => {
+  // requires the ability to render charts using SVG only for tests
+  it.skip('should work without secondary metric', () => {
     verify(SUNBURST_FORM_DATA);
-    // There should be 7 visible arcs + 1 hidden
-    cy.get('.chart-container svg g#arcs path').should('have.length', 8);
+    cy.get('.chart-container svg g path').should('have.length', 7);
   });
 
-  it('should work with secondary metric', () => {
+  // requires the ability to render charts using SVG only for tests
+  it.skip('should work with secondary metric', () => {
     verify({
       ...SUNBURST_FORM_DATA,
       secondary_metric: 'sum__SP_RUR_TOTL',
     });
-    cy.get('.chart-container svg g#arcs path').should('have.length', 8);
+    cy.get('.chart-container svg g path').should('have.length', 7);
   });
 
-  it('should work with multiple groupbys', () => {
+  // requires the ability to render charts using SVG only for tests
+  it.skip('should work with multiple columns', () => {
     verify({
       ...SUNBURST_FORM_DATA,
-      groupby: ['region', 'country_name'],
+      columns: ['region', 'country_name'],
     });
-    cy.get('.chart-container svg g#arcs path').should('have.length', 117);
+    cy.get('.chart-container svg g path').should('have.length', 221);
   });
 
-  it('should work with filter', () => {
+  // requires the ability to render charts using SVG only for tests
+  it.skip('should work with filter', () => {
     verify({
       ...SUNBURST_FORM_DATA,
       adhoc_filters: [
@@ -77,7 +80,7 @@ describe('Visualization > Sunburst', () => {
         },
       ],
     });
-    cy.get('.chart-container svg g#arcs path').should('have.length', 3);
+    cy.get('.chart-container svg g path').should('have.length', 2);
   });
 
   it('should allow type to search color schemes', () => {
