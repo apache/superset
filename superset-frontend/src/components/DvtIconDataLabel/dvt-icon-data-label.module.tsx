@@ -31,7 +31,7 @@ const StyledIcon = styled.div``;
 const StyledLabel = styled.label`
   font-size: 23px;
   font-weight: 500;
-  color: ${({ theme }) => theme.colors.text.help};
+  color: ${({ theme }) => theme.colors.dvt.grayscale.light1};
   margin-top: 25px;
 `;
 
@@ -40,4 +40,23 @@ const StyledButton = styled.div`
   margin-top: 25px;
 `;
 
-export { StyledIconDataLabel, StyledIcon, StyledLabel, StyledButton };
+const StyledDescription = styled.div`
+  display: inline-block;
+  width: 303px;
+  margin-top: 16px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  word-wrap: break-word;
+  overflow: hidden;
+  color: ${({ theme }) => theme.colors.dvt.grayscale.light1};
+`;
+
+export {
+  StyledIconDataLabel,
+  StyledIcon,
+  StyledLabel,
+  StyledButton,
+  StyledDescription,
+};
