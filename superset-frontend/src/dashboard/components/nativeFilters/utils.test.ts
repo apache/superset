@@ -89,24 +89,6 @@ describe('nativeFilterGate', () => {
   });
 });
 
-test('should return true for regular chart', () => {
-  expect(nativeFilterGate([])).toEqual(true);
-});
-
-test('should return true for cross filter chart', () => {
-  expect(nativeFilterGate([Behavior.INTERACTIVE_CHART])).toEqual(true);
-});
-
-test('should return false for native filter chart with cross filter support', () => {
-  expect(
-    nativeFilterGate([Behavior.NATIVE_FILTER, Behavior.INTERACTIVE_CHART]),
-  ).toEqual(false);
-});
-
-test('should return false for native filter behavior', () => {
-  expect(nativeFilterGate([Behavior.NATIVE_FILTER])).toEqual(false);
-});
-
 test('findTabsWithChartsInScope should handle a recursive layout structure', () => {
   const dashboardLayout = {
     DASHBOARD_VERSION_KEY: 'v2',
