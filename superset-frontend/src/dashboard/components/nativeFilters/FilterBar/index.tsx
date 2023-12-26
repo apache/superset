@@ -44,6 +44,8 @@ import { getInitialDataMask } from 'src/dataMask/reducer';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { useTabId } from 'src/hooks/useTabId';
+import { logEvent } from 'src/logger/actions';
+import { LOG_ACTIONS_CHANGE_DASHBOARD_FILTER } from 'src/logger/LogUtils';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import { checkIsApplyDisabled } from './utils';
 import { FiltersBarProps } from './types';
@@ -223,6 +225,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   }, [dashboardId, dataMaskAppliedText, history, updateKey, tabId]);
 
   const handleApply = useCallback(() => {
+    dispatch(logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {}));
     const filterIds = Object.keys(dataMaskSelected);
     setUpdateKey(1);
     filterIds.forEach(filterId => {
