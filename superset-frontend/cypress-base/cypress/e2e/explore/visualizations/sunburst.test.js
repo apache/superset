@@ -23,12 +23,12 @@ describe('Visualization > Sunburst', () => {
 
   const SUNBURST_FORM_DATA = {
     datasource: '2__table',
-    viz_type: 'sunburst',
+    viz_type: 'sunburst_v2',
     slice_id: 47,
     granularity_sqla: 'year',
     time_grain_sqla: 'P1D',
     time_range: 'No filter',
-    groupby: ['region'],
+    columns: ['region'],
     metric: 'sum__SP_POP_TOTL',
     adhoc_filters: [],
     row_limit: 50000,

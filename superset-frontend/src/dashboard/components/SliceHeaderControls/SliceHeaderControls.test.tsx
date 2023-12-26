@@ -37,7 +37,7 @@ jest.mock('src/components/Dropdown', () => {
   };
 });
 
-const createProps = (viz_type = 'sunburst') =>
+const createProps = (viz_type = 'sunburst_v2') =>
   ({
     addDangerToast: jest.fn(),
     addSuccessToast: jest.fn(),
@@ -59,7 +59,9 @@ const createProps = (viz_type = 'sunburst') =>
         adhoc_filters: [],
         color_scheme: 'supersetColors',
         datasource: '58__table',
-        groupby: ['product_category', 'clinical_stage'],
+        ...(viz_type === 'sunburst_v2'
+          ? { columns: ['product_category', 'clinical_stage'] }
+          : { groupby: ['product_category', 'clinical_stage'] }),
         linear_color_scheme: 'schemeYlOrBr',
         metric: 'count',
         queryFields: {
@@ -93,7 +95,7 @@ const createProps = (viz_type = 'sunburst') =>
     chartStatus: 'rendered',
     showControls: true,
     supersetCanShare: true,
-    formData: { slice_id: 1, datasource: '58__table', viz_type: 'sunburst' },
+    formData: { slice_id: 1, datasource: '58__table', viz_type: 'sunburst_v2' },
     exploreUrl: '/explore',
   } as SliceHeaderControlsProps);
 
