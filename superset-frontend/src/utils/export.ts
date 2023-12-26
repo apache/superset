@@ -19,6 +19,7 @@
 import parseCookie from 'src/utils/parseCookie';
 import rison from 'rison';
 import shortid from 'shortid';
+import { withPrefix } from './routeUtils';
 
 export default function handleResourceExport(
   resource: string,
@@ -27,9 +28,9 @@ export default function handleResourceExport(
   interval = 200,
 ): void {
   const token = shortid.generate();
-  const url = `/api/v1/${resource}/export/?q=${rison.encode(
-    ids,
-  )}&token=${token}`;
+  const url = withPrefix(
+    `/api/v1/${resource}/export/?q=${rison.encode(ids)}&token=${token}`,
+  );
 
   // create new iframe for export
   const iframe = document.createElement('iframe');

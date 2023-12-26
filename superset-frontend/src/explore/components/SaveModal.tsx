@@ -46,6 +46,7 @@ import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalAction
 import { SaveActionType } from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { Dashboard } from 'src/types/Dashboard';
+import { withPrefix } from 'src/utils/routeUtils';
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
@@ -282,7 +283,9 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       }
 
       const searchParams = this.handleRedirect(window.location.search, value);
-      this.props.history.replace(`/explore/?${searchParams.toString()}`);
+      this.props.history.replace(
+        withPrefix(`/explore/?${searchParams.toString()}`),
+      );
 
       this.setState({ isLoading: false });
       this.onHide();

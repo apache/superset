@@ -45,6 +45,7 @@ RUN --mount=type=bind,target=./package.json,src=./superset-frontend/package.json
 
 COPY ./superset-frontend ./
 # This seems to be the most expensive step
+ARG ASSET_BASE_URL=""
 RUN npm run ${BUILD_CMD}
 
 ######################################################################

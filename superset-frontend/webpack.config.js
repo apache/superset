@@ -131,12 +131,18 @@ const plugins = [
   // static pages
   new HtmlWebpackPlugin({
     template: './src/assets/staticPages/404.html',
+    templateParameters: {
+      prefix: ASSET_BASE_URL,
+    },
     inject: true,
     chunks: [],
     filename: '404.html',
   }),
   new HtmlWebpackPlugin({
     template: './src/assets/staticPages/500.html',
+    templateParameters: {
+      prefix: ASSET_BASE_URL,
+    },
     inject: true,
     chunks: [],
     filename: '500.html',

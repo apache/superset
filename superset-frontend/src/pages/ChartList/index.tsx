@@ -74,6 +74,7 @@ import ChartCard from 'src/features/charts/ChartCard';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
 import { ModifiedInfo } from 'src/components/AuditInfo';
+import { withPrefix } from 'src/utils/routeUtils';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 
 const FlexRowContainer = styled.div`
@@ -777,7 +778,7 @@ function ChartList(props: ChartListProps) {
       ),
       buttonStyle: 'primary',
       onClick: () => {
-        history.push('/chart/add/');
+        history.push(withPrefix('/chart/add/'));
       },
     });
 

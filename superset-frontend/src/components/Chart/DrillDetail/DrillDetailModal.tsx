@@ -31,6 +31,7 @@ import Button from 'src/components/Button';
 import { useSelector } from 'react-redux';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { Slice } from 'src/types/Chart';
+import { withPrefix } from 'src/utils/routeUtils';
 import DrillDetailPane from './DrillDetailPane';
 
 interface ModalFooterProps {
@@ -78,7 +79,10 @@ export default function DrillDetailModal({
   );
 
   const exploreUrl = useMemo(
-    () => `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${chartId}`,
+    () =>
+      withPrefix(
+        `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${chartId}`,
+      ),
     [chartId, dashboardPageId],
   );
 

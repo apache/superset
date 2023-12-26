@@ -37,6 +37,7 @@ import Icons from 'src/components/Icons';
 import { RootState } from 'src/dashboard/types';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
+import { withPrefix } from 'src/utils/routeUtils';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -193,7 +194,9 @@ const SliceHeader: FC<SliceHeaderProps> = ({
     }
   }, [sliceName, width, height, canExplore]);
 
-  const exploreUrl = `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${slice.slice_id}`;
+  const exploreUrl = withPrefix(
+    `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${slice.slice_id}`,
+  );
 
   return (
     <ChartHeaderStyles data-test="slice-header" ref={innerRef}>

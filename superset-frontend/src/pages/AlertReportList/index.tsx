@@ -55,7 +55,6 @@ import AlertReportModal from 'src/features/alerts/AlertReportModal';
 import { AlertObject, AlertState } from 'src/features/alerts/types';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
-
 import { withPrefix } from 'src/utils/routeUtils';
 
 const extensionsRegistry = getExtensionsRegistry();
@@ -358,7 +357,9 @@ function AlertList({
           const handleEdit = () => handleAlertEdit(original);
           const handleDelete = () => setCurrentAlertDeleting(original);
           const handleGotoExecutionLog = () =>
-            history.push(`/${original.type.toLowerCase()}/${original.id}/log`);
+            history.push(
+              withPrefix(`/${original.type.toLowerCase()}/${original.id}/log`),
+            );
 
           const allowEdit =
             original.owners.map((o: Owner) => o.id).includes(user.userId) ||

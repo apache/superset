@@ -30,6 +30,7 @@ import {
   LOG_ACTIONS_DATASET_CREATION_TABLE_CANCELLATION,
   LOG_ACTIONS_DATASET_CREATION_SUCCESS,
 } from 'src/logger/LogUtils';
+import { withPrefix } from 'src/utils/routeUtils';
 import { DatasetObject } from '../types';
 
 interface FooterProps {
@@ -100,7 +101,9 @@ function Footer({
         if (typeof response === 'number') {
           logEvent(LOG_ACTIONS_DATASET_CREATION_SUCCESS, datasetObject);
           // When a dataset is created the response we get is its ID number
-          history.push(`/chart/add/?dataset=${datasetObject.table_name}`);
+          history.push(
+            withPrefix(`/chart/add/?dataset=${datasetObject.table_name}`),
+          );
         }
       });
     }

@@ -234,7 +234,7 @@ export class ChartCreation extends React.PureComponent<
     if (isDefined(dashboardId)) {
       url += `&dashboard_id=${dashboardId}`;
     }
-    return url;
+    return withPrefix(url);
   }
 
   gotoSlice() {
