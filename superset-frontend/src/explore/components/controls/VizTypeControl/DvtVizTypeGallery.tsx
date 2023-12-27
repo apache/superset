@@ -16,11 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
-    useMemo,
-  useState,
-} from 'react';
-import Fuse from 'fuse.js';
+import React, { useMemo, useState } from 'react';
 import {
   t,
   styled,
@@ -135,22 +131,6 @@ const IconsPane = styled.div`
   justify-items: center;
   // for some reason this padding doesn't seem to apply at the bottom of the container. Why is a mystery.
   padding: ${({ theme }) => theme.gridUnit * 2}px;
-`;
-
-const DetailsPane = (theme: SupersetTheme) => css`
-  grid-area: details;
-  border-top: 1px solid ${theme.colors.grayscale.light2};
-`;
-
-const DetailsPopulated = (theme: SupersetTheme) => css`
-  padding: ${theme.gridUnit * 4}px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: auto auto 1fr;
-  grid-template-areas:
-    'viz-name examples-header'
-    'viz-tags examples'
-    'description examples';
 `;
 
 // overflow hidden on the details pane and overflow auto on the description
@@ -346,27 +326,6 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     () => SECTIONS.ALL_CHARTS,
   );
 
-  // get a fuse instance for fuzzy search
-  const fuse = useMemo(
-    () =>
-      new Fuse(chartMetadata, {
-        ignoreLocation: true,
-        threshold: 0.3,
-        keys: [
-          {
-            name: 'value.name',
-            weight: 4,
-          },
-          {
-            name: 'value.tags',
-            weight: 2,
-          },
-          'value.description',
-        ],
-      }),
-    [chartMetadata],
-  );
-
   const getVizEntriesToDisplay = () => {
     if (
       activeSelector === ALL_CHARTS &&
@@ -391,9 +350,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   };
 
   return (
-    <VizPickerLayout
-      className={className}
-    >
+    <VizPickerLayout className={className}>
       <RightPane>
         <ThumbnailGallery
           vizEntries={getVizEntriesToDisplay()}
@@ -402,7 +359,6 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           onDoubleClick={onDoubleClick}
         />
       </RightPane>
-
     </VizPickerLayout>
   );
 }
