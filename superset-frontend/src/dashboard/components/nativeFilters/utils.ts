@@ -28,6 +28,7 @@ import {
   Filter,
   getChartMetadataRegistry,
   QueryFormData,
+  t,
 } from '@superset-ui/core';
 import { DashboardLayout } from 'src/dashboard/types';
 import extractUrlParams from 'src/dashboard/util/extractUrlParams';
@@ -233,4 +234,22 @@ export const findTabsWithChartsInScope = (
       );
   }
   return tabsInScope;
+};
+
+export const getFilterValueForDisplay = (
+  value?: string[] | null | string | number | object,
+): string => {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  if (typeof value === 'string' || typeof value === 'number') {
+    return `${value}`;
+  }
+  if (Array.isArray(value)) {
+    return value.join(', ');
+  }
+  if (typeof value === 'object') {
+    return JSON.stringify(value);
+  }
+  return t('Unknown value');
 };
