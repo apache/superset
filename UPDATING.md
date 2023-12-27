@@ -29,7 +29,7 @@ assists people when migrating to a new version.
 
 ### Breaking Changes
 
-- [26343](https://github.com/apache/superset/issues/26343): Removes the deprecated `ENABLE_EXPLORE_DRAG_AND_DROP` feature flag.
+- [26343](https://github.com/apache/superset/issues/26343): Removes the deprecated `ENABLE_EXPLORE_DRAG_AND_DROP` feature flag. The feature is now permanently enabled.
 
 ### Potential Downtime
 
