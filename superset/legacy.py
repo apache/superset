@@ -17,8 +17,6 @@
 """Code related with dealing with legacy / change management"""
 from typing import Any
 
-from superset import is_feature_enabled
-
 
 def update_time_range(form_data: dict[str, Any]) -> None:
     """
