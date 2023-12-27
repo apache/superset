@@ -62,7 +62,7 @@ export default function downloadAsImage(
       if (typeof node.className === 'string') {
         return (
           node.className !== 'mapboxgl-control-container' &&
-          !node.className.includes('ant-dropdown')
+          !node.className.includes('header-controls')
         );
       }
       return true;
@@ -70,17 +70,16 @@ export default function downloadAsImage(
 
     return domToImage
       .toJpeg(elementToPrint, {
-        quality: 1,
         bgcolor: supersetTheme.colors.grayscale.light4,
         filter,
       })
-      .then(dataUrl => {
+      .then((dataUrl: string) => {
         const link = document.createElement('a');
         link.download = `${generateFileStem(description)}.jpg`;
         link.href = dataUrl;
         link.click();
       })
-      .catch(e => {
+      .catch((e: Error) => {
         console.error('Creating image failed', e);
       });
   };

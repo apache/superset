@@ -72,6 +72,7 @@
     "test": "cross-env NODE_ENV=test jest",
     "type": "tsc --noEmit",
     "update-maps": "jupyter nbconvert --to notebook --execute --inplace 'plugins/legacy-plugin-chart-country-map/scripts/Country Map GeoJSON Generator.ipynb' -Xfrozen_modules=off"
+    "validate-release": "../RELEASING/validate_this_release.sh"
   },
   "browserslist": [
     "last 3 chrome versions",
@@ -252,6 +253,7 @@
     "@testing-library/react-hooks": "^5.0.3",
     "@testing-library/user-event": "^12.7.0",
     "@types/classnames": "^2.2.10",
+    "@types/dom-to-image": "^2.6.7",
     "@types/enzyme": "^3.10.5",
     "@types/enzyme-adapter-react-16": "^1.0.6",
     "@types/fetch-mock": "^7.3.2",

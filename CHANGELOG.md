@@ -22,6 +22,7 @@ under the License.
 - [3.0.2](#302-mon-nov-20-073838-2023--0500)
 - [3.0.1](#301-tue-oct-13-103221-2023--0700)
 - [3.0.0](#300-thu-aug-24-133627-2023--0600)
+- [2.1.3](#213-fri-dec-8-163651-2023--0700)
 - [2.1.2](#212-wed-oct-18-165930-2023--0700)
 - [2.1.1](#211-sun-apr-23-154421-2023-0100)
 - [2.1.0](#210-thu-mar-16-211305-2023--0700)
@@ -903,6 +904,23 @@ under the License.
 - [#23144](https://github.com/apache/superset/pull/23144) chore: revert "feat(native_filter_migration): add transition mode (#16992)" (@john-bodley)
 - [#23158](https://github.com/apache/superset/pull/23158) chore: Bump cryptography to 39.0.1 (@EugeneTorap)
 - [#23108](https://github.com/apache/superset/pull/23108) chore: Remove yarn.lock from the root folder (@EugeneTorap)
+
+### 2.1.3 (Fri Dec 8 16:36:51 2023 -0700)
+**Database Migrations**
+
+**Features**
+
+**Fixes**
+- [#25658](https://github.com/apache/superset/pull/25658) fix: improve upload ZIP file validation (@dpgaspar)
+- [#25779](https://github.com/apache/superset/pull/25779) fix: DB-specific quoting in Jinja macro (@betodealmeida)
+- [#25843](https://github.com/apache/superset/pull/25843) fix: remove `update_charts_owners` (@betodealmeida)
+
+**Others**
+- [#23862](https://github.com/apache/superset/pull/23862) chore: Use nh3 lib instead of bleach (@EugeneTorap)
+- [#23965](https://github.com/apache/superset/pull/23965) chore: bump werkzeug and Flask (@dpgaspar)
+- [#24033](https://github.com/apache/superset/pull/24033) chore: Update mypy and fix stubs issue (@EugeneTorap)
+- [#24045](https://github.com/apache/superset/pull/24045) chore: Bump sqlparse to 0.4.4 (@EugeneTorap)
+- [#24324](https://github.com/apache/superset/pull/24324) chore: rate limit requests (@betodealmeida)
 
 ### 2.1.2 (Wed Oct 18 16:59:30 2023 -0700)
 **Database Migrations**
