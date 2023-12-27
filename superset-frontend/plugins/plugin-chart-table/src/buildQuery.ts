@@ -21,7 +21,6 @@ import {
   buildQueryContext,
   ensureIsArray,
   getMetricLabel,
-  hasGenericChartAxes,
   isPhysicalColumn,
   QueryMode,
   QueryObject,
@@ -108,7 +107,6 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         if (
           isPhysicalColumn(col) &&
           time_grain_sqla &&
-          hasGenericChartAxes &&
           formData?.temporal_columns_lookup?.[col]
         ) {
           return {

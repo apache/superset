@@ -45,7 +45,6 @@ import {
   isPhysicalColumn,
   ensureIsArray,
   isDefined,
-  hasGenericChartAxes,
   NO_TIME_RANGE,
   validateMaxValue,
 } from '@superset-ui/core';
@@ -205,7 +204,7 @@ const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
     choices: (datasource as Dataset)?.time_grain_sqla || [],
   }),
   visibility: ({ controls }) => {
-    if (!hasGenericChartAxes || !controls?.x_axis) {
+    if (!controls?.x_axis) {
       return true;
     }
 

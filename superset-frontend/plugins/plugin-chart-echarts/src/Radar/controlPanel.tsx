@@ -31,7 +31,6 @@ import {
   D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
-  sections,
   sharedControls,
   ControlFormItemSpec,
   getStandardizedControls,
@@ -60,7 +59,6 @@ const radarMetricMaxValue: { name: string; config: ControlFormItemSpec } = {
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
