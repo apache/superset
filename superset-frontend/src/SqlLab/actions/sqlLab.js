@@ -1160,24 +1160,6 @@ export function persistEditorHeight(queryEditor, northPercent, southPercent) {
   };
 }
 
-export function popStoredQuery(urlId) {
-  return function (dispatch) {
-    return SupersetClient.get({ endpoint: `/kv/${urlId}` })
-      .then(({ json }) =>
-        dispatch(
-          addQueryEditor({
-            name: json.name ? json.name : t('Shared query'),
-            dbId: json.dbId ? parseInt(json.dbId, 10) : null,
-            schema: json.schema ? json.schema : null,
-            autorun: json.autorun ? json.autorun : false,
-            sql: json.sql ? json.sql : 'SELECT ...',
-            templateParams: json.templateParams,
-          }),
-        ),
-      )
-      .catch(() => dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY)));
-  };
-}
 export function popSavedQuery(saveQueryId) {
   return function (dispatch) {
     return SupersetClient.get({

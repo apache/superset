@@ -120,7 +120,6 @@ class TabbedSqlEditors extends React.PureComponent {
     const bootstrapData = getBootstrapData();
     const queryParameters = URI(window.location).search(true);
     const {
-      id,
       name,
       sql,
       savedQueryId,
@@ -139,10 +138,8 @@ class TabbedSqlEditors extends React.PureComponent {
     };
 
     // Popping a new tab based on the querystring
-    if (id || sql || savedQueryId || datasourceKey || queryId) {
-      if (id) {
-        this.props.actions.popStoredQuery(id);
-      } else if (savedQueryId) {
+    if (sql || savedQueryId || datasourceKey || queryId) {
+      if (savedQueryId) {
         this.props.actions.popSavedQuery(savedQueryId);
       } else if (queryId) {
         this.props.actions.popQuery(queryId);

@@ -28,9 +28,7 @@ These features are considered **unfinished** and should only be used on developm
 [//]: # "PLEASE KEEP THE LIST SORTED ALPHABETICALLY"
 
 - ENABLE_ADVANCED_DATA_TYPES
-- KV_STORE
 - PRESTO_EXPAND_DATA
-- SHARE_QUERIES_VIA_KV_STORE
 - TAGGING_SYSTEM
 
 ## In Testing

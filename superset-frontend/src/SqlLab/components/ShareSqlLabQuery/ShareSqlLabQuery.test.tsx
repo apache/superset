@@ -19,14 +19,10 @@
 import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import fetchMock from 'fetch-mock';
-import * as uiCore from '@superset-ui/core';
 import { Provider } from 'react-redux';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
-import userEvent from '@testing-library/user-event';
-import * as utils from 'src/utils/common';
 import ShareSqlLabQuery from 'src/SqlLab/components/ShareSqlLabQuery';
 import { initialState } from 'src/SqlLab/fixtures';
 
@@ -57,7 +53,6 @@ const mockState = {
   },
 };
 const store = mockStore(mockState);
-let isFeatureEnabledMock: jest.SpyInstance;
 
 const standardProvider: React.FC = ({ children }) => (
   <ThemeProvider theme={supersetTheme}>
@@ -65,122 +60,14 @@ const standardProvider: React.FC = ({ children }) => (
   </ThemeProvider>
 );
 
-const unsavedQueryEditor = {
-  id: defaultProps.queryEditorId,
-  dbId: 9888,
-  name: 'query title changed',
-  schema: 'query_schema_updated',
-  sql: 'SELECT * FROM Updated Limit 100',
-  autorun: true,
-  templateParams: '{ "my_value": "foo" }',
-};
+test('button is disabled and there is a request to save the query', async () => {
+  const updatedProps = {
+    queryEditorId: disabled.id,
+  };
 
-const standardProviderWithUnsaved: React.FC = ({ children }) => (
-  <ThemeProvider theme={supersetTheme}>
-    <Provider
-      store={mockStore({
-        ...initialState,
-        sqlLab: {
-          ...initialState.sqlLab,
-          unsavedQueryEditor,
-        },
-      })}
-    >
-      {children}
-    </Provider>
-  </ThemeProvider>
-);
-
-describe('ShareSqlLabQuery', () => {
-  const storeQueryUrl = 'glob:*/kv/store/';
-  const storeQueryMockId = '123';
-
-  beforeEach(async () => {
-    fetchMock.post(storeQueryUrl, () => ({ id: storeQueryMockId }), {
-      overwriteRoutes: true,
-    });
-    fetchMock.resetHistory();
-    jest.clearAllMocks();
+  render(<ShareSqlLabQuery {...updatedProps} />, {
+    wrapper: standardProvider,
   });
-
-  afterAll(fetchMock.reset);
-
-  describe('via /kv/store', () => {
-    beforeAll(() => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation(() => true);
-    });
-
-    afterAll(() => {
-      isFeatureEnabledMock.mockReset();
-    });
-
-    it('calls storeQuery() with the query when getCopyUrl() is called', async () => {
-      await act(async () => {
-        render(<ShareSqlLabQuery {...defaultProps} />, {
-          wrapper: standardProvider,
-        });
-      });
-      const button = screen.getByRole('button');
-      const { id, remoteId, ...expected } = mockQueryEditor;
-      const storeQuerySpy = jest.spyOn(utils, 'storeQuery');
-      userEvent.click(button);
-      expect(storeQuerySpy.mock.calls).toHaveLength(1);
-      expect(storeQuerySpy).toBeCalledWith(expected);
-      storeQuerySpy.mockRestore();
-    });
-
-    it('calls storeQuery() with unsaved changes', async () => {
-      await act(async () => {
-        render(<ShareSqlLabQuery {...defaultProps} />, {
-          wrapper: standardProviderWithUnsaved,
-        });
-      });
-      const button = screen.getByRole('button');
-      const { id, ...expected } = unsavedQueryEditor;
-      const storeQuerySpy = jest.spyOn(utils, 'storeQuery');
-      userEvent.click(button);
-      expect(storeQuerySpy.mock.calls).toHaveLength(1);
-      expect(storeQuerySpy).toBeCalledWith(expected);
-      storeQuerySpy.mockRestore();
-    });
-  });
-
-  describe('via saved query', () => {
-    beforeAll(() => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation(() => false);
-    });
-
-    afterAll(() => {
-      isFeatureEnabledMock.mockReset();
-    });
-
-    it('does not call storeQuery() with the query when getCopyUrl() is called and feature is not enabled', async () => {
-      await act(async () => {
-        render(<ShareSqlLabQuery {...defaultProps} />, {
-          wrapper: standardProvider,
-        });
-      });
-      const storeQuerySpy = jest.spyOn(utils, 'storeQuery');
-      const button = screen.getByRole('button');
-      userEvent.click(button);
-      expect(storeQuerySpy.mock.calls).toHaveLength(0);
-      storeQuerySpy.mockRestore();
-    });
-
-    it('button is disabled and there is a request to save the query', async () => {
-      const updatedProps = {
-        queryEditorId: disabled.id,
-      };
-
-      render(<ShareSqlLabQuery {...updatedProps} />, {
-        wrapper: standardProvider,
-      });
-      const button = await screen.findByRole('button', { name: /copy link/i });
-      expect(button).toBeDisabled();
-    });
-  });
+  const button = await screen.findByRole('button', { name: /copy link/i });
+  expect(button).toBeDisabled();
 });

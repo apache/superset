@@ -17,7 +17,6 @@
  * under the License.
  */
 import {
-  SupersetClient,
   getTimeFormatter,
   TimeFormats,
   ensureIsArray,
@@ -35,17 +34,6 @@ export const SHORT_DATE = 'MMM D, YYYY';
 export const SHORT_TIME = 'h:m a';
 
 const DATETIME_FORMATTER = getTimeFormatter(TimeFormats.DATABASE_DATETIME);
-
-export function storeQuery(query) {
-  return SupersetClient.post({
-    endpoint: '/kv/store/',
-    postPayload: { data: query },
-  }).then(response => {
-    const baseUrl = window.location.origin + window.location.pathname;
-    const url = `${baseUrl}?id=${response.json.id}`;
-    return url;
-  });
-}
 
 export function optionLabel(opt) {
   if (opt === null) {

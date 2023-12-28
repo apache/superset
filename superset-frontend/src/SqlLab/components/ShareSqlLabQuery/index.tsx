@@ -17,24 +17,15 @@
  * under the License.
  */
 import React from 'react';
-import {
-  FeatureFlag,
-  styled,
-  t,
-  useTheme,
-  isFeatureEnabled,
-} from '@superset-ui/core';
+import { styled, t, useTheme } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import CopyToClipboard from 'src/components/CopyToClipboard';
-import { storeQuery } from 'src/utils/common';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
 interface ShareSqlLabQueryProps {
   queryEditorId: string;
-  addDangerToast: (msg: string) => void;
 }
 
 const StyledIcon = styled(Icons.Link)`
@@ -47,36 +38,10 @@ const StyledIcon = styled(Icons.Link)`
   }
 `;
 
-const ShareSqlLabQuery = ({
-  queryEditorId,
-  addDangerToast,
-}: ShareSqlLabQueryProps) => {
+const ShareSqlLabQuery = ({ queryEditorId }: ShareSqlLabQueryProps) => {
   const theme = useTheme();
 
-  const { dbId, name, schema, autorun, sql, remoteId, templateParams } =
-    useQueryEditor(queryEditorId, [
-      'dbId',
-      'name',
-      'schema',
-      'autorun',
-      'sql',
-      'remoteId',
-      'templateParams',
-    ]);
-
-  const getCopyUrlForKvStore = (callback: Function) => {
-    const sharedQuery = { dbId, name, schema, autorun, sql, templateParams };
-
-    return storeQuery(sharedQuery)
-      .then(shortUrl => {
-        callback(shortUrl);
-      })
-      .catch(response => {
-        getClientErrorObject(response).then(() => {
-          addDangerToast(t('There was an error with your request'));
-        });
-      });
-  };
+  const { remoteId } = useQueryEditor(queryEditorId, ['remoteId']);
 
   const getCopyUrlForSavedQuery = (callback: Function) => {
     let savedQueryToastContent;
@@ -91,12 +56,7 @@ const ShareSqlLabQuery = ({
       callback(savedQueryToastContent);
     }
   };
-  const getCopyUrl = (callback: Function) => {
-    if (isFeatureEnabled(FeatureFlag.SHARE_QUERIES_VIA_KV_STORE)) {
-      return getCopyUrlForKvStore(callback);
-    }
-    return getCopyUrlForSavedQuery(callback);
-  };
+  const getCopyUrl = (callback: Function) => getCopyUrlForSavedQuery(callback);
 
   const buildButton = (canShare: boolean) => {
     const tooltip = canShare
@@ -115,8 +75,7 @@ const ShareSqlLabQuery = ({
     );
   };
 
-  const canShare =
-    !!remoteId || isFeatureEnabled(FeatureFlag.SHARE_QUERIES_VIA_KV_STORE);
+  const canShare = !!remoteId;
 
   return (
     <>

@@ -98,15 +98,6 @@ class Url(Model, AuditMixinNullable):
     url = Column(Text)
 
 
-class KeyValue(Model):  # pylint: disable=too-few-public-methods
-
-    """Used for any type of key-value store"""
-
-    __tablename__ = "keyvalue"
-    id = Column(Integer, primary_key=True)
-    value = Column(Text, nullable=False)
-
-
 class CssTemplate(Model, AuditMixinNullable):
     """CSS templates for dashboards"""
 

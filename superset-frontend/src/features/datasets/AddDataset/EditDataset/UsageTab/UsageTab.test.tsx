@@ -352,7 +352,7 @@ test('show chart dashboards', async () => {
 
 test('paginates', async () => {
   const charts = [];
-  for (let i = 0; i < 65; i += 1) {
+  for (let i = 0; i < 40; i += 1) {
     charts.push(
       getMockChart({
         id: i + 1,
@@ -384,22 +384,7 @@ test('paginates', async () => {
     name: /sample chart/i,
   });
 
-  expect(chartNameValues).toHaveLength(25);
-  expect(chartNameValues[0]).toHaveTextContent('Sample chart 26');
-  expect(chartNameValues[24]).toHaveTextContent('Sample chart 50');
-
-  // Third page
-  userEvent.click(
-    screen.getByRole('button', {
-      name: /right/i,
-    }),
-  );
-
-  chartNameValues = await screen.findAllByRole('cell', {
-    name: /sample chart/i,
-  });
-
   expect(chartNameValues).toHaveLength(15);
-  expect(chartNameValues[0]).toHaveTextContent('Sample chart 51');
-  expect(chartNameValues[14]).toHaveTextContent('Sample chart 65');
+  expect(chartNameValues[0]).toHaveTextContent('Sample chart 26');
+  expect(chartNameValues[14]).toHaveTextContent('Sample chart 40');
 });

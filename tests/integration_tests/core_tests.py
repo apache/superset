@@ -424,35 +424,6 @@ class TestCore(SupersetTestCase):
         db.session.delete(model_url)
         db.session.commit()
 
-    @with_feature_flags(KV_STORE=False)
-    def test_kv_disabled(self):
-        self.login(username="admin")
-
-        resp = self.client.get("/kv/10001/")
-        self.assertEqual(404, resp.status_code)
-
-        value = json.dumps({"data": "this is a test"})
-        resp = self.client.post("/kv/store/", data=dict(data=value))
-        self.assertEqual(resp.status_code, 404)
-
-    @with_feature_flags(KV_STORE=True)
-    def test_kv_enabled(self):
-        self.login(username="admin")
-
-        resp = self.client.get("/kv/10001/")
-        self.assertEqual(404, resp.status_code)
-
-        value = json.dumps({"data": "this is a test"})
-        resp = self.client.post("/kv/store/", data=dict(data=value))
-        self.assertEqual(resp.status_code, 200)
-        kv = db.session.query(models.KeyValue).first()
-        kv_value = kv.value
-        self.assertEqual(json.loads(value), json.loads(kv_value))
-
-        resp = self.client.get(f"/kv/{kv.id}/")
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(json.loads(value), json.loads(resp.data.decode("utf-8")))
-
     def test_gamma(self):
         self.login(username="gamma")
         assert "Charts" in self.get_resp("/chart/list/")

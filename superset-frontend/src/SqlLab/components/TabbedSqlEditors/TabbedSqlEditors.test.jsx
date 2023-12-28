@@ -35,7 +35,6 @@ import { newQueryTabName } from 'src/SqlLab/utils/newQueryTabName';
 
 fetchMock.get('glob:*/api/v1/database/*', {});
 fetchMock.get('glob:*/api/v1/saved_query/*', {});
-fetchMock.get('glob:*/kv/*', {});
 
 describe('TabbedSqlEditors', () => {
   const middlewares = [thunk];
@@ -106,11 +105,6 @@ describe('TabbedSqlEditors', () => {
     afterEach(() => {
       window.history.replaceState.restore();
       uriStub.restore();
-    });
-    it('should handle id', async () => {
-      uriStub.returns({ id: 1 });
-      await mountWithAct();
-      expect(window.history.replaceState.getCall(0).args[2]).toBe('/sqllab');
     });
     it('should handle savedQueryId', async () => {
       uriStub.returns({ savedQueryId: 1 });
