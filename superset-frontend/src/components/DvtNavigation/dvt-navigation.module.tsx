@@ -17,7 +17,6 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
-import { Link } from 'react-router-dom';
 
 const StyledDvtNavigation = styled.div`
   display: inline-flex;
