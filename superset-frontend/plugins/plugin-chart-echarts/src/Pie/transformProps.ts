@@ -184,9 +184,7 @@ export default function transformProps(
   const groupbyLabels = groupby.map(getColumnLabel);
   const minShowLabelAngle = (showLabelsThreshold || 0) * 3.6;
   if (formData.sortByMetric) {
-    data = queriesData[0].data.sort(
-      (a, b) => Number(b[metricLabel]) - Number(a[metricLabel]),
-    );
+    data = data.sort((a, b) => Number(b[metricLabel]) - Number(a[metricLabel]));
   }
 
   const keys = data.map(datum =>
