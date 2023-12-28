@@ -30,7 +30,6 @@ from flask_babel import _
 from sqlalchemy.exc import NoResultFound
 from werkzeug.wrappers.response import Response
 
-import superset.models.core as models
 from superset import app, dataframe, db, result_set, viz
 from superset.common.db_query_status import QueryStatus
 from superset.daos.datasource import DatasourceDAO
@@ -144,7 +143,7 @@ def loads_request_json(request_json_data: str) -> dict[Any, Any]:
         return {}
 
 
-def get_form_data(  # pylint: disable=too-many-locals
+def get_form_data(
     slice_id: Optional[int] = None,
     use_slice_data: bool = False,
     initial_form_data: Optional[dict[str, Any]] = None,
