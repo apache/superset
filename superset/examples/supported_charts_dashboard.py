@@ -317,10 +317,10 @@ def create_slices(tbl: SqlaTable) -> list[Slice]:
         Slice(
             **slice_kwargs,
             slice_name="Line Chart",
-            viz_type="line",
+            viz_type="echarts_timeseries_line",
             params=get_slice_json(
                 defaults,
-                viz_type="line",
+                viz_type="echarts_timeseries_line",
                 metrics=["sum__num"],
                 groupby=["gender"],
             ),
