@@ -49,7 +49,7 @@ const DvtChartAdd: React.FC<ChartCreationProps> = ({
   addSuccessToast,
   history,
 }) => {
-  const [state, setState] = useState<ChartCreationState>({
+  const [chart, setChart] = useState<ChartCreationState>({
     vizType: null,
     canCreateDataset: findPermission('can_write', 'Dataset', user.roles),
   });
@@ -60,7 +60,7 @@ const DvtChartAdd: React.FC<ChartCreationProps> = ({
       loadDatasources(params, 0, 1).then(r => {
         const datasource = r.data[0];
         datasource.label = datasource.customLabel;
-        setState(prevState => ({ ...prevState, datasource }));
+        setChart(prevState => ({ ...prevState, datasource }));
       });
       addSuccessToast(t('The dataset has been saved'));
     }
@@ -68,7 +68,7 @@ const DvtChartAdd: React.FC<ChartCreationProps> = ({
 
   const exploreUrl = () => {
     const dashboardId = getUrlParam(URL_PARAMS.dashboardId);
-    let url = `/explore/?viz_type=${state.vizType}&datasource=${state.datasource?.value}`;
+    let url = `/explore/?viz_type=${chart.vizType}&datasource=${chart.datasource?.value}`;
     if (isDefined(dashboardId)) {
       url += `&dashboard_id=${dashboardId}`;
     }
@@ -80,11 +80,11 @@ const DvtChartAdd: React.FC<ChartCreationProps> = ({
   };
 
   const changeVizType = (vizType: string | null) => {
-    setState(prevState => ({ ...prevState, vizType }));
+    setChart(prevState => ({ ...prevState, vizType }));
   };
 
   const isBtnDisabled = () => {
-    return !(state.datasource?.value && state.vizType);
+    return !(chart.datasource?.value && chart.vizType);
   };
 
   const onVizTypeDoubleClick = () => {
@@ -135,7 +135,7 @@ const DvtChartAdd: React.FC<ChartCreationProps> = ({
       className="viz-gallery"
       onChange={changeVizType}
       onDoubleClick={onVizTypeDoubleClick}
-      selectedViz={state.vizType}
+      selectedViz={chart.vizType}
     />
   );
 };

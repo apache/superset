@@ -600,7 +600,7 @@ const DvtSidebarData: SidebarDataProps[] = [
       {
         values: [{ label: 'Superset Admin', value: 'Superset Admin' }],
         placeholder: 'Dataset',
-        name: 'owner',
+        name: 'dataset',
       },
       {
         values: [
@@ -610,7 +610,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Dolor Sit Amet', value: 'Dolor Sit Amet' },
         ],
         placeholder: 'Graph Chart Type',
-        name: 'createdBy',
+        name: 'chartType',
       },
       {
         values: [
@@ -628,7 +628,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: '#8 Gauge Chart', value: '#8 Gauge Chart' },
         ],
         placeholder: 'Category',
-        name: 'status',
+        name: 'category',
       },
       {
         values: [
@@ -638,7 +638,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Dolor Sit Amet', value: 'Dolor Sit Amet' },
         ],
         placeholder: 'ML/AI',
-        name: 'search',
+        name: 'ML_AI',
       },
     ],
   },

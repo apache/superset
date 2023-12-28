@@ -78,7 +78,7 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, user }) => {
       case '/superset/profile/admin/':
         return 'Profile';
       case '/chart/add':
-        return 'Create a New Graph/Chart';
+        return 'Create New Chart';
       default:
         return '';
     }
@@ -146,6 +146,19 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, user }) => {
                   label={`${sort ? 'Sorted' : 'Sort'}: Date Created`}
                   icon="dvt-sort"
                   onClick={() => dispatch(dvtAppSetSort(!sort))}
+                />
+              </NavbarBottomRight>
+            </>
+          )}
+          {pathName === '/chart/add' && (
+            <>
+              <div />
+              <NavbarBottomRight>
+                <DvtButton
+                  typeColour="powder"
+                  label={`Create New Chart`}
+                  onClick={() => {}}
+                  bold
                 />
               </NavbarBottomRight>
             </>

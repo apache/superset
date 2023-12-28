@@ -41,6 +41,13 @@ interface DvtSidebarState {
     allow_run_async: string;
     search: string;
   };
+
+  chartAdd: {
+    category: string;
+    chartType: string;
+    ML_AI: string;
+    dataset:string
+  };
 }
 
 const initialState: DvtSidebarState = {
@@ -65,6 +72,13 @@ const initialState: DvtSidebarState = {
     expose_in_sqllab: '',
     allow_run_async: '',
     search: '',
+  },
+
+  chartAdd: {
+    chartType: '',
+    category: '',
+    ML_AI:'',
+    dataset:'',
   },
 };
 
@@ -102,6 +116,16 @@ const dvtSidebarSlice = createSlice({
         ...action.payload.connection,
       },
     }),
+    dvtSidebarChartAddSetProperty: (
+      state,
+      action: PayloadAction<{ chartAdd: DvtSidebarState['chartAdd'] }>,
+    ) => ({
+      ...state,
+      chartAdd: {
+        ...state.connection,
+        ...action.payload.chartAdd,
+      },
+    }),
   },
 });
 
@@ -109,6 +133,7 @@ export const {
   dvtSidebarReportsSetProperty,
   dvtSidebarAlertsSetProperty,
   dvtSidebarConnectionSetProperty,
+  dvtSidebarChartAddSetProperty
 } = dvtSidebarSlice.actions;
 
 export default dvtSidebarSlice.reducer;

@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useAppSelector } from 'src/hooks/useAppSelector';
 import {
-  t,
   styled,
   css,
   ChartMetadata,
@@ -27,6 +27,9 @@ import {
 } from '@superset-ui/core';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
+import DvtIconDataLabel from 'src/components/DvtIconDataLabel';
+import { useDispatch } from 'react-redux';
+import { dvtSidebarChartAddSetProperty } from 'src/dvt-redux/dvt-sidebarReducer';
 
 interface VizTypeGalleryProps {
   onChange: (vizType: string | null) => void;
@@ -40,13 +43,6 @@ type VizEntry = {
   key: string;
   value: ChartMetadata;
 };
-
-enum SECTIONS {
-  ALL_CHARTS = 'ALL_CHARTS',
-  CATEGORY = 'CATEGORY',
-  TAGS = 'TAGS',
-  RECOMMENDED_TAGS = 'RECOMMENDED_TAGS',
-}
 
 const DEFAULT_ORDER = [
   'line',
@@ -105,10 +101,6 @@ const THUMBNAIL_GRID_UNITS = 100;
 
 export const MAX_ADVISABLE_VIZ_GALLERY_WIDTH = 1090;
 
-const OTHER_CATEGORY = t('Other');
-
-const ALL_CHARTS = t('All charts');
-
 export const VIZ_TYPE_CONTROL_TEST_ID = 'viz-type-control';
 
 const VizPickerLayout = styled.div`
@@ -119,18 +111,11 @@ const VizPickerLayout = styled.div`
 const RightPane = styled.div``;
 
 const IconsPane = styled.div`
-  overflow: auto;
-  display: grid;
-  grid-template-columns: repeat(
-    auto-fill,
-    ${({ theme }) => theme.gridUnit * THUMBNAIL_GRID_UNITS}px
-  );
-  grid-auto-rows: max-content;
-  justify-content: space-evenly;
-  grid-gap: ${({ theme }) => theme.gridUnit * 2}px;
-  justify-items: center;
-  // for some reason this padding doesn't seem to apply at the bottom of the container. Why is a mystery.
-  padding: ${({ theme }) => theme.gridUnit * 2}px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 15px;
+  padding-top: 60px;
 `;
 
 // overflow hidden on the details pane and overflow auto on the description
@@ -140,12 +125,14 @@ const thumbnailContainerCss = (theme: SupersetTheme) => css`
   cursor: pointer;
   width: ${theme.gridUnit * THUMBNAIL_GRID_UNITS}px;
   position: relative;
+  padding-bottom: 62px;
+  width: 547px;
 
   img {
-    max-width: 547px;
     border: 1px solid ${theme.colors.grayscale.light2};
     border-radius: ${theme.gridUnit}px;
     transition: border-color ${theme.transitionTiming};
+    background-color: transparent;
   }
 
   &.selected img {
@@ -157,36 +144,12 @@ const thumbnailContainerCss = (theme: SupersetTheme) => css`
   }
 
   .viztype-label {
-    margin-top: ${theme.gridUnit * 2}px;
-    text-align: center;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 140%;
+    letter-spacing: 0.2px;
+    padding-bottom: 62px;
   }
-`;
-
-const HighlightLabel = styled.div`
-  ${({ theme }) => `
-    border: 1px solid ${theme.colors.primary.dark1};
-    box-sizing: border-box;
-    border-radius: ${theme.gridUnit}px;
-    background: ${theme.colors.grayscale.light5};
-    line-height: ${theme.gridUnit * 2.5}px;
-    color: ${theme.colors.primary.dark1};
-    font-size: ${theme.typography.sizes.s}px;
-    font-weight: ${theme.typography.weights.bold};
-    text-align: center;
-    padding: ${theme.gridUnit * 0.5}px ${theme.gridUnit}px;
-    text-transform: uppercase;
-    cursor: pointer;
-
-    div {
-      transform: scale(0.83,0.83);
-    }
-  `}
-`;
-
-const ThumbnailLabelWrapper = styled.div`
-  position: absolute;
-  right: ${({ theme }) => theme.gridUnit}px;
-  top: ${({ theme }) => theme.gridUnit * 19}px;
 `;
 
 function vizSortFactor(entry: VizEntry) {
@@ -237,13 +200,6 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
         className={`viztype-selector ${isSelected ? 'selected' : ''}`}
         src={type.thumbnail}
       />
-      {type.label && (
-        <ThumbnailLabelWrapper>
-          <HighlightLabel>
-            <div>{t(type.label)}</div>
-          </HighlightLabel>
-        </ThumbnailLabelWrapper>
-      )}
     </div>
   );
 };
@@ -271,10 +227,6 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   const { selectedViz, onChange, onDoubleClick, className } = props;
   const { mountedPluginMetadata } = usePluginContext();
 
-  const selectedVizMetadata: ChartMetadata | null = selectedViz
-    ? mountedPluginMetadata[selectedViz]
-    : null;
-
   const chartMetadata: VizEntry[] = useMemo(() => {
     const result = Object.entries(mountedPluginMetadata)
       .map(([key, value]) => ({ key, value }))
@@ -287,78 +239,58 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     return result;
   }, [mountedPluginMetadata]);
 
-  const chartsByCategory = useMemo(() => {
-    const result: Record<string, VizEntry[]> = {};
-    chartMetadata.forEach(entry => {
-      const category = entry.value.category || OTHER_CATEGORY;
-      if (!result[category]) {
-        result[category] = [];
-      }
-      result[category].push(entry);
-    });
-    return result;
-  }, [chartMetadata]);
-
-  const chartsByTags = useMemo(() => {
-    const result: Record<string, VizEntry[]> = {};
-    chartMetadata.forEach(entry => {
-      const tags = entry.value.tags || [];
-      tags.forEach(tag => {
-        if (!result[tag]) {
-          result[tag] = [];
-        }
-        result[tag].push(entry);
-      });
-    });
-    return result;
-  }, [chartMetadata]);
-
+  const chartAddSelector = useAppSelector(state => state.dvtSidebar.chartAdd);
   const sortedMetadata = useMemo(
     () => chartMetadata.sort((a, b) => a.key.localeCompare(b.key)),
     [chartMetadata],
   );
+  const [editedData, setEditedData] = useState<any[]>(sortedMetadata);
+  const dispatch = useDispatch();
 
-  const [activeSelector, setActiveSelector] = useState<string>(
-    () => selectedVizMetadata?.category || ALL_CHARTS,
-  );
-
-  const [activeSection, setActiveSection] = useState<string>(
-    () => SECTIONS.ALL_CHARTS,
-  );
-
-  const getVizEntriesToDisplay = () => {
-    if (
-      activeSelector === ALL_CHARTS &&
-      activeSection === SECTIONS.ALL_CHARTS
-    ) {
-      return sortedMetadata;
-    }
-    if (
-      activeSection === SECTIONS.CATEGORY &&
-      chartsByCategory[activeSelector]
-    ) {
-      return chartsByCategory[activeSelector];
-    }
-    if (
-      (activeSection === SECTIONS.TAGS ||
-        activeSection === SECTIONS.RECOMMENDED_TAGS) &&
-      chartsByTags[activeSelector]
-    ) {
-      return chartsByTags[activeSelector];
-    }
-    return [];
+  const clearAlerts = () => {
+    dispatch(
+      dvtSidebarChartAddSetProperty({
+        chartAdd: {
+          ...chartAddSelector,
+          dataset: '',
+          category: '',
+          chartType: '',
+          ML_AI: '',
+        },
+      }),
+    );
   };
+  useEffect(() => {
+    const filteredData = chartMetadata.filter(
+      (item: any) =>
+        (chartAddSelector.category
+          ? item.value.category === chartAddSelector.category
+          : true) &&
+        (chartAddSelector.chartType
+          ? item.value.tags.includes(chartAddSelector.chartType)
+          : true),
+    );
+    setEditedData(filteredData);
+  }, [chartAddSelector]);
 
-  return (
+  return editedData.length > 0 ? (
     <VizPickerLayout className={className}>
       <RightPane>
         <ThumbnailGallery
-          vizEntries={getVizEntriesToDisplay()}
+          vizEntries={editedData}
           selectedViz={selectedViz}
           setSelectedViz={onChange}
           onDoubleClick={onDoubleClick}
         />
       </RightPane>
     </VizPickerLayout>
+  ) : (
+    <DvtIconDataLabel
+      label="No results match your filter criteria"
+      buttonLabel="Clear All Filter"
+      buttonClick={() => {
+        clearAlerts();
+      }}
+    />
   );
 }
