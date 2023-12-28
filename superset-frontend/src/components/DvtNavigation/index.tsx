@@ -42,7 +42,7 @@ const DvtNavigation: React.FC<DvtNavigationProps> = ({ data }) => (
           <DvtNavigationItemIcon>
             <Icon fileName={item.fileName} size={22} />
           </DvtNavigationItemIcon>
-          <DvtNavigationItemLabel to={item.url}>
+          <DvtNavigationItemLabel href={item.url}>
             {item.title}
           </DvtNavigationItemLabel>
         </DvtNavigationItem>

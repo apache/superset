@@ -35,7 +35,7 @@ const DvtNavigationItem = styled.div`
 `;
 const DvtNavigationItemIcon = styled.div``;
 
-const DvtNavigationItemLabel = styled(Link)`
+const DvtNavigationItemLabel = styled.a`
   color: ${({ theme }) => theme.colors.dvt.text.label};
   font-size: 14px;
   font-style: normal;
