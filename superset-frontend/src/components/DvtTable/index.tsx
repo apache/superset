@@ -46,7 +46,7 @@ interface HeaderProps {
   flex?: number;
   clicks?: {
     icon: string;
-    click: () => void;
+    click: (row: any) => void;
     colour?: string;
     popperLabel?: string;
   }[];
@@ -190,7 +190,7 @@ const DvtTable: React.FC<DvtTableProps> = ({
                           (
                             clicks: {
                               icon: string;
-                              click: () => void;
+                              click: (row: any) => void;
                               colour: string;
                               popperLabel?: string;
                             },
@@ -200,7 +200,7 @@ const DvtTable: React.FC<DvtTableProps> = ({
                               {clicks.popperLabel && (
                                 <DvtPopper label={clicks.popperLabel}>
                                   <Icon
-                                    onClick={clicks.click}
+                                    onClick={() => clicks.click(row)}
                                     fileName={clicks.icon}
                                     iconColor={
                                       clicks.colour ||
@@ -223,7 +223,7 @@ const DvtTable: React.FC<DvtTableProps> = ({
                               )}
                               {!clicks.popperLabel && (
                                 <Icon
-                                  onClick={clicks.click}
+                                  onClick={() => clicks.click(row)}
                                   fileName={clicks.icon}
                                   iconColor={
                                     clicks.colour ||
