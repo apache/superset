@@ -6,6 +6,22 @@ const StyledDashboardList = styled.div`
 const StyledDvtSelectButtons = styled.div`
   display: flex;
 `;
+
+const StyledSelectedItemCount = styled.div`
+  display: flex;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  align-items: center;
+  color: ${({ theme }) => theme.colors.secondary.dark3};
+`;
+
+const StyledSelectedItem = styled.div`
+  display: flex;
+  gap: 45px;
+  padding: 35px;
+`;
 const StyledDashboardButtons = styled.div`
   display: flex;
   gap: 16px;
@@ -14,6 +30,9 @@ const StyledDashboardButtons = styled.div`
 `;
 const StyledDashboardListButtons = styled.div`
   display: flex;
+  border-radius: 12px;
+  height: 56px;
+  align-items: center;
   flex-direction: row;
   justify-content: space-between;
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
@@ -40,7 +59,9 @@ const StyledDashboardBottom = styled.div`
 export {
   StyledDashboardList,
   StyledDvtSelectButtons,
+  StyledSelectedItemCount,
   StyledDashboardButtons,
+  StyledSelectedItem,
   StyledDashboardListButtons,
   StyledDashboardTable,
   StyledDashboardPagination,

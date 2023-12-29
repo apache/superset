@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import DvtButton from 'src/components/DvtButton';
 import DvtPagination from 'src/components/DvtPagination';
 import DvtTable from 'src/components/DvtTable';
@@ -12,122 +12,107 @@ import {
   StyledDashboardPagination,
   StyledDashboardTable,
   StyledDvtSelectButtons,
+  StyledSelectedItem,
+  StyledSelectedItemCount,
 } from './dvtdashboardlist.module';
+import { useHistory } from 'react-router-dom';
 
-const dummyData = [
-  {
-    id: 1,
-    name: 'arac',
-    type: 'Pysical',
-    database: 'PostgreSQL',
-    schema: 'Dwh',
-    date: '10.03.2023 12:45:00',
-    modifiedBy: 'Admin',
-    owners: 'A',
-  },
-  {
-    id: 2,
-    name: 'hrrr2',
-    type: 'Pysical',
-    database: 'PostgreSQL',
-    schema: 'Public',
-    date: '10.03.2023 12:45:00',
-    modifiedBy: 'Admin',
-    owners: 'A',
-  },
-  {
-    id: 3,
-    name: 'channel_members',
-    type: 'Pysical',
-    database: 'Examples',
-    schema: 'Public',
-    date: '10.03.2023 12:45:00',
-    modifiedBy: 'Admin',
-    owners: 'A',
-  },
-  {
-    id: 4,
-    name: 'channel',
-    type: 'Pysical',
-    database: 'Examples',
-    schema: 'Public',
-    date: '10.03.2023 12:45:00',
-    modifiedBy: 'Admin',
-    owners: 'A',
-  },
-  {
-    id: 5,
-    name: 'cleaned_sales_data',
-    type: 'Pysical',
-    database: 'Examples',
-    schema: 'Public',
-    date: '10.03.2023 12:45:00',
-    modifiedBy: 'Admin',
-    owners: 'A',
-  },
-  {
-    id: 6,
-    name: 'covid_vaccines',
-    type: 'Pysical',
-    database: 'Examples',
-    schema: 'Public',
-    date: '10.03.2023 12:45:00',
-    modifiedBy: 'Admin',
-    owners: 'A',
-  },
+const headerData = [
+  { id: 1, title: 'Title', field: 'dashboard_title', flex: 3, checkbox: true },
+  { id: 2, title: 'Modified By', field: 'changed_by_name' },
+  { id: 3, title: 'Status', field: 'status' },
+  { id: 4, title: 'Modified', field: 'created_on_delta_humanized' },
+  { id: 5, title: 'Created By', field: 'createdbyName' },
+  { id: 6, title: 'Owners', field: 'owners' },
   {
     id: 7,
-    name: 'exported_stats',
-    type: 'Pysical',
-    database: 'Examples',
-    schema: 'Public',
-    date: '10.03.2023 12:45:00',
-    modifiedBy: 'Admin',
-    owners: 'A',
+    title: 'Action',
+    clicks: [
+      {
+        icon: 'edit_alt',
+        click: () => {},
+        popperLabel: 'Edit',
+      },
+      {
+        icon: 'share',
+        click: () => {},
+        popperLabel: 'Export',
+      },
+      {
+        icon: 'trash',
+        click: () => {},
+        popperLabel: 'Delete',
+      },
+    ],
   },
-  {
-    id: 8,
-    name: 'members_channels_2',
-    type: 'Pysical',
-    database: 'Examples',
-    schema: 'Public',
-    date: '10.03.2023 12:45:00',
-    modifiedBy: 'Admin',
-    owners: 'A',
-  },
-  {
-    id: 9,
-    name: 'Fcc 2018 Survey',
-    type: 'Pysical',
-    database: 'Examples',
-    schema: 'Public',
-    date: '10.03.2023 12:45:00',
-    modifiedBy: 'Admin',
-    owners: 'A',
-  },
-];
-
-const dummyHeader = [
-  { id: 1, title: 'ID', field: 'id', flex: 1, checkbox: true },
-  { id: 2, title: 'Title', field: 'title', flex: 2 },
-  { id: 3, title: 'Date', field: 'date', flex: 2 },
 ];
 
 function DvtDashboardList() {
   const [selectedRows, setSelectedRows] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [selectedItemCount, setSelectedItemCount] = useState<number>(0);
+  const [data, setData] = useState([]);
 
+  const history = useHistory<{ from: string }>();
+
+  useEffect(() => {
+    const apiUrl = `/api/v1/dashboard/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:${
+      currentPage - 1
+    },page_size:10)`;
+
+    const fetchApi = async () => {
+      try {
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        setData(
+          data.result.map((item: any) => {
+            return {
+              dashboard_title: item.dashboard_title,
+              changed_by_name: item.changed_by_name,
+              status: item.status,
+              created_on_delta_humanized: item.created_on_delta_humanized,
+              owners: `${item.owners.first_name} ${item.owners.last_name}`,
+              createdbyName: `${item.created_by.first_name} ${item.created_by.last_name}`,
+            };
+          }),
+        );
+      } catch (error) {
+        console.log('Error:', error);
+      }
+    };
+    fetchApi();
+  }, []);
+
+  useEffect(() => {
+    setSelectedItemCount(selectedRows.length);
+  }, [selectedRows]);
+
+  const handleDeselectAll = () => {
+    setSelectedRows([]);
+    setSelectedItemCount(0);
+  };
+
+  const handleCreateDashboard = () => {
+    history.push('/superset/dashboard');
+  };
+  console.log(data);
   return (
     <StyledDashboardList>
       <StyledDashboardListButtons>
         <StyledDvtSelectButtons>
-          <DvtButton
-            label="Unselect All"
-            bold
-            colour="primary"
-            typeColour="outline"
-            onClick={() => {}}
-          />
+          <StyledSelectedItem>
+            <StyledSelectedItemCount>
+              <span>{`${selectedItemCount} Selected`}</span>
+            </StyledSelectedItemCount>
+            <DvtButton
+              label="Deselect All"
+              bold
+              colour="primary"
+              typeColour="outline"
+              size="medium"
+              onClick={handleDeselectAll}
+            />
+          </StyledSelectedItem>
         </StyledDvtSelectButtons>
         <StyledDashboardButtons>
           <DvtButton
@@ -135,6 +120,7 @@ function DvtDashboardList() {
             icon="dvt-delete"
             iconToRight
             colour="error"
+            size="small"
             onClick={() => {}}
           />
           <DvtButton
@@ -144,14 +130,15 @@ function DvtDashboardList() {
             colour="primary"
             bold
             typeColour="powder"
+            size="small"
             onClick={() => {}}
           />
         </StyledDashboardButtons>
       </StyledDashboardListButtons>
       <StyledDashboardTable>
         <DvtTable
-          data={dummyData}
-          header={dummyHeader}
+          data={data}
+          header={headerData}
           selected={selectedRows}
           setSelected={setSelectedRows}
           checkboxActiveField="id"
@@ -164,14 +151,14 @@ function DvtDashboardList() {
             colour="grayscale"
             bold
             typeColour="basic"
-            onClick={() => {}}
+            onClick={handleCreateDashboard}
           />
         </StyledDashboardCreateDashboard>
         <StyledDashboardPagination>
           <DvtPagination
             page={currentPage}
             setPage={setCurrentPage}
-            itemSize={dummyData.length}
+            itemSize={data.length}
             pageItemSize={10}
           />
         </StyledDashboardPagination>
