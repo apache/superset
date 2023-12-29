@@ -112,6 +112,7 @@ class TestDeleteTagsCommand(SupersetTestCase):
                 TaggedObject.object_id == example_dashboard.id,
                 Tag.type == TagType.custom,
             )
+            .order_by(Tag.name)
             .all()
         )
         assert example_tags == [tag.name for tag in created_tags]
