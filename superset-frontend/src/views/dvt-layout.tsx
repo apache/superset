@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { Suspense } from 'react';
-import { Switch, Route, useHistory } from 'react-router-dom';
+import { Switch, Route, useHistory, useLocation } from 'react-router-dom';
 import { GlobalStyles } from 'src/GlobalStyles';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
@@ -60,8 +60,8 @@ const Main = styled.main<StyledLayoutProps>`
 const bootstrapData = getBootstrapData();
 
 const DvtLayout = () => {
-  const history = useHistory();
-  const { pathname } = history.location;
+  const location = useLocation();
+  const { pathname } = location;
 
   return (
     <StyledApp navbarInHeight={WithNavbarBottom.includes(pathname)}>
