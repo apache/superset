@@ -604,16 +604,6 @@ const DvtSidebarData: SidebarDataProps[] = [
       },
       {
         values: [
-          { label: 'Lorem ıpsum', value: 'Lorem ıpsum' },
-          { label: 'Dolor Sit Amet', value: 'Dolor Sit Amet' },
-          { label: 'Lorem ıpsum', value: 'Lorem ıpsum' },
-          { label: 'Dolor Sit Amet', value: 'Dolor Sit Amet' },
-        ],
-        placeholder: 'Graph Chart Type',
-        name: 'chartType',
-      },
-      {
-        values: [
           { label: '#1 Clustered Bar Chart', value: '#1 Clustered Bar Chart' },
           {
             label: '#2 Clustered Column Chart',
@@ -629,6 +619,16 @@ const DvtSidebarData: SidebarDataProps[] = [
         ],
         placeholder: 'Category',
         name: 'category',
+      },
+      {
+        values: [
+          { label: 'Lorem ıpsum', value: 'Lorem ıpsum' },
+          { label: 'Dolor Sit Amet', value: 'Dolor Sit Amet' },
+          { label: 'Lorem ıpsum', value: 'Lorem ıpsum' },
+          { label: 'Dolor Sit Amet', value: 'Dolor Sit Amet' },
+        ],
+        placeholder: 'Graph Chart Type',
+        name: 'chartType',
       },
       {
         values: [

@@ -230,25 +230,41 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
 
   const chartsByTags = useMemo(() => {
     const result: Record<string, VizEntry[]> = {};
-    chartMetadata.forEach(entry => {
-      const tags = entry.value.tags || [];
-      tags.forEach(tag => {
-        if (!result[tag]) {
-          result[tag] = [];
+
+    if (chartAddSelector.category) {
+      chartMetadata.forEach(entry => {
+        const category = entry.value.category;
+        if (category === chartAddSelector.category) {
+          const tags = entry.value.tags;
+          tags.forEach(tag => {
+            if (!result[tag]) {
+              result[tag] = [];
+            }
+            result[tag].push(entry);
+          });
         }
-        result[tag].push(entry);
       });
-    });
+
+      updateChartAddProperty('', 'chartType');
+    } else {
+      chartMetadata.forEach(entry => {
+        const tags = entry.value.tags || [];
+        tags.forEach(tag => {
+          if (!result[tag]) {
+            result[tag] = [];
+          }
+          result[tag].push(entry);
+        });
+      });
+    }
+
     return result;
-  }, [chartMetadata]);
+  }, [chartMetadata, chartAddSelector.category]);
 
   const tags = useMemo(
     () =>
       Object.keys(chartsByTags)
-        .sort((a, b) =>
-          // sort alphabetically
-          a.localeCompare(b),
-        )
+        .sort((a, b) => a.localeCompare(b))
         .filter(tag => RECOMMENDED_TAGS.indexOf(tag) === -1),
     [chartsByTags],
   );
@@ -281,7 +297,7 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
     value: tag,
     label: tag,
   }));
-  
+
   const category: { value: string; label: string }[] = categories.map(
     categories => ({ value: categories, label: categories }),
   );
