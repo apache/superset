@@ -49,4 +49,5 @@ const DvtNavigation: React.FC<DvtNavigationProps> = ({ data }) => (
       ))}
   </StyledDvtNavigation>
 );
+
 export default DvtNavigation;
