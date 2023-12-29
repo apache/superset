@@ -46,7 +46,7 @@ interface DvtSidebarState {
     category: string;
     chartType: string;
     ML_AI: string;
-    dataset:string
+    dataset: string;
   };
 }
 
@@ -77,8 +77,8 @@ const initialState: DvtSidebarState = {
   chartAdd: {
     chartType: '',
     category: '',
-    ML_AI:'',
-    dataset:'',
+    ML_AI: '',
+    dataset: '',
   },
 };
 
@@ -133,7 +133,7 @@ export const {
   dvtSidebarReportsSetProperty,
   dvtSidebarAlertsSetProperty,
   dvtSidebarConnectionSetProperty,
-  dvtSidebarChartAddSetProperty
+  dvtSidebarChartAddSetProperty,
 } = dvtSidebarSlice.actions;
 
 export default dvtSidebarSlice.reducer;

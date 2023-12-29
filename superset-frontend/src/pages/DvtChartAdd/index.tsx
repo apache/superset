@@ -4,13 +4,10 @@ import querystring from 'query-string';
 import {
   isFeatureEnabled,
   FeatureFlag,
-  isDefined,
   JsonResponse,
   SupersetClient,
   t,
 } from '@superset-ui/core';
-import { getUrlParam } from 'src/utils/urlUtils';
-import { URL_PARAMS } from 'src/constants';
 import { RouteComponentProps } from 'react-router-dom';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { findPermission } from 'src/utils/findPermission';
@@ -47,7 +44,6 @@ if (
 const DvtChartAdd: React.FC<ChartCreationProps> = ({
   user,
   addSuccessToast,
-  history,
 }) => {
   const [chart, setChart] = useState<ChartCreationState>({
     vizType: null,
@@ -66,31 +62,8 @@ const DvtChartAdd: React.FC<ChartCreationProps> = ({
     }
   }, []);
 
-  const exploreUrl = () => {
-    const dashboardId = getUrlParam(URL_PARAMS.dashboardId);
-    let url = `/explore/?viz_type=${chart.vizType}&datasource=${chart.datasource?.value}`;
-    if (isDefined(dashboardId)) {
-      url += `&dashboard_id=${dashboardId}`;
-    }
-    return url;
-  };
-
-  const gotoSlice = () => {
-    history.push(exploreUrl());
-  };
-
   const changeVizType = (vizType: string | null) => {
     setChart(prevState => ({ ...prevState, vizType }));
-  };
-
-  const isBtnDisabled = () => {
-    return !(chart.datasource?.value && chart.vizType);
-  };
-
-  const onVizTypeDoubleClick = () => {
-    if (!isBtnDisabled()) {
-      gotoSlice();
-    }
   };
 
   const loadDatasources = (search: string, page: number, pageSize: number) => {
@@ -134,7 +107,7 @@ const DvtChartAdd: React.FC<ChartCreationProps> = ({
       denyList={denyList}
       className="viz-gallery"
       onChange={changeVizType}
-      onDoubleClick={onVizTypeDoubleClick}
+      onDoubleClick={() => {}}
       selectedViz={chart.vizType}
     />
   );

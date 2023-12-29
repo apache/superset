@@ -7,6 +7,8 @@ import {
   dvtSidebarReportsSetProperty,
 } from 'src/dvt-redux/dvt-sidebarReducer';
 import { useAppSelector } from 'src/hooks/useAppSelector';
+import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
+import { ChartMetadata, t } from '@superset-ui/core';
 import DvtLogo from '../DvtLogo';
 import DvtDarkMode from '../DvtDarkMode';
 import DvtTitlePlus from '../DvtTitlePlus';
@@ -26,9 +28,7 @@ import {
 } from './dvt-sidebar.module';
 import DvtList from '../DvtList';
 import DvtDatePicker from '../DvtDatepicker';
-import { ChartMetadata, t } from '@superset-ui/core';
 import { usePluginContext } from '../DynamicPlugins';
-import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 
 interface DvtSidebarProps {
   pathName: string;
@@ -233,9 +233,9 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
 
     if (chartAddSelector.category) {
       chartMetadata.forEach(entry => {
-        const category = entry.value.category;
+        const { category }: { category: string | null } = entry.value;
         if (category === chartAddSelector.category) {
-          const tags = entry.value.tags;
+          const { tags } = entry.value;
           tags.forEach(tag => {
             if (!result[tag]) {
               result[tag] = [];
@@ -244,8 +244,6 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
           });
         }
       });
-
-      updateChartAddProperty('', 'chartType');
     } else {
       chartMetadata.forEach(entry => {
         const tags = entry.value.tags || [];
@@ -386,7 +384,22 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
                       } else if (pathTitles(pathName) === 'Connection') {
                         updateConnectionProperty(value, data.name);
                       } else if (pathTitles(pathName) === 'Chart Add') {
-                        updateChartAddProperty(value, data.name);
+                        if (
+                          data.name === 'category' &&
+                          chartAddSelector.category !== value
+                        ) {
+                          dispatch(
+                            dvtSidebarChartAddSetProperty({
+                              chartAdd: {
+                                ...chartAddSelector,
+                                chartType: '',
+                                category: value,
+                              },
+                            }),
+                          );
+                        } else {
+                          updateChartAddProperty(value, data.name);
+                        }
                       }
                     }}
                     maxWidth

@@ -593,7 +593,7 @@ const DvtSidebarData: SidebarDataProps[] = [
       },
     ],
   },
-  
+
   {
     pathname: '/chart/add',
     data: [
@@ -601,6 +601,16 @@ const DvtSidebarData: SidebarDataProps[] = [
         values: [{ label: 'Superset Admin', value: 'Superset Admin' }],
         placeholder: 'Dataset',
         name: 'dataset',
+      },
+      {
+        values: [
+          { label: 'Lorem ıpsum', value: 'Lorem ıpsum' },
+          { label: 'Dolor Sit Amet', value: 'Dolor Sit Amet' },
+          { label: 'Lorem ıpsum', value: 'Lorem ıpsum' },
+          { label: 'Dolor Sit Amet', value: 'Dolor Sit Amet' },
+        ],
+        placeholder: 'Recommended Tags',
+        name: 'ML_AI',
       },
       {
         values: [
@@ -627,18 +637,8 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Lorem ıpsum', value: 'Lorem ıpsum' },
           { label: 'Dolor Sit Amet', value: 'Dolor Sit Amet' },
         ],
-        placeholder: 'Graph Chart Type',
+        placeholder: 'Tags',
         name: 'chartType',
-      },
-      {
-        values: [
-          { label: 'Lorem ıpsum', value: 'Lorem ıpsum' },
-          { label: 'Dolor Sit Amet', value: 'Dolor Sit Amet' },
-          { label: 'Lorem ıpsum', value: 'Lorem ıpsum' },
-          { label: 'Dolor Sit Amet', value: 'Dolor Sit Amet' },
-        ],
-        placeholder: 'ML/AI',
-        name: 'ML_AI',
       },
     ],
   },

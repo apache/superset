@@ -156,7 +156,7 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, user }) => {
               <NavbarBottomRight>
                 <DvtButton
                   typeColour="powder"
-                  label={`Create New Chart`}
+                  label="Create New Chart"
                   onClick={() => {}}
                   bold
                 />
