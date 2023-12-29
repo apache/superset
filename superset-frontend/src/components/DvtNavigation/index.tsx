@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import Icon from '../Icons/Icon';
-import { useLocation } from 'react-router-dom';
 import {
   StyledDvtNavigation,
   DvtNavigationItem,
