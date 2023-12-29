@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import Icon from '../Icons/Icon';
+import { useLocation } from 'react-router-dom';
 import {
   StyledDvtNavigation,
   DvtNavigationItem,
@@ -34,19 +35,32 @@ export interface DataProps {
   fileName: string;
 }
 
-const DvtNavigation: React.FC<DvtNavigationProps> = ({ data }) => (
-  <StyledDvtNavigation>
-    {data.length > 0 &&
-      data.map((item, index) => (
-        <DvtNavigationItem key={index}>
-          <DvtNavigationItemIcon>
-            <Icon fileName={item.fileName} size={22} />
-          </DvtNavigationItemIcon>
-          <DvtNavigationItemLabel href={item.url}>
-            {item.title}
-          </DvtNavigationItemLabel>
-        </DvtNavigationItem>
-      ))}
-  </StyledDvtNavigation>
-);
+const DvtNavigation: React.FC<DvtNavigationProps> = ({ data }) => {
+  const location = useLocation();
+
+  const handleNavigation = (url: string) => {
+    if (location.pathname !== url) {
+      window.location.href = url;
+    }
+  };
+
+  return (
+    <StyledDvtNavigation>
+      {data.length > 0 &&
+        data.map((item, index) => (
+          <DvtNavigationItem key={index}>
+            <DvtNavigationItemIcon>
+              <Icon fileName={item.fileName} size={22} />
+            </DvtNavigationItemIcon>
+            <DvtNavigationItemLabel
+              onClick={() => handleNavigation(item.url)}
+            >
+              {item.title}
+            </DvtNavigationItemLabel>
+          </DvtNavigationItem>
+        ))}
+    </StyledDvtNavigation>
+  );
+};
+
 export default DvtNavigation;

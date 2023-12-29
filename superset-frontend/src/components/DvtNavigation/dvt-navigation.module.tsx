@@ -17,6 +17,7 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
+import { Link } from 'react-router-dom';
 
 const StyledDvtNavigation = styled.div`
   display: inline-flex;
@@ -34,7 +35,7 @@ const DvtNavigationItem = styled.div`
 `;
 const DvtNavigationItemIcon = styled.div``;
 
-const DvtNavigationItemLabel = styled.a`
+const DvtNavigationItemLabel = styled.div`
   color: ${({ theme }) => theme.colors.dvt.text.label};
   font-size: 14px;
   font-style: normal;
