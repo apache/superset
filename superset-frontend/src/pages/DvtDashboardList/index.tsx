@@ -1,4 +1,24 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import React, { useEffect, useState } from 'react';
+import { useHistory } from 'react-router-dom';
 import DvtButton from 'src/components/DvtButton';
 import DvtPagination from 'src/components/DvtPagination';
 import DvtTable from 'src/components/DvtTable';
@@ -15,7 +35,6 @@ import {
   StyledSelectedItem,
   StyledSelectedItemCount,
 } from './dvtdashboardlist.module';
-import { useHistory } from 'react-router-dom';
 
 const headerData = [
   { id: 1, title: 'Title', field: 'dashboard_title', flex: 3, checkbox: true },
@@ -65,16 +84,14 @@ function DvtDashboardList() {
         const response = await fetch(apiUrl);
         const data = await response.json();
         setData(
-          data.result.map((item: any) => {
-            return {
-              dashboard_title: item.dashboard_title,
-              changed_by_name: item.changed_by_name,
-              status: item.status,
-              created_on_delta_humanized: item.created_on_delta_humanized,
-              owners: `${item.owners.first_name} ${item.owners.last_name}`,
-              createdbyName: `${item.created_by.first_name} ${item.created_by.last_name}`,
-            };
-          }),
+          data.result.map((item: any) => ({
+            dashboard_title: item.dashboard_title,
+            changed_by_name: item.changed_by_name,
+            status: item.status,
+            created_on_delta_humanized: item.created_on_delta_humanized,
+            owners: `${item.owners.first_name} ${item.owners.last_name}`,
+            createdbyName: `${item.created_by.first_name} ${item.created_by.last_name}`,
+          })),
         );
       } catch (error) {
         console.log('Error:', error);
