@@ -154,7 +154,7 @@ Table schemas evolve, and Superset needs to reflect that. It’s pretty common i
 dashboard to want to add a new dimension or metric. To get Superset to discover your new columns,
 all you have to do is to go to **Data -> Datasets**, click the edit icon next to the dataset
 whose schema has changed, and hit **Sync columns from source** from the **Columns** tab.
-Behind the scene, the new columns will get merged it. Following this, you may want to re-edit the
+Behind the scene, the new columns will get merged. Following this, you may want to re-edit the
 table afterwards to configure the Columns tab, check the appropriate boxes and save again.
 
 ### What database engine can I use as a backend for Superset?
@@ -220,7 +220,7 @@ and write your own connector. The only example of this at the moment is the Drui
 is getting superseded by Druid’s growing SQL support and the recent availability of a DBAPI and
 SQLAlchemy driver. If the database you are considering integrating has any kind of of SQL support,
 it’s probably preferable to go the SQLAlchemy route. Note that for a native connector to be possible
-the database needs to have support for running OLAP-type queries and should be able to things that
+the database needs to have support for running OLAP-type queries and should be able to do things that
 are typical in basic SQL:
 
 - aggregate data
