@@ -140,7 +140,7 @@ const extensionsRegistry = getExtensionsRegistry();
 
 const ResultSet = ({
   cache = false,
-  csv = true,
+  isExportable = true,
   database = {},
   displayLimit,
   height,
@@ -243,13 +243,13 @@ const ResultSet = ({
   };
 
   const getExportCsvUrl = (clientId: string) =>
-    `/api/v1/sqllab/export/${clientId}/`;
+    `/api/v1/sqllab/export/${clientId}/csv/`;
 
   const getExportGoogleSheetsUrl = (clientId: string) =>
-    `/export-gsheet/${clientId}/`;
+    `/export/${clientId}/google-sheets/`;
 
   const renderControls = () => {
-    if (search || visualize || csv) {
+    if (search || visualize || isExportable) {
       let { data } = query.results;
       if (cache && query.cached) {
         data = cachedData;
@@ -268,28 +268,26 @@ const ResultSet = ({
 
       // Antd >= 4.24.0 format:
       const exportMenuItems = []
-      if (csv) {
-        exportMenuItems.push({
-          label: t('CSV'),
-          key: 'csv',
-          icon: <FileOutlined />,
-          onClick: () => window.open(getExportCsvUrl(query.id), '_blank')?.focus(),
-        })
-      }
+      exportMenuItems.push({
+        label: t('CSV'),
+        key: 'csv',
+        icon: <FileOutlined />,
+        onClick: () => window.open(getExportCsvUrl(query.id), '_blank')?.focus(),
+      })
       if (isFeatureEnabled(FeatureFlag.GOOGLE_SHEETS_EXPORT)) {
         exportMenuItems.push({
           label: t('Google Sheets'),
           key: 'google-sheets',
           icon: <GoogleOutlined />,
           onClick: () => window.open(getExportGoogleSheetsUrl(query.id), '_blank')?.focus(),
-        })
+        });
       }
       const ExportMenu = (
         <Menu>
           {exportMenuItems.map(item => (<Menu.Item key={item.key} onClick={item.onClick}> {item.icon} {item.label} </Menu.Item>))}
         </Menu>
-      )
-      const hasExports = 0 < exportMenuItems.length
+      );
+      const hasExports = 0 < exportMenuItems.length;
 
       return (
         <ResultSetControls>
