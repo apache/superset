@@ -70,7 +70,8 @@
     "storybook": "cross-env NODE_ENV=development BABEL_ENV=development start-storybook -p 6006",
     "tdd": "cross-env NODE_ENV=test jest --watch",
     "test": "cross-env NODE_ENV=test jest",
-    "type": "tsc --noEmit"
+    "type": "tsc --noEmit",
+    "validate-release": "../RELEASING/validate_this_release.sh"
   },
   "browserslist": [
     "last 3 chrome versions",
@@ -251,6 +252,7 @@
     "@testing-library/react-hooks": "^5.0.3",
     "@testing-library/user-event": "^12.7.0",
     "@types/classnames": "^2.2.10",
+    "@types/dom-to-image": "^2.6.7",
     "@types/enzyme": "^3.10.5",
     "@types/enzyme-adapter-react-16": "^1.0.6",
     "@types/fetch-mock": "^7.3.2",
@@ -259,7 +261,7 @@
     "@types/js-levenshtein": "^1.1.0",
     "@types/json-bigint": "^1.0.1",
     "@types/mousetrap": "^1.6.11",
-    "@types/react": "^16.9.43",
+    "@types/react": "^16.9.53",
     "@types/react-dom": "^16.9.8",
     "@types/react-gravatar": "^2.6.8",
     "@types/react-json-tree": "^0.6.11",
@@ -333,6 +335,7 @@
     "react-test-renderer": "^16.9.0",
     "redux-mock-store": "^1.5.4",
     "sinon": "^9.0.2",
+    "source-map": "^0.7.4",
     "source-map-support": "^0.5.21",
     "speed-measure-webpack-plugin": "^1.5.0",
     "storybook-addon-jsx": "^7.3.14",

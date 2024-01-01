@@ -147,7 +147,7 @@ DashboardRoles = Table(
 
 
 # pylint: disable=too-many-public-methods
-class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
+class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
     """The dashboard object!"""
 
     __tablename__ = "dashboards"

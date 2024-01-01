@@ -19,12 +19,12 @@
 import {
   CategoricalColorNamespace,
   DataRecord,
+  getColumnLabel,
   getMetricLabel,
   getNumberFormatter,
+  getValueFormatter,
   NumberFormats,
   ValueFormatter,
-  getColumnLabel,
-  getValueFormatter,
 } from '@superset-ui/core';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
 import { EChartsCoreOption, FunnelSeriesOption } from 'echarts';
@@ -34,6 +34,7 @@ import {
   EchartsFunnelFormData,
   EchartsFunnelLabelTypeType,
   FunnelChartTransformedProps,
+  PercentCalcType,
 } from './types';
 import {
   extractGroupbyLabel,
@@ -43,7 +44,7 @@ import {
   sanitizeHtml,
 } from '../utils/series';
 import { defaultGrid } from '../defaults';
-import { OpacityEnum, DEFAULT_LEGEND_FORM_DATA } from '../constants';
+import { DEFAULT_LEGEND_FORM_DATA, OpacityEnum } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 
@@ -53,17 +54,32 @@ export function formatFunnelLabel({
   params,
   labelType,
   numberFormatter,
+  percentCalculationType = PercentCalcType.FIRST_STEP,
   sanitizeName = false,
 }: {
-  params: Pick<CallbackDataParams, 'name' | 'value' | 'percent'>;
+  params: Pick<CallbackDataParams, 'name' | 'value' | 'percent' | 'data'>;
   labelType: EchartsFunnelLabelTypeType;
   numberFormatter: ValueFormatter;
+  percentCalculationType?: PercentCalcType;
   sanitizeName?: boolean;
 }): string {
-  const { name: rawName = '', value, percent } = params;
+  const { name: rawName = '', value, percent: totalPercent, data } = params;
   const name = sanitizeName ? sanitizeHtml(rawName) : rawName;
   const formattedValue = numberFormatter(value as number);
-  const formattedPercent = percentFormatter((percent as number) / 100);
+  const { firstStepPercent, prevStepPercent } = data as {
+    firstStepPercent: number;
+    prevStepPercent: number;
+  };
+  let percent;
+
+  if (percentCalculationType === PercentCalcType.TOTAL) {
+    percent = (totalPercent ?? 0) / 100;
+  } else if (percentCalculationType === PercentCalcType.PREV_STEP) {
+    percent = prevStepPercent ?? 0;
+  } else {
+    percent = firstStepPercent ?? 0;
+  }
+  const formattedPercent = percentFormatter(percent);
 
   switch (labelType) {
     case EchartsFunnelLabelTypeType.Key:
@@ -119,6 +135,7 @@ export default function transformProps(
     showTooltipLabels,
     showLegend,
     sliceId,
+    percentCalculationType,
   }: EchartsFunnelFormData = {
     ...DEFAULT_LEGEND_FORM_DATA,
     ...DEFAULT_FUNNEL_FORM_DATA,
@@ -154,16 +171,24 @@ export default function transformProps(
     currencyFormat,
   );
 
-  const transformedData: FunnelSeriesOption[] = data.map(datum => {
+  const transformedData: {
+    value: number;
+    name: string;
+    itemStyle: { color: string; opacity: OpacityEnum };
+  }[] = data.map((datum, index) => {
     const name = extractGroupbyLabel({
       datum,
       groupby: groupbyLabels,
       coltypeMapping: {},
     });
+    const value = datum[metricLabel] as number;
     const isFiltered =
       filterState.selectedValues && !filterState.selectedValues.includes(name);
+    const firstStepPercent = value / (data[0][metricLabel] as number);
+    const prevStepPercent =
+      index === 0 ? 1 : value / (data[index - 1][metricLabel] as number);
     return {
-      value: datum[metricLabel],
+      value,
       name,
       itemStyle: {
         color: colorFn(name, sliceId),
@@ -171,6 +196,8 @@ export default function transformProps(
           ? OpacityEnum.SemiTransparent
           : OpacityEnum.NonTransparent,
       },
+      firstStepPercent,
+      prevStepPercent,
     };
   });
 
@@ -188,7 +215,12 @@ export default function transformProps(
   );
 
   const formatter = (params: CallbackDataParams) =>
-    formatFunnelLabel({ params, numberFormatter, labelType });
+    formatFunnelLabel({
+      params,
+      numberFormatter,
+      labelType,
+      percentCalculationType,
+    });
 
   const defaultLabel = {
     formatter,
@@ -237,6 +269,7 @@ export default function transformProps(
           params,
           numberFormatter,
           labelType: tooltipLabelType,
+          percentCalculationType,
         }),
     },
     legend: {

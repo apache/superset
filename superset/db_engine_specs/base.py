@@ -1433,8 +1433,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if show_cols:
             fields = cls._get_fields(cols)
         quote = engine.dialect.identifier_preparer.quote
+        quote_schema = engine.dialect.identifier_preparer.quote_schema
         if schema:
-            full_table_name = quote(schema) + "." + quote(table_name)
+            full_table_name = quote_schema(schema) + "." + quote(table_name)
         else:
             full_table_name = quote(table_name)
 
