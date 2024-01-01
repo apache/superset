@@ -16,54 +16,53 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { DownOutlined, FileOutlined, GoogleOutlined } from '@ant-design/icons';
+import {
+    css, FeatureFlag, getExtensionsRegistry, getNumberFormatter, isFeatureEnabled, QueryResponse,
+    QueryState,
+    styled,
+    t,
+    tn, usePrevious, useTheme
+} from '@superset-ui/core';
+import { Space } from 'antd';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useHistory } from 'react-router-dom';
-import ButtonGroup from 'src/components/ButtonGroup';
+import shortid from 'shortid';
+import { AntdDropdown } from 'src/components';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
-import shortid from 'shortid';
-import {
-  QueryResponse,
-  QueryState,
-  styled,
-  t,
-  tn,
-  useTheme,
-  usePrevious,
-  css,
-  getNumberFormatter,
-  getExtensionsRegistry,
-} from '@superset-ui/core';
+import ButtonGroup from 'src/components/ButtonGroup';
+import Card from 'src/components/Card';
+import CopyToClipboard from 'src/components/CopyToClipboard';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
-import {
-  ISaveableDatasource,
-  ISimpleColumn,
-  SaveDatasetModal,
-} from 'src/SqlLab/components/SaveDatasetModal';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import { EXPLORE_CHART_DEFAULT } from 'src/SqlLab/types';
+import FilterableTable from 'src/components/FilterableTable';
+import Icons from 'src/components/Icons';
+import Label from 'src/components/Label';
+import Loading from 'src/components/Loading';
+import { Menu } from 'src/components/Menu';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
+import ProgressBar from 'src/components/ProgressBar';
+import { Tooltip } from 'src/components/Tooltip';
+import { URL_PARAMS } from 'src/constants';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
-import ProgressBar from 'src/components/ProgressBar';
-import Loading from 'src/components/Loading';
-import Card from 'src/components/Card';
-import Label from 'src/components/Label';
-import { Tooltip } from 'src/components/Tooltip';
-import FilterableTable from 'src/components/FilterableTable';
-import CopyToClipboard from 'src/components/CopyToClipboard';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
-import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import {
-  addQueryEditor,
-  clearQueryResults,
-  CtasEnum,
-  fetchQueryResults,
-  reFetchQueryResults,
-  reRunQuery,
+    addQueryEditor,
+    clearQueryResults,
+    CtasEnum,
+    fetchQueryResults,
+    reFetchQueryResults,
+    reRunQuery
 } from 'src/SqlLab/actions/sqlLab';
-import { URL_PARAMS } from 'src/constants';
-import Icons from 'src/components/Icons';
+import {
+    ISaveableDatasource,
+    ISimpleColumn,
+    SaveDatasetModal
+} from 'src/SqlLab/components/SaveDatasetModal';
+import { EXPLORE_CHART_DEFAULT } from 'src/SqlLab/types';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
@@ -142,7 +141,6 @@ const extensionsRegistry = getExtensionsRegistry();
 const ResultSet = ({
   cache = false,
   csv = true,
-  gsheet = true,
   database = {},
   displayLimit,
   height,
@@ -248,7 +246,7 @@ const ResultSet = ({
     `/api/v1/sqllab/export/${clientId}/`;
 
   const getExportGoogleSheetsUrl = (clientId: string) =>
-    `/api/v1/sqllab/export-gsheet/${clientId}/`;
+    `/export-gsheet/${clientId}/`;
 
   const renderControls = () => {
     if (search || visualize || csv) {
@@ -267,6 +265,31 @@ const ResultSet = ({
         templateParams: query?.templateParams,
         schema: query?.schema,
       };
+
+      // Antd >= 4.24.0 format:
+      const exportMenuItems = []
+      if (csv) {
+        exportMenuItems.push({
+          label: t('CSV'),
+          key: 'csv',
+          icon: <FileOutlined />,
+          onClick: () => window.open(getExportCsvUrl(query.id), '_blank')?.focus(),
+        })
+      }
+      if (isFeatureEnabled(FeatureFlag.GOOGLE_SHEETS_EXPORT)) {
+        exportMenuItems.push({
+          label: t('Google Sheets'),
+          key: 'google-sheets',
+          icon: <GoogleOutlined />,
+          onClick: () => window.open(getExportGoogleSheetsUrl(query.id), '_blank')?.focus(),
+        })
+      }
+      const ExportMenu = (
+        <Menu>
+          {exportMenuItems.map(item => (<Menu.Item key={item.key} onClick={item.onClick}> {item.icon} {item.label} </Menu.Item>))}
+        </Menu>
+      )
+      const hasExports = 0 < exportMenuItems.length
 
       return (
         <ResultSetControls>
@@ -287,15 +310,15 @@ const ResultSet = ({
                 onClick={createExploreResultsOnClick}
               />
             )}
-            {csv && (
-              <Button buttonSize="small" href={getExportCsvUrl(query.id)}>
-                <i className="fa fa-file-text-o" /> {t('Download to CSV')}
-              </Button>
-            )}
-            {gsheet && (
-              <Button buttonSize="small" href={getExportGoogleSheetsUrl(query.id)}>
-                <i className="fa fa-file-text-o" /> {t('Export to Sheets')}
-              </Button>
+            {hasExports && (
+              <AntdDropdown overlay={ExportMenu}>
+                <Button>
+                  <Space>
+                    Export
+                    <DownOutlined />
+                  </Space>
+                </Button>
+              </AntdDropdown>
             )}
 
             <CopyToClipboard

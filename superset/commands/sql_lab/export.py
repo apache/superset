@@ -133,7 +133,7 @@ class SqlResultPandasExportCommand(BaseCommand):
     ):
         self.validate()
         return {
-                'query': self._query(),
+                'query': self._query,
                 'data': _get_query_df(self._query),
         }
 

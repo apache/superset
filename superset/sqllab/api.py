@@ -343,7 +343,7 @@ class SqlLabRestApi(BaseSupersetApi):
 
         result = SqlResultPandasExportCommand(client_id=client_id).run()
 
-        query, df = result["query"], result["df"]
+        query, df = result["query"], result["data"]
 
         sheet_id = upload_df_to_new_sheet(query.name, df)
 
