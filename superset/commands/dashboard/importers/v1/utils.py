@@ -141,10 +141,9 @@ def update_id_refs(  # pylint: disable=too-many-locals
             native_filter["scope"]["excluded"] = [
                 id_map[old_id] for old_id in scope_excluded if old_id in id_map
             ]
-    
     # fix cross filter references
     cross_filter_globalconfiguration = fixed.get("metadata", {}).get(
-        "global_chart_configuration", {}
+        "global_chart_configuration", []
     )    
     scope_excluded = cross_filter_globalconfiguration.get("scope", {}).get("excluded", [])
     if scope_excluded:
@@ -169,8 +168,7 @@ def update_id_refs(  # pylint: disable=too-many-locals
                 if scope_excluded:
                     excluded_charts["crossFilters"]["scope"]["excluded"] = [
                     id_map[old_id] for old_id in scope_excluded if old_id in id_map
-                ] 
-
+                ]
     return fixed
 
 
