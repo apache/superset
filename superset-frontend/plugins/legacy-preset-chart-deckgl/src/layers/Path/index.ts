@@ -19,12 +19,14 @@
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import thumbnail from './images/thumbnail.png';
 import transformProps from '../../transformProps';
+import example1 from './images/example1.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
   category: t('Map'),
   credits: ['https://uber.github.io/deck.gl'],
   description: t('Visualizes connected points, which form a path, on a map.'),
+  exampleGallery: [{ url: example1 }],
   name: t('deck.gl Path'),
   thumbnail,
   useLegacyApi: true,

@@ -19,6 +19,8 @@
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import transformProps from '../../transformProps';
 import controlPanel from './controlPanel';
+import example1 from './images/example1.png';
+import example2 from './images/example2.png';
 import thumbnail from './images/thumbnail.png';
 
 const metadata = new ChartMetadata({
@@ -27,6 +29,7 @@ const metadata = new ChartMetadata({
   description: t(
     'Uses Gaussian Kernel Density Estimation to visualize spatial distribution of data',
   ),
+  exampleGallery: [{ url: example1 }, { url: example2 }],
   name: t('deck.gl Heatmap'),
   thumbnail,
   useLegacyApi: true,

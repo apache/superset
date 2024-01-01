@@ -19,6 +19,8 @@
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import thumbnail from './images/thumbnail.png';
 import transformProps from '../../transformProps';
+import example1 from './images/example1.png';
+import example2 from './images/example2.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
@@ -27,6 +29,7 @@ const metadata = new ChartMetadata({
   description: t(
     'A map that takes rendering circles with a variable radius at latitude/longitude coordinates',
   ),
+  exampleGallery: [{ url: example1 }, { url: example2 }],
   name: t('deck.gl Scatterplot'),
   thumbnail,
   useLegacyApi: true,

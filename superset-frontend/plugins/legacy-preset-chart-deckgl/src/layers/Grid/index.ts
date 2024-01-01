@@ -19,6 +19,7 @@
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import thumbnail from './images/thumbnail.png';
 import transformProps from '../../transformProps';
+import example1 from './images/example1.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
@@ -27,6 +28,7 @@ const metadata = new ChartMetadata({
   description: t(
     'Visualize geospatial data like 3D buildings, landscapes, or objects in grid view.',
   ),
+  exampleGallery: [{ url: example1 }],
   name: t('deck.gl Grid'),
   thumbnail,
   useLegacyApi: true,
