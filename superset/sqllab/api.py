@@ -345,7 +345,7 @@ class SqlLabRestApi(BaseSupersetApi):
 
         query, df = result["query"], result["df"]
 
-        sheet = upload_df_to_new_sheet(query.name, df)
+        sheet_id = upload_df_to_new_sheet(query.name, df)
 
         event_info = {
             "event_type": "data_export",
@@ -360,7 +360,7 @@ class SqlLabRestApi(BaseSupersetApi):
         logger.debug(
             "GSheet exported: %s", event_rep, extra={"superset_event": event_info}
         )
-        return self.response(200, sheet_id=sheet.id)
+        return self.response(200, sheet_id=sheet_id)
 
     @expose("/results/")
     @protect()

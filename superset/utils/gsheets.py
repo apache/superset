@@ -47,7 +47,7 @@ if feature_flag_manager.is_feature_enabled("GOOGLE_SHEETS_EXPORT"):
     assert {'email_address', 'perm_type', 'role'} <= current_app.config['GOOGLE_SHEETS_EXPORT_SHARE_PERMISSIONS'].keys()
  
  
-def upload_df_to_new_sheet(name: str, df: pd.DataFrame) -> gspread.Spreadsheet: 
+def upload_df_to_new_sheet(name: str, df: pd.DataFrame) -> str: 
     gc = gspread.service_account( 
          filename=current_app.config['GOOGLE_SHEETS_EXPORT_SERVICE_ACCOUNT_JSON_PATH'], 
          ) 
@@ -57,4 +57,4 @@ def upload_df_to_new_sheet(name: str, df: pd.DataFrame) -> gspread.Spreadsheet:
             values=([df.columns.values.tolist()] + df.values.tolist()), 
             ) 
     s.share(**current_app.config['GOOGLE_SHEETS_EXPORT_SHARE_PERMISSIONS']) 
-    return s 
+    return s.id
