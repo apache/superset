@@ -150,7 +150,7 @@ export default function transformProps(
     datasource,
   } = chartProps;
   const { columnFormats = {}, currencyFormats = {} } = datasource;
-  const { data = [] } = queriesData[0];
+  let { data = [] } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
 
   const {
@@ -183,6 +183,9 @@ export default function transformProps(
   const metricLabel = getMetricLabel(metric);
   const groupbyLabels = groupby.map(getColumnLabel);
   const minShowLabelAngle = (showLabelsThreshold || 0) * 3.6;
+  if (formData.sortByMetric) {
+    data = data.sort((a, b) => Number(b[metricLabel]) - Number(a[metricLabel]));
+  }
 
   const keys = data.map(datum =>
     extractGroupbyLabel({
