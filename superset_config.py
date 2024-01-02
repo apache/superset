@@ -80,8 +80,8 @@ AUTH_ROLES_SYNC_AT_LOGIN = True
 
 # Roles mapping with OAuth roles_key claim
 AUTH_ROLES_MAPPING = {
-    "superset_super_users": ["Gamma", "Alpha"],
-    "superset_users": ["Account"],
+    "superset_super_users": ["Standard User", "Super User", "sql_lab"],
+    "superset_users": ["Standard User"],
     "superset_admins": ["Admin"],
 }
 

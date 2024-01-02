@@ -24,6 +24,17 @@ class CustomSsoSecurityManager(SupersetSecurityManager):
 
             logger.debug("Auth0 user_data: %s", me)
 
+            email = me["email"]
+
+            organization: str = me["organization"] if "organization" in me else None
+
+            superset_roles: list[str] = me["role_keys"] if "role_keys" in me else []
+
+            if organization is not None and len(organization) > 0:
+                superset_roles.append(organization.capitalize())
+            else:
+                logger.error(f"User ${email} does not have an organization.")
+
             given_name = (
                 me["given_name"]
                 if "given_name" in me
@@ -44,9 +55,8 @@ class CustomSsoSecurityManager(SupersetSecurityManager):
             return {
                 "username": me["email"],
                 "name": me["name"],
-                "email": me["email"],
+                "email": email,
                 "first_name": given_name,
                 "last_name": family_name,
-                "role_keys": me["role_keys"] if "role_keys" in me else [],
-                # "organization": me["organization"],
+                "role_keys": superset_roles,
             }
