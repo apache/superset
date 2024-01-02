@@ -299,7 +299,7 @@ const ResultSet = ({
           ))}
         </Menu>
       );
-      const hasExports = 0 < exportMenuItems.length;
+      const hasExports = exportMenuItems.length > 0;
 
       return (
         <ResultSetControls>

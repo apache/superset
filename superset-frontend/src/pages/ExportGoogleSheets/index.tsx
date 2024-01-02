@@ -35,6 +35,9 @@ export default function ExportGoogleSheets() {
     error: any;
   }>({ isLoading: true, data: null, error: null });
   useEffect(() => {
+    if (!dispatch || !clientId) {
+      return;
+    }
     dispatch(
       addInfoToast(t('Exporting results to Google Sheets'), { duration: 0 }),
     );
@@ -43,8 +46,11 @@ export default function ExportGoogleSheets() {
     })
       .then(res => setState({ data: res.json, isLoading: false, error: null }))
       .catch(e => setState({ data: null, isLoading: false, error: e }));
-  }, []);
+  }, [dispatch, clientId]);
   useEffect(() => {
+    if (!dispatch) {
+      return;
+    }
     if (error) {
       (async () => {
         const message =
@@ -55,10 +61,10 @@ export default function ExportGoogleSheets() {
         dispatch(addDangerToast(message, { duration: 0 }));
       })();
     }
-  }, [error]);
+  }, [dispatch, error]);
   useEffect(() => {
-    if (data?.['sheet_id']) {
-      window.location.href = `https://docs.google.com/spreadsheets/d/${data['sheet_id']}/`;
+    if (data?.sheet_id) {
+      window.location.href = `https://docs.google.com/spreadsheets/d/${data.sheet_id}/`;
     }
   }, [data]);
 
