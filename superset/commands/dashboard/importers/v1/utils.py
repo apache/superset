@@ -142,6 +142,12 @@ def update_id_refs(  # pylint: disable=too-many-locals
                 id_map[old_id] for old_id in scope_excluded if old_id in id_map
             ]
 
+        charts_in_scope = native_filter.get("chartsInScope", [])
+        if charts_in_scope:
+            native_filter["chartsInScope"] = [
+                id_map[old_id] for old_id in charts_in_scope if old_id in id_map
+            ]
+
     return fixed
 
 
