@@ -123,6 +123,53 @@ def test_update_native_filter_config_scope_excluded():
     }
 
 
+def test_update_native_filter_charts_in_scope():
+    """
+    Test that chartsInScope references in native filters are updated during import.
+
+    This is a fix for issue #26338 - chartsInScope references were not being
+    updated to use new chart IDs during dashboard import.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config = {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 101, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+            "CHART2": {
+                "id": "CHART2",
+                "meta": {"chartId": 102, "uuid": "uuid2"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {
+            "native_filter_configuration": [{"chartsInScope": [101, 102, 103]}],
+        },
+    }
+    chart_ids = {"uuid1": 1, "uuid2": 2}
+    dataset_info: dict[str, dict[str, Any]] = {}  # not used
+
+    fixed = update_id_refs(config, chart_ids, dataset_info)
+    assert fixed == {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 1, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+            "CHART2": {
+                "id": "CHART2",
+                "meta": {"chartId": 2, "uuid": "uuid2"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {"native_filter_configuration": [{"chartsInScope": [1, 2]}]},
+    }
+
+
 def test_update_id_refs_cross_filter_chart_configuration_key_and_excluded_mapping():
     from superset.commands.dashboard.importers.v1.utils import update_id_refs
 
@@ -284,3 +331,76 @@ def test_update_id_refs_handles_missing_time_grains():
     filter_config = fixed["metadata"]["native_filter_configuration"][0]
     assert filter_config.get("filterType") == "filter_timegrain"
     assert "time_grains" not in filter_config
+
+
+def test_update_id_refs_cross_filter_charts_in_scope():
+    """
+    Test that chartsInScope references in cross-filter configurations are updated.
+
+    This is a fix for issue #26338 - chartsInScope references in chart_configuration
+    and global_chart_configuration were not being updated during dashboard import.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config: dict[str, Any] = {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 101, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+            "CHART2": {
+                "id": "CHART2",
+                "meta": {"chartId": 102, "uuid": "uuid2"},
+                "type": "CHART",
+            },
+            "CHART3": {
+                "id": "CHART3",
+                "meta": {"chartId": 103, "uuid": "uuid3"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {
+            "chart_configuration": {
+                "101": {
+                    "id": 101,
+                    "crossFilters": {
+                        "chartsInScope": [102, 103],
+                        "scope": {"excluded": [101]},
+                    },
+                },
+                "102": {
+                    "id": 102,
+                    "crossFilters": {
+                        "chartsInScope": [101, 103, 999],  # 999 should be dropped
+                        "scope": {"excluded": []},
+                    },
+                },
+            },
+            "global_chart_configuration": {
+                "chartsInScope": [101, 102, 103, 999],  # 999 should be dropped
+                "scope": {"excluded": [103]},
+            },
+        },
+    }
+
+    chart_ids = {"uuid1": 1, "uuid2": 2, "uuid3": 3}
+    dataset_info: dict[str, dict[str, Any]] = {}
+
+    fixed = update_id_refs(config, chart_ids, dataset_info)
+
+    metadata = fixed["metadata"]
+
+    # Check chart_configuration chartsInScope is updated
+    assert metadata["chart_configuration"]["1"]["crossFilters"]["chartsInScope"] == [
+        2,
+        3,
+    ]
+    assert metadata["chart_configuration"]["2"]["crossFilters"]["chartsInScope"] == [
+        1,
+        3,
+    ]
+
+    # Check global_chart_configuration chartsInScope is updated
+    assert metadata["global_chart_configuration"]["chartsInScope"] == [1, 2, 3]
+    assert metadata["global_chart_configuration"]["scope"]["excluded"] == [3]
