@@ -302,10 +302,10 @@ class SqlLabRestApi(BaseSupersetApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".export_gsheet",
+        f".export_google_sheets",
         log_to_statsd=False,
     )
-    def export_gsheet(self, client_id: str) -> CsvResponse:
+    def export_google_sheets(self, client_id: str) -> CsvResponse:
         """Export the SQL query results to a Google Sheet.
         ---
         get:
