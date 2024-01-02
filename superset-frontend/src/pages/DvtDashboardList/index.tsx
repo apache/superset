@@ -110,6 +110,8 @@ function DvtDashboardList() {
       }
     };
     fetchApi();
+    setSelectedRows([]);
+    setSelectedItemCount(0);
   }, [currentPage]);
 
   useEffect(() => {
