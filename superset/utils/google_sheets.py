@@ -31,14 +31,6 @@ try:
 except ModuleNotFoundError:
     pass
  
-# GOOGLE_SHEETS_EXPORT_SERVICE_ACCOUNT_JSON_PATH="jessies-sandbox-408009-fd8ec620014b.json" 
- 
-# GOOGLE_SHEETS_EXPORT_SHARE_PERMISSIONS={ 
-#     'email_address': "a8c.com", 
-#     'perm_type': "domain", 
-#     'role': "writer", 
-# } 
-
 if feature_flag_manager.is_feature_enabled("GOOGLE_SHEETS_EXPORT"):
     assert LIB_GSPREAD_AVAILABLE
     assert isinstance(current_app.config['GOOGLE_SHEETS_EXPORT_SERVICE_ACCOUNT_JSON_PATH'], str)
@@ -48,6 +40,7 @@ if feature_flag_manager.is_feature_enabled("GOOGLE_SHEETS_EXPORT"):
  
  
 def upload_df_to_new_sheet(name: str, df: pd.DataFrame) -> str: 
+    assert feature_flag_manager.is_feature_enabled("GOOGLE_SHEETS_EXPORT")
     gc = gspread.service_account( 
          filename=current_app.config['GOOGLE_SHEETS_EXPORT_SERVICE_ACCOUNT_JSON_PATH'], 
          ) 

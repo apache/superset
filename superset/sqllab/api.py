@@ -63,7 +63,7 @@ from superset.sqllab.utils import bootstrap_sqllab_data
 from superset.sqllab.validators import CanAccessQueryValidatorImpl
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
-from superset.utils.gsheets import upload_df_to_new_sheet
+from superset.utils.google_sheets import upload_df_to_new_sheet
 from superset.views.base import CsvResponse, generate_download_headers, json_success
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 
