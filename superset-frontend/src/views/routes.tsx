@@ -128,7 +128,10 @@ const Profile = lazy(
 );
 
 const ExportGoogleSheets = lazy(
-  () => import(/* webpackChunkName: "ExportGoogleSheets" */ 'src/pages/ExportGoogleSheets'),
+  () =>
+    import(
+      /* webpackChunkName: "ExportGoogleSheets" */ 'src/pages/ExportGoogleSheets'
+    ),
 );
 
 type Routes = {

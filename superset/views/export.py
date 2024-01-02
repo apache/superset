@@ -18,12 +18,9 @@ import contextlib
 
 import simplejson as json
 from flask import request
-from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose
-from flask_appbuilder.security.decorators import has_access
 
 from superset import event_logger
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.superset_typing import FlaskResponse
 
 from .base import BaseSupersetView
@@ -32,9 +29,11 @@ from .base import BaseSupersetView
 class ExportView(BaseSupersetView):
     route_base = "/export"
 
-    @expose("/<string:clientId>/google-sheets/", methods=("GET",))
+    @expose("/<string:client_id>/google-sheets/", methods=("GET",))
     @event_logger.log_this
-    def google_sheets(self, clientId: int) -> FlaskResponse:  # pylint: disable=unused-argument
+    def google_sheets(
+        self, client_id: int  # pylint: disable=unused-argument
+    ) -> FlaskResponse:
         payload = {}
         if form_data := request.form.get("form_data"):
             with contextlib.suppress(json.JSONDecodeError):

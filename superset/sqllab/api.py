@@ -29,7 +29,10 @@ from marshmallow import ValidationError
 from superset import app, is_feature_enabled
 from superset.commands.sql_lab.estimate import QueryEstimationCommand
 from superset.commands.sql_lab.execute import CommandResult, ExecuteSqlCommand
-from superset.commands.sql_lab.export import SqlResultCsvExportCommand, SqlResultPandasExportCommand
+from superset.commands.sql_lab.export import (
+    SqlResultCsvExportCommand,
+    SqlResultPandasExportCommand,
+)
 from superset.commands.sql_lab.results import SqlExecutionResultsCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.daos.database import DatabaseDAO
@@ -339,7 +342,7 @@ class SqlLabRestApi(BaseSupersetApi):
             501:
               $ref: '#/components/responses/501'
         """
-        if not is_feature_enabled('GOOGLE_SHEETS_EXPORT'):
+        if not is_feature_enabled("GOOGLE_SHEETS_EXPORT"):
             return self.response(501, message="GOOGLE_SHEETS_EXPORT is not enabled")
 
         result = SqlResultPandasExportCommand(client_id=client_id).run()

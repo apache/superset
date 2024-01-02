@@ -37,10 +37,8 @@ config = app.config
 logger = logging.getLogger(__name__)
 
 
-def _get_query(client_id) -> Query:
-    query = (
-        db.session.query(Query).filter_by(client_id=client_id).one_or_none()
-    )
+def _get_query(client_id: str) -> Query:
+    query = db.session.query(Query).filter_by(client_id=client_id).one_or_none()
     if query is None:
         raise SupersetErrorException(
             SupersetError(
@@ -68,18 +66,15 @@ def _get_query(client_id) -> Query:
 
     return query
 
-def _get_query_df(query):
+
+def _get_query_df(query: Query) -> pd.DataFrame:
     blob = None
     if results_backend and query.results_key:
-        logger.info(
-            "Fetching data from results backend [%s]", query.results_key
-        )
+        logger.info("Fetching data from results backend [%s]", query.results_key)
         blob = results_backend.get(query.results_key)
     if blob:
         logger.info("Decompressing")
-        payload = utils.zlib_decompress(
-            blob, decode=not results_backend_use_msgpack
-        )
+        payload = utils.zlib_decompress(blob, decode=not results_backend_use_msgpack)
         obj = _deserialize_results_payload(
             payload, query, cast(bool, results_backend_use_msgpack)
         )
@@ -130,13 +125,12 @@ class SqlResultPandasExportCommand(BaseCommand):
 
     def run(
         self,
-    ):
+    ) -> SqlPandasExportResult:
         self.validate()
         return {
-                'query': self._query,
-                'data': _get_query_df(self._query),
+            "query": self._query,
+            "data": _get_query_df(self._query),
         }
-
 
 
 class SqlCsvExportResult(TypedDict):

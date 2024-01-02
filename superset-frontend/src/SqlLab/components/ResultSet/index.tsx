@@ -18,11 +18,18 @@
  */
 import { DownOutlined, FileOutlined, GoogleOutlined } from '@ant-design/icons';
 import {
-    css, FeatureFlag, getExtensionsRegistry, getNumberFormatter, isFeatureEnabled, QueryResponse,
-    QueryState,
-    styled,
-    t,
-    tn, usePrevious, useTheme
+  css,
+  FeatureFlag,
+  getExtensionsRegistry,
+  getNumberFormatter,
+  isFeatureEnabled,
+  QueryResponse,
+  QueryState,
+  styled,
+  t,
+  tn,
+  usePrevious,
+  useTheme,
 } from '@superset-ui/core';
 import { Space } from 'antd';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -48,17 +55,17 @@ import { URL_PARAMS } from 'src/constants';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import {
-    addQueryEditor,
-    clearQueryResults,
-    CtasEnum,
-    fetchQueryResults,
-    reFetchQueryResults,
-    reRunQuery
+  addQueryEditor,
+  clearQueryResults,
+  CtasEnum,
+  fetchQueryResults,
+  reFetchQueryResults,
+  reRunQuery,
 } from 'src/SqlLab/actions/sqlLab';
 import {
-    ISaveableDatasource,
-    ISimpleColumn,
-    SaveDatasetModal
+  ISaveableDatasource,
+  ISimpleColumn,
+  SaveDatasetModal,
 } from 'src/SqlLab/components/SaveDatasetModal';
 import { EXPLORE_CHART_DEFAULT } from 'src/SqlLab/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -267,24 +274,30 @@ const ResultSet = ({
       };
 
       // Antd >= 4.24.0 format:
-      const exportMenuItems = []
+      const exportMenuItems = [];
       exportMenuItems.push({
         label: t('CSV'),
         key: 'csv',
         icon: <FileOutlined />,
-        onClick: () => window.open(getExportCsvUrl(query.id), '_blank')?.focus(),
-      })
+        onClick: () =>
+          window.open(getExportCsvUrl(query.id), '_blank')?.focus(),
+      });
       if (isFeatureEnabled(FeatureFlag.GOOGLE_SHEETS_EXPORT)) {
         exportMenuItems.push({
           label: t('Google Sheets'),
           key: 'google-sheets',
           icon: <GoogleOutlined />,
-          onClick: () => window.open(getExportGoogleSheetsUrl(query.id), '_blank')?.focus(),
+          onClick: () =>
+            window.open(getExportGoogleSheetsUrl(query.id), '_blank')?.focus(),
         });
       }
       const ExportMenu = (
         <Menu>
-          {exportMenuItems.map(item => (<Menu.Item key={item.key} onClick={item.onClick}> {item.icon} {item.label} </Menu.Item>))}
+          {exportMenuItems.map(item => (
+            <Menu.Item key={item.key} onClick={item.onClick}>
+              {item.icon} {item.label}
+            </Menu.Item>
+          ))}
         </Menu>
       );
       const hasExports = 0 < exportMenuItems.length;

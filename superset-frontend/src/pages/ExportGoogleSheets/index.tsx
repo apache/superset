@@ -21,31 +21,44 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useParams } from 'react-router-dom';
 import Loading from 'src/components/Loading';
-import { addDangerToast, addInfoToast } from 'src/components/MessageToasts/actions';
+import {
+  addDangerToast,
+  addInfoToast,
+} from 'src/components/MessageToasts/actions';
 
 export default function ExportGoogleSheets() {
   const { clientId }: any = useParams();
   const dispatch = useDispatch();
-  const [{ isLoading, data, error }, setState ] = useState<{isLoading: boolean; data: any; error: any}>({ isLoading: true, data: null, error: null })
+  const [{ isLoading, data, error }, setState] = useState<{
+    isLoading: boolean;
+    data: any;
+    error: any;
+  }>({ isLoading: true, data: null, error: null });
   useEffect(() => {
-    dispatch(addInfoToast(t('Exporting results to Google Sheets'), { duration: 0 }))
+    dispatch(
+      addInfoToast(t('Exporting results to Google Sheets'), { duration: 0 }),
+    );
     SupersetClient.get({
       endpoint: `/api/v1/sqllab/export/${clientId}/google-sheets/`,
     })
-    .then((res) => setState({ data: res.json, isLoading: false, error: null }))
-    .catch((e) => setState({ data: null, isLoading: false, error: e }))
-  }, [])
+      .then(res => setState({ data: res.json, isLoading: false, error: null }))
+      .catch(e => setState({ data: null, isLoading: false, error: e }));
+  }, []);
   useEffect(() => {
     if (error) {
       (async () => {
-        const message = (await error?.json())?.message || await error?.text() || error?.message || t('Unknown error.');
+        const message =
+          (await error?.json())?.message ||
+          (await error?.text()) ||
+          error?.message ||
+          t('Unknown error.');
         dispatch(addDangerToast(message, { duration: 0 }));
-      })()
+      })();
     }
-  }, [error])
+  }, [error]);
   useEffect(() => {
-    if (data?.["sheet_id"]) {
-      window.location.href = `https://docs.google.com/spreadsheets/d/${data["sheet_id"]}/`;
+    if (data?.['sheet_id']) {
+      window.location.href = `https://docs.google.com/spreadsheets/d/${data['sheet_id']}/`;
     }
   }, [data]);
 

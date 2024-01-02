@@ -17,37 +17,47 @@
 
 "Google Sheets Export features"
 
-import datetime 
+import datetime
 import os
 
-import pandas as pd 
+import pandas as pd
 from flask import current_app
+
 from superset import feature_flag_manager
- 
+
 LIB_GSPREAD_AVAILABLE = False
 try:
     import gspread
+
     LIB_GSPREAD_AVAILABLE = True
 except ModuleNotFoundError:
     pass
- 
+
 if feature_flag_manager.is_feature_enabled("GOOGLE_SHEETS_EXPORT"):
     assert LIB_GSPREAD_AVAILABLE
-    assert isinstance(current_app.config['GOOGLE_SHEETS_EXPORT_SERVICE_ACCOUNT_JSON_PATH'], str)
-    assert os.path.exists(current_app.config['GOOGLE_SHEETS_EXPORT_SERVICE_ACCOUNT_JSON_PATH'])
-    assert isinstance(current_app.config['GOOGLE_SHEETS_EXPORT_SHARE_PERMISSIONS'], dict)
-    assert {'email_address', 'perm_type', 'role'} <= current_app.config['GOOGLE_SHEETS_EXPORT_SHARE_PERMISSIONS'].keys()
- 
- 
-def upload_df_to_new_sheet(name: str, df: pd.DataFrame) -> str: 
+    assert isinstance(
+        current_app.config["GOOGLE_SHEETS_EXPORT_SERVICE_ACCOUNT_JSON_PATH"], str
+    )
+    assert os.path.exists(
+        current_app.config["GOOGLE_SHEETS_EXPORT_SERVICE_ACCOUNT_JSON_PATH"]
+    )
+    assert isinstance(
+        current_app.config["GOOGLE_SHEETS_EXPORT_SHARE_PERMISSIONS"], dict
+    )
+    assert {"email_address", "perm_type", "role"} <= current_app.config[
+        "GOOGLE_SHEETS_EXPORT_SHARE_PERMISSIONS"
+    ].keys()
+
+
+def upload_df_to_new_sheet(name: str, df: pd.DataFrame) -> str:
     assert feature_flag_manager.is_feature_enabled("GOOGLE_SHEETS_EXPORT")
-    gc = gspread.service_account( 
-         filename=current_app.config['GOOGLE_SHEETS_EXPORT_SERVICE_ACCOUNT_JSON_PATH'], 
-         ) 
-    s = gc.create(f'{name} {datetime.datetime.utcnow().isoformat()}') 
-    s.sheet1.update( 
-            range_name='A1', 
-            values=([df.columns.values.tolist()] + df.values.tolist()), 
-            ) 
-    s.share(**current_app.config['GOOGLE_SHEETS_EXPORT_SHARE_PERMISSIONS']) 
-    return s.id
+    gc = gspread.service_account(
+        filename=current_app.config["GOOGLE_SHEETS_EXPORT_SERVICE_ACCOUNT_JSON_PATH"],
+    )
+    spreadsheet = gc.create(f"{name} {datetime.datetime.utcnow().isoformat()}")
+    spreadsheet.sheet1.update(
+        range_name="A1",
+        values=([df.columns.values.tolist()] + df.values.tolist()),
+    )
+    spreadsheet.share(**current_app.config["GOOGLE_SHEETS_EXPORT_SHARE_PERMISSIONS"])
+    return spreadsheet.id
