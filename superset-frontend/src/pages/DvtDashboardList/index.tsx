@@ -71,6 +71,7 @@ function DvtDashboardList() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [selectedItemCount, setSelectedItemCount] = useState<number>(0);
   const [data, setData] = useState([]);
+  const [count, setCount] = useState<number>(0);
 
   const history = useHistory<{ from: string }>();
 
@@ -85,20 +86,31 @@ function DvtDashboardList() {
         const data = await response.json();
         setData(
           data.result.map((item: any) => ({
+            id: item.id,
             dashboard_title: item.dashboard_title,
             changed_by_name: item.changed_by_name,
             status: item.status,
             created_on_delta_humanized: item.created_on_delta_humanized,
-            owners: `${item.owners.first_name} ${item.owners.last_name}`,
-            createdbyName: `${item.created_by.first_name} ${item.created_by.last_name}`,
+            owners: item.owners.length
+              ? item.owners
+                  .map(
+                    (item: { first_name: string; last_name: string }) =>
+                      `${item.first_name} ${item.last_name}`,
+                  )
+                  .join(',')
+              : '',
+            createdbyName: item.changed_by
+              ? `${item.changed_by.first_name} ${item.changed_by.last_name}`
+              : '',
           })),
         );
+        setCount(data.count);
       } catch (error) {
         console.log('Error:', error);
       }
     };
     fetchApi();
-  }, []);
+  }, [currentPage]);
 
   useEffect(() => {
     setSelectedItemCount(selectedRows.length);
@@ -112,7 +124,7 @@ function DvtDashboardList() {
   const handleCreateDashboard = () => {
     history.push('/superset/dashboard');
   };
-  console.log(data);
+
   return (
     <StyledDashboardList>
       <StyledDashboardListButtons>
@@ -175,7 +187,7 @@ function DvtDashboardList() {
           <DvtPagination
             page={currentPage}
             setPage={setCurrentPage}
-            itemSize={data.length}
+            itemSize={count}
             pageItemSize={10}
           />
         </StyledDashboardPagination>
