@@ -604,10 +604,9 @@ const DvtSidebarData: SidebarDataProps[] = [
       },
       {
         values: [
-          { label: 'Lorem ıpsum', value: 'Lorem ıpsum' },
-          { label: 'Dolor Sit Amet', value: 'Dolor Sit Amet' },
-          { label: 'Lorem ıpsum', value: 'Lorem ıpsum' },
-          { label: 'Dolor Sit Amet', value: 'Dolor Sit Amet' },
+          { label: 'Popular', value: 'Lorem ıpsum' },
+          { label: 'ECharts', value: 'Dolor Sit Amet' },
+          { label: 'Advanced-Analytics', value: 'Lorem ıpsum' },
         ],
         placeholder: 'Recommended Tags',
         name: 'ML_AI',
