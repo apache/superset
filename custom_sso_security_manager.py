@@ -23,13 +23,30 @@ class CustomSsoSecurityManager(SupersetSecurityManager):
             # https://github.com/dpgaspar/Flask-AppBuilder/blob/dae4dd47d51e1e2eb5894bce55221c1d26864c3b/flask_appbuilder/security/manager.py#L1287-L1302
 
             logger.debug("Auth0 user_data: %s", me)
+
+            given_name = (
+                me["given_name"]
+                if "given_name" in me
+                else me["name"].split(" ")[0]
+                if len(me["name"].split(" ")) > 0
+                else ""
+            )
+
+            family_name = (
+                me["family_name"]
+                if "family_name" in me
+                else me["name"].split(" ")[1]
+                if len(me["name"].split(" ")) > 1
+                else ""
+            )
+
             # prefix = "Superset"
             return {
                 "username": me["email"],
                 "name": me["name"],
                 "email": me["email"],
-                "first_name": me["given_name"],
-                "last_name": me["family_name"],
+                "first_name": given_name,
+                "last_name": family_name,
                 "role_keys": me["role_keys"] if "role_keys" in me else [],
                 # "organization": me["organization"],
             }
