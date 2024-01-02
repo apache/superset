@@ -34,7 +34,9 @@ metadata:
   annotations: {{- toYaml .Values.supersetNode.deploymentAnnotations | nindent 4 }}
   {{- end }}
 spec:
+  {{- if not .Values.supersetNode.autoscaling.enabled }}
   replicas: {{ .Values.supersetNode.replicaCount }}
+  {{- end }}
   {{- if .Values.supersetNode.strategy }}
   strategy: {{- toYaml .Values.supersetNode.strategy | nindent 4 }}
   {{- end }}

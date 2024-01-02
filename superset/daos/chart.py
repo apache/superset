@@ -14,60 +14,27 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=arguments-renamed
 from __future__ import annotations
 
 import logging
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy.exc import SQLAlchemyError
-
 from superset.charts.filters import ChartFilter
 from superset.daos.base import BaseDAO
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
 from superset.models.slice import Slice
-from superset.utils.core import get_iterable, get_user_id
+from superset.utils.core import get_user_id
 
 if TYPE_CHECKING:
-    from superset.connectors.base.models import BaseDatasource
+    from superset.connectors.sqla.models import BaseDatasource
 
 logger = logging.getLogger(__name__)
 
 
 class ChartDAO(BaseDAO[Slice]):
     base_filter = ChartFilter
-
-    @classmethod
-    def delete(cls, items: Slice | list[Slice], commit: bool = True) -> None:
-        item_ids = [item.id for item in get_iterable(items)]
-        # bulk delete, first delete related data
-        for item in get_iterable(items):
-            item.dashboards = []
-            db.session.merge(item)
-        # bulk delete itself
-        try:
-            db.session.query(Slice).filter(Slice.id.in_(item_ids)).delete(
-                synchronize_session="fetch"
-            )
-            if commit:
-                db.session.commit()
-        except SQLAlchemyError as ex:
-            db.session.rollback()
-            raise ex
-
-    @staticmethod
-    def save(slc: Slice, commit: bool = True) -> None:
-        db.session.add(slc)
-        if commit:
-            db.session.commit()
-
-    @staticmethod
-    def overwrite(slc: Slice, commit: bool = True) -> None:
-        db.session.merge(slc)
-        if commit:
-            db.session.commit()
 
     @staticmethod
     def favorited_ids(charts: list[Slice]) -> list[FavStar]:

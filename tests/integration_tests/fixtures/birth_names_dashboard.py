@@ -59,6 +59,14 @@ def load_birth_names_dashboard_with_slices_module_scope(load_birth_names_data):
         _cleanup(dash_id_to_delete, slices_ids_to_delete)
 
 
+@pytest.fixture(scope="class")
+def load_birth_names_dashboard_with_slices_class_scope(load_birth_names_data):
+    with app.app_context():
+        dash_id_to_delete, slices_ids_to_delete = _create_dashboards()
+        yield
+        _cleanup(dash_id_to_delete, slices_ids_to_delete)
+
+
 def _create_dashboards():
     table = _create_table(
         table_name=BIRTH_NAMES_TBL_NAME,

@@ -23,6 +23,7 @@ import {
   css,
   DatasourceType,
   ensureIsArray,
+  isFeatureEnabled,
   FeatureFlag,
   getChartMetadataRegistry,
   styled,
@@ -32,7 +33,6 @@ import {
 } from '@superset-ui/core';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import ChartContainer from 'src/components/Chart/ChartContainer';
-import { isFeatureEnabled } from 'src/featureFlags';
 import {
   getItem,
   setItem,

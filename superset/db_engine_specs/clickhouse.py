@@ -52,7 +52,6 @@ logger = logging.getLogger(__name__)
 class ClickHouseBaseEngineSpec(BaseEngineSpec):
     """Shared engine spec for ClickHouse."""
 
-    time_secondary_columns = True
     time_groupby_inline = True
 
     _time_grain_expressions = {
@@ -249,7 +248,7 @@ except ImportError:  # ClickHouse Connect not installed, do nothing
     pass
 
 
-class ClickHouseConnectEngineSpec(ClickHouseEngineSpec, BasicParametersMixin):
+class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
     """Engine spec for clickhouse-connect connector"""
 
     engine = "clickhousedb"

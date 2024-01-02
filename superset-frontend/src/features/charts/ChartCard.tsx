@@ -17,9 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import { FeatureFlag, t, useTheme } from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag, t, useTheme } from '@superset-ui/core';
 import { Link, useHistory } from 'react-router-dom';
-import { isFeatureEnabled } from 'src/featureFlags';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import Icons from 'src/components/Icons';
 import Chart from 'src/types/Chart';

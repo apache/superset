@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Behavior, FeatureFlag } from '@superset-ui/core';
-import * as featureFlags from 'src/featureFlags';
+import * as uiCore from '@superset-ui/core';
 import { DashboardLayout } from 'src/dashboard/types';
 import { nativeFilterGate, findTabsWithChartsInScope } from './utils';
 
@@ -27,7 +27,7 @@ describe('nativeFilterGate', () => {
   describe('with all feature flags disabled', () => {
     beforeAll(() => {
       isFeatureEnabledMock = jest
-        .spyOn(featureFlags, 'isFeatureEnabled')
+        .spyOn(uiCore, 'isFeatureEnabled')
         .mockImplementation(() => false);
     });
 
@@ -58,7 +58,7 @@ describe('nativeFilterGate', () => {
   describe('with only native filters feature flag enabled', () => {
     beforeAll(() => {
       isFeatureEnabledMock = jest
-        .spyOn(featureFlags, 'isFeatureEnabled')
+        .spyOn(uiCore, 'isFeatureEnabled')
         .mockImplementation(
           (featureFlag: FeatureFlag) =>
             featureFlag === FeatureFlag.DASHBOARD_NATIVE_FILTERS,
@@ -92,7 +92,7 @@ describe('nativeFilterGate', () => {
   describe('with native filters and experimental feature flag enabled', () => {
     beforeAll(() => {
       isFeatureEnabledMock = jest
-        .spyOn(featureFlags, 'isFeatureEnabled')
+        .spyOn(uiCore, 'isFeatureEnabled')
         .mockImplementation((featureFlag: FeatureFlag) =>
           [
             FeatureFlag.DASHBOARD_CROSS_FILTERS,

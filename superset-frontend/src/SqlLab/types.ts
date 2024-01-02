@@ -19,7 +19,6 @@
 import { JsonObject, QueryResponse } from '@superset-ui/core';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { ToastType } from 'src/components/MessageToasts/types';
-import { RootState } from 'src/dashboard/types';
 import { DropdownButtonProps } from 'src/components/DropdownButton';
 import { ButtonProps } from 'src/components/Button';
 
@@ -30,11 +29,19 @@ export type QueryDictionary = {
   [id: string]: QueryResponse;
 };
 
+export enum QueryEditorVersion {
+  v1 = 1,
+}
+
+export const LatestQueryEditorVersion = QueryEditorVersion.v1;
+
 export interface QueryEditor {
+  version: QueryEditorVersion;
   id: string;
   dbId?: number;
   name: string;
-  schema: string;
+  title?: string; // keep it optional for backward compatibility
+  schema?: string;
   autorun: boolean;
   sql: string;
   remoteId: number | null;
@@ -44,6 +51,11 @@ export interface QueryEditor {
   selectedText?: string;
   queryLimit?: number;
   description?: string;
+  loaded?: boolean;
+  inLocalStorage?: boolean;
+  northPercent?: number;
+  southPercent?: number;
+  updatedAt?: number;
 }
 
 export type toastState = {
@@ -53,6 +65,19 @@ export type toastState = {
   duration: number;
   noDuplicate: boolean;
 };
+
+export type UnsavedQueryEditor = Partial<QueryEditor>;
+
+export interface Table {
+  id: string;
+  dbId: number;
+  schema: string;
+  name: string;
+  queryEditorId: QueryEditor['id'];
+  dataPreviewQueryId: string | null;
+  expanded?: boolean;
+  initialized?: boolean;
+}
 
 export type SqlLabRootState = {
   sqlLab: {
@@ -64,33 +89,20 @@ export type SqlLabRootState = {
     queries: Record<string, QueryResponse>;
     queryEditors: QueryEditor[];
     tabHistory: string[]; // default is activeTab ? [activeTab.id.toString()] : []
-    tables: Record<string, any>[];
+    tables: Table[];
     queriesLastUpdate: number;
-    user: UserWithPermissionsAndRoles;
     errorMessage: string | null;
-    unsavedQueryEditor: Partial<QueryEditor>;
+    unsavedQueryEditor: UnsavedQueryEditor;
     queryCostEstimates?: Record<string, QueryCostEstimate>;
+    editorTabLastUpdatedAt: number;
   };
   localStorageUsageInKilobytes: number;
   messageToasts: toastState[];
+  user: UserWithPermissionsAndRoles;
   common: {
     flash_messages: string[];
     conf: JsonObject;
   };
-};
-
-export type SqlLabExploreRootState = SqlLabRootState | RootState;
-
-export const getInitialState = (state: SqlLabExploreRootState) => {
-  if (state.hasOwnProperty('sqlLab')) {
-    const {
-      sqlLab: { user },
-    } = state as SqlLabRootState;
-    return user;
-  }
-
-  const { user } = state as RootState;
-  return user as UserWithPermissionsAndRoles;
 };
 
 export enum DatasetRadioState {

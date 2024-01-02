@@ -63,4 +63,6 @@ export type DatasetObject = {
   metrics: MetricObject[];
   extra?: string;
   is_managed_externally: boolean;
+  normalize_columns: boolean;
+  always_filter_main_dttm: boolean;
 };

@@ -14,12 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import contextlib
 import json
 import re
 import urllib
 from datetime import datetime
 from re import Pattern
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING, TypedDict
 
 import pandas as pd
 from apispec import APISpec
@@ -32,7 +33,6 @@ from sqlalchemy import column, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql import sqltypes
-from typing_extensions import TypedDict
 
 from superset import sql_parse
 from superset.constants import PASSWORD_MASK, TimeGrain
@@ -64,7 +64,6 @@ except ModuleNotFoundError:
 
 if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
-
 
 CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
     "Access Denied: Project (?P<project_name>.+?): User does not have "
@@ -557,11 +556,8 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         except (json.JSONDecodeError, TypeError):
             return encrypted_extra
 
-        try:
+        with contextlib.suppress(KeyError):
             config["credentials_info"]["private_key"] = PASSWORD_MASK
-        except KeyError:
-            pass
-
         return json.dumps(config)
 
     @classmethod

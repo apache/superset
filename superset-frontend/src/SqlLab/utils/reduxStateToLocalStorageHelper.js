@@ -17,6 +17,7 @@
  * under the License.
  */
 import pick from 'lodash/pick';
+import { tableApiUtil } from 'src/hooks/apiResources/tables';
 import {
   BYTES_PER_CHAR,
   KB_STORAGE,
@@ -25,6 +26,7 @@ import {
 } from '../constants';
 
 const PERSISTENT_QUERY_EDITOR_KEYS = new Set([
+  'version',
   'remoteId',
   'autorun',
   'dbId',
@@ -95,4 +97,26 @@ export function clearQueryEditors(queryEditors) {
         {},
       ),
   );
+}
+
+export function rehydratePersistedState(dispatch, state) {
+  // Rehydrate server side persisted table metadata
+  state.sqlLab.tables.forEach(({ name: table, schema, dbId, persistData }) => {
+    if (dbId && schema && table && persistData?.columns) {
+      dispatch(
+        tableApiUtil.upsertQueryData(
+          'tableMetadata',
+          { dbId, schema, table },
+          persistData,
+        ),
+      );
+      dispatch(
+        tableApiUtil.upsertQueryData(
+          'tableExtendedMetadata',
+          { dbId, schema, table },
+          {},
+        ),
+      );
+    }
+  });
 }

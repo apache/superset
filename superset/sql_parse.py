@@ -44,6 +44,7 @@ from sqlparse.tokens import (
     Punctuation,
     String,
     Whitespace,
+    Wildcard,
 )
 from sqlparse.utils import imt
 
@@ -217,29 +218,94 @@ class ParsedQuery:
     def limit(self) -> Optional[int]:
         return self._limit
 
+    def _get_cte_tables(self, parsed: dict[str, Any]) -> list[dict[str, Any]]:
+        if "with" not in parsed:
+            return []
+        return parsed["with"].get("cte_tables", [])
+
+    def _check_cte_is_select(self, oxide_parse: list[dict[str, Any]]) -> bool:
+        """
+        Check if a oxide parsed CTE contains only SELECT statements
+
+        :param oxide_parse: parsed CTE
+        :return: True if CTE is a SELECT statement
+        """
+
+        def is_body_select(body: dict[str, Any]) -> bool:
+            if op := body.get("SetOperation"):
+                return is_body_select(op["left"]) and is_body_select(op["right"])
+            return all(key == "Select" for key in body.keys())
+
+        for query in oxide_parse:
+            parsed_query = query["Query"]
+            cte_tables = self._get_cte_tables(parsed_query)
+            for cte_table in cte_tables:
+                is_select = is_body_select(cte_table["query"]["body"])
+                if not is_select:
+                    return False
+        return True
+
     def is_select(self) -> bool:
         # make sure we strip comments; prevents a bug with comments in the CTE
         parsed = sqlparse.parse(self.strip_comments())
-        if parsed[0].get_type() == "SELECT":
-            return True
 
-        if parsed[0].get_type() != "UNKNOWN":
-            return False
+        for statement in parsed:
+            # Check if this is a CTE
+            if statement.is_group and statement[0].ttype == Keyword.CTE:
+                if sqloxide_parse is not None:
+                    try:
+                        if not self._check_cte_is_select(
+                            sqloxide_parse(self.strip_comments(), dialect="ansi")
+                        ):
+                            return False
+                    except ValueError:
+                        # sqloxide was not able to parse the query, so let's continue with
+                        # sqlparse
+                        pass
+                inner_cte = self.get_inner_cte_expression(statement.tokens) or []
+                # Check if the inner CTE is a not a SELECT
+                if any(token.ttype == DDL for token in inner_cte) or any(
+                    token.ttype == DML and token.normalized != "SELECT"
+                    for token in inner_cte
+                ):
+                    return False
 
-        # for `UNKNOWN`, check all DDL/DML explicitly: only `SELECT` DML is allowed,
-        # and no DDL is allowed
-        if any(token.ttype == DDL for token in parsed[0]) or any(
-            token.ttype == DML and token.normalized != "SELECT" for token in parsed[0]
-        ):
-            return False
+            if statement.get_type() == "SELECT":
+                continue
 
-        # return false on `EXPLAIN`, `SET`, `SHOW`, etc.
-        if parsed[0][0].ttype == Keyword:
-            return False
+            if statement.get_type() != "UNKNOWN":
+                return False
 
-        return any(
-            token.ttype == DML and token.normalized == "SELECT" for token in parsed[0]
-        )
+            # for `UNKNOWN`, check all DDL/DML explicitly: only `SELECT` DML is allowed,
+            # and no DDL is allowed
+            if any(token.ttype == DDL for token in statement) or any(
+                token.ttype == DML and token.normalized != "SELECT"
+                for token in statement
+            ):
+                return False
+
+            # return false on `EXPLAIN`, `SET`, `SHOW`, etc.
+            if statement[0].ttype == Keyword:
+                return False
+
+            if not any(
+                token.ttype == DML and token.normalized == "SELECT"
+                for token in statement
+            ):
+                return False
+
+        return True
+
+    def get_inner_cte_expression(self, tokens: TokenList) -> Optional[TokenList]:
+        for token in tokens:
+            if self._is_identifier(token):
+                for identifier_token in token.tokens:
+                    if (
+                        isinstance(identifier_token, Parenthesis)
+                        and identifier_token.is_group
+                    ):
+                        return identifier_token.tokens
+        return None
 
     def is_valid_ctas(self) -> bool:
         parsed = sqlparse.parse(self.strip_comments())
@@ -595,18 +661,29 @@ def get_rls_for_table(
         return None
 
     rls = sqlparse.parse(predicate)[0]
-    add_table_name(rls, str(dataset))
+    add_table_name(rls, table.table)
 
     return rls
 
 
-def insert_rls(
+def insert_rls_as_subquery(
     token_list: TokenList,
     database_id: int,
     default_schema: Optional[str],
 ) -> TokenList:
     """
     Update a statement inplace applying any associated RLS predicates.
+
+    The RLS predicate is applied as subquery replacing the original table:
+
+        before: SELECT * FROM some_table WHERE 1=1
+        after:  SELECT * FROM (
+                  SELECT * FROM some_table WHERE some_table.id=42
+                ) AS some_table
+                WHERE 1=1
+
+    This method is safer than ``insert_rls_in_predicate``, but doesn't work in all
+    databases.
     """
     rls: Optional[TokenList] = None
     state = InsertRLSState.SCANNING
@@ -614,7 +691,98 @@ def insert_rls(
         # Recurse into child token list
         if isinstance(token, TokenList):
             i = token_list.tokens.index(token)
-            token_list.tokens[i] = insert_rls(token, database_id, default_schema)
+            token_list.tokens[i] = insert_rls_as_subquery(
+                token,
+                database_id,
+                default_schema,
+            )
+
+        # Found a source keyword (FROM/JOIN)
+        if imt(token, m=[(Keyword, "FROM"), (Keyword, "JOIN")]):
+            state = InsertRLSState.SEEN_SOURCE
+
+        # Found identifier/keyword after FROM/JOIN, test for table
+        elif state == InsertRLSState.SEEN_SOURCE and (
+            isinstance(token, Identifier) or token.ttype == Keyword
+        ):
+            rls = get_rls_for_table(token, database_id, default_schema)
+            if rls:
+                # replace table with subquery
+                subquery_alias = (
+                    token.tokens[-1].value
+                    if isinstance(token, Identifier)
+                    else token.value
+                )
+                i = token_list.tokens.index(token)
+
+                # strip alias from table name
+                if isinstance(token, Identifier) and token.has_alias():
+                    whitespace_index = token.token_next_by(t=Whitespace)[0]
+                    token.tokens = token.tokens[:whitespace_index]
+
+                token_list.tokens[i] = Identifier(
+                    [
+                        Parenthesis(
+                            [
+                                Token(Punctuation, "("),
+                                Token(DML, "SELECT"),
+                                Token(Whitespace, " "),
+                                Token(Wildcard, "*"),
+                                Token(Whitespace, " "),
+                                Token(Keyword, "FROM"),
+                                Token(Whitespace, " "),
+                                token,
+                                Token(Whitespace, " "),
+                                Where(
+                                    [
+                                        Token(Keyword, "WHERE"),
+                                        Token(Whitespace, " "),
+                                        rls,
+                                    ]
+                                ),
+                                Token(Punctuation, ")"),
+                            ]
+                        ),
+                        Token(Whitespace, " "),
+                        Token(Keyword, "AS"),
+                        Token(Whitespace, " "),
+                        Identifier([Token(Name, subquery_alias)]),
+                    ]
+                )
+                state = InsertRLSState.SCANNING
+
+        # Found nothing, leaving source
+        elif state == InsertRLSState.SEEN_SOURCE and token.ttype != Whitespace:
+            state = InsertRLSState.SCANNING
+
+    return token_list
+
+
+def insert_rls_in_predicate(
+    token_list: TokenList,
+    database_id: int,
+    default_schema: Optional[str],
+) -> TokenList:
+    """
+    Update a statement inplace applying any associated RLS predicates.
+
+    The RLS predicate is ``AND``ed to any existing predicates:
+
+        before: SELECT * FROM some_table WHERE 1=1
+        after:  SELECT * FROM some_table WHERE ( 1=1) AND some_table.id=42
+
+    """
+    rls: Optional[TokenList] = None
+    state = InsertRLSState.SCANNING
+    for token in token_list.tokens:
+        # Recurse into child token list
+        if isinstance(token, TokenList):
+            i = token_list.tokens.index(token)
+            token_list.tokens[i] = insert_rls_in_predicate(
+                token,
+                database_id,
+                default_schema,
+            )
 
         # Found a source keyword (FROM/JOIN)
         if imt(token, m=[(Keyword, "FROM"), (Keyword, "JOIN")]):

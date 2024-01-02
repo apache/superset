@@ -29,12 +29,10 @@ from flask_appbuilder.api import (
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 
-from superset.commands.exceptions import ObjectNotFoundError
-from superset.daos.dashboard import DashboardDAO
-from superset.dashboards.commands.exceptions import DashboardNotFoundError
-from superset.dashboards.filter_sets.commands.create import CreateFilterSetCommand
-from superset.dashboards.filter_sets.commands.delete import DeleteFilterSetCommand
-from superset.dashboards.filter_sets.commands.exceptions import (
+from superset.commands.dashboard.exceptions import DashboardNotFoundError
+from superset.commands.dashboard.filter_set.create import CreateFilterSetCommand
+from superset.commands.dashboard.filter_set.delete import DeleteFilterSetCommand
+from superset.commands.dashboard.filter_set.exceptions import (
     FilterSetCreateFailedError,
     FilterSetDeleteFailedError,
     FilterSetForbiddenError,
@@ -42,7 +40,9 @@ from superset.dashboards.filter_sets.commands.exceptions import (
     FilterSetUpdateFailedError,
     UserIsNotDashboardOwnerError,
 )
-from superset.dashboards.filter_sets.commands.update import UpdateFilterSetCommand
+from superset.commands.dashboard.filter_set.update import UpdateFilterSetCommand
+from superset.commands.exceptions import ObjectNotFoundError
+from superset.daos.dashboard import DashboardDAO
 from superset.dashboards.filter_sets.consts import (
     DASHBOARD_FIELD,
     DASHBOARD_ID_FIELD,

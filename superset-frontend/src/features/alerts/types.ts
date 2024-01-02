@@ -18,7 +18,7 @@
  */
 
 import Owner from 'src/types/Owner';
-import { NOTIFICATION_FORMATS } from 'src/reports/types';
+import { NOTIFICATION_FORMATS } from 'src/features/reports/types';
 
 type user = {
   id: number;

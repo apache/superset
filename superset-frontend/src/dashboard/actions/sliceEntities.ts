@@ -19,13 +19,13 @@
 import rison from 'rison';
 import {
   DatasourceType,
+  isFeatureEnabled,
   FeatureFlag,
   SupersetClient,
   t,
 } from '@superset-ui/core';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { isFeatureEnabled } from 'src/featureFlags';
 import { Dispatch } from 'redux';
 import { Slice } from '../types';
 

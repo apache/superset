@@ -22,14 +22,15 @@ from datetime import datetime
 from typing import Any
 
 from flask import g
-from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from sqlalchemy.exc import SQLAlchemyError
 
-from superset import security_manager
+from superset import is_feature_enabled, security_manager
+from superset.commands.dashboard.exceptions import (
+    DashboardAccessDeniedError,
+    DashboardForbiddenError,
+    DashboardNotFoundError,
+)
 from superset.daos.base import BaseDAO
-from superset.daos.exceptions import DAOConfigError, DAOCreateFailedError
-from superset.dashboards.commands.exceptions import DashboardNotFoundError
 from superset.dashboards.filter_sets.consts import (
     DASHBOARD_ID_FIELD,
     DESCRIPTION_FIELD,
@@ -39,13 +40,14 @@ from superset.dashboards.filter_sets.consts import (
     OWNER_TYPE_FIELD,
 )
 from superset.dashboards.filters import DashboardAccessFilter, is_uuid
+from superset.exceptions import SupersetSecurityException
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard, id_or_slug_filter
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.filter_set import FilterSet
 from superset.models.slice import Slice
-from superset.utils.core import get_iterable, get_user_id
+from superset.utils.core import get_user_id
 from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
 
 logger = logging.getLogger(__name__)
@@ -63,8 +65,6 @@ class DashboardDAO(BaseDAO[Dashboard]):
             query = (
                 db.session.query(Dashboard)
                 .filter(id_or_slug_filter(id_or_slug))
-                .outerjoin(Slice, Dashboard.slices)
-                .outerjoin(Slice.table)
                 .outerjoin(Dashboard.owners)
                 .outerjoin(Dashboard.roles)
             )
@@ -77,7 +77,11 @@ class DashboardDAO(BaseDAO[Dashboard]):
             raise DashboardNotFoundError()
 
         # make sure we still have basic access check from security manager
-        security_manager.raise_for_dashboard_access(dashboard)
+        try:
+            dashboard.raise_for_access()
+        except SupersetSecurityException as ex:
+            raise DashboardAccessDeniedError() from ex
+
         return dashboard
 
     @staticmethod
@@ -173,34 +177,6 @@ class DashboardDAO(BaseDAO[Dashboard]):
             )
             return not db.session.query(dashboard_query.exists()).scalar()
         return True
-
-    @staticmethod
-    def update_charts_owners(model: Dashboard, commit: bool = True) -> Dashboard:
-        owners = list(model.owners)
-        for slc in model.slices:
-            slc.owners = list(set(owners) | set(slc.owners))
-        if commit:
-            db.session.commit()
-        return model
-
-    @classmethod
-    def delete(cls, items: Dashboard | list[Dashboard], commit: bool = True) -> None:
-        item_ids = [item.id for item in get_iterable(items)]
-        # bulk delete, first delete related data
-        for item in get_iterable(items):
-            item.slices = []
-            item.embedded = []
-            db.session.merge(item)
-        # bulk delete itself
-        try:
-            db.session.query(Dashboard).filter(Dashboard.id.in_(item_ids)).delete(
-                synchronize_session="fetch"
-            )
-            if commit:
-                db.session.commit()
-        except SQLAlchemyError as ex:
-            db.session.rollback()
-            raise ex
 
     @staticmethod
     def set_dash_metadata(  # pylint: disable=too-many-locals
@@ -314,6 +290,11 @@ class DashboardDAO(BaseDAO[Dashboard]):
     def copy_dashboard(
         cls, original_dash: Dashboard, data: dict[str, Any]
     ) -> Dashboard:
+        if is_feature_enabled("DASHBOARD_RBAC") and not security_manager.is_owner(
+            original_dash
+        ):
+            raise DashboardForbiddenError()
+
         dash = Dashboard()
         dash.owners = [g.user] if g.user else []
         dash.dashboard_title = data["dashboard_title"]
@@ -395,35 +376,40 @@ class EmbeddedDashboardDAO(BaseDAO[EmbeddedDashboard]):
         return embedded
 
     @classmethod
-    def create(cls, properties: dict[str, Any], commit: bool = True) -> Any:
+    def create(
+        cls,
+        item: EmbeddedDashboardDAO | None = None,
+        attributes: dict[str, Any] | None = None,
+        commit: bool = True,
+    ) -> Any:
         """
         Use EmbeddedDashboardDAO.upsert() instead.
-        At least, until we are ok with more than one embedded instance per dashboard.
+        At least, until we are ok with more than one embedded item per dashboard.
         """
         raise NotImplementedError("Use EmbeddedDashboardDAO.upsert() instead.")
 
 
 class FilterSetDAO(BaseDAO[FilterSet]):
     @classmethod
-    def create(cls, properties: dict[str, Any], commit: bool = True) -> Model:
-        if cls.model_cls is None:
-            raise DAOConfigError()
-        model = FilterSet()
-        setattr(model, NAME_FIELD, properties[NAME_FIELD])
-        setattr(model, JSON_METADATA_FIELD, properties[JSON_METADATA_FIELD])
-        setattr(model, DESCRIPTION_FIELD, properties.get(DESCRIPTION_FIELD, None))
-        setattr(
-            model,
-            OWNER_ID_FIELD,
-            properties.get(OWNER_ID_FIELD, properties[DASHBOARD_ID_FIELD]),
-        )
-        setattr(model, OWNER_TYPE_FIELD, properties[OWNER_TYPE_FIELD])
-        setattr(model, DASHBOARD_ID_FIELD, properties[DASHBOARD_ID_FIELD])
-        try:
-            db.session.add(model)
-            if commit:
-                db.session.commit()
-        except SQLAlchemyError as ex:  # pragma: no cover
-            db.session.rollback()
-            raise DAOCreateFailedError() from ex
-        return model
+    def create(
+        cls,
+        item: FilterSet | None = None,
+        attributes: dict[str, Any] | None = None,
+        commit: bool = True,
+    ) -> FilterSet:
+        if not item:
+            item = FilterSet()
+
+        if attributes:
+            setattr(item, NAME_FIELD, attributes[NAME_FIELD])
+            setattr(item, JSON_METADATA_FIELD, attributes[JSON_METADATA_FIELD])
+            setattr(item, DESCRIPTION_FIELD, attributes.get(DESCRIPTION_FIELD, None))
+            setattr(
+                item,
+                OWNER_ID_FIELD,
+                attributes.get(OWNER_ID_FIELD, attributes[DASHBOARD_ID_FIELD]),
+            )
+            setattr(item, OWNER_TYPE_FIELD, attributes[OWNER_TYPE_FIELD])
+            setattr(item, DASHBOARD_ID_FIELD, attributes[DASHBOARD_ID_FIELD])
+
+        return super().create(item, commit=commit)

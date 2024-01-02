@@ -167,12 +167,11 @@ class SupersetResultSet:
                         try:
                             if sample.tzinfo:
                                 tz = sample.tzinfo
-                                series = pd.Series(
-                                    array[column], dtype="datetime64[ns]"
-                                )
-                                series = pd.to_datetime(series).dt.tz_localize(tz)
+                                series = pd.Series(array[column])
+                                series = pd.to_datetime(series)
                                 pa_data[i] = pa.Array.from_pandas(
-                                    series, type=pa.timestamp("ns", tz=tz)
+                                    series,
+                                    type=pa.timestamp("ns", tz=tz),
                                 )
                         except Exception as ex:  # pylint: disable=broad-except
                             logger.exception(ex)

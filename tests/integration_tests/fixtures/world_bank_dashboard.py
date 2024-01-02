@@ -84,6 +84,14 @@ def load_world_bank_dashboard_with_slices_module_scope(load_world_bank_data):
         _cleanup(dash_id_to_delete, slices_ids_to_delete)
 
 
+@pytest.fixture(scope="class")
+def load_world_bank_dashboard_with_slices_class_scope(load_world_bank_data):
+    with app.app_context():
+        dash_id_to_delete, slices_ids_to_delete = create_dashboard_for_loaded_data()
+        yield
+        _cleanup(dash_id_to_delete, slices_ids_to_delete)
+
+
 def create_dashboard_for_loaded_data():
     with app.app_context():
         table = create_table_metadata(WB_HEALTH_POPULATION, get_example_database())

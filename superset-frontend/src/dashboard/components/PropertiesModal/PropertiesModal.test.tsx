@@ -21,11 +21,10 @@ import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';
 import * as ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeControlWrapper';
-import * as FF from 'src/featureFlags';
 import * as SupersetCore from '@superset-ui/core';
 import PropertiesModal from '.';
 
-const spyIsFeatureEnabled = jest.spyOn(FF, 'isFeatureEnabled');
+const spyIsFeatureEnabled = jest.spyOn(SupersetCore, 'isFeatureEnabled');
 const spyColorSchemeControlWrapper = jest.spyOn(
   ColorSchemeControlWrapper,
   'default',

@@ -34,7 +34,7 @@ import {
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import { render, screen, act, waitFor } from '@testing-library/react';
 import { supersetTheme, FeatureFlag, ThemeProvider } from '@superset-ui/core';
-import * as featureFlags from 'src/featureFlags';
+import * as uiCore from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 
@@ -399,7 +399,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent Advanced data Type Test', () =>
   let isFeatureEnabledMock: any;
   beforeEach(async () => {
     isFeatureEnabledMock = jest
-      .spyOn(featureFlags, 'isFeatureEnabled')
+      .spyOn(uiCore, 'isFeatureEnabled')
       .mockImplementation(
         (featureFlag: FeatureFlag) =>
           featureFlag === FeatureFlag.ENABLE_ADVANCED_DATA_TYPES,

@@ -23,7 +23,7 @@ import string
 import sys
 from collections.abc import Iterator
 from datetime import date, datetime, time, timedelta
-from typing import Any, Callable, cast, Optional
+from typing import Any, Callable, cast, Optional, TypedDict
 from uuid import uuid4
 
 import sqlalchemy.sql.sqltypes
@@ -34,7 +34,6 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 from sqlalchemy.sql.visitors import VisitableType
-from typing_extensions import TypedDict
 
 from superset import db
 

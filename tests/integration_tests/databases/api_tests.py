@@ -197,6 +197,7 @@ class TestDatabaseApi(SupersetTestCase):
             "allows_subquery",
             "allows_virtual_table_explore",
             "backend",
+            "changed_by",
             "changed_on",
             "changed_on_delta_humanized",
             "created_by",
@@ -288,9 +289,9 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @mock.patch(
-        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.databases.commands.create.is_feature_enabled")
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
     )
@@ -336,10 +337,10 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @mock.patch(
-        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.databases.commands.create.is_feature_enabled")
-    @mock.patch("superset.databases.commands.update.is_feature_enabled")
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
+    @mock.patch("superset.commands.database.update.is_feature_enabled")
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
     )
@@ -397,10 +398,10 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @mock.patch(
-        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.databases.commands.create.is_feature_enabled")
-    @mock.patch("superset.databases.commands.update.is_feature_enabled")
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
+    @mock.patch("superset.commands.database.update.is_feature_enabled")
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
     )
@@ -477,12 +478,12 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @mock.patch(
-        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
     )
-    @mock.patch("superset.databases.commands.create.is_feature_enabled")
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
     def test_cascade_delete_ssh_tunnel(
         self,
         mock_test_connection_database_command_run,
@@ -531,9 +532,9 @@ class TestDatabaseApi(SupersetTestCase):
         assert model_ssh_tunnel is None
 
     @mock.patch(
-        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.databases.commands.create.is_feature_enabled")
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
     )
@@ -582,9 +583,9 @@ class TestDatabaseApi(SupersetTestCase):
         assert model is None
 
     @mock.patch(
-        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.databases.commands.create.is_feature_enabled")
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
     )
@@ -637,7 +638,7 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @mock.patch(
-        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
@@ -2005,10 +2006,10 @@ class TestDatabaseApi(SupersetTestCase):
         app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
 
     @mock.patch(
-        "superset.databases.commands.test_connection.DatabaseDAO.build_db_for_connection_test",
+        "superset.commands.database.test_connection.DatabaseDAO.build_db_for_connection_test",
     )
     @mock.patch(
-        "superset.databases.commands.test_connection.event_logger",
+        "superset.commands.database.test_connection.event_logger",
     )
     def test_test_connection_failed_invalid_hostname(
         self, mock_event_logger, mock_build_db
@@ -2074,7 +2075,7 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "related_objects")
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(response["charts"]["count"], 34)
+        self.assertEqual(response["charts"]["count"], 33)
         self.assertEqual(response["dashboards"]["count"], 3)
 
     def test_get_database_related_objects_not_found(self):
@@ -2836,7 +2837,7 @@ class TestDatabaseApi(SupersetTestCase):
     )
     def test_function_names(self, mock_get_function_names):
         example_db = get_example_database()
-        if example_db.backend in {"hive", "presto"}:
+        if example_db.backend in {"hive", "presto", "sqlite"}:
             return
 
         mock_get_function_names.return_value = ["AVG", "MAX", "SUM"]
@@ -2849,6 +2850,136 @@ class TestDatabaseApi(SupersetTestCase):
 
         assert rv.status_code == 200
         assert response == {"function_names": ["AVG", "MAX", "SUM"]}
+
+    def test_function_names_sqlite(self):
+        example_db = get_example_database()
+        if example_db.backend != "sqlite":
+            return
+
+        self.login(username="admin")
+        uri = "api/v1/database/1/function_names/"
+
+        rv = self.client.get(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {
+            "function_names": [
+                "abs",
+                "acos",
+                "acosh",
+                "asin",
+                "asinh",
+                "atan",
+                "atan2",
+                "atanh",
+                "avg",
+                "ceil",
+                "ceiling",
+                "changes",
+                "char",
+                "coalesce",
+                "cos",
+                "cosh",
+                "count",
+                "cume_dist",
+                "date",
+                "datetime",
+                "degrees",
+                "dense_rank",
+                "exp",
+                "first_value",
+                "floor",
+                "format",
+                "glob",
+                "group_concat",
+                "hex",
+                "ifnull",
+                "iif",
+                "instr",
+                "json",
+                "json_array",
+                "json_array_length",
+                "json_each",
+                "json_error_position",
+                "json_extract",
+                "json_group_array",
+                "json_group_object",
+                "json_insert",
+                "json_object",
+                "json_patch",
+                "json_quote",
+                "json_remove",
+                "json_replace",
+                "json_set",
+                "json_tree",
+                "json_type",
+                "json_valid",
+                "julianday",
+                "lag",
+                "last_insert_rowid",
+                "last_value",
+                "lead",
+                "length",
+                "like",
+                "likelihood",
+                "likely",
+                "ln",
+                "load_extension",
+                "log",
+                "log10",
+                "log2",
+                "lower",
+                "ltrim",
+                "max",
+                "min",
+                "mod",
+                "nth_value",
+                "ntile",
+                "nullif",
+                "percent_rank",
+                "pi",
+                "pow",
+                "power",
+                "printf",
+                "quote",
+                "radians",
+                "random",
+                "randomblob",
+                "rank",
+                "replace",
+                "round",
+                "row_number",
+                "rtrim",
+                "sign",
+                "sin",
+                "sinh",
+                "soundex",
+                "sqlite_compileoption_get",
+                "sqlite_compileoption_used",
+                "sqlite_offset",
+                "sqlite_source_id",
+                "sqlite_version",
+                "sqrt",
+                "strftime",
+                "substr",
+                "substring",
+                "sum",
+                "tan",
+                "tanh",
+                "time",
+                "total_changes",
+                "trim",
+                "trunc",
+                "typeof",
+                "unhex",
+                "unicode",
+                "unixepoch",
+                "unlikely",
+                "upper",
+                "zeroblob",
+            ]
+        }
 
     @mock.patch("superset.databases.api.get_available_engine_specs")
     @mock.patch("superset.databases.api.app")
@@ -3023,7 +3154,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": False,
                     "sqlalchemy_uri_placeholder": "gsheets://",
                     "engine_information": {
-                        "supports_file_upload": False,
+                        "supports_file_upload": True,
                         "disable_ssh_tunneling": True,
                     },
                 },
@@ -3087,6 +3218,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine": "hana",
                     "name": "SAP HANA",
                     "preferred": False,
+                    "sqlalchemy_uri_placeholder": "engine+driver://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
                         "supports_file_upload": True,
                         "disable_ssh_tunneling": False,
@@ -3118,6 +3250,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine": "mysql",
                     "name": "MySQL",
                     "preferred": True,
+                    "sqlalchemy_uri_placeholder": "mysql://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
                         "supports_file_upload": True,
                         "disable_ssh_tunneling": False,
@@ -3128,6 +3261,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine": "hana",
                     "name": "SAP HANA",
                     "preferred": False,
+                    "sqlalchemy_uri_placeholder": "engine+driver://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
                         "supports_file_upload": True,
                         "disable_ssh_tunneling": False,
@@ -3615,7 +3749,7 @@ class TestDatabaseApi(SupersetTestCase):
             },
         )
 
-    @patch("superset.databases.commands.validate_sql.get_validator_by_name")
+    @patch("superset.commands.database.validate_sql.get_validator_by_name")
     @patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",
         PRESTO_SQL_VALIDATORS_BY_ENGINE,

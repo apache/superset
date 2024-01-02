@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import contextlib
 import logging
 from collections import defaultdict
 from functools import wraps
@@ -27,7 +28,7 @@ from flask import flash, g, has_request_context, redirect, request
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import _
-from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.exc import NoResultFound
 from werkzeug.wrappers.response import Response
 
 import superset.models.core as models
@@ -323,7 +324,7 @@ def get_dashboard_extra_filters(
     ):
         return []
 
-    try:
+    with contextlib.suppress(json.JSONDecodeError):
         # does this dashboard have default filters?
         json_metadata = json.loads(dashboard.json_metadata)
         default_filters = json.loads(json_metadata.get("default_filters", "null"))
@@ -340,9 +341,6 @@ def get_dashboard_extra_filters(
             and isinstance(default_filters, dict)
         ):
             return build_extra_filters(layout, filter_scopes, default_filters, slice_id)
-    except json.JSONDecodeError:
-        pass
-
     return []
 
 

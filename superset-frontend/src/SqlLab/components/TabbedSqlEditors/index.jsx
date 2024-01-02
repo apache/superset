@@ -23,13 +23,13 @@ import { EditableTabs } from 'src/components/Tabs';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import URI from 'urijs';
-import { FeatureFlag, styled, t } from '@superset-ui/core';
-import { isFeatureEnabled } from 'src/featureFlags';
+import { FeatureFlag, styled, t, isFeatureEnabled } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import { detectOS } from 'src/utils/common';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { locationContext } from 'src/pages/SqlLab/LocationContext';
 import SqlEditor from '../SqlEditor';
 import SqlEditorTabHeader from '../SqlEditorTabHeader';
 
@@ -76,7 +76,7 @@ const userOS = detectOS();
 class TabbedSqlEditors extends React.PureComponent {
   constructor(props) {
     super(props);
-    const sqlLabUrl = '/superset/sqllab';
+    const sqlLabUrl = '/sqllab';
     this.state = {
       sqlLabUrl,
     };
@@ -133,6 +133,7 @@ class TabbedSqlEditors extends React.PureComponent {
       new: isNewQuery,
       ...urlParams
     } = {
+      ...this.context.requestedQuery,
       ...bootstrapData.requested_query,
       ...queryParameters,
     };
@@ -333,6 +334,7 @@ class TabbedSqlEditors extends React.PureComponent {
 }
 TabbedSqlEditors.propTypes = propTypes;
 TabbedSqlEditors.defaultProps = defaultProps;
+TabbedSqlEditors.contextType = locationContext;
 
 function mapStateToProps({ sqlLab, common }) {
   return {
@@ -341,7 +343,7 @@ function mapStateToProps({ sqlLab, common }) {
     queries: sqlLab.queries,
     tabHistory: sqlLab.tabHistory,
     tables: sqlLab.tables,
-    defaultDbId: sqlLab.defaultDbId,
+    defaultDbId: common.conf.SQLLAB_DEFAULT_DBID,
     displayLimit: common.conf.DISPLAY_MAX_ROW,
     offline: sqlLab.offline,
     defaultQueryLimit: common.conf.DEFAULT_SQLLAB_LIMIT,

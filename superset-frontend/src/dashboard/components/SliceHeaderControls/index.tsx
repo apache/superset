@@ -33,6 +33,7 @@ import moment from 'moment';
 import {
   Behavior,
   css,
+  isFeatureEnabled,
   FeatureFlag,
   getChartMetadataRegistry,
   QueryFormData,
@@ -45,7 +46,6 @@ import { Menu } from 'src/components/Menu';
 import { NoAnimationDropdown } from 'src/components/Dropdown';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import downloadAsImage from 'src/utils/downloadAsImage';
-import { isFeatureEnabled } from 'src/featureFlags';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';

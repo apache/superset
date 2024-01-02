@@ -36,7 +36,7 @@ class DAOUpdateFailedError(DAOException):
     DAO Update failed
     """
 
-    message = "Updated failed"
+    message = "Update failed"
 
 
 class DAODeleteFailedError(DAOException):
@@ -45,14 +45,6 @@ class DAODeleteFailedError(DAOException):
     """
 
     message = "Delete failed"
-
-
-class DAOConfigError(DAOException):
-    """
-    DAO is miss configured
-    """
-
-    message = "DAO is not configured correctly missing model definition"
 
 
 class DatasourceTypeNotSupportedError(DAOException):

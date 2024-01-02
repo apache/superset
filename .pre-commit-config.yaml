@@ -42,12 +42,13 @@ repos:
     hooks:
       - id: mypy
         args: [--check-untyped-defs]
-        additional_dependencies:
-          [
+        additional_dependencies: [
             types-simplejson,
             types-python-dateutil,
             types-requests,
-            types-redis,
+            # types-redis 4.6.0.5 is failing mypy
+            # because of https://github.com/python/typeshed/pull/10531
+            types-redis==4.6.0.4,
             types-pytz,
             types-croniter,
             types-PyYAML,

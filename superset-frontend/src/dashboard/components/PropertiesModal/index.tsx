@@ -27,6 +27,7 @@ import rison from 'rison';
 import {
   CategoricalColorNamespace,
   ensureIsArray,
+  isFeatureEnabled,
   FeatureFlag,
   getCategoricalSchemeRegistry,
   getSharedLabelColor,
@@ -42,7 +43,6 @@ import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeContr
 import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { isFeatureEnabled } from 'src/featureFlags';
 import TagType from 'src/types/TagType';
 import {
   addTag,
@@ -681,7 +681,7 @@ const PropertiesModal = ({
         </Row>
         <Row gutter={16}>
           <Col xs={24} md={12}>
-            <FormItem label={t('Title')} name="title">
+            <FormItem label={t('Name')} name="title">
               <Input
                 data-test="dashboard-title-input"
                 type="text"
@@ -741,7 +741,6 @@ const PropertiesModal = ({
                 <AsyncSelect
                   ariaLabel="Tags"
                   mode="multiple"
-                  allowNewOptions
                   value={tagsAsSelectValues}
                   options={loadTags}
                   onChange={handleChangeTags}

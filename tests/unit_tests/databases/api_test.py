@@ -178,7 +178,7 @@ def test_database_connection(
             "driver": "gsheets",
             "engine_information": {
                 "disable_ssh_tunneling": True,
-                "supports_file_upload": False,
+                "supports_file_upload": True,
             },
             "expose_in_sqllab": True,
             "extra": '{\n    "metadata_params": {},\n    "engine_params": {},\n    "metadata_cache_timeout": {},\n    "schemas_allowed_for_file_upload": []\n}\n',
@@ -249,7 +249,7 @@ def test_database_connection(
             "driver": "gsheets",
             "engine_information": {
                 "disable_ssh_tunneling": True,
-                "supports_file_upload": False,
+                "supports_file_upload": True,
             },
             "expose_in_sqllab": True,
             "force_ctas_schema": None,
@@ -396,7 +396,7 @@ def test_delete_ssh_tunnel(
         mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")
         mocker.patch("superset.utils.log.DBEventLogger.log")
         mocker.patch(
-            "superset.databases.ssh_tunnel.commands.delete.is_feature_enabled",
+            "superset.commands.database.ssh_tunnel.delete.is_feature_enabled",
             return_value=True,
         )
 
@@ -472,7 +472,7 @@ def test_delete_ssh_tunnel_not_found(
         mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")
         mocker.patch("superset.utils.log.DBEventLogger.log")
         mocker.patch(
-            "superset.databases.ssh_tunnel.commands.delete.is_feature_enabled",
+            "superset.commands.database.ssh_tunnel.delete.is_feature_enabled",
             return_value=True,
         )
 
@@ -559,7 +559,7 @@ def test_apply_dynamic_database_filter(
         mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")
         mocker.patch("superset.utils.log.DBEventLogger.log")
         mocker.patch(
-            "superset.databases.ssh_tunnel.commands.delete.is_feature_enabled",
+            "superset.commands.database.ssh_tunnel.delete.is_feature_enabled",
             return_value=False,
         )
 

@@ -23,13 +23,13 @@ import PropTypes from 'prop-types';
 import {
   styled,
   css,
+  isFeatureEnabled,
   FeatureFlag,
   t,
   getSharedLabelColor,
   getExtensionsRegistry,
 } from '@superset-ui/core';
 import { Global } from '@emotion/react';
-import { isFeatureEnabled } from 'src/featureFlags';
 import {
   LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
   LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,

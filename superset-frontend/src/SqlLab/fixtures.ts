@@ -25,6 +25,7 @@ import {
   QueryResponse,
   QueryState,
 } from '@superset-ui/core';
+import { LatestQueryEditorVersion } from 'src/SqlLab/types';
 import { ISaveableDatasource } from 'src/SqlLab/components/SaveDatasetModal';
 
 export const mockedActions = sinon.stub({ ...actions });
@@ -181,6 +182,7 @@ export const table = {
 };
 
 export const defaultQueryEditor = {
+  version: LatestQueryEditorVersion,
   id: 'dfsadfs',
   autorun: false,
   dbId: undefined,
@@ -660,10 +662,10 @@ export const initialState = {
     workspaceQueries: [],
     queriesLastUpdate: 0,
     activeSouthPaneTab: 'Results',
-    user: { user },
     unsavedQueryEditor: {},
   },
   messageToasts: [],
+  user,
   common: {
     conf: {
       DEFAULT_SQLLAB_LIMIT: 1000,

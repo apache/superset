@@ -31,13 +31,13 @@ import cx from 'classnames';
 import {
   FeatureFlag,
   HandlerFunction,
+  isFeatureEnabled,
   isNativeFilter,
   styled,
   t,
 } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { AntdTabs } from 'src/components';
-import { isFeatureEnabled } from 'src/featureFlags';
 import Loading from 'src/components/Loading';
 import { EmptyStateSmall } from 'src/components/EmptyState';
 import { getFilterBarTestId } from './utils';

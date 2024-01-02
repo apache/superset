@@ -26,6 +26,7 @@ from superset import db
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.models.core import Database
+from superset.utils.core import check_is_safe_zip
 
 METADATA_FILE_NAME = "metadata.yaml"
 IMPORT_VERSION = "1.0.0"
@@ -207,6 +208,7 @@ def is_valid_config(file_name: str) -> bool:
 
 
 def get_contents_from_bundle(bundle: ZipFile) -> dict[str, str]:
+    check_is_safe_zip(bundle)
     return {
         remove_root(file_name): bundle.read(file_name).decode()
         for file_name in bundle.namelist()

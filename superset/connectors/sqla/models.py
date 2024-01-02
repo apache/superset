@@ -17,6 +17,7 @@
 # pylint: disable=too-many-lines
 from __future__ import annotations
 
+import builtins
 import dataclasses
 import json
 import logging
@@ -25,6 +26,7 @@ from collections import defaultdict
 from collections.abc import Hashable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from json.decoder import JSONDecodeError
 from typing import Any, Callable, cast
 
 import dateutil.parser
@@ -34,7 +36,8 @@ import sqlalchemy as sa
 import sqlparse
 from flask import escape, Markup
 from flask_appbuilder import Model
-from flask_babel import lazy_gettext as _
+from flask_appbuilder.security.sqla.models import User
+from flask_babel import gettext as __, lazy_gettext as _
 from jinja2.exceptions import TemplateError
 from sqlalchemy import (
     and_,
@@ -46,16 +49,17 @@ from sqlalchemy import (
     inspect,
     Integer,
     or_,
-    select,
     String,
     Table,
     Text,
     update,
 )
 from sqlalchemy.engine.base import Connection
+from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     backref,
+    foreign,
     Mapped,
     Query,
     reconstructor,
@@ -71,15 +75,14 @@ from sqlalchemy.sql.expression import Label, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 
 from superset import app, db, is_feature_enabled, security_manager
+from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.db_query_status import QueryStatus
-from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.connectors.sqla.utils import (
-    find_cached_objects_in_session,
     get_columns_description,
     get_physical_table_metadata,
     get_virtual_table_metadata,
 )
-from superset.datasets.models import Dataset as NewDataset
+from superset.constants import EMPTY_STRING, NULL_STRING
 from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 from superset.exceptions import (
     ColumnNotFoundException,
@@ -100,19 +103,24 @@ from superset.models.helpers import (
     AuditMixinNullable,
     CertificationMixin,
     ExploreMixin,
+    ImportExportMixin,
     QueryResult,
     QueryStringExtended,
     validate_adhoc_subquery,
 )
+from superset.models.slice import Slice
 from superset.sql_parse import ParsedQuery, sanitize_clause
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
+    FilterValue,
+    FilterValues,
     Metric,
     QueryObjectDict,
     ResultSetColumnType,
 )
 from superset.utils import core as utils
+from superset.utils.backports import StrEnum
 from superset.utils.core import GenericDataType, MediumText
 
 config = app.config
@@ -135,6 +143,565 @@ class MetadataResult:
     added: list[str] = field(default_factory=list)
     removed: list[str] = field(default_factory=list)
     modified: list[str] = field(default_factory=list)
+
+
+logger = logging.getLogger(__name__)
+
+METRIC_FORM_DATA_PARAMS = [
+    "metric",
+    "metric_2",
+    "metrics",
+    "metrics_b",
+    "percent_metrics",
+    "secondary_metric",
+    "size",
+    "timeseries_limit_metric",
+    "x",
+    "y",
+]
+
+COLUMN_FORM_DATA_PARAMS = [
+    "all_columns",
+    "all_columns_x",
+    "columns",
+    "entity",
+    "groupby",
+    "order_by_cols",
+    "series",
+]
+
+
+class DatasourceKind(StrEnum):
+    VIRTUAL = "virtual"
+    PHYSICAL = "physical"
+
+
+class BaseDatasource(
+    AuditMixinNullable, ImportExportMixin
+):  # pylint: disable=too-many-public-methods
+    """A common interface to objects that are queryable
+    (tables and datasources)"""
+
+    # ---------------------------------------------------------------
+    # class attributes to define when deriving BaseDatasource
+    # ---------------------------------------------------------------
+    __tablename__: str | None = None  # {connector_name}_datasource
+    baselink: str | None = None  # url portion pointing to ModelView endpoint
+
+    owner_class: User | None = None
+
+    # Used to do code highlighting when displaying the query in the UI
+    query_language: str | None = None
+
+    # Only some datasources support Row Level Security
+    is_rls_supported: bool = False
+
+    @property
+    def name(self) -> str:
+        # can be a Column or a property pointing to one
+        raise NotImplementedError()
+
+    # ---------------------------------------------------------------
+
+    # Columns
+    id = Column(Integer, primary_key=True)
+    description = Column(Text)
+    default_endpoint = Column(Text)
+    is_featured = Column(Boolean, default=False)  # TODO deprecating
+    filter_select_enabled = Column(Boolean, default=True)
+    offset = Column(Integer, default=0)
+    cache_timeout = Column(Integer)
+    params = Column(String(1000))
+    perm = Column(String(1000))
+    schema_perm = Column(String(1000))
+    is_managed_externally = Column(Boolean, nullable=False, default=False)
+    external_url = Column(Text, nullable=True)
+
+    sql: str | None = None
+    owners: list[User]
+    update_from_object_fields: list[str]
+
+    extra_import_fields = ["is_managed_externally", "external_url"]
+
+    @property
+    def kind(self) -> DatasourceKind:
+        return DatasourceKind.VIRTUAL if self.sql else DatasourceKind.PHYSICAL
+
+    @property
+    def owners_data(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "first_name": o.first_name,
+                "last_name": o.last_name,
+                "username": o.username,
+                "id": o.id,
+            }
+            for o in self.owners
+        ]
+
+    @property
+    def is_virtual(self) -> bool:
+        return self.kind == DatasourceKind.VIRTUAL
+
+    @declared_attr
+    def slices(self) -> RelationshipProperty:
+        return relationship(
+            "Slice",
+            overlaps="table",
+            primaryjoin=lambda: and_(
+                foreign(Slice.datasource_id) == self.id,
+                foreign(Slice.datasource_type) == self.type,
+            ),
+        )
+
+    columns: list[TableColumn] = []
+    metrics: list[SqlMetric] = []
+
+    @property
+    def type(self) -> str:
+        raise NotImplementedError()
+
+    @property
+    def uid(self) -> str:
+        """Unique id across datasource types"""
+        return f"{self.id}__{self.type}"
+
+    @property
+    def column_names(self) -> list[str]:
+        return sorted([c.column_name for c in self.columns], key=lambda x: x or "")
+
+    @property
+    def columns_types(self) -> dict[str, str]:
+        return {c.column_name: c.type for c in self.columns}
+
+    @property
+    def main_dttm_col(self) -> str:
+        return "timestamp"
+
+    @property
+    def datasource_name(self) -> str:
+        raise NotImplementedError()
+
+    @property
+    def connection(self) -> str | None:
+        """String representing the context of the Datasource"""
+        return None
+
+    @property
+    def schema(self) -> str | None:
+        """String representing the schema of the Datasource (if it applies)"""
+        return None
+
+    @property
+    def filterable_column_names(self) -> list[str]:
+        return sorted([c.column_name for c in self.columns if c.filterable])
+
+    @property
+    def dttm_cols(self) -> list[str]:
+        return []
+
+    @property
+    def url(self) -> str:
+        return f"/{self.baselink}/edit/{self.id}"
+
+    @property
+    def explore_url(self) -> str:
+        if self.default_endpoint:
+            return self.default_endpoint
+        return f"/explore/?datasource_type={self.type}&datasource_id={self.id}"
+
+    @property
+    def column_formats(self) -> dict[str, str | None]:
+        return {m.metric_name: m.d3format for m in self.metrics if m.d3format}
+
+    @property
+    def currency_formats(self) -> dict[str, dict[str, str | None] | None]:
+        return {m.metric_name: m.currency_json for m in self.metrics if m.currency_json}
+
+    def add_missing_metrics(self, metrics: list[SqlMetric]) -> None:
+        existing_metrics = {m.metric_name for m in self.metrics}
+        for metric in metrics:
+            if metric.metric_name not in existing_metrics:
+                metric.table_id = self.id
+                self.metrics.append(metric)
+
+    @property
+    def short_data(self) -> dict[str, Any]:
+        """Data representation of the datasource sent to the frontend"""
+        return {
+            "edit_url": self.url,
+            "id": self.id,
+            "uid": self.uid,
+            "schema": self.schema,
+            "name": self.name,
+            "type": self.type,
+            "connection": self.connection,
+            "creator": str(self.created_by),
+        }
+
+    @property
+    def select_star(self) -> str | None:
+        pass
+
+    @property
+    def order_by_choices(self) -> list[tuple[str, str]]:
+        choices = []
+        # self.column_names return sorted column_names
+        for column_name in self.column_names:
+            column_name = str(column_name or "")
+            choices.append(
+                (json.dumps([column_name, True]), f"{column_name} " + __("[asc]"))
+            )
+            choices.append(
+                (json.dumps([column_name, False]), f"{column_name} " + __("[desc]"))
+            )
+        return choices
+
+    @property
+    def verbose_map(self) -> dict[str, str]:
+        verb_map = {"__timestamp": "Time"}
+        verb_map.update(
+            {o.metric_name: o.verbose_name or o.metric_name for o in self.metrics}
+        )
+        verb_map.update(
+            {o.column_name: o.verbose_name or o.column_name for o in self.columns}
+        )
+        return verb_map
+
+    @property
+    def data(self) -> dict[str, Any]:
+        """Data representation of the datasource sent to the frontend"""
+        return {
+            # simple fields
+            "id": self.id,
+            "uid": self.uid,
+            "column_formats": self.column_formats,
+            "currency_formats": self.currency_formats,
+            "description": self.description,
+            "database": self.database.data,  # pylint: disable=no-member
+            "default_endpoint": self.default_endpoint,
+            "filter_select": self.filter_select_enabled,  # TODO deprecate
+            "filter_select_enabled": self.filter_select_enabled,
+            "name": self.name,
+            "datasource_name": self.datasource_name,
+            "table_name": self.datasource_name,
+            "type": self.type,
+            "schema": self.schema,
+            "offset": self.offset,
+            "cache_timeout": self.cache_timeout,
+            "params": self.params,
+            "perm": self.perm,
+            "edit_url": self.url,
+            # sqla-specific
+            "sql": self.sql,
+            # one to many
+            "columns": [o.data for o in self.columns],
+            "metrics": [o.data for o in self.metrics],
+            # TODO deprecate, move logic to JS
+            "order_by_choices": self.order_by_choices,
+            "owners": [owner.id for owner in self.owners],
+            "verbose_map": self.verbose_map,
+            "select_star": self.select_star,
+        }
+
+    def data_for_slices(  # pylint: disable=too-many-locals
+        self, slices: list[Slice]
+    ) -> dict[str, Any]:
+        """
+        The representation of the datasource containing only the required data
+        to render the provided slices.
+
+        Used to reduce the payload when loading a dashboard.
+        """
+        data = self.data
+        metric_names = set()
+        column_names = set()
+        for slc in slices:
+            form_data = slc.form_data
+            # pull out all required metrics from the form_data
+            for metric_param in METRIC_FORM_DATA_PARAMS:
+                for metric in utils.as_list(form_data.get(metric_param) or []):
+                    metric_names.add(utils.get_metric_name(metric))
+                    if utils.is_adhoc_metric(metric):
+                        column_ = metric.get("column") or {}
+                        if column_name := column_.get("column_name"):
+                            column_names.add(column_name)
+
+            # Columns used in query filters
+            column_names.update(
+                filter_["subject"]
+                for filter_ in form_data.get("adhoc_filters") or []
+                if filter_.get("clause") == "WHERE" and filter_.get("subject")
+            )
+
+            # columns used by Filter Box
+            column_names.update(
+                filter_config["column"]
+                for filter_config in form_data.get("filter_configs") or []
+                if "column" in filter_config
+            )
+
+            # for legacy dashboard imports which have the wrong query_context in them
+            try:
+                query_context = slc.get_query_context()
+            except DatasetNotFoundError:
+                query_context = None
+
+            # legacy charts don't have query_context charts
+            if query_context:
+                column_names.update(
+                    [
+                        utils.get_column_name(column_)
+                        for query in query_context.queries
+                        for column_ in query.columns
+                    ]
+                    or []
+                )
+            else:
+                _columns = [
+                    utils.get_column_name(column_)
+                    if utils.is_adhoc_column(column_)
+                    else column_
+                    for column_param in COLUMN_FORM_DATA_PARAMS
+                    for column_ in utils.as_list(form_data.get(column_param) or [])
+                ]
+                column_names.update(_columns)
+
+        filtered_metrics = [
+            metric
+            for metric in data["metrics"]
+            if metric["metric_name"] in metric_names
+        ]
+
+        filtered_columns: list[Column] = []
+        column_types: set[GenericDataType] = set()
+        for column_ in data["columns"]:
+            generic_type = column_.get("type_generic")
+            if generic_type is not None:
+                column_types.add(generic_type)
+            if column_["column_name"] in column_names:
+                filtered_columns.append(column_)
+
+        data["column_types"] = list(column_types)
+        del data["description"]
+        data.update({"metrics": filtered_metrics})
+        data.update({"columns": filtered_columns})
+        verbose_map = {"__timestamp": "Time"}
+        verbose_map.update(
+            {
+                metric["metric_name"]: metric["verbose_name"] or metric["metric_name"]
+                for metric in filtered_metrics
+            }
+        )
+        verbose_map.update(
+            {
+                column_["column_name"]: column_["verbose_name"]
+                or column_["column_name"]
+                for column_ in filtered_columns
+            }
+        )
+        data["verbose_map"] = verbose_map
+
+        return data
+
+    @staticmethod
+    def filter_values_handler(  # pylint: disable=too-many-arguments
+        values: FilterValues | None,
+        operator: str,
+        target_generic_type: GenericDataType,
+        target_native_type: str | None = None,
+        is_list_target: bool = False,
+        db_engine_spec: builtins.type[BaseEngineSpec] | None = None,
+        db_extra: dict[str, Any] | None = None,
+    ) -> FilterValues | None:
+        if values is None:
+            return None
+
+        def handle_single_value(value: FilterValue | None) -> FilterValue | None:
+            if operator == utils.FilterOperator.TEMPORAL_RANGE:
+                return value
+            if (
+                isinstance(value, (float, int))
+                and target_generic_type == utils.GenericDataType.TEMPORAL
+                and target_native_type is not None
+                and db_engine_spec is not None
+            ):
+                value = db_engine_spec.convert_dttm(
+                    target_type=target_native_type,
+                    dttm=datetime.utcfromtimestamp(value / 1000),
+                    db_extra=db_extra,
+                )
+                value = literal_column(value)
+            if isinstance(value, str):
+                value = value.strip("\t\n")
+
+                if (
+                    target_generic_type == utils.GenericDataType.NUMERIC
+                    and operator
+                    not in {
+                        utils.FilterOperator.ILIKE,
+                        utils.FilterOperator.LIKE,
+                    }
+                ):
+                    # For backwards compatibility and edge cases
+                    # where a column data type might have changed
+                    return utils.cast_to_num(value)
+                if value == NULL_STRING:
+                    return None
+                if value == EMPTY_STRING:
+                    return ""
+            if target_generic_type == utils.GenericDataType.BOOLEAN:
+                return utils.cast_to_boolean(value)
+            return value
+
+        if isinstance(values, (list, tuple)):
+            values = [handle_single_value(v) for v in values]  # type: ignore
+        else:
+            values = handle_single_value(values)
+        if is_list_target and not isinstance(values, (tuple, list)):
+            values = [values]  # type: ignore
+        elif not is_list_target and isinstance(values, (tuple, list)):
+            values = values[0] if values else None
+        return values
+
+    def external_metadata(self) -> list[ResultSetColumnType]:
+        """Returns column information from the external system"""
+        raise NotImplementedError()
+
+    def get_query_str(self, query_obj: QueryObjectDict) -> str:
+        """Returns a query as a string
+
+        This is used to be displayed to the user so that they can
+        understand what is taking place behind the scene"""
+        raise NotImplementedError()
+
+    def query(self, query_obj: QueryObjectDict) -> QueryResult:
+        """Executes the query and returns a dataframe
+
+        query_obj is a dictionary representing Superset's query interface.
+        Should return a ``superset.models.helpers.QueryResult``
+        """
+        raise NotImplementedError()
+
+    @staticmethod
+    def default_query(qry: Query) -> Query:
+        return qry
+
+    def get_column(self, column_name: str | None) -> TableColumn | None:
+        if not column_name:
+            return None
+        for col in self.columns:
+            if col.column_name == column_name:
+                return col
+        return None
+
+    @staticmethod
+    def get_fk_many_from_list(
+        object_list: list[Any],
+        fkmany: list[Column],
+        fkmany_class: builtins.type[TableColumn | SqlMetric],
+        key_attr: str,
+    ) -> list[Column]:
+        """Update ORM one-to-many list from object list
+
+        Used for syncing metrics and columns using the same code"""
+
+        object_dict = {o.get(key_attr): o for o in object_list}
+
+        # delete fks that have been removed
+        fkmany = [o for o in fkmany if getattr(o, key_attr) in object_dict]
+
+        # sync existing fks
+        for fk in fkmany:
+            obj = object_dict.get(getattr(fk, key_attr))
+            if obj:
+                for attr in fkmany_class.update_from_object_fields:
+                    setattr(fk, attr, obj.get(attr))
+
+        # create new fks
+        new_fks = []
+        orm_keys = [getattr(o, key_attr) for o in fkmany]
+        for obj in object_list:
+            key = obj.get(key_attr)
+            if key not in orm_keys:
+                del obj["id"]
+                orm_kwargs = {}
+                for k in obj:
+                    if k in fkmany_class.update_from_object_fields and k in obj:
+                        orm_kwargs[k] = obj[k]
+                new_obj = fkmany_class(**orm_kwargs)
+                new_fks.append(new_obj)
+        fkmany += new_fks
+        return fkmany
+
+    def update_from_object(self, obj: dict[str, Any]) -> None:
+        """Update datasource from a data structure
+
+        The UI's table editor crafts a complex data structure that
+        contains most of the datasource's properties as well as
+        an array of metrics and columns objects. This method
+        receives the object from the UI and syncs the datasource to
+        match it. Since the fields are different for the different
+        connectors, the implementation uses ``update_from_object_fields``
+        which can be defined for each connector and
+        defines which fields should be synced"""
+        for attr in self.update_from_object_fields:
+            setattr(self, attr, obj.get(attr))
+
+        self.owners = obj.get("owners", [])
+
+        # Syncing metrics
+        metrics = (
+            self.get_fk_many_from_list(
+                obj["metrics"], self.metrics, SqlMetric, "metric_name"
+            )
+            if "metrics" in obj
+            else []
+        )
+        self.metrics = metrics
+
+        # Syncing columns
+        self.columns = (
+            self.get_fk_many_from_list(
+                obj["columns"], self.columns, TableColumn, "column_name"
+            )
+            if "columns" in obj
+            else []
+        )
+
+    def get_extra_cache_keys(
+        self, query_obj: QueryObjectDict  # pylint: disable=unused-argument
+    ) -> list[Hashable]:
+        """If a datasource needs to provide additional keys for calculation of
+        cache keys, those can be provided via this method
+
+        :param query_obj: The dict representation of a query object
+        :return: list of keys
+        """
+        return []
+
+    def __hash__(self) -> int:
+        return hash(self.uid)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, BaseDatasource):
+            return NotImplemented
+        return self.uid == other.uid
+
+    def raise_for_access(self) -> None:
+        """
+        Raise an exception if the user cannot access the resource.
+
+        :raises SupersetSecurityException: If the user cannot access the resource
+        """
+
+        security_manager.raise_for_access(datasource=self)
+
+    @classmethod
+    def get_datasource_by_name(
+        cls, session: Session, datasource_name: str, schema: str, database_name: str
+    ) -> BaseDatasource | None:
+        raise NotImplementedError()
 
 
 class AnnotationDatasource(BaseDatasource):
@@ -190,21 +757,32 @@ class AnnotationDatasource(BaseDatasource):
         raise NotImplementedError()
 
 
-class TableColumn(Model, BaseColumn, CertificationMixin):
+class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model):
 
     """ORM object for table columns, each table can have multiple columns"""
 
     __tablename__ = "table_columns"
     __table_args__ = (UniqueConstraint("table_id", "column_name"),)
+
+    id = Column(Integer, primary_key=True)
+    column_name = Column(String(255), nullable=False)
+    verbose_name = Column(String(1024))
+    is_active = Column(Boolean, default=True)
+    type = Column(Text)
+    advanced_data_type = Column(String(255))
+    groupby = Column(Boolean, default=True)
+    filterable = Column(Boolean, default=True)
+    description = Column(MediumText())
     table_id = Column(Integer, ForeignKey("tables.id", ondelete="CASCADE"))
-    table: Mapped[SqlaTable] = relationship(
-        "SqlaTable",
-        back_populates="columns",
-    )
     is_dttm = Column(Boolean, default=False)
     expression = Column(MediumText())
     python_date_format = Column(String(255))
     extra = Column(Text)
+
+    table: Mapped[SqlaTable] = relationship(
+        "SqlaTable",
+        back_populates="columns",
+    )
 
     export_fields = [
         "table_id",
@@ -229,7 +807,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         """
         Construct a TableColumn object.
 
-        Historically a TableColumn object (from an ORM perspective) was tighly bound to
+        Historically a TableColumn object (from an ORM perspective) was tightly bound to
         a SqlaTable object, however with the introduction of the Query datasource this
         is no longer true, i.e., the SqlaTable relationship is optional.
 
@@ -248,6 +826,9 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         """
 
         self._database = None
+
+    def __repr__(self) -> str:
+        return str(self.column_name)
 
     @property
     def is_boolean(self) -> bool:
@@ -287,7 +868,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         return self.table.database if self.table else self._database
 
     @property
-    def db_engine_spec(self) -> type[BaseEngineSpec]:
+    def db_engine_spec(self) -> builtins.type[BaseEngineSpec]:
         return self.database.db_engine_spec
 
     @property
@@ -369,44 +950,50 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
     @property
     def data(self) -> dict[str, Any]:
         attrs = (
-            "id",
+            "advanced_data_type",
+            "certification_details",
+            "certified_by",
             "column_name",
-            "verbose_name",
             "description",
             "expression",
             "filterable",
             "groupby",
+            "id",
+            "is_certified",
             "is_dttm",
+            "python_date_format",
             "type",
             "type_generic",
-            "advanced_data_type",
-            "python_date_format",
-            "is_certified",
-            "certified_by",
-            "certification_details",
+            "verbose_name",
             "warning_markdown",
         )
 
-        attr_dict = {s: getattr(self, s) for s in attrs if hasattr(self, s)}
-
-        attr_dict.update(super().data)
-
-        return attr_dict
+        return {s: getattr(self, s) for s in attrs if hasattr(self, s)}
 
 
-class SqlMetric(Model, BaseMetric, CertificationMixin):
+class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model):
 
     """ORM object for metrics, each table can have multiple metrics"""
 
     __tablename__ = "sql_metrics"
     __table_args__ = (UniqueConstraint("table_id", "metric_name"),)
+
+    id = Column(Integer, primary_key=True)
+    metric_name = Column(String(255), nullable=False)
+    verbose_name = Column(String(1024))
+    metric_type = Column(String(32))
+    description = Column(MediumText())
+    d3format = Column(String(128))
+    currency = Column(String(128))
+    warning_text = Column(Text)
     table_id = Column(Integer, ForeignKey("tables.id", ondelete="CASCADE"))
+    expression = Column(MediumText(), nullable=False)
+    extra = Column(Text)
+
     table: Mapped[SqlaTable] = relationship(
         "SqlaTable",
         back_populates="metrics",
     )
-    expression = Column(MediumText(), nullable=False)
-    extra = Column(Text)
 
     export_fields = [
         "metric_name",
@@ -453,17 +1040,33 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
         return self.perm
 
     @property
+    def currency_json(self) -> dict[str, str | None] | None:
+        try:
+            return json.loads(self.currency or "{}") or None
+        except (TypeError, JSONDecodeError) as exc:
+            logger.error(
+                "Unable to load currency json: %r. Leaving empty.", exc, exc_info=True
+            )
+            return None
+
+    @property
     def data(self) -> dict[str, Any]:
         attrs = (
-            "is_certified",
-            "certified_by",
             "certification_details",
+            "certified_by",
+            "currency",
+            "d3format",
+            "description",
+            "expression",
+            "id",
+            "is_certified",
+            "metric_name",
             "warning_markdown",
+            "warning_text",
+            "verbose_name",
         )
-        attr_dict = {s: getattr(self, s) for s in attrs}
 
-        attr_dict.update(super().data)
-        return attr_dict
+        return {s: getattr(self, s) for s in attrs}
 
 
 sqlatable_user = Table(
@@ -546,6 +1149,8 @@ class SqlaTable(
     is_sqllab_view = Column(Boolean, default=False)
     template_params = Column(Text)
     extra = Column(Text)
+    normalize_columns = Column(Boolean, default=False)
+    always_filter_main_dttm = Column(Boolean, default=False)
 
     baselink = "tablemodelview"
 
@@ -564,6 +1169,8 @@ class SqlaTable(
         "filter_select_enabled",
         "fetch_values_predicate",
         "extra",
+        "normalize_columns",
+        "always_filter_main_dttm",
     ]
     update_from_object_fields = [f for f in export_fields if f != "database_id"]
     export_parent = "database"
@@ -717,6 +1324,7 @@ class SqlaTable(
             database=self.database,
             table_name=self.table_name,
             schema_name=self.schema,
+            normalize_columns=self.normalize_columns,
         )
 
     @property
@@ -760,6 +1368,8 @@ class SqlaTable(
             data_["health_check_message"] = self.health_check_message
             data_["extra"] = self.extra
             data_["owners"] = self.owners_data
+            data_["always_filter_main_dttm"] = self.always_filter_main_dttm
+            data_["normalize_columns"] = self.normalize_columns
         return data_
 
     @property
@@ -787,34 +1397,6 @@ class SqlaTable(
                     msg=ex.message,
                 )
             ) from ex
-
-    def values_for_column(self, column_name: str, limit: int = 10000) -> list[Any]:
-        """Runs query against sqla to retrieve some
-        sample values for the given column.
-        """
-        cols = {col.column_name: col for col in self.columns}
-        target_col = cols[column_name]
-        tp = self.get_template_processor()
-        tbl, cte = self.get_from_clause(tp)
-
-        qry = (
-            select([target_col.get_sqla_col(template_processor=tp)])
-            .select_from(tbl)
-            .distinct()
-        )
-        if limit:
-            qry = qry.limit(limit)
-
-        if self.fetch_values_predicate:
-            qry = qry.where(self.get_fetch_values_predicate(template_processor=tp))
-
-        with self.database.get_sqla_engine_with_context() as engine:
-            sql = qry.compile(engine, compile_kwargs={"literal_binds": True})
-            sql = self._apply_cte(sql, cte)
-            sql = self.mutate_query_from_config(sql)
-
-            df = pd.read_sql_query(sql=sql, con=engine)
-            return df[column_name].to_list()
 
     def mutate_query_from_config(self, sql: str) -> str:
         """Apply config's SQL_QUERY_MUTATOR
@@ -990,11 +1572,13 @@ class SqlaTable(
         time_grain = col.get("timeGrain")
         has_timegrain = col.get("columnType") == "BASE_AXIS" and time_grain
         is_dttm = False
+        pdf = None
         if col_in_metadata := self.get_column(expression):
             sqla_column = col_in_metadata.get_sqla_col(
                 template_processor=template_processor
             )
             is_dttm = col_in_metadata.is_temporal
+            pdf = col_in_metadata.python_date_format
         else:
             sqla_column = literal_column(expression)
             if has_timegrain or force_type_check:
@@ -1004,6 +1588,8 @@ class SqlaTable(
                     qry = sa.select([sqla_column]).limit(1).select_from(tbl)
                     sql = self.database.compile_sqla_query(qry)
                     col_desc = get_columns_description(self.database, self.schema, sql)
+                    if not col_desc:
+                        raise SupersetGenericDBErrorException("Column not found")
                     is_dttm = col_desc[0]["is_dttm"]  # type: ignore
                 except SupersetGenericDBErrorException as ex:
                     raise ColumnNotFoundException(message=str(ex)) from ex
@@ -1011,7 +1597,7 @@ class SqlaTable(
         if is_dttm and has_timegrain:
             sqla_column = self.db_engine_spec.get_timestamp_expr(
                 col=sqla_column,
-                pdf=None,
+                pdf=pdf,
                 time_grain=time_grain,
             )
         return self.make_sqla_column_compatible(sqla_column, label)
@@ -1427,46 +2013,20 @@ class SqlaTable(
 
     @staticmethod
     def before_update(
-        mapper: Mapper,  # pylint: disable=unused-argument
-        connection: Connection,  # pylint: disable=unused-argument
+        mapper: Mapper,
+        connection: Connection,
         target: SqlaTable,
     ) -> None:
         """
-        Check before update if the target table already exists.
-
-        Note this listener is called when any fields are being updated and thus it is
-        necessary to first check whether the reference table is being updated.
-
-        Note this logic is temporary, given uniqueness is handled via the dataset DAO,
-        but is necessary until both the legacy datasource editor and datasource/save
-        endpoints are deprecated.
+        Note this listener is called when any fields are being updated
 
         :param mapper: The table mapper
         :param connection: The DB-API connection
         :param target: The mapped instance being persisted
         :raises Exception: If the target table is not unique
         """
-
-        # pylint: disable=import-outside-toplevel
-        from superset.daos.dataset import DatasetDAO
-        from superset.datasets.commands.exceptions import get_dataset_exist_error_msg
-
-        # Check whether the relevant attributes have changed.
-        state = db.inspect(target)  # pylint: disable=no-member
-
-        for attr in ["database_id", "schema", "table_name"]:
-            history = state.get_history(attr, True)
-            if history.has_changes():
-                break
-        else:
-            return None
-
-        if not DatasetDAO.validate_uniqueness(
-            target.database_id, target.schema, target.table_name, target.id
-        ):
-            raise Exception(  # pylint: disable=broad-exception-raised
-                get_dataset_exist_error_msg(target.full_name)
-            )
+        target.load_database()
+        security_manager.dataset_before_update(mapper, connection, target)
 
     @staticmethod
     def update_column(  # pylint: disable=unused-argument
@@ -1484,34 +2044,17 @@ class SqlaTable(
         # table is updated. This busts the cache key for all charts that use the table.
         session.execute(update(SqlaTable).where(SqlaTable.id == target.table.id))
 
-        # TODO: This shadow writing is deprecated
-        # if table itself has changed, shadow-writing will happen in `after_update` anyway
-        if target.table not in session.dirty:
-            dataset: NewDataset = (
-                session.query(NewDataset)
-                .filter_by(uuid=target.table.uuid)
-                .one_or_none()
-            )
-            # Update shadow dataset and columns
-            # did we find the dataset?
-            if not dataset:
-                # if dataset is not found create a new copy
-                target.table.write_shadow_dataset()
-                return
-
     @staticmethod
     def after_insert(
         mapper: Mapper,
         connection: Connection,
-        sqla_table: SqlaTable,
+        target: SqlaTable,
     ) -> None:
         """
         Update dataset permissions after insert
         """
-        security_manager.dataset_after_insert(mapper, connection, sqla_table)
-
-        # TODO: deprecated
-        sqla_table.write_shadow_dataset()
+        target.load_database()
+        security_manager.dataset_after_insert(mapper, connection, target)
 
     @staticmethod
     def after_delete(
@@ -1524,63 +2067,16 @@ class SqlaTable(
         """
         security_manager.dataset_after_delete(mapper, connection, sqla_table)
 
-    @staticmethod
-    def after_update(
-        mapper: Mapper,
-        connection: Connection,
-        sqla_table: SqlaTable,
-    ) -> None:
-        """
-        Update dataset permissions
-        """
-        # set permissions
-        security_manager.dataset_after_update(mapper, connection, sqla_table)
-
-        # TODO: the shadow writing is deprecated
-        inspector = inspect(sqla_table)
-        session = inspector.session
-
-        # double-check that ``UPDATE``s are actually pending (this method is called even
-        # for instances that have no net changes to their column-based attributes)
-        if not session.is_modified(sqla_table, include_collections=True):
-            return
-
-        # find the dataset from the known instance list first
-        # (it could be either from a previous query or newly created)
-        dataset = next(
-            find_cached_objects_in_session(
-                session, NewDataset, uuids=[sqla_table.uuid]
-            ),
-            None,
-        )
-        # if not found, pull from database
-        if not dataset:
-            dataset = (
-                session.query(NewDataset).filter_by(uuid=sqla_table.uuid).one_or_none()
-            )
-        if not dataset:
-            sqla_table.write_shadow_dataset()
-            return
-
-    def write_shadow_dataset(
-        self: SqlaTable,
-    ) -> None:
-        """
-        This method is deprecated
-        """
-        session = inspect(self).session
-        # most of the write_shadow_dataset functionality has been removed
-        # but leaving this portion in
-        # to remove later because it is adding a Database relationship to the session
-        # and there is some functionality that depends on this
+    def load_database(self: SqlaTable) -> None:
+        # somehow the database attribute is not loaded on access
         if self.database_id and (
             not self.database or self.database.id != self.database_id
         ):
+            session = inspect(self).session
             self.database = session.query(Database).filter_by(id=self.database_id).one()
 
 
 sa.event.listen(SqlaTable, "before_update", SqlaTable.before_update)
-sa.event.listen(SqlaTable, "after_update", SqlaTable.after_update)
 sa.event.listen(SqlaTable, "after_insert", SqlaTable.after_insert)
 sa.event.listen(SqlaTable, "after_delete", SqlaTable.after_delete)
 sa.event.listen(SqlMetric, "after_update", SqlaTable.update_column)

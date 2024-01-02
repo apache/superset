@@ -23,19 +23,19 @@ import yaml
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db, security_manager
-from superset.commands.exceptions import CommandInvalidError
-from superset.commands.importers.exceptions import IncorrectVersionError
-from superset.connectors.sqla.models import SqlaTable
-from superset.databases.commands.importers.v1 import ImportDatabasesCommand
-from superset.datasets.commands.create import CreateDatasetCommand
-from superset.datasets.commands.exceptions import (
+from superset.commands.database.importers.v1 import ImportDatabasesCommand
+from superset.commands.dataset.create import CreateDatasetCommand
+from superset.commands.dataset.exceptions import (
     DatasetInvalidError,
     DatasetNotFoundError,
     WarmUpCacheTableNotFoundError,
 )
-from superset.datasets.commands.export import ExportDatasetsCommand
-from superset.datasets.commands.importers import v0, v1
-from superset.datasets.commands.warm_up_cache import DatasetWarmUpCacheCommand
+from superset.commands.dataset.export import ExportDatasetsCommand
+from superset.commands.dataset.importers import v0, v1
+from superset.commands.dataset.warm_up_cache import DatasetWarmUpCacheCommand
+from superset.commands.exceptions import CommandInvalidError
+from superset.commands.importers.exceptions import IncorrectVersionError
+from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.utils.core import get_example_default_schema
@@ -170,6 +170,8 @@ class TestExportDatasetsCommand(SupersetTestCase):
                     "warning_text": None,
                 },
             ],
+            "normalize_columns": False,
+            "always_filter_main_dttm": False,
             "offset": 0,
             "params": None,
             "schema": get_example_default_schema(),
@@ -229,6 +231,8 @@ class TestExportDatasetsCommand(SupersetTestCase):
             "filter_select_enabled",
             "fetch_values_predicate",
             "extra",
+            "normalize_columns",
+            "always_filter_main_dttm",
             "uuid",
             "metrics",
             "columns",
@@ -335,7 +339,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
-    @patch("superset.datasets.commands.importers.v1.utils.g")
+    @patch("superset.commands.dataset.importers.v1.utils.g")
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_import_v1_dataset(self, sm_g, utils_g):

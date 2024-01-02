@@ -24,6 +24,7 @@ import React, {
   useMemo,
   useState,
   useCallback,
+  ClipboardEvent,
 } from 'react';
 import {
   ensureIsArray,
@@ -33,7 +34,8 @@ import {
   usePrevious,
 } from '@superset-ui/core';
 import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
-import { isEqual } from 'lodash';
+import { debounce, isEqual, uniq } from 'lodash';
+import { FAST_DEBOUNCE } from 'src/constants';
 import {
   getValue,
   hasOption,
@@ -49,8 +51,10 @@ import {
   mapValues,
   mapOptions,
   hasCustomLabels,
+  getOption,
+  isObject,
 } from './utils';
-import { SelectOptionsType, SelectProps } from './types';
+import { RawValue, SelectOptionsType, SelectProps } from './types';
 import {
   StyledCheckOutlined,
   StyledContainer,
@@ -103,13 +107,14 @@ const Select = forwardRef(
       onClear,
       onDropdownVisibleChange,
       onDeselect,
+      onSearch,
       onSelect,
       optionFilterProps = ['label', 'value'],
       options,
       placeholder = t('Select ...'),
       showSearch = true,
       sortComparator = DEFAULT_SORT_COMPARATOR,
-      tokenSeparators,
+      tokenSeparators = TOKEN_SEPARATORS,
       value,
       getPopupContainer,
       oneLine,
@@ -141,11 +146,7 @@ const Select = forwardRef(
       }
     }, [isDropdownVisible, oneLine]);
 
-    const mappedMode = isSingleMode
-      ? undefined
-      : allowNewOptions
-      ? 'tags'
-      : 'multiple';
+    const mappedMode = isSingleMode ? undefined : 'multiple';
 
     const { Option } = AntdSelect;
 
@@ -167,8 +168,7 @@ const Select = forwardRef(
     );
 
     const initialOptions = useMemo(
-      () =>
-        options && Array.isArray(options) ? options.slice() : EMPTY_OPTIONS,
+      () => (Array.isArray(options) ? options.slice() : EMPTY_OPTIONS),
       [options],
     );
     const initialOptionsSorted = useMemo(
@@ -281,8 +281,8 @@ const Select = forwardRef(
                 : option.value,
             ),
         );
-        fireOnChange();
       }
+      fireOnChange();
     };
 
     const handleOnDeselect: SelectProps['onDeselect'] = (value, option) => {
@@ -295,24 +295,30 @@ const Select = forwardRef(
             element => getValue(element) !== getValue(value),
           );
           // if this was not a new item, deselect select all option
-          if (
-            selectAllMode &&
-            selectOptions.some(opt => opt.value === getValue(value))
-          ) {
+          if (selectAllMode && !option.isNewOption) {
             array = array.filter(
               element => getValue(element) !== SELECT_ALL_VALUE,
             );
           }
           setSelectValue(array);
+
+          // removes new option
+          if (option.isNewOption) {
+            setSelectOptions(
+              fullSelectOptions.filter(
+                option => getValue(option.value) !== getValue(value),
+              ),
+            );
+          }
         }
       }
       fireOnChange();
       onDeselect?.(value, option);
     };
 
-    const handleOnSearch = (search: string) => {
+    const handleOnSearch = debounce((search: string) => {
       const searchValue = search.trim();
-      if (allowNewOptions && isSingleMode) {
+      if (allowNewOptions) {
         const newOption = searchValue &&
           !hasOption(searchValue, fullSelectOptions, true) && {
             label: searchValue,
@@ -328,7 +334,10 @@ const Select = forwardRef(
         setSelectOptions(newOptions);
       }
       setInputValue(searchValue);
-    };
+      onSearch?.(searchValue);
+    }, FAST_DEBOUNCE);
+
+    useEffect(() => () => handleOnSearch.cancel(), [handleOnSearch]);
 
     const handleFilterOption = (search: string, option: AntdLabeledValue) =>
       handleFilterOptionHelper(search, option, optionFilterProps, filterOption);
@@ -390,10 +399,7 @@ const Select = forwardRef(
         setSelectValue(
           labelInValue
             ? ([...ensureIsArray(value), selectAllOption] as AntdLabeledValue[])
-            : ([
-                ...ensureIsArray(value),
-                SELECT_ALL_VALUE,
-              ] as AntdLabeledValue[]),
+            : ([...ensureIsArray(value), SELECT_ALL_VALUE] as RawValue[]),
         );
       }
     }, [labelInValue, selectAllEligible.length, selectAllEnabled, value]);
@@ -429,19 +435,7 @@ const Select = forwardRef(
     );
 
     const handleOnBlur = (event: React.FocusEvent<HTMLElement>) => {
-      const tagsMode = !isSingleMode && allowNewOptions;
-      const searchValue = inputValue.trim();
-      // Searched values will be autoselected during onBlur events when in tags mode.
-      // We want to make sure a value is only selected if the user has actually selected it
-      // by pressing Enter or clicking on it.
-      if (
-        tagsMode &&
-        searchValue &&
-        !hasOption(searchValue, selectValue, true)
-      ) {
-        // The search value will be added so we revert to the previous value
-        setSelectValue(selectValue || []);
-      }
+      setInputValue('');
       onBlur?.(event);
     };
 
@@ -538,6 +532,48 @@ const Select = forwardRef(
       actualMaxTagCount -= 1;
     }
 
+    const getPastedTextValue = useCallback(
+      (text: string) => {
+        const option = getOption(text, fullSelectOptions, true);
+        if (labelInValue) {
+          const value: AntdLabeledValue = {
+            label: text,
+            value: text,
+          };
+          if (option) {
+            value.label = isObject(option) ? option.label : option;
+            value.value = isObject(option) ? option.value! : option;
+          }
+          return value;
+        }
+        return option ? (isObject(option) ? option.value! : option) : text;
+      },
+      [fullSelectOptions, labelInValue],
+    );
+
+    const onPaste = (e: ClipboardEvent<HTMLInputElement>) => {
+      const pastedText = e.clipboardData.getData('text');
+      if (isSingleMode) {
+        setSelectValue(getPastedTextValue(pastedText));
+      } else {
+        const token = tokenSeparators.find(token => pastedText.includes(token));
+        const array = token ? uniq(pastedText.split(token)) : [pastedText];
+        const values = array.map(item => getPastedTextValue(item));
+        if (labelInValue) {
+          setSelectValue(previous => [
+            ...((previous || []) as AntdLabeledValue[]),
+            ...(values as AntdLabeledValue[]),
+          ]);
+        } else {
+          setSelectValue(previous => [
+            ...((previous || []) as string[]),
+            ...(values as string[]),
+          ]);
+        }
+      }
+      fireOnChange();
+    };
+
     return (
       <StyledContainer headerPosition={headerPosition}>
         {header && (
@@ -562,6 +598,8 @@ const Select = forwardRef(
           onBlur={handleOnBlur}
           onDeselect={handleOnDeselect}
           onDropdownVisibleChange={handleOnDropdownVisibleChange}
+          // @ts-ignore
+          onPaste={onPaste}
           onPopupScroll={undefined}
           onSearch={shouldShowSearch ? handleOnSearch : undefined}
           onSelect={handleOnSelect}
@@ -569,7 +607,7 @@ const Select = forwardRef(
           placeholder={placeholder}
           showSearch={shouldShowSearch}
           showArrow
-          tokenSeparators={tokenSeparators || TOKEN_SEPARATORS}
+          tokenSeparators={tokenSeparators}
           value={selectValue}
           suffixIcon={getSuffixIcon(
             isLoading,
@@ -583,7 +621,7 @@ const Select = forwardRef(
               <StyledCheckOutlined iconSize="m" aria-label="check" />
             )
           }
-          {...(!shouldRenderChildrenOptions && { options: fullSelectOptions })}
+          options={shouldRenderChildrenOptions ? undefined : fullSelectOptions}
           oneLine={oneLine}
           tagRender={customTagRender}
           {...props}

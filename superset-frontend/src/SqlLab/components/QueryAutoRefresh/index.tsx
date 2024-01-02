@@ -80,6 +80,7 @@ function QueryAutoRefresh({
       SupersetClient.get({
         endpoint: `/api/v1/query/updated_since?q=${params}`,
         timeout: QUERY_TIMEOUT_LIMIT,
+        parseMethod: 'json-bigint',
       })
         .then(({ json }) => {
           if (json) {

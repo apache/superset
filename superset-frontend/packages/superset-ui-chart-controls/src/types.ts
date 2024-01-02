@@ -73,7 +73,7 @@ export interface Dataset {
   main_dttm_col: string;
   // eg. ['["ds", true]', 'ds [asc]']
   order_by_choices?: [string, string][] | null;
-  time_grain_sqla?: string;
+  time_grain_sqla?: [string, string][];
   granularity_sqla?: string;
   datasource_name: string | null;
   name?: string;

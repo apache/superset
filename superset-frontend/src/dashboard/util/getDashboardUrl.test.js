@@ -73,6 +73,35 @@ describe('getChartIdsFromLayout', () => {
     );
   });
 
+  it('should encode filters with missing filters', () => {
+    const urlWithStandalone = getDashboardUrl({
+      pathname: 'path',
+      filters: undefined,
+      standalone: DashboardStandaloneMode.HIDE_NAV,
+    });
+    expect(urlWithStandalone).toBe(
+      `path?standalone=${DashboardStandaloneMode.HIDE_NAV}`,
+    );
+  });
+
+  it('should preserve unknown filters', () => {
+    const windowSpy = jest.spyOn(window, 'window', 'get');
+    windowSpy.mockImplementation(() => ({
+      location: {
+        origin: 'https://localhost',
+        search: '?unkown_param=value',
+      },
+    }));
+    const urlWithStandalone = getDashboardUrl({
+      pathname: 'path',
+      standalone: DashboardStandaloneMode.HIDE_NAV,
+    });
+    expect(urlWithStandalone).toBe(
+      `path?unkown_param=value&standalone=${DashboardStandaloneMode.HIDE_NAV}`,
+    );
+    windowSpy.mockRestore();
+  });
+
   it('should process native filters key', () => {
     const windowSpy = jest.spyOn(window, 'window', 'get');
     windowSpy.mockImplementation(() => ({
@@ -89,5 +118,6 @@ describe('getChartIdsFromLayout', () => {
     expect(urlWithNativeFilters).toBe(
       'path?preselect_filters=%7B%7D&native_filters_key=024380498jdkjf-2094838',
     );
+    windowSpy.mockRestore();
   });
 });

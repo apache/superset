@@ -25,17 +25,18 @@ from zipfile import is_zipfile, ZipFile
 import prison
 import pytest
 import yaml
+from sqlalchemy import inspect
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import func
 
 from superset import app
+from superset.commands.dataset.exceptions import DatasetCreateFailedError
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.daos.exceptions import (
     DAOCreateFailedError,
     DAODeleteFailedError,
     DAOUpdateFailedError,
 )
-from superset.datasets.commands.exceptions import DatasetCreateFailedError
 from superset.datasets.models import Dataset
 from superset.extensions import db, security_manager
 from superset.models.core import Database
@@ -153,7 +154,9 @@ class TestDatasetApi(SupersetTestCase):
 
             # rollback changes
             for dataset in datasets:
-                db.session.delete(dataset)
+                state = inspect(dataset)
+                if not state.was_deleted:
+                    db.session.delete(dataset)
             db.session.commit()
 
     @staticmethod
@@ -540,6 +543,8 @@ class TestDatasetApi(SupersetTestCase):
         model = db.session.query(SqlaTable).get(table_id)
         assert model.table_name == table_data["table_name"]
         assert model.database_id == table_data["database"]
+        # normalize_columns should default to False
+        assert model.normalize_columns is False
 
         # Assert that columns were created
         columns = (
@@ -559,6 +564,35 @@ class TestDatasetApi(SupersetTestCase):
             .all()
         )
         assert columns[0].expression == "COUNT(*)"
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_create_dataset_item_normalize(self):
+        """
+        Dataset API: Test create dataset item with column normalization enabled
+        """
+        if backend() == "sqlite":
+            return
+
+        main_db = get_main_database()
+        self.login(username="admin")
+        table_data = {
+            "database": main_db.id,
+            "schema": None,
+            "table_name": "ab_permission",
+            "normalize_columns": True,
+            "always_filter_main_dttm": False,
+        }
+        uri = "api/v1/dataset/"
+        rv = self.post_assert_metric(uri, table_data, "post")
+        assert rv.status_code == 201
+        data = json.loads(rv.data.decode("utf-8"))
+        table_id = data.get("id")
+        model = db.session.query(SqlaTable).get(table_id)
+        assert model.table_name == table_data["table_name"]
+        assert model.database_id == table_data["database"]
+        assert model.normalize_columns is True
 
         db.session.delete(model)
         db.session.commit()
@@ -1414,32 +1448,6 @@ class TestDatasetApi(SupersetTestCase):
         assert data == expected_response
         db.session.delete(dataset)
         db.session.delete(ab_user)
-        db.session.commit()
-
-    def test_update_dataset_unsafe_default_endpoint(self):
-        """
-        Dataset API: Test unsafe default endpoint
-        """
-        if backend() == "sqlite":
-            return
-
-        dataset = self.insert_default_dataset()
-        self.login(username="admin")
-        uri = f"api/v1/dataset/{dataset.id}"
-        table_data = {"default_endpoint": "http://www.google.com"}
-        rv = self.client.put(uri, json=table_data)
-        data = json.loads(rv.data.decode("utf-8"))
-        assert rv.status_code == 422
-        expected_response = {
-            "message": {
-                "default_endpoint": [
-                    "The submitted URL is not considered safe,"
-                    " only use URLs with the same domain as Superset."
-                ]
-            }
-        }
-        assert data == expected_response
-        db.session.delete(dataset)
         db.session.commit()
 
     @patch("superset.daos.dataset.DatasetDAO.update")
@@ -2450,7 +2458,7 @@ class TestDatasetApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(response["message"], {"database": ["Database does not exist"]})
 
-    @patch("superset.datasets.commands.create.CreateDatasetCommand.run")
+    @patch("superset.commands.dataset.create.CreateDatasetCommand.run")
     def test_get_or_create_dataset_create_fails(self, command_run_mock):
         """
         Dataset API: Test get or create endpoint when create fails
@@ -2494,8 +2502,9 @@ class TestDatasetApi(SupersetTestCase):
             .filter_by(table_name="test_create_sqla_table_api")
             .one()
         )
-        self.assertEqual(response["result"], {"table_id": table.id})
-        self.assertEqual(table.template_params, '{"param": 1}')
+        assert response["result"] == {"table_id": table.id}
+        assert table.template_params == '{"param": 1}'
+        assert table.normalize_columns is False
 
         db.session.delete(table)
         with examples_db.get_sqla_engine_with_context() as engine:

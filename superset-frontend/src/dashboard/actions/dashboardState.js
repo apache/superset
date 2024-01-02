@@ -21,6 +21,7 @@ import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import rison from 'rison';
 import {
   ensureIsArray,
+  isFeatureEnabled,
   FeatureFlag,
   getSharedLabelColor,
   SupersetClient,
@@ -51,7 +52,6 @@ import serializeActiveFilterValues from 'src/dashboard/util/serializeActiveFilte
 import serializeFilterScopes from 'src/dashboard/util/serializeFilterScopes';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { safeStringify } from 'src/utils/safeStringify';
-import { isFeatureEnabled } from 'src/featureFlags';
 import { logEvent } from 'src/logger/actions';
 import { LOG_ACTIONS_CONFIRM_OVERWRITE_DASHBOARD_METADATA } from 'src/logger/LogUtils';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';
@@ -611,9 +611,14 @@ export function setDirectPathToChild(path) {
   return { type: SET_DIRECT_PATH, path };
 }
 
+export const SET_ACTIVE_TAB = 'SET_ACTIVE_TAB';
+export function setActiveTab(tabId, prevTabId) {
+  return { type: SET_ACTIVE_TAB, tabId, prevTabId };
+}
+
 export const SET_ACTIVE_TABS = 'SET_ACTIVE_TABS';
-export function setActiveTabs(tabId, prevTabId) {
-  return { type: SET_ACTIVE_TABS, tabId, prevTabId };
+export function setActiveTabs(activeTabs) {
+  return { type: SET_ACTIVE_TABS, activeTabs };
 }
 
 export const SET_FOCUSED_FILTER_FIELD = 'SET_FOCUSED_FILTER_FIELD';

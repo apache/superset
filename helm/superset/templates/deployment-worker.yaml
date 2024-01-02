@@ -34,7 +34,9 @@ metadata:
   annotations: {{- toYaml .Values.supersetWorker.deploymentAnnotations | nindent 4 }}
   {{- end }}
 spec:
+  {{- if not .Values.supersetWorker.autoscaling.enabled }}
   replicas: {{ .Values.supersetWorker.replicaCount }}
+  {{- end }}
   selector:
     matchLabels:
       app: {{ template "superset.name" . }}-worker
@@ -46,6 +48,7 @@ spec:
     metadata:
       annotations:
         checksum/superset_config.py: {{ include "superset-config" . | sha256sum }}
+        checksum/superset_bootstrap.sh: {{ tpl .Values.bootstrapScript . | sha256sum }}
         checksum/connections: {{ .Values.supersetNode.connections | toYaml | sha256sum }}
         checksum/extraConfigs: {{ .Values.extraConfigs | toYaml | sha256sum }}
         checksum/extraSecrets: {{ .Values.extraSecrets | toYaml | sha256sum }}
