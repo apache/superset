@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DownOutlined, FileOutlined, GoogleOutlined } from '@ant-design/icons';
 import {
   css,
   FeatureFlag,
@@ -278,7 +277,7 @@ const ResultSet = ({
       exportMenuItems.push({
         label: t('CSV'),
         key: 'csv',
-        icon: <FileOutlined />,
+        icon: <Icons.FileOutlined />,
         onClick: () =>
           window.open(getExportCsvUrl(query.id), '_blank')?.focus(),
       });
@@ -286,7 +285,7 @@ const ResultSet = ({
         exportMenuItems.push({
           label: t('Google Sheets'),
           key: 'google-sheets',
-          icon: <GoogleOutlined />,
+          icon: <Icons.GoogleOutlined />,
           onClick: () =>
             window.open(getExportGoogleSheetsUrl(query.id), '_blank')?.focus(),
         });
@@ -326,7 +325,7 @@ const ResultSet = ({
                 <Button>
                   <Space>
                     Export
-                    <DownOutlined />
+                    <Icons.DownOutlined />
                   </Space>
                 </Button>
               </AntdDropdown>
