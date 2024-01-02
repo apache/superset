@@ -26,26 +26,32 @@ import { addDangerToast, addInfoToast } from 'src/components/MessageToasts/actio
 export default function ExportGoogleSheets() {
   const { clientId }: any = useParams();
   const dispatch = useDispatch();
-  const [{ isLoading: _isLoading, data, error }, setState ] = useState<{isLoading: boolean; data: any; error: any}>({ isLoading: true, data: null, error: null })
+  const [{ isLoading, data, error }, setState ] = useState<{isLoading: boolean; data: any; error: any}>({ isLoading: true, data: null, error: null })
   useEffect(() => {
-    dispatch(addInfoToast(t("Exporting result to Google Sheets.")));
+    dispatch(addInfoToast(t('Exporting results to Google Sheets'), { duration: 0 }))
     SupersetClient.get({
       endpoint: `/api/v1/sqllab/export/${clientId}/google-sheets/`,
     })
     .then((res) => setState({ data: res.json, isLoading: false, error: null }))
     .catch((e) => setState({ data: null, isLoading: false, error: e }))
   }, [])
+  useEffect(() => {
+    if (error) {
+      (async () => {
+        const message = (await error?.json())?.message || await error?.text() || error?.message || t('Unknown error.');
+        dispatch(addDangerToast(message, { duration: 0 }));
+      })()
+    }
+  }, [error])
+  useEffect(() => {
+    if (data?.["sheet_id"]) {
+      window.location.href = `https://docs.google.com/spreadsheets/d/${data["sheet_id"]}/`;
+    }
+  }, [data]);
 
-  console.log(_isLoading, data, error)
-
-  if (error) {
-    dispatch(addDangerToast(error?.message));
-    return null;
+  if (isLoading) {
+    return <Loading />;
   }
 
-  if (data?.["sheet_id"] ) {
-    window.location.href = `https://docs.google.com/spreadsheets/d/${data["sheet_id"]}/`
-  }
-
-  return <Loading />;
+  return null;
 }
