@@ -42,7 +42,7 @@ Default.args = {
     {
       title: 'Name',
       field: 'name',
-      folderIcon: true,
+      icon: 'dvt-folder',
       onLink: true,
       flex: 3,
     },
@@ -385,7 +385,7 @@ HoverExample.args = {
     {
       title: 'Name',
       field: 'name',
-      folderIcon: true,
+      icon: 'dvt-folder',
       onLink: true,
       flex: 3,
     },
@@ -518,7 +518,7 @@ IconColourExample.args = {
     {
       title: 'Name',
       field: 'name',
-      folderIcon: true,
+      icon: 'dvt-folder',
       onLink: true,
       flex: 3,
     },
@@ -656,7 +656,7 @@ CheckboxExample.args = {
     {
       title: 'Name',
       field: 'name',
-      folderIcon: true,
+      icon: 'dvt-folder',
       onLink: true,
       flex: 3,
     },
@@ -775,6 +775,168 @@ CheckboxExample.args = {
       date: '10.03.2023 12:45:00',
       modifiedBy: 'Admin',
       owners: 'A',
+    },
+  ],
+};
+
+export const ActiveColumn = (args: DvtTableProps) => {
+  const [selected, setSelected] = useState<number[]>([]);
+
+  return (
+    <div
+      style={{
+        width: 1440,
+        height: 1050,
+        backgroundColor: '#F8FAFC',
+        padding: 32,
+      }}
+    >
+      <DvtTable {...args} selected={selected} setSelected={setSelected} />
+    </div>
+  );
+};
+
+ActiveColumn.args = {
+  header: [
+    {
+      title: 'Name',
+      field: 'name',
+      icon: 'dvt-folder',
+      iconActive: 'dvt-file',
+      onLink: true,
+      flex: 3,
+    },
+    { title: 'Type', field: 'type' },
+    { title: 'Database', field: 'database' },
+    { title: 'Schema', field: 'schema' },
+    { title: 'Modified Date', field: 'date' },
+    { title: 'Modified By', field: 'modifiedBy' },
+    { title: 'Owners', field: 'owners' },
+    {
+      title: 'Action',
+      clicks: [
+        {
+          icon: 'edit_alt',
+          click: () => {},
+        },
+
+        {
+          icon: 'share',
+          click: () => {},
+        },
+        {
+          icon: 'trash',
+          click: () => {},
+        },
+      ],
+    },
+  ],
+  data: [
+    {
+      id: 1,
+      name: 'arac',
+      type: 'Pysical',
+      database: 'PostgreSQL',
+      schema: 'Dwh',
+      date: '10.03.2023 12:45:00',
+      modifiedBy: 'Admin',
+      owners: 'A',
+      active: true,
+    },
+    {
+      id: 2,
+      name: 'hrrr2',
+      type: 'Pysical',
+      database: 'PostgreSQL',
+      schema: 'Public',
+      date: '10.03.2023 12:45:00',
+      modifiedBy: 'Admin',
+      owners: 'A',
+      active: false,
+    },    {
+      id: 3,
+      name: 'arac',
+      type: 'Pysical',
+      database: 'PostgreSQL',
+      schema: 'Dwh',
+      date: '10.03.2023 12:45:00',
+      modifiedBy: 'Admin',
+      owners: 'A',
+      active: true,
+    },
+    {
+      id: 4,
+      name: 'hrrr2',
+      type: 'Pysical',
+      database: 'PostgreSQL',
+      schema: 'Public',
+      date: '10.03.2023 12:45:00',
+      modifiedBy: 'Admin',
+      owners: 'A',
+      active: false,
+    },    {
+      id: 5,
+      name: 'arac',
+      type: 'Pysical',
+      database: 'PostgreSQL',
+      schema: 'Dwh',
+      date: '10.03.2023 12:45:00',
+      modifiedBy: 'Admin',
+      owners: 'A',
+      active: true,
+    },
+    {
+      id: 6,
+      name: 'hrrr2',
+      type: 'Pysical',
+      database: 'PostgreSQL',
+      schema: 'Public',
+      date: '10.03.2023 12:45:00',
+      modifiedBy: 'Admin',
+      owners: 'A',
+      active: false,
+    },    {
+      id: 7,
+      name: 'arac',
+      type: 'Pysical',
+      database: 'PostgreSQL',
+      schema: 'Dwh',
+      date: '10.03.2023 12:45:00',
+      modifiedBy: 'Admin',
+      owners: 'A',
+      active: true,
+    },
+    {
+      id: 8,
+      name: 'hrrr2',
+      type: 'Pysical',
+      database: 'PostgreSQL',
+      schema: 'Public',
+      date: '10.03.2023 12:45:00',
+      modifiedBy: 'Admin',
+      owners: 'A',
+      active: false,
+    },    {
+      id: 9,
+      name: 'arac',
+      type: 'Pysical',
+      database: 'PostgreSQL',
+      schema: 'Dwh',
+      date: '10.03.2023 12:45:00',
+      modifiedBy: 'Admin',
+      owners: 'A',
+      active: true,
+    },
+    {
+      id: 10,
+      name: 'hrrr2',
+      type: 'Pysical',
+      database: 'PostgreSQL',
+      schema: 'Public',
+      date: '10.03.2023 12:45:00',
+      modifiedBy: 'Admin',
+      owners: 'A',
+      active: false,
     },
   ],
 };

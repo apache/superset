@@ -40,7 +40,9 @@ interface HeaderProps {
   id: number;
   title: string;
   field?: string;
-  folderIcon?: boolean;
+  icon?: string;
+  iconActive?: string;
+  iconClick?: () => {};
   heartIcon?: boolean;
   onLink?: boolean;
   flex?: number;
@@ -160,8 +162,15 @@ const DvtTable: React.FC<DvtTableProps> = ({
                         />
                       </StyledTableCheckbox>
                     )}
-                    {column.folderIcon && (
-                      <FolderOutlined
+                    {column.icon && (
+                      <Icon
+                        onClick={column.iconClick}
+                        fileName={
+                          row.active
+                            ? column.iconActive || 'dvt-folder-active'
+                            : column.icon || 'dvt-folder'
+                        }
+                        iconSize="xl"
                         css={(theme: SupersetTheme) => ({
                           color: theme.colors.grayscale.dark2,
                           marginRight: '14px',

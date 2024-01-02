@@ -604,38 +604,18 @@ const DvtSidebarData: SidebarDataProps[] = [
       },
       {
         values: [
-          { label: 'Popular', value: 'Lorem ıpsum' },
-          { label: 'ECharts', value: 'Dolor Sit Amet' },
-          { label: 'Advanced-Analytics', value: 'Lorem ıpsum' },
+          { label: 'Popular', value: 'popular' },
+          { label: 'ECharts', value: 'echarts' },
+          { label: 'Advanced-Analytics', value: 'advanced_analytics' },
         ],
         placeholder: 'Recommended Tags',
         name: 'ML_AI',
       },
       {
-        values: [
-          { label: '#1 Clustered Bar Chart', value: '#1 Clustered Bar Chart' },
-          {
-            label: '#2 Clustered Column Chart',
-            value: '#2 Clustered Column Chart',
-          },
-          { label: '#3 Combo Chart', value: '#3 Combo Chart' },
-          { label: '#4 Area Chart', value: '#4 Area Chart' },
-          { label: '#5 Line Chart', value: '#5 Line Chart' },
-          { label: '#6 Pie Chart', value: '#6 Pie Chart' },
-          { label: '#7 Doughnut Chart', value: '#7 Doughnut Chart' },
-          { label: '#7 Doughnut Chart', value: '#7 Doughnut Chart' },
-          { label: '#8 Gauge Chart', value: '#8 Gauge Chart' },
-        ],
         placeholder: 'Category',
         name: 'category',
       },
       {
-        values: [
-          { label: 'Lorem ıpsum', value: 'Lorem ıpsum' },
-          { label: 'Dolor Sit Amet', value: 'Dolor Sit Amet' },
-          { label: 'Lorem ıpsum', value: 'Lorem ıpsum' },
-          { label: 'Dolor Sit Amet', value: 'Dolor Sit Amet' },
-        ],
         placeholder: 'Tags',
         name: 'chartType',
       },
