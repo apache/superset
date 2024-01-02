@@ -74,7 +74,7 @@ const DatabaseList = lazy(
 );
 
 const DatasetList = lazy(
-  () => import(/* webpackChunkName: "DatasetList" */ 'src/pages/DatasetList'),
+  () => import(/* webpackChunkName: "DatasetList" */ 'src/pages/DvtDatasets'),
 );
 
 const DatasetCreation = lazy(
