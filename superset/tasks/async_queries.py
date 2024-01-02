@@ -70,6 +70,12 @@ def load_chart_data_into_cache(
         security_manager.get_user_by_id(job_metadata.get("user_id"))
         or security_manager.get_anonymous_user()
     )
+    if "guest_token" in form_data:
+        guest_token = form_data.pop("guest_token")
+        try:
+            user = security_manager.get_guest_user_from_token(guest_token)
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Invalid guest token", exc_info=True)
 
     with override_user(user, force=False):
         try:
