@@ -19,7 +19,7 @@
 import React, { useState } from 'react';
 import type { CheckboxChangeEvent } from 'antd/es/checkbox';
 import { SupersetTheme, supersetTheme } from '@superset-ui/core';
-import { FolderOutlined, HeartOutlined } from '@ant-design/icons';
+import Icons from '../Icons';
 import { Checkbox } from 'antd';
 import Icon from '../Icons/Icon';
 import {
@@ -43,7 +43,6 @@ interface HeaderProps {
   icon?: string;
   iconActive?: string;
   iconClick?: () => {};
-  heartIcon?: boolean;
   onLink?: boolean;
   flex?: number;
   clicks?: {
@@ -54,6 +53,7 @@ interface HeaderProps {
   }[];
   showHover?: boolean;
   checkbox?: boolean;
+  isFavorite?: boolean;
 }
 
 export interface DvtTableProps {
@@ -63,6 +63,8 @@ export interface DvtTableProps {
   selected?: any[];
   setSelected?: (newSelected: any[]) => void;
   checkboxActiveField?: string;
+  isFavoriteData?: any[];
+  setFavoriteData?: (isFavorite: any[]) => void;
 }
 
 const DvtTable: React.FC<DvtTableProps> = ({
@@ -72,6 +74,8 @@ const DvtTable: React.FC<DvtTableProps> = ({
   selected = [],
   setSelected = () => {},
   checkboxActiveField = 'id',
+  isFavoriteData,
+  setFavoriteData,
 }) => {
   const [openRow, setOpenRow] = useState<number | null>(null);
 
@@ -103,6 +107,18 @@ const DvtTable: React.FC<DvtTableProps> = ({
     setSelected(e.target.checked ? data.slice() : []);
   };
 
+  const onFavoriteChange = (row: any) => {
+    const updatedData = data.map(item => {
+      if (item[checkboxActiveField] === row[checkboxActiveField]) {
+        return { ...item, isFavorite: !item.isFavorite };
+      }
+      return item;
+    });
+  
+    setFavoriteData && setFavoriteData(updatedData);
+  };
+  
+  
   return (
     <StyledTable>
       <StyledTableTable>
@@ -178,15 +194,36 @@ const DvtTable: React.FC<DvtTableProps> = ({
                         })}
                       />
                     )}
-                    {column.heartIcon && (
-                      <HeartOutlined
-                        css={(theme: SupersetTheme) => ({
-                          color: theme.colors.grayscale.dark2,
-                          marginRight: '14px',
-                          fontSize: '20px',
-                        })}
-                      />
+                    {column.isFavorite && (
+                      <div onClick={() => onFavoriteChange(row)}>
+                        {isFavoriteData &&
+                        isFavoriteData.some(data => data.id === row.id) ? (
+                          isFavoriteData.find(data => data.id === row.id)
+                            ?.isFavorite ? (
+                            <Icons.StarFilled
+                              iconSize="xl"
+                              iconColor={supersetTheme.colors.alert.base}
+                            />
+                          ) : (
+                            <Icons.StarOutlined
+                              iconSize="xl"
+                              iconColor={supersetTheme.colors.dvt.text.bold}
+                            />
+                          )
+                        ) : row.isFavorite ? (
+                          <Icons.StarFilled
+                            iconSize="xl"
+                            iconColor={supersetTheme.colors.alert.base}
+                          />
+                        ) : (
+                          <Icons.StarOutlined
+                            iconSize="xl"
+                            iconColor={supersetTheme.colors.dvt.text.bold}
+                          />
+                        )}
+                      </div>
                     )}
+
                     {column.field === 'date' ? (
                       <>
                         {formatDateTime(row[column.field]).date}

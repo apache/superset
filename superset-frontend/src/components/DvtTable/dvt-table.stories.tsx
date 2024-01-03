@@ -159,6 +159,154 @@ Default.args = {
   ],
 };
 
+export const FavoriteExample = (args: DvtTableProps) => {
+  const [isFavorite, setIsFavorite] = useState<any[]>();
+
+  return (
+    <div
+      style={{
+        width: 1440,
+        height: 1050,
+        backgroundColor: '#F8FAFC',
+        padding: 32,
+      }}
+    >
+      <DvtTable {...args} isFavoriteData={isFavorite} setFavoriteData={setIsFavorite} />
+    </div>
+  );
+};
+
+FavoriteExample.args = {
+  header: [
+    { isFavorite: true , flex:0.5},
+    {
+      title: 'Name',
+      field: 'name',
+      onLink: true,
+      flex: 3,
+    },
+    { title: 'Type', field: 'type' },
+    { title: 'Database', field: 'database' },
+    { title: 'Schema', field: 'schema' },
+    { title: 'Modified Date', field: 'date' },
+    { title: 'Modified By', field: 'modifiedBy' },
+    { title: 'Owners', field: 'owners' },
+    {
+      title: 'Action',
+      clicks: [
+        {
+          icon: 'edit_alt',
+          click: () => {},
+          popperLabel: 'Edit',
+        },
+
+        {
+          icon: 'share',
+          click: () => {},
+          popperLabel: 'Export',
+        },
+        {
+          icon: 'trash',
+          click: () => {},
+          popperLabel: 'Share',
+        },
+      ],
+    },
+  ],
+  data: [
+    {
+      name: 'arac',
+      type: 'Pysical',
+      database: 'PostgreSQL',
+      schema: 'Dwh',
+      date: '10.03.2023 12:45:00',
+      modifiedBy: 'Admin',
+      owners: 'A',
+      isFavorite: false,
+    },
+    {
+      name: 'hrrr2',
+      type: 'Pysical',
+      database: 'PostgreSQL',
+      schema: 'Public',
+      date: '10.03.2023 12:45:00',
+      modifiedBy: 'Admin',
+      owners: 'A',
+      isFavorite: true,
+    },
+    {
+      name: 'channel_members',
+      type: 'Pysical',
+      database: 'Examples',
+      schema: 'Public',
+      date: '10.03.2023 12:45:00',
+      modifiedBy: 'Admin',
+      owners: 'A',
+      isFavorite: true,
+    },
+    {
+      name: 'channel',
+      type: 'Pysical',
+      database: 'Examples',
+      schema: 'Public',
+      date: '10.03.2023 12:45:00',
+      modifiedBy: 'Admin',
+      owners: 'A',
+      isFavorite: true,
+    },
+    {
+      name: 'cleaned_sales_data',
+      type: 'Pysical',
+      database: 'Examples',
+      schema: 'Public',
+      date: '10.03.2023 12:45:00',
+      modifiedBy: 'Admin',
+      owners: 'A',
+      isFavorite: true,
+    },
+    {
+      name: 'covid_vaccines',
+      type: 'Pysical',
+      database: 'Examples',
+      schema: 'Public',
+      date: '10.03.2023 12:45:00',
+      modifiedBy: 'Admin',
+      owners: 'A',
+      isFavorite: true,
+    },
+    {
+      name: 'exported_stats',
+      type: 'Pysical',
+      database: 'Examples',
+      schema: 'Public',
+      date: '10.03.2023 12:45:00',
+      modifiedBy: 'Admin',
+      owners: 'A',
+      isFavorite: true,
+    },
+    {
+      name: 'members_channels_2',
+      type: 'Pysical',
+      database: 'Examples',
+      schema: 'Public',
+      date: '10.03.2023 12:45:00',
+      modifiedBy: 'Admin',
+      owners: 'A',
+      isFavorite: true,
+    },
+    {
+      name: 'Fcc 2018 Survey',
+      type: 'Pysical',
+      database: 'Examples',
+      schema: 'Public',
+      date: '10.03.2023 12:45:00',
+      modifiedBy: 'Admin',
+      owners: 'A',
+      isFavorite: true,
+    },
+  ],
+};
+
 export const Example = (args: DvtTableProps) => (
   <div
     style={{
@@ -853,7 +1001,8 @@ ActiveColumn.args = {
       modifiedBy: 'Admin',
       owners: 'A',
       active: false,
-    },    {
+    },
+    {
       id: 3,
       name: 'arac',
       type: 'Pysical',
@@ -874,7 +1023,8 @@ ActiveColumn.args = {
       modifiedBy: 'Admin',
       owners: 'A',
       active: false,
-    },    {
+    },
+    {
       id: 5,
       name: 'arac',
       type: 'Pysical',
@@ -895,7 +1045,8 @@ ActiveColumn.args = {
       modifiedBy: 'Admin',
       owners: 'A',
       active: false,
-    },    {
+    },
+    {
       id: 7,
       name: 'arac',
       type: 'Pysical',
@@ -916,7 +1067,8 @@ ActiveColumn.args = {
       modifiedBy: 'Admin',
       owners: 'A',
       active: false,
-    },    {
+    },
+    {
       id: 9,
       name: 'arac',
       type: 'Pysical',
