@@ -47,7 +47,7 @@ export default function buildQuery(formData: QueryFormData) {
     ...formData,
   };
 
-  if (!!baseFormData.orderby) {
+  if (baseFormData.orderby) {
     baseFormData.x_axis_sort = formData.orderby.label;
     baseFormData.x_axis_sort_asc = !formData.order_desc_x_axis;
   }
