@@ -23,16 +23,16 @@ import {
   isQueryResponse,
 } from '@superset-ui/chart-controls';
 
-export function isCategoricalColumn(
+export function checkColumnType(
   columnName: string,
   datasource: ValueOf<Pick<ControlPanelState, 'datasource'>>,
+  columnTypes: GenericDataType[],
 ): boolean {
   if (isDataset(datasource)) {
     return ensureIsArray(datasource.columns)
       .filter(
         c =>
-          c.type_generic !== GenericDataType.NUMERIC &&
-          c.type_generic !== GenericDataType.TEMPORAL,
+          c.type_generic !== undefined && columnTypes.includes(c.type_generic),
       )
       .map(c => c.column_name)
       .some(c => columnName === c);
@@ -41,8 +41,7 @@ export function isCategoricalColumn(
     return ensureIsArray(datasource.columns)
       .filter(
         c =>
-          c.type_generic !== GenericDataType.NUMERIC &&
-          c.type_generic !== GenericDataType.TEMPORAL,
+          c.type_generic !== undefined && columnTypes.includes(c.type_generic),
       )
       .map(c => c.column_name)
       .some(c => columnName === c);
