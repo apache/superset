@@ -18,6 +18,7 @@
  */
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import thumbnail from './images/thumbnail.png';
+import example from './images/example.png';
 import transformProps from '../../transformProps';
 import example1 from './images/example1.png';
 import example2 from './images/example2.png';
@@ -32,6 +33,7 @@ const metadata = new ChartMetadata({
   exampleGallery: [{ url: example1 }, { url: example2 }],
   name: t('deck.gl Scatterplot'),
   thumbnail,
+  exampleGallery: [{ url: example }],
   useLegacyApi: true,
   tags: [
     t('deckGL'),

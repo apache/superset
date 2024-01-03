@@ -18,9 +18,8 @@
  */
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import thumbnail from './images/thumbnail.png';
+import example from './images/example.png';
 import transformProps from '../../transformProps';
-import example1 from './images/example1.png';
-import example2 from './images/example2.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
@@ -29,7 +28,7 @@ const metadata = new ChartMetadata({
   description: t(
     'Overlays a hexagonal grid on a map, and aggregates data within the boundary of each cell.',
   ),
-  exampleGallery: [{ url: example1 }, { url: example2 }],
+  exampleGallery: [{ url: example }],
   name: t('deck.gl 3D Hexagon'),
   thumbnail,
   useLegacyApi: true,

@@ -18,9 +18,8 @@
  */
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import thumbnail from './images/thumbnail.png';
+import example from './images/example.png';
 import transformProps from '../../transformProps';
-import example1 from './images/example1.png';
-import example2 from './images/example2.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
@@ -29,9 +28,9 @@ const metadata = new ChartMetadata({
   description: t(
     'Plot the distance (like flight paths) between origin and destination.',
   ),
-  exampleGallery: [{ url: example1 }, { url: example2 }],
   name: t('deck.gl Arc'),
   thumbnail,
+  exampleGallery: [{ url: example }],
   useLegacyApi: true,
   tags: [t('deckGL'), t('Geo'), t('3D'), t('Relational'), t('Web')],
 });
