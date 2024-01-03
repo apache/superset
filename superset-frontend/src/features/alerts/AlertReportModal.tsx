@@ -340,7 +340,13 @@ const StyledNotificationMethodWrapper = styled.div`
     margin-left: 0;
   }
 `;
-
+const StyledList = styled.ul`
+  margin: 0;
+  padding: 0;
+  li {
+    padding-left: 12px;
+  }
+`;
 const inputSpacer = (theme: SupersetTheme) => css`
   margin-right: ${theme.gridUnit * 3}px;
 `;
@@ -1136,18 +1142,18 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       const sectionErrors: string[] = [];
       Object.values(validationStatus).forEach(validationData => {
         if (!validationData.status) {
-          const sectionTitle = `${validationData.name}: `;
+          const sectionTitle = `• ${validationData.name}: `;
           sectionErrors.push(sectionTitle + validationData.errors.join(', '));
         }
       });
       setErrorTooltipMessage(
         <div>
           Not all required fields are complete. Please provide the following:
-          <ul>
+          <StyledList>
             {sectionErrors.map(err => (
               <li key={err}>{err}</li>
             ))}
-          </ul>
+          </StyledList>
         </div>,
       );
     } else {
