@@ -22,8 +22,8 @@ def convert_html_col(html):
         val = soup.text
         if soup.a and (href := soup.a.get("href")):
             params = dict(parse_qsl(href.split("#", 1)[-1]))
-            if "data" in params:
-                val = decode_href(params["data"])
+            if params.get("modal") == "show_params" and (data := params.get("data")):
+                val = decode_href(data)
     return val
 
 
@@ -40,6 +40,7 @@ def apply_scribe_post_process(data, is_csv_format):
     df = df.apply(process_col, axis=1)
     if "More" in df:
         df = pd.concat([df.drop("More", axis=1), pd.json_normalize(df["More"])], axis=1)
+        df = df.loc[:, ~df.columns.duplicated()]
     if is_csv_format:
         buf = StringIO()
         df.to_csv(buf)
