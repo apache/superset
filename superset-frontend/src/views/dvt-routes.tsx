@@ -61,7 +61,9 @@ const CssTemplateList = lazy(
 
 const DashboardList = lazy(
   () =>
-    import(/* webpackChunkName: "DashboardList" */ 'src/pages/DashboardList'),
+    import(
+      /* webpackChunkName: "DashboardList" */ 'src/pages/DvtDashboardList'
+    ),
 );
 
 const Dashboard = lazy(
