@@ -19,6 +19,7 @@
 import {
   buildQueryContext,
   ensureIsArray,
+  getMetricLabel,
   normalizeOrderBy,
   PostProcessingPivot,
   QueryFormData,
@@ -48,7 +49,7 @@ export default function buildQuery(formData: QueryFormData) {
   };
 
   if (baseFormData.orderby) {
-    baseFormData.x_axis_sort = formData.orderby.label;
+    baseFormData.x_axis_sort = getMetricLabel(formData.orderby);
     baseFormData.x_axis_sort_asc = !formData.order_desc_x_axis;
   }
 
