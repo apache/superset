@@ -35,6 +35,7 @@ import {
   rollingWindowOperator,
   timeCompareOperator,
   resampleOperator,
+  sortOperator,
 } from '@superset-ui/chart-controls';
 import {
   retainFormDataSuffix,
@@ -45,6 +46,11 @@ export default function buildQuery(formData: QueryFormData) {
   const baseFormData = {
     ...formData,
   };
+
+  if (!!baseFormData.orderby) {
+    baseFormData.x_axis_sort = formData.orderby.label;
+    baseFormData.x_axis_sort_asc = !formData.order_desc_x_axis;
+  }
 
   const formData1 = removeFormDataSuffix(baseFormData, '_b');
   const formData2 = retainFormDataSuffix(baseFormData, '_b');
@@ -75,6 +81,7 @@ export default function buildQuery(formData: QueryFormData) {
         time_offsets: isTimeComparison(fd, queryObject) ? fd.time_compare : [],
         post_processing: [
           pivotOperatorInRuntime,
+          sortOperator(fd, queryObject),
           rollingWindowOperator(fd, queryObject),
           timeCompareOperator(fd, queryObject),
           resampleOperator(fd, queryObject),

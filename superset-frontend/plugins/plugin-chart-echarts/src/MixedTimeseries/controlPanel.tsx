@@ -289,7 +289,22 @@ const config: ControlPanelConfig = {
       ? {
           label: t('Shared query fields'),
           expanded: true,
-          controlSetRows: [['x_axis'], ['time_grain_sqla']],
+          controlSetRows: [
+            ['x_axis'],
+            ['time_grain_sqla'],
+            ['orderby'],
+            [
+              {
+                name: `order_desc_x_axis`,
+                config: {
+                  type: 'CheckboxControl',
+                  label: t('Sort Descending'),
+                  default: orderDesc,
+                  description: t('Whether to sort descending or ascending'),
+                },
+              },
+            ],
+          ],
         }
       : null,
     createQuerySection(t('Query A'), ''),
