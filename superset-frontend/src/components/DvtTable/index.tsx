@@ -19,8 +19,8 @@
 import React, { useState } from 'react';
 import type { CheckboxChangeEvent } from 'antd/es/checkbox';
 import { SupersetTheme, supersetTheme } from '@superset-ui/core';
-import Icons from '../Icons';
 import { Checkbox } from 'antd';
+import Icons from '../Icons';
 import Icon from '../Icons/Icon';
 import {
   StyledTable,
@@ -179,9 +179,7 @@ const DvtTable: React.FC<DvtTableProps> = ({
                       />
                     )}
                     {column.isFavorite && (
-                      <div
-                        onClick={() => setFavoriteData && setFavoriteData(row)}
-                      >
+                      <StyledTableTbody onClick={() => setFavoriteData?.(row)}>
                         {row.isFavorite ? (
                           <Icons.StarFilled
                             iconSize="xl"
@@ -193,7 +191,7 @@ const DvtTable: React.FC<DvtTableProps> = ({
                             iconColor={supersetTheme.colors.dvt.text.bold}
                           />
                         )}
-                      </div>
+                      </StyledTableTbody>
                     )}
                     {column.url && column.field && (
                       <StyledTableUrl to={column.url}>
