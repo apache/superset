@@ -69,7 +69,6 @@ const headerData = [
 function DvtDashboardList() {
   const [selectedRows, setSelectedRows] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [selectedItemCount, setSelectedItemCount] = useState<number>(0);
   const [data, setData] = useState([]);
   const [count, setCount] = useState<number>(0);
 
@@ -113,13 +112,8 @@ function DvtDashboardList() {
     setSelectedRows([]);
   }, [currentPage]);
 
-  useEffect(() => {
-    setSelectedItemCount(selectedRows.length);
-  }, [selectedRows]);
-
   const handleDeselectAll = () => {
     setSelectedRows([]);
-    setSelectedItemCount(0);
   };
 
   const handleCreateDashboard = () => {
@@ -132,7 +126,7 @@ function DvtDashboardList() {
         <StyledDvtSelectButtons>
           <StyledSelectedItem>
             <StyledSelectedItemCount>
-              <span>{`${selectedItemCount} Selected`}</span>
+              <span>{`${selectedRows.length} Selected`}</span>
             </StyledSelectedItemCount>
             <DvtButton
               label="Deselect All"
