@@ -191,13 +191,21 @@ class AsyncQueryManager:
         force: Optional[bool] = False,
         user_id: Optional[int] = None,
     ) -> dict[str, Any]:
+        # pylint: disable=import-outside-toplevel
+        from superset import security_manager
+
         job_metadata = self.init_job(channel_id, user_id)
+        if guest_user := security_manager.get_current_guest_user_if_guest():
+            job_metadata["guest_token"] = guest_user.guest_token
         self._load_explore_json_into_cache_job.delay(
             job_metadata,
             form_data,
             response_type,
             force,
         )
+        # clean up guest token so that it doesn't get exposed upper level
+        if "guest_token" in job_metadata:
+            del job_metadata["guest_token"]
         return job_metadata
 
     def submit_chart_data_job(
@@ -214,6 +222,7 @@ class AsyncQueryManager:
         if guest_user := security_manager.get_current_guest_user_if_guest():
             job_metadata["guest_token"] = guest_user.guest_token
         self._load_chart_data_into_cache_job.delay(job_metadata, form_data)
+        # clean up guest token so that it doesn't get exposed upper level
         if "guest_token" in job_metadata:
             del job_metadata["guest_token"]
         return job_metadata
