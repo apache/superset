@@ -33,6 +33,7 @@ import {
   StyledTableTitle,
   StyledTableIcon,
   StyledTableCheckbox,
+  StyledTableUrl,
 } from './dvt-table.module';
 import DvtPopper from '../DvtPopper';
 
@@ -43,7 +44,7 @@ interface HeaderProps {
   icon?: string;
   iconActive?: string;
   iconClick?: () => {};
-  onLink?: boolean;
+  url?: string;
   flex?: number;
   clicks?: {
     icon: string;
@@ -63,8 +64,7 @@ export interface DvtTableProps {
   selected?: any[];
   setSelected?: (newSelected: any[]) => void;
   checkboxActiveField?: string;
-  isFavoriteData?: any[];
-  setFavoriteData?: (isFavorite: any[]) => void;
+  setFavoriteData?: (item: any) => void;
 }
 
 const DvtTable: React.FC<DvtTableProps> = ({
@@ -74,7 +74,6 @@ const DvtTable: React.FC<DvtTableProps> = ({
   selected = [],
   setSelected = () => {},
   checkboxActiveField = 'id',
-  isFavoriteData,
   setFavoriteData,
 }) => {
   const [openRow, setOpenRow] = useState<number | null>(null);
@@ -107,18 +106,6 @@ const DvtTable: React.FC<DvtTableProps> = ({
     setSelected(e.target.checked ? data.slice() : []);
   };
 
-  const onFavoriteChange = (row: any) => {
-    const updatedData = data.map(item => {
-      if (item[checkboxActiveField] === row[checkboxActiveField]) {
-        return { ...item, isFavorite: !item.isFavorite };
-      }
-      return item;
-    });
-  
-    setFavoriteData && setFavoriteData(updatedData);
-  };
-  
-  
   return (
     <StyledTable>
       <StyledTableTable>
@@ -152,10 +139,7 @@ const DvtTable: React.FC<DvtTableProps> = ({
               onMouseOut={() => setOpenRow(null)}
             >
               {header.map((column, columnIndex) => (
-                <StyledTableTd
-                  key={columnIndex}
-                  $onLink={column.onLink || false}
-                >
+                <StyledTableTd key={columnIndex}>
                   <StyledTableIcon>
                     {column.checkbox && columnIndex === 0 && (
                       <StyledTableCheckbox>
@@ -195,22 +179,10 @@ const DvtTable: React.FC<DvtTableProps> = ({
                       />
                     )}
                     {column.isFavorite && (
-                      <div onClick={() => onFavoriteChange(row)}>
-                        {isFavoriteData &&
-                        isFavoriteData.some(data => data.id === row.id) ? (
-                          isFavoriteData.find(data => data.id === row.id)
-                            ?.isFavorite ? (
-                            <Icons.StarFilled
-                              iconSize="xl"
-                              iconColor={supersetTheme.colors.alert.base}
-                            />
-                          ) : (
-                            <Icons.StarOutlined
-                              iconSize="xl"
-                              iconColor={supersetTheme.colors.dvt.text.bold}
-                            />
-                          )
-                        ) : row.isFavorite ? (
+                      <div
+                        onClick={() => setFavoriteData && setFavoriteData(row)}
+                      >
+                        {row.isFavorite ? (
                           <Icons.StarFilled
                             iconSize="xl"
                             iconColor={supersetTheme.colors.alert.base}
@@ -223,7 +195,11 @@ const DvtTable: React.FC<DvtTableProps> = ({
                         )}
                       </div>
                     )}
-
+                    {column.url && column.field && (
+                      <StyledTableUrl to={column.url}>
+                        {row[column.field]}
+                      </StyledTableUrl>
+                    )}
                     {column.field === 'date' ? (
                       <>
                         {formatDateTime(row[column.field]).date}
@@ -290,9 +266,9 @@ const DvtTable: React.FC<DvtTableProps> = ({
                           ),
                         )}
 
-                        {column.field !== 'action' && column.field && (
-                          <>{row[column.field]}</>
-                        )}
+                        {column.field !== 'action' &&
+                          column.field &&
+                          !column.url && <>{row[column.field]}</>}
                       </>
                     )}
                   </StyledTableIcon>

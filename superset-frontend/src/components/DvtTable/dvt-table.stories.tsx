@@ -17,11 +17,124 @@
  * under the License.
  */
 import React, { useState } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import DvtTable, { DvtTableProps } from '.';
+
+const favoriteData = [
+  {
+    id: 1,
+    name: 'arac',
+    type: 'Pysical',
+    database: 'PostgreSQL',
+    schema: 'Dwh',
+    date: '10.03.2023 12:45:00',
+    modifiedBy: 'Admin',
+    owners: 'A',
+    isFavorite: false,
+  },
+  {
+    id: 2,
+
+    name: 'hrrr2',
+    type: 'Pysical',
+    database: 'PostgreSQL',
+    schema: 'Public',
+    date: '10.03.2023 12:45:00',
+    modifiedBy: 'Admin',
+    owners: 'A',
+    isFavorite: true,
+  },
+  {
+    id: 3,
+
+    name: 'channel_members',
+    type: 'Pysical',
+    database: 'Examples',
+    schema: 'Public',
+    date: '10.03.2023 12:45:00',
+    modifiedBy: 'Admin',
+    owners: 'A',
+    isFavorite: true,
+  },
+  {
+    id: 4,
+
+    name: 'channel',
+    type: 'Pysical',
+    database: 'Examples',
+    schema: 'Public',
+    date: '10.03.2023 12:45:00',
+    modifiedBy: 'Admin',
+    owners: 'A',
+    isFavorite: true,
+  },
+  {
+    id: 5,
+    name: 'cleaned_sales_data',
+    type: 'Pysical',
+    database: 'Examples',
+    schema: 'Public',
+    date: '10.03.2023 12:45:00',
+    modifiedBy: 'Admin',
+    owners: 'A',
+    isFavorite: true,
+  },
+  {
+    id: 6,
+    name: 'covid_vaccines',
+    type: 'Pysical',
+    database: 'Examples',
+    schema: 'Public',
+    date: '10.03.2023 12:45:00',
+    modifiedBy: 'Admin',
+    owners: 'A',
+    isFavorite: true,
+  },
+  {
+    id: 7,
+    name: 'exported_stats',
+    type: 'Pysical',
+    database: 'Examples',
+    schema: 'Public',
+    date: '10.03.2023 12:45:00',
+    modifiedBy: 'Admin',
+    owners: 'A',
+    isFavorite: true,
+  },
+  {
+    id: 8,
+    name: 'members_channels_2',
+    type: 'Pysical',
+    database: 'Examples',
+    schema: 'Public',
+    date: '10.03.2023 12:45:00',
+    modifiedBy: 'Admin',
+    owners: 'A',
+    isFavorite: true,
+  },
+  {
+    id: 9,
+    name: 'Fcc 2018 Survey',
+    type: 'Pysical',
+    database: 'Examples',
+    schema: 'Public',
+    date: '10.03.2023 12:45:00',
+    modifiedBy: 'Admin',
+    owners: 'A',
+    isFavorite: true,
+  },
+];
 
 export default {
   title: 'Dvt-Components/DvtTable',
   component: DvtTable,
+  decorators: [
+    (Story: any) => (
+      <MemoryRouter>
+        <Story />
+      </MemoryRouter>
+    ),
+  ],
 };
 
 export const Default = (args: DvtTableProps) => (
@@ -43,7 +156,7 @@ Default.args = {
       title: 'Name',
       field: 'name',
       icon: 'dvt-folder',
-      onLink: true,
+      url: '/',
       flex: 3,
     },
     { title: 'Type', field: 'type' },
@@ -160,7 +273,20 @@ Default.args = {
 };
 
 export const FavoriteExample = (args: DvtTableProps) => {
-  const [isFavorite, setIsFavorite] = useState<any[]>();
+  const [data, setData] = useState<any[]>(
+    favoriteData.sort((a, b) => a.id - b.id),
+  );
+
+  const handleFavouriteData = (item: any) => {
+    const findItem = data.find(row => row.id === item.id);
+    const findItemRemovedData = data.filter(row => row.id !== item.id);
+    setData(
+      [
+        ...findItemRemovedData,
+        { ...findItem, isFavorite: !item.isFavorite },
+      ].sort((a, b) => a.id - b.id),
+    );
+  };
 
   return (
     <div
@@ -171,14 +297,14 @@ export const FavoriteExample = (args: DvtTableProps) => {
         padding: 32,
       }}
     >
-      <DvtTable {...args} isFavoriteData={isFavorite} setFavoriteData={setIsFavorite} />
+      <DvtTable {...args} setFavoriteData={handleFavouriteData} data={data} />
     </div>
   );
 };
 
 FavoriteExample.args = {
   header: [
-    { isFavorite: true , flex:0.5},
+    { isFavorite: true, flex: 0.5 },
     {
       title: 'Name',
       field: 'name',
@@ -211,98 +337,6 @@ FavoriteExample.args = {
           popperLabel: 'Share',
         },
       ],
-    },
-  ],
-  data: [
-    {
-      name: 'arac',
-      type: 'Pysical',
-      database: 'PostgreSQL',
-      schema: 'Dwh',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-      isFavorite: false,
-    },
-    {
-      name: 'hrrr2',
-      type: 'Pysical',
-      database: 'PostgreSQL',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-      isFavorite: true,
-    },
-    {
-      name: 'channel_members',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-      isFavorite: true,
-    },
-    {
-      name: 'channel',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-      isFavorite: true,
-    },
-    {
-      name: 'cleaned_sales_data',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-      isFavorite: true,
-    },
-    {
-      name: 'covid_vaccines',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-      isFavorite: true,
-    },
-    {
-      name: 'exported_stats',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-      isFavorite: true,
-    },
-    {
-      name: 'members_channels_2',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-      isFavorite: true,
-    },
-    {
-      name: 'Fcc 2018 Survey',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-      isFavorite: true,
     },
   ],
 };
