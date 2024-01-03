@@ -485,6 +485,6 @@ At this point, a GitHub action will run that will check whether this release's v
 
 ### Update Superset files
 
-Now that we have a final Apache release we need to open a pull request on Superset with the changes on `CHANGELOG.md` and `UPDATING.md`.
+Now that we have a final Apache release we need to open a pull request on Superset with the changes on [CHANGELOG.m](../CHANGELOG.md) and [UPDATING.md](../UPDATING.md).
 
-We also need to update the Environment section of `ISSUE_TEMPLATE/bug-report.yml` to reflect the new release changes. This includes removing versions that are not supported anymore and adding new ones.
+We also need to update the Environment section of [ISSUE_TEMPLATE/bug-report.yml](../.github/ISSUE_TEMPLATE//bug-report.yml) to reflect the new release changes. This includes removing versions that are not supported anymore and adding new ones.
