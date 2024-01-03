@@ -408,16 +408,19 @@ export const testQueryResults = {
       {
         column_name: 'Column 1',
         type: 'STRING',
+        type_generic: GenericDataType.STRING,
         is_dttm: false,
       },
       {
         column_name: 'Column 3',
         type: 'STRING',
+        type_generic: GenericDataType.STRING,
         is_dttm: false,
       },
       {
         column_name: 'Column 2',
         type: 'TIMESTAMP',
+        type_generic: GenericDataType.TEMPORAL,
         is_dttm: true,
       },
     ],
@@ -429,16 +432,19 @@ export const testQueryResults = {
       {
         column_name: 'Column 1',
         type: 'STRING',
+        type_generic: GenericDataType.STRING,
         is_dttm: false,
       },
       {
         column_name: 'Column 3',
         type: 'STRING',
+        type_generic: GenericDataType.STRING,
         is_dttm: false,
       },
       {
         column_name: 'Column 2',
         type: 'TIMESTAMP',
+        type_generic: GenericDataType.TEMPORAL,
         is_dttm: true,
       },
     ],
