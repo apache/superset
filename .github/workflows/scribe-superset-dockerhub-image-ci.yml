@@ -2,6 +2,10 @@ name: Scribe Superset DockerHub Image CI
 
 on:
   workflow_dispatch:
+    inputs:
+      IMAGE_TAG:
+        required: true
+        default: 'latest'
 
 jobs:
   docker:
@@ -24,6 +28,6 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           push: true
-          tags: scribesecurity/superset:latest
+          tags: scribesecurity/superset:${{ inputs.IMAGE_TAG }}
           build-args:
             PY_VER=3.10-slim-bookworm
