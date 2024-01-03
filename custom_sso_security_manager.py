@@ -5,8 +5,24 @@ from superset.security import SupersetSecurityManager
 
 logger = logging.getLogger("auth0_login")
 
+SUPERSET_ADMIN_MAPPING_ROLE_NAME = "superset_admins"
+
 
 class CustomSsoSecurityManager(SupersetSecurityManager):
+    def extract_name_claim(
+        self,
+        me: dict[str, str],
+        claim: str,
+        index: int = 0,
+    ) -> str:
+        return (
+            me[claim]
+            if claim in me
+            else me["name"].split(" ")[index]
+            if len(me["name"].split(" ")) > index
+            else ""
+        )
+
     def oauth_user_info(self, provider, response=None):  # type: ignore
         if provider == "auth0":
             res = self.appbuilder.sm.oauth_remotes[provider].get(
@@ -26,32 +42,23 @@ class CustomSsoSecurityManager(SupersetSecurityManager):
 
             email = me["email"]
 
+            given_name = self.extract_name_claim(me, "given_name", 0)
+
+            family_name = self.extract_name_claim(me, "family_name", 1)
+
             organization: str = me["organization"] if "organization" in me else None
 
             superset_roles: list[str] = me["role_keys"] if "role_keys" in me else []
 
-            if organization is not None and len(organization) > 0:
-                superset_roles.append(organization.capitalize())
-            else:
-                logger.error(f"User ${email} does not have an organization.")
+            is_admin: bool = SUPERSET_ADMIN_MAPPING_ROLE_NAME in superset_roles
 
-            given_name = (
-                me["given_name"]
-                if "given_name" in me
-                else me["name"].split(" ")[0]
-                if len(me["name"].split(" ")) > 0
-                else ""
-            )
+            if not is_admin:
+                if organization is not None and len(organization) > 0:
+                    self.auth_roles_mapping[organization] = [organization.capitalize()]
+                    superset_roles.append(organization)
+                else:
+                    logger.error(f"User ${email} does not have an organization.")
 
-            family_name = (
-                me["family_name"]
-                if "family_name" in me
-                else me["name"].split(" ")[1]
-                if len(me["name"].split(" ")) > 1
-                else ""
-            )
-
-            # prefix = "Superset"
             return {
                 "username": me["email"],
                 "name": me["name"],

@@ -73,7 +73,7 @@ AUTH_TYPE = AUTH_OAUTH
 # Auto register new users
 AUTH_USER_REGISTRATION = True
 
-AUTH_USER_REGISTRATION_ROLE = "Gamma"
+AUTH_USER_REGISTRATION_ROLE = ""
 
 # Check roles on every login
 AUTH_ROLES_SYNC_AT_LOGIN = True
