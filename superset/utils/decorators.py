@@ -20,8 +20,9 @@ import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Any, Callable, TYPE_CHECKING
+from uuid import UUID
 
-from flask import current_app, Response
+from flask import current_app, g, Response
 
 from superset.utils import core as utils
 from superset.utils.dates import now_as_float
@@ -55,6 +56,53 @@ def statsd_gauge(metric_prefix: str | None = None) -> Callable[..., Any]:
                         f"{metric_prefix_}.error", 1
                     )
                 raise ex
+
+        return wrapped
+
+    return decorate
+
+
+def logs_context(**ctx_kwargs: int | str | UUID | None) -> Callable[..., Any]:
+    """
+    Takes arguments and adds them to the global logs_context.
+    This is for logging purposes only and values should not be relied on or mutated
+    """
+
+    def decorate(f: Callable[..., Any]) -> Callable[..., Any]:
+        def wrapped(*args: Any, **kwargs: Any) -> Any:
+            if not hasattr(g, "logs_context"):
+                g.logs_context = {}
+            available_logs_context_keys = [
+                "slice_id",
+                "dashboard_id",
+                "execution_id",
+                "report_schedule_id",
+            ]
+            logs_context_data = {
+                key: val
+                for key, val in kwargs.items()
+                if key in available_logs_context_keys
+            }
+
+            # if keys are passed in to decorator directly, add them to logs_context
+            # by overriding values from kwargs
+            # e.g. @logs_context(slice_id=1, dashboard_id=1)
+            for key in available_logs_context_keys:
+                if ctx_kwargs.get(key) is not None:
+                    logs_context_data[key] = ctx_kwargs[key]
+                    try:
+                        # override value from local kwargs from function execution if it exists
+                        # e.g. @logs_context(slice_id=1, dashboard_id=1)
+                        #      def my_func(slice_id=None, **kwargs)
+                        #
+                        #      my_func(slice_id=2)
+                        logs_context_data[key] = locals()["kwargs"][key]
+                    except KeyError:
+                        # do nothing if the key doesn't exist
+                        pass
+
+            g.logs_context.update(logs_context_data)
+            return f(*args, **kwargs)
 
         return wrapped
 
