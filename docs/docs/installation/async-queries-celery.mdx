@@ -79,8 +79,7 @@ issues arise. Please clear your existing results cache store when upgrading an e
 **Important Notes**
 
 - It is important that all the worker nodes and web servers in the Superset cluster _share a common
-  metadata database_. This means that SQLite will not work in this context since it has limited
-  support for concurrency and typically lives on the local file system.
+  metadata database_.
 
 - There should _only be one instance of celery beat running_ in your entire setup. If not,
   background jobs can get scheduled multiple times resulting in weird behaviors like duplicate

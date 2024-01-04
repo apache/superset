@@ -880,10 +880,6 @@ or for a specific test via,
 tox -e <environment> -- tests/test_file.py::TestClassName::test_method_name
 ```
 
-Note that the test environment uses a temporary directory for defining the
-SQLite databases which will be cleared each time before the group of test
-commands are invoked.
-
 There is also a utility script included in the Superset codebase to run python integration tests. The [readme can be
 found here](https://github.com/apache/superset/tree/master/scripts/tests)
 
@@ -1301,7 +1297,7 @@ Submissions will be considered for submission (or removal) on a case-by-case bas
    The output should look like this:
 
    ```
-   INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+   INFO  [alembic.runtime.migration] Context impl MySQLImpl.
    INFO  [alembic.runtime.migration] Will assume transactional DDL.
    INFO  [alembic.runtime.migration] Running upgrade 1a1d627ebd8e -> 40a0a483dd12, add_metadata_column_to_annotation_model.py
    ```
@@ -1321,7 +1317,7 @@ Submissions will be considered for submission (or removal) on a case-by-case bas
    The output should look like this:
 
    ```
-   INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+   INFO  [alembic.runtime.migration] Context impl MySQLImpl.
    INFO  [alembic.runtime.migration] Will assume transactional DDL.
    INFO  [alembic.runtime.migration] Running downgrade 40a0a483dd12 -> 1a1d627ebd8e, add_metadata_column_to_annotation_model.py
    ```

@@ -172,7 +172,6 @@ export default {
     owners: [{ first_name: 'joe', last_name: 'man', id: 1 }],
     database: {
       name: 'main',
-      backend: 'sqlite',
     },
     time_grain_sqla: [
       [null, 'Time Column'],

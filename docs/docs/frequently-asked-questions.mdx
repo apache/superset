@@ -132,18 +132,7 @@ seconds is ignored.
 **Why does ‘flask fab’ or superset freezed/hung/not responding when started (my home directory is
 NFS mounted)?**
 
-By default, Superset creates and uses an SQLite database at `~/.superset/superset.db`. SQLite is
-known to [not work well if used on NFS](https://www.sqlite.org/lockingv3.html) due to broken file
-locking implementation on NFS.
-
 You can override this path using the **SUPERSET_HOME** environment variable.
-
-Another workaround is to change where superset stores the sqlite database by adding the following in
-`superset_config.py`:
-
-```
-SQLALCHEMY_DATABASE_URI = 'sqlite:////new/location/superset.db?check_same_thread=false'
-```
 
 You can read more about customizing Superset using the configuration file
 [here](/docs/installation/configuring-superset).
@@ -164,7 +153,7 @@ information like your list of users and dashboard definitions. While Superset su
 [variety of databases as data *sources*](https://superset.apache.org/docs/databases/installing-database-drivers/),
 only a few database engines are supported for use as the OLTP backend / metadata store.
 
-Superset is tested using MySQL, PostgreSQL, and SQLite backends. It’s recommended you install
+Superset is tested using MySQL and PostgreSQL backends. It’s recommended you install
 Superset on one of these database servers for production.  Installation on other OLTP databases
 may work but isn’t tested.  It has been reported that [Microsoft SQL Server does *not*
 work as a Superset backend](https://github.com/apache/superset/issues/18961). Column-store,

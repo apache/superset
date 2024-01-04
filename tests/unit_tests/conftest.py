@@ -81,8 +81,8 @@ def app(request: SubRequest) -> Iterator[SupersetApp]:
     app = SupersetApp(__name__)
 
     app.config.from_object("superset.config")
-    app.config["SQLALCHEMY_DATABASE_URI"] = (
-        os.environ.get("SUPERSET__SQLALCHEMY_DATABASE_URI") or "sqlite://"
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
+        "SUPERSET__SQLALCHEMY_DATABASE_URI"
     )
     app.config["WTF_CSRF_ENABLED"] = False
     app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False

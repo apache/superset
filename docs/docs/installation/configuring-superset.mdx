@@ -45,9 +45,7 @@ SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
 # superset metadata (slices, connections, tables, dashboards, ...).
 # Note that the connection information to connect to the datasources
 # you want to explore are managed directly in the web UI
-# The check_same_thread=false property ensures the sqlite client does not attempt
-# to enforce single-threaded access, which may be problematic in some edge cases
-SQLALCHEMY_DATABASE_URI = 'sqlite:////path/to/superset.db?check_same_thread=false'
+SQLALCHEMY_DATABASE_URI = None
 
 # Flask-WTF flag for CSRF
 WTF_CSRF_ENABLED = True
@@ -111,9 +109,6 @@ Save your `superset_config.py` with these values and then run `superset re-encry
 
 ### Using a production metastore
 
-By default, Superset is configured to use SQLite, which is a simple and fast way to get started
-(without requiring any installation). However, for production environments,
-using SQLite is highly discouraged due to security, scalability, and data integrity reasons.
 It's important to use only the supported database engines and consider using a different
 database engine on a separate host or container.
 

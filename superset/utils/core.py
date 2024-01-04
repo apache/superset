@@ -29,7 +29,6 @@ import platform
 import re
 import signal
 import smtplib
-import sqlite3
 import ssl
 import tempfile
 import threading
@@ -37,7 +36,7 @@ import traceback
 import uuid
 import zlib
 from collections.abc import Iterable, Iterator, Sequence
-from contextlib import closing, contextmanager
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from email.mime.application import MIMEApplication
@@ -795,24 +794,6 @@ def pessimistic_connection_handling(some_engine: Engine) -> None:
         finally:
             # restore 'close with result'
             connection.should_close_with_result = save_should_close_with_result
-
-    if some_engine.dialect.name == "sqlite":
-
-        @event.listens_for(some_engine, "connect")
-        def set_sqlite_pragma(  # pylint: disable=unused-argument
-            connection: sqlite3.Connection,
-            *args: Any,
-        ) -> None:
-            r"""
-            Enable foreign key support for SQLite.
-
-            :param connection: The SQLite connection
-            :param \*args: Additional positional arguments
-            :see: https://docs.sqlalchemy.org/en/latest/dialects/sqlite.html
-            """
-
-            with closing(connection.cursor()) as cursor:
-                cursor.execute("PRAGMA foreign_keys=ON")
 
 
 def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many-locals

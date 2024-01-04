@@ -34,11 +34,6 @@ logger = logging.getLogger(__name__)
 def session_scope(nullpool: bool) -> Iterator[Session]:
     """Provide a transactional scope around a series of operations."""
     database_uri = app.config["SQLALCHEMY_DATABASE_URI"]
-    if "sqlite" in database_uri:
-        logger.warning(
-            "SQLite Database support for metadata databases will be removed \
-            in a future version of Superset."
-        )
     if nullpool:
         engine = create_engine(database_uri, poolclass=NullPool)
         session_class = sessionmaker()
