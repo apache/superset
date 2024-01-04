@@ -417,7 +417,7 @@ export const TRANSLATIONS = {
   IGNORE_CACHE_TEXT: t('Ignore cache when generating report'),
   CUSTOM_SCREENSHOT_WIDTH_TEXT: t('Screenshot width'),
   CUSTOM_SCREENSHOT_WIDTH_PLACEHOLDER_TEXT: t('Input custom width in pixels'),
-  // Schdule panel inputs
+  // Schedule panel inputs
   SCHEDULE_TYPE_TEXT: t('Schedule type'),
   SCHEDULE: t('Schedule'),
   TIMEZONE_TEXT: t('Timezone'),
