@@ -17,7 +17,7 @@
  * under the License.
  */
 import { QueryResponse } from '@superset-ui/core';
-import { Dataset, isColumnMeta, isDataset, isQueryResponse } from '../types';
+import { Dataset, isDataset, isQueryResponse } from '../types';
 
 /**
  * Convert Datasource columns to column choices
@@ -29,7 +29,7 @@ export default function columnChoices(
     return datasource.columns
       .map((col): [string, string] => [
         col.column_name,
-        isColumnMeta(col)
+        'verbose_name' in col
           ? col.verbose_name || col.column_name
           : col.column_name,
       ])
