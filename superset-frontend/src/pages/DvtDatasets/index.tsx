@@ -50,6 +50,7 @@ const header = [
   },
 ];
 
+/*
 const getFormattedDifference = (modified: Date) => {
   const now = moment();
   const diff = now.diff(modified);
@@ -76,7 +77,7 @@ const getFormattedDifference = (modified: Date) => {
   }
   return dateMessage;
 };
-
+*/
 function DvtDatasets() {
   const [currentPage, setCurrentPage] = useState(1);
   const [data, setData] = useState([]);
@@ -99,9 +100,7 @@ function DvtDatasets() {
             kind: item.kind,
             database: `${item.database.database_name}`,
             schema: item.schema,
-            changed_on_delta_humanized: getFormattedDifference(
-              new Date(item.changed_on_utc),
-            ),
+            changed_on_delta_humanized: moment(item.changed_on_utc).fromNow(),
             changed_by_name: item.changed_by_name,
             owners: item.owners.length
               ? item.owners
