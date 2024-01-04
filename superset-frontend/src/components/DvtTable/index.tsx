@@ -36,6 +36,7 @@ import {
   StyledTableUrl,
 } from './dvt-table.module';
 import DvtPopper from '../DvtPopper';
+import { useHistory } from 'react-router-dom';
 
 interface HeaderProps {
   id: number;
@@ -44,7 +45,7 @@ interface HeaderProps {
   icon?: string;
   iconActive?: string;
   iconClick?: () => {};
-  url?: string;
+  urlField?: string;
   flex?: number;
   clicks?: {
     icon: string;
@@ -77,6 +78,9 @@ const DvtTable: React.FC<DvtTableProps> = ({
   setFavoriteData,
 }) => {
   const [openRow, setOpenRow] = useState<number | null>(null);
+  const [newData, setNewData] = useState<any[]>(
+    data.sort((a, b) => a.id - b.id),
+  );
 
   const formatDateTime = (dateTimeString: string) => {
     const [datePart, timePart] = dateTimeString.split(' ');
@@ -96,14 +100,27 @@ const DvtTable: React.FC<DvtTableProps> = ({
     0,
   );
 
+  const history = useHistory();
+
   const columnsWithDefaults = 100 / totalFlex;
 
-  const checkAll = data.length === selected.length;
+  const checkAll = newData.length === selected.length;
 
-  const indeterminate = selected.length > 0 && selected.length < data.length;
+  const indeterminate = selected.length > 0 && selected.length < newData.length;
 
   const onCheckAllChange = (e: CheckboxChangeEvent) => {
-    setSelected(e.target.checked ? data.slice() : []);
+    setSelected(e.target.checked ? newData.slice() : []);
+  };
+
+  const handleFavouriteData = (item: any) => {
+    const findItem = newData.find(row => row.id === item.id);
+    const findItemRemovedData = newData.filter(row => row.id !== item.id);
+    setNewData(
+      [
+        ...findItemRemovedData,
+        { ...findItem, isFavorite: !item.isFavorite },
+      ].sort((a, b) => a.id - b.id),
+    );
   };
 
   return (
@@ -131,7 +148,7 @@ const DvtTable: React.FC<DvtTableProps> = ({
           </StyledTableTitle>
         </StyledTabletHead>
         <StyledTableTbody>
-          {data.map((row, rowIndex) => (
+          {newData.map((row, rowIndex) => (
             <StyledTableTr
               key={rowIndex}
               onClick={() => onRowClick?.(row)}
@@ -179,7 +196,7 @@ const DvtTable: React.FC<DvtTableProps> = ({
                       />
                     )}
                     {column.isFavorite && (
-                      <StyledTableTbody onClick={() => setFavoriteData?.(row)}>
+                      <StyledTableTbody onClick={() => handleFavouriteData(row)}>
                         {row.isFavorite ? (
                           <Icons.StarFilled
                             iconSize="xl"
@@ -193,8 +210,14 @@ const DvtTable: React.FC<DvtTableProps> = ({
                         )}
                       </StyledTableTbody>
                     )}
-                    {column.url && column.field && (
-                      <StyledTableUrl to={column.url}>
+                    {column.urlField && column.field && (
+                      <StyledTableUrl
+                        onClick={() => {
+                          column.urlField
+                            ? history.push(row[column.urlField])
+                            : '';
+                        }}
+                      >
                         {row[column.field]}
                       </StyledTableUrl>
                     )}
@@ -266,7 +289,7 @@ const DvtTable: React.FC<DvtTableProps> = ({
 
                         {column.field !== 'action' &&
                           column.field &&
-                          !column.url && <>{row[column.field]}</>}
+                          !column.urlField && <>{row[column.field]}</>}
                       </>
                     )}
                   </StyledTableIcon>

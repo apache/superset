@@ -17,7 +17,6 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
-import { Link } from 'react-router-dom';
 
 const StyledTable = styled.div`
   .ant-checkbox-indeterminate .ant-checkbox-inner::after {
@@ -114,7 +113,7 @@ const StyledTableCheckbox = styled.div`
   margin-right: 24px;
 `;
 
-const StyledTableUrl = styled(Link)`
+const StyledTableUrl = styled.div`
   color: ${({ theme }) => theme.colors.dvt.primary.base};
 `;
 

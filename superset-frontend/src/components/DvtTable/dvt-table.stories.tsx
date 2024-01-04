@@ -20,111 +20,6 @@ import React, { useState } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import DvtTable, { DvtTableProps } from '.';
 
-const favoriteData = [
-  {
-    id: 1,
-    name: 'arac',
-    type: 'Pysical',
-    database: 'PostgreSQL',
-    schema: 'Dwh',
-    date: '10.03.2023 12:45:00',
-    modifiedBy: 'Admin',
-    owners: 'A',
-    isFavorite: false,
-  },
-  {
-    id: 2,
-
-    name: 'hrrr2',
-    type: 'Pysical',
-    database: 'PostgreSQL',
-    schema: 'Public',
-    date: '10.03.2023 12:45:00',
-    modifiedBy: 'Admin',
-    owners: 'A',
-    isFavorite: true,
-  },
-  {
-    id: 3,
-
-    name: 'channel_members',
-    type: 'Pysical',
-    database: 'Examples',
-    schema: 'Public',
-    date: '10.03.2023 12:45:00',
-    modifiedBy: 'Admin',
-    owners: 'A',
-    isFavorite: true,
-  },
-  {
-    id: 4,
-
-    name: 'channel',
-    type: 'Pysical',
-    database: 'Examples',
-    schema: 'Public',
-    date: '10.03.2023 12:45:00',
-    modifiedBy: 'Admin',
-    owners: 'A',
-    isFavorite: true,
-  },
-  {
-    id: 5,
-    name: 'cleaned_sales_data',
-    type: 'Pysical',
-    database: 'Examples',
-    schema: 'Public',
-    date: '10.03.2023 12:45:00',
-    modifiedBy: 'Admin',
-    owners: 'A',
-    isFavorite: true,
-  },
-  {
-    id: 6,
-    name: 'covid_vaccines',
-    type: 'Pysical',
-    database: 'Examples',
-    schema: 'Public',
-    date: '10.03.2023 12:45:00',
-    modifiedBy: 'Admin',
-    owners: 'A',
-    isFavorite: true,
-  },
-  {
-    id: 7,
-    name: 'exported_stats',
-    type: 'Pysical',
-    database: 'Examples',
-    schema: 'Public',
-    date: '10.03.2023 12:45:00',
-    modifiedBy: 'Admin',
-    owners: 'A',
-    isFavorite: true,
-  },
-  {
-    id: 8,
-    name: 'members_channels_2',
-    type: 'Pysical',
-    database: 'Examples',
-    schema: 'Public',
-    date: '10.03.2023 12:45:00',
-    modifiedBy: 'Admin',
-    owners: 'A',
-    isFavorite: true,
-  },
-  {
-    id: 9,
-    name: 'Fcc 2018 Survey',
-    type: 'Pysical',
-    database: 'Examples',
-    schema: 'Public',
-    date: '10.03.2023 12:45:00',
-    modifiedBy: 'Admin',
-    owners: 'A',
-    isFavorite: true,
-  },
-];
-
 export default {
   title: 'Dvt-Components/DvtTable',
   component: DvtTable,
@@ -156,7 +51,7 @@ Default.args = {
       title: 'Name',
       field: 'name',
       icon: 'dvt-folder',
-      url: '/',
+      urlField: 'link',
       flex: 3,
     },
     { title: 'Type', field: 'type' },
@@ -196,6 +91,7 @@ Default.args = {
       date: '10.03.2023 12:45:00',
       modifiedBy: 'Admin',
       owners: 'A',
+      link: '/dashboard/list/',
     },
     {
       name: 'hrrr2',
@@ -205,6 +101,7 @@ Default.args = {
       date: '10.03.2023 12:45:00',
       modifiedBy: 'Admin',
       owners: 'A',
+      link: '/dashboard/list/',
     },
     {
       name: 'channel_members',
@@ -214,6 +111,7 @@ Default.args = {
       date: '10.03.2023 12:45:00',
       modifiedBy: 'Admin',
       owners: 'A',
+      link: '/dashboard/list/',
     },
     {
       name: 'channel',
@@ -223,6 +121,7 @@ Default.args = {
       date: '10.03.2023 12:45:00',
       modifiedBy: 'Admin',
       owners: 'A',
+      link: '/dashboard/list/',
     },
     {
       name: 'cleaned_sales_data',
@@ -232,6 +131,7 @@ Default.args = {
       date: '10.03.2023 12:45:00',
       modifiedBy: 'Admin',
       owners: 'A',
+      link: '/dashboard/list/',
     },
     {
       name: 'covid_vaccines',
@@ -241,6 +141,7 @@ Default.args = {
       date: '10.03.2023 12:45:00',
       modifiedBy: 'Admin',
       owners: 'A',
+      link: '/dashboard/list/',
     },
     {
       name: 'exported_stats',
@@ -250,6 +151,7 @@ Default.args = {
       date: '10.03.2023 12:45:00',
       modifiedBy: 'Admin',
       owners: 'A',
+      link: '/dashboard/list/',
     },
     {
       name: 'members_channels_2',
@@ -259,6 +161,7 @@ Default.args = {
       date: '10.03.2023 12:45:00',
       modifiedBy: 'Admin',
       owners: 'A',
+      link: '/dashboard/list/',
     },
     {
       name: 'Fcc 2018 Survey',
@@ -268,26 +171,12 @@ Default.args = {
       date: '10.03.2023 12:45:00',
       modifiedBy: 'Admin',
       owners: 'A',
+      link: '/dashboard/list/',
     },
   ],
 };
 
 export const FavoriteExample = (args: DvtTableProps) => {
-  const [data, setData] = useState<any[]>(
-    favoriteData.sort((a, b) => a.id - b.id),
-  );
-
-  const handleFavouriteData = (item: any) => {
-    const findItem = data.find(row => row.id === item.id);
-    const findItemRemovedData = data.filter(row => row.id !== item.id);
-    setData(
-      [
-        ...findItemRemovedData,
-        { ...findItem, isFavorite: !item.isFavorite },
-      ].sort((a, b) => a.id - b.id),
-    );
-  };
-
   return (
     <div
       style={{
@@ -297,7 +186,7 @@ export const FavoriteExample = (args: DvtTableProps) => {
         padding: 32,
       }}
     >
-      <DvtTable {...args} setFavoriteData={handleFavouriteData} data={data} />
+      <DvtTable {...args} />
     </div>
   );
 };
@@ -337,6 +226,110 @@ FavoriteExample.args = {
           popperLabel: 'Share',
         },
       ],
+    },
+  ],
+  data: [
+    {
+      id: 1,
+      name: 'arac',
+      type: 'Pysical',
+      database: 'PostgreSQL',
+      schema: 'Dwh',
+      date: '10.03.2023 12:45:00',
+      modifiedBy: 'Admin',
+      owners: 'A',
+      isFavorite: false,
+    },
+    {
+      id: 2,
+
+      name: 'hrrr2',
+      type: 'Pysical',
+      database: 'PostgreSQL',
+      schema: 'Public',
+      date: '10.03.2023 12:45:00',
+      modifiedBy: 'Admin',
+      owners: 'A',
+      isFavorite: true,
+    },
+    {
+      id: 3,
+
+      name: 'channel_members',
+      type: 'Pysical',
+      database: 'Examples',
+      schema: 'Public',
+      date: '10.03.2023 12:45:00',
+      modifiedBy: 'Admin',
+      owners: 'A',
+      isFavorite: true,
+    },
+    {
+      id: 4,
+
+      name: 'channel',
+      type: 'Pysical',
+      database: 'Examples',
+      schema: 'Public',
+      date: '10.03.2023 12:45:00',
+      modifiedBy: 'Admin',
+      owners: 'A',
+      isFavorite: true,
+    },
+    {
+      id: 5,
+      name: 'cleaned_sales_data',
+      type: 'Pysical',
+      database: 'Examples',
+      schema: 'Public',
+      date: '10.03.2023 12:45:00',
+      modifiedBy: 'Admin',
+      owners: 'A',
+      isFavorite: true,
+    },
+    {
+      id: 6,
+      name: 'covid_vaccines',
+      type: 'Pysical',
+      database: 'Examples',
+      schema: 'Public',
+      date: '10.03.2023 12:45:00',
+      modifiedBy: 'Admin',
+      owners: 'A',
+      isFavorite: true,
+    },
+    {
+      id: 7,
+      name: 'exported_stats',
+      type: 'Pysical',
+      database: 'Examples',
+      schema: 'Public',
+      date: '10.03.2023 12:45:00',
+      modifiedBy: 'Admin',
+      owners: 'A',
+      isFavorite: true,
+    },
+    {
+      id: 8,
+      name: 'members_channels_2',
+      type: 'Pysical',
+      database: 'Examples',
+      schema: 'Public',
+      date: '10.03.2023 12:45:00',
+      modifiedBy: 'Admin',
+      owners: 'A',
+      isFavorite: true,
+    },
+    {
+      id: 9,
+      name: 'Fcc 2018 Survey',
+      type: 'Pysical',
+      database: 'Examples',
+      schema: 'Public',
+      date: '10.03.2023 12:45:00',
+      modifiedBy: 'Admin',
+      owners: 'A',
+      isFavorite: true,
     },
   ],
 };
