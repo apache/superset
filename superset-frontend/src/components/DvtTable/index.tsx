@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { useState } from 'react';
+import { useHistory } from 'react-router-dom';
 import type { CheckboxChangeEvent } from 'antd/es/checkbox';
 import { SupersetTheme, supersetTheme } from '@superset-ui/core';
 import { Checkbox } from 'antd';
@@ -36,7 +37,6 @@ import {
   StyledTableUrl,
 } from './dvt-table.module';
 import DvtPopper from '../DvtPopper';
-import { useHistory } from 'react-router-dom';
 
 interface HeaderProps {
   id: number;
@@ -196,7 +196,9 @@ const DvtTable: React.FC<DvtTableProps> = ({
                       />
                     )}
                     {column.isFavorite && (
-                      <StyledTableTbody onClick={() => handleFavouriteData(row)}>
+                      <StyledTableTbody
+                        onClick={() => handleFavouriteData(row)}
+                      >
                         {row.isFavorite ? (
                           <Icons.StarFilled
                             iconSize="xl"
