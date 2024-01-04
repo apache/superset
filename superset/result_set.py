@@ -223,7 +223,9 @@ class SupersetResultSet:
             return False
         return column_spec.is_dttm
 
-    def type_generic(self, db_type_str: Optional[str]) -> utils.GenericDataType | None:
+    def type_generic(
+        self, db_type_str: Optional[str]
+    ) -> Optional[utils.GenericDataType]:
         column_spec = self.db_engine_spec.get_column_spec(db_type_str)
         if column_spec is None:
             return None
