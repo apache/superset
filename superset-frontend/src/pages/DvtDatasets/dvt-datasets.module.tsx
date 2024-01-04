@@ -29,5 +29,27 @@ const StyledButtons = styled.div`
   justify-content: space-between;
   align-items: center;
 `;
+const StyledSelected = styled.div`
+  display: flex;
+  align-items: center;
+`;
 
-export { StyledDvtDatasets, StyledButtons };
+const StyledDeselect = styled.div`
+  display: flex;
+  align-items: center;
+`;
+const StyledDeselectButton = styled.div`
+  display: flex;
+  padding: 15px;
+  gap: 5px;
+  flex-direction: row;
+  align-items: center;
+`;
+
+export {
+  StyledDvtDatasets,
+  StyledButtons,
+  StyledSelected,
+  StyledDeselect,
+  StyledDeselectButton,
+};
