@@ -155,7 +155,7 @@ setup(
         "dremio": ["sqlalchemy-dremio>=1.1.5, <1.3"],
         "drill": ["sqlalchemy-drill==0.1.dev"],
         "druid": ["pydruid>=0.6.5,<0.7"],
-        "duckdb": ["duckdb-engine==0.9.2"],
+        "duckdb": ["duckdb-engine>=0.9.5, <0.10"],
         "dynamodb": ["pydynamodb>=0.4.2"],
         "solr": ["sqlalchemy-solr >= 0.2.0"],
         "elasticsearch": ["elasticsearch-dbapi>=0.2.9, <0.3.0"],
