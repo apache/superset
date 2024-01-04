@@ -49,6 +49,7 @@ import {
 
 const {
   logAxis,
+  showAxis,
   minorSplitLine,
   truncateYAxis,
   yAxisBounds,
@@ -171,6 +172,20 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
           ...xAxisLabelRotation.config,
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isVertical(controls) : isHorizontal(controls),
+        },
+      },
+    ],
+    [
+      {
+        name: 'showAxis',
+        config: {
+          type: 'CheckboxControl',
+          label: t('Show Axis'),
+          renderTrigger: true,
+          default: showAxis,
+          description: t('Changing this control takes effect instantly'),
+          visibility: ({ controls }: ControlPanelsContainerProps) =>
+            isXAxis ? isHorizontal(controls) : isVertical(controls),
         },
       },
     ],
