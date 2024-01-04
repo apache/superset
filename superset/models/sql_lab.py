@@ -229,7 +229,6 @@ class Query(
             "metrics": [],
             "id": self.id,
             "type": self.type,
-            "type_generic": self.type_generic,
             "sql": self.sql,
             "owners": self.owners_data,
             "database": {"id": self.database_id, "backend": self.database.backend},
