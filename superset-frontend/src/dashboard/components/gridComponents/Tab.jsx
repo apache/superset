@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import classNames from 'classnames';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { styled, t } from '@superset-ui/core';
@@ -173,7 +174,10 @@ class Tab extends React.PureComponent {
             depth={depth}
             onDrop={this.handleTopDropTargetDrop}
             editMode
-            className="empty-droptarget"
+            className={classNames({
+              'empty-droptarget': true,
+              'empty-droptarget--full': tabComponent.children.length === 0,
+            })}
           >
             {renderDraggableContentTop}
           </DragDroppable>
@@ -234,7 +238,7 @@ class Tab extends React.PureComponent {
           />
         ))}
         {/* Make bottom of tab droppable */}
-        {editMode && (
+        {editMode && tabComponent.children.length > 0 && (
           <DragDroppable
             component={tabComponent}
             parentComponent={tabParentComponent}
