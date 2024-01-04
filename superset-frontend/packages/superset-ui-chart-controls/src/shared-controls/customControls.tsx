@@ -57,8 +57,11 @@ export const contributionModeControl = {
 
 function isForcedCategorical(controls: ControlStateMapping): boolean {
   return (
-    !!controls?.xAxisForceCategorical?.value ||
-    controls?.x_axis_sort.value !== undefined
+    checkColumnType(
+      getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+      controls?.datasource?.datasource,
+      [GenericDataType.NUMERIC],
+    ) && !!controls?.xAxisForceCategorical?.value
   );
 }
 
@@ -163,6 +166,8 @@ export const xAxisForceCategoricalControl = {
     label: () => t('Force categorical'),
     default: false,
     description: t('Treat values as categorical.'),
+    initialValue: (control: ControlState, state: ControlPanelState | null) =>
+      state?.form_data?.x_axis_sort !== undefined,
     renderTrigger: true,
     visibility: ({ controls }: { controls: ControlStateMapping }) =>
       checkColumnType(
