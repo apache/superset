@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import moment from 'moment';
 import DvtButton from 'src/components/DvtButton';
 import DvtPagination from 'src/components/DvtPagination';
 import DvtTable from 'src/components/DvtTable';
@@ -9,7 +10,6 @@ import {
   StyledDvtDatasets,
   StyledSelected,
 } from './dvt-datasets.module';
-import moment from 'moment';
 
 const header = [
   {
