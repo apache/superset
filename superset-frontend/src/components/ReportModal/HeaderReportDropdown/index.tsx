@@ -191,6 +191,12 @@ export default function HeaderReportDropDown({
 
   const showReportSubMenu = report && setShowReportSubMenu && canAddReports();
 
+  // @z-index-below-dashboard-header (100) - 1 = 99
+  const dropdownOverlayStyle = {
+    zIndex: 99,
+    animationDuration: '0s',
+  };
+
   useEffect(() => {
     if (showReportSubMenu) {
       setShowReportSubMenu(true);
@@ -288,6 +294,7 @@ export default function HeaderReportDropDown({
       <>
         <NoAnimationDropdown
           overlay={menu()}
+          overlayStyle={dropdownOverlayStyle}
           trigger={['click']}
           getPopupContainer={(triggerNode: any) =>
             triggerNode.closest('.action-button')
