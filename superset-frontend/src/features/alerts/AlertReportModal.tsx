@@ -341,13 +341,7 @@ const StyledNotificationMethodWrapper = styled.div`
     margin-left: 0;
   }
 `;
-const StyledList = styled.ul`
-  margin: 0;
-  padding: 0;
-  li {
-    padding-left: 12px;
-  }
-`;
+
 const inputSpacer = (theme: SupersetTheme) => css`
   margin-right: ${theme.gridUnit * 3}px;
 `;

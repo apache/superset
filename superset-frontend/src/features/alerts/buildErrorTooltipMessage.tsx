@@ -1,4 +1,13 @@
 import { ValidationObject } from './types';
+import { styled } from '@superset-ui/core';
+
+const StyledList = styled.ul`
+  margin: 0;
+  padding: 0;
+  li {
+    padding-left: 12px;
+  }
+`;
 
 export const buildErrorTooltipMessage = (
   build = true,
@@ -16,11 +25,11 @@ export const buildErrorTooltipMessage = (
     setErrorTooltipMessage(
       <div>
         Not all required fields are complete. Please provide the following:
-        <ul>
+        <StyledList>
           {sectionErrors.map(err => (
             <li key={err}>{err}</li>
           ))}
-        </ul>
+        </StyledList>
       </div>,
     );
   } else {
