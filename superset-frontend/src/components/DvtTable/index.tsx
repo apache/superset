@@ -66,6 +66,7 @@ export interface DvtTableProps {
   setSelected?: (newSelected: any[]) => void;
   checkboxActiveField?: string;
   setFavoriteData?: (item: any) => void;
+  apiUrl?: string;
 }
 
 const DvtTable: React.FC<DvtTableProps> = ({
@@ -76,6 +77,7 @@ const DvtTable: React.FC<DvtTableProps> = ({
   setSelected = () => {},
   checkboxActiveField = 'id',
   setFavoriteData,
+  apiUrl,
 }) => {
   const [openRow, setOpenRow] = useState<number | null>(null);
 
@@ -109,16 +111,28 @@ const DvtTable: React.FC<DvtTableProps> = ({
     setSelected(e.target.checked ? data.slice() : []);
   };
 
-  const handleFavouriteData = (item: any) => {
+  const handleFavouriteData = async (item: any) => {
     const findItem = data.find(row => row.id === item.id);
     const findItemRemovedData = data.filter(row => row.id !== item.id);
-    setFavoriteData &&
-      setFavoriteData(
-        [
-          ...findItemRemovedData,
-          { ...findItem, isFavorite: !item.isFavorite },
-        ].sort((a, b) => a.id - b.id),
+
+    try {
+      await fetch(
+        `${apiUrl}/${item.id}/${item.isFavorite ? 'unselect' : 'select'}`,
+        {
+          method: 'POST',
+        },
       );
+
+      setFavoriteData &&
+        setFavoriteData(
+          [
+            ...findItemRemovedData,
+            { ...findItem, isFavorite: !item.isFavorite },
+          ].sort((a, b) => a.id - b.id),
+        );
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (
