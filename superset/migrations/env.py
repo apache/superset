@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import urllib.parse
 from logging.config import fileConfig
-from typing import List
 
 from alembic import context
 from alembic.operations.ops import MigrationScript
@@ -42,7 +42,8 @@ if "sqlite" in DATABASE_URI:
         "SQLite Database support for metadata databases will \
         be removed in a future version of Superset."
     )
-config.set_main_option("sqlalchemy.url", DATABASE_URI)
+decoded_uri = urllib.parse.unquote(DATABASE_URI)
+config.set_main_option("sqlalchemy.url", decoded_uri)
 target_metadata = Base.metadata  # pylint: disable=no-member
 
 
@@ -83,7 +84,7 @@ def run_migrations_online() -> None:
     # when there are no changes to the schema
     # reference: https://alembic.sqlalchemy.org/en/latest/cookbook.html
     def process_revision_directives(  # pylint: disable=redefined-outer-name, unused-argument
-        context: MigrationContext, revision: str, directives: List[MigrationScript]
+        context: MigrationContext, revision: str, directives: list[MigrationScript]
     ) -> None:
         if getattr(config.cmd_opts, "autogenerate", False):
             script = directives[0]
@@ -101,8 +102,7 @@ def run_migrations_online() -> None:
     kwargs = {}
     if engine.name in ("sqlite", "mysql"):
         kwargs = {"transaction_per_migration": True, "transactional_ddl": True}
-    configure_args = current_app.extensions["migrate"].configure_args
-    if configure_args:
+    if configure_args := current_app.extensions["migrate"].configure_args:
         kwargs.update(configure_args)
 
     context.configure(
@@ -110,7 +110,7 @@ def run_migrations_online() -> None:
         target_metadata=target_metadata,
         # compare_type=True,
         process_revision_directives=process_revision_directives,
-        **kwargs
+        **kwargs,
     )
 
     try:

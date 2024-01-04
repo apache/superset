@@ -22,11 +22,12 @@ import { waitFor } from '@testing-library/react';
 
 import {
   removeSliceFromDashboard,
+  SAVE_DASHBOARD_STARTED,
   saveDashboardRequest,
   SET_OVERRIDE_CONFIRM,
 } from 'src/dashboard/actions/dashboardState';
 import { REMOVE_FILTER } from 'src/dashboard/actions/dashboardFilters';
-import * as featureFlags from 'src/featureFlags';
+import * as uiCore from '@superset-ui/core';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from 'src/dashboard/actions/dashboardLayout';
 import {
   DASHBOARD_GRID_ID,
@@ -104,10 +105,11 @@ describe('dashboardState actions', () => {
       });
       const thunk = saveDashboardRequest(newDashboardData, 1, 'save_dash');
       thunk(dispatch, getState);
-      expect(dispatch.callCount).toBe(1);
+      expect(dispatch.callCount).toBe(2);
       expect(dispatch.getCall(0).args[0].type).toBe(
         UPDATE_COMPONENTS_PARENTS_LIST,
       );
+      expect(dispatch.getCall(1).args[0].type).toBe(SAVE_DASHBOARD_STARTED);
     });
 
     it('should post dashboard data with updated redux state', () => {
@@ -132,17 +134,18 @@ describe('dashboardState actions', () => {
       const thunk = saveDashboardRequest(newDashboardData, 1, 'save_dash');
       thunk(dispatch, getState);
       expect(postStub.callCount).toBe(1);
-      const { postPayload } = postStub.getCall(0).args[0];
-      expect(postPayload.data.positions[DASHBOARD_GRID_ID].parents).toBe(
-        mockParentsList,
-      );
+      const { jsonPayload } = postStub.getCall(0).args[0];
+      const parsedJsonMetadata = JSON.parse(jsonPayload.json_metadata);
+      expect(
+        parsedJsonMetadata.positions[DASHBOARD_GRID_ID].parents,
+      ).toStrictEqual(mockParentsList);
     });
 
     describe('FeatureFlag.CONFIRM_DASHBOARD_DIFF', () => {
       let isFeatureEnabledMock;
       beforeEach(() => {
         isFeatureEnabledMock = jest
-          .spyOn(featureFlags, 'isFeatureEnabled')
+          .spyOn(uiCore, 'isFeatureEnabled')
           .mockImplementation(feature => feature === 'CONFIRM_DASHBOARD_DIFF');
       });
 
@@ -162,10 +165,10 @@ describe('dashboardState actions', () => {
         expect(getStub.callCount).toBe(1);
         expect(postStub.callCount).toBe(0);
         await waitFor(() =>
-          expect(dispatch.getCall(1).args[0].type).toBe(SET_OVERRIDE_CONFIRM),
+          expect(dispatch.getCall(2).args[0].type).toBe(SET_OVERRIDE_CONFIRM),
         );
         expect(
-          dispatch.getCall(1).args[0].overwriteConfirmMetadata.dashboardId,
+          dispatch.getCall(2).args[0].overwriteConfirmMetadata.dashboardId,
         ).toBe(id);
       });
 

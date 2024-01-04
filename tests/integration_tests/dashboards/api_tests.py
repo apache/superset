@@ -19,8 +19,7 @@
 import json
 from io import BytesIO
 from time import sleep
-from typing import List, Optional
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 from zipfile import is_zipfile, ZipFile
 
 from tests.integration_tests.insert_chart_mixin import InsertChartMixin
@@ -31,14 +30,15 @@ import yaml
 
 from freezegun import freeze_time
 from sqlalchemy import and_
-from superset import db, security_manager
+from superset import app, db, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
-from superset.utils.core import backend
+from superset.utils.core import backend, override_user
 from superset.views.base import generate_download_headers
 
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.importexport import (
@@ -63,60 +63,18 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
 DASHBOARDS_FIXTURE_COUNT = 10
 
 
-class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
+class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
     resource_name = "dashboard"
 
-    dashboards: List[Dashboard] = []
+    dashboards: list[Dashboard] = []
     dashboard_data = {
         "dashboard_title": "title1_changed",
         "slug": "slug1_changed",
         "position_json": '{"b": "B"}',
         "css": "css_changed",
-        "json_metadata": '{"refresh_frequency": 30, "timed_refresh_immune_slices": [], "expanded_slices": {}, "color_scheme": "", "label_colors": {}, "shared_label_colors": {}, "color_scheme_domain": []}',
+        "json_metadata": '{"refresh_frequency": 30, "timed_refresh_immune_slices": [], "expanded_slices": {}, "color_scheme": "", "label_colors": {}, "shared_label_colors": {}, "color_scheme_domain": [], "cross_filters_enabled": false}',
         "published": False,
     }
-
-    def insert_dashboard(
-        self,
-        dashboard_title: str,
-        slug: Optional[str],
-        owners: List[int],
-        roles: List[int] = [],
-        created_by=None,
-        slices: Optional[List[Slice]] = None,
-        position_json: str = "",
-        css: str = "",
-        json_metadata: str = "",
-        published: bool = False,
-        certified_by: Optional[str] = None,
-        certification_details: Optional[str] = None,
-    ) -> Dashboard:
-        obj_owners = list()
-        obj_roles = list()
-        slices = slices or []
-        for owner in owners:
-            user = db.session.query(security_manager.user_model).get(owner)
-            obj_owners.append(user)
-        for role in roles:
-            role_obj = db.session.query(security_manager.role_model).get(role)
-            obj_roles.append(role_obj)
-        dashboard = Dashboard(
-            dashboard_title=dashboard_title,
-            slug=slug,
-            owners=obj_owners,
-            roles=obj_roles,
-            position_json=position_json,
-            css=css,
-            json_metadata=json_metadata,
-            slices=slices,
-            published=published,
-            created_by=created_by,
-            certified_by=certified_by,
-            certification_details=certification_details,
-        )
-        db.session.add(dashboard)
-        db.session.commit()
-        return dashboard
 
     @pytest.fixture()
     def create_dashboards(self):
@@ -211,12 +169,32 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data.decode("utf-8"))
         dashboard = Dashboard.get("world_health")
-        expected_dataset_ids = set([s.datasource_id for s in dashboard.slices])
+        expected_dataset_ids = {s.datasource_id for s in dashboard.slices}
         result = data["result"]
-        actual_dataset_ids = set([dataset["id"] for dataset in result])
+        actual_dataset_ids = {dataset["id"] for dataset in result}
         self.assertEqual(actual_dataset_ids, expected_dataset_ids)
         expected_values = [0, 1] if backend() == "presto" else [0, 1, 2]
         self.assertEqual(result[0]["column_types"], expected_values)
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.dashboards.schemas.security_manager.has_guest_access")
+    @patch("superset.dashboards.schemas.security_manager.is_guest_user")
+    def test_get_dashboard_datasets_as_guest(self, is_guest_user, has_guest_access):
+        self.login(username="admin")
+        uri = "api/v1/dashboard/world_health/datasets"
+        is_guest_user = True
+        has_guest_access = True
+        response = self.get_assert_metric(uri, "get_datasets")
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data.decode("utf-8"))
+        dashboard = Dashboard.get("world_health")
+        expected_dataset_ids = {s.datasource_id for s in dashboard.slices}
+        result = data["result"]
+        actual_dataset_ids = {dataset["id"] for dataset in result}
+        self.assertEqual(actual_dataset_ids, expected_dataset_ids)
+        for dataset in result:
+            for excluded_key in ["database", "owners"]:
+                assert excluded_key not in dataset
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_get_dashboard_datasets_not_found(self):
@@ -225,15 +203,36 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         response = self.get_assert_metric(uri, "get_datasets")
         self.assertEqual(response.status_code, 404)
 
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    def test_get_draft_dashboard_datasets(self):
+    @pytest.mark.usefixtures("create_dashboards")
+    def test_get_gamma_dashboard_datasets(self):
         """
-        All users should have access to dashboards without roles
+        Check that a gamma user with data access can access dashboard/datasets
         """
+        from superset.connectors.sqla.models import SqlaTable
+
+        # Set correct role permissions
+        gamma_role = security_manager.find_role("Gamma")
+        fixture_dataset = db.session.query(SqlaTable).get(1)
+        data_access_pvm = security_manager.add_permission_view_menu(
+            "datasource_access", fixture_dataset.perm
+        )
+        gamma_role.permissions.append(data_access_pvm)
+        db.session.commit()
+
         self.login(username="gamma")
-        uri = "api/v1/dashboard/world_health/datasets"
+        dashboard = self.dashboards[0]
+        dashboard.published = True
+        db.session.commit()
+
+        uri = f"api/v1/dashboard/{dashboard.id}/datasets"
         response = self.get_assert_metric(uri, "get_datasets")
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
+
+        # rollback permission change
+        data_access_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", fixture_dataset.perm
+        )
+        security_manager.del_permission_role(gamma_role, data_access_pvm)
 
     @pytest.mark.usefixtures("create_dashboards")
     def get_dashboard_by_slug(self):
@@ -319,16 +318,44 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         response = self.get_assert_metric(uri, "get_charts")
         self.assertEqual(response.status_code, 404)
 
-    @pytest.mark.usefixtures("create_dashboards")
-    def test_get_draft_dashboard_charts(self):
-        """
-        All users should have access to draft dashboards without roles
-        """
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_get_dashboard_datasets_not_allowed(self):
         self.login(username="gamma")
+        uri = "api/v1/dashboard/world_health/datasets"
+        response = self.get_assert_metric(uri, "get_datasets")
+        self.assertEqual(response.status_code, 404)
+
+    @pytest.mark.usefixtures("create_dashboards")
+    def test_get_gamma_dashboard_charts(self):
+        """
+        Check that a gamma user with data access can access dashboard/charts
+        """
+        from superset.connectors.sqla.models import SqlaTable
+
+        # Set correct role permissions
+        gamma_role = security_manager.find_role("Gamma")
+        fixture_dataset = db.session.query(SqlaTable).get(1)
+        data_access_pvm = security_manager.add_permission_view_menu(
+            "datasource_access", fixture_dataset.perm
+        )
+        gamma_role.permissions.append(data_access_pvm)
+        db.session.commit()
+
+        self.login(username="gamma")
+
         dashboard = self.dashboards[0]
+        dashboard.published = True
+        db.session.commit()
+
         uri = f"api/v1/dashboard/{dashboard.id}/charts"
         response = self.get_assert_metric(uri, "get_charts")
         assert response.status_code == 200
+
+        # rollback permission change
+        data_access_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", fixture_dataset.perm
+        )
+        security_manager.del_permission_role(gamma_role, data_access_pvm)
 
     @pytest.mark.usefixtures("create_dashboards")
     def test_get_dashboard_charts_empty(self):
@@ -355,39 +382,39 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.get_assert_metric(uri, "get")
         self.assertEqual(rv.status_code, 200)
-        expected_result = {
-            "certified_by": None,
-            "certification_details": None,
-            "changed_by": None,
-            "changed_by_name": "",
-            "changed_by_url": "",
-            "charts": [],
-            "created_by": {
-                "id": 1,
-                "first_name": "admin",
-                "last_name": "user",
-            },
-            "id": dashboard.id,
-            "css": "",
-            "dashboard_title": "title",
-            "datasources": [],
-            "json_metadata": "",
-            "owners": [
-                {
+        with override_user(admin):
+            expected_result = {
+                "certified_by": None,
+                "certification_details": None,
+                "changed_by": None,
+                "changed_by_name": "",
+                "charts": [],
+                "created_by": {
                     "id": 1,
-                    "username": "admin",
                     "first_name": "admin",
                     "last_name": "user",
-                }
-            ],
-            "roles": [],
-            "position_json": "",
-            "published": False,
-            "url": "/superset/dashboard/slug1/",
-            "slug": "slug1",
-            "thumbnail_url": dashboard.thumbnail_url,
-            "is_managed_externally": False,
-        }
+                },
+                "id": dashboard.id,
+                "css": "",
+                "dashboard_title": "title",
+                "datasources": [],
+                "json_metadata": "",
+                "owners": [
+                    {
+                        "id": 1,
+                        "first_name": "admin",
+                        "last_name": "user",
+                    }
+                ],
+                "roles": [],
+                "position_json": "",
+                "published": False,
+                "url": "/superset/dashboard/slug1/",
+                "slug": "slug1",
+                "tags": [],
+                "thumbnail_url": dashboard.thumbnail_url,
+                "is_managed_externally": False,
+            }
         data = json.loads(rv.data.decode("utf-8"))
         self.assertIn("changed_on", data["result"])
         self.assertIn("changed_on_delta_humanized", data["result"])
@@ -398,6 +425,29 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
                 "changed_on_delta_humanized",
             ):
                 self.assertEqual(value, expected_result[key])
+        # rollback changes
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    @patch("superset.dashboards.schemas.security_manager.has_guest_access")
+    @patch("superset.dashboards.schemas.security_manager.is_guest_user")
+    def test_get_dashboard_as_guest(self, is_guest_user, has_guest_access):
+        """
+        Dashboard API: Test get dashboard as guest
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "title", "slug1", [admin.id], created_by=admin
+        )
+        is_guest_user.return_value = True
+        has_guest_access.return_value = True
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{dashboard.id}"
+        rv = self.get_assert_metric(uri, "get")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        for excluded_key in ["changed_by", "changed_by_name", "owners"]:
+            assert excluded_key not in data["result"]
         # rollback changes
         db.session.delete(dashboard)
         db.session.commit()
@@ -451,7 +501,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.login(username="gamma")
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.client.get(uri)
-        assert rv.status_code == 200
+        assert rv.status_code == 404
         # rollback changes
         db.session.delete(dashboard)
         db.session.commit()
@@ -634,6 +684,75 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             if res["id"] in users_favorite_ids:
                 assert res["value"]
 
+    def test_add_favorite(self):
+        """
+        Dataset API: Test add dashboard to favorites
+        """
+        dashboard = Dashboard(
+            id=100,
+            dashboard_title="test_dashboard",
+            slug="test_slug",
+            slices=[],
+            published=True,
+        )
+        db.session.add(dashboard)
+        db.session.commit()
+
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/favorite_status/?q={prison.dumps([dashboard.id])}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        for res in data["result"]:
+            assert res["value"] is False
+
+        uri = f"api/v1/dashboard/{dashboard.id}/favorites/"
+        self.client.post(uri)
+
+        uri = f"api/v1/dashboard/favorite_status/?q={prison.dumps([dashboard.id])}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        for res in data["result"]:
+            assert res["value"] is True
+
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    def test_remove_favorite(self):
+        """
+        Dataset API: Test remove dashboard from favorites
+        """
+        dashboard = Dashboard(
+            id=100,
+            dashboard_title="test_dashboard",
+            slug="test_slug",
+            slices=[],
+            published=True,
+        )
+        db.session.add(dashboard)
+        db.session.commit()
+
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{dashboard.id}/favorites/"
+        self.client.post(uri)
+
+        uri = f"api/v1/dashboard/favorite_status/?q={prison.dumps([dashboard.id])}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        for res in data["result"]:
+            assert res["value"] is True
+
+        uri = f"api/v1/dashboard/{dashboard.id}/favorites/"
+        self.client.delete(uri)
+
+        uri = f"api/v1/dashboard/favorite_status/?q={prison.dumps([dashboard.id])}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        for res in data["result"]:
+            assert res["value"] is False
+
+        db.session.delete(dashboard)
+        db.session.commit()
+
     @pytest.mark.usefixtures("create_dashboards")
     def test_get_dashboards_not_favorite_filter(self):
         """
@@ -707,7 +826,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], 5)
+        self.assertEqual(data["count"], 0)
 
     @pytest.mark.usefixtures("create_created_by_gamma_dashboards")
     def test_get_dashboards_created_by_me(self):
@@ -771,7 +890,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
             with bundle.open("sql/dump.sql", "w") as fp:
-                fp.write("CREATE TABLE foo (bar INT)".encode())
+                fp.write(b"CREATE TABLE foo (bar INT)")
         buf.seek(0)
         return buf
 
@@ -1249,53 +1368,116 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         db.session.delete(model)
         db.session.commit()
 
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_update_dashboard_chart_owners(self):
+    def test_dashboard_get_list_no_username(self):
         """
-        Dashboard API: Test update chart owners
+        Dashboard API: Tests that no username is returned
+        """
+        admin = self.get_user("admin")
+        admin_role = self.get_role("Admin")
+        dashboard_id = self.insert_dashboard(
+            "title1", "slug1", [admin.id], roles=[admin_role.id]
+        ).id
+        model = db.session.query(Dashboard).get(dashboard_id)
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{dashboard_id}"
+        dashboard_data = {"dashboard_title": "title2"}
+        rv = self.client.put(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 200)
+
+        response = self.get_assert_metric("api/v1/dashboard/", "get_list")
+        res = json.loads(response.data.decode("utf-8"))["result"]
+
+        current_dash = [d for d in res if d["id"] == dashboard_id][0]
+        self.assertEqual(current_dash["dashboard_title"], "title2")
+        self.assertNotIn("username", current_dash["changed_by"].keys())
+        self.assertNotIn("username", current_dash["owners"][0].keys())
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_dashboard_get_no_username(self):
+        """
+        Dashboard API: Tests that no username is returned
+        """
+        admin = self.get_user("admin")
+        admin_role = self.get_role("Admin")
+        dashboard_id = self.insert_dashboard(
+            "title1", "slug1", [admin.id], roles=[admin_role.id]
+        ).id
+        model = db.session.query(Dashboard).get(dashboard_id)
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{dashboard_id}"
+        dashboard_data = {"dashboard_title": "title2"}
+        rv = self.client.put(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 200)
+
+        response = self.get_assert_metric(uri, "get")
+        res = json.loads(response.data.decode("utf-8"))["result"]
+
+        self.assertEqual(res["dashboard_title"], "title2")
+        self.assertNotIn("username", res["changed_by"].keys())
+        self.assertNotIn("username", res["owners"][0].keys())
+
+        db.session.delete(model)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_update_dashboard_chart_owners_propagation(self):
+        """
+        Dashboard API: Test update chart owners propagation
         """
         user_alpha1 = self.create_user(
-            "alpha1", "password", "Alpha", email="alpha1@superset.org"
-        )
-        user_alpha2 = self.create_user(
-            "alpha2", "password", "Alpha", email="alpha2@superset.org"
+            "alpha1",
+            "password",
+            "Alpha",
+            email="alpha1@superset.org",
+            first_name="alpha1",
         )
         admin = self.get_user("admin")
         slices = []
-        slices.append(
-            db.session.query(Slice).filter_by(slice_name="Girl Name Cloud").first()
-        )
-        slices.append(db.session.query(Slice).filter_by(slice_name="Trends").first())
-        slices.append(db.session.query(Slice).filter_by(slice_name="Boys").first())
+        slices.append(db.session.query(Slice).filter_by(slice_name="Trends").one())
+        slices.append(db.session.query(Slice).filter_by(slice_name="Boys").one())
 
+        # Insert dashboard with admin as owner
         dashboard = self.insert_dashboard(
             "title1",
             "slug1",
             [admin.id],
             slices=slices,
         )
+
+        # Updates dashboard without Boys in json_metadata positions
+        # and user_alpha1 as owner
+        dashboard_data = {
+            "owners": [user_alpha1.id],
+            "json_metadata": json.dumps(
+                {
+                    "positions": {
+                        f"{slices[0].id}": {
+                            "type": "CHART",
+                            "meta": {"chartId": slices[0].id},
+                        },
+                    }
+                }
+            ),
+        }
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard.id}"
-        dashboard_data = {"owners": [user_alpha1.id, user_alpha2.id]}
         rv = self.client.put(uri, json=dashboard_data)
         self.assertEqual(rv.status_code, 200)
 
-        # verify slices owners include alpha1 and alpha2 users
-        slices_ids = [slice.id for slice in slices]
-        # Refetch Slices
-        slices = db.session.query(Slice).filter(Slice.id.in_(slices_ids)).all()
+        # Check that chart named Boys does not contain alpha 1 in its owners
+        boys = db.session.query(Slice).filter_by(slice_name="Boys").one()
+        self.assertNotIn(user_alpha1, boys.owners)
+
+        # Revert owners on slice
         for slice in slices:
-            self.assertIn(user_alpha1, slice.owners)
-            self.assertIn(user_alpha2, slice.owners)
-            self.assertNotIn(admin, slice.owners)
-            # Revert owners on slice
             slice.owners = []
             db.session.commit()
 
         # Rollback changes
         db.session.delete(dashboard)
         db.session.delete(user_alpha1)
-        db.session.delete(user_alpha2)
         db.session.commit()
 
     def test_update_partial_dashboard(self):
@@ -1828,6 +2010,26 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         response_roles = [result["text"] for result in response["result"]]
         assert "Alpha" in response_roles
 
+    def test_get_all_related_roles_with_with_extra_filters(self):
+        """
+        API: Test get filter related roles with extra related query filters
+        """
+        self.login(username="admin")
+
+        def _base_filter(query):
+            return query.filter_by(name="Alpha")
+
+        with patch.dict(
+            "superset.views.filters.current_app.config",
+            {"EXTRA_RELATED_QUERY_FILTERS": {"role": _base_filter}},
+        ):
+            uri = f"api/v1/dashboard/related/roles"
+            rv = self.client.get(uri)
+            assert rv.status_code == 200
+            response = json.loads(rv.data.decode("utf-8"))
+            response_roles = [result["text"] for result in response["result"]]
+            assert response_roles == ["Alpha"]
+
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_embedded_dashboards(self):
         self.login(username="admin")
@@ -1935,4 +2137,96 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], len(expected_models))
         db.session.delete(dashboard)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_copy_dashboard(self):
+        self.login(username="admin")
+        original_dash = (
+            db.session.query(Dashboard).filter_by(slug="world_health").first()
+        )
+
+        data = {
+            "dashboard_title": "copied dash",
+            "css": "<css>",
+            "duplicate_slices": False,
+            "json_metadata": json.dumps(
+                {
+                    "positions": original_dash.position,
+                    "color_namespace": "Color Namespace Test",
+                    "color_scheme": "Color Scheme Test",
+                }
+            ),
+        }
+        pk = original_dash.id
+        uri = f"api/v1/dashboard/{pk}/copy/"
+        rv = self.client.post(uri, json=data)
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(response, {"result": {"id": ANY, "last_modified_time": ANY}})
+
+        dash = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.id == response["result"]["id"])
+            .one()
+        )
+        self.assertNotEqual(dash.id, original_dash.id)
+        self.assertEqual(len(dash.position), len(original_dash.position))
+        self.assertEqual(dash.dashboard_title, "copied dash")
+        self.assertEqual(dash.css, "<css>")
+        self.assertEqual(dash.owners, [security_manager.find_user("admin")])
+        self.assertCountEqual(dash.slices, original_dash.slices)
+        self.assertEqual(dash.params_dict["color_namespace"], "Color Namespace Test")
+        self.assertEqual(dash.params_dict["color_scheme"], "Color Scheme Test")
+
+        db.session.delete(dash)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_copy_dashboard_duplicate_slices(self):
+        self.login(username="admin")
+        original_dash = (
+            db.session.query(Dashboard).filter_by(slug="world_health").first()
+        )
+
+        data = {
+            "dashboard_title": "copied dash",
+            "css": "<css>",
+            "duplicate_slices": True,
+            "json_metadata": json.dumps(
+                {
+                    "positions": original_dash.position,
+                    "color_namespace": "Color Namespace Test",
+                    "color_scheme": "Color Scheme Test",
+                }
+            ),
+        }
+        pk = original_dash.id
+        uri = f"api/v1/dashboard/{pk}/copy/"
+        rv = self.client.post(uri, json=data)
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(response, {"result": {"id": ANY, "last_modified_time": ANY}})
+
+        dash = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.id == response["result"]["id"])
+            .one()
+        )
+        self.assertNotEqual(dash.id, original_dash.id)
+        self.assertEqual(len(dash.position), len(original_dash.position))
+        self.assertEqual(dash.dashboard_title, "copied dash")
+        self.assertEqual(dash.css, "<css>")
+        self.assertEqual(dash.owners, [security_manager.find_user("admin")])
+        self.assertEqual(dash.params_dict["color_namespace"], "Color Namespace Test")
+        self.assertEqual(dash.params_dict["color_scheme"], "Color Scheme Test")
+        self.assertEqual(len(dash.slices), len(original_dash.slices))
+        for original_slc in original_dash.slices:
+            for slc in dash.slices:
+                self.assertNotEqual(slc.id, original_slc.id)
+
+        for slc in dash.slices:
+            db.session.delete(slc)
+
+        db.session.delete(dash)
         db.session.commit()

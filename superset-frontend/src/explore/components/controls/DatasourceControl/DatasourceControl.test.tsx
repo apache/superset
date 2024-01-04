@@ -18,15 +18,28 @@
  */
 
 import React from 'react';
-import { render, screen, act, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
-import { SupersetClient, DatasourceType } from '@superset-ui/core';
+import { Route } from 'react-router-dom';
 import fetchMock from 'fetch-mock';
+import userEvent from '@testing-library/user-event';
+import { DatasourceType, JsonObject, SupersetClient } from '@superset-ui/core';
+import { render, screen, act, waitFor } from 'spec/helpers/testing-library';
+import { fallbackExploreInitialData } from 'src/explore/fixtures';
 import DatasourceControl from '.';
 
 const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
 
-const createProps = () => ({
+const mockDatasource = {
+  id: 25,
+  database: {
+    name: 'examples',
+  },
+  name: 'channels',
+  type: 'table',
+  columns: [],
+  owners: [{ first_name: 'john', last_name: 'doe', id: 1, username: 'jd' }],
+  sql: 'SELECT * FROM mock_datasource_sql',
+};
+const createProps = (overrides: JsonObject = {}) => ({
   hovered: false,
   type: 'DatasourceControl',
   label: 'Datasource',
@@ -34,16 +47,7 @@ const createProps = () => ({
   description: null,
   value: '25__table',
   form_data: {},
-  datasource: {
-    id: 25,
-    database: {
-      name: 'examples',
-    },
-    name: 'channels',
-    type: 'table',
-    columns: [],
-    owners: [{ first_name: 'john', last_name: 'doe', id: 1, username: 'jd' }],
-  },
+  datasource: mockDatasource,
   validationErrors: [],
   name: 'datasource',
   actions: {
@@ -64,12 +68,24 @@ const createProps = () => ({
   },
   onChange: jest.fn(),
   onDatasourceSave: jest.fn(),
+  ...overrides,
 });
 
 async function openAndSaveChanges(datasource: any) {
-  fetchMock.post('glob:*/datasource/save/', datasource, {
-    overwriteRoutes: true,
-  });
+  fetchMock.put(
+    'glob:*/api/v1/dataset/*',
+    {},
+    {
+      overwriteRoutes: true,
+    },
+  );
+  fetchMock.get(
+    'glob:*/api/v1/dataset/*',
+    { result: datasource },
+    {
+      overwriteRoutes: true,
+    },
+  );
   userEvent.click(screen.getByTestId('datasource-menu-trigger'));
   userEvent.click(await screen.findByTestId('edit-dataset'));
   userEvent.click(await screen.findByTestId('datasource-modal-save'));
@@ -78,20 +94,20 @@ async function openAndSaveChanges(datasource: any) {
 
 test('Should render', async () => {
   const props = createProps();
-  render(<DatasourceControl {...props} />);
+  render(<DatasourceControl {...props} />, { useRouter: true });
   expect(await screen.findByTestId('datasource-control')).toBeVisible();
 });
 
 test('Should have elements', async () => {
   const props = createProps();
-  render(<DatasourceControl {...props} />);
+  render(<DatasourceControl {...props} />, { useRouter: true });
   expect(await screen.findByText('channels')).toBeVisible();
   expect(screen.getByTestId('datasource-menu-trigger')).toBeVisible();
 });
 
 test('Should open a menu', async () => {
   const props = createProps();
-  render(<DatasourceControl {...props} />);
+  render(<DatasourceControl {...props} />, { useRouter: true });
 
   expect(screen.queryByText('Edit dataset')).not.toBeInTheDocument();
   expect(screen.queryByText('Swap dataset')).not.toBeInTheDocument();
@@ -104,9 +120,55 @@ test('Should open a menu', async () => {
   expect(screen.getByText('View in SQL Lab')).toBeInTheDocument();
 });
 
+test('Should not show SQL Lab for non sql_lab role', async () => {
+  const props = createProps({
+    user: {
+      createdOn: '2021-04-27T18:12:38.952304',
+      email: 'gamma',
+      firstName: 'gamma',
+      isActive: true,
+      lastName: 'gamma',
+      permissions: {},
+      roles: { Gamma: [] },
+      userId: 2,
+      username: 'gamma',
+    },
+  });
+  render(<DatasourceControl {...props} />, { useRouter: true });
+
+  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+
+  expect(await screen.findByText('Edit dataset')).toBeInTheDocument();
+  expect(screen.getByText('Swap dataset')).toBeInTheDocument();
+  expect(screen.queryByText('View in SQL Lab')).not.toBeInTheDocument();
+});
+
+test('Should show SQL Lab for sql_lab role', async () => {
+  const props = createProps({
+    user: {
+      createdOn: '2021-04-27T18:12:38.952304',
+      email: 'sql',
+      firstName: 'sql',
+      isActive: true,
+      lastName: 'sql',
+      permissions: {},
+      roles: { Gamma: [], sql_lab: [['menu_access', 'SQL Lab']] },
+      userId: 2,
+      username: 'sql',
+    },
+  });
+  render(<DatasourceControl {...props} />, { useRouter: true });
+
+  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+
+  expect(await screen.findByText('Edit dataset')).toBeInTheDocument();
+  expect(screen.getByText('Swap dataset')).toBeInTheDocument();
+  expect(screen.getByText('View in SQL Lab')).toBeInTheDocument();
+});
+
 test('Click on Swap dataset option', async () => {
   const props = createProps();
-  SupersetClientGet.mockImplementation(
+  SupersetClientGet.mockImplementationOnce(
     async ({ endpoint }: { endpoint: string }) => {
       if (endpoint.includes('_info')) {
         return {
@@ -119,6 +181,7 @@ test('Click on Swap dataset option', async () => {
 
   render(<DatasourceControl {...props} />, {
     useRedux: true,
+    useRouter: true,
   });
   userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
@@ -134,11 +197,12 @@ test('Click on Swap dataset option', async () => {
 
 test('Click on Edit dataset', async () => {
   const props = createProps();
-  SupersetClientGet.mockImplementation(
+  SupersetClientGet.mockImplementationOnce(
     async () => ({ json: { result: [] } } as any),
   );
   render(<DatasourceControl {...props} />, {
     useRedux: true,
+    useRouter: true,
   });
   userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
@@ -158,12 +222,13 @@ test('Edit dataset should be disabled when user is not admin', async () => {
   // @ts-expect-error
   props.user.roles = {};
   props.datasource.owners = [];
-  SupersetClientGet.mockImplementation(
+  SupersetClientGet.mockImplementationOnce(
     async () => ({ json: { result: [] } } as any),
   );
 
   render(<DatasourceControl {...props} />, {
     useRedux: true,
+    useRouter: true,
   });
 
   userEvent.click(screen.getByTestId('datasource-menu-trigger'));
@@ -176,21 +241,41 @@ test('Edit dataset should be disabled when user is not admin', async () => {
 
 test('Click on View in SQL Lab', async () => {
   const props = createProps();
-  const postFormSpy = jest.spyOn(SupersetClient, 'postForm');
-  postFormSpy.mockImplementation(jest.fn());
 
-  render(<DatasourceControl {...props} />, {
-    useRedux: true,
-  });
+  const { queryByTestId, getByTestId } = render(
+    <>
+      <Route
+        path="/sqllab"
+        render={({ location }) => (
+          <div data-test="mock-sqllab-route">
+            {JSON.stringify(location.state)}
+          </div>
+        )}
+      />
+      <DatasourceControl {...props} />
+    </>,
+    {
+      useRedux: true,
+      useRouter: true,
+    },
+  );
   userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
-  expect(postFormSpy).toBeCalledTimes(0);
+  expect(queryByTestId('mock-sqllab-route')).not.toBeInTheDocument();
 
   await act(async () => {
     userEvent.click(screen.getByText('View in SQL Lab'));
   });
 
-  expect(postFormSpy).toBeCalledTimes(1);
+  expect(getByTestId('mock-sqllab-route')).toBeInTheDocument();
+  expect(JSON.parse(`${getByTestId('mock-sqllab-route').textContent}`)).toEqual(
+    {
+      requestedQuery: {
+        datasourceKey: `${mockDatasource.id}__${mockDatasource.type}`,
+        sql: mockDatasource.sql,
+      },
+    },
+  );
 });
 
 test('Should open a different menu when datasource=query', async () => {
@@ -202,7 +287,7 @@ test('Should open a different menu when datasource=query', async () => {
       type: DatasourceType.Query,
     },
   };
-  render(<DatasourceControl {...queryProps} />);
+  render(<DatasourceControl {...queryProps} />, { useRouter: true });
 
   expect(screen.queryByText('Query preview')).not.toBeInTheDocument();
   expect(screen.queryByText('View in SQL Lab')).not.toBeInTheDocument();
@@ -225,7 +310,10 @@ test('Click on Save as dataset', async () => {
     },
   };
 
-  render(<DatasourceControl {...queryProps} />, { useRedux: true });
+  render(<DatasourceControl {...queryProps} />, {
+    useRedux: true,
+    useRouter: true,
+  });
   userEvent.click(screen.getByTestId('datasource-menu-trigger'));
   userEvent.click(screen.getByText('Save as dataset'));
 
@@ -268,6 +356,7 @@ test('should set the default temporal column', async () => {
   };
   render(<DatasourceControl {...props} {...overrideProps} />, {
     useRedux: true,
+    useRouter: true,
   });
 
   await openAndSaveChanges(overrideProps.datasource);
@@ -303,6 +392,7 @@ test('should set the first available temporal column', async () => {
   };
   render(<DatasourceControl {...props} {...overrideProps} />, {
     useRedux: true,
+    useRouter: true,
   });
 
   await openAndSaveChanges(overrideProps.datasource);
@@ -338,6 +428,7 @@ test('should not set the temporal column', async () => {
   };
   render(<DatasourceControl {...props} {...overrideProps} />, {
     useRedux: true,
+    useRouter: true,
   });
 
   await openAndSaveChanges(overrideProps.datasource);
@@ -347,4 +438,31 @@ test('should not set the temporal column', async () => {
       null,
     );
   });
+});
+
+test('should show missing params state', () => {
+  const props = createProps({ datasource: fallbackExploreInitialData.dataset });
+  render(<DatasourceControl {...props} />, { useRedux: true, useRouter: true });
+  expect(screen.getByText(/missing dataset/i)).toBeVisible();
+  expect(screen.getByText(/missing url parameters/i)).toBeVisible();
+  expect(
+    screen.getByText(
+      /the url is missing the dataset_id or slice_id parameters\./i,
+    ),
+  ).toBeVisible();
+});
+
+test('should show missing dataset state', () => {
+  // @ts-ignore
+  delete window.location;
+  // @ts-ignore
+  window.location = { search: '?slice_id=152' };
+  const props = createProps({ datasource: fallbackExploreInitialData.dataset });
+  render(<DatasourceControl {...props} />, { useRedux: true, useRouter: true });
+  expect(screen.getAllByText(/missing dataset/i)).toHaveLength(2);
+  expect(
+    screen.getByText(
+      /the dataset linked to this chart may have been deleted\./i,
+    ),
+  ).toBeVisible();
 });

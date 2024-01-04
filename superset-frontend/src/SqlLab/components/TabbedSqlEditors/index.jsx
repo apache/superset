@@ -17,17 +17,19 @@
  * under the License.
  */
 import React from 'react';
+import pick from 'lodash/pick';
 import PropTypes from 'prop-types';
 import { EditableTabs } from 'src/components/Tabs';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import URI from 'urijs';
-import { styled, t } from '@superset-ui/core';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { FeatureFlag, styled, t, isFeatureEnabled } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import { detectOS } from 'src/utils/common';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
 import { EmptyStateBig } from 'src/components/EmptyState';
+import getBootstrapData from 'src/utils/getBootstrapData';
+import { locationContext } from 'src/pages/SqlLab/LocationContext';
 import SqlEditor from '../SqlEditor';
 import SqlEditorTabHeader from '../SqlEditorTabHeader';
 
@@ -53,6 +55,12 @@ const defaultProps = {
   scheduleQueryWarning: null,
 };
 
+const StyledEditableTabs = styled(EditableTabs)`
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+`;
+
 const StyledTab = styled.span`
   line-height: 24px;
 `;
@@ -68,7 +76,7 @@ const userOS = detectOS();
 class TabbedSqlEditors extends React.PureComponent {
   constructor(props) {
     super(props);
-    const sqlLabUrl = '/superset/sqllab';
+    const sqlLabUrl = '/sqllab';
     this.state = {
       sqlLabUrl,
     };
@@ -106,63 +114,69 @@ class TabbedSqlEditors extends React.PureComponent {
     }
 
     // merge post form data with GET search params
-    // Hack: this data should be comming from getInitialState
+    // Hack: this data should be coming from getInitialState
     // but for some reason this data isn't being passed properly through
     // the reducer.
-    const appContainer = document.getElementById('app');
-    const bootstrapData = JSON.parse(
-      appContainer?.getAttribute('data-bootstrap') || '{}',
-    );
-    const query = {
+    const bootstrapData = getBootstrapData();
+    const queryParameters = URI(window.location).search(true);
+    const {
+      id,
+      name,
+      sql,
+      savedQueryId,
+      datasourceKey,
+      queryId,
+      dbid,
+      dbname,
+      schema,
+      autorun,
+      new: isNewQuery,
+      ...urlParams
+    } = {
+      ...this.context.requestedQuery,
       ...bootstrapData.requested_query,
-      ...URI(window.location).search(true),
+      ...queryParameters,
     };
 
     // Popping a new tab based on the querystring
-    if (
-      query.id ||
-      query.sql ||
-      query.savedQueryId ||
-      query.datasourceKey ||
-      query.queryId
-    ) {
-      if (query.id) {
-        this.props.actions.popStoredQuery(query.id);
-      } else if (query.savedQueryId) {
-        this.props.actions.popSavedQuery(query.savedQueryId);
-      } else if (query.queryId) {
-        this.props.actions.popQuery(query.queryId);
-      } else if (query.datasourceKey) {
-        this.props.actions.popDatasourceQuery(query.datasourceKey, query.sql);
-      } else if (query.sql) {
-        let dbId = query.dbid;
-        if (dbId) {
-          dbId = parseInt(dbId, 10);
+    if (id || sql || savedQueryId || datasourceKey || queryId) {
+      if (id) {
+        this.props.actions.popStoredQuery(id);
+      } else if (savedQueryId) {
+        this.props.actions.popSavedQuery(savedQueryId);
+      } else if (queryId) {
+        this.props.actions.popQuery(queryId);
+      } else if (datasourceKey) {
+        this.props.actions.popDatasourceQuery(datasourceKey, sql);
+      } else if (sql) {
+        let databaseId = dbid;
+        if (databaseId) {
+          databaseId = parseInt(databaseId, 10);
         } else {
           const { databases } = this.props;
-          const dbName = query.dbname;
-          if (dbName) {
+          const databaseName = dbname;
+          if (databaseName) {
             Object.keys(databases).forEach(db => {
-              if (databases[db].database_name === dbName) {
-                dbId = databases[db].id;
+              if (databases[db].database_name === databaseName) {
+                databaseId = databases[db].id;
               }
             });
           }
         }
         const newQueryEditor = {
-          name: query.name,
-          dbId,
-          schema: query.schema,
-          autorun: query.autorun,
-          sql: query.sql,
+          name,
+          dbId: databaseId,
+          schema,
+          autorun,
+          sql,
         };
         this.props.actions.addQueryEditor(newQueryEditor);
       }
-      this.popNewTab();
-    } else if (query.new || this.props.queryEditors.length === 0) {
+      this.popNewTab(pick(urlParams, Object.keys(queryParameters)));
+    } else if (isNewQuery || this.props.queryEditors.length === 0) {
       this.newQueryEditor();
 
-      if (query.new) {
+      if (isNewQuery) {
         window.history.replaceState({}, document.title, this.state.sqlLabUrl);
       }
     } else {
@@ -183,9 +197,10 @@ class TabbedSqlEditors extends React.PureComponent {
     }
   }
 
-  popNewTab() {
+  popNewTab(urlParams) {
     // Clean the url in browser history
-    window.history.replaceState({}, document.title, this.state.sqlLabUrl);
+    const updatedUrl = `${URI(this.state.sqlLabUrl).query(urlParams)}`;
+    window.history.replaceState({}, document.title, updatedUrl);
   }
 
   activeQueryEditor() {
@@ -197,27 +212,7 @@ class TabbedSqlEditors extends React.PureComponent {
   }
 
   newQueryEditor() {
-    const activeQueryEditor = this.activeQueryEditor();
-    const firstDbId = Math.min(
-      ...Object.values(this.props.databases).map(database => database.id),
-    );
-    const warning = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
-      ? ''
-      : t(
-          '-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.\n\n',
-        );
-
-    const qe = {
-      dbId:
-        activeQueryEditor && activeQueryEditor.dbId
-          ? activeQueryEditor.dbId
-          : this.props.defaultDbId || firstDbId,
-      schema: activeQueryEditor ? activeQueryEditor.schema : null,
-      autorun: false,
-      sql: `${warning}SELECT ...`,
-      queryLimit: this.props.defaultQueryLimit,
-    };
-    this.props.actions.addNewQueryEditor(qe);
+    this.props.actions.addNewQueryEditor();
   }
 
   handleSelect(key) {
@@ -305,7 +300,7 @@ class TabbedSqlEditors extends React.PureComponent {
     );
 
     return (
-      <EditableTabs
+      <StyledEditableTabs
         destroyInactiveTabPane
         activeKey={this.props.tabHistory[this.props.tabHistory.length - 1]}
         id="a11y-query-editor-tabs"
@@ -333,12 +328,13 @@ class TabbedSqlEditors extends React.PureComponent {
       >
         {editors}
         {noQueryEditors && emptyTabState}
-      </EditableTabs>
+      </StyledEditableTabs>
     );
   }
 }
 TabbedSqlEditors.propTypes = propTypes;
 TabbedSqlEditors.defaultProps = defaultProps;
+TabbedSqlEditors.contextType = locationContext;
 
 function mapStateToProps({ sqlLab, common }) {
   return {
@@ -347,7 +343,7 @@ function mapStateToProps({ sqlLab, common }) {
     queries: sqlLab.queries,
     tabHistory: sqlLab.tabHistory,
     tables: sqlLab.tables,
-    defaultDbId: sqlLab.defaultDbId,
+    defaultDbId: common.conf.SQLLAB_DEFAULT_DBID,
     displayLimit: common.conf.DISPLAY_MAX_ROW,
     offline: sqlLab.offline,
     defaultQueryLimit: common.conf.DEFAULT_SQLLAB_LIMIT,

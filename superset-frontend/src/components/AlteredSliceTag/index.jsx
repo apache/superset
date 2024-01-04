@@ -104,7 +104,7 @@ export default class AlteredSliceTag extends React.Component {
       if (!ofd[fdKey] && !cfd[fdKey]) {
         return;
       }
-      if (['filters', 'having', 'having_filters', 'where'].includes(fdKey)) {
+      if (['filters', 'having', 'where'].includes(fdKey)) {
         return;
       }
       if (!this.isEqualish(ofd[fdKey], cfd[fdKey])) {
@@ -171,15 +171,15 @@ export default class AlteredSliceTag extends React.Component {
     const columns = [
       {
         accessor: 'control',
-        Header: 'Control',
+        Header: t('Control'),
       },
       {
         accessor: 'before',
-        Header: 'Before',
+        Header: t('Before'),
       },
       {
         accessor: 'after',
-        Header: 'After',
+        Header: t('After'),
       },
     ];
     // set the wrap text in the specific columns.

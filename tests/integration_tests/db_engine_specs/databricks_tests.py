@@ -14,18 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from textwrap import dedent
 from unittest import mock
 
-from sqlalchemy import column, literal_column
-
-from superset.constants import USER_AGENT
 from superset.db_engine_specs import get_engine_spec
 from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
-from tests.integration_tests.db_engine_specs.base_tests import (
-    assert_generic_types,
-    TestDbEngineSpec,
-)
+from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 from tests.integration_tests.fixtures.certificates import ssl_certificate
 from tests.integration_tests.fixtures.database import default_db_extra
 

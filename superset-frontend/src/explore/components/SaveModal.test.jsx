@@ -20,17 +20,17 @@ import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { bindActionCreators } from 'redux';
-import { Provider } from 'react-redux';
 
 import { shallow } from 'enzyme';
-import { styledMount as mount } from 'spec/helpers/theming';
 import { Radio } from 'src/components/Radio';
 import Button from 'src/components/Button';
-import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
-import SaveModal, { StyledModal } from 'src/explore/components/SaveModal';
+import SaveModal, {
+  PureSaveModal,
+  StyledModal,
+} from 'src/explore/components/SaveModal';
 import { BrowserRouter } from 'react-router-dom';
 
 const middlewares = [thunk];
@@ -39,6 +39,7 @@ const initialState = {
   chart: {},
   saveModal: {
     dashboards: [],
+    isVisible: true,
   },
   explore: {
     datasource: {},
@@ -57,6 +58,7 @@ const initialState = {
 const initialStore = mockStore(initialState);
 
 const defaultProps = {
+  addDangerToast: jest.fn(),
   onHide: () => ({}),
   actions: bindActionCreators(saveModalActions, arg => {
     if (typeof arg === 'function') {
@@ -83,6 +85,7 @@ const queryStore = mockStore({
   chart: {},
   saveModal: {
     dashboards: [],
+    isVisible: true,
   },
   explore: {
     datasource: { name: 'test', type: 'query' },
@@ -100,8 +103,12 @@ const queryDefaultProps = {
 };
 
 const fetchDashboardsEndpoint = `glob:*/dashboardasync/api/read?_flt_0_owners=${1}`;
+const fetchChartEndpoint = `glob:*/api/v1/chart/${1}*`;
 
-beforeAll(() => fetchMock.get(fetchDashboardsEndpoint, mockDashboardData));
+beforeAll(() => {
+  fetchMock.get(fetchDashboardsEndpoint, mockDashboardData);
+  fetchMock.get(fetchChartEndpoint, { id: 1, dashboards: [1] });
+});
 
 afterAll(() => fetchMock.restore());
 
@@ -111,6 +118,7 @@ const getWrapper = (props = defaultProps, store = initialStore) =>
       <SaveModal {...props} store={store} />
     </BrowserRouter>,
   )
+    .dive()
     .dive()
     .dive()
     .dive()
@@ -129,7 +137,7 @@ test('renders a Modal with the right set of components', () => {
   expect(footerWrapper.find(Button)).toHaveLength(3);
 });
 
-test('renders the right footer buttons when existing dashboard selected', () => {
+test('renders the right footer buttons', () => {
   const wrapper = getWrapper();
   const footerWrapper = shallow(wrapper.find(StyledModal).props().footer);
   const saveAndGoDash = footerWrapper
@@ -140,19 +148,43 @@ test('renders the right footer buttons when existing dashboard selected', () => 
   expect(saveAndGoDash.props.children).toBe('Save & go to dashboard');
 });
 
-test('renders the right footer buttons when new dashboard selected', () => {
+test('does not render a message when overriding', () => {
   const wrapper = getWrapper();
   wrapper.setState({
-    saveToDashboardId: null,
-    newDashboardName: 'Test new dashboard',
+    action: 'overwrite',
   });
-  const footerWrapper = shallow(wrapper.find(StyledModal).props().footer);
-  const saveAndGoDash = footerWrapper
-    .find('#btn_modal_save_goto_dash')
-    .getElement();
-  const save = footerWrapper.find('#btn_modal_save').getElement();
-  expect(save.props.children).toBe('Save to new dashboard');
-  expect(saveAndGoDash.props.children).toBe('Save & go to new dashboard');
+  expect(
+    wrapper.find('[message="A new chart will be created."]'),
+  ).not.toExist();
+});
+
+test('renders a message when saving as', () => {
+  const wrapper = getWrapper();
+  wrapper.setState({
+    action: 'saveas',
+  });
+  expect(wrapper.find('[message="A new chart will be created."]')).toExist();
+});
+
+test('renders a message when a new dashboard is selected', () => {
+  const wrapper = getWrapper();
+  wrapper.setState({
+    dashboard: { label: 'Test new dashboard', value: 'Test new dashboard' },
+  });
+  expect(
+    wrapper.find('[message="A new dashboard will be created."]'),
+  ).toExist();
+});
+
+test('renders a message when saving as with new dashboard', () => {
+  const wrapper = getWrapper();
+  wrapper.setState({
+    action: 'saveas',
+    dashboard: { label: 'Test new dashboard', value: 'Test new dashboard' },
+  });
+  expect(
+    wrapper.find('[message="A new chart and dashboard will be created."]'),
+  ).toExist();
 });
 
 test('disables overwrite option for new slice', () => {
@@ -163,7 +195,7 @@ test('disables overwrite option for new slice', () => {
 
 test('disables overwrite option for non-owner', () => {
   const wrapperForNonOwner = getWrapper();
-  wrapperForNonOwner.setProps({ userId: 2 });
+  wrapperForNonOwner.setProps({ user: { userId: 2 } });
   const overwriteRadio = wrapperForNonOwner.find('#overwrite-radio');
   expect(overwriteRadio).toHaveLength(1);
   expect(overwriteRadio.prop('disabled')).toBe(true);
@@ -185,18 +217,6 @@ test('sets action when overwriting slice', () => {
   expect(wrapperForOverwrite.state().action).toBe('overwrite');
 });
 
-test('fetches dashboards on component mount', () => {
-  sinon.spy(defaultProps.actions, 'fetchDashboards');
-  mount(
-    <Provider store={initialStore}>
-      <SaveModal {...defaultProps} />
-    </Provider>,
-  );
-  expect(defaultProps.actions.fetchDashboards.calledOnce).toBe(true);
-
-  defaultProps.actions.fetchDashboards.restore();
-});
-
 test('updates slice name and selected dashboard', () => {
   const wrapper = getWrapper();
   const dashboardId = mockEvent.value;
@@ -204,23 +224,36 @@ test('updates slice name and selected dashboard', () => {
   wrapper.instance().onSliceNameChange(mockEvent);
   expect(wrapper.state().newSliceName).toBe(mockEvent.target.value);
 
-  wrapper.instance().onDashboardSelectChange(dashboardId);
-  expect(wrapper.state().saveToDashboardId).toBe(dashboardId);
-});
-
-test('removes alert', () => {
-  sinon.spy(defaultProps.actions, 'removeSaveModalAlert');
-  const wrapper = getWrapper();
-  wrapper.setProps({ alert: 'old alert' });
-
-  wrapper.instance().removeAlert();
-  expect(defaultProps.actions.removeSaveModalAlert.callCount).toBe(1);
-  expect(wrapper.state().alert).toBeNull();
-  defaultProps.actions.removeSaveModalAlert.restore();
+  wrapper.instance().onDashboardChange({ value: dashboardId });
+  expect(wrapper.state().dashboard.value).toBe(dashboardId);
 });
 
 test('set dataset name when chart source is query', () => {
   const wrapper = getWrapper(queryDefaultProps, queryStore);
   expect(wrapper.find('[data-test="new-dataset-name"]')).toExist();
   expect(wrapper.state().datasetName).toBe('test');
+});
+
+test('make sure slice_id in the URLSearchParams before the redirect', () => {
+  const myProps = {
+    ...defaultProps,
+    slice: { slice_id: 1, slice_name: 'title', owners: [1] },
+    actions: {
+      setFormData: jest.fn(),
+      updateSlice: jest.fn(() => Promise.resolve({ id: 1 })),
+      getSliceDashboards: jest.fn(),
+    },
+    user: { userId: 1 },
+    history: {
+      replace: jest.fn(),
+    },
+    dispatch: jest.fn(),
+  };
+
+  const saveModal = new PureSaveModal(myProps);
+  const result = saveModal.handleRedirect(
+    'https://example.com/?name=John&age=30',
+    { id: 1 },
+  );
+  expect(result.get('slice_id')).toEqual('1');
 });

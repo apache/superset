@@ -1,13 +1,13 @@
 ---
-title: Running on Kubernetes
+title: Installing on Kubernetes
 hide_title: true
-sidebar_position: 12
+sidebar_position: 3
 version: 1
 ---
 
-## Running on Kubernetes
+## Installing on Kubernetes
 
-Running on Kubernetes is supported with the provided [Helm](https://helm.sh/) chart found in the official [Superset helm repository](https://apache.github.io/superset/index.yaml).
+Running Superset on Kubernetes is supported with the provided [Helm](https://helm.sh/) chart found in the official [Superset helm repository](https://apache.github.io/superset/index.yaml).
 
 ### Prerequisites
 
@@ -121,18 +121,34 @@ init:
       . {{ .Values.configMountPath }}/superset_init.sh
 ```
 
+:::note
+Superset uses [Scarf Gateway](https://about.scarf.sh/scarf-gateway) to collect telemetry data.  Knowing the installation counts for different Superset versions informs the  project's decisions about patching and long-term support. Scarf purges personally identifiable information (PII) and provides only aggregated statistics.
+
+To opt-out of this data collection in your Helm-based installation, edit the `repository:` line in your `helm/superset/values.yaml` file, replacing `apachesuperset.docker.scarf.sh/apache/superset` with `apache/superset` to pull the image directly from Docker Hub.
+:::
+
 #### Dependencies
 
-Install additional packages and do any other bootstrap configuration in this script. For production clusters it's
-recommended to build own image with this step done in CI. The following example installs the Big Query and Elasticsearch
-database drivers so that you can connect to those datasources in your Superset installation.
+Install additional packages and do any other bootstrap configuration in the bootstrap script.
+For production clusters it's recommended to build own image with this step done in CI.
+
+:::note
+
+Superset requires a Python DB-API database driver and a SQLAlchemy
+dialect to be installed for each datastore you want to connect to.
+
+See [Install Database Drivers](/docs/databases/installing-database-drivers) for more information.
+
+:::
+
+The following example installs the Big Query and Elasticsearch database drivers so that you can
+connect to those datasources in your Superset installation:
 
 ```yaml
 bootstrapScript: |
   #!/bin/bash
-  pip install psycopg2==2.9.1 \
-    redis==3.2.1 \
-    sqlalchemy-bigquery==1.5.0 \
+  pip install psycopg2==2.9.6 \
+    sqlalchemy-bigquery==1.6.1 \
     elasticsearch-dbapi==0.2.5 &&\
   if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi
 ```
@@ -226,6 +242,14 @@ Those will also be mounted as secrets and can include sensitive parameters.
 
 #### Setting up OAuth
 
+:::note
+
+OAuth setup requires that the [authlib](https://authlib.org/) Python library is installed. This can
+be done using `pip` by updating the `bootstrapScript`. See the [Dependencies](#dependencies) section
+for more information.
+
+:::
+
 ```yaml
 extraEnv:
   AUTH_DOMAIN: example.com
@@ -286,15 +310,17 @@ supersetWorker:
     - |
       # Install chrome webdriver
       # See https://github.com/apache/superset/blob/4fa3b6c7185629b87c27fc2c0e5435d458f7b73d/docs/src/pages/docs/installation/email_reports.mdx
-      apt update
+      apt-get update
+      apt-get install -y wget
       wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-      apt install -y --no-install-recommends ./google-chrome-stable_current_amd64.deb
+      apt-get install -y --no-install-recommends ./google-chrome-stable_current_amd64.deb
       wget https://chromedriver.storage.googleapis.com/88.0.4324.96/chromedriver_linux64.zip
+      apt-get install -y zip
       unzip chromedriver_linux64.zip
       chmod +x chromedriver
       mv chromedriver /usr/bin
-      apt autoremove -yqq --purge
-      apt clean
+      apt-get autoremove -yqq --purge
+      apt-get clean
       rm -f google-chrome-stable_current_amd64.deb chromedriver_linux64.zip
 
       # Run
@@ -343,37 +369,35 @@ configOverrides:
   celery_conf: |
     from celery.schedules import crontab
 
-    class CeleryConfig(object):
+    class CeleryConfig:
       broker_url = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
-      imports = ('superset.sql_lab', "superset.tasks", "superset.tasks.thumbnails", )
+      imports = (
+          "superset.sql_lab",
+          "superset.tasks.cache",
+          "superset.tasks.scheduler",
+      )
       result_backend = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
       task_annotations = {
-          'sql_lab.get_sql_results': {
-              'rate_limit': '100/s',
-          },
-          'email_reports.send': {
-              'rate_limit': '1/s',
-              'time_limit': 600,
-              'soft_time_limit': 600,
-              'ignore_result': True,
+          "sql_lab.get_sql_results": {
+              "rate_limit": "100/s",
           },
       }
       beat_schedule = {
-          'reports.scheduler': {
-              'task': 'reports.scheduler',
-              'schedule': crontab(minute='*', hour='*'),
+          "reports.scheduler": {
+              "task": "reports.scheduler",
+              "schedule": crontab(minute="*", hour="*"),
           },
-          'reports.prune_log': {
-              'task': 'reports.prune_log',
+          "reports.prune_log": {
+              "task": "reports.prune_log",
               'schedule': crontab(minute=0, hour=0),
           },
           'cache-warmup-hourly': {
-              'task': 'cache-warmup',
-              'schedule': crontab(minute='*/30', hour='*'),
-              'kwargs': {
-                  'strategy_name': 'top_n_dashboards',
-                  'top_n': 10,
-                  'since': '7 days ago',
+              "task": "cache-warmup",
+              "schedule": crontab(minute="*/30", hour="*"),
+              "kwargs": {
+                  "strategy_name": "top_n_dashboards",
+                  "top_n": 10,
+                  "since": "7 days ago",
               },
           }
       }
@@ -395,4 +419,11 @@ configOverrides:
         "--disable-setuid-sandbox",
         "--disable-extensions",
     ]
+```
+#### Load the Examples data and dashboards
+If you are trying Superset out and want some data and dashboards to explore, you can load some examples by creating a `my_values.yaml` and deploying it as described above in the **Configure your setting overrides** step of the **Running** section.
+To load the examples, add the following to the `my_values.yaml` file:
+```yaml
+init:
+  loadExamples: true
 ```

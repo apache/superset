@@ -32,14 +32,13 @@ import { TimeseriesDefaultFormData } from '@superset-ui/plugin-chart-echarts';
 
 import { render, screen } from 'spec/helpers/testing-library';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
-import AdhocFilter, {
-  EXPRESSION_TYPES,
-} from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import {
   DndFilterSelect,
   DndFilterSelectProps,
 } from 'src/explore/components/controls/DndColumnSelectControl/DndFilterSelect';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
+import { EXPRESSION_TYPES } from '../FilterControl/types';
 
 const defaultProps: DndFilterSelectProps = {
   type: 'DndFilterSelect',
@@ -94,7 +93,7 @@ function setup({
 test('renders with default props', async () => {
   render(setup(), { useDnd: true });
   expect(
-    await screen.findByText('Drop columns or metrics here'),
+    await screen.findByText('Drop columns/metrics here or click'),
   ).toBeInTheDocument();
 });
 
@@ -123,7 +122,7 @@ test('renders options with saved metric', async () => {
     },
   );
   expect(
-    await screen.findByText('Drop columns or metrics here'),
+    await screen.findByText('Drop columns/metrics here or click'),
   ).toBeInTheDocument();
 });
 
@@ -144,7 +143,7 @@ test('renders options with column', async () => {
     },
   );
   expect(
-    await screen.findByText('Drop columns or metrics here'),
+    await screen.findByText('Drop columns/metrics here or click'),
   ).toBeInTheDocument();
 });
 
@@ -166,6 +165,6 @@ test('renders options with adhoc metric', async () => {
     },
   );
   expect(
-    await screen.findByText('Drop columns or metrics here'),
+    await screen.findByText('Drop columns/metrics here or click'),
   ).toBeInTheDocument();
 });

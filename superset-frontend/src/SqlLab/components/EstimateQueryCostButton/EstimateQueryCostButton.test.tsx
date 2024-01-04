@@ -19,7 +19,7 @@
 import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import { render } from 'spec/helpers/testing-library';
+import { fireEvent, render } from 'spec/helpers/testing-library';
 import { Store } from 'redux';
 import {
   initialState,
@@ -89,5 +89,50 @@ describe('EstimateQueryCostButton', () => {
     );
 
     expect(queryByText('Estimate selected query cost')).toBeTruthy();
+  });
+
+  it('renders estimation error result', async () => {
+    const { queryByText, getByText } = setup(
+      {},
+      mockStore({
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          queryCostEstimates: {
+            [defaultQueryEditor.id]: {
+              error: 'Estimate error',
+            },
+          },
+        },
+      }),
+    );
+
+    expect(queryByText('Estimate cost')).toBeTruthy();
+    fireEvent.click(getByText('Estimate cost'));
+
+    expect(queryByText('Estimate error')).toBeTruthy();
+  });
+
+  it('renders estimation success result', async () => {
+    const { queryByText, getByText } = setup(
+      {},
+      mockStore({
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          queryCostEstimates: {
+            [defaultQueryEditor.id]: {
+              completed: true,
+              cost: [{ 'Total cost': '1.2' }],
+            },
+          },
+        },
+      }),
+    );
+
+    expect(queryByText('Estimate cost')).toBeTruthy();
+    fireEvent.click(getByText('Estimate cost'));
+
+    expect(queryByText('Total cost')).toBeTruthy();
   });
 });

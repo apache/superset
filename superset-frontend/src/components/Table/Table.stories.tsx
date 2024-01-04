@@ -310,16 +310,16 @@ export const Basic: ComponentStory<typeof Table> = args => <Table {...args} />;
 function handlers(record: object, rowIndex: number) {
   return {
     onClick: action(
-      `row onClick, row:  ${rowIndex}, record: ${JSON.stringify(record)}`,
+      `row onClick, row: ${rowIndex}, record: ${JSON.stringify(record)}`,
     ), // click row
     onDoubleClick: action(
-      `row onDoubleClick, row:  ${rowIndex}, record: ${JSON.stringify(record)}`,
+      `row onDoubleClick, row: ${rowIndex}, record: ${JSON.stringify(record)}`,
     ), // double click row
     onContextMenu: action(
-      `row onContextMenu, row:  ${rowIndex}, record: ${JSON.stringify(record)}`,
+      `row onContextMenu, row: ${rowIndex}, record: ${JSON.stringify(record)}`,
     ), // right button click row
-    onMouseEnter: action(`Mouse Enter, row:  ${rowIndex}`), // mouse enter row
-    onMouseLeave: action(`Mouse Leave, row:  ${rowIndex}`), // mouse leave row
+    onMouseEnter: action(`Mouse Enter, row: ${rowIndex}`), // mouse enter row
+    onMouseLeave: action(`Mouse Leave, row: ${rowIndex}`), // mouse leave row
   };
 }
 
@@ -404,7 +404,7 @@ export const ServerPagination: ComponentStory<typeof Table> = args => {
   const [data, setData] = useState(generateData(0, 5));
   const [loading, setLoading] = useState(false);
 
-  const handleChange: OnChangeFunction = (
+  const handleChange: OnChangeFunction<BasicData> = (
     pagination,
     filters,
     sorter,
@@ -610,7 +610,7 @@ const shoppingData: ShoppingData[] = [
   },
 ];
 
-export const HeaderRenderers: ComponentStory<typeof Table> = args => {
+export const HeaderRenderers: ComponentStory<typeof Table> = () => {
   const [orderDateFormatting, setOrderDateFormatting] = useState('formatted');
   const [priceLocale, setPriceLocale] = useState(LocaleCode.en_US);
   const shoppingColumns: ColumnsType<ShoppingData> = [
@@ -672,7 +672,7 @@ export const HeaderRenderers: ComponentStory<typeof Table> = args => {
   ];
 
   return (
-    <Table
+    <Table<ShoppingData>
       data={shoppingData}
       columns={shoppingColumns}
       size={TableSize.SMALL}

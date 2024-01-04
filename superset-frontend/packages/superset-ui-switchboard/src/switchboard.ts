@@ -191,7 +191,7 @@ export class Switchboard {
    * Instead of an arguments list, arguments are supplied as a map.
    *
    * @param method the name of the method to call
-   * @param args arguments that will be supplied. Must be serializable, no functions or other nonense.
+   * @param args arguments that will be supplied. Must be serializable, no functions or other nonsense.
    * @returns whatever is returned from the method
    */
   get<T = unknown>(method: string, args: unknown = undefined): Promise<T> {

@@ -8,13 +8,16 @@ jobs:
   check_db_migration_conflict:
     name: Check DB migration conflict
     runs-on: ubuntu-20.04
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Check and notify
         uses: actions/github-script@v3
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ github.token }}
           script: |
             // API reference: https://octokit.github.io/rest.js
             const currentBranch = context.ref.replace('refs/heads/', '');

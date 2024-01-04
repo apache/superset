@@ -18,7 +18,7 @@
  */
 // ParentSize uses resize observer so the dashboard will update size
 // when its container size changes, due to e.g., builder side panel opening
-import React, { FC, useCallback, useEffect, useMemo } from 'react';
+import React, { FC, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   FeatureFlag,
@@ -27,13 +27,13 @@ import {
   getCategoricalSchemeRegistry,
   isFeatureEnabled,
   SupersetClient,
+  useComponentDidUpdate,
 } from '@superset-ui/core';
-import { ParentSize } from '@vx/responsive';
+import { ParentSize } from '@visx/responsive';
 import pick from 'lodash/pick';
 import Tabs from 'src/components/Tabs';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
 import {
-  ChartsState,
   DashboardInfo,
   DashboardLayout,
   LayoutItem,
@@ -48,11 +48,10 @@ import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponen
 import { setInScopeStatusOfFilters } from 'src/dashboard/actions/nativeFilters';
 import { dashboardInfoChanged } from 'src/dashboard/actions/dashboardInfo';
 import { setColorScheme } from 'src/dashboard/actions/dashboardState';
-import { useComponentDidUpdate } from 'src/hooks/useComponentDidUpdate/useComponentDidUpdate';
 import jsonStringify from 'json-stringify-pretty-compact';
 import { NATIVE_FILTER_DIVIDER_PREFIX } from '../nativeFilters/FiltersConfigModal/utils';
 import { findTabsWithChartsInScope } from '../nativeFilters/utils';
-import { getRootLevelTabIndex, getRootLevelTabsComponent } from './utils';
+import { getRootLevelTabsComponent } from './utils';
 
 type DashboardContainerProps = {
   topLevelTabs?: LayoutItem;
@@ -86,17 +85,22 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const directPathToChild = useSelector<RootState, string[]>(
     state => state.dashboardState.directPathToChild,
   );
-  const charts = useSelector<RootState, ChartsState>(state => state.charts);
+  const chartIds = useSelector<RootState, number[]>(state =>
+    Object.values(state.charts).map(chart => chart.id),
+  );
 
+  const prevTabIndexRef = useRef();
   const tabIndex = useMemo(() => {
     const nextTabIndex = findTabIndexByComponentId({
       currentComponent: getRootLevelTabsComponent(dashboardLayout),
       directPathToChild,
     });
 
-    return nextTabIndex > -1
-      ? nextTabIndex
-      : getRootLevelTabIndex(dashboardLayout, directPathToChild);
+    if (nextTabIndex === -1) {
+      return prevTabIndexRef.current ?? 0;
+    }
+    prevTabIndexRef.current = nextTabIndex;
+    return nextTabIndex;
   }, [dashboardLayout, directPathToChild]);
 
   useEffect(() => {
@@ -116,7 +120,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       }
       const chartsInScope: number[] = getChartIdsInFilterScope(
         filterScope.scope,
-        charts,
+        chartIds,
         dashboardLayout,
       );
       const tabsInScope = findTabsWithChartsInScope(
@@ -207,7 +211,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
         }
       }
     }
-  }, [charts]);
+  }, [chartIds]);
 
   useComponentDidUpdate(verifyUpdateColorScheme);
 

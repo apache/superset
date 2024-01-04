@@ -45,7 +45,9 @@ test('renders with default props', async () => {
     useDnd: true,
     useRedux: true,
   });
-  expect(await screen.findByText('Drop columns here')).toBeInTheDocument();
+  expect(
+    await screen.findByText('Drop columns here or click'),
+  ).toBeInTheDocument();
 });
 
 test('renders with value', async () => {

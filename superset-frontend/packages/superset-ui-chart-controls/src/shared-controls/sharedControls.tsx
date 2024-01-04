@@ -40,13 +40,14 @@ import {
   getSequentialSchemeRegistry,
   SequentialScheme,
   legacyValidateInteger,
-  ComparisionType,
+  ComparisonType,
   isAdhocColumn,
   isPhysicalColumn,
   ensureIsArray,
   isDefined,
   hasGenericChartAxes,
   NO_TIME_RANGE,
+  validateMaxValue,
 } from '@superset-ui/core';
 
 import {
@@ -58,7 +59,7 @@ import {
   DEFAULT_TIME_FORMAT,
   DEFAULT_NUMBER_FORMAT,
 } from '../utils';
-import { TIME_FILTER_LABELS } from '../constants';
+import { DEFAULT_MAX_ROW, TIME_FILTER_LABELS } from '../constants';
 import {
   SharedControlConfig,
   Dataset,
@@ -157,22 +158,22 @@ const granularity: SharedControlConfig<'SelectControl'> = {
   label: TIME_FILTER_LABELS.granularity,
   default: 'one day',
   choices: [
-    [null, 'all'],
-    ['PT5S', '5 seconds'],
-    ['PT30S', '30 seconds'],
-    ['PT1M', '1 minute'],
-    ['PT5M', '5 minutes'],
-    ['PT30M', '30 minutes'],
-    ['PT1H', '1 hour'],
-    ['PT6H', '6 hour'],
-    ['P1D', '1 day'],
-    ['P7D', '7 days'],
-    ['P1W', 'week'],
-    ['week_starting_sunday', 'week starting Sunday'],
-    ['week_ending_saturday', 'week ending Saturday'],
-    ['P1M', 'month'],
-    ['P3M', 'quarter'],
-    ['P1Y', 'year'],
+    [null, t('all')],
+    ['PT5S', t('5 seconds')],
+    ['PT30S', t('30 seconds')],
+    ['PT1M', t('1 minute')],
+    ['PT5M', t('5 minutes')],
+    ['PT30M', t('30 minutes')],
+    ['PT1H', t('1 hour')],
+    ['PT6H', t('6 hour')],
+    ['P1D', t('1 day')],
+    ['P7D', t('7 days')],
+    ['P1W', t('week')],
+    ['week_starting_sunday', t('week starting Sunday')],
+    ['week_ending_saturday', t('week ending Saturday')],
+    ['P1M', t('month')],
+    ['P3M', t('quarter')],
+    ['P1Y', t('year')],
   ],
   description: t(
     'The time granularity for the visualization. Note that you ' +
@@ -184,22 +185,23 @@ const granularity: SharedControlConfig<'SelectControl'> = {
 const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
   type: 'SelectControl',
   label: TIME_FILTER_LABELS.time_grain_sqla,
+  placeholder: t('None'),
   initialValue: (control: ControlState, state: ControlPanelState) => {
     if (!isDefined(state)) {
       // If a chart is in a Dashboard, the ControlPanelState is empty.
       return control.value;
     }
-    // If a chart is a new one that isn't saved, the 'time_grain_sqla' isn't in the form_data.
-    return 'time_grain_sqla' in (state?.form_data ?? {})
-      ? state.form_data?.time_grain_sqla
+    // If a chart is a new one that isn't saved, metadata is null. In this
+    // case we want to default P1D. If the chart has been saved, we want
+    // to use whichever value was chosen, either nothing or valid a time grain.
+    return state?.metadata || 'time_grain_sqla' in (state?.form_data ?? {})
+      ? state?.form_data?.time_grain_sqla
       : 'P1D';
   },
   description: t(
-    'The time granularity for the visualization. This ' +
-      'applies a date transformation to alter ' +
-      'your time column and defines a new time granularity. ' +
-      'The options here are defined on a per database ' +
-      'engine basis in the Superset source code.',
+    'Select a time grain for the visualization. The ' +
+      'grain is the time interval represented by a ' +
+      'single point on the chart.',
   ),
   mapStateToProps: ({ datasource }) => ({
     choices: (datasource as Dataset)?.time_grain_sqla || [],
@@ -229,7 +231,7 @@ const time_range: SharedControlConfig<'DateFilterControl'> = {
   label: TIME_FILTER_LABELS.time_range,
   default: NO_TIME_RANGE, // this value is an empty filter constant so shouldn't translate it.
   description: t(
-    'The time range for the visualization. All relative times, e.g. "Last month", ' +
+    'This control filters the whole chart based on the selected time range. All relative times, e.g. "Last month", ' +
       '"Last 7 days", "now", etc. are evaluated on the server using the server\'s ' +
       'local time (sans timezone). All tooltips and placeholder times are expressed ' +
       'in UTC (sans timezone). The timestamps are then evaluated by the database ' +
@@ -242,17 +244,26 @@ const row_limit: SharedControlConfig<'SelectControl'> = {
   type: 'SelectControl',
   freeForm: true,
   label: t('Row limit'),
-  validators: [legacyValidateInteger],
+  clearable: false,
+  validators: [
+    legacyValidateInteger,
+    (v, state) =>
+      validateMaxValue(v, state?.common?.conf?.SQL_MAX_ROW || DEFAULT_MAX_ROW),
+  ],
   default: 10000,
   choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
-  description: t('Limits the number of rows that get displayed.'),
+  description: t(
+    'Limits the number of the rows that are computed in the query that is the source of the data used for this chart.',
+  ),
 };
 
 const order_desc: SharedControlConfig<'CheckboxControl'> = {
   type: 'CheckboxControl',
   label: t('Sort Descending'),
   default: true,
-  description: t('Whether to sort descending or ascending'),
+  description: t(
+    'If enabled, this control sorts the results/values descending, otherwise it sorts the results ascending.',
+  ),
   visibility: ({ controls }) =>
     Boolean(
       controls?.timeseries_limit_metric.value &&
@@ -264,6 +275,7 @@ const limit: SharedControlConfig<'SelectControl'> = {
   type: 'SelectControl',
   freeForm: true,
   label: t('Series limit'),
+  placeholder: t('None'),
   validators: [legacyValidateInteger],
   choices: formatSelectOptions(SERIES_LIMITS),
   clearable: true,
@@ -279,6 +291,7 @@ const series_limit: SharedControlConfig<'SelectControl'> = {
   type: 'SelectControl',
   freeForm: true,
   label: t('Series limit'),
+  placeholder: t('None'),
   validators: [legacyValidateInteger],
   choices: formatSelectOptions(SERIES_LIMITS),
   description: t(
@@ -303,7 +316,7 @@ const y_axis_format: SharedControlConfig<'SelectControl', SelectDefaultOption> =
       option.label.includes(search) || option.value.includes(search),
     mapStateToProps: state => {
       const isPercentage =
-        state.controls?.comparison_type?.value === ComparisionType.Percentage;
+        state.controls?.comparison_type?.value === ComparisonType.Percentage;
       return {
         choices: isPercentage
           ? D3_FORMAT_OPTIONS.filter(option => option[0].includes('%'))
@@ -311,6 +324,12 @@ const y_axis_format: SharedControlConfig<'SelectControl', SelectDefaultOption> =
       };
     },
   };
+
+const currency_format: SharedControlConfig<'CurrencyControl'> = {
+  type: 'CurrencyControl',
+  label: t('Currency format'),
+  renderTrigger: true,
+};
 
 const x_axis_time_format: SharedControlConfig<
   'SelectControl',
@@ -401,4 +420,5 @@ export default {
   x_axis: dndXAxisControl,
   show_empty_columns,
   temporal_columns_lookup,
+  currency_format,
 };

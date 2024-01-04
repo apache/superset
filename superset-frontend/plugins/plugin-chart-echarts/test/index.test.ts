@@ -23,15 +23,107 @@ import {
   EchartsGraphChartPlugin,
   EchartsFunnelChartPlugin,
   EchartsTreemapChartPlugin,
+  EchartsAreaChartPlugin,
+  EchartsTimeseriesBarChartPlugin,
+  EchartsTimeseriesLineChartPlugin,
+  EchartsTimeseriesScatterChartPlugin,
+  EchartsTimeseriesSmoothLineChartPlugin,
+  EchartsTimeseriesStepChartPlugin,
+  EchartsMixedTimeseriesChartPlugin,
+  EchartsGaugeChartPlugin,
+  EchartsRadarChartPlugin,
+  EchartsTreeChartPlugin,
+  BigNumberChartPlugin,
+  BigNumberTotalChartPlugin,
+  EchartsSunburstChartPlugin,
 } from '../src';
 
-describe('@superset-ui/plugin-chart-echarts', () => {
-  it('exists', () => {
-    expect(EchartsBoxPlotChartPlugin).toBeDefined();
-    expect(EchartsPieChartPlugin).toBeDefined();
-    expect(EchartsTimeseriesChartPlugin).toBeDefined();
-    expect(EchartsGraphChartPlugin).toBeDefined();
-    expect(EchartsFunnelChartPlugin).toBeDefined();
-    expect(EchartsTreemapChartPlugin).toBeDefined();
+import { EchartsChartPlugin } from '../src/types';
+
+test('@superset-ui/plugin-chart-echarts exists', () => {
+  expect(EchartsBoxPlotChartPlugin).toBeDefined();
+  expect(EchartsPieChartPlugin).toBeDefined();
+  expect(EchartsTimeseriesChartPlugin).toBeDefined();
+  expect(EchartsGraphChartPlugin).toBeDefined();
+  expect(EchartsFunnelChartPlugin).toBeDefined();
+  expect(EchartsTreemapChartPlugin).toBeDefined();
+  expect(EchartsAreaChartPlugin).toBeDefined();
+  expect(EchartsTimeseriesBarChartPlugin).toBeDefined();
+  expect(EchartsTimeseriesLineChartPlugin).toBeDefined();
+  expect(EchartsTimeseriesScatterChartPlugin).toBeDefined();
+  expect(EchartsTimeseriesSmoothLineChartPlugin).toBeDefined();
+  expect(EchartsTimeseriesStepChartPlugin).toBeDefined();
+  expect(EchartsMixedTimeseriesChartPlugin).toBeDefined();
+  expect(EchartsGaugeChartPlugin).toBeDefined();
+  expect(EchartsRadarChartPlugin).toBeDefined();
+  expect(EchartsTreeChartPlugin).toBeDefined();
+  expect(BigNumberChartPlugin).toBeDefined();
+  expect(BigNumberTotalChartPlugin).toBeDefined();
+  expect(EchartsSunburstChartPlugin).toBeDefined();
+});
+
+test('@superset-ui/plugin-chart-echarts-parsemethod-validation', () => {
+  const plugins: EchartsChartPlugin[] = [
+    new EchartsBoxPlotChartPlugin().configure({
+      key: 'box_plot',
+    }),
+    new EchartsPieChartPlugin().configure({
+      key: 'pie',
+    }),
+    new EchartsTimeseriesChartPlugin().configure({
+      key: 'echarts_timeseries',
+    }),
+    new EchartsGraphChartPlugin().configure({
+      key: 'graph_chart',
+    }),
+    new EchartsFunnelChartPlugin().configure({
+      key: 'funnel',
+    }),
+    new EchartsTreemapChartPlugin().configure({
+      key: 'treemap_v2',
+    }),
+    new EchartsAreaChartPlugin().configure({
+      key: 'echarts_area',
+    }),
+    new EchartsTimeseriesBarChartPlugin().configure({
+      key: 'echarts_timeseries_bar',
+    }),
+    new EchartsTimeseriesLineChartPlugin().configure({
+      key: 'echarts_timeseries_line',
+    }),
+    new EchartsTimeseriesScatterChartPlugin().configure({
+      key: 'echarts_timeseries_scatter',
+    }),
+    new EchartsTimeseriesSmoothLineChartPlugin().configure({
+      key: 'echarts_timeseries_smooth',
+    }),
+    new EchartsTimeseriesStepChartPlugin().configure({
+      key: 'echarts_timeseries_step',
+    }),
+    new EchartsMixedTimeseriesChartPlugin().configure({
+      key: 'mixed_timeseries',
+    }),
+    new EchartsGaugeChartPlugin().configure({
+      key: 'gauge_chart',
+    }),
+    new EchartsRadarChartPlugin().configure({
+      key: 'radar',
+    }),
+    new EchartsTreeChartPlugin().configure({
+      key: 'tree',
+    }),
+    new BigNumberChartPlugin().configure({
+      key: 'big_number',
+    }),
+    new BigNumberTotalChartPlugin().configure({
+      key: 'big_number_total',
+    }),
+    new EchartsSunburstChartPlugin().configure({
+      key: 'sunburst',
+    }),
+  ];
+
+  plugins.forEach(plugin => {
+    expect(plugin.metadata.parseMethod).toEqual('json');
   });
 });

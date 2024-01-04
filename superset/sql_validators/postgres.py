@@ -16,7 +16,7 @@
 # under the License.
 
 import re
-from typing import List, Optional
+from typing import Optional
 
 from pgsanity.pgsanity import check_string
 
@@ -32,8 +32,8 @@ class PostgreSQLValidator(BaseSQLValidator):  # pylint: disable=too-few-public-m
     @classmethod
     def validate(
         cls, sql: str, schema: Optional[str], database: Database
-    ) -> List[SQLValidationAnnotation]:
-        annotations: List[SQLValidationAnnotation] = []
+    ) -> list[SQLValidationAnnotation]:
+        annotations: list[SQLValidationAnnotation] = []
         valid, error = check_string(sql, add_semicolon=True)
         if valid:
             return annotations

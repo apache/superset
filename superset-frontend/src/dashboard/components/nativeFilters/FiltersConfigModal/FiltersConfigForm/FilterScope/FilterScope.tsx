@@ -17,11 +17,15 @@
  * under the License.
  */
 
-import React, { FC, useCallback, useState } from 'react';
-import { NativeFilterScope, styled, t } from '@superset-ui/core';
+import React, { FC, useCallback, useRef, useState } from 'react';
+import {
+  NativeFilterScope,
+  styled,
+  t,
+  useComponentDidUpdate,
+} from '@superset-ui/core';
 import { Radio } from 'src/components/Radio';
 import { AntdForm, Typography } from 'src/components';
-import { useComponentDidUpdate } from 'src/hooks/useComponentDidUpdate/useComponentDidUpdate';
 import { ScopingType } from './types';
 import ScopingTree from './ScopingTree';
 import { getDefaultScopeValue, isScopingAll } from './utils';
@@ -63,6 +67,7 @@ const FilterScope: FC<FilterScopeProps> = ({
   const [initialFilterScope] = useState(
     filterScope || getDefaultScopeValue(chartId, initiallyExcludedCharts),
   );
+  const lastSpecificScope = useRef(initialFilterScope);
   const [initialScopingType] = useState(
     isScopingAll(initialFilterScope, chartId)
       ? ScopingType.all
@@ -74,10 +79,13 @@ const FilterScope: FC<FilterScopeProps> = ({
 
   const onUpdateFormValues = useCallback(
     (formValues: any) => {
+      if (formScopingType === ScopingType.specific) {
+        lastSpecificScope.current = formValues.scope;
+      }
       updateFormValues(formValues);
       setHasScopeBeenModified(true);
     },
-    [updateFormValues],
+    [formScopingType, updateFormValues],
   );
 
   const updateScopes = useCallback(() => {
@@ -109,12 +117,11 @@ const FilterScope: FC<FilterScopeProps> = ({
       >
         <Radio.Group
           onChange={({ target: { value } }) => {
-            if (value === ScopingType.all) {
-              const scope = getDefaultScopeValue(chartId);
-              updateFormValues({
-                scope,
-              });
-            }
+            const scope =
+              value === ScopingType.all
+                ? getDefaultScopeValue(chartId)
+                : lastSpecificScope.current;
+            updateFormValues({ scope });
             setHasScopeBeenModified(true);
             forceUpdate();
           }}

@@ -141,15 +141,14 @@ class TestImportAssetsCommand(SupersetTestCase):
         dataset = chart.table
         assert str(dataset.uuid) == dataset_config["uuid"]
 
+        assert chart.query_context is None
+        assert json.loads(chart.params)["datasource"] == dataset.uid
+
         database = dataset.database
         assert str(database.uuid) == database_config["uuid"]
 
         assert dashboard.owners == [self.user]
 
-        dashboard.owners = []
-        chart.owners = []
-        dataset.owners = []
-        database.owners = []
         db.session.delete(dashboard)
         db.session.delete(chart)
         db.session.delete(dataset)
@@ -165,6 +164,7 @@ class TestImportAssetsCommand(SupersetTestCase):
             "charts/imported_chart.yaml": yaml.safe_dump(chart_config),
             "dashboards/imported_dashboard.yaml": yaml.safe_dump(dashboard_config),
         }
+
         command = ImportAssetsCommand(contents)
         command.run()
         chart = db.session.query(Slice).filter_by(uuid=chart_config["uuid"]).one()
@@ -190,11 +190,6 @@ class TestImportAssetsCommand(SupersetTestCase):
         chart = dashboard.slices[0]
         dataset = chart.table
         database = dataset.database
-        dashboard.owners = []
-
-        chart.owners = []
-        dataset.owners = []
-        database.owners = []
         db.session.delete(dashboard)
         db.session.delete(chart)
         db.session.delete(dataset)

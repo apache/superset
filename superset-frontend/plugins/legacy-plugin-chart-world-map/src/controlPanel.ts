@@ -41,10 +41,10 @@ const config: ControlPanelConfig = {
               label: t('Country Field Type'),
               default: 'cca2',
               choices: [
-                ['name', 'Full name'],
-                ['cioc', 'code International Olympic Committee (cioc)'],
-                ['cca2', 'code ISO 3166-1 alpha-2 (cca2)'],
-                ['cca3', 'code ISO 3166-1 alpha-3 (cca3)'],
+                ['name', t('Full name')],
+                ['cioc', t('code International Olympic Committee (cioc)')],
+                ['cca2', t('code ISO 3166-1 alpha-2 (cca2)')],
+                ['cca3', t('code ISO 3166-1 alpha-3 (cca3)')],
               ],
               description: t(
                 'The country code standard that Superset should expect ' +
@@ -128,6 +128,11 @@ const config: ControlPanelConfig = {
         ['linear_color_scheme'],
         ['color_scheme'],
       ],
+    },
+    {
+      label: t('Chart Options'),
+      expanded: true,
+      controlSetRows: [['y_axis_format'], ['currency_format']],
     },
   ],
   controlOverrides: {

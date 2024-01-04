@@ -18,8 +18,8 @@
  */
 /* eslint-disable no-param-reassign */
 import {
-  css,
   FeatureFlag,
+  css,
   isFeatureEnabled,
   styled,
   t,
@@ -33,7 +33,7 @@ import FilterConfigurationLink from 'src/dashboard/components/nativeFilters/Filt
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
 import { RootState } from 'src/dashboard/types';
 import { getFilterBarTestId } from '../utils';
-import FilterBarOrientationSelect from '../FilterBarOrientationSelect';
+import FilterBarSettings from '../FilterBarSettings';
 
 const TitleArea = styled.div`
   ${({ theme }) => css`
@@ -109,14 +109,12 @@ const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
   const dashboardId = useSelector<RootState, number>(
     ({ dashboardInfo }) => dashboardInfo.id,
   );
-  const canSetHorizontalFilterBar =
-    canEdit && isFeatureEnabled(FeatureFlag.HORIZONTAL_FILTER_BAR);
 
   return (
     <Wrapper>
       <TitleArea>
         <span>{t('Filters')}</span>
-        {canSetHorizontalFilterBar && <FilterBarOrientationSelect />}
+        <FilterBarSettings />
         <HeaderButton
           {...getFilterBarTestId('collapse-button')}
           buttonStyle="link"
@@ -126,7 +124,7 @@ const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
           <Icons.Expand iconColor={theme.colors.grayscale.base} />
         </HeaderButton>
       </TitleArea>
-      {canEdit && (
+      {canEdit && isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) && (
         <AddFiltersButtonContainer>
           <FilterConfigurationLink
             dashboardId={dashboardId}

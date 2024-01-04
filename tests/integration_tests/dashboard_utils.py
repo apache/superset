@@ -17,7 +17,7 @@
 """Utils to provide dashboards for tests"""
 
 import json
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 from pandas import DataFrame
 
@@ -53,19 +53,24 @@ def create_table_metadata(
 
     table = get_table(table_name, database, schema)
     if not table:
-        table = SqlaTable(schema=schema, table_name=table_name)
+        table = SqlaTable(
+            schema=schema,
+            table_name=table_name,
+            normalize_columns=False,
+            always_filter_main_dttm=False,
+        )
+        db.session.add(table)
     if fetch_values_predicate:
         table.fetch_values_predicate = fetch_values_predicate
     table.database = database
     table.description = table_description
-    db.session.merge(table)
     db.session.commit()
 
     return table
 
 
 def create_slice(
-    title: str, viz_type: str, table: SqlaTable, slices_dict: Dict[str, str]
+    title: str, viz_type: str, table: SqlaTable, slices_dict: dict[str, str]
 ) -> Slice:
     return Slice(
         slice_name=title,
@@ -77,11 +82,12 @@ def create_slice(
 
 
 def create_dashboard(
-    slug: str, title: str, position: str, slices: List[Slice]
+    slug: str, title: str, position: str, slices: list[Slice]
 ) -> Dashboard:
     dash = db.session.query(Dashboard).filter_by(slug=slug).one_or_none()
-    if not dash:
-        dash = Dashboard()
+    if dash:
+        return dash
+    dash = Dashboard()
     dash.dashboard_title = title
     if position is not None:
         js = position
@@ -90,7 +96,7 @@ def create_dashboard(
     dash.slug = slug
     if slices is not None:
         dash.slices = slices
-    db.session.merge(dash)
+    db.session.add(dash)
     db.session.commit()
 
     return dash

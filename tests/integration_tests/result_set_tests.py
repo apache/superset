@@ -48,9 +48,9 @@ class TestSupersetResultSet(SupersetTestCase):
         self.assertEqual(
             results.columns,
             [
-                {"is_dttm": False, "type": "STRING", "name": "a"},
-                {"is_dttm": False, "type": "STRING", "name": "b"},
-                {"is_dttm": False, "type": "STRING", "name": "c"},
+                {"is_dttm": False, "type": "STRING", "column_name": "a", "name": "a"},
+                {"is_dttm": False, "type": "STRING", "column_name": "b", "name": "b"},
+                {"is_dttm": False, "type": "STRING", "column_name": "c", "name": "c"},
             ],
         )
 
@@ -61,8 +61,8 @@ class TestSupersetResultSet(SupersetTestCase):
         self.assertEqual(
             results.columns,
             [
-                {"is_dttm": False, "type": "STRING", "name": "a"},
-                {"is_dttm": False, "type": "INT", "name": "b"},
+                {"is_dttm": False, "type": "STRING", "column_name": "a", "name": "a"},
+                {"is_dttm": False, "type": "INT", "column_name": "b", "name": "b"},
             ],
         )
 
@@ -76,11 +76,11 @@ class TestSupersetResultSet(SupersetTestCase):
         self.assertEqual(
             results.columns,
             [
-                {"is_dttm": False, "type": "FLOAT", "name": "a"},
-                {"is_dttm": False, "type": "INT", "name": "b"},
-                {"is_dttm": False, "type": "STRING", "name": "c"},
-                {"is_dttm": True, "type": "DATETIME", "name": "d"},
-                {"is_dttm": False, "type": "BOOL", "name": "e"},
+                {"is_dttm": False, "type": "FLOAT", "column_name": "a", "name": "a"},
+                {"is_dttm": False, "type": "INT", "column_name": "b", "name": "b"},
+                {"is_dttm": False, "type": "STRING", "column_name": "c", "name": "c"},
+                {"is_dttm": True, "type": "DATETIME", "column_name": "d", "name": "d"},
+                {"is_dttm": False, "type": "BOOL", "column_name": "e", "name": "e"},
             ],
         )
 
@@ -100,7 +100,7 @@ class TestSupersetResultSet(SupersetTestCase):
         data = [("a", 1), ("a", 2)]
         cursor_descr = (("a", "string"), ("a", "string"))
         results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
-        column_names = [col["name"] for col in results.columns]
+        column_names = [col["column_name"] for col in results.columns]
         self.assertListEqual(column_names, ["a", "a__1"])
 
     def test_int64_with_missing_data(self):
@@ -169,13 +169,13 @@ class TestSupersetResultSet(SupersetTestCase):
                     "id": 4,
                     "dict_arr": '[{"table_name": "unicode_test", "database_id": 1}]',
                     "num_arr": "[1, 2, 3]",
-                    "map_col": '{"chart_name": "scatter"}',
+                    "map_col": "{'chart_name': 'scatter'}",
                 },
                 {
                     "id": 3,
                     "dict_arr": '[{"table_name": "birth_names", "database_id": 1}]',
                     "num_arr": "[4, 5, 6]",
-                    "map_col": '{"chart_name": "plot"}',
+                    "map_col": "{'chart_name': 'plot'}",
                 },
             ],
         )

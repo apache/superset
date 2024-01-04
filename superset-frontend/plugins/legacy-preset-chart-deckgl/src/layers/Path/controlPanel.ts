@@ -52,8 +52,8 @@ const config: ControlPanelConfig = {
             config: {
               ...lineType.config,
               choices: [
-                ['polyline', 'Polyline'],
-                ['json', 'JSON'],
+                ['polyline', t('Polyline')],
+                ['json', t('JSON')],
               ],
             },
           },
@@ -67,9 +67,27 @@ const config: ControlPanelConfig = {
       label: t('Map'),
       expanded: true,
       controlSetRows: [
-        [mapboxStyle, viewport],
-        ['color_picker', lineWidth],
-        [reverseLongLat, autozoom],
+        [mapboxStyle],
+        [viewport],
+        ['color_picker'],
+        [lineWidth],
+        [
+          {
+            name: 'line_width_unit',
+            config: {
+              type: 'SelectControl',
+              label: t('Line width unit'),
+              default: 'pixels',
+              choices: [
+                ['meters', t('meters')],
+                ['pixels', t('pixels')],
+              ],
+              renderTrigger: true,
+            },
+          },
+        ],
+        [reverseLongLat],
+        [autozoom],
       ],
     },
     {

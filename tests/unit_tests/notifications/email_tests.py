@@ -50,5 +50,8 @@ def test_render_description_with_html() -> None:
         ._get_content()
         .body
     )
-    assert '<p>This is <a href="#">a test</a> alert</p><br>' in email_body
+    assert (
+        '<p>This is <a href="#" rel="noopener noreferrer">a test</a> alert</p><br>'
+        in email_body
+    )
     assert '<td>&lt;a href="http://www.example.com"&gt;333&lt;/a&gt;</td>' in email_body

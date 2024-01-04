@@ -30,7 +30,12 @@ import {
   FilterState,
   JsonObject,
 } from '../..';
-import { HandlerFunction, PlainObject, SetDataMaskHook } from '../types/Base';
+import {
+  HandlerFunction,
+  LegendState,
+  PlainObject,
+  SetDataMaskHook,
+} from '../types/Base';
 import { QueryData, DataRecordFilters } from '..';
 import { SupersetTheme } from '../../style';
 
@@ -54,6 +59,8 @@ type Hooks = {
   onContextMenu?: HandlerFunction;
   /** handle errors */
   onError?: HandlerFunction;
+  /** handle legend state changes */
+  onLegendStateChanged?: HandlerFunction;
   /** use the vis as control to update state */
   setControlValue?: HandlerFunction;
   /** handle external filters */
@@ -88,6 +95,8 @@ export interface ChartPropsConfig {
   ownState?: JsonObject;
   /** Filter state that saved in dashboard */
   filterState?: FilterState;
+  /** Legend state */
+  legendState?: LegendState;
   /** Set of actual behaviors that this instance of chart should use */
   behaviors?: Behavior[];
   /** Chart display settings related to current view context */
@@ -128,6 +137,8 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
 
   filterState: FilterState;
 
+  legendState?: LegendState;
+
   queriesData: QueryData[];
 
   width: number;
@@ -144,6 +155,8 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
 
   inContextMenu?: boolean;
 
+  emitCrossFilters?: boolean;
+
   theme: SupersetTheme;
 
   constructor(config: ChartPropsConfig & { formData?: FormData } = {}) {
@@ -154,6 +167,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
       hooks = {},
       ownState = {},
       filterState = {},
+      legendState,
       initialValues = {},
       queriesData = [],
       behaviors = [],
@@ -164,6 +178,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
       isRefreshing,
       inputRef,
       inContextMenu = false,
+      emitCrossFilters = false,
       theme,
     } = config;
     this.width = width;
@@ -178,12 +193,14 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
     this.queriesData = queriesData;
     this.ownState = ownState;
     this.filterState = filterState;
+    this.legendState = legendState;
     this.behaviors = behaviors;
     this.displaySettings = displaySettings;
     this.appSection = appSection;
     this.isRefreshing = isRefreshing;
     this.inputRef = inputRef;
     this.inContextMenu = inContextMenu;
+    this.emitCrossFilters = emitCrossFilters;
     this.theme = theme;
   }
 }
@@ -201,12 +218,14 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
     input => input.width,
     input => input.ownState,
     input => input.filterState,
+    input => input.legendState,
     input => input.behaviors,
     input => input.displaySettings,
     input => input.appSection,
     input => input.isRefreshing,
     input => input.inputRef,
     input => input.inContextMenu,
+    input => input.emitCrossFilters,
     input => input.theme,
     (
       annotationData,
@@ -219,12 +238,14 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
       width,
       ownState,
       filterState,
+      legendState,
       behaviors,
       displaySettings,
       appSection,
       isRefreshing,
       inputRef,
       inContextMenu,
+      emitCrossFilters,
       theme,
     ) =>
       new ChartProps({
@@ -237,6 +258,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
         queriesData,
         ownState,
         filterState,
+        legendState,
         width,
         behaviors,
         displaySettings,
@@ -244,6 +266,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
         isRefreshing,
         inputRef,
         inContextMenu,
+        emitCrossFilters,
         theme,
       }),
   );

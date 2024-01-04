@@ -23,8 +23,8 @@ import {
   ControlPanelConfig,
   ControlPanelSectionConfig,
   ControlSetRow,
+  ControlSubSectionHeader,
   CustomControlItem,
-  emitFilterControl,
   getStandardizedControls,
   sections,
   sharedControls,
@@ -32,7 +32,14 @@ import {
 
 import { DEFAULT_FORM_DATA } from './types';
 import { EchartsTimeseriesSeriesType } from '../Timeseries/types';
-import { legendSection, richTooltipSection } from '../controls';
+import {
+  legendSection,
+  minorTicks,
+  richTooltipSection,
+  truncateXAxis,
+  xAxisBounds,
+  xAxisLabelRotation,
+} from '../controls';
 
 const {
   area,
@@ -49,7 +56,6 @@ const {
   truncateYAxis,
   yAxisBounds,
   zoomable,
-  xAxisLabelRotation,
   yAxisIndex,
 } = DEFAULT_FORM_DATA;
 
@@ -79,14 +85,6 @@ function createQuerySection(
           config: sharedControls.adhoc_filters,
         },
       ],
-      emitFilterControl.length > 0
-        ? [
-            {
-              ...emitFilterControl[0],
-              name: `emit_filter${controlSuffix}`,
-            },
-          ]
-        : [],
       [
         {
           name: `limit${controlSuffix}`,
@@ -137,7 +135,7 @@ function createCustomizeSection(
   controlSuffix: string,
 ): ControlSetRow[] {
   return [
-    [<div className="section-header">{label}</div>],
+    [<ControlSubSectionHeader>{label}</ControlSubSectionHeader>],
     [
       {
         name: `seriesType${controlSuffix}`,
@@ -147,13 +145,13 @@ function createCustomizeSection(
           renderTrigger: true,
           default: seriesType,
           choices: [
-            [EchartsTimeseriesSeriesType.Line, 'Line'],
-            [EchartsTimeseriesSeriesType.Scatter, 'Scatter'],
-            [EchartsTimeseriesSeriesType.Smooth, 'Smooth Line'],
-            [EchartsTimeseriesSeriesType.Bar, 'Bar'],
-            [EchartsTimeseriesSeriesType.Start, 'Step - start'],
-            [EchartsTimeseriesSeriesType.Middle, 'Step - middle'],
-            [EchartsTimeseriesSeriesType.End, 'Step - end'],
+            [EchartsTimeseriesSeriesType.Line, t('Line')],
+            [EchartsTimeseriesSeriesType.Scatter, t('Scatter')],
+            [EchartsTimeseriesSeriesType.Smooth, t('Smooth Line')],
+            [EchartsTimeseriesSeriesType.Bar, t('Bar')],
+            [EchartsTimeseriesSeriesType.Start, t('Step - start')],
+            [EchartsTimeseriesSeriesType.Middle, t('Step - middle')],
+            [EchartsTimeseriesSeriesType.End, t('Step - end')],
           ],
           description: t('Series chart type (line, bar etc)'),
         },
@@ -319,32 +317,14 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [minorTicks],
         ...legendSection,
-        [<div className="section-header">{t('X Axis')}</div>],
+        [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         ['x_axis_time_format'],
-        [
-          {
-            name: 'xAxisLabelRotation',
-            config: {
-              type: 'SelectControl',
-              freeForm: true,
-              clearable: false,
-              label: t('Rotate x axis label'),
-              choices: [
-                [0, '0°'],
-                [45, '45°'],
-              ],
-              default: xAxisLabelRotation,
-              renderTrigger: true,
-              description: t(
-                'Input field supports custom rotation. e.g. 30 for 30°',
-              ),
-            },
-          },
-        ],
+        [xAxisLabelRotation],
         ...richTooltipSection,
         // eslint-disable-next-line react/jsx-key
-        [<div className="section-header">{t('Y Axis')}</div>],
+        [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
         [
           {
             name: 'minorSplitLine',
@@ -357,6 +337,8 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [truncateXAxis],
+        [xAxisBounds],
         [
           {
             name: 'truncateYAxis',
@@ -376,11 +358,11 @@ const config: ControlPanelConfig = {
             name: 'y_axis_bounds',
             config: {
               type: 'BoundsControl',
-              label: t('Y Axis Bounds'),
+              label: t('Primary y-axis Bounds'),
               renderTrigger: true,
               default: yAxisBounds,
               description: t(
-                'Bounds for the Y-axis. When left empty, the bounds are ' +
+                'Bounds for the primary Y-axis. When left empty, the bounds are ' +
                   'dynamically defined based on the min/max of the data. Note that ' +
                   "this feature will only expand the axis range. It won't " +
                   "narrow the data's extent.",
@@ -397,6 +379,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['currency_format'],
         [
           {
             name: 'logAxis',
@@ -411,10 +394,36 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'y_axis_bounds_secondary',
+            config: {
+              type: 'BoundsControl',
+              label: t('Secondary y-axis Bounds'),
+              renderTrigger: true,
+              default: yAxisBounds,
+              description: t(
+                `Bounds for the secondary Y-axis. Only works when Independent Y-axis
+                bounds are enabled. When left empty, the bounds are dynamically defined
+                based on the min/max of the data. Note that this feature will only expand
+                the axis range. It won't narrow the data's extent.`,
+              ),
+            },
+          },
+        ],
+        [
+          {
             name: `y_axis_format_secondary`,
             config: {
               ...sharedControls.y_axis_format,
               label: t('Secondary y-axis format'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'currency_format_secondary',
+            config: {
+              ...sharedControls.currency_format,
+              label: t('Secondary currency format'),
             },
           },
         ],

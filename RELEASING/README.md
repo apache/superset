@@ -30,6 +30,7 @@ partaking in the process should join the channel.
 
 ## Release notes for recent releases
 
+- [3.1](release-notes-3-1/README.md)
 - [2.0](release-notes-2-0/README.md)
 - [1.5](release-notes-1-5/README.md)
 - [1.4](release-notes-1-4/README.md)
@@ -74,7 +75,7 @@ the repo directly from the main `apache/superset` repo to a new directory `super
 
 ```bash
 cd <MY PROJECTS PATH>
-git clone git@github.com:apache/superset.git superset-release
+git clone https://github.com/apache/superset.git superset-release
 cd superset-release
 ```
 
@@ -102,7 +103,7 @@ the same terminal session won't be used for crafting the release candidate and t
 final release. Therefore, it's a good idea to do the following every time you
 work on a new phase of the release process to make sure you aren't releasing
 the wrong files/using wrong names. There's a script to help you set correctly all the
-necessary environment variables. Change your current directory to `superset/RELEASING`
+necessary environment variables. Change your current directory to `RELEASING`
 and execute the `set_release_env.sh` script with the relevant parameters:
 
 Usage (MacOS/ZSH):
@@ -238,7 +239,7 @@ Similar to `cherrytree`, the change log script requires a github token, either a
 
 #### Initial release (e.g. 1.5.0)
 
-When generating the changelog for an initial minor relese, you should compare with
+When generating the changelog for an initial minor release, you should compare with
 the previous release (in the example, the previous release branch is `1.4`, so remember to
 update it accordingly):
 
@@ -343,7 +344,7 @@ To build and run the recently created tarball **from SVN**:
 # login using admin/admin
 ```
 
-## Create a release on Github
+## Create a release on GitHub
 
 After submitting the tag and testing the release candidate, follow the steps [here](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) to create the release on GitHub. Use the vote email text as the content for the release description. Make sure to check the "This is a pre-release" checkbox for release candidates. You can check previous releases if you need an example.
 
@@ -387,7 +388,22 @@ The script will generate the email text that should be sent to dev@superset.apac
 
 ## Validating a release
 
+Official instructions:
 https://www.apache.org/info/verification.html
+
+We now have a handy script for anyone validating a release to use. The core of it is in this very folder, `verify_release.py`. Just make sure you have all three release files in the same directory (`{some version}.tar.gz`, `{some version}.tar.gz.asc` and `{some version}tar.gz.sha512`). Then you can pass this script the path to the `.gz` file like so:
+`python verify_release.py ~/path/tp/apache-superset-{version/candidate}-source.tar.gz`
+
+
+If all goes well, you will see this result in your terminal:
+```bash
+SHA-512 verified
+RSA key verified
+```
+
+There are also additional support scripts leveraging this to make it easy for those downloading a release to test it in-situ. You can do either of the following to validate these release assets:
+* `cd` into `superset-frontend` and run `npm run validate-release`
+* `cd` into `RELEASES` and run `./validate_this_release.sh`
 
 ## Publishing a successful release
 

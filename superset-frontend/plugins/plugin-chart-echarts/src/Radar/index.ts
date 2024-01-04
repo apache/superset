@@ -2,7 +2,7 @@
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
- * regardin
+ * regarding
  * g copyright ownership.  The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
@@ -17,14 +17,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Behavior, ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
+import { Behavior, t } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import example1 from './images/example1.jpg';
+import example2 from './images/example2.jpg';
 import { EchartsRadarChartProps, EchartsRadarFormData } from './types';
+import { EchartsChartPlugin } from '../types';
 
-export default class EchartsRadarChartPlugin extends ChartPlugin<
+export default class EchartsRadarChartPlugin extends EchartsChartPlugin<
   EchartsRadarFormData,
   EchartsRadarChartProps
 > {
@@ -43,13 +46,18 @@ export default class EchartsRadarChartPlugin extends ChartPlugin<
       buildQuery,
       controlPanel,
       loadChart: () => import('./EchartsRadar'),
-      metadata: new ChartMetadata({
-        behaviors: [Behavior.INTERACTIVE_CHART, Behavior.DRILL_TO_DETAIL],
+      metadata: {
+        behaviors: [
+          Behavior.INTERACTIVE_CHART,
+          Behavior.DRILL_TO_DETAIL,
+          Behavior.DRILL_BY,
+        ],
         category: t('Ranking'),
         credits: ['https://echarts.apache.org'],
         description: t(
           'Visualize a parallel set of metrics across multiple groups. Each group is visualized using its own line of points and each metric is represented as an edge in the chart.',
         ),
+        exampleGallery: [{ url: example1 }, { url: example2 }],
         name: t('Radar Chart'),
         tags: [
           t('Business'),
@@ -61,7 +69,7 @@ export default class EchartsRadarChartPlugin extends ChartPlugin<
           t('ECharts'),
         ],
         thumbnail,
-      }),
+      },
       transformProps,
     });
   }

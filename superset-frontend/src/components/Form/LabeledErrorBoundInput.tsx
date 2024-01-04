@@ -18,9 +18,9 @@
  */
 import React from 'react';
 import { Input, Tooltip } from 'antd';
-import { EyeInvisibleOutlined, EyeOutlined } from '@ant-design/icons';
-import { styled, css, SupersetTheme } from '@superset-ui/core';
+import { styled, css, SupersetTheme, t } from '@superset-ui/core';
 import InfoTooltip from 'src/components/InfoTooltip';
+import Icons from 'src/components/Icons';
 import errorIcon from 'src/assets/images/icons/error.svg';
 import FormItem from './FormItem';
 import FormLabel from './FormLabel';
@@ -37,6 +37,7 @@ export interface LabeledErrorBoundInputProps {
   tooltipText?: string | null;
   id?: string;
   classname?: string;
+  visibilityToggle?: boolean;
   [x: string]: any;
 }
 
@@ -91,6 +92,12 @@ const StyledFormLabel = styled(FormLabel)`
   margin-bottom: 0;
 `;
 
+const iconReset = css`
+  &.anticon > * {
+    line-height: 0;
+  }
+`;
+
 const LabeledErrorBoundInput = ({
   label,
   validationMethods,
@@ -101,6 +108,7 @@ const LabeledErrorBoundInput = ({
   tooltipText,
   id,
   className,
+  visibilityToggle,
   ...props
 }: LabeledErrorBoundInputProps) => (
   <StyledFormGroup className={className}>
@@ -119,18 +127,22 @@ const LabeledErrorBoundInput = ({
       help={errorMessage || helpText}
       hasFeedback={!!errorMessage}
     >
-      {props.name === 'password' ? (
+      {visibilityToggle || props.name === 'password' ? (
         <StyledInputPassword
           {...props}
           {...validationMethods}
           iconRender={visible =>
             visible ? (
-              <Tooltip title="Hide password.">
-                <EyeInvisibleOutlined />
+              <Tooltip title={t('Hide password.')}>
+                <Icons.EyeInvisibleOutlined iconSize="m" css={iconReset} />
               </Tooltip>
             ) : (
-              <Tooltip title="Show password.">
-                <EyeOutlined />
+              <Tooltip title={t('Show password.')}>
+                <Icons.EyeOutlined
+                  iconSize="m"
+                  css={iconReset}
+                  data-test="icon-eye"
+                />
               </Tooltip>
             )
           }

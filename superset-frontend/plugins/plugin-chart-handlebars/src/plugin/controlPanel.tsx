@@ -18,7 +18,6 @@
  */
 import {
   ControlPanelConfig,
-  emitFilterControl,
   getStandardizedControls,
   sections,
 } from '@superset-ui/chart-controls';
@@ -65,7 +64,6 @@ const config: ControlPanelConfig = {
         [includeTimeControlSetItem],
         [showTotalsControlSetItem],
         ['adhoc_filters'],
-        emitFilterControl,
       ],
     },
     {

@@ -19,11 +19,17 @@
 import { ensureIsArray, t } from '@superset-ui/core';
 import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
 import React, { ReactElement, RefObject } from 'react';
-import { DownOutlined, SearchOutlined } from '@ant-design/icons';
+import Icons from 'src/components/Icons';
 import { StyledHelperText, StyledLoadingText, StyledSpin } from './styles';
 import { LabeledValue, RawValue, SelectOptionsType, V } from './types';
 
 const { Option } = AntdSelect;
+
+export const SELECT_ALL_VALUE: RawValue = 'Select All';
+export const selectAllOption = {
+  value: SELECT_ALL_VALUE,
+  label: String(SELECT_ALL_VALUE),
+};
 
 export function isObject(value: unknown): value is Record<string, unknown> {
   return (
@@ -43,25 +49,31 @@ export function getValue(
   return isLabeledValue(option) ? option.value : option;
 }
 
+export function getOption(
+  value: V,
+  options?: V | LabeledValue | (V | LabeledValue)[],
+  checkLabel = false,
+): V | LabeledValue {
+  const optionsArray = ensureIsArray(options);
+  // When comparing the values we use the equality
+  // operator to automatically convert different types
+  return optionsArray.find(
+    x =>
+      // eslint-disable-next-line eqeqeq
+      x == value ||
+      (isObject(x) &&
+        // eslint-disable-next-line eqeqeq
+        (('value' in x && x.value == value) ||
+          (checkLabel && 'label' in x && x.label === value))),
+  );
+}
+
 export function hasOption(
   value: V,
   options?: V | LabeledValue | (V | LabeledValue)[],
   checkLabel = false,
 ): boolean {
-  const optionsArray = ensureIsArray(options);
-  // When comparing the values we use the equality
-  // operator to automatically convert different types
-  return (
-    optionsArray.find(
-      x =>
-        // eslint-disable-next-line eqeqeq
-        x == value ||
-        (isObject(x) &&
-          // eslint-disable-next-line eqeqeq
-          (('value' in x && x.value == value) ||
-            (checkLabel && 'label' in x && x.label === value))),
-    ) !== undefined
-  );
+  return getOption(value, options, checkLabel) !== undefined;
 }
 
 /**
@@ -126,9 +138,9 @@ export const getSuffixIcon = (
     return <StyledSpin size="small" />;
   }
   if (showSearch && isDropdownVisible) {
-    return <SearchOutlined />;
+    return <Icons.SearchOutlined iconSize="s" />;
   }
-  return <DownOutlined />;
+  return <Icons.DownOutlined iconSize="s" />;
 };
 
 export const dropDownRenderHelper = (
@@ -198,3 +210,19 @@ export const renderSelectOptions = (options: SelectOptionsType) =>
       </Option>
     );
   });
+
+export const mapValues = (values: SelectOptionsType, labelInValue: boolean) =>
+  labelInValue
+    ? values.map(opt => ({
+        key: opt.value,
+        value: opt.value,
+        label: opt.label,
+      }))
+    : values.map(opt => opt.value);
+
+export const mapOptions = (values: SelectOptionsType) =>
+  values.map(opt => ({
+    children: opt.label,
+    key: opt.value,
+    ...opt,
+  }));

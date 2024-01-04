@@ -14,7 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, cast, Dict, Mapping
+from collections.abc import Mapping
+from typing import Any, cast
 
 from marshmallow import fields, post_load, Schema, ValidationError
 from marshmallow.validate import Length, OneOf
@@ -45,7 +46,6 @@ class FilterSetSchema(Schema):
 
 class FilterSetPostSchema(FilterSetSchema):
     json_metadata_schema: JsonMetadataSchema = JsonMetadataSchema()
-    # pylint: disable=W0613
     name = fields.String(
         required=True,
         allow_none=False,
@@ -64,11 +64,11 @@ class FilterSetPostSchema(FilterSetSchema):
     @post_load
     def validate(
         self, data: Mapping[Any, Any], *, many: Any, partial: Any
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         self._validate_json_meta_data(data[JSON_METADATA_FIELD])
         if data[OWNER_TYPE_FIELD] == USER_OWNER_TYPE and OWNER_ID_FIELD not in data:
             raise ValidationError("owner_id is mandatory when owner_type is User")
-        return cast(Dict[str, Any], data)
+        return cast(dict[str, Any], data)
 
 
 class FilterSetPutSchema(FilterSetSchema):
@@ -82,16 +82,16 @@ class FilterSetPutSchema(FilterSetSchema):
     )
 
     @post_load
-    def validate(  # pylint: disable=unused-argument
+    def validate(
         self, data: Mapping[Any, Any], *, many: Any, partial: Any
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if JSON_METADATA_FIELD in data:
             self._validate_json_meta_data(data[JSON_METADATA_FIELD])
-        return cast(Dict[str, Any], data)
+        return cast(dict[str, Any], data)
 
 
-def validate_pair(first_field: str, second_field: str, data: Dict[str, Any]) -> None:
+def validate_pair(first_field: str, second_field: str, data: dict[str, Any]) -> None:
     if first_field in data and second_field not in data:
         raise ValidationError(
-            "{} must be included alongside {}".format(first_field, second_field)
+            f"{first_field} must be included alongside {second_field}"
         )

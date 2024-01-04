@@ -32,7 +32,7 @@ const createProps = () => ({
 });
 
 function openDropdown() {
-  const dropdownIcon = screen.getByRole('img', { name: 'ellipsis' });
+  const dropdownIcon = screen.getAllByRole('img', { name: '' })[0];
   userEvent.click(dropdownIcon);
 }
 

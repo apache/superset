@@ -24,6 +24,7 @@ import {
   NumberFormats,
   CategoricalColorNamespace,
   getSequentialSchemeRegistry,
+  t,
 } from '@superset-ui/core';
 import wrapSvgText from './utils/wrapSvgText';
 
@@ -81,7 +82,8 @@ function buildHierarchy(rows) {
     let currentNode = root;
     for (let level = 0; level < levels.length; level += 1) {
       const children = currentNode.children || [];
-      const nodeName = levels[level].toString();
+      const node = levels[level];
+      const nodeName = node ? node.toString() : t('N/A');
       // If the next node has the name '0', it will
       const isLeafNode = level >= levels.length - 1 || levels[level + 1] === 0;
       let childNode;
@@ -381,7 +383,10 @@ function Sunburst(element, props) {
       .append('text')
       .attr('class', 'path-abs-percent')
       .attr('y', yOffsets[offsetIndex])
-      .text(`${absolutePercString} of total`);
+      // eslint-disable-next-line prefer-template
+      .text(absolutePercString + ' ' + t('of total'));
+
+    const OF_PARENT_TEXT = t('of parent');
 
     if (conditionalPercString) {
       offsetIndex += 1;
@@ -389,7 +394,7 @@ function Sunburst(element, props) {
         .append('text')
         .attr('class', 'path-cond-percent')
         .attr('y', yOffsets[offsetIndex])
-        .text(`${conditionalPercString} of parent`);
+        .text(`${conditionalPercString} ${OF_PARENT_TEXT}`);
     }
 
     offsetIndex += 1;

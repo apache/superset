@@ -115,7 +115,7 @@ class TestBaseModelRestApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
         expected_mutation_spec = {
-            "properties": {"id": {"format": "int32", "type": "integer"}},
+            "properties": {"id": {"type": "integer"}},
             "type": "object",
         }
         self.assertEqual(
@@ -218,6 +218,26 @@ class ApiOwnersTestCaseMixin:
         response_users = [result["text"] for result in response["result"]]
         for expected_user in expected_users:
             assert expected_user in response_users
+
+    def test_get_related_owners_with_extra_filters(self):
+        """
+        API: Test get related owners with extra related query filters
+        """
+        self.login(username="admin")
+
+        def _base_filter(query):
+            return query.filter_by(username="alpha")
+
+        with patch.dict(
+            "superset.views.filters.current_app.config",
+            {"EXTRA_RELATED_QUERY_FILTERS": {"user": _base_filter}},
+        ):
+            uri = f"api/v1/{self.resource_name}/related/owners"
+            rv = self.client.get(uri)
+            assert rv.status_code == 200
+            response = json.loads(rv.data.decode("utf-8"))
+            response_users = [result["text"] for result in response["result"]]
+            assert response_users == ["alpha user"]
 
     def test_get_related_owners_paginated(self):
         """

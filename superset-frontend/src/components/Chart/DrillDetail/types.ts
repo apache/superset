@@ -24,22 +24,3 @@ export type ResultsPage = {
   colNames: string[];
   colTypes: GenericDataType[];
 };
-
-export type Dataset = {
-  changed_by?: {
-    first_name: string;
-    last_name: string;
-  };
-  created_by?: {
-    first_name: string;
-    last_name: string;
-  };
-  changed_on_humanized: string;
-  created_on_humanized: string;
-  description: string;
-  table_name: string;
-  owners: {
-    first_name: string;
-    last_name: string;
-  }[];
-};

@@ -19,8 +19,6 @@
 import {
   AnnotationType,
   Behavior,
-  ChartMetadata,
-  ChartPlugin,
   hasGenericChartAxes,
   t,
 } from '@superset-ui/core';
@@ -34,6 +32,7 @@ import controlPanel from './controlPanel';
 import transformProps from '../../transformProps';
 import thumbnail from './images/thumbnail.png';
 import example1 from './images/SmoothLine1.png';
+import { EchartsChartPlugin } from '../../../types';
 
 const smoothTransformProps = (chartProps: EchartsTimeseriesChartProps) =>
   transformProps({
@@ -44,7 +43,7 @@ const smoothTransformProps = (chartProps: EchartsTimeseriesChartProps) =>
     },
   });
 
-export default class EchartsTimeseriesSmoothLineChartPlugin extends ChartPlugin<
+export default class EchartsTimeseriesSmoothLineChartPlugin extends EchartsChartPlugin<
   EchartsTimeseriesFormData,
   EchartsTimeseriesChartProps
 > {
@@ -53,8 +52,12 @@ export default class EchartsTimeseriesSmoothLineChartPlugin extends ChartPlugin<
       buildQuery,
       controlPanel,
       loadChart: () => import('../../EchartsTimeseries'),
-      metadata: new ChartMetadata({
-        behaviors: [Behavior.INTERACTIVE_CHART, Behavior.DRILL_TO_DETAIL],
+      metadata: {
+        behaviors: [
+          Behavior.INTERACTIVE_CHART,
+          Behavior.DRILL_TO_DETAIL,
+          Behavior.DRILL_BY,
+        ],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
         description: hasGenericChartAxes
@@ -84,7 +87,7 @@ export default class EchartsTimeseriesSmoothLineChartPlugin extends ChartPlugin<
           t('Transformable'),
         ],
         thumbnail,
-      }),
+      },
       transformProps: smoothTransformProps,
     });
   }

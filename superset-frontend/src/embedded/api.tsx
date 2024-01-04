@@ -16,9 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import getBootstrapData from 'src/utils/getBootstrapData';
 import { store } from '../views/store';
-import { bootstrapData } from '../preamble';
 import { getDashboardPermalink as getDashboardPermalinkUtil } from '../utils/urlUtils';
+
+const bootstrapData = getBootstrapData();
 
 type Size = {
   width: number;

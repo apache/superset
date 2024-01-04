@@ -48,14 +48,14 @@ if (defaultView != null) {
 }
 
 const g = global as any;
-g.window = g.window || {};
-g.window.location = { href: 'about:blank' };
-g.window.performance = { now: () => new Date().getTime() };
-g.window.Worker = Worker;
-g.window.IntersectionObserver = IntersectionObserver;
-g.window.ResizeObserver = ResizeObserver;
-g.window.featureFlags = {};
-g.URL.createObjectURL = () => '';
+g.window ??= Object.create(window);
+g.window.location ??= { href: 'about:blank' };
+g.window.performance ??= { now: () => new Date().getTime() };
+g.window.Worker ??= Worker;
+g.window.IntersectionObserver ??= IntersectionObserver;
+g.window.ResizeObserver ??= ResizeObserver;
+g.window.featureFlags ??= {};
+g.URL.createObjectURL ??= () => '';
 g.caches = new CacheStorage();
 
 Object.defineProperty(window, 'matchMedia', {
@@ -88,5 +88,35 @@ jest.mock('src/hooks/useTabId', () => ({
 jest.mock('react-markdown', () => (props: any) => <>{props.children}</>);
 jest.mock('rehype-sanitize', () => () => jest.fn());
 jest.mock('rehype-raw', () => () => jest.fn());
+
+// Mocks the Icon component due to its async nature
+// Tests should override this when needed
+jest.mock('src/components/Icons/Icon', () => ({
+  __esModule: true,
+  default: ({
+    fileName,
+    role,
+    'aria-label': ariaLabel,
+    ...rest
+  }: {
+    fileName: string;
+    role: string;
+    'aria-label': React.AriaAttributes['aria-label'];
+  }) => (
+    <span
+      role={role ?? 'img'}
+      aria-label={ariaLabel || fileName.replace('_', '-')}
+      {...rest}
+    />
+  ),
+  StyledIcon: ({
+    role,
+    'aria-label': ariaLabel,
+    ...rest
+  }: {
+    role: string;
+    'aria-label': React.AriaAttributes['aria-label'];
+  }) => <span role={role ?? 'img'} aria-label={ariaLabel} {...rest} />,
+}));
 
 process.env.WEBPACK_MODE = 'test';

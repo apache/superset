@@ -23,8 +23,7 @@ import userEvent from '@testing-library/user-event';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
 import * as mockCore from '@superset-ui/core';
 import { testWithId } from 'src/utils/testUtils';
-import { FeatureFlag } from 'src/featureFlags';
-import { Preset } from '@superset-ui/core';
+import { FeatureFlag, Preset } from '@superset-ui/core';
 import { TimeFilterPlugin, SelectFilterPlugin } from 'src/filters/components';
 import { DATE_FILTER_TEST_KEY } from 'src/explore/components/controls/DateFilterControl';
 import fetchMock from 'fetch-mock';
@@ -76,6 +75,12 @@ const getModalTestId = testWithId<string>(FILTERS_CONFIG_MODAL_TEST_ID, true);
 
 const FILTER_NAME = 'Time filter 1';
 const FILTER_SET_NAME = 'New filter set';
+
+// @ts-ignore
+global.featureFlags = {
+  [FeatureFlag.DASHBOARD_NATIVE_FILTERS]: true,
+  [FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET]: true,
+};
 
 const addFilterFlow = async () => {
   // open filter config modal

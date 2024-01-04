@@ -22,11 +22,10 @@ import {
   JsonObject,
   PartialFilters,
 } from '@superset-ui/core';
-import { ChartQueryPayload } from 'src/dashboard/types';
+import { ChartConfiguration, ChartQueryPayload } from 'src/dashboard/types';
 import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import { areObjectsEqual } from 'src/reduxUtils';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
-import { ChartConfiguration } from '../../reducers/types';
 import { getAllActiveFilters } from '../activeAllDashboardFilters';
 
 // We cache formData objects so that our connected container components don't always trigger

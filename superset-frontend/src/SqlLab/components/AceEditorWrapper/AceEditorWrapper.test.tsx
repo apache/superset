@@ -51,7 +51,6 @@ const setup = (queryEditor: QueryEditor, store?: Store) =>
       queryEditorId={queryEditor.id}
       height="100px"
       hotkeys={[]}
-      database={{}}
       onChange={jest.fn()}
       onBlur={jest.fn()}
       autocomplete

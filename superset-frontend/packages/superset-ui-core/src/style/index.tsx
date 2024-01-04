@@ -161,6 +161,7 @@ const defaultTheme = {
   },
   transitionTiming: 0.3,
   gridUnit: 4,
+  brandIconMaxWidth: 37,
 };
 
 export type SupersetTheme = typeof defaultTheme;

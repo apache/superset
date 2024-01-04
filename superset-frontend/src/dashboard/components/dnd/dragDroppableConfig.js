@@ -19,7 +19,7 @@
 import handleHover from './handleHover';
 import handleDrop from './handleDrop';
 
-// note: the 'type' hook is not useful for us as dropping is contigent on other properties
+// note: the 'type' hook is not useful for us as dropping is contingent on other properties
 const TYPE = 'DRAG_DROPPABLE';
 
 export const dragConfig = [

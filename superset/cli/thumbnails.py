@@ -15,14 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Type, Union
+from typing import Union
 
 import click
 from celery.utils.abstract import CallableTask
 from flask.cli import with_appcontext
 
 from superset.extensions import db
-from superset.utils.urls import get_url_path
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +62,7 @@ def compute_thumbnails(
     dashboards_only: bool,
     charts_only: bool,
     force: bool,
-    model_id: int,
+    model_id: list[int],
 ) -> None:
     """Compute thumbnails"""
     # pylint: disable=import-outside-toplevel
@@ -76,13 +75,13 @@ def compute_thumbnails(
 
     def compute_generic_thumbnail(
         friendly_type: str,
-        model_cls: Union[Type[Dashboard], Type[Slice]],
-        model_id: int,
+        model_cls: Union[type[Dashboard], type[Slice]],
+        model_ids: list[int],
         compute_func: CallableTask,
     ) -> None:
         query = db.session.query(model_cls)
-        if model_id:
-            query = query.filter(model_cls.id.in_(model_id))
+        if model_ids:
+            query = query.filter(model_cls.id.in_(model_ids))
         dashboards = query.all()
         count = len(dashboards)
         for i, model in enumerate(dashboards):
@@ -94,13 +93,7 @@ def compute_thumbnails(
                 action = "Processing"
             msg = f'{action} {friendly_type} "{model}" ({i+1}/{count})'
             click.secho(msg, fg="green")
-            if friendly_type == "chart":
-                url = get_url_path(
-                    "Superset.slice", slice_id=model.id, standalone="true"
-                )
-            else:
-                url = get_url_path("Superset.dashboard", dashboard_id_or_slug=model.id)
-            func(url, model.digest, force=force)
+            func(None, model.id, force=force)
 
     if not charts_only:
         compute_generic_thumbnail(

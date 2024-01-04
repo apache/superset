@@ -1,7 +1,7 @@
 ---
 title: SQL Templating
 hide_title: true
-sidebar_position: 10
+sidebar_position: 11
 version: 1
 ---
 
@@ -30,7 +30,9 @@ made available in the Jinja context:
 For example, to add a time range to a virtual dataset, you can write the following:
 
 ```sql
-SELECT * from tbl where dttm_col > '{{ from_dttm }}' and dttm_col < '{{ to_dttm }}'
+SELECT *
+FROM tbl
+WHERE dttm_col > '{{ from_dttm }}' and dttm_col < '{{ to_dttm }}'
 ```
 
 You can also use [Jinja's logic](https://jinja.palletsprojects.com/en/2.11.x/templates/#tests)
@@ -63,6 +65,41 @@ JINJA_CONTEXT_ADDONS = {
     'my_crazy_macro': lambda x: x*2,
 }
 ```
+
+Default values for jinja templates can be specified via `Parameters` menu in the SQL Lab user interface.
+In the UI you can assign a set of parameters as JSON
+
+```json
+{
+  "my_table": "foo"
+}
+```
+The parameters become available in your SQL (example: `SELECT * FROM {{ my_table }}` ) by using Jinja templating syntax.
+SQL Lab template parameters are stored with the dataset as `TEMPLATE PARAMETERS`.
+
+There is a special ``_filters`` parameter which can be used to test filters used in the jinja template.
+
+```json
+{
+  "_filters": [
+    {
+      "col": "action_type",
+      "op": "IN",
+      "val": ["sell", "buy"]
+    }
+  ]
+}
+```
+
+```sql
+SELECT action, count(*) as times
+FROM logs
+WHERE action in {{ filter_values('action_type'))|where_in }}
+GROUP BY action
+```
+
+Note ``_filters`` is not stored with the dataset. It's only used within the SQL Lab UI.
+
 
 Besides default Jinja templating, SQL lab also supports self-defined template processor by setting
 the `CUSTOM_TEMPLATE_PROCESSORS` in your superset configuration. The values in this dictionary
@@ -174,7 +211,7 @@ Here's a concrete example:
 
 - You write the following query in SQL Lab:
 
-  ```
+  ```sql
   SELECT count(*)
   FROM ORDERS
   WHERE country_code = '{{ url_param('countrycode') }}'
@@ -185,7 +222,7 @@ Here's a concrete example:
   and your coworker in the USA the following SQL Lab URL `www.example.com/superset/sqllab?countrycode=US`
 - For your coworker in Spain, the SQL Lab query will be rendered as:
 
-  ```
+  ```sql
   SELECT count(*)
   FROM ORDERS
   WHERE country_code = 'ES'
@@ -193,7 +230,7 @@ Here's a concrete example:
 
 - For your coworker in the USA, the SQL Lab query will be rendered as:
 
-  ```
+  ```sql
   SELECT count(*)
   FROM ORDERS
   WHERE country_code = 'US'
@@ -222,7 +259,7 @@ This is useful if:
 
 Here's a concrete example:
 
-```
+```sql
 SELECT action, count(*) as times
 FROM logs
 WHERE

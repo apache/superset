@@ -219,7 +219,6 @@ describe('RefreshIntervalModal - RTL', () => {
     await openRefreshIntervalModal();
     await displayOptions();
 
-    screen.logTestingPlaygroundURL();
     // Select a new interval and click save
     userEvent.click(screen.getByText(/10 seconds/i));
     userEvent.click(screen.getByRole('button', { name: /save/i }));

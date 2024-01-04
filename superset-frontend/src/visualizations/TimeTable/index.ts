@@ -19,6 +19,7 @@
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import example from './images/example.jpg';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
@@ -27,6 +28,7 @@ const metadata = new ChartMetadata({
   description: t(
     'Compare multiple time series charts (as sparklines) and related metrics quickly.',
   ),
+  exampleGallery: [{ url: example }],
   tags: [
     t('Multi-Variables'),
     t('Comparison'),

@@ -23,11 +23,9 @@ import { NULL_DISPLAY } from 'src/constants';
 function NullCell() {
   return (
     <span
-      css={(theme: SupersetTheme) =>
-        css`
-          color: ${theme.colors.grayscale.light1};
-        `
-      }
+      css={(theme: SupersetTheme) => css`
+        color: ${theme.colors.grayscale.light1};
+      `}
     >
       {NULL_DISPLAY}
     </span>

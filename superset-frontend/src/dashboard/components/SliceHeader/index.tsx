@@ -21,14 +21,13 @@ import React, {
   ReactNode,
   useContext,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { css, getExtensionsRegistry, styled, t } from '@superset-ui/core';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { Tooltip } from 'src/components/Tooltip';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import EditableTitle from 'src/components/EditableTitle';
 import SliceHeaderControls, {
   SliceHeaderControlsProps,
@@ -36,10 +35,10 @@ import SliceHeaderControls, {
 import FiltersBadge from 'src/dashboard/components/FiltersBadge';
 import Icons from 'src/components/Icons';
 import { RootState } from 'src/dashboard/types';
-import FilterIndicator from 'src/dashboard/components/FiltersBadge/FilterIndicator';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
-import { clearDataMask } from 'src/dataMask/actions';
+
+const extensionsRegistry = getExtensionsRegistry();
 
 type SliceHeaderProps = SliceHeaderControlsProps & {
   innerRef?: string;
@@ -57,11 +56,77 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
 
 const annotationsLoading = t('Annotation layers are still loading.');
 const annotationsError = t('One ore more annotation layers failed loading.');
-const CrossFilterIcon = styled(Icons.CursorTarget)`
-  cursor: pointer;
-  color: ${({ theme }) => theme.colors.primary.base};
-  height: 22px;
-  width: 22px;
+const CrossFilterIcon = styled(Icons.ApartmentOutlined)`
+  ${({ theme }) => `
+    cursor: default;
+    color: ${theme.colors.primary.base};
+    line-height: 1.8;
+  `}
+`;
+
+const ChartHeaderStyles = styled.div`
+  ${({ theme }) => css`
+    font-size: ${theme.typography.sizes.l}px;
+    font-weight: ${theme.typography.weights.bold};
+    margin-bottom: ${theme.gridUnit}px;
+    display: flex;
+    max-width: 100%;
+    align-items: flex-start;
+    min-height: 0;
+
+    & > .header-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      flex-grow: 1;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+
+      & > span.ant-tooltip-open {
+        display: inline;
+      }
+    }
+
+    & > .header-controls {
+      display: flex;
+      align-items: center;
+      height: 24px;
+
+      & > * {
+        margin-left: ${theme.gridUnit * 2}px;
+      }
+    }
+
+    .dropdown.btn-group {
+      pointer-events: none;
+      vertical-align: top;
+      & > * {
+        pointer-events: auto;
+      }
+    }
+
+    .dropdown-toggle.btn.btn-default {
+      background: none;
+      border: none;
+      box-shadow: none;
+    }
+
+    .dropdown-menu.dropdown-menu-right {
+      top: ${theme.gridUnit * 5}px;
+    }
+
+    .divider {
+      margin: ${theme.gridUnit}px 0;
+    }
+
+    .refresh-tooltip {
+      display: block;
+      height: ${theme.gridUnit * 4}px;
+      margin: ${theme.gridUnit}px 0;
+      color: ${theme.colors.text.label};
+    }
+  `}
 `;
 
 const SliceHeader: FC<SliceHeaderProps> = ({
@@ -70,7 +135,9 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   updateSliceName = () => ({}),
   toggleExpandSlice = () => ({}),
   logExploreChart = () => ({}),
+  logEvent,
   exportCSV = () => ({}),
+  exportXLSX = () => ({}),
   editMode = false,
   annotationQuery = {},
   annotationError = {},
@@ -82,8 +149,8 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   supersetCanExplore = false,
   supersetCanShare = false,
   supersetCanCSV = false,
-  sliceCanEdit = false,
   exportFullCSV,
+  exportFullXLSX,
   slice,
   componentId,
   dashboardId,
@@ -96,7 +163,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   width,
   height,
 }) => {
-  const dispatch = useDispatch();
+  const SliceHeaderExtension = extensionsRegistry.get('dashboard.slice.header');
   const uiConfig = useUiConfig();
   const dashboardPageId = useContext(DashboardPageIdContext);
   const [headerTooltip, setHeaderTooltip] = useState<ReactNode | null>(null);
@@ -105,13 +172,8 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   const crossFilterValue = useSelector<RootState, any>(
     state => state.dataMask[slice?.slice_id]?.filterState?.value,
   );
-
-  const indicator = useMemo(
-    () => ({
-      value: crossFilterValue,
-      name: t('Emitted values'),
-    }),
-    [crossFilterValue],
+  const isCrossFiltersEnabled = useSelector<RootState, boolean>(
+    ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
   );
 
   const canExplore = !editMode && supersetCanExplore;
@@ -134,7 +196,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   const exploreUrl = `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${slice.slice_id}`;
 
   return (
-    <div className="chart-header" data-test="slice-header" ref={innerRef}>
+    <ChartHeaderStyles data-test="slice-header" ref={innerRef}>
       <div className="header-title" ref={headerRef}>
         <Tooltip title={headerTooltip}>
           <EditableTitle
@@ -165,7 +227,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
         )}
         {!!Object.values(annotationError).length && (
           <Tooltip
-            id="annoation-errors-tooltip"
+            id="annotation-errors-tooltip"
             placement="top"
             title={annotationsError}
           >
@@ -180,19 +242,20 @@ const SliceHeader: FC<SliceHeaderProps> = ({
       <div className="header-controls">
         {!editMode && (
           <>
+            {SliceHeaderExtension && (
+              <SliceHeaderExtension
+                sliceId={slice.slice_id}
+                dashboardId={dashboardId}
+              />
+            )}
             {crossFilterValue && (
               <Tooltip
                 placement="top"
-                title={
-                  <FilterIndicator
-                    indicator={indicator}
-                    text={t('Click to clear emitted filters')}
-                  />
-                }
+                title={t(
+                  'This chart applies cross-filters to charts whose datasets contain columns with the same name.',
+                )}
               >
-                <CrossFilterIcon
-                  onClick={() => dispatch(clearDataMask(slice?.slice_id))}
-                />
+                <CrossFilterIcon iconSize="m" />
               </Tooltip>
             )}
             {!uiConfig.hideChartControls && (
@@ -208,12 +271,14 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 toggleExpandSlice={toggleExpandSlice}
                 forceRefresh={forceRefresh}
                 logExploreChart={logExploreChart}
+                logEvent={logEvent}
                 exportCSV={exportCSV}
                 exportFullCSV={exportFullCSV}
+                exportXLSX={exportXLSX}
+                exportFullXLSX={exportFullXLSX}
                 supersetCanExplore={supersetCanExplore}
                 supersetCanShare={supersetCanShare}
                 supersetCanCSV={supersetCanCSV}
-                sliceCanEdit={sliceCanEdit}
                 componentId={componentId}
                 dashboardId={dashboardId}
                 addSuccessToast={addSuccessToast}
@@ -224,12 +289,13 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 chartStatus={chartStatus}
                 formData={formData}
                 exploreUrl={exploreUrl}
+                crossFiltersEnabled={isCrossFiltersEnabled}
               />
             )}
           </>
         )}
       </div>
-    </div>
+    </ChartHeaderStyles>
   );
 };
 

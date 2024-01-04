@@ -164,41 +164,4 @@ describe('buildQueryContext', () => {
     expect(spyNormalizeTimeColumn).not.toBeCalled();
     spyNormalizeTimeColumn.mockRestore();
   });
-  it('should orverride time filter if GENERIC_CHART_AXES is enabled', () => {
-    Object.defineProperty(getXAxisModule, 'hasGenericChartAxes', {
-      value: true,
-    });
-
-    const queryContext = buildQueryContext(
-      {
-        datasource: '5__table',
-        viz_type: 'table',
-      },
-      () => [
-        {
-          filters: [
-            {
-              col: 'col1',
-              op: 'TEMPORAL_RANGE',
-              val: '2001 : 2002',
-            },
-            {
-              col: 'col2',
-              op: 'IN',
-              val: ['a', 'b'],
-            },
-          ],
-          time_range: '1990 : 1991',
-        },
-      ],
-    );
-    expect(queryContext.queries[0].filters).toEqual([
-      { col: 'col1', op: 'TEMPORAL_RANGE', val: '1990 : 1991' },
-      {
-        col: 'col2',
-        op: 'IN',
-        val: ['a', 'b'],
-      },
-    ]);
-  });
 });

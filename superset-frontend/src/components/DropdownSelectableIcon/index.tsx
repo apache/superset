@@ -23,11 +23,20 @@ import { DropdownButton } from 'src/components/DropdownButton';
 import { DropdownButtonProps } from 'antd/lib/dropdown';
 import { Menu, MenuProps } from 'src/components/Menu';
 
+const { SubMenu } = Menu;
+
+type SubMenuItemProps = { key: string; label: string | React.ReactNode };
+
 export interface DropDownSelectableProps extends Pick<MenuProps, 'onSelect'> {
   ref?: RefObject<HTMLDivElement>;
   icon: React.ReactNode;
   info?: string;
-  menuItems: { key: string; label: React.ReactNode }[];
+  menuItems: {
+    key: string;
+    label: string | React.ReactNode;
+    children?: SubMenuItemProps[];
+    divider?: boolean;
+  }[];
   selectedKeys?: string[];
 }
 
@@ -37,7 +46,7 @@ const StyledDropdownButton = styled(
   button.ant-btn:first-of-type {
     display: none;
   }
-  > button.ant-btn:nth-child(2) {
+  > button.ant-btn:nth-of-type(2) {
     display: inline-flex;
     background-color: transparent !important;
     height: unset;
@@ -67,17 +76,49 @@ const StyledMenu = styled(Menu)`
       color: ${theme.colors.grayscale.dark1};
       background-color: ${theme.colors.primary.light5};
     }
-    .ant-dropdown-menu-item > span.anticon {
-      float: right;
-      margin-right: 0;
-      font-size: ${theme.typography.sizes.xl}px;
-    }
   `}
+`;
+
+const StyleMenuItem = styled(Menu.Item)<{ divider?: boolean }>`
+  display: flex;
+  justify-content: space-between;
+  > span {
+    width: 100%;
+  }
+  border-bottom: ${({ divider, theme }) =>
+    divider ? `1px solid ${theme.colors.grayscale.light3};` : 'none;'};
+`;
+
+const StyleSubmenuItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  > span {
+    width: 100%;
+  }
 `;
 
 export default (props: DropDownSelectableProps) => {
   const theme = useTheme();
   const { icon, info, menuItems, selectedKeys, onSelect } = props;
+  const menuItem = useMemo(
+    () => (label: string | React.ReactNode, key: string, divider?: boolean) =>
+      (
+        <StyleMenuItem key={key} divider={divider}>
+          <StyleSubmenuItem>
+            <span>{label}</span>
+            {selectedKeys?.includes(key) && (
+              <Icons.Check
+                iconColor={theme.colors.primary.base}
+                className="tick-menu-item"
+                iconSize="xl"
+              />
+            )}
+          </StyleSubmenuItem>
+        </StyleMenuItem>
+      ),
+    [selectedKeys, theme.colors.primary.base],
+  );
+
   const overlayMenu = useMemo(
     () => (
       <StyledMenu selectedKeys={selectedKeys} onSelect={onSelect} selectable>
@@ -86,17 +127,22 @@ export default (props: DropDownSelectableProps) => {
             {info}
           </div>
         )}
-        {menuItems.map(m => (
-          <Menu.Item key={m.key}>
-            {m.label}
-            {selectedKeys?.includes(m.key) && (
-              <Icons.Check iconColor={theme.colors.primary.base} />
-            )}
-          </Menu.Item>
-        ))}
+        {menuItems.map(m =>
+          m.children?.length ? (
+            <SubMenu
+              title={m.label}
+              key={m.key}
+              data-test="dropdown-selectable-icon-submenu"
+            >
+              {m.children.map(s => menuItem(s.label, s.key))}
+            </SubMenu>
+          ) : (
+            menuItem(m.label, m.key, m.divider)
+          ),
+        )}
       </StyledMenu>
     ),
-    [info, menuItems],
+    [selectedKeys, onSelect, info, menuItems, menuItem],
   );
 
   return (

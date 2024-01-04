@@ -21,15 +21,21 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { styled, t, css, useTheme, logging } from '@superset-ui/core';
+import {
+  styled,
+  t,
+  css,
+  useTheme,
+  logging,
+  useChangeEffect,
+  useComponentDidMount,
+  usePrevious,
+} from '@superset-ui/core';
 import { debounce, pick } from 'lodash';
 import { Resizable } from 're-resizable';
-import { useChangeEffect } from 'src/hooks/useChangeEffect';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import { Global } from '@emotion/react';
 import { Tooltip } from 'src/components/Tooltip';
-import { usePrevious } from 'src/hooks/usePrevious';
-import { useComponentDidMount } from 'src/hooks/useComponentDidMount';
 import Icons from 'src/components/Icons';
 import {
   getItem,

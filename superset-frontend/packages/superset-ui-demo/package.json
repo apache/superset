@@ -1,21 +1,8 @@
 {
   "name": "@superset-ui/demo",
   "version": "0.18.25",
-  "description": "Storybook for Superset UI ✨",
   "private": true,
-  "main": "index.js",
-  "scripts": {
-    "demo:clean": "rm -rf _gh-pages",
-    "demo:build": "npm run demo:clean && build-storybook -o _gh-pages",
-    "demo:publish": "gh-pages -d _gh-pages",
-    "deploy-demo": "npm run demo:build && npm run demo:publish && npm run demo:clean",
-    "storybook": "start-storybook -p 9001",
-    "build-storybook": "npm run demo:clean && build-storybook"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/apache-superset/superset-ui.git"
-  },
+  "description": "Storybook for Superset UI ✨",
   "keywords": [
     "storybook",
     "superset",
@@ -24,11 +11,25 @@
     "analysis",
     "data"
   ],
-  "license": "Apache-2.0",
+  "homepage": "https://github.com/apache/superset/tree/master/superset-frontend/packages/superset-ui-demo#readme",
   "bugs": {
-    "url": "https://github.com/apache-superset/superset-ui/issues"
+    "url": "https://github.com/apache/superset/issues"
   },
-  "homepage": "https://github.com/apache-superset/superset-ui#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/apache/superset.git",
+    "directory": "superset-frontend/packages/superset-ui-demo"
+  },
+  "license": "Apache-2.0",
+  "main": "index.js",
+  "scripts": {
+    "build-storybook": "npm run demo:clean && build-storybook",
+    "demo:build": "npm run demo:clean && build-storybook -o _gh-pages",
+    "demo:clean": "rm -rf _gh-pages",
+    "demo:publish": "gh-pages -d _gh-pages",
+    "deploy-demo": "npm run demo:build && npm run demo:publish && npm run demo:clean",
+    "storybook": "start-storybook -p 9001"
+  },
   "dependencies": {
     "@data-ui/event-flow": "^0.0.84",
     "@emotion/cache": "^11.4.0",
@@ -76,19 +77,16 @@
     "@superset-ui/legacy-plugin-chart-paired-t-test": "*",
     "@superset-ui/legacy-plugin-chart-parallel-coordinates": "*",
     "@superset-ui/legacy-plugin-chart-partition": "*",
-    "@superset-ui/legacy-plugin-chart-pivot-table": "*",
     "@superset-ui/legacy-plugin-chart-rose": "*",
     "@superset-ui/legacy-plugin-chart-sankey": "*",
     "@superset-ui/legacy-plugin-chart-sankey-loop": "*",
     "@superset-ui/legacy-plugin-chart-sunburst": "*",
     "@superset-ui/legacy-plugin-chart-time-table": "*",
-    "@superset-ui/legacy-plugin-chart-treemap": "*",
     "@superset-ui/legacy-plugin-chart-world-map": "*",
     "@superset-ui/legacy-preset-chart-deckgl": "*",
     "@superset-ui/legacy-preset-chart-nvd3": "*",
     "@superset-ui/plugin-chart-echarts": "*",
     "@superset-ui/plugin-chart-table": "*",
-    "@superset-ui/plugin-chart-word-cloud": "*",
-    "@superset-ui/preset-chart-xy": "*"
+    "@superset-ui/plugin-chart-word-cloud": "*"
   }
 }

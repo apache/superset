@@ -7,10 +7,12 @@ jobs:
   latest-release:
     name: Add/update tag to new release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
     - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         persist-credentials: false
         submodules: recursive
@@ -27,4 +29,4 @@ jobs:
         description: Superset latest release
         tag-name: latest
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ github.token }}

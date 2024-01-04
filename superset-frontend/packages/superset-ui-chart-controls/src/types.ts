@@ -21,6 +21,7 @@ import React, { ReactElement, ReactNode, ReactText } from 'react';
 import type {
   AdhocColumn,
   Column,
+  Currency,
   DatasourceType,
   JsonObject,
   JsonValue,
@@ -33,7 +34,6 @@ import type {
 import { sharedControls, sharedControlComponents } from './shared-controls';
 
 export type { Metric } from '@superset-ui/core';
-export type { ControlFormItemSpec } from './components/ControlForm';
 export type { ControlComponentProps } from './shared-controls/components/types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -67,12 +67,13 @@ export interface Dataset {
   type: DatasourceType;
   columns: ColumnMeta[];
   metrics: Metric[];
-  column_format: Record<string, string>;
+  column_formats: Record<string, string>;
+  currency_formats: Record<string, Currency>;
   verbose_map: Record<string, string>;
   main_dttm_col: string;
   // eg. ['["ds", true]', 'ds [asc]']
   order_by_choices?: [string, string][] | null;
-  time_grain_sqla?: string;
+  time_grain_sqla?: [string, string][];
   granularity_sqla?: string;
   datasource_name: string | null;
   name?: string;
@@ -88,10 +89,11 @@ export interface ControlPanelState {
   datasource: Dataset | QueryResponse | null;
   controls: ControlStateMapping;
   common: JsonObject;
+  metadata?: JsonObject | null;
 }
 
 /**
- * The action dispather will call Redux `dispatch` internally and return what's
+ * The action dispatcher will call Redux `dispatch` internally and return what's
  * returned from `dispatch`, which by default is the original or another action.
  */
 export interface ActionDispatcher<
@@ -164,6 +166,12 @@ export type InternalControlType =
   | 'DndColumnSelect'
   | 'DndFilterSelect'
   | 'DndMetricSelect'
+  | 'CurrencyControl'
+  | 'InputNumber'
+  | 'Checkbox'
+  | 'Select'
+  | 'Slider'
+  | 'Input'
   | keyof SharedControlComponents; // expanded in `expandControlConfig`
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -199,7 +207,7 @@ export type TabOverride = 'data' | 'customize' | boolean;
      tab, or 'customize' if you want it to show up on that tam. Otherwise sections with ALL
      `renderTrigger: true` components will show up on the `Customize` tab.
  * - visibility: a function that uses control panel props to check whether a control should
- *    be visibile.
+ *    be visible.
  */
 export interface BaseControlConfig<
   T extends ControlType = ControlType,
@@ -333,7 +341,6 @@ export type SharedSectionAlias =
   | 'annotations'
   | 'colorScheme'
   | 'datasourceAndVizType'
-  | 'druidTimeSeries'
   | 'sqlaTimeSeries'
   | 'NVD3TimeSeries';
 
@@ -480,3 +487,73 @@ export function isQueryResponse(
 ): datasource is QueryResponse {
   return !!datasource && 'results' in datasource && 'sql' in datasource;
 }
+
+export enum SortSeriesType {
+  Name = 'name',
+  Max = 'max',
+  Min = 'min',
+  Sum = 'sum',
+  Avg = 'avg',
+}
+
+export type SortSeriesData = {
+  sort_series_type: SortSeriesType;
+  sort_series_ascending: boolean;
+};
+
+export type ControlFormValueValidator<V> = (value: V) => string | false;
+
+export type ControlFormItemSpec<T extends ControlType = ControlType> = {
+  controlType: T;
+  label: ReactNode;
+  description: ReactNode;
+  placeholder?: string;
+  validators?: ControlFormValueValidator<any>[];
+  width?: number | string;
+  /**
+   * Time to delay change propagation.
+   */
+  debounceDelay?: number;
+} & (T extends 'Select'
+  ? {
+      options: any;
+      value?: string;
+      defaultValue?: string;
+      creatable?: boolean;
+      minWidth?: number | string;
+      validators?: ControlFormValueValidator<string>[];
+    }
+  : T extends 'RadioButtonControl'
+  ? {
+      options: [string, ReactNode][];
+      value?: string;
+      defaultValue?: string;
+    }
+  : T extends 'Checkbox'
+  ? {
+      value?: boolean;
+      defaultValue?: boolean;
+    }
+  : T extends 'InputNumber' | 'Slider'
+  ? {
+      min?: number;
+      max?: number;
+      step?: number;
+      value?: number;
+      defaultValue?: number;
+      validators?: ControlFormValueValidator<number>[];
+    }
+  : T extends 'Input'
+  ? {
+      controlType: 'Input';
+      value?: string;
+      defaultValue?: string;
+      validators?: ControlFormValueValidator<string>[];
+    }
+  : T extends 'CurrencyControl'
+  ? {
+      controlType: 'CurrencyControl';
+      value?: Currency;
+      defaultValue?: Currency;
+    }
+  : {});

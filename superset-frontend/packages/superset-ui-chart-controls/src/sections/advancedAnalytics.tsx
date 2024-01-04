@@ -17,7 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import { t, RollingType, ComparisionType } from '@superset-ui/core';
+import { t, RollingType, ComparisonType } from '@superset-ui/core';
+
+import { ControlSubSectionHeader } from '../components/ControlSubSectionHeader';
 import { ControlPanelSectionConfig } from '../types';
 import { formatSelectOptions } from '../utils';
 
@@ -30,7 +32,7 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
       'of query results',
   ),
   controlSetRows: [
-    [<div className="section-header">{t('Rolling window')}</div>],
+    [<ControlSubSectionHeader>{t('Rolling window')}</ControlSubSectionHeader>],
     [
       {
         name: 'rolling_type',
@@ -99,7 +101,7 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
         },
       },
     ],
-    [<div className="section-header">{t('Time comparison')}</div>],
+    [<ControlSubSectionHeader>{t('Time comparison')}</ControlSubSectionHeader>],
     [
       {
         name: 'time_compare',
@@ -108,20 +110,18 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
           multi: true,
           freeForm: true,
           label: t('Time shift'),
-          choices: formatSelectOptions([
-            '1 day ago',
-            '1 week ago',
-            '28 days ago',
-            '30 days ago',
-            '52 weeks ago',
-            '1 year ago',
-            '104 weeks ago',
-            '2 years ago',
-            '156 weeks ago',
-            '3 years ago',
-            '208 weeks ago',
-            '4 years ago',
-          ]),
+          choices: [
+            ['1 day ago', t('1 day ago')],
+            ['1 week ago', t('1 week ago')],
+            ['28 days ago', t('28 days ago')],
+            ['30 days ago', t('30 days ago')],
+            ['52 weeks ago', t('52 weeks ago')],
+            ['1 year ago', t('1 year ago')],
+            ['104 weeks ago', t('104 weeks ago')],
+            ['2 years ago', t('2 years ago')],
+            ['156 weeks ago', t('156 weeks ago')],
+            ['3 years ago', t('3 years ago')],
+          ],
           description: t(
             'Overlay one or more timeseries from a ' +
               'relative time period. Expects relative time deltas ' +
@@ -139,10 +139,10 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
           label: t('Calculation type'),
           default: 'values',
           choices: [
-            [ComparisionType.Values, 'Actual values'],
-            [ComparisionType.Difference, 'Difference'],
-            [ComparisionType.Percentage, 'Percentage change'],
-            [ComparisionType.Ratio, 'Ratio'],
+            [ComparisonType.Values, t('Actual values')],
+            [ComparisonType.Difference, t('Difference')],
+            [ComparisonType.Percentage, t('Percentage change')],
+            [ComparisonType.Ratio, t('Ratio')],
           ],
           description: t(
             'How to display time shifts: as individual lines; as the ' +
@@ -152,7 +152,7 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
         },
       },
     ],
-    [<div className="section-header">{t('Resample')}</div>],
+    [<ControlSubSectionHeader>{t('Resample')}</ControlSubSectionHeader>],
     [
       {
         name: 'resample_rule',
@@ -162,14 +162,14 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
           label: t('Rule'),
           default: null,
           choices: [
-            ['1T', '1 minutely frequency'],
-            ['1H', '1 hourly frequency'],
-            ['1D', '1 calendar day frequency'],
-            ['7D', '7 calendar day frequency'],
-            ['1MS', '1 month start frequency'],
-            ['1M', '1 month end frequency'],
-            ['1AS', '1 year start frequency'],
-            ['1A', '1 year end frequency'],
+            ['1T', t('1 minutely frequency')],
+            ['1H', t('1 hourly frequency')],
+            ['1D', t('1 calendar day frequency')],
+            ['7D', t('7 calendar day frequency')],
+            ['1MS', t('1 month start frequency')],
+            ['1M', t('1 month end frequency')],
+            ['1AS', t('1 year start frequency')],
+            ['1A', t('1 year end frequency')],
           ],
           description: t('Pandas resample rule'),
         },
