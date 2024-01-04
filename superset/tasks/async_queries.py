@@ -22,6 +22,7 @@ from typing import Any, cast, TYPE_CHECKING
 
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app, g
+from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
 from superset.charts.schemas import ChartDataQueryContextSchema
@@ -58,14 +59,7 @@ def _create_query_context_from_form(form_data: dict[str, Any]) -> QueryContext:
         raise error
 
 
-@celery_app.task(name="load_chart_data_into_cache", soft_time_limit=query_timeout)
-def load_chart_data_into_cache(
-    job_metadata: dict[str, Any],
-    form_data: dict[str, Any],
-) -> None:
-    # pylint: disable=import-outside-toplevel
-    from superset.commands.chart.data.get_data_command import ChartDataCommand
-
+def _load_user_from_job_metadata(job_metadata: dict[str, Any]) -> User:
     if user_id := job_metadata.get("user_id"):
         # logged in user
         user = security_manager.get_user_by_id(user_id)
@@ -76,8 +70,18 @@ def load_chart_data_into_cache(
     else:
         # default to anonymous user if no user is found
         user = security_manager.get_anonymous_user()
+    return user
 
-    with override_user(user, force=False):
+
+@celery_app.task(name="load_chart_data_into_cache", soft_time_limit=query_timeout)
+def load_chart_data_into_cache(
+    job_metadata: dict[str, Any],
+    form_data: dict[str, Any],
+) -> None:
+    # pylint: disable=import-outside-toplevel
+    from superset.commands.chart.data.get_data_command import ChartDataCommand
+
+    with override_user(_load_user_from_job_metadata(job_metadata), force=False):
         try:
             set_form_data(form_data)
             query_context = _create_query_context_from_form(form_data)
@@ -112,18 +116,7 @@ def load_explore_json_into_cache(  # pylint: disable=too-many-locals
 ) -> None:
     cache_key_prefix = "ejr-"  # ejr: explore_json request
 
-    if user_id := job_metadata.get("user_id"):
-        # logged in user
-        user = security_manager.get_user_by_id(user_id)
-    elif guest_token := job_metadata.get("guest_token"):
-        # embedded guest user
-        user = security_manager.get_guest_user_from_token(guest_token)
-        del job_metadata["guest_token"]
-    else:
-        # default to anonymous user if no user is found
-        user = security_manager.get_anonymous_user()
-
-    with override_user(user, force=False):
+    with override_user(_load_user_from_job_metadata(job_metadata), force=False):
         try:
             set_form_data(form_data)
             datasource_id, datasource_type = get_datasource_info(None, None, form_data)
