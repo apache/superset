@@ -27,10 +27,11 @@ import {
   QueryFormData,
   QueryFormMetric,
 } from './QueryFormData';
-import { GenericDataType, Maybe } from '../../types';
+import { Maybe } from '../../types';
 import { PostProcessingRule } from './PostProcessing';
 import { JsonObject } from '../../connection';
 import { TimeGranularity } from '../../time-format';
+import { GenericDataType } from './QueryResponse';
 
 export type BaseQueryObjectFilterClause = {
   col: QueryFormColumn;
