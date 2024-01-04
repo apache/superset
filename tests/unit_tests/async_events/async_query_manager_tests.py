@@ -99,7 +99,7 @@ def test_submit_chart_data_job_as_guest_user(
             "job_id": ANY,
             "result_url": None,
             "status": "pending",
-            "user_id": 1,
+            "user_id": None,
         },
         {},
     )
