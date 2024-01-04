@@ -46,7 +46,7 @@ describe('columnChoices()', () => {
           },
           {
             column_name: 'foo',
-            verbose_name: 'bar',
+            verbose_name: undefined,
             type: 'TIMESTAMP',
             type_generic: GenericDataType.TEMPORAL,
           },
@@ -58,8 +58,8 @@ describe('columnChoices()', () => {
         description: 'this is my datasource',
       }),
     ).toEqual([
-      ['foo', 'bar'],
       ['fiz', 'fiz'],
+      ['foo', 'foo'],
       ['about', 'right'],
     ]);
   });
