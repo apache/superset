@@ -195,17 +195,14 @@ class AsyncQueryManager:
         from superset import security_manager
 
         job_metadata = self.init_job(channel_id, user_id)
-        if guest_user := security_manager.get_current_guest_user_if_guest():
-            job_metadata["guest_token"] = guest_user.guest_token
         self._load_explore_json_into_cache_job.delay(
-            job_metadata.copy(),
+            {**job_metadata, "guest_token": guest_user.guest_token}
+            if (guest_user := security_manager.get_current_guest_user_if_guest())
+            else job_metadata,
             form_data,
             response_type,
             force,
         )
-        # clean up guest token so that it doesn't get exposed upper level
-        if "guest_token" in job_metadata:
-            del job_metadata["guest_token"]
         return job_metadata
 
     def submit_chart_data_job(
@@ -222,12 +219,12 @@ class AsyncQueryManager:
         # this way we can keep the cache key consistent between sync and async command
         # so that it can be looked up consistently
         job_metadata = self.init_job(channel_id, user_id)
-        if guest_user := security_manager.get_current_guest_user_if_guest():
-            job_metadata["guest_token"] = guest_user.guest_token
-        self._load_chart_data_into_cache_job.delay(job_metadata.copy(), form_data)
-        # clean up guest token so that it doesn't get exposed upper level
-        if "guest_token" in job_metadata:
-            del job_metadata["guest_token"]
+        self._load_chart_data_into_cache_job.delay(
+            {**job_metadata, "guest_token": guest_user.guest_token}
+            if (guest_user := security_manager.get_current_guest_user_if_guest())
+            else job_metadata,
+            form_data,
+        )
         return job_metadata
 
     def read_events(
