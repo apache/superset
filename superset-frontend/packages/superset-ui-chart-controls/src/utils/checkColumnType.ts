@@ -46,5 +46,5 @@ export function checkColumnType(
       .map(c => c.column_name)
       .some(c => columnName === c);
   }
-  return true;
+  return false;
 }
