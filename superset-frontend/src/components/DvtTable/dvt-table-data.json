@@ -1,0 +1,707 @@
+{
+  "FavoritesData": [
+    {
+      "id": 1,
+      "name": "arac",
+      "type": "Physical",
+      "database": "PostgreSQL",
+      "schema": "Dwh",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A",
+      "isFavorite": false
+    },
+    {
+      "id": 2,
+      "name": "hrrr2",
+      "type": "Physical",
+      "database": "PostgreSQL",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A",
+      "isFavorite": true
+    },
+    {
+      "id": 3,
+      "name": "channel_members",
+      "type": "Physical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A",
+      "isFavorite": true
+    },
+    {
+      "id": 4,
+      "name": "channel",
+      "type": "Physical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A",
+      "isFavorite": true
+    },
+    {
+      "id": 5,
+      "name": "cleaned_sales_data",
+      "type": "Physical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A",
+      "isFavorite": true
+    },
+    {
+      "id": 6,
+      "name": "covid_vaccines",
+      "type": "Physical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A",
+      "isFavorite": true
+    },
+    {
+      "id": 7,
+      "name": "exported_stats",
+      "type": "Physical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A",
+      "isFavorite": true
+    },
+    {
+      "id": 8,
+      "name": "members_channels_2",
+      "type": "Physical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A",
+      "isFavorite": true
+    },
+    {
+      "id": 9,
+      "name": "Fcc 2018 Survey",
+      "type": "Physical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A",
+      "isFavorite": true
+    }
+  ],
+  "DefaultData": [
+    {
+      "name": "arac",
+      "type": "Pysical",
+      "database": "PostgreSQL",
+      "schema": "Dwh",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A",
+      "link": "/dashboard/list/"
+    },
+    {
+      "name": "hrrr2",
+      "type": "Pysical",
+      "database": "PostgreSQL",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A",
+      "link": "/dashboard/list/"
+    },
+    {
+      "name": "channel_members",
+      "type": "Pysical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A",
+      "link": "/dashboard/list/"
+    },
+    {
+      "name": "channel",
+      "type": "Pysical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A",
+      "link": "/dashboard/list/"
+    },
+    {
+      "name": "cleaned_sales_data",
+      "type": "Pysical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A",
+      "link": "/dashboard/list/"
+    },
+    {
+      "name": "covid_vaccines",
+      "type": "Pysical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A",
+      "link": "/dashboard/list/"
+    },
+    {
+      "name": "exported_stats",
+      "type": "Pysical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A",
+      "link": "/dashboard/list/"
+    },
+    {
+      "name": "members_channels_2",
+      "type": "Pysical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A",
+      "link": "/dashboard/list/"
+    },
+    {
+      "name": "Fcc 2018 Survey",
+      "type": "Pysical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A",
+      "link": "/dashboard/list/"
+    }
+  ],
+  "ExampleData": [
+    {
+      "id": "64e417of7f25253d56019818b7e9fdcD",
+      "is_software_dev": "0",
+      "is_first_dev_job": "Null",
+      "months_job_search": "Null",
+      "months_job_search2": "Null",
+      "job_pref": "freelance"
+    },
+    {
+      "id": "64e417of7f25253d56019818b7e9fdcD",
+      "is_software_dev": "0",
+      "is_first_dev_job": "Null",
+      "months_job_search": "Null",
+      "months_job_search2": "Null",
+      "job_pref": "freelance"
+    },
+    {
+      "id": "64e417of7f25253d56019818b7e9fdcD",
+      "is_software_dev": "0",
+      "is_first_dev_job": "Null",
+      "months_job_search": "Null",
+      "months_job_search2": "Null",
+      "job_pref": "freelance"
+    },
+    {
+      "id": "64e417of7f25253d56019818b7e9fdcD",
+      "is_software_dev": "0",
+      "is_first_dev_job": "Null",
+      "months_job_search": "Null",
+      "months_job_search2": "Null",
+      "job_pref": "freelance"
+    },
+    {
+      "id": "64e417of7f25253d56019818b7e9fdcD",
+      "is_software_dev": "0",
+      "is_first_dev_job": "Null",
+      "months_job_search": "Null",
+      "months_job_search2": "Null",
+      "job_pref": "freelance"
+    },
+    {
+      "id": "64e417of7f25253d56019818b7e9fdcD",
+      "is_software_dev": "0",
+      "is_first_dev_job": "Null",
+      "months_job_search": "Null",
+      "months_job_search2": "Null",
+      "job_pref": "freelance"
+    }
+  ],
+  "IconExampleData": [
+    {
+      "date": "2023.05.29 15:53:47 * 03:00",
+      "tabName": "Pysical",
+      "database": "PostgreSQL",
+      "schema": "Public",
+      "tables": "hrr2",
+      "user": "Admin",
+      "rows": "564",
+      "sql": "Select"
+    },
+    {
+      "date": "2023.05.29 15:53:47 * 03:00",
+      "tabName": "Pysical",
+      "database": "PostgreSQL",
+      "schema": "Public",
+      "tables": "hrr2",
+      "user": "Admin",
+      "rows": "564",
+      "sql": "Select"
+    },
+    {
+      "date": "2023.05.29 15:53:47 * 03:00",
+      "tabName": "Pysical",
+      "database": "PostgreSQL",
+      "schema": "Public",
+      "tables": "hrr2",
+      "user": "Admin",
+      "rows": "564",
+      "sql": "Select"
+    },
+    {
+      "date": "2023.05.29 15:53:47 * 03:00",
+      "tabName": "Pysical",
+      "database": "PostgreSQL",
+      "schema": "Public",
+      "tables": "hrr2",
+      "user": "Admin",
+      "rows": "564",
+      "sql": "Select"
+    },
+    {
+      "date": "2023.05.29 15:53:47 * 03:00",
+      "tabName": "Pysical",
+      "database": "PostgreSQL",
+      "schema": "Public",
+      "tables": "hrr2",
+      "user": "Admin",
+      "rows": "564",
+      "sql": "Select"
+    },
+    {
+      "date": "2023.05.29 15:53:47 * 03:00",
+      "tabName": "Pysical",
+      "database": "PostgreSQL",
+      "schema": "Public",
+      "tables": "hrr2",
+      "user": "Admin",
+      "rows": "564",
+      "sql": "Select"
+    },
+    {
+      "date": "2023.05.29 15:53:47 * 03:00",
+      "tabName": "Pysical",
+      "database": "PostgreSQL",
+      "schema": "Public",
+      "tables": "hrr2",
+      "user": "Admin",
+      "rows": "564",
+      "sql": "Select"
+    },
+    {
+      "date": "2023.05.29 15:53:47 * 03:00",
+      "tabName": "Pysical",
+      "database": "PostgreSQL",
+      "schema": "Public",
+      "tables": "hrr2",
+      "user": "Admin",
+      "rows": "564",
+      "sql": "Select"
+    },
+    {
+      "date": "2023.05.29 15:53:47 * 03:00",
+      "tabName": "Pysical",
+      "database": "PostgreSQL",
+      "schema": "Public",
+      "tables": "hrr2",
+      "user": "Admin",
+      "rows": "564",
+      "sql": "Select"
+    }
+  ],
+  "hoverExampleData": [
+    {
+      "name": "arac",
+      "type": "Pysical",
+      "database": "PostgreSQL",
+      "schema": "Dwh",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A"
+    },
+    {
+      "name": "hrrr2",
+      "type": "Pysical",
+      "database": "PostgreSQL",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A"
+    },
+    {
+      "name": "channel_members",
+      "type": "Pysical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A"
+    },
+    {
+      "name": "channel",
+      "type": "Pysical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A"
+    },
+    {
+      "name": "cleaned_sales_data",
+      "type": "Pysical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A"
+    },
+    {
+      "name": "covid_vaccines",
+      "type": "Pysical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A"
+    },
+    {
+      "name": "exported_stats",
+      "type": "Pysical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A"
+    },
+    {
+      "name": "members_channels_2",
+      "type": "Pysical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A"
+    },
+    {
+      "name": "Fcc 2018 Survey",
+      "type": "Pysical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A"
+    }
+  ],
+  "IconColourExampleData": [
+    {
+      "name": "arac",
+      "type": "Pysical",
+      "database": "PostgreSQL",
+      "schema": "Dwh",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A"
+    },
+    {
+      "name": "hrrr2",
+      "type": "Pysical",
+      "database": "PostgreSQL",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A"
+    },
+    {
+      "name": "channel_members",
+      "type": "Pysical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A"
+    },
+    {
+      "name": "channel",
+      "type": "Pysical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A"
+    },
+    {
+      "name": "cleaned_sales_data",
+      "type": "Pysical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A"
+    },
+    {
+      "name": "covid_vaccines",
+      "type": "Pysical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A"
+    },
+    {
+      "name": "exported_stats",
+      "type": "Pysical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A"
+    },
+    {
+      "name": "members_channels_2",
+      "type": "Pysical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A"
+    },
+    {
+      "name": "Fcc 2018 Survey",
+      "type": "Pysical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A"
+    }
+  ],
+  "CheckboxExampleData": [
+    {
+      "id": 1,
+      "name": "arac",
+      "type": "Pysical",
+      "database": "PostgreSQL",
+      "schema": "Dwh",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A"
+    },
+    {
+      "id": 2,
+      "name": "hrrr2",
+      "type": "Pysical",
+      "database": "PostgreSQL",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A"
+    },
+    {
+      "id": 3,
+      "name": "channel_members",
+      "type": "Pysical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A"
+    },
+    {
+      "id": 4,
+      "name": "channel",
+      "type": "Pysical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A"
+    },
+    {
+      "id": 5,
+      "name": "cleaned_sales_data",
+      "type": "Pysical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A"
+    },
+    {
+      "id": 6,
+      "name": "covid_vaccines",
+      "type": "Pysical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A"
+    },
+    {
+      "id": 7,
+      "name": "exported_stats",
+      "type": "Pysical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A"
+    },
+    {
+      "id": 8,
+      "name": "members_channels_2",
+      "type": "Pysical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A"
+    },
+    {
+      "id": 9,
+      "name": "Fcc 2018 Survey",
+      "type": "Pysical",
+      "database": "Examples",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A"
+    }
+  ],
+  "ActiveColumnData": [
+    {
+      "id": 1,
+      "name": "arac",
+      "type": "Physical",
+      "database": "PostgreSQL",
+      "schema": "Dwh",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A",
+      "active": true
+    },
+    {
+      "id": 2,
+      "name": "hrrr2",
+      "type": "Physical",
+      "database": "PostgreSQL",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A",
+      "active": false
+    },
+    {
+      "id": 3,
+      "name": "arac",
+      "type": "Physical",
+      "database": "PostgreSQL",
+      "schema": "Dwh",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A",
+      "active": true
+    },
+    {
+      "id": 4,
+      "name": "hrrr2",
+      "type": "Physical",
+      "database": "PostgreSQL",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A",
+      "active": false
+    },
+    {
+      "id": 5,
+      "name": "arac",
+      "type": "Physical",
+      "database": "PostgreSQL",
+      "schema": "Dwh",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A",
+      "active": true
+    },
+    {
+      "id": 6,
+      "name": "hrrr2",
+      "type": "Physical",
+      "database": "PostgreSQL",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A",
+      "active": false
+    },
+    {
+      "id": 7,
+      "name": "arac",
+      "type": "Physical",
+      "database": "PostgreSQL",
+      "schema": "Dwh",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A",
+      "active": true
+    },
+    {
+      "id": 8,
+      "name": "hrrr2",
+      "type": "Physical",
+      "database": "PostgreSQL",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A",
+      "active": false
+    },
+    {
+      "id": 9,
+      "name": "arac",
+      "type": "Physical",
+      "database": "PostgreSQL",
+      "schema": "Dwh",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A",
+      "active": true
+    },
+    {
+      "id": 10,
+      "name": "hrrr2",
+      "type": "Physical",
+      "database": "PostgreSQL",
+      "schema": "Public",
+      "date": "10.03.2023 12:45:00",
+      "modifiedBy": "Admin",
+      "owners": "A",
+      "active": false
+    }
+  ]
+}
