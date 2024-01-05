@@ -29,7 +29,7 @@ assists people when migrating to a new version.
 
 ### Breaking Changes
 
-- [26349](https://github.com/apache/superset/issues/26349): Removes the deprecated `DASHBOARD_CACHE` feature flag.
+- [26349](https://github.com/apache/superset/issues/26349): Removes the deprecated `DASHBOARD_CACHE` feature flag. The previous value of the feature flag was `False` and now the feature is permanently removed.
 
 ### Potential Downtime
 
