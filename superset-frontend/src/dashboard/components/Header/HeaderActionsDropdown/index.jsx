@@ -19,6 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { isEmpty } from 'lodash';
+import { connect } from 'react-redux';
 import {
   isFeatureEnabled,
   FeatureFlag,
@@ -216,6 +217,9 @@ class HeaderActionsDropdown extends React.PureComponent {
     const emailSubject = `${emailTitle} ${dashboardTitle}`;
     const emailBody = t('Check out this dashboard: ');
 
+    const { user } = this.props;
+    const isEmbedded = !user?.userId;
+
     const url = getDashboardUrl({
       pathname: window.location.pathname,
       filters: getActiveFilters(),
@@ -237,7 +241,7 @@ class HeaderActionsDropdown extends React.PureComponent {
             {t('Refresh dashboard')}
           </Menu.Item>
         )}
-        {!editMode && (
+        {!editMode && !isEmbedded && (
           <Menu.Item
             key={MENU_KEYS.TOGGLE_FULLSCREEN}
             onClick={this.handleMenuClick}
@@ -392,4 +396,9 @@ class HeaderActionsDropdown extends React.PureComponent {
 HeaderActionsDropdown.propTypes = propTypes;
 HeaderActionsDropdown.defaultProps = defaultProps;
 
-export default HeaderActionsDropdown;
+function mapStateToProps(state) {
+  return {
+    user: state.user,
+  };
+}
+export default connect(mapStateToProps)(HeaderActionsDropdown);
