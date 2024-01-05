@@ -115,7 +115,12 @@ export default function exploreReducer(state = {}, action) {
       // need to update column config as well to keep the previous config.
       if (controlName === 'metrics' && old_metrics_data && new_column_config) {
         value.forEach((item, index) => {
+          const itemExist = old_metrics_data.some(
+            oldItem => oldItem?.label === item?.label,
+          );
+
           if (
+            !itemExist &&
             item?.label !== old_metrics_data[index]?.label &&
             !!new_column_config[old_metrics_data[index]?.label]
           ) {
