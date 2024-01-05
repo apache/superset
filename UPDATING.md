@@ -29,7 +29,7 @@ assists people when migrating to a new version.
 
 ### Breaking Changes
 
-- [26376](https://github.com/apache/superset/pull/26376): Removes the deprecated KV Store feature and its related assets such as the API endpoint, the `keyvalue` table, and the `KV_STORE` and `SHARE_QUERIES_VIA_KV_STORE` feature flags.
+- [26376](https://github.com/apache/superset/pull/26376): Removes the deprecated KV Store feature and its related assets such as the API endpoint, the `keyvalue` table, and the `KV_STORE` and `SHARE_QUERIES_VIA_KV_STORE` feature flags. The previous value of both feature flags was `False` and now the feature is permanently disabled.
 
 ### Potential Downtime
 
