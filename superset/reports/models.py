@@ -185,7 +185,6 @@ class ReportRecipients(Model, AuditMixinNullable):
     """
 
     __tablename__ = "report_recipient"
-
     id = Column(Integer, primary_key=True)
     type = Column(String(50), nullable=False)
     recipient_config_json = Column(Text, default="{}")
