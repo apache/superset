@@ -560,6 +560,7 @@ export function getPadding(
   const yAxisOffset = addYAxisTitleOffset
     ? TIMESERIES_CONSTANTS.yAxisLabelTopOffset
     : 0;
+  // When the Y-axis is hidden, move the graph to the left to try to keep the graph centered
   const yAxisLeftOffset = showAxis
     ? 0
     : TIMESERIES_CONSTANTS.yAxisLabelLeftOffset;
