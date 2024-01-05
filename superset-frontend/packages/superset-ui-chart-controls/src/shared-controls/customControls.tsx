@@ -208,7 +208,7 @@ export const xAxisSortSeriesAscendingControl = {
     description: t('Whether to sort ascending or descending on the base Axis.'),
     renderTrigger: true,
     visibility: ({ controls }: { controls: ControlStateMapping }) =>
-      controls?.x_axis_sort?.value !== undefined &&
+      controls?.x_axis_sort_series?.value !== undefined &&
       xAxisMultiSortVisibility({ controls }),
   },
 };
