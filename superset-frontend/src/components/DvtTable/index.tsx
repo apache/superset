@@ -37,6 +37,7 @@ import {
   StyledTableUrl,
 } from './dvt-table.module';
 import DvtPopper from '../DvtPopper';
+import { useToasts } from '../MessageToasts/withToasts';
 
 interface HeaderProps {
   id: number;
@@ -56,6 +57,7 @@ interface HeaderProps {
   showHover?: boolean;
   checkbox?: boolean;
   isFavorite?: boolean;
+  isFavoriteApiUrl?: string;
 }
 
 export interface DvtTableProps {
@@ -66,7 +68,6 @@ export interface DvtTableProps {
   setSelected?: (newSelected: any[]) => void;
   checkboxActiveField?: string;
   setFavoriteData?: (item: any) => void;
-  apiUrl?: string;
 }
 
 const DvtTable: React.FC<DvtTableProps> = ({
@@ -77,8 +78,8 @@ const DvtTable: React.FC<DvtTableProps> = ({
   setSelected = () => {},
   checkboxActiveField = 'id',
   setFavoriteData,
-  apiUrl,
 }) => {
+  const { addDangerToast } = useToasts();
   const [openRow, setOpenRow] = useState<number | null>(null);
 
   const formatDateTime = (dateTimeString: string) => {
@@ -111,27 +112,36 @@ const DvtTable: React.FC<DvtTableProps> = ({
     setSelected(e.target.checked ? data.slice() : []);
   };
 
-  const handleFavouriteData = async (item: any) => {
-    const findItem = data.find(row => row.id === item.id);
-    const findItemRemovedData = data.filter(row => row.id !== item.id);
+  const handleFavouriteData = async (item: any, apiUrl: string | undefined) => {
+    if (setFavoriteData) {
+      const findItem = data.find(row => row.id === item.id);
+      const findItemRemovedData = data.filter(row => row.id !== item.id);
 
-    try {
-      await fetch(
-        `${apiUrl}/${item.id}/${item.isFavorite ? 'unselect' : 'select'}`,
-        {
-          method: 'POST',
-        },
-      );
-
-      setFavoriteData &&
+      const changedItemFavorite = () => {
         setFavoriteData(
           [
             ...findItemRemovedData,
             { ...findItem, isFavorite: !item.isFavorite },
           ].sort((a, b) => a.id - b.id),
         );
-    } catch (error) {
-      console.error(error);
+      };
+
+      if (apiUrl) {
+        try {
+          const res = await fetch(
+            `${apiUrl}/${item.id}/${item.isFavorite ? 'unselect' : 'select'}`,
+          );
+          if (res.ok) {
+            changedItemFavorite();
+          } else {
+            addDangerToast(`${res.status} ${res.statusText}`);
+          }
+        } catch (error) {
+          addDangerToast(error.message);
+        }
+      } else {
+        changedItemFavorite();
+      }
     }
   };
 
@@ -211,7 +221,9 @@ const DvtTable: React.FC<DvtTableProps> = ({
                       )}
                       {column.isFavorite && (
                         <StyledTableTbody
-                          onClick={() => handleFavouriteData(row)}
+                          onClick={() =>
+                            handleFavouriteData(row, column?.isFavoriteApiUrl)
+                          }
                         >
                           {row.isFavorite ? (
                             <Icons.StarFilled

@@ -20,7 +20,7 @@ import React, { useState } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import DvtTable, { DvtTableProps } from '.';
 
-let tableData = require('./dvt-table-data.json');
+import TableData from './dvt-table-data';
 
 export default {
   title: 'Dvt-Components/DvtTable',
@@ -43,7 +43,7 @@ export const Default = (args: DvtTableProps) => (
       padding: 32,
     }}
   >
-    <DvtTable {...args} data={tableData.DefaultData} />
+    <DvtTable {...args} data={TableData.defaultData} />
   </div>
 );
 
@@ -87,7 +87,7 @@ Default.args = {
 };
 
 export const FavoriteExample = (args: DvtTableProps) => {
-  const [data, setData] = useState<any[]>(tableData.FavoritesData);
+  const [data, setData] = useState<any[]>(TableData.favoritesData);
   return (
     <div
       style={{
@@ -150,7 +150,7 @@ export const Example = (args: DvtTableProps) => (
       padding: 32,
     }}
   >
-    <DvtTable {...args} data={tableData.ExampleData} />
+    <DvtTable {...args} data={TableData.exampleData} />
   </div>
 );
 
@@ -178,7 +178,7 @@ export const IconExample = (args: DvtTableProps) => (
       padding: 32,
     }}
   >
-    <DvtTable {...args} data={tableData.IconExampleData} />
+    <DvtTable {...args} data={TableData.iconExampleData} />
   </div>
 );
 
@@ -216,7 +216,7 @@ export const HoverExample = (args: DvtTableProps) => (
       padding: 32,
     }}
   >
-    <DvtTable {...args} data={tableData.hoverExampleData} />
+    <DvtTable {...args} data={TableData.hoverExampleData} />
   </div>
 );
 
@@ -266,7 +266,7 @@ export const IconColourExample = (args: DvtTableProps) => (
       padding: 32,
     }}
   >
-    <DvtTable {...args} data={tableData.IconColourExampleData} />
+    <DvtTable {...args} data={TableData.iconColourExampleData} />
   </div>
 );
 
@@ -321,7 +321,7 @@ export const CheckboxExample = (args: DvtTableProps) => {
     >
       <DvtTable
         {...args}
-        data={tableData.CheckboxExampleData}
+        data={TableData.checkboxExampleData}
         selected={selected}
         setSelected={setSelected}
       />
@@ -380,7 +380,7 @@ export const ActiveColumn = (args: DvtTableProps) => {
     >
       <DvtTable
         {...args}
-        data={tableData.ActiveColumnData}
+        data={TableData.activeColumnData}
         selected={selected}
         setSelected={setSelected}
       />
