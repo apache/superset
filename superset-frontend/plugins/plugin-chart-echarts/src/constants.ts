@@ -44,6 +44,7 @@ export const TIMESERIES_CONSTANTS = {
   dataZoomStart: 0,
   dataZoomEnd: 100,
   yAxisLabelTopOffset: 20,
+  yAxisLabelLeftOffset: 40,
   extraControlsOffset: 22,
 };
 
