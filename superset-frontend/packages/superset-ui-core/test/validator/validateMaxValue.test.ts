@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,30 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
-import thumbnail from './images/thumbnail.png';
-import example from './images/example.png';
-import transformProps from '../../transformProps';
-import controlPanel from './controlPanel';
 
-const metadata = new ChartMetadata({
-  category: t('Map'),
-  credits: ['https://uber.github.io/deck.gl'],
-  description: t('Visualizes connected points, which form a path, on a map.'),
-  name: t('deck.gl Path'),
-  thumbnail,
-  exampleGallery: [{ url: example }],
-  useLegacyApi: true,
-  tags: [t('deckGL'), t('Web')],
+import { validateMaxValue } from '@superset-ui/core';
+import './setup';
+
+test('validateInteger returns the warning message if invalid', () => {
+  expect(validateMaxValue(10.1, 10)).toBeTruthy();
+  expect(validateMaxValue(1, 0)).toBeTruthy();
+  expect(validateMaxValue('2', 1)).toBeTruthy();
 });
 
-export default class PathChartPlugin extends ChartPlugin {
-  constructor() {
-    super({
-      loadChart: () => import('./Path'),
-      controlPanel,
-      metadata,
-      transformProps,
-    });
-  }
-}
+test('validateInteger returns false if the input is valid', () => {
+  expect(validateMaxValue(0, 1)).toBeFalsy();
+  expect(validateMaxValue(10, 10)).toBeFalsy();
+  expect(validateMaxValue(undefined, 1)).toBeFalsy();
+  expect(validateMaxValue(NaN, NaN)).toBeFalsy();
+  expect(validateMaxValue(null, 1)).toBeFalsy();
+  expect(validateMaxValue('1', 1)).toBeFalsy();
+  expect(validateMaxValue('a', 1)).toBeFalsy();
+});

@@ -104,12 +104,6 @@ interface ExtendedDropDownProps extends DropDownProps {
   ref?: RefObject<HTMLDivElement>;
 }
 
-// @z-index-below-dashboard-header (100) - 1 = 99
 export const NoAnimationDropdown = (
   props: ExtendedDropDownProps & { children?: React.ReactNode },
-) => (
-  <AntdDropdown
-    overlayStyle={{ zIndex: 99, animationDuration: '0s' }}
-    {...props}
-  />
-);
+) => <AntdDropdown overlayStyle={props.overlayStyle} {...props} />;
