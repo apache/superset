@@ -2,7 +2,7 @@ import React from 'react';
 import DvtButton from 'src/components/DvtButton';
 import DvtIconDataLabel from 'src/components/DvtIconDataLabel';
 import {
-    StyledDatasetsIconLabel,
+  StyledDatasetsIconLabel,
   StyledDvtNewDatasets,
   StyledNewDatasetsButtons,
 } from './dvt-new-datasets.module';
