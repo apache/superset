@@ -91,7 +91,8 @@ def logs_context(**ctx_kwargs: int | str | UUID | None) -> Callable[..., Any]:
                 if ctx_kwargs.get(key) is not None:
                     logs_context_data[key] = ctx_kwargs[key]
                     try:
-                        # override value from local kwargs from function execution if it exists
+                        # override value from local kwargs from
+                        # function execution if it exists
                         # e.g. @logs_context(slice_id=1, dashboard_id=1)
                         #      def my_func(slice_id=None, **kwargs)
                         #
