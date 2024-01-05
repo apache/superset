@@ -237,5 +237,4 @@ class ReportExecutionLog(Model):  # pylint: disable=too-few-public-methods
     __table_args__ = (
         Index("ix_report_execution_log_report_schedule_id", report_schedule_id),
         Index("ix_report_execution_log_start_dttm", start_dttm),
-        Index("ix_report_execution_log_state", state),
     )

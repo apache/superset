@@ -45,9 +45,6 @@ def upgrade():
         unique=False,
     )
     op.create_index(
-        "ix_report_execution_log_state", "report_execution_log", ["state"], unique=False
-    )
-    op.create_index(
         "ix_report_recipient_report_schedule_id",
         "report_recipient",
         ["report_schedule_id"],
@@ -59,7 +56,6 @@ def downgrade():
     op.drop_index(
         "ix_report_recipient_report_schedule_id", table_name="report_recipient"
     )
-    op.drop_index("ix_report_execution_log_state", table_name="report_execution_log")
     op.drop_index(
         "ix_report_execution_log_start_dttm", table_name="report_execution_log"
     )
