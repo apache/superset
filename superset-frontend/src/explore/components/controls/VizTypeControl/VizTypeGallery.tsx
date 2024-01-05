@@ -849,17 +849,26 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
                 grid-area: examples-header;
               `}
             >
-              {!!selectedVizMetadata?.exampleGallery?.length && t('Examples')}
+              {t('Examples')}
             </SectionTitle>
             <Examples>
-              {(selectedVizMetadata?.exampleGallery || []).map(example => (
+              {selectedVizMetadata?.exampleGallery.length ? (
+                (selectedVizMetadata?.exampleGallery || []).map(example => (
+                  <img
+                    key={example.url}
+                    src={example.url}
+                    alt={example.caption}
+                    title={example.caption}
+                  />
+                ))
+              ) : (
                 <img
-                  key={example.url}
-                  src={example.url}
-                  alt={example.caption}
-                  title={example.caption}
+                  key={selectedVizMetadata?.thumbnail}
+                  src={selectedVizMetadata?.thumbnail}
+                  alt={selectedVizMetadata?.name}
+                  title={selectedVizMetadata?.name}
                 />
-              ))}
+              )}
             </Examples>
           </>
         </div>
