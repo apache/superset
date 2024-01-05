@@ -29,7 +29,7 @@ assists people when migrating to a new version.
 
 ### Breaking Changes
 
-- [26344](https://github.com/apache/superset/issues/26344): Removes the deprecated `ENABLE_EXPLORE_JSON_CSRF_PROTECTION` feature flag.
+- [26344](https://github.com/apache/superset/issues/26344): Removes the deprecated `ENABLE_EXPLORE_JSON_CSRF_PROTECTION` feature flag. The previous value of the feature flag was `False` and now the feature is permanently removed.
 
 ### Potential Downtime
 
