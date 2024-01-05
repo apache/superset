@@ -94,6 +94,8 @@ export function formatFunnelLabel({
       return `${name}: ${formattedValue} (${formattedPercent})`;
     case EchartsFunnelLabelTypeType.KeyPercent:
       return `${name}: ${formattedPercent}`;
+    case EchartsFunnelLabelTypeType.ValuePercent:
+      return `${formattedValue} (${formattedPercent})`;
     default:
       return name;
   }
