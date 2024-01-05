@@ -593,12 +593,10 @@ const DvtSidebarData: SidebarDataProps[] = [
       },
     ],
   },
-
   {
     pathname: '/chart/add',
     data: [
       {
-        values: [{ label: 'Superset Admin', value: 'Superset Admin' }],
         placeholder: 'Dataset',
         name: 'dataset',
       },
@@ -609,7 +607,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Advanced-Analytics', value: 'advanced_analytics' },
         ],
         placeholder: 'Recommended Tags',
-        name: 'ML_AI',
+        name: 'recommended_tags',
       },
       {
         placeholder: 'Category',
@@ -617,7 +615,7 @@ const DvtSidebarData: SidebarDataProps[] = [
       },
       {
         placeholder: 'Tags',
-        name: 'chartType',
+        name: 'tags',
       },
     ],
   },

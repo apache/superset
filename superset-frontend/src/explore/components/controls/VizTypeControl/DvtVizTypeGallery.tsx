@@ -253,9 +253,9 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
         chartAdd: {
           ...chartAddSelector,
           dataset: '',
+          recommended_tags: '',
           category: '',
-          chartType: '',
-          ML_AI: '',
+          tags: '',
         },
       }),
     );
@@ -266,8 +266,8 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
         (chartAddSelector.category
           ? item.value.category === chartAddSelector.category
           : true) &&
-        (chartAddSelector.chartType
-          ? item.value.tags.includes(chartAddSelector.chartType)
+        (chartAddSelector.tags
+          ? item.value.tags.includes(chartAddSelector.tags)
           : true),
     );
     setEditedData(filteredData);

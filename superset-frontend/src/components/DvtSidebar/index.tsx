@@ -121,14 +121,32 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
   };
 
   const updateChartAddProperty = (value: string, propertyName: string) => {
-    dispatch(
-      dvtSidebarChartAddSetProperty({
-        chartAdd: {
-          ...chartAddSelector,
-          [propertyName]: value,
-        },
-      }),
-    );
+    const changesOneItem = ['recommended_tags', 'category', 'tags'];
+    if (chartAddSelector[propertyName] !== value) {
+      if (changesOneItem.includes(propertyName)) {
+        const oneSelectedItem = changesOneItem.reduce((acc, item) => {
+          acc[item] = propertyName === item ? value : '';
+          return acc;
+        }, {});
+        dispatch(
+          dvtSidebarChartAddSetProperty({
+            chartAdd: {
+              ...chartAddSelector,
+              ...oneSelectedItem,
+            },
+          }),
+        );
+      } else {
+        dispatch(
+          dvtSidebarChartAddSetProperty({
+            chartAdd: {
+              ...chartAddSelector,
+              [propertyName]: value,
+            },
+          }),
+        );
+      }
+    }
   };
 
   useEffect(() => {
@@ -231,33 +249,18 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
   const chartsByTags = useMemo(() => {
     const result: Record<string, VizEntry[]> = {};
 
-    if (chartAddSelector.category) {
-      chartMetadata.forEach(entry => {
-        const { category }: { category: string | null } = entry.value;
-        if (category === chartAddSelector.category) {
-          const { tags } = entry.value;
-          tags.forEach(tag => {
-            if (!result[tag]) {
-              result[tag] = [];
-            }
-            result[tag].push(entry);
-          });
+    chartMetadata.forEach(entry => {
+      const tags = entry.value.tags || [];
+      tags.forEach(tag => {
+        if (!result[tag]) {
+          result[tag] = [];
         }
+        result[tag].push(entry);
       });
-    } else {
-      chartMetadata.forEach(entry => {
-        const tags = entry.value.tags || [];
-        tags.forEach(tag => {
-          if (!result[tag]) {
-            result[tag] = [];
-          }
-          result[tag].push(entry);
-        });
-      });
-    }
+    });
 
     return result;
-  }, [chartMetadata, chartAddSelector.category]);
+  }, [chartMetadata]);
 
   const tags = useMemo(
     () =>
@@ -357,7 +360,7 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
                     data={
                       editedData && data.name === 'dataset'
                         ? editedData
-                        : data.name === 'chartType'
+                        : data.name === 'tags'
                         ? tag
                         : data.name === 'category'
                         ? category
@@ -384,22 +387,7 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
                       } else if (pathTitles(pathName) === 'Connection') {
                         updateConnectionProperty(value, data.name);
                       } else if (pathTitles(pathName) === 'Chart Add') {
-                        if (
-                          data.name === 'category' &&
-                          chartAddSelector.category !== value
-                        ) {
-                          dispatch(
-                            dvtSidebarChartAddSetProperty({
-                              chartAdd: {
-                                ...chartAddSelector,
-                                chartType: '',
-                                category: value,
-                              },
-                            }),
-                          );
-                        } else {
-                          updateChartAddProperty(value, data.name);
-                        }
+                        updateChartAddProperty(value, data.name);
                       }
                     }}
                     maxWidth

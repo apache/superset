@@ -43,10 +43,10 @@ interface DvtSidebarState {
   };
 
   chartAdd: {
-    category: string;
-    chartType: string;
-    ML_AI: string;
     dataset: string;
+    recommended_tags: string;
+    category: string;
+    tags: string;
   };
 }
 
@@ -75,10 +75,10 @@ const initialState: DvtSidebarState = {
   },
 
   chartAdd: {
-    chartType: '',
-    category: '',
-    ML_AI: '',
     dataset: '',
+    recommended_tags: '',
+    category: '',
+    tags: '',
   },
 };
 
