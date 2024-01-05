@@ -229,8 +229,10 @@ export function sortRows(
     }
 
     const value =
-      xAxisSortSeries === SortSeriesType.Name && typeof sortKey === 'string'
-        ? sortKey.toLowerCase()
+      xAxisSortSeries === SortSeriesType.Name
+        ? typeof sortKey === 'string'
+          ? sortKey.toLowerCase()
+          : sortKey
         : aggregate;
 
     return {
