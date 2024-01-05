@@ -49,6 +49,7 @@ import {
 
 const {
   logAxis,
+  showAxis,
   minorSplitLine,
   truncateYAxis,
   yAxisBounds,
