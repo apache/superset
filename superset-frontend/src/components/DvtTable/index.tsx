@@ -17,10 +17,11 @@
  * under the License.
  */
 import React, { useState } from 'react';
+import { useHistory } from 'react-router-dom';
 import type { CheckboxChangeEvent } from 'antd/es/checkbox';
 import { SupersetTheme, supersetTheme } from '@superset-ui/core';
-import { FolderOutlined, HeartOutlined } from '@ant-design/icons';
 import { Checkbox } from 'antd';
+import Icons from '../Icons';
 import Icon from '../Icons/Icon';
 import {
   StyledTable,
@@ -33,25 +34,30 @@ import {
   StyledTableTitle,
   StyledTableIcon,
   StyledTableCheckbox,
+  StyledTableUrl,
 } from './dvt-table.module';
 import DvtPopper from '../DvtPopper';
+import { useToasts } from '../MessageToasts/withToasts';
 
 interface HeaderProps {
   id: number;
   title: string;
   field?: string;
-  folderIcon?: boolean;
-  heartIcon?: boolean;
-  onLink?: boolean;
+  icon?: string;
+  iconActive?: string;
+  iconClick?: () => {};
+  urlField?: string;
   flex?: number;
   clicks?: {
     icon: string;
-    click: () => void;
+    click: (row: any) => void;
     colour?: string;
     popperLabel?: string;
   }[];
   showHover?: boolean;
   checkbox?: boolean;
+  isFavorite?: boolean;
+  isFavoriteApiUrl?: string;
 }
 
 export interface DvtTableProps {
@@ -61,6 +67,7 @@ export interface DvtTableProps {
   selected?: any[];
   setSelected?: (newSelected: any[]) => void;
   checkboxActiveField?: string;
+  setFavoriteData?: (item: any) => void;
 }
 
 const DvtTable: React.FC<DvtTableProps> = ({
@@ -70,7 +77,9 @@ const DvtTable: React.FC<DvtTableProps> = ({
   selected = [],
   setSelected = () => {},
   checkboxActiveField = 'id',
+  setFavoriteData,
 }) => {
+  const { addDangerToast } = useToasts();
   const [openRow, setOpenRow] = useState<number | null>(null);
 
   const formatDateTime = (dateTimeString: string) => {
@@ -91,6 +100,8 @@ const DvtTable: React.FC<DvtTableProps> = ({
     0,
   );
 
+  const history = useHistory();
+
   const columnsWithDefaults = 100 / totalFlex;
 
   const checkAll = data.length === selected.length;
@@ -99,6 +110,39 @@ const DvtTable: React.FC<DvtTableProps> = ({
 
   const onCheckAllChange = (e: CheckboxChangeEvent) => {
     setSelected(e.target.checked ? data.slice() : []);
+  };
+
+  const handleFavouriteData = async (item: any, apiUrl: string | undefined) => {
+    if (setFavoriteData) {
+      const findItem = data.find(row => row.id === item.id);
+      const findItemRemovedData = data.filter(row => row.id !== item.id);
+
+      const changedItemFavorite = () => {
+        setFavoriteData(
+          [
+            ...findItemRemovedData,
+            { ...findItem, isFavorite: !item.isFavorite },
+          ].sort((a, b) => a.id - b.id),
+        );
+      };
+
+      if (apiUrl) {
+        try {
+          const res = await fetch(
+            `${apiUrl}/${item.id}/${item.isFavorite ? 'unselect' : 'select'}`,
+          );
+          if (res.ok) {
+            changedItemFavorite();
+          } else {
+            addDangerToast(`${res.status} ${res.statusText}`);
+          }
+        } catch (error) {
+          addDangerToast(error.message);
+        }
+      } else {
+        changedItemFavorite();
+      }
+    }
   };
 
   return (
@@ -126,81 +170,131 @@ const DvtTable: React.FC<DvtTableProps> = ({
           </StyledTableTitle>
         </StyledTabletHead>
         <StyledTableTbody>
-          {data.map((row, rowIndex) => (
-            <StyledTableTr
-              key={rowIndex}
-              onClick={() => onRowClick?.(row)}
-              onMouseOver={() => setOpenRow(rowIndex)}
-              onMouseOut={() => setOpenRow(null)}
-            >
-              {header.map((column, columnIndex) => (
-                <StyledTableTd
-                  key={columnIndex}
-                  $onLink={column.onLink || false}
-                >
-                  <StyledTableIcon>
-                    {column.checkbox && columnIndex === 0 && (
-                      <StyledTableCheckbox>
-                        <Checkbox
-                          checked={selected.some(
-                            item =>
-                              item[checkboxActiveField] ===
-                              row[checkboxActiveField],
-                          )}
-                          onChange={e => {
-                            const checkedRows = e.target.checked
-                              ? [...selected, row]
-                              : selected.filter(
-                                  item =>
-                                    item[checkboxActiveField] !==
-                                    row[checkboxActiveField],
-                                );
-                            setSelected(checkedRows);
-                          }}
+          {data
+            .sort((a, b) => a.id - b.id)
+            .map((row, rowIndex) => (
+              <StyledTableTr
+                key={rowIndex}
+                onClick={() => onRowClick?.(row)}
+                onMouseOver={() => setOpenRow(rowIndex)}
+                onMouseOut={() => setOpenRow(null)}
+              >
+                {header.map((column, columnIndex) => (
+                  <StyledTableTd key={columnIndex}>
+                    <StyledTableIcon>
+                      {column.checkbox && columnIndex === 0 && (
+                        <StyledTableCheckbox>
+                          <Checkbox
+                            checked={selected.some(
+                              item =>
+                                item[checkboxActiveField] ===
+                                row[checkboxActiveField],
+                            )}
+                            onChange={e => {
+                              const checkedRows = e.target.checked
+                                ? [...selected, row]
+                                : selected.filter(
+                                    item =>
+                                      item[checkboxActiveField] !==
+                                      row[checkboxActiveField],
+                                  );
+                              setSelected(checkedRows);
+                            }}
+                          />
+                        </StyledTableCheckbox>
+                      )}
+                      {column.icon && (
+                        <Icon
+                          onClick={column.iconClick}
+                          fileName={
+                            row.active
+                              ? column.iconActive || 'dvt-folder-active'
+                              : column.icon || 'dvt-folder'
+                          }
+                          iconSize="xl"
+                          css={(theme: SupersetTheme) => ({
+                            color: theme.colors.grayscale.dark2,
+                            marginRight: '14px',
+                            fontSize: '20px',
+                          })}
                         />
-                      </StyledTableCheckbox>
-                    )}
-                    {column.folderIcon && (
-                      <FolderOutlined
-                        css={(theme: SupersetTheme) => ({
-                          color: theme.colors.grayscale.dark2,
-                          marginRight: '14px',
-                          fontSize: '20px',
-                        })}
-                      />
-                    )}
-                    {column.heartIcon && (
-                      <HeartOutlined
-                        css={(theme: SupersetTheme) => ({
-                          color: theme.colors.grayscale.dark2,
-                          marginRight: '14px',
-                          fontSize: '20px',
-                        })}
-                      />
-                    )}
-                    {column.field === 'date' ? (
-                      <>
-                        {formatDateTime(row[column.field]).date}
-                        <br />
-                        {formatDateTime(row[column.field]).time}
-                      </>
-                    ) : (
-                      <>
-                        {column.clicks?.map(
-                          (
-                            clicks: {
-                              icon: string;
-                              click: () => void;
-                              colour: string;
-                              popperLabel?: string;
-                            },
-                            index,
-                          ) => (
-                            <React.Fragment key={index}>
-                              {clicks.popperLabel && (
-                                <DvtPopper label={clicks.popperLabel}>
+                      )}
+                      {column.isFavorite && (
+                        <StyledTableTbody
+                          onClick={() =>
+                            handleFavouriteData(row, column?.isFavoriteApiUrl)
+                          }
+                        >
+                          {row.isFavorite ? (
+                            <Icons.StarFilled
+                              iconSize="xl"
+                              iconColor={supersetTheme.colors.alert.base}
+                            />
+                          ) : (
+                            <Icons.StarOutlined
+                              iconSize="xl"
+                              iconColor={supersetTheme.colors.dvt.text.bold}
+                            />
+                          )}
+                        </StyledTableTbody>
+                      )}
+                      {column.urlField && column.field && (
+                        <StyledTableUrl
+                          onClick={() => {
+                            if (column.urlField) {
+                              history.push(row[column.urlField]);
+                            }
+                          }}
+                        >
+                          {row[column.field]}
+                        </StyledTableUrl>
+                      )}
+                      {column.field === 'date' ? (
+                        <>
+                          {formatDateTime(row[column.field]).date}
+                          <br />
+                          {formatDateTime(row[column.field]).time}
+                        </>
+                      ) : (
+                        <>
+                          {column.clicks?.map(
+                            (
+                              clicks: {
+                                icon: string;
+                                click: (row: any) => void;
+                                colour: string;
+                                popperLabel?: string;
+                              },
+                              index,
+                            ) => (
+                              <React.Fragment key={index}>
+                                {clicks.popperLabel && (
+                                  <DvtPopper label={clicks.popperLabel}>
+                                    <Icon
+                                      onClick={() => clicks.click(row)}
+                                      fileName={clicks.icon}
+                                      iconColor={
+                                        clicks.colour ||
+                                        supersetTheme.colors.grayscale.dark2
+                                      }
+                                      iconSize="xl"
+                                      style={{
+                                        marginRight: 3.6,
+                                        visibility: column.showHover
+                                          ? openRow === rowIndex
+                                            ? 'visible'
+                                            : 'hidden'
+                                          : 'visible',
+                                        height: '56px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                      }}
+                                    />
+                                  </DvtPopper>
+                                )}
+                                {!clicks.popperLabel && (
                                   <Icon
-                                    onClick={clicks.click}
+                                    onClick={() => clicks.click(row)}
                                     fileName={clicks.icon}
                                     iconColor={
                                       clicks.colour ||
@@ -214,46 +308,23 @@ const DvtTable: React.FC<DvtTableProps> = ({
                                           ? 'visible'
                                           : 'hidden'
                                         : 'visible',
-                                      height: '56px',
-                                      display: 'flex',
-                                      alignItems: 'center',
                                     }}
                                   />
-                                </DvtPopper>
-                              )}
-                              {!clicks.popperLabel && (
-                                <Icon
-                                  onClick={clicks.click}
-                                  fileName={clicks.icon}
-                                  iconColor={
-                                    clicks.colour ||
-                                    supersetTheme.colors.grayscale.dark2
-                                  }
-                                  iconSize="xl"
-                                  style={{
-                                    marginRight: 3.6,
-                                    visibility: column.showHover
-                                      ? openRow === rowIndex
-                                        ? 'visible'
-                                        : 'hidden'
-                                      : 'visible',
-                                  }}
-                                />
-                              )}
-                            </React.Fragment>
-                          ),
-                        )}
+                                )}
+                              </React.Fragment>
+                            ),
+                          )}
 
-                        {column.field !== 'action' && column.field && (
-                          <>{row[column.field]}</>
-                        )}
-                      </>
-                    )}
-                  </StyledTableIcon>
-                </StyledTableTd>
-              ))}
-            </StyledTableTr>
-          ))}
+                          {column.field !== 'action' &&
+                            column.field &&
+                            !column.urlField && <>{row[column.field]}</>}
+                        </>
+                      )}
+                    </StyledTableIcon>
+                  </StyledTableTd>
+                ))}
+              </StyledTableTr>
+            ))}
         </StyledTableTbody>
       </StyledTableTable>
     </StyledTable>

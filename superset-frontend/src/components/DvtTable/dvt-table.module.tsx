@@ -93,13 +93,8 @@ const StyledTableTh = styled.th<StyledTableThProps>`
 
 const StyledTableTbody = styled.tbody``;
 
-interface StyledTableTdProps {
-  $onLink: boolean;
-}
-
-const StyledTableTd = styled.td<StyledTableTdProps>`
-  color: ${({ $onLink, theme }) =>
-    $onLink ? theme.colors.dvt.primary.base : theme.colors.grayscale.dark2};
+const StyledTableTd = styled.td`
+  color: ${({ theme }) => theme.colors.grayscale.dark2};
   font-size: 14px;
   font-weight: 400;
   &:first-of-type {
@@ -118,6 +113,10 @@ const StyledTableCheckbox = styled.div`
   margin-right: 24px;
 `;
 
+const StyledTableUrl = styled.div`
+  color: ${({ theme }) => theme.colors.dvt.primary.base};
+`;
+
 export {
   StyledTable,
   StyledTableTable,
@@ -129,4 +128,5 @@ export {
   StyledTableTitle,
   StyledTableIcon,
   StyledTableCheckbox,
+  StyledTableUrl,
 };
