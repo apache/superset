@@ -167,9 +167,7 @@ export const xAxisForceCategoricalControl = {
     default: false,
     description: t('Treat values as categorical.'),
     initialValue: (control: ControlState, state: ControlPanelState | null) =>
-      state?.form_data?.x_axis_sort !== undefined ||
-      state?.form_data?.x_axis_sort_series !== undefined ||
-      control.value,
+      state?.form_data?.x_axis_sort !== undefined || control.value,
     renderTrigger: true,
     visibility: ({ controls }: { controls: ControlStateMapping }) =>
       checkColumnType(
