@@ -124,6 +124,10 @@ const config: ControlPanelConfig = {
                   EchartsFunnelLabelTypeType.KeyValuePercent,
                   t('Category, Value and Percentage'),
                 ],
+                [
+                  EchartsFunnelLabelTypeType.ValuePercent,
+                  t('Value and Percentage'),
+                ],
               ],
               description: t('What should be shown as the label'),
             },
