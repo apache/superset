@@ -1,27 +1,23 @@
 import React from 'react';
 import '@testing-library/jest-dom/extend-expect';
-import { render, screen } from '@testing-library/react';
+import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import AlteredSliceTag, {
   alterForComparison,
   formatValueHandler,
 } from 'src/components/AlteredSliceTag';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import { defaultProps, expectedRows } from './AlteredSliceTagMocks';
-
-const renderWithTheme = ui =>
-  render(<ThemeProvider theme={supersetTheme}>{ui}</ThemeProvider>);
 
 describe('AlteredSliceTag', () => {
   it('renders the "Altered" label', () => {
-    renderWithTheme(<AlteredSliceTag {...defaultProps} />);
+    render(<AlteredSliceTag {...defaultProps} />);
 
     const alteredLabel = screen.getByText('Altered');
     expect(alteredLabel).toBeInTheDocument();
   });
 
   it('opens the modal on click', () => {
-    renderWithTheme(<AlteredSliceTag {...defaultProps} />);
+    render(<AlteredSliceTag {...defaultProps} />);
 
     const alteredLabel = screen.getByText('Altered');
     userEvent.click(alteredLabel);
@@ -31,7 +27,7 @@ describe('AlteredSliceTag', () => {
   });
 
   it('displays the differences in the modal', () => {
-    renderWithTheme(<AlteredSliceTag {...defaultProps} />);
+    render(<AlteredSliceTag {...defaultProps} />);
 
     const alteredLabel = screen.getByText('Altered');
     userEvent.click(alteredLabel);
@@ -43,7 +39,7 @@ describe('AlteredSliceTag', () => {
   });
 
   it('does not render anything if there are no differences', () => {
-    renderWithTheme(
+    render(
       <AlteredSliceTag
         {...defaultProps}
         currentFormData={defaultProps.origFormData}

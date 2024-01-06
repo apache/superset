@@ -17,10 +17,10 @@
  * under the License.
  */
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { isEqual, isEmpty } from 'lodash';
-import { styled, t } from '@superset-ui/core';
+import { styled, t, usePrevious } from '@superset-ui/core';
 import { sanitizeFormData } from 'src/explore/exploreUtils/formData';
 import getControlsForVizType from 'src/utils/getControlsForVizType';
 import { safeStringify } from 'src/utils/safeStringify';
@@ -123,11 +123,11 @@ export const isEqualish = (val1, val2) =>
   isEqual(alterForComparison(val1), alterForComparison(val2));
 
 const AlteredSliceTag = props => {
-  const prevProps = useRef({});
+  const prevProps = usePrevious(props);
   const [rows, setRows] = useState([]);
   const [hasDiffs, setHasDiffs] = useState(false);
 
-  const getDiffs = useCallback(props => {
+  const getDiffs = useCallback(() => {
     // Returns all properties that differ in the
     // current form data and the saved form data
     const ofd = sanitizeFormData(props.origFormData);
@@ -147,33 +147,30 @@ const AlteredSliceTag = props => {
       }
     });
     return diffs;
-  }, []);
+  }, [props.currentFormData, props.origFormData]);
 
   useEffect(() => {
-    const diffs = getDiffs(props);
+    const diffs = getDiffs();
     const controlsMap = getControlsForVizType(props.origFormData?.viz_type);
-    const rows = getRowsFromDiffs(diffs, controlsMap);
-    const hasDiffs = !isEmpty(diffs);
-    setRows(rows);
-    setHasDiffs(hasDiffs);
-  }, []);
+    setRows(getRowsFromDiffs(diffs, controlsMap));
+    setHasDiffs(!isEmpty(diffs));
+  }, [getDiffs, props]);
 
   useEffect(() => {
-    const diffs = getDiffs(props);
+    const diffs = getDiffs();
 
-    const updateStateWithDiffs = newProps => {
-      if (isEqual(prevProps.current, newProps)) {
+    const updateStateWithDiffs = () => {
+      if (isEqual(prevProps, props)) {
         return;
       }
       setRows(prevRows => getRowsFromDiffs(diffs, prevRows));
       setHasDiffs(!isEmpty(diffs));
     };
 
-    updateStateWithDiffs(props);
-    prevProps.current = props;
-  }, [getDiffs, props]);
+    updateStateWithDiffs();
+  }, [getDiffs, props, prevProps]);
 
-  const renderModalBodyHandler = useCallback(() => {
+  const renderModalBody = useCallback(() => {
     const columns = [
       {
         accessor: 'control',
@@ -202,7 +199,7 @@ const AlteredSliceTag = props => {
     );
   }, [rows]);
 
-  const renderTriggerNodeHandler = useCallback(
+  const renderTriggerNode = useCallback(
     () => (
       <Tooltip id="difference-tooltip" title={t('Click to see difference')}>
         <StyledLabel className="label">{t('Altered')}</StyledLabel>
@@ -219,9 +216,9 @@ const AlteredSliceTag = props => {
   // differences in the slice
   return (
     <ModalTrigger
-      triggerNode={renderTriggerNodeHandler()}
+      triggerNode={renderTriggerNode()}
       modalTitle={t('Chart changes')}
-      modalBody={renderModalBodyHandler()}
+      modalBody={renderModalBody()}
       responsive
     />
   );
