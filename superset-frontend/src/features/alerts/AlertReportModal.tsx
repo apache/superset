@@ -1301,7 +1301,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       }
       show={show}
       width="500px"
-      width="500px"
+      centered
       title={
         <h4 data-test="alert-report-modal-title">
           {isEditMode && isReport
