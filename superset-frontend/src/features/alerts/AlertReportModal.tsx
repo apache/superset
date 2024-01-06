@@ -478,6 +478,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const currentUser = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
+  // Check config for alternate notification methods setting
   const conf = useCommonConf();
   const allowedNotificationMethods: NotificationMethodOption[] =
     conf?.ALERT_REPORTS_NOTIFICATION_METHODS || DEFAULT_NOTIFICATION_METHODS;
@@ -561,6 +562,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const [notificationAddState, setNotificationAddState] =
     useState<NotificationAddStatus>('active');
+
   const [notificationSettings, setNotificationSettings] = useState<
     NotificationSetting[]
   >([]);
@@ -1745,11 +1747,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               />
             </StyledNotificationMethodWrapper>
           ))}
-          <NotificationMethodAdd
-            data-test="notification-add"
-            status={notificationAddState}
-            onClick={onNotificationAdd}
-          />
+          {allowedNotificationMethods.length > 1 && (
+            <NotificationMethodAdd
+              data-test="notification-add"
+              status={notificationAddState}
+              onClick={onNotificationAdd}
+            />
+          )}
         </StyledPanel>
       </Collapse>
     </StyledModal>

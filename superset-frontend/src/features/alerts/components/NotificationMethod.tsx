@@ -50,6 +50,8 @@ const StyledNotificationMethod = styled.div`
   }
 `;
 
+const RECIPIENTS_TEXT = t('RECIPIENTS');
+
 type NotificationSetting = {
   method?: NotificationMethodOption;
   recipients: string;
@@ -119,10 +121,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     <StyledNotificationMethod>
       <div className="inline-container">
         <StyledInputContainer>
-          <div className="control-label">
-            {t('Notification Method')}
-            <span className="required">*</span>
-          </div>
+          <div className="control-label">{t('Notification Method')}</div>
           <div className="input-container">
             <Select
               ariaLabel={t('Delivery method')}
@@ -152,7 +151,10 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
       </div>
       {method !== undefined ? (
         <StyledInputContainer>
-          <div className="control-label">{t(method)}</div>
+          <div className="control-label">
+            {t(method)} {RECIPIENTS_TEXT}
+            <span className="required">*</span>
+          </div>
           <div className="input-container">
             <textarea
               name="recipients"
