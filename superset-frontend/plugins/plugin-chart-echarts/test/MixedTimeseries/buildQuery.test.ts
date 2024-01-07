@@ -515,3 +515,37 @@ test('ensure correct pivot columns with GENERIC_CHART_AXES enabled', () => {
 
   windowSpy.mockRestore();
 });
+
+test('ensure sort on x-axis with GENERIC_CHART_AXES enabled', () => {
+  const windowSpy = jest
+    .spyOn(window, 'window', 'get')
+    // @ts-ignore
+    .mockImplementation(() => ({
+      featureFlags: {
+        GENERIC_CHART_AXES: true,
+      },
+    }));
+
+  const query = buildQuery({
+    ...formDataMixedChart,
+    datasource: 'dummy',
+    viz_type: 'mixed_timeseries',
+    groupby: [],
+    metrics: ['sum(sales)'],
+    x_axis: 'customer_name',
+    x_axis_sort: 'sum(sales)',
+    x_axis_sort_asc: true,
+  }).queries[0];
+
+  expect(
+    query.post_processing?.find(operator => operator?.operation === 'sort'),
+  ).toEqual({
+    operation: 'sort',
+    options: {
+      by: 'sum(sales)',
+      ascending: true,
+    },
+  });
+
+  windowSpy.mockRestore();
+});
