@@ -4,6 +4,7 @@ import {
   dvtSidebarAlertsSetProperty,
   dvtSidebarChartAddSetProperty,
   dvtSidebarConnectionSetProperty,
+  dvtSidebarDatasetsSetProperty,
   dvtSidebarReportsSetProperty,
 } from 'src/dvt-redux/dvt-sidebarReducer';
 import { useAppSelector } from 'src/hooks/useAppSelector';
@@ -48,6 +49,7 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
   const dispatch = useDispatch();
   const reportsSelector = useAppSelector(state => state.dvtSidebar.reports);
   const alertsSelector = useAppSelector(state => state.dvtSidebar.alerts);
+  const datasetsSelector = useAppSelector(state => state.dvtSidebar.datasets);
   const connectionSelector = useAppSelector(
     state => state.dvtSidebar.connection,
   );
@@ -114,6 +116,17 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
       dvtSidebarConnectionSetProperty({
         connection: {
           ...connectionSelector,
+          [propertyName]: value,
+        },
+      }),
+    );
+  };
+
+  const updateDatasetsProperty = (value: string, propertyName: string) => {
+    dispatch(
+      dvtSidebarDatasetsSetProperty({
+        datasets: {
+          ...datasetsSelector,
           [propertyName]: value,
         },
       }),
@@ -375,6 +388,8 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
                         ? alertsSelector[data.name]
                         : pathTitles(pathName) === 'Connection'
                         ? connectionSelector[data.name]
+                        : pathTitles(pathName) === 'Datasets'
+                        ? datasetsSelector[data.name]
                         : pathTitles(pathName) === 'Chart Add'
                         ? chartAddSelector[data.name]
                         : undefined
@@ -386,6 +401,8 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
                         updateAlertsProperty(value, data.name);
                       } else if (pathTitles(pathName) === 'Connection') {
                         updateConnectionProperty(value, data.name);
+                      } else if (pathTitles(pathName) === 'Datasets') {
+                        updateDatasetsProperty(value, data.name);
                       } else if (pathTitles(pathName) === 'Chart Add') {
                         updateChartAddProperty(value, data.name);
                       }

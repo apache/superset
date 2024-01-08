@@ -42,6 +42,14 @@ interface DvtSidebarState {
     search: string;
   };
 
+  datasets: {
+    owner: string;
+    database: string;
+    schema: string;
+    type: string;
+    certified: string;
+  };
+
   chartAdd: {
     dataset: string;
     recommended_tags: string;
@@ -60,20 +68,24 @@ const initialState: DvtSidebarState = {
     favorite: '',
     certified: '',
   },
-
   alerts: {
     createdBy: '',
     owner: '',
     status: '',
     search: '',
   },
-
   connection: {
     expose_in_sqllab: '',
     allow_run_async: '',
     search: '',
   },
-
+  datasets: {
+    owner: '',
+    database: '',
+    schema: '',
+    type: '',
+    certified: '',
+  },
   chartAdd: {
     dataset: '',
     recommended_tags: '',
@@ -116,6 +128,16 @@ const dvtSidebarSlice = createSlice({
         ...action.payload.connection,
       },
     }),
+    dvtSidebarDatasetsSetProperty: (
+      state,
+      action: PayloadAction<{ datasets: DvtSidebarState['datasets'] }>,
+    ) => ({
+      ...state,
+      datasets: {
+        ...state.datasets,
+        ...action.payload.datasets,
+      },
+    }),
     dvtSidebarChartAddSetProperty: (
       state,
       action: PayloadAction<{ chartAdd: DvtSidebarState['chartAdd'] }>,
@@ -133,6 +155,7 @@ export const {
   dvtSidebarReportsSetProperty,
   dvtSidebarAlertsSetProperty,
   dvtSidebarConnectionSetProperty,
+  dvtSidebarDatasetsSetProperty,
   dvtSidebarChartAddSetProperty,
 } = dvtSidebarSlice.actions;
 
