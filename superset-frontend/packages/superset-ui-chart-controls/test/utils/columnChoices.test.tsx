@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatasourceType, testQueryResponse } from '@superset-ui/core';
+import {
+  DatasourceType,
+  GenericDataType,
+  testQueryResponse,
+} from '@superset-ui/core';
 import { columnChoices } from '../../src';
 
 describe('columnChoices()', () => {
@@ -31,14 +35,20 @@ describe('columnChoices()', () => {
         columns: [
           {
             column_name: 'fiz',
+            type: 'INT',
+            type_generic: GenericDataType.NUMERIC,
           },
           {
             column_name: 'about',
             verbose_name: 'right',
+            type: 'VARCHAR',
+            type_generic: GenericDataType.STRING,
           },
           {
             column_name: 'foo',
-            verbose_name: 'bar',
+            verbose_name: undefined,
+            type: 'TIMESTAMP',
+            type_generic: GenericDataType.TEMPORAL,
           },
         ],
         verbose_map: {},
@@ -48,8 +58,8 @@ describe('columnChoices()', () => {
         description: 'this is my datasource',
       }),
     ).toEqual([
-      ['foo', 'bar'],
       ['fiz', 'fiz'],
+      ['foo', 'foo'],
       ['about', 'right'],
     ]);
   });

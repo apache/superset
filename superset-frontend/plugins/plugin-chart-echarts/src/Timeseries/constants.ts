@@ -63,6 +63,7 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   zoomable: false,
   richTooltip: true,
   xAxisLabelRotation: 0,
+  xAxisForceCategorical: false,
   groupby: [],
   showValue: false,
   onlyTotal: false,
