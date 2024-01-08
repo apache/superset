@@ -598,6 +598,32 @@ const DvtSidebarData: SidebarDataProps[] = [
       },
     ],
   },
+  {
+    pathname: '/chart/add',
+    data: [
+      {
+        placeholder: 'Dataset',
+        name: 'dataset',
+      },
+      {
+        values: [
+          { label: 'Popular', value: 'popular' },
+          { label: 'ECharts', value: 'echarts' },
+          { label: 'Advanced-Analytics', value: 'advanced_analytics' },
+        ],
+        placeholder: 'Recommended Tags',
+        name: 'recommended_tags',
+      },
+      {
+        placeholder: 'Category',
+        name: 'category',
+      },
+      {
+        placeholder: 'Tags',
+        name: 'tags',
+      },
+    ],
+  },
 ];
 
 export default DvtSidebarData;

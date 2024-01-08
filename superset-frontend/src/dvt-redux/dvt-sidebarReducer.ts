@@ -49,6 +49,13 @@ interface DvtSidebarState {
     type: string;
     certified: string;
   };
+
+  chartAdd: {
+    dataset: string;
+    recommended_tags: string;
+    category: string;
+    tags: string;
+  };
 }
 
 const initialState: DvtSidebarState = {
@@ -61,14 +68,12 @@ const initialState: DvtSidebarState = {
     favorite: '',
     certified: '',
   },
-
   alerts: {
     createdBy: '',
     owner: '',
     status: '',
     search: '',
   },
-
   connection: {
     expose_in_sqllab: '',
     allow_run_async: '',
@@ -80,6 +85,12 @@ const initialState: DvtSidebarState = {
     schema: '',
     type: '',
     certified: '',
+  },
+  chartAdd: {
+    dataset: '',
+    recommended_tags: '',
+    category: '',
+    tags: '',
   },
 };
 
@@ -127,6 +138,16 @@ const dvtSidebarSlice = createSlice({
         ...action.payload.datasets,
       },
     }),
+    dvtSidebarChartAddSetProperty: (
+      state,
+      action: PayloadAction<{ chartAdd: DvtSidebarState['chartAdd'] }>,
+    ) => ({
+      ...state,
+      chartAdd: {
+        ...state.connection,
+        ...action.payload.chartAdd,
+      },
+    }),
   },
 });
 
@@ -135,6 +156,7 @@ export const {
   dvtSidebarAlertsSetProperty,
   dvtSidebarConnectionSetProperty,
   dvtSidebarDatasetsSetProperty,
+  dvtSidebarChartAddSetProperty,
 } = dvtSidebarSlice.actions;
 
 export default dvtSidebarSlice.reducer;

@@ -1,85 +1,55 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable consistent-return */
-/* eslint-disable no-void */
-import { useEffect, useReducer, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 
-interface State<T> {
-  data?: T;
-  error?: Error;
-}
+type UseFetchProps = {
+  url: string;
+  method?: 'GET' | 'POST' | 'DELETE';
+  headers?: Record<string, string>;
+  body?: any;
+};
 
-type Cache<T> = { [url: string]: T };
-
-type Action<T> =
-  | { type: 'loading' }
-  | { type: 'fetched'; payload: T }
-  | { type: 'error'; payload: Error };
-
-export function useFetch<T = unknown>(
-  url?: string,
-  options?: RequestInit,
-): State<T> {
-  const cache = useRef<Cache<T>>({});
-
-  const cancelRequest = useRef<boolean>(false);
-
-  const initialState: State<T> = {
-    error: undefined,
-    data: undefined,
-  };
-
-  const fetchReducer = (state: State<T>, action: Action<T>): State<T> => {
-    switch (action.type) {
-      case 'loading':
-        return { ...initialState };
-      case 'fetched':
-        return { ...initialState, data: action.payload };
-      case 'error':
-        return { ...initialState, error: action.payload };
-      default:
-        return state;
-    }
-  };
-
-  const [state, dispatch] = useReducer(fetchReducer, initialState);
+const useFetch = ({
+  url,
+  method = 'GET',
+  body,
+  headers = {},
+}: UseFetchProps) => {
+  const { addDangerToast } = useToasts();
+  const [data, setData] = useState<any | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!url) return;
-
-    cancelRequest.current = false;
-
     const fetchData = async () => {
-      dispatch({ type: 'loading' });
-
-      if (cache.current[url]) {
-        dispatch({ type: 'fetched', payload: cache.current[url] });
-        return;
-      }
-
       try {
-        const response = await fetch(url, options);
+        const response = await fetch(url, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+            ...headers,
+          },
+          body: method !== 'GET' ? JSON.stringify(body) : undefined,
+        });
+
         if (!response.ok) {
-          throw new Error(response.statusText);
+          throw new Error(`HTTP error! Status: ${response.status}`);
         }
 
-        const data = (await response.json()) as T;
-        cache.current[url] = data;
-        if (cancelRequest.current) return;
-
-        dispatch({ type: 'fetched', payload: data });
+        const result = await response.json();
+        setData(result);
       } catch (error) {
-        if (cancelRequest.current) return;
-
-        dispatch({ type: 'error', payload: error as Error });
+        setError(error.message);
+        addDangerToast(error.message);
+      } finally {
+        setLoading(false);
       }
     };
 
-    void fetchData();
-
-    return () => {
-      cancelRequest.current = true;
-    };
+    fetchData();
   }, [url]);
 
-  return state;
-}
+  return { data, loading, error };
+};
+
+export default useFetch;

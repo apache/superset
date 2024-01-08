@@ -18,6 +18,7 @@
  */
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import thumbnail from './images/thumbnail.png';
+import example from './images/example.png';
 import transformProps from '../../transformProps';
 import controlPanel from './controlPanel';
 
@@ -27,6 +28,7 @@ const metadata = new ChartMetadata({
   description: t(
     'The GeoJsonLayer takes in GeoJSON formatted data and renders it as interactive polygons, lines and points (circles, icons and/or texts).',
   ),
+  exampleGallery: [{ url: example }],
   name: t('deck.gl Geojson'),
   thumbnail,
   useLegacyApi: true,
