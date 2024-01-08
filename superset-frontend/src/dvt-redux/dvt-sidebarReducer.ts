@@ -41,6 +41,14 @@ interface DvtSidebarState {
     allow_run_async: string;
     search: string;
   };
+
+  datasets: {
+    owner: string;
+    database: string;
+    schema: string;
+    type: string;
+    certified: string;
+  };
 }
 
 const initialState: DvtSidebarState = {
@@ -65,6 +73,13 @@ const initialState: DvtSidebarState = {
     expose_in_sqllab: '',
     allow_run_async: '',
     search: '',
+  },
+  datasets: {
+    owner: '',
+    database: '',
+    schema: '',
+    type: '',
+    certified: '',
   },
 };
 
@@ -102,6 +117,16 @@ const dvtSidebarSlice = createSlice({
         ...action.payload.connection,
       },
     }),
+    dvtSidebarDatasetsSetProperty: (
+      state,
+      action: PayloadAction<{ datasets: DvtSidebarState['datasets'] }>,
+    ) => ({
+      ...state,
+      datasets: {
+        ...state.datasets,
+        ...action.payload.datasets,
+      },
+    }),
   },
 });
 
@@ -109,6 +134,7 @@ export const {
   dvtSidebarReportsSetProperty,
   dvtSidebarAlertsSetProperty,
   dvtSidebarConnectionSetProperty,
+  dvtSidebarDatasetsSetProperty,
 } = dvtSidebarSlice.actions;
 
 export default dvtSidebarSlice.reducer;
