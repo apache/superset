@@ -101,7 +101,6 @@ OAUTH_PROVIDERS = [
             "access_token_url": f'{os.getenv("AUTH0_DOMAIN")}/oauth/token',
             "authorize_url": f'{os.getenv("AUTH0_DOMAIN")}/authorize',
             "access_token_method": "POST",
-            "prompt": "login",
         },
     }
 ]
