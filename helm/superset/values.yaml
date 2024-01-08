@@ -56,7 +56,7 @@ envFromSecret: '{{ template "superset.fullname" . }}-env'
 envFromSecrets: []
 
 # -- Extra environment variables that will be passed into pods
-extraEnv: {}
+extraEnv: 
   # Different gunicorn settings, refer to the gunicorn documentation
   # https://docs.gunicorn.org/en/stable/settings.html#
   # These variables are used as Flags at the gunicorn startup
@@ -72,6 +72,9 @@ extraEnv: {}
   # GUNICORN_KEEPALIVE: 2
   # SERVER_LIMIT_REQUEST_LINE: 0
   # SERVER_LIMIT_REQUEST_FIELD_SIZE: 0
+  SESSION_COOKIE_HTTPONLY: true
+  TALISMAN_ENABLED: false
+  WTF_CSRF_ENABLED: true
 
   # OAUTH_HOME_DOMAIN: ..
   # # If a whitelist is not set, any address that can use your OAuth2 endpoint will be able to login.
@@ -132,7 +135,10 @@ extraVolumeMounts: []
 # -- A dictionary of overrides to append at the end of superset_config.py - the name does not matter
 # WARNING: the order is not guaranteed
 # Files can be passed as helm --set-file configOverrides.my-override=my-file.py
-configOverrides: {}
+configOverrides:
+  secret: |
+    SECRET_KEY = 'DbuhKpdGptVv63oNKJN/MsJzz1aNOwnWz45sRLCHqQ0/rP5GrHO58faj'
+# configOverrides: {}
   # extend_timeout: |
   #    # Extend timeout to allow long running queries.
   #    SUPERSET_WEBSERVER_TIMEOUT = ...
@@ -166,7 +172,7 @@ configOverrides: {}
   #   AUTH_USER_REGISTRATION_ROLE = "Admin"
   # secret: |
   #   # Generate your own secret key for encryption. Use openssl rand -base64 42 to generate a good key
-  #   SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
+  #   SECRET_KEY = 'DbuhKpdGptVv63oNKJN/MsJzz1aNOwnWz45sRLCHqQ0/rP5GrHO58faj'
 
 # -- Same as above but the values are files
 configOverridesFiles: {}
@@ -190,14 +196,27 @@ initImage:
   pullPolicy: IfNotPresent
 
 service:
-  type: ClusterIP
+  type: LoadBalancer
   port: 8088
+  externalIPs:
+    - 35.208.219.168
   annotations: {}
     # cloud.google.com/load-balancer-type: "Internal"
   loadBalancerIP: ~
   nodePort:
     # -- (int)
-    http: nil
+    http: 30301
+bootstrapScript: |
+  #!/bin/bash
+  rm -rf /var/lib/apt/lists/* && \
+  pip install pybigquery \
+#     psycopg2-binary==2.9.1 \
+#     pymssql==2.2.3 \
+#     pybigquery \
+#     shillelagh[gsheetsapi] \
+#     sqlalchemy-bigquery \
+#     redis==3.5.3 && \
+  # if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi
 
 ingress:
   enabled: false
@@ -657,7 +676,7 @@ init:
   jobAnnotations:
     "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-delete-policy": "before-hook-creation"
-  loadExamples: false
+  loadExamples: true
   createAdmin: true
   adminUser:
     username: admin
