@@ -35,7 +35,7 @@ const StyledDropdown = styled.div`
 const DropdownMenu = styled.div`
   display: flex;
   flex-direction: column;
-  box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0.25rem 0.25rem ${({ theme }) => theme.colors.dvt.text.label};;
   animation: ${optionsKeyframes} 0.3s ease-in-out;
   top: 100%;
   left: 0;

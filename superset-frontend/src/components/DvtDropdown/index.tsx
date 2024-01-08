@@ -51,7 +51,7 @@ const DvtDropdown: React.FC<DvtDropdownProps> = ({
         <DropdownMenu>
           {data.map((item, index) => (
             <DropdownOption key={index} onClick={item.onClick}>
-              <Icon fileName={item.icon} size={1.8} />
+              <Icon fileName={item.icon} />
               {item.label}
             </DropdownOption>
           ))}
