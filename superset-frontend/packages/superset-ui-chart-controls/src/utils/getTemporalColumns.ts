@@ -26,7 +26,6 @@ import {
   ColumnMeta,
   ControlPanelState,
   isDataset,
-  isQueryResponse,
 } from '@superset-ui/chart-controls';
 
 export function getTemporalColumns(
@@ -41,11 +40,6 @@ export function getTemporalColumns(
   };
 
   if (isDataset(datasource)) {
-    rv.temporalColumns = ensureIsArray(datasource.columns).filter(
-      c => c.is_dttm,
-    );
-  }
-  if (isQueryResponse(datasource)) {
     rv.temporalColumns = ensureIsArray(datasource.columns).filter(
       c => c.is_dttm,
     );
