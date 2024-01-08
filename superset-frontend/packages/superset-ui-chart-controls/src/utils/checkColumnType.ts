@@ -17,7 +17,11 @@
  * under the License.
  */
 import { ensureIsArray, GenericDataType, ValueOf } from '@superset-ui/core';
-import { ControlPanelState, isDataset } from '@superset-ui/chart-controls';
+import {
+  ControlPanelState,
+  isDataset,
+  isQueryResponse,
+} from '@superset-ui/chart-controls';
 
 export function checkColumnType(
   columnName: string,
@@ -31,6 +35,15 @@ export function checkColumnType(
         columnTypes.includes(c.type_generic) &&
         columnName === c.column_name,
     );
+  }
+  if (isQueryResponse(datasource)) {
+    return ensureIsArray(datasource.columns)
+      .filter(
+        c =>
+          c.type_generic !== undefined && columnTypes.includes(c.type_generic),
+      )
+      .map(c => c.column_name)
+      .some(c => columnName === c);
   }
   return false;
 }
