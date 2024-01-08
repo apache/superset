@@ -171,7 +171,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Success', value: 'success' },
         ],
         placeholder: 'Owner',
-        name:'owner',
+        name: 'owner',
       },
       {
         values: [
@@ -179,7 +179,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Success', value: 'success' },
         ],
         placeholder: 'Database',
-        name:'database',
+        name: 'database',
       },
       {
         values: [
@@ -189,7 +189,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Dolor Sit Amet', value: 'success1' },
         ],
         placeholder: 'Schema',
-        name:'schema',
+        name: 'schema',
       },
       {
         values: [
@@ -197,7 +197,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Success', value: 'success' },
         ],
         placeholder: 'Type',
-        name:'type',
+        name: 'type',
       },
       {
         values: [
@@ -205,7 +205,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Success', value: 'success' },
         ],
         placeholder: 'Certified',
-        name:'certified',
+        name: 'certified',
       },
     ],
   },
