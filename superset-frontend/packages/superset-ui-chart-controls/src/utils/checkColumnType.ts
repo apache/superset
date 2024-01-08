@@ -25,13 +25,12 @@ export function checkColumnType(
   columnTypes: GenericDataType[],
 ): boolean {
   if (isDataset(datasource)) {
-    return ensureIsArray(datasource.columns)
-      .filter(
-        c =>
-          c.type_generic !== undefined && columnTypes.includes(c.type_generic),
-      )
-      .map(c => c.column_name)
-      .some(c => columnName === c);
+    return ensureIsArray(datasource.columns).some(
+      c =>
+        c.type_generic !== undefined &&
+        columnTypes.includes(c.type_generic) &&
+        columnName === c.column_name,
+    );
   }
   return false;
 }
