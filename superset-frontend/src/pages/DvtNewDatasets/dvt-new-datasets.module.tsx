@@ -1,7 +1,6 @@
 import { styled } from '@superset-ui/core';
 
-const StyledDvtNewDatasets = styled.div`
-`;
+const StyledDvtNewDatasets = styled.div``;
 
 const StyledNewDatasetsButtons = styled.div`
   display: flex;
