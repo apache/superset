@@ -24,7 +24,7 @@ const header = [
   { id: 2, title: 'Type', field: 'kind' },
   { id: 3, title: 'Database', field: 'database' },
   { id: 4, title: 'Schema', field: 'schema' },
-  { id: 5, title: 'Modified Date', field: 'changed_on_delta_humanized' },
+  { id: 5, title: 'Modified Date', field: 'changed_on_utc' },
   { id: 6, title: 'Modified by', field: 'changed_by_name' },
   { id: 7, title: 'Owners', field: 'owners' },
   {
@@ -50,34 +50,6 @@ const header = [
   },
 ];
 
-/*
-const getFormattedDifference = (modified: Date) => {
-  const now = moment();
-  const diff = now.diff(modified);
-  const duration = moment.duration(diff);
-
-  const years = duration.years();
-  const months = duration.months();
-  const days = duration.days();
-  const hours = duration.hours();
-  const minutes = duration.minutes();
-
-  let dateMessage = 'Just Now';
-
-  if (years > 0) {
-    dateMessage = `${years} Years Ago`;
-  } else if (months > 0) {
-    dateMessage = `${months} Months Ago`;
-  } else if (days > 0) {
-    dateMessage = `${days} Days Ago`;
-  } else if (hours > 0) {
-    dateMessage = `${hours} Hours Ago`;
-  } else if (minutes > 0) {
-    dateMessage = `${minutes} Minutes Ago`;
-  }
-  return dateMessage;
-};
-*/
 function DvtDatasets() {
   const [currentPage, setCurrentPage] = useState(1);
   const [data, setData] = useState([]);
@@ -95,13 +67,9 @@ function DvtDatasets() {
         const data = await response.json();
         setData(
           data.result.map((item: any) => ({
-            id: item.id,
-            table_name: item.table_name,
-            kind: item.kind,
+            ...item,
             database: `${item.database.database_name}`,
-            schema: item.schema,
-            changed_on_delta_humanized: moment(item.changed_on_utc).fromNow(),
-            changed_by_name: item.changed_by_name,
+            changed_on_utc: moment(item.changed_on_utc).fromNow(),
             owners: item.owners.length
               ? item.owners
                   .map(
