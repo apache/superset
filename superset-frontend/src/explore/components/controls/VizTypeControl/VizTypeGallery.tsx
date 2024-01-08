@@ -852,23 +852,22 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
               {t('Examples')}
             </SectionTitle>
             <Examples>
-              {selectedVizMetadata?.exampleGallery.length ? (
-                (selectedVizMetadata?.exampleGallery || []).map(example => (
-                  <img
-                    key={example.url}
-                    src={example.url}
-                    alt={example.caption}
-                    title={example.caption}
-                  />
-                ))
-              ) : (
+              {(selectedVizMetadata?.exampleGallery?.length
+                ? selectedVizMetadata.exampleGallery
+                : [
+                    {
+                      url: selectedVizMetadata?.thumbnail,
+                      caption: selectedVizMetadata?.name,
+                    },
+                  ]
+              ).map(example => (
                 <img
-                  key={selectedVizMetadata?.thumbnail}
-                  src={selectedVizMetadata?.thumbnail}
-                  alt={selectedVizMetadata?.name}
-                  title={selectedVizMetadata?.name}
+                  key={example.url}
+                  src={example.url}
+                  alt={example.caption}
+                  title={example.caption}
                 />
-              )}
+              ))}
             </Examples>
           </>
         </div>
