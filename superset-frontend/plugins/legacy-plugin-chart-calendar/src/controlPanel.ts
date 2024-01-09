@@ -22,16 +22,12 @@ import {
   D3_FORMAT_DOCS,
   D3_TIME_FORMAT_OPTIONS,
   getStandardizedControls,
+  sections,
 } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    {
-      label: t('Time'),
-      expanded: true,
-      description: t('Time related form attributes'),
-      controlSetRows: [['granularity_sqla'], ['time_range']],
-    },
+    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
