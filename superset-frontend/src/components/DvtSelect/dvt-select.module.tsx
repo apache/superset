@@ -149,6 +149,11 @@ const StyledSelectIcon = styled.div<StyledSelectProps>`
   transform: ${({ isOpen }) => (isOpen ? 'rotate(90deg)' : 'none')};
 `;
 
+const StyledSelectPopover = styled.div`
+  display: flex;
+  gap: 8px;
+`;
+
 export {
   StyledSelect,
   StyledSelectOption,
@@ -156,4 +161,5 @@ export {
   StyledSelectSelect,
   StyledSelectIcon,
   StyledSelectOptions,
+  StyledSelectPopover,
 };
