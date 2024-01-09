@@ -24,6 +24,7 @@ from tests.unit_tests.fixtures.dataframes import (
     multiple_metrics_df,
     single_metric_df,
     timeseries_df,
+    timeseries_with_gap_df,
 )
 from tests.unit_tests.pandas_postprocessing.utils import series_to_list
 
@@ -67,6 +68,45 @@ def test_cum():
     )
     assert post_df.columns.tolist() == ["label", "y"]
     assert series_to_list(post_df["y"]) == [1.0, 1.0, 1.0, 1.0]
+
+    # invalid operator
+    with pytest.raises(InvalidPostProcessingError):
+        pp.cum(
+            df=timeseries_df,
+            columns={"y": "y"},
+            operator="abc",
+        )
+
+
+def test_cum_with_gap():
+    # create new column (cumsum)
+    post_df = pp.cum(
+        df=timeseries_with_gap_df,
+        columns={"y": "y2"},
+        operator="sum",
+    )
+    assert post_df.columns.tolist() == ["label", "y", "y2"]
+    assert series_to_list(post_df["label"]) == ["x", "y", "z", "q"]
+    assert series_to_list(post_df["y"]) == [1.0, 2.0, None, 4.0]
+    assert series_to_list(post_df["y2"]) == [1.0, 3.0, 3.0, 7.0]
+
+    # overwrite column (cumprod)
+    post_df = pp.cum(
+        df=timeseries_with_gap_df,
+        columns={"y": "y"},
+        operator="prod",
+    )
+    assert post_df.columns.tolist() == ["label", "y"]
+    assert series_to_list(post_df["y"]) == [1.0, 2.0, 0, 0]
+
+    # overwrite column (cummin)
+    post_df = pp.cum(
+        df=timeseries_with_gap_df,
+        columns={"y": "y"},
+        operator="min",
+    )
+    assert post_df.columns.tolist() == ["label", "y"]
+    assert series_to_list(post_df["y"]) == [1.0, 1.0, 0, 0]
 
     # invalid operator
     with pytest.raises(InvalidPostProcessingError):
