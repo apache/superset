@@ -399,14 +399,12 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'postgresql PostgreSQL', value: 'postgresql_postgresql' },
         ],
         placeholder: 'DATABASE',
-        name:'database',
+        name: 'database',
       },
       {
-        values: [
-          { label: 'Schema', value: 'schema' },
-        ],
+        values: [{ label: 'Schema', value: 'schema' }],
         placeholder: 'SCHEMA',
-        name:'schema',
+        name: 'schema',
       },
     ],
   },
