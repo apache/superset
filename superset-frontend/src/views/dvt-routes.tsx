@@ -81,7 +81,7 @@ const DatasetList = lazy(
 const DatasetCreation = lazy(
   () =>
     import(
-      /* webpackChunkName: "DatasetCreation" */ 'src/pages/DatasetCreation'
+      /* webpackChunkName: "DatasetCreation" */ 'src/pages/DvtNewDatasets'
     ),
 );
 

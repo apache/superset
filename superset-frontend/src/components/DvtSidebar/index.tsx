@@ -80,6 +80,8 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
         return 'Profile';
       case '/chart/add':
         return 'Chart Add';
+      case '/dataset/add/':
+        return 'New Dataset';
       default:
         return '';
     }
@@ -346,6 +348,7 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
       )}
 
       {(pathTitles(pathName) === 'Datasets' ||
+        pathTitles(pathName) === 'New Dataset' ||
         pathTitles(pathName) === 'Dashboards' ||
         pathTitles(pathName) === 'Alerts' ||
         pathTitles(pathName) === 'Reports' ||

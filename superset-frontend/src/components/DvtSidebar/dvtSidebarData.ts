@@ -396,6 +396,24 @@ const DvtSidebarData: SidebarDataProps[] = [
     ],
   },
   {
+    pathname: '/dataset/add/',
+    data: [
+      {
+        values: [
+          { label: 'postgresql examples', value: 'postgresql_examples' },
+          { label: 'postgresql PostgreSQL', value: 'postgresql_postgresql' },
+        ],
+        placeholder: 'DATABASE',
+        name: 'database',
+      },
+      {
+        values: [{ label: 'Schema', value: 'schema' }],
+        placeholder: 'SCHEMA',
+        name: 'schema',
+      },
+    ],
+  },
+  {
     pathname: '/dashboard/list/',
     data: [
       {
