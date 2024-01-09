@@ -804,12 +804,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
         parsed_schema = parse_js_uri_path_item(schema_name, eval_undefined=True)
         table_name = cast(str, parse_js_uri_path_item(table_name))
-        try:
-            payload = database.db_engine_spec.extra_table_metadata(
-                database, table_name, parsed_schema
-            )
-        except NoSuchTableError:
-            return self.response_404()
+        payload = database.db_engine_spec.extra_table_metadata(
+            database, table_name, parsed_schema
+        )
         return self.response(200, **payload)
 
     @expose("/<int:pk>/select_star/<path:table_name>/", methods=("GET",))
