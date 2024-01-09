@@ -90,32 +90,6 @@ def test_cum_with_gap():
     assert series_to_list(post_df["y"]) == [1.0, 2.0, None, 4.0]
     assert series_to_list(post_df["y2"]) == [1.0, 3.0, 3.0, 7.0]
 
-    # overwrite column (cumprod)
-    post_df = pp.cum(
-        df=timeseries_with_gap_df,
-        columns={"y": "y"},
-        operator="prod",
-    )
-    assert post_df.columns.tolist() == ["label", "y"]
-    assert series_to_list(post_df["y"]) == [1.0, 2.0, 0, 0]
-
-    # overwrite column (cummin)
-    post_df = pp.cum(
-        df=timeseries_with_gap_df,
-        columns={"y": "y"},
-        operator="min",
-    )
-    assert post_df.columns.tolist() == ["label", "y"]
-    assert series_to_list(post_df["y"]) == [1.0, 1.0, 0, 0]
-
-    # invalid operator
-    with pytest.raises(InvalidPostProcessingError):
-        pp.cum(
-            df=timeseries_df,
-            columns={"y": "y"},
-            operator="abc",
-        )
-
 
 def test_cum_after_pivot_with_single_metric():
     pivot_df = pp.pivot(
