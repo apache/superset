@@ -17,59 +17,64 @@
  * under the License.
  */
 import React, { ReactNode, useState } from 'react';
+import { SupersetTheme } from '@superset-ui/core';
+import Icon from '../Icons/Icon';
 import {
-  StyledPopper,
-  StyledPopperUp,
-  StyledPopperDown,
-  StyledPopperLeft,
-  StyledPopperRight,
-  StyledPopperBody,
-  StyledPopperGroup,
-  StyledPopperAbsolute,
+  StyledCollapse,
+  StyledCollapsePopover,
+  StyledCollapseGroup,
+  StyledCollapseLabel,
+  StyledCollapseIcon,
+  StyledCollapseChildren,
 } from './dvt-collapse.module';
+import DvtPopper from '../DvtPopper';
 
 export interface DvtCollapseProps {
   label: string;
   children: ReactNode;
+  popoverIcon?: string;
+  popoverLabel?: string;
+  popoverDirection?: 'top' | 'bottom' | 'left' | 'right';
 }
 
 const DvtCollapse: React.FC<DvtCollapseProps> = ({
   label,
   children,
+  popoverIcon = 'warning',
+  popoverDirection = 'top',
+  popoverLabel,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <StyledCollapse
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-       <StyledCollapsePopover>
-        {label && (
-          <StyledCollapseLabel typeDesign={typeDesign}>{label}</StyledCollapseLabel>
-        )}
-        {popoverLabel && (
-          <DvtPopper label={popoverLabel} direction={popoverDirection}>
-            <Icon
-              fileName={popoverIcon}
-              css={(theme: SupersetTheme) => ({
-                color: theme.colors.dvt.primary.base,
-              })}
-              iconSize="l"
-            />
-          </DvtPopper>
-        )}
-      </StyledCollapsePopover>
-      <StyledPopper>{children} </StyledPopper>
-      {isHovered && (
-        <StyledPopperAbsolute direction={direction}>
-          {direction === 'bottom' && <StyledPopperUp />}
-          {direction === 'right' && <StyledPopperLeft />}
-          <StyledPopperBody>{label}</StyledPopperBody>
-          {direction === 'top' && <StyledPopperDown />}{' '}
-          {direction === 'left' && <StyledPopperRight />}
-        </StyledPopperAbsolute>
-      )}
+    <StyledCollapse>
+      <StyledCollapseGroup>
+        <StyledCollapseLabel>
+          {label}
+          {popoverLabel && (
+            <StyledCollapsePopover>
+              <DvtPopper label={popoverLabel} direction={popoverDirection}>
+                <Icon
+                  fileName={popoverIcon}
+                  css={(theme: SupersetTheme) => ({
+                    color: theme.colors.dvt.primary.base,
+                  })}
+                  iconSize="l"
+                />
+              </DvtPopper>
+            </StyledCollapsePopover>
+          )}
+        </StyledCollapseLabel>
+        <StyledCollapseIcon isOpen={isOpen}>
+          <Icon
+            fileName="caret_down"
+            iconSize="xxl"
+            onClick={() => setIsOpen(!isOpen)}
+          />
+        </StyledCollapseIcon>
+      </StyledCollapseGroup>
+
+      {isOpen && <StyledCollapseChildren>{children}</StyledCollapseChildren>}
     </StyledCollapse>
   );
 };

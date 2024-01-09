@@ -16,117 +16,57 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import { keyframes, styled } from '@superset-ui/core';
 
-interface DvtPopperProps {
-  direction: string;
+const optionsKeyframes = keyframes`
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+`;
+
+interface StyledCollapseProps {
+  isOpen: boolean;
 }
 
-const StyledPopper = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+const StyledCollapse = styled.div`
+  background-color: ${({ theme }) => theme.colors.grayscale.light5};
+  width: 100%;
 `;
 
-const StyledPopperUp = styled.div`
-  width: 0;
-  height: 0;
-  border-left: 10px solid transparent;
-  border-right: 10px solid transparent;
-  border-bottom: 20px solid ${({ theme }) => theme.colors.dvt.primary.base};
-`;
-
-const StyledPopperDown = styled.div`
-  width: 0;
-  height: 0;
-  border-left: 10px solid transparent;
-  border-right: 10px solid transparent;
-  border-top: 20px solid ${({ theme }) => theme.colors.dvt.primary.base};
-`;
-
-const StyledPopperLeft = styled.div`
-  width: 0;
-  height: 0;
-  border-top: 10px solid transparent;
-  border-right: 20px solid ${({ theme }) => theme.colors.dvt.primary.base};
-  border-bottom: 10px solid transparent;
-`;
-
-const StyledPopperRight = styled.div`
-  width: 0;
-  height: 0;
-  border-top: 10px solid transparent;
-  border-left: 20px solid ${({ theme }) => theme.colors.dvt.primary.base};
-  border-bottom: 10px solid transparent;
-`;
-
-const StyledPopperBody = styled.div`
+const StyledCollapseGroup = styled.div`
   display: flex;
   align-items: center;
-  justify-content: center;
-  background-color: ${({ theme }) => theme.colors.dvt.primary.base};
-  border-radius: 4px;
-  height: 44px;
-  color: ${({ theme }) => theme.colors.grayscale.light5};
-  font-size: 16px;
-  font-weight: 500;
-  line-height: 140%;
-  letter-spacing: 0.2px;
-  cursor: pointer;
-  padding: 0 17px;
+  justify-content: space-between;
 `;
 
-const StyledPopperGroup = styled.div`
-  position: relative;
-`;
-
-const StyledPopperAbsolute = styled.div<DvtPopperProps>`
+const StyledCollapseLabel = styled.div`
   display: flex;
-  flex-direction: ${({ direction }) =>
-    direction === 'top' || direction === 'bottom' ? 'column' : 'row'};
   align-items: center;
-  position: absolute;
-  z-index: 999;
-  ${({ direction }) => {
-    if (direction === 'bottom') {
-      return `
-        left: 0;
-        right: 0;
-        top: 100%;
-      `;
-    }
-    if (direction === 'top') {
-      return `
-        left: 0;
-        right: 0;
-        bottom: 100%;
-      `;
-    }
-    if (direction === 'left') {
-      return `
-        top: 0;
-        bottom: 0;
-        right: 100%;
-      `;
-    }
-    if (direction === 'right') {
-      return `
-        top: 0;
-        bottom: 0;
-        left: 100%;
-      `;
-    }
-    return '';
-  }}
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
 `;
+
+const StyledCollapseIcon = styled.div<StyledCollapseProps>`
+  transition: transform 0.3s ease-in-out;
+  transform: ${({ isOpen }) => (isOpen ? 'rotate(-180deg)' : 'none')};
+`;
+
+const StyledCollapseChildren = styled.div`
+  animation: ${optionsKeyframes} 0.3s ease-in-out;
+  transform-origin: top;
+`;
+
+const StyledCollapsePopover = styled.div``;
 
 export {
-  StyledPopper,
-  StyledPopperUp,
-  StyledPopperDown,
-  StyledPopperLeft,
-  StyledPopperRight,
-  StyledPopperBody,
-  StyledPopperGroup,
-  StyledPopperAbsolute,
+  StyledCollapse,
+  StyledCollapsePopover,
+  StyledCollapseGroup,
+  StyledCollapseLabel,
+  StyledCollapseIcon,
+  StyledCollapseChildren,
 };
