@@ -158,5 +158,6 @@ Popover.args = {
     { value: 'success', label: 'Success' },
   ],
   placeholder: 'Select or type a value',
-  popoverLabel:'Cannot be empty'
+  popoverLabel: 'Cannot be empty',
+  popoverIcon: true,
 };

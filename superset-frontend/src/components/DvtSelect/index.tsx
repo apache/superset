@@ -40,7 +40,7 @@ export interface DvtSelectProps {
   typeDesign?: 'normal' | 'form' | 'navbar';
   width?: number;
   maxWidth?: boolean;
-  popoverIcon?: string;
+  popoverIcon?: boolean;
   popoverLabel?: string;
   popoverDirection?: 'top' | 'bottom' | 'left' | 'right';
 }
@@ -81,10 +81,10 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
         {label && (
           <StyledSelectLabel typeDesign={typeDesign}>{label}</StyledSelectLabel>
         )}
-        {popoverLabel && (
+        {popoverIcon && popoverLabel && (
           <DvtPopper label={popoverLabel} direction={popoverDirection}>
             <Icon
-              fileName={popoverIcon}
+              fileName="warning"
               css={(theme: SupersetTheme) => ({
                 color: theme.colors.dvt.primary.base,
               })}
