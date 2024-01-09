@@ -1,0 +1,21 @@
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one
+  or more contributor license agreements.  See the NOTICE file
+  distributed with this work for additional information
+  regarding copyright ownership.  The ASF licenses this file
+  to you under the Apache License, Version 2.0 (the
+  "License"); you may not use this file except in compliance
+  with the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="26px" height="15px" viewBox="0 0 26 15" version="1.1">
+<path stroke= "currentColor" style=" stroke:none;fill-rule:nonzero;fill-opacity:1;" d="M 0.761719 11.558594 L 0.761719 10.160156 L 7.921875 1 L 10.078125 1 L 2.980469 10.160156 L 1.960938 9.839844 L 13.140625 9.839844 L 13.140625 11.558594 Z M 8.539062 15 L 8.539062 11.558594 L 8.601562 9.839844 L 8.601562 6.800781 L 10.480469 6.800781 L 10.480469 15 Z M 16.757812 12.441406 L 16.800781 9.980469 L 22.898438 4.398438 L 25.21875 4.398438 L 20.539062 9 L 19.5 9.878906 Z M 15.199219 15 L 15.199219 0.160156 L 17.117188 0.160156 L 17.117188 15 Z M 23.300781 15 L 19.140625 9.839844 L 20.378906 8.300781 L 25.660156 15 Z M 23.300781 15 "/>
+</svg>
