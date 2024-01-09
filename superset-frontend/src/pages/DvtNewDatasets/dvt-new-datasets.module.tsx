@@ -1,17 +1,30 @@
 import { styled } from '@superset-ui/core';
 
-const StyledNewDatasetsButtons = styled.div`
+const StyledDvtNewDatasets = styled.div`
   display: flex;
+  flex-direction: column;
+  height: 100%;
+  align-items: center;
+`;
+
+const StyledNewDatasetsButtons = styled.div`
+  display: inline-flex;
   flex-direction: row;
   justify-content: flex-end;
-  gap: 24px;
   align-items: center;
-  padding-top: 273px;
-  padding-right: 45px;
+  gap: 24px;
+  width: 100%;
+  padding-right: 20px;
+  margin-top: auto;
 `;
 
 const StyledDatasetsIconLabel = styled.div`
-  padding-top: 250px;
+  display: flex;
+  margin-top: auto;
 `;
 
-export { StyledNewDatasetsButtons, StyledDatasetsIconLabel };
+export {
+  StyledDvtNewDatasets,
+  StyledNewDatasetsButtons,
+  StyledDatasetsIconLabel,
+};

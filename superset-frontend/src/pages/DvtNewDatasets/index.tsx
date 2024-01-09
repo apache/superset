@@ -3,12 +3,13 @@ import DvtButton from 'src/components/DvtButton';
 import DvtIconDataLabel from 'src/components/DvtIconDataLabel';
 import {
   StyledDatasetsIconLabel,
+  StyledDvtNewDatasets,
   StyledNewDatasetsButtons,
 } from './dvt-new-datasets.module';
 
 function DvtNewDatasets() {
   return (
-    <div>
+    <StyledDvtNewDatasets>
       <StyledDatasetsIconLabel>
         <DvtIconDataLabel
           label="Select dataset source"
@@ -32,7 +33,7 @@ function DvtNewDatasets() {
           onClick={() => {}}
         />
       </StyledNewDatasetsButtons>
-    </div>
+    </StyledDvtNewDatasets>
   );
 }
 
