@@ -36,7 +36,7 @@ const StyledDropdown = styled.div`
 const DropdownMenu = styled.div`
   display: flex;
   flex-direction: column;
-  box-shadow: 1px 1px 3px ${({ theme }) => theme.colors.dvt.text.label};
+  box-shadow: 0 0 8px ${({ theme }) => theme.colors.dvt.boxShadow.base};
   transform-origin: top;
   animation: ${optionsKeyframes} 0.3s ease-in-out;
   border-radius: 4px;
@@ -48,6 +48,7 @@ const DropdownOption = styled.div`
   gap: 10px;
   align-items: end;
   padding: 5px 12px;
+  cursor: pointer;
 
   &:hover {
     background-color: ${({ theme }) => theme.colors.dvt.grayscale.light1};
