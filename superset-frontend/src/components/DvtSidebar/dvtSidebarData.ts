@@ -171,6 +171,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Success', value: 'success' },
         ],
         placeholder: 'Owner',
+        name: 'owner',
       },
       {
         values: [
@@ -178,6 +179,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Success', value: 'success' },
         ],
         placeholder: 'Database',
+        name: 'database',
       },
       {
         values: [
@@ -187,6 +189,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Dolor Sit Amet', value: 'success1' },
         ],
         placeholder: 'Schema',
+        name: 'schema',
       },
       {
         values: [
@@ -194,6 +197,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Success', value: 'success' },
         ],
         placeholder: 'Type',
+        name: 'type',
       },
       {
         values: [
@@ -201,6 +205,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Success', value: 'success' },
         ],
         placeholder: 'Certified',
+        name: 'certified',
       },
     ],
   },
@@ -608,6 +613,32 @@ const DvtSidebarData: SidebarDataProps[] = [
             label: 'Log Out',
           },
         ],
+      },
+    ],
+  },
+  {
+    pathname: '/chart/add',
+    data: [
+      {
+        placeholder: 'Dataset',
+        name: 'dataset',
+      },
+      {
+        values: [
+          { label: 'Popular', value: 'popular' },
+          { label: 'ECharts', value: 'echarts' },
+          { label: 'Advanced-Analytics', value: 'advanced_analytics' },
+        ],
+        placeholder: 'Recommended Tags',
+        name: 'recommended_tags',
+      },
+      {
+        placeholder: 'Category',
+        name: 'category',
+      },
+      {
+        placeholder: 'Tags',
+        name: 'tags',
       },
     ],
   },

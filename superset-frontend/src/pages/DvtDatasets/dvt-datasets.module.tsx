@@ -16,13 +16,40 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * from './checkColumnType';
-export * from './selectOptions';
-export * from './D3Formatting';
-export * from './expandControlConfig';
-export * from './getColorFormatters';
-export { default as mainMetric } from './mainMetric';
-export { default as columnChoices } from './columnChoices';
-export * from './defineSavedMetrics';
-export * from './getStandardizedControls';
-export * from './getTemporalColumns';
+import { styled } from '@superset-ui/core';
+
+const StyledDvtDatasets = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const StyledButtons = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+`;
+const StyledSelected = styled.div`
+  display: flex;
+  align-items: center;
+`;
+
+const StyledDeselect = styled.div`
+  display: flex;
+  align-items: center;
+`;
+const StyledDeselectButton = styled.div`
+  display: flex;
+  padding: 15px;
+  gap: 5px;
+  flex-direction: row;
+  align-items: center;
+`;
+
+export {
+  StyledDvtDatasets,
+  StyledButtons,
+  StyledSelected,
+  StyledDeselect,
+  StyledDeselectButton,
+};

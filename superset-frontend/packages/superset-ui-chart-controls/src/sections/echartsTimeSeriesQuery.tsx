@@ -20,6 +20,7 @@ import { hasGenericChartAxes, t } from '@superset-ui/core';
 import { ControlPanelSectionConfig, ControlSetRow } from '../types';
 import {
   contributionModeControl,
+  xAxisForceCategoricalControl,
   xAxisSortAscControl,
   xAxisSortControl,
   xAxisSortSeriesAscendingControl,
@@ -55,6 +56,7 @@ export const echartsTimeSeriesQueryWithXAxisSort: ControlPanelSectionConfig = {
   controlSetRows: [
     [hasGenericChartAxes ? 'x_axis' : null],
     [hasGenericChartAxes ? 'time_grain_sqla' : null],
+    [hasGenericChartAxes ? xAxisForceCategoricalControl : null],
     [hasGenericChartAxes ? xAxisSortControl : null],
     [hasGenericChartAxes ? xAxisSortAscControl : null],
     [hasGenericChartAxes ? xAxisSortSeriesControl : null],

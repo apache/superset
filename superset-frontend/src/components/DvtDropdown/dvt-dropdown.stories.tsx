@@ -16,13 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * from './checkColumnType';
-export * from './selectOptions';
-export * from './D3Formatting';
-export * from './expandControlConfig';
-export * from './getColorFormatters';
-export { default as mainMetric } from './mainMetric';
-export { default as columnChoices } from './columnChoices';
-export * from './defineSavedMetrics';
-export * from './getStandardizedControls';
-export * from './getTemporalColumns';
+import React from 'react';
+import DvtDropdown, { DvtDropdownProps } from '.';
+
+export default {
+  title: 'Dvt-Components/DvtDropdown',
+  component: DvtDropdown,
+};
+
+export const Default = (args: DvtDropdownProps) => <DvtDropdown {...args} />;
+
+Default.args = {
+  data: [
+    { label: 'Edit', icon: 'edit_alt', onClick: () => {} },
+    { label: 'Export', icon: 'share', onClick: () => {} },
+    { label: 'Delete', icon: 'trash', onClick: () => {} },
+  ],
+  icon: 'more_vert',
+};

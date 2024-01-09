@@ -37,8 +37,20 @@ import {
 } from './dvtdashboardlist.module';
 
 const headerData = [
-  { id: 1, title: 'Title', field: 'dashboard_title', flex: 3, checkbox: true },
-  { id: 2, title: 'Modified By', field: 'changed_by_name' },
+  {
+    id: 1,
+    title: 'Title',
+    field: 'dashboard_title',
+    flex: 3,
+    checkbox: true,
+    urlField: 'url',
+  },
+  {
+    id: 2,
+    title: 'Modified By',
+    field: 'changed_by_name',
+    urlField: 'changed_by_url',
+  },
   { id: 3, title: 'Status', field: 'status' },
   { id: 4, title: 'Modified', field: 'created_on_delta_humanized' },
   { id: 5, title: 'Created By', field: 'createdbyName' },
@@ -46,6 +58,7 @@ const headerData = [
   {
     id: 7,
     title: 'Action',
+    showHover: true,
     clicks: [
       {
         icon: 'edit_alt',
@@ -85,11 +98,7 @@ function DvtDashboardList() {
         const data = await response.json();
         setData(
           data.result.map((item: any) => ({
-            id: item.id,
-            dashboard_title: item.dashboard_title,
-            changed_by_name: item.changed_by_name,
-            status: item.status,
-            created_on_delta_humanized: item.created_on_delta_humanized,
+            ...item,
             owners: item.owners.length
               ? item.owners
                   .map(

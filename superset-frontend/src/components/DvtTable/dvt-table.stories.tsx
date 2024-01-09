@@ -17,11 +17,21 @@
  * under the License.
  */
 import React, { useState } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import DvtTable, { DvtTableProps } from '.';
+
+import TableData from './dvt-table-data';
 
 export default {
   title: 'Dvt-Components/DvtTable',
   component: DvtTable,
+  decorators: [
+    (Story: any) => (
+      <MemoryRouter>
+        <Story />
+      </MemoryRouter>
+    ),
+  ],
 };
 
 export const Default = (args: DvtTableProps) => (
@@ -33,7 +43,7 @@ export const Default = (args: DvtTableProps) => (
       padding: 32,
     }}
   >
-    <DvtTable {...args} />
+    <DvtTable {...args} data={TableData.defaultData} />
   </div>
 );
 
@@ -42,8 +52,8 @@ Default.args = {
     {
       title: 'Name',
       field: 'name',
-      folderIcon: true,
-      onLink: true,
+      icon: 'dvt-folder',
+      urlField: 'link',
       flex: 3,
     },
     { title: 'Type', field: 'type' },
@@ -74,87 +84,59 @@ Default.args = {
       ],
     },
   ],
-  data: [
+};
+
+export const FavoriteExample = (args: DvtTableProps) => {
+  const [data, setData] = useState<any[]>(TableData.favoritesData);
+  return (
+    <div
+      style={{
+        width: 1440,
+        height: 1050,
+        backgroundColor: '#F8FAFC',
+        padding: 32,
+      }}
+    >
+      <DvtTable {...args} data={data} setFavoriteData={setData} />
+    </div>
+  );
+};
+
+FavoriteExample.args = {
+  header: [
+    { isFavorite: true, flex: 0.5 },
     {
-      name: 'arac',
-      type: 'Pysical',
-      database: 'PostgreSQL',
-      schema: 'Dwh',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
+      title: 'Name',
+      field: 'name',
+      urlField: 'link',
+      flex: 3,
     },
+    { title: 'Type', field: 'type' },
+    { title: 'Database', field: 'database' },
+    { title: 'Schema', field: 'schema' },
+    { title: 'Modified Date', field: 'date' },
+    { title: 'Modified By', field: 'modifiedBy' },
+    { title: 'Owners', field: 'owners' },
     {
-      name: 'hrrr2',
-      type: 'Pysical',
-      database: 'PostgreSQL',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      name: 'channel_members',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      name: 'channel',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      name: 'cleaned_sales_data',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      name: 'covid_vaccines',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      name: 'exported_stats',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      name: 'members_channels_2',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      name: 'Fcc 2018 Survey',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
+      title: 'Action',
+      clicks: [
+        {
+          icon: 'edit_alt',
+          click: () => {},
+          popperLabel: 'Edit',
+        },
+
+        {
+          icon: 'share',
+          click: () => {},
+          popperLabel: 'Export',
+        },
+        {
+          icon: 'trash',
+          click: () => {},
+          popperLabel: 'Share',
+        },
+      ],
     },
   ],
 };
@@ -168,7 +150,7 @@ export const Example = (args: DvtTableProps) => (
       padding: 32,
     }}
   >
-    <DvtTable {...args} />
+    <DvtTable {...args} data={TableData.exampleData} />
   </div>
 );
 
@@ -185,56 +167,6 @@ Example.args = {
     { title: 'months_job_search', field: 'months_job_search2' },
     { title: 'job_pref', field: 'job_pref' },
   ],
-  data: [
-    {
-      id: '64e417of7f25253d56019818b7e9fdcD',
-      is_software_dev: '0',
-      is_first_dev_job: 'Null',
-      months_job_search: 'Null',
-      months_job_search2: 'Null',
-      job_pref: 'freelance',
-    },
-    {
-      id: '64e417of7f25253d56019818b7e9fdcD',
-      is_software_dev: '0',
-      is_first_dev_job: 'Null',
-      months_job_search: 'Null',
-      months_job_search2: 'Null',
-      job_pref: 'freelance',
-    },
-    {
-      id: '64e417of7f25253d56019818b7e9fdcD',
-      is_software_dev: '0',
-      is_first_dev_job: 'Null',
-      months_job_search: 'Null',
-      months_job_search2: 'Null',
-      job_pref: 'freelance',
-    },
-    {
-      id: '64e417of7f25253d56019818b7e9fdcD',
-      is_software_dev: '0',
-      is_first_dev_job: 'Null',
-      months_job_search: 'Null',
-      months_job_search2: 'Null',
-      job_pref: 'freelance',
-    },
-    {
-      id: '64e417of7f25253d56019818b7e9fdcD',
-      is_software_dev: '0',
-      is_first_dev_job: 'Null',
-      months_job_search: 'Null',
-      months_job_search2: 'Null',
-      job_pref: 'freelance',
-    },
-    {
-      id: '64e417of7f25253d56019818b7e9fdcD',
-      is_software_dev: '0',
-      is_first_dev_job: 'Null',
-      months_job_search: 'Null',
-      months_job_search2: 'Null',
-      job_pref: 'freelance',
-    },
-  ],
 };
 
 export const IconExample = (args: DvtTableProps) => (
@@ -246,7 +178,7 @@ export const IconExample = (args: DvtTableProps) => (
       padding: 32,
     }}
   >
-    <DvtTable {...args} />
+    <DvtTable {...args} data={TableData.iconExampleData} />
   </div>
 );
 
@@ -262,7 +194,7 @@ IconExample.args = {
     { title: 'Tables', field: 'tables' },
     { title: 'User', field: 'user' },
     { title: 'Rows', field: 'rows' },
-    { title: 'SQL', field: 'sql', onLink: true },
+    { title: 'SQL', field: 'sql', urlField: 'link' },
     {
       title: 'Action',
       clicks: [
@@ -271,98 +203,6 @@ IconExample.args = {
           click: () => {},
         },
       ],
-    },
-  ],
-  data: [
-    {
-      date: '2023.05.29 15:53:47 * 03:00',
-      tabName: 'Pysical',
-      database: 'PostgreSQL',
-      schema: 'Public',
-      tables: 'hrr2',
-      user: 'Admin',
-      rows: '564',
-      sql: 'Select',
-    },
-    {
-      date: '2023.05.29 15:53:47 * 03:00',
-      tabName: 'Pysical',
-      database: 'PostgreSQL',
-      schema: 'Public',
-      tables: 'hrr2',
-      user: 'Admin',
-      rows: '564',
-      sql: 'Select',
-    },
-    {
-      date: '2023.05.29 15:53:47 * 03:00',
-      tabName: 'Pysical',
-      database: 'PostgreSQL',
-      schema: 'Public',
-      tables: 'hrr2',
-      user: 'Admin',
-      rows: '564',
-      sql: 'Select',
-    },
-    {
-      date: '2023.05.29 15:53:47 * 03:00',
-      tabName: 'Pysical',
-      database: 'PostgreSQL',
-      schema: 'Public',
-      tables: 'hrr2',
-      user: 'Admin',
-      rows: '564',
-      sql: 'Select',
-    },
-    {
-      date: '2023.05.29 15:53:47 * 03:00',
-      tabName: 'Pysical',
-      database: 'PostgreSQL',
-      schema: 'Public',
-      tables: 'hrr2',
-      user: 'Admin',
-      rows: '564',
-      sql: 'Select',
-    },
-    {
-      date: '2023.05.29 15:53:47 * 03:00',
-      tabName: 'Pysical',
-      database: 'PostgreSQL',
-      schema: 'Public',
-      tables: 'hrr2',
-      user: 'Admin',
-      rows: '564',
-      sql: 'Select',
-    },
-    {
-      date: '2023.05.29 15:53:47 * 03:00',
-      tabName: 'Pysical',
-      database: 'PostgreSQL',
-      schema: 'Public',
-      tables: 'hrr2',
-      user: 'Admin',
-      rows: '564',
-      sql: 'Select',
-    },
-    {
-      date: '2023.05.29 15:53:47 * 03:00',
-      tabName: 'Pysical',
-      database: 'PostgreSQL',
-      schema: 'Public',
-      tables: 'hrr2',
-      user: 'Admin',
-      rows: '564',
-      sql: 'Select',
-    },
-    {
-      date: '2023.05.29 15:53:47 * 03:00',
-      tabName: 'Pysical',
-      database: 'PostgreSQL',
-      schema: 'Public',
-      tables: 'hrr2',
-      user: 'Admin',
-      rows: '564',
-      sql: 'Select',
     },
   ],
 };
@@ -376,7 +216,7 @@ export const HoverExample = (args: DvtTableProps) => (
       padding: 32,
     }}
   >
-    <DvtTable {...args} />
+    <DvtTable {...args} data={TableData.hoverExampleData} />
   </div>
 );
 
@@ -385,8 +225,8 @@ HoverExample.args = {
     {
       title: 'Name',
       field: 'name',
-      folderIcon: true,
-      onLink: true,
+      icon: 'dvt-folder',
+      urlField: 'link',
       flex: 3,
     },
     { title: 'Type', field: 'type' },
@@ -415,89 +255,6 @@ HoverExample.args = {
       ],
     },
   ],
-  data: [
-    {
-      name: 'arac',
-      type: 'Pysical',
-      database: 'PostgreSQL',
-      schema: 'Dwh',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      name: 'hrrr2',
-      type: 'Pysical',
-      database: 'PostgreSQL',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      name: 'channel_members',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      name: 'channel',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      name: 'cleaned_sales_data',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      name: 'covid_vaccines',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      name: 'exported_stats',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      name: 'members_channels_2',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      name: 'Fcc 2018 Survey',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-  ],
 };
 
 export const IconColourExample = (args: DvtTableProps) => (
@@ -509,7 +266,7 @@ export const IconColourExample = (args: DvtTableProps) => (
       padding: 32,
     }}
   >
-    <DvtTable {...args} />
+    <DvtTable {...args} data={TableData.iconColourExampleData} />
   </div>
 );
 
@@ -518,8 +275,8 @@ IconColourExample.args = {
     {
       title: 'Name',
       field: 'name',
-      folderIcon: true,
-      onLink: true,
+      icon: 'dvt-folder',
+      urlField: 'link',
       flex: 3,
     },
     { title: 'Type', field: 'type' },
@@ -548,89 +305,6 @@ IconColourExample.args = {
       ],
     },
   ],
-  data: [
-    {
-      name: 'arac',
-      type: 'Pysical',
-      database: 'PostgreSQL',
-      schema: 'Dwh',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      name: 'hrrr2',
-      type: 'Pysical',
-      database: 'PostgreSQL',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      name: 'channel_members',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      name: 'channel',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      name: 'cleaned_sales_data',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      name: 'covid_vaccines',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      name: 'exported_stats',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      name: 'members_channels_2',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      name: 'Fcc 2018 Survey',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-  ],
 };
 
 export const CheckboxExample = (args: DvtTableProps) => {
@@ -645,7 +319,12 @@ export const CheckboxExample = (args: DvtTableProps) => {
         padding: 32,
       }}
     >
-      <DvtTable {...args} selected={selected} setSelected={setSelected} />
+      <DvtTable
+        {...args}
+        data={TableData.checkboxExampleData}
+        selected={selected}
+        setSelected={setSelected}
+      />
     </div>
   );
 };
@@ -656,8 +335,8 @@ CheckboxExample.args = {
     {
       title: 'Name',
       field: 'name',
-      folderIcon: true,
-      onLink: true,
+      icon: 'dvt-folder',
+      urlField: 'link',
       flex: 3,
     },
     { title: 'Type', field: 'type' },
@@ -685,96 +364,63 @@ CheckboxExample.args = {
       ],
     },
   ],
-  data: [
+};
+
+export const ActiveColumn = (args: DvtTableProps) => {
+  const [selected, setSelected] = useState<number[]>([]);
+
+  return (
+    <div
+      style={{
+        width: 1440,
+        height: 1050,
+        backgroundColor: '#F8FAFC',
+        padding: 32,
+      }}
+    >
+      <DvtTable
+        {...args}
+        data={TableData.activeColumnData}
+        selected={selected}
+        setSelected={setSelected}
+      />
+    </div>
+  );
+};
+
+ActiveColumn.args = {
+  header: [
     {
-      id: 1,
-      name: 'arac',
-      type: 'Pysical',
-      database: 'PostgreSQL',
-      schema: 'Dwh',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
+      title: 'Name',
+      field: 'name',
+      icon: 'dvt-folder',
+      iconActive: 'dvt-file',
+      urlField: 'link',
+      flex: 3,
     },
+    { title: 'Type', field: 'type' },
+    { title: 'Database', field: 'database' },
+    { title: 'Schema', field: 'schema' },
+    { title: 'Modified Date', field: 'date' },
+    { title: 'Modified By', field: 'modifiedBy' },
+    { title: 'Owners', field: 'owners' },
     {
-      id: 2,
-      name: 'hrrr2',
-      type: 'Pysical',
-      database: 'PostgreSQL',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      id: 3,
-      name: 'channel_members',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      id: 4,
-      name: 'channel',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      id: 5,
-      name: 'cleaned_sales_data',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      id: 6,
-      name: 'covid_vaccines',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      id: 7,
-      name: 'exported_stats',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      id: 8,
-      name: 'members_channels_2',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
-    },
-    {
-      id: 9,
-      name: 'Fcc 2018 Survey',
-      type: 'Pysical',
-      database: 'Examples',
-      schema: 'Public',
-      date: '10.03.2023 12:45:00',
-      modifiedBy: 'Admin',
-      owners: 'A',
+      title: 'Action',
+      clicks: [
+        {
+          icon: 'edit_alt',
+          click: () => {},
+        },
+
+        {
+          icon: 'share',
+          click: () => {},
+        },
+        {
+          icon: 'trash',
+          click: () => {},
+        },
+      ],
     },
   ],
 };
