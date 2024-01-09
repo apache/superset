@@ -16,6 +16,8 @@
 # under the License.
 from typing import Any
 
+from superset.utils.core import as_list
+
 from .base import MigrateViz
 
 
@@ -32,40 +34,6 @@ class MigrateTreeMap(MigrateViz):
             and len(self.data["metrics"]) > 0
         ):
             self.data["metric"] = self.data["metrics"][0]
-
-
-class MigrateAreaChart(MigrateViz):
-    """
-    Migrate area charts.
-
-    This migration is incomplete, see https://github.com/apache/superset/pull/24703#discussion_r1265222611
-    for more details. If you fix this migration, please update the ``migrate_chart``
-    function in ``superset/charts/commands/importers/v1/utils.py`` so that it gets
-    applied in chart imports.
-    """
-
-    source_viz_type = "area"
-    target_viz_type = "echarts_area"
-    remove_keys = {"contribution", "stacked_style", "x_axis_label"}
-
-    def _pre_action(self) -> None:
-        if self.data.get("contribution"):
-            self.data["contributionMode"] = "row"
-
-        if stacked := self.data.get("stacked_style"):
-            stacked_map = {
-                "expand": "Expand",
-                "stack": "Stack",
-            }
-            self.data["show_extra_controls"] = True
-            self.data["stack"] = stacked_map.get(stacked)
-
-        if x_axis := self.data.get("granularity_sqla"):
-            self.data["x_axis"] = x_axis
-
-        if x_axis_label := self.data.get("x_axis_label"):
-            self.data["x_axis_title"] = x_axis_label
-            self.data["x_axis_title_margin"] = 30
 
 
 class MigratePivotTable(MigrateViz):
@@ -131,3 +99,117 @@ class MigrateSunburst(MigrateViz):
     source_viz_type = "sunburst"
     target_viz_type = "sunburst_v2"
     rename_keys = {"groupby": "columns"}
+
+
+class TimeseriesChart(MigrateViz):
+    has_x_axis_control = True
+    rename_keys = {
+        "bottom_margin": "x_axis_title_margin",
+        "left_margin": "y_axis_title_margin",
+        "show_controls": "show_extra_controls",
+        "x_axis_label": "x_axis_title",
+        "x_axis_format": "x_axis_time_format",
+        "x_ticks_layout": "xAxisLabelRotation",
+        "y_axis_label": "y_axis_title",
+        "y_axis_showminmax": "truncateYAxis",
+        "y_log_scale": "logAxis",
+    }
+    remove_keys = {"contribution", "show_brush", "show_markers"}
+
+    def _pre_action(self) -> None:
+        self.data["contributionMode"] = "row" if self.data.get("contribution") else None
+        self.data["zoomable"] = self.data.get("show_brush") == "yes"
+        self.data["markerEnabled"] = self.data.get("show_markers") or False
+        self.data["y_axis_showminmax"] = True
+
+        bottom_margin = self.data.get("bottom_margin")
+        if self.data.get("x_axis_label") and (
+            not bottom_margin or bottom_margin == "auto"
+        ):
+            self.data["bottom_margin"] = 30
+
+        if (rolling_type := self.data.get("rolling_type")) and rolling_type != "None":
+            self.data["rolling_type"] = rolling_type
+
+        if time_compare := self.data.get("time_compare"):
+            self.data["time_compare"] = [
+                value + " ago" for value in as_list(time_compare) if value
+            ]
+
+        comparison_type = self.data.get("comparison_type") or "values"
+        self.data["comparison_type"] = (
+            "difference" if comparison_type == "absolute" else comparison_type
+        )
+
+        if x_ticks_layout := self.data.get("x_ticks_layout"):
+            self.data["x_ticks_layout"] = 45 if x_ticks_layout == "45°" else 0
+
+
+class MigrateLineChart(TimeseriesChart):
+    source_viz_type = "line"
+    target_viz_type = "echarts_timeseries_line"
+
+    def _pre_action(self) -> None:
+        super()._pre_action()
+
+        self.remove_keys.add("line_interpolation")
+
+        line_interpolation = self.data.get("line_interpolation")
+        if line_interpolation == "cardinal":
+            self.target_viz_type = "echarts_timeseries_smooth"
+        elif line_interpolation == "step-before":
+            self.target_viz_type = "echarts_timeseries_step"
+            self.data["seriesType"] = "start"
+        elif line_interpolation == "step-after":
+            self.target_viz_type = "echarts_timeseries_step"
+            self.data["seriesType"] = "end"
+
+
+class MigrateAreaChart(TimeseriesChart):
+    source_viz_type = "area"
+    target_viz_type = "echarts_area"
+    stacked_map = {
+        "expand": "Expand",
+        "stack": "Stack",
+        "stream": "Stream",
+    }
+
+    def _pre_action(self) -> None:
+        super()._pre_action()
+
+        self.remove_keys.add("stacked_style")
+
+        self.data["stack"] = self.stacked_map.get(
+            self.data.get("stacked_style") or "stack"
+        )
+
+        self.data["opacity"] = 0.7
+
+
+class MigrateBubbleChart(MigrateViz):
+    source_viz_type = "bubble"
+    target_viz_type = "bubble_v2"
+    rename_keys = {
+        "bottom_margin": "x_axis_title_margin",
+        "left_margin": "y_axis_title_margin",
+        "limit": "row_limit",
+        "x_axis_format": "xAxisFormat",
+        "x_log_scale": "logXAxis",
+        "x_ticks_layout": "xAxisLabelRotation",
+        "y_axis_showminmax": "truncateYAxis",
+        "y_log_scale": "logYAxis",
+    }
+    remove_keys = {"x_axis_showminmax"}
+
+    def _pre_action(self) -> None:
+        bottom_margin = self.data.get("bottom_margin")
+        if self.data.get("x_axis_label") and (
+            not bottom_margin or bottom_margin == "auto"
+        ):
+            self.data["bottom_margin"] = 30
+
+        if x_ticks_layout := self.data.get("x_ticks_layout"):
+            self.data["x_ticks_layout"] = 45 if x_ticks_layout == "45°" else 0
+
+        # Truncate y-axis by default to preserve layout
+        self.data["y_axis_showminmax"] = True

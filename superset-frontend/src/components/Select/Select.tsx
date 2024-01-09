@@ -571,6 +571,7 @@ const Select = forwardRef(
           ]);
         }
       }
+      fireOnChange();
     };
 
     return (

@@ -22,15 +22,15 @@ import yaml
 from flask import g
 
 from superset import db, security_manager
-from superset.charts.commands.create import CreateChartCommand
-from superset.charts.commands.exceptions import (
+from superset.commands.chart.create import CreateChartCommand
+from superset.commands.chart.exceptions import (
     ChartNotFoundError,
     WarmUpCacheChartNotFoundError,
 )
-from superset.charts.commands.export import ExportChartsCommand
-from superset.charts.commands.importers.v1 import ImportChartsCommand
-from superset.charts.commands.update import UpdateChartCommand
-from superset.charts.commands.warm_up_cache import ChartWarmUpCacheCommand
+from superset.commands.chart.export import ExportChartsCommand
+from superset.commands.chart.importers.v1 import ImportChartsCommand
+from superset.commands.chart.update import UpdateChartCommand
+from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
@@ -171,7 +171,7 @@ class TestExportChartsCommand(SupersetTestCase):
 
 
 class TestImportChartsCommand(SupersetTestCase):
-    @patch("superset.charts.commands.importers.v1.utils.g")
+    @patch("superset.commands.chart.importers.v1.utils.g")
     @patch("superset.security.manager.g")
     def test_import_v1_chart(self, sm_g, utils_g):
         """Test that we can import a chart"""
@@ -324,7 +324,7 @@ class TestImportChartsCommand(SupersetTestCase):
 
 class TestChartsCreateCommand(SupersetTestCase):
     @patch("superset.utils.core.g")
-    @patch("superset.charts.commands.create.g")
+    @patch("superset.commands.chart.create.g")
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_create_v1_response(self, mock_sm_g, mock_c_g, mock_u_g):
@@ -354,7 +354,7 @@ class TestChartsCreateCommand(SupersetTestCase):
 
 
 class TestChartsUpdateCommand(SupersetTestCase):
-    @patch("superset.charts.commands.update.g")
+    @patch("superset.commands.chart.update.g")
     @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")

@@ -6,7 +6,7 @@
 #    pip-compile-multi
 #
 -r development.txt
--e file:.
+-e file:///Users/ville/apple/apache-superset
     # via
     #   -r requirements/base.in
     #   -r requirements/development.in

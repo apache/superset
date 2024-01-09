@@ -985,6 +985,20 @@ test('fires onChange when clearing the selection in multiple mode', async () => 
   expect(onChange).toHaveBeenCalledTimes(1);
 });
 
+test('fires onChange when pasting a selection', async () => {
+  const onChange = jest.fn();
+  render(<Select {...defaultProps} onChange={onChange} />);
+  await open();
+  const input = getElementByClassName('.ant-select-selection-search-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => OPTIONS[0].label,
+    },
+  });
+  fireEvent(input, paste);
+  expect(onChange).toHaveBeenCalledTimes(1);
+});
+
 test('does not duplicate options when using numeric values', async () => {
   render(
     <Select

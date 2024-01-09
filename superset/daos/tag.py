@@ -21,15 +21,15 @@ from typing import Any, Optional
 from flask import g
 from sqlalchemy.exc import SQLAlchemyError
 
+from superset.commands.tag.exceptions import TagNotFoundError
+from superset.commands.tag.utils import to_object_type
 from superset.daos.base import BaseDAO
-from superset.daos.exceptions import DAOCreateFailedError, DAODeleteFailedError
+from superset.daos.exceptions import DAODeleteFailedError
 from superset.exceptions import MissingUserContextException
 from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
-from superset.tags.commands.exceptions import TagNotFoundError
-from superset.tags.commands.utils import to_object_type
 from superset.tags.models import (
     get_tag,
     ObjectType,
@@ -47,23 +47,11 @@ class TagDAO(BaseDAO[Tag]):
     # base_filter = TagAccessFilter
 
     @staticmethod
-    def validate_tag_name(tag_name: str) -> bool:
-        invalid_characters = [":", ","]
-        for invalid_character in invalid_characters:
-            if invalid_character in tag_name:
-                return False
-        return True
-
-    @staticmethod
     def create_custom_tagged_objects(
         object_type: ObjectType, object_id: int, tag_names: list[str]
     ) -> None:
         tagged_objects = []
         for name in tag_names:
-            if not TagDAO.validate_tag_name(name):
-                raise DAOCreateFailedError(
-                    message="Invalid Tag Name (cannot contain ':' or ',')"
-                )
             type_ = TagType.custom
             tag_name = name.strip()
             tag = TagDAO.get_by_name(tag_name, type_)
@@ -166,6 +154,14 @@ class TagDAO(BaseDAO[Tag]):
             )
             .first()
         )
+
+    @staticmethod
+    def get_tagged_objects_by_tag_id(
+        tag_ids: Optional[list[int]], obj_types: Optional[list[str]] = None
+    ) -> list[dict[str, Any]]:
+        tags = db.session.query(Tag).filter(Tag.id.in_(tag_ids)).all()
+        tag_names = [tag.name for tag in tags]
+        return TagDAO.get_tagged_objects_for_tags(tag_names, obj_types)
 
     @staticmethod
     def get_tagged_objects_for_tags(
@@ -409,7 +405,9 @@ class TagDAO(BaseDAO[Tag]):
             for object_type, object_id in tagged_objects_to_delete:
                 # delete objects that were removed
                 TagDAO.delete_tagged_object(
-                    object_type, object_id, tag.name  # type: ignore
+                    object_type,  # type: ignore
+                    object_id,
+                    tag.name,
                 )
 
         db.session.add_all(tagged_objects)

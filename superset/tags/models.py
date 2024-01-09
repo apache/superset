@@ -19,10 +19,11 @@ from __future__ import annotations
 import enum
 from typing import TYPE_CHECKING
 
+from flask import escape
 from flask_appbuilder import Model
-from sqlalchemy import Column, Enum, ForeignKey, Integer, String, Table, Text
+from sqlalchemy import Column, Enum, ForeignKey, Integer, orm, String, Table, Text
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import relationship, Session, sessionmaker
+from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.orm.mapper import Mapper
 
 from superset import security_manager
@@ -35,7 +36,7 @@ if TYPE_CHECKING:
     from superset.models.slice import Slice
     from superset.models.sql_lab import Query
 
-Session = sessionmaker(autoflush=False)
+Session = sessionmaker()
 
 user_favorite_tag_table = Table(
     "user_favorite_tag",
@@ -111,11 +112,11 @@ class TaggedObject(Model, AuditMixinNullable):
     tag = relationship("Tag", back_populates="objects", overlaps="tags")
 
 
-def get_tag(name: str, session: Session, type_: TagType) -> Tag:
+def get_tag(name: str, session: orm.Session, type_: TagType) -> Tag:
     tag_name = name.strip()
     tag = session.query(Tag).filter_by(name=tag_name, type=type_).one_or_none()
     if tag is None:
-        tag = Tag(name=tag_name, type=type_)
+        tag = Tag(name=escape(tag_name), type=type_)
         session.add(tag)
         session.commit()
     return tag
@@ -148,7 +149,7 @@ class ObjectUpdater:
     @classmethod
     def _add_owners(
         cls,
-        session: Session,
+        session: orm.Session,
         target: Dashboard | FavStar | Slice | Query | SqlaTable,
     ) -> None:
         for owner_id in cls.get_owners_ids(target):
@@ -166,9 +167,7 @@ class ObjectUpdater:
         connection: Connection,
         target: Dashboard | FavStar | Slice | Query | SqlaTable,
     ) -> None:
-        session = Session(bind=connection)
-
-        try:
+        with Session(bind=connection) as session:
             # add `owner:` tags
             cls._add_owners(session, target)
 
@@ -179,8 +178,6 @@ class ObjectUpdater:
             )
             session.add(tagged_object)
             session.commit()
-        finally:
-            session.close()
 
     @classmethod
     def after_update(
@@ -189,9 +186,7 @@ class ObjectUpdater:
         connection: Connection,
         target: Dashboard | FavStar | Slice | Query | SqlaTable,
     ) -> None:
-        session = Session(bind=connection)
-
-        try:
+        with Session(bind=connection) as session:
             # delete current `owner:` tags
             query = (
                 session.query(TaggedObject.id)
@@ -210,8 +205,6 @@ class ObjectUpdater:
             # add `owner:` tags
             cls._add_owners(session, target)
             session.commit()
-        finally:
-            session.close()
 
     @classmethod
     def after_delete(
@@ -220,9 +213,7 @@ class ObjectUpdater:
         connection: Connection,
         target: Dashboard | FavStar | Slice | Query | SqlaTable,
     ) -> None:
-        session = Session(bind=connection)
-
-        try:
+        with Session(bind=connection) as session:
             # delete row from `tagged_objects`
             session.query(TaggedObject).filter(
                 TaggedObject.object_type == cls.object_type,
@@ -230,8 +221,6 @@ class ObjectUpdater:
             ).delete()
 
             session.commit()
-        finally:
-            session.close()
 
 
 class ChartUpdater(ObjectUpdater):
@@ -271,8 +260,7 @@ class FavStarUpdater:
     def after_insert(
         cls, _mapper: Mapper, connection: Connection, target: FavStar
     ) -> None:
-        session = Session(bind=connection)
-        try:
+        with Session(bind=connection) as session:
             name = f"favorited_by:{target.user_id}"
             tag = get_tag(name, session, TagType.favorited_by)
             tagged_object = TaggedObject(
@@ -282,15 +270,12 @@ class FavStarUpdater:
             )
             session.add(tagged_object)
             session.commit()
-        finally:
-            session.close()
 
     @classmethod
     def after_delete(
         cls, _mapper: Mapper, connection: Connection, target: FavStar
     ) -> None:
-        session = Session(bind=connection)
-        try:
+        with Session(bind=connection) as session:
             name = f"favorited_by:{target.user_id}"
             query = (
                 session.query(TaggedObject.id)
@@ -307,5 +292,3 @@ class FavStarUpdater:
             )
 
             session.commit()
-        finally:
-            session.close()
