@@ -79,6 +79,8 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, user }) => {
         return 'Profile';
       case '/chart/add':
         return 'Create a New Graph/Chart';
+      case '/dataset/add/':
+        return 'New Dataset';
       default:
         return '';
     }

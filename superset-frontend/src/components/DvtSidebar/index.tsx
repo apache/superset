@@ -60,6 +60,8 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
         return 'SQL History';
       case '/superset/profile/admin/':
         return 'Profile';
+      case '/dataset/add/':
+        return 'New Dataset';
       default:
         return '';
     }
@@ -132,6 +134,7 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
       )}
 
       {(pathTitles(pathName) === 'Datasets' ||
+        pathTitles(pathName) === 'New Dataset' ||
         pathTitles(pathName) === 'Dashboards' ||
         pathTitles(pathName) === 'Alerts' ||
         pathTitles(pathName) === 'Reports' ||
