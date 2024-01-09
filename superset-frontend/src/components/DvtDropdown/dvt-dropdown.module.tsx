@@ -29,28 +29,33 @@ const optionsKeyframes = keyframes`
 
 const StyledDropdown = styled.div`
   position: absolute;
-  padding-top: 2px;
+  top: calc(100% + 2px);
+  left: 9px;
 `;
 
 const DropdownMenu = styled.div`
   display: flex;
   flex-direction: column;
-  box-shadow: 0 0.25rem 0.25rem ${({ theme }) => theme.colors.dvt.text.label};
+  box-shadow: 1px 1px 3px ${({ theme }) => theme.colors.dvt.text.label};
+  transform-origin: top;
   animation: ${optionsKeyframes} 0.3s ease-in-out;
-  top: 100%;
-  left: 0;
-  padding: 2px 0 2px 0;
+  border-radius: 4px;
+  padding: 4px 0;
 `;
 
 const DropdownOption = styled.div`
   display: flex;
-  gap: 15px;
-  align-items: center;
-  padding: 5px;
+  gap: 10px;
+  align-items: end;
+  padding: 5px 12px;
 
   &:hover {
     background-color: ${({ theme }) => theme.colors.dvt.grayscale.light1};
   }
 `;
 
-export { StyledDropdown, DropdownMenu, DropdownOption };
+const StyledDropdownGroup = styled.div`
+  position: relative;
+`;
+
+export { StyledDropdown, DropdownMenu, DropdownOption, StyledDropdownGroup };

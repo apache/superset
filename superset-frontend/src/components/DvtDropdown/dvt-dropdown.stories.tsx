@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
-import { supersetTheme } from '@superset-ui/core';
-import Icon from '../Icons/Icon';
+import React from 'react';
 import DvtDropdown, { DvtDropdownProps } from '.';
 
 export default {
@@ -27,23 +25,7 @@ export default {
 };
 
 export const Default = (args: DvtDropdownProps) => {
-  const [isOpen, setIsOpen] = useState<boolean>(false);
-
-  return (
-    <div style={{ position: 'relative' }}>
-      <Icon
-        fileName="more_vert"
-        iconSize="xl"
-        iconColor={supersetTheme.colors.dvt.text.bold}
-        onClick={() => setIsOpen(!isOpen)}
-      />
-      <DvtDropdown
-        {...args}
-        isOpen={isOpen}
-        setIsOpen={() => setIsOpen(false)}
-      />
-    </div>
-  );
+  return <DvtDropdown {...args} />;
 };
 
 Default.args = {
@@ -52,4 +34,5 @@ Default.args = {
     { label: 'Export', icon: 'share', onClick: () => {} },
     { label: 'Delete', icon: 'trash', onClick: () => {} },
   ],
+  icon: 'more_vert',
 };

@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import useOnClickOutside from 'src/hooks/useOnClickOutsite';
 import Icon from '../Icons/Icon';
 import {
   StyledDropdown,
   DropdownMenu,
   DropdownOption,
+  StyledDropdownGroup,
 } from './dvt-dropdown.module';
 
 interface OptionProps {
@@ -35,29 +36,30 @@ export interface DvtDropdownProps {
   isOpen: boolean;
   setIsOpen: () => void;
   data: OptionProps[];
+  icon: string;
 }
 
-const DvtDropdown: React.FC<DvtDropdownProps> = ({
-  data,
-  isOpen,
-  setIsOpen,
-}) => {
+const DvtDropdown: React.FC<DvtDropdownProps> = ({ data, icon }) => {
+  const [isOpen, setIsOpen] = useState<boolean>(false);
   const ref = useRef<HTMLDivElement | null>(null);
-  useOnClickOutside(ref, () => setIsOpen());
+  useOnClickOutside(ref, () => setIsOpen(false));
 
   return (
-    <StyledDropdown ref={ref}>
-      {isOpen && (
-        <DropdownMenu>
-          {data.map((item, index) => (
-            <DropdownOption key={index} onClick={item.onClick}>
-              <Icon fileName={item.icon} />
-              {item.label}
-            </DropdownOption>
-          ))}
-        </DropdownMenu>
-      )}
-    </StyledDropdown>
+    <StyledDropdownGroup style={{ position: 'relative' }}>
+      <Icon fileName={icon} iconSize="xl" onClick={() => setIsOpen(!isOpen)} />
+      <StyledDropdown ref={ref}>
+        {isOpen && (
+          <DropdownMenu>
+            {data.map((item, index) => (
+              <DropdownOption key={index} onClick={item.onClick}>
+                <Icon fileName={item.icon} />
+                {item.label}
+              </DropdownOption>
+            ))}
+          </DropdownMenu>
+        )}
+      </StyledDropdown>
+    </StyledDropdownGroup>
   );
 };
 export default DvtDropdown;
