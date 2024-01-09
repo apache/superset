@@ -1,5 +1,6 @@
-import { ValidationObject } from './types';
+import React from 'react';
 import { styled } from '@superset-ui/core';
+import { ValidationObject } from './types';
 
 const StyledList = styled.ul`
   margin: 0;

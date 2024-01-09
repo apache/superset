@@ -1,5 +1,6 @@
 import React from 'react';
 import userEvent from '@testing-library/user-event';
+import fetchMock from 'fetch-mock';
 import {
   render,
   screen,
@@ -8,7 +9,6 @@ import {
 } from '../../../../spec/helpers/testing-library';
 
 import '@testing-library/jest-dom/extend-expect'; // for additional matchers
-import fetchMock from 'fetch-mock';
 import { buildErrorTooltipMessage } from '../buildErrorTooltipMessage';
 import AlertReportModal, { AlertReportModalProps } from '../AlertReportModal';
 import { AlertObject } from '../types';
@@ -67,16 +67,15 @@ const generateMockPayload = (dashboard = true) => {
       ...mockPayload,
       dashboard: { id: 1, dashboard_title: 'Test Dashboard' },
     };
-  } else {
-    return {
-      ...mockPayload,
-      chart: {
-        id: 1,
-        slice_name: 'Test Chart',
-        viz_type: 'table',
-      },
-    };
   }
+  return {
+    ...mockPayload,
+    chart: {
+      id: 1,
+      slice_name: 'Test Chart',
+      viz_type: 'table',
+    },
+  };
 };
 
 // mocking resource endpoints
@@ -222,7 +221,7 @@ describe('properly renders the modal', () => {
     render(<AlertReportModal {...generateMockedProps(true)} />, {
       useRedux: true,
     });
-    let sections = screen.getAllByRole('tab', { expanded: false });
+    const sections = screen.getAllByRole('tab', { expanded: false });
     expect(sections.length).toBe(4);
   });
 
@@ -243,7 +242,7 @@ describe('Validation', () => {
       useRedux: true,
     });
     const checkmarks = await screen.findAllByRole('img', {
-      name: /check\-circle/i,
+      name: /check-circle/i,
     });
     expect(checkmarks.length).toEqual(5);
   });
@@ -253,7 +252,7 @@ describe('Validation', () => {
       useRedux: true,
     });
     const checkmarks = await screen.findAllByRole('img', {
-      name: /check\-circle/i,
+      name: /check-circle/i,
     });
     expect(checkmarks.length).toEqual(1);
   });
@@ -315,7 +314,6 @@ describe('General Section', () => {
   });
 
   it('renders all fields', () => {
-    ``;
     render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
       useRedux: true,
     });
@@ -484,7 +482,7 @@ describe('contents section', () => {
       'CSV',
       () => screen.getAllByText(/Send as CSV/i)[0],
     );
-    expect(screen.queryByRole('spinbutton')).toBeNull();
+    expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
   });
 });
 

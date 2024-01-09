@@ -21,7 +21,7 @@ const ValidatedPanelHeader = ({
 
   return (
     <div className="collapse-panel-header">
-      <div className="collapse-panel-title" data-test={testId ? testId : ''}>
+      <div className="collapse-panel-title" data-test={testId}>
         <span>{t(title)}</span>
         {validateCheckStatus ? (
           <span className="validation-checkmark">{checkmark}</span>

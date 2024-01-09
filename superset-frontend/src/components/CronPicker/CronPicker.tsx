@@ -44,7 +44,7 @@ export const LOCALE: Locale = {
   prefixMonths: t('in'),
   prefixMonthDays: t('on'),
   prefixWeekDays: t('on'),
-  prefixWeekDaysForMonthAndYearPeriod: t('and'),
+  prefixWeekDaysForMonthAndYearPeriod: t('or'),
   prefixHours: t('at'),
   prefixMinutes: t(':'),
   prefixMinutesForHourPeriod: t('at'),
@@ -110,18 +110,45 @@ export const CronPicker = styled((props: CronProps) => (
     <ReactCronPicker locale={LOCALE} {...props} />
   </ConfigProvider>
 ))`
-:has(.react-js-cron-months){display: grid !important;
-grid-template-columns: repeat(2, 50%);
-grid-column-gap: ${({ theme }) => theme.gridUnit}px;
-grid-row-gap: ${({ theme }) => theme.gridUnit * 2}px;
-div:has(.react-js-cron-hours) {
-  grid-column: span 2;
-  display: flex;
-  justify-content: space-between;
-  .react-js-cron-field {
-    width:50%;
+:has(.react-js-cron-months){
+  display: grid !important;
+  grid-template-columns: repeat(2, 50%);
+  grid-column-gap: ${({ theme }) => theme.gridUnit}px;
+  grid-row-gap: ${({ theme }) => theme.gridUnit * 2}px;
+  div:has(.react-js-cron-hours) {
+    grid-column: span 2;
+    display: flex;
+    justify-content: space-between;
+    .react-js-cron-field {
+      width:50%;
+    }
   }
-}}
+}
+
+:not(:has(.react-js-cron-months)) {
+  display: grid;
+  grid-template-columns: repeat(2, 50%);
+  grid-column-gap: ${({ theme }) => theme.gridUnit}px;
+  grid-row-gap: ${({ theme }) => theme.gridUnit * 2}px;
+  .react-js-cron-period {
+    grid-column: span 2;
+  }
+  div:has(.react-js-cron-hours) {
+    grid-column: span 2;
+    display: flex;
+    justify-content: space-between;
+    .react-js-cron-field {
+      width: 50%;
+    }
+  }
+}
+
+:not(:has(.react-js-cron-month-days)) {
+  .react-js-cron-week-days {
+    grid-column: span 2;
+  }
+}
+
 .react-js-cron-minutes {
   padding-left: ${({ theme }) => theme.gridUnit}px;
 }
