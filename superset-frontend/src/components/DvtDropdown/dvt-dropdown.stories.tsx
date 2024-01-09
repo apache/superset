@@ -24,9 +24,7 @@ export default {
   component: DvtDropdown,
 };
 
-export const Default = (args: DvtDropdownProps) => {
-  return <DvtDropdown {...args} />;
-};
+export const Default = (args: DvtDropdownProps) => <DvtDropdown {...args} />;
 
 Default.args = {
   data: [
