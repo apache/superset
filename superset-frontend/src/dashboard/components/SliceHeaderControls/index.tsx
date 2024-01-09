@@ -373,6 +373,12 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
     ? t('Exit fullscreen')
     : t('Enter fullscreen');
 
+  // @z-index-below-dashboard-header (100) - 1 = 99 for !isFullSize and 101 for isFullSize
+  const dropdownOverlayStyle = {
+    zIndex: isFullSize ? 101 : 99,
+    animationDuration: '0s',
+  };
+
   const menu = (
     <Menu
       onClick={handleMenuClick}
@@ -541,6 +547,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
       )}
       <NoAnimationDropdown
         overlay={menu}
+        overlayStyle={dropdownOverlayStyle}
         trigger={['click']}
         placement="bottomRight"
       >
