@@ -45,7 +45,7 @@ const DvtDropdown: React.FC<DvtDropdownProps> = ({ data, icon }) => {
   useOnClickOutside(ref, () => setIsOpen(false));
 
   return (
-    <StyledDropdownGroup style={{ position: 'relative' }}>
+    <StyledDropdownGroup>
       <Icon fileName={icon} iconSize="xl" onClick={() => setIsOpen(!isOpen)} />
       <StyledDropdown ref={ref}>
         {isOpen && (

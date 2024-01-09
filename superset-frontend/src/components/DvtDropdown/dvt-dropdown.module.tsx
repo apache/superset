@@ -57,6 +57,7 @@ const DropdownOption = styled.div`
 
 const StyledDropdownGroup = styled.div`
   position: relative;
+  display: inline-flex;
 `;
 
 export { StyledDropdown, DropdownMenu, DropdownOption, StyledDropdownGroup };
