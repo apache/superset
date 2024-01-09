@@ -19,7 +19,7 @@ under the License.
 
 ## Change Log
 
-- [3.0.3](#303-thu-dec-14-164807-2023--0300)
+- [3.0.3](#303-tue-jan-9-164807-2023--0300)
 - [3.0.2](#302-mon-nov-20-073838-2023--0500)
 - [3.0.1](#301-tue-oct-13-103221-2023--0700)
 - [3.0.0](#300-thu-aug-24-133627-2023--0600)
@@ -36,10 +36,28 @@ under the License.
 - [1.4.2](#142-sat-mar-19-000806-2022-0200)
 - [1.4.1](#141)
 
-### 3.0.3 (Thu Dec 14 16:48:07 2023 -0300)
+### 3.0.3 (Tue Jan 9 16:48:07 2023 -0300)
 
 **Fixes**
 
+- [#26429](https://github.com/apache/superset/pull/26429) fix(post-processing): handle missing values in cumulative operator (@villebro)
+- [#26424](https://github.com/apache/superset/pull/26424) fix(translations): Clear all (@capping)
+- [#26404](https://github.com/apache/superset/pull/26404) fix(plugin-chart-echarts): support forced categorical x-axis (@villebro)
+- [#26415](https://github.com/apache/superset/pull/26415) fix: In chart gallery thumbnail is rendered in case of no example in #16707 (@sivasathyaseeelan)
+- [#26393](https://github.com/apache/superset/pull/26393) fix(chart): Resolve incorrect column customization when switching metrics in table chart (@soniagtm)
+- [#26313](https://github.com/apache/superset/pull/26313) fix(dashboard): narrow empty drop area (@justinpark)
+- [#26410](https://github.com/apache/superset/pull/26410) fix(dashboard): Chart menu disable is fixed on chart-fullscreen in issue #25992 (@sivasathyaseeelan)
+- [#26362](https://github.com/apache/superset/pull/26362) fix: Reactivates native filters E2E tests (@michael-s-molina)
+- [#26353](https://github.com/apache/superset/pull/26353) fix(SelectControl): select zero value (@rekilina)
+- [#26302](https://github.com/apache/superset/pull/26302) fix: Invalid references in the basic template (@michael-s-molina)
+- [#26380](https://github.com/apache/superset/pull/26380) fix: Removes non-existent columns in the 2018 FCC Survey dataset (@michael-s-molina)
+- [#26151](https://github.com/apache/superset/pull/26151) fix(chart): Set max row limit + removed the option to use an empty row limit value (@CorbinBullard)
+- [#26333](https://github.com/apache/superset/pull/26333) fix(logging): Add logging of change_dashboard_filter event for native dashboard filters (@john-bodley)
+- [#26326](https://github.com/apache/superset/pull/26326) fix(accessibility): Enable tabbing on sort header of table chart (@arunthirumani)
+- [#26340](https://github.com/apache/superset/pull/26340) fix(dashboard): Don't switch to first tab when directPathToChild changes (@kgabryje)
+- [#26283](https://github.com/apache/superset/pull/26283) fix(redshift): convert_dttm method for redshift dataset and tests (@gaurav7261)
+- [#26281](https://github.com/apache/superset/pull/26281) fix(sql lab): Use quote_schema instead of quote method to format schema name (@guenp)
+- [#25967](https://github.com/apache/superset/pull/25967) fix(typings): model_id is a multiple option (@gnought)
 - [#26279](https://github.com/apache/superset/pull/26279) fix: Cannot expand initially hidden SQL Lab tab (@michael-s-molina)
 - [#26269](https://github.com/apache/superset/pull/26269) fix(plugin-chart-echarts): use scale for truncating x-axis (@villebro)
 - [#26264](https://github.com/apache/superset/pull/26264) fix: Stacked charts with numerical columns (@michael-s-molina)
@@ -69,6 +87,10 @@ under the License.
 
 **Others**
 
+- [#26312](https://github.com/apache/superset/pull/26312) chore(Embedded): Avoid creating a filter key for guest users (@Vitor-Avila)
+- [#26317](https://github.com/apache/superset/pull/26317) chore: Adds a tooltip for the alert's SQL input (@michael-s-molina)
+- [#26310](https://github.com/apache/superset/pull/26310) chore: Disables minor ticks by default (@michael-s-molina)
+- [#26287](https://github.com/apache/superset/pull/26287) chore: update changelog for 2.1.3 (@eschutho)
 - [#26251](https://github.com/apache/superset/pull/26251) chore: improve CSP add base uri restriction (@dpgaspar)
 - [#26208](https://github.com/apache/superset/pull/26208) chore: Adds note about numerical x-axis (@michael-s-molina)
 - [#26158](https://github.com/apache/superset/pull/26158) chore: Clean up the examples dashboards (@michael-s-molina)
