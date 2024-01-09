@@ -81,16 +81,28 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
         {label && (
           <StyledSelectLabel typeDesign={typeDesign}>{label}</StyledSelectLabel>
         )}
-        {popoverIcon && popoverLabel && (
-          <DvtPopper label={popoverLabel} direction={popoverDirection}>
-            <Icon
-              fileName="warning"
-              css={(theme: SupersetTheme) => ({
-                color: theme.colors.dvt.primary.base,
-              })}
-              iconSize="l"
-            />
-          </DvtPopper>
+        {popoverIcon && (
+          <>
+            {popoverLabel ? (
+              <DvtPopper label={popoverLabel} direction={popoverDirection}>
+                <Icon
+                  fileName="warning"
+                  css={(theme: SupersetTheme) => ({
+                    color: theme.colors.dvt.primary.base,
+                  })}
+                  iconSize="l"
+                />
+              </DvtPopper>
+            ) : (
+              <Icon
+                fileName="warning"
+                css={(theme: SupersetTheme) => ({
+                  color: theme.colors.dvt.primary.base,
+                })}
+                iconSize="l"
+              />
+            )}
+          </>
         )}
       </StyledSelectPopover>
       <StyledSelectSelect
