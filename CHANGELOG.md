@@ -19,7 +19,7 @@ under the License.
 
 ## Change Log
 
-- [3.1.0](#310-fri-dec-15-150500-2023--0800)
+- [3.1.0](#310-tue-jan-9-150500-2023--0800)
 - [3.0.3](#303-fri-dec-8-054009-2023--0800)
 - [3.0.2](#302-mon-nov-20-073838-2023--0500)
 - [3.0.1](#301-tue-oct-13-103221-2023--0700)
@@ -37,7 +37,7 @@ under the License.
 - [1.4.2](#142-sat-mar-19-000806-2022-0200)
 - [1.4.1](#141)
 
-### 3.1.0 (Fri Dec 15 15:05:00 2023 -0800)
+### 3.1.0 (Tue Jan 9 15:05:00 2023 -0800)
 
 **Database Migrations**
 
@@ -54,6 +54,7 @@ under the License.
 
 **Features**
 
+- [#26031](https://github.com/apache/superset/pull/26031) feat(deckgl-map): use an arbitraty Mabpox style URL (#26027) (@francois-travais)
 - [#26136](https://github.com/apache/superset/pull/26136) feat: Adds legacy time support for Waterfall chart (@michael-s-molina)
 - [#26123](https://github.com/apache/superset/pull/26123) feat(helm): Add option to deploy extra containers to remaining deployments (@bluemalkin)
 - [#24714](https://github.com/apache/superset/pull/24714) feat: Add Apache Doris support (@liujiwen-up)
@@ -113,6 +114,30 @@ under the License.
 
 **Fixes**
 
+- [#26429](https://github.com/apache/superset/pull/26429) fix(post-processing): handle missing values in cumulative operator (@villebro)
+- [#26424](https://github.com/apache/superset/pull/26424) fix(translations): Clear all (@capping)
+- [#26404](https://github.com/apache/superset/pull/26404) fix(plugin-chart-echarts): support forced categorical x-axis (@villebro)
+- [#26415](https://github.com/apache/superset/pull/26415) fix: In chart gallery thumbnail is rendered in case of no example in #16707 (@sivasathyaseeelan)
+- [#26393](https://github.com/apache/superset/pull/26393) fix(chart): Resolve incorrect column customization when switching metrics in table chart (@soniagtm)
+- [#26405](https://github.com/apache/superset/pull/26405) fix(sqllab): Bump duckdb-engine version to 0.9.5 (@guenp)
+- [#26313](https://github.com/apache/superset/pull/26313) fix(dashboard): narrow empty drop area (@justinpark)
+- [#26410](https://github.com/apache/superset/pull/26410) fix(dashboard): Chart menu disable is fixed on chart-fullscreen in issue #25992 (@sivasathyaseeelan)
+- [#26362](https://github.com/apache/superset/pull/26362) fix: Reactivates native filters E2E tests (@michael-s-molina)
+- [#26398](https://github.com/apache/superset/pull/26398) fix(embed): an error occurred while rendering the visualization: error: Item with key ... is not registered. (@rowdyroad)
+- [#26353](https://github.com/apache/superset/pull/26353) fix(SelectControl): select zero value (@rekilina)
+- [#26380](https://github.com/apache/superset/pull/26380) fix: Removes non-existent columns in the 2018 FCC Survey dataset (@michael-s-molina)
+- [#26302](https://github.com/apache/superset/pull/26302) fix: Invalid references in the basic template (@michael-s-molina)
+- [#26379](https://github.com/apache/superset/pull/26379) fix: Duplicated plugin registration (@michael-s-molina)
+- [#26378](https://github.com/apache/superset/pull/26378) fix(databend): databend time grain expression (@hantmac)
+- [#26151](https://github.com/apache/superset/pull/26151) fix(chart): Set max row limit + removed the option to use an empty row limit value (@CorbinBullard)
+- [#26312](https://github.com/apache/superset/pull/26312) fix(Embedded): Avoid creating a filter key for guest users (@Vitor-Avila)
+- [#26333](https://github.com/apache/superset/pull/26333) fix(logging): Add logging of change_dashboard_filter event for native dashboard filters (@john-bodley)
+- [#26326](https://github.com/apache/superset/pull/26326) fix(accessibility): Enable tabbing on sort header of table chart (@arunthirumani)
+- [#26324](https://github.com/apache/superset/pull/26324) fix(tagging): adding tags containing a “:” to dashboards (@lilykuang)
+- [#26340](https://github.com/apache/superset/pull/26340) fix(dashboard): Don't switch to first tab when directPathToChild changes (@kgabryje)
+- [#26283](https://github.com/apache/superset/pull/26283) fix(redshift): convert_dttm method for redshift dataset and tests (@gaurav7261)
+- [#26281](https://github.com/apache/superset/pull/26281) fix(sql lab): Use quote_schema instead of quote method to format schema name (@guenp)
+- [#25967](https://github.com/apache/superset/pull/25967) fix(typings): model_id is a multiple option (@gnought)
 - [#26284](https://github.com/apache/superset/pull/26284) fix: Revert "fix(sqllab): flaky json explore modal due to over-rendering (#26156)" (@justinpark)
 - [#26279](https://github.com/apache/superset/pull/26279) fix: Cannot expand initially hidden SQL Lab tab (@michael-s-molina)
 - [#26269](https://github.com/apache/superset/pull/26269) fix(plugin-chart-echarts): use scale for truncating x-axis (@villebro)
@@ -161,6 +186,12 @@ under the License.
 
 **Others**
 
+- [#25770](https://github.com/apache/superset/pull/25770) chore: Add example charts for deck.gl (@willie-hung)
+- [#26317](https://github.com/apache/superset/pull/26317) chore: Adds a tooltip for the alert's SQL input (@michael-s-molina)
+- [#26297](https://github.com/apache/superset/pull/26297) chore: Add downloadAsImage types, change filter selector (@kgabryje)
+- [#26315](https://github.com/apache/superset/pull/26315) chore: Use WEBDRIVER_OPTION_ARGS with Playwright (@kgabryje)
+- [#26310](https://github.com/apache/superset/pull/26310) chore: Disables minor ticks by default (@michael-s-molina)
+- [#26287](https://github.com/apache/superset/pull/26287) chore: update changelog for 2.1.3 (@eschutho)
 - [#26251](https://github.com/apache/superset/pull/26251) chore: improve CSP add base uri restriction (@dpgaspar)
 - [#26082](https://github.com/apache/superset/pull/26082) chore: lock the databend-sqlalchemy version (@hantmac)
 - [#26212](https://github.com/apache/superset/pull/26212) chore: Moves xAxisLabelRotation to shared controls (@michael-s-molina)
