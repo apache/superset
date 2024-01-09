@@ -1,5 +1,4 @@
 const { google } = require('googleapis');
-const fs = require('fs');
 
 const { SPREADSHEET_ID } = process.env;
 const SERVICE_ACCOUNT_KEY = JSON.parse(process.env.SERVICE_ACCOUNT_KEY);
@@ -50,7 +49,7 @@ module.exports = async results => {
   };
 
   // Consolidate data processing into a single loop for efficiency
-  let metricsByRule = {};
+  const metricsByRule = {};
   let occurrencesData = [];
 
   results.forEach(result => {
@@ -79,21 +78,33 @@ module.exports = async results => {
     DATETIME,
   ]);
 
-  occurrencesData = occurrencesData.map(({ rule, message, file, line, column }) => [
-    rule,
-    enrichedRules[rule]?.description || 'N/A',
-    message,
-    file,
-    `${line}`,
-    `${column}`,
-    DATETIME,
-  ]);
+  occurrencesData = occurrencesData.map(
+    ({ rule, message, file, line, column }) => [
+      rule,
+      enrichedRules[rule]?.description || 'N/A',
+      message,
+      file,
+      `${line}`,
+      `${column}`,
+      DATETIME,
+    ],
+  );
 
   const aggregatedHistoryHeaders = [
-    'Process', 'Rule', 'Description', 'Count', 'Timestamp',
+    'Process',
+    'Rule',
+    'Description',
+    'Count',
+    'Timestamp',
   ];
   const eslintBacklogHeaders = [
-    'Rule', 'Rule Description', 'ESLint Message', 'File', 'Line', 'Column', 'Timestamp',
+    'Rule',
+    'Rule Description',
+    'ESLint Message',
+    'File',
+    'Line',
+    'Column',
+    'Timestamp',
   ];
 
   try {
@@ -113,4 +124,3 @@ module.exports = async results => {
     console.error('Error writing to Google Sheets:', error);
   }
 };
-  
