@@ -43,7 +43,7 @@ export interface DvtSelectProps {
   popoverLabel?: string;
   popoverDirection?: 'top' | 'bottom' | 'left' | 'right';
   important?: boolean;
-  importantLabel: string;
+  importantLabel?: string;
 }
 
 const DvtSelect: React.FC<DvtSelectProps> = ({
@@ -83,14 +83,12 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
         {label && (
           <StyledSelectLabel typeDesign={typeDesign}>{label}</StyledSelectLabel>
         )}
-        {important && (
-          <DvtPopper label={importantLabel} direction="top">
+        {important && !selectedValue && (
+          <DvtPopper label={importantLabel} direction={popoverDirection}>
             <Icon
               fileName="warning"
               css={(theme: SupersetTheme) => ({
-                color: selectedValue
-                  ? theme.colors.alert.base
-                  : theme.colors.dvt.error.base,
+                color: theme.colors.alert.base,
               })}
               iconSize="l"
             />
