@@ -40,9 +40,10 @@ export interface DvtSelectProps {
   typeDesign?: 'normal' | 'form' | 'navbar';
   width?: number;
   maxWidth?: boolean;
-  popoverIcon?: boolean;
   popoverLabel?: string;
   popoverDirection?: 'top' | 'bottom' | 'left' | 'right';
+  important?: boolean;
+  importantLabel: string;
 }
 
 const DvtSelect: React.FC<DvtSelectProps> = ({
@@ -54,9 +55,10 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
   typeDesign = 'normal',
   width = 202,
   maxWidth = false,
-  popoverIcon = 'warning',
   popoverDirection = 'top',
   popoverLabel,
+  important,
+  importantLabel = 'Cannot be empty',
 }) => {
   const ref = useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -81,28 +83,37 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
         {label && (
           <StyledSelectLabel typeDesign={typeDesign}>{label}</StyledSelectLabel>
         )}
-        {popoverIcon && (
-          <>
-            {popoverLabel ? (
-              <DvtPopper label={popoverLabel} direction={popoverDirection}>
-                <Icon
-                  fileName="warning"
-                  css={(theme: SupersetTheme) => ({
-                    color: theme.colors.dvt.primary.base,
-                  })}
-                  iconSize="l"
-                />
-              </DvtPopper>
-            ) : (
-              <Icon
-                fileName="warning"
-                css={(theme: SupersetTheme) => ({
-                  color: theme.colors.dvt.primary.base,
-                })}
-                iconSize="l"
-              />
-            )}
-          </>
+        {important && (
+          <DvtPopper label={importantLabel} direction="top">
+            <Icon
+              fileName="warning"
+              css={(theme: SupersetTheme) => ({
+                color: selectedValue
+                  ? theme.colors.alert.base
+                  : theme.colors.dvt.error.base,
+              })}
+              iconSize="l"
+            />
+          </DvtPopper>
+        )}
+        {popoverLabel ? (
+          <DvtPopper label={popoverLabel} direction={popoverDirection}>
+            <Icon
+              fileName="warning"
+              css={(theme: SupersetTheme) => ({
+                color: theme.colors.dvt.primary.base,
+              })}
+              iconSize="l"
+            />
+          </DvtPopper>
+        ) : (
+          <Icon
+            fileName="warning"
+            css={(theme: SupersetTheme) => ({
+              color: theme.colors.dvt.primary.base,
+            })}
+            iconSize="l"
+          />
         )}
       </StyledSelectPopover>
       <StyledSelectSelect
