@@ -52,9 +52,18 @@ const DvtCollapse: React.FC<DvtCollapseProps> = ({
         <StyledCollapseLabel>
           {label}
           {popoverIcon && (
-          <StyledCollapsePopover>
-            {popoverLabel ? (
-              <DvtPopper label={popoverLabel} direction={popoverDirection}>
+            <StyledCollapsePopover>
+              {popoverLabel ? (
+                <DvtPopper label={popoverLabel} direction={popoverDirection}>
+                  <Icon
+                    fileName="warning"
+                    css={(theme: SupersetTheme) => ({
+                      color: theme.colors.dvt.primary.base,
+                    })}
+                    iconSize="l"
+                  />
+                </DvtPopper>
+              ) : (
                 <Icon
                   fileName="warning"
                   css={(theme: SupersetTheme) => ({
@@ -62,18 +71,9 @@ const DvtCollapse: React.FC<DvtCollapseProps> = ({
                   })}
                   iconSize="l"
                 />
-              </DvtPopper>
-            ) : (
-              <Icon
-                fileName="warning"
-                css={(theme: SupersetTheme) => ({
-                  color: theme.colors.dvt.primary.base,
-                })}
-                iconSize="l"
-              />
-            )}
-          </StyledCollapsePopover>
-        )}
+              )}
+            </StyledCollapsePopover>
+          )}
         </StyledCollapseLabel>
         <StyledCollapseIcon isOpen={isOpen}>
           <Icon

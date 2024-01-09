@@ -17,8 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import DvtCollapse, { DvtCollapseProps } from '.';
 import { SupersetTheme } from '@superset-ui/core';
+import DvtCollapse, { DvtCollapseProps } from '.';
 
 export default {
   title: 'Dvt-Components/DvtCollapse',
