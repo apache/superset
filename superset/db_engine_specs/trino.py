@@ -59,7 +59,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         table_name: str,
         schema_name: str | None,
     ) -> dict[str, Any]:
-        metadata: dict[str, Any] = {}
+        metadata = {}
 
         if indexes := database.get_indexes(table_name, schema_name):
             col_names, latest_parts = cls.latest_partition(
