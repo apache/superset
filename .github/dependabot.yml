@@ -52,19 +52,7 @@ updates:
     open-pull-requests-limit: 10
     versioning-strategy: increase
 
-  # Now for all of our plugins!!!
-  - package-ecosystem: "npm"
-    directory: "/superset-frontend/plugins/plugin-chart-echarts/"
-    schedule:
-      interval: "daily"
-    labels:
-      - npm
-      - dependabot
-      - plugins
-    open-pull-requests-limit: 5
-    versioning-strategy: increase
-
-  # Now for all of our plugins!!! Here's the list, to compare against more easily later:
+  # Now for all of our plugins and packages!
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-calendar/"
