@@ -94,7 +94,7 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
             />
           </DvtPopper>
         )}
-        {popoverLabel ? (
+        {popoverLabel && (
           <DvtPopper label={popoverLabel} direction={popoverDirection}>
             <Icon
               fileName="warning"
@@ -104,14 +104,6 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
               iconSize="l"
             />
           </DvtPopper>
-        ) : (
-          <Icon
-            fileName="warning"
-            css={(theme: SupersetTheme) => ({
-              color: theme.colors.dvt.primary.base,
-            })}
-            iconSize="l"
-          />
         )}
       </StyledSelectPopover>
       <StyledSelectSelect
