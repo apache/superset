@@ -85,7 +85,6 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   const [recipientValue, setRecipientValue] = useState<string>(
     recipients || '',
   );
-  const [subjectValue, setSubjectValue] = useState<string>(email_subject || '');
   const theme = useTheme();
 
   if (!setting) {
@@ -126,10 +125,6 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   const onSubjectChange = (
     event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
   ) => {
-    const { target } = event;
-
-    setSubjectValue(target.value);
-
     if (onInputChange) {
       onInputChange(event);
     }
@@ -178,7 +173,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
             <input
               type="text"
               name="email_subject"
-              value={subjectValue}
+              value={email_subject}
               placeholder={`Default: ${_default}`}
               onChange={onSubjectChange}
             />

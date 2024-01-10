@@ -54,6 +54,7 @@ type_description = "The report schedule type"
 name_description = "The report schedule name."
 # :)
 description_description = "Use a nice description to give context to this Alert/Report"
+email_subject_description = "The report schedule subject line"
 context_markdown_description = "Markdown description"
 crontab_description = (
     "A CRON expression."
@@ -147,10 +148,12 @@ class ReportSchedulePostSchema(Schema):
         required=False,
     )
     email_subject = fields.String(
-        description=description_description,
+        metadata={
+            "description": email_subject_description,
+            "example": "[Report]  Report name: Dashboard or chart name",
+        },
         allow_none=True,
         required=False,
-        example="[Report]  Report name: Dashboard or chart name",
     )
     context_markdown = fields.String(
         metadata={"description": context_markdown_description},
@@ -279,10 +282,12 @@ class ReportSchedulePutSchema(Schema):
         required=False,
     )
     email_subject = fields.String(
-        description=description_description,
+        metadata={
+            "description": email_subject_description,
+            "example": "[Report]  Report name: Dashboard or chart name",
+        },
         allow_none=True,
         required=False,
-        example="[Report]  Report name: Dashboard or chart name",
     )
     context_markdown = fields.String(
         metadata={"description": context_markdown_description},
