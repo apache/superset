@@ -17,8 +17,6 @@ const useFetch = ({
 }: UseFetchProps) => {
   const { addDangerToast } = useToasts();
   const [data, setData] = useState<any | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -39,17 +37,14 @@ const useFetch = ({
         const result = await response.json();
         setData(result);
       } catch (error) {
-        setError(error.message);
         addDangerToast(error.message);
-      } finally {
-        setLoading(false);
       }
     };
 
     fetchData();
   }, [url]);
 
-  return { data, loading, error };
+  return data;
 };
 
 export default useFetch;
