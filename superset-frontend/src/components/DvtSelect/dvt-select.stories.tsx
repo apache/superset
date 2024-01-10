@@ -130,3 +130,34 @@ Navbar.args = {
   placeholder: 'All',
   typeDesign: 'navbar',
 };
+
+export const Popover = (args: DvtSelectProps) => {
+  const [selectedValue, setSelectedValue] = useState<string>('');
+
+  return (
+    <div
+      css={(theme: SupersetTheme) => ({
+        backgroundColor: theme.colors.dvt.grayscale.light2,
+        padding: '80px',
+        height: '50vh',
+      })}
+    >
+      <DvtSelect
+        {...args}
+        selectedValue={selectedValue}
+        setSelectedValue={setSelectedValue}
+      />
+    </div>
+  );
+};
+
+Popover.args = {
+  label: 'State',
+  data: [
+    { value: 'failed', label: 'Failed' },
+    { value: 'success', label: 'Success' },
+  ],
+  placeholder: 'Select or type a value',
+  popoverLabel: 'Info',
+  important: true,
+};

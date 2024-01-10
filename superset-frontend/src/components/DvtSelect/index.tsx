@@ -20,6 +20,7 @@ import React, { useRef, useState } from 'react';
 import useOnClickOutside from 'src/hooks/useOnClickOutsite';
 import { SupersetTheme } from '@superset-ui/core';
 import Icon from '../Icons/Icon';
+import DvtPopper from '../DvtPopper';
 import {
   StyledSelect,
   StyledSelectOption,
@@ -27,6 +28,7 @@ import {
   StyledSelectLabel,
   StyledSelectSelect,
   StyledSelectIcon,
+  StyledSelectPopover,
 } from './dvt-select.module';
 
 export interface DvtSelectProps {
@@ -38,6 +40,10 @@ export interface DvtSelectProps {
   typeDesign?: 'normal' | 'form' | 'navbar';
   width?: number;
   maxWidth?: boolean;
+  popoverLabel?: string;
+  popoverDirection?: 'top' | 'bottom' | 'left' | 'right';
+  important?: boolean;
+  importantLabel?: string;
 }
 
 const DvtSelect: React.FC<DvtSelectProps> = ({
@@ -49,6 +55,10 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
   typeDesign = 'normal',
   width = 202,
   maxWidth = false,
+  popoverDirection = 'top',
+  popoverLabel,
+  important,
+  importantLabel = 'Cannot be empty',
 }) => {
   const ref = useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -69,9 +79,33 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
       typeDesign={typeDesign}
       style={{ minWidth: maxWidth ? '100%' : width }}
     >
-      {label && (
-        <StyledSelectLabel typeDesign={typeDesign}>{label}</StyledSelectLabel>
-      )}
+      <StyledSelectPopover>
+        {label && (
+          <StyledSelectLabel typeDesign={typeDesign}>{label}</StyledSelectLabel>
+        )}
+        {important && !selectedValue && (
+          <DvtPopper label={importantLabel} direction={popoverDirection}>
+            <Icon
+              fileName="warning"
+              css={(theme: SupersetTheme) => ({
+                color: theme.colors.alert.base,
+              })}
+              iconSize="l"
+            />
+          </DvtPopper>
+        )}
+        {popoverLabel && (
+          <DvtPopper label={popoverLabel} direction={popoverDirection}>
+            <Icon
+              fileName="warning"
+              css={(theme: SupersetTheme) => ({
+                color: theme.colors.dvt.primary.base,
+              })}
+              iconSize="l"
+            />
+          </DvtPopper>
+        )}
+      </StyledSelectPopover>
       <StyledSelectSelect
         isOpen={isOpen}
         onClick={handleSelectClick}
