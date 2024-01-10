@@ -22,6 +22,7 @@ from typing import Optional
 from zipfile import is_zipfile, ZipFile
 
 import click
+import yaml
 from flask import g
 from flask.cli import with_appcontext
 
@@ -188,3 +189,208 @@ def import_datasources(path: str) -> None:
             "exception traceback in the log"
         )
         sys.exit(1)
+
+
+@click.command()
+@with_appcontext
+@click.option(
+    "--dashboard-file",
+    "-f",
+    default=None,
+    help="Specify the file to export to",
+)
+@click.option(
+    "--print_stdout",
+    "-p",
+    is_flag=True,
+    default=False,
+    help="Print JSON to stdout",
+)
+def legacy_export_dashboards(
+    dashboard_file: Optional[str], print_stdout: bool = False
+) -> None:
+    """Export dashboards to JSON"""
+    # pylint: disable=import-outside-toplevel
+    from superset.utils import dashboard_import_export
+
+    data = dashboard_import_export.export_dashboards(db.session)
+    if print_stdout or not dashboard_file:
+        print(data)
+    if dashboard_file:
+        logger.info("Exporting dashboards to %s", dashboard_file)
+        with open(dashboard_file, "w") as data_stream:
+            data_stream.write(data)
+
+
+@click.command()
+@with_appcontext
+@click.option(
+    "--datasource-file",
+    "-f",
+    default=None,
+    help="Specify the file to export to",
+)
+@click.option(
+    "--print_stdout",
+    "-p",
+    is_flag=True,
+    default=False,
+    help="Print YAML to stdout",
+)
+@click.option(
+    "--back-references",
+    "-b",
+    is_flag=True,
+    default=False,
+    help="Include parent back references",
+)
+@click.option(
+    "--include-defaults",
+    "-d",
+    is_flag=True,
+    default=False,
+    help="Include fields containing defaults",
+)
+def legacy_export_datasources(
+    datasource_file: Optional[str],
+    print_stdout: bool = False,
+    back_references: bool = False,
+    include_defaults: bool = False,
+) -> None:
+    """Export datasources to YAML"""
+    # pylint: disable=import-outside-toplevel
+    from superset.utils import dict_import_export
+
+    data = dict_import_export.export_to_dict(
+        session=db.session,
+        recursive=True,
+        back_references=back_references,
+        include_defaults=include_defaults,
+    )
+    if print_stdout or not datasource_file:
+        yaml.safe_dump(data, sys.stdout, default_flow_style=False)
+    if datasource_file:
+        logger.info("Exporting datasources to %s", datasource_file)
+        with open(datasource_file, "w") as data_stream:
+            yaml.safe_dump(data, data_stream, default_flow_style=False)
+
+
+@click.command()
+@with_appcontext
+@click.option(
+    "--path",
+    "-p",
+    help="Path to a single JSON file or path containing multiple JSON "
+    "files to import (*.json)",
+)
+@click.option(
+    "--recursive",
+    "-r",
+    is_flag=True,
+    default=False,
+    help="recursively search the path for json files",
+)
+@click.option(
+    "--username",
+    "-u",
+    default=None,
+    help="Specify the user name to assign dashboards to",
+)
+def legacy_import_dashboards(path: str, recursive: bool, username: str) -> None:
+    """Import dashboards from JSON file"""
+    # pylint: disable=import-outside-toplevel
+    from superset.commands.dashboard.importers.v0 import ImportDashboardsCommand
+
+    path_object = Path(path)
+    files: list[Path] = []
+    if path_object.is_file():
+        files.append(path_object)
+    elif path_object.exists() and not recursive:
+        files.extend(path_object.glob("*.json"))
+    elif path_object.exists() and recursive:
+        files.extend(path_object.rglob("*.json"))
+    if username is not None:
+        g.user = security_manager.find_user(username=username)
+    contents = {}
+    for path_ in files:
+        with open(path_) as file:
+            contents[path_.name] = file.read()
+    try:
+        ImportDashboardsCommand(contents).run()
+    except Exception:  # pylint: disable=broad-except
+        logger.exception("Error when importing dashboard")
+        sys.exit(1)
+
+
+@click.command()
+@with_appcontext
+@click.option(
+    "--path",
+    "-p",
+    help="Path to a single YAML file or path containing multiple YAML "
+    "files to import (*.yaml or *.yml)",
+)
+@click.option(
+    "--sync",
+    "-s",
+    "sync",
+    default="",
+    help="comma separated list of element types to synchronize "
+    'e.g. "metrics,columns" deletes metrics and columns in the DB '
+    "that are not specified in the YAML file",
+)
+@click.option(
+    "--recursive",
+    "-r",
+    is_flag=True,
+    default=False,
+    help="recursively search the path for yaml files",
+)
+def legacy_import_datasources(path: str, sync: str, recursive: bool) -> None:
+    """Import datasources from YAML"""
+    # pylint: disable=import-outside-toplevel
+    from superset.commands.dataset.importers.v0 import ImportDatasetsCommand
+
+    sync_array = sync.split(",")
+    sync_columns = "columns" in sync_array
+    sync_metrics = "metrics" in sync_array
+
+    path_object = Path(path)
+    files: list[Path] = []
+    if path_object.is_file():
+        files.append(path_object)
+    elif path_object.exists() and not recursive:
+        files.extend(path_object.glob("*.yaml"))
+        files.extend(path_object.glob("*.yml"))
+    elif path_object.exists() and recursive:
+        files.extend(path_object.rglob("*.yaml"))
+        files.extend(path_object.rglob("*.yml"))
+    contents = {}
+    for path_ in files:
+        with open(path_) as file:
+            contents[path_.name] = file.read()
+    try:
+        ImportDatasetsCommand(
+            contents, sync_columns=sync_columns, sync_metrics=sync_metrics
+        ).run()
+    except Exception:  # pylint: disable=broad-except
+        logger.exception("Error when importing dataset")
+        sys.exit(1)
+
+
+@click.command()
+@with_appcontext
+@click.option(
+    "--back-references",
+    "-b",
+    is_flag=True,
+    default=False,
+    help="Include parent back references",
+)
+def legacy_export_datasource_schema(back_references: bool) -> None:
+    """Export datasource YAML schema to stdout"""
+    # pylint: disable=import-outside-toplevel
+    from superset.utils import dict_import_export
+
+    data = dict_import_export.export_schema_to_dict(back_references=back_references)
+    yaml.safe_dump(data, sys.stdout, default_flow_style=False)
