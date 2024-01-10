@@ -7,8 +7,6 @@ import {
   waitFor,
   within,
 } from '../../../../spec/helpers/testing-library';
-
-import '@testing-library/jest-dom/extend-expect'; // for additional matchers
 import { buildErrorTooltipMessage } from '../buildErrorTooltipMessage';
 import AlertReportModal, { AlertReportModalProps } from '../AlertReportModal';
 import { AlertObject } from '../types';
@@ -16,6 +14,12 @@ import { AlertObject } from '../types';
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   isFeatureEnabled: () => true,
+}));
+
+jest.mock('../../databases/state.ts', () => ({
+  useCommonConf: () => ({
+    ALERT_REPORTS_NOTIFICATION_METHODS: ['Email', 'Slack'],
+  }),
 }));
 
 const generateMockPayload = (dashboard = true) => {
@@ -221,7 +225,7 @@ describe('properly renders the modal', () => {
     render(<AlertReportModal {...generateMockedProps(true)} />, {
       useRedux: true,
     });
-    const sections = screen.getAllByRole('tab', { expanded: false });
+    const sections = screen.getAllByRole('tab');
     expect(sections.length).toBe(4);
   });
 
@@ -230,7 +234,7 @@ describe('properly renders the modal', () => {
       useRedux: true,
     });
 
-    const sections = screen.getAllByRole('tab', { expanded: false });
+    const sections = screen.getAllByRole('tab');
     expect(sections.length).toBe(5);
   });
 });
@@ -302,11 +306,10 @@ describe('Validation', () => {
 
 // General Section
 describe('General Section', () => {
-  it('opens on click', async () => {
+  it('open by default', async () => {
     render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
       useRedux: true,
     });
-    userEvent.click(screen.getByTestId('general-information-panel'));
     const general_header = within(
       screen.getByRole('tab', { expanded: true }),
     ).queryByText(/general information/i);
@@ -333,6 +336,8 @@ describe('General Section', () => {
 });
 
 // Alert Condition Section
+/* A Note on textbox total numbers:
+  Because the General Info panel is open by default, the Name and Description textboxes register as being in the document on all tests, thus the total number of textboxes in each subsequent panel's tests will always be n+2. This is most significant in the Alert Condition panel tests because the nature of the SQL field as a TextAreaContol component may only be queried by role */
 describe('Alert Condition Section', () => {
   it('opens on click', async () => {
     render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
@@ -350,7 +355,7 @@ describe('Alert Condition Section', () => {
     });
     userEvent.click(screen.getByTestId('alert-condition-panel'));
     const database = screen.getByRole('combobox', { name: /database/i });
-    const sql = screen.getByRole('textbox');
+    const sql = screen.getAllByRole('textbox')[2];
     const condition = screen.getByRole('combobox', { name: /condition/i });
     const threshold = screen.getByRole('spinbutton');
     expect(database).toBeInTheDocument();
@@ -503,7 +508,6 @@ describe('schedule section', () => {
       useRedux: true,
     });
     userEvent.click(screen.getByTestId('schedule-panel'));
-
     const scheduleType = screen.getByRole('combobox', {
       name: /schedule type/i,
     });
@@ -513,7 +517,7 @@ describe('schedule section', () => {
     const logRetention = screen.getByRole('combobox', {
       name: /log retention/i,
     });
-    const gracePeriod = screen.getByRole('textbox');
+    const gracePeriod = screen.getByPlaceholderText(/time in seconds/i);
     expect(scheduleType).toBeInTheDocument();
     expect(timezone).toBeInTheDocument();
     expect(logRetention).toBeInTheDocument();
@@ -575,7 +579,7 @@ describe('notification method', () => {
     const notificationMethod = screen.getByRole('combobox', {
       name: /delivery method/i,
     });
-    const recipients = screen.getByRole('textbox');
+    const recipients = screen.getByTestId('recipients');
     const addNotificationMethod = screen.getByText(
       /add another notification method/i,
     );
@@ -601,10 +605,10 @@ describe('notification method', () => {
       screen.getAllByRole('combobox', {
         name: /delivery method/i,
       })[1],
-      'Email',
+      'Slack',
       () => screen.getAllByRole('textbox')[1],
     );
-    expect(screen.getAllByRole('textbox').length).toBe(2);
+    expect(screen.getAllByTestId('recipients').length).toBe(2);
   });
 
   it('removes notification method on clicking trash can', async () => {

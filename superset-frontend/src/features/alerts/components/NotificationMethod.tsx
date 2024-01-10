@@ -158,6 +158,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
           <div className="input-container">
             <textarea
               name="recipients"
+              data-test="recipients"
               value={recipientValue}
               onChange={onRecipientsChange}
             />
