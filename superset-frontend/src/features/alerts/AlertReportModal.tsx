@@ -395,7 +395,7 @@ export const TRANSLATIONS = {
   DATABASE_PLACEHOLDER: t('Select database'),
   SQL_QUERY_TEXT: t('SQL Query'),
   SQL_QUERY_TOOLTIP: t(
-    'The result of this query should be a numeric-esque value',
+    'The result of this query must be a value capable of numeric interpretation i.e. 1, 1.0, or "1" (compatible with Python\'s float() function).',
   ),
   TRIGGER_ALERT_IF_TEXT: t('Trigger Alert If...'),
   CONDITION_TEXT: t('Condition'),
