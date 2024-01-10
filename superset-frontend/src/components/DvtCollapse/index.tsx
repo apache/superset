@@ -40,7 +40,7 @@ export interface DvtCollapseProps {
 const DvtCollapse: React.FC<DvtCollapseProps> = ({
   label,
   children,
-  popoverIcon = 'warning',
+  popoverIcon,
   popoverDirection = 'top',
   popoverLabel,
 }) => {

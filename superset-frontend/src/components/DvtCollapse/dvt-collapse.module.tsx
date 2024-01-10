@@ -58,6 +58,7 @@ const StyledCollapseIcon = styled.div<StyledCollapseProps>`
 const StyledCollapseChildren = styled.div`
   animation: ${optionsKeyframes} 0.3s ease-in-out;
   transform-origin: top;
+  padding-top: 20px;
 `;
 
 const StyledCollapsePopover = styled.div``;
