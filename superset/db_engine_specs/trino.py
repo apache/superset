@@ -407,6 +407,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     ) -> list[dict[str, Any]]:
         """
         Get the indexes associated with the specified schema/table.
+
         Trino dialect raises NoSuchTableError in get_indexes if table is empty.
 
         :param database: The database to inspect
