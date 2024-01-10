@@ -1450,6 +1450,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             <StyledInputContainer>
               <div className="control-label">
                 {TRANSLATIONS.SQL_QUERY_TEXT}
+                <StyledTooltip tooltip={TRANSLATIONS.SQL_QUERY_TOOLTIP} />
                 <span className="required">*</span>
               </div>
               <TextAreaControl
