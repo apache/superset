@@ -88,10 +88,33 @@ function DvtDashboardList() {
   const [data, setData] = useState([]);
   const [count, setCount] = useState<number>(0);
 
+  const searchApiUrl = () => {
+    const filterData = [
+      { col: 'dashboard_title', opr: 'title_or_slug', value: '' },
+      { col: 'owners', opr: 'rel_m_m', value: '' },
+      { col: 'created_by', opr: 'rel_m_m', value: '' },
+      { col: 'published', opr: 'eq', value: '' },
+      { col: 'id', opr: 'dashboard_is_favorite', value: '' },
+      { col: 'id', opr: 'dashboard_is_certified', value: '' },
+    ];
+
+    let filters = '';
+    const sort = 'order_column:changed_on_delta_humanized,order_direction:desc';
+
+    const filteredData = filterData
+      .filter(item => item.value !== '')
+      .map(item => `(col:${item.col},opr:${item.opr},value:${item.value})`)
+      .join(',');
+
+    if (filterData.filter(item => item.value !== '').length) {
+      filters = `filters:!(${filteredData}),`;
+    }
+
+    return `?q=(${filters}${sort},page:${currentPage - 1},page_size:10)`;
+  };
+
   const dashboardApi = useFetch({
-    url: `/api/v1/dashboard/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:${
-      currentPage - 1
-    },page_size:10)`,
+    url: `/api/v1/dashboard/${searchApiUrl()}`,
   });
 
   useEffect(() => {
