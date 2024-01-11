@@ -149,7 +149,7 @@ export const CronPicker = styled((props: CronProps) => (
   }
 }
 
-.react-js-cron-minutes {
+.react-js-cron-minutes > span {
   padding-left: ${({ theme }) => theme.gridUnit}px;
 }
 grid-template-columns: repeat(1, 100%);
