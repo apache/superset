@@ -128,5 +128,20 @@ class SupersetIndexView(IndexView):
 
         return redirect("/dashboard/list")
 
+    @expose("/dashboard/p/<dashboard_slug>/")
+    def dashboard_immersa_link(
+        self,
+        dashboard_slug: str,
+    ) -> FlaskResponse:
+        dashboard_url = f"/superset/dashboard/{dashboard_slug}/"
+
+        if not g.user or not get_user_id():
+            next = f"?next={dashboard_url}"
+            provider_login_url = f"{appbuilder.get_url_for_login}auth0{next}"
+
+            return redirect(provider_login_url)
+
+        return redirect(dashboard_url)
+
 
 FAB_INDEX_VIEW = f"{SupersetIndexView.__module__}.{SupersetIndexView.__name__}"
