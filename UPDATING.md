@@ -39,6 +39,7 @@ assists people when migrating to a new version.
 - [26331](https://github.com/apache/superset/issues/26331): Removes the deprecated `DISABLE_DATASET_SOURCE_EDIT` feature flag. The previous value of the feature flag was `False` and now the feature is permanently removed.
 - [26636](https://github.com/apache/superset/issues/26636): Sets the `DASHBOARD_VIRTUALIZATION` feature flag to `True` by default. This feature was introduced by [21438](https://github.com/apache/superset/pull/21438) and will enable virtualization when rendering a dashboard's charts in an attempt to reduce the number of elements (DOM nodes) rendered at once. This is especially useful for large dashboards.
 - [26637](https://github.com/apache/superset/issues/26637): Sets the `DRILL_BY` feature flag to `True` by default given that the feature has been tested for a while and reached a stable state.
+- [26462](https://github.com/apache/superset/issues/26462): Removes the Profile feature given that it's not actively maintained and not widely used.
 
 ### Potential Downtime
 
