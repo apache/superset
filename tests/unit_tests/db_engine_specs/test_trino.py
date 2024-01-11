@@ -395,3 +395,19 @@ def test_execute_with_cursor_in_parallel(mocker: MockerFixture):
     mock_query.set_extra_json_key.assert_called_once_with(
         key=QUERY_CANCEL_KEY, value=query_id
     )
+
+
+def test_get_indexes_no_table():
+    from sqlalchemy.exc import NoSuchTableError
+
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    db_mock = Mock()
+    inspector_mock = Mock()
+    inspector_mock.get_indexes = Mock(
+        side_effect=NoSuchTableError("The specified table does not exist.")
+    )
+    result = TrinoEngineSpec.get_indexes(
+        db_mock, inspector_mock, "test_table", "test_schema"
+    )
+    assert result == []
