@@ -29,12 +29,12 @@ export const Default = (args: DvtDragCardProps) => {
     {
       label: 'arac',
       value: 'arac',
-      icon: 'darg',
+      icon: 'dvt-hashtag',
     },
     {
       label: 'id',
       value: 'id',
-      icon: 'darg',
+      icon: 'dvt-hashtag',
     },
   ];
 

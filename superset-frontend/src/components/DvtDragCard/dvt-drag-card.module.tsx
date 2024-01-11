@@ -43,10 +43,15 @@ const StyleddvtCardCard = styled.div`
 `;
 
 const StyleddvtCardIcon = styled.div`
+  display: flex;
+  align-items: center;
   margin-left: 13px;
 `;
 
-const StyleddvtCardLabel = styled.div``;
+const StyleddvtCardLabel = styled.div`
+  display: flex;
+  align-items: center;
+`;
 
 export {
   StyledDvtCard,

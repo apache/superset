@@ -56,7 +56,7 @@ const DvtDargCard = ({ data }: DvtDragCardProps) => {
           onDragEnd={handleDragEnd}
         >
           <StyleddvtCardIcon>
-            <Icon fileName="email" iconSize="xl" />
+            <Icon fileName={item.icon} iconSize="xl" />
           </StyleddvtCardIcon>
 
           <StyleddvtCardLabel>{item.label}</StyleddvtCardLabel>
