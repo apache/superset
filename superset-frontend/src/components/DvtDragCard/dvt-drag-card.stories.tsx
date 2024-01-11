@@ -17,127 +17,70 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import DvtInput, { DvtInputProps } from './index';
+import DvtDargCard, { DvtDragCardProps, DvtDragCardData } from './index';
 
 export default {
-  title: 'Dvt-Components/DvtInput',
-  component: DvtInput,
+  title: 'Dvt-Components/DvtDargCard',
+  component: DvtDargCard,
 };
 
-export const Default = (args: DvtInputProps) => {
-  const [text, setText] = useState<string>('');
+export const Default = (args: DvtDragCardProps) => {
+  const cardData: DvtDragCardData[] = [
+    {
+      label: 'arac',
+      value: 'arac',
+      icon: 'darg',
+    },
+    {
+      label: 'id',
+      value: 'id',
+      icon: 'darg',
+    },
+  ];
+
+  const [droppedData, setDroppedData] = useState<DvtDragCardData[]>([]);
+
+  const handleDrop = (index: number) => {
+    const draggedCard = cardData[index];
+    setDroppedData([draggedCard]);
+  };
+
   return (
-    <div style={{ width: 404 }}>
-      <DvtInput {...args} value={text} onChange={setText} />
+    <div
+      style={{
+        display: 'flex',
+        width: '600px',
+      }}
+    >
+      <DvtDargCard {...args} data={cardData} />
+      <div
+        style={{
+          display: 'flex',
+          border: '2px dashed #aaa',
+          padding: '10px',
+          height: '50px',
+          width: '300px',
+        }}
+        onDragOver={e => e.preventDefault()}
+        onDrop={() => handleDrop(0)}
+      >
+        <div
+          onClick={() => setDroppedData([])}
+          style={{
+            fontWeight: '600',
+            fontSize: '15px',
+            border: '1 px solid #000',
+            paddingRight: '15px',
+          }}
+        >
+          x
+        </div>
+        {droppedData.map((item, index) => (
+          <div key={index}>
+            <div>{item.label}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
-};
-
-Default.argTypes = {
-  type: {
-    control: { type: 'select' },
-    defaultValue: 'Text',
-  },
-  placeholder: {
-    control: { type: 'text' },
-    defaultValue: 'Default',
-  },
-};
-
-export const Email = (args: DvtInputProps) => {
-  const [text, setText] = useState<string>('');
-  return (
-    <div style={{ width: 404 }}>
-      <DvtInput {...args} value={text} onChange={setText} />
-    </div>
-  );
-};
-
-Email.argTypes = {
-  type: {
-    control: { type: 'select' },
-    defaultValue: 'email',
-  },
-  placeholder: {
-    control: { type: 'text' },
-    defaultValue: 'Email',
-  },
-  size: {
-    control: { type: 'select' },
-    defaultValue: 'large',
-  },
-};
-
-export const Password = (args: DvtInputProps) => {
-  const [text, setText] = useState<string>('');
-  return (
-    <div style={{ width: 404 }}>
-      <DvtInput {...args} value={text} onChange={setText} />
-    </div>
-  );
-};
-
-Password.argTypes = {
-  type: {
-    control: { type: 'select' },
-    defaultValue: 'password',
-  },
-  placeholder: {
-    control: { type: 'text' },
-    defaultValue: 'Password',
-  },
-  size: {
-    control: { type: 'select' },
-    defaultValue: 'large',
-  },
-};
-
-export const Search = (args: DvtInputProps) => {
-  const [text, setText] = useState<string>('');
-  return (
-    <div style={{ width: 200 }}>
-      <DvtInput
-        {...args}
-        value={text}
-        onChange={setText}
-        handleSearchClick={() => {}}
-      />
-    </div>
-  );
-};
-
-Search.argTypes = {
-  type: {
-    control: { type: 'select' },
-    defaultValue: 'search',
-  },
-};
-
-export const Form = (args: DvtInputProps) => {
-  const [text, setText] = useState<string>('');
-  return (
-    <div style={{ width: 282 }}>
-      <DvtInput
-        {...args}
-        value={text}
-        onChange={setText}
-        handleSearchClick={() => {}}
-      />
-    </div>
-  );
-};
-
-Form.argTypes = {
-  type: {
-    control: { type: 'select' },
-    defaultValue: 'form',
-  },
-  size: {
-    control: { type: 'select' },
-    defaultValue: 'small',
-  },
-  typeDesign: {
-    control: { type: 'select' },
-    defaultValue: 'form',
-  },
 };

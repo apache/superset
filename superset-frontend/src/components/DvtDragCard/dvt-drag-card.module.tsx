@@ -20,44 +20,33 @@ import { styled } from '@superset-ui/core';
 
 const StyledDvtCard = styled.div`
   display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid ${({ theme }) => theme.colors.dvt.primary.light2};
-  padding: 8px 16px;
+  flex-direction: column;
   width: 100%;
 `;
 
 const StyledDvtCardSize = styled.div`
-  width: 100%;
-  height: 100%;
-  border: none;
-  color: ${({ theme }) => theme.colors.dvt.text.bold};
-
-  &:focus {
-    outline: none;
-  }
-
-  &::placeholder {
-    color: ${({ theme }) => theme.colors.dvt.text.help};
-  }
-
-  ::-ms-reveal,
-  ::-ms-clear {
-    display: none;
-  }
+  color: #b8c1cc;
+  font-size: 12px;
+  font-weight: 500;
+  padding-bottom: 6px;
 `;
 
 const StyleddvtCardCard = styled.div`
-  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 202px;
+  height: 48px;
+  border-radius: 12px;
+  background: #f8fafc;
+  margin-bottom: 12px;
 `;
 
 const StyleddvtCardIcon = styled.div`
-  cursor: pointer;
+  margin-left: 13px;
 `;
 
-const StyleddvtCardLabel = styled.div`
-  cursor: pointer;
-`;
+const StyleddvtCardLabel = styled.div``;
 
 export {
   StyledDvtCard,
