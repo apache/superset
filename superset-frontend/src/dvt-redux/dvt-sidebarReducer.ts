@@ -60,6 +60,12 @@ interface DvtSidebarState {
     certified: string;
   };
   data: {
+    fetched: {
+      dashboard: {
+        owner: boolean;
+        createdBy: boolean;
+      };
+    };
     dashboard: {
       owner: any[];
       createdBy: any[];
@@ -109,6 +115,12 @@ const initialState: DvtSidebarState = {
     certified: '',
   },
   data: {
+    fetched: {
+      dashboard: {
+        owner: false,
+        createdBy: false,
+      },
+    },
     dashboard: {
       owner: [],
       createdBy: [],
@@ -182,11 +194,18 @@ const dvtSidebarSlice = createSlice({
     }),
     dvtSidebarSetDataProperty: (
       state,
-      action: PayloadAction<{ key: string; value: string }>,
+      action: PayloadAction<{ pageKey: string; key: string; value: string }>,
     ) => ({
       ...state,
       data: {
         ...state.data,
+        fetched: {
+          ...state.data.fetched,
+          [action.payload.pageKey]: {
+            ...state.data.fetched[action.payload.pageKey],
+            [action.payload.key]: true,
+          },
+        },
         [action.payload.key]: action.payload.value,
       },
     }),
