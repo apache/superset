@@ -970,13 +970,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access
     @event_logger.log_this
-    @expose("/profile/")
-    @deprecated(new_target="/profile")
-    def profile(self) -> FlaskResponse:
-        return redirect("/profile/")
-
-    @has_access
-    @event_logger.log_this
     @expose(
         "/sqllab/",
         methods=(
