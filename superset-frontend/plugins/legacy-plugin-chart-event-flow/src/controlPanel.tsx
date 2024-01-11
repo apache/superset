@@ -25,13 +25,17 @@ import {
   ControlPanelConfig,
   ControlState,
   formatSelectOptionsForRange,
-  sections,
   SelectControlConfig,
 } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
+    {
+      label: t('Time'),
+      expanded: true,
+      description: t('Time related form attributes'),
+      controlSetRows: [['granularity_sqla'], ['time_range']],
+    },
     {
       label: t('Event definition'),
       controlSetRows: [

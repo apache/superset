@@ -49,7 +49,7 @@ export const genericTime: ControlPanelSectionConfig = hasGenericChartAxes
       ],
     };
 
-export const legacyRegularTime: ControlPanelSectionConfig = !hasGenericChartAxes
+export const legacyRegularTime: ControlPanelSectionConfig = hasGenericChartAxes
   ? { controlSetRows: [] }
   : {
       ...baseTimeSection,
