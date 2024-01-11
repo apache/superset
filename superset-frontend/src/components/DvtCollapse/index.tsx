@@ -32,7 +32,6 @@ import DvtPopper from '../DvtPopper';
 export interface DvtCollapseProps {
   label: string;
   children: ReactNode;
-  popoverIcon?: boolean;
   popoverLabel?: string;
   popoverDirection?: 'top' | 'bottom' | 'left' | 'right';
 }
@@ -40,7 +39,6 @@ export interface DvtCollapseProps {
 const DvtCollapse: React.FC<DvtCollapseProps> = ({
   label,
   children,
-  popoverIcon,
   popoverDirection = 'top',
   popoverLabel,
 }) => {
@@ -51,7 +49,7 @@ const DvtCollapse: React.FC<DvtCollapseProps> = ({
       <StyledCollapseGroup>
         <StyledCollapseLabel>
           {label}
-          {popoverIcon && (
+          {popoverLabel && (
             <StyledCollapsePopover>
               {popoverLabel ? (
                 <DvtPopper label={popoverLabel} direction={popoverDirection}>

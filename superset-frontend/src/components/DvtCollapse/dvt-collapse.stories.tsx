@@ -40,5 +40,4 @@ export const Default = (args: DvtCollapseProps) => (
 Default.args = {
   label: 'Time',
   popoverLabel: 'Default',
-  popoverIcon: true,
 };
