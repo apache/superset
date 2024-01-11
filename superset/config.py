@@ -1711,4 +1711,5 @@ elif importlib.util.find_spec("superset_config") and not is_test():
         logger.exception("Found but failed to import local superset_config")
         raise
 
-from .dvt_config import *  # pylint: disable=import-error,wildcard-import,unused-wildcard-import
+# pylint: disable=wrong-import-position, unused-import
+from .dvt_config import *
