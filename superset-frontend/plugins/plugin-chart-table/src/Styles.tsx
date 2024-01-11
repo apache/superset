@@ -32,10 +32,12 @@ export default styled.div`
     td {
       min-width: 4.3em;
     }
-
     thead > tr > th {
+      position: sticky;
+      top: -1px;
       padding-right: 0;
-      position: relative;
+      z-index: 100;
+      border-bottom: 2px solid #e0e0e0;
       background: ${theme.colors.grayscale.light5};
       text-align: left;
     }

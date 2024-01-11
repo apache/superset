@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import React, {
   useRef,
   useMemo,
@@ -110,6 +111,7 @@ const fixedTableLayout: CSSProperties = { tableLayout: 'fixed' };
 /**
  * An HOC for generating sticky header and fixed-height scrollable area
  */
+
 function StickyWrap({
   sticky = {},
   width: maxWidth,
@@ -215,7 +217,9 @@ function StickyWrap({
   let sizerTable: ReactElement | undefined;
   let headerTable: ReactElement | undefined;
   let footerTable: ReactElement | undefined;
-  let bodyTable: ReactElement | undefined;
+  // let bodyTable: ReactElement | undefined;
+  let fullTable: ReactElement | undefined;
+
   if (needSizer) {
     const theadWithRef = React.cloneElement(thead, { ref: theadRef });
     const tfootWithRef = tfoot && React.cloneElement(tfoot, { ref: tfootRef });
@@ -253,6 +257,7 @@ function StickyWrap({
         style={{
           overflow: 'hidden',
         }}
+        aria-hidden="true"
       >
         {React.cloneElement(
           table,
@@ -290,20 +295,18 @@ function StickyWrap({
         scrollFooterRef.current.scrollLeft = e.currentTarget.scrollLeft;
       }
     };
-    bodyTable = (
+
+    fullTable = (
       <div
-        key="body"
+        key="full-table"
         ref={scrollBodyRef}
-        style={{
-          height: bodyHeight,
-          overflow: 'auto',
-        }}
         onScroll={sticky.hasHorizontalScroll ? onScroll : undefined}
       >
         {React.cloneElement(
           table,
           mergeStyleProp(table, fixedTableLayout),
           colgroup,
+          thead,
           tbody,
         )}
       </div>
@@ -315,11 +318,12 @@ function StickyWrap({
       style={{
         width: maxWidth,
         height: sticky.realHeight || maxHeight,
-        overflow: 'hidden',
+        overflow: 'auto',
+        padding: '0',
       }}
     >
-      {headerTable}
-      {bodyTable}
+      {/* {headerTable} */}
+      {fullTable}
       {footerTable}
       {sizerTable}
     </div>
