@@ -20,4 +20,3 @@ LANGUAGES = {
 #     ./superset-frontend/node_modules/.bin/prettier --write "$filename.json"
 #   fi
 # done
-

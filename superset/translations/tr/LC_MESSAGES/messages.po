@@ -20331,4 +20331,3 @@ msgstr "12 saat"
 #: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:29
 msgid "24 hours"
 msgstr "24 saat"
-
