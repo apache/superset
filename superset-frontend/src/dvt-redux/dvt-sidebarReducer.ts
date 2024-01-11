@@ -28,20 +28,17 @@ interface DvtSidebarState {
     favorite: string;
     certified: string;
   };
-
   alerts: {
     createdBy: string;
     owner: string;
     status: string;
     search: string;
   };
-
   connection: {
     expose_in_sqllab: string;
     allow_run_async: string;
     search: string;
   };
-
   datasets: {
     owner: string;
     database: string;
@@ -49,12 +46,24 @@ interface DvtSidebarState {
     type: string;
     certified: string;
   };
-
   chartAdd: {
     dataset: string;
     recommended_tags: string;
     category: string;
     tags: string;
+  };
+  dashboard: {
+    owner: string;
+    createdBy: string;
+    status: string;
+    favorite: string;
+    certified: string;
+  };
+  data: {
+    dashboard: {
+      owner: any[];
+      createdBy: any[];
+    };
   };
 }
 
@@ -91,6 +100,19 @@ const initialState: DvtSidebarState = {
     recommended_tags: '',
     category: '',
     tags: '',
+  },
+  dashboard: {
+    owner: '',
+    createdBy: '',
+    status: '',
+    favorite: '',
+    certified: '',
+  },
+  data: {
+    dashboard: {
+      owner: [],
+      createdBy: [],
+    },
   },
 };
 
@@ -148,6 +170,26 @@ const dvtSidebarSlice = createSlice({
         ...action.payload.chartAdd,
       },
     }),
+    dvtSidebarDashboardSetProperty: (
+      state,
+      action: PayloadAction<{ key: string; value: string }>,
+    ) => ({
+      ...state,
+      dashboard: {
+        ...state.dashboard,
+        [action.payload.key]: action.payload.value,
+      },
+    }),
+    dvtSidebarSetDataProperty: (
+      state,
+      action: PayloadAction<{ key: string; value: string }>,
+    ) => ({
+      ...state,
+      data: {
+        ...state.data,
+        [action.payload.key]: action.payload.value,
+      },
+    }),
   },
 });
 
@@ -157,6 +199,7 @@ export const {
   dvtSidebarConnectionSetProperty,
   dvtSidebarDatasetsSetProperty,
   dvtSidebarChartAddSetProperty,
+  dvtSidebarDashboardSetProperty,
 } = dvtSidebarSlice.actions;
 
 export default dvtSidebarSlice.reducer;

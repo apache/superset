@@ -422,6 +422,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Success', value: 'success' },
         ],
         placeholder: 'Owner',
+        name: 'owner',
       },
       {
         values: [
@@ -429,6 +430,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Success', value: 'success' },
         ],
         placeholder: 'Created by',
+        name: 'createdBy',
       },
       {
         values: [
@@ -436,6 +438,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Success', value: 'success' },
         ],
         placeholder: 'Status',
+        name: 'status',
       },
       {
         values: [
@@ -443,6 +446,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Success', value: 'success' },
         ],
         placeholder: 'Favorite',
+        name: 'favorite',
       },
       {
         values: [
@@ -450,6 +454,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Success', value: 'success' },
         ],
         placeholder: 'Certified',
+        name: 'certified',
       },
     ],
   },
@@ -644,4 +649,55 @@ const DvtSidebarData: SidebarDataProps[] = [
   },
 ];
 
-export default DvtSidebarData;
+const DefaultOrder = [
+  'line',
+  'big_number',
+  'big_number_total',
+  'table',
+  'pivot_table_v2',
+  'echarts_timeseries_line',
+  'echarts_area',
+  'echarts_timeseries_bar',
+  'echarts_timeseries_scatter',
+  'pie',
+  'mixed_timeseries',
+  'filter_box',
+  'dist_bar',
+  'area',
+  'bar',
+  'deck_polygon',
+  'time_table',
+  'histogram',
+  'deck_scatter',
+  'deck_hex',
+  'time_pivot',
+  'deck_arc',
+  'heatmap',
+  'deck_grid',
+  'deck_screengrid',
+  'treemap_v2',
+  'box_plot',
+  'sunburst',
+  'sankey',
+  'word_cloud',
+  'mapbox',
+  'kepler',
+  'cal_heatmap',
+  'rose',
+  'bubble',
+  'bubble_v2',
+  'deck_geojson',
+  'horizon',
+  'deck_multi',
+  'compare',
+  'partition',
+  'event_flow',
+  'deck_path',
+  'graph_chart',
+  'world_map',
+  'paired_ttest',
+  'para',
+  'country_map',
+];
+
+export { DvtSidebarData, DefaultOrder };

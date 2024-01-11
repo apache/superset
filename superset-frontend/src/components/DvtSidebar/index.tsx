@@ -6,6 +6,7 @@ import {
   dvtSidebarConnectionSetProperty,
   dvtSidebarDatasetsSetProperty,
   dvtSidebarReportsSetProperty,
+  dvtSidebarDashboardSetProperty,
 } from 'src/dvt-redux/dvt-sidebarReducer';
 import { useAppSelector } from 'src/hooks/useAppSelector';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
@@ -17,7 +18,7 @@ import DvtNavigation from '../DvtNavigation';
 import DvtFolderNavigation from '../DvtFolderNavigation';
 import DvtSelect from '../DvtSelect';
 import DvtNavigationBar from '../DvtNavigationBar';
-import DvtSidebarData from './dvtSidebarData';
+import { DvtSidebarData, DefaultOrder } from './dvtSidebarData';
 import {
   StyledDvtSidebar,
   StyledDvtSidebarHeader,
@@ -54,6 +55,7 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
     state => state.dvtSidebar.connection,
   );
   const chartAddSelector = useAppSelector(state => state.dvtSidebar.chartAdd);
+  const dashboardSelector = useAppSelector(state => state.dvtSidebar.dashboard);
   const [darkMode, setDarkMode] = useState<boolean>(false);
   const [active, setActive] = useState<string>('test');
   const [editedData, setEditedData] = useState<EditedDataItem[]>([]);
@@ -135,6 +137,15 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
     );
   };
 
+  const updateDashboardProperty = (value: string, propertyName: string) => {
+    dispatch(
+      dvtSidebarDashboardSetProperty({
+        key: propertyName,
+        value,
+      }),
+    );
+  };
+
   const updateChartAddProperty = (value: string, propertyName: string) => {
     const changesOneItem = ['recommended_tags', 'category', 'tags'];
     if (chartAddSelector[propertyName] !== value) {
@@ -184,59 +195,8 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
     }
   }, [pathName]);
 
-  const DEFAULT_ORDER = [
-    'line',
-    'big_number',
-    'big_number_total',
-    'table',
-    'pivot_table_v2',
-    'echarts_timeseries_line',
-    'echarts_area',
-    'echarts_timeseries_bar',
-    'echarts_timeseries_scatter',
-    'pie',
-    'mixed_timeseries',
-    'filter_box',
-    'dist_bar',
-    'area',
-    'bar',
-    'deck_polygon',
-    'time_table',
-    'histogram',
-    'deck_scatter',
-    'deck_hex',
-    'time_pivot',
-    'deck_arc',
-    'heatmap',
-    'deck_grid',
-    'deck_screengrid',
-    'treemap_v2',
-    'box_plot',
-    'sunburst',
-    'sankey',
-    'word_cloud',
-    'mapbox',
-    'kepler',
-    'cal_heatmap',
-    'rose',
-    'bubble',
-    'bubble_v2',
-    'deck_geojson',
-    'horizon',
-    'deck_multi',
-    'compare',
-    'partition',
-    'event_flow',
-    'deck_path',
-    'graph_chart',
-    'world_map',
-    'paired_ttest',
-    'para',
-    'country_map',
-  ];
-
   const { mountedPluginMetadata } = usePluginContext();
-  const typesWithDefaultOrder = new Set(DEFAULT_ORDER);
+  const typesWithDefaultOrder = new Set(DefaultOrder);
   const RECOMMENDED_TAGS = [
     t('Popular'),
     t('ECharts'),
@@ -246,9 +206,9 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
 
   function vizSortFactor(entry: VizEntry) {
     if (typesWithDefaultOrder.has(entry.key)) {
-      return DEFAULT_ORDER.indexOf(entry.key);
+      return DefaultOrder.indexOf(entry.key);
     }
-    return DEFAULT_ORDER.length;
+    return DefaultOrder.length;
   }
   const chartMetadata: VizEntry[] = useMemo(() => {
     const result = Object.entries(mountedPluginMetadata)
@@ -395,6 +355,8 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
                         ? datasetsSelector[data.name]
                         : pathTitles(pathName) === 'Chart Add'
                         ? chartAddSelector[data.name]
+                        : pathTitles(pathName) === 'Dashboards'
+                        ? dashboardSelector[data.name]
                         : undefined
                     }
                     setSelectedValue={value => {
@@ -408,6 +370,8 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
                         updateDatasetsProperty(value, data.name);
                       } else if (pathTitles(pathName) === 'Chart Add') {
                         updateChartAddProperty(value, data.name);
+                      } else if (pathTitles(pathName) === 'Dashboards') {
+                        updateDashboardProperty(value, data.name);
                       }
                     }}
                     maxWidth
