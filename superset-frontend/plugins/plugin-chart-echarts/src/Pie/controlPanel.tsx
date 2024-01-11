@@ -107,6 +107,7 @@ const config: ControlPanelConfig = {
                 ['key_value', t('Category and Value')],
                 ['key_percent', t('Category and Percentage')],
                 ['key_value_percent', t('Category, Value and Percentage')],
+                ['value_percent', t('Value and Percentage')],
               ],
               description: t('What should be shown on the label?'),
             },
