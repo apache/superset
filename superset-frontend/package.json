@@ -132,7 +132,7 @@
     "bootstrap-slider": "^10.0.0",
     "brace": "^0.11.1",
     "broadcast-channel": "^4.10.0",
-    "chrono-node": "^2.2.6",
+    "chrono-node": "^2.7.4",
     "classnames": "^2.2.5",
     "core-js": "^3.6.5",
     "d3-array": "^1.2.4",
