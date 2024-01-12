@@ -23,6 +23,8 @@ from urllib import parse
 
 import sqlparse
 from sqlalchemy import and_
+from sqlglot import exp, parse_one
+from sqlglot.optimizer.scope import traverse_scope
 from sqlparse import keywords
 from sqlparse.lexer import Lexer
 from sqlparse.sql import (
@@ -206,12 +208,13 @@ class ParsedQuery:
     @property
     def tables(self) -> set[Table]:
         if not self._tables:
-            for statement in self._parsed:
-                self._extract_from_token(statement)
-
             self._tables = {
-                table for table in self._tables if str(table) not in self._alias_names
+                Table(source.name, source.db if source.db != "" else None)
+                for scope in traverse_scope(parse_one(self.sql))
+                for source in scope.sources.values()
+                if isinstance(source, exp.Table)
             }
+
         return self._tables
 
     @property
@@ -393,28 +396,6 @@ class ParsedQuery:
     def _is_identifier(token: Token) -> bool:
         return isinstance(token, (IdentifierList, Identifier))
 
-    def _process_tokenlist(self, token_list: TokenList) -> None:
-        """
-        Add table names to table set
-
-        :param token_list: TokenList to be processed
-        """
-        # exclude subselects
-        if "(" not in str(token_list):
-            table = self.get_table(token_list)
-            if table and not table.table.startswith(CTE_PREFIX):
-                self._tables.add(table)
-            return
-
-        # store aliases
-        if token_list.has_alias():
-            self._alias_names.add(token_list.get_alias())
-
-        # some aliases are not parsed properly
-        if token_list.tokens[0].ttype == Name:
-            self._alias_names.add(token_list.tokens[0].value)
-        self._extract_from_token(token_list)
-
     def as_create_table(
         self,
         table_name: str,
@@ -440,50 +421,6 @@ class ParsedQuery:
             exec_sql = f"DROP {method} IF EXISTS {full_table_name};\n"
         exec_sql += f"CREATE {method} {full_table_name} AS \n{sql}"
         return exec_sql
-
-    def _extract_from_token(self, token: Token) -> None:
-        """
-        <Identifier> store a list of subtokens and <IdentifierList> store lists of
-        subtoken list.
-
-        It extracts <IdentifierList> and <Identifier> from :param token: and loops
-        through all subtokens recursively. It finds table_name_preceding_token and
-        passes <IdentifierList> and <Identifier> to self._process_tokenlist to populate
-        self._tables.
-
-        :param token: instance of Token or child class, e.g. TokenList, to be processed
-        """
-        if not hasattr(token, "tokens"):
-            return
-
-        table_name_preceding_token = False
-
-        for item in token.tokens:
-            if item.is_group and (
-                not self._is_identifier(item) or isinstance(item.tokens[0], Parenthesis)
-            ):
-                self._extract_from_token(item)
-
-            if item.ttype in Keyword and (
-                item.normalized in PRECEDES_TABLE_NAME
-                or item.normalized.endswith(" JOIN")
-            ):
-                table_name_preceding_token = True
-                continue
-
-            if item.ttype in Keyword:
-                table_name_preceding_token = False
-                continue
-            if table_name_preceding_token:
-                if isinstance(item, Identifier):
-                    self._process_tokenlist(item)
-                elif isinstance(item, IdentifierList):
-                    for token2 in item.get_identifiers():
-                        if isinstance(token2, TokenList):
-                            self._process_tokenlist(token2)
-            elif isinstance(item, IdentifierList):
-                if any(not self._is_identifier(token2) for token2 in item.tokens):
-                    self._extract_from_token(item)
 
     def set_or_update_query_limit(self, new_limit: int, force: bool = False) -> str:
         """Returns the query with the specified limit.

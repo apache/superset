@@ -125,6 +125,7 @@ setup(
         "slack_sdk>=3.19.0, <4",
         "sqlalchemy>=1.4, <2",
         "sqlalchemy-utils>=0.38.3, <0.39",
+        "sqlglot>=20,<21",
         "sqlparse>=0.4.4, <0.5",
         "tabulate>=0.8.9, <0.9",
         "typing-extensions>=4, <5",

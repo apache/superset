@@ -96,8 +96,13 @@ def test_extract_tables() -> None:
         Table("left_table")
     }
 
-    # reverse select
-    assert extract_tables("FROM t1 SELECT field") == {Table("t1")}
+    assert extract_tables(
+        "SELECT FROM (SELECT FROM forbidden_table) AS forbidden_table;"
+    ) == {Table("forbidden_table")}
+
+    assert extract_tables(
+        "select * from (select * from forbidden_table) forbidden_table"
+    ) == {Table("forbidden_table")}
 
 
 def test_extract_tables_subselect() -> None:
@@ -1304,6 +1309,14 @@ def test_sqlparse_issue_652():
         ),
         (
             "(SELECT table_name FROM /**/ information_schema.tables WHERE table_name LIKE '%user%' LIMIT 1)",
+            True,
+        ),
+        (
+            "SELECT FROM (SELECT FROM forbidden_table) AS forbidden_table;",
+            True,
+        ),
+        (
+            "SELECT * FROM (SELECT * FROM forbidden_table) forbidden_table",
             True,
         ),
     ],
