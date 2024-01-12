@@ -542,9 +542,11 @@ class TestImportExport(SupersetTestCase):
         self.assertEqual(imported_slc.owners, [gamma_user])
 
         # re-import with another user shouldn't change the permissions
-        g.user = admin_user
-
         dash_with_1_slice = self._create_dashboard_for_import(id_=10300)
+        # set another user as an owner of importing dashboard
+        dash_with_1_slice.created_by = admin_user
+        dash_with_1_slice.changed_by = admin_user
+        dash_with_1_slice.owners = [admin_user]
 
         imported_dash_id = import_dashboard(dash_with_1_slice)
         imported_dash = self.get_dash(imported_dash_id)
