@@ -91,14 +91,11 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
   const sidebarDataFindPathname = DvtSidebarData.find(
     (item: { pathname: string }) => {
       if (pathName === '/superset/sqllab/history/') {
-        return (
-          sqlSelector.tabs === 'Query History'
+        return sqlSelector.tabs === 'Query History'
           ? item.pathname === pathName
-          : item.pathname === '/superset/sqllab/saved_queries/'
-        );
-      } else {
-        return item.pathname === pathName;
+          : item.pathname === '/superset/sqllab/saved_queries/';
       }
+      return item.pathname === pathName;
     },
   );
 
