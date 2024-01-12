@@ -216,7 +216,7 @@ const SouthPane = ({
         <ResultSet
           query={query}
           visualize={false}
-          csv={false}
+          isExportable={false}
           cache
           user={user}
           height={innerTabContentHeight}

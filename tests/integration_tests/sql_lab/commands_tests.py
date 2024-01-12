@@ -111,7 +111,7 @@ class TestQueryEstimationCommand(SupersetTestCase):
             assert result == payload
 
 
-class TestSqlResultExportCommand(SupersetTestCase):
+class TestSqlResultCsvExportCommand(SupersetTestCase):
     @pytest.fixture()
     def create_database_and_query(self):
         with self.create_app().app_context():
@@ -141,7 +141,7 @@ class TestSqlResultExportCommand(SupersetTestCase):
 
     @pytest.mark.usefixtures("create_database_and_query")
     def test_validation_query_not_found(self) -> None:
-        command = export.SqlResultExportCommand("asdf")
+        command = export.SqlResultCsvExportCommand("asdf")
 
         with pytest.raises(SupersetErrorException) as ex_info:
             command.run()
@@ -149,7 +149,7 @@ class TestSqlResultExportCommand(SupersetTestCase):
 
     @pytest.mark.usefixtures("create_database_and_query")
     def test_validation_invalid_access(self) -> None:
-        command = export.SqlResultExportCommand("test")
+        command = export.SqlResultCsvExportCommand("test")
 
         with mock.patch(
             "superset.security_manager.raise_for_access",
@@ -172,7 +172,7 @@ class TestSqlResultExportCommand(SupersetTestCase):
     @patch("superset.models.sql_lab.Query.raise_for_access", lambda _: None)
     @patch("superset.models.core.Database.get_df")
     def test_run_no_results_backend_select_sql(self, get_df_mock: Mock) -> None:
-        command = export.SqlResultExportCommand("test")
+        command = export.SqlResultCsvExportCommand("test")
 
         get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
         result = command.run()
@@ -190,7 +190,7 @@ class TestSqlResultExportCommand(SupersetTestCase):
         query_obj.select_sql = None
         db.session.commit()
 
-        command = export.SqlResultExportCommand("test")
+        command = export.SqlResultCsvExportCommand("test")
 
         get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
         result = command.run()
@@ -211,7 +211,7 @@ class TestSqlResultExportCommand(SupersetTestCase):
         query_obj.limiting_factor = LimitingFactor.DROPDOWN
         db.session.commit()
 
-        command = export.SqlResultExportCommand("test")
+        command = export.SqlResultCsvExportCommand("test")
 
         get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
 
@@ -225,7 +225,7 @@ class TestSqlResultExportCommand(SupersetTestCase):
     @patch("superset.models.sql_lab.Query.raise_for_access", lambda _: None)
     @patch("superset.commands.sql_lab.export.results_backend_use_msgpack", False)
     def test_run_with_results_backend(self) -> None:
-        command = export.SqlResultExportCommand("test")
+        command = export.SqlResultCsvExportCommand("test")
 
         data = [{"foo": i} for i in range(5)]
         payload = {

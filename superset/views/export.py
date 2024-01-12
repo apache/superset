@@ -14,17 +14,28 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from . import (
-    alerts,
-    api,
-    base,
-    core,
-    css_templates,
-    dynamic_plugins,
-    export,
-    health,
-    redirects,
-    sql_lab,
-    tags,
-)
-from .log import api as log_api, views
+import contextlib
+
+import simplejson as json
+from flask import request
+from flask_appbuilder.api import expose
+
+from superset import event_logger
+from superset.superset_typing import FlaskResponse
+
+from .base import BaseSupersetView
+
+
+class ExportView(BaseSupersetView):
+    route_base = "/export"
+
+    @expose("/<string:client_id>/google-sheets/", methods=("GET",))
+    @event_logger.log_this
+    def google_sheets(
+        self, client_id: int  # pylint: disable=unused-argument
+    ) -> FlaskResponse:
+        payload = {}
+        if form_data := request.form.get("form_data"):
+            with contextlib.suppress(json.JSONDecodeError):
+                payload["requested_query"] = json.loads(form_data)
+        return self.render_app_template(payload)
