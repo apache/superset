@@ -113,7 +113,7 @@ function DvtSql() {
               table: item.sql_tables.table,
               user: `${item.user.first_name} ${item.user.last_name}`,
               rows: item.rows,
-              sql: "",
+              sql: '',
             };
           } else if (sqlSelector.tabs === 'Saved Queries') {
             return {
