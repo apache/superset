@@ -162,7 +162,7 @@
     "memoize-one": "^5.1.1",
     "minimist": "^1.2.6",
     "moment": "^2.26.0",
-    "moment-timezone": "^0.5.37",
+    "moment-timezone": "^0.5.44",
     "mousetrap": "^1.6.1",
     "mustache": "^2.2.1",
     "polished": "^3.7.2",
