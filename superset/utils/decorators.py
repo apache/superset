@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import logging
 import time
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -26,6 +27,8 @@ from flask import current_app, g, Response
 
 from superset.utils import core as utils
 from superset.utils.dates import now_as_float
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from superset.stats_logger import BaseStatsLogger
@@ -125,10 +128,10 @@ def logs_context(
                         }
                     )
 
-            except (TypeError, KeyError):
+            except (TypeError, KeyError, AttributeError):
                 # do nothing if the key doesn't exist
                 # or context is not callable
-                pass
+                logger.warning("Invalid data was passed to the logs context decorator")
 
             g.logs_context.update(logs_context_data)
             return f(*args, **kwargs)
