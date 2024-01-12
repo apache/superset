@@ -62,7 +62,10 @@ def statsd_gauge(metric_prefix: str | None = None) -> Callable[..., Any]:
     return decorate
 
 
-def logs_context(**ctx_kwargs: int | str | UUID | None) -> Callable[..., Any]:
+def logs_context(
+    context_func: Callable[..., dict[Any, Any]] | None = None,
+    **ctx_kwargs: int | str | UUID | None,
+) -> Callable[..., Any]:
     """
     Takes arguments and adds them to the global logs_context.
     This is for logging purposes only and values should not be relied on or mutated
@@ -72,35 +75,60 @@ def logs_context(**ctx_kwargs: int | str | UUID | None) -> Callable[..., Any]:
         def wrapped(*args: Any, **kwargs: Any) -> Any:
             if not hasattr(g, "logs_context"):
                 g.logs_context = {}
+
+            # limit data that can be saved to logs_context
+            # in order to prevent antipatterns
             available_logs_context_keys = [
                 "slice_id",
                 "dashboard_id",
+                "dataset_id",
                 "execution_id",
                 "report_schedule_id",
             ]
+            # set value from kwargs from
+            # wrapper function if it exists
+            # e.g. @logs_context()
+            #      def my_func(slice_id=None, **kwargs)
+            #
+            #      my_func(slice_id=2)
             logs_context_data = {
                 key: val
                 for key, val in kwargs.items()
                 if key in available_logs_context_keys
+                if val is not None
             }
 
-            # if keys are passed in to decorator directly, add them to logs_context
-            # by overriding values from kwargs
-            # e.g. @logs_context(slice_id=1, dashboard_id=1)
-            for key in available_logs_context_keys:
-                if ctx_kwargs.get(key) is not None:
-                    logs_context_data[key] = ctx_kwargs[key]
-                    try:
-                        # override value from local kwargs from
-                        # function execution if it exists
-                        # e.g. @logs_context(slice_id=1, dashboard_id=1)
-                        #      def my_func(slice_id=None, **kwargs)
-                        #
-                        #      my_func(slice_id=2)
-                        logs_context_data[key] = locals()["kwargs"][key]
-                    except KeyError:
-                        # do nothing if the key doesn't exist
-                        pass
+            try:
+                # if keys are passed in to decorator directly, add them to logs_context
+                # by overriding values from kwargs
+                # e.g. @logs_context(slice_id=1, dashboard_id=1)
+                logs_context_data.update(
+                    {
+                        key: ctx_kwargs.get(key)
+                        for key in available_logs_context_keys
+                        if ctx_kwargs.get(key) is not None
+                    }
+                )
+
+                if context_func is not None:
+                    # if a context function is passed in, call it and add the
+                    # returned values to logs_context
+                    # context_func=lambda *args, **kwargs: {
+                    # "slice_id": 1, "dashboard_id": 1
+                    # }
+                    logs_context_data.update(
+                        {
+                            key: value
+                            for key, value in context_func(*args, **kwargs).items()
+                            if key in available_logs_context_keys
+                            if value is not None
+                        }
+                    )
+
+            except (TypeError, KeyError):
+                # do nothing if the key doesn't exist
+                # or context is not callable
+                pass
 
             g.logs_context.update(logs_context_data)
             return f(*args, **kwargs)

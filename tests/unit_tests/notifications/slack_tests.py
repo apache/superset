@@ -21,9 +21,11 @@ import pandas as pd
 from flask import g
 
 
+@patch("superset.reports.notifications.slack.g")
 @patch("superset.reports.notifications.slack.logger")
 def test_send_slack(
     logger_mock: MagicMock,
+    flask_global_mock: MagicMock,
 ) -> None:
     # `superset.models.helpers`, a dependency of following imports,
     # requires app context
@@ -32,7 +34,7 @@ def test_send_slack(
     from superset.reports.notifications.slack import SlackNotification, WebClient
 
     execution_id = uuid.uuid4()
-    g.logs_context = {"execution_id": execution_id}
+    flask_global_mock.logs_context = {"execution_id": execution_id}
     content = NotificationContent(
         name="test alert",
         header_data={
@@ -82,6 +84,3 @@ def test_send_slack(
 ```
 """,
         )
-
-    # reset g.logs_context
-    g.logs_context = None
