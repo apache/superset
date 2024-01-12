@@ -193,6 +193,17 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     edit_columns = add_columns
 
+    search_columns = [
+        "allow_file_upload",
+        "allow_dml",
+        "allow_run_async",
+        "created_by",
+        "changed_by",
+        "database_name",
+        "expose_in_sqllab",
+        "uuid",
+    ]
+
     search_filters = {"allow_file_upload": [DatabaseUploadEnabledFilter]}
 
     list_select_columns = list_columns + ["extra", "sqlalchemy_uri", "password"]
