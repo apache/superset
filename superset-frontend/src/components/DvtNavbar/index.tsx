@@ -44,6 +44,7 @@ import {
   NavbarProfileIcon,
   NavbarProfileIconDot,
 } from './dvt-navbar.module';
+import { dvtNavbarSqlSetTabs } from 'src/dvt-redux/dvt-navbarReducer';
 
 export interface DvtNavbarProps {
   pathName: string;
@@ -53,7 +54,7 @@ export interface DvtNavbarProps {
 const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, user }) => {
   const dispatch = useDispatch();
   const sort = useAppSelector(state => state.dvtApp.sort);
-
+  const sqlSelector = useAppSelector(state => state.dvtNavbar.sql);
   const [active, setActive] = useState<string>('All');
   const [activeData, setActiveData] = useState<TabsDataProps[]>([]);
 
@@ -163,6 +164,15 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, user }) => {
                   bold
                 />
               </NavbarBottomRight>
+            </>
+          )}
+          {pathName === '/superset/sqllab/history/' && (
+            <>
+              <DvtButtonTabs
+                active={sqlSelector.tabs}
+                data={activeData}
+                setActive={value => dispatch(dvtNavbarSqlSetTabs(value))}
+              />
             </>
           )}
         </NavbarBottom>

@@ -59,6 +59,7 @@ import getBootstrapData from 'src/utils/getBootstrapData';
 import { Dataset } from '@superset-ui/chart-controls';
 import dvtAppReducer from 'src/dvt-redux/dvt-appReducer';
 import dvtSidebarReducer from 'src/dvt-redux/dvt-sidebarReducer';
+import dvtNavbarReducer from 'src/dvt-redux/dvt-navbarReducer';
 
 // Some reducers don't do anything, and redux is just used to reference the initial "state".
 // This may change later, as the client application takes on more responsibilities.
@@ -143,6 +144,7 @@ const reducers = {
   explore,
   dvtApp: dvtAppReducer,
   dvtSidebar: dvtSidebarReducer,
+  dvtNavbar: dvtNavbarReducer,
 };
 
 /* In some cases the jinja template injects two seperate React apps into basic.html

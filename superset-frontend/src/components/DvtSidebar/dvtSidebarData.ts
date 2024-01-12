@@ -163,6 +163,39 @@ const DvtSidebarData: SidebarDataProps[] = [
     ],
   },
   {
+    pathname: '/superset/sqllab/saved_queries/',
+    data: [
+      {
+        label: 'Database',
+        values: [
+          { label: 'Failed', value: 'failed' },
+          { label: 'Success', value: 'success' },
+        ],
+        placeholder: 'Select or type a value',
+      },
+      {
+        label: 'Schema',
+        values: [
+          { label: 'Failed', value: 'failed' },
+          { label: 'Success', value: 'success' },
+        ],
+        placeholder: 'Select or type a value',
+      },
+      {
+        label: 'Tags',
+        values: [
+          { label: 'Failed', value: 'failed' },
+          { label: 'Success', value: 'success' },
+        ],
+        placeholder: 'Type a value',
+      },
+      {
+        label: 'Search',
+        values: [],
+      },
+    ],
+  },
+  {
     pathname: '/tablemodelview/list/',
     data: [
       {

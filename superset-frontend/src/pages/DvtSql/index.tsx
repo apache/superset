@@ -1,0 +1,156 @@
+import React, { useEffect, useState } from 'react';
+import DvtTable from 'src/components/DvtTable';
+import { useAppSelector } from 'src/hooks/useAppSelector';
+
+const SavedQueriesHeader = [
+  { id: 1, title: 'Name', field: 'label', flex: 3 },
+  { id: 2, title: 'Database', field: 'database_name' },
+  { id: 3, title: 'Schema', field: 'schema' },
+  { id: 4, title: 'Tables', field: 'table' },
+  { id: 5, title: 'Created on', field: 'id' },
+  { id: 6, title: 'Modified', field: 'changed_on_delta_humanized' },
+  {
+    id: 7,
+    title: 'Actions',
+    clicks: [
+      {
+        icon: 'edit_alt',
+        click: () => {},
+        popperLabel: 'Edit',
+      },
+      {
+        icon: 'share',
+        click: () => {},
+        popperLabel: 'Export',
+      },
+      {
+        icon: 'trash',
+        click: () => {},
+        popperLabel: 'Delete',
+      },
+    ],
+  },
+];
+
+const QueryHistoryHeader = [
+  {
+    id: 1,
+    title: 'Time',
+    field: 'changed_on',
+    flex: 3,
+  },
+  {
+    id: 2,
+    title: 'Tab Name',
+    field: 'tab_name',
+  },
+  {
+    id: 3,
+    title: 'Database',
+    field: 'database_name',
+  },
+  {
+    id: 4,
+    title: 'Schema',
+    field: 'schema',
+  },
+  {
+    id: 5,
+    title: 'Tables',
+    field: 'table',
+  },
+  {
+    id: 6,
+    title: 'User',
+    field: 'user',
+  },
+  {
+    id: 7,
+    title: 'Rows',
+    field: 'rows',
+  },
+  {
+    id: 8,
+    title: 'SQL',
+    field: 'sql',
+  },
+  {
+    id: 9,
+    title: 'Actions',
+    clicks: [
+      {
+        icon: 'edit_alt',
+        click: () => {},
+        popperLabel: 'Edit',
+      },
+    ],
+  },
+];
+
+function DvtSql() {
+  const [data, setData] = useState([]);
+  const sqlSelector = useAppSelector(state => state.dvtNavbar.sql);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch(
+          sqlSelector.tabs === 'Query History'
+            ? '/api/v1/query/'
+            : '/api/v1/saved_query/',
+        );
+        const rawData = await response.json();
+        console.log('rawData:', rawData);
+
+        const transformedData = rawData.result.map((item: any) => {
+          if (sqlSelector.tabs === 'Query History') {
+            return {
+              id: item.id,
+              changed_on: item.changed_on,
+              tab_name: item.tab_name,
+              database_name: item.database.database_name,
+              schema: item.schema,
+              table: item.sql_tables.table,
+              user: `${item.user.first_name} ${item.user.last_name}`,
+              rows: item.rows,
+              sql: "",
+            };
+          } else if (sqlSelector.tabs === 'Saved Queries') {
+            return {
+              id: item.id,
+              database_name: item.database.database_name,
+              schema: item.schema,
+              table: item.sql_tables.table,
+              created_on: item.created_on,
+              modified: item.modified,
+              user: `${item.created_by.first_name} ${item.created_by.last_name}`,
+            };
+          }
+          return item;
+        });
+
+        setData(transformedData);
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    };
+
+    fetchData();
+  }, [sqlSelector.tabs]);
+
+  return (
+    <div>
+      <div>
+        {sqlSelector.tabs === 'Query History' && (
+          <DvtTable data={data} header={QueryHistoryHeader} />
+        )}
+        {sqlSelector.tabs === 'Saved Queries' && (
+          <DvtTable data={data} header={SavedQueriesHeader} />
+        )}
+        {console.log(data)}
+      </div>
+    </div>
+  );
+}
+
+export default DvtSql;
