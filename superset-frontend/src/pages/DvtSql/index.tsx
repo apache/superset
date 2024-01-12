@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import DvtPagination from 'src/components/DvtPagination';
 import DvtTable from 'src/components/DvtTable';
 import { useAppSelector } from 'src/hooks/useAppSelector';
 
@@ -89,6 +90,8 @@ const QueryHistoryHeader = [
 
 function DvtSql() {
   const [data, setData] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [count, setCount] = useState<number>(0);
   const sqlSelector = useAppSelector(state => state.dvtNavbar.sql);
 
   useEffect(() => {
@@ -96,8 +99,12 @@ function DvtSql() {
       try {
         const response = await fetch(
           sqlSelector.tabs === 'Query History'
-            ? '/api/v1/query/'
-            : '/api/v1/saved_query/',
+            ? `/api/v1/query/?q=(order_column:start_time,order_direction:desc,page:${
+                currentPage - 1
+              },page_size:10)`
+            : `/api/v1/saved_query/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:${
+                currentPage - 1
+              },page_size:10)`,
         );
         const rawData = await response.json();
         console.log('rawData:', rawData);
@@ -131,13 +138,14 @@ function DvtSql() {
         });
 
         setData(transformedData);
+        setCount(rawData.count);
       } catch (error) {
         console.error('Error:', error);
       }
     };
 
     fetchData();
-  }, [sqlSelector.tabs]);
+  }, [sqlSelector.tabs, currentPage]);
 
   return (
     <div>
@@ -149,6 +157,14 @@ function DvtSql() {
           <DvtTable data={data} header={SavedQueriesHeader} />
         )}
         {console.log(data)}
+      </div>
+      <div>
+        <DvtPagination
+          page={currentPage}
+          setPage={setCurrentPage}
+          itemSize={count}
+          pageItemSize={10}
+        />
       </div>
     </div>
   );
