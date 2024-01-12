@@ -115,7 +115,8 @@ function DvtSql() {
               rows: item.rows,
               sql: '',
             };
-          } else if (sqlSelector.tabs === 'Saved Queries') {
+          }
+          if (sqlSelector.tabs === 'Saved Queries') {
             return {
               id: item.id,
               database_name: item.database.database_name,

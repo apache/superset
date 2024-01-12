@@ -26,7 +26,7 @@ interface DvtNavbarState {
 
 const initialState: DvtNavbarState = {
   sql: {
-    tabs:'Query History',
+    tabs: 'Query History',
   },
 };
 
@@ -34,19 +34,16 @@ const dvtNavbarSlice = createSlice({
   name: 'dvt-navbar',
   initialState,
   reducers: {
-    dvtNavbarSqlSetTabs: (
-      state,
-      action: PayloadAction<string>,
-    ) => ({
+    dvtNavbarSqlSetTabs: (state, action: PayloadAction<string>) => ({
       ...state,
       sql: {
         ...state.sql,
-        tabs:action.payload,
+        tabs: action.payload,
       },
     }),
   },
 });
 
-export const {  dvtNavbarSqlSetTabs } = dvtNavbarSlice.actions;
+export const { dvtNavbarSqlSetTabs } = dvtNavbarSlice.actions;
 
 export default dvtNavbarSlice.reducer;

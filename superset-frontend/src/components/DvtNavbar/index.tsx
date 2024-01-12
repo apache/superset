@@ -21,6 +21,7 @@ import { useDispatch } from 'react-redux';
 import { useAppSelector } from 'src/hooks/useAppSelector';
 import { dvtAppSetSort } from 'src/dvt-redux/dvt-appReducer';
 import { BellOutlined } from '@ant-design/icons';
+import { dvtNavbarSqlSetTabs } from 'src/dvt-redux/dvt-navbarReducer';
 import {
   DvtNavbarTabsData,
   UserData,
@@ -44,7 +45,6 @@ import {
   NavbarProfileIcon,
   NavbarProfileIconDot,
 } from './dvt-navbar.module';
-import { dvtNavbarSqlSetTabs } from 'src/dvt-redux/dvt-navbarReducer';
 
 export interface DvtNavbarProps {
   pathName: string;
