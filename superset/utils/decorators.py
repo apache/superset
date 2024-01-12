@@ -69,6 +69,9 @@ def logs_context(
     context_func: Callable[..., dict[Any, Any]] | None = None,
     **ctx_kwargs: int | str | UUID | None,
 ) -> Callable[..., Any]:
+    import logging
+
+    logger = logging.getLogger(__name__)
     """
     Takes arguments and adds them to the global logs_context.
     This is for logging purposes only and values should not be relied on or mutated

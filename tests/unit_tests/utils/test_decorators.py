@@ -90,8 +90,6 @@ def test_statsd_gauge(
 
 @patch("superset.utils.decorators.g")
 def test_context_decorator(flask_g_mock) -> None:
-    flask_g_mock.logs_context = {}
-
     @decorators.logs_context()
     def myfunc(*args, **kwargs) -> str:
         return "test"
