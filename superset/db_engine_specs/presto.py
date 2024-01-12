@@ -287,7 +287,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         if isinstance(sqla_type, types.Date):
             return f"DATE '{dttm.date().isoformat()}'"
         if isinstance(sqla_type, types.TIMESTAMP):
-            return f"""TIMESTAMP '{dttm.isoformat(timespec="microseconds", sep=" ")}'"""
+            return f"""TIMESTAMP '{dttm.isoformat(timespec="milliseconds", sep=" ")}'"""
 
         return None
 
