@@ -19,9 +19,7 @@
 {
   "parser": "@typescript-eslint/parser",
   "plugins": ["cypress"],
-  "extends": [
-    "plugin:cypress/recommended"
-  ],
+  "extends": ["plugin:cypress/recommended"],
   "rules": {
     "import/no-unresolved": 0,
     "@typescript-eslint/explicit-function-return-type": 0,
