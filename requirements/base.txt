@@ -9,7 +9,7 @@
     # via -r requirements/base.in
 alembic==1.6.5
     # via flask-migrate
-amqp==5.1.0
+amqp==5.1.1
     # via kombu
 apispec[yaml]==6.3.0
     # via flask-appbuilder
@@ -28,7 +28,7 @@ backoff==1.11.1
     # via apache-superset
 bcrypt==4.0.1
     # via paramiko
-billiard==3.6.4.0
+billiard==4.2.0
     # via celery
 bottleneck==1.3.7
     # via pandas
@@ -40,7 +40,7 @@ cachelib==0.9.0
     #   flask-session
 cattrs==23.2.1
     # via requests-cache
-celery==5.2.2
+celery==5.3.6
     # via apache-superset
 certifi==2023.7.22
     # via requests
@@ -170,7 +170,7 @@ jinja2==3.1.2
     #   flask-babel
 jsonschema==4.17.3
     # via flask-appbuilder
-kombu==5.2.4
+kombu==5.3.4
     # via celery
 korean-lunar-calendar==0.3.1
     # via holidays
@@ -349,7 +349,7 @@ urllib3==1.26.6
     #   requests
     #   requests-cache
     #   selenium
-vine==5.0.0
+vine==5.1.0
     # via
     #   amqp
     #   celery
