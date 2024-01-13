@@ -24,6 +24,8 @@ db-dtypes==1.1.1
     # via pandas-gbq
 docker==6.1.1
     # via -r requirements/testing.in
+exceptiongroup==1.1.1
+    # via pytest
 ephem==4.1.4
     # via lunarcalendar
 flask-testing==0.8.1
@@ -83,8 +85,6 @@ jsonschema-spec==0.1.4
     # via openapi-spec-validator
 kiwisolver==1.4.4
     # via matplotlib
-lunarcalendar==0.0.9
-    # via prophet
 matplotlib==3.7.1
     # via prophet
 oauthlib==3.2.2
@@ -101,7 +101,7 @@ pathable==0.4.3
     # via jsonschema-spec
 playwright==1.37.0
     # via apache-superset
-prophet==1.1.1
+prophet==1.1.5
     # via apache-superset
 proto-plus==1.22.2
     # via
@@ -138,8 +138,6 @@ rfc3339-validator==0.1.4
     # via openapi-schema-validator
 rsa==4.9
     # via google-auth
-setuptools-git==1.2
-    # via prophet
 sqlalchemy-bigquery==1.6.1
     # via apache-superset
 statsd==4.0.1
