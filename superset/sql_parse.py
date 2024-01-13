@@ -16,15 +16,15 @@
 # under the License.
 import logging
 import re
-from collections.abc import Iterator
+import urllib.parse
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from typing import Any, cast, Optional
-from urllib import parse
 
 import sqlparse
 from sqlalchemy import and_
-from sqlglot import exp, parse_one
-from sqlglot.optimizer.scope import traverse_scope
+from sqlglot import exp, parse, parse_one
+from sqlglot.optimizer.scope import Scope, ScopeType, traverse_scope
 from sqlparse import keywords
 from sqlparse.lexer import Lexer
 from sqlparse.sql import (
@@ -181,7 +181,7 @@ class Table:
         """
 
         return ".".join(
-            parse.quote(part, safe="").replace(".", "%2E")
+            urllib.parse.quote(part, safe="").replace(".", "%2E")
             for part in [self.catalog, self.schema, self.table]
             if part
         )
@@ -191,11 +191,17 @@ class Table:
 
 
 class ParsedQuery:
-    def __init__(self, sql_statement: str, strip_comments: bool = False):
+    def __init__(
+        self,
+        sql_statement: str,
+        strip_comments: bool = False,
+        dialect: Optional[str] = None,
+    ):
         if strip_comments:
             sql_statement = sqlparse.format(sql_statement, strip_comments=True)
 
         self.sql: str = sql_statement
+        self.dialect = dialect
         self._tables: set[Table] = set()
         self._alias_names: set[str] = set()
         self._limit: Optional[int] = None
@@ -208,14 +214,90 @@ class ParsedQuery:
     @property
     def tables(self) -> set[Table]:
         if not self._tables:
-            self._tables = {
-                Table(source.name, source.db if source.db != "" else None)
-                for scope in traverse_scope(parse_one(self.sql))
-                for source in scope.sources.values()
-                if isinstance(source, exp.Table)
-            }
-
+            self._tables = self._extract_tables_from_sql()
         return self._tables
+
+    def _extract_tables_from_sql(self) -> set[Table]:
+        """
+        Extract all table references in a query.
+
+        Note: this uses sqlglot, since it's better at catching more edge cases.
+        """
+        try:
+            statements = parse(self.sql, dialect=self.dialect)
+        except Exception:  # pylint: disable=broad-exception-caught
+            logger.warning("Unable to parse SQL (%s): %s", self.dialect, self.sql)
+            return set()
+
+        return {
+            table
+            for statement in statements
+            for table in self._extract_tables_from_statement(statement)
+            if statement
+        }
+
+    def _extract_tables_from_statement(self, statement: exp.Expression) -> set[Table]:
+        """
+        Extract all table references in a single statement.
+
+        Please not that this is not trivial; consider the following queries:
+
+            DESCRIBE some_table;
+            SHOW PARTITIONS FROM some_table;
+            WITH masked_name AS (SELECT * FROM some_table) SELECT * FROM masked_name;
+
+        See the unit tests for other tricky cases.
+        """
+        sources: Iterable[exp.Table]
+
+        if isinstance(statement, exp.Describe):
+            # A `DESCRIBE` query has no sources in sqlglot, so we need to explicitly
+            # query for all tables.
+            sources = statement.find_all(exp.Table)
+        elif isinstance(statement, exp.Command):
+            # Commands, like `SHOW COLUMNS FROM foo`, have to be converted into a
+            # `SELECT` statetement in order to extract tables.
+            literal = statement.find(exp.Literal)
+            if not literal:
+                return set()
+
+            pseudo_query = parse_one(f"SELECT {literal.this}", dialect=self.dialect)
+            sources = pseudo_query.find_all(exp.Table)
+        elif statement:
+            sources = []
+            for scope in traverse_scope(statement):
+                for source in scope.sources.values():
+                    if not isinstance(source, exp.Table):
+                        continue
+
+                    # CTEs in the parent scope look like tables (and are represented by
+                    # exp.Table objects), but should not be considered as such;
+                    # otherwise a user with access to table `foo` could access any table
+                    # with a query like this:
+                    #
+                    #   WITH foo AS (SELECT * FROM bar) SELECT * FROM foo
+                    #
+                    parent_sources = scope.parent.sources if scope.parent else {}
+                    ctes_in_scope = {
+                        name
+                        for name, parent_scope in parent_sources.items()
+                        if isinstance(parent_scope, Scope)
+                        and parent_scope.scope_type == ScopeType.CTE
+                    }
+                    if source.name not in ctes_in_scope:
+                        sources.append(source)
+
+        else:
+            return set()
+
+        return {
+            Table(
+                source.name,
+                source.db if source.db != "" else None,
+                source.catalog if source.catalog != "" else None,
+            )
+            for source in sources
+        }
 
     @property
     def limit(self) -> Optional[int]:
