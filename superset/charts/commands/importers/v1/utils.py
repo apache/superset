@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session
 
 from superset import security_manager
 from superset.commands.exceptions import ImportFailedError
+from superset.connectors.sqla.models import SqlaTable
 from superset.migrations.shared.migrate_viz import processors
 from superset.migrations.shared.migrate_viz.base import MigrateViz
 from superset.models.slice import Slice
@@ -46,7 +47,9 @@ def import_chart(
         raise ImportFailedError(
             "Chart doesn't exist and user doesn't have permission to create charts"
         )
-
+    if '__table' in config['params']['datasource']:
+        t = session.query(SqlaTable).filter(SqlaTable.uuid == config['dataset_uuid']).one()
+        config['params']['datasource'] = f'{t.id}__table'
     # TODO (betodealmeida): move this logic to import_from_dict
     config["params"] = json.dumps(config["params"])
 
