@@ -37,7 +37,7 @@
     "lodash": "^4.17.11",
     "moment": "^2.20.1",
     "nvd3-fork": "^2.0.5",
-    "prop-types": "^15.6.2",
+    "prop-types": "^15.8.1",
     "urijs": "^1.19.8"
   },
   "peerDependencies": {
