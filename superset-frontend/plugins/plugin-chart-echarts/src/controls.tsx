@@ -309,3 +309,14 @@ export const minorTicks: ControlSetItem = {
     description: t('Show minor ticks on axes.'),
   },
 };
+
+export const forceCategorical: ControlSetItem = {
+  name: 'forceCategorical',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Force categorical'),
+    default: false,
+    renderTrigger: true,
+    description: t('Make the x-axis categorical'),
+  },
+};
