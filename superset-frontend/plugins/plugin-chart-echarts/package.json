@@ -27,7 +27,7 @@
     "access": "public"
   },
   "dependencies": {
-    "d3-array": "^1.2.0",
+    "d3-array": "^3.2.4",
     "echarts": "^5.4.1",
     "lodash": "^4.17.21",
     "moment": "^2.26.0"
