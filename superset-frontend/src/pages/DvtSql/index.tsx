@@ -145,6 +145,9 @@ function DvtSql() {
     };
 
     fetchData();
+  }, [sqlSelector.tabs, currentPage]);
+
+  useEffect(() => {
     setCurrentPage(1);
   }, [sqlSelector.tabs]);
 
