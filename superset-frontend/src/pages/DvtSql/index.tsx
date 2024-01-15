@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import DvtPagination from 'src/components/DvtPagination';
 import DvtTable from 'src/components/DvtTable';
 import { useAppSelector } from 'src/hooks/useAppSelector';
+import { StyledSqlPagination } from './dvt-sql.module';
 
 const SavedQueriesHeader = [
   { id: 1, title: 'Name', field: 'label', flex: 3 },
@@ -107,7 +108,6 @@ function DvtSql() {
               },page_size:10)`,
         );
         const rawData = await response.json();
-        console.log('rawData:', rawData);
 
         const transformedData = rawData.result.map((item: any) => {
           if (sqlSelector.tabs === 'Query History') {
@@ -145,7 +145,8 @@ function DvtSql() {
     };
 
     fetchData();
-  }, [sqlSelector.tabs, currentPage]);
+    setCurrentPage(1);
+  }, [sqlSelector.tabs]);
 
   return (
     <div>
@@ -156,16 +157,15 @@ function DvtSql() {
         {sqlSelector.tabs === 'Saved Queries' && (
           <DvtTable data={data} header={SavedQueriesHeader} />
         )}
-        {console.log(data)}
       </div>
-      <div>
+      <StyledSqlPagination>
         <DvtPagination
           page={currentPage}
           setPage={setCurrentPage}
           itemSize={count}
           pageItemSize={10}
         />
-      </div>
+      </StyledSqlPagination>
     </div>
   );
 }

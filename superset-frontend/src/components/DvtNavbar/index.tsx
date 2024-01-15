@@ -167,13 +167,11 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, user }) => {
             </>
           )}
           {pathName === '/superset/sqllab/history/' && (
-            <>
-              <DvtButtonTabs
-                active={sqlSelector.tabs}
-                data={activeData}
-                setActive={value => dispatch(dvtNavbarSqlSetTabs(value))}
-              />
-            </>
+            <DvtButtonTabs
+              active={sqlSelector.tabs}
+              data={activeData}
+              setActive={value => dispatch(dvtNavbarSqlSetTabs(value))}
+            />
           )}
         </NavbarBottom>
       )}
