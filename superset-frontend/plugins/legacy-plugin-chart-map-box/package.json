@@ -29,7 +29,7 @@
     "prop-types": "^15.8.1",
     "react-map-gl": "^6.1.19",
     "supercluster": "^4.1.1",
-    "viewport-mercator-project": "^6.1.1"
+    "viewport-mercator-project": "^7.0.4"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
