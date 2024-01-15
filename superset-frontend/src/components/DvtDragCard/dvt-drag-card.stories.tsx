@@ -9,16 +9,18 @@ export default {
 export const Default = (args: DvtDragCardProps) => {
   const [droppedData, setDroppedData] = useState<DvtDragCardProps | null>(null);
 
+  
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-
+  
     if (droppedData) {
       return;
     }
-
-    const draggedData = JSON.parse(e.dataTransfer.getData('text/plain'));
+  
+    const draggedData = JSON.parse(e.dataTransfer.getData('drag-drop'));
     setDroppedData(draggedData);
   };
+  
 
   return (
     <div
@@ -62,7 +64,7 @@ export const Default = (args: DvtDragCardProps) => {
               marginLeft: '15px',
             }}
           >
-            <div>{droppedData.label}</div>
+            <div>{droppedData.name}</div>
           </div>
         )}
       </div>
@@ -72,6 +74,6 @@ export const Default = (args: DvtDragCardProps) => {
 
 Default.args = {
   label: 'arac',
-  value: 'arac',
+  value: { id: 1, name: 'arac' },
   icon: 'dvt-hashtag',
 };

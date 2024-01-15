@@ -9,21 +9,18 @@ import {
 
 export interface DvtDragCardProps {
   label: string;
-  value: string;
+  value: any;
   icon: string;
 }
 
 const DvtDargCard = ({ label, value, icon }: DvtDragCardProps) => {
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
-    e.dataTransfer.setData(
-      'text/plain',
-      JSON.stringify({ label, value, icon }),
-    );
+    e.dataTransfer.setData('drag-drop', JSON.stringify(value));
   };
-  
+
   return (
     <StyledDvtCard>
-      <StyledDvtCardCard draggable={true} onDragStart={handleDragStart}>
+      <StyledDvtCardCard draggable onDragStart={handleDragStart}>
         <StyledDvtCardIcon>
           <Icon fileName={icon} iconSize="xl" />
         </StyledDvtCardIcon>
