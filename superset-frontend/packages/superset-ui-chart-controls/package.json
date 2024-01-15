@@ -28,7 +28,7 @@
     "@types/enzyme": "^3.10.5",
     "@types/react": "*",
     "lodash": "^4.17.15",
-    "prop-types": "^15.7.2"
+    "prop-types": "^15.8.1"
   },
   "peerDependencies": {
     "@ant-design/icons": "^5.0.1",
