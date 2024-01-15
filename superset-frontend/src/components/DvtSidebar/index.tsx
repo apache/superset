@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useMemo, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import {
@@ -7,10 +8,12 @@ import {
   dvtSidebarDatasetsSetProperty,
   dvtSidebarReportsSetProperty,
   dvtSidebarDashboardSetProperty,
+  dvtSidebarSetDataProperty,
 } from 'src/dvt-redux/dvt-sidebarReducer';
 import { useAppSelector } from 'src/hooks/useAppSelector';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import { ChartMetadata, t } from '@superset-ui/core';
+import useFetch from 'src/hooks/useFetch';
 import DvtLogo from '../DvtLogo';
 import DvtDarkMode from '../DvtDarkMode';
 import DvtTitlePlus from '../DvtTitlePlus';
@@ -36,11 +39,6 @@ interface DvtSidebarProps {
   pathName: string;
 }
 
-interface EditedDataItem {
-  value: string;
-  label: string;
-}
-
 type VizEntry = {
   key: string;
   value: ChartMetadata;
@@ -56,9 +54,12 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
   );
   const chartAddSelector = useAppSelector(state => state.dvtSidebar.chartAdd);
   const dashboardSelector = useAppSelector(state => state.dvtSidebar.dashboard);
+  const dataSelector = useAppSelector(state => state.dvtSidebar.data);
+  const fetchedSelector = useAppSelector(
+    state => state.dvtSidebar.data.fetched,
+  );
   const [darkMode, setDarkMode] = useState<boolean>(false);
   const [active, setActive] = useState<string>('test');
-  const [editedData, setEditedData] = useState<EditedDataItem[]>([]);
 
   const pathTitles = (pathname: string) => {
     switch (pathname) {
@@ -175,25 +176,81 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
     }
   };
 
-  useEffect(() => {
-    if (pathTitles(pathName) === 'Chart Add') {
-      const fetchData = async () => {
-        try {
-          const response = await fetch('/api/v1/dataset/');
-          const data = await response.json();
-          const newEditedData = data.result.map((item: any) => ({
-            value: item.table_name,
-            label: item.table_name,
-          }));
-          setEditedData(newEditedData);
-        } catch (error) {
-          console.error('Hata:', error);
-        }
-      };
+  const [getDataApiUrl, setGetDataApiUrl] = useState<{
+    name: string;
+    url: string | null;
+  }>({ name: '', url: null });
 
-      fetchData();
+  const getApiData = useFetch({ url: getDataApiUrl.url });
+
+  useEffect(() => {
+    const apiV1 = '/api/v1/';
+    if (pathTitles(pathName) === 'Dashboards') {
+      if (!fetchedSelector.dashboard.owner) {
+        setGetDataApiUrl({
+          name: 'dashboard-owner',
+          url: `${apiV1}dashboard/related/owners`,
+        });
+      } else if (!fetchedSelector.dashboard.createdBy) {
+        setGetDataApiUrl({
+          name: 'dashboard-createdBy',
+          url: `${apiV1}dashboard/related/created_by`,
+        });
+      }
+    } else if (pathTitles(pathName) === 'Chart Add') {
+      if (!fetchedSelector.chartAdd.dataset) {
+        setGetDataApiUrl({
+          name: 'chartAdd-dataset',
+          url: `${apiV1}dataset/`,
+        });
+      }
     }
-  }, [pathName]);
+  }, [fetchedSelector.dashboard, fetchedSelector.chartAdd]);
+
+  useEffect(() => {
+    if (getApiData) {
+      const data = getApiData?.result;
+      if (getDataApiUrl.name === 'dashboard-owner') {
+        const editedData = data.map((item: any) => ({
+          value: item.value,
+          label: item.text,
+        }));
+        dispatch(
+          dvtSidebarSetDataProperty({
+            pageKey: 'dashboard',
+            key: 'owner',
+            value: editedData,
+          }),
+        );
+      }
+      if (getDataApiUrl.name === 'dashboard-createdBy') {
+        const editedData = data.map((item: any) => ({
+          value: item.value,
+          label: item.text,
+        }));
+        dispatch(
+          dvtSidebarSetDataProperty({
+            pageKey: 'dashboard',
+            key: 'createdBy',
+            value: editedData,
+          }),
+        );
+      }
+      if (getDataApiUrl.name === 'chartAdd-dataset') {
+        const editedData = data.map((item: any) => ({
+          value: item.table_name,
+          label: item.table_name,
+        }));
+        dispatch(
+          dvtSidebarSetDataProperty({
+            pageKey: 'chartAdd',
+            key: 'dataset',
+            value: editedData,
+          }),
+        );
+      }
+    }
+  }, [getApiData]);
 
   const { mountedPluginMetadata } = usePluginContext();
   const typesWithDefaultOrder = new Set(DefaultOrder);
@@ -278,6 +335,35 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
     categories => ({ value: categories, label: categories }),
   );
 
+  const selectsData = (sData: any) => {
+    let dValue = [];
+
+    if (pathTitles(pathName) === 'Chart Add' && sData.name === 'dataset') {
+      dValue = dataSelector.chartAdd.dataset;
+    } else if (pathTitles(pathName) === 'Chart Add' && sData.name === 'tags') {
+      dValue = tag;
+    } else if (
+      pathTitles(pathName) === 'Chart Add' &&
+      sData.name === 'category'
+    ) {
+      dValue = category;
+    } else if (
+      pathTitles(pathName) === 'Dashboards' &&
+      sData.name === 'owner'
+    ) {
+      dValue = dataSelector.dashboard.owner;
+    } else if (
+      pathTitles(pathName) === 'Dashboards' &&
+      sData.name === 'createdBy'
+    ) {
+      dValue = dataSelector.dashboard.createdBy;
+    } else {
+      dValue = sData.values;
+    }
+
+    return dValue;
+  };
+
   return (
     <StyledDvtSidebar pathName={pathName}>
       <StyledDvtSidebarHeader>
@@ -333,15 +419,7 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
               <StyledDvtSidebarBodySelect key={index}>
                 {!data.datePicker && !data.valuesList && (
                   <DvtSelect
-                    data={
-                      editedData && data.name === 'dataset'
-                        ? editedData
-                        : data.name === 'tags'
-                        ? tag
-                        : data.name === 'category'
-                        ? category
-                        : data.values
-                    }
+                    data={selectsData(data)}
                     label={data.label}
                     placeholder={data.placeholder}
                     selectedValue={

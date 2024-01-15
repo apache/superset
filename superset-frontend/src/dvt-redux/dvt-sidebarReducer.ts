@@ -65,10 +65,16 @@ interface DvtSidebarState {
         owner: boolean;
         createdBy: boolean;
       };
+      chartAdd: {
+        dataset: boolean;
+      };
     };
     dashboard: {
       owner: any[];
       createdBy: any[];
+    };
+    chartAdd: {
+      dataset: any[];
     };
   };
 }
@@ -120,10 +126,16 @@ const initialState: DvtSidebarState = {
         owner: false,
         createdBy: false,
       },
+      chartAdd: {
+        dataset: false,
+      },
     },
     dashboard: {
       owner: [],
       createdBy: [],
+    },
+    chartAdd: {
+      dataset: [],
     },
   },
 };
@@ -206,7 +218,10 @@ const dvtSidebarSlice = createSlice({
             [action.payload.key]: true,
           },
         },
-        [action.payload.key]: action.payload.value,
+        [action.payload.pageKey]: {
+          ...state.data[action.payload.pageKey],
+          [action.payload.key]: action.payload.value,
+        },
       },
     }),
   },
@@ -219,6 +234,7 @@ export const {
   dvtSidebarDatasetsSetProperty,
   dvtSidebarChartAddSetProperty,
   dvtSidebarDashboardSetProperty,
+  dvtSidebarSetDataProperty,
 } = dvtSidebarSlice.actions;
 
 export default dvtSidebarSlice.reducer;
