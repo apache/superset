@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "d3": "^3.5.17",
-    "d3-sankey": "^0.4.2",
+    "d3-sankey": "^0.12.3",
     "prop-types": "^15.8.1"
   },
   "peerDependencies": {
