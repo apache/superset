@@ -34,7 +34,7 @@ from superset.models.helpers import (
 app_config = current_app.config
 
 
-class SSHTunnel(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
+class SSHTunnel(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):
     """
     A ssh tunnel configuration in a database.
     """

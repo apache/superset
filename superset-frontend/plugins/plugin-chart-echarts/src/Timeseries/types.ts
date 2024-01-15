@@ -68,6 +68,7 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   markerSize: number;
   metrics: QueryFormMetric[];
   minorSplitLine: boolean;
+  minorTicks: boolean;
   opacity: number;
   orderDesc: boolean;
   rowLimit: number;
@@ -78,6 +79,7 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   truncateXAxis: boolean;
   truncateYAxis: boolean;
   yAxisFormat?: string;
+  xAxisForceCategorical?: boolean;
   xAxisTimeFormat?: string;
   timeGrainSqla?: TimeGranularity;
   xAxisBounds: [number | undefined | null, number | undefined | null];
