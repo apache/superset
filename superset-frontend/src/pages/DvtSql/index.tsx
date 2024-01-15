@@ -95,22 +95,36 @@ function DvtSql() {
   const [count, setCount] = useState<number>(0);
   const sqlSelector = useAppSelector(state => state.dvtNavbar.sql);
 
+  const [tabsAndPage, setTabsAndPage] = useState({
+    tab: sqlSelector.tabs,
+    page: 1,
+  });
+
+  useEffect(() => {
+    setTabsAndPage({ tab: sqlSelector.tabs, page: 1 });
+    setCurrentPage(1);
+  }, [sqlSelector.tabs]);
+
+  useEffect(() => {
+    setTabsAndPage(state => ({ ...state, page: currentPage }));
+  }, [currentPage]);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         const response = await fetch(
-          sqlSelector.tabs === 'Query History'
+          tabsAndPage.tab === 'Query History'
             ? `/api/v1/query/?q=(order_column:start_time,order_direction:desc,page:${
-                currentPage - 1
+                tabsAndPage.page - 1
               },page_size:10)`
             : `/api/v1/saved_query/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:${
-                currentPage - 1
+                tabsAndPage.page - 1
               },page_size:10)`,
         );
         const rawData = await response.json();
 
         const transformedData = rawData.result.map((item: any) => {
-          if (sqlSelector.tabs === 'Query History') {
+          if (tabsAndPage.tab === 'Query History') {
             return {
               id: item.id,
               changed_on: item.changed_on,
@@ -123,7 +137,7 @@ function DvtSql() {
               sql: '',
             };
           }
-          if (sqlSelector.tabs === 'Saved Queries') {
+          if (tabsAndPage.tab === 'Saved Queries') {
             return {
               id: item.id,
               database_name: item.database.database_name,
@@ -145,11 +159,7 @@ function DvtSql() {
     };
 
     fetchData();
-  }, [sqlSelector.tabs, currentPage]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [sqlSelector.tabs]);
+  }, [tabsAndPage.tab, tabsAndPage.page]);
 
   return (
     <div>
