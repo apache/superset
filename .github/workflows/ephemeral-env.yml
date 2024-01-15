@@ -4,6 +4,11 @@ on:
   issue_comment:
     types: [created]
 
+  workflow_run:
+    workflows: ["Docker"]
+    types:
+      - completed
+
 jobs:
   config:
     runs-on: "ubuntu-latest"
@@ -61,23 +66,23 @@ jobs:
           });
           return results;
 
-    - name: Limit to committers
-      if: >
-        steps.eval-body.outputs.result != 'noop' &&
-        github.event.comment.author_association != 'MEMBER' &&
-        github.event.comment.author_association != 'OWNER'
-      uses: actions/github-script@v3
-      with:
-        github-token: ${{github.token}}
-        script: |
-          const errMsg = '@${{ github.event.comment.user.login }} Ephemeral environment creation is currently limited to committers.'
-          github.issues.createComment({
-            issue_number: ${{ github.event.issue.number }},
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: errMsg
-          })
-          core.setFailed(errMsg)
+#    - name: Limit to committers
+#      if: >
+#        steps.eval-body.outputs.result != 'noop' &&
+#        github.event.comment.author_association != 'MEMBER' &&
+#        github.event.comment.author_association != 'OWNER'
+#      uses: actions/github-script@v3
+#      with:
+#        github-token: ${{github.token}}
+#        script: |
+#          const errMsg = '@${{ github.event.comment.user.login }} Ephemeral environment creation is currently limited to committers.'
+#          github.issues.createComment({
+#            issue_number: ${{ github.event.issue.number }},
+#            owner: context.repo.owner,
+#            repo: context.repo.repo,
+#            body: errMsg
+#          })
+#          core.setFailed(errMsg)
 
   docker_ephemeral_env:
     needs: config
