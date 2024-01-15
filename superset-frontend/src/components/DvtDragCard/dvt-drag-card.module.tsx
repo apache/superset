@@ -30,7 +30,7 @@ const StyledDvtCardCard = styled.div`
   width: 202px;
   height: 48px;
   border-radius: 12px;
-  background: #f8fafc;
+  background: ${({ theme }) => theme.colors.dvt.grayscale.light2};
   margin-bottom: 12px;
 `;
 

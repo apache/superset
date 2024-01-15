@@ -42,6 +42,7 @@ export const Default = (args: DvtDragCardProps) => {
         onDrop={handleDrop}
       >
         <div
+          role="button"
           onClick={() => {
             setDroppedData(null);
           }}
