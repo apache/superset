@@ -27,7 +27,7 @@
   ],
   "dependencies": {
     "prop-types": "^15.8.1",
-    "react-map-gl": "^6.1.19",
+    "react-map-gl": "^7.1.7",
     "supercluster": "^4.1.1",
     "viewport-mercator-project": "^6.1.1"
   },
