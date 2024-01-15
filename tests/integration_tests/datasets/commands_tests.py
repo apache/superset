@@ -586,6 +586,21 @@ class TestCreateDatasetCommand(SupersetTestCase):
             engine.execute("DROP TABLE test_create_dataset_command")
         db.session.commit()
 
+    @patch("superset.security.manager.g")
+    @patch("superset.commands.utils.g")
+    def test_create_dataset_command_not_allowed(self, mock_g, mock_g2):
+        mock_g.user = security_manager.find_user("gamma")
+        mock_g2.user = mock_g.user
+        examples_db = get_example_database()
+        with self.assertRaises(DatasetInvalidError):
+            _ = CreateDatasetCommand(
+                {
+                    "sql": "select * from ab_user",
+                    "database": examples_db.id,
+                    "table_name": "exp1",
+                }
+            ).run()
+
 
 class TestDatasetWarmUpCacheCommand(SupersetTestCase):
     def test_warm_up_cache_command_table_not_found(self):

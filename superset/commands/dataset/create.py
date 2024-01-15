@@ -91,8 +91,8 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
                     sql=sql,
                     schema=schema,
                 )
-            except SupersetSecurityException:
-                exceptions.append(DatasetDataAccessIsNotAllowed())
+            except SupersetSecurityException as ex:
+                exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
         try:
             owners = self.populate_owners(owner_ids)
             self._properties["owners"] = owners

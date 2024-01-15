@@ -1642,6 +1642,30 @@ class TestSecurityManager(SupersetTestCase):
         with self.assertRaises(SupersetSecurityException):
             security_manager.raise_for_access(query=query)
 
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    def test_raise_for_access_sql_fails(self, mock_sm_g, mock_g):
+        mock_g.user = mock_sm_g.user = security_manager.find_user("gamma")
+        with self.assertRaises(SupersetSecurityException):
+            security_manager.raise_for_access(
+                database=get_example_database(), schema="bar", sql="SELECT * FROM foo"
+            )
+
+    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    def test_raise_for_access_sql(
+        self, mock_sm_g, mock_g, mock_can_access, mock_is_owner
+    ):
+        mock_g.user = mock_sm_g.user = security_manager.find_user("gamma")
+        mock_can_access.return_value = True
+        mock_is_owner.return_value = True
+
+        security_manager.raise_for_access(
+            database=get_example_database(), schema="bar", sql="SELECT * FROM foo"
+        )
+
     @patch("superset.security.manager.g")
     @patch("superset.security.SupersetSecurityManager.is_owner")
     @patch("superset.security.SupersetSecurityManager.can_access")

@@ -147,8 +147,8 @@ class OwnersNotFoundValidationError(ValidationError):
 class DatasetDataAccessIsNotAllowed(ValidationError):
     status = 422
 
-    def __init__(self) -> None:
-        super().__init__([_("Access to this data is not allowed")], field_name="sql")
+    def __init__(self, message: str) -> None:
+        super().__init__([_(message)], field_name="sql")
 
 
 class DatasetNotFoundError(CommandException):
