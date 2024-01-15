@@ -43,6 +43,7 @@ export const Default = (args: DvtDragCardProps) => {
       >
         <div
           role="button"
+          tabIndex={0}
           onClick={() => {
             setDroppedData(null);
           }}
