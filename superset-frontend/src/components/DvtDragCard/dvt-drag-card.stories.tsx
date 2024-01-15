@@ -7,20 +7,18 @@ export default {
 };
 
 export const Default = (args: DvtDragCardProps) => {
-  const [droppedData, setDroppedData] = useState<DvtDragCardProps | null>(null);
+  const [droppedData, setDroppedData] = useState<any | null>(null);
 
-  
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-  
+
     if (droppedData) {
       return;
     }
-  
+
     const draggedData = JSON.parse(e.dataTransfer.getData('drag-drop'));
     setDroppedData(draggedData);
   };
-  
 
   return (
     <div
