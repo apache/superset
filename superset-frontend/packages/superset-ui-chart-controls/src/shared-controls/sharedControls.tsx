@@ -86,8 +86,6 @@ import {
   dndXAxisControl,
 } from './dndControls';
 
-export { withDndFallback } from './dndControls';
-
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
 

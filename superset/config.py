@@ -453,7 +453,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enables Alerts and reports new implementation
     "ALERT_REPORTS": False,
     "DASHBOARD_RBAC": False,
-    "ENABLE_EXPLORE_DRAG_AND_DROP": True,  # deprecated
     "ENABLE_ADVANCED_DATA_TYPES": False,
     # Enabling ALERTS_ATTACH_REPORTS, the system sends email and slack message
     # with screenshot and link
