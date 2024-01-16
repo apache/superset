@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import classNames from 'classnames';
 import { addAlpha, css, styled, t } from '@superset-ui/core';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import { componentShape } from '../util/propShapes';
@@ -76,10 +77,14 @@ const GridContent = styled.div`
     & > .empty-droptarget:first-child {
       height: ${theme.gridUnit * 12}px;
       margin-top: ${theme.gridUnit * -6}px;
-      margin-bottom: ${theme.gridUnit * -6}px;
     }
 
-    & > .empty-droptarget:only-child {
+    & > .empty-droptarget:last-child {
+      height: ${theme.gridUnit * 12}px;
+      margin-top: ${theme.gridUnit * -6}px;
+    }
+
+    & > .empty-droptarget.empty-droptarget--full:only-child {
       height: 80vh;
     }
   `}
@@ -270,10 +275,14 @@ class DashboardGrid extends React.PureComponent {
                 index={0}
                 orientation="column"
                 onDrop={this.handleTopDropTargetDrop}
-                className="empty-droptarget"
+                className={classNames({
+                  'empty-droptarget': true,
+                  'empty-droptarget--full':
+                    gridComponent?.children?.length === 0,
+                })}
                 editMode
               >
-                {renderDraggableContentBottom}
+                {renderDraggableContentTop}
               </DragDroppable>
             )}
             {gridComponent?.children?.map((id, index) => (
@@ -304,7 +313,7 @@ class DashboardGrid extends React.PureComponent {
                 className="empty-droptarget"
                 editMode
               >
-                {renderDraggableContentTop}
+                {renderDraggableContentBottom}
               </DragDroppable>
             )}
             {isResizing &&

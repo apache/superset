@@ -92,6 +92,14 @@ const editModeOnWithFilterScopesProps = {
   },
 };
 
+const guestUserProps = {
+  ...createProps(),
+  dashboardInfo: {
+    ...createProps().dashboardInfo,
+    userId: undefined,
+  },
+};
+
 function setup(props: HeaderDropdownProps) {
   return render(
     <div className="dashboard-header">
@@ -132,6 +140,14 @@ test('should render the menu items in edit mode', async () => {
   expect(screen.getByText('Edit properties')).toBeInTheDocument();
   expect(screen.getByText('Edit CSS')).toBeInTheDocument();
   expect(screen.getByText('Download')).toBeInTheDocument();
+});
+
+test('should render the menu items in Embedded mode', async () => {
+  setup(guestUserProps);
+  expect(screen.getAllByRole('menuitem')).toHaveLength(3);
+  expect(screen.getByText('Refresh dashboard')).toBeInTheDocument();
+  expect(screen.getByText('Download')).toBeInTheDocument();
+  expect(screen.getByText('Set auto-refresh interval')).toBeInTheDocument();
 });
 
 describe('with native filters feature flag disabled', () => {

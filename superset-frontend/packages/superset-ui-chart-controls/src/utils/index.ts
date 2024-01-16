@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+export * from './checkColumnType';
 export * from './selectOptions';
 export * from './D3Formatting';
 export * from './expandControlConfig';
