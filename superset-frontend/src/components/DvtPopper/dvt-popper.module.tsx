@@ -22,6 +22,10 @@ interface DvtPopperProps {
   direction: string;
 }
 
+interface DvtPopperFontSizeProps {
+  fontSize: 'small' | 'medium';
+}
+
 const StyledPopper = styled.div`
   display: flex;
   flex-direction: column;
@@ -60,15 +64,16 @@ const StyledPopperRight = styled.div`
   border-bottom: 10px solid transparent;
 `;
 
-const StyledPopperBody = styled.div`
+const StyledPopperBody = styled.div<DvtPopperFontSizeProps>`
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: ${({ theme }) => theme.colors.dvt.primary.base};
   border-radius: 4px;
-  height: 44px;
+  min-width: 90px;
+  min-height: 44px;
   color: ${({ theme }) => theme.colors.grayscale.light5};
-  font-size: 16px;
+  font-size: ${({ fontSize }) => (fontSize === 'small' ? '12px' : '16px')};
   font-weight: 500;
   line-height: 140%;
   letter-spacing: 0.2px;
@@ -117,7 +122,7 @@ const StyledPopperAbsolute = styled.div<DvtPopperProps>`
       `;
     }
     return '';
-  }}
+  }};
 `;
 
 export {

@@ -46,4 +46,5 @@ export const Default = (args: DvtPopperProps) => (
 Default.args = {
   label: 'Export',
   direction: 'top',
+  fontSize: 'medium',
 };
