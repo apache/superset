@@ -43,7 +43,6 @@ These features are **finished** but currently being tested. They are usable, but
 - CACHE_IMPERSONATION
 - CONFIRM_DASHBOARD_DIFF
 - DASHBOARD_VIRTUALIZATION
-- DRILL_BY
 - DRILL_TO_DETAIL
 - DYNAMIC_PLUGINS: [(docs)](https://superset.apache.org/docs/installation/running-on-kubernetes)
 - ENABLE_JAVASCRIPT_CONTROLS
@@ -68,6 +67,7 @@ These features flags are **safe for production**. They have been tested and will
 - DASHBOARD_RBAC [(docs)](https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard#manage-access-to-dashboards)
 - DATAPANEL_CLOSED_BY_DEFAULT
 - DISABLE_LEGACY_DATASOURCE_EDITOR
+- DRILL_BY
 - DRUID_JOINS
 - EMBEDDABLE_CHARTS
 - EMBEDDED_SUPERSET
