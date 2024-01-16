@@ -64,7 +64,6 @@ These features flags are **safe for production**. They have been tested and will
 
 - ALERTS_ATTACH_REPORTS
 - ALLOW_ADHOC_SUBQUERY
-- DASHBOARD_CROSS_FILTERS
 - DASHBOARD_RBAC [(docs)](https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard#manage-access-to-dashboards)
 - DATAPANEL_CLOSED_BY_DEFAULT
 - DISABLE_LEGACY_DATASOURCE_EDITOR
@@ -87,6 +86,7 @@ These features flags currently default to True and **will be removed in a future
 
 - CLIENT_CACHE
 - DASHBOARD_CACHE
+- DASHBOARD_CROSS_FILTERS
 - DASHBOARD_FILTERS_EXPERIMENTAL
 - DASHBOARD_NATIVE_FILTERS
 - ENABLE_EXPLORE_JSON_CSRF_PROTECTION
