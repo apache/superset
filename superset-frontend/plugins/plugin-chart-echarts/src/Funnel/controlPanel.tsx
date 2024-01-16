@@ -20,16 +20,20 @@ import React from 'react';
 import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
+  ControlStateMapping,
   ControlSubSectionHeader,
+  D3_FORMAT_DOCS,
   D3_FORMAT_OPTIONS,
   D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
+  getStandardizedControls,
   sections,
   sharedControls,
-  ControlStateMapping,
-  getStandardizedControls,
-  D3_FORMAT_DOCS,
 } from '@superset-ui/chart-controls';
-import { DEFAULT_FORM_DATA, EchartsFunnelLabelTypeType } from './types';
+import {
+  DEFAULT_FORM_DATA,
+  EchartsFunnelLabelTypeType,
+  PercentCalcType,
+} from './types';
 import { legendSection } from '../controls';
 
 const { labelType, numberFormat, showLabels, defaultTooltipLabel } =
@@ -70,6 +74,25 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'percent_calculation_type',
+            config: {
+              type: 'SelectControl',
+              label: t('% calculation'),
+              description: t(
+                'Display percents in the label and tooltip as the percent of the total value, from the first step of the funnel, or from the previous step in the funnel.',
+              ),
+              choices: [
+                [PercentCalcType.FIRST_STEP, t('Calculate from first step')],
+                [PercentCalcType.PREV_STEP, t('Calculate from previous step')],
+                [PercentCalcType.TOTAL, t('Percent of total')],
+              ],
+              default: PercentCalcType.FIRST_STEP,
+              renderTrigger: true,
+            },
+          },
+        ],
       ],
     },
     {
@@ -100,6 +123,10 @@ const config: ControlPanelConfig = {
                 [
                   EchartsFunnelLabelTypeType.KeyValuePercent,
                   t('Category, Value and Percentage'),
+                ],
+                [
+                  EchartsFunnelLabelTypeType.ValuePercent,
+                  t('Value and Percentage'),
                 ],
               ],
               description: t('What should be shown as the label'),
