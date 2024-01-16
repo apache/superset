@@ -21,7 +21,6 @@ import { t, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   formatSelectOptionsForRange,
-  sections,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
 
@@ -34,7 +33,6 @@ const sortAxisChoices = [
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,

@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Currency, QueryFormData, QueryFormMetric } from '@superset-ui/core';
+import {
+  Currency,
+  QueryFormColumn,
+  QueryFormData,
+  QueryFormMetric,
+} from '@superset-ui/core';
 import { BaseChartProps, BaseTransformedProps } from '../types';
 
 export interface HeatmapFormData extends QueryFormData {
@@ -27,6 +32,7 @@ export interface HeatmapFormData extends QueryFormData {
   legendType: 'continuous' | 'piecewise';
   linearColorScheme?: string;
   metric: QueryFormMetric;
+  normalizeAcross: string;
   normalized?: boolean;
   showLegend?: boolean;
   showPercentage?: boolean;
@@ -34,6 +40,7 @@ export interface HeatmapFormData extends QueryFormData {
   sortXAxis: string;
   sortYAxis: string;
   timeFormat?: string;
+  xAxis: QueryFormColumn;
   xscaleInterval: string;
   yAxisBounds: [number | undefined | null, number | undefined | null];
   yAxisFormat?: string;
