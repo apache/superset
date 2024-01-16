@@ -34,7 +34,7 @@
     "d3-tip": "^0.9.1",
     "dompurify": "^2.0.6",
     "fast-safe-stringify": "^2.1.1",
-    "lodash": "^4.17.11",
+    "lodash": "^4.17.21",
     "moment": "^2.20.1",
     "nvd3-fork": "^2.0.5",
     "prop-types": "^15.8.1",
