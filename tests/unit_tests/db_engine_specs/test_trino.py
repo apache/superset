@@ -517,3 +517,19 @@ def test_get_columns_expand_rows(mocker: MockerFixture):
     ]
 
     _assert_columns_equal(actual, expected)
+
+
+def test_get_indexes_no_table():
+    from sqlalchemy.exc import NoSuchTableError
+
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    db_mock = Mock()
+    inspector_mock = Mock()
+    inspector_mock.get_indexes = Mock(
+        side_effect=NoSuchTableError("The specified table does not exist.")
+    )
+    result = TrinoEngineSpec.get_indexes(
+        db_mock, inspector_mock, "test_table", "test_schema"
+    )
+    assert result == []

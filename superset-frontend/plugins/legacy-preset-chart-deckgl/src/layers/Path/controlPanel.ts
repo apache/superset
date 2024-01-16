@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import {
   filterNulls,
   autozoom,
@@ -25,7 +25,6 @@ import {
   jsDataMutator,
   jsTooltip,
   jsOnclickHref,
-  lineColumn,
   viewport,
   lineWidth,
   lineType,
@@ -41,11 +40,7 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        [
-          isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
-            ? dndLineColumn
-            : lineColumn,
-        ],
+        [dndLineColumn],
         [
           {
             ...lineType,

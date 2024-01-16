@@ -600,7 +600,15 @@ class QueryContextProcessor:
             set_and_log_cache(
                 cache_manager.cache,
                 cache_key,
-                {"data": self._query_context.cache_values},
+                {
+                    "data": {
+                        # setting form_data into query context cache value as well
+                        # so that it can be used to reconstruct form_data field
+                        # for query context object when reading from cache
+                        "form_data": self._query_context.form_data,
+                        **self._query_context.cache_values,
+                    },
+                },
                 self.get_cache_timeout(),
             )
             return_value["cache_key"] = cache_key  # type: ignore

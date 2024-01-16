@@ -25,7 +25,7 @@
   "dependencies": {
     "d3-sankey-diagram": "^0.7.3",
     "d3-selection": "^1.4.0",
-    "prop-types": "^15.6.2"
+    "prop-types": "^15.8.1"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
