@@ -32,7 +32,12 @@ from sqlalchemy.orm import Session
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY, USER_AGENT
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
-from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
+from superset.db_engine_specs.exceptions import (
+    SupersetDBAPIConnectionError,
+    SupersetDBAPIDatabaseError,
+    SupersetDBAPIOperationalError,
+    SupersetDBAPIProgrammingError,
+)
 from superset.db_engine_specs.presto import PrestoBaseEngineSpec
 from superset.models.sql_lab import Query
 from superset.superset_typing import ResultSetColumnType
@@ -330,9 +335,13 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
         # pylint: disable=import-outside-toplevel
         from requests import exceptions as requests_exceptions
+        from trino import exceptions as trino_exceptions
 
         return {
             requests_exceptions.ConnectionError: SupersetDBAPIConnectionError,
+            trino_exceptions.DatabaseError: SupersetDBAPIDatabaseError,
+            trino_exceptions.OperationalError: SupersetDBAPIOperationalError,
+            trino_exceptions.ProgrammingError: SupersetDBAPIProgrammingError,
         }
 
     @classmethod
