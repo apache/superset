@@ -85,7 +85,6 @@ These features flags currently default to True and **will be removed in a future
 
 [//]: # "PLEASE KEEP THE LIST SORTED ALPHABETICALLY"
 
-- CLIENT_CACHE
 - DASHBOARD_FILTERS_EXPERIMENTAL
 - DASHBOARD_NATIVE_FILTERS
 - ENABLE_EXPLORE_JSON_CSRF_PROTECTION
