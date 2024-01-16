@@ -216,7 +216,6 @@ function StickyWrap({
   let sizerTable: ReactElement | undefined;
   let headerTable: ReactElement | undefined;
   let footerTable: ReactElement | undefined;
-  // let bodyTable: ReactElement | undefined;
   let fullTable: ReactElement | undefined;
 
   if (needSizer) {

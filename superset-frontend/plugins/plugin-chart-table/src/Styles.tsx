@@ -37,7 +37,8 @@ export default styled.div`
       top: -1px;
       padding-right: 0;
       z-index: 100;
-      border-bottom: ${theme.colors.grayscale.light2};
+      border-bottom: ${theme.gridUnit / 2}px solid
+        ${theme.colors.grayscale.light2};
       background: ${theme.colors.grayscale.light5};
       text-align: left;
     }
