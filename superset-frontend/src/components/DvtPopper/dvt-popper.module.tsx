@@ -70,15 +70,14 @@ const StyledPopperBody = styled.div<DvtPopperFontSizeProps>`
   justify-content: center;
   background-color: ${({ theme }) => theme.colors.dvt.primary.base};
   border-radius: 4px;
-  min-width: 90px;
-  min-height: 44px;
   color: ${({ theme }) => theme.colors.grayscale.light5};
   font-size: ${({ fontSize }) => (fontSize === 'small' ? '12px' : '16px')};
   font-weight: 500;
   line-height: 140%;
   letter-spacing: 0.2px;
   cursor: pointer;
-  padding: 0 17px;
+  padding: ${({ fontSize }) =>
+    fontSize === 'small' ? '8px 10px' : '10px 15px'};
 `;
 
 const StyledPopperGroup = styled.div`
