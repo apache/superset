@@ -322,7 +322,6 @@ function StickyWrap({
         padding: '0',
       }}
     >
-      {/* {headerTable} */}
       {fullTable}
       {footerTable}
       {sizerTable}
