@@ -71,6 +71,7 @@ from superset.tasks.utils import get_executor
 from superset.utils.celery import session_scope
 from superset.utils.core import HeaderDataType, override_user
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
+from superset.utils.decorators import logs_context
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
 
@@ -81,6 +82,7 @@ class BaseReportState:
     current_states: list[ReportState] = []
     initial: bool = False
 
+    @logs_context()
     def __init__(
         self,
         session: Session,
