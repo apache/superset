@@ -64,7 +64,6 @@ import Tag from 'src/types/TagType';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
-import setupPlugins from 'src/setup/setupPlugins';
 import InfoTooltip from 'src/components/InfoTooltip';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import { GenericLink } from 'src/components/GenericLink/GenericLink';
@@ -106,7 +105,6 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
     'sure you want to overwrite?',
 );
 
-setupPlugins();
 const registry = getChartMetadataRegistry();
 
 const createFetchDatasets = async (

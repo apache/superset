@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "@data-ui/event-flow": "^0.0.84",
-    "prop-types": "^15.6.2"
+    "prop-types": "^15.8.1"
   },
   "peerDependencies": {
     "react": "^15 || ^16",

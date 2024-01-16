@@ -404,7 +404,6 @@ CURRENCIES = ["USD", "EUR", "GBP", "INR", "MXN", "JPY", "CNY"]
 DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Experimental feature introducing a client (browser) cache
     "CLIENT_CACHE": False,  # deprecated
-    "DISABLE_DATASET_SOURCE_EDIT": False,  # deprecated
     # When using a recent version of Druid that supports JOINs turn this on
     "DRUID_JOINS": False,
     "DYNAMIC_PLUGINS": False,
@@ -427,7 +426,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # geospatial ones) by inputting javascript in controls. This exposes
     # an XSS security vulnerability
     "ENABLE_JAVASCRIPT_CONTROLS": False,
-    "KV_STORE": False,
+    "KV_STORE": False,  # deprecated
     # When this feature is enabled, nested types in Presto will be
     # expanded into extra columns and/or arrays. This is experimental,
     # and doesn't work with all nested types.
@@ -452,7 +451,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enables Alerts and reports new implementation
     "ALERT_REPORTS": False,
     "DASHBOARD_RBAC": False,
-    "ENABLE_EXPLORE_DRAG_AND_DROP": True,  # deprecated
     "ENABLE_ADVANCED_DATA_TYPES": False,
     # Enabling ALERTS_ATTACH_REPORTS, the system sends email and slack message
     # with screenshot and link

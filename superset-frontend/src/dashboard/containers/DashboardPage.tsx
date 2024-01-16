@@ -37,7 +37,6 @@ import {
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
 import { setDatasources } from 'src/dashboard/actions/datasources';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
-import setupPlugins from 'src/setup/setupPlugins';
 
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 import { URL_PARAMS } from 'src/constants';
@@ -62,7 +61,6 @@ import SyncDashboardState, {
 
 export const DashboardPageIdContext = React.createContext('');
 
-setupPlugins();
 const DashboardBuilder = React.lazy(
   () =>
     import(

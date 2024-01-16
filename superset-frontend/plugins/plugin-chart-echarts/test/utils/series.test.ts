@@ -878,14 +878,28 @@ test('calculateLowerLogTick', () => {
   expect(calculateLowerLogTick(0.005)).toEqual(0.001);
 });
 
-test('getAxisType', () => {
-  expect(getAxisType(false, GenericDataType.TEMPORAL)).toEqual(AxisType.time);
-  expect(getAxisType(false, GenericDataType.NUMERIC)).toEqual(AxisType.value);
-  expect(getAxisType(true, GenericDataType.NUMERIC)).toEqual(AxisType.category);
-  expect(getAxisType(false, GenericDataType.BOOLEAN)).toEqual(
+test('getAxisType without forced categorical', () => {
+  expect(getAxisType(false, false, GenericDataType.TEMPORAL)).toEqual(
+    AxisType.time,
+  );
+  expect(getAxisType(false, false, GenericDataType.NUMERIC)).toEqual(
+    AxisType.value,
+  );
+  expect(getAxisType(true, false, GenericDataType.NUMERIC)).toEqual(
     AxisType.category,
   );
-  expect(getAxisType(false, GenericDataType.STRING)).toEqual(AxisType.category);
+  expect(getAxisType(false, false, GenericDataType.BOOLEAN)).toEqual(
+    AxisType.category,
+  );
+  expect(getAxisType(false, false, GenericDataType.STRING)).toEqual(
+    AxisType.category,
+  );
+});
+
+test('getAxisType with forced categorical', () => {
+  expect(getAxisType(false, true, GenericDataType.NUMERIC)).toEqual(
+    AxisType.category,
+  );
 });
 
 test('getMinAndMaxFromBounds returns empty object when not truncating', () => {

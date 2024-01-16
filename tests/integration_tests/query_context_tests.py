@@ -121,6 +121,7 @@ class TestQueryContext(SupersetTestCase):
 
         cached = cache_manager.cache.get(cache_key)
         assert cached is not None
+        assert "form_data" in cached["data"]
 
         rehydrated_qc = ChartDataQueryContextSchema().load(cached["data"])
         rehydrated_qo = rehydrated_qc.queries[0]

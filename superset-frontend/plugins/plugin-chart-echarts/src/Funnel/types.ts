@@ -52,6 +52,7 @@ export enum EchartsFunnelLabelTypeType {
   KeyValue,
   KeyPercent,
   KeyValuePercent,
+  ValuePercent,
 }
 
 export interface EchartsFunnelChartProps

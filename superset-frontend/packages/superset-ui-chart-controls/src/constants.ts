@@ -17,12 +17,11 @@
  * under the License.
  */
 import {
-  t,
-  QueryMode,
   DTTM_ALIAS,
   GenericDataType,
   QueryColumn,
-  DatasourceType,
+  QueryMode,
+  t,
 } from '@superset-ui/core';
 import { ColumnMeta, SortSeriesData, SortSeriesType } from './types';
 
@@ -43,6 +42,7 @@ export const COLUMN_NAME_ALIASES: Record<string, string> = {
 export const DATASET_TIME_COLUMN_OPTION: ColumnMeta = {
   verbose_name: COLUMN_NAME_ALIASES[DTTM_ALIAS],
   column_name: DTTM_ALIAS,
+  type: 'TIMESTAMP',
   type_generic: GenericDataType.TEMPORAL,
   description: t(
     'A reference to the [Time] configuration, taking granularity into account',
@@ -51,8 +51,9 @@ export const DATASET_TIME_COLUMN_OPTION: ColumnMeta = {
 
 export const QUERY_TIME_COLUMN_OPTION: QueryColumn = {
   column_name: DTTM_ALIAS,
-  type: DatasourceType.Query,
-  is_dttm: false,
+  is_dttm: true,
+  type: 'TIMESTAMP',
+  type_generic: GenericDataType.TEMPORAL,
 };
 
 export const QueryModeLabel = {
