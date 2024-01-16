@@ -341,8 +341,10 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             requests_exceptions.ConnectionError: SupersetDBAPIConnectionError,
         }
 
-        class _CustomMapping(dict):
-            def get(self, item: type[Exception]) -> type[Exception] | None:
+        class _CustomMapping(dict[type[Exception], type[Exception]]):
+            def get(  # type: ignore[override]
+                self, item: type[Exception], default: type[Exception] | None = None
+            ) -> type[Exception] | None:
                 if static := static_mapping.get(item):
                     return static
                 if issubclass(item, trino_exceptions.InternalError):
@@ -351,6 +353,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                     return SupersetDBAPIOperationalError
                 if issubclass(item, trino_exceptions.ProgrammingError):
                     return SupersetDBAPIProgrammingError
+                return default
 
         return _CustomMapping()
 

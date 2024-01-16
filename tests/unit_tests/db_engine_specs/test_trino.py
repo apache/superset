@@ -551,3 +551,4 @@ def test_get_dbapi_exception_mapping():
     assert mapping.get(TrinoInternalError) == SupersetDBAPIDatabaseError
     assert mapping.get(TrinoExternalError) == SupersetDBAPIOperationalError
     assert mapping.get(RequestsConnectionError) == SupersetDBAPIConnectionError
+    assert mapping.get(Exception) is None
