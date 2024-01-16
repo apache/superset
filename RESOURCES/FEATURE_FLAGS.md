@@ -42,7 +42,6 @@ These features are **finished** but currently being tested. They are usable, but
 - ALLOW_FULL_CSV_EXPORT
 - CACHE_IMPERSONATION
 - CONFIRM_DASHBOARD_DIFF
-- DASHBOARD_VIRTUALIZATION
 - DRILL_BY
 - DRILL_TO_DETAIL
 - DYNAMIC_PLUGINS: [(docs)](https://superset.apache.org/docs/installation/running-on-kubernetes)
@@ -66,6 +65,7 @@ These features flags are **safe for production**. They have been tested and will
 - ALLOW_ADHOC_SUBQUERY
 - DASHBOARD_CROSS_FILTERS
 - DASHBOARD_RBAC [(docs)](https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard#manage-access-to-dashboards)
+- DASHBOARD_VIRTUALIZATION
 - DATAPANEL_CLOSED_BY_DEFAULT
 - DISABLE_LEGACY_DATASOURCE_EDITOR
 - DRUID_JOINS
