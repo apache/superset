@@ -337,12 +337,22 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         from requests import exceptions as requests_exceptions
         from trino import exceptions as trino_exceptions
 
-        return {
+        static_mapping: dict[type[Exception], type[Exception]] = {
             requests_exceptions.ConnectionError: SupersetDBAPIConnectionError,
-            trino_exceptions.DatabaseError: SupersetDBAPIDatabaseError,
-            trino_exceptions.OperationalError: SupersetDBAPIOperationalError,
-            trino_exceptions.ProgrammingError: SupersetDBAPIProgrammingError,
         }
+
+        class _CustomMapping(dict):
+            def get(self, item: type[Exception]) -> type[Exception] | None:
+                if static := static_mapping.get(item):
+                    return static
+                if issubclass(item, trino_exceptions.InternalError):
+                    return SupersetDBAPIDatabaseError
+                if issubclass(item, trino_exceptions.OperationalError):
+                    return SupersetDBAPIOperationalError
+                if issubclass(item, trino_exceptions.ProgrammingError):
+                    return SupersetDBAPIProgrammingError
+
+        return _CustomMapping()
 
     @classmethod
     def _expand_columns(cls, col: ResultSetColumnType) -> list[ResultSetColumnType]:
