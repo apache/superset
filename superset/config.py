@@ -443,8 +443,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "ESCAPE_MARKDOWN_HTML": False,
     "DASHBOARD_NATIVE_FILTERS": True,  # deprecated
     "DASHBOARD_CROSS_FILTERS": True,
-    # Feature is under active development and breaking changes are expected
-    "DASHBOARD_NATIVE_FILTERS_SET": False,  # deprecated
     "DASHBOARD_FILTERS_EXPERIMENTAL": False,  # deprecated
     "DASHBOARD_VIRTUALIZATION": False,
     "GLOBAL_ASYNC_QUERIES": False,

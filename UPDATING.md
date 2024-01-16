@@ -31,6 +31,7 @@ assists people when migrating to a new version.
 
 ### Breaking Changes
 
+- [26369](https://github.com/apache/superset/issues/26369): Removes the Filter Sets feature including the deprecated `DASHBOARD_NATIVE_FILTERS_SET` feature flag and all related API endpoints. The feature is permanently removed as it was not being actively maintained, it was not widely used, and it was full of bugs. We also considered that if we were to provide a similar feature, it would be better to re-implement it from scratch given the amount of technical debt that the current implementation has. The previous value of the feature flag was `False` and now the feature is permanently removed.
 - [26343](https://github.com/apache/superset/issues/26343): Removes the deprecated `ENABLE_EXPLORE_DRAG_AND_DROP` feature flag. The previous value of the feature flag was `True` and now the feature is permanently enabled.
 - [26331](https://github.com/apache/superset/issues/26331): Removes the deprecated `DISABLE_DATASET_SOURCE_EDIT` feature flag. The previous value of the feature flag was `False` and now the feature is permanently removed.
 

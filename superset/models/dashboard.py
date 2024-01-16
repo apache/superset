@@ -55,7 +55,6 @@ from superset.connectors.sqla.models import (
 )
 from superset.daos.datasource import DatasourceDAO
 from superset.extensions import cache_manager
-from superset.models.filter_set import FilterSet
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
@@ -63,7 +62,6 @@ from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_dashboard_digest
 from superset.utils import core as utils
-from superset.utils.core import get_user_id
 from superset.utils.decorators import debounce
 
 metadata = Model.metadata  # pylint: disable=no-member
@@ -185,9 +183,6 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
         back_populates="dashboard",
         cascade="all, delete-orphan",
     )
-    _filter_sets = relationship(
-        "FilterSet", back_populates="dashboard", cascade="all, delete"
-    )
     export_fields = [
         "dashboard_title",
         "position_json",
@@ -229,28 +224,6 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
             for datasource in db.session.query(cls_model)
             .filter(cls_model.id.in_(datasource_ids))
             .all()
-        }
-
-    @property
-    def filter_sets(self) -> dict[int, FilterSet]:
-        return {fs.id: fs for fs in self._filter_sets}
-
-    @property
-    def filter_sets_lst(self) -> dict[int, FilterSet]:
-        if security_manager.is_admin():
-            return self._filter_sets
-        filter_sets_by_owner_type: dict[str, list[Any]] = {"Dashboard": [], "User": []}
-        for fs in self._filter_sets:
-            filter_sets_by_owner_type[fs.owner_type].append(fs)
-        user_filter_sets = list(
-            filter(
-                lambda filter_set: filter_set.owner_id == get_user_id(),
-                filter_sets_by_owner_type["User"],
-            )
-        )
-        return {
-            fs.id: fs
-            for fs in user_filter_sets + filter_sets_by_owner_type["Dashboard"]
         }
 
     @property
