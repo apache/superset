@@ -215,7 +215,7 @@ export default class SelectControl extends React.PureComponent {
 
     const getValue = () => {
       const currentValue =
-        value ||
+        value ??
         (this.props.default !== undefined ? this.props.default : undefined);
 
       // safety check - the value is intended to be undefined but null was used

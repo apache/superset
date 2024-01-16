@@ -3723,12 +3723,12 @@ msgstr "清除"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/ActionButtons/index.tsx:152
 msgid "Clear all"
-msgstr "清楚所有"
+msgstr "清除所有"
 
 #: superset-frontend/src/components/Table/index.tsx:210
 #, fuzzy
 msgid "Clear all data"
-msgstr "清楚所有"
+msgstr "清除所有"
 
 #: superset-frontend/src/explore/components/ControlPanelsContainer.tsx:675
 #, fuzzy
@@ -19600,7 +19600,7 @@ msgstr "无法更新您的查询"
 #: superset-frontend/plugins/legacy-plugin-chart-horizon/src/controlPanel.ts:86
 #, fuzzy
 msgid "overall"
-msgstr "清楚所有"
+msgstr "清除所有"
 
 #: superset-frontend/plugins/legacy-plugin-chart-paired-t-test/src/controlPanel.ts:77
 msgid "p-value precision"

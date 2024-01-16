@@ -215,7 +215,7 @@ const config = {
               },
               {
                 label: 'Stack Overflow',
-                href: 'https://stackoverflow.com/questions/tagged/superset+apache-superset',
+                href: 'https://stackoverflow.com/questions/tagged/apache-superset',
               },
             ],
           },

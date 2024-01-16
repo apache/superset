@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlSubSectionHeader,
@@ -93,9 +93,7 @@ const controlPanel: ControlPanelConfig = {
             name: 'metric',
             config: {
               ...optionalEntity,
-              type: isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
-                ? 'DndMetricSelect'
-                : 'MetricsControl',
+              type: 'DndMetricSelect',
               label: t('Metric'),
               description: t('Metric for node values'),
             },

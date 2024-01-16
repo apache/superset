@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,9 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { generateFiltersSetId } from '.';
 
-test('Should follow the pattern "FILTERS_SET-"', () => {
-  const id = generateFiltersSetId();
-  expect(id.startsWith('FILTERS_SET-', 0)).toBe(true);
+import { validateMaxValue } from '@superset-ui/core';
+import './setup';
+
+test('validateInteger returns the warning message if invalid', () => {
+  expect(validateMaxValue(10.1, 10)).toBeTruthy();
+  expect(validateMaxValue(1, 0)).toBeTruthy();
+  expect(validateMaxValue('2', 1)).toBeTruthy();
+});
+
+test('validateInteger returns false if the input is valid', () => {
+  expect(validateMaxValue(0, 1)).toBeFalsy();
+  expect(validateMaxValue(10, 10)).toBeFalsy();
+  expect(validateMaxValue(undefined, 1)).toBeFalsy();
+  expect(validateMaxValue(NaN, NaN)).toBeFalsy();
+  expect(validateMaxValue(null, 1)).toBeFalsy();
+  expect(validateMaxValue('1', 1)).toBeFalsy();
+  expect(validateMaxValue('a', 1)).toBeFalsy();
 });

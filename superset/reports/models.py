@@ -24,6 +24,7 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     Table,
@@ -196,6 +197,10 @@ class ReportRecipients(Model, AuditMixinNullable):
         foreign_keys=[report_schedule_id],
     )
 
+    __table_args__ = (
+        Index("ix_report_recipient_report_schedule_id", report_schedule_id),
+    )
+
 
 class ReportExecutionLog(Model):  # pylint: disable=too-few-public-methods
 
@@ -227,4 +232,9 @@ class ReportExecutionLog(Model):  # pylint: disable=too-few-public-methods
         ReportSchedule,
         backref=backref("logs", cascade="all,delete,delete-orphan"),
         foreign_keys=[report_schedule_id],
+    )
+
+    __table_args__ = (
+        Index("ix_report_execution_log_report_schedule_id", report_schedule_id),
+        Index("ix_report_execution_log_start_dttm", start_dttm),
     )
