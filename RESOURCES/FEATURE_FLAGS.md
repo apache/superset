@@ -28,7 +28,6 @@ These features are considered **unfinished** and should only be used on developm
 [//]: # "PLEASE KEEP THE LIST SORTED ALPHABETICALLY"
 
 - ENABLE_ADVANCED_DATA_TYPES
-- KV_STORE
 - PRESTO_EXPAND_DATA
 - SHARE_QUERIES_VIA_KV_STORE
 - TAGGING_SYSTEM
@@ -94,5 +93,6 @@ These features flags currently default to True and **will be removed in a future
 - ENABLE_EXPLORE_JSON_CSRF_PROTECTION
 - ENABLE_TEMPLATE_REMOVE_FILTERS
 - GENERIC_CHART_AXES
+- KV_STORE
 - REMOVE_SLICE_LEVEL_LABEL_COLORS
 - VERSIONED_EXPORT
