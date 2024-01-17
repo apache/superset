@@ -31,7 +31,7 @@
     "@svgr/webpack": "^5.5.0",
     "antd": "^4.19.3",
     "buffer": "^6.0.3",
-    "clsx": "^1.1.1",
+    "clsx": "^2.1.0",
     "docusaurus-plugin-less": "^2.0.2",
     "file-loader": "^6.2.0",
     "less": "^4.2.0",
