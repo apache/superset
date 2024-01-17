@@ -271,6 +271,10 @@ class ChartDataRestApi(ChartRestApi):
             # CSV export submits regular form data
             with contextlib.suppress(TypeError, json.JSONDecodeError):
                 json_body = json.loads(request.form["form_data"])
+                # use cached data priority
+                # False disables forcing query execution
+                json_body["force"] = False
+                json_body["form_data"]["force"] = False
         if json_body is None:
             return self.response_400(message=_("Request is not JSON"))
 
