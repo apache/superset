@@ -84,7 +84,11 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
           <StyledSelectLabel typeDesign={typeDesign}>{label}</StyledSelectLabel>
         )}
         {important && !selectedValue && (
-          <DvtPopper label={importantLabel} direction={popoverDirection}>
+          <DvtPopper
+            size="small"
+            label={importantLabel}
+            direction={popoverDirection}
+          >
             <Icon
               fileName="warning"
               css={(theme: SupersetTheme) => ({
@@ -95,7 +99,11 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
           </DvtPopper>
         )}
         {popoverLabel && (
-          <DvtPopper label={popoverLabel} direction={popoverDirection}>
+          <DvtPopper
+            size="small"
+            label={popoverLabel}
+            direction={popoverDirection}
+          >
             <Icon
               fileName="warning"
               css={(theme: SupersetTheme) => ({

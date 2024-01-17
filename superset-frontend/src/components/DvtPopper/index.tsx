@@ -32,14 +32,14 @@ export interface DvtPopperProps {
   label: string;
   children: ReactNode;
   direction?: 'top' | 'bottom' | 'left' | 'right';
-  fontSize?: 'small' | 'medium';
+  size?: 'small' | 'medium';
 }
 
 const DvtPopper: React.FC<DvtPopperProps> = ({
   label,
   children,
   direction = 'bottom',
-  fontSize = 'medium',
+  size = 'medium',
 }) => {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -53,7 +53,7 @@ const DvtPopper: React.FC<DvtPopperProps> = ({
         <StyledPopperAbsolute direction={direction}>
           {direction === 'bottom' && <StyledPopperUp />}
           {direction === 'right' && <StyledPopperLeft />}
-          <StyledPopperBody fontSize={fontSize}>{label}</StyledPopperBody>
+          <StyledPopperBody fontSize={size}>{label}</StyledPopperBody>
           {direction === 'top' && <StyledPopperDown />}{' '}
           {direction === 'left' && <StyledPopperRight />}
         </StyledPopperAbsolute>
