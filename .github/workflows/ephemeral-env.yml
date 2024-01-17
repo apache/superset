@@ -62,10 +62,6 @@ jobs:
           return results;
 
     - name: Limit to committers
-      if: >
-        steps.eval-body.outputs.result != 'noop' &&
-        github.event.comment.author_association != 'MEMBER' &&
-        github.event.comment.author_association != 'OWNER'
       uses: actions/github-script@v3
       with:
         github-token: ${{github.token}}
