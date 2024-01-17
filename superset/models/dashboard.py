@@ -41,13 +41,11 @@ from sqlalchemy import (
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship, subqueryload
 from sqlalchemy.orm.mapper import Mapper
-from sqlalchemy.sql import join, select
 from sqlalchemy.sql.elements import BinaryExpression
 
 from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.daos.datasource import DatasourceDAO
-from superset.extensions import cache_manager
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
@@ -55,7 +53,6 @@ from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_dashboard_digest
 from superset.utils import core as utils
-from superset.utils.decorators import debounce
 
 metadata = Model.metadata  # pylint: disable=no-member
 config = app.config
@@ -132,7 +129,6 @@ DashboardRoles = Table(
 )
 
 
-# pylint: disable=too-many-public-methods
 class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
     """The dashboard object!"""
 
@@ -316,36 +312,6 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
             dashboard_id=self.id,
             force=True,
         )
-
-    @debounce(0.1)
-    def clear_cache(self) -> None:
-        cache_manager.cache.delete_memoized(Dashboard.datasets_trimmed_for_slices, self)
-
-    @classmethod
-    @debounce(0.1)
-    def clear_cache_for_slice(cls, slice_id: int) -> None:
-        filter_query = select([dashboard_slices.c.dashboard_id], distinct=True).where(
-            dashboard_slices.c.slice_id == slice_id
-        )
-        for (dashboard_id,) in db.engine.execute(filter_query):
-            cls(id=dashboard_id).clear_cache()
-
-    @classmethod
-    @debounce(0.1)
-    def clear_cache_for_datasource(cls, datasource_id: int) -> None:
-        filter_query = select(
-            [dashboard_slices.c.dashboard_id],
-            distinct=True,
-        ).select_from(
-            join(
-                dashboard_slices,
-                Slice,
-                (Slice.id == dashboard_slices.c.slice_id)
-                & (Slice.datasource_id == datasource_id),
-            )
-        )
-        for (dashboard_id,) in db.engine.execute(filter_query):
-            cls(id=dashboard_id).clear_cache()
 
     @classmethod
     def export_dashboards(  # pylint: disable=too-many-locals
