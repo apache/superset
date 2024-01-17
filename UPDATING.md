@@ -31,6 +31,7 @@ assists people when migrating to a new version.
 
 ### Breaking Changes
 
+- [26346](https://github.com/apache/superset/issues/26346): Removes the deprecated `REMOVE_SLICE_LEVEL_LABEL_COLORS` feature flag. The previous value of the feature flag was `False` and now the feature is permanently removed.
 - [26348](https://github.com/apache/superset/issues/26348): Removes the deprecated `CLIENT_CACHE` feature flag. The previous value of the feature flag was `False` and now the feature is permanently removed.
 - [26349](https://github.com/apache/superset/issues/26349): Removes the deprecated `DASHBOARD_CACHE` feature flag. The previous value of the feature flag was `False` and now the feature is permanently removed.
 - [26369](https://github.com/apache/superset/issues/26369): Removes the Filter Sets feature including the deprecated `DASHBOARD_NATIVE_FILTERS_SET` feature flag and all related API endpoints. The feature is permanently removed as it was not being actively maintained, it was not widely used, and it was full of bugs. We also considered that if we were to provide a similar feature, it would be better to re-implement it from scratch given the amount of technical debt that the current implementation has. The previous value of the feature flag was `False` and now the feature is permanently removed.

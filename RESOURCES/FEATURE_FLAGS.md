@@ -91,5 +91,4 @@ These features flags currently default to True and **will be removed in a future
 - ENABLE_TEMPLATE_REMOVE_FILTERS
 - GENERIC_CHART_AXES
 - KV_STORE
-- REMOVE_SLICE_LEVEL_LABEL_COLORS
 - VERSIONED_EXPORT
