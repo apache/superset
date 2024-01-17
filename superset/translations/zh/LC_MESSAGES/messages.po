@@ -19232,7 +19232,7 @@ msgstr "时间序列的列"
 #: superset-frontend/src/dashboard/components/gridComponents/Tab.jsx:210
 #, fuzzy
 msgid "edit mode"
-msgstr "光模式"
+msgstr "编辑模式"
 
 #: superset-frontend/plugins/plugin-chart-table/src/DataTable/components/SelectPageSize.tsx:58
 #, fuzzy
@@ -19311,7 +19311,7 @@ msgstr ""
 msgid ""
 "filter_box will be deprecated in a future version of Superset. Please "
 "replace filter_box by dashboard filter components."
-msgstr "'filter_box将在Superset的未来版本中弃用。"
+msgstr "filter_box将在Superset的未来版本中弃用。"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:219
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:119
@@ -19322,7 +19322,7 @@ msgstr "在"
 
 #: superset-frontend/src/features/databases/DatabaseModal/SqlAlchemyForm.tsx:100
 msgid "for more information on how to structure your URI."
-msgstr " 来查询有关如何构造URI的更多信息。"
+msgstr "来查询有关如何构造URI的更多信息。"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/components/ColumnTypeLabel/ColumnTypeLabel.tsx:57
 msgid "function type icon"
@@ -19339,7 +19339,7 @@ msgstr "热力图"
 
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:184
 msgid "heatmap: values are normalized across the entire heatmap"
-msgstr ""
+msgstr "热力图：其中所有数值都经过了归一化"
 
 #: superset-frontend/src/components/EmptyState/index.tsx:231
 #: superset-frontend/src/components/ImportModal/ErrorAlert.tsx:60
@@ -19384,7 +19384,7 @@ msgstr "应该为数字"
 #: superset-frontend/packages/superset-ui-core/src/validator/legacyValidateInteger.ts:31
 #: superset-frontend/packages/superset-ui-core/src/validator/validateInteger.ts:32
 msgid "is expected to be an integer"
-msgstr "应该为为整数"
+msgstr "应该为整数"
 
 #: superset-frontend/src/profile/components/UserInfo.tsx:64
 msgid "joined"
@@ -19477,7 +19477,7 @@ msgstr "最大值"
 #: superset-frontend/src/explore/controlPanels/sections.tsx:255
 #, fuzzy
 msgid "mean"
-msgstr "主域"
+msgstr "平均值"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:376
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:258
@@ -19485,7 +19485,7 @@ msgstr "主域"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:530
 #: superset-frontend/src/explore/controlPanels/sections.tsx:254
 msgid "median"
-msgstr ""
+msgstr "中位数"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/PivotTableChart.tsx:62
 #: superset-frontend/src/explore/components/controls/FixedOrMetricControl/index.jsx:136
@@ -19499,7 +19499,7 @@ msgstr "指标"
 #: superset-frontend/src/filters/components/Range/buildQuery.ts:58
 #, fuzzy
 msgid "min"
-msgstr "在"
+msgstr "分钟"
 
 #: superset-frontend/src/components/CronPicker/CronPicker.tsx:41
 msgid "minute"
