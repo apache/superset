@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import useOnClickOutside from 'src/hooks/useOnClickOutsite';
 import moment, { Moment } from 'moment';
 import Icon from '../Icons/Icon';
 import DvtCalendar from '../DvtCalendar';
@@ -48,8 +49,10 @@ const DvtDatePicker: React.FC<DvtDatePickerProps> = ({
   width = 202,
   maxWidth = false,
 }) => {
+  const ref = useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [inputValue, setInputValue] = useState<string>('');
+  useOnClickOutside(ref, () => setIsOpen(false));
 
   const handleCalendarOpen = () => {
     setIsOpen(true);
@@ -76,7 +79,7 @@ const DvtDatePicker: React.FC<DvtDatePickerProps> = ({
   }, [selectedDate]);
 
   return (
-    <StyledDatepicker style={{ minWidth: maxWidth ? '100%' : width }}>
+    <StyledDatepicker ref={ref} style={{ minWidth: maxWidth ? '100%' : width }}>
       {label && <StyledDatepickerLabel>{label}</StyledDatepickerLabel>}
       <StyledDatepickerGroup>
         <StyledDatepickerInput

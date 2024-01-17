@@ -39,7 +39,6 @@ const StyledDatepicker = styled.div`
   position: relative;
   display: inline-flex;
   flex-direction: column;
-  z-index: 999;
 `;
 
 const StyledDatepickerGroup = styled.div`
@@ -89,6 +88,7 @@ const StyledDatepickerCalendar = styled.div<StyledDatepickerCalendarProps>`
   right: 0;
   animation: ${datePickerKeyframes} 0.3s ease-in-out;
   transform-origin: top;
+  z-index: 999;
 `;
 
 export {
