@@ -199,6 +199,7 @@ const SavedQueries = ({
         </Menu.Item>
       )}
       <Menu.Item
+        role="button"
         onClick={() => {
           if (query.id) {
             copyQueryLink(query.id, addDangerToast, addSuccessToast);
@@ -209,6 +210,7 @@ const SavedQueries = ({
       </Menu.Item>
       {canDelete && (
         <Menu.Item
+          role="button"
           onClick={() => {
             setQueryDeleteModal(true);
             setCurrentlyEdited(query);
@@ -310,6 +312,7 @@ const SavedQueries = ({
                 actions={
                   <QueryData>
                     <ListViewCard.Actions
+                      role="button"
                       onClick={e => {
                         e.stopPropagation();
                         e.preventDefault();

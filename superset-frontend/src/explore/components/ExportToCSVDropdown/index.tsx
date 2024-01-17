@@ -69,7 +69,7 @@ export const ExportToCSVDropdown = ({
     <AntdDropdown
       trigger={['click']}
       overlay={
-        <Menu onClick={handleMenuClick} selectable={false}>
+        <Menu role="button" onClick={handleMenuClick} selectable={false}>
           <Menu.Item key={MENU_KEYS.EXPORT_ORIGINAL}>
             <MenuItemContent>
               {t('Original')}

@@ -170,6 +170,7 @@ const OverrideConfirmModal = ({ overwriteConfirmMetadata }: Props) => {
                   <StackableHeader
                     top={index * STICKY_HEADER_HEIGHT - STICKY_HEADER_TOP}
                     buttonStyle="tertiary"
+                    role="button"
                     onClick={() => onAnchorClicked(index)}
                   >
                     {keyPath}

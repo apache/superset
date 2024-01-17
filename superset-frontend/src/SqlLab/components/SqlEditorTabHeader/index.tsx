@@ -94,6 +94,7 @@ const SqlEditorTabHeader: React.FC<Props> = ({ queryEditor }) => {
             <Menu.Item
               className="close-btn"
               key="1"
+              role="button"
               onClick={() => actions.removeQueryEditor(qe)}
               data-test="close-tab-menu-option"
             >
@@ -104,6 +105,7 @@ const SqlEditorTabHeader: React.FC<Props> = ({ queryEditor }) => {
             </Menu.Item>
             <Menu.Item
               key="2"
+              role="button"
               onClick={renameTab}
               data-test="rename-tab-menu-option"
             >
@@ -114,6 +116,7 @@ const SqlEditorTabHeader: React.FC<Props> = ({ queryEditor }) => {
             </Menu.Item>
             <Menu.Item
               key="3"
+              role="button"
               onClick={() => actions.toggleLeftBar(qe)}
               data-test="toggle-menu-option"
             >
@@ -124,6 +127,7 @@ const SqlEditorTabHeader: React.FC<Props> = ({ queryEditor }) => {
             </Menu.Item>
             <Menu.Item
               key="4"
+              role="button"
               onClick={() => actions.removeAllOtherQueryEditors(qe)}
               data-test="close-all-other-menu-option"
             >
@@ -134,6 +138,7 @@ const SqlEditorTabHeader: React.FC<Props> = ({ queryEditor }) => {
             </Menu.Item>
             <Menu.Item
               key="5"
+              role="button"
               onClick={() => actions.cloneQueryToNewTab(qe, false)}
               data-test="clone-tab-menu-option"
             >

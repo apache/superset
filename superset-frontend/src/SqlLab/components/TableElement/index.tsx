@@ -345,6 +345,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
             <Fade
               data-test="fade"
               hovered={hovered}
+              role="button"
               onClick={e => e.stopPropagation()}
             >
               {renderControls()}

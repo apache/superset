@@ -112,7 +112,11 @@ const Row = ({
         }
         value={value}
       />
-      <DeleteFilter iconSize="xl" onClick={() => onDelete(selection)} />
+      <DeleteFilter
+        iconSize="xl"
+        role="button"
+        onClick={() => onDelete(selection)}
+      />
     </RowPanel>
   );
 };
@@ -171,7 +175,7 @@ const List = ({
         />
       ))}
       {availableFilters.length > rows.length && (
-        <AddFilter onClick={onAdd}>
+        <AddFilter role="button" onClick={onAdd}>
           <Icons.PlusSmall />
           {t('Add filter')}
         </AddFilter>

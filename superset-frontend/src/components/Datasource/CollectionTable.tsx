@@ -312,12 +312,12 @@ export default class CRUDCollection extends React.PureComponent<
 
   renderSortIcon(col: string) {
     if (this.state.sortColumn === col && this.state.sort === SortOrder.asc) {
-      return <Icons.SortAsc onClick={this.sortColumn(col, 2)} />;
+      return <Icons.SortAsc role="button" onClick={this.sortColumn(col, 2)} />;
     }
     if (this.state.sortColumn === col && this.state.sort === SortOrder.desc) {
-      return <Icons.SortDesc onClick={this.sortColumn(col, 0)} />;
+      return <Icons.SortDesc role="button" onClick={this.sortColumn(col, 0)} />;
     }
-    return <Icons.Sort onClick={this.sortColumn(col, 1)} />;
+    return <Icons.Sort role="button" onClick={this.sortColumn(col, 1)} />;
   }
 
   renderTH(col: string, sortColumns: Array<string>) {

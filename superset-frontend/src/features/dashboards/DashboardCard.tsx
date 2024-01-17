@@ -107,6 +107,7 @@ function DashboardCard({
   );
   return (
     <CardStyles
+      role="button"
       onClick={() => {
         if (!bulkSelectEnabled) {
           history.push(dashboard.url);
@@ -134,6 +135,7 @@ function DashboardCard({
         coverLeft={<FacePile users={dashboard.owners || []} />}
         actions={
           <ListViewCard.Actions
+            role="button"
             onClick={e => {
               e.stopPropagation();
               e.preventDefault();

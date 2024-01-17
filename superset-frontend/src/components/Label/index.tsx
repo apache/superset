@@ -92,6 +92,7 @@ export default function Label(props: LabelProps) {
 
   return (
     <Tag
+      role="button"
       onClick={onClick}
       {...rest}
       css={{

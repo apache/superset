@@ -69,6 +69,7 @@ const ScopingTitle = ({
     <FilterTitle
       className={isActive ? 'active' : ''}
       onClick={() => onClick(id)}
+      role="button"
     >
       {label}
       <Icons.Trash
@@ -77,6 +78,7 @@ const ScopingTitle = ({
           event.stopPropagation();
           onRemove(id);
         }}
+        role="button"
         css={css`
           margin-left: auto;
         `}
@@ -140,6 +142,7 @@ export const ChartsScopingListPanel = ({
         </Button>
       </AddButtonContainer>
       <FilterTitle
+        role="button"
         onClick={() => setCurrentChartId(undefined)}
         className={activeChartId === undefined ? 'active' : ''}
       >

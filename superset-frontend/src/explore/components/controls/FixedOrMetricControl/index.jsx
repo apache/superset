@@ -127,7 +127,7 @@ export default class FixedOrMetricControl extends React.Component {
           <Collapse.Panel
             showArrow={false}
             header={
-              <Label onClick={() => undefined}>
+              <Label role="button" onClick={() => undefined}>
                 {this.state.type === controlTypes.fixed && (
                   <span>{this.state.fixedValue}</span>
                 )}

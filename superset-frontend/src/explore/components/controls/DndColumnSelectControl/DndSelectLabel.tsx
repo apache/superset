@@ -77,6 +77,7 @@ export default function DndSelectLabel({
     return (
       <AddControlLabel
         cancelHover={!props.onClickGhostButton}
+        role="button"
         onClick={props.onClickGhostButton}
       >
         <Icons.PlusSmall iconColor={theme.colors.grayscale.light1} />

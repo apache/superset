@@ -222,7 +222,7 @@ export default function HeaderReportDropDown({
   const textMenu = () =>
     isEmpty(report) ? (
       <Menu selectable={false} {...rest} css={onMenuHover}>
-        <Menu.Item onClick={handleShowMenu}>
+        <Menu.Item role="button" onClick={handleShowMenu}>
           {DropdownItemExtension ? (
             <StyledDropdownItemWithIcon>
               <div>{t('Set up an email report')}</div>
@@ -239,6 +239,7 @@ export default function HeaderReportDropDown({
         <Menu selectable={false} css={{ border: 'none' }}>
           <Menu.Item
             css={onMenuItemHover}
+            role="button"
             onClick={() => toggleActiveKey(report, !isReportActive)}
           >
             <MenuItemWithCheckboxContainer>
@@ -246,10 +247,18 @@ export default function HeaderReportDropDown({
               {t('Email reports active')}
             </MenuItemWithCheckboxContainer>
           </Menu.Item>
-          <Menu.Item css={onMenuItemHover} onClick={handleShowMenu}>
+          <Menu.Item
+            css={onMenuItemHover}
+            role="button"
+            onClick={handleShowMenu}
+          >
             {t('Edit email report')}
           </Menu.Item>
-          <Menu.Item css={onMenuItemHover} onClick={handleDeleteMenuClick}>
+          <Menu.Item
+            css={onMenuItemHover}
+            role="button"
+            onClick={handleDeleteMenuClick}
+          >
             {t('Delete email report')}
           </Menu.Item>
         </Menu>
@@ -267,10 +276,11 @@ export default function HeaderReportDropDown({
           css={{ marginLeft: theme.gridUnit * 2 }}
         />
       </Menu.Item>
-      <Menu.Item onClick={() => setShowModal(true)}>
+      <Menu.Item role="button" onClick={() => setShowModal(true)}>
         {t('Edit email report')}
       </Menu.Item>
       <Menu.Item
+        role="button"
         onClick={() => setCurrentReportDeleting(report)}
         css={deleteColor}
       >

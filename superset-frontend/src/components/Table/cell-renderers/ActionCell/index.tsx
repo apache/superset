@@ -103,7 +103,7 @@ function ActionMenu(props: ActionMenuProps) {
   };
 
   return (
-    <StyledMenu onClick={handleClick}>
+    <StyledMenu role="button" onClick={handleClick}>
       {menuOptions?.map?.((option: ActionMenuItem, index: number) => (
         <Menu.Item key={index}>{option?.label}</Menu.Item>
       ))}

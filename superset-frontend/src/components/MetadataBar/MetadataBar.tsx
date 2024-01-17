@@ -147,6 +147,7 @@ const Item = ({
     <StyledItem
       collapsed={collapsed}
       last={last}
+      role="button"
       onClick={onClick ? () => onClick(type) : undefined}
     >
       <Icon iconSize="l" className="metadata-icon" />

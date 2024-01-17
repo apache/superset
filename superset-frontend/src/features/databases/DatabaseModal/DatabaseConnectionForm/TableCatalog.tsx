@@ -75,6 +75,7 @@ export const TableCatalog = ({
                     }
                   `}
                   iconSize="m"
+                  role="button"
                   onClick={() => changeMethods.onRemoveTableCatalog(idx)}
                 />
               )}
