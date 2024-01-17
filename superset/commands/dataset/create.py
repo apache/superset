@@ -25,13 +25,15 @@ from superset.commands.base import BaseCommand, CreateMixin
 from superset.commands.dataset.exceptions import (
     DatabaseNotFoundValidationError,
     DatasetCreateFailedError,
+    DatasetDataAccessIsNotAllowed,
     DatasetExistsValidationError,
     DatasetInvalidError,
     TableNotFoundValidationError,
 )
 from superset.daos.dataset import DatasetDAO
 from superset.daos.exceptions import DAOCreateFailedError
-from superset.extensions import db
+from superset.exceptions import SupersetSecurityException
+from superset.extensions import db, security_manager
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +84,15 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         ):
             exceptions.append(TableNotFoundValidationError(table_name))
 
+        if sql:
+            try:
+                security_manager.raise_for_access(
+                    database=database,
+                    sql=sql,
+                    schema=schema,
+                )
+            except SupersetSecurityException as ex:
+                exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
         try:
             owners = self.populate_owners(owner_ids)
             self._properties["owners"] = owners

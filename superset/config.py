@@ -402,8 +402,6 @@ CURRENCIES = ["USD", "EUR", "GBP", "INR", "MXN", "JPY", "CNY"]
 # and FEATURE_FLAGS = { 'BAR': True, 'BAZ': True } in superset_config.py
 # will result in combined feature flags of { 'FOO': True, 'BAR': True, 'BAZ': True }
 DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
-    # Experimental feature introducing a client (browser) cache
-    "CLIENT_CACHE": False,  # deprecated
     # When using a recent version of Druid that supports JOINs turn this on
     "DRUID_JOINS": False,
     "DYNAMIC_PLUGINS": False,
@@ -433,7 +431,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "PRESTO_EXPAND_DATA": False,
     # Exposes API endpoint to compute thumbnails
     "THUMBNAILS": False,
-    "DASHBOARD_CACHE": False,  # deprecated
     "REMOVE_SLICE_LEVEL_LABEL_COLORS": False,  # deprecated
     "SHARE_QUERIES_VIA_KV_STORE": False,
     "TAGGING_SYSTEM": False,
@@ -443,8 +440,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "ESCAPE_MARKDOWN_HTML": False,
     "DASHBOARD_NATIVE_FILTERS": True,  # deprecated
     "DASHBOARD_CROSS_FILTERS": True,
-    # Feature is under active development and breaking changes are expected
-    "DASHBOARD_NATIVE_FILTERS_SET": False,  # deprecated
     "DASHBOARD_FILTERS_EXPERIMENTAL": False,  # deprecated
     "DASHBOARD_VIRTUALIZATION": True,
     "GLOBAL_ASYNC_QUERIES": False,
@@ -478,7 +473,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable sharing charts with embedding
     "EMBEDDABLE_CHARTS": True,
     "DRILL_TO_DETAIL": True,
-    "DRILL_BY": False,
+    "DRILL_BY": True,
     "DATAPANEL_CLOSED_BY_DEFAULT": False,
     "HORIZONTAL_FILTER_BAR": False,
     # The feature is off by default, and currently only supported in Presto and Postgres,

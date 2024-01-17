@@ -78,7 +78,6 @@ import {
   BUILDER_SIDEPANEL_WIDTH,
   CLOSED_FILTER_BAR_WIDTH,
   FILTER_BAR_HEADER_HEIGHT,
-  FILTER_BAR_TABS_HEIGHT,
   MAIN_HEADER_HEIGHT,
   OPEN_FILTER_BAR_MAX_WIDTH,
   OPEN_FILTER_BAR_WIDTH,
@@ -463,18 +462,12 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     threshold: [1],
   });
 
-  // Filter sets depend on native filters
-  const filterSetEnabled =
-    isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET) &&
-    isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS);
-
   const showFilterBar =
     (crossFiltersEnabled || nativeFiltersEnabled) && !editMode;
 
   const offset =
     FILTER_BAR_HEADER_HEIGHT +
-    (isSticky || standaloneMode ? 0 : MAIN_HEADER_HEIGHT) +
-    (filterSetEnabled ? FILTER_BAR_TABS_HEIGHT : 0);
+    (isSticky || standaloneMode ? 0 : MAIN_HEADER_HEIGHT);
 
   const filterBarHeight = `calc(100vh - ${offset}px)`;
   const filterBarOffset = dashboardFiltersOpen ? 0 : barTopOffset + 20;
