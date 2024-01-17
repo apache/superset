@@ -352,9 +352,8 @@ def test_prepare_cancel_query(
     from superset.db_engine_specs.trino import TrinoEngineSpec
     from superset.models.sql_lab import Query
 
-    session_mock = mocker.MagicMock()
     query = Query(extra_json=json.dumps(initial_extra))
-    TrinoEngineSpec.prepare_cancel_query(query=query, session=session_mock)
+    TrinoEngineSpec.prepare_cancel_query(query=query)
     assert query.extra == final_extra
 
 
@@ -374,14 +373,13 @@ def test_handle_cursor_early_cancel(
 
     cursor_mock = engine_mock.return_value.__enter__.return_value
     cursor_mock.query_id = query_id
-    session_mock = mocker.MagicMock()
 
     query = Query()
 
     if cancel_early:
-        TrinoEngineSpec.prepare_cancel_query(query=query, session=session_mock)
+        TrinoEngineSpec.prepare_cancel_query(query=query)
 
-    TrinoEngineSpec.handle_cursor(cursor=cursor_mock, query=query, session=session_mock)
+    TrinoEngineSpec.handle_cursor(cursor=cursor_mock, query=query)
 
     if cancel_early:
         assert cancel_query_mock.call_args[1]["cancel_query_id"] == query_id
@@ -399,7 +397,6 @@ def test_execute_with_cursor_in_parallel(mocker: MockerFixture):
     mock_cursor.query_id = None
 
     mock_query = mocker.MagicMock()
-    mock_session = mocker.MagicMock()
 
     def _mock_execute(*args, **kwargs):
         mock_cursor.query_id = query_id
@@ -410,7 +407,6 @@ def test_execute_with_cursor_in_parallel(mocker: MockerFixture):
         cursor=mock_cursor,
         sql="SELECT 1 FROM foo",
         query=mock_query,
-        session=mock_session,
     )
 
     mock_query.set_extra_json_key.assert_called_once_with(
