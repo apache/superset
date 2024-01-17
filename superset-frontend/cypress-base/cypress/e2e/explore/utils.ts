@@ -58,7 +58,10 @@ export function setFilter(filter: string, option: string) {
   interceptFiltering();
 
   cy.get(`[aria-label="${filter}"]`).first().click();
-  cy.get(`[aria-label="${filter}"]`).parent().siblings(`[title="${option}"]`).click();
+  cy.get(`[aria-label="${filter}"]`)
+    .parent()
+    .siblings(`[title="${option}"]`)
+    .click();
 
   cy.wait('@filtering');
 }
