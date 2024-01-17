@@ -44,7 +44,6 @@ These features are **finished** but currently being tested. They are usable, but
 - CONFIRM_DASHBOARD_DIFF
 - DRILL_TO_DETAIL
 - DYNAMIC_PLUGINS: [(docs)](https://superset.apache.org/docs/installation/running-on-kubernetes)
-- ENABLE_JAVASCRIPT_CONTROLS
 - ESTIMATE_QUERY_COST
 - GENERIC_CHART_AXES
 - GLOBAL_ASYNC_QUERIES [(docs)](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries)
@@ -88,6 +87,7 @@ These features flags currently default to True and **will be removed in a future
 - DASHBOARD_FILTERS_EXPERIMENTAL
 - DASHBOARD_NATIVE_FILTERS
 - ENABLE_EXPLORE_JSON_CSRF_PROTECTION
+- ENABLE_JAVASCRIPT_CONTROLS
 - ENABLE_TEMPLATE_REMOVE_FILTERS
 - GENERIC_CHART_AXES
 - KV_STORE

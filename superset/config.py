@@ -423,7 +423,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # this enables programmers to customize certain charts (like the
     # geospatial ones) by inputting javascript in controls. This exposes
     # an XSS security vulnerability
-    "ENABLE_JAVASCRIPT_CONTROLS": False,
+    "ENABLE_JAVASCRIPT_CONTROLS": False,  # deprecated
     "KV_STORE": False,  # deprecated
     # When this feature is enabled, nested types in Presto will be
     # expanded into extra columns and/or arrays. This is experimental,
