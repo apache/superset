@@ -1272,7 +1272,10 @@ const FiltersConfigForm = (
                         )}
                         {hasDataset && datasetId && (
                           <Tooltip title={t('Refresh the default values')}>
-                            <RefreshIcon onClick={() => refreshHandler(true)} />
+                            <RefreshIcon
+                              role="button"
+                              onClick={() => refreshHandler(true)}
+                            />
                           </Tooltip>
                         )}
                       </DefaultValueContainer>

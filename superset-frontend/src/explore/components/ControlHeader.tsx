@@ -111,6 +111,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
             >
               <Icons.InfoCircleOutlined
                 css={iconStyles}
+                role="button"
                 onClick={tooltipOnClick}
               />
             </Tooltip>{' '}

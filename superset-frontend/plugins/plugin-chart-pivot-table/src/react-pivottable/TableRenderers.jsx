@@ -435,6 +435,7 @@ export class TableRenderer extends React.Component {
             key={`colKey-${flatColKey}`}
             colSpan={colSpan}
             rowSpan={rowSpan}
+            role="columnheader button"
             onClick={this.clickHeaderHandler(
               pivotData,
               colKey,
@@ -463,6 +464,7 @@ export class TableRenderer extends React.Component {
             key={`colKeyBuffer-${flatKey(colKey)}`}
             colSpan={colSpan}
             rowSpan={rowSpan}
+            role="columnheader button"
             onClick={this.clickHeaderHandler(
               pivotData,
               colKey,
@@ -486,6 +488,7 @@ export class TableRenderer extends React.Component {
           key="total"
           className="pvtTotalLabel"
           rowSpan={colAttrs.length + Math.min(rowAttrs.length, 1)}
+          role="columnheader button"
           onClick={this.clickHeaderHandler(
             pivotData,
             [],
@@ -550,6 +553,7 @@ export class TableRenderer extends React.Component {
         <th
           className="pvtTotalLabel"
           key="padding"
+          role="columnheader button"
           onClick={this.clickHeaderHandler(
             pivotData,
             [],
@@ -637,6 +641,7 @@ export class TableRenderer extends React.Component {
             className={valueCellClassName}
             rowSpan={rowSpan}
             colSpan={colSpan}
+            role="columnheader button"
             onClick={this.clickHeaderHandler(
               pivotData,
               rowKey,
@@ -668,6 +673,7 @@ export class TableRenderer extends React.Component {
           key="rowKeyBuffer"
           colSpan={rowAttrs.length - rowKey.length + colIncrSpan}
           rowSpan={1}
+          role="columnheader button"
           onClick={this.clickHeaderHandler(
             pivotData,
             rowKey,
@@ -772,6 +778,7 @@ export class TableRenderer extends React.Component {
         key="label"
         className="pvtTotalLabel pvtRowTotalLabel"
         colSpan={rowAttrs.length + Math.min(colAttrs.length, 1)}
+        role="columnheader button"
         onClick={this.clickHeaderHandler(
           pivotData,
           [],

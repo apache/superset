@@ -146,6 +146,7 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
                   event.stopPropagation();
                   onRemove(id);
                 }}
+                role="button"
                 alt="RemoveFilter"
               />
             )}

@@ -276,7 +276,7 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
                   })}
                   role="tab"
                 >
-                  <a href={tab.url} onClick={tab.onClick}>
+                  <a href={tab.url} role="button" onClick={tab.onClick}>
                     {tab.label}
                   </a>
                 </div>

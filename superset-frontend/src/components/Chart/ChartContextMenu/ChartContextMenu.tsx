@@ -194,6 +194,7 @@ const ChartContextMenu = (
         <Menu.Item
           key="cross-filtering-menu-item"
           disabled={isCrossFilterDisabled}
+          role="button"
           onClick={() => {
             if (filters?.crossFilter) {
               dispatch(updateDataMask(id, filters.crossFilter.dataMask));

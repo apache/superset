@@ -104,7 +104,7 @@ const SaveQuery = ({
 
   const overlayMenu = (
     <Menu>
-      <Menu.Item onClick={() => setShowSaveDatasetModal(true)}>
+      <Menu.Item role="button" onClick={() => setShowSaveDatasetModal(true)}>
         {t('Save dataset')}
       </Menu.Item>
     </Menu>

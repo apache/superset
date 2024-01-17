@@ -62,6 +62,7 @@ export default function FilterScopeTree({
       onExpand={onExpand}
       onClick={NOOP}
       icons={treeIcons}
+      role="button"
     />
   );
 }

@@ -134,6 +134,7 @@ export default function ChartCard({
   );
   return (
     <CardStyles
+      role="button"
       onClick={() => {
         if (!bulkSelectEnabled && chart.url) {
           history.push(chart.url);
@@ -161,6 +162,7 @@ export default function ChartCard({
         linkComponent={Link}
         actions={
           <ListViewCard.Actions
+            role="button"
             onClick={e => {
               e.stopPropagation();
               e.preventDefault();

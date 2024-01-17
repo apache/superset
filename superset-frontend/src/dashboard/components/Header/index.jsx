@@ -563,6 +563,7 @@ class Header extends React.PureComponent {
                               onClick={undoLength && onUndo}
                               data-test="undo-action"
                               iconSize="xl"
+                              role="button"
                             />
                           </StyledUndoRedoButton>
                         </Tooltip>
@@ -583,6 +584,7 @@ class Header extends React.PureComponent {
                               onClick={redoLength && onRedo}
                               data-test="redo-action"
                               iconSize="xl"
+                              role="button"
                             />
                           </StyledUndoRedoButton>
                         </Tooltip>

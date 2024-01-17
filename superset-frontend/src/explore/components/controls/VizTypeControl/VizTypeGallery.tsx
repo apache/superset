@@ -480,6 +480,7 @@ const Selector: React.FC<{
       key={selector}
       name={selector}
       className={cx(className, isSelected && 'selected')}
+      role="button"
       onClick={() => onClick(selector, sectionId)}
     >
       {icon}
@@ -800,7 +801,11 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           suffix={
             <InputIconAlignment>
               {searchInputValue && (
-                <Icons.XLarge iconSize="m" onClick={stopSearching} />
+                <Icons.XLarge
+                  iconSize="m"
+                  role="button"
+                  onClick={stopSearching}
+                />
               )}
             </InputIconAlignment>
           }

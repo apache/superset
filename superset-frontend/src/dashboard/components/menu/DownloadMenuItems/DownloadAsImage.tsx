@@ -47,7 +47,7 @@ export default function DownloadAsImage({
 
   return (
     <Menu.Item key="download-image" {...rest}>
-      <div onClick={onDownloadImage} role="button" tabIndex={0}>
+      <div role="button" onClick={onDownloadImage} tabIndex={0}>
         {text}
       </div>
     </Menu.Item>
