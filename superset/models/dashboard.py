@@ -39,7 +39,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import relationship, sessionmaker, subqueryload
+from sqlalchemy.orm import relationship, subqueryload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.sql import join, select
 from sqlalchemy.sql.elements import BinaryExpression
@@ -62,38 +62,33 @@ config = app.config
 logger = logging.getLogger(__name__)
 
 
-def copy_dashboard(_mapper: Mapper, connection: Connection, target: Dashboard) -> None:
+def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) -> None:
     dashboard_id = config["DASHBOARD_TEMPLATE_ID"]
     if dashboard_id is None:
         return
 
-    session_class = sessionmaker(autoflush=False)
-    session = session_class(bind=connection)
+    session = sqla.inspect(target).session
+    new_user = session.query(User).filter_by(id=target.id).first()
 
-    try:
-        new_user = session.query(User).filter_by(id=target.id).first()
+    # copy template dashboard to user
+    template = session.query(Dashboard).filter_by(id=int(dashboard_id)).first()
+    dashboard = Dashboard(
+        dashboard_title=template.dashboard_title,
+        position_json=template.position_json,
+        description=template.description,
+        css=template.css,
+        json_metadata=template.json_metadata,
+        slices=template.slices,
+        owners=[new_user],
+    )
+    session.add(dashboard)
 
-        # copy template dashboard to user
-        template = session.query(Dashboard).filter_by(id=int(dashboard_id)).first()
-        dashboard = Dashboard(
-            dashboard_title=template.dashboard_title,
-            position_json=template.position_json,
-            description=template.description,
-            css=template.css,
-            json_metadata=template.json_metadata,
-            slices=template.slices,
-            owners=[new_user],
-        )
-        session.add(dashboard)
-
-        # set dashboard as the welcome dashboard
-        extra_attributes = UserAttribute(
-            user_id=target.id, welcome_dashboard_id=dashboard.id
-        )
-        session.add(extra_attributes)
-        session.commit()
-    finally:
-        session.close()
+    # set dashboard as the welcome dashboard
+    extra_attributes = UserAttribute(
+        user_id=target.id, welcome_dashboard_id=dashboard.id
+    )
+    session.add(extra_attributes)
+    session.commit()
 
 
 sqla.event.listen(User, "after_insert", copy_dashboard)
@@ -397,7 +392,7 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
                     if id_ is None:
                         continue
                     datasource = DatasourceDAO.get_datasource(
-                        db.session, utils.DatasourceType.TABLE, id_
+                        utils.DatasourceType.TABLE, id_
                     )
                     datasource_ids.add((datasource.id, datasource.type))
 
@@ -406,9 +401,7 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
 
         eager_datasources = []
         for datasource_id, _ in datasource_ids:
-            eager_datasource = SqlaTable.get_eager_sqlatable_datasource(
-                db.session, datasource_id
-            )
+            eager_datasource = SqlaTable.get_eager_sqlatable_datasource(datasource_id)
             copied_datasource = eager_datasource.copy()
             copied_datasource.alter_params(
                 remote_id=eager_datasource.id,

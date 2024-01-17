@@ -48,7 +48,7 @@ from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
 from sqlalchemy import and_, inspect, or_
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import eagerload, Session
+from sqlalchemy.orm import eagerload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 
@@ -545,8 +545,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
 
         # group all datasources by database
-        session = self.get_session
-        all_datasources = SqlaTable.get_all_datasources(session)
+        all_datasources = SqlaTable.get_all_datasources(self.get_session)
         datasources_by_database: dict["Database", set["SqlaTable"]] = defaultdict(set)
         for datasource in all_datasources:
             datasources_by_database[datasource.database].add(datasource)
@@ -2017,17 +2016,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 self.get_dashboard_access_error_object(dashboard)
             )
 
-    def get_user_by_username(
-        self, username: str, session: Session = None
-    ) -> Optional[User]:
+    def get_user_by_username(self, username: str) -> Optional[User]:
         """
         Retrieves a user by it's username case sensitive. Optional session parameter
         utility method normally useful for celery tasks where the session
         need to be scoped
         """
-        session = session or self.get_session
         return (
-            session.query(self.user_model)
+            self.get_session.query(self.user_model)
             .filter(self.user_model.username == username)
             .one_or_none()
         )
