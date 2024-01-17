@@ -18,7 +18,7 @@ import DvtLogo from '../DvtLogo';
 import DvtDarkMode from '../DvtDarkMode';
 import DvtTitlePlus from '../DvtTitlePlus';
 import DvtNavigation from '../DvtNavigation';
-import DvtFolderNavigation from '../DvtFolderNavigation';
+//import DvtFolderNavigation from '../DvtFolderNavigation';
 import DvtSelect from '../DvtSelect';
 import DvtNavigationBar from '../DvtNavigationBar';
 import { DvtSidebarData, DefaultOrder } from './dvtSidebarData';
@@ -387,7 +387,7 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
                   <DvtNavigation data={data.data} />
                 </>
               )}
-              {data.titleMenu === 'folder' && (
+              {/* {data.titleMenu === 'folder' && (
                 <>
                   <DvtTitlePlus title={data.title} onClick={() => {}} />
                   <DvtFolderNavigation data={data.data} />
@@ -395,7 +395,7 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
               )}
               {data.titleMenu === 'shared folder' && (
                 <DvtTitlePlus title={data.title} onClick={() => {}} />
-              )}
+              )} */}
             </StyledDvtSidebarBodyItem>
           ))}
         </StyledDvtSidebarBody>
