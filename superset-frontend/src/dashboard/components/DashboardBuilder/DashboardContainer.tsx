@@ -215,7 +215,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     : [DASHBOARD_GRID_ID];
   const min = Math.min(tabIndex, childIds.length - 1);
   const activeKey = min === 0 ? DASHBOARD_GRID_ID : min.toString();
-  const TOP_OF_PAGE_RANGE = 200;
+  const TOP_OF_PAGE_RANGE = 220;
 
   return (
     <div className="grid-container" data-test="grid-container">
@@ -236,7 +236,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
             allowOverflow
             onFocus={e => {
               if (
-                // only prevent scrolling when tabbing to the tab pane
+                // prevent scrolling when tabbing to the tab pane
                 e.target.classList.contains('ant-tabs-tabpane') &&
                 window.scrollY < TOP_OF_PAGE_RANGE
               ) {
