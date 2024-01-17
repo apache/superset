@@ -19,7 +19,7 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useAppSelector } from 'src/hooks/useAppSelector';
-import { dvtAppSetSort } from 'src/dvt-redux/dvt-appReducer';
+// import { dvtAppSetSort } from 'src/dvt-redux/dvt-appReducer';
 import { BellOutlined } from '@ant-design/icons';
 import { dvtNavbarSqlSetTabs } from 'src/dvt-redux/dvt-navbarReducer';
 import {
@@ -53,7 +53,7 @@ export interface DvtNavbarProps {
 
 const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, user }) => {
   const dispatch = useDispatch();
-  const sort = useAppSelector(state => state.dvtApp.sort);
+  // const sort = useAppSelector(state => state.dvtApp.sort);
   const sqlSelector = useAppSelector(state => state.dvtNavbar.sql);
   const [active, setActive] = useState<string>('All');
   const [activeData, setActiveData] = useState<TabsDataProps[]>([]);
