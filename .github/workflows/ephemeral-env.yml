@@ -62,6 +62,8 @@ jobs:
           return results;
 
     - name: Limit to committers
+      if: >
+        steps.eval-body.outputs.result != 'noop'
       uses: actions/github-script@v3
       with:
         github-token: ${{github.token}}
