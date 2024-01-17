@@ -16,15 +16,15 @@
 # under the License.
 """add subject column to report schedule
 
-Revision ID: 85e1149d5622
-Revises: 65a167d4c62e
-Create Date: 2024-01-17 10:24:49.666289
+Revision ID: 9eb747b49d7e
+Revises: 59a1450b3c10
+Create Date: 2024-01-17 10:50:08.931886
 
 """
 
 # revision identifiers, used by Alembic.
-revision = "85e1149d5622"
-down_revision = "65a167d4c62e"
+revision = '9eb747b49d7e'
+down_revision = '59a1450b3c10'
 
 import sqlalchemy as sa
 from alembic import op
@@ -35,7 +35,6 @@ def upgrade():
         "report_schedule",
         sa.Column("email_subject", sa.String(length=255), nullable=True),
     )
-
 
 def downgrade():
     op.drop_column("report_schedule", "email_subject")
