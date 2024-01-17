@@ -33,10 +33,10 @@ import {
 
 export interface DvtSelectProps {
   label?: string;
-  data: { value: string; label: string }[];
+  data: any[];
   placeholder?: string;
-  selectedValue: string;
-  setSelectedValue: (newSeletedValue: string) => void;
+  selectedValue: any;
+  setSelectedValue: (newSeletedValue: any) => void;
   typeDesign?: 'normal' | 'form' | 'navbar';
   width?: number;
   maxWidth?: boolean;
@@ -44,13 +44,14 @@ export interface DvtSelectProps {
   popoverDirection?: 'top' | 'bottom' | 'left' | 'right';
   important?: boolean;
   importantLabel?: string;
+  objectName?: string;
 }
 
 const DvtSelect: React.FC<DvtSelectProps> = ({
   data,
   label,
   placeholder,
-  selectedValue,
+  selectedValue = {},
   setSelectedValue,
   typeDesign = 'normal',
   width = 202,
@@ -59,6 +60,7 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
   popoverLabel,
   important,
   importantLabel = 'Cannot be empty',
+  objectName = 'label',
 }) => {
   const ref = useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -68,7 +70,7 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
     setIsOpen(!isOpen);
   };
 
-  const handleOptionClick = (value: string) => {
+  const handleOptionClick = (value: any) => {
     setSelectedValue(value);
     setIsOpen(false);
   };
@@ -83,7 +85,7 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
         {label && (
           <StyledSelectLabel typeDesign={typeDesign}>{label}</StyledSelectLabel>
         )}
-        {important && !selectedValue && (
+        {important && !selectedValue[objectName] && (
           <DvtPopper
             size="small"
             label={importantLabel}
@@ -118,15 +120,10 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
         isOpen={isOpen}
         onClick={handleSelectClick}
         typeDesign={typeDesign}
-        selectedValue={selectedValue}
+        selectedValue={selectedValue[objectName]}
       >
-        {data.find(option => option.value === selectedValue)?.label ||
-          placeholder}
-        <StyledSelectIcon
-          isOpen={isOpen}
-          typeDesign={typeDesign}
-          selectedValue={selectedValue}
-        >
+        {selectedValue[objectName] || placeholder}
+        <StyledSelectIcon isOpen={isOpen}>
           <Icon
             fileName="caret_right"
             iconSize="xxl"
@@ -148,13 +145,12 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
         >
           {data.map((option, index) => (
             <StyledSelectOption
-              selectedValue={selectedValue}
-              value={option.value}
+              selectedValue={option[objectName] === selectedValue[objectName]}
               key={index}
-              onClick={() => handleOptionClick(option.value)}
+              onClick={() => handleOptionClick(option)}
               typeDesign={typeDesign}
             >
-              {option.label}
+              {option[objectName]}
             </StyledSelectOption>
           ))}
         </StyledSelectOptions>
