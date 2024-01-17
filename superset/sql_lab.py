@@ -25,10 +25,8 @@ from typing import Any, cast, Optional, Union
 import backoff
 import msgpack
 import simplejson as json
-from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
 from flask_babel import gettext as __
-from sqlalchemy.orm import Session
 
 from superset import (
     app,
@@ -56,7 +54,6 @@ from superset.sql_parse import (
 )
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.utils import write_ipc_buffer
-from superset.utils.celery import session_scope
 from superset.utils.core import (
     json_iso_dttm_ser,
     override_user,
@@ -92,7 +89,6 @@ class SqlLabQueryStoppedException(SqlLabException):
 def handle_query_error(
     ex: Exception,
     query: Query,
-    session: Session,
     payload: Optional[dict[str, Any]] = None,
     prefix_message: str = "",
 ) -> dict[str, Any]:
@@ -120,7 +116,7 @@ def handle_query_error(
     if errors:
         query.set_extra_json_key("errors", errors_payload)
 
-    session.commit()
+    db.session.commit()
     payload.update({"status": query.status, "error": msg, "errors": errors_payload})
     if troubleshooting_link := config["TROUBLESHOOTING_LINK"]:
         payload["link"] = troubleshooting_link
@@ -150,22 +146,20 @@ def get_query_giveup_handler(_: Any) -> None:
     on_giveup=get_query_giveup_handler,
     max_tries=5,
 )
-def get_query(query_id: int, session: Session) -> Query:
+def get_query(query_id: int) -> Query:
     """attempts to get the query and retry if it cannot"""
     try:
-        return session.query(Query).filter_by(id=query_id).one()
+        return db.session.query(Query).filter_by(id=query_id).one()
     except Exception as ex:
         raise SqlLabException("Failed at getting query") from ex
 
 
 @celery_app.task(
     name="sql_lab.get_sql_results",
-    bind=True,
     time_limit=SQLLAB_HARD_TIMEOUT,
     soft_time_limit=SQLLAB_TIMEOUT,
 )
 def get_sql_results(  # pylint: disable=too-many-arguments
-    ctask: Task,
     query_id: int,
     rendered_query: str,
     return_results: bool = True,
@@ -176,30 +170,27 @@ def get_sql_results(  # pylint: disable=too-many-arguments
     log_params: Optional[dict[str, Any]] = None,
 ) -> Optional[dict[str, Any]]:
     """Executes the sql query returns the results."""
-    with session_scope(not ctask.request.called_directly) as session:
-        with override_user(security_manager.find_user(username)):
-            try:
-                return execute_sql_statements(
-                    query_id,
-                    rendered_query,
-                    return_results,
-                    store_results,
-                    session=session,
-                    start_time=start_time,
-                    expand_data=expand_data,
-                    log_params=log_params,
-                )
-            except Exception as ex:  # pylint: disable=broad-except
-                logger.debug("Query %d: %s", query_id, ex)
-                stats_logger.incr("error_sqllab_unhandled")
-                query = get_query(query_id, session)
-                return handle_query_error(ex, query, session)
+    with override_user(security_manager.find_user(username)):
+        try:
+            return execute_sql_statements(
+                query_id,
+                rendered_query,
+                return_results,
+                store_results,
+                start_time=start_time,
+                expand_data=expand_data,
+                log_params=log_params,
+            )
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.debug("Query %d: %s", query_id, ex)
+            stats_logger.incr("error_sqllab_unhandled")
+            query = get_query(query_id)
+            return handle_query_error(ex, query)
 
 
-def execute_sql_statement(  # pylint: disable=too-many-arguments, too-many-locals
+def execute_sql_statement(
     sql_statement: str,
     query: Query,
-    session: Session,
     cursor: Any,
     log_params: Optional[dict[str, Any]],
     apply_ctas: bool = False,
@@ -284,9 +275,9 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments, too-many-local
                 security_manager,
                 log_params,
             )
-        session.commit()
+        db.session.commit()
         with stats_timing("sqllab.query.time_executing_query", stats_logger):
-            db_engine_spec.execute_with_cursor(cursor, sql, query, session)
+            db_engine_spec.execute_with_cursor(cursor, sql, query)
 
         with stats_timing("sqllab.query.time_fetching_results", stats_logger):
             logger.debug(
@@ -319,7 +310,7 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments, too-many-local
     except Exception as ex:
         # query is stopped in another thread/worker
         # stopping raises expected exceptions which we should skip
-        session.refresh(query)
+        db.session.refresh(query)
         if query.status == QueryStatus.STOPPED:
             raise SqlLabQueryStoppedException() from ex
 
@@ -393,7 +384,6 @@ def execute_sql_statements(
     rendered_query: str,
     return_results: bool,
     store_results: bool,
-    session: Session,
     start_time: Optional[float],
     expand_data: bool,
     log_params: Optional[dict[str, Any]],
@@ -403,7 +393,7 @@ def execute_sql_statements(
         # only asynchronous queries
         stats_logger.timing("sqllab.query.time_pending", now_as_float() - start_time)
 
-    query = get_query(query_id, session)
+    query = get_query(query_id)
     payload: dict[str, Any] = {"query_id": query_id}
     database = query.database
     db_engine_spec = database.db_engine_spec
@@ -432,7 +422,7 @@ def execute_sql_statements(
     logger.info("Query %s: Set query to 'running'", str(query_id))
     query.status = QueryStatus.RUNNING
     query.start_running_time = now_as_float()
-    session.commit()
+    db.session.commit()
 
     # Should we create a table or view from the select?
     if (
@@ -476,11 +466,11 @@ def execute_sql_statements(
         cancel_query_id = db_engine_spec.get_cancel_query_id(cursor, query)
         if cancel_query_id is not None:
             query.set_extra_json_key(QUERY_CANCEL_KEY, cancel_query_id)
-            session.commit()
+            db.session.commit()
         statement_count = len(statements)
         for i, statement in enumerate(statements):
             # Check if stopped
-            session.refresh(query)
+            db.session.refresh(query)
             if query.status == QueryStatus.STOPPED:
                 payload.update({"status": query.status})
                 return payload
@@ -497,12 +487,11 @@ def execute_sql_statements(
             )
             logger.info("Query %s: %s", str(query_id), msg)
             query.set_extra_json_key("progress", msg)
-            session.commit()
+            db.session.commit()
             try:
                 result_set = execute_sql_statement(
                     statement,
                     query,
-                    session,
                     cursor,
                     log_params,
                     apply_ctas,
@@ -521,9 +510,7 @@ def execute_sql_statements(
                     if statement_count > 1
                     else ""
                 )
-                payload = handle_query_error(
-                    ex, query, session, payload, prefix_message
-                )
+                payload = handle_query_error(ex, query, payload, prefix_message)
                 return payload
 
         # Commit the connection so CTA queries will create the table and any DML.
@@ -593,7 +580,7 @@ def execute_sql_statements(
         query.results_key = key
 
     query.status = QueryStatus.SUCCESS
-    session.commit()
+    db.session.commit()
 
     if return_results:
         # since we're returning results we need to create non-arrow data
@@ -634,7 +621,7 @@ def cancel_query(query: Query) -> bool:
         return True
 
     # Some databases may need to make preparations for query cancellation
-    query.database.db_engine_spec.prepare_cancel_query(query, db.session)
+    query.database.db_engine_spec.prepare_cancel_query(query)
 
     if query.extra.get(QUERY_EARLY_CANCEL_KEY):
         # Query has been cancelled prior to being able to set the cancel key.

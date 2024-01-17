@@ -166,5 +166,5 @@ export const stateWithoutNativeFilters = {
     },
   },
   dataMask: {},
-  nativeFilters: { filters: {}, filterSets: {} },
+  nativeFilters: { filters: {} },
 };

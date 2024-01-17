@@ -25,7 +25,7 @@ import {
   ColumnMeta,
   defineSavedMetrics,
 } from '@superset-ui/chart-controls';
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import { getQueryMode, isAggMode, validateAggControlValues } from './shared';
 
 const percentMetrics: typeof sharedControls.metrics = {
@@ -64,9 +64,7 @@ const dndPercentMetrics = {
 export const percentMetricsControlSetItem: ControlSetItem = {
   name: 'percent_metrics',
   config: {
-    ...(isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
-      ? dndPercentMetrics
-      : percentMetrics),
+    ...dndPercentMetrics,
   },
 };
 
