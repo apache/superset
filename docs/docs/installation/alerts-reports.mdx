@@ -20,7 +20,7 @@ Alerts and reports are disabled by default. To turn them on, you need to do some
 
 ##### In your `superset_config.py` or `superset_config_docker.py`
 
-- `"ALERT_REPORTS"` [feature flag](https://superset.apache.org/docs/installation/configuring-superset#feature-flags) must be turned to True.
+- `"ALERT_REPORTS"` [feature flag](/docs/installation/configuring-superset#feature-flags) must be turned to True.
 - `beat_schedule` in CeleryConfig must contain schedule for `reports.scheduler`.
 - At least one of those must be configured, depending on what you want to use:
   - emails: `SMTP_*` settings
@@ -35,7 +35,7 @@ Screenshots will be taken but no messages actually sent as long as `ALERT_REPORT
 - You must install a headless browser, for taking screenshots of the charts and dashboards. Only Firefox and Chrome are currently supported.
   > If you choose Chrome, you must also change the value of `WEBDRIVER_TYPE` to `"chrome"` in your `superset_config.py`.
 
-Note: All the components required (Firefox headless browser, Redis, Postgres db, celery worker and celery beat) are present in the *dev* docker image if you are following [Installing Superset Locally](https://superset.apache.org/docs/installation/installing-superset-using-docker-compose/).
+Note: All the components required (Firefox headless browser, Redis, Postgres db, celery worker and celery beat) are present in the *dev* docker image if you are following [Installing Superset Locally](/docs/installation/installing-superset-using-docker-compose/).
 All you need to do is add the required config variables described in this guide (See `Detailed Config`).
 
 If you are running a non-dev docker image, e.g., a stable release like `apache/superset:2.0.1`, that image does not include a headless browser.  Only the `superset_worker` container needs this headless browser to browse to the target chart or dashboard.

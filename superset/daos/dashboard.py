@@ -31,21 +31,12 @@ from superset.commands.dashboard.exceptions import (
     DashboardNotFoundError,
 )
 from superset.daos.base import BaseDAO
-from superset.dashboards.filter_sets.consts import (
-    DASHBOARD_ID_FIELD,
-    DESCRIPTION_FIELD,
-    JSON_METADATA_FIELD,
-    NAME_FIELD,
-    OWNER_ID_FIELD,
-    OWNER_TYPE_FIELD,
-)
 from superset.dashboards.filters import DashboardAccessFilter, is_uuid
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard, id_or_slug_filter
 from superset.models.embedded_dashboard import EmbeddedDashboard
-from superset.models.filter_set import FilterSet
 from superset.models.slice import Slice
 from superset.utils.core import get_user_id
 from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
@@ -387,29 +378,3 @@ class EmbeddedDashboardDAO(BaseDAO[EmbeddedDashboard]):
         At least, until we are ok with more than one embedded item per dashboard.
         """
         raise NotImplementedError("Use EmbeddedDashboardDAO.upsert() instead.")
-
-
-class FilterSetDAO(BaseDAO[FilterSet]):
-    @classmethod
-    def create(
-        cls,
-        item: FilterSet | None = None,
-        attributes: dict[str, Any] | None = None,
-        commit: bool = True,
-    ) -> FilterSet:
-        if not item:
-            item = FilterSet()
-
-        if attributes:
-            setattr(item, NAME_FIELD, attributes[NAME_FIELD])
-            setattr(item, JSON_METADATA_FIELD, attributes[JSON_METADATA_FIELD])
-            setattr(item, DESCRIPTION_FIELD, attributes.get(DESCRIPTION_FIELD, None))
-            setattr(
-                item,
-                OWNER_ID_FIELD,
-                attributes.get(OWNER_ID_FIELD, attributes[DASHBOARD_ID_FIELD]),
-            )
-            setattr(item, OWNER_TYPE_FIELD, attributes[OWNER_TYPE_FIELD])
-            setattr(item, DASHBOARD_ID_FIELD, attributes[DASHBOARD_ID_FIELD])
-
-        return super().create(item, commit=commit)

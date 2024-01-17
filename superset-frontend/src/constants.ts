@@ -47,10 +47,6 @@ export const URL_PARAMS = {
     name: 'native_filters_key',
     type: 'string',
   },
-  filterSet: {
-    name: 'filter_set',
-    type: 'string',
-  },
   showFilters: {
     name: 'show_filters',
     type: 'boolean',
