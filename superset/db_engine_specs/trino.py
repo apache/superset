@@ -26,8 +26,9 @@ import simplejson as json
 from flask import current_app
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
-from sqlalchemy.orm import Session
+from sqlalchemy.exc import NoSuchTableError
 
+from superset import db
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY, USER_AGENT
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -154,7 +155,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         return None
 
     @classmethod
-    def handle_cursor(cls, cursor: Cursor, query: Query, session: Session) -> None:
+    def handle_cursor(cls, cursor: Cursor, query: Query) -> None:
         """
         Handle a trino client cursor.
 
@@ -171,7 +172,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         if tracking_url := cls.get_tracking_url(cursor):
             query.tracking_url = tracking_url
 
-        session.commit()
+        db.session.commit()
 
         # if query cancelation was requested prior to the handle_cursor call, but
         # the query was still executed, trigger the actual query cancelation now
@@ -182,12 +183,10 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 cancel_query_id=cancel_query_id,
             )
 
-        super().handle_cursor(cursor=cursor, query=query, session=session)
+        super().handle_cursor(cursor=cursor, query=query)
 
     @classmethod
-    def execute_with_cursor(
-        cls, cursor: Cursor, sql: str, query: Query, session: Session
-    ) -> None:
+    def execute_with_cursor(cls, cursor: Cursor, sql: str, query: Query) -> None:
         """
         Trigger execution of a query and handle the resulting cursor.
 
@@ -224,7 +223,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             time.sleep(0.1)
 
         logger.debug("Query %d: Handling cursor", query_id)
-        cls.handle_cursor(cursor, query, session)
+        cls.handle_cursor(cursor, query)
 
         # Block until the query completes; same behaviour as the client itself
         logger.debug("Query %d: Waiting for query to complete", query_id)
@@ -236,10 +235,10 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             raise err
 
     @classmethod
-    def prepare_cancel_query(cls, query: Query, session: Session) -> None:
+    def prepare_cancel_query(cls, query: Query) -> None:
         if QUERY_CANCEL_KEY not in query.extra:
             query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
-            session.commit()
+            db.session.commit()
 
     @classmethod
     def cancel_query(cls, cursor: Cursor, query: Query, cancel_query_id: str) -> bool:
@@ -395,3 +394,27 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             return base_cols
 
         return [col for base_col in base_cols for col in cls._expand_columns(base_col)]
+
+    @classmethod
+    def get_indexes(
+        cls,
+        database: Database,
+        inspector: Inspector,
+        table_name: str,
+        schema: str | None,
+    ) -> list[dict[str, Any]]:
+        """
+        Get the indexes associated with the specified schema/table.
+
+        Trino dialect raises NoSuchTableError in get_indexes if table is empty.
+
+        :param database: The database to inspect
+        :param inspector: The SQLAlchemy inspector
+        :param table_name: The table to inspect
+        :param schema: The schema to inspect
+        :returns: The indexes
+        """
+        try:
+            return super().get_indexes(database, inspector, table_name, schema)
+        except NoSuchTableError:
+            return []

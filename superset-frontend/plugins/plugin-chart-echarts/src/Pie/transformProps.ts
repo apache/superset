@@ -80,6 +80,8 @@ export function formatPieLabel({
       return `${name}: ${formattedValue} (${formattedPercent})`;
     case EchartsPieLabelType.KeyPercent:
       return `${name}: ${formattedPercent}`;
+    case EchartsPieLabelType.ValuePercent:
+      return `${formattedValue} (${formattedPercent})`;
     default:
       return name;
   }

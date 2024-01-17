@@ -116,9 +116,7 @@ const LabeledErrorBoundInput = ({
       <StyledFormLabel htmlFor={id} required={required}>
         {label}
       </StyledFormLabel>
-      {hasTooltip && (
-        <InfoTooltip tooltip={`${tooltipText}`} viewBox="0 -1 24 24" />
-      )}
+      {hasTooltip && <InfoTooltip tooltip={`${tooltipText}`} />}
     </StyledAlignment>
     <FormItem
       css={(theme: SupersetTheme) => alertIconStyles(theme, !!errorMessage)}

@@ -1828,6 +1828,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         query_context: Optional["QueryContext"] = None,
         table: Optional["Table"] = None,
         viz: Optional["BaseViz"] = None,
+        sql: Optional[str] = None,
+        schema: Optional[str] = None,
     ) -> None:
         """
         Raise an exception if the user cannot access the resource.
@@ -1838,6 +1840,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param query_context: The query context
         :param table: The Superset table (requires database)
         :param viz: The visualization
+        :param sql: The SQL string (requires database)
+        :param schema: Optional schema name
         :raises SupersetSecurityException: If the user cannot access the resource
         """
 
@@ -1846,7 +1850,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.connectors.sqla.models import SqlaTable
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
+        from superset.models.sql_lab import Query
         from superset.sql_parse import Table
+        from superset.utils.core import shortid
+
+        if sql and database:
+            query = Query(
+                database=database,
+                sql=sql,
+                schema=schema,
+                client_id=shortid()[:10],
+                user_id=get_user_id(),
+            )
+            self.get_session.expunge(query)
 
         if database and table or query:
             if query:

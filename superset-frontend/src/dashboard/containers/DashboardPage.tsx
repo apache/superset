@@ -21,9 +21,7 @@ import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
 import {
   CategoricalColorNamespace,
-  FeatureFlag,
   getSharedLabelColor,
-  isFeatureEnabled,
   SharedLabelColorSource,
   t,
   useTheme,
@@ -39,12 +37,10 @@ import {
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
 import { setDatasources } from 'src/dashboard/actions/datasources';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
-import setupPlugins from 'src/setup/setupPlugins';
 
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { getFilterSets } from 'src/dashboard/actions/nativeFilters';
 import { setDatasetsStatus } from 'src/dashboard/actions/dashboardState';
 import {
   getFilterValue,
@@ -65,7 +61,6 @@ import SyncDashboardState, {
 
 export const DashboardPageIdContext = React.createContext('');
 
-setupPlugins();
 const DashboardBuilder = React.lazy(
   () =>
     import(
@@ -105,11 +100,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const error = dashboardApiError || chartsApiError;
   const readyToRender = Boolean(dashboard && charts);
   const { dashboard_title, css, metadata, id = 0 } = dashboard || {};
-
-  // Filter sets depend on native filters
-  const filterSetEnabled =
-    isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET) &&
-    isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS);
 
   useEffect(() => {
     // mark tab id as redundant when user closes browser tab - a new id will be
@@ -160,10 +150,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       if (readyToRender) {
         if (!isDashboardHydrated.current) {
           isDashboardHydrated.current = true;
-          if (filterSetEnabled) {
-            // only initialize filterset once
-            dispatch(getFilterSets(id));
-          }
         }
         dispatch(
           hydrateDashboard({
