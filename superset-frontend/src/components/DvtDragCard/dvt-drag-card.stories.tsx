@@ -75,5 +75,5 @@ export const Default = (args: DvtDragCardProps) => {
 Default.args = {
   label: 'arac',
   value: { id: 1, name: 'arac' },
-  icon: 'dvt-hashtag',
+  icon: 'question',
 };
