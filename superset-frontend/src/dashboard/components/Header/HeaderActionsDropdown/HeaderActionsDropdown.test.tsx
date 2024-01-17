@@ -145,7 +145,7 @@ test('should render the menu items in Embedded mode', async () => {
   setup(guestUserProps);
   expect(screen.getAllByRole('menuitem')).toHaveLength(3);
   expect(screen.getByText('Refresh dashboard')).toBeInTheDocument();
-  expect(screen.getByText('Download')).toBeInTheDocument();
+  expect(screen.getByText('Download as image')).toBeInTheDocument();
   expect(screen.getByText('Set auto-refresh interval')).toBeInTheDocument();
 });
 
