@@ -25,6 +25,7 @@ from sqlalchemy import Column, Enum, ForeignKey, Integer, orm, String, Table, Te
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.orm.mapper import Mapper
+from sqlalchemy.schema import UniqueConstraint
 
 from superset import security_manager
 from superset.models.helpers import AuditMixinNullable
@@ -110,6 +111,11 @@ class TaggedObject(Model, AuditMixinNullable):
     object_type = Column(Enum(ObjectType))
 
     tag = relationship("Tag", back_populates="objects", overlaps="tags")
+    __table_args__ = (
+        UniqueConstraint(
+            "tag_id", "object_id", "object_type", name="uix_tagged_object"
+        ),
+    )
 
 
 def get_tag(name: str, session: orm.Session, type_: TagType) -> Tag:
