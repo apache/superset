@@ -119,7 +119,7 @@ export const focusStyle = (theme: SupersetTheme) => css`
   .superset-button.action-button,
   .superset-button.ant-dropdown-trigger,
   .header-controls span {
-    &:focus {
+    &:focus-visible {
       box-shadow: 0 0 0 2px ${theme.colors.primary.dark1};
       border-radius: ${theme.gridUnit / 2}px;
       outline: none;
@@ -127,19 +127,9 @@ export const focusStyle = (theme: SupersetTheme) => css`
     }
     &:not(.superset-button, .ant-menu-item
         a, .fave-unfave-icon, .ant-tabs-tabpane, .header-controls span) {
-      &:focus {
+      &:focus-visible {
         padding: ${theme.gridUnit / 2}px;
       }
-    }
-  }
-
-  // these styles fade the focus outline after 3 seconds
-  .header-controls span,
-  .fave-unfave-icon,
-  .right-button-panel .ant-dropdown-trigger {
-    box-shadow: none;
-    &:focus {
-      animation: fadeIn 0.25s forwards, fadeOut 3s 0.25s forwards;
     }
   }
 

@@ -22,7 +22,10 @@ import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import { FeatureFlag } from '@superset-ui/core';
 import mockState from 'spec/fixtures/mockState';
-import SliceHeaderControls, { SliceHeaderControlsProps } from '.';
+import SliceHeaderControls, {
+  SliceHeaderControlsProps,
+  handleDropdownNavigation,
+} from '.';
 
 jest.mock('src/components/Dropdown', () => {
   const original = jest.requireActual('src/components/Dropdown');
@@ -399,4 +402,128 @@ test('Should not show the "Edit chart" button', () => {
     ],
   });
   expect(screen.queryByText('Edit chart')).not.toBeInTheDocument();
+});
+
+describe('handleDropdownNavigation', () => {
+  const mockToggleDropdown = jest.fn();
+  const mockSetSelectedKeys = jest.fn();
+
+  const menu = React.createElement(
+    'div',
+    { selectedKeys: ['item1'] },
+    React.createElement('div', { key: 'item1' }),
+    React.createElement('div', { key: 'item2' }),
+    React.createElement('div', { key: 'item3' }),
+  );
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test('should continue with system tab navigation if dropdown is closed and tab key is pressed', () => {
+    const event = { key: 'Tab', preventDefault: jest.fn() };
+    handleDropdownNavigation(
+      // @ts-ignore
+      event,
+      false,
+      <div />,
+      mockToggleDropdown,
+      mockSetSelectedKeys,
+    );
+    expect(mockToggleDropdown).not.toHaveBeenCalled();
+    expect(mockSetSelectedKeys).not.toHaveBeenCalled();
+  });
+
+  test(`should prevent default behavior and toggle dropdown if dropdown
+      is closed and action key is pressed`, () => {
+    const event = { key: 'Enter', preventDefault: jest.fn() };
+
+    handleDropdownNavigation(
+      // @ts-ignore
+      event,
+      false,
+      <div />,
+      mockToggleDropdown,
+      mockSetSelectedKeys,
+    );
+    expect(mockToggleDropdown).toHaveBeenCalled();
+    expect(mockSetSelectedKeys).not.toHaveBeenCalled();
+  });
+
+  test(`should trigger menu item click,
+      clear selected keys, close dropdown, and focus on menu trigger
+      if action key is pressed and menu item is selected`, () => {
+    const event = {
+      key: 'Enter',
+      preventDefault: jest.fn(),
+      currentTarget: { focus: jest.fn() },
+    };
+
+    handleDropdownNavigation(
+      // @ts-ignore
+      event,
+      true,
+      menu,
+      mockToggleDropdown,
+      mockSetSelectedKeys,
+    );
+    expect(mockToggleDropdown).toHaveBeenCalled();
+    expect(mockSetSelectedKeys).toHaveBeenCalledWith([]);
+    expect(event.currentTarget.focus).toHaveBeenCalled();
+  });
+
+  test('should select the next menu item if down arrow key is pressed', () => {
+    const event = { key: 'ArrowDown', preventDefault: jest.fn() };
+    handleDropdownNavigation(
+      // @ts-ignore
+      event,
+      true,
+      menu,
+      mockToggleDropdown,
+      mockSetSelectedKeys,
+    );
+    expect(mockSetSelectedKeys).toHaveBeenCalledWith(['item2']);
+  });
+
+  test('should select the previous menu item if up arrow key is pressed', () => {
+    const event = { key: 'ArrowUp', preventDefault: jest.fn() };
+
+    handleDropdownNavigation(
+      // @ts-ignore
+      event,
+      true,
+      menu,
+      mockToggleDropdown,
+      mockSetSelectedKeys,
+    );
+    expect(mockSetSelectedKeys).toHaveBeenCalledWith(['item1']);
+  });
+
+  test('should close dropdown menu if escape key is pressed', () => {
+    const event = { key: 'Escape', preventDefault: jest.fn() };
+    handleDropdownNavigation(
+      // @ts-ignore
+      event,
+      true,
+      <div />,
+      mockToggleDropdown,
+      mockSetSelectedKeys,
+    );
+    expect(mockToggleDropdown).toHaveBeenCalled();
+    expect(mockSetSelectedKeys).not.toHaveBeenCalled();
+  });
+
+  test('should do nothing if an unsupported key is pressed', () => {
+    const event = { key: 'Shift', preventDefault: jest.fn() };
+    handleDropdownNavigation(
+      // @ts-ignore
+      event,
+      true,
+      <div />,
+      mockToggleDropdown,
+      mockSetSelectedKeys,
+    );
+    expect(mockToggleDropdown).not.toHaveBeenCalled();
+    expect(mockSetSelectedKeys).not.toHaveBeenCalled();
+  });
 });

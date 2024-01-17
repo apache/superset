@@ -23,6 +23,7 @@ import React, {
   useState,
   useRef,
   RefObject,
+  useCallback,
 } from 'react';
 import { RouteComponentProps, useHistory, withRouter } from 'react-router-dom';
 import moment from 'moment';
@@ -189,11 +190,15 @@ export const handleDropdownNavigation = (
   setSelectedKeys: (keys: string[]) => void,
 ) => {
   if (e.key === NAV_KEYS.tab && !dropdownIsOpen) {
-    return; // continue with system tab navigation
+    return; // if tab, continue with system tab navigation
   }
-  e.preventDefault();
-  // for accessibility
-  const keys = menu.props.children
+  const menuProps = menu.props || {};
+  // for accessibility using keyboard navigation
+  const keys = (
+    Array.isArray(menuProps.children)
+      ? menuProps.children
+      : [menuProps.children]
+  )
     .map(
       (item: any) =>
         item?.key ||
@@ -201,37 +206,42 @@ export const handleDropdownNavigation = (
           ?.key,
     )
     .filter((item: any) => !!item);
-  const { selectedKeys } = menu.props;
+  const { selectedKeys = [] } = menuProps;
   const currentKeyIndex = keys.indexOf(selectedKeys[0]);
-  // programatically toggle the dropdown on keypress
-  if (Object.values(ACTION_KEYS).includes(e.key)) {
-    if (!selectedKeys.length) {
-      // if nothing is selected, then open and close
-      // the menu on enter or spacebar
+
+  switch (e.key) {
+    // toggle the dropdown on keypress
+    case ACTION_KEYS.enter:
+    case ACTION_KEYS.spacebar:
+    case ACTION_KEYS.space:
+      if (selectedKeys.length) {
+        // when a menu item is selected, then trigger
+        // the menu item's onClick handler
+        menuProps.onClick?.({ key: selectedKeys[0], domEvent: e });
+        // clear out/deselect keys
+        setSelectedKeys([]);
+        // put focus back on menu trigger
+        e.currentTarget.focus();
+      }
+      // if nothing was selected, or after selecting new menu item,
       toggleDropdown();
-    } else {
-      // when a menu item is selected, then trigger
-      // the menu item's onClick handler
-      menu.props.onClick({ key: selectedKeys[0], domEvent: e });
-      // clear out/deselect keys
-      setSelectedKeys([]);
+      break;
+    // select the menu items going down
+    case NAV_KEYS.down:
+    case NAV_KEYS.tab && !e.shiftKey:
+      setSelectedKeys([keys[Math.min(currentKeyIndex + 1, keys.length)]]);
+      break;
+    // select the menu items going up
+    case NAV_KEYS.up:
+    case NAV_KEYS.tab && e.shiftKey:
+      setSelectedKeys([keys[Math.max(currentKeyIndex - 1, 0)]]);
+      break;
+    case NAV_KEYS.escape:
       // close dropdown menu
       toggleDropdown();
-      // put focus back on menu trigger
-      e.currentTarget.focus();
-    }
-  } else if (
-    e.key === NAV_KEYS.down ||
-    (e.key === NAV_KEYS.tab && !e.shiftKey)
-  ) {
-    // programatically select the menu items going down
-    setSelectedKeys([keys[Math.min(currentKeyIndex + 1, keys.length)]]);
-  } else if (e.key === NAV_KEYS.up || (e.key === NAV_KEYS.tab && e.shiftKey)) {
-    // programatically select the menu items going up
-    setSelectedKeys([keys[Math.max(currentKeyIndex - 1, 0)]]);
-  } else if (e.key === NAV_KEYS.escape) {
-    // close dropdown menu
-    toggleDropdown();
+      break;
+    default:
+      break;
   }
 };
 
@@ -255,12 +265,14 @@ const ViewResultsModalTrigger = ({
   const history = useHistory();
   const exploreChart = () => history.push(exploreUrl);
   const theme = useTheme();
+  const openModal = useCallback(() => setShowModal(true), []);
+  const closeModal = useCallback(() => setShowModal(false), []);
 
   return (
     <>
       <span
         data-test="span-modal-trigger"
-        onClick={() => setShowModal(true)}
+        onClick={openModal}
         role="button"
         tabIndex={0}
       >
@@ -275,7 +287,7 @@ const ViewResultsModalTrigger = ({
             }
           `}
           show={showModal}
-          onHide={() => setShowModal(false)}
+          onHide={closeModal}
           closable
           title={modalTitle}
           footer={
@@ -337,9 +349,10 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
   );
 
   const queryMenuRef: RefObject<any> = useRef(null);
+  const menuRef: RefObject<any> = useRef(null);
 
-  const toggleDropdown = () => {
-    setDropdownIsOpen(!dropdownIsOpen);
+  const toggleDropdown = ({ close }: { close?: boolean } = {}) => {
+    setDropdownIsOpen(!(close || dropdownIsOpen));
     // clear selected keys
     setSelectedKeys([]);
   };
@@ -376,6 +389,8 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
     key: Key;
     domEvent: MouseEvent<HTMLElement>;
   }) => {
+    // close menu
+    toggleDropdown({ close: true });
     switch (key) {
       case MENU_KEYS.FORCE_REFRESH:
         refreshChart();
@@ -444,7 +459,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         break;
       }
       case MENU_KEYS.VIEW_QUERY: {
-        if (queryMenuRef.current) {
+        if (queryMenuRef.current && !queryMenuRef.current.showModal) {
           queryMenuRef.current.open(domEvent);
         }
         break;
@@ -505,6 +520,8 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
       selectable={false}
       data-test={`slice_${slice.slice_id}-menu`}
       selectedKeys={selectedKeys}
+      id={`slice_${slice.slice_id}-menu`}
+      ref={menuRef}
     >
       <Menu.Item
         key={MENU_KEYS.FORCE_REFRESH}
@@ -685,9 +702,18 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
           role="button"
           aria-label="More Options"
           tabIndex={0}
-          onClick={e => {
-            e.currentTarget.blur();
+          onClick={() => {
             toggleDropdown();
+          }}
+          onBlur={e => {
+            // close unless the dropdown menu is clicked
+            const relatedTarget = e.relatedTarget as HTMLElement;
+            if (
+              dropdownIsOpen &&
+              menuRef?.current?.props.id !== relatedTarget?.id
+            ) {
+              toggleDropdown({ close: true });
+            }
           }}
           onKeyDown={e =>
             handleDropdownNavigation(
