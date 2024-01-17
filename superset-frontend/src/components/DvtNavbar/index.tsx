@@ -31,15 +31,15 @@ import {
 import DvtButtonTabs from '../DvtButtonTabs';
 import DvtButton from '../DvtButton';
 import DvtDotTitle from '../DvtDotTitle';
-//import DvtInput from '../DvtInput';
-//import DvtSelect from '../DvtSelect';
+// import DvtInput from '../DvtInput';
+// import DvtSelect from '../DvtSelect';
 import DvtProfileMenu from '../DvtProfileMenu';
 import {
   StyledDvtNavbar,
   NavbarTop,
   NavbarBottom,
   NavbarBottomRight,
-  //NavbarSearchInput,
+  // NavbarSearchInput,
   NavbarProfileMenu,
   NavbarSearchGroup,
   NavbarProfileIcon,
@@ -98,7 +98,7 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, user }) => {
     }
   }, [pathName]);
 
-  //const [searchText, setSearchText] = useState<string>('');
+  // const [searchText, setSearchText] = useState<string>('');
 
   return (
     <StyledDvtNavbar>
