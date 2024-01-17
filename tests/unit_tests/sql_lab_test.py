@@ -20,6 +20,7 @@ import sqlparse
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
+from superset import db
 from superset.utils.core import override_user
 
 
@@ -41,14 +42,12 @@ def test_execute_sql_statement(mocker: MockerFixture, app: None) -> None:
     db_engine_spec.is_select_query.return_value = True
     db_engine_spec.fetch_data.return_value = [(42,)]
 
-    session = mocker.MagicMock()
     cursor = mocker.MagicMock()
     SupersetResultSet = mocker.patch("superset.sql_lab.SupersetResultSet")
 
     execute_sql_statement(
         sql_statement,
         query,
-        session=session,
         cursor=cursor,
         log_params={},
         apply_ctas=False,
@@ -56,7 +55,7 @@ def test_execute_sql_statement(mocker: MockerFixture, app: None) -> None:
 
     database.apply_limit_to_sql.assert_called_with("SELECT 42 AS answer", 2, force=True)
     db_engine_spec.execute_with_cursor.assert_called_with(
-        cursor, "SELECT 42 AS answer LIMIT 2", query, session
+        cursor, "SELECT 42 AS answer LIMIT 2", query
     )
     SupersetResultSet.assert_called_with([(42,)], cursor.description, db_engine_spec)
 
@@ -83,7 +82,6 @@ def test_execute_sql_statement_with_rls(
     db_engine_spec.is_select_query.return_value = True
     db_engine_spec.fetch_data.return_value = [(42,)]
 
-    session = mocker.MagicMock()
     cursor = mocker.MagicMock()
     SupersetResultSet = mocker.patch("superset.sql_lab.SupersetResultSet")
     mocker.patch(
@@ -95,7 +93,6 @@ def test_execute_sql_statement_with_rls(
     execute_sql_statement(
         sql_statement,
         query,
-        session=session,
         cursor=cursor,
         log_params={},
         apply_ctas=False,
@@ -107,7 +104,7 @@ def test_execute_sql_statement_with_rls(
         force=True,
     )
     db_engine_spec.execute_with_cursor.assert_called_with(
-        cursor, "SELECT * FROM sales WHERE organization_id=42 LIMIT 101", query, session
+        cursor, "SELECT * FROM sales WHERE organization_id=42 LIMIT 101", query
     )
     SupersetResultSet.assert_called_with([(42,)], cursor.description, db_engine_spec)
 
@@ -162,7 +159,6 @@ def test_sql_lab_insert_rls_as_subquery(
         superset_result_set = execute_sql_statement(
             sql_statement=query.sql,
             query=query,
-            session=session,
             cursor=cursor,
             log_params=None,
             apply_ctas=False,
@@ -198,7 +194,6 @@ def test_sql_lab_insert_rls_as_subquery(
         superset_result_set = execute_sql_statement(
             sql_statement=query.sql,
             query=query,
-            session=session,
             cursor=cursor,
             log_params=None,
             apply_ctas=False,

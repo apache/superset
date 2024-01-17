@@ -74,7 +74,7 @@ setup(
     },
     install_requires=[
         "backoff>=1.8.0",
-        "celery>=5.2.2, <6.0.0",
+        "celery>=5.3.6, <6.0.0",
         "click>=8.0.3",
         "click-option-group",
         "colorama",
