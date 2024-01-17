@@ -144,12 +144,12 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, user }) => {
                 data={activeData}
               />
               <NavbarBottomRight>
-                <DvtButton
+                {/* <DvtButton
                   typeColour="powder"
                   label={`${sort ? 'Sorted' : 'Sort'}: Date Created`}
                   icon="dvt-sort"
                   onClick={() => dispatch(dvtAppSetSort(!sort))}
-                />
+                /> */}
               </NavbarBottomRight>
             </>
           )}
