@@ -9,24 +9,27 @@ version: 1
 
 ### Configuration
 
-To configure your application, you need to create a file `superset_config.py`.  Add this file to your
+To configure your application, you need to create a file `superset_config.py`. Add this file to your
 
 `PYTHONPATH` or create an environment variable `SUPERSET_CONFIG_PATH` specifying the full path of the `superset_config.py`.
 
 For example, if deploying on Superset directly on a Linux-based system where your `superset_config.py` is under `/app` directory, you can run:
+
 ```bash
 export SUPERSET_CONFIG_PATH=/app/superset_config.py
 ```
 
 If you are using your own custom Dockerfile with official Superset image as base image, then you can add your overrides as shown below:
+
 ```bash
 COPY --chown=superset superset_config.py /app/
 ENV SUPERSET_CONFIG_PATH /app/superset_config.py
 ```
 
-Docker compose deployments handle application configuration differently.  See [https://github.com/apache/superset/tree/master/docker#readme](https://github.com/apache/superset/tree/master/docker#readme) for details.
+Docker compose deployments handle application configuration differently. See [https://github.com/apache/superset/tree/master/docker#readme](https://github.com/apache/superset/tree/master/docker#readme) for details.
 
 The following is an example of just a few of the parameters you can set in your `superset_config.py` file:
+
 ```
 # Superset specific config
 ROW_LIMIT = 5000
@@ -88,7 +91,7 @@ WTF_CSRF_EXEMPT_LIST = [‘’]
 
 #### Adding an initial SECRET_KEY
 
-Superset requires a user-specified SECRET_KEY to start up.  This requirement was [added in version 2.1.0 to force secure configurations](https://preset.io/blog/superset-security-update-default-secret_key-vulnerability/).  Add a strong SECRET_KEY to your `superset_config.py` file like:
+Superset requires a user-specified SECRET_KEY to start up. This requirement was [added in version 2.1.0 to force secure configurations](https://preset.io/blog/superset-security-update-default-secret_key-vulnerability/). Add a strong SECRET_KEY to your `superset_config.py` file like:
 
 ```python
 SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
@@ -99,7 +102,7 @@ You can generate a strong secure key with `openssl rand -base64 42`.
 #### Rotating to a newer SECRET_KEY
 
 If you wish to change your existing SECRET_KEY, add the existing SECRET_KEY to your `superset_config.py` file as
-`PREVIOUS_SECRET_KEY = `and provide your new key as `SECRET_KEY =`.  You can find your current SECRET_KEY with these
+`PREVIOUS_SECRET_KEY = `and provide your new key as `SECRET_KEY =`. You can find your current SECRET_KEY with these
 commands - if running Superset with Docker, execute from within the Superset application container:
 
 ```python
@@ -119,22 +122,20 @@ database engine on a separate host or container.
 
 Superset supports the following database engines/versions:
 
-| Database Engine                                           | Supported Versions                 |
-| --------------------------------------------------------- | ---------------------------------- |
-| [PostgreSQL](https://www.postgresql.org/)                 | 10.X, 11.X, 12.X, 13.X, 14.X, 15.X |
-| [MySQL](https://www.mysql.com/)                           | 5.7, 8.X                           |
-
+| Database Engine                           | Supported Versions                 |
+| ----------------------------------------- | ---------------------------------- |
+| [PostgreSQL](https://www.postgresql.org/) | 10.X, 11.X, 12.X, 13.X, 14.X, 15.X |
+| [MySQL](https://www.mysql.com/)           | 5.7, 8.X                           |
 
 Use the following database drivers and connection strings:
 
-| Database                                  | PyPI package                      | Connection String                                                        |
-| ----------------------------------------- | --------------------------------- | ------------------------------------------------------------------------ |
-| [PostgreSQL](https://www.postgresql.org/) | `pip install psycopg2`            | `postgresql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`   |
-| [MySQL](https://www.mysql.com/)           | `pip install mysqlclient`         | `mysql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`        |
+| Database                                  | PyPI package              | Connection String                                                      |
+| ----------------------------------------- | ------------------------- | ---------------------------------------------------------------------- |
+| [PostgreSQL](https://www.postgresql.org/) | `pip install psycopg2`    | `postgresql://<UserName>:<DBPassword>@<Database Host>/<Database Name>` |
+| [MySQL](https://www.mysql.com/)           | `pip install mysqlclient` | `mysql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`      |
 
 To configure Superset metastore set `SQLALCHEMY_DATABASE_URI` config key on `superset_config`
 to the appropriate connection string.
-
 
 ### Running on a WSGI HTTP Server
 
@@ -167,7 +168,7 @@ So, when you use `BigQuery` datasource on Superset, you have to use `gunicorn` w
 
 ### HTTPS Configuration
 
-You can configure HTTPS upstream via a load balancer or a reverse proxy (such as nginx) and do SSL/TLS Offloading before traffic reaches the Superset application.  In this setup, local traffic from a Celery worker taking a snapshot of a chart for Alerts & Reports can access Superset at a `http://` URL, from behind the ingress point.
+You can configure HTTPS upstream via a load balancer or a reverse proxy (such as nginx) and do SSL/TLS Offloading before traffic reaches the Superset application. In this setup, local traffic from a Celery worker taking a snapshot of a chart for Alerts & Reports can access Superset at a `http://` URL, from behind the ingress point.
 You can also configure [SSL in Gunicorn](https://docs.gunicorn.org/en/stable/settings.html#ssl) (the Python webserver) if you are using an official Superset Docker image.
 
 ### Configuration Behind a Load Balancer
@@ -191,7 +192,7 @@ RequestHeader set X-Forwarded-Proto "https"
 ### Custom OAuth2 Configuration
 
 Superset is built on Flask-AppBuilder (FAB), which supports many providers out of the box
-(GitHub, Twitter, LinkedIn, Google, Azure, etc).  Beyond those, Superset can be configured to connect
+(GitHub, Twitter, LinkedIn, Google, Azure, etc). Beyond those, Superset can be configured to connect
 with other OAuth2 Authorization Server implementations that support “code” authorization.
 
 Make sure the pip package [`Authlib`](https://authlib.org/) is installed on the webserver.
@@ -357,7 +358,6 @@ You can enable or disable features with flag from `superset_config.py`:
 
 ```python
 FEATURE_FLAGS = {
-    'CLIENT_CACHE': False,
     'ENABLE_EXPLORE_JSON_CSRF_PROTECTION': False,
     'PRESTO_EXPAND_DATA': False,
 }

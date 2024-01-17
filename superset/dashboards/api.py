@@ -83,7 +83,6 @@ from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.tasks.utils import get_current_user
-from superset.utils.cache import etag_cache
 from superset.utils.screenshots import DashboardScreenshot
 from superset.utils.urls import get_url_path
 from superset.views.base import generate_download_headers
@@ -292,16 +291,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
     @expose("/<id_or_slug>", methods=("GET",))
     @protect()
-    @etag_cache(
-        get_last_modified=lambda _self, id_or_slug: DashboardDAO.get_dashboard_changed_on(  # pylint: disable=line-too-long,useless-suppression
-            id_or_slug
-        ),
-        max_age=0,
-        raise_for_access=lambda _self, id_or_slug: DashboardDAO.get_by_id_or_slug(
-            id_or_slug
-        ),
-        skip=lambda _self, id_or_slug: not is_feature_enabled("DASHBOARD_CACHE"),
-    )
     @safe
     @statsd_metrics
     @with_dashboard
@@ -349,16 +338,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
     @expose("/<id_or_slug>/datasets", methods=("GET",))
     @protect()
-    @etag_cache(
-        get_last_modified=lambda _self, id_or_slug: DashboardDAO.get_dashboard_and_datasets_changed_on(  # pylint: disable=line-too-long,useless-suppression
-            id_or_slug
-        ),
-        max_age=0,
-        raise_for_access=lambda _self, id_or_slug: DashboardDAO.get_by_id_or_slug(
-            id_or_slug
-        ),
-        skip=lambda _self, id_or_slug: not is_feature_enabled("DASHBOARD_CACHE"),
-    )
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -419,16 +398,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
     @expose("/<id_or_slug>/charts", methods=("GET",))
     @protect()
-    @etag_cache(
-        get_last_modified=lambda _self, id_or_slug: DashboardDAO.get_dashboard_and_slices_changed_on(  # pylint: disable=line-too-long,useless-suppression
-            id_or_slug
-        ),
-        max_age=0,
-        raise_for_access=lambda _self, id_or_slug: DashboardDAO.get_by_id_or_slug(
-            id_or_slug
-        ),
-        skip=lambda _self, id_or_slug: not is_feature_enabled("DASHBOARD_CACHE"),
-    )
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -469,14 +438,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         try:
             charts = DashboardDAO.get_charts_for_dashboard(id_or_slug)
             result = [self.chart_entity_response_schema.dump(chart) for chart in charts]
-
-            if is_feature_enabled("REMOVE_SLICE_LEVEL_LABEL_COLORS"):
-                # dashboard metadata has dashboard-level label_colors,
-                # so remove slice-level label_colors from its form_data
-                for chart in result:
-                    form_data = chart.get("form_data")
-                    form_data.pop("label_colors", None)
-
             return self.response(200, result=result)
         except DashboardAccessDeniedError:
             return self.response_403()

@@ -34,7 +34,7 @@
     "@vx/legend": "^0.0.198",
     "@vx/responsive": "^0.0.199",
     "@vx/scale": "^0.0.197",
-    "prop-types": "^15.6.2"
+    "prop-types": "^15.8.1"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",

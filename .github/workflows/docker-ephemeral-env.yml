@@ -18,8 +18,6 @@ jobs:
         shell: bash
         run: |
           if [ -n "${{ (secrets.AWS_ACCESS_KEY_ID != '' &&
-            secrets.AWS_ACCESS_KEY_ID != '' &&
-            secrets.AWS_SECRET_ACCESS_KEY != '' &&
             secrets.AWS_SECRET_ACCESS_KEY != '') || '' }}" ]; then
             echo "has-secrets=1" >> "$GITHUB_OUTPUT"
             echo "has secrets!"

@@ -19,6 +19,7 @@ from __future__ import annotations
 import enum
 from typing import TYPE_CHECKING
 
+from flask import escape
 from flask_appbuilder import Model
 from sqlalchemy import Column, Enum, ForeignKey, Integer, orm, String, Table, Text
 from sqlalchemy.engine.base import Connection
@@ -115,7 +116,7 @@ def get_tag(name: str, session: orm.Session, type_: TagType) -> Tag:
     tag_name = name.strip()
     tag = session.query(Tag).filter_by(name=tag_name, type=type_).one_or_none()
     if tag is None:
-        tag = Tag(name=tag_name, type=type_)
+        tag = Tag(name=escape(tag_name), type=type_)
         session.add(tag)
         session.commit()
     return tag

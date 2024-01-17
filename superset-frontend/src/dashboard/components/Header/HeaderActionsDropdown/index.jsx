@@ -216,6 +216,8 @@ class HeaderActionsDropdown extends React.PureComponent {
     const emailSubject = `${emailTitle} ${dashboardTitle}`;
     const emailBody = t('Check out this dashboard: ');
 
+    const isEmbedded = !dashboardInfo?.userId;
+
     const url = getDashboardUrl({
       pathname: window.location.pathname,
       filters: getActiveFilters(),
@@ -237,7 +239,7 @@ class HeaderActionsDropdown extends React.PureComponent {
             {t('Refresh dashboard')}
           </Menu.Item>
         )}
-        {!editMode && (
+        {!editMode && !isEmbedded && (
           <Menu.Item
             key={MENU_KEYS.TOGGLE_FULLSCREEN}
             onClick={this.handleMenuClick}

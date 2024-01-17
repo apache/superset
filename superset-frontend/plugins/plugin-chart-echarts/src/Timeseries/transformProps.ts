@@ -167,6 +167,7 @@ export default function transformProps(
     truncateYAxis,
     xAxis: xAxisOrig,
     xAxisBounds,
+    xAxisForceCategorical,
     xAxisLabelRotation,
     xAxisSortSeries,
     xAxisSortSeriesAscending,
@@ -248,7 +249,7 @@ export default function transformProps(
   const isAreaExpand = stack === StackControlsValue.Expand;
   const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
 
-  const xAxisType = getAxisType(stack, xAxisDataType);
+  const xAxisType = getAxisType(stack, xAxisForceCategorical, xAxisDataType);
   const series: SeriesOption[] = [];
 
   const forcePercentFormatter = Boolean(contributionMode || isAreaExpand);

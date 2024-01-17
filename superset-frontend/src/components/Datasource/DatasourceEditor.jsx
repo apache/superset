@@ -629,9 +629,6 @@ class DatasourceEditor extends React.PureComponent {
     this.setColumns = this.setColumns.bind(this);
     this.validateAndChange = this.validateAndChange.bind(this);
     this.handleTabSelect = this.handleTabSelect.bind(this);
-    this.allowEditSource = !isFeatureEnabled(
-      FeatureFlag.DISABLE_DATASET_SOURCE_EDIT,
-    );
     this.currencies = ensureIsArray(props.currencies).map(currencyCode => ({
       value: currencyCode,
       label: `${getCurrencySymbol({
@@ -1050,23 +1047,21 @@ class DatasourceEditor extends React.PureComponent {
     const { datasource } = this.state;
     return (
       <div>
-        {this.allowEditSource && (
-          <EditLockContainer>
-            <span role="button" tabIndex={0} onClick={this.onChangeEditMode}>
-              {this.state.isEditMode ? (
-                <Icons.LockUnlocked iconColor={theme.colors.grayscale.base} />
-              ) : (
-                <Icons.LockLocked iconColor={theme.colors.grayscale.base} />
-              )}
-            </span>
-            {!this.state.isEditMode && (
-              <div>{t('Click the lock to make changes.')}</div>
+        <EditLockContainer>
+          <span role="button" tabIndex={0} onClick={this.onChangeEditMode}>
+            {this.state.isEditMode ? (
+              <Icons.LockUnlocked iconColor={theme.colors.grayscale.base} />
+            ) : (
+              <Icons.LockLocked iconColor={theme.colors.grayscale.base} />
             )}
-            {this.state.isEditMode && (
-              <div>{t('Click the lock to prevent further changes.')}</div>
-            )}
-          </EditLockContainer>
-        )}
+          </span>
+          {!this.state.isEditMode && (
+            <div>{t('Click the lock to make changes.')}</div>
+          )}
+          {this.state.isEditMode && (
+            <div>{t('Click the lock to prevent further changes.')}</div>
+          )}
+        </EditLockContainer>
         <div className="m-l-10 m-t-20 m-b-10">
           {DATASOURCE_TYPES_ARR.map(type => (
             <Radio
