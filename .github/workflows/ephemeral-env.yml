@@ -4,11 +4,6 @@ on:
   issue_comment:
     types: [created]
 
-  workflow_run:
-    workflows: ["Docker"]
-    types:
-      - completed
-
 jobs:
   config:
     runs-on: "ubuntu-latest"
