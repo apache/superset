@@ -23,7 +23,6 @@ import configureStore from 'redux-mock-store';
 
 import {
   ensureIsArray,
-  FeatureFlag,
   GenericDataType,
   QueryFormData,
 } from '@superset-ui/core';
@@ -57,14 +56,6 @@ const baseFormData = {
   viz_type: 'my_viz',
   datasource: 'table__1',
 };
-
-beforeAll(() => {
-  window.featureFlags = { [FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP]: true };
-});
-
-afterAll(() => {
-  window.featureFlags = {};
-});
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});

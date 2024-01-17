@@ -30,7 +30,6 @@ import {
   ColumnMeta,
   isColumnMeta,
   isTemporalColumn,
-  withDndFallback,
 } from '@superset-ui/chart-controls';
 import Modal from 'src/components/Modal';
 import {
@@ -50,7 +49,6 @@ import {
 } from 'src/explore/components/DatasourcePanel/types';
 import { DndItemType } from 'src/explore/components/DndItemType';
 import { ControlComponentProps } from 'src/explore/components/Control';
-import AdhocFilterControl from '../FilterControl/AdhocFilterControl';
 import DndAdhocFilterOption from './DndAdhocFilterOption';
 import { useDefaultTimeFilter } from '../DateFilterControl/utils';
 import { CLAUSES, EXPRESSION_TYPES } from '../FilterControl/types';
@@ -422,9 +420,4 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
   );
 };
 
-const DndFilterSelectWithFallback = withDndFallback(
-  DndFilterSelect,
-  AdhocFilterControl,
-);
-
-export { DndFilterSelectWithFallback as DndFilterSelect };
+export { DndFilterSelect };

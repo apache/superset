@@ -28,23 +28,12 @@ import React, {
   createContext,
 } from 'react';
 import cx from 'classnames';
-import {
-  FeatureFlag,
-  HandlerFunction,
-  isFeatureEnabled,
-  isNativeFilter,
-  styled,
-  t,
-} from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, styled, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-import { AntdTabs } from 'src/components';
 import Loading from 'src/components/Loading';
 import { EmptyStateSmall } from 'src/components/EmptyState';
 import { getFilterBarTestId } from './utils';
-import { TabIds, VerticalBarProps } from './types';
-import FilterSets from './FilterSets';
-import { useFilterSets } from './state';
-import EditSection from './FilterSets/EditSection';
+import { VerticalBarProps } from './types';
 import Header from './Header';
 import FilterControls from './FilterControls/FilterControls';
 import CrossFiltersVertical from './CrossFilters/Vertical';
@@ -117,22 +106,6 @@ const StyledFilterIcon = styled(Icons.Filter)`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
-const StyledTabs = styled(AntdTabs)`
-  & .ant-tabs-nav-list {
-    width: 100%;
-  }
-  & .ant-tabs-tab {
-    display: flex;
-    justify-content: center;
-    margin: 0;
-    flex: 1;
-  }
-
-  & > .ant-tabs-nav .ant-tabs-nav-operations {
-    display: none;
-  }
-`;
-
 const FilterBarEmptyStateContainer = styled.div`
   margin-top: ${({ theme }) => theme.gridUnit * 8}px;
 `;
@@ -151,18 +124,12 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
   filtersOpen,
   filterValues,
   height,
-  isDisabled,
   isInitialized,
   offset,
   onSelectionChange,
   toggleFiltersBar,
   width,
 }) => {
-  const [editFilterSetId, setEditFilterSetId] = useState<number | null>(null);
-  const filterSets = useFilterSets();
-  const filterSetFilterValues = Object.values(filterSets);
-  const [tab, setTab] = useState(TabIds.AllFilters);
-  const nativeFilterValues = filterValues.filter(isNativeFilter);
   const [isScrolling, setIsScrolling] = useState(false);
   const timeout = useRef<any>();
 
@@ -195,8 +162,6 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
     [height],
   );
 
-  const numberOfFilters = nativeFilterValues.length;
-
   const filterControls = useMemo(
     () =>
       filterValues.length === 0 ? (
@@ -223,62 +188,6 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
     [canEdit, dataMaskSelected, filterValues.length, onSelectionChange],
   );
 
-  const filterSetsTabs = useMemo(
-    () => (
-      <StyledTabs
-        centered
-        onChange={setTab as HandlerFunction}
-        defaultActiveKey={TabIds.AllFilters}
-        activeKey={editFilterSetId ? TabIds.AllFilters : undefined}
-      >
-        <AntdTabs.TabPane
-          tab={t('All filters (%(filterCount)d)', {
-            filterCount: numberOfFilters,
-          })}
-          key={TabIds.AllFilters}
-          css={tabPaneStyle}
-        >
-          {editFilterSetId && (
-            <EditSection
-              dataMaskSelected={dataMaskSelected}
-              disabled={!isDisabled}
-              onCancel={() => setEditFilterSetId(null)}
-              filterSetId={editFilterSetId}
-            />
-          )}
-          {filterControls}
-        </AntdTabs.TabPane>
-        <AntdTabs.TabPane
-          disabled={!!editFilterSetId}
-          tab={t('Filter sets (%(filterSetCount)d)', {
-            filterSetCount: filterSetFilterValues.length,
-          })}
-          key={TabIds.FilterSets}
-          css={tabPaneStyle}
-        >
-          <FilterSets
-            onEditFilterSet={setEditFilterSetId}
-            disabled={!isDisabled}
-            dataMaskSelected={dataMaskSelected}
-            tab={tab}
-            onFilterSelectionChange={onSelectionChange}
-          />
-        </AntdTabs.TabPane>
-      </StyledTabs>
-    ),
-    [
-      dataMaskSelected,
-      editFilterSetId,
-      filterControls,
-      filterSetFilterValues.length,
-      isDisabled,
-      numberOfFilters,
-      onSelectionChange,
-      tab,
-      tabPaneStyle,
-    ],
-  );
-
   const crossFilters = useMemo(
     () =>
       isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) ? (
@@ -292,11 +201,6 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
       isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) ? actions : null,
     [actions],
   );
-
-  // Filter sets depend on native filters
-  const filterSetEnabled =
-    isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET) &&
-    isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS);
 
   return (
     <FilterBarScrollContext.Provider value={isScrolling}>
@@ -326,11 +230,6 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
             <div css={{ height }}>
               <Loading />
             </div>
-          ) : filterSetEnabled ? (
-            <>
-              {crossFilters}
-              {filterSetsTabs}
-            </>
           ) : (
             <div css={tabPaneStyle} onScroll={onScroll}>
               <>
