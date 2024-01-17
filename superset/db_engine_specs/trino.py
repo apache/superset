@@ -20,10 +20,12 @@ import contextlib
 import logging
 import threading
 import time
+from datetime import datetime
 from typing import Any, TYPE_CHECKING
 
 import simplejson as json
 from flask import current_app
+from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchTableError
@@ -124,6 +126,19 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         # Set principal_username=$effective_username
         if backend_name == "trino" and username is not None:
             connect_args["user"] = username
+
+    @classmethod
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
+    ) -> str | None:
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, types.TIMESTAMP):
+            return f"""TIMESTAMP '{dttm.isoformat(timespec="microseconds", sep=" ")}'"""
+
+        return super().convert_dttm(
+            target_type=target_type, dttm=dttm, db_extra=db_extra
+        )
 
     @classmethod
     def get_url_for_impersonation(
