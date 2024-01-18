@@ -93,7 +93,6 @@ const DEFAULT_ORDER = [
   'deck_screengrid',
   'treemap_v2',
   'box_plot',
-  'sunburst',
   'sankey',
   'word_cloud',
   'mapbox',
