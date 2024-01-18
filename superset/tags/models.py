@@ -224,7 +224,6 @@ class ObjectUpdater:
 
             # Determine new owner IDs
             new_owner_tag_ids = cls.get_owner_tag_ids(session, target)
-            print(f"new_owner_tag_ids: {new_owner_tag_ids}")
 
             # Add missing tags
             for owner_id in new_owner_tag_ids - existing_owner_tag_ids:
@@ -233,13 +232,11 @@ class ObjectUpdater:
                 tagged_object = TaggedObject(
                     tag_id=tag.id, object_id=target.id, object_type=cls.object_type
                 )
-                print(f"adding: {tagged_object}")
                 session.add(tagged_object)
 
             # Remove unnecessary tags
             for tag in existing_tags:
                 if tag.tag_id not in new_owner_tag_ids:
-                    print(f"delete: {tag}")
                     session.delete(tag)
             session.commit()
 
