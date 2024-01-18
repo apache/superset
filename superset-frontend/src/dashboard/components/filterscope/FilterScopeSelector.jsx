@@ -680,7 +680,6 @@ export default class FilterScopeSelector extends React.PureComponent {
         onClick={this.onChangeFilterField}
         onCheck={this.onCheckFilterField}
         onExpand={this.onExpandFilterField}
-        role="button"
       />
     );
   }

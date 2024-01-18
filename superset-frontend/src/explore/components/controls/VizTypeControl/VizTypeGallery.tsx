@@ -480,7 +480,7 @@ const Selector: React.FC<{
       key={selector}
       name={selector}
       className={cx(className, isSelected && 'selected')}
-      role="button"
+      type="button"
       onClick={() => onClick(selector, sectionId)}
     >
       {icon}
