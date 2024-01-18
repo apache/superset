@@ -92,23 +92,9 @@ function AlertList() {
         const newEditedData = data.result
           .filter((item: any) => item.type === 'Alert')
           .map((item: any) => ({
-            lastRun: new Date(item.last_eval_dttm).toLocaleString('tr-TR', {
-              day: '2-digit',
-              month: '2-digit',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-              second: '2-digit',
-            }),
             ...item,
-            schedule: new Date(item.created_on).toLocaleString('tr-TR', {
-              day: '2-digit',
-              month: '2-digit',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-              second: '2-digit',
-            }),
+            lastRun: new Date(item.last_eval_dttm).toLocaleString('tr-TR'),
+            schedule: new Date(item.created_on).toLocaleString('tr-TR'),
             createdBy: `${item.created_by?.first_name} ${item.created_by?.last_name}`,
             owners: `${item.owners[0].first_name} ${item.owners[0].last_name}`,
             modified: `${item.changed_by.first_name} ${item.changed_by.last_name}`,
