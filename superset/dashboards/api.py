@@ -438,14 +438,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         try:
             charts = DashboardDAO.get_charts_for_dashboard(id_or_slug)
             result = [self.chart_entity_response_schema.dump(chart) for chart in charts]
-
-            if is_feature_enabled("REMOVE_SLICE_LEVEL_LABEL_COLORS"):
-                # dashboard metadata has dashboard-level label_colors,
-                # so remove slice-level label_colors from its form_data
-                for chart in result:
-                    form_data = chart.get("form_data")
-                    form_data.pop("label_colors", None)
-
             return self.response(200, result=result)
         except DashboardAccessDeniedError:
             return self.response_403()

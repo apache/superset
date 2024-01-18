@@ -516,7 +516,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if datasource_id is not None:
             with contextlib.suppress(DatasetNotFoundError):
                 datasource = DatasourceDAO.get_datasource(
-                    db.session,
                     DatasourceType("table"),
                     datasource_id,
                 )
@@ -757,7 +756,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         In terms of the `extra_filters` these can be obtained from records in the JSON
         encoded `logs.json` column associated with the `explore_json` action.
         """
-        session = db.session()
         slice_id = request.args.get("slice_id")
         dashboard_id = request.args.get("dashboard_id")
         table_name = request.args.get("table_name")
@@ -774,14 +772,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 status=400,
             )
         if slice_id:
-            slices = session.query(Slice).filter_by(id=slice_id).all()
+            slices = db.session.query(Slice).filter_by(id=slice_id).all()
             if not slices:
                 return json_error_response(
                     __("Chart %(id)s not found", id=slice_id), status=404
                 )
         elif table_name and db_name:
             table = (
-                session.query(SqlaTable)
+                db.session.query(SqlaTable)
                 .join(Database)
                 .filter(
                     Database.database_name == db_name
@@ -798,7 +796,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     status=404,
                 )
             slices = (
-                session.query(Slice)
+                db.session.query(Slice)
                 .filter_by(datasource_id=table.id, datasource_type=table.type)
                 .all()
             )
@@ -925,7 +923,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         """
         datasource_id, datasource_type = request.args["datasourceKey"].split("__")
         datasource = DatasourceDAO.get_datasource(
-            db.session, DatasourceType(datasource_type), int(datasource_id)
+            DatasourceType(datasource_type), int(datasource_id)
         )
         # Check if datasource exists
         if not datasource:
