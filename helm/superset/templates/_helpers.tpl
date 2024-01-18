@@ -67,15 +67,15 @@ Generate Redis URL for SSL and non-SSL protocols
 {{- define "superset-redis-url" -}}
   {{- if .Values.supersetNode.connections.use_redis_ssl -}}
     {{- if .Values.supersetNode.connections.redis_password -}}
-      rediss://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/0?ssl_cert_reqs={{- .Values.supersetNode.connections.use_redis_ssl.ssl_cert_reqs | default "CERT_NONE" -}}
+      rediss://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/##DBNAME##?ssl_cert_reqs={{- .Values.supersetNode.connections.use_redis_ssl.ssl_cert_reqs | default "CERT_NONE" -}}
     {{- else -}}
-      rediss://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0?ssl_cert_reqs={{- .Values.supersetNode.connections.use_redis_ssl.ssl_cert_reqs | default "CERT_NONE" -}}
+      rediss://{env('REDIS_HOST')}:{env('REDIS_PORT')}/##DBNAME##?ssl_cert_reqs={{- .Values.supersetNode.connections.use_redis_ssl.ssl_cert_reqs | default "CERT_NONE" -}}
     {{- end -}}
   {{- else -}}
     {{- if .Values.supersetNode.connections.redis_password -}}
-      redis://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/0
+      redis://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/##DBNAME##
     {{- else -}}
-      redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0
+      redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/##DBNAME##
     {{- end -}}
   {{- end -}}
 {{- end -}}
@@ -83,18 +83,6 @@ Generate Redis URL for SSL and non-SSL protocols
 {{- define "superset-config" }}
 import os
 from flask_caching.backends.rediscache import RedisCache
-import redis
-
-redis_cache_config = redis.Redis(
-  host=env('REDIS_HOST'), 
-  port=env('REDIS_PORT'), 
-  db=env('REDIS_DB', 1), 
-  password=env('REDIS_PASSWORD'),
-  {{- if .Values.supersetNode.connections.use_redis_ssl }}
-  ssl=True, 
-  ssl_cert_reqs={{- .Values.supersetNode.connections.use_redis_ssl.ssl_cert_reqs | default "CERT_NONE" | quote }},
-  {{- end }}
-)
 
 def env(key, default=None):
     return os.getenv(key, default)
@@ -104,7 +92,7 @@ CACHE_CONFIG = {
       'CACHE_TYPE': 'RedisCache',
       'CACHE_DEFAULT_TIMEOUT': 300,
       'CACHE_KEY_PREFIX': 'superset_',
-      'CACHE_REDIS_HOST': redis_cache_config,
+      'CACHE_REDIS_URL': f"{{- include "superset-redis-url" . | replace "##DBNAME##" "{env('REDIS_DB', 1)}" -}}",
 }
 DATA_CACHE_CONFIG = CACHE_CONFIG
 
@@ -113,8 +101,8 @@ SQLALCHEMY_TRACK_MODIFICATIONS = True
 
 class CeleryConfig:
   imports  = ("superset.sql_lab", )
-  broker_url = f"{{- include "superset-redis-url" . -}}"
-  result_backend = f"{{- include "superset-redis-url" . -}}"
+  broker_url = f"{{- include "superset-redis-url" . | replace "##DBNAME##" "0" -}}"
+  result_backend = f"{{- include "superset-redis-url" . | replace "##DBNAME##" "0" -}}"
 
 CELERY_CONFIG = CeleryConfig
 RESULTS_BACKEND = RedisCache(
