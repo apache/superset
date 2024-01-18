@@ -971,7 +971,6 @@ class TestCore(SupersetTestCase):
         urls = [
             "/superset/welcome",
             f"/superset/dashboard/{dash_id}/",
-            "/superset/profile/",
             f"/explore/?datasource_type=table&datasource_id={tbl_id}",
         ]
         for url in urls:
@@ -1202,11 +1201,6 @@ class TestCore(SupersetTestCase):
             example_db.has_table_by_name(table_name="birth_names", schema="public")
             is True
         )
-
-    def test_redirect_new_profile(self):
-        self.login(username="admin")
-        resp = self.client.get("/superset/profile/")
-        assert resp.status_code == 302
 
     def test_redirect_new_sqllab(self):
         self.login(username="admin")

@@ -461,11 +461,10 @@ class ImportExportMixin:
         return json_to_dict(self.template_params)  # type: ignore
 
 
-def _user_link(user: User) -> Union[Markup, str]:
+def _user(user: User) -> str:
     if not user:
         return ""
-    url = f"/superset/profile/{user.username}/"
-    return Markup(f"<a href=\"{url}\">{escape(user) or ''}</a>")
+    return escape(user)
 
 
 class AuditMixinNullable(AuditMixin):
@@ -512,11 +511,11 @@ class AuditMixinNullable(AuditMixin):
 
     @renders("created_by")
     def creator(self) -> Union[Markup, str]:
-        return _user_link(self.created_by)
+        return _user(self.created_by)
 
     @property
     def changed_by_(self) -> Union[Markup, str]:
-        return _user_link(self.changed_by)
+        return _user(self.changed_by)
 
     @renders("changed_on")
     def changed_on_(self) -> Markup:
