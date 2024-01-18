@@ -31,11 +31,18 @@ import Select from 'src/components/Select/Select';
 import AsyncSelect from 'src/components/Select/AsyncSelect';
 import rison from 'rison';
 import { LabeledErrorBoundInput } from 'src/components/Form';
-import { noBottomMargin } from 'src/features/reports/ReportModal/styles';
 import InfoTooltip from 'src/components/InfoTooltip';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { FilterOptions } from './constants';
 import { FilterType, RLSObject, RoleObject, TableObject } from './types';
+
+const noMargins = css`
+  margin: 0;
+
+  .ant-input {
+    margin: 0;
+  }
+`;
 
 const StyledModal = styled(Modal)`
   max-width: 1200px;
@@ -59,9 +66,17 @@ const StyledSectionContainer = styled.div`
   padding: ${({ theme }) =>
     `${theme.gridUnit * 3}px ${theme.gridUnit * 4}px ${theme.gridUnit * 2}px`};
 
-  label {
+  label,
+  .control-label {
+    display: inline-block;
     font-size: ${({ theme }) => theme.typography.sizes.s}px;
-    color: ${({ theme }) => theme.colors.grayscale.light1};
+    color: ${({ theme }) => theme.colors.grayscale.base};
+    vertical-align: middle;
+  }
+
+  .info-solid-small {
+    vertical-align: middle;
+    padding-bottom: ${({ theme }) => theme.gridUnit / 2}px;
   }
 `;
 
@@ -69,7 +84,6 @@ const StyledInputContainer = styled.div`
   display: flex;
   flex-direction: column;
   margin: ${({ theme }) => theme.gridUnit}px;
-
   margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
 
   .input-container {
@@ -79,11 +93,6 @@ const StyledInputContainer = styled.div`
     > div {
       width: 100%;
     }
-
-    label {
-      display: flex;
-      margin-right: ${({ theme }) => theme.gridUnit * 2}px;
-    }
   }
 
   input,
@@ -91,15 +100,17 @@ const StyledInputContainer = styled.div`
     flex: 1 1 auto;
   }
 
-  textarea {
-    height: 100px;
-    resize: none;
-  }
-
   .required {
     margin-left: ${({ theme }) => theme.gridUnit / 2}px;
     color: ${({ theme }) => theme.colors.error.base};
   }
+`;
+
+const StyledTextArea = styled.textarea`
+  height: 100px;
+  resize: none;
+  margin-top: ${({ theme }) => theme.gridUnit}px;
+  border: 1px solid ${({ theme }) => theme.colors.secondary.light3};
 `;
 
 export interface RowLevelSecurityModalProps {
@@ -355,9 +366,11 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
                 onChange: ({ target }: { target: HTMLInputElement }) =>
                   onTextChange(target),
               }}
-              css={noBottomMargin}
+              css={noMargins}
               label={t('Rule Name')}
               data-test="rule-name-test"
+              tooltipText={t('The name of the rule must be unique')}
+              hasTooltip
             />
           </StyledInputContainer>
 
@@ -433,7 +446,7 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
                 onChange: ({ target }: { target: HTMLInputElement }) =>
                   onTextChange(target),
               }}
-              css={noBottomMargin}
+              css={noMargins}
               label={t('Group Key')}
               hasTooltip
               tooltipText={t(
@@ -454,7 +467,7 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
                   onChange: ({ target }: { target: HTMLInputElement }) =>
                     onTextChange(target),
                 }}
-                css={noBottomMargin}
+                css={noMargins}
                 label={t('Clause')}
                 hasTooltip
                 tooltipText={t(
@@ -468,7 +481,7 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
           <StyledInputContainer>
             <div className="control-label">{t('Description')}</div>
             <div className="input-container">
-              <textarea
+              <StyledTextArea
                 name="description"
                 value={currentRule ? currentRule.description : ''}
                 onChange={event => onTextChange(event.target)}

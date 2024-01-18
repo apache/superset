@@ -190,22 +190,6 @@ describe('DatasourceEditor', () => {
       expect(virtualRadioBtn).toBeDisabled();
     });
   });
-
-  describe('render editor with feature flag false', () => {
-    beforeAll(() => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation(() => true);
-    });
-
-    it('disable edit Source tab', async () => {
-      await asyncRender(props);
-      expect(
-        screen.queryByRole('img', { name: /lock-locked/i }),
-      ).not.toBeInTheDocument();
-      isFeatureEnabledMock.mockRestore();
-    });
-  });
 });
 
 describe('DatasourceEditor RTL', () => {

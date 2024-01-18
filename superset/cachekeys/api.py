@@ -84,7 +84,6 @@ class CacheRestApi(BaseSupersetModelRestApi):
         datasource_uids = set(datasources.get("datasource_uids", []))
         for ds in datasources.get("datasources", []):
             ds_obj = SqlaTable.get_datasource_by_name(
-                session=db.session,
                 datasource_name=ds.get("datasource_name"),
                 schema=ds.get("schema"),
                 database_name=ds.get("database_name"),
