@@ -266,7 +266,7 @@ def import_dashboard(
     # Migrate any filter-box charts to native dashboard filters.
     migrate_dashboard(dashboard)
     db.session.flush()
-    return dashboard_to_import.id  # type: ignore
+    return dashboard.id
 
 
 def decode_dashboards(o: dict[str, Any]) -> Any:
