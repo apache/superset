@@ -13,3 +13,7 @@
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
+
+# Ortege specific packages
+apache-superset[databricks]
+Flask-Mail==0.9.1
