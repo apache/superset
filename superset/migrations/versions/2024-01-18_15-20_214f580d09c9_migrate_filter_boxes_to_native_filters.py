@@ -17,13 +17,13 @@
 """migrate_filter_boxes_to_native_filters
 
 Revision ID: 214f580d09c9
-Revises: 06dd9ff00fe8
+Revises: a32e0c4d8646
 Create Date: 2024-01-10 09:20:32.233912
 
 """
 # revision identifiers, used by Alembic.
 revision = "214f580d09c9"
-down_revision = "06dd9ff00fe8"
+down_revision = "a32e0c4d8646"
 
 from alembic import op
 from sqlalchemy import Column, ForeignKey, Integer, String, Table, Text
