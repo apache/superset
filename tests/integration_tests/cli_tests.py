@@ -176,7 +176,7 @@ def test_import_dashboards_versioned_export(import_dashboards_command, app_conte
     runner = app.test_cli_runner()
     response = runner.invoke(
         superset.cli.importexport.import_dashboards,
-        ("-p", "dashboards.json", "-u", "admin"),
+        ("-p", "dashboards.zip", "-u", "admin"),
     )
 
     assert response.exit_code == 0
@@ -221,7 +221,7 @@ def test_failing_import_dashboards_versioned_export(
     runner = app.test_cli_runner()
     response = runner.invoke(
         superset.cli.importexport.import_dashboards,
-        ("-p", "dashboards.json", "-u", "admin"),
+        ("-p", "dashboards.zip", "-u", "admin"),
     )
 
     assert_cli_fails_properly(response, caplog)
