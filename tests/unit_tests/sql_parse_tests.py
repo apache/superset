@@ -40,11 +40,11 @@ from superset.sql_parse import (
 )
 
 
-def extract_tables(query: str, dialect: Optional[str] = None) -> set[Table]:
+def extract_tables(query: str, engine: Optional[str] = None) -> set[Table]:
     """
     Helper function to extract tables referenced in a query.
     """
-    return ParsedQuery(query, dialect=dialect).tables
+    return ParsedQuery(query, engine=engine).tables
 
 
 def test_table() -> None:

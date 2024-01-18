@@ -14,6 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+# pylint: disable=too-many-lines
+
 import logging
 import re
 import urllib.parse
@@ -24,6 +27,8 @@ from typing import Any, cast, Optional
 import sqlparse
 from sqlalchemy import and_
 from sqlglot import exp, parse, parse_one
+from sqlglot.dialects import Dialects
+from sqlglot.errors import ParseError
 from sqlglot.optimizer.scope import Scope, ScopeType, traverse_scope
 from sqlparse import keywords
 from sqlparse.lexer import Lexer
@@ -55,7 +60,7 @@ from superset.utils.backports import StrEnum
 
 try:
     from sqloxide import parse_sql as sqloxide_parse
-except:  # pylint: disable=bare-except
+except (ImportError, ModuleNotFoundError):
     sqloxide_parse = None
 
 RESULT_OPERATIONS = {"UNION", "INTERSECT", "EXCEPT", "SELECT"}
@@ -72,6 +77,59 @@ lex = Lexer.get_default_instance()
 sqlparser_sql_regex = keywords.SQL_REGEX
 sqlparser_sql_regex.insert(25, (r"'(''|\\\\|\\|[^'])*'", sqlparse.tokens.String.Single))
 lex.set_SQL_REGEX(sqlparser_sql_regex)
+
+
+# mapping between DB engine specs and sqlglot dialects
+SQLGLOT_DIALECTS = {
+    "ascend": Dialects.HIVE,
+    "awsathena": Dialects.PRESTO,
+    "bigquery": Dialects.BIGQUERY,
+    "clickhouse": Dialects.CLICKHOUSE,
+    "clickhousedb": Dialects.CLICKHOUSE,
+    "cockroachdb": Dialects.POSTGRES,
+    # "crate": ???
+    # "databend": ???
+    "databricks": Dialects.DATABRICKS,
+    # "db2": ???
+    # "dremio": ???
+    "drill": Dialects.DRILL,
+    # "druid": ???
+    "duckdb": Dialects.DUCKDB,
+    # "dynamodb": ???
+    # "elasticsearch": ???
+    # "exa": ???
+    # "firebird": ???
+    # "firebolt": ???
+    "gsheets": Dialects.SQLITE,
+    "hana": Dialects.POSTGRES,
+    "hive": Dialects.HIVE,
+    # "ibmi": ???
+    # "impala": ???
+    # "kustokql": ???
+    # "kylin": ???
+    # "mssql": ???
+    "mysql": Dialects.MYSQL,
+    "netezza": Dialects.POSTGRES,
+    # "ocient": ???
+    # "odelasticsearch": ???
+    "oracle": Dialects.ORACLE,
+    # "pinot": ???
+    "postgresql": Dialects.POSTGRES,
+    "presto": Dialects.PRESTO,
+    "pydoris": Dialects.DORIS,
+    "redshift": Dialects.REDSHIFT,
+    # "risingwave": ???
+    # "rockset": ???
+    "shillelagh": Dialects.SQLITE,
+    "snowflake": Dialects.SNOWFLAKE,
+    # "solr": ???
+    "sqlite": Dialects.SQLITE,
+    "starrocks": Dialects.STARROCKS,
+    "superset": Dialects.SQLITE,
+    "teradatasql": Dialects.TERADATA,
+    "trino": Dialects.TRINO,
+    "vertica": Dialects.POSTGRES,
+}
 
 
 class CtasMethod(StrEnum):
@@ -152,7 +210,7 @@ def get_cte_remainder_query(sql: str) -> tuple[Optional[str], str]:
     return cte, remainder
 
 
-def strip_comments_from_sql(statement: str) -> str:
+def strip_comments_from_sql(statement: str, engine: Optional[str] = None) -> str:
     """
     Strips comments from a SQL statement, does a simple test first
     to avoid always instantiating the expensive ParsedQuery constructor
@@ -162,7 +220,11 @@ def strip_comments_from_sql(statement: str) -> str:
     :param statement: A string with the SQL statement
     :return: SQL statement without comments
     """
-    return ParsedQuery(statement).strip_comments() if "--" in statement else statement
+    return (
+        ParsedQuery(statement, engine=engine).strip_comments()
+        if "--" in statement
+        else statement
+    )
 
 
 @dataclass(eq=True, frozen=True)
@@ -195,13 +257,13 @@ class ParsedQuery:
         self,
         sql_statement: str,
         strip_comments: bool = False,
-        dialect: Optional[str] = None,
+        engine: Optional[str] = None,
     ):
         if strip_comments:
             sql_statement = sqlparse.format(sql_statement, strip_comments=True)
 
         self.sql: str = sql_statement
-        self.dialect = dialect
+        self._dialect = SQLGLOT_DIALECTS.get(engine) if engine else None
         self._tables: set[Table] = set()
         self._alias_names: set[str] = set()
         self._limit: Optional[int] = None
@@ -224,9 +286,9 @@ class ParsedQuery:
         Note: this uses sqlglot, since it's better at catching more edge cases.
         """
         try:
-            statements = parse(self.sql, dialect=self.dialect)
-        except Exception:  # pylint: disable=broad-exception-caught
-            logger.warning("Unable to parse SQL (%s): %s", self.dialect, self.sql)
+            statements = parse(self.sql, dialect=self._dialect)
+        except ParseError:
+            logger.warning("Unable to parse SQL (%s): %s", self._dialect, self.sql)
             return set()
 
         return {
@@ -261,7 +323,7 @@ class ParsedQuery:
             if not literal:
                 return set()
 
-            pseudo_query = parse_one(f"SELECT {literal.this}", dialect=self.dialect)
+            pseudo_query = parse_one(f"SELECT {literal.this}", dialect=self._dialect)
             sources = pseudo_query.find_all(exp.Table)
         elif statement:
             sources = []
@@ -900,7 +962,7 @@ def insert_rls_in_predicate(
 
 
 # mapping between sqloxide and SQLAlchemy dialects
-SQLOXITE_DIALECTS = {
+SQLOXIDE_DIALECTS = {
     "ansi": {"trino", "trinonative", "presto"},
     "hive": {"hive", "databricks"},
     "ms": {"mssql"},
@@ -933,7 +995,7 @@ def extract_table_references(
     tree = None
 
     if sqloxide_parse:
-        for dialect, sqla_dialects in SQLOXITE_DIALECTS.items():
+        for dialect, sqla_dialects in SQLOXIDE_DIALECTS.items():
             if sqla_dialect in sqla_dialects:
                 break
         sql_text = RE_JINJA_BLOCK.sub(" ", sql_text)
