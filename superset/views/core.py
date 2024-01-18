@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=invalid-name
+# pylint: disable=too-many-lines
 from __future__ import annotations
 
 import contextlib
@@ -238,19 +239,24 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         except SupersetException as ex:
             return json_error_response(utils.error_msg_from_exception(ex), 400)
 
-    EXPLORE_JSON_METHODS = ["POST"]
-    if not is_feature_enabled("ENABLE_EXPLORE_JSON_CSRF_PROTECTION"):
-        EXPLORE_JSON_METHODS.append("GET")
-
     @api
     @has_access_api
     @handle_api_exception
     @event_logger.log_this
     @expose(
         "/explore_json/<datasource_type>/<int:datasource_id>/",
-        methods=EXPLORE_JSON_METHODS,
+        methods=(
+            "GET",
+            "POST",
+        ),
     )
-    @expose("/explore_json/", methods=EXPLORE_JSON_METHODS)
+    @expose(
+        "/explore_json/",
+        methods=(
+            "GET",
+            "POST",
+        ),
+    )
     @etag_cache()
     @check_resource_permissions(check_datasource_perms)
     @deprecated(eol_version="4.0.0")
