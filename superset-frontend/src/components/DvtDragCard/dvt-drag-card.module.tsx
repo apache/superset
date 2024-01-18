@@ -38,11 +38,15 @@ const StyledDvtCardIcon = styled.div`
   display: flex;
   align-items: center;
   margin-left: 13px;
+  color: ${({ theme }) => theme.colors.dvt.text.label};
+  font-size: 20px;
+  font-weight: 600;
 `;
 
 const StyledDvtCardLabel = styled.div`
   display: flex;
   align-items: center;
+  color: ${({ theme }) => theme.colors.dvt.primary.light1};
 `;
 
 export {
