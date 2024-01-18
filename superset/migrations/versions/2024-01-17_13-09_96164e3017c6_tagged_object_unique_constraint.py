@@ -21,6 +21,8 @@ from alembic import op
 from sqlalchemy import Column, Enum, Integer, MetaData, Table
 from sqlalchemy.sql import and_, func, select
 
+from superset.migrations import utils
+
 # revision identifiers, used by Alembic.
 revision = "96164e3017c6"
 down_revision = "59a1450b3c10"
@@ -44,6 +46,10 @@ tagged_object_table = Table(
     Column("object_id", Integer),
     Column("object_type", Enum(ObjectType)),  # Replace ObjectType with your Enum
 )
+
+index_id = "uix_tagged_object"
+table_name = "tagged_object"
+uix_columns = ["tag_id", "object_id", "object_type"]
 
 
 def upgrade():
@@ -77,10 +83,8 @@ def upgrade():
     bind.execute(delete_query)
 
     # Create unique constraint
-    op.create_unique_constraint(
-        "uix_tagged_object", "tagged_object", ["tag_id", "object_id", "object_type"]
-    )
+    utils.create_unique_constraint(op, index_id, table_name, uix_columns)
 
 
 def downgrade():
-    op.drop_constraint("uix_tagged_object", "tagged_object", type_="unique")
+    utils.drop_unique_constraint(op, index_id, table_name)

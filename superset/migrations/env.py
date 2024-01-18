@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import os
+import sys
 import urllib.parse
 from logging.config import fileConfig
 
@@ -24,6 +26,8 @@ from alembic.runtime.migration import MigrationContext
 from flask import current_app
 from flask_appbuilder import Base
 from sqlalchemy import engine_from_config, pool
+
+sys.path.append(os.getcwd())
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
