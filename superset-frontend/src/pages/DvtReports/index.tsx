@@ -30,9 +30,14 @@ import { StyledReports, StyledReportsButton } from './dvt-reports.module';
 
 const modifiedData = {
   header: [
-    { id: 1, title: 'Name', field: 'name', heartIcon: true },
-    { id: 2, title: 'Visualization Type', field: 'type' },
-    { id: 3, title: 'Dataset', field: 'crontab_humanized' },
+    {
+      id: 1,
+      title: 'Name',
+      field: 'slice_name',
+      checkbox: true,
+    },
+    { id: 2, title: 'Visualization Type', field: 'viz_type' },
+    { id: 3, title: 'Dataset', field: 'datasource_name_text' },
     { id: 4, title: 'Modified date', field: 'date' },
     { id: 5, title: 'Modified by', field: 'changed_by' },
     { id: 6, title: 'Created by', field: 'created_by' },
@@ -64,6 +69,7 @@ function ReportList() {
   const dispatch = useDispatch();
   const reportsSelector = useAppSelector(state => state.dvtSidebar.reports);
   const [page, setPage] = useState<number>(1);
+  const [selectedRows, setSelectedRows] = useState<any[]>([]);
   const [editedData, setEditedData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
 
@@ -90,17 +96,8 @@ function ReportList() {
         const response = await fetch('/api/v1/chart/');
         const data = await response.json();
         const newEditedData = data.result.map((item: any) => ({
-          name: item.slice_name,
-          type: item.viz_type,
-          crontab_humanized: item.datasource_name_text,
-          date: new Date(item.changed_on_utc).toLocaleString('tr-TR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-          }),
+          ...item,
+          date: new Date(item.changed_on_utc).toLocaleString('tr-TR'),
           created_by: `${item.created_by.first_name} ${item.created_by.last_name}`,
           changed_by: `${item.changed_by.first_name} ${item.changed_by.last_name}`,
           owner: `${item.owners[0].first_name} ${item.owners[0].last_name}`,
@@ -116,7 +113,12 @@ function ReportList() {
     };
 
     fetchData();
-  }, []);
+    setSelectedRows([]);
+  }, [page]);
+
+  const handleDeselectAll = () => {
+    setSelectedRows([]);
+  };
 
   useEffect(() => {
     const filteredData = editedData.filter(
@@ -152,7 +154,23 @@ function ReportList() {
 
   return filteredData.length > 0 ? (
     <StyledReports>
-      <DvtTable data={currentItems} header={modifiedData.header} />
+      <div>
+        <DvtButton
+          label="Deselect All"
+          bold
+          colour="primary"
+          typeColour="outline"
+          size="medium"
+          onClick={handleDeselectAll}
+        />
+      </div>
+      <DvtTable
+        data={currentItems}
+        header={modifiedData.header}
+        selected={selectedRows}
+        setSelected={setSelectedRows}
+        checkboxActiveField="id"
+      />
       <StyledReportsButton>
         <DvtButton
           label="Create a New Graph/Chart"

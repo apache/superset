@@ -30,10 +30,10 @@ import { StyledAlerts, StyledAlertsButton } from './dvt-alerts.module';
 
 const modifiedData = {
   header: [
-    { id: 1, title: 'Last Run', field: 'lastRun', heartIcon: true },
+    { id: 1, title: 'Last Run', field: 'lastRun', checkbox: true },
     { id: 2, title: 'Name', field: 'name' },
     { id: 3, title: 'Schedule', field: 'schedule' },
-    { id: 4, title: 'Notification Method', field: 'notificationMethod' },
+    { id: 4, title: 'Notification Method', field: 'crontab_humanized' },
     { id: 5, title: 'Created By', field: 'createdBy' },
     { id: 6, title: 'Owners', field: 'owners' },
     { id: 7, title: 'Modified', field: 'modified' },
@@ -67,6 +67,7 @@ function AlertList() {
   const alertsSelector = useAppSelector(state => state.dvtSidebar.alerts);
   const [apiData, setApiData] = useState([]);
   const [page, setPage] = useState<number>(1);
+  const [selectedRows, setSelectedRows] = useState<any[]>([]);
   const [editedData, setEditedData] = useState<any[]>([]);
 
   const clearAlerts = () => {
@@ -99,7 +100,7 @@ function AlertList() {
               minute: '2-digit',
               second: '2-digit',
             }),
-            name: item.name,
+            ...item,
             schedule: new Date(item.created_on).toLocaleString('tr-TR', {
               day: '2-digit',
               month: '2-digit',
@@ -108,7 +109,6 @@ function AlertList() {
               minute: '2-digit',
               second: '2-digit',
             }),
-            notificationMethod: item.crontab_humanized,
             createdBy: `${item.created_by?.first_name} ${item.created_by?.last_name}`,
             owners: `${item.owners[0].first_name} ${item.owners[0].last_name}`,
             modified: `${item.changed_by.first_name} ${item.changed_by.last_name}`,
@@ -138,7 +138,12 @@ function AlertList() {
     };
 
     fetchData();
+    setSelectedRows([]);
   }, [alertsSelector]);
+
+  const handleDeselectAll = () => {
+    setSelectedRows([]);
+  };
 
   const itemsPerPageValue = 10;
   const indexOfLastItem = page * itemsPerPageValue;
@@ -150,7 +155,23 @@ function AlertList() {
 
   return apiData.length > 0 ? (
     <StyledAlerts>
-      <DvtTable data={currentItems} header={modifiedData.header} />
+      <div>
+        <DvtButton
+          label="Deselect All"
+          bold
+          colour="primary"
+          typeColour="outline"
+          size="medium"
+          onClick={handleDeselectAll}
+        />
+      </div>
+      <DvtTable
+        data={currentItems}
+        header={modifiedData.header}
+        selected={selectedRows}
+        setSelected={setSelectedRows}
+        checkboxActiveField="id"
+      />
       <StyledAlertsButton>
         <DvtButton
           label="Create a New Alert"
