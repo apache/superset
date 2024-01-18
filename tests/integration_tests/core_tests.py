@@ -559,8 +559,15 @@ class TestCore(SupersetTestCase):
         self.assertEqual(clean_query, rendered_query)
 
     def test_slice_payload_no_datasource(self):
+        form_data = {
+            "viz_type": "dist_bar",
+        }
         self.login(username="admin")
-        data = self.get_json_resp("/superset/explore_json/", raise_on_error=False)
+        rv = self.client.post(
+            "/superset/explore_json/",
+            data={"form_data": json.dumps(form_data)},
+        )
+        data = json.loads(rv.data.decode("utf-8"))
 
         self.assertEqual(
             data["errors"][0]["message"],

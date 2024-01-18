@@ -106,7 +106,6 @@ def test_get_datasource_sqlatable(session_with_data: Session) -> None:
     result = DatasourceDAO.get_datasource(
         datasource_type=DatasourceType.TABLE,
         datasource_id=1,
-        session=session_with_data,
     )
 
     assert 1 == result.id
@@ -119,7 +118,7 @@ def test_get_datasource_query(session_with_data: Session) -> None:
     from superset.models.sql_lab import Query
 
     result = DatasourceDAO.get_datasource(
-        datasource_type=DatasourceType.QUERY, datasource_id=1, session=session_with_data
+        datasource_type=DatasourceType.QUERY, datasource_id=1
     )
 
     assert result.id == 1
@@ -133,7 +132,6 @@ def test_get_datasource_saved_query(session_with_data: Session) -> None:
     result = DatasourceDAO.get_datasource(
         datasource_type=DatasourceType.SAVEDQUERY,
         datasource_id=1,
-        session=session_with_data,
     )
 
     assert result.id == 1
@@ -147,7 +145,6 @@ def test_get_datasource_sl_table(session_with_data: Session) -> None:
     result = DatasourceDAO.get_datasource(
         datasource_type=DatasourceType.SLTABLE,
         datasource_id=1,
-        session=session_with_data,
     )
 
     assert result.id == 1
@@ -161,7 +158,6 @@ def test_get_datasource_sl_dataset(session_with_data: Session) -> None:
     result = DatasourceDAO.get_datasource(
         datasource_type=DatasourceType.DATASET,
         datasource_id=1,
-        session=session_with_data,
     )
 
     assert result.id == 1
@@ -178,7 +174,6 @@ def test_get_datasource_w_str_param(session_with_data: Session) -> None:
         DatasourceDAO.get_datasource(
             datasource_type="table",
             datasource_id=1,
-            session=session_with_data,
         ),
         SqlaTable,
     )
@@ -187,7 +182,6 @@ def test_get_datasource_w_str_param(session_with_data: Session) -> None:
         DatasourceDAO.get_datasource(
             datasource_type="sl_table",
             datasource_id=1,
-            session=session_with_data,
         ),
         Table,
     )
@@ -208,5 +202,4 @@ def test_not_found_datasource(session_with_data: Session) -> None:
         DatasourceDAO.get_datasource(
             datasource_type="table",
             datasource_id=500000,
-            session=session_with_data,
         )

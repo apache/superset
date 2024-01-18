@@ -14,28 +14,31 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset.exceptions import SupersetException
+"""migrate-sunburst-chart
+
+Revision ID: a32e0c4d8646
+Revises: 59a1450b3c10
+Create Date: 2023-12-22 14:41:43.638321
+
+"""
+
+# revision identifiers, used by Alembic.
+revision = "a32e0c4d8646"
+down_revision = "59a1450b3c10"
+
+from alembic import op
+
+from superset import db
+from superset.migrations.shared.migrate_viz import MigrateSunburst
 
 
-class SupersetDBAPIError(SupersetException):
-    pass
+def upgrade():
+    bind = op.get_bind()
+    session = db.Session(bind=bind)
+    MigrateSunburst.upgrade(session)
 
 
-class SupersetDBAPIDataError(SupersetDBAPIError):
-    pass
-
-
-class SupersetDBAPIDatabaseError(SupersetDBAPIError):
-    pass
-
-
-class SupersetDBAPIConnectionError(SupersetDBAPIError):
-    pass
-
-
-class SupersetDBAPIOperationalError(SupersetDBAPIError):
-    pass
-
-
-class SupersetDBAPIProgrammingError(SupersetDBAPIError):
-    status = 400
+def downgrade():
+    bind = op.get_bind()
+    session = db.Session(bind=bind)
+    MigrateSunburst.downgrade(session)

@@ -24,7 +24,6 @@ from flask import request
 from flask_babel import lazy_gettext as _
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset import db
 from superset.commands.base import BaseCommand
 from superset.commands.explore.form_data.get import GetFormDataCommand
 from superset.commands.explore.form_data.parameters import (
@@ -114,7 +113,7 @@ class GetExploreCommand(BaseCommand, ABC):
         if self._datasource_id is not None:
             with contextlib.suppress(DatasourceNotFound):
                 datasource = DatasourceDAO.get_datasource(
-                    db.session, cast(str, self._datasource_type), self._datasource_id
+                    cast(str, self._datasource_type), self._datasource_id
                 )
         datasource_name = datasource.name if datasource else _("[Missing Dataset]")
         viz_type = form_data.get("viz_type")

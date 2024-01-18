@@ -39,15 +39,13 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import relationship, sessionmaker, subqueryload
+from sqlalchemy.orm import relationship, subqueryload
 from sqlalchemy.orm.mapper import Mapper
-from sqlalchemy.sql import join, select
 from sqlalchemy.sql.elements import BinaryExpression
 
 from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.daos.datasource import DatasourceDAO
-from superset.extensions import cache_manager
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
@@ -55,45 +53,39 @@ from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_dashboard_digest
 from superset.utils import core as utils
-from superset.utils.decorators import debounce
 
 metadata = Model.metadata  # pylint: disable=no-member
 config = app.config
 logger = logging.getLogger(__name__)
 
 
-def copy_dashboard(_mapper: Mapper, connection: Connection, target: Dashboard) -> None:
+def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) -> None:
     dashboard_id = config["DASHBOARD_TEMPLATE_ID"]
     if dashboard_id is None:
         return
 
-    session_class = sessionmaker(autoflush=False)
-    session = session_class(bind=connection)
+    session = sqla.inspect(target).session
+    new_user = session.query(User).filter_by(id=target.id).first()
 
-    try:
-        new_user = session.query(User).filter_by(id=target.id).first()
+    # copy template dashboard to user
+    template = session.query(Dashboard).filter_by(id=int(dashboard_id)).first()
+    dashboard = Dashboard(
+        dashboard_title=template.dashboard_title,
+        position_json=template.position_json,
+        description=template.description,
+        css=template.css,
+        json_metadata=template.json_metadata,
+        slices=template.slices,
+        owners=[new_user],
+    )
+    session.add(dashboard)
 
-        # copy template dashboard to user
-        template = session.query(Dashboard).filter_by(id=int(dashboard_id)).first()
-        dashboard = Dashboard(
-            dashboard_title=template.dashboard_title,
-            position_json=template.position_json,
-            description=template.description,
-            css=template.css,
-            json_metadata=template.json_metadata,
-            slices=template.slices,
-            owners=[new_user],
-        )
-        session.add(dashboard)
-
-        # set dashboard as the welcome dashboard
-        extra_attributes = UserAttribute(
-            user_id=target.id, welcome_dashboard_id=dashboard.id
-        )
-        session.add(extra_attributes)
-        session.commit()
-    finally:
-        session.close()
+    # set dashboard as the welcome dashboard
+    extra_attributes = UserAttribute(
+        user_id=target.id, welcome_dashboard_id=dashboard.id
+    )
+    session.add(extra_attributes)
+    session.commit()
 
 
 sqla.event.listen(User, "after_insert", copy_dashboard)
@@ -137,7 +129,6 @@ DashboardRoles = Table(
 )
 
 
-# pylint: disable=too-many-public-methods
 class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
     """The dashboard object!"""
 
@@ -322,36 +313,6 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
             force=True,
         )
 
-    @debounce(0.1)
-    def clear_cache(self) -> None:
-        cache_manager.cache.delete_memoized(Dashboard.datasets_trimmed_for_slices, self)
-
-    @classmethod
-    @debounce(0.1)
-    def clear_cache_for_slice(cls, slice_id: int) -> None:
-        filter_query = select([dashboard_slices.c.dashboard_id], distinct=True).where(
-            dashboard_slices.c.slice_id == slice_id
-        )
-        for (dashboard_id,) in db.engine.execute(filter_query):
-            cls(id=dashboard_id).clear_cache()
-
-    @classmethod
-    @debounce(0.1)
-    def clear_cache_for_datasource(cls, datasource_id: int) -> None:
-        filter_query = select(
-            [dashboard_slices.c.dashboard_id],
-            distinct=True,
-        ).select_from(
-            join(
-                dashboard_slices,
-                Slice,
-                (Slice.id == dashboard_slices.c.slice_id)
-                & (Slice.datasource_id == datasource_id),
-            )
-        )
-        for (dashboard_id,) in db.engine.execute(filter_query):
-            cls(id=dashboard_id).clear_cache()
-
     @classmethod
     def export_dashboards(  # pylint: disable=too-many-locals
         cls,
@@ -397,7 +358,7 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
                     if id_ is None:
                         continue
                     datasource = DatasourceDAO.get_datasource(
-                        db.session, utils.DatasourceType.TABLE, id_
+                        utils.DatasourceType.TABLE, id_
                     )
                     datasource_ids.add((datasource.id, datasource.type))
 
@@ -406,9 +367,7 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
 
         eager_datasources = []
         for datasource_id, _ in datasource_ids:
-            eager_datasource = SqlaTable.get_eager_sqlatable_datasource(
-                db.session, datasource_id
-            )
+            eager_datasource = SqlaTable.get_eager_sqlatable_datasource(datasource_id)
             copied_datasource = eager_datasource.copy()
             copied_datasource.alter_params(
                 remote_id=eager_datasource.id,

@@ -22,7 +22,7 @@ from datetime import datetime
 from typing import Any, Optional
 
 from flask_babel import lazy_gettext as _
-from sqlalchemy.orm import make_transient, Session
+from sqlalchemy.orm import make_transient
 
 from superset import db
 from superset.commands.base import BaseCommand
@@ -55,7 +55,6 @@ def import_chart(
     :returns: The resulting id for the imported slice
     :rtype: int
     """
-    session = db.session
     make_transient(slc_to_import)
     slc_to_import.dashboards = []
     slc_to_import.alter_params(remote_id=slc_to_import.id, import_time=import_time)
@@ -64,7 +63,6 @@ def import_chart(
     slc_to_import.reset_ownership()
     params = slc_to_import.params_dict
     datasource = SqlaTable.get_datasource_by_name(
-        session=session,
         datasource_name=params["datasource_name"],
         database_name=params["database_name"],
         schema=params["schema"],
@@ -72,11 +70,11 @@ def import_chart(
     slc_to_import.datasource_id = datasource.id  # type: ignore
     if slc_to_override:
         slc_to_override.override(slc_to_import)
-        session.flush()
+        db.session.flush()
         return slc_to_override.id
-    session.add(slc_to_import)
+    db.session.add(slc_to_import)
     logger.info("Final slice: %s", str(slc_to_import.to_json()))
-    session.flush()
+    db.session.flush()
     return slc_to_import.id
 
 
@@ -156,7 +154,6 @@ def import_dashboard(
         dashboard.json_metadata = json.dumps(json_metadata)
 
     logger.info("Started import of the dashboard: %s", dashboard_to_import.to_json())
-    session = db.session
     logger.info("Dashboard has %d slices", len(dashboard_to_import.slices))
     # copy slices object as Slice.import_slice will mutate the slice
     # and will remove the existing dashboard - slice association
@@ -173,7 +170,7 @@ def import_dashboard(
     i_params_dict = dashboard_to_import.params_dict
     remote_id_slice_map = {
         slc.params_dict["remote_id"]: slc
-        for slc in session.query(Slice).all()
+        for slc in db.session.query(Slice).all()
         if "remote_id" in slc.params_dict
     }
     for slc in slices:
@@ -224,7 +221,7 @@ def import_dashboard(
 
     # override the dashboard
     existing_dashboard = None
-    for dash in session.query(Dashboard).all():
+    for dash in db.session.query(Dashboard).all():
         if (
             "remote_id" in dash.params_dict
             and dash.params_dict["remote_id"] == dashboard_to_import.id
@@ -253,18 +250,20 @@ def import_dashboard(
     alter_native_filters(dashboard_to_import)
 
     new_slices = (
-        session.query(Slice).filter(Slice.id.in_(old_to_new_slc_id_dict.values())).all()
+        db.session.query(Slice)
+        .filter(Slice.id.in_(old_to_new_slc_id_dict.values()))
+        .all()
     )
 
     if existing_dashboard:
         existing_dashboard.override(dashboard_to_import)
         existing_dashboard.slices = new_slices
-        session.flush()
+        db.session.flush()
         return existing_dashboard.id
 
     dashboard_to_import.slices = new_slices
-    session.add(dashboard_to_import)
-    session.flush()
+    db.session.add(dashboard_to_import)
+    db.session.flush()
     return dashboard_to_import.id  # type: ignore
 
 
@@ -291,7 +290,6 @@ def decode_dashboards(o: dict[str, Any]) -> Any:
 
 
 def import_dashboards(
-    session: Session,
     content: str,
     database_id: Optional[int] = None,
     import_time: Optional[int] = None,
@@ -308,10 +306,10 @@ def import_dashboards(
         params = json.loads(table.params)
         dataset_id_mapping[params["remote_id"]] = new_dataset_id
 
-    session.commit()
+    db.session.commit()
     for dashboard in data["dashboards"]:
         import_dashboard(dashboard, dataset_id_mapping, import_time=import_time)
-    session.commit()
+    db.session.commit()
 
 
 class ImportDashboardsCommand(BaseCommand):
@@ -334,7 +332,7 @@ class ImportDashboardsCommand(BaseCommand):
 
         for file_name, content in self.contents.items():
             logger.info("Importing dashboard from file %s", file_name)
-            import_dashboards(db.session, content, self.database_id)
+            import_dashboards(content, self.database_id)
 
     def validate(self) -> None:
         # ensure all files are JSON
