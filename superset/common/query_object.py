@@ -27,12 +27,14 @@ from flask import g
 from flask_babel import gettext as _
 from pandas import DataFrame
 
-from superset import feature_flag_manager
+from superset import feature_flag_manager, security_manager
 from superset.common.chart_data import ChartDataResultType
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     InvalidPostProcessingError,
     QueryClauseValidationException,
     QueryObjectValidationError,
+    SupersetSecurityException,
 )
 from superset.sql_parse import sanitize_clause
 from superset.superset_typing import Column, Metric, OrderBy
@@ -188,6 +190,19 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         #   3. { expressionType: 'SIMPLE' | 'SQL', ... } - adhoc metric
         def is_str_or_adhoc(metric: Metric) -> bool:
             return isinstance(metric, str) or is_adhoc_metric(metric)
+
+        # When connecting with a guest token users should only be allowed to use
+        # predefined metrics.
+        if security_manager.is_guest_user() and any(
+            is_adhoc_metric(metric) for metric in metrics or []
+        ):
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.DASHBOARD_SECURITY_ACCESS_ERROR,
+                    message="Guest users can only use predefined metrics",
+                    level=ErrorLevel.ERROR,
+                ),
+            )
 
         self.metrics = metrics and [
             x if is_str_or_adhoc(x) else x["label"] for x in metrics  # type: ignore

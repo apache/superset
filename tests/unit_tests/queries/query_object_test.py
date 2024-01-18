@@ -16,13 +16,17 @@
 # under the License.
 from unittest.mock import call, patch
 
+import pytest
 from flask_appbuilder.security.sqla.models import User
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlaTable
+from superset.errors import SupersetErrorType
+from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
-from superset.utils.core import override_user
+from superset.utils.core import AdhocMetric, override_user
+from tests.unit_tests.conftest import with_feature_flags
 
 
 def cache_impersonation_flag_side_effect(feature=None):
@@ -342,4 +346,69 @@ def test_cache_key_cache_impersonation_on_with_different_user_and_db_impersonati
                 "Adding impersonation key to QueryObject cache dict: %s", "test_user2"
             ),
         ]
+    )
+
+
+def test_query_object_metrics():
+    """
+    Tests that metrics are correctly parsed from the query object.
+    """
+    query_object = QueryObject(row_limit=1, metrics=["sum__SP_POP_TOTL"])
+    assert query_object.metrics == ["sum__SP_POP_TOTL"]
+
+    query_object = QueryObject(row_limit=1, metrics=[{"label": "sum__SP_POP_TOTL"}])
+    assert query_object.metrics == ["sum__SP_POP_TOTL"]
+
+    query_object = QueryObject(
+        row_limit=1,
+        metrics=[
+            {
+                "aggregate": "SUM",
+                "column": None,
+                "expressionType": "SQL",
+                "hasCustomLabel": False,
+                "label": 'sum("SP_POP_TOTL")',
+                "sqlExpression": 'sum("SP_POP_TOTL")',
+            }
+        ],
+    )
+    assert query_object.metrics == [
+        {
+            "aggregate": "SUM",
+            "column": None,
+            "expressionType": "SQL",
+            "hasCustomLabel": False,
+            "label": 'sum("SP_POP_TOTL")',
+            "sqlExpression": 'sum("SP_POP_TOTL")',
+        },
+    ]
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True)
+def test_query_object_embedded(mocker: MockerFixture):
+    """
+    Test that only predefined metrics are allowed in embedded dashboards.
+    """
+    g = mocker.patch("superset.security.manager.g")
+    g.user.is_guest_user = True
+
+    query_object = QueryObject(row_limit=1, metrics=["sum__SP_POP_TOTL"])
+    assert query_object.metrics == ["sum__SP_POP_TOTL"]
+
+    query_object = QueryObject(row_limit=1, metrics=[{"label": "sum__SP_POP_TOTL"}])
+    assert query_object.metrics == ["sum__SP_POP_TOTL"]
+
+    adhoc_metric: AdhocMetric = {
+        "aggregate": "SUM",
+        "column": None,
+        "expressionType": "SQL",
+        "hasCustomLabel": False,
+        "label": 'sum("SP_POP_TOTL")',
+        "sqlExpression": 'sum("SP_POP_TOTL")',
+    }
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        QueryObject(row_limit=1, metrics=[adhoc_metric])
+    assert (
+        excinfo.value.error.error_type
+        == SupersetErrorType.DASHBOARD_SECURITY_ACCESS_ERROR
     )
