@@ -117,6 +117,9 @@ class TaggedObject(Model, AuditMixinNullable):
         ),
     )
 
+    def __str__(self) -> str:
+        return f"<TaggedObject: {self.object_type}:{self.object_id} TAG:{self.tag_id}>"
+
 
 def get_tag(name: str, session: orm.Session, type_: TagType) -> Tag:
     tag_name = name.strip()
@@ -151,6 +154,19 @@ class ObjectUpdater:
         cls, target: Dashboard | FavStar | Slice | Query | SqlaTable
     ) -> list[int]:
         raise NotImplementedError("Subclass should implement `get_owners_ids`")
+
+    @classmethod
+    def get_owner_tag_ids(
+        cls,
+        session: orm.Session,
+        target: Dashboard | FavStar | Slice | Query | SqlaTable,
+    ) -> set[int]:
+        tag_ids = set()
+        for owner_id in cls.get_owners_ids(target):
+            name = f"owner:{owner_id}"
+            tag = get_tag(name, session, TagType.owner)
+            tag_ids.add(tag.id)
+        return tag_ids
 
     @classmethod
     def _add_owners(
@@ -193,23 +209,38 @@ class ObjectUpdater:
         target: Dashboard | FavStar | Slice | Query | SqlaTable,
     ) -> None:
         with Session(bind=connection) as session:
-            # delete current `owner:` tags
-            query = (
-                session.query(TaggedObject.id)
+            # Fetch current owner tags
+            existing_tags = (
+                session.query(TaggedObject)
                 .join(Tag)
                 .filter(
                     TaggedObject.object_type == cls.object_type,
                     TaggedObject.object_id == target.id,
                     Tag.type == TagType.owner,
                 )
+                .all()
             )
-            ids = [row[0] for row in query]
-            session.query(TaggedObject).filter(TaggedObject.id.in_(ids)).delete(
-                synchronize_session=False
-            )
+            existing_owner_tag_ids = {tag.tag_id for tag in existing_tags}
 
-            # add `owner:` tags
-            cls._add_owners(session, target)
+            # Determine new owner IDs
+            new_owner_tag_ids = cls.get_owner_tag_ids(session, target)
+            print(f"new_owner_tag_ids: {new_owner_tag_ids}")
+
+            # Add missing tags
+            for owner_id in new_owner_tag_ids - existing_owner_tag_ids:
+                name = f"owner:{owner_id}"
+                tag = get_tag(name, session, TagType.owner)
+                tagged_object = TaggedObject(
+                    tag_id=tag.id, object_id=target.id, object_type=cls.object_type
+                )
+                print(f"adding: {tagged_object}")
+                session.add(tagged_object)
+
+            # Remove unnecessary tags
+            for tag in existing_tags:
+                if tag.tag_id not in new_owner_tag_ids:
+                    print(f"delete: {tag}")
+                    session.delete(tag)
             session.commit()
 
     @classmethod
