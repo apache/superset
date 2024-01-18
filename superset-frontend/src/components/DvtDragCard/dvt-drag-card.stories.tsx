@@ -72,8 +72,20 @@ export const Default = (args: DvtDragCardProps) => {
   );
 };
 
-Default.args = {
-  label: 'arac',
-  value: { id: 1, name: 'arac' },
-  icon: 'question',
+Default.argTypes = {
+  label: {
+    control: { type: 'text' },
+    defaultValue: 'arac',
+  },
+  value: {
+    control: { type: 'object' },
+    defaultValue: { id: 1, name: 'arac' },
+  },
+  icon: {
+    control: {
+      type: 'select',
+      options: ['question', 'clock', 'field_abc', 'dvt-hashtag'],
+    },
+    defaultValue: 'question',
+  },
 };
