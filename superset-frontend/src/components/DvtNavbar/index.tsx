@@ -19,7 +19,7 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useAppSelector } from 'src/hooks/useAppSelector';
-import { dvtAppSetSort } from 'src/dvt-redux/dvt-appReducer';
+// import { dvtAppSetSort } from 'src/dvt-redux/dvt-appReducer';
 import { BellOutlined } from '@ant-design/icons';
 import { dvtNavbarSqlSetTabs } from 'src/dvt-redux/dvt-navbarReducer';
 import {
@@ -31,15 +31,15 @@ import {
 import DvtButtonTabs from '../DvtButtonTabs';
 import DvtButton from '../DvtButton';
 import DvtDotTitle from '../DvtDotTitle';
-import DvtInput from '../DvtInput';
-import DvtSelect from '../DvtSelect';
+// import DvtInput from '../DvtInput';
+// import DvtSelect from '../DvtSelect';
 import DvtProfileMenu from '../DvtProfileMenu';
 import {
   StyledDvtNavbar,
   NavbarTop,
   NavbarBottom,
   NavbarBottomRight,
-  NavbarSearchInput,
+  // NavbarSearchInput,
   NavbarProfileMenu,
   NavbarSearchGroup,
   NavbarProfileIcon,
@@ -53,7 +53,7 @@ export interface DvtNavbarProps {
 
 const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, user }) => {
   const dispatch = useDispatch();
-  const sort = useAppSelector(state => state.dvtApp.sort);
+  // const sort = useAppSelector(state => state.dvtApp.sort);
   const sqlSelector = useAppSelector(state => state.dvtNavbar.sql);
   const [active, setActive] = useState<string>('All');
   const [activeData, setActiveData] = useState<TabsDataProps[]>([]);
@@ -98,7 +98,7 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, user }) => {
     }
   }, [pathName]);
 
-  const [searchText, setSearchText] = useState<string>('');
+  // const [searchText, setSearchText] = useState<string>('');
 
   return (
     <StyledDvtNavbar>
@@ -107,7 +107,7 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, user }) => {
           <>
             <DvtDotTitle label={pathTitles(pathName)} />
             <NavbarSearchGroup>
-              Search
+              {/* Search
               <DvtSelect
                 data={[]}
                 placeholder="All"
@@ -121,7 +121,7 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, user }) => {
                   type="search"
                   value={searchText}
                 />
-              </NavbarSearchInput>
+              </NavbarSearchInput> */}
             </NavbarSearchGroup>
           </>
         ) : (
@@ -144,12 +144,12 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, user }) => {
                 data={activeData}
               />
               <NavbarBottomRight>
-                <DvtButton
+                {/* <DvtButton
                   typeColour="powder"
                   label={`${sort ? 'Sorted' : 'Sort'}: Date Created`}
                   icon="dvt-sort"
                   onClick={() => dispatch(dvtAppSetSort(!sort))}
-                />
+                /> */}
               </NavbarBottomRight>
             </>
           )}
