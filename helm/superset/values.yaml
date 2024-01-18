@@ -263,7 +263,7 @@ supersetNode:
     # Or SSL port is usually 6380
     # Add following if you want to use SSL with Redis
     # use_redis_ssl:
-    #   ssl_cert_reqs: none
+    #   ssl_cert_reqs: CERT_NONE
     # You need to change below configuration incase bringing own PostgresSQL instance and also set postgresql.enabled:false
     db_host: '{{ .Release.Name }}-postgresql'
     db_port: "5432"

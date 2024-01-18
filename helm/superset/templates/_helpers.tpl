@@ -67,9 +67,9 @@ Generate Redis URL for SSL and non-SSL protocols
 {{- define "superset-redis-url" -}}
   {{- if .Values.supersetNode.connections.use_redis_ssl -}}
     {{- if .Values.supersetNode.connections.redis_password -}}
-      rediss://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/0?ssl_cert_reqs={{- .Values.supersetNode.connections.use_redis_ssl.ssl_cert_reqs | default "none" -}}
+      rediss://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/0?ssl_cert_reqs={{- .Values.supersetNode.connections.use_redis_ssl.ssl_cert_reqs | default "CERT_NONE" -}}
     {{- else -}}
-      rediss://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0?ssl_cert_reqs={{- .Values.supersetNode.connections.use_redis_ssl.ssl_cert_reqs | default "none" -}}
+      rediss://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0?ssl_cert_reqs={{- .Values.supersetNode.connections.use_redis_ssl.ssl_cert_reqs | default "CERT_NONE" -}}
     {{- end -}}
   {{- else -}}
     {{- if .Values.supersetNode.connections.redis_password -}}
@@ -92,7 +92,7 @@ redis_cache_config = redis.Redis(
   password=env('REDIS_PASSWORD'),
   {{- if .Values.supersetNode.connections.use_redis_ssl }}
   ssl=True, 
-  ssl_cert_reqs={{- .Values.supersetNode.connections.use_redis_ssl.ssl_cert_reqs | default "none" | quote }},
+  ssl_cert_reqs={{- .Values.supersetNode.connections.use_redis_ssl.ssl_cert_reqs | default "CERT_NONE" | quote }},
   {{- end }}
 )
 
@@ -126,7 +126,7 @@ RESULTS_BACKEND = RedisCache(
       key_prefix='superset_results',
       {{- if .Values.supersetNode.connections.use_redis_ssl }}
       ssl=True, 
-      ssl_cert_reqs={{- .Values.supersetNode.connections.use_redis_ssl.ssl_cert_reqs | default "none" | quote }},
+      ssl_cert_reqs={{- .Values.supersetNode.connections.use_redis_ssl.ssl_cert_reqs | default "CERT_NONE" | quote }},
       {{- end }}
 )
 
