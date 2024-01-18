@@ -65,7 +65,6 @@ export default class CheckboxControl extends React.Component {
           <ControlHeader
             {...this.props}
             leftNode={this.renderCheckbox()}
-            role="button"
             onClick={this.onChange.bind(this)}
           />
         </CheckBoxControlWrapper>

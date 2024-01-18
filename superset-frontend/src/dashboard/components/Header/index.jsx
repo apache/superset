@@ -553,6 +553,7 @@ class Header extends React.PureComponent {
                           <StyledUndoRedoButton
                             type="text"
                             disabled={undoLength < 1}
+                            onClick={undoLength && onUndo}
                           >
                             <Icons.Undo
                               css={[
@@ -560,10 +561,8 @@ class Header extends React.PureComponent {
                                 this.state.emphasizeUndo && undoRedoEmphasized,
                                 undoLength < 1 && undoRedoDisabled,
                               ]}
-                              onClick={undoLength && onUndo}
                               data-test="undo-action"
                               iconSize="xl"
-                              role="button"
                             />
                           </StyledUndoRedoButton>
                         </Tooltip>
@@ -574,6 +573,7 @@ class Header extends React.PureComponent {
                           <StyledUndoRedoButton
                             type="text"
                             disabled={redoLength < 1}
+                            onClick={redoLength && onRedo}
                           >
                             <Icons.Redo
                               css={[
@@ -581,10 +581,8 @@ class Header extends React.PureComponent {
                                 this.state.emphasizeRedo && undoRedoEmphasized,
                                 redoLength < 1 && undoRedoDisabled,
                               ]}
-                              onClick={redoLength && onRedo}
                               data-test="redo-action"
                               iconSize="xl"
-                              role="button"
                             />
                           </StyledUndoRedoButton>
                         </Tooltip>
