@@ -9,7 +9,7 @@ import {
 interface CardProps {
   label: string;
   value: any;
-  icon: string;
+  icon: 'question' | 'field_abc' | 'dvt-hashtag' | 'clock';
 }
 
 export interface DvtDragCardListProps {
