@@ -20,12 +20,12 @@ msgstr ""
 "POT-Creation-Date: 2023-05-23 16:30-0300\n"
 "PO-Revision-Date: 2018-03-12 16:24+0000\n"
 "Last-Translator: Nuno Heli Beires <nuno.beires@douroeci.com>\n"
-"Language: pt\n"
 "Language-Team: \n"
-"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+"Language: pt\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
 "Generated-By: Babel 2.9.1\n"
 
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/Option.tsx:71
@@ -52,8 +52,8 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:222
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:235
 msgid ""
-" Set the opacity to 0 if you do not want to override the color specified "
-"in the GeoJSON"
+" Set the opacity to 0 if you do not want to override the color specified in "
+"the GeoJSON"
 msgstr ""
 
 #: superset-frontend/src/explore/components/SaveModal.tsx:399
@@ -78,17 +78,12 @@ msgstr ""
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
 "                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
+"                      timestamp format does not adhere to the ISO 8601 standard\n"
 "                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
+"                      transforming the string into a date or timestamp. Note\n"
+"                      currently time zones are not supported. If time is stored\n"
+"                      in epoch format, put `epoch_s` or `epoch_ms`. If no pattern\n"
+"                      is specified we fall back to using the optional defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
 
@@ -343,8 +338,8 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl/index.jsx:168
 msgid ""
-"(optional) default value for the filter, when using the multiple option, "
-"you can use a semicolon-delimited list of options."
+"(optional) default value for the filter, when using the multiple option, you"
+" can use a semicolon-delimited list of options."
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/TemplateParamsEditor/index.tsx:71
@@ -385,8 +380,7 @@ msgstr ""
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:652
 msgid ""
-"-- Note: Unless you save your query, these tabs will NOT persist if you "
-"clear your cookies or change browsers.\n"
+"-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.\n"
 "\n"
 msgstr ""
 
@@ -802,14 +796,14 @@ msgstr "Origem de dados %(name)s já existe"
 
 #: superset/views/database/forms.py:145
 msgid ""
-"A dictionary with column names and their data types if you need to change"
-" the defaults. Example: {\"user_id\":\"integer\"}"
+"A dictionary with column names and their data types if you need to change "
+"the defaults. Example: {\"user_id\":\"integer\"}"
 msgstr ""
 
 #: superset/views/dynamic_plugins.py:52
 msgid ""
-"A full URL pointing to the location of the built plugin (could be hosted "
-"on a CDN for example)"
+"A full URL pointing to the location of the built plugin (could be hosted on "
+"a CDN for example)"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/controls/handlebarTemplate.tsx:61
@@ -832,8 +826,10 @@ msgid "A list of tags that have been applied to this chart."
 msgstr ""
 
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:424
-msgid "A list of users who can alter the chart. Searchable by name or username."
-msgstr "Proprietários é uma lista de utilizadores que podem alterar o dashboard."
+msgid ""
+"A list of users who can alter the chart. Searchable by name or username."
+msgstr ""
+"Proprietários é uma lista de utilizadores que podem alterar o dashboard."
 
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/index.js:29
 msgid "A map of the world, that can indicate values in different countries."
@@ -853,8 +849,8 @@ msgstr "Uma métrica a utilizar para cor"
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/index.js:28
 msgid ""
 "A polar coordinate chart where the circle is broken into wedges of equal "
-"angle, and the value represented by any wedge is illustrated by its area,"
-" rather than its radius or sweep angle."
+"angle, and the value represented by any wedge is illustrated by its area, "
+"rather than its radius or sweep angle."
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:697
@@ -863,7 +859,8 @@ msgstr "Obter um URL legível para o seu dashboard"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/constants.ts:45
 #: superset-frontend/src/explore/controls.jsx:113
-msgid "A reference to the [Time] configuration, taking granularity into account"
+msgid ""
+"A reference to the [Time] configuration, taking granularity into account"
 msgstr ""
 "Uma referência à configuração [Time], levando em consideração a "
 "granularidade"
@@ -1176,14 +1173,10 @@ msgstr "Adicionar filtro"
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:960
 msgid ""
 "Add filter clauses to control the filter's source query,\n"
-"                    though only in the context of the autocomplete i.e., "
-"these conditions\n"
-"                    do not impact how the filter is applied to the "
-"dashboard. This is useful\n"
-"                    when you want to improve the query's performance by "
-"only scanning a subset\n"
-"                    of the underlying data or limit the available values "
-"displayed in the filter."
+"                    though only in the context of the autocomplete i.e., these conditions\n"
+"                    do not impact how the filter is applied to the dashboard. This is useful\n"
+"                    when you want to improve the query's performance by only scanning a subset\n"
+"                    of the underlying data or limit the available values displayed in the filter."
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FilterTitlePane.tsx:109
@@ -1427,20 +1420,20 @@ msgstr "Soma Agregada"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:194
 msgid ""
-"Aggregate function applied to the list of points in each cluster to "
-"produce the cluster label."
+"Aggregate function applied to the list of points in each cluster to produce "
+"the cluster label."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:202
 msgid ""
-"Aggregate function to apply when pivoting and computing the total rows "
-"and columns"
+"Aggregate function to apply when pivoting and computing the total rows and "
+"columns"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Screengrid/index.js:27
 msgid ""
-"Aggregates data within the boundary of grid cells and maps the aggregated"
-" values to a dynamic color scale"
+"Aggregates data within the boundary of grid cells and maps the aggregated "
+"values to a dynamic color scale"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Heatmap/controlPanel.ts:110
@@ -1659,8 +1652,8 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:471
 msgid ""
-"Allow end user to drag-and-drop column headers to rearrange them. Note "
-"their changes won't persist for the next time they open the chart."
+"Allow end user to drag-and-drop column headers to rearrange them. Note their"
+" changes won't persist for the next time they open the chart."
 msgstr ""
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:421
@@ -1695,8 +1688,8 @@ msgstr ""
 
 #: superset/views/database/mixins.py:114
 msgid ""
-"Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...) in"
-" SQL Lab"
+"Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...) in "
+"SQL Lab"
 msgstr ""
 "Permitir que os usuários executem instruções non-SELECT (UPDATE, DELETE, "
 "CREATE, ...) no SQL Lab"
@@ -1736,8 +1729,8 @@ msgstr "Origem de dados %(name)s já existe"
 
 #: superset/common/query_context_processor.py:326 superset/viz.py:1352
 msgid ""
-"An enclosed time range (both start and end) must be specified when using "
-"a Time Comparison."
+"An enclosed time range (both start and end) must be specified when using a "
+"Time Comparison."
 msgstr ""
 
 #: superset/databases/schemas.py:289
@@ -1976,11 +1969,13 @@ msgid "An error occurred while pruning logs "
 msgstr "Ocorreu um erro ao renderizar a visualização: %s"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:888
-msgid "An error occurred while removing query. Please contact your administrator."
+msgid ""
+"An error occurred while removing query. Please contact your administrator."
 msgstr "Ocorreu um erro ao criar a origem dos dados"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:853
-msgid "An error occurred while removing tab. Please contact your administrator."
+msgid ""
+"An error occurred while removing tab. Please contact your administrator."
 msgstr "Ocorreu um erro ao criar a origem dos dados"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1388
@@ -2028,8 +2023,8 @@ msgstr "Ocorreu um erro ao criar a origem dos dados"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1146
 msgid ""
-"An error occurred while setting the tab template parameters. Please "
-"contact your administrator."
+"An error occurred while setting the tab template parameters. Please contact "
+"your administrator."
 msgstr ""
 
 #: superset-frontend/src/explore/actions/exploreActions.ts:89
@@ -2040,15 +2035,14 @@ msgstr "Ocorreu um erro ao criar a origem dos dados"
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:255
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:301
 msgid ""
-"An error occurred while storing the latest query id in the backend. "
-"Please contact your administrator if this problem persists."
+"An error occurred while storing the latest query id in the backend. Please "
+"contact your administrator if this problem persists."
 msgstr ""
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1087
 msgid ""
-"An error occurred while storing your query in the backend. To avoid "
-"losing your changes, please save your query using the \"Save Query\" "
-"button."
+"An error occurred while storing your query in the backend. To avoid losing "
+"your changes, please save your query using the \"Save Query\" button."
 msgstr ""
 
 #: superset/key_value/exceptions.py:46
@@ -2283,7 +2277,8 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1008
-msgid "Any databases that allow connections via SQL Alchemy URIs can be added. "
+msgid ""
+"Any databases that allow connections via SQL Alchemy URIs can be added. "
 msgstr ""
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1022
@@ -2314,8 +2309,8 @@ msgstr "Adicionar filtro"
 
 #: superset/viz.py:250
 msgid ""
-"Applied rolling window did not return any data. Please make sure the "
-"source query satisfies the minimum periods defined in the rolling window."
+"Applied rolling window did not return any data. Please make sure the source "
+"query satisfies the minimum periods defined in the rolling window."
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:113
@@ -2468,9 +2463,8 @@ msgstr "Explorar gráfico"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/index.ts:61
 msgid ""
-"Area charts are similar to line charts in that they represent variables "
-"with the same scale, but area charts stack the metrics on top of each "
-"other."
+"Area charts are similar to line charts in that they represent variables with"
+" the same scale, but area charts stack the metrics on top of each other."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:239
@@ -2743,33 +2737,30 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/SmoothLine/controlPanel.tsx:195
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/controlPanel.tsx:245
 msgid ""
-"Bounds for the Y-axis. When left empty, the bounds are dynamically "
-"defined based on the min/max of the data. Note that this feature will "
-"only expand the axis range. It won't narrow the data's extent."
+"Bounds for the Y-axis. When left empty, the bounds are dynamically defined "
+"based on the min/max of the data. Note that this feature will only expand "
+"the axis range. It won't narrow the data's extent."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:246
 msgid ""
 "Bounds for the axis. When left empty, the bounds are dynamically defined "
-"based on the min/max of the data. Note that this feature will only expand"
-" the axis range. It won't narrow the data's extent."
+"based on the min/max of the data. Note that this feature will only expand "
+"the axis range. It won't narrow the data's extent."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:373
 msgid ""
-"Bounds for the primary Y-axis. When left empty, the bounds are "
-"dynamically defined based on the min/max of the data. Note that this "
-"feature will only expand the axis range. It won't narrow the data's "
-"extent."
+"Bounds for the primary Y-axis. When left empty, the bounds are dynamically "
+"defined based on the min/max of the data. Note that this feature will only "
+"expand the axis range. It won't narrow the data's extent."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:411
 msgid ""
 "Bounds for the secondary Y-axis. Only works when Independent Y-axis\n"
-"                bounds are enabled. When left empty, the bounds are "
-"dynamically defined\n"
-"                based on the min/max of the data. Note that this feature "
-"will only expand\n"
+"                bounds are enabled. When left empty, the bounds are dynamically defined\n"
+"                based on the min/max of the data. Note that this feature will only expand\n"
 "                the axis range. It won't narrow the data's extent."
 msgstr ""
 
@@ -2848,10 +2839,10 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl/index.jsx:233
 #: superset-frontend/src/filters/components/Select/controlPanel.ts:138
 msgid ""
-"By default, each filter loads at most 1000 choices at the initial page "
-"load. Check this box if you have more than 1000 filter values and want to"
-" enable dynamically searching that loads filter values as users type (may"
-" add stress to your database)."
+"By default, each filter loads at most 1000 choices at the initial page load."
+" Check this box if you have more than 1000 filter values and want to enable "
+"dynamically searching that loads filter values as users type (may add stress"
+" to your database)."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:337
@@ -2965,9 +2956,9 @@ msgstr ""
 
 #: superset/sql_lab.py:432
 msgid ""
-"CTAS (create table as select) can only be run with a query where the last"
-" statement is a SELECT. Please make sure your query has a SELECT as its "
-"last statement. Then, try running your query again."
+"CTAS (create table as select) can only be run with a query where the last "
+"statement is a SELECT. Please make sure your query has a SELECT as its last "
+"statement. Then, try running your query again."
 msgstr ""
 
 #: superset/views/database/mixins.py:187
@@ -2977,8 +2968,8 @@ msgstr "Esquema CTAS"
 #: superset/sql_lab.py:449
 msgid ""
 "CVAS (create view as select) can only be run with a query with a single "
-"SELECT statement. Please make sure your query has only a SELECT "
-"statement. Then, try running your query again."
+"SELECT statement. Please make sure your query has only a SELECT statement. "
+"Then, try running your query again."
 msgstr ""
 
 #: superset/errors.py:129
@@ -3273,14 +3264,14 @@ msgstr ""
 
 #: superset-frontend/src/components/Datasource/ChangeDatasourceModal.tsx:51
 msgid ""
-"Changing the dataset may break the chart if the chart relies on columns "
-"or metadata that does not exist in the target dataset"
+"Changing the dataset may break the chart if the chart relies on columns or "
+"metadata that does not exist in the target dataset"
 msgstr ""
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1342
 msgid ""
-"Changing these settings will affect all charts using this dataset, "
-"including charts owned by other people."
+"Changing these settings will affect all charts using this dataset, including"
+" charts owned by other people."
 msgstr ""
 
 #: superset/dashboards/commands/exceptions.py:78
@@ -3467,14 +3458,9 @@ msgstr "Modificado pela última vez"
 
 #: superset-frontend/src/visualizations/FilterBox/FilterBoxChartPlugin.js:30
 msgid ""
-"Chart component that lets you add a custom filter UI in your dashboard. "
-"When added to dashboard, a filter box lets users specify specific values "
-"or ranges to filter charts by. The charts that each filter box is applied"
-" to can be fine tuned as well in the dashboard view.\n"
+"Chart component that lets you add a custom filter UI in your dashboard. When added to dashboard, a filter box lets users specify specific values or ranges to filter charts by. The charts that each filter box is applied to can be fine tuned as well in the dashboard view.\n"
 "\n"
-"    Note that this plugin is being replaced with the new Filters feature "
-"that lives in the dashboard view itself. It's easier to use and has more "
-"capabilities!"
+"    Note that this plugin is being replaced with the new Filters feature that lives in the dashboard view itself. It's easier to use and has more capabilities!"
 msgstr ""
 
 #: superset/charts/commands/exceptions.py:115
@@ -3591,8 +3577,8 @@ msgstr "Ordenar de forma descendente ou ascendente"
 #: superset-frontend/src/explore/controlUtils/controlUtils.test.tsx:114
 #: superset-frontend/src/explore/fixtures.tsx:44
 msgid ""
-"Check if the Rose Chart should use segment area instead of segment radius"
-" for proportioning"
+"Check if the Rose Chart should use segment area instead of segment radius "
+"for proportioning"
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/AnchorLink/index.tsx:73
@@ -3714,8 +3700,8 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:122
 msgid ""
-"Choose whether a country should be shaded by the metric, or assigned a "
-"color based on a categorical color palette"
+"Choose whether a country should be shaded by the metric, or assigned a color"
+" based on a categorical color palette"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-chord/src/index.js:34
@@ -3787,8 +3773,8 @@ msgstr ""
 
 #: superset-frontend/src/components/Chart/Chart.jsx:286
 msgid ""
-"Click on \"Create chart\" button in the control panel on the left to "
-"preview a visualization or"
+"Click on \"Create chart\" button in the control panel on the left to preview"
+" a visualization or"
 msgstr ""
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1018
@@ -3801,8 +3787,8 @@ msgstr ""
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:2012
 msgid ""
-"Click this link to switch to an alternate form that allows you to input "
-"the SQLAlchemy URL for this database manually."
+"Click this link to switch to an alternate form that allows you to input the "
+"SQLAlchemy URL for this database manually."
 msgstr ""
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1827
@@ -3964,8 +3950,8 @@ msgstr "Esquema de cores"
 
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:176
 msgid ""
-"Color will be shaded based the normalized (0% to 100%) value of a given "
-"cell against the other cells in the selected range: "
+"Color will be shaded based the normalized (0% to 100%) value of a given cell"
+" against the other cells in the selected range: "
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:497
@@ -4045,14 +4031,14 @@ msgstr "Origem de dados"
 
 #: superset/views/database/forms.py:394 superset/views/database/forms.py:485
 msgid ""
-"Column label for index column(s). If None is given and Dataframe Index is"
-" True, Index Names are used."
+"Column label for index column(s). If None is given and Dataframe Index is "
+"True, Index Names are used."
 msgstr ""
 
 #: superset/views/database/forms.py:233
 msgid ""
-"Column label for index column(s). If None is given and Dataframe Index is"
-" checked, Index Names are used"
+"Column label for index column(s). If None is given and Dataframe Index is "
+"checked, Index Names are used"
 msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/components/labelUtils.tsx:90
@@ -4077,14 +4063,14 @@ msgstr "Coluna"
 
 #: superset/views/database/forms.py:221
 msgid ""
-"Column to use as the row labels of the dataframe. Leave empty if no index"
-" column"
+"Column to use as the row labels of the dataframe. Leave empty if no index "
+"column"
 msgstr ""
 
 #: superset/views/database/forms.py:352
 msgid ""
-"Column to use as the row labels of the dataframe. Leave empty if no index"
-" column."
+"Column to use as the row labels of the dataframe. Leave empty if no index "
+"column."
 msgstr ""
 
 #: superset/views/database/forms.py:424
@@ -4095,8 +4081,8 @@ msgstr "Coluna"
 #: superset/views/database/views.py:568
 #, python-format
 msgid ""
-"Columnar file \"%(columnar_filename)s\" uploaded to table "
-"\"%(table_name)s\" in database \"%(db_name)s\""
+"Columnar file \"%(columnar_filename)s\" uploaded to table \"%(table_name)s\""
+" in database \"%(db_name)s\""
 msgstr ""
 
 #: superset/views/database/views.py:443
@@ -4182,15 +4168,15 @@ msgstr "Lista de Métricas"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:297
 msgid ""
-"Comma-separated color picks for the intervals, e.g. 1,2,4. Integers "
-"denote colors from the chosen color scheme and are 1-indexed. Length must"
-" be matching that of interval bounds."
+"Comma-separated color picks for the intervals, e.g. 1,2,4. Integers denote "
+"colors from the chosen color scheme and are 1-indexed. Length must be "
+"matching that of interval bounds."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:283
 msgid ""
-"Comma-separated interval bounds, e.g. 2,4,5 for intervals 0-2, 2-4 and "
-"4-5. Last number should match the value provided for MAX."
+"Comma-separated interval bounds, e.g. 2,4,5 for intervals 0-2, 2-4 and 4-5. "
+"Last number should match the value provided for MAX."
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent/index.tsx:371
@@ -4209,22 +4195,22 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-horizon/src/index.js:28
 msgid ""
-"Compares how a metric changes over time between different groups. Each "
-"group is mapped to a row and change over time is visualized bar lengths "
-"and color."
+"Compares how a metric changes over time between different groups. Each group"
+" is mapped to a row and change over time is visualized bar lengths and "
+"color."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/index.js:35
 msgid ""
-"Compares metrics from different categories using bars. Bar lengths are "
-"used to indicate the magnitude of each value and color is used to "
-"differentiate groups."
+"Compares metrics from different categories using bars. Bar lengths are used "
+"to indicate the magnitude of each value and color is used to differentiate "
+"groups."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-event-flow/src/index.ts:27
 msgid ""
-"Compares the lengths of time different activities take in a shared "
-"timeline view."
+"Compares the lengths of time different activities take in a shared timeline "
+"view."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/index.js:35
@@ -4744,7 +4730,8 @@ msgid "Crimson"
 msgstr "Acção"
 
 #: superset-frontend/src/components/Chart/ChartContextMenu/ChartContextMenu.tsx:152
-msgid "Cross-filter will be applied to all of the charts that use this dataset."
+msgid ""
+"Cross-filter will be applied to all of the charts that use this dataset."
 msgstr ""
 
 #: superset-frontend/src/components/Chart/ChartContextMenu/ChartContextMenu.tsx:164
@@ -4845,8 +4832,8 @@ msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/components/ColumnConfigControl/constants.tsx:150
 msgid ""
-"D3 number format for numbers between -1.0 and 1.0, useful when you want "
-"to have different significant digits for small and large numbers"
+"D3 number format for numbers between -1.0 and 1.0, useful when you want to "
+"have different significant digits for small and large numbers"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:285
@@ -4958,8 +4945,7 @@ msgstr "[Nome do dashboard]"
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:868
 msgid ""
 "Dashboard time range filters apply to temporal columns defined in\n"
-"          the filter section of each chart. Add temporal columns to the "
-"chart\n"
+"          the filter section of each chart. Add temporal columns to the chart\n"
 "          filters to have this dashboard filter impact those charts."
 msgstr ""
 
@@ -5030,15 +5016,15 @@ msgstr ""
 
 #: superset/sqllab/commands/results.py:116 superset/views/core.py:2231
 msgid ""
-"Data could not be deserialized from the results backend. The storage "
-"format might have changed, rendering the old data stake. You need to re-"
-"run the original query."
+"Data could not be deserialized from the results backend. The storage format "
+"might have changed, rendering the old data stake. You need to re-run the "
+"original query."
 msgstr ""
 
 #: superset/sqllab/commands/results.py:75 superset/views/core.py:2184
 msgid ""
-"Data could not be retrieved from the results backend. You need to re-run "
-"the original query."
+"Data could not be retrieved from the results backend. You need to re-run the"
+" original query."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/components/PlaySlider.jsx:182
@@ -5091,22 +5077,22 @@ msgstr "Base de dados"
 #: superset/views/database/views.py:481
 #, python-format
 msgid ""
-"Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed "
-"for columnar uploads. Please contact your Superset Admin."
+"Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for"
+" columnar uploads. Please contact your Superset Admin."
 msgstr ""
 
 #: superset/views/database/views.py:180
 #, python-format
 msgid ""
-"Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed "
-"for csv uploads. Please contact your Superset Admin."
+"Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for"
+" csv uploads. Please contact your Superset Admin."
 msgstr ""
 
 #: superset/views/database/views.py:321
 #, python-format
 msgid ""
-"Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed "
-"for excel uploads. Please contact your Superset Admin."
+"Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for"
+" excel uploads. Please contact your Superset Admin."
 msgstr ""
 
 #: superset/initialization/__init__.py:243
@@ -5400,8 +5386,8 @@ msgstr "Formato de data e hora"
 
 #: superset/models/helpers.py:1502
 msgid ""
-"Datetime column not provided as part table configuration and is required "
-"by this type of chart"
+"Datetime column not provided as part table configuration and is required by "
+"this type of chart"
 msgstr ""
 "Coluna datahora não definida como parte da configuração da tabela e "
 "obrigatória para este tipo de gráfico"
@@ -5565,8 +5551,8 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:133
 msgid ""
 "Define a javascript function that receives the data array used in the "
-"visualization and is expected to return a modified version of that array."
-" This can be used to alter properties of the data, filter, or enrich the "
+"visualization and is expected to return a modified version of that array. "
+"This can be used to alter properties of the data, filter, or enrich the "
 "array."
 msgstr ""
 
@@ -5577,8 +5563,8 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:188
 #: superset-frontend/src/explore/controlPanels/sections.tsx:140
 msgid ""
-"Defines a rolling window function to apply, works along with the "
-"[Periods] text box"
+"Defines a rolling window function to apply, works along with the [Periods] "
+"text box"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/controlPanel.ts:124
@@ -5592,8 +5578,8 @@ msgstr ""
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:119
 #: superset-frontend/src/explore/controls.jsx:383
 msgid ""
-"Defines the grouping of entities. Each series is shown as a specific "
-"color on the chart and has a legend toggle"
+"Defines the grouping of entities. Each series is shown as a specific color "
+"on the chart and has a legend toggle"
 msgstr ""
 "Define o agrupamento de entidades. Cada série corresponde a uma cor "
 "específica no gráfico e tem uma alternância de legenda"
@@ -5800,8 +5786,8 @@ msgstr "Eliminar"
 
 #: superset-frontend/src/dashboard/components/gridComponents/Tabs.jsx:217
 msgid ""
-"Deleting a tab will remove all content within it. You may still reverse "
-"this action with the"
+"Deleting a tab will remove all content within it. You may still reverse this"
+" action with the"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/SpatialControl.jsx:184
@@ -6008,8 +5994,8 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:252
 msgid ""
-"Display metrics side by side within each column, as opposed to each "
-"column being displayed side by side for each metric."
+"Display metrics side by side within each column, as opposed to each column "
+"being displayed side by side for each metric."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:217
@@ -6023,9 +6009,9 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/index.ts:35
 msgid ""
 "Displays connections between entities in a graph structure. Useful for "
-"mapping relationships and showing which nodes are important in a network."
-" Graph charts can be configured to be force-directed or circulate. If "
-"your data has a geospatial component, try the deck.gl Arc chart."
+"mapping relationships and showing which nodes are important in a network. "
+"Graph charts can be configured to be force-directed or circulate. If your "
+"data has a geospatial component, try the deck.gl Arc chart."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:168
@@ -6216,8 +6202,8 @@ msgstr ""
 #: superset/common/query_object.py:291
 #, python-format
 msgid ""
-"Duplicate column/metric labels: %(labels)s. Please make sure all columns "
-"and metrics have a unique label."
+"Duplicate column/metric labels: %(labels)s. Please make sure all columns and"
+" metrics have a unique label."
 msgstr ""
 
 #: superset-frontend/src/features/datasets/DuplicateDatasetModal.tsx:61
@@ -6236,52 +6222,55 @@ msgstr "Descrição"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:249
 msgid ""
-"Duration (in seconds) of the caching timeout for charts of this database."
-" A timeout of 0 indicates that the cache never expires, and -1 bypasses "
-"the cache. Note this defaults to the global timeout if undefined."
+"Duration (in seconds) of the caching timeout for charts of this database. A "
+"timeout of 0 indicates that the cache never expires, and -1 bypasses the "
+"cache. Note this defaults to the global timeout if undefined."
 msgstr ""
 
 #: superset/views/database/mixins.py:172
 msgid ""
-"Duration (in seconds) of the caching timeout for charts of this database."
-" A timeout of 0 indicates that the cache never expires. Note this "
-"defaults to the global timeout if undefined."
+"Duration (in seconds) of the caching timeout for charts of this database. A "
+"timeout of 0 indicates that the cache never expires. Note this defaults to "
+"the global timeout if undefined."
 msgstr ""
 
 #: superset/views/chart/mixin.py:69
 msgid ""
 "Duration (in seconds) of the caching timeout for this chart. Note this "
 "defaults to the datasource/table timeout if undefined."
-msgstr "Duração (em segundos) do tempo limite da cache para esta visualização."
+msgstr ""
+"Duração (em segundos) do tempo limite da cache para esta visualização."
 
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:406
 #, fuzzy
 msgid ""
-"Duration (in seconds) of the caching timeout for this chart. Set to -1 to"
-" bypass the cache. Note this defaults to the dataset's timeout if "
-"undefined."
-msgstr "Duração (em segundos) do tempo limite da cache para esta visualização."
+"Duration (in seconds) of the caching timeout for this chart. Set to -1 to "
+"bypass the cache. Note this defaults to the dataset's timeout if undefined."
+msgstr ""
+"Duração (em segundos) do tempo limite da cache para esta visualização."
 
 #: superset/connectors/sqla/views.py:369
 msgid ""
-"Duration (in seconds) of the caching timeout for this table. A timeout of"
-" 0 indicates that the cache never expires. Note this defaults to the "
-"database timeout if undefined."
+"Duration (in seconds) of the caching timeout for this table. A timeout of 0 "
+"indicates that the cache never expires. Note this defaults to the database "
+"timeout if undefined."
 msgstr ""
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:271
 #, fuzzy
 msgid ""
-"Duration (in seconds) of the metadata caching timeout for schemas of this"
-" database. If left unset, the cache never expires."
-msgstr "Duração (em segundos) do tempo limite da cache para esta visualização."
+"Duration (in seconds) of the metadata caching timeout for schemas of this "
+"database. If left unset, the cache never expires."
+msgstr ""
+"Duração (em segundos) do tempo limite da cache para esta visualização."
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:292
 #, fuzzy
 msgid ""
 "Duration (in seconds) of the metadata caching timeout for tables of this "
 "database. If left unset, the cache never expires. "
-msgstr "Duração (em segundos) do tempo limite da cache para esta visualização."
+msgstr ""
+"Duração (em segundos) do tempo limite da cache para esta visualização."
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/utils/D3Formatting.ts:59
 msgid "Duration in ms (1.40008 => 1ms 400µs 80ns)"
@@ -6553,7 +6542,8 @@ msgstr ""
 msgid "Either the database is spelled incorrectly or does not exist."
 msgstr ""
 
-#: superset/db_engine_specs/mysql.py:150 superset/db_engine_specs/presto.py:681
+#: superset/db_engine_specs/mysql.py:150
+#: superset/db_engine_specs/presto.py:681
 #: superset/db_engine_specs/redshift.py:71
 #: superset/db_engine_specs/starrocks.py:122
 #, python-format
@@ -6694,8 +6684,7 @@ msgstr ""
 #: superset/viz.py:2514
 msgid ""
 "Encountered invalid NULL spatial entry,"
-"                                        please consider filtering those "
-"out"
+"                                        please consider filtering those out"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/controlPanel.tsx:77
@@ -6963,8 +6952,8 @@ msgstr ""
 #: superset/views/database/views.py:427
 #, python-format
 msgid ""
-"Excel file \"%(excel_filename)s\" uploaded to table \"%(table_name)s\" in"
-" database \"%(db_name)s\""
+"Excel file \"%(excel_filename)s\" uploaded to table \"%(table_name)s\" in "
+"database \"%(db_name)s\""
 msgstr ""
 
 #: superset/views/database/views.py:306
@@ -7035,8 +7024,7 @@ msgstr "expandir barra de ferramentas"
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:460
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
-"        in milliseconds since epoch. mathjs is used to evaluate the "
-"formulas.\n"
+"        in milliseconds since epoch. mathjs is used to evaluate the formulas.\n"
 "        Example: '2x+5'"
 msgstr ""
 
@@ -7173,9 +7161,9 @@ msgstr ""
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:909
 msgid ""
 "Extra data to specify table metadata. Currently supports metadata of the "
-"format: `{ \"certification\": { \"certified_by\": \"Data Platform Team\","
-" \"details\": \"This table is the source of truth.\" }, "
-"\"warning_markdown\": \"This is a warning.\" }`."
+"format: `{ \"certification\": { \"certified_by\": \"Data Platform Team\", "
+"\"details\": \"This table is the source of truth.\" }, \"warning_markdown\":"
+" \"This is a warning.\" }`."
 msgstr ""
 
 #: superset/views/database/mixins.py:240 superset/views/database/mixins.py:264
@@ -7425,7 +7413,8 @@ msgid "Filter name"
 msgstr "Valor de filtro"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterCard/DependenciesRow.tsx:91
-msgid "Filter only displays values relevant to selections made in other filters."
+msgid ""
+"Filter only displays values relevant to selections made in other filters."
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:283
@@ -7517,13 +7506,12 @@ msgstr ""
 #: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:435
 msgid ""
 "Filters with the same group key will be ORed together within the group, "
-"while different filter groups will be ANDed together. Undefined group "
-"keys are treated as unique groups, i.e. are not grouped together. For "
-"example, if a table has three filters, of which two are for departments "
-"Finance and Marketing (group key = 'department'), and one refers to the "
-"region Europe (group key = 'region'), the filter clause would apply the "
-"filter (department = 'Finance' OR department = 'Marketing') AND (region ="
-" 'Europe')."
+"while different filter groups will be ANDed together. Undefined group keys "
+"are treated as unique groups, i.e. are not grouped together. For example, if"
+" a table has three filters, of which two are for departments Finance and "
+"Marketing (group key = 'department'), and one refers to the region Europe "
+"(group key = 'region'), the filter clause would apply the filter (department"
+" = 'Finance' OR department = 'Marketing') AND (region = 'Europe')."
 msgstr ""
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1132
@@ -7538,8 +7526,8 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:116
 msgid ""
-"Fix the trend line to the full time range specified in case filtered "
-"results do not include the start or end dates"
+"Fix the trend line to the full time range specified in case filtered results"
+" do not include the start or end dates"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:115
@@ -7605,9 +7593,9 @@ msgstr ""
 
 #: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:408
 msgid ""
-"For regular filters, these are the roles this filter will be applied to. "
-"For base filters, these are the roles that the filter DOES NOT apply to, "
-"e.g. Admin if admin should see all data."
+"For regular filters, these are the roles this filter will be applied to. For"
+" base filters, these are the roles that the filter DOES NOT apply to, e.g. "
+"Admin if admin should see all data."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:112
@@ -7617,8 +7605,8 @@ msgstr "Fonte"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:151
 msgid ""
-"Force all tables and views to be created in this schema when clicking "
-"CTAS or CVAS in SQL Lab."
+"Force all tables and views to be created in this schema when clicking CTAS "
+"or CVAS in SQL Lab."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/controlPanel.ts:84
@@ -8027,9 +8015,9 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:489
 #: superset-frontend/src/explore/controlPanels/sections.tsx:215
 msgid ""
-"How to display time shifts: as individual lines; as the difference "
-"between the main time series and each time shift; as the percentage "
-"change; or as the ratio between series and time shifts."
+"How to display time shifts: as individual lines; as the difference between "
+"the main time series and each time shift; as the percentage change; or as "
+"the ratio between series and time shifts."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/sharedControls.ts:51
@@ -8057,33 +8045,31 @@ msgstr ""
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:401
 #, fuzzy
 msgid ""
-"If Presto or Trino, all the queries in SQL Lab are going to be executed "
-"as the currently logged on user who must have permission to run them. If "
-"Hive and hive.server2.enable.doAs is enabled, will run the queries as "
-"service account, but impersonate the currently logged on user via "
+"If Presto or Trino, all the queries in SQL Lab are going to be executed as "
+"the currently logged on user who must have permission to run them. If Hive "
+"and hive.server2.enable.doAs is enabled, will run the queries as service "
+"account, but impersonate the currently logged on user via "
 "hive.server2.proxy.user property."
 msgstr ""
-"Se Presto, todas as consultas no SQL Lab serão executadas como o "
-"utilizador atualmente conectado que deve ter permissão para as executar. "
-"<br/> Se hive e hive.server2.enable.doAs estiver habilitado, serão "
-"executadas as queries como conta de serviço, mas deve personificar o "
-"utilizador atualmente conectado recorrendo à propriedade "
-"hive.server2.proxy.user."
+"Se Presto, todas as consultas no SQL Lab serão executadas como o utilizador "
+"atualmente conectado que deve ter permissão para as executar. <br/> Se hive "
+"e hive.server2.enable.doAs estiver habilitado, serão executadas as queries "
+"como conta de serviço, mas deve personificar o utilizador atualmente "
+"conectado recorrendo à propriedade hive.server2.proxy.user."
 
 #: superset/views/database/mixins.py:165
 msgid ""
 "If Presto, all the queries in SQL Lab are going to be executed as the "
-"currently logged on user who must have permission to run them.<br/>If "
-"Hive and hive.server2.enable.doAs is enabled, will run the queries as "
-"service account, but impersonate the currently logged on user via "
+"currently logged on user who must have permission to run them.<br/>If Hive "
+"and hive.server2.enable.doAs is enabled, will run the queries as service "
+"account, but impersonate the currently logged on user via "
 "hive.server2.proxy.user property."
 msgstr ""
-"Se Presto, todas as consultas no SQL Lab serão executadas como o "
-"utilizador atualmente conectado que deve ter permissão para as executar. "
-"<br/> Se hive e hive.server2.enable.doAs estiver habilitado, serão "
-"executadas as queries como conta de serviço, mas deve personificar o "
-"utilizador atualmente conectado recorrendo à propriedade "
-"hive.server2.proxy.user."
+"Se Presto, todas as consultas no SQL Lab serão executadas como o utilizador "
+"atualmente conectado que deve ter permissão para as executar. <br/> Se hive "
+"e hive.server2.enable.doAs estiver habilitado, serão executadas as queries "
+"como conta de serviço, mas deve personificar o utilizador atualmente "
+"conectado recorrendo à propriedade hive.server2.proxy.user."
 
 #: superset/views/database/forms.py:174
 #, fuzzy
@@ -8091,13 +8077,14 @@ msgid "If Table Already Exists"
 msgstr "Origem de dados %(name)s já existe"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:1076
-msgid "If a metric is specified, sorting will be done based on the metric value"
+msgid ""
+"If a metric is specified, sorting will be done based on the metric value"
 msgstr ""
 
 #: superset/views/database/forms.py:248
 msgid ""
-"If duplicate columns are not overridden, they will be presented as \"X.1,"
-" X.2 ...X.x\""
+"If duplicate columns are not overridden, they will be presented as \"X.1, "
+"X.2 ...X.x\""
 msgstr ""
 
 #: superset/views/database/mixins.py:177
@@ -8106,8 +8093,8 @@ msgstr ""
 
 #: superset/views/database/forms.py:328 superset/views/database/forms.py:459
 msgid ""
-"If table exists do one of the following: Fail (do nothing), Replace (drop"
-" and recreate table) or Append (insert data)."
+"If table exists do one of the following: Fail (do nothing), Replace (drop "
+"and recreate table) or Append (insert data)."
 msgstr ""
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:410
@@ -8206,8 +8193,8 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-event-flow/src/controlPanel.tsx:63
 msgid ""
-"Important! Select this if the table is not already sorted by entity id, "
-"else there is no guarantee that all events for each entity are returned."
+"Important! Select this if the table is not already sorted by entity id, else"
+" there is no guarantee that all events for each entity are returned."
 msgstr ""
 
 #: superset-frontend/src/explore/constants.ts:71
@@ -8288,7 +8275,8 @@ msgid "Intensity Radius is the radius at which the weight is distributed"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Heatmap/controlPanel.ts:69
-msgid "Intensity is the value multiplied by the weight to obtain the final weight"
+msgid ""
+"Intensity is the value multiplied by the weight to obtain the final weight"
 msgstr ""
 
 #: superset/views/database/forms.py:200
@@ -8370,8 +8358,7 @@ msgstr ""
 msgid ""
 "Invalid connection string, a valid string usually "
 "follows:'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-"
-"NAME'<p>Example:'postgresql://user:password@your-postgres-"
-"db/database'</p>"
+"NAME'<p>Example:'postgresql://user:password@your-postgres-db/database'</p>"
 msgstr ""
 
 #: superset-frontend/src/components/CronPicker/CronPicker.tsx:52
@@ -8559,10 +8546,10 @@ msgstr "Atualizar coluna de metadados"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:361
 msgid ""
-"JSON string containing additional connection configuration. This is used "
-"to provide connection information for systems like Hive, Presto and "
-"BigQuery which do not conform to the username:password syntax normally "
-"used by SQLAlchemy."
+"JSON string containing additional connection configuration. This is used to "
+"provide connection information for systems like Hive, Presto and BigQuery "
+"which do not conform to the username:password syntax normally used by "
+"SQLAlchemy."
 msgstr ""
 
 #: superset-frontend/src/components/CronPicker/CronPicker.tsx:97
@@ -8600,22 +8587,22 @@ msgstr ""
 
 #: superset/views/database/forms.py:474
 msgid ""
-"Json list of the column names that should be read. If not None, only "
-"these columns will be read from the file."
+"Json list of the column names that should be read. If not None, only these "
+"columns will be read from the file."
 msgstr ""
 
 #: superset/views/database/forms.py:213
 msgid ""
-"Json list of the values that should be treated as null. Examples: [\"\"] "
-"for empty strings, [\"None\", \"N/A\"], [\"nan\", \"null\"]. Warning: "
-"Hive database supports only a single value"
+"Json list of the values that should be treated as null. Examples: [\"\"] for"
+" empty strings, [\"None\", \"N/A\"], [\"nan\", \"null\"]. Warning: Hive "
+"database supports only a single value"
 msgstr ""
 
 #: superset/views/database/forms.py:404
 msgid ""
-"Json list of the values that should be treated as null. Examples: [\"\"],"
-" [\"None\", \"N/A\"], [\"nan\", \"null\"]. Warning: Hive database "
-"supports only single value. Use [\"\"] for empty string."
+"Json list of the values that should be treated as null. Examples: [\"\"], "
+"[\"None\", \"N/A\"], [\"nan\", \"null\"]. Warning: Hive database supports "
+"only single value. Use [\"\"] for empty string."
 msgstr ""
 
 #: superset-frontend/src/components/CronPicker/CronPicker.tsx:72
@@ -8818,8 +8805,8 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-event-flow/src/controlPanel.tsx:80
 msgid ""
-"Leaf nodes that represent fewer than this number of events will be "
-"initially hidden in the visualization"
+"Leaf nodes that represent fewer than this number of events will be initially"
+" hidden in the visualization"
 msgstr ""
 
 #: superset-frontend/src/pages/ChartList/index.tsx:749
@@ -8962,8 +8949,8 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-sankey/src/controlPanel.ts:48
 msgid ""
-"Limiting rows may result in incomplete data and misleading charts. "
-"Consider filtering or grouping source/target names instead."
+"Limiting rows may result in incomplete data and misleading charts. Consider "
+"filtering or grouping source/target names instead."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:136
@@ -8981,9 +8968,9 @@ msgstr ""
 msgid ""
 "Limits the number of series that get displayed. A joined subquery (or an "
 "extra phase where subqueries are not supported) is applied to limit the "
-"number of series that get fetched and rendered. This feature is useful "
-"when grouping by high cardinality column(s) though does increase the "
-"query complexity and cost."
+"number of series that get fetched and rendered. This feature is useful when "
+"grouping by high cardinality column(s) though does increase the query "
+"complexity and cost."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/index.js:48
@@ -9016,10 +9003,10 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Line/index.ts:66
 msgid ""
-"Line chart is used to visualize measurements taken over a given category."
-" Line chart is a type of chart which displays information as a series of "
-"data points connected by straight line segments. It is a basic type of "
-"chart common in many fields."
+"Line chart is used to visualize measurements taken over a given category. "
+"Line chart is a type of chart which displays information as a series of data"
+" points connected by straight line segments. It is a basic type of chart "
+"common in many fields."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:131
@@ -9205,7 +9192,8 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Screengrid/Screengrid.jsx:44
 #, fuzzy
 msgid "Longitude and Latitude"
-msgstr "As colunas [Longitude] e [Latitude] devem estar presentes em [Agrupar por]"
+msgstr ""
+"As colunas [Longitude] e [Latitude] devem estar presentes em [Agrupar por]"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:285
 msgid "Longitude of default viewport"
@@ -9235,11 +9223,10 @@ msgstr ""
 
 #: superset/views/core.py:1752
 msgid ""
-"Malformed request. slice_id or table_name and db_name arguments are "
-"expected"
+"Malformed request. slice_id or table_name and db_name arguments are expected"
 msgstr ""
-"Pedido mal formado. Os argumentos slice_id ou table_name e db_name não "
-"foram preenchidos"
+"Pedido mal formado. Os argumentos slice_id ou table_name e db_name não foram"
+" preenchidos"
 
 #: superset/initialization/__init__.py:279
 #: superset/initialization/__init__.py:291
@@ -9433,8 +9420,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:218
 msgid ""
-"Median node size, the largest node will be 4 times larger than the "
-"smallest"
+"Median node size, the largest node will be 4 times larger than the smallest"
 msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:189
@@ -9580,15 +9566,14 @@ msgstr ""
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:192
 #: superset-frontend/src/explore/controls.jsx:367
 msgid ""
-"Metric used to define how the top series are sorted if a series or row "
-"limit is present. If undefined reverts to the first metric (where "
-"appropriate)."
+"Metric used to define how the top series are sorted if a series or row limit"
+" is present. If undefined reverts to the first metric (where appropriate)."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/controlPanel.ts:55
 msgid ""
-"Metric used to order the limit if a series limit is present. If undefined"
-" reverts to the first metric (where appropriate)."
+"Metric used to order the limit if a series limit is present. If undefined "
+"reverts to the first metric (where appropriate)."
 msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:161
@@ -9603,8 +9588,8 @@ msgstr "Métricas"
 #: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/controls/metrics.tsx:34
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:126
 msgid ""
-"Metrics for which percentage of total are to be displayed. Calculated "
-"from only data within the row limit."
+"Metrics for which percentage of total are to be displayed. Calculated from "
+"only data within the row limit."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/controlPanel.tsx:76
@@ -9841,8 +9826,8 @@ msgstr "Série Temporal - Gráfico de linhas"
 
 #: superset/views/database/views.py:468
 msgid ""
-"Multiple file extensions are not allowed for columnar uploads. Please "
-"make sure all files are of the same extension."
+"Multiple file extensions are not allowed for columnar uploads. Please make "
+"sure all files are of the same extension."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Polygon/controlPanel.ts:173
@@ -9857,7 +9842,8 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl/index.jsx:218
-msgid "Multiple selections allowed, otherwise filter is limited to a single value"
+msgid ""
+"Multiple selections allowed, otherwise filter is limited to a single value"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:333
@@ -10474,8 +10460,7 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:307
 msgid ""
 "Number bounds used for color encoding from red to blue.\n"
-"               Reverse the numbers for blue to red. To get pure red or "
-"blue,\n"
+"               Reverse the numbers for blue to red. To get pure red or blue,\n"
 "               you can enter either only min or max."
 msgstr ""
 
@@ -10593,16 +10578,15 @@ msgstr ""
 
 #: superset-frontend/src/explore/controls.jsx:126
 msgid ""
-"One or many columns to group by. High cardinality groupings should "
-"include a series limit to limit the number of fetched and rendered "
-"series."
+"One or many columns to group by. High cardinality groupings should include a"
+" series limit to limit the number of fetched and rendered series."
 msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:73
 msgid ""
-"One or many columns to group by. High cardinality groupings should "
-"include a sort by metric and series limit to limit the number of fetched "
-"and rendered series."
+"One or many columns to group by. High cardinality groupings should include a"
+" sort by metric and series limit to limit the number of fetched and rendered"
+" series."
 msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:111
@@ -10663,8 +10647,8 @@ msgstr ""
 
 #: superset/views/core.py:2029
 msgid ""
-"One or more required fields are missing in the request. Please try again,"
-" and if the problem persists contact your administrator."
+"One or more required fields are missing in the request. Please try again, "
+"and if the problem persists contact your administrator."
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/SliceHeader/index.tsx:56
@@ -10697,8 +10681,8 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:136
 msgid ""
-"Only show the total value on the stacked chart, and not show on the "
-"selected category"
+"Only show the total value on the stacked chart, and not show on the selected"
+" category"
 msgstr ""
 
 #: superset/connectors/sqla/utils.py:131
@@ -10760,8 +10744,8 @@ msgstr "Expor no SQL Lab"
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
 "executed on remote workers as opposed to on the web server itself. This "
-"assumes that you have a Celery worker setup as well as a results backend."
-" Refer to the installation docs for more information."
+"assumes that you have a Celery worker setup as well as a results backend. "
+"Refer to the installation docs for more information."
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:129
@@ -10777,8 +10761,8 @@ msgstr ""
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:381
 msgid ""
-"Optional CA_BUNDLE contents to validate HTTPS requests. Only available on"
-" certain database engines."
+"Optional CA_BUNDLE contents to validate HTTPS requests. Only available on "
+"certain database engines."
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:329
@@ -10899,31 +10883,31 @@ msgstr "Mapa Mundo"
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:123
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:199
 msgid ""
-"Overlay one or more timeseries from a relative time period. Expects "
-"relative time deltas in natural language (example:  24 hours, 7 days, 52 "
-"weeks, 365 days). Free text is supported."
+"Overlay one or more timeseries from a relative time period. Expects relative"
+" time deltas in natural language (example:  24 hours, 7 days, 52 weeks, 365 "
+"days). Free text is supported."
 msgstr ""
 "Sobrepor série temporal de um período de tempo relativo. Espera valor de "
-"variação temporal relativa em linguagem natural (exemplo: 24 horas, 7 "
-"dias, 56 semanas, 365 dias)"
+"variação temporal relativa em linguagem natural (exemplo: 24 horas, 7 dias, "
+"56 semanas, 365 dias)"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:317
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:467
 #: superset-frontend/src/explore/controlPanels/sections.tsx:195
 #, fuzzy
 msgid ""
-"Overlay one or more timeseries from a relative time period. Expects "
-"relative time deltas in natural language (example: 24 hours, 7 days, 52 "
-"weeks, 365 days). Free text is supported."
+"Overlay one or more timeseries from a relative time period. Expects relative"
+" time deltas in natural language (example: 24 hours, 7 days, 52 weeks, 365 "
+"days). Free text is supported."
 msgstr ""
 "Sobrepor série temporal de um período de tempo relativo. Espera valor de "
-"variação temporal relativa em linguagem natural (exemplo: 24 horas, 7 "
-"dias, 56 semanas, 365 dias)"
+"variação temporal relativa em linguagem natural (exemplo: 24 horas, 7 dias, "
+"56 semanas, 365 dias)"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Hex/index.js:27
 msgid ""
-"Overlays a hexagonal grid on a map, and aggregates data within the "
-"boundary of each cell."
+"Overlays a hexagonal grid on a map, and aggregates data within the boundary "
+"of each cell."
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:617
@@ -11007,14 +10991,16 @@ msgstr ""
 
 #: superset/views/dashboard/mixin.py:64
 msgid "Owners is a list of users who can alter the dashboard."
-msgstr "Proprietários é uma lista de utilizadores que podem alterar o dashboard."
+msgstr ""
+"Proprietários é uma lista de utilizadores que podem alterar o dashboard."
 
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:491
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:539
 msgid ""
-"Owners is a list of users who can alter the dashboard. Searchable by name"
-" or username."
-msgstr "Proprietários é uma lista de utilizadores que podem alterar o dashboard."
+"Owners is a list of users who can alter the dashboard. Searchable by name or"
+" username."
+msgstr ""
+"Proprietários é uma lista de utilizadores que podem alterar o dashboard."
 
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:403
 msgid "Page length"
@@ -11103,8 +11089,8 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:185
 msgid ""
-"Partitions whose height to parent height proportions are below this value"
-" are pruned"
+"Partitions whose height to parent height proportions are below this value "
+"are pruned"
 msgstr ""
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:154
@@ -11355,8 +11341,8 @@ msgstr ""
 #: superset/sqllab/query_render.py:118
 msgid ""
 "Please check your query and confirm that all template parameters are "
-"surround by double braces, for example, \"{{ ds }}\". Then, try running "
-"your query again."
+"surround by double braces, for example, \"{{ ds }}\". Then, try running your"
+" query again."
 msgstr ""
 
 #: superset/db_engine_specs/athena.py:56
@@ -11365,22 +11351,23 @@ msgstr ""
 #: superset/db_engine_specs/snowflake.py:117
 #, python-format
 msgid ""
-"Please check your query for syntax errors at or near "
-"\"%(syntax_error)s\". Then, try running your query again."
+"Please check your query for syntax errors at or near \"%(syntax_error)s\". "
+"Then, try running your query again."
 msgstr ""
 
-#: superset/db_engine_specs/gsheets.py:82 superset/db_engine_specs/mysql.py:170
+#: superset/db_engine_specs/gsheets.py:82
+#: superset/db_engine_specs/mysql.py:170
 #, python-format
 msgid ""
-"Please check your query for syntax errors near \"%(server_error)s\". "
-"Then, try running your query again."
+"Please check your query for syntax errors near \"%(server_error)s\". Then, "
+"try running your query again."
 msgstr ""
 
 #: superset/sqllab/query_render.py:38 superset/views/core.py:199
 msgid ""
-"Please check your template parameters for syntax errors and make sure "
-"they match across your SQL query and Set Parameters. Then, try running "
-"your query again."
+"Please check your template parameters for syntax errors and make sure they "
+"match across your SQL query and Set Parameters. Then, try running your query"
+" again."
 msgstr ""
 
 #: superset/viz.py:3234
@@ -11451,7 +11438,8 @@ msgid "Please save your chart first, then try creating a new email report."
 msgstr ""
 
 #: superset/reports/commands/exceptions.py:117
-msgid "Please save your dashboard first, then try creating a new email report."
+msgid ""
+"Please save your dashboard first, then try creating a new email report."
 msgstr ""
 
 #: superset-frontend/src/pages/ChartCreation/index.tsx:422
@@ -11468,9 +11456,9 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-parallel-coordinates/src/index.js:29
 msgid ""
-"Plots the individual metrics for each row in the data vertically and "
-"links them together as a line. This chart is useful for comparing "
-"multiple metrics across all of the samples or rows in the data."
+"Plots the individual metrics for each row in the data vertically and links "
+"them together as a line. This chart is useful for comparing multiple metrics"
+" across all of the samples or rows in the data."
 msgstr ""
 
 #: superset/initialization/__init__.py:277
@@ -11622,12 +11610,12 @@ msgstr "Origem de dados"
 #: superset/connectors/sqla/views.py:347
 msgid ""
 "Predicate applied when fetching distinct value to populate the filter "
-"control component. Supports jinja template syntax. Applies only when "
-"`Enable Filter Select` is on."
+"control component. Supports jinja template syntax. Applies only when `Enable"
+" Filter Select` is on."
 msgstr ""
-"Predicado aplicado ao obter um valor distinto para preencher a componente"
-" de controlo de filtro. Suporta a sintaxe jinja standard. Apenas se "
-"aplica quando \"Ativar Filtro de Seleção\" está ativado."
+"Predicado aplicado ao obter um valor distinto para preencher a componente de"
+" controlo de filtro. Suporta a sintaxe jinja standard. Apenas se aplica "
+"quando \"Ativar Filtro de Seleção\" está ativado."
 
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/index.js:44
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:41
@@ -12060,7 +12048,8 @@ msgid "Recent activity"
 msgstr "Atividade Recente"
 
 #: superset-frontend/src/features/home/EmptyState.tsx:107
-msgid "Recently created charts, dashboards, and saved queries will appear here"
+msgid ""
+"Recently created charts, dashboards, and saved queries will appear here"
 msgstr ""
 
 #: superset-frontend/src/features/home/EmptyState.tsx:116
@@ -12099,7 +12088,8 @@ msgid "Rectangle"
 msgstr ""
 
 #: superset/connectors/sqla/views.py:353
-msgid "Redirects to this endpoint when clicking on the table from the table list"
+msgid ""
+"Redirects to this endpoint when clicking on the table from the table list"
 msgstr "Redireciona para este endpoint ao clicar na tabela da respetiva lista"
 
 #: superset-frontend/src/dashboard/components/Header/index.jsx:571
@@ -12112,10 +12102,9 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:339
 msgid ""
-"Reduces the number of X-axis ticks to be rendered. If true, the x-axis "
-"will not overflow and labels may be missing. If false, a minimum width "
-"will be applied to columns and the width may overflow into an horizontal "
-"scroll."
+"Reduces the number of X-axis ticks to be rendered. If true, the x-axis will "
+"not overflow and labels may be missing. If false, a minimum width will be "
+"applied to columns and the width may overflow into an horizontal scroll."
 msgstr ""
 
 #: superset-frontend/src/features/databases/DatabaseModal/SqlAlchemyForm.tsx:92
@@ -12191,9 +12180,9 @@ msgstr ""
 #: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:364
 msgid ""
 "Regular filters add where clauses to queries if a user belongs to a role "
-"referenced in the filter, base filters apply filters to all queries "
-"except the roles defined in the filter, and can be used to define what "
-"users can see if no RLS filters within a filter group apply to them."
+"referenced in the filter, base filters apply filters to all queries except "
+"the roles defined in the filter, and can be used to define what users can "
+"see if no RLS filters within a filter group apply to them."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-chord/src/index.js:40
@@ -12575,8 +12564,7 @@ msgstr "Perfil"
 #, python-format
 msgid "Role %(r)s was extended to provide the access to the datasource %(ds)s"
 msgstr ""
-"O cargo %(r)s foi alargado para providenciar acesso à origem de dados "
-"%(ds)s"
+"O cargo %(r)s foi alargado para providenciar acesso à origem de dados %(ds)s"
 
 #: superset-frontend/src/dashboard/components/PropertiesModal/PropertiesModal.test.tsx:375
 #: superset-frontend/src/dashboard/components/PropertiesModal/PropertiesModal.test.tsx:389
@@ -12678,14 +12666,14 @@ msgstr ""
 
 #: superset/views/database/forms.py:255
 msgid ""
-"Row containing the headers to use as column names (0 is first line of "
-"data). Leave empty if there is no header row"
+"Row containing the headers to use as column names (0 is first line of data)."
+" Leave empty if there is no header row"
 msgstr ""
 
 #: superset/views/database/forms.py:342
 msgid ""
-"Row containing the headers to use as column names (0 is first line of "
-"data). Leave empty if there is no header row."
+"Row containing the headers to use as column names (0 is first line of data)."
+" Leave empty if there is no header row."
 msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:247
@@ -12825,11 +12813,9 @@ msgstr "SQL Lab"
 #, python-format
 msgid ""
 "SQL Lab uses your browser's local storage to store queries and results.\n"
-"Currently, you are using %(currentUsage)s KB out of %(maxStorage)d KB "
-"storage space.\n"
+"Currently, you are using %(currentUsage)s KB out of %(maxStorage)d KB storage space.\n"
 "To keep SQL Lab from crashing, please delete some query tabs.\n"
-"You can re-access these queries by using the Save feature before you "
-"delete the tab.\n"
+"You can re-access these queries by using the Save feature before you delete the tab.\n"
 "Note that you will need to close other SQL Lab windows before you do this."
 msgstr ""
 
@@ -13250,8 +13236,8 @@ msgstr "Indefinido"
 #: superset/connectors/sqla/views.py:336
 msgid "Schema, as used only in some databases like Postgres, Redshift and DB2"
 msgstr ""
-"Esquema, como utilizado em algumas base de dados, como Postgres, Redshift"
-" e DB2"
+"Esquema, como utilizado em algumas base de dados, como Postgres, Redshift e "
+"DB2"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:429
 msgid "Schemas allowed for File upload"
@@ -13555,9 +13541,9 @@ msgstr "Selecione uma base de dados"
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1847
 msgid ""
-"Select databases require additional fields to be completed in the "
-"Advanced tab to successfully connect the database. Learn what "
-"requirements your databases has "
+"Select databases require additional fields to be completed in the Advanced "
+"tab to successfully connect the database. Learn what requirements your "
+"databases has "
 msgstr ""
 
 #: superset-frontend/src/features/datasets/AddDataset/DatasetPanel/MessageContent.tsx:66
@@ -13639,17 +13625,17 @@ msgstr ""
 msgid ""
 "Select the charts to which you want to apply cross-filters in this "
 "dashboard. Deselecting a chart will exclude it from being filtered when "
-"applying cross-filters from any chart on the dashboard. You can select "
-"\"All charts\" to apply cross-filters to all charts that use the same "
-"dataset or contain the same column name in the dashboard."
+"applying cross-filters from any chart on the dashboard. You can select \"All"
+" charts\" to apply cross-filters to all charts that use the same dataset or "
+"contain the same column name in the dashboard."
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/CrossFilters/ScopingModal/ScopingTreePanel.tsx:188
 msgid ""
-"Select the charts to which you want to apply cross-filters when "
-"interacting with this chart. You can select \"All charts\" to apply "
-"filters to all charts that use the same dataset or contain the same "
-"column name in the dashboard."
+"Select the charts to which you want to apply cross-filters when interacting "
+"with this chart. You can select \"All charts\" to apply filters to all "
+"charts that use the same dataset or contain the same column name in the "
+"dashboard."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:392
@@ -13773,8 +13759,7 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:193
 msgid ""
 "Sets the hierarchy levels of the chart. Each level is\n"
-"        represented by one ring with the innermost circle as the top of "
-"the hierarchy."
+"        represented by one ring with the innermost circle as the top of the hierarchy."
 msgstr ""
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1436
@@ -13830,20 +13815,20 @@ msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/forecastInterval.tsx:130
 msgid ""
-"Should daily seasonality be applied. An integer value will specify "
-"Fourier order of seasonality."
+"Should daily seasonality be applied. An integer value will specify Fourier "
+"order of seasonality."
 msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/forecastInterval.tsx:111
 msgid ""
-"Should weekly seasonality be applied. An integer value will specify "
-"Fourier order of seasonality."
+"Should weekly seasonality be applied. An integer value will specify Fourier "
+"order of seasonality."
 msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/forecastInterval.tsx:92
 msgid ""
-"Should yearly seasonality be applied. An integer value will specify "
-"Fourier order of seasonality."
+"Should yearly seasonality be applied. An integer value will specify Fourier "
+"order of seasonality."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-table/src/DataTable/components/SelectPageSize.tsx:38
@@ -13960,8 +13945,8 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:285
 msgid ""
-"Show Y-axis on the sparkline. Will display the manually set min/max if "
-"set or min/max values in the data otherwise."
+"Show Y-axis on the sparkline. Will display the manually set min/max if set "
+"or min/max values in the data otherwise."
 msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/components/ColumnConfigControl/ColumnConfigControl.tsx:156
@@ -14004,8 +13989,8 @@ msgstr "Mostrar Coluna"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/index.ts:56
 msgid ""
-"Show hierarchical relationships of data, with the value represented by "
-"area, showing proportion and contribution to the whole."
+"Show hierarchical relationships of data, with the value represented by area,"
+" showing proportion and contribution to the whole."
 msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/components/InfoTooltipWithTrigger.tsx:52
@@ -14084,8 +14069,8 @@ msgstr "Selecione para incluir seleção da Origem do tempo"
 #: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/controls/metrics.tsx:107
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:367
 msgid ""
-"Show total aggregations of selected metrics. Note that row limit does not"
-" apply to the result."
+"Show total aggregations of selected metrics. Note that row limit does not "
+"apply to the result."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/controls/metrics.tsx:105
@@ -14095,35 +14080,34 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/index.ts:30
 msgid ""
-"Showcases a single metric front-and-center. Big number is best used to "
-"call attention to a KPI or the one thing you want your audience to focus "
-"on."
+"Showcases a single metric front-and-center. Big number is best used to call "
+"attention to a KPI or the one thing you want your audience to focus on."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/index.ts:32
 msgid ""
 "Showcases a single number accompanied by a simple line chart, to call "
-"attention to an important metric along with its change over time or other"
-" dimension."
+"attention to an important metric along with its change over time or other "
+"dimension."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/index.ts:54
 msgid ""
-"Showcases how a metric changes as the funnel progresses. This classic "
-"chart is useful for visualizing drop-off between stages in a pipeline or "
+"Showcases how a metric changes as the funnel progresses. This classic chart "
+"is useful for visualizing drop-off between stages in a pipeline or "
 "lifecycle."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-chord/src/index.js:28
 msgid ""
-"Showcases the flow or link between categories using thickness of chords. "
-"The value and corresponding thickness can be different for each side."
+"Showcases the flow or link between categories using thickness of chords. The"
+" value and corresponding thickness can be different for each side."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bullet/index.js:28
 msgid ""
-"Showcases the progress of a single metric against a given target. The "
-"higher the fill, the closer the metric is to the target."
+"Showcases the progress of a single metric against a given target. The higher"
+" the fill, the closer the metric is to the target."
 msgstr ""
 
 #: superset-frontend/src/explore/components/DatasourcePanel/index.tsx:399
@@ -14239,8 +14223,8 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/SmoothLine/index.ts:65
 msgid ""
-"Smooth-line is a variation of the line chart. Without angles and hard "
-"edges, Smooth-line sometimes looks smarter and more professional."
+"Smooth-line is a variation of the line chart. Without angles and hard edges,"
+" Smooth-line sometimes looks smarter and more professional."
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:689
@@ -14489,8 +14473,8 @@ msgstr ""
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:551
 msgid ""
-"Specify the database version. This should be used with Presto in order to"
-" enable query cost estimation."
+"Specify the database version. This should be used with Presto in order to "
+"enable query cost estimation."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:226
@@ -14603,8 +14587,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:104
 msgid ""
-"Start y-axis at zero. Uncheck to start y-axis at minimum value in the "
-"data."
+"Start y-axis at zero. Uncheck to start y-axis at minimum value in the data."
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:81
@@ -14662,10 +14645,10 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/index.ts:56
 msgid ""
-"Stepped-line graph (also called step chart) is a variation of line chart "
-"but with the line forming a series of steps between data points. A step "
-"chart can be useful when you want to show the changes that occur at "
-"irregular intervals."
+"Stepped-line graph (also called step chart) is a variation of line chart but"
+" with the line forming a series of steps between data points. A step chart "
+"can be useful when you want to show the changes that occur at irregular "
+"intervals."
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/RunQueryActionButton/index.tsx:46
@@ -14868,16 +14851,15 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/index.ts:55
 msgid ""
-"Swiss army knife for visualizing data. Choose between step, line, "
-"scatter, and bar charts. This viz type has many customization options as "
-"well."
+"Swiss army knife for visualizing data. Choose between step, line, scatter, "
+"and bar charts. This viz type has many customization options as well."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/index.ts:58
 msgid ""
 "Swiss army knife for visualizing time series data. Choose between step, "
-"line, scatter, and bar charts. This viz type has many customization "
-"options as well."
+"line, scatter, and bar charts. This viz type has many customization options "
+"as well."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:211
@@ -14977,8 +14959,8 @@ msgstr "Vista de tabela"
 #: superset/datasets/commands/exceptions.py:147
 #, python-format
 msgid ""
-"Table [%(table_name)s] could not be found, please double check your "
-"database connection, schema, and table name"
+"Table [%(table_name)s] could not be found, please double check your database"
+" connection, schema, and table name"
 msgstr ""
 "Tabela [{}] não encontrada, por favor verifique conexão à base de dados, "
 "esquema e nome da tabela"
@@ -15087,8 +15069,8 @@ msgstr "Estado"
 
 #: superset-frontend/plugins/legacy-plugin-chart-histogram/src/index.js:29
 msgid ""
-"Take your data points, and group them into \"bins\" to see where the "
-"densest areas of information lie"
+"Take your data points, and group them into \"bins\" to see where the densest"
+" areas of information lie"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-chord/src/controlPanel.ts:70
@@ -15122,17 +15104,16 @@ msgstr "Nome do modelo"
 
 #: superset-frontend/src/visualizations/TimeTable/controlPanel.js:52
 msgid ""
-"Templated link, it's possible to include {{ metric }} or other values "
-"coming from the controls."
+"Templated link, it's possible to include {{ metric }} or other values coming"
+" from the controls."
 msgstr ""
 "Ligação predefinida, é possível incluir {{ metric }} ou outros valores "
 "provenientes dos controlos."
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:327
 msgid ""
-"Terminate running queries when browser window closed or navigated to "
-"another page. Available for Presto, Hive, MySQL, Postgres and Snowflake "
-"databases."
+"Terminate running queries when browser window closed or navigated to another"
+" page. Available for Presto, Hive, MySQL, Postgres and Snowflake databases."
 msgstr ""
 
 #: superset/templates/superset/models/database/macros.html:22
@@ -15166,8 +15147,8 @@ msgstr ""
 
 #: superset/views/dashboard/mixin.py:52
 msgid ""
-"The CSS for individual dashboards can be altered here, or in the "
-"dashboard view where changes are immediately visible"
+"The CSS for individual dashboards can be altered here, or in the dashboard "
+"view where changes are immediately visible"
 msgstr ""
 "O css para dashboards individuais pode ser alterado aqui ou na vista de "
 "dashboard, onde as mudanças são imediatamente visíveis"
@@ -15175,8 +15156,8 @@ msgstr ""
 #: superset/errors.py:124
 msgid ""
 "The CTAS (create table as select) doesn't have a SELECT statement at the "
-"end. Please make sure your query has a SELECT as its last statement. "
-"Then, try running your query again."
+"end. Please make sure your query has a SELECT as its last statement. Then, "
+"try running your query again."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Geojson/index.js:27
@@ -15195,10 +15176,8 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/ControlPanelsContainer.tsx:315
 msgid ""
-"The X-axis is not on the filters list which will prevent it from being "
-"used in\n"
-"            time range filters in dashboards. Would you like to add it to"
-" the filters list?"
+"The X-axis is not on the filters list which will prevent it from being used in\n"
+"            time range filters in dashboards. Would you like to add it to the filters list?"
 msgstr ""
 
 #: superset/views/core.py:373
@@ -15217,8 +15196,8 @@ msgstr "Dashboard gravado com sucesso."
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:75
 msgid ""
-"The category of source nodes used to assign colors. If a node is "
-"associated with more than one category, only the first will be used."
+"The category of source nodes used to assign colors. If a node is associated "
+"with more than one category, only the first will be used."
 msgstr ""
 
 #: superset/common/query_context_processor.py:585
@@ -15233,13 +15212,9 @@ msgstr "Origem de dados %(name)s já existe"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Pie/index.ts:58
 msgid ""
-"The classic. Great for showing how much of a company each investor gets, "
-"what demographics follow your blog, or what portion of the budget goes to"
-" the military industrial complex.\n"
+"The classic. Great for showing how much of a company each investor gets, what demographics follow your blog, or what portion of the budget goes to the military industrial complex.\n"
 "\n"
-"        Pie charts can be difficult to interpret precisely. If clarity of"
-" relative proportion is important, consider using a bar or other chart "
-"type instead."
+"        Pie charts can be difficult to interpret precisely. If clarity of relative proportion is important, consider using a bar or other chart type instead."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:266
@@ -15283,20 +15258,19 @@ msgstr "Esta origem de dados parece ter sido excluída"
 #: superset/connectors/sqla/views.py:114
 msgid ""
 "The data type that was inferred by the database. It may be necessary to "
-"input a type manually for expression-defined columns in some cases. In "
-"most case users should not need to alter this."
+"input a type manually for expression-defined columns in some cases. In most "
+"case users should not need to alter this."
 msgstr ""
 "O tipo de dados que foi inferido pela base de dados. Pode ser necessário "
-"inserir um tipo manualmente para colunas definidas por expressões em "
-"alguns casos. A maioria dos casos não requer alteração por parte do "
-"utilizador."
+"inserir um tipo manualmente para colunas definidas por expressões em alguns "
+"casos. A maioria dos casos não requer alteração por parte do utilizador."
 
 #: superset-frontend/src/pages/DatabaseList/index.tsx:529
 #, python-format
 msgid ""
 "The database %s is linked to %s charts that appear on %s dashboards and "
-"users have %s SQL Lab tabs using this database open. Are you sure you "
-"want to continue? Deleting the database will break those objects."
+"users have %s SQL Lab tabs using this database open. Are you sure you want "
+"to continue? Deleting the database will break those objects."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:198
@@ -15340,9 +15314,8 @@ msgstr "Visualização %(id)s não encontrada"
 #: superset-frontend/src/pages/DatasetList/index.tsx:724
 #, python-format
 msgid ""
-"The dataset %s is linked to %s charts that appear on %s dashboards. Are "
-"you sure you want to continue? Deleting the dataset will break those "
-"objects."
+"The dataset %s is linked to %s charts that appear on %s dashboards. Are you "
+"sure you want to continue? Deleting the dataset will break those objects."
 msgstr ""
 
 #: superset-frontend/src/components/Chart/Chart.jsx:88
@@ -15380,8 +15353,8 @@ msgstr "Origem de dados"
 
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:371
 msgid ""
-"The description can be displayed as widget headers in the dashboard view."
-" Supports markdown."
+"The description can be displayed as widget headers in the dashboard view. "
+"Supports markdown."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:108
@@ -15391,8 +15364,8 @@ msgstr ""
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:946
 #, fuzzy
 msgid ""
-"The duration of time in seconds before the cache is invalidated. Set to "
-"-1 to bypass the cache."
+"The duration of time in seconds before the cache is invalidated. Set to -1 "
+"to bypass the cache."
 msgstr "O número de segundos antes de expirar a cache"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:348
@@ -15455,27 +15428,28 @@ msgstr "O id da visualização ativa"
 
 #: superset/connectors/sqla/views.py:325
 msgid ""
-"The list of charts associated with this table. By altering this "
-"datasource, you may change how these associated charts behave. Also note "
-"that charts need to point to a datasource, so this form will fail at "
-"saving if removing charts from a datasource. If you want to change the "
-"datasource for a chart, overwrite the chart from the 'explore view'"
+"The list of charts associated with this table. By altering this datasource, "
+"you may change how these associated charts behave. Also note that charts "
+"need to point to a datasource, so this form will fail at saving if removing "
+"charts from a datasource. If you want to change the datasource for a chart, "
+"overwrite the chart from the 'explore view'"
 msgstr ""
-"A lista de visualizações associadas a esta tabela. Ao alterar a origem de"
-" dados, o comportamento das visualizações associadas poderá ser alterado."
-" Observe também que as visualizações tem que apontar para uma origem de "
-"dados, este formulário falhará na poupança se forem removidas "
-"visualizações da origem de dados. Se quiser alterar a origem de dados de "
-"uma visualização, atualize a visualização na \"vista de exploração\""
+"A lista de visualizações associadas a esta tabela. Ao alterar a origem de "
+"dados, o comportamento das visualizações associadas poderá ser alterado. "
+"Observe também que as visualizações tem que apontar para uma origem de "
+"dados, este formulário falhará na poupança se forem removidas visualizações "
+"da origem de dados. Se quiser alterar a origem de dados de uma visualização,"
+" atualize a visualização na \"vista de exploração\""
 
 #: superset-frontend/plugins/legacy-plugin-chart-event-flow/src/controlPanel.tsx:129
-msgid "The maximum number of events to return, equivalent to the number of rows"
+msgid ""
+"The maximum number of events to return, equivalent to the number of rows"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:172
 msgid ""
-"The maximum number of subdivisions of each group; lower values are pruned"
-" first"
+"The maximum number of subdivisions of each group; lower values are pruned "
+"first"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/controlPanel.tsx:50
@@ -15498,8 +15472,7 @@ msgstr ""
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:505
 msgid ""
-"The metadata_params object gets unpacked into the sqlalchemy.MetaData "
-"call."
+"The metadata_params object gets unpacked into the sqlalchemy.MetaData call."
 msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:82
@@ -15509,17 +15482,16 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:216
 #: superset-frontend/src/explore/controlPanels/sections.tsx:164
 msgid ""
-"The minimum number of rolling periods required to show a value. For "
-"instance if you do a cumulative sum on 7 days you may want your \"Min "
-"Period\" to be 7, so that all data points shown are the total of 7 "
-"periods. This will hide the \"ramp up\" taking place over the first 7 "
-"periods"
+"The minimum number of rolling periods required to show a value. For instance"
+" if you do a cumulative sum on 7 days you may want your \"Min Period\" to be"
+" 7, so that all data points shown are the total of 7 periods. This will hide"
+" the \"ramp up\" taking place over the first 7 periods"
 msgstr ""
-"O número mínimo de períodos de rolamento necessários para mostrar um "
-"valor. Por exemplo, numa soma cumulativa de 7 dias é possível que o "
-"\"Período Mínimo\" seja 7, de forma a que todos os pontos de dados "
-"mostrados sejam o total de 7 períodos. Esta opção esconde a "
-"\"aceleração\" que ocorre nos primeiros 7 períodos"
+"O número mínimo de períodos de rolamento necessários para mostrar um valor. "
+"Por exemplo, numa soma cumulativa de 7 dias é possível que o \"Período "
+"Mínimo\" seja 7, de forma a que todos os pontos de dados mostrados sejam o "
+"total de 7 períodos. Esta opção esconde a \"aceleração\" que ocorre nos "
+"primeiros 7 períodos"
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:134
 msgid "The number color \"steps\""
@@ -15527,24 +15499,24 @@ msgstr ""
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:955
 msgid ""
-"The number of hours, negative or positive, to shift the time column. This"
-" can be used to move UTC time to local time."
+"The number of hours, negative or positive, to shift the time column. This "
+"can be used to move UTC time to local time."
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:301
 #, python-format
 msgid ""
-"The number of results displayed is limited to %(rows)d by the "
-"configuration DISPLAY_MAX_ROW. Please add additional limits/filters or "
-"download to csv to see more rows up to the %(limit)d limit."
+"The number of results displayed is limited to %(rows)d by the configuration "
+"DISPLAY_MAX_ROW. Please add additional limits/filters or download to csv to "
+"see more rows up to the %(limit)d limit."
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:307
 #, python-format
 msgid ""
 "The number of results displayed is limited to %(rows)d. Please add "
-"additional limits/filters, download to csv, or contact an admin to see "
-"more rows up to the %(limit)d limit."
+"additional limits/filters, download to csv, or contact an admin to see more "
+"rows up to the %(limit)d limit."
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:358
@@ -15554,7 +15526,8 @@ msgstr ""
 
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:327
 #, python-format
-msgid "The number of rows displayed is limited to %(rows)d by the limit dropdown."
+msgid ""
+"The number of rows displayed is limited to %(rows)d by the limit dropdown."
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:319
@@ -15565,8 +15538,8 @@ msgstr ""
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:332
 #, python-format
 msgid ""
-"The number of rows displayed is limited to %(rows)d by the query and "
-"limit dropdown."
+"The number of rows displayed is limited to %(rows)d by the query and limit "
+"dropdown."
 msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/sections.tsx:81
@@ -15582,7 +15555,8 @@ msgstr "Nome da tabela que existe na base de dados de origem"
 #: superset/sqllab/query_render.py:94
 #, python-format
 msgid "The parameter %(parameters)s in your query is undefined."
-msgid_plural "The following parameters in your query are undefined: %(parameters)s."
+msgid_plural ""
+"The following parameters in your query are undefined: %(parameters)s."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -15599,8 +15573,8 @@ msgstr ""
 msgid ""
 "The passwords for the databases below are needed in order to import them "
 "together with the charts. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
+"\"Certificate\" sections of the database configuration are not present in "
+"export files, and should be added manually after the import if they are "
 "needed."
 msgstr ""
 
@@ -15608,8 +15582,8 @@ msgstr ""
 msgid ""
 "The passwords for the databases below are needed in order to import them "
 "together with the dashboards. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
+"\"Certificate\" sections of the database configuration are not present in "
+"export files, and should be added manually after the import if they are "
 "needed."
 msgstr ""
 
@@ -15617,26 +15591,26 @@ msgstr ""
 msgid ""
 "The passwords for the databases below are needed in order to import them "
 "together with the datasets. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
+"\"Certificate\" sections of the database configuration are not present in "
+"export files, and should be added manually after the import if they are "
 "needed."
 msgstr ""
 
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:56
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the saved queries. Please note that the \"Secure Extra\" "
-"and \"Certificate\" sections of the database configuration are not "
-"present in export files, and should be added manually after the import if"
-" they are needed."
+"together with the saved queries. Please note that the \"Secure Extra\" and "
+"\"Certificate\" sections of the database configuration are not present in "
+"export files, and should be added manually after the import if they are "
+"needed."
 msgstr ""
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1339
 msgid ""
-"The passwords for the databases below are needed in order to import them."
-" Please note that the \"Secure Extra\" and \"Certificate\" sections of "
-"the database configuration are not present in explore files and should be"
-" added manually after the import if they are needed."
+"The passwords for the databases below are needed in order to import them. "
+"Please note that the \"Secure Extra\" and \"Certificate\" sections of the "
+"database configuration are not present in explore files and should be added "
+"manually after the import if they are needed."
 msgstr ""
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:304
@@ -15647,8 +15621,7 @@ msgstr ""
 msgid ""
 "The periodicity over which to pivot time. Users can provide\n"
 "            \"Pandas\" offset alias.\n"
-"            Click on the info bubble for more details on accepted "
-"\"freq\" expressions."
+"            Click on the info bubble for more details on accepted \"freq\" expressions."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:122
@@ -15657,9 +15630,9 @@ msgstr ""
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1155
 msgid ""
-"The pointer to a physical table (or view). Keep in mind that the chart is"
-" associated to this Superset logical table, and this logical table points"
-" the physical table referenced here."
+"The pointer to a physical table (or view). Keep in mind that the chart is "
+"associated to this Superset logical table, and this logical table points the"
+" physical table referenced here."
 msgstr ""
 
 #: superset/errors.py:109
@@ -15684,11 +15657,11 @@ msgstr ""
 msgid "The query associated with the results was deleted."
 msgstr ""
 
-#: superset/sqllab/commands/export.py:63 superset/sqllab/commands/results.py:91
-#: superset/views/core.py:2198
+#: superset/sqllab/commands/export.py:63
+#: superset/sqllab/commands/results.py:91 superset/views/core.py:2198
 msgid ""
-"The query associated with these results could not be found. You need to "
-"re-run the original query."
+"The query associated with these results could not be found. You need to re-"
+"run the original query."
 msgstr ""
 
 #: superset/sqllab/query_render.py:115
@@ -15702,8 +15675,8 @@ msgstr "Não foi possível carregar a query"
 #: superset/sqllab/commands/estimate.py:86
 #, python-format
 msgid ""
-"The query estimation was killed after %(sqllab_timeout)s seconds. It "
-"might be too complex, or the database might be under heavy load."
+"The query estimation was killed after %(sqllab_timeout)s seconds. It might "
+"be too complex, or the database might be under heavy load."
 msgstr ""
 
 #: superset/errors.py:135
@@ -15723,16 +15696,16 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:97
 msgid ""
-"The radius (in pixels) the algorithm uses to define a cluster. Choose 0 "
-"to turn off clustering, but beware that a large number of points (>1000) "
-"will cause lag."
+"The radius (in pixels) the algorithm uses to define a cluster. Choose 0 to "
+"turn off clustering, but beware that a large number of points (>1000) will "
+"cause lag."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:120
 msgid ""
-"The radius of individual points (ones that are not in a cluster). Either "
-"a numerical column or `Auto`, which scales the point based on the largest"
-" cluster"
+"The radius of individual points (ones that are not in a cluster). Either a "
+"numerical column or `Auto`, which scales the point based on the largest "
+"cluster"
 msgstr ""
 
 #: superset-frontend/src/reports/actions/reports.js:110
@@ -15746,8 +15719,8 @@ msgstr ""
 
 #: superset/errors.py:138
 msgid ""
-"The results stored in the backend were stored in a different format, and "
-"no longer can be deserialized."
+"The results stored in the backend were stored in a different format, and no "
+"longer can be deserialized."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:226
@@ -15759,15 +15732,15 @@ msgstr ""
 #: superset/db_engine_specs/bigquery.py:203
 #, python-format
 msgid ""
-"The schema \"%(schema)s\" does not exist. A valid schema must be used to "
-"run this query."
+"The schema \"%(schema)s\" does not exist. A valid schema must be used to run"
+" this query."
 msgstr ""
 
 #: superset/db_engine_specs/presto.py:673
 #, python-format
 msgid ""
-"The schema \"%(schema_name)s\" does not exist. A valid schema must be "
-"used to run this query."
+"The schema \"%(schema_name)s\" does not exist. A valid schema must be used "
+"to run this query."
 msgstr ""
 
 #: superset/errors.py:117
@@ -15781,8 +15754,8 @@ msgstr ""
 #: superset/datasets/commands/exceptions.py:72
 #: superset/views/datasource/views.py:90
 msgid ""
-"The submitted URL is not considered safe, only use URLs with the same "
-"domain as Superset."
+"The submitted URL is not considered safe, only use URLs with the same domain"
+" as Superset."
 msgstr ""
 
 #: superset/errors.py:120
@@ -15796,25 +15769,24 @@ msgstr ""
 #: superset/db_engine_specs/bigquery.py:190
 #, python-format
 msgid ""
-"The table \"%(table)s\" does not exist. A valid table must be used to run"
-" this query."
+"The table \"%(table)s\" does not exist. A valid table must be used to run "
+"this query."
 msgstr ""
 
 #: superset/db_engine_specs/presto.py:665
 #, python-format
 msgid ""
-"The table \"%(table_name)s\" does not exist. A valid table must be used "
-"to run this query."
+"The table \"%(table_name)s\" does not exist. A valid table must be used to "
+"run this query."
 msgstr ""
 
 #: superset/connectors/sqla/views.py:422
 msgid ""
-"The table was created. As part of this two-phase configuration process, "
-"you should now click the edit button by the new table to configure it."
+"The table was created. As part of this two-phase configuration process, you "
+"should now click the edit button by the new table to configure it."
 msgstr ""
 "A tabela foi criada. Como parte deste processo de configuração de duas "
-"fases, deve agora clicar no botão Editar, na nova tabela, para "
-"configurá-lo."
+"fases, deve agora clicar no botão Editar, na nova tabela, para configurá-lo."
 
 #: superset/errors.py:106
 msgid "The table was deleted or renamed in the database."
@@ -15823,44 +15795,43 @@ msgstr ""
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:237
 #: superset-frontend/src/explore/controls.jsx:281
 msgid ""
-"The time column for the visualization. Note that you can define arbitrary"
-" expression that return a DATETIME column in the table. Also note that "
-"the filter below is applied against this column or expression"
+"The time column for the visualization. Note that you can define arbitrary "
+"expression that return a DATETIME column in the table. Also note that the "
+"filter below is applied against this column or expression"
 msgstr ""
 "A coluna de tempo para a visualização. Note que é possível definir uma "
-"expressão arbitrária que resolve uma coluna DATATEMPO na tabela ou. "
-"Observe também que o filtro em baixo é aplicado sobre esta coluna ou "
-"expressão"
+"expressão arbitrária que resolve uma coluna DATATEMPO na tabela ou. Observe "
+"também que o filtro em baixo é aplicado sobre esta coluna ou expressão"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:177
 msgid ""
-"The time granularity for the visualization. Note that you can type and "
-"use simple natural language as in `10 seconds`, `1 day` or `56 weeks`"
+"The time granularity for the visualization. Note that you can type and use "
+"simple natural language as in `10 seconds`, `1 day` or `56 weeks`"
 msgstr ""
-"O tempo de granularidade para a visualização. Observe que você pode "
-"digitar e usar linguagem natural simples, em inglês, como `10 seconds`, "
-"`1 day` ou `56 weeks`"
+"O tempo de granularidade para a visualização. Observe que você pode digitar "
+"e usar linguagem natural simples, em inglês, como `10 seconds`, `1 day` ou "
+"`56 weeks`"
 
 #: superset-frontend/src/explore/controls.jsx:271
 #, fuzzy
 msgid ""
-"The time granularity for the visualization. Note that you can type and "
-"use simple natural language as in `10 seconds`,`1 day` or `56 weeks`"
+"The time granularity for the visualization. Note that you can type and use "
+"simple natural language as in `10 seconds`,`1 day` or `56 weeks`"
 msgstr ""
-"O tempo de granularidade para a visualização. Observe que você pode "
-"digitar e usar linguagem natural simples, em inglês, como `10 seconds`, "
-"`1 day` ou `56 weeks`"
+"O tempo de granularidade para a visualização. Observe que você pode digitar "
+"e usar linguagem natural simples, em inglês, como `10 seconds`, `1 day` ou "
+"`56 weeks`"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:200
 #: superset-frontend/src/explore/controls.jsx:310
 msgid ""
 "The time granularity for the visualization. This applies a date "
-"transformation to alter your time column and defines a new time "
-"granularity. The options here are defined on a per database engine basis "
-"in the Superset source code."
+"transformation to alter your time column and defines a new time granularity."
+" The options here are defined on a per database engine basis in the Superset"
+" source code."
 msgstr ""
-"A granularidade temporal para a visualização. Aplica uma transformação de"
-" data para alterar a coluna de tempo e define uma nova granularidade "
+"A granularidade temporal para a visualização. Aplica uma transformação de "
+"data para alterar a coluna de tempo e define uma nova granularidade "
 "temporal. As opções são definidas por base de dados no código-fonte do "
 "Superset."
 
@@ -15868,12 +15839,12 @@ msgstr ""
 #: superset-frontend/src/explore/controls.jsx:327
 msgid ""
 "The time range for the visualization. All relative times, e.g. \"Last "
-"month\", \"Last 7 days\", \"now\", etc. are evaluated on the server using"
-" the server's local time (sans timezone). All tooltips and placeholder "
-"times are expressed in UTC (sans timezone). The timestamps are then "
-"evaluated by the database using the engine's local timezone. Note one can"
-" explicitly set the timezone per the ISO 8601 format if specifying either"
-" the start and/or end time."
+"month\", \"Last 7 days\", \"now\", etc. are evaluated on the server using "
+"the server's local time (sans timezone). All tooltips and placeholder times "
+"are expressed in UTC (sans timezone). The timestamps are then evaluated by "
+"the database using the engine's local timezone. Note one can explicitly set "
+"the timezone per the ISO 8601 format if specifying either the start and/or "
+"end time."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:69
@@ -15901,7 +15872,8 @@ msgid "The user seems to have been deleted"
 msgstr "O utilizador parece ter sido eliminado"
 
 #: superset/db_engine_specs/ocient.py:251
-msgid "The user/password combination is not valid (Incorrect password for user)."
+msgid ""
+"The user/password combination is not valid (Incorrect password for user)."
 msgstr ""
 
 #: superset/db_engine_specs/ocient.py:246
@@ -15966,20 +15938,20 @@ msgstr "Existem alterações por gravar."
 
 #: superset/errors.py:101
 msgid ""
-"There is a syntax error in the SQL query. Perhaps there was a misspelling"
-" or a typo."
+"There is a syntax error in the SQL query. Perhaps there was a misspelling or"
+" a typo."
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/MissingChart.jsx:31
 msgid ""
-"There is no chart definition associated with this component, could it "
-"have been deleted?"
+"There is no chart definition associated with this component, could it have "
+"been deleted?"
 msgstr ""
 
 #: superset-frontend/src/dashboard/actions/dashboardLayout.js:182
 msgid ""
-"There is not enough space for this component. Try decreasing its width, "
-"or increasing the destination width."
+"There is not enough space for this component. Try decreasing its width, or "
+"increasing the destination width."
 msgstr ""
 
 #: superset-frontend/src/features/datasets/hooks/useDatasetLists.ts:66
@@ -16154,11 +16126,11 @@ msgstr ""
 
 #: superset/viz.py:1915
 msgid ""
-"There's a loop in your Sankey, please provide a tree. Here's a faulty "
-"link: {}"
+"There's a loop in your Sankey, please provide a tree. Here's a faulty link: "
+"{}"
 msgstr ""
-"Há um loop no gráfico Sankey, por favor, forneça uma ligação correta. "
-"Aqui está a conexão defeituosa: {}"
+"Há um loop no gráfico Sankey, por favor, forneça uma ligação correta. Aqui "
+"está a conexão defeituosa: {}"
 
 #: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:386
 msgid "These are the tables this filter will be applied to."
@@ -16171,9 +16143,8 @@ msgstr ""
 #: superset/views/chart/mixin.py:63
 msgid ""
 "These parameters are generated dynamically when clicking the save or "
-"overwrite button in the explore view. This JSON object is exposed here "
-"for reference and for power users who may want to alter specific "
-"parameters."
+"overwrite button in the explore view. This JSON object is exposed here for "
+"reference and for power users who may want to alter specific parameters."
 msgstr ""
 "Os parâmetros são gerados dinamicamente ao clicar no botão Guardar ou "
 "Substituir na vista de exibição. Este objeto JSON é exposto aqui para "
@@ -16184,8 +16155,8 @@ msgstr ""
 #: superset/views/dashboard/mixin.py:58
 msgid ""
 "This JSON object is generated dynamically when clicking the save or "
-"overwrite button in the dashboard view. It is exposed here for reference "
-"and for power users who may want to alter specific parameters."
+"overwrite button in the dashboard view. It is exposed here for reference and"
+" for power users who may want to alter specific parameters."
 msgstr ""
 "Este objeto JSON é gerado dinamicamente ao clicar no botão salvar ou "
 "substituir na exibição do painel. É exposto aqui para referência e para "
@@ -16218,8 +16189,8 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/SliceHeader/index.tsx:245
 msgid ""
-"This chart applies cross-filters to charts whose datasets contain columns"
-" with the same name."
+"This chart applies cross-filters to charts whose datasets contain columns "
+"with the same name."
 msgstr ""
 
 #: superset-frontend/src/dashboard/actions/dashboardLayout.js:260
@@ -16231,7 +16202,8 @@ msgid "This chart is managed externally, and can't be edited in Superset"
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/utils.ts:61
-msgid "This chart might be incompatible with the filter (datasets don't match)"
+msgid ""
+"This chart might be incompatible with the filter (datasets don't match)"
 msgstr ""
 
 #: superset-frontend/src/explore/components/ExploreChartPanel/index.jsx:321
@@ -16258,22 +16230,20 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:600
 msgid ""
 "This controls whether the \"time_range\" field from the current\n"
-"                  view should be passed down to the chart containing the "
-"annotation data."
+"                  view should be passed down to the chart containing the annotation data."
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:618
 msgid ""
 "This controls whether the time grain field from the current\n"
-"                  view should be passed down to the chart containing the "
-"annotation data."
+"                  view should be passed down to the chart containing the annotation data."
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/Header/index.jsx:320
 #, python-format
 msgid ""
-"This dashboard is currently auto refreshing; the next auto refresh will "
-"be in %s."
+"This dashboard is currently auto refreshing; the next auto refresh will be "
+"in %s."
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:658
@@ -16282,9 +16252,9 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/PublishedStatus/index.jsx:38
 msgid ""
-"This dashboard is not published which means it will not show up in the "
-"list of dashboards. Favorite it to see it there or access it by using the"
-" URL directly."
+"This dashboard is not published which means it will not show up in the list "
+"of dashboards. Favorite it to see it there or access it by using the URL "
+"directly."
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/PublishedStatus/index.jsx:33
@@ -16309,14 +16279,14 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/DashboardEmbedControls.tsx:168
 msgid ""
-"This dashboard is ready to embed. In your application, pass the following"
-" id to the SDK:"
+"This dashboard is ready to embed. In your application, pass the following id"
+" to the SDK:"
 msgstr ""
 
 #: superset/views/core.py:1353
 msgid ""
-"This dashboard was changed recently. Please reload dashboard to get "
-"latest version."
+"This dashboard was changed recently. Please reload dashboard to get latest "
+"version."
 msgstr ""
 
 #: superset-frontend/src/dashboard/actions/dashboardState.js:313
@@ -16357,8 +16327,8 @@ msgid ""
 "This fields acts a Superset view, meaning that Superset will run a query "
 "against this string as a subquery."
 msgstr ""
-"Este campo atua como uma vista do Superset, o que significa que o "
-"Superset vai correr uma query desta string como uma subquery."
+"Este campo atua como uma vista do Superset, o que significa que o Superset "
+"vai correr uma query desta string como uma subquery."
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterSets/FiltersHeader.tsx:109
 msgid "This filter doesn't exist in dashboard. It will not be applied."
@@ -16374,35 +16344,36 @@ msgid "This filter set is identical to: \"%s\""
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:75
-msgid "This functionality is disabled in your environment for security reasons."
+msgid ""
+"This functionality is disabled in your environment for security reasons."
 msgstr ""
 
 #: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:456
 msgid ""
-"This is the condition that will be added to the WHERE clause. For "
-"example, to only return rows for a particular client, you might define a "
-"regular filter with the clause `client_id = 9`. To display no rows unless"
-" a user belongs to a RLS filter role, a base filter can be created with "
-"the clause `1 = 0` (always false)."
+"This is the condition that will be added to the WHERE clause. For example, "
+"to only return rows for a particular client, you might define a regular "
+"filter with the clause `client_id = 9`. To display no rows unless a user "
+"belongs to a RLS filter role, a base filter can be created with the clause "
+"`1 = 0` (always false)."
 msgstr ""
 
 #: superset/views/dashboard/mixin.py:46
 msgid ""
-"This json object describes the positioning of the widgets in the "
-"dashboard. It is dynamically generated when adjusting the widgets size "
-"and positions by using drag & drop in the dashboard view"
+"This json object describes the positioning of the widgets in the dashboard. "
+"It is dynamically generated when adjusting the widgets size and positions by"
+" using drag & drop in the dashboard view"
 msgstr ""
-"Este objeto JSON descreve o posicionamento das visualizações no "
-"dashboard. É gerado dinamicamente quando se ajusta a dimensão e "
-"posicionamento de uma visualização utilizando o drag & drop na vista de "
-"dashboard"
+"Este objeto JSON descreve o posicionamento das visualizações no dashboard. É"
+" gerado dinamicamente quando se ajusta a dimensão e posicionamento de uma "
+"visualização utilizando o drag & drop na vista de dashboard"
 
 #: superset-frontend/src/dashboard/components/gridComponents/Markdown.jsx:85
 msgid "This markdown component has an error."
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/gridComponents/Markdown.jsx:203
-msgid "This markdown component has an error. Please revert your recent changes."
+msgid ""
+"This markdown component has an error. Please revert your recent changes."
 msgstr ""
 
 #: superset-frontend/src/components/ErrorMessage/DatabaseErrorMessage.tsx:47
@@ -16429,8 +16400,8 @@ msgid ""
 "This section contains options that allow for advanced analytical post "
 "processing of query results"
 msgstr ""
-"Esta seção contém opções que permitem o pós-processamento analítico "
-"avançado de resultados da query"
+"Esta seção contém opções que permitem o pós-processamento analítico avançado"
+" de resultados da query"
 
 #: superset-frontend/src/explore/components/ControlPanelsContainer.tsx:583
 msgid "This section contains validation errors"
@@ -16438,9 +16409,9 @@ msgstr ""
 
 #: superset-frontend/src/embedded/index.tsx:109
 msgid ""
-"This session has encountered an interruption, and some controls may not "
-"work as intended. If you are the developer of this app, please check that"
-" the guest token is being generated correctly."
+"This session has encountered an interruption, and some controls may not work"
+" as intended. If you are the developer of this app, please check that the "
+"guest token is being generated correctly."
 msgstr ""
 
 #: superset-frontend/src/features/datasets/AddDataset/DatasetPanel/DatasetPanel.tsx:234
@@ -16449,8 +16420,8 @@ msgstr ""
 
 #: superset-frontend/src/features/datasets/AddDataset/DatasetPanel/DatasetPanel.tsx:224
 msgid ""
-"This table already has a dataset associated with it. You can only "
-"associate one dataset with a table.\n"
+"This table already has a dataset associated with it. You can only associate "
+"one dataset with a table.\n"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:88
@@ -16750,8 +16721,8 @@ msgstr "Série Temporal - Gráfico de barras"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/index.ts:64
 msgid ""
 "Time-series Area chart are similar to line chart in that they represent "
-"variables with the same scale, but area charts stack the metrics on top "
-"of each other. An area chart in Superset can be stream, stack, or expand."
+"variables with the same scale, but area charts stack the metrics on top of "
+"each other. An area chart in Superset can be stream, stack, or expand."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/index.ts:82
@@ -16766,8 +16737,8 @@ msgstr "Série Temporal - Gráfico de barras"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/index.ts:68
 msgid ""
-"Time-series Bar Charts are used to show the changes in a metric over time"
-" as a series of bars."
+"Time-series Bar Charts are used to show the changes in a metric over time as"
+" a series of bars."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/index.ts:68
@@ -16797,9 +16768,9 @@ msgstr "Tabela de séries temporais"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Scatter/index.ts:68
 msgid ""
-"Time-series Scatter Plot has time on the horizontal axis in linear units,"
-" and the points are connected in order. It shows a statistical "
-"relationship between two variables."
+"Time-series Scatter Plot has time on the horizontal axis in linear units, "
+"and the points are connected in order. It shows a statistical relationship "
+"between two variables."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/SmoothLine/index.ts:80
@@ -16809,9 +16780,8 @@ msgstr "Tabela de séries temporais"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/SmoothLine/index.ts:68
 msgid ""
-"Time-series Smooth-line is a variation of the line chart. Without angles "
-"and hard edges, Smooth-line sometimes looks smarter and more "
-"professional."
+"Time-series Smooth-line is a variation of the line chart. Without angles and"
+" hard edges, Smooth-line sometimes looks smarter and more professional."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/index.ts:71
@@ -16821,10 +16791,10 @@ msgstr "Tabela de séries temporais"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/index.ts:59
 msgid ""
-"Time-series Stepped-line graph (also called step chart) is a variation of"
-" line chart but with the line forming a series of steps between data "
-"points. A step chart can be useful when you want to show the changes that"
-" occur at irregular intervals."
+"Time-series Stepped-line graph (also called step chart) is a variation of "
+"line chart but with the line forming a series of steps between data points. "
+"A step chart can be useful when you want to show the changes that occur at "
+"irregular intervals."
 msgstr ""
 
 #: superset-frontend/src/visualizations/TimeTable/index.ts:27
@@ -16833,10 +16803,10 @@ msgstr "Tabela de séries temporais"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Line/index.ts:69
 msgid ""
-"Time-series line chart is used to visualize repeated measurements taken "
-"over regular time intervals. Line chart is a type of chart which displays"
-" information as a series of data points connected by straight line "
-"segments. It is a basic type of chart common in many fields."
+"Time-series line chart is used to visualize repeated measurements taken over"
+" regular time intervals. Line chart is a type of chart which displays "
+"information as a series of data points connected by straight line segments. "
+"It is a basic type of chart common in many fields."
 msgstr ""
 
 #: superset-frontend/src/components/ErrorMessage/TimeoutErrorMessage.tsx:98
@@ -17070,7 +17040,8 @@ msgid "Truncate long cells to the \"min width\" set above"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/components/DateFunctionTooltip.tsx:58
-msgid "Truncates the specified date to the accuracy specified by the date unit."
+msgid ""
+"Truncates the specified date to the accuracy specified by the date unit."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberViz.tsx:194
@@ -17167,7 +17138,8 @@ msgid "URL slug"
 msgstr ""
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:618
-msgid "Unable to add a new tab to the backend. Please contact your administrator."
+msgid ""
+"Unable to add a new tab to the backend. Please contact your administrator."
 msgstr ""
 
 #: superset/db_engine_specs/presto.py:704
@@ -17184,9 +17156,9 @@ msgstr ""
 
 #: superset/db_engine_specs/bigquery.py:178
 msgid ""
-"Unable to connect. Verify that the following roles are set on the service"
-" account: \"BigQuery Data Viewer\", \"BigQuery Metadata Viewer\", "
-"\"BigQuery Job User\" and the following permissions are set "
+"Unable to connect. Verify that the following roles are set on the service "
+"account: \"BigQuery Data Viewer\", \"BigQuery Metadata Viewer\", \"BigQuery "
+"Job User\" and the following permissions are set "
 "\"bigquery.readsessions.create\", \"bigquery.readsessions.getData\""
 msgstr ""
 
@@ -17215,20 +17187,20 @@ msgstr ""
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:585
 msgid ""
-"Unable to migrate query editor state to backend. Superset will retry "
-"later. Please contact your administrator if this problem persists."
+"Unable to migrate query editor state to backend. Superset will retry later. "
+"Please contact your administrator if this problem persists."
 msgstr ""
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:539
 msgid ""
-"Unable to migrate query state to backend. Superset will retry later. "
-"Please contact your administrator if this problem persists."
+"Unable to migrate query state to backend. Superset will retry later. Please "
+"contact your administrator if this problem persists."
 msgstr ""
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:521
 msgid ""
-"Unable to migrate table schema state to backend. Superset will retry "
-"later. Please contact your administrator if this problem persists."
+"Unable to migrate table schema state to backend. Superset will retry later. "
+"Please contact your administrator if this problem persists."
 msgstr ""
 
 #: superset-frontend/src/explore/components/ExploreChartHeader/index.jsx:126
@@ -17238,23 +17210,22 @@ msgstr ""
 #: superset/views/database/views.py:278
 #, python-format
 msgid ""
-"Unable to upload CSV file \"%(filename)s\" to table \"%(table_name)s\" in"
-" database \"%(db_name)s\". Error message: %(error_msg)s"
+"Unable to upload CSV file \"%(filename)s\" to table \"%(table_name)s\" in "
+"database \"%(db_name)s\". Error message: %(error_msg)s"
 msgstr ""
 
 #: superset/views/database/views.py:556
 #, python-format
 msgid ""
-"Unable to upload Columnar file \"%(filename)s\" to table "
-"\"%(table_name)s\" in database \"%(db_name)s\". Error message: "
-"%(error_msg)s"
+"Unable to upload Columnar file \"%(filename)s\" to table \"%(table_name)s\" "
+"in database \"%(db_name)s\". Error message: %(error_msg)s"
 msgstr ""
 
 #: superset/views/database/views.py:415
 #, python-format
 msgid ""
-"Unable to upload Excel file \"%(filename)s\" to table \"%(table_name)s\" "
-"in database \"%(db_name)s\". Error message: %(error_msg)s"
+"Unable to upload Excel file \"%(filename)s\" to table \"%(table_name)s\" in "
+"database \"%(db_name)s\". Error message: %(error_msg)s"
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/SaveQuery/index.tsx:92
@@ -17515,8 +17486,8 @@ msgstr ""
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx:137
 msgid ""
-"Use the JSON file you automatically downloaded when creating your service"
-" account."
+"Use the JSON file you automatically downloaded when creating your service "
+"account."
 msgstr ""
 
 #: superset/templates/superset/fab_overrides/list_with_checkboxes.html:82
@@ -17539,16 +17510,16 @@ msgstr ""
 
 #: superset/views/dynamic_plugins.py:48
 msgid ""
-"Used internally to identify the plugin. Should be set to the package name"
-" from the pluginʼs package.json"
+"Used internally to identify the plugin. Should be set to the package name "
+"from the pluginʼs package.json"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/index.ts:56
 msgid ""
 "Used to summarize a set of data by grouping together multiple statistics "
-"along two axes. Examples: Sales numbers by region and month, tasks by "
-"status and assignee, active users by age and location. Not the most "
-"visually stunning visualization, but highly informative and versatile."
+"along two axes. Examples: Sales numbers by region and month, tasks by status"
+" and assignee, active users by age and location. Not the most visually "
+"stunning visualization, but highly informative and versatile."
 msgstr ""
 
 #: superset-frontend/src/features/home/RightMenu.tsx:474
@@ -17595,24 +17566,24 @@ msgstr "Nome do país"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Heatmap/index.ts:27
 msgid ""
-"Uses Gaussian Kernel Density Estimation to visualize spatial distribution"
-" of data"
+"Uses Gaussian Kernel Density Estimation to visualize spatial distribution of"
+" data"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/index.ts:45
 msgid ""
-"Uses a gauge to showcase progress of a metric towards a target. The "
-"position of the dial represents the progress and the terminal value in "
-"the gauge represents the target value."
+"Uses a gauge to showcase progress of a metric towards a target. The position"
+" of the dial represents the progress and the terminal value in the gauge "
+"represents the target value."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-sunburst/src/index.js:28
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/index.ts:41
 msgid ""
 "Uses circles to visualize the flow of data through different stages of a "
-"system. Hover over individual paths in the visualization to understand "
-"the stages a value took. Useful for multi-stage, multi-group visualizing "
-"funnels and pipelines."
+"system. Hover over individual paths in the visualization to understand the "
+"stages a value took. Useful for multi-stage, multi-group visualizing funnels"
+" and pipelines."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:54
@@ -17668,8 +17639,8 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DependencyList.tsx:207
 msgid ""
-"Values selected in other filters will affect the filter options to only "
-"show relevant values"
+"Values selected in other filters will affect the filter options to only show"
+" relevant values"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/index.js:39
@@ -17778,8 +17749,8 @@ msgstr ""
 msgid "Virtual dataset"
 msgstr "Editar Base de Dados"
 
-#: superset/connectors/sqla/models.py:921 superset/connectors/sqla/utils.py:110
-#: superset/models/helpers.py:1079
+#: superset/connectors/sqla/models.py:921
+#: superset/connectors/sqla/utils.py:110 superset/models/helpers.py:1079
 msgid "Virtual dataset query cannot be empty"
 msgstr ""
 
@@ -17806,55 +17777,54 @@ msgstr "Tipo de Visualização"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/index.ts:56
 msgid ""
-"Visualize a parallel set of metrics across multiple groups. Each group is"
-" visualized using its own line of points and each metric is represented "
-"as an edge in the chart."
+"Visualize a parallel set of metrics across multiple groups. Each group is "
+"visualized using its own line of points and each metric is represented as an"
+" edge in the chart."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/index.js:30
 msgid ""
 "Visualize a related metric across pairs of groups. Heatmaps excel at "
-"showcasing the correlation or strength between two groups. Color is used "
-"to emphasize the strength of the link between each pair of groups."
+"showcasing the correlation or strength between two groups. Color is used to "
+"emphasize the strength of the link between each pair of groups."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Grid/index.js:27
 msgid ""
-"Visualize geospatial data like 3D buildings, landscapes, or objects in "
-"grid view."
+"Visualize geospatial data like 3D buildings, landscapes, or objects in grid "
+"view."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/index.js:31
 msgid ""
-"Visualize how a metric changes over time using bars. Add a group by "
-"column to visualize group level metrics and how they change over time."
+"Visualize how a metric changes over time using bars. Add a group by column "
+"to visualize group level metrics and how they change over time."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/index.ts:35
 msgid ""
-"Visualize multiple levels of hierarchy using a familiar tree-like "
-"structure."
+"Visualize multiple levels of hierarchy using a familiar tree-like structure."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/index.ts:65
 msgid ""
-"Visualize two different series using the same x-axis. Note that both "
-"series can be visualized with a different chart type (e.g. 1 using bars "
-"and 1 using a line)."
+"Visualize two different series using the same x-axis. Note that both series "
+"can be visualized with a different chart type (e.g. 1 using bars and 1 using"
+" a line)."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/index.ts:68
 msgid ""
-"Visualize two different time series using the same x-axis. Note that each"
-" time series can be visualized differently (e.g. 1 using bars and 1 using"
-" a line)."
+"Visualize two different time series using the same x-axis. Note that each "
+"time series can be visualized differently (e.g. 1 using bars and 1 using a "
+"line)."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bubble/index.js:28
 msgid ""
 "Visualizes a metric across three dimensions of data in a single chart (X "
-"axis, Y axis, and bubble size). Bubbles from the same group can be "
-"showcased using bubble color."
+"axis, Y axis, and bubble size). Bubbles from the same group can be showcased"
+" using bubble color."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Path/index.js:27
@@ -17863,14 +17833,14 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Polygon/index.js:27
 msgid ""
-"Visualizes geographic areas from your data as polygons on a Mapbox "
-"rendered map. Polygons can be colored using a metric."
+"Visualizes geographic areas from your data as polygons on a Mapbox rendered "
+"map. Polygons can be colored using a metric."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/index.js:28
 msgid ""
-"Visualizes how a metric has changed over a time using a color scale and a"
-" calendar view. Gray values are used to indicate missing values and the "
+"Visualizes how a metric has changed over a time using a color scale and a "
+"calendar view. Gray values are used to indicate missing values and the "
 "linear color scheme is used to encode the magnitude of each day's value."
 msgstr ""
 
@@ -17884,17 +17854,15 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:28
 msgid ""
-"Visualizes many different time-series objects in a single chart. This "
-"chart is being deprecated and we recommend using the Time-series Chart "
-"instead."
+"Visualizes many different time-series objects in a single chart. This chart "
+"is being deprecated and we recommend using the Time-series Chart instead."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-sankey/src/index.js:29
 msgid ""
-"Visualizes the flow of different group's values through different stages "
-"of a system. New stages in the pipeline are visualized as nodes or "
-"layers. The thickness of the bars or edges represent the metric being "
-"visualized."
+"Visualizes the flow of different group's values through different stages of "
+"a system. New stages in the pipeline are visualized as nodes or layers. The "
+"thickness of the bars or edges represent the metric being visualized."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-word-cloud/src/plugin/index.ts:35
@@ -17937,8 +17905,8 @@ msgstr "Mensagem de Aviso"
 
 #: superset-frontend/src/components/Datasource/ChangeDatasourceModal.tsx:47
 msgid ""
-"Warning! Changing the dataset may break the chart if the metadata does "
-"not exist."
+"Warning! Changing the dataset may break the chart if the metadata does not "
+"exist."
 msgstr ""
 
 #: superset/databases/commands/exceptions.py:157
@@ -17949,8 +17917,8 @@ msgstr "Rótulo para a sua query"
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1523
 msgid ""
-"We are unable to connect to your database. Click \"See more\" for "
-"database-provided information that may help troubleshoot the issue."
+"We are unable to connect to your database. Click \"See more\" for database-"
+"provided information that may help troubleshoot the issue."
 msgstr ""
 
 #: superset/db_engine_specs/bigquery.py:198
@@ -17989,8 +17957,8 @@ msgstr ""
 #: superset/db_engine_specs/redshift.py:94
 #, python-format
 msgid ""
-"We were unable to connect to your database named \"%(database)s\". Please"
-" verify your database name and try again."
+"We were unable to connect to your database named \"%(database)s\". Please "
+"verify your database name and try again."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Arc/index.js:33
@@ -18053,22 +18021,22 @@ msgstr "Altura"
 #: superset-frontend/src/components/ErrorMessage/TimeoutErrorMessage.tsx:52
 #, fuzzy, python-format
 msgid ""
-"We’re having trouble loading these results. Queries are set to timeout "
-"after %s second."
+"We’re having trouble loading these results. Queries are set to timeout after"
+" %s second."
 msgid_plural ""
-"We’re having trouble loading these results. Queries are set to timeout "
-"after %s seconds."
+"We’re having trouble loading these results. Queries are set to timeout after"
+" %s seconds."
 msgstr[0] ""
 msgstr[1] ""
 
 #: superset-frontend/src/components/ErrorMessage/TimeoutErrorMessage.tsx:46
 #, fuzzy, python-format
 msgid ""
-"We’re having trouble loading this visualization. Queries are set to "
-"timeout after %s second."
+"We’re having trouble loading this visualization. Queries are set to timeout "
+"after %s second."
 msgid_plural ""
-"We’re having trouble loading this visualization. Queries are set to "
-"timeout after %s seconds."
+"We’re having trouble loading this visualization. Queries are set to timeout "
+"after %s seconds."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -18088,8 +18056,8 @@ msgstr "Origem de dados %(name)s já existe"
 
 #: superset-frontend/src/explore/controls.jsx:434
 msgid ""
-"When `Calculation type` is set to \"Percentage change\", the Y Axis "
-"Format is forced to `.1%`"
+"When `Calculation type` is set to \"Percentage change\", the Y Axis Format "
+"is forced to `.1%`"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-sunburst/src/controlPanel.ts:86
@@ -18102,8 +18070,8 @@ msgid ""
 "When allowing CREATE TABLE AS option in SQL Lab, this option forces the "
 "table to be created in this schema"
 msgstr ""
-"Ao permitir a opção CREATE TABLE AS no SQL Lab, esta opção força a tabela"
-" a ser criada neste esquema"
+"Ao permitir a opção CREATE TABLE AS no SQL Lab, esta opção força a tabela a "
+"ser criada neste esquema"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:100
 msgid "When checked, the map will zoom to your data after each query"
@@ -18115,23 +18083,24 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-sunburst/src/controlPanel.ts:76
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:172
-msgid "When only a primary metric is provided, a categorical color scale is used."
+msgid ""
+"When only a primary metric is provided, a categorical color scale is used."
 msgstr ""
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1089
 msgid ""
-"When specifying SQL, the datasource acts as a view. Superset will use "
-"this statement as a subquery while grouping and filtering on the "
-"generated parent queries."
+"When specifying SQL, the datasource acts as a view. Superset will use this "
+"statement as a subquery while grouping and filtering on the generated parent"
+" queries."
 msgstr ""
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:888
 msgid ""
-"When using \"Autocomplete filters\", this can be used to improve "
-"performance of the query fetching the values. Use this option to apply a "
-"predicate (WHERE clause) to the query selecting the distinct values from "
-"the table. Typically the intent would be to limit the scan by applying a "
-"relative time filter on a partitioned or indexed time-related field."
+"When using \"Autocomplete filters\", this can be used to improve performance"
+" of the query fetching the values. Use this option to apply a predicate "
+"(WHERE clause) to the query selecting the distinct values from the table. "
+"Typically the intent would be to limit the scan by applying a relative time "
+"filter on a partitioned or indexed time-related field."
 msgstr ""
 
 #: superset/viz.py:891
@@ -18147,7 +18116,8 @@ msgid "When using this option, default value can’t be set"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:254
-msgid "Whether the progress bar overlaps when there are multiple groups of data"
+msgid ""
+"Whether the progress bar overlaps when there are multiple groups of data"
 msgstr ""
 
 #: superset/connectors/sqla/views.py:362
@@ -18156,14 +18126,14 @@ msgstr ""
 
 #: superset/connectors/sqla/views.py:110
 msgid ""
-"Whether this column is exposed in the `Filters` section of the explore "
-"view."
-msgstr "Se esta coluna está exposta na seção `Filtros` da vista de exploração."
+"Whether this column is exposed in the `Filters` section of the explore view."
+msgstr ""
+"Se esta coluna está exposta na seção `Filtros` da vista de exploração."
 
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:445
 msgid ""
-"Whether to align background charts with both positive and negative values"
-" at 0"
+"Whether to align background charts with both positive and negative values at"
+" 0"
 msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/components/ColumnConfigControl/constants.tsx:117
@@ -18179,7 +18149,8 @@ msgid "Whether to animate the progress and the value or just display them"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:331
-msgid "Whether to apply a normal distribution based on rank on the color scale"
+msgid ""
+"Whether to apply a normal distribution based on rank on the color scale"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Polygon/controlPanel.ts:166
@@ -18223,8 +18194,8 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:97
 msgid ""
-"Whether to display the labels. Note that the label only displays when the"
-" 5% threshold."
+"Whether to display the labels. Note that the label only displays when the 5%"
+" threshold."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:161
@@ -18316,8 +18287,8 @@ msgstr ""
 
 #: superset/connectors/sqla/views.py:105
 msgid ""
-"Whether to make this column available as a [Time Granularity] option, "
-"column has to be DATETIME or DATETIME-like"
+"Whether to make this column available as a [Time Granularity] option, column"
+" has to be DATETIME or DATETIME-like"
 msgstr ""
 "Para se disponibilizar esta coluna como uma opção [Time Granularity], a "
 "coluna deve ser DATETIME ou DATETIME"
@@ -18333,17 +18304,16 @@ msgstr "Incluir um filtro temporal"
 #: superset/connectors/sqla/views.py:357
 msgid ""
 "Whether to populate the filter's dropdown in the explore view's filter "
-"section with a list of distinct values fetched from the backend on the "
-"fly"
+"section with a list of distinct values fetched from the backend on the fly"
 msgstr ""
-"Preencher a lista de filtros, na vista de exploração, com valores "
-"distintos carregados em tempo real a partir do backend"
+"Preencher a lista de filtros, na vista de exploração, com valores distintos "
+"carregados em tempo real a partir do backend"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:170
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/controlPanel.tsx:129
 msgid ""
-"Whether to show extra controls or not. Extra controls include things like"
-" making mulitBar charts stacked or side by side."
+"Whether to show extra controls or not. Extra controls include things like "
+"making mulitBar charts stacked or side by side."
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:203
@@ -18687,9 +18657,8 @@ msgstr ""
 
 #: superset-frontend/src/pages/ChartList/index.tsx:100
 msgid ""
-"You are importing one or more charts that already exist. Overwriting "
-"might cause you to lose some of your work. Are you sure you want to "
-"overwrite?"
+"You are importing one or more charts that already exist. Overwriting might "
+"cause you to lose some of your work. Are you sure you want to overwrite?"
 msgstr ""
 
 #: superset-frontend/src/pages/DashboardList/index.tsx:69
@@ -18708,16 +18677,15 @@ msgstr ""
 
 #: superset-frontend/src/features/datasets/constants.ts:30
 msgid ""
-"You are importing one or more datasets that already exist. Overwriting "
-"might cause you to lose some of your work. Are you sure you want to "
-"overwrite?"
+"You are importing one or more datasets that already exist. Overwriting might"
+" cause you to lose some of your work. Are you sure you want to overwrite?"
 msgstr ""
 
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:63
 msgid ""
-"You are importing one or more saved queries that already exist. "
-"Overwriting might cause you to lose some of your work. Are you sure you "
-"want to overwrite?"
+"You are importing one or more saved queries that already exist. Overwriting "
+"might cause you to lose some of your work. Are you sure you want to "
+"overwrite?"
 msgstr ""
 
 #: superset/views/core.py:2213
@@ -18744,17 +18712,14 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/SliceAdder.jsx:386
 msgid ""
-"You can choose to display all charts that you have access to or only the "
-"ones you own.\n"
-"              Your filter selection will be saved and remain active until"
-" you choose to change it."
+"You can choose to display all charts that you have access to or only the ones you own.\n"
+"              Your filter selection will be saved and remain active until you choose to change it."
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/DashboardGrid.jsx:195
 #: superset-frontend/src/dashboard/components/DashboardGrid.jsx:218
 msgid ""
-"You can create a new chart or use existing ones from the panel on the "
-"right"
+"You can create a new chart or use existing ones from the panel on the right"
 msgstr ""
 
 #: superset-frontend/src/explore/components/ExploreChartHeader/index.jsx:183
@@ -18886,16 +18851,16 @@ msgstr "Existem alterações por gravar."
 #: superset-frontend/src/dashboard/actions/dashboardState.js:650
 #, python-format
 msgid ""
-"You have used all %(historyLength)s undo slots and will not be able to "
-"fully undo subsequent actions. You may save your current state to reset "
-"the history."
+"You have used all %(historyLength)s undo slots and will not be able to fully"
+" undo subsequent actions. You may save your current state to reset the "
+"history."
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DatasourceControl/index.jsx:300
 #: superset-frontend/src/pages/DatasetList/index.tsx:464
 msgid ""
-"You must be a dataset owner in order to edit. Please reach out to a "
-"dataset owner to request modifications or edit access."
+"You must be a dataset owner in order to edit. Please reach out to a dataset "
+"owner to request modifications or edit access."
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/SaveModal.tsx:152
@@ -18912,9 +18877,8 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/ExploreChartPanel/index.jsx:349
 msgid ""
-"You updated the values in the control panel, but the chart was not "
-"updated automatically. Run the query by clicking on the \"Update chart\" "
-"button or"
+"You updated the values in the control panel, but the chart was not updated "
+"automatically. Run the query by clicking on the \"Update chart\" button or"
 msgstr ""
 
 #: superset-frontend/src/explore/components/ControlPanelsContainer.tsx:669
@@ -18992,11 +18956,13 @@ msgstr "[Nome do dashboard]"
 
 #: superset/viz.py:2323
 msgid "[Longitude] and [Latitude] columns must be present in [Group By]"
-msgstr "As colunas [Longitude] e [Latitude] devem estar presentes em [Agrupar por]"
+msgstr ""
+"As colunas [Longitude] e [Latitude] devem estar presentes em [Agrupar por]"
 
 #: superset/viz.py:2273
 msgid "[Longitude] and [Latitude] must be set"
-msgstr "As colunas [Longitude] e [Latitude] devem estar presentes em [Agrupar por]"
+msgstr ""
+"As colunas [Longitude] e [Latitude] devem estar presentes em [Agrupar por]"
 
 #: superset/explore/commands/get.py:121 superset/views/core.py:892
 #, fuzzy
@@ -19033,8 +18999,8 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:165
 msgid ""
 "[optional] this secondary metric is used to define the color as a ratio "
-"against the primary metric. When omitted, the color is categorical and "
-"based on labels"
+"against the primary metric. When omitted, the color is categorical and based"
+" on labels"
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal.tsx:273
@@ -19057,8 +19023,8 @@ msgstr ""
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:166
 msgid ""
 "`count` is COUNT(*) if a group by is used. Numerical columns will be "
-"aggregated with the aggregator. Non-numerical columns will be used to "
-"label points. Leave empty to get a count of points in each cluster."
+"aggregated with the aggregator. Non-numerical columns will be used to label "
+"points. Leave empty to get a count of points in each cluster."
 msgstr ""
 
 #: superset/common/query_object.py:436
@@ -19917,8 +19883,8 @@ msgstr ""
 
 #: superset/utils/pandas_postprocessing/boxplot.py:88
 msgid ""
-"percentiles must be a list or tuple with two numeric values, of which the"
-" first is lower than the second value"
+"percentiles must be a list or tuple with two numeric values, of which the "
+"first is lower than the second value"
 msgstr ""
 
 #: superset/views/core.py:1958
@@ -20030,9 +19996,8 @@ msgstr "Séries"
 
 #: superset-frontend/plugins/legacy-plugin-chart-horizon/src/controlPanel.ts:90
 msgid ""
-"series: Treat each series independently; overall: All series use the same"
-" scale; change: Show changes compared to the first data point in each "
-"series"
+"series: Treat each series independently; overall: All series use the same "
+"scale; change: Show changes compared to the first data point in each series"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-word-cloud/src/plugin/controlPanel.ts:88
@@ -20145,8 +20110,8 @@ msgstr ""
 
 #: superset/charts/schemas.py:750
 msgid ""
-"upper percentile must be greater than 0 and less than 100. Must be higher"
-" than lower percentile."
+"upper percentile must be greater than 0 and less than 100. Must be higher "
+"than lower percentile."
 msgstr ""
 
 #: superset-frontend/src/explore/constants.ts:85
