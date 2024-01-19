@@ -3,9 +3,7 @@ name: Docker
 on:
   push:
     branches:
-      - 'master'
-  pull_request:
-    types: [synchronize, opened, reopened, ready_for_review]
+      - "master"
 
 jobs:
   config:
